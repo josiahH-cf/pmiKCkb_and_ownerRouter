@@ -1,0 +1,46 @@
+{
+  "name": "pmi-kc-kb",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PMI KC KB internal source-backed knowledge base scaffold.",
+  "engines": {
+    "node": ">=20.19.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "format": "prettier --check .",
+    "format:check": "prettier --check .",
+    "format:write": "prettier --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "bash scripts/verify.sh",
+    "verify:router-boundary": "node scripts/check-router-boundary.mjs"
+  },
+  "dependencies": {
+    "firebase": "^12.13.0",
+    "firebase-admin": "^13.10.0",
+    "next": "16.2.6",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "zod": "4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.1",
+    "eslint-config-next": "16.2.6",
+    "prettier": "3.7.3",
+    "typescript": "5.9.3",
+    "vitest": "4.0.14"
+  },
+  "overrides": {
+    "postcss": "8.5.10",
+    "uuid": "11.1.1"
+  }
+}

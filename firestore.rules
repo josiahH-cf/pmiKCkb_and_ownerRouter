@@ -1,0 +1,40 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function role() {
+      return request.auth.token.role;
+    }
+
+    function editorOrBetter() {
+      return role() in ['Editor', 'Approver', 'Admin'];
+    }
+
+    function approverOrAdmin() {
+      return role() in ['Approver', 'Admin'];
+    }
+
+    function admin() {
+      return role() == 'Admin';
+    }
+
+    match /{document=**} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update: if signedIn() && editorOrBetter();
+      allow delete: if false;
+    }
+
+    match /users/{userId} {
+      allow write: if signedIn() && admin();
+    }
+
+    match /change_log/{changeId} {
+      allow create: if signedIn() && editorOrBetter();
+      allow update, delete: if false;
+    }
+  }
+}

@@ -1,0 +1,200 @@
+:root {
+  /* Primary - PMI navy */
+  --color-primary-900: #0e2a4a;
+  --color-primary-700: #1b3a5c;
+  --color-primary-500: #2c5282;
+  --color-primary-100: #e6eef7;
+
+  /* Accent - PMI gold */
+  --color-accent-700: #a47b2a;
+  --color-accent-500: #c49b3e;
+  --color-accent-100: #f6ebd0;
+
+  /* Source-state semantic colors */
+  --state-verified: #2f855a;
+  --state-partial: #c49b3e;
+  --state-placeholder: #2c5282;
+  --state-conflict: #b7791f;
+  --state-no-source: #9b2c2c;
+
+  /* Neutrals */
+  --color-bg: #ffffff;
+  --color-surface: #f7fafc;
+  --color-border: #e2e8f0;
+  --color-text: #1a202c;
+  --color-text-muted: #4a5568;
+
+  /* Typography */
+  --font-sans:
+    system-ui, -apple-system, "Segoe UI", roboto, "Helvetica Neue", arial, sans-serif;
+  --font-heading: var(--font-sans);
+}
+
+.topbar {
+  align-items: center;
+  background: var(--color-primary-900);
+  color: #ffffff;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  min-height: 64px;
+  padding: 0 24px;
+}
+
+.brand {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.nav {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.nav a {
+  color: #ffffff;
+  font-size: 0.95rem;
+}
+
+.nav-button {
+  background: transparent;
+  border: 1px solid rgb(255 255 255 / 0.7);
+  border-radius: 8px;
+  color: #ffffff;
+  min-height: 36px;
+  padding: 6px 12px;
+}
+
+.nav-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.user-role {
+  background: rgb(255 255 255 / 0.16);
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 5px 10px;
+}
+
+.ask-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+}
+
+.ask-form {
+  display: grid;
+  gap: 14px;
+}
+
+.ask-form label,
+.select-field {
+  color: var(--color-text);
+  display: grid;
+  font-weight: 650;
+  gap: 8px;
+}
+
+.ask-form textarea,
+.ask-form select {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text);
+  min-width: 0;
+  padding: 10px 12px;
+}
+
+.field-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.primary-button {
+  background: var(--color-primary-700);
+  border: 1px solid var(--color-primary-700);
+  border-radius: 8px;
+  color: #ffffff;
+  font-weight: 700;
+  min-height: 44px;
+  padding: 10px 16px;
+}
+
+.primary-button:disabled {
+  background: var(--color-text-muted);
+  border-color: var(--color-text-muted);
+  cursor: wait;
+}
+
+.auth-actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.auth-message {
+  background: #fff5f5;
+  border-left: 6px solid var(--state-no-source);
+  border-radius: 6px;
+  color: var(--color-text);
+  margin: 0;
+  padding: 10px 12px;
+}
+
+.result-panel {
+  align-self: start;
+  min-height: 220px;
+}
+
+.source-banner {
+  border-left: 6px solid var(--state-no-source);
+  border-radius: 6px;
+  font-weight: 750;
+  margin-bottom: 16px;
+  padding: 10px 12px;
+}
+
+.source-banner[data-state="Verified Source"] {
+  border-left-color: var(--state-verified);
+  background: #edf7f1;
+}
+
+.source-banner[data-state="Partial Source"] {
+  border-left-color: var(--state-partial);
+  background: var(--color-accent-100);
+}
+
+.source-banner[data-state="Bailey Placeholder"] {
+  border-left-color: var(--state-placeholder);
+  background: var(--color-primary-100);
+}
+
+.source-banner[data-state="Conflict Found"] {
+  border-left-color: var(--state-conflict);
+  background: #fff7e6;
+}
+
+.source-banner[data-state="No Reliable Source Found"] {
+  border-left-color: var(--state-no-source);
+  background: #fff5f5;
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    padding-bottom: 14px;
+    padding-top: 14px;
+  }
+
+  .ask-grid,
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+}
