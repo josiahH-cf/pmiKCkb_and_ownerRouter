@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { authErrorResponse, requireCapability } from "@/lib/auth/session";
+import { answerQuestion } from "@/lib/ask/service";
 import { AskRequestSchema, type AskResponse } from "@/lib/schemas";
-import { noReliableSourceResponse } from "@/lib/source-state";
 
 export async function POST(request: Request) {
+  let user;
+
   try {
-    await requireCapability("read");
+    user = await requireCapability("read");
   } catch (error) {
     return authErrorResponse(error);
   }
@@ -23,6 +25,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const response: AskResponse = noReliableSourceResponse(parsed.data.question);
+  const response: AskResponse = await answerQuestion(user, parsed.data);
   return NextResponse.json(response);
 }

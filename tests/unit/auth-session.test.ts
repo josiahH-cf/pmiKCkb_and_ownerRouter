@@ -15,9 +15,11 @@ import {
 } from "@/lib/auth/session";
 
 const originalAllowedHd = process.env.ALLOWED_HD;
+const originalDemoAuth = process.env.LOCAL_DEMO_AUTH;
 
 afterEach(() => {
   process.env.ALLOWED_HD = originalAllowedHd;
+  process.env.LOCAL_DEMO_AUTH = originalDemoAuth;
   setAuthResolverForTest(null);
   setIdTokenVerifierForTest(null);
   setSessionCookieCreatorForTest(null);
@@ -221,6 +223,19 @@ describe("Firebase session-cookie verification", () => {
     );
 
     await expect(authenticateSessionCookie("stale-auth")).rejects.toMatchObject({
+      status: 401,
+    });
+  });
+});
+
+describe("local demo auth", () => {
+  it("is disabled unless explicitly configured", async () => {
+    process.env.LOCAL_DEMO_AUTH = "false";
+    setSessionCookieVerifierForTest(() => {
+      throw new Error("not firebase");
+    });
+
+    await expect(authenticateSessionCookie("local-demo")).rejects.toMatchObject({
       status: 401,
     });
   });

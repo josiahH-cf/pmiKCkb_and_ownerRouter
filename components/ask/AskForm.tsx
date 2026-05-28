@@ -94,6 +94,36 @@ export function AskForm() {
             <SourceStateBanner state={result.source_state} />
             <h2>Answer</h2>
             <p>{result.answer}</p>
+            {result.handling_steps.length > 0 ? (
+              <>
+                <h3>Handling Steps</h3>
+                <ol>
+                  {result.handling_steps.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ol>
+              </>
+            ) : null}
+            {result.citations.length > 0 ? (
+              <>
+                <h3>Sources</h3>
+                <ul className="source-list">
+                  {result.citations.map((citation) => (
+                    <li key={citation.source_id}>
+                      <a href={citation.url} rel="noreferrer" target="_blank">
+                        {citation.title}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            {result.draft ? (
+              <>
+                <h3>Draft</h3>
+                <pre className="draft-box">{result.draft}</pre>
+              </>
+            ) : null}
             {result.escalation_owner ? (
               <p>
                 Escalation owner: <strong>{result.escalation_owner}</strong>

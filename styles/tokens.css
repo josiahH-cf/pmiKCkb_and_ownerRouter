@@ -132,6 +132,21 @@
   cursor: wait;
 }
 
+.secondary-button {
+  background: #ffffff;
+  border: 1px solid var(--color-primary-700);
+  border-radius: 8px;
+  color: var(--color-primary-700);
+  font-weight: 700;
+  min-height: 44px;
+  padding: 10px 16px;
+}
+
+.secondary-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
 .auth-actions {
   display: grid;
   gap: 12px;
@@ -150,6 +165,25 @@
 .result-panel {
   align-self: start;
   min-height: 220px;
+}
+
+.source-list {
+  padding-left: 20px;
+}
+
+.source-list a {
+  color: var(--color-primary-700);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.draft-box {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow-x: auto;
+  padding: 12px;
+  white-space: pre-wrap;
 }
 
 .source-banner {

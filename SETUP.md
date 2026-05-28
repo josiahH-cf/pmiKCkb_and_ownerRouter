@@ -3,6 +3,12 @@
 This is the repo-local setup guide for the KB scaffold. The full production runbook is
 in `docs/spec.md` Appendix B.
 
+For the current demo-first path, read:
+
+- `docs/demo-slice.md` for the first working Lease Renewals demo.
+- `docs/demo-cutover.md` for the demo-to-client environment model.
+- `docs/google-setup.md` for live Google/Firebase/Drive/Vertex/Gmail setup.
+
 ## Local
 
 ```bash
@@ -106,7 +112,8 @@ runs tests, verifies the Router boundary, and builds the app.
 
 ## Google Setup Milestone
 
-When integration work begins:
+When integration work begins, use `docs/google-setup.md` as the detailed runbook.
+The high-level order is:
 
 1. Create staging and production GCP projects.
 2. Enable Vertex AI, Discovery Engine, Firestore, Cloud Run, Identity Platform, Gmail

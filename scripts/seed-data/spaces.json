@@ -1,0 +1,74 @@
+[
+  {
+    "id": "lease-renewals",
+    "name": "Lease Renewals",
+    "process_category": "Renewals",
+    "read_only": false
+  },
+  {
+    "id": "owner-renewal-outreach",
+    "name": "Owner Renewal Outreach + Comp Lookup",
+    "process_category": "Renewals",
+    "read_only": false
+  },
+  {
+    "id": "tenant-renewal-notice",
+    "name": "Tenant Renewal Notice + DotLoop Follow-Up",
+    "process_category": "Renewals",
+    "read_only": false
+  },
+  {
+    "id": "maintenance-work-order-intake",
+    "name": "Maintenance Work Order Intake",
+    "process_category": "Maintenance",
+    "read_only": false
+  },
+  {
+    "id": "vendor-assignment-handoff",
+    "name": "Vendor Assignment Handoff",
+    "process_category": "Maintenance",
+    "read_only": false
+  },
+  {
+    "id": "daily-inbox-triage",
+    "name": "Daily Inbox Triage",
+    "process_category": "Inbox",
+    "read_only": false
+  },
+  {
+    "id": "fathom-training",
+    "name": "Fathom Training",
+    "process_category": "Training",
+    "read_only": false
+  },
+  {
+    "id": "escalation-rules",
+    "name": "Escalation Rules",
+    "process_category": "Escalation",
+    "read_only": false
+  },
+  {
+    "id": "move-in",
+    "name": "Move-In",
+    "process_category": "Move-In",
+    "read_only": false
+  },
+  {
+    "id": "move-out-deposit-disposition",
+    "name": "Move-Out + Deposit Disposition",
+    "process_category": "Move-Out",
+    "read_only": false
+  },
+  {
+    "id": "owner-onboarding",
+    "name": "Owner Onboarding",
+    "process_category": "Onboarding",
+    "read_only": false
+  },
+  {
+    "id": "owner-email",
+    "name": "Owner Email",
+    "process_category": "Owner Email",
+    "read_only": true
+  }
+]

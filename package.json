@@ -20,7 +20,8 @@
     "test:firestore": "firebase emulators:exec --only firestore --project pmi-kc-kb-test \"vitest run --config vitest.firestore.config.ts\"",
     "test:watch": "vitest",
     "verify": "bash scripts/verify.sh",
-    "verify:router-boundary": "node scripts/check-router-boundary.mjs"
+    "verify:router-boundary": "node scripts/check-router-boundary.mjs",
+    "seed:spaces": "node scripts/seed-spaces.mjs"
   },
   "dependencies": {
     "firebase": "^12.13.0",

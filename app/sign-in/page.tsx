@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { getCurrentUser } from "@/lib/auth/session";
-import { ALLOWED_HD_DEFAULT, PRODUCT_NAME } from "@/lib/constants";
+import { readServerConfig } from "@/lib/config/server";
+import { PRODUCT_NAME } from "@/lib/constants";
 
 interface SignInPageProps {
   searchParams?: Promise<{
@@ -17,7 +18,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   }
 
   const params = await searchParams;
-  const allowedHostedDomain = process.env.ALLOWED_HD?.trim() || ALLOWED_HD_DEFAULT;
+  const config = readServerConfig();
   const initialError = typeof params?.error === "string" ? params.error : null;
 
   return (
@@ -26,8 +27,9 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         <h1>{PRODUCT_NAME}</h1>
         <p>Sign in to continue.</p>
         <SignInPanel
-          allowedHostedDomain={allowedHostedDomain}
+          allowedHostedDomain={config.allowedHostedDomain}
           initialError={initialError}
+          localDemoEnabled={config.localDemoAuth}
         />
       </section>
     </main>
