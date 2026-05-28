@@ -57,7 +57,7 @@ async function main() {
       });
       if (pauseOnHuman && humanCheckpoint) {
         console.log("Complete password/MFA/consent in the opened Chrome window.");
-        await waitForAppAfterHuman(page, timeoutMs);
+        const completed = await waitForAppAfterHuman(page, timeoutMs);
         await page.screenshot({
           path: join(artifactDir, "04-after-human.png"),
           fullPage: true,
@@ -67,6 +67,11 @@ async function main() {
           url: page.url(),
           title: await page.title(),
         });
+        if (!completed) {
+          throw new Error(
+            `Human action did not complete before timeout. Last URL: ${page.url()}`,
+          );
+        }
       } else {
         console.log(
           [
@@ -127,19 +132,31 @@ function attachPageDiagnostics(page) {
 }
 
 async function clickGoogleAccountIfVisible(page, accountEmail) {
-  const accountButton = page.getByRole("button", {
-    name: new RegExp(escapeRegExp(accountEmail), "i"),
-  });
+  const accountLocators = [
+    page.getByRole("button", {
+      name: new RegExp(escapeRegExp(accountEmail), "i"),
+    }),
+    page.getByText(accountEmail, { exact: false }),
+    page.locator(`[data-email="${escapeAttributeValue(accountEmail)}"]`),
+  ];
 
-  try {
-    await accountButton.click({ timeout: 5000 });
-    record("google-account", { email: accountEmail, clicked: true });
-    await page.waitForTimeout(1000);
-    return true;
-  } catch {
-    record("google-account", { email: accountEmail, clicked: false });
-    return false;
+  for (const accountLocator of accountLocators) {
+    if ((await accountLocator.count().catch(() => 0)) === 0) {
+      continue;
+    }
+
+    try {
+      await accountLocator.first().click({ timeout: 5000 });
+      record("google-account", { email: accountEmail, clicked: true });
+      await page.waitForTimeout(1000);
+      return true;
+    } catch {
+      // Try the next locator shape Google may render for the account chooser.
+    }
   }
+
+  record("google-account", { email: accountEmail, clicked: false });
+  return false;
 }
 
 async function fillGoogleEmailIfVisible(page, accountEmail) {
@@ -212,6 +229,15 @@ async function handleGoogleStep(page) {
     return "human";
   }
 
+  if (page.url().includes("accountchooser")) {
+    humanCheckpoint = true;
+    record("human-action-required", {
+      control: "Google account chooser",
+      url: page.url(),
+    });
+    return "human";
+  }
+
   const allow = page.getByRole("button", { name: "Allow" });
   const continueButton = page.getByRole("button", { name: "Continue" });
   const nextButton = page.getByRole("button", { name: "Next" });
@@ -245,11 +271,13 @@ async function waitForAppAfterHuman(page, totalTimeoutMs) {
 
   while (Date.now() < deadline) {
     if (page.url().startsWith(baseUrl) && page.url().includes("/ask")) {
-      return;
+      return true;
     }
 
     await page.waitForTimeout(1000);
   }
+
+  return false;
 }
 
 async function isPasswordOrSecurityChallenge(page) {
@@ -260,12 +288,22 @@ async function isPasswordOrSecurityChallenge(page) {
     return true;
   }
 
-  return (
-    (await page
-      .locator('input[type="password"]')
+  const passwordSignals = await Promise.all([
+    page
+      .locator('input[type="password"], input[name="Passwd"]')
       .count()
-      .catch(() => 0)) > 0
-  );
+      .catch(() => 0),
+    page
+      .getByText("Enter your password")
+      .count()
+      .catch(() => 0),
+    page
+      .getByText("Show password")
+      .count()
+      .catch(() => 0),
+  ]);
+
+  return passwordSignals.some((count) => count > 0);
 }
 
 function findBrowserExecutable() {
@@ -345,4 +383,8 @@ function waitForUrlIncludes(page, fragment, timeout) {
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function escapeAttributeValue(value) {
+  return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }

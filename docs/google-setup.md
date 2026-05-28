@@ -114,9 +114,11 @@ Current demo-host state:
 - Authorized domains are set for `localhost`, `127.0.0.1`,
   `pmikckb-test.firebaseapp.com`, and `pmikckb-test.web.app`.
 - Google sign-in provider setup is verified by `npm run firebase:setup-auth`.
-- The remaining live-auth gate is the human Google checkpoint: password, MFA, or
-  consent. Use the `--pause-on-human` smoke command above, complete the Google screen
-  in the opened browser, then let the script confirm whether the app reaches `/ask`.
+- Live Google sign-in for `josiah.hunter@cherrybridge.ai` has been smoked through the
+  Playwright utility, and that user has the Firebase custom claim `role=Admin`.
+- If the persistent browser profile expires or Google asks for fresh verification, use
+  the `--pause-on-human` smoke command above, complete the Google screen in the opened
+  browser, then let the script confirm whether the app reaches `/ask`.
 
 If `java -version` fails, install Temurin 21 JDK on Windows:
 

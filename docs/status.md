@@ -538,6 +538,9 @@ set the first Admin claim.
   completed Google session to be reused by later smoke runs on the same host.
 - It intentionally stops at human-only Google checkpoints such as password, MFA, and
   consent unless run with `--pause-on-human`.
+- Tightened the utility to recognize Google password screens even when Google keeps an
+  account-chooser URL, click the signed-in account row, and fail paused runs that time
+  out before returning to the app.
 - Updated `docs/google-setup.md` and `tests/e2e/README.md` to make this a documented
   diagnostic smoke, not a CI e2e test.
 
@@ -546,6 +549,13 @@ Validation status:
 - `npm run smoke:auth-live` with `--email=josiah.hunter@cherrybridge.ai` and
   `--timeout-ms=90000`: passed on 2026-05-28 by reaching Google and stopping cleanly
   at the human password/MFA checkpoint.
+- `npm run smoke:auth-live` with `--email=josiah.hunter@cherrybridge.ai`,
+  `--timeout-ms=120000`, and `--pause-on-human`: passed on 2026-05-28 by reaching
+  `/ask` with the refreshed Google session.
+- `npm run firebase:set-role -- --email=josiah.hunter@cherrybridge.ai --role=Admin`:
+  passed on 2026-05-28.
+- Admin route smoke with the persistent browser profile: passed on 2026-05-28 by
+  reaching `http://localhost:3000/admin`.
 - `npm run format:check`: passed on 2026-05-28.
 - `npm run lint`: passed on 2026-05-28.
 - `npm run typecheck`: passed on 2026-05-28.
@@ -557,9 +567,8 @@ Validation status:
 
 Next recommended task:
 
-Run the live auth smoke utility with `--pause-on-human`, complete the Google
-password/MFA/consent screen in the opened browser, then set the first Admin claim after
-Firebase creates the user.
+Continue from the working real Firebase Admin session and smoke the API-backed demo
+flows against live Firestore.
 
 ## Demo Cutover Working Branch
 
