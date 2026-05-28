@@ -6,14 +6,21 @@ Open `docs/status.md`, find the next recommended task, then compare it to
 `docs/plan.md`. Work on the earliest unfinished milestone unless the user explicitly
 redirects.
 
-For the current demo-first work, start with `docs/demo-slice.md` and keep the
-environment split in `docs/demo-cutover.md` in view before adding live Google
-integration code.
+After the M3a/M3b code foundation, the next engineering task is a live Ask smoke:
+connect or create the Lease Renewals Drive folder and Vertex AI Search data store,
+seed matching `sources_meta`, run the app with `ASK_DEMO_MODE=false`, then run
+`npm run smoke:ask-live`. Keep the Lease Renewals demo path working for
+show-and-tell, but do not treat demo Ask as Spec 1 completion.
+
+For demo operations, use `docs/demo-show-and-tell.md`. For production cutover
+assumptions, keep `docs/demo-cutover.md` in view before adding live Google integration
+or deployment code.
 
 ## Keep Changes Scoped
 
 - Work inside the KB runtime only.
-- Keep Owner Router work to `docs/router-repo.md` unless the separate repo is opened.
+- Keep Owner Router work to `docs/router-repo.md` unless the separate
+  `pmi-kc-owner-router` repo is opened.
 - Prefer existing boundaries in `lib/`.
 - Add a dependency only when a milestone needs it.
 - Do not add product behavior not present in the specs.

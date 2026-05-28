@@ -10,10 +10,19 @@ workflow and should be created in its own repository when ready.
 
 ## Current Status
 
-The scaffold is ready for app development. It includes a minimal Next.js app, Firebase
-Google sign-in/session boundaries, Firestore editable-layer API boundaries, source state
-constants, a no-source Ask API for the empty Phase A state, unit/eval tests,
-documentation, and deterministic verification.
+The KB has passed the foundation, demo-slice, M3a retrieval-boundary, and M3b answer
+contract milestones. It includes Firebase Google sign-in/session boundaries,
+Firestore editable-layer APIs, live demo Firestore records for Lease Renewals, a Lease
+Renewals editable Space UI, a live-demo Approval Queue path, Vertex AI Search
+retrieval boundaries, Gemini JSON answer validation, Ask logging, Ask capture tasks,
+source-state constants, unit/eval tests, Firestore rules tests, demo reset/smoke
+scripts, and deterministic verification.
+
+Spec 1 is not launch-complete yet. The live Ask path still needs Drive folder and
+Vertex data-store IDs plus a real retrieval/Gemini smoke, all launch Spaces need the
+full editable UI, Approval Queue needs all-Space coverage and Gmail send-only
+notifications, Admin needs production observability, and final acceptance depends on a
+separate Owner Router repo for the read-only Owner Email Space.
 
 ## Prerequisites
 
@@ -49,6 +58,7 @@ npm run typecheck
 npm test
 npm run test:firestore
 npm run build
+npm run smoke:ask-live
 bash scripts/verify.sh
 ```
 
@@ -71,10 +81,12 @@ Run `npm run test:firestore` separately when Java is available on PATH.
 
 ## Next Steps
 
-1. Use `docs/demo-show-and-tell.md` for the current local client walkthrough.
-2. Use the Lease Renewals slice in `docs/demo-slice.md` as the first working demo.
-3. Complete live setup gates in `docs/google-setup.md` when real Google services are
-   needed.
-4. Add Vertex AI Search and Gemini adapters behind the existing interfaces.
-5. Add Playwright e2e tests for the critical flows once auth fixtures are present.
-6. Create the separate `pmi-kc-owner-router` repository when ready.
+1. Configure the Lease Renewals Drive folder, Vertex AI Search data store, and
+   `sources_meta`, then run `npm run smoke:ask-live` with `ASK_DEMO_MODE=false`.
+2. Keep `docs/demo-show-and-tell.md` working for the current local client walkthrough.
+3. Create the separate `pmi-kc-owner-router` repository before final KB A-16
+   verification.
+4. Expand the editable Space UI and Approval Queue from Lease Renewals to all launch
+   Spaces.
+5. Add mocked-auth Playwright e2e tests, staging Cloud Run, brand verification, and
+   final A-1 through A-17 acceptance.

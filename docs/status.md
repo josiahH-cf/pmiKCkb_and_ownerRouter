@@ -288,6 +288,57 @@ Next recommended task:
 
 Build the Space editing UI on top of the M2 API routes.
 
+## Spec 1 Audit Roadmap And Owner Router Scaffold
+
+- Date: 2026-05-28
+- Audited current KB state against Spec 1, Spec 2, Spec 3, and Spec 4.
+- Confirmed current KB state is a strong foundation/demo slice, not a completed Spec 1
+  launch app.
+- Updated `docs/plan.md` with explicit completion status for M0, M1, M2a, and the
+  Lease Renewals demo slice, plus new M3a/M3b/M4a/M4b/M5a/M5b milestones.
+- Updated `docs/implement.md` and `README.md` so future work starts with M3a live
+  retrieval instead of treating demo Ask as launch completion.
+- Updated `docs/router-repo.md` with sequencing, scaffold acceptance, and the KB
+  read-only linkage step for the Owner Email Space.
+- Created the separate sibling repo at
+  `C:\Users\josia\Documents\github-windows\pmi-kc-owner-router`.
+- Initialized the Router repo with no app runtime and added:
+  - Preserved Spec 2, Spec 3, and Spec 4 docs.
+  - `AGENTS.md`, `README.md`, `docs/plan.md`, `docs/implement.md`, and
+    `docs/status.md`.
+  - Six canonical `drive-package/` templates.
+  - Owner Router Gem system prompt and fallback prompt pack.
+  - Optional Apps Script helpers for labels, sheet headers, and health-check digest.
+  - Placeholder Gmail filter export.
+  - Acceptance checklist and historical-thread dry-run template.
+
+Validation status:
+
+- `npm run format:check`: passed on 2026-05-28.
+- `npm run verify`: passed on 2026-05-28; it reinstalled from the lockfile, checked
+  formatting, linted, typechecked, ran 66 tests, passed Router boundary verification,
+  and built the app.
+- `npm run test:firestore`: passed on 2026-05-28 with 6 Firestore Security Rules tests.
+- Router scaffold boundary scan: passed on 2026-05-28. No send/draft/API-call patterns
+  were present outside preserved specs.
+
+Open items:
+
+- KB M3a remains next: implement live Vertex AI Search retrieval boundary and
+  source-metadata filtering.
+- KB M3b remains after that: Gemini JSON validation, citation downgrades, Ask logging,
+  and Ask-to-placeholder capture.
+- The Router repo still needs Bailey/Dan-owned substantive content in the Drive files
+  and live Gmail/Drive setup.
+- KB A-16 cannot fully pass until the Router Drive folder exists and is indexed
+  read-only as the Owner Email Space.
+
+Next recommended task:
+
+Start KB M3a: implement the live Vertex AI Search retrieval boundary and
+`sources_meta` filtering while keeping the Lease Renewals demo path available for
+show-and-tell.
+
 ## Windows Google Host Setup Stabilized
 
 - Date: 2026-05-28
@@ -723,3 +774,113 @@ Open items:
 Next recommended task:
 
 Build the Space editing UI on top of the M2 API routes.
+
+## M3a Live Retrieval Boundary Foundation
+
+- Date: 2026-05-28
+- Added the official `@google-cloud/discoveryengine` client dependency.
+- Replaced the retrieval stub with a Vertex AI Search / Discovery Engine boundary that:
+  - resolves configured Space targets from `SPACE_DRIVE_FOLDER_IDS` and
+    `SPACE_VERTEX_DATA_STORE_IDS`;
+  - supports Space-scoped retrieval and all-configured-Space retrieval;
+  - calls the Search API with `autoPaginate: false`;
+  - normalizes Drive search results into KB citations;
+  - filters unusable results through Firestore `sources_meta`, excluding `Deprecated`
+    sources and `High` sensitivity sources;
+  - applies the configured grounding confidence threshold before results reach Ask.
+- Wired non-demo Ask mode through live retrieval first. Zero usable retrieval results
+  return `No Reliable Source Found` without any model call.
+- Added explicit `RetrievalSetupError` handling in `/api/ask` so missing project,
+  Drive folder, or Vertex data store config returns an Admin/setup `503` instead of
+  silently falling back.
+- Kept `ASK_DEMO_MODE=true` bypassing live retrieval so the Lease Renewals
+  show-and-tell path remains stable.
+- Added unit coverage for retrieval config validation, request construction, result
+  normalization, source-meta filtering, demo-mode bypass, no-source behavior, and Ask
+  setup errors.
+
+Validation status:
+
+- Focused retrieval/Ask route tests: passed on 2026-05-28 with 14 tests.
+- `npm run format:check`: passed on 2026-05-28.
+- `npm run lint`: passed on 2026-05-28.
+- `npm run typecheck`: passed on 2026-05-28.
+- `npm test`: passed on 2026-05-28 with 74 tests.
+- `npm run build`: passed on 2026-05-28.
+- `npm run test:firestore`: passed on 2026-05-28 with 6 Firestore Security Rules
+  tests.
+- `npm run verify`: passed on 2026-05-28; it reinstalled from the lockfile, checked
+  formatting, linted, typechecked, ran 74 tests, passed Router boundary verification,
+  and built the app.
+
+Open items:
+
+- Live Vertex AI Search has not been smoked against a real data store because
+  Drive folder IDs, Vertex data store IDs, and `sources_meta` records are not yet
+  configured for the demo project.
+- M3b remains unimplemented: Gemini strict JSON generation, citation downgrade after
+  model output, Ask logging, and Ask-to-placeholder capture.
+
+Next recommended task:
+
+Create or connect the Lease Renewals Drive folder and Vertex AI Search data store,
+seed matching `sources_meta`, set the Space config maps, and smoke one real retrieval
+query before starting M3b.
+
+## M3b Gemini Answer Contract And Ask Capture Foundation
+
+- Date: 2026-05-28
+- Added the current Google Gen AI SDK (`@google/genai`) for Vertex/Gemini answer
+  generation. Avoided the deprecated `@google-cloud/vertexai` package.
+- Added a Gemini answer boundary that:
+  - sends a strict JSON response schema;
+  - retries once after malformed JSON;
+  - validates generated answer shape with Zod;
+  - preserves the server-classified source state instead of allowing Gemini to upgrade
+    it;
+  - prepends `Draft — Review before sending` when Gemini returns a draft without the
+    required banner.
+- Wired live Ask mode through retrieval, Gemini generation, citation canonicalization,
+  and final downgrade to `No Reliable Source Found` when Gemini cites no grounded
+  source.
+- Added review-only Ask responses for `Bailey Placeholder` and `Conflict Found` states
+  so the KB does not generate a confident answer for open gaps or conflicting sources.
+- Added Firestore `ask_logs` persistence for live Ask responses.
+- Added `/api/ask/capture` and an Ask UI capture action for `Partial Source`,
+  `Bailey Placeholder`, and `No Reliable Source Found` results. Capture creates an
+  owned placeholder through the existing editable API boundary.
+- Added `npm run smoke:ask-live`, a direct local API smoke for the live Ask path once
+  the app is running with `ASK_DEMO_MODE=false` and real Drive/Vertex config.
+- Extended the 50-case eval test so every seed case executes through the Ask service
+  contract, not only the seed-file shape checks.
+
+Validation status:
+
+- `npm run typecheck`: passed on 2026-05-28.
+- `npm test`: passed on 2026-05-28 with 86 tests.
+- `npm run format:check`: passed on 2026-05-28.
+- `npm run lint`: passed on 2026-05-28.
+- `npm run build`: passed on 2026-05-28 after rerunning sequentially. An earlier
+  parallel run raced with `npm run verify`, which reinstalls dependencies and
+  temporarily removed Next's Windows SWC binary during build.
+- `npm run test:firestore`: passed on 2026-05-28 with 6 Firestore Security Rules
+  tests.
+- `npm run verify`: passed on 2026-05-28; it reinstalled from the lockfile, checked
+  formatting, linted, typechecked, ran 86 tests, passed Router boundary verification,
+  and built the app.
+- Local browser smoke: passed on 2026-05-28. Verified local demo sign-in, an
+  unsupported Ask question returning `No Reliable Source Found`, and the Ask capture
+  panel rendering without creating a placeholder.
+
+Open items:
+
+- Live Ask has not yet been smoked against a real Vertex AI Search data store because
+  the Lease Renewals Drive folder ID, data store ID, and `sources_meta` records are
+  still not configured.
+- Live browser smoke was not run for this pass because the live Drive/Vertex setup is
+  still missing; demo browser smoke remains covered by `npm run smoke:demo-live`.
+
+Next recommended task:
+
+Configure the Lease Renewals Drive/Vertex setup and run `npm run smoke:ask-live` with
+`ASK_DEMO_MODE=false`.

@@ -15,9 +15,9 @@ Use this framing:
 > visibility without writing to RentVine, LeadSimple, Gmail, Drive, DotLoop,
 > QuickBooks, Boom, or any client system of record.
 
-Do not present the demo as live Gemini/Vertex retrieval yet. Today, Ask uses a safe
-Lease Renewals demo answer when demo mode is enabled; the editable workflow writes to
-live Firestore in the demo project.
+For show-and-tell, keep demo mode enabled unless explicitly testing live Ask. The demo
+Ask response is a safe Lease Renewals answer; the editable workflow writes to live
+Firestore in the demo project.
 
 ## What Works Today
 
@@ -34,7 +34,8 @@ live Firestore in the demo project.
 
 ## What Is Still Demo Or Scaffolded
 
-- Ask does not yet call live Vertex AI Search or Gemini for retrieval/generation.
+- Demo Ask intentionally bypasses live Vertex AI Search and Gemini while
+  `ASK_DEMO_MODE=true`.
 - The Approval Queue currently covers the Lease Renewals demo records, not every future
   Space.
 - Admin shows basic environment/config status, not the final indexing-health dashboard.
@@ -199,8 +200,8 @@ npm run smoke:demo-live
 ## Demo Readiness Gaps
 
 1. Add a public deployed URL so client demos are not tied to a developer machine.
-2. Replace the demo Ask response with live Vertex AI Search + Gemini behind the current
-   citation/source-state contract.
+2. Configure and smoke the live Lease Renewals Drive folder and Vertex AI Search data
+   store with `npm run smoke:ask-live`.
 3. Expand Approval Queue beyond Lease Renewals when additional Spaces have real demo
    records.
 4. Add a visible change-log panel in the Space page so save/approve/reset history is

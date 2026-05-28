@@ -47,6 +47,10 @@ class FakeDocument {
   async get() {
     return documentSnapshot(this.db, this.path, this.id);
   }
+
+  async set(data: Record<string, unknown>) {
+    this.db.store.set(this.path, resolveSentinels(data));
+  }
 }
 
 class FakeQuery {
