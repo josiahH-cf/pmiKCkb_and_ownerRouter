@@ -21,6 +21,30 @@ npm --version
 java -version
 ```
 
+### Windows Demo Host Automation
+
+On the current Windows demo host, future agents should run the repo command instead of
+asking the user to run PowerShell manually:
+
+```bash
+npm run host:setup
+```
+
+This command uses `scripts/setup-windows-google-dev.ps1` to:
+
+- make `gcloud` discoverable after restarts through the user PATH and a WindowsApps
+  shim;
+- make Java discoverable for Firebase emulator tests through `JAVA_HOME`, user PATH,
+  and WindowsApps `java`/`javac` shims;
+- persist `GOOGLE_CLOUD_PROJECT`, `GCLOUD_PROJECT`, `GOOGLE_CLOUD_QUOTA_PROJECT`,
+  `GCP_PROJECT_ID`, and `FIREBASE_PROJECT_ID`;
+- set the active gcloud project and Application Default Credentials quota project;
+- set current-user PowerShell execution policy to `RemoteSigned`;
+- enable the common demo APIs when `-EnableApis` is used.
+
+Use `npm run host:check` to verify the same host state without creating a project. The
+known demo project on this host is `pmikckb-test`.
+
 If `java -version` fails, install Temurin 21 JDK on Windows:
 
 ```powershell

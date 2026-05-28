@@ -9,6 +9,21 @@ For the current demo-first path, read:
 - `docs/demo-cutover.md` for the demo-to-client environment model.
 - `docs/google-setup.md` for live Google/Firebase/Drive/Vertex/Gmail setup.
 
+On this Windows demo host, future agents should use the repo command below to repair
+or verify Google tooling, project selection, ADC quota project, user environment
+variables, and PowerShell script permissions without asking the user to run shell
+commands:
+
+```bash
+npm run host:setup
+```
+
+For a non-creating verification pass:
+
+```bash
+npm run host:check
+```
+
 ## Local
 
 ```bash
@@ -43,8 +58,9 @@ This command starts the local Firestore emulator through `firebase-tools`, then 
 on PATH; without Java, the command fails before tests start. Source:
 <https://firebase.google.com/docs/emulator-suite/install_and_configure>.
 
-If Java was just installed and the current shell still cannot run `java -version`,
-restart the terminal or set `JAVA_HOME` and prepend `%JAVA_HOME%\bin` for that shell.
+On Windows, this command runs through `scripts/run-firestore-tests.mjs`, which refreshes
+the user and machine PATH before starting Firebase so emulator tests do not depend on a
+terminal restart after Java installation.
 
 ## Manual Setup Gate: Live Firebase Auth
 

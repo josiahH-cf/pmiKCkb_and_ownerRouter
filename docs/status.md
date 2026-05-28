@@ -288,6 +288,45 @@ Next recommended task:
 
 Build the Space editing UI on top of the M2 API routes.
 
+## Windows Google Host Setup Stabilized
+
+- Date: 2026-05-28
+- Supersedes the earlier environment note that `gcloud` was not installed.
+- Google Cloud SDK 570.0.0 is installed for `josiah.hunter@cherrybridge.ai`.
+- Google Cloud project `pmikckb-test` was created after Terms of Service acceptance.
+- Application Default Credentials are present and have quota project `pmikckb-test`.
+- Enabled demo APIs include Cloud Resource Manager, Service Usage, Firestore,
+  Firebase, Identity Toolkit, Drive, and Gmail.
+- Added `scripts/setup-windows-google-dev.ps1` plus package commands:
+  - `npm run host:setup`
+  - `npm run host:check`
+- Persisted user-level project environment variables for restart stability:
+  `GOOGLE_CLOUD_PROJECT`, `GCLOUD_PROJECT`, `GOOGLE_CLOUD_QUOTA_PROJECT`,
+  `GCP_PROJECT_ID`, `FIREBASE_PROJECT_ID`, and `NEXT_PUBLIC_FIREBASE_PROJECT_ID`.
+- Added a user-local `gcloud.cmd` shim under WindowsApps so new PowerShell sessions can
+  resolve `gcloud`.
+- Added user-local `java.cmd` and `javac.cmd` shims under WindowsApps and persisted
+  `JAVA_HOME` to the installed Temurin 21 JDK so Firebase emulator tests do not depend
+  on a shell restart.
+- Replaced the raw Firestore emulator test command with
+  `scripts/run-firestore-tests.mjs`, which refreshes Windows user/machine PATH before
+  launching Firebase.
+- Set current-user PowerShell execution policy to `RemoteSigned`.
+- Added ignored local `.env.local` with non-secret demo defaults for this host.
+
+Validation status:
+
+- `npm run host:check`: passed on 2026-05-28.
+- `npm run test:firestore`: passed on 2026-05-28 with 6 Firestore Security Rules tests.
+- `npm run verify`: passed on 2026-05-28 after the host setup changes.
+
+Open items:
+
+- Live Firebase web app values are still unknown until Firebase is attached/configured
+  for `pmikckb-test`; local demo mode remains usable without those secrets.
+- Future agents should run `npm run host:setup` themselves instead of asking the user to
+  run PowerShell commands.
+
 ## Demo Cutover Working Branch
 
 - Date: 2026-05-28
