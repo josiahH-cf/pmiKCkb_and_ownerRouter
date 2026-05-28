@@ -8,13 +8,14 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const spaces = JSON.parse(
   readFileSync(join(root, "scripts", "seed-data", "spaces.json"), "utf8"),
 );
-const driveFolderIds = readJsonMap(process.env.SPACE_DRIVE_FOLDER_IDS);
-const vertexDataStoreIds = readJsonMap(process.env.SPACE_VERTEX_DATA_STORE_IDS);
+const localEnv = readLocalEnv();
+const driveFolderIds = readJsonMap(readEnv("SPACE_DRIVE_FOLDER_IDS"));
+const vertexDataStoreIds = readJsonMap(readEnv("SPACE_VERTEX_DATA_STORE_IDS"));
 const projectId =
-  process.env.FIREBASE_PROJECT_ID ||
-  process.env.GCP_PROJECT_ID ||
-  process.env.GOOGLE_CLOUD_PROJECT ||
-  process.env.GCLOUD_PROJECT;
+  readEnv("FIREBASE_PROJECT_ID") ||
+  readEnv("GCP_PROJECT_ID") ||
+  readEnv("GOOGLE_CLOUD_PROJECT") ||
+  readEnv("GCLOUD_PROJECT");
 
 if (!getApps().length) {
   initializeApp({
@@ -60,4 +61,36 @@ function readJsonMap(value) {
   }
 
   return parsed;
+}
+
+function readEnv(name) {
+  return process.env[name] || localEnv[name];
+}
+
+function readLocalEnv() {
+  try {
+    return Object.fromEntries(
+      readFileSync(join(root, ".env.local"), "utf8")
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith("#"))
+        .map((line) => {
+          const separator = line.indexOf("=");
+
+          if (separator === -1) {
+            return null;
+          }
+
+          const key = line.slice(0, separator).trim();
+          const value = line
+            .slice(separator + 1)
+            .trim()
+            .replace(/^"|"$/g, "");
+          return [key, value];
+        })
+        .filter(Boolean),
+    );
+  } catch {
+    return {};
+  }
 }

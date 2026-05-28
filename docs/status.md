@@ -364,6 +364,42 @@ Complete the Firebase browser consent/console attachment gate, rerun
 `npm run firebase:setup-demo`, then seed live Firestore demo records and smoke the
 API-backed Lease Renewals page.
 
+## Firebase And Firestore Demo Setup Finalized
+
+- Date: 2026-05-28
+- `npm run firebase:setup-demo` succeeded for `pmikckb-test`.
+- Firebase Web app `PMI KC KB Demo Web` exists in `pmikckb-test`, and ignored
+  `.env.local` now has the Firebase browser config.
+- Firestore Native `(default)` database exists in `pmikckb-test` at `us-central1`.
+- Deployed Firestore rules and indexes from this repo to `pmikckb-test`.
+- `npm run seed:spaces` seeded all launch Space records into live Firestore.
+- Added `scripts/seed-demo-records.mjs` and `npm run seed:demo`.
+- `npm run seed:demo` seeded the safe Lease Renewals demo SOP, template, tool, and
+  placeholder into live Firestore without overwriting existing records.
+- Updated seed scripts to read ignored `.env.local`, so they work from a fresh terminal
+  after host restart.
+- Note: there are two Google projects visible:
+  - `pmikckb-test`: the repo-configured demo project now finalized for this app.
+  - `pmikckb-test-8f927`: a separate Firebase-created project visible in project lists,
+    not currently used by this repo.
+
+Validation status:
+
+- `npm run host:check`: passed on 2026-05-28.
+- `npm run firebase:setup-demo`: passed on 2026-05-28.
+- Firestore database check: confirmed `(default)` in `us-central1`.
+- API smoke with `__session=local-demo`: returned live Firestore SOP/template/tool/
+  placeholder records.
+- Browser smoke: passed on 2026-05-28. Verified local demo sign-in, API-connected Lease
+  Renewals page, live records, and SOP Save through editable API.
+- `npm run test:firestore`: passed on 2026-05-28 with 6 Firestore Security Rules tests.
+- `npm run verify`: passed on 2026-05-28.
+
+Next recommended task:
+
+Enable and smoke real Firebase Google sign-in for the builder Workspace domain, then
+set the first Admin/Approver custom claims.
+
 ## Demo Cutover Working Branch
 
 - Date: 2026-05-28

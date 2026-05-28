@@ -144,3 +144,13 @@ The high-level order is:
 
 Do not grant Gmail read, Gmail modify, Gmail compose, Drive write, or system-of-record
 write scopes.
+
+For the current `pmikckb-test` demo host, Firebase and Firestore setup can be repaired
+or completed with:
+
+```bash
+npm run host:setup
+npm run firebase:setup-demo
+npm run seed:spaces
+npm run seed:demo
+```

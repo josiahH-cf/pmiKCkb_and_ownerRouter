@@ -59,6 +59,19 @@ consent, a human must complete the Firebase browser consent/setup once in the sa
 Google account or attach Firebase to `pmikckb-test` in the Firebase Console. Then rerun
 the same command.
 
+After Firebase is attached, create the Firestore database, deploy rules, and seed demo
+content:
+
+```bash
+gcloud firestore databases create --database='(default)' --location=us-central1 --type=firestore-native --project=pmikckb-test --quiet
+npm exec firebase -- deploy --only firestore:rules,firestore:indexes --project pmikckb-test
+npm run seed:spaces
+npm run seed:demo
+```
+
+`npm run seed:demo` creates safe Lease Renewals SOP/template/tool/placeholder records
+only when they are missing, so rerunning it does not overwrite demo edits.
+
 If `java -version` fails, install Temurin 21 JDK on Windows:
 
 ```powershell
