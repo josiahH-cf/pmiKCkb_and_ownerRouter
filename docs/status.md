@@ -504,6 +504,26 @@ Human selects `josiah.hunter@cherrybridge.ai` in Google, clicks `Allow` on the c
 screen, then the agent sets the first Admin claim and smokes `/ask` as a real Firebase
 session.
 
+## Firebase Localhost Redirect Repair
+
+- Date: 2026-05-28
+- User still saw `Google sign-in did not open` from the visible in-app browser.
+- Firebase did not create a user record for `josiah.hunter@cherrybridge.ai`, and the
+  app server showed no `/api/auth/session` POST, so the failure was before the app's
+  session-cookie exchange.
+- Browser automation confirmed the same sign-in button opens Google from
+  `http://localhost:3000/sign-in`.
+- Added a local sign-in page redirect from `http://127.0.0.1:<port>/sign-in` to
+  `http://localhost:<port>/sign-in` so the Firebase Google handoff uses the standard
+  localhost origin.
+- Verified `http://127.0.0.1:3000/sign-in` redirects to `http://localhost:3000/sign-in`.
+- Verified the Google button on `localhost` reaches Google's account chooser.
+
+Next recommended task:
+
+Continue the live sign-in from the visible Google account chooser, allow consent, then
+set the first Admin claim.
+
 ## Demo Cutover Working Branch
 
 - Date: 2026-05-28

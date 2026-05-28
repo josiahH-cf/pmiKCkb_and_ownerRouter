@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { getCurrentUser } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
@@ -11,6 +12,8 @@ interface SignInPageProps {
 }
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
+  await redirectLoopbackIpToLocalhost();
+
   const user = await getSignedInUser();
 
   if (user) {
@@ -34,6 +37,17 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
       </section>
     </main>
   );
+}
+
+async function redirectLoopbackIpToLocalhost() {
+  const host = (await headers()).get("host");
+
+  if (!host?.startsWith("127.0.0.1:")) {
+    return;
+  }
+
+  const port = host.slice("127.0.0.1:".length);
+  redirect(`http://localhost:${port}/sign-in`);
 }
 
 async function getSignedInUser() {
