@@ -87,10 +87,14 @@ Current demo-host state:
 - `pmikckb-test` is the active demo project.
 - The stray `pmikckb-test-8f927` project was deleted and may remain visible as
   `DELETE_REQUESTED` until Google finishes deletion.
-- Auth setup is blocked until a human attaches or creates a Google Cloud billing
-  account for `pmikckb-test`.
-- After billing is attached, create a Google Auth Platform Web OAuth client if one does
-  not already exist. Add the Firebase handler redirect URI:
+- Billing is linked to `pmikckb-test`.
+- Firebase Auth / Identity Platform is initialized.
+- Authorized domains are set for `localhost`, `127.0.0.1`,
+  `pmikckb-test.firebaseapp.com`, and `pmikckb-test.web.app`.
+- Google sign-in provider setup is the remaining live-auth gate. Enable Google in
+  Firebase Console > Authentication > Sign-in method, or create a Google Auth Platform
+  Web OAuth client and configure it through `npm run firebase:setup-auth`.
+- If creating the Web OAuth client manually, add the Firebase handler redirect URI:
   `https://pmikckb-test.firebaseapp.com/__/auth/handler`.
 - Store that OAuth client ID and client secret in ignored `.env.local` as
   `FIREBASE_GOOGLE_CLIENT_ID` and `FIREBASE_GOOGLE_CLIENT_SECRET`, then rerun
@@ -131,9 +135,10 @@ Sign out and sign back in after setting the claim so Firebase issues a refreshed
 
 Manual console fallback:
 
-1. Open Google Cloud Console for `pmikckb-test` and attach/create billing.
-2. Open Firebase Console > Authentication > Sign-in method.
-3. Enable Google as a provider.
+1. Open Firebase Console > Authentication > Sign-in method for `pmikckb-test`.
+2. Enable Google as a provider.
+3. If prompted for OAuth credentials, create/select a Web OAuth client in Google Auth
+   Platform with redirect URI `https://pmikckb-test.firebaseapp.com/__/auth/handler`.
 4. Confirm authorized domains include `localhost`, `127.0.0.1`,
    `pmikckb-test.firebaseapp.com`, and `pmikckb-test.web.app`.
 5. Set `ALLOWED_HD` to the demo Workspace domain.

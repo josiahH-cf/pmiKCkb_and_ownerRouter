@@ -46,8 +46,15 @@ async function main() {
 async function initializeAuth(projectId) {
   const response = await identityRequest(
     `https://identitytoolkit.googleapis.com/v2/projects/${projectId}/identityPlatform:initializeAuth`,
-    { method: "POST", allowStatuses: [409] },
+    { method: "POST", allowStatuses: [400, 409] },
   );
+
+  if (
+    response.status === 400 &&
+    !response.error?.message?.includes("Identity Platform has already been enabled")
+  ) {
+    throw new Error(JSON.stringify(response.error));
+  }
 
   return response;
 }
@@ -98,7 +105,8 @@ async function ensureGoogleProvider(projectId, clientId, clientSecret) {
       throw new Error(
         [
           "Google sign-in provider is not configured yet.",
-          "Create a Web OAuth client in Google Auth Platform, then set",
+          "Either enable Google in Firebase Console > Authentication > Sign-in method,",
+          "or create a Web OAuth client in Google Auth Platform, then set",
           "FIREBASE_GOOGLE_CLIENT_ID and FIREBASE_GOOGLE_CLIENT_SECRET in .env.local.",
         ].join(" "),
       );

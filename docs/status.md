@@ -430,6 +430,30 @@ Human attaches or creates billing for `pmikckb-test`, then the agent reruns
 `npm run firebase:setup-auth`, performs a real Google sign-in smoke, and assigns the
 first Admin claim.
 
+## Firebase Auth Billing Unblocked
+
+- Date: 2026-05-28
+- User linked billing for `pmikckb-test`.
+- Verified billing is enabled for the project.
+- Reran `npm run firebase:setup-auth`; Firebase Auth / Identity Platform initialization
+  now succeeds.
+- Verified Auth config exists with authorized domains:
+  - `127.0.0.1`
+  - `localhost`
+  - `pmikckb-test.firebaseapp.com`
+  - `pmikckb-test.web.app`
+- Google provider config for `google.com` is still missing; the admin API returns
+  `404` for `defaultSupportedIdpConfigs/google.com`.
+- `npm run firebase:setup-auth` now stops at the remaining OAuth/provider gate and asks
+  for either Firebase Console Google-provider enablement or
+  `FIREBASE_GOOGLE_CLIENT_ID` / `FIREBASE_GOOGLE_CLIENT_SECRET` in ignored `.env.local`.
+
+Next recommended task:
+
+Human enables Google provider in Firebase Console for `pmikckb-test`, then the agent
+reruns `npm run firebase:setup-auth`, performs a real Google sign-in smoke, and assigns
+the first Admin claim.
+
 ## Demo Cutover Working Branch
 
 - Date: 2026-05-28
