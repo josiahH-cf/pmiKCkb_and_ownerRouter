@@ -18,8 +18,10 @@ Gmail/Drive configuration, not runtime code here.
 | How to work next                       | `docs/implement.md`                |
 | Current audit log and open items       | `docs/status.md`                   |
 | Engineering conventions and boundaries | `docs/engineering.md`              |
+| Demo and cutover model                 | `docs/demo-cutover.md`             |
+| First working demo slice               | `docs/demo-slice.md`               |
 | Separate Owner Router repo setup       | `docs/router-repo.md`              |
-| Local setup details                    | `SETUP.md`                         |
+| Google setup details                   | `docs/google-setup.md`, `SETUP.md` |
 
 ## Project Map
 

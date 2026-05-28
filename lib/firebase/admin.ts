@@ -5,6 +5,7 @@ import {
   type AppOptions,
 } from "firebase-admin/app";
 import { getAuth, type DecodedIdToken } from "firebase-admin/auth";
+import { readServerConfig } from "@/lib/config/server";
 
 export async function verifyFirebaseIdToken(idToken: string): Promise<DecodedIdToken> {
   return getAuth(getFirebaseAdminApp()).verifyIdToken(idToken, true);
@@ -45,9 +46,10 @@ export function getFirebaseAdminApp() {
 }
 
 function readFirebaseProjectId() {
+  const config = readServerConfig();
   return (
-    process.env.FIREBASE_PROJECT_ID ??
-    process.env.GCP_PROJECT_ID ??
+    config.firebaseProjectId ??
+    config.gcpProjectId ??
     process.env.GOOGLE_CLOUD_PROJECT ??
     process.env.GCLOUD_PROJECT
   )?.trim();

@@ -1,9 +1,10 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { requirePageRole } from "@/lib/auth/page-guards";
-import { ALLOWED_HD_DEFAULT, KB_APPROVAL_LABEL } from "@/lib/constants";
+import { readServerConfig } from "@/lib/config/server";
 
 export default async function AdminPage() {
   const user = await requirePageRole("Admin");
+  const config = readServerConfig();
 
   return (
     <AppShell user={user}>
@@ -12,16 +13,18 @@ export default async function AdminPage() {
         <div className="grid three">
           <article className="panel">
             <h2>Domain</h2>
-            <p>{process.env.ALLOWED_HD ?? ALLOWED_HD_DEFAULT}</p>
+            <p>{config.allowedHostedDomain}</p>
           </article>
           <article className="panel">
             <h2>Approval Label</h2>
-            <p>{process.env.KB_APPROVAL_LABEL ?? KB_APPROVAL_LABEL}</p>
+            <p>{config.kbApprovalLabel}</p>
           </article>
           <article className="panel">
             <h2>Indexing</h2>
             <p className="muted">
-              External integrations are deferred until the integration milestone.
+              {config.askDemoMode
+                ? "Demo retrieval mode is active."
+                : "Live retrieval mode expects configured Vertex data stores."}
             </p>
           </article>
         </div>

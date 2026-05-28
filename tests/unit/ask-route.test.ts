@@ -9,8 +9,10 @@ const validBody = {
   urgency: "Normal",
   draft_enabled: true,
 };
+const originalAskDemoMode = process.env.ASK_DEMO_MODE;
 
 afterEach(() => {
+  process.env.ASK_DEMO_MODE = originalAskDemoMode;
   setAuthResolverForTest(null);
 });
 
@@ -43,6 +45,7 @@ describe("Ask API auth guard", () => {
   });
 
   it("returns the scaffold no-source response for a valid editor", async () => {
+    process.env.ASK_DEMO_MODE = "false";
     setAuthResolverForTest(() => ({
       uid: "editor",
       email: "editor@pmikcmetro.com",
@@ -56,6 +59,25 @@ describe("Ask API auth guard", () => {
     await expect(response.json()).resolves.toMatchObject({
       question: validBody.question,
       source_state: "No Reliable Source Found",
+    });
+  });
+
+  it("returns the local demo verified-source answer when demo mode is active", async () => {
+    process.env.ASK_DEMO_MODE = "true";
+    setAuthResolverForTest(() => ({
+      uid: "editor",
+      email: "editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+    }));
+
+    const response = await POST(makeRequest(validBody));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      question: validBody.question,
+      source_state: "Verified Source",
+      citations: [expect.objectContaining({ source_id: "demo-lease-renewals-sop" })],
     });
   });
 });

@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
-import { ALLOWED_HD_DEFAULT } from "@/lib/constants";
 import { can, type Capability, type Role } from "@/lib/auth/roles";
+import { readServerConfig } from "@/lib/config/server";
 import {
   createFirebaseSessionCookie,
   verifyFirebaseIdToken,
@@ -10,6 +10,7 @@ import {
 export const SESSION_COOKIE_MAX_AGE_SECONDS = 8 * 60 * 60;
 export const SESSION_COOKIE_MAX_AGE_MS = SESSION_COOKIE_MAX_AGE_SECONDS * 1000;
 export const AUTH_ABSOLUTE_MAX_AGE_SECONDS = 12 * 60 * 60;
+export const LOCAL_DEMO_SESSION_VALUE = "local-demo";
 
 export interface AuthenticatedUser {
   uid: string;
@@ -104,6 +105,10 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
 
   if (!sessionCookie) {
     return null;
+  }
+
+  if (isLocalDemoSession(sessionCookie)) {
+    return localDemoUser();
   }
 
   try {
@@ -240,11 +245,30 @@ export function authErrorResponse(error: unknown) {
 }
 
 export function getSessionCookieName() {
-  return process.env.AUTH_SESSION_COOKIE?.trim() || "__session";
+  return readServerConfig().authSessionCookie;
+}
+
+export function isLocalDemoAuthEnabled() {
+  return readServerConfig().localDemoAuth;
 }
 
 function getAllowedHostedDomain() {
-  return (process.env.ALLOWED_HD ?? ALLOWED_HD_DEFAULT).trim().toLowerCase();
+  return readServerConfig().allowedHostedDomain;
+}
+
+function isLocalDemoSession(sessionCookie: string) {
+  return isLocalDemoAuthEnabled() && sessionCookie === LOCAL_DEMO_SESSION_VALUE;
+}
+
+function localDemoUser(): AuthenticatedUser {
+  const hd = getAllowedHostedDomain();
+
+  return {
+    uid: "local-demo-admin",
+    email: `local-demo@${hd}`,
+    hd,
+    role: "Admin",
+  };
 }
 
 async function getSessionCookie() {

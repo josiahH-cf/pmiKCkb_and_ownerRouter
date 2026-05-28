@@ -63,12 +63,17 @@ Run `npm run test:firestore` separately when Java is available on PATH.
 - `docs/implement.md`: runbook for future Codex work.
 - `docs/status.md`: project audit log.
 - `docs/engineering.md`: conventions, security, and boundaries.
+- `docs/demo-cutover.md`: demo-to-client environment and cutover model.
+- `docs/demo-slice.md`: first working Lease Renewals demo slice.
+- `docs/google-setup.md`: live Google/Firebase/Drive/Vertex/Gmail setup runbook.
 - `docs/router-repo.md`: separate Owner Router repo plan.
 
 ## Next Steps
 
-1. Complete the separate manual Firebase Auth setup gate in `SETUP.md`.
-2. Build the Space editing UI on top of the M2 API routes.
-3. Add Vertex AI Search and Gemini adapters behind the existing interfaces.
-4. Add Playwright e2e tests for the critical flows once auth fixtures are present.
-5. Create the separate `pmi-kc-owner-router` repository when ready.
+1. Use the Lease Renewals slice in `docs/demo-slice.md` as the first working demo.
+2. Complete live setup gates in `docs/google-setup.md` when real Google services are
+   needed.
+3. Build the Space editing UI on top of the M2 API routes.
+4. Add Vertex AI Search and Gemini adapters behind the existing interfaces.
+5. Add Playwright e2e tests for the critical flows once auth fixtures are present.
+6. Create the separate `pmi-kc-owner-router` repository when ready.

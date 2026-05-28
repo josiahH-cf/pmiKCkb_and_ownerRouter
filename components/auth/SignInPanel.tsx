@@ -16,7 +16,12 @@ type SignInStatus = "checking" | "idle" | "redirecting" | "creating" | "error";
 export function SignInPanel({
   allowedHostedDomain,
   initialError,
-}: Readonly<{ allowedHostedDomain: string; initialError?: string | null }>) {
+  localDemoEnabled,
+}: Readonly<{
+  allowedHostedDomain: string;
+  initialError?: string | null;
+  localDemoEnabled?: boolean;
+}>) {
   const isConfigured = hasFirebaseBrowserConfig();
   const [status, setStatus] = useState<SignInStatus>(() =>
     isConfigured ? "checking" : "error",
@@ -132,6 +137,22 @@ export function SignInPanel({
     }
   };
 
+  const handleLocalDemo = async () => {
+    setStatus("creating");
+    setMessage(null);
+
+    const response = await fetch("/api/auth/demo", { method: "POST" });
+
+    if (!response.ok) {
+      const errorMessage = await readErrorMessage(response);
+      setStatus("error");
+      setMessage(errorMessage);
+      return;
+    }
+
+    window.location.assign("/ask");
+  };
+
   const isBusy =
     status === "checking" || status === "redirecting" || status === "creating";
 
@@ -145,6 +166,16 @@ export function SignInPanel({
       >
         {buttonLabel(status)}
       </button>
+      {localDemoEnabled ? (
+        <button
+          className="secondary-button"
+          disabled={isBusy}
+          onClick={handleLocalDemo}
+          type="button"
+        >
+          Continue in local demo mode
+        </button>
+      ) : null}
       <p className="muted">Use a {allowedHostedDomain} Google Workspace account.</p>
       {message ? (
         <p className="auth-message" role="alert">

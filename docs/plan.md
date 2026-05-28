@@ -65,12 +65,48 @@ npm run build
 
 ### M2 - Firestore Editable Layer
 
+M2 is split so future work does not confuse the API foundation with a usable editing
+experience.
+
+#### M2a - Editable API Foundation
+
 Acceptance criteria:
 
 - Collections match the spec data model.
 - SOP/template/tool/placeholder CRUD uses server-side permission checks.
 - Change-log entries are created for mutations.
 - Soft delete is the only delete path.
+
+Validation:
+
+```bash
+npm test
+npm run typecheck
+```
+
+#### M2b - Editable Space UI
+
+Acceptance criteria:
+
+- Lease Renewals has a Space detail page backed by the editable API routes.
+- Users can view SOPs, templates, tools, and placeholders for the Space.
+- Editors can create or update editable records.
+- Read-only Spaces do not expose edit controls.
+
+Validation:
+
+```bash
+npm test
+npm run build
+```
+
+#### M2c - Environment Seeding
+
+Acceptance criteria:
+
+- Spaces can be seeded idempotently from environment-safe config.
+- The Lease Renewals demo records can be created without secrets or client data.
+- Demo seed data is clearly separated from production/client content.
 
 Validation:
 
@@ -137,15 +173,18 @@ bash scripts/verify.sh
   not known yet.
 - Owner Router must be initialized in a separate repo before the read-only Owner Email
   Space can be fully verified.
+- `npm run test:firestore` requires Java JDK 11+ on PATH.
 
 ## Recommended Development Sequence
 
 1. Keep the scaffold green.
 2. Add Firebase Auth and role guards.
 3. Add Firestore emulator tests and data access boundaries.
-4. Wire retrieval with mocked Vertex AI Search responses.
-5. Add Gemini prompt and JSON validation tests.
-6. Build the Spaces and Approval Queue UI.
-7. Add Gmail send-only notification integration.
-8. Add Playwright e2e tests.
-9. Provision staging Cloud Run and run the acceptance gates.
+4. Define the demo/cutover model and first Lease Renewals demo slice.
+5. Build the Space editing UI and seeding path for Lease Renewals.
+6. Wire retrieval first with local mock responses, then Vertex AI Search.
+7. Add Gemini prompt and JSON validation tests.
+8. Build the Approval Queue UI.
+9. Add Gmail send-only notification integration.
+10. Add Playwright e2e tests.
+11. Provision staging Cloud Run and run the acceptance gates.

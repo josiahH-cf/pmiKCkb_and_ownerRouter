@@ -288,6 +288,57 @@ Next recommended task:
 
 Build the Space editing UI on top of the M2 API routes.
 
+## Demo Cutover Working Branch
+
+- Date: 2026-05-28
+- Branch: `codex/demo-cutover-working-app`.
+- Checkpointed and pushed the current M2 API foundation from `main` before starting
+  new demo/cutover work.
+- Added durable docs for the demo-first path:
+  - `docs/demo-cutover.md`
+  - `docs/demo-slice.md`
+  - `docs/google-setup.md`
+- Split M2 planning into M2a API foundation, M2b Space UI, and M2c environment
+  seeding.
+- Added typed server config parsing and environment maps for Space Drive folders and
+  Vertex data stores.
+- Added local demo auth, guarded so it is disabled in production.
+- Added a Lease Renewals demo Ask flow that returns a cited `Verified Source` answer
+  for renewal questions and `No Reliable Source Found` for unsupported questions.
+- Added a Lease Renewals Space detail page with local demo SOP/template/tool/placeholder
+  state.
+- Added a local demo Approval Queue with role-gated approve/resolve buttons.
+- Added an idempotent Space seeding script:
+  - `npm run seed:spaces`
+
+Validation status:
+
+- `npm run format:check`: passed on 2026-05-28.
+- `npm run lint`: passed on 2026-05-28.
+- `npm run typecheck`: passed on 2026-05-28.
+- `npm test`: passed on 2026-05-28 with 64 tests.
+- `npm run verify:router-boundary`: passed on 2026-05-28.
+- `npm run build`: passed on 2026-05-28.
+- `bash scripts/verify.sh`: passed on 2026-05-28.
+- Local browser smoke with `LOCAL_DEMO_AUTH=true` and `ASK_DEMO_MODE=true`: passed on
+  2026-05-28. Verified local demo sign-in, Ask verified answer with citation, Lease
+  Renewals detail page, and Approval Queue.
+- `npm run test:firestore`: still blocked because `java` is not on PATH.
+
+Environment notes:
+
+- GitHub CLI is authenticated as `josiahH-cf`.
+- `gcloud` is not installed.
+- A Temurin JDK install was attempted through `winget`, but the installer did not make
+  `java` available before the shell command timed out. One `msiexec` process remained
+  owned by the OS installer service and may require a restart or manual installer
+  cleanup.
+
+Next recommended task:
+
+Finish local Java setup, run `npm run test:firestore`, then wire the Lease Renewals
+demo UI to real Firestore records where Google/Firebase config is available.
+
 ## M2 Review And Repair Pass
 
 - Date: 2026-05-27

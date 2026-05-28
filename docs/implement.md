@@ -6,6 +6,10 @@ Open `docs/status.md`, find the next recommended task, then compare it to
 `docs/plan.md`. Work on the earliest unfinished milestone unless the user explicitly
 redirects.
 
+For the current demo-first work, start with `docs/demo-slice.md` and keep the
+environment split in `docs/demo-cutover.md` in view before adding live Google
+integration code.
+
 ## Keep Changes Scoped
 
 - Work inside the KB runtime only.
