@@ -5,6 +5,7 @@ import {
   GoogleAuthProvider,
   getRedirectResult,
   onAuthStateChanged,
+  signInWithPopup,
   signInWithRedirect,
   signOut,
   type User,
@@ -75,7 +76,20 @@ export function SignInPanel({
     let unsubscribe: (() => void) | null = null;
     const auth = getFirebaseClientAuth();
 
-    getRedirectResult(auth)
+    unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!isMounted) {
+        return;
+      }
+
+      if (user) {
+        void finishSignIn(user);
+        return;
+      }
+
+      setStatus("idle");
+    });
+
+    withTimeout(getRedirectResult(auth), 5000)
       .then((result) => {
         if (!isMounted) {
           return;
@@ -83,24 +97,15 @@ export function SignInPanel({
 
         if (result?.user) {
           void finishSignIn(result.user);
-          return;
         }
-
-        unsubscribe = onAuthStateChanged(auth, (user) => {
-          if (!isMounted) {
-            return;
-          }
-
-          if (user) {
-            void finishSignIn(user);
-            return;
-          }
-
-          setStatus("idle");
-        });
       })
       .catch((error: unknown) => {
         if (!isMounted) {
+          return;
+        }
+
+        if (error instanceof Error && error.message === REDIRECT_RESULT_TIMEOUT) {
+          setStatus((current) => (current === "checking" ? "idle" : current));
           return;
         }
 
@@ -130,8 +135,15 @@ export function SignInPanel({
     try {
       setStatus("redirecting");
       setMessage(null);
-      await signInWithRedirect(getFirebaseClientAuth(), provider);
+      const auth = getFirebaseClientAuth();
+      const result = await signInWithPopup(auth, provider);
+      await finishSignIn(result.user);
     } catch (error) {
+      if (isPopupBlocked(error)) {
+        await signInWithRedirect(getFirebaseClientAuth(), provider);
+        return;
+      }
+
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Google sign-in failed.");
     }
@@ -224,4 +236,27 @@ function initialMessage(initialError: string | null | undefined, isConfigured: b
   }
 
   return null;
+}
+
+const REDIRECT_RESULT_TIMEOUT = "Firebase redirect result timed out.";
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      reject(new Error(REDIRECT_RESULT_TIMEOUT));
+    }, timeoutMs);
+
+    promise
+      .then(resolve)
+      .catch(reject)
+      .finally(() => window.clearTimeout(timeout));
+  });
+}
+
+function isPopupBlocked(error: unknown) {
+  return (
+    error instanceof Error &&
+    (error.message.includes("auth/popup-blocked") ||
+      error.message.includes("auth/cancelled-popup-request"))
+  );
 }

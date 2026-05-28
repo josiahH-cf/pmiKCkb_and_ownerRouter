@@ -454,6 +454,36 @@ Human enables Google provider in Firebase Console for `pmikckb-test`, then the a
 reruns `npm run firebase:setup-auth`, performs a real Google sign-in smoke, and assigns
 the first Admin claim.
 
+## Firebase Google Sign-In Hang Repair
+
+- Date: 2026-05-28
+- User enabled the Google provider in Firebase Console.
+- `npm run firebase:setup-auth` now passes and verifies:
+  - Firebase Auth is initialized.
+  - Google sign-in provider is enabled.
+  - Authorized domains are `127.0.0.1`, `localhost`,
+    `pmikckb-test.firebaseapp.com`, and `pmikckb-test.web.app`.
+- First live redirect attempt returned to `/sign-in` but left the UI on
+  `Checking session...`; no Firebase user record existed afterward.
+- Updated the sign-in component so Firebase auth-state observation starts immediately,
+  redirect-result handling has a timeout fallback, and popup sign-in falls back to
+  redirect when the browser blocks popups.
+- Browser retry reached the Google account chooser and consent screen for
+  `josiah.hunter@cherrybridge.ai`.
+
+Validation status:
+
+- `npm run format:check`: passed on 2026-05-28.
+- `npm run lint`: passed on 2026-05-28.
+- `npm run firebase:setup-auth`: passed on 2026-05-28.
+
+Open item:
+
+- Google consent screen is awaiting a human click on `Allow` before Firebase can create
+  the first real user. After that, rerun
+  `npm run firebase:set-role -- --email=josiah.hunter@cherrybridge.ai --role=Admin`,
+  then sign out and sign back in to refresh the Admin claim.
+
 ## Demo Cutover Working Branch
 
 - Date: 2026-05-28
