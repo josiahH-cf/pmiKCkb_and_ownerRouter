@@ -378,10 +378,8 @@ API-backed Lease Renewals page.
   placeholder into live Firestore without overwriting existing records.
 - Updated seed scripts to read ignored `.env.local`, so they work from a fresh terminal
   after host restart.
-- Note: there are two Google projects visible:
-  - `pmikckb-test`: the repo-configured demo project now finalized for this app.
-  - `pmikckb-test-8f927`: a separate Firebase-created project visible in project lists,
-    not currently used by this repo.
+- Note: the separate Firebase-created `pmikckb-test-8f927` project has since been
+  deleted and may remain visible as `DELETE_REQUESTED` until Google finishes deletion.
 
 Validation status:
 
@@ -399,6 +397,38 @@ Next recommended task:
 
 Enable and smoke real Firebase Google sign-in for the builder Workspace domain, then
 set the first Admin/Approver custom claims.
+
+## Firebase Auth Setup Gate
+
+- Date: 2026-05-28
+- Confirmed `pmikckb-test` is the active demo project.
+- Deleted the stray `pmikckb-test-8f927` project. Google reports it as
+  `DELETE_REQUESTED`, so it can still appear in project lists until deletion finishes.
+- Added `npm run firebase:setup-auth` to initialize Firebase Auth / Identity Platform,
+  add local/demo authorized domains, and enable Google as a sign-in provider once
+  OAuth client credentials exist.
+- Added `npm run firebase:set-role -- --email=<user@example.com> --role=Admin` for
+  the first elevated Firebase custom claim after real sign-in creates the user.
+- Attempted automated Auth initialization for `pmikckb-test`; Google returned
+  `BILLING_NOT_ENABLED`, so a human must attach or create billing before the Identity
+  Platform admin API can complete setup.
+- Attempted Google provider creation before Auth initialization; Google requires a Web
+  OAuth client ID and secret for `google.com` provider config.
+- Updated setup docs with the billing/OAuth/manual-console gate and the automated
+  continuation commands.
+
+Validation status:
+
+- Main project check: `pmikckb-test` is `ACTIVE`.
+- Stray project check: `pmikckb-test-8f927` is `DELETE_REQUESTED`.
+- Cloud Billing API is enabled on `pmikckb-test`, but no billing account is visible to
+  the current Google account.
+
+Next recommended task:
+
+Human attaches or creates billing for `pmikckb-test`, then the agent reruns
+`npm run firebase:setup-auth`, performs a real Google sign-in smoke, and assigns the
+first Admin claim.
 
 ## Demo Cutover Working Branch
 

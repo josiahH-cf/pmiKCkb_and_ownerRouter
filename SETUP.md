@@ -83,30 +83,37 @@ The sequence below is based on the official Firebase and Google Cloud setup docs
    - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
    - `NEXT_PUBLIC_FIREBASE_APP_ID`
    - Source: <https://firebase.google.com/docs/web/setup>
-3. Enable Google as the Firebase Auth / Identity Platform provider. Configure the
+3. Attach billing if setup is being automated through the Identity Platform admin API.
+   Without billing, that API returns `BILLING_NOT_ENABLED`.
+4. Enable Google as the Firebase Auth / Identity Platform provider. Configure the
    Google Web Client ID and secret or consent screen if the console prompts for them.
-   Add the app domains under authorized domains: local development, staging, and later
-   production. Do not add `localhost` to production projects unless Google guidance for
-   that project explicitly requires it.
+   Add the Firebase handler redirect URI:
+   `https://<project-id>.firebaseapp.com/__/auth/handler`. Add the app domains under
+   authorized domains: local development, staging, and later production. Do not add
+   `localhost` to production projects unless Google guidance for that project
+   explicitly requires it.
    - Sources:
      - <https://docs.cloud.google.com/identity-platform/docs/web/google>
      - <https://firebase.google.com/docs/auth/web/google-signin>
-4. Configure local server credentials for the Firebase Admin SDK. Prefer Application
+5. Configure local server credentials for the Firebase Admin SDK. Prefer Application
    Default Credentials for local setup, such as `gcloud auth application-default login`
    or service-account impersonation. In deployed Cloud Run, use the attached service
    account. Do not commit service-account key files.
    - Source: <https://docs.cloud.google.com/docs/authentication/application-default-credentials>
-5. Set the required local auth environment values in `.env.local`:
+6. Set the required local auth environment values in `.env.local`:
    - `ALLOWED_HD=pmikcmetro.com` for production, or the approved test Workspace domain
      for staging.
    - `AUTH_SESSION_COOKIE=__session` unless intentionally changed.
    - `GCP_PROJECT_ID` and `FIREBASE_PROJECT_ID` matching the selected project.
-6. Create the first elevated role after the implementer signs in once. The app defaults
+   - `FIREBASE_GOOGLE_CLIENT_ID` and `FIREBASE_GOOGLE_CLIENT_SECRET` when using
+     `npm run firebase:setup-auth` to enable the provider.
+7. Create the first elevated role after the implementer signs in once. The app defaults
    missing role claims to `Editor`; `Approver` and `Admin` require privileged custom
    claims, for example `{ "role": "Admin" }`, set with the Firebase Admin SDK from a
    trusted backend/admin script. Custom claims must not be set by client-side code.
    - Source: <https://firebase.google.com/docs/auth/admin/custom-claims>
-7. Smoke test the live setup:
+   - Repo helper: `npm run firebase:set-role -- --email=<user@example.com> --role=Admin`
+8. Smoke test the live setup:
    - Restart `npm run dev` after changing `.env.local`.
    - Visit `/sign-in`, sign in with an allowed-domain Google account, and confirm the
      app lands on `/ask`.

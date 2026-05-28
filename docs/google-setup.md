@@ -72,6 +72,30 @@ npm run seed:demo
 `npm run seed:demo` creates safe Lease Renewals SOP/template/tool/placeholder records
 only when they are missing, so rerunning it does not overwrite demo edits.
 
+Live Google sign-in is a separate Auth gate:
+
+```bash
+npm run firebase:setup-auth
+```
+
+This command initializes Firebase Auth / Identity Platform, adds local/demo authorized
+domains, and enables the Google sign-in provider when OAuth client credentials are
+available in ignored `.env.local`.
+
+Current demo-host state:
+
+- `pmikckb-test` is the active demo project.
+- The stray `pmikckb-test-8f927` project was deleted and may remain visible as
+  `DELETE_REQUESTED` until Google finishes deletion.
+- Auth setup is blocked until a human attaches or creates a Google Cloud billing
+  account for `pmikckb-test`.
+- After billing is attached, create a Google Auth Platform Web OAuth client if one does
+  not already exist. Add the Firebase handler redirect URI:
+  `https://pmikckb-test.firebaseapp.com/__/auth/handler`.
+- Store that OAuth client ID and client secret in ignored `.env.local` as
+  `FIREBASE_GOOGLE_CLIENT_ID` and `FIREBASE_GOOGLE_CLIENT_SECRET`, then rerun
+  `npm run firebase:setup-auth`.
+
 If `java -version` fails, install Temurin 21 JDK on Windows:
 
 ```powershell
@@ -86,13 +110,35 @@ emulator is Java-based:
 
 1. Create or select the demo Firebase/GCP project.
 2. Register a Firebase Web app and copy the browser config values into `.env.local`.
-3. Enable Google sign-in for Firebase Auth / Identity Platform.
-4. Add authorized domains for local development and demo deployment.
-5. Set `ALLOWED_HD` to the demo Workspace domain.
-6. Configure server credentials through Application Default Credentials locally and an
+3. Attach billing when using the Identity Platform admin API for automated setup.
+4. Create or reuse a Web OAuth client for Google sign-in. The Firebase Auth redirect
+   URI is `https://<project-id>.firebaseapp.com/__/auth/handler`.
+5. Enable Google sign-in for Firebase Auth / Identity Platform.
+6. Add authorized domains for local development and demo deployment.
+   `npm run firebase:setup-auth` adds `localhost`, `127.0.0.1`,
+   `<project-id>.firebaseapp.com`, and `<project-id>.web.app`.
+7. Set `ALLOWED_HD` to the demo Workspace domain.
+8. Configure server credentials through Application Default Credentials locally and an
    attached service account in Cloud Run.
-7. After the first sign-in, set privileged role custom claims from a trusted Admin SDK
-   context.
+9. After the first sign-in, set privileged role custom claims from a trusted Admin SDK
+   context:
+
+```bash
+npm run firebase:set-role -- --email=<user@example.com> --role=Admin
+```
+
+Sign out and sign back in after setting the claim so Firebase issues a refreshed token.
+
+Manual console fallback:
+
+1. Open Google Cloud Console for `pmikckb-test` and attach/create billing.
+2. Open Firebase Console > Authentication > Sign-in method.
+3. Enable Google as a provider.
+4. Confirm authorized domains include `localhost`, `127.0.0.1`,
+   `pmikckb-test.firebaseapp.com`, and `pmikckb-test.web.app`.
+5. Set `ALLOWED_HD` to the demo Workspace domain.
+6. Tell the agent when billing/Auth are active so it can rerun
+   `npm run firebase:setup-auth` and smoke real sign-in.
 
 Official references:
 
@@ -100,6 +146,10 @@ Official references:
 - Firebase Google sign-in: <https://firebase.google.com/docs/auth/web/google-signin>
 - Identity Platform Google provider:
   <https://docs.cloud.google.com/identity-platform/docs/web/google>
+- Identity Platform Auth initialization:
+  <https://docs.cloud.google.com/identity-platform/docs/reference/rest/v2/projects.identityPlatform/initializeAuth>
+- Identity Platform provider config API:
+  <https://docs.cloud.google.com/identity-platform/docs/reference/rest/v2/projects.defaultSupportedIdpConfigs>
 - Firebase session cookies:
   <https://firebase.google.com/docs/auth/admin/manage-cookies>
 - Firebase custom claims:

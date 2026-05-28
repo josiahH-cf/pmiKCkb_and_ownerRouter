@@ -24,6 +24,8 @@
     "host:setup": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/setup-windows-google-dev.ps1 -EnableApis",
     "host:check": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/setup-windows-google-dev.ps1 -CheckOnly",
     "firebase:setup-demo": "node scripts/setup-firebase-demo.mjs --project=pmikckb-test",
+    "firebase:setup-auth": "node scripts/setup-firebase-auth-demo.mjs --project=pmikckb-test",
+    "firebase:set-role": "node scripts/set-firebase-user-role.mjs",
     "seed:spaces": "node scripts/seed-spaces.mjs",
     "seed:demo": "node scripts/seed-demo-records.mjs"
   },
