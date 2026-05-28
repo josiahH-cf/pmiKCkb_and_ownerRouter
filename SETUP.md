@@ -24,6 +24,74 @@ Credentials in local and deployed environments. Set `GCP_PROJECT_ID` or
 Firebase web app config, keep `AUTH_SESSION_COOKIE=__session` unless the cookie name
 changes, and do not commit service-account keys.
 
+## Firestore Emulator Tests
+
+M2 adds Firestore Security Rules tests behind a separate command:
+
+```bash
+npm run test:firestore
+```
+
+This command starts the local Firestore emulator through `firebase-tools`, then runs
+`tests/firestore/**/*.test.ts`. The Firebase Local Emulator Suite requires Java JDK 11+
+on PATH; without Java, the command fails before tests start. Source:
+<https://firebase.google.com/docs/emulator-suite/install_and_configure>.
+
+If Java was just installed and the current shell still cannot run `java -version`,
+restart the terminal or set `JAVA_HOME` and prepend `%JAVA_HOME%\bin` for that shell.
+
+## Manual Setup Gate: Live Firebase Auth
+
+This is a required separate setup session. It cannot be completed from repo code alone
+because it needs access to the Firebase console, Google Cloud console, OAuth/Identity
+Platform settings, and the target Google Workspace domain. Complete this before treating
+live sign-in or auth e2e coverage as done.
+
+The sequence below is based on the official Firebase and Google Cloud setup docs:
+
+1. Create or select the staging Firebase/Google Cloud project. If using an existing
+   Google Cloud project, add Firebase to that project from the Firebase console. Record
+   the immutable project ID for `GCP_PROJECT_ID`, `FIREBASE_PROJECT_ID`, and
+   `NEXT_PUBLIC_FIREBASE_PROJECT_ID`.
+   - Source: <https://firebase.google.com/docs/web/setup>
+2. Register a Firebase Web app in that Firebase project. Copy the Firebase config
+   object values into `.env.local`:
+   - `NEXT_PUBLIC_FIREBASE_API_KEY`
+   - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
+   - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
+   - `NEXT_PUBLIC_FIREBASE_APP_ID`
+   - Source: <https://firebase.google.com/docs/web/setup>
+3. Enable Google as the Firebase Auth / Identity Platform provider. Configure the
+   Google Web Client ID and secret or consent screen if the console prompts for them.
+   Add the app domains under authorized domains: local development, staging, and later
+   production. Do not add `localhost` to production projects unless Google guidance for
+   that project explicitly requires it.
+   - Sources:
+     - <https://docs.cloud.google.com/identity-platform/docs/web/google>
+     - <https://firebase.google.com/docs/auth/web/google-signin>
+4. Configure local server credentials for the Firebase Admin SDK. Prefer Application
+   Default Credentials for local setup, such as `gcloud auth application-default login`
+   or service-account impersonation. In deployed Cloud Run, use the attached service
+   account. Do not commit service-account key files.
+   - Source: <https://docs.cloud.google.com/docs/authentication/application-default-credentials>
+5. Set the required local auth environment values in `.env.local`:
+   - `ALLOWED_HD=pmikcmetro.com` for production, or the approved test Workspace domain
+     for staging.
+   - `AUTH_SESSION_COOKIE=__session` unless intentionally changed.
+   - `GCP_PROJECT_ID` and `FIREBASE_PROJECT_ID` matching the selected project.
+6. Create the first elevated role after the implementer signs in once. The app defaults
+   missing role claims to `Editor`; `Approver` and `Admin` require privileged custom
+   claims, for example `{ "role": "Admin" }`, set with the Firebase Admin SDK from a
+   trusted backend/admin script. Custom claims must not be set by client-side code.
+   - Source: <https://firebase.google.com/docs/auth/admin/custom-claims>
+7. Smoke test the live setup:
+   - Restart `npm run dev` after changing `.env.local`.
+   - Visit `/sign-in`, sign in with an allowed-domain Google account, and confirm the
+     app lands on `/ask`.
+   - Confirm a wrong-domain account is rejected.
+   - Use Sign out and confirm `/ask` redirects back to `/sign-in`.
+   - Run `bash scripts/verify.sh`.
+
 ## Verify
 
 ```bash
@@ -33,6 +101,9 @@ bash scripts/verify.sh
 The verifier installs from `package-lock.json`, checks formatting, lints, typechecks,
 runs tests, verifies the Router boundary, and builds the app.
 
+`bash scripts/verify.sh` does not start the Firestore emulator. Run
+`npm run test:firestore` separately when Java is available.
+
 ## Google Setup Milestone
 
 When integration work begins:
@@ -40,8 +111,8 @@ When integration work begins:
 1. Create staging and production GCP projects.
 2. Enable Vertex AI, Discovery Engine, Firestore, Cloud Run, Identity Platform, Gmail
    API, Drive API, Secret Manager, Cloud Logging.
-3. Configure Firebase Auth / Identity Platform with Google provider.
-4. Create a Firebase web app and copy its public config into `.env.local`.
+3. Complete the Manual Setup Gate above for Firebase Auth / Identity Platform.
+4. Complete the live sign-in smoke test from the Manual Setup Gate.
 5. Create Firestore Native mode in `us-central1`.
 6. Configure one Drive folder and one Vertex AI Search data store per KB Space.
 7. Grant the KB service identity `drive.readonly` on KB folders and the Owner Router

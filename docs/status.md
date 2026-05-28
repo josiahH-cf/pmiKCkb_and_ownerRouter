@@ -205,5 +205,120 @@ Repository status:
 - Secret-pattern scan found no committed secret values; matches were only placeholder
   names, auth terminology, or test strings.
 - `npm audit --json`: passed on 2026-05-27 with 0 vulnerabilities.
-- The branch `main` has no commits yet, so "merge" means creating the initial integrated
-  commit rather than merging another branch.
+- Initial integrated commit exists on `main`: `402e795`.
+
+## Required Separate Manual Setup: Live Firebase Auth
+
+- Date: 2026-05-27
+- Status: Required manual setup in a separate session before live sign-in can be
+  considered done.
+- Reason: The code path is implemented and locally verified, but the remaining work
+  needs Firebase console, Google Cloud console, OAuth/Identity Platform, Workspace
+  domain, and credential access that is not available from the repo.
+- Documentation updated: `SETUP.md` now contains an ordered manual setup gate with
+  official Firebase/Google source links for registering the web app, enabling Google
+  sign-in, adding authorized domains, configuring Application Default Credentials,
+  creating session cookies, and assigning custom role claims.
+- Sources checked:
+  - Firebase Web setup: <https://firebase.google.com/docs/web/setup>
+  - Firebase Google sign-in for web:
+    <https://firebase.google.com/docs/auth/web/google-signin>
+  - Identity Platform Google provider and authorized domains:
+    <https://docs.cloud.google.com/identity-platform/docs/web/google>
+  - Firebase Admin session cookies:
+    <https://firebase.google.com/docs/auth/admin/manage-cookies>
+  - Google Cloud Application Default Credentials:
+    <https://docs.cloud.google.com/docs/authentication/application-default-credentials>
+  - Firebase custom claims:
+    <https://firebase.google.com/docs/auth/admin/custom-claims>
+
+Next manual setup actions:
+
+1. Select/create the staging Firebase/GCP project and record its project ID.
+2. Register the Firebase Web app and copy its config into `.env.local`.
+3. Enable Google as the Auth/Identity Platform provider and add local/staging domains.
+4. Configure local ADC or service-account impersonation; do not commit key files.
+5. Set `ALLOWED_HD`, `AUTH_SESSION_COOKIE`, `GCP_PROJECT_ID`, and `FIREBASE_PROJECT_ID`.
+6. Sign in once, then set the implementer's privileged `role` custom claim from a
+   trusted Admin SDK context.
+7. Smoke test allowed-domain sign-in, wrong-domain rejection, sign-out, and
+   `bash scripts/verify.sh`.
+
+## M2 Firestore Editable API Foundation
+
+- Date: 2026-05-27
+- Added Firestore editable-layer schemas, expanded typed records, and a server-only
+  repository boundary for SOP, template, tool, and placeholder CRUD.
+- Added API routes for Space-scoped SOP/template/placeholder create/list, single-record
+  read/update/soft-delete, and tool create/list/read/update/soft-delete.
+- Enforced server-side role behavior for editable writes, approval, placeholder
+  resolution, Admin-only soft delete, read-only Owner Email Space blocking, duplicate
+  active tool names, and change-log creation.
+- Added `firebase.json`, `firebase-tools`, `@firebase/rules-unit-testing`,
+  `vitest.firestore.config.ts`, and a separate `npm run test:firestore` emulator test
+  command.
+- Tightened `firestore.rules` so direct client access mirrors the role model and hard
+  deletes remain denied.
+- Updated `README.md`, `SETUP.md`, and `docs/implement.md` with the emulator test gate.
+
+Validation status:
+
+- `npm run format:check`: passed on 2026-05-27.
+- `npm run lint`: passed on 2026-05-27.
+- `npm run typecheck`: passed on 2026-05-27.
+- `npm test`: passed on 2026-05-27 with 56 tests.
+- `npm run build`: passed on 2026-05-27.
+- `npm audit --json`: passed on 2026-05-27 with 0 vulnerabilities.
+- `npm run verify:router-boundary`: passed on 2026-05-27.
+- `bash scripts/verify.sh`: passed on 2026-05-27; it reinstalled from the lockfile,
+  checked formatting, linted, typechecked, ran 56 tests, passed Router boundary
+  verification, and built the app.
+- `npm run test:firestore`: passed on 2026-05-27 with 6 Firestore Security Rules tests
+  after installing a portable Temurin 21 JDK outside the repo and fixing the script to
+  use `vitest.firestore.config.ts`.
+
+Open items:
+
+- CRUD UI for Spaces is not implemented yet; M2 currently exposes the server/API
+  foundation.
+- Firestore space seeding for real project environments still needs a dedicated setup
+  step before live editable data entry.
+
+Next recommended task:
+
+Build the Space editing UI on top of the M2 API routes.
+
+## M2 Review And Repair Pass
+
+- Date: 2026-05-27
+- Installed a portable Temurin 21 JDK outside the repo so Firestore emulator tests can
+  run locally. User-level `JAVA_HOME` and `Path` were updated; existing terminals may
+  need restart before plain `java -version` works.
+- Found and fixed the emulator test command: the normal Vitest config intentionally
+  excludes `tests/firestore`, so `npm run test:firestore` now uses
+  `vitest.firestore.config.ts`.
+- Added explicit update-resource guards in `firestore.rules` while reviewing negative
+  write paths.
+- Confirmed the recent change remains KB-only, with no Owner Router runtime code or
+  external system write paths.
+- Secret-pattern scan found no committed secret values in repo files.
+- Oversized-file check found only `package-lock.json` above 300 KB, expected after
+  adding Firebase emulator tooling.
+
+Validation status:
+
+- `bash scripts/verify.sh`: passed on 2026-05-27 after the repair pass; it reinstalled
+  from the lockfile, checked formatting, linted, typechecked, ran 56 tests, passed
+  Router boundary verification, and built the app.
+- `npm run test:firestore`: passed on 2026-05-27 with 6 Firestore Security Rules tests.
+- `npm audit --json`: passed on 2026-05-27 with 0 vulnerabilities.
+
+Open items:
+
+- `npm run test:firestore` may require a new terminal session before it sees the
+  user-level Java PATH update without setting `JAVA_HOME` manually.
+- CRUD UI and Firestore Space seeding remain the next implementation work.
+
+Next recommended task:
+
+Build the Space editing UI on top of the M2 API routes.

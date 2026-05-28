@@ -20,9 +20,16 @@ Use the smallest relevant check during development:
 
 ```bash
 npm test
+npm run test:firestore
 npm run typecheck
 npm run lint
 ```
+
+Run `npm run test:firestore` when Firestore rules or editable-layer persistence changes
+and Java JDK 11+ is installed locally. Keep it separate from `bash scripts/verify.sh`
+until the Java prerequisite is available in every development and CI environment. This
+command uses `vitest.firestore.config.ts`; keep the normal Vitest config excluding
+emulator tests so `npm test` remains a fast non-emulator suite.
 
 Before handing off, run:
 

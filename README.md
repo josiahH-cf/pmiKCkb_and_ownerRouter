@@ -11,14 +11,16 @@ workflow and should be created in its own repository when ready.
 ## Current Status
 
 The scaffold is ready for app development. It includes a minimal Next.js app, Firebase
-Google sign-in/session boundaries, source state constants, a no-source Ask API for the
-empty Phase A state, unit/eval tests, documentation, and deterministic verification.
+Google sign-in/session boundaries, Firestore editable-layer API boundaries, source state
+constants, a no-source Ask API for the empty Phase A state, unit/eval tests,
+documentation, and deterministic verification.
 
 ## Prerequisites
 
 - Node.js 20.19+; Node 24 is used in CI.
 - npm 10+.
 - Bash for `scripts/verify.sh`.
+- Java JDK 11+ is required only for Firestore emulator rules tests.
 
 ## Setup
 
@@ -27,7 +29,8 @@ npm install
 cp .env.example .env.local
 ```
 
-Fill `.env.local` when GCP/Firebase/Vertex setup begins. Do not add secrets to git.
+Fill `.env.local` when GCP/Firebase/Vertex setup begins. Live sign-in needs the manual
+Firebase setup gate in `SETUP.md`; do not add secrets to git.
 
 ## Local Development
 
@@ -44,11 +47,13 @@ npm run format:check
 npm run lint
 npm run typecheck
 npm test
+npm run test:firestore
 npm run build
 bash scripts/verify.sh
 ```
 
-`scripts/verify.sh` is the all-in-one validation entry point.
+`scripts/verify.sh` is the all-in-one validation entry point for non-emulator checks.
+Run `npm run test:firestore` separately when Java is available on PATH.
 
 ## Documentation Map
 
@@ -62,7 +67,8 @@ bash scripts/verify.sh
 
 ## Next Steps
 
-1. Add Firestore emulator-backed editable-layer tests for M2.
-2. Add Vertex AI Search and Gemini adapters behind the existing interfaces.
-3. Add Playwright e2e tests for the critical flows once auth mocks are present.
-4. Create the separate `pmi-kc-owner-router` repository when ready.
+1. Complete the separate manual Firebase Auth setup gate in `SETUP.md`.
+2. Build the Space editing UI on top of the M2 API routes.
+3. Add Vertex AI Search and Gemini adapters behind the existing interfaces.
+4. Add Playwright e2e tests for the critical flows once auth fixtures are present.
+5. Create the separate `pmi-kc-owner-router` repository when ready.

@@ -17,6 +17,7 @@
     "format:write": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:firestore": "firebase emulators:exec --only firestore --project pmi-kc-kb-test \"vitest run --config vitest.firestore.config.ts\"",
     "test:watch": "vitest",
     "verify": "bash scripts/verify.sh",
     "verify:router-boundary": "node scripts/check-router-boundary.mjs"
@@ -27,14 +28,17 @@
     "next": "16.2.6",
     "react": "19.2.6",
     "react-dom": "19.2.6",
+    "uuid": "11.1.1",
     "zod": "4.2.0"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.1",
     "@types/node": "24.10.1",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "eslint": "9.39.1",
     "eslint-config-next": "16.2.6",
+    "firebase-tools": "^15.19.0",
     "prettier": "3.7.3",
     "typescript": "5.9.3",
     "vitest": "4.0.14"

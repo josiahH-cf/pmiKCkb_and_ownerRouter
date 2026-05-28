@@ -22,19 +22,143 @@ service cloud.firestore {
       return role() == 'Admin';
     }
 
-    match /{document=**} {
+    function active() {
+      return !('deleted_at' in resource.data);
+    }
+
+    function requestSoftDeletes() {
+      return 'deleted_at' in request.resource.data;
+    }
+
+    function spaceWritable(spaceId) {
+      return exists(/databases/$(database)/documents/spaces/$(spaceId)) &&
+        get(/databases/$(database)/documents/spaces/$(spaceId)).data.read_only != true;
+    }
+
+    function sameSpace() {
+      return request.resource.data.space_id == resource.data.space_id;
+    }
+
+    function statusIsNotApproved() {
+      return !('status' in request.resource.data) ||
+        request.resource.data.status != 'Approved';
+    }
+
+    function statusIsNotResolved() {
+      return !('status' in request.resource.data) ||
+        request.resource.data.status != 'Resolved';
+    }
+
+    function canWriteApprovedStatus() {
+      return statusIsNotApproved() || approverOrAdmin();
+    }
+
+    function canWriteResolvedStatus() {
+      return statusIsNotResolved() || approverOrAdmin();
+    }
+
+    match /spaces/{spaceId} {
       allow read: if signedIn() && editorOrBetter();
-      allow create, update: if signedIn() && editorOrBetter();
+      allow create, update: if signedIn() && admin();
       allow delete: if false;
     }
 
+    match /sops/{sopId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create: if signedIn() &&
+        editorOrBetter() &&
+        spaceWritable(request.resource.data.space_id) &&
+        canWriteApprovedStatus() &&
+        !requestSoftDeletes();
+      allow update: if signedIn() &&
+        resource != null &&
+        active() &&
+        sameSpace() &&
+        spaceWritable(resource.data.space_id) &&
+        (
+          (editorOrBetter() && canWriteApprovedStatus() && !requestSoftDeletes()) ||
+          (admin() && requestSoftDeletes())
+        );
+      allow delete: if false;
+    }
+
+    match /templates/{templateId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create: if signedIn() &&
+        editorOrBetter() &&
+        spaceWritable(request.resource.data.space_id) &&
+        canWriteApprovedStatus() &&
+        !requestSoftDeletes();
+      allow update: if signedIn() &&
+        resource != null &&
+        active() &&
+        sameSpace() &&
+        spaceWritable(resource.data.space_id) &&
+        (
+          (editorOrBetter() && canWriteApprovedStatus() && !requestSoftDeletes()) ||
+          (admin() && requestSoftDeletes())
+        );
+      allow delete: if false;
+    }
+
+    match /placeholders/{placeholderId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create: if signedIn() &&
+        editorOrBetter() &&
+        spaceWritable(request.resource.data.space_id) &&
+        canWriteResolvedStatus() &&
+        !requestSoftDeletes();
+      allow update: if signedIn() &&
+        resource != null &&
+        active() &&
+        sameSpace() &&
+        spaceWritable(resource.data.space_id) &&
+        (
+          (editorOrBetter() && canWriteResolvedStatus() && !requestSoftDeletes()) ||
+          (admin() && requestSoftDeletes())
+        );
+      allow delete: if false;
+    }
+
+    match /tools/{toolId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create: if signedIn() && editorOrBetter() && !requestSoftDeletes();
+      allow update: if signedIn() &&
+        resource != null &&
+        active() &&
+        (
+          (editorOrBetter() && !requestSoftDeletes()) ||
+          (admin() && requestSoftDeletes())
+        );
+      allow delete: if false;
+    }
+
+    match /sources_meta/{sourceId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update: if signedIn() && admin();
+      allow delete: if false;
+    }
+
+    match /ask_logs/{logId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create: if signedIn() && editorOrBetter();
+      allow update, delete: if false;
+    }
+
     match /users/{userId} {
+      allow read: if signedIn() && editorOrBetter();
       allow write: if signedIn() && admin();
+      allow delete: if false;
     }
 
     match /change_log/{changeId} {
+      allow read: if signedIn() && editorOrBetter();
       allow create: if signedIn() && editorOrBetter();
       allow update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

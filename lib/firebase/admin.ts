@@ -25,7 +25,7 @@ export async function verifyFirebaseSessionCookie(
   return getAuth(getFirebaseAdminApp()).verifySessionCookie(sessionCookie, true);
 }
 
-function getFirebaseAdminApp() {
+export function getFirebaseAdminApp() {
   const existingApp = getApps()[0];
 
   if (existingApp) {
