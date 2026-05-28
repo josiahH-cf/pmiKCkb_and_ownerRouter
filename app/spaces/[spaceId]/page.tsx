@@ -44,8 +44,10 @@ export default async function SpaceDetailPage({ params }: SpaceDetailPageProps) 
         {isLeaseRenewals ? (
           <SpaceDetailClient
             canApprove={can(user.role, "approve")}
+            canEdit={can(user.role, "edit")}
             readOnly={space.readOnly}
             seed={demoLeaseRenewals}
+            spaceId={space.id}
           />
         ) : (
           <div className="panel">

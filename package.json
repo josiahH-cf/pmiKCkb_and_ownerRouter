@@ -23,6 +23,7 @@
     "verify:router-boundary": "node scripts/check-router-boundary.mjs",
     "host:setup": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/setup-windows-google-dev.ps1 -EnableApis",
     "host:check": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/setup-windows-google-dev.ps1 -CheckOnly",
+    "firebase:setup-demo": "node scripts/setup-firebase-demo.mjs --project=pmikckb-test",
     "seed:spaces": "node scripts/seed-spaces.mjs"
   },
   "dependencies": {

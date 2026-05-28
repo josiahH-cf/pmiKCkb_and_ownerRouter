@@ -327,6 +327,43 @@ Open items:
 - Future agents should run `npm run host:setup` themselves instead of asking the user to
   run PowerShell commands.
 
+## Firebase Setup Gate And API-Backed Space UI
+
+- Date: 2026-05-28
+- Added `scripts/setup-firebase-demo.mjs` and `npm run firebase:setup-demo` to attach
+  Firebase to `pmikckb-test`, create/reuse the demo Firebase Web app, fetch browser
+  config, and update ignored `.env.local`.
+- `npm run firebase:setup-demo` currently stops at a Google auth consent gate:
+  `projects:addFirebase` returns 403 even though `josiah.hunter@cherrybridge.ai` has
+  `roles/owner` on `pmikckb-test`. The command now reports this as a clear human
+  unblock instead of a stack trace.
+- Updated the Lease Renewals Space detail client to try editable API data first for
+  SOPs, templates, placeholders, and tools.
+- When editable API calls fail because live Firebase/Firestore is not complete, the
+  page falls back to the safe local demo records.
+- When API-backed, the page can create safe demo records for empty SOP/template/tool/
+  placeholder sections, save SOP edits through `PATCH /api/sops/:id`, approve SOPs
+  through the editable API, and resolve placeholders through
+  `PATCH /api/placeholders/:id`.
+
+Validation status:
+
+- `npm run firebase:setup-demo`: blocked by Google Firebase auth consent, as expected
+  until the human Firebase setup gate is completed.
+- `npm run format:check`: passed on 2026-05-28.
+- `npm run typecheck`: passed on 2026-05-28.
+- `npm test`: passed on 2026-05-28 with 64 tests.
+- `npm run test:firestore`: passed on 2026-05-28 with 6 Firestore Security Rules tests.
+- Local browser smoke: passed on 2026-05-28. Verified local demo sign-in, Lease
+  Renewals fallback records, and SOP Save behavior.
+- `npm run verify`: passed on 2026-05-28 after stopping the local dev server.
+
+Next recommended task:
+
+Complete the Firebase browser consent/console attachment gate, rerun
+`npm run firebase:setup-demo`, then seed live Firestore demo records and smoke the
+API-backed Lease Renewals page.
+
 ## Demo Cutover Working Branch
 
 - Date: 2026-05-28

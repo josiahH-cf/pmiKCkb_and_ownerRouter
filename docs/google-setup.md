@@ -45,6 +45,20 @@ This command uses `scripts/setup-windows-google-dev.ps1` to:
 Use `npm run host:check` to verify the same host state without creating a project. The
 known demo project on this host is `pmikckb-test`.
 
+After the host check passes, future agents can try to attach Firebase and register the
+demo web app with:
+
+```bash
+npm run firebase:setup-demo
+```
+
+This command uses the Firebase Management REST API, creates/reuses the Firebase Web
+app, and writes the browser config into ignored `.env.local` when Google allows the
+operation. If it reports that Firebase project attachment is blocked by Google auth
+consent, a human must complete the Firebase browser consent/setup once in the same
+Google account or attach Firebase to `pmikckb-test` in the Firebase Console. Then rerun
+the same command.
+
 If `java -version` fails, install Temurin 21 JDK on Windows:
 
 ```powershell

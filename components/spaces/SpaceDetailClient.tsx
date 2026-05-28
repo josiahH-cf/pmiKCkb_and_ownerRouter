@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   PlaceholderRecord,
   SopRecord,
@@ -10,40 +10,67 @@ import type {
 
 type EditableSop = Pick<
   SopRecord,
-  "body_md" | "id" | "source_state_hint" | "status" | "title" | "updated_at"
+  | "body_md"
+  | "id"
+  | "owner_uid"
+  | "sensitivity"
+  | "source_state_hint"
+  | "space_id"
+  | "status"
+  | "title"
+  | "updated_at"
 >;
 type EditableTemplate = Pick<
   TemplateRecord,
-  "audience" | "body" | "channel" | "id" | "name" | "status"
+  "audience" | "body" | "channel" | "id" | "name" | "space_id" | "status"
 >;
 type EditablePlaceholder = Pick<
   PlaceholderRecord,
-  "due_date" | "id" | "missing_detail" | "priority" | "status"
+  "due_date" | "id" | "missing_detail" | "owner_uid" | "priority" | "space_id" | "status"
 >;
 type EditableTool = Pick<
   ToolRecord,
-  "id" | "integration_status" | "name" | "purpose" | "url"
+  | "id"
+  | "integration_status"
+  | "name"
+  | "primary_owner_uid"
+  | "purpose"
+  | "sensitivity"
+  | "url"
 >;
+
+interface EditableSeed {
+  placeholders: EditablePlaceholder[];
+  sops: EditableSop[];
+  templates: EditableTemplate[];
+  tools: EditableTool[];
+}
+
+type DataMode = "loading" | "api" | "seed";
 
 export function SpaceDetailClient({
   canApprove,
+  canEdit,
   readOnly,
   seed,
+  spaceId,
 }: Readonly<{
   canApprove: boolean;
+  canEdit: boolean;
   readOnly?: boolean;
-  seed: {
-    placeholders: EditablePlaceholder[];
-    sops: EditableSop[];
-    templates: EditableTemplate[];
-    tools: EditableTool[];
-  };
+  seed: EditableSeed;
+  spaceId: string;
 }>) {
+  const [mode, setMode] = useState<DataMode>("loading");
   const [sops, setSops] = useState(seed.sops);
-  const [templates] = useState(seed.templates);
+  const [templates, setTemplates] = useState(seed.templates);
   const [placeholders, setPlaceholders] = useState(seed.placeholders);
-  const [tools] = useState(seed.tools);
+  const [tools, setTools] = useState(seed.tools);
+  const [draftBody, setDraftBody] = useState(seed.sops[0]?.body_md ?? "");
+  const [message, setMessage] = useState("Loading editable records.");
+  const [isBusy, setIsBusy] = useState(false);
   const currentSop = sops[0] ?? null;
+  const canMutate = canEdit && !readOnly && !isBusy;
   const reviewCount = useMemo(
     () =>
       sops.filter((sop) => sop.status === "In Review").length +
@@ -52,40 +79,290 @@ export function SpaceDetailClient({
     [placeholders, sops, templates],
   );
 
-  function updateSopBody(body: string) {
-    setSops((records) =>
-      records.map((record, index) =>
-        index === 0
-          ? {
-              ...record,
-              body_md: body,
-              updated_at: new Date().toISOString(),
-            }
-          : record,
-      ),
-    );
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadEditableRecords() {
+      try {
+        const [sopsResult, templatesResult, placeholdersResult, toolsResult] =
+          await Promise.all([
+            fetchEditable<{ sops: EditableSop[] }>(`/api/spaces/${spaceId}/sops`),
+            fetchEditable<{ templates: EditableTemplate[] }>(
+              `/api/spaces/${spaceId}/templates`,
+            ),
+            fetchEditable<{ placeholders: EditablePlaceholder[] }>(
+              `/api/spaces/${spaceId}/placeholders`,
+            ),
+            fetchEditable<{ tools: EditableTool[] }>("/api/tools"),
+          ]);
+
+        if (!isCurrent) {
+          return;
+        }
+
+        setSops(sopsResult.sops);
+        setTemplates(templatesResult.templates);
+        setPlaceholders(placeholdersResult.placeholders);
+        setTools(toolsResult.tools);
+        setDraftBody(sopsResult.sops[0]?.body_md ?? "");
+        setMode("api");
+        setMessage("Editable API connected.");
+      } catch {
+        if (!isCurrent) {
+          return;
+        }
+
+        setSops(seed.sops);
+        setTemplates(seed.templates);
+        setPlaceholders(seed.placeholders);
+        setTools(seed.tools);
+        setDraftBody(seed.sops[0]?.body_md ?? "");
+        setMode("seed");
+        setMessage("Using local demo records until Firebase setup is complete.");
+      }
+    }
+
+    loadEditableRecords();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [seed, spaceId]);
+
+  async function saveSopBody() {
+    if (!currentSop || !canMutate) {
+      return;
+    }
+
+    if (mode !== "api") {
+      setSops((records) =>
+        records.map((record, index) =>
+          index === 0
+            ? {
+                ...record,
+                body_md: draftBody,
+                updated_at: new Date().toISOString(),
+              }
+            : record,
+        ),
+      );
+      setMessage("Saved local demo changes.");
+      return;
+    }
+
+    await runMutation(async () => {
+      const { sop } = await fetchEditable<{ sop: EditableSop }>(
+        `/api/sops/${currentSop.id}`,
+        {
+          body: JSON.stringify({
+            body_md: draftBody,
+            note: "Saved from Lease Renewals Space.",
+          }),
+          method: "PATCH",
+        },
+      );
+
+      setSops((records) =>
+        records.map((record) => (record.id === sop.id ? sop : record)),
+      );
+      setDraftBody(sop.body_md);
+      setMessage("Saved to editable API.");
+    });
   }
 
-  function approveSop() {
-    setSops((records) =>
-      records.map((record, index) =>
-        index === 0
-          ? {
-              ...record,
-              status: "Approved",
-              updated_at: new Date().toISOString(),
-            }
-          : record,
-      ),
-    );
+  async function approveSop() {
+    if (!currentSop || !canMutate || !canApprove) {
+      return;
+    }
+
+    if (mode !== "api") {
+      const now = new Date().toISOString();
+      setSops((records) =>
+        records.map((record, index) =>
+          index === 0 ? { ...record, status: "Approved", updated_at: now } : record,
+        ),
+      );
+      setMessage("Marked approved in local demo records.");
+      return;
+    }
+
+    await runMutation(async () => {
+      const { sop } = await fetchEditable<{ sop: EditableSop }>(
+        `/api/sops/${currentSop.id}`,
+        {
+          body: JSON.stringify({
+            last_reviewed_at: new Date().toISOString(),
+            note: "Approved from Lease Renewals Space.",
+            status: "Approved",
+          }),
+          method: "PATCH",
+        },
+      );
+
+      setSops((records) =>
+        records.map((record) => (record.id === sop.id ? sop : record)),
+      );
+      setDraftBody(sop.body_md);
+      setMessage("Approved through editable API.");
+    });
   }
 
-  function resolvePlaceholder(placeholderId: string) {
-    setPlaceholders((records) =>
-      records.map((record) =>
-        record.id === placeholderId ? { ...record, status: "Resolved" } : record,
-      ),
-    );
+  async function resolvePlaceholder(placeholderId: string) {
+    if (!canMutate || !canApprove) {
+      return;
+    }
+
+    if (mode !== "api") {
+      setPlaceholders((records) =>
+        records.map((record) =>
+          record.id === placeholderId ? { ...record, status: "Resolved" } : record,
+        ),
+      );
+      setMessage("Resolved placeholder in local demo records.");
+      return;
+    }
+
+    await runMutation(async () => {
+      const { placeholder } = await fetchEditable<{
+        placeholder: EditablePlaceholder;
+      }>(`/api/placeholders/${placeholderId}`, {
+        body: JSON.stringify({
+          note: "Resolved from Lease Renewals Space.",
+          resolution: "Resolved during Lease Renewals Space review.",
+          status: "Resolved",
+        }),
+        method: "PATCH",
+      });
+
+      setPlaceholders((records) =>
+        records.map((record) => (record.id === placeholder.id ? placeholder : record)),
+      );
+      setMessage("Resolved through editable API.");
+    });
+  }
+
+  async function createDemoSop() {
+    const demoSop = seed.sops[0];
+
+    if (!demoSop || !canMutate || mode !== "api") {
+      return;
+    }
+
+    await runMutation(async () => {
+      const { sop } = await fetchEditable<{ sop: EditableSop }>(
+        `/api/spaces/${spaceId}/sops`,
+        {
+          body: JSON.stringify({
+            body_md: demoSop.body_md,
+            owner_uid: demoSop.owner_uid,
+            sensitivity: demoSop.sensitivity,
+            source_state_hint: demoSop.source_state_hint,
+            status: demoSop.status,
+            title: demoSop.title,
+            note: "Created from safe Lease Renewals demo seed.",
+          }),
+          method: "POST",
+        },
+      );
+
+      setSops((records) => [sop, ...records]);
+      setDraftBody(sop.body_md);
+      setMessage("Created demo SOP through editable API.");
+    });
+  }
+
+  async function createDemoTemplate() {
+    const demoTemplate = seed.templates[0];
+
+    if (!demoTemplate || !canMutate || mode !== "api") {
+      return;
+    }
+
+    await runMutation(async () => {
+      const { template } = await fetchEditable<{ template: EditableTemplate }>(
+        `/api/spaces/${spaceId}/templates`,
+        {
+          body: JSON.stringify({
+            audience: demoTemplate.audience,
+            body: demoTemplate.body,
+            channel: demoTemplate.channel,
+            name: demoTemplate.name,
+            status: demoTemplate.status,
+            note: "Created from safe Lease Renewals demo seed.",
+          }),
+          method: "POST",
+        },
+      );
+
+      setTemplates((records) => [template, ...records]);
+      setMessage("Created demo template through editable API.");
+    });
+  }
+
+  async function createDemoPlaceholder() {
+    const demoPlaceholder = seed.placeholders[0];
+
+    if (!demoPlaceholder || !canMutate || mode !== "api") {
+      return;
+    }
+
+    await runMutation(async () => {
+      const { placeholder } = await fetchEditable<{
+        placeholder: EditablePlaceholder;
+      }>(`/api/spaces/${spaceId}/placeholders`, {
+        body: JSON.stringify({
+          due_date: demoPlaceholder.due_date,
+          missing_detail: demoPlaceholder.missing_detail,
+          owner_uid: demoPlaceholder.owner_uid,
+          priority: demoPlaceholder.priority,
+          status: demoPlaceholder.status,
+          note: "Created from safe Lease Renewals demo seed.",
+        }),
+        method: "POST",
+      });
+
+      setPlaceholders((records) => [placeholder, ...records]);
+      setMessage("Created demo placeholder through editable API.");
+    });
+  }
+
+  async function createDemoTool() {
+    const demoTool = seed.tools[0];
+
+    if (!demoTool || !canMutate || mode !== "api") {
+      return;
+    }
+
+    await runMutation(async () => {
+      const { tool } = await fetchEditable<{ tool: EditableTool }>("/api/tools", {
+        body: JSON.stringify({
+          integration_status: demoTool.integration_status,
+          name: demoTool.name,
+          primary_owner_uid: demoTool.primary_owner_uid,
+          purpose: demoTool.purpose,
+          sensitivity: demoTool.sensitivity,
+          url: demoTool.url,
+          note: "Created from safe Lease Renewals demo seed.",
+        }),
+        method: "POST",
+      });
+
+      setTools((records) => [tool, ...records]);
+      setMessage("Created demo tool through editable API.");
+    });
+  }
+
+  async function runMutation(operation: () => Promise<void>) {
+    setIsBusy(true);
+    setMessage("Saving.");
+
+    try {
+      await operation();
+    } catch (error) {
+      setMessage(readErrorMessage(error));
+    } finally {
+      setIsBusy(false);
+    }
   }
 
   return (
@@ -97,13 +374,14 @@ export function SpaceDetailClient({
             <p className="muted">
               {currentSop
                 ? `${currentSop.status} - ${currentSop.source_state_hint}`
-                : "Create an SOP when the editable API is connected."}
+                : "Create an SOP from the safe Lease Renewals seed."}
             </p>
           </div>
           {reviewCount > 0 ? (
             <span className="review-pill">{reviewCount} in review</span>
           ) : null}
         </div>
+        <p className="muted">{message}</p>
 
         {currentSop ? (
           <>
@@ -112,19 +390,24 @@ export function SpaceDetailClient({
             </label>
             <textarea
               className="sop-editor"
-              disabled={readOnly}
+              disabled={!canMutate}
               id="sop-body"
-              onChange={(event) => updateSopBody(event.target.value)}
+              onChange={(event) => setDraftBody(event.target.value)}
               rows={12}
-              value={currentSop.body_md}
+              value={draftBody}
             />
             <div className="action-row">
-              <button className="secondary-button" disabled={readOnly} type="button">
-                Save local demo changes
+              <button
+                className="secondary-button"
+                disabled={!canMutate || draftBody.trim().length === 0}
+                onClick={saveSopBody}
+                type="button"
+              >
+                Save
               </button>
               <button
                 className="primary-button"
-                disabled={readOnly || !canApprove || currentSop.status === "Approved"}
+                disabled={!canMutate || !canApprove || currentSop.status === "Approved"}
                 onClick={approveSop}
                 type="button"
               >
@@ -132,12 +415,33 @@ export function SpaceDetailClient({
               </button>
             </div>
           </>
-        ) : null}
+        ) : (
+          <button
+            className="primary-button"
+            disabled={!canMutate || mode !== "api"}
+            onClick={createDemoSop}
+            type="button"
+          >
+            Create Demo SOP
+          </button>
+        )}
       </section>
 
       <aside className="space-side">
         <section className="panel">
-          <h2>Templates</h2>
+          <div className="panel-heading compact-heading">
+            <h2>Templates</h2>
+            {templates.length === 0 ? (
+              <button
+                className="secondary-button compact-button"
+                disabled={!canMutate || mode !== "api"}
+                onClick={createDemoTemplate}
+                type="button"
+              >
+                Create Demo
+              </button>
+            ) : null}
+          </div>
           {templates.map((template) => (
             <article className="compact-record" key={template.id}>
               <strong>{template.name}</strong>
@@ -149,7 +453,19 @@ export function SpaceDetailClient({
         </section>
 
         <section className="panel">
-          <h2>Tools</h2>
+          <div className="panel-heading compact-heading">
+            <h2>Tools</h2>
+            {tools.length === 0 ? (
+              <button
+                className="secondary-button compact-button"
+                disabled={!canMutate || mode !== "api"}
+                onClick={createDemoTool}
+                type="button"
+              >
+                Create Demo
+              </button>
+            ) : null}
+          </div>
           {tools.map((tool) => (
             <article className="compact-record" key={tool.id}>
               <a href={tool.url} rel="noreferrer" target="_blank">
@@ -163,7 +479,19 @@ export function SpaceDetailClient({
         </section>
 
         <section className="panel">
-          <h2>Placeholders</h2>
+          <div className="panel-heading compact-heading">
+            <h2>Placeholders</h2>
+            {placeholders.length === 0 ? (
+              <button
+                className="secondary-button compact-button"
+                disabled={!canMutate || mode !== "api"}
+                onClick={createDemoPlaceholder}
+                type="button"
+              >
+                Create Demo
+              </button>
+            ) : null}
+          </div>
           {placeholders.map((placeholder) => (
             <article className="compact-record" key={placeholder.id}>
               <strong>{placeholder.missing_detail}</strong>
@@ -173,7 +501,7 @@ export function SpaceDetailClient({
               </p>
               <button
                 className="secondary-button compact-button"
-                disabled={readOnly || !canApprove || placeholder.status === "Resolved"}
+                disabled={!canMutate || !canApprove || placeholder.status === "Resolved"}
                 onClick={() => resolvePlaceholder(placeholder.id)}
                 type="button"
               >
@@ -185,4 +513,40 @@ export function SpaceDetailClient({
       </aside>
     </div>
   );
+}
+
+async function fetchEditable<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+  headers.set("Content-Type", "application/json");
+
+  const response = await fetch(path, {
+    ...init,
+    headers,
+  });
+
+  const payload = (await response.json().catch(() => ({}))) as T | { error?: string };
+
+  if (!response.ok) {
+    throw new Error(readApiError(payload));
+  }
+
+  return payload as T;
+}
+
+function readApiError(payload: unknown) {
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "error" in payload &&
+    typeof payload.error === "string" &&
+    payload.error.trim().length > 0
+  ) {
+    return payload.error;
+  }
+
+  return "Editable API request failed.";
+}
+
+function readErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Editable API request failed.";
 }
