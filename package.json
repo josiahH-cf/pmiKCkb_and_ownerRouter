@@ -26,7 +26,9 @@
     "firebase:setup-demo": "node scripts/setup-firebase-demo.mjs --project=pmikckb-test",
     "firebase:setup-auth": "node scripts/setup-firebase-auth-demo.mjs --project=pmikckb-test",
     "firebase:set-role": "node scripts/set-firebase-user-role.mjs",
+    "demo:reset": "node scripts/reset-demo-records.mjs",
     "smoke:auth-live": "node scripts/smoke-live-auth.mjs",
+    "smoke:demo-live": "node scripts/smoke-demo-live.mjs",
     "seed:spaces": "node scripts/seed-spaces.mjs",
     "seed:demo": "node scripts/seed-demo-records.mjs"
   },

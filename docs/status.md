@@ -607,6 +607,35 @@ Next recommended task:
 Merge the working Firestore persistence branch, then start the next branch for either a
 repeatable live workflow smoke script or the next demo feature gap.
 
+## Demo Show-And-Tell Runbook
+
+- Date: 2026-05-28
+- Added `npm run demo:reset` to restore the safe Lease Renewals demo records to
+  show-ready state: SOP/template `In Review`, placeholder `Open`, safe SOP/template/
+  tool/placeholder content present, approval/resolution fields cleared.
+- Added `npm run smoke:demo-live` to run the full signed-in live workflow smoke against
+  the local app and demo Firestore project. The smoke resets demo records before and
+  after it runs.
+- Added `docs/demo-show-and-tell.md` with exact terminal commands, localhost links,
+  sign-in guidance, the front-to-back demo workflow, demo language, troubleshooting,
+  and demo readiness gaps.
+- Updated `README.md`, `SETUP.md`, and `AGENTS.md` to route future sessions to the
+  show-and-tell runbook.
+
+Validation status:
+
+- `npm run demo:reset`: passed on 2026-05-28 against `pmikckb-test`.
+- `npm run smoke:demo-live`: passed on 2026-05-28 after starting the local dev server.
+- `npm run verify`: passed on 2026-05-28 after stopping the hidden dev server that was
+  holding Next's Windows SWC binary.
+- `npm run test:firestore`: passed on 2026-05-28 with 6 Firestore Security Rules
+  tests.
+
+Next recommended task:
+
+Review the show-and-tell wording once as the presenter, then decide whether the next
+branch should add a deployed demo URL or live Vertex/Gemini retrieval.
+
 ## Demo Cutover Working Branch
 
 - Date: 2026-05-28

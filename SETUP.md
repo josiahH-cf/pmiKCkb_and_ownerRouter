@@ -5,6 +5,7 @@ in `docs/spec.md` Appendix B.
 
 For the current demo-first path, read:
 
+- `docs/demo-show-and-tell.md` for exact local demo commands and the client walkthrough.
 - `docs/demo-slice.md` for the first working Lease Renewals demo.
 - `docs/demo-cutover.md` for the demo-to-client environment model.
 - `docs/google-setup.md` for live Google/Firebase/Drive/Vertex/Gmail setup.
@@ -160,4 +161,5 @@ npm run host:setup
 npm run firebase:setup-demo
 npm run seed:spaces
 npm run seed:demo
+npm run demo:reset
 ```

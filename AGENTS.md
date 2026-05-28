@@ -18,6 +18,7 @@ Gmail/Drive configuration, not runtime code here.
 | How to work next                       | `docs/implement.md`                |
 | Current audit log and open items       | `docs/status.md`                   |
 | Engineering conventions and boundaries | `docs/engineering.md`              |
+| Client demo walkthrough                | `docs/demo-show-and-tell.md`       |
 | Demo and cutover model                 | `docs/demo-cutover.md`             |
 | First working demo slice               | `docs/demo-slice.md`               |
 | Separate Owner Router repo setup       | `docs/router-repo.md`              |
@@ -41,6 +42,8 @@ Gmail/Drive configuration, not runtime code here.
 - Lint: `npm run lint`
 - Typecheck: `npm run typecheck`
 - Test: `npm test`
+- Reset demo data: `npm run demo:reset`
+- Live demo smoke: `npm run smoke:demo-live`
 - Build: `npm run build`
 - Full verification: `bash scripts/verify.sh`
 
