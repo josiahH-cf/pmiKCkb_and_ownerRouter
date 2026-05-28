@@ -44,6 +44,7 @@ Gmail/Drive configuration, not runtime code here.
 - Test: `npm test`
 - Reset demo data: `npm run demo:reset`
 - Live demo smoke: `npm run smoke:demo-live`
+- Live Ask smoke: `npm run smoke:ask-live`
 - Build: `npm run build`
 - Full verification: `bash scripts/verify.sh`
 

@@ -33,8 +33,10 @@ cp .env.example .env.local
 npm run dev
 ```
 
-The scaffold runs without live Google services. Until Vertex AI Search is configured,
-the Ask API intentionally returns `No Reliable Source Found`.
+The scaffold runs without live Google services in demo mode. With `ASK_DEMO_MODE=true`,
+Ask returns the safe Lease Renewals demo response. With `ASK_DEMO_MODE=false`, live Ask
+requires the Drive/Vertex configuration; missing setup returns an explicit setup error
+instead of falling back to a generic answer.
 
 Protected app pages require the server auth guard. Unauthenticated browser visits
 redirect to `/sign-in`, where the Firebase browser SDK signs in with Google and

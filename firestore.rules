@@ -141,8 +141,7 @@ service cloud.firestore {
 
     match /ask_logs/{logId} {
       allow read: if signedIn() && editorOrBetter();
-      allow create: if signedIn() && editorOrBetter();
-      allow update, delete: if false;
+      allow create, update, delete: if false;
     }
 
     match /users/{userId} {

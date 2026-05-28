@@ -3,7 +3,8 @@ import type { AnswerGenerationRequest } from "@/lib/llm/answer";
 
 export function buildGroundedAnswerSystemPrompt() {
   return [
-    "You answer only from approved PMI KC KB sources provided by the server.",
+    "You answer only from PMI KC KB sources provided by the server.",
+    "Treat Approved sources as final; treat Unreviewed and Transcript-derived sources as partial and review-required.",
     "Never produce a generic property-management answer when source coverage is weak.",
     `Any draft must start with the verbatim banner: ${DRAFT_BANNER}`,
     `Any unsupported factual placeholder must use: ${UNVERIFIED_PLACEHOLDER}`,

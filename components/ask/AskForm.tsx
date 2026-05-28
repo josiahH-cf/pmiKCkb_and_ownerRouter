@@ -126,24 +126,28 @@ export function AskForm() {
 
         <div className="field-row">
           <SelectField
+            id="ask-audience"
             label="Audience"
             onChange={setAudience}
             options={audienceOptions}
             value={audience}
           />
           <SelectField
+            id="ask-channel"
             label="Channel"
             onChange={setChannel}
             options={channelOptions}
             value={channel}
           />
           <SelectField
+            id="ask-space"
             label="Space"
             onChange={setSpace}
             options={spaceOptions}
             value={space}
           />
           <SelectField
+            id="ask-urgency"
             label="Urgency"
             onChange={setUrgency}
             options={urgencyOptions}
@@ -201,6 +205,7 @@ export function AskForm() {
               <div className="capture-panel">
                 <h3>Capture Task</h3>
                 <SelectField
+                  id="ask-capture-space"
                   label="Space"
                   onChange={setCaptureSpace}
                   options={writableSpaceOptions}
@@ -227,18 +232,18 @@ export function AskForm() {
 }
 
 function SelectField({
+  id,
   label,
   onChange,
   options,
   value,
 }: Readonly<{
+  id: string;
   label: string;
   onChange: (value: string) => void;
   options: SelectOption[];
   value: string;
 }>) {
-  const id = label.toLowerCase().replaceAll(" ", "-");
-
   return (
     <label className="select-field" htmlFor={id}>
       {label}

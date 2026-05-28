@@ -884,3 +884,49 @@ Next recommended task:
 
 Configure the Lease Renewals Drive/Vertex setup and run `npm run smoke:ask-live` with
 `ASK_DEMO_MODE=false`.
+
+## Review And Repair Pass For M3a/M3b
+
+- Date: 2026-05-28
+- Reviewed the M3a/M3b branch as a fresh verification pass against the spec, docs, API
+  boundaries, Firestore rules, and PR state.
+- Fixed duplicate `id="space"` controls in the Ask UI after adding the main Space
+  selector and capture-task Space selector.
+- Tightened `firestore.rules` so clients cannot directly create `ask_logs`; live Ask
+  logs are server-written through the Admin SDK boundary.
+- Added Firestore rules coverage for blocked direct Ask-log writes.
+- Clarified the Gemini prompt so Approved sources are final while Unreviewed and
+  Transcript-derived sources remain partial/review-required.
+- Updated `AGENTS.md` with `npm run smoke:ask-live`.
+- Updated `SETUP.md` so local/demo Ask behavior no longer implies every missing live
+  setup returns only `No Reliable Source Found`; live missing setup now returns explicit
+  setup errors.
+
+Validation status:
+
+- GitHub PR #2 CI `verify`: passed on 2026-05-28.
+- Oversized file check: only `package-lock.json` is over 300 KB, expected for npm
+  dependency lockfiles.
+- `npm run format:check`: passed on 2026-05-28.
+- `npm run lint`: passed on 2026-05-28.
+- `npm run typecheck`: passed on 2026-05-28.
+- `npm test`: passed on 2026-05-28 with 86 tests.
+- `npm run test:firestore`: passed on 2026-05-28 with 7 Firestore Security Rules
+  tests.
+- `npm run build`: passed on 2026-05-28.
+- `npm run verify`: passed on 2026-05-28; it reinstalled from the lockfile, checked
+  formatting, linted, typechecked, ran 86 tests, passed Router boundary verification,
+  and built the app.
+- Local browser smoke: passed on 2026-05-28. Verified local demo sign-in,
+  no-source Ask, capture panel rendering, Space selector behavior, and no duplicate DOM
+  IDs on the Ask page.
+
+Open items:
+
+- Live Ask still needs real Lease Renewals Drive/Vertex configuration and
+  `npm run smoke:ask-live` with `ASK_DEMO_MODE=false`.
+
+Next recommended task:
+
+Merge PR #2, sync local `main`, start a fresh branch, then configure the Lease
+Renewals Drive/Vertex setup for live Ask smoke.
