@@ -570,6 +570,43 @@ Next recommended task:
 Continue from the working real Firebase Admin session and smoke the API-backed demo
 flows against live Firestore.
 
+## Live Firestore Demo Workflow Smoke
+
+- Date: 2026-05-28
+- Smoked the real Firebase Admin session against the local app and live `pmikckb-test`
+  Firestore records using the persistent Chrome profile.
+- Found and fixed an Approval Queue gap: the page was reading static demo records and
+  its buttons only changed browser state.
+- Approval Queue now loads live Lease Renewals SOP/template/placeholder records through
+  the editable Firestore repository, falls back to demo records when live loading is
+  unavailable, and calls the existing editable API routes to approve SOPs/templates or
+  resolve placeholders.
+- Extracted `lib/approval/queue.ts` and added unit coverage for live queue mapping and
+  demo fallback.
+
+Validation status:
+
+- Signed-in browser smoke: passed on 2026-05-28. Verified Ask returns a `Verified
+Source` Lease Renewals answer with the demo citation, Lease Renewals Space reports
+  `Editable API connected.`, SOP Save writes through the editable API and was reverted,
+  Approval Queue reports `Editable API connected.`, and `/admin` loads for the Firebase
+  Admin user.
+- Approval Queue approve/resolve API smoke: passed on 2026-05-28 during the first live
+  run. The seeded in-review SOP/template and open placeholder were approved/resolved
+  through the editable API; later runs correctly showed no in-review queue items.
+- `npm run format:check`: passed on 2026-05-28.
+- `npm run lint`: passed on 2026-05-28.
+- `npm run typecheck`: passed on 2026-05-28.
+- `npm test`: passed on 2026-05-28 with 66 tests.
+- `npm run verify`: passed on 2026-05-28.
+- `npm run test:firestore`: passed on 2026-05-28 with 6 Firestore Security Rules
+  tests.
+
+Next recommended task:
+
+Merge the working Firestore persistence branch, then start the next branch for either a
+repeatable live workflow smoke script or the next demo feature gap.
+
 ## Demo Cutover Working Branch
 
 - Date: 2026-05-28
