@@ -5,6 +5,7 @@ in `docs/spec.md` Appendix B.
 
 For the current demo-first path, read:
 
+- `docs/demo-show-and-tell.md` for exact local demo commands and the client walkthrough.
 - `docs/demo-slice.md` for the first working Lease Renewals demo.
 - `docs/demo-cutover.md` for the demo-to-client environment model.
 - `docs/google-setup.md` for live Google/Firebase/Drive/Vertex/Gmail setup.
@@ -32,8 +33,10 @@ cp .env.example .env.local
 npm run dev
 ```
 
-The scaffold runs without live Google services. Until Vertex AI Search is configured,
-the Ask API intentionally returns `No Reliable Source Found`.
+The scaffold runs without live Google services in demo mode. With `ASK_DEMO_MODE=true`,
+Ask returns the safe Lease Renewals demo response. With `ASK_DEMO_MODE=false`, live Ask
+requires the Drive/Vertex configuration; missing setup returns an explicit setup error
+instead of falling back to a generic answer.
 
 Protected app pages require the server auth guard. Unauthenticated browser visits
 redirect to `/sign-in`, where the Firebase browser SDK signs in with Google and
@@ -160,4 +163,5 @@ npm run host:setup
 npm run firebase:setup-demo
 npm run seed:spaces
 npm run seed:demo
+npm run demo:reset
 ```

@@ -10,9 +10,11 @@ const validBody = {
   draft_enabled: true,
 };
 const originalAskDemoMode = process.env.ASK_DEMO_MODE;
+const originalGcpProjectId = process.env.GCP_PROJECT_ID;
 
 afterEach(() => {
   process.env.ASK_DEMO_MODE = originalAskDemoMode;
+  process.env.GCP_PROJECT_ID = originalGcpProjectId;
   setAuthResolverForTest(null);
 });
 
@@ -44,8 +46,9 @@ describe("Ask API auth guard", () => {
     });
   });
 
-  it("returns the scaffold no-source response for a valid editor", async () => {
+  it("returns a setup error when live retrieval is not configured", async () => {
     process.env.ASK_DEMO_MODE = "false";
+    process.env.GCP_PROJECT_ID = "";
     setAuthResolverForTest(() => ({
       uid: "editor",
       email: "editor@pmikcmetro.com",
@@ -55,10 +58,10 @@ describe("Ask API auth guard", () => {
 
     const response = await POST(makeRequest(validBody));
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(503);
     await expect(response.json()).resolves.toMatchObject({
-      question: validBody.question,
-      source_state: "No Reliable Source Found",
+      error: "Missing GCP_PROJECT_ID for Vertex AI Search.",
+      error_type: "RetrievalSetupError",
     });
   });
 
