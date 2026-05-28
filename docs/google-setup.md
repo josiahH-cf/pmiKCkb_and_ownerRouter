@@ -82,6 +82,28 @@ This command initializes Firebase Auth / Identity Platform, adds local/demo auth
 domains, and enables the Google sign-in provider when OAuth client credentials are
 available in ignored `.env.local`.
 
+Use the live auth smoke utility when the visible in-app browser is unreliable:
+
+```bash
+npm run smoke:auth-live -- --email=josiah.hunter@cherrybridge.ai --timeout-ms=90000
+```
+
+The utility opens installed Chrome or Edge through Playwright, starts at
+`http://localhost:3000/sign-in`, clicks the Google sign-in button, fills or selects the
+provided account when possible, and writes screenshots plus an event log under ignored
+`temp/live-auth-smoke`. It stops cleanly when Google reaches a human-only checkpoint
+such as password, MFA, or consent. To keep the opened browser waiting while a human
+finishes that checkpoint, add `--pause-on-human`:
+
+```bash
+npm run smoke:auth-live -- --email=josiah.hunter@cherrybridge.ai --timeout-ms=180000 --pause-on-human
+```
+
+The persistent browser profile lives under ignored `temp/live-auth-profile`, so a
+successful Google session can be reused by later smoke runs. Set
+`PLAYWRIGHT_CHROME_PATH` only if the host uses a non-standard Chrome or Edge install
+location.
+
 Current demo-host state:
 
 - `pmikckb-test` is the active demo project.
@@ -91,14 +113,10 @@ Current demo-host state:
 - Firebase Auth / Identity Platform is initialized.
 - Authorized domains are set for `localhost`, `127.0.0.1`,
   `pmikckb-test.firebaseapp.com`, and `pmikckb-test.web.app`.
-- Google sign-in provider setup is the remaining live-auth gate. Enable Google in
-  Firebase Console > Authentication > Sign-in method, or create a Google Auth Platform
-  Web OAuth client and configure it through `npm run firebase:setup-auth`.
-- If creating the Web OAuth client manually, add the Firebase handler redirect URI:
-  `https://pmikckb-test.firebaseapp.com/__/auth/handler`.
-- Store that OAuth client ID and client secret in ignored `.env.local` as
-  `FIREBASE_GOOGLE_CLIENT_ID` and `FIREBASE_GOOGLE_CLIENT_SECRET`, then rerun
-  `npm run firebase:setup-auth`.
+- Google sign-in provider setup is verified by `npm run firebase:setup-auth`.
+- The remaining live-auth gate is the human Google checkpoint: password, MFA, or
+  consent. Use the `--pause-on-human` smoke command above, complete the Google screen
+  in the opened browser, then let the script confirm whether the app reaches `/ask`.
 
 If `java -version` fails, install Temurin 21 JDK on Windows:
 

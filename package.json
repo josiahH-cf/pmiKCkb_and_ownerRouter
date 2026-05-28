@@ -26,6 +26,7 @@
     "firebase:setup-demo": "node scripts/setup-firebase-demo.mjs --project=pmikckb-test",
     "firebase:setup-auth": "node scripts/setup-firebase-auth-demo.mjs --project=pmikckb-test",
     "firebase:set-role": "node scripts/set-firebase-user-role.mjs",
+    "smoke:auth-live": "node scripts/smoke-live-auth.mjs",
     "seed:spaces": "node scripts/seed-spaces.mjs",
     "seed:demo": "node scripts/seed-demo-records.mjs"
   },
@@ -46,6 +47,7 @@
     "eslint": "9.39.1",
     "eslint-config-next": "16.2.6",
     "firebase-tools": "^15.19.0",
+    "playwright-core": "^1.60.0",
     "prettier": "3.7.3",
     "typescript": "5.9.3",
     "vitest": "4.0.14"

@@ -20,6 +20,9 @@ dist/
 *.log
 npm-debug.log*
 
+# Local diagnostic artifacts
+temp/
+
 # OS/editor
 .DS_Store
 Thumbs.db

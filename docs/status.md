@@ -524,6 +524,43 @@ Next recommended task:
 Continue the live sign-in from the visible Google account chooser, allow consent, then
 set the first Admin claim.
 
+## Live Auth Smoke Utility
+
+- Date: 2026-05-28
+- Added `npm run smoke:auth-live` using `playwright-core` and an installed Chrome or
+  Edge executable, so future agents can diagnose real Firebase Google sign-in without
+  depending on the in-app browser.
+- The utility starts from `http://localhost:3000/sign-in`, clicks Google sign-in,
+  fills or selects the provided account when possible, records console/page/network
+  events, and writes screenshots plus `events.json` under ignored
+  `temp/live-auth-smoke`.
+- The utility uses a persistent ignored profile at `temp/live-auth-profile`, allowing a
+  completed Google session to be reused by later smoke runs on the same host.
+- It intentionally stops at human-only Google checkpoints such as password, MFA, and
+  consent unless run with `--pause-on-human`.
+- Updated `docs/google-setup.md` and `tests/e2e/README.md` to make this a documented
+  diagnostic smoke, not a CI e2e test.
+
+Validation status:
+
+- `npm run smoke:auth-live` with `--email=josiah.hunter@cherrybridge.ai` and
+  `--timeout-ms=90000`: passed on 2026-05-28 by reaching Google and stopping cleanly
+  at the human password/MFA checkpoint.
+- `npm run format:check`: passed on 2026-05-28.
+- `npm run lint`: passed on 2026-05-28.
+- `npm run typecheck`: passed on 2026-05-28.
+- `npm test`: passed on 2026-05-28 with 64 tests.
+- `npm run build`: passed on 2026-05-28.
+- `npm run test:firestore`: passed on 2026-05-28 with 6 Firestore Security Rules
+  tests.
+- `npm run verify`: passed on 2026-05-28.
+
+Next recommended task:
+
+Run the live auth smoke utility with `--pause-on-human`, complete the Google
+password/MFA/consent screen in the opened browser, then set the first Admin claim after
+Firebase creates the user.
+
 ## Demo Cutover Working Branch
 
 - Date: 2026-05-28
