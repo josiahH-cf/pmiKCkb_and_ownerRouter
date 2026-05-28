@@ -291,7 +291,8 @@ Build the Space editing UI on top of the M2 API routes.
 ## Demo Cutover Working Branch
 
 - Date: 2026-05-28
-- Branch: `codex/demo-cutover-working-app`.
+- Branch: `codex/demo-cutover-working-app` merged to `main` through PR #1:
+  <https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/1>.
 - Checkpointed and pushed the current M2 API foundation from `main` before starting
   new demo/cutover work.
 - Added durable docs for the demo-first path:
@@ -336,8 +337,9 @@ Environment notes:
 
 Next recommended task:
 
-Finish local Java setup, run `npm run test:firestore`, then wire the Lease Renewals
-demo UI to real Firestore records where Google/Firebase config is available.
+Finish local Java setup, run `npm run test:firestore`, then start the next branch for
+real Firestore-backed Lease Renewals UI persistence where Google/Firebase config is
+available.
 
 ## M2 Review And Repair Pass
 
