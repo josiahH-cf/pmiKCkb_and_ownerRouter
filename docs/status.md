@@ -484,6 +484,26 @@ Open item:
   `npm run firebase:set-role -- --email=josiah.hunter@cherrybridge.ai --role=Admin`,
   then sign out and sign back in to refresh the Admin claim.
 
+## Firebase Google Redirect-Only Sign-In
+
+- Date: 2026-05-28
+- User reported the sign-in page still appeared hung after clicking Google sign-in.
+- Browser diagnostics showed the page stuck at `Opening Google...`, not waiting on the
+  server and not showing a Google network timeout.
+- Updated the sign-in button to use Firebase redirect sign-in directly instead of
+  trying popup sign-in first. The previous popup-first path could stall in the in-app
+  browser before handing off to Google.
+- Kept the redirect-result timeout/idle fallback from the prior repair so returning to
+  `/sign-in` cannot leave the page permanently disabled.
+- Browser retry reached Google's account chooser for `josiah.hunter@cherrybridge.ai`
+  within a few seconds.
+
+Next recommended task:
+
+Human selects `josiah.hunter@cherrybridge.ai` in Google, clicks `Allow` on the consent
+screen, then the agent sets the first Admin claim and smokes `/ask` as a real Firebase
+session.
+
 ## Demo Cutover Working Branch
 
 - Date: 2026-05-28

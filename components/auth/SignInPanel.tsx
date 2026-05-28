@@ -5,7 +5,6 @@ import {
   GoogleAuthProvider,
   getRedirectResult,
   onAuthStateChanged,
-  signInWithPopup,
   signInWithRedirect,
   signOut,
   type User,
@@ -136,14 +135,16 @@ export function SignInPanel({
       setStatus("redirecting");
       setMessage(null);
       const auth = getFirebaseClientAuth();
-      const result = await signInWithPopup(auth, provider);
-      await finishSignIn(result.user);
+      window.setTimeout(() => {
+        setStatus((current) => (current === "redirecting" ? "idle" : current));
+        setMessage(
+          (current) =>
+            current ??
+            "Google sign-in did not open. Check the browser connection and try again.",
+        );
+      }, 10000);
+      await signInWithRedirect(auth, provider);
     } catch (error) {
-      if (isPopupBlocked(error)) {
-        await signInWithRedirect(getFirebaseClientAuth(), provider);
-        return;
-      }
-
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Google sign-in failed.");
     }
@@ -251,12 +252,4 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
       .catch(reject)
       .finally(() => window.clearTimeout(timeout));
   });
-}
-
-function isPopupBlocked(error: unknown) {
-  return (
-    error instanceof Error &&
-    (error.message.includes("auth/popup-blocked") ||
-      error.message.includes("auth/cancelled-popup-request"))
-  );
 }
