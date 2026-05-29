@@ -2,9 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ANSWER_RESPONSE_JSON_SCHEMA,
   GoogleGenAiAnswerGenerator,
+  ensureDraftBanner,
   parseGeneratedAnswerText,
 } from "@/lib/llm/answer";
+import { DRAFT_BANNER } from "@/lib/constants";
 import type { ServerConfig } from "@/lib/config/server";
+import { buildGroundedAnswerSystemPrompt } from "@/lib/llm/prompt";
 
 describe("Gemini answer contract", () => {
   it("parses strict generated answer JSON", () => {
@@ -35,6 +38,22 @@ describe("Gemini answer contract", () => {
     expect(() =>
       parseGeneratedAnswerText(JSON.stringify({ answer: "Missing fields." })),
     ).toThrow();
+  });
+
+  it("instructs Gemini to keep draft labeling out of the answer field", () => {
+    const prompt = buildGroundedAnswerSystemPrompt();
+
+    expect(prompt).toContain("Never put the draft banner in answer");
+    expect(prompt).toContain("Partial Source is a usable answer state");
+    expect(prompt).toContain("do not invent role titles");
+  });
+
+  it("normalizes draft banner spacing", () => {
+    expect(ensureDraftBanner(`${DRAFT_BANNER}\nHi owner.`, true)).toBe(
+      `${DRAFT_BANNER}\n\nHi owner.`,
+    );
+    expect(ensureDraftBanner("Hi owner.", true)).toBe(`${DRAFT_BANNER}\n\nHi owner.`);
+    expect(ensureDraftBanner("Hi owner.", false)).toBe("");
   });
 
   it("retries once with stricter instructions after invalid JSON", async () => {

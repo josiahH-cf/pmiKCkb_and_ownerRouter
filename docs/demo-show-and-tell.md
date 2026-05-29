@@ -29,6 +29,9 @@ Firestore in the demo project.
 - Real Admin role claim for `josiah.hunter@cherrybridge.ai`.
 - Demo Ask response for Lease Renewals questions with `Verified Source`, citation,
   handling steps, and copyable draft text.
+- Optional live Ask smoke for Lease Renewals through Cloud Storage `.txt` sources and
+  Agent Search data store `kb-lease-renewals-txt`, including one sanitized
+  transcript-derived call-notes source.
 - Local reset and smoke commands so the demo can be restored before and after a
   show-and-tell.
 
@@ -36,6 +39,9 @@ Firestore in the demo project.
 
 - Demo Ask intentionally bypasses live Vertex AI Search and Gemini while
   `ASK_DEMO_MODE=true`.
+- The current live Ask corpus is call-context-backed for Lease Renewals, but the
+  transcript-derived source is review-required and should not be presented as approved
+  SOP wording.
 - The Approval Queue currently covers the Lease Renewals demo records, not every future
   Space.
 - Admin shows basic environment/config status, not the final indexing-health dashboard.
@@ -97,6 +103,55 @@ When it reaches `/ask`, rerun:
 ```bash
 npm run smoke:demo-live
 ```
+
+## Optional Live Ask Check
+
+Use this only when explicitly showing live retrieval/Gemini behavior. Keep it scoped to
+Lease Renewals and do not upload raw transcripts.
+
+Prerequisites:
+
+- In the current `pmikckb-test` demo setup, the sanitized Lease Renewals
+  transcript-derived `.txt` source is uploaded, imported into `kb-lease-renewals-txt`,
+  and seeded in `sources_meta`.
+- If rebuilding the demo from scratch, repeat those upload/import/seed steps before
+  running this smoke.
+- The local app is running with `ASK_DEMO_MODE=false`.
+
+Run:
+
+```bash
+npm run check:live-cost
+npm run smoke:ask-live -- --question="When do we contact the owner versus the tenant during a renewal?" --timeout-ms=90000
+```
+
+Say:
+
+> This answer comes from a sanitized transcript-derived source, so the KB treats it as
+> review-required. That is the point: real call context becomes useful without turning
+> unapproved notes into final policy.
+
+## Stronger Future Demo Candidates
+
+These are supported by sanitized transcript-derived source templates but should not be
+shown as live Ask Spaces until separate source targets, data stores, and demo records
+exist.
+
+- Maintenance Work Order Intake: shows Rentvine intake, missing photos, Google Chat
+  handoff, and Dan vendor assignment.
+- Move-Out + Deposit Disposition: shows deadline pressure, tenant instructions, owner
+  utility reminders, inspections, vendor bids, and deposit-sensitive escalation.
+- Owner Onboarding: shows the checklist-heavy handoff before a property, owner, and
+  existing tenant are fully built out in Rentvine.
+
+Good future questions:
+
+- "What should the team check when a maintenance request comes in?"
+- "Why should the KB not assign a vendor by itself?"
+- "What has to happen after a tenant gives move-out notice?"
+- "Can the KB decide deposit disposition by itself?"
+- "What details does the team track during owner onboarding?"
+- "Can the KB update the onboarding sheet or Rentvine?"
 
 ## Manual Walkthrough
 
@@ -168,7 +223,7 @@ Use Chrome if possible. The in-app browser can be unreliable for Google sign-in.
    Say:
 
    > Cutover should be mostly environment configuration: domain, Firebase project,
-   > Firestore data, Drive folders, and future Vertex data stores.
+   > Firestore data, source locations, and Agent Search data stores.
 
 ## After Every Demo
 
@@ -200,13 +255,11 @@ npm run smoke:demo-live
 ## Demo Readiness Gaps
 
 1. Add a public deployed URL so client demos are not tied to a developer machine.
-2. Add sanitized real Lease Renewals call notes to the Cloud Storage source corpus,
-   import the `.txt` copy into Agent Search, and rerun `npm run smoke:ask-live`.
-3. Delete the unused console-created Markdown data store after confirming the working
+2. Delete the unused console-created Markdown data store after confirming the working
    `kb-lease-renewals-txt` store is the only configured Lease Renewals target.
-4. Expand Approval Queue beyond Lease Renewals when additional Spaces have real demo
+3. Expand Approval Queue beyond Lease Renewals when additional Spaces have real demo
    records.
-5. Add a visible change-log panel in the Space page so save/approve/reset history is
+4. Add a visible change-log panel in the Space page so save/approve/reset history is
    inspectable during show-and-tell.
-6. Add a non-human-auth CI e2e path with mocked auth/session fixtures; keep live Google
+5. Add a non-human-auth CI e2e path with mocked auth/session fixtures; keep live Google
    auth as a local smoke only.

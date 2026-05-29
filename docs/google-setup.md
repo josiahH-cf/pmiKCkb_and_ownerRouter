@@ -220,6 +220,11 @@ Current demo values:
 - Source prefix: `gs://<bucket-name>/lease-renewals/`.
 - Durable seed templates: `docs/demo-source-templates/`.
 - Ignored upload workspace: `temp/lease-renewals-drive-seed/`.
+- Supported transcript-derived templates now exist for Lease Renewals, Maintenance Work
+  Order Intake, Move-Out + Deposit Disposition, and Owner Onboarding. Import only the
+  Lease Renewals `.txt` copy for the current under-$10 live Ask path.
+- Template catalog and approval guidance:
+  `docs/demo-source-templates/README.md`.
 
 Known working `pmikckb-test` smoke values from 2026-05-29:
 
@@ -257,6 +262,24 @@ The original Google Drive folder can still be used as a human staging folder, bu
 not create the live Ask data store from Drive for this phase. Current Google docs for
 Workspace data stores say service-account search is not supported, and the user hit a
 Google Console OAuth error while creating the Drive connector.
+
+### Sanitizing Raw Call Context
+
+Raw local transcripts and call notes must not be uploaded directly or committed to the
+repo. Before creating any `.txt` source for Agent Search:
+
+- remove owner names, tenant names, applicant names, property addresses, phone numbers,
+  email addresses, private Fathom links, and private vendor contact details;
+- remove rent amounts, ledger amounts, bank details, payment examples tied to people,
+  SSNs, screening details, Plaid/Boom raw data, and full lease packet details;
+- summarize by role and workflow step instead of quoting sensitive call passages;
+- mark the source as `Source status: Transcript-derived` and `Sensitivity: Low`;
+- seed `sources_meta` with `--approval-status=Transcript-derived --sensitivity=Low`;
+- keep legal deadlines, fees, notice wording, approval thresholds, and exception rules
+  review-required until Bailey or Dan approves them.
+
+The raw review folder `docs/context_and_calls/` is intentionally ignored by git and
+Prettier. Use it only as local source material for sanitized summaries.
 
 ## Under-$10 Live Ask And Demo Deploy
 
@@ -343,10 +366,15 @@ gcloud storage cp "temp\lease-renewals-drive-seed\02-owner-renewal-follow-up-dem
 
 ```powershell
 Copy-Item "docs\demo-source-templates\lease-renewals-sanitized-call-notes.md" "temp\lease-renewals-drive-seed\03-lease-renewals-sanitized-call-notes.md"
+# Review the copied file and remove any non-demo-safe details before upload.
 notepad "temp\lease-renewals-drive-seed\03-lease-renewals-sanitized-call-notes.md"
 Copy-Item "temp\lease-renewals-drive-seed\03-lease-renewals-sanitized-call-notes.md" "temp\lease-renewals-drive-seed\03-lease-renewals-sanitized-call-notes.txt"
 gcloud storage cp "temp\lease-renewals-drive-seed\03-lease-renewals-sanitized-call-notes.txt" "gs://$env:BUCKET_NAME/lease-renewals/"
 ```
+
+Future demo expansion can use the other sanitized templates in
+`docs/demo-source-templates/`, but do not import them into the one-Space cheap smoke
+until separate source prefixes, data stores, and cost checks are intentionally added.
 
 6. Create one Agent Search data store from Cloud Storage:
    <https://console.cloud.google.com/gen-app-builder/data-stores?project=pmikckb-test>
@@ -439,6 +467,6 @@ At purchase/cutover:
 2. Set `ALLOWED_HD=pmikcmetro.com`.
 3. Register a new Firebase Web app and OAuth client.
 4. Create client-owned Drive folders.
-5. Create client-owned Vertex AI Search data stores.
+5. Create client-owned source locations and Agent Search data stores.
 6. Re-seed Spaces from the repo.
 7. Re-run the smoke test in `docs/demo-cutover.md`.

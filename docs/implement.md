@@ -7,12 +7,12 @@ Open `docs/status.md`, find the next recommended task, then compare it to
 redirects.
 
 After the M3a/M3b code foundation, the cheap Lease Renewals live Ask smoke is working
-through Cloud Storage and Agent Search. The next implementation task is to add
-sanitized real Lease Renewals call notes, upload/import the `.txt` copy, seed matching
-`sources_meta`, rerun `npm run check:live-cost` and `npm run smoke:ask-live`, then
-deploy the cheap Cloud Run demo with `npm run deploy:demo -- --budget-confirmed`.
-Keep the Lease Renewals demo path working for show-and-tell, but do not treat demo Ask
-as Spec 1 completion.
+through Cloud Storage and Agent Search with safe seed sources plus one sanitized
+transcript-derived source. The next implementation task is to keep that local smoke
+green, then deploy the cheap Cloud Run demo with
+`npm run deploy:demo -- --budget-confirmed`. Keep the Lease Renewals demo path working
+for show-and-tell, but do not treat demo Ask or review-required transcript notes as
+Spec 1 completion.
 
 For demo operations, use `docs/demo-show-and-tell.md`. For production cutover
 assumptions, keep `docs/demo-cutover.md` in view before adding live Google integration

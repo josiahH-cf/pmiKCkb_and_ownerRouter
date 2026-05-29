@@ -1197,3 +1197,182 @@ Next recommended task:
 Add sanitized Lease Renewals call notes, upload/import the `.txt` copy into
 `kb-lease-renewals-txt`, seed `sources_meta` with `approval_status=Transcript-derived`,
 rerun live Ask smoke, then deploy the cheap Cloud Run demo.
+
+## Transcript-Backed Demo Planning And Source Templates
+
+- Date: 2026-05-29
+- Reviewed local raw call/context material under `docs/context_and_calls/` against
+  current repo docs, demo runbooks, Google setup docs, and source templates.
+- Confirmed the raw call folder contains sensitive and noisy local review material,
+  including participant names, owner/applicant examples, dollar amounts, Fathom links,
+  and bank/screening-adjacent details. It is now ignored by git and Prettier so it can
+  remain local without breaking `npm run format:check` or being accidentally tracked.
+- Converted the blank Lease Renewals sanitized call-notes template into a
+  transcript-derived, review-required source summary with role-only facts and explicit
+  placeholder triggers.
+- Added sanitized transcript-derived source templates for three supported future demo
+  candidates:
+  - Maintenance Work Order Intake / vendor assignment.
+  - Move-Out + Deposit Disposition.
+  - Owner Onboarding.
+- Updated demo and setup docs so the current truth is explicit: the cheap live Ask path
+  works through Cloud Storage `.txt` sources and Agent Search, while call-context-backed
+  live Ask still requires reviewing the sanitized template, uploading/importing the
+  `.txt` copy, seeding `sources_meta`, and rerunning live smoke.
+- Updated active next-step wording in `README.md`, `docs/plan.md`, and
+  `docs/implement.md` from "add sanitized notes" to the remaining upload/import/seed
+  work.
+
+Validation status:
+
+- `npm run format:check`: passed on 2026-05-29.
+- No code or test files changed, so focused tests and `npm run typecheck` were not
+  required for this documentation-only pass.
+
+Open items:
+
+- The sanitized Lease Renewals `.txt` copy still needs to be uploaded/imported into
+  `kb-lease-renewals-txt`, seeded in `sources_meta` as `Transcript-derived`, and smoked
+  with `npm run smoke:ask-live`.
+- Maintenance, Move-Out, and Owner Onboarding are strong future demo candidates, but
+  they need separate source prefixes/data stores and approval before being treated as
+  final SOP content.
+- Bailey/Dan still need to confirm legal notice wording, fee details, approval
+  thresholds, exception handling, and any tenant/owner-facing template language before
+  those details can become approved sources.
+
+Next recommended task:
+
+Review the sanitized Lease Renewals call-notes template, upload/import its `.txt` copy
+into `kb-lease-renewals-txt`, seed `sources_meta` with
+`approval_status=Transcript-derived`, rerun `npm run check:live-cost` and
+`npm run smoke:ask-live`, then deploy the cheap Cloud Run demo if the live answer is
+acceptable.
+
+## Fresh Review And Repair: Transcript Template Alignment
+
+- Date: 2026-05-29
+- Performed an outside-style verification pass over the recent transcript-backed demo
+  documentation work, current branch state, and affected runbooks.
+- Fetched `origin` and moved the work off `main` onto
+  `codex/review-demo-docs-call-context`; local HEAD and `origin/main` were aligned
+  before the branch was created.
+- Confirmed no remote merge was needed because the branch base and `origin/main` had
+  zero ahead/behind commits after fetch.
+- Falsified the new templates for obvious leakage patterns and did not find emails,
+  phone numbers, dollar amounts, Fathom links, named owners/applicants, bank examples,
+  or private payment identifiers in `docs/demo-source-templates/`.
+- Fixed a terminology ambiguity in the template source context by changing participant
+  role labels from `owner` to `company owner`, so demo readers do not confuse Dan with
+  a property owner in workflow examples.
+- Tightened `docs/demo-cutover.md` wording from Drive-specific setup to source target
+  / Agent Search setup for the current Cloud Storage-backed live Ask path.
+- Clarified `.gitignore` grouping so `docs/context_and_calls/` is recognized as raw
+  review context, not a tracked source folder.
+
+Validation status:
+
+- `npm run format:check`: passed on 2026-05-29.
+- `git diff --check`: passed on 2026-05-29.
+- `npm run verify`: passed on 2026-05-29; it reinstalled from the lockfile, checked
+  formatting, linted, typechecked, ran 94 tests, passed Router boundary verification,
+  and built the app.
+- Quality-control scan: `docs/context_and_calls/` is ignored by git; new demo source
+  templates are small Markdown files; no unexpected tracked file over 300 KB was found
+  other than the existing `package-lock.json`.
+
+Open items:
+
+- Same as above: the sanitized Lease Renewals `.txt` still needs upload/import,
+  `sources_meta` seeding, and live Ask smoke before the demo is call-context-backed.
+
+## Robust First-Pass Demo Source Expansion
+
+- Date: 2026-05-29
+- Strengthened the transcript-derived demo source templates so they can stand alone as
+  first-pass handoff artifacts for a client demo without pretending to be approved
+  SOPs.
+- Added workflow value, first-pass handoff flow, safe-answer boundaries, refusal
+  boundaries, Bailey/Dan review questions, placeholder triggers, and stronger demo Ask
+  questions to:
+  - Lease Renewals.
+  - Maintenance Work Order Intake.
+  - Move-Out + Deposit Disposition.
+  - Owner Onboarding.
+- Added `docs/demo-source-templates/README.md` to catalog which templates belong in
+  the current Lease Renewals live Ask corpus and which are future demo candidates.
+- Updated `docs/demo-show-and-tell.md`, `docs/demo-slice.md`, `docs/google-setup.md`,
+  and `README.md` so the new templates are discoverable and the current one-Space live
+  Ask boundary remains clear.
+- Rechecked the new demo source templates for obvious sensitive-data patterns; the only
+  match was the intended warning text about private Fathom links, not an actual link.
+- Replaced remaining active demo/cutover wording that implied Drive-only or
+  Vertex-only setup with source location / Agent Search wording where appropriate.
+
+Validation status:
+
+- `npm run format:check`: passed on 2026-05-29.
+- `git diff --check`: passed on 2026-05-29.
+- `npm run verify`: passed on 2026-05-29; it reinstalled from the lockfile, checked
+  formatting, linted, typechecked, ran 94 tests, passed Router boundary verification,
+  and built the app.
+- Sensitive-pattern scan over `docs/demo-source-templates/` found no actual URLs,
+  emails, phone numbers, named owner/applicant examples, bank/payment identifiers, or
+  dollar amounts in the source templates. The only match was intentional safety
+  language referencing `under-$10` demo scope.
+
+Open items:
+
+- Transcript-derived templates still require Bailey/Dan approval before they can become
+  final SOP content.
+- Only Lease Renewals is ready for the current cheap live Ask import path. The other
+  templates need separate source targets, data stores, demo records, and cost checks
+  before live demo use.
+
+## Transcript-Backed Live Ask Repair And Hardening
+
+- Date: 2026-05-29
+- Refreshed the Lease Renewals transcript-derived source so Agent Search sees workflow
+  facts before sanitization guardrail text. The first live smoke had retrieved the
+  right document but did not produce a cited Ask answer reliably.
+- Uploaded the refreshed `.txt` copy to
+  `gs://pmikckb-test-lease-renewals-686407/lease-renewals/03-lease-renewals-sanitized-call-notes.txt`.
+- Imported that object into Agent Search data store `kb-lease-renewals-txt`; the import
+  operation completed with `successCount=1` and `totalCount=1`.
+- Re-seeded `sources_meta` for document ID `9de7f0d4bd8630e7a73f3cddbe752289` with
+  `approval_status=Transcript-derived` and `sensitivity=Low`.
+- Confirmed direct Agent Search now returns the transcript-derived source as the top
+  result for "When do we contact the owner versus the tenant during a renewal?"
+- Hardened the live answer contract so Gemini is instructed to use `Partial Source`
+  when excerpts support a cautious answer, never put the draft banner in the answer
+  field, and never invent escalation-owner role titles.
+- Hardened the Ask service response boundary to strip draft banners out of the answer,
+  fall back to known escalation labels only, and normalize draft banner spacing.
+- Updated active README, implementation, plan, demo-slice, and show-and-tell docs so
+  they no longer say the Lease Renewals transcript-derived source still needs to be
+  uploaded/imported/smoked.
+
+Validation status:
+
+- Focused unit tests passed on 2026-05-29 with 17 tests across Ask service and Gemini
+  answer-contract behavior.
+- `npm run format:check`: passed on 2026-05-29.
+- `npm run typecheck`: passed on 2026-05-29.
+- `git diff --check`: passed on 2026-05-29.
+- `npm run smoke:ask-live -- --question="When do we contact the owner versus the tenant during a renewal?" --timeout-ms=120000`
+  passed on 2026-05-29 against the local app with `ASK_DEMO_MODE=false`.
+- `npm run verify`: passed on 2026-05-29; it reinstalled from the lockfile, checked
+  formatting, linted, typechecked, ran 98 tests, passed Router boundary verification,
+  and built the app.
+- Quality-control scan: changed files are small documentation/code/test edits; demo
+  source templates remain under 8 KB each; sensitive-pattern scan found only intentional
+  safety wording around routing rules and under-$10 demo scope, not customer URLs,
+  emails, phone numbers, account identifiers, SSNs, or real dollar amounts.
+
+Open items:
+
+- Transcript-derived Lease Renewals content is useful for demo grounding, but remains
+  review-required until Bailey/Dan approve final SOP wording.
+- Maintenance, Move-Out, and Owner Onboarding templates remain future demo candidates;
+  they are not imported into the one-Space live corpus.
+- The cheap Cloud Run demo has not been deployed in this pass.

@@ -199,6 +199,66 @@ describe("Ask service", () => {
     });
   });
 
+  it("keeps draft banner text out of answer and normalizes verbose escalation owners", async () => {
+    const response = await answerQuestion(user, request, {
+      answerGenerator: answerGenerator({
+        answer: `${DRAFT_BANNER}\n\nContact the owner before tenant-facing renewal commitments.`,
+        citations: [
+          {
+            source_id: "drive-file-1",
+            title: "Lease Renewals Notes",
+            url: "https://drive.google.com/file/d/drive-file-1/view",
+          },
+        ],
+        escalation_owner:
+          "Needs Verification: exact timing should be reviewed by the process owner.",
+        source_state: "Verified Source",
+      }),
+      askLogWriter: noopAskLogWriter,
+      config: liveConfig,
+      retrievalClient: retrievalClient(
+        grounding(["drive-file-1"], {
+          approvalStatus: "Unreviewed",
+        }),
+      ),
+    });
+
+    expect(response).toMatchObject({
+      answer: "Contact the owner before tenant-facing renewal commitments.",
+      escalation_owner: "Process owner",
+      source_state: "Partial Source",
+    });
+    expect(response.draft.startsWith(DRAFT_BANNER)).toBe(true);
+  });
+
+  it("does not surface invented escalation-owner labels from Gemini", async () => {
+    const response = await answerQuestion(user, request, {
+      answerGenerator: answerGenerator({
+        citations: [
+          {
+            source_id: "drive-file-1",
+            title: "Lease Renewals Notes",
+            url: "https://drive.google.com/file/d/drive-file-1/view",
+          },
+        ],
+        escalation_owner: "Renewal Process Expert",
+        source_state: "Verified Source",
+      }),
+      askLogWriter: noopAskLogWriter,
+      config: liveConfig,
+      retrievalClient: retrievalClient(
+        grounding(["drive-file-1"], {
+          approvalStatus: "Unreviewed",
+        }),
+      ),
+    });
+
+    expect(response).toMatchObject({
+      escalation_owner: "Process owner",
+      source_state: "Partial Source",
+    });
+  });
+
   it("downgrades to no-source when Gemini cites no grounded source", async () => {
     await expect(
       answerQuestion(user, request, {
