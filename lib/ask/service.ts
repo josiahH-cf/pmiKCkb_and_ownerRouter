@@ -139,22 +139,65 @@ function finalizeGeneratedAnswer(
   }
 
   const citations = canonicalizeValidCitations(generated.citations, grounding.citations);
+  const answer = stripDraftBannerFromAnswer(generated.answer);
 
-  if (citations.length === 0) {
+  if (!answer || citations.length === 0) {
     return noReliableSourceResponse(request.question);
   }
 
   return {
     question: request.question,
-    answer: generated.answer,
+    answer,
     citations,
     draft: ensureDraftBanner(generated.draft, request.draft_enabled),
-    escalation_owner:
-      generated.escalation_owner ??
-      (sourceState === "Verified Source" ? undefined : "Process owner"),
+    escalation_owner: normalizeEscalationOwner(generated.escalation_owner, sourceState),
     handling_steps: generated.handling_steps,
     source_state: sourceState,
   };
+}
+
+function stripDraftBannerFromAnswer(answer: string) {
+  const trimmed = answer.trim();
+
+  if (!trimmed.startsWith(DRAFT_BANNER)) {
+    return trimmed;
+  }
+
+  return trimmed.slice(DRAFT_BANNER.length).trim();
+}
+
+function normalizeEscalationOwner(
+  escalationOwner: string | undefined,
+  sourceState: SourceState,
+) {
+  const fallback = sourceState === "Verified Source" ? undefined : "Process owner";
+  const trimmed = escalationOwner?.trim();
+
+  if (!trimmed) {
+    return fallback;
+  }
+
+  if (trimmed.length > 48 || /[\r\n.!?;:]/.test(trimmed)) {
+    return fallback;
+  }
+
+  const normalized = normalizeKnownEscalationOwner(trimmed);
+
+  return normalized ?? fallback;
+}
+
+function normalizeKnownEscalationOwner(escalationOwner: string) {
+  const normalized = escalationOwner.toLowerCase();
+
+  if (normalized === "approver") {
+    return "Approver";
+  }
+
+  if (normalized === "process owner") {
+    return "Process owner";
+  }
+
+  return undefined;
 }
 
 function reviewOnlyResponse(

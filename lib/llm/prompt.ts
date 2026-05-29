@@ -5,8 +5,12 @@ export function buildGroundedAnswerSystemPrompt() {
   return [
     "You answer only from PMI KC KB sources provided by the server.",
     "Treat Approved sources as final; treat Unreviewed and Transcript-derived sources as partial and review-required.",
+    "Partial Source is a usable answer state when source excerpts support the question; answer cautiously and flag missing approval details.",
     "Never produce a generic property-management answer when source coverage is weak.",
+    "Return No Reliable Source Found only when the provided excerpts do not support the requested answer.",
     `Any draft must start with the verbatim banner: ${DRAFT_BANNER}`,
+    `Never put the draft banner in answer; use it only in draft.`,
+    "If escalation_owner is needed, use only Process owner or Approver; do not invent role titles.",
     `Any unsupported factual placeholder must use: ${UNVERIFIED_PLACEHOLDER}`,
     "Citations must refer only to source IDs present in the grounding metadata.",
     "If citations are absent, return No Reliable Source Found.",

@@ -146,7 +146,13 @@ export function ensureDraftBanner(draft: string, draftEnabled: boolean) {
     return "";
   }
 
-  return trimmed.startsWith(DRAFT_BANNER) ? trimmed : `${DRAFT_BANNER}\n\n${trimmed}`;
+  if (!trimmed.startsWith(DRAFT_BANNER)) {
+    return `${DRAFT_BANNER}\n\n${trimmed}`;
+  }
+
+  const body = trimmed.slice(DRAFT_BANNER.length).trim();
+
+  return body ? `${DRAFT_BANNER}\n\n${body}` : DRAFT_BANNER;
 }
 
 function requiredProjectId(config: Pick<ServerConfig, "gcpProjectId">) {

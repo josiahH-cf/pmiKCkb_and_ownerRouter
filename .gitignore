@@ -20,8 +20,9 @@ dist/
 *.log
 npm-debug.log*
 
-# Local diagnostic artifacts
+# Local diagnostic artifacts and raw review context
 temp/
+docs/context_and_calls/
 
 # OS/editor
 .DS_Store

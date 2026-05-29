@@ -19,9 +19,10 @@ source-state constants, unit/eval tests, Firestore rules tests, demo reset/smoke
 scripts, and deterministic verification.
 
 Spec 1 is not launch-complete yet. A cheap Lease Renewals live Ask smoke now works
-through a Cloud Storage-backed Agent Search data store, but the real app still needs
-sanitized client call context, deployed Cloud Run smoke, all launch Spaces, full
-editable UI coverage, all-Space Approval Queue coverage, Gmail send-only
+through a Cloud Storage-backed Agent Search data store with safe seed sources and one
+sanitized transcript-derived call-notes source, but the real app still needs deployed
+Cloud Run smoke, all launch Spaces, full editable UI coverage, all-Space Approval
+Queue coverage, Gmail send-only
 notifications, Admin observability, and a separate Owner Router repo for the
 read-only Owner Email Space.
 
@@ -78,20 +79,20 @@ Run `npm run test:firestore` separately when Java is available on PATH.
 - `docs/demo-show-and-tell.md`: exact local demo commands and client walkthrough.
 - `docs/demo-cutover.md`: demo-to-client environment and cutover model.
 - `docs/demo-slice.md`: first working Lease Renewals demo slice.
+- `docs/demo-source-templates/`: safe source templates for current and future demos.
 - `docs/google-setup.md`: live Google/Firebase/Cloud Storage/Agent Search/Gmail setup
   runbook.
 - `docs/router-repo.md`: separate Owner Router repo plan.
 
 ## Next Steps
 
-1. Add sanitized real Lease Renewals call notes to the Cloud Storage source corpus,
-   import them into Agent Search, and seed `sources_meta` as `Transcript-derived`.
-2. Keep `docs/demo-show-and-tell.md` working for the current local client walkthrough.
-3. Deploy the cheap Cloud
+1. Keep the local show-and-tell path and transcript-derived live Ask smoke green for
+   Lease Renewals.
+2. Deploy the cheap Cloud
    Run demo with `npm run deploy:demo -- --budget-confirmed`.
-4. Create the separate `pmi-kc-owner-router` repository before final KB A-16
+3. Create the separate `pmi-kc-owner-router` repository before final KB A-16
    verification.
-5. Expand the editable Space UI and Approval Queue from Lease Renewals to all launch
+4. Expand the editable Space UI and Approval Queue from Lease Renewals to all launch
    Spaces.
-6. Add mocked-auth Playwright e2e tests, staging Cloud Run, brand verification, and
+5. Add mocked-auth Playwright e2e tests, staging Cloud Run, brand verification, and
    final A-1 through A-17 acceptance.

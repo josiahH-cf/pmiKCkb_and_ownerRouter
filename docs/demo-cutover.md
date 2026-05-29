@@ -28,8 +28,8 @@ Each environment owns these values:
 - OAuth client IDs/secrets
 - Cloud Run service URL and custom domain
 - Firestore database ID
-- Space Drive folder IDs
-- Vertex AI Search data store IDs
+- Space source targets, such as Drive folder IDs or Cloud Storage `gs://` prefixes
+- Agent Search / Vertex AI Search data store IDs
 - Cloud Run service account email
 - Gmail sender identity for `KB Approval`
 - Secret Manager secret names/versions
@@ -59,9 +59,9 @@ Default to a clean client-production setup:
 2. Configure `ALLOWED_HD=pmikcmetro.com`.
 3. Register a new Firebase Web app and OAuth client.
 4. Create new client-owned Drive folders.
-5. Create new Vertex AI Search data stores.
+5. Create new client-owned source locations and Agent Search data stores.
 6. Re-seed Spaces from code/config.
-7. Add only approved PMI KC source files to Drive.
+7. Add only approved PMI KC source files to the configured source locations.
 8. Re-run smoke tests.
 
 Do not migrate demo Firestore content by default. If a demo SOP/template is worth
@@ -86,7 +86,8 @@ Before declaring client-production ready:
 
 ## Current State
 
-The repo currently supports local and demo scaffolding. Live Firebase, Drive, Vertex AI
-Search, Cloud Run, and Gmail setup still require external Google configuration. Mock
-demo mode remains the default path for unattended local progress until those values are
-available.
+The repo currently supports local and demo scaffolding. Live Firebase, source
+locations, Agent Search, Cloud Run, and Gmail setup still require external Google
+configuration for a client-owned production environment. The current demo host has a
+one-Space live Ask path for Lease Renewals through Cloud Storage `.txt` sources and
+Agent Search, while mock demo mode remains the safest unattended local walkthrough.

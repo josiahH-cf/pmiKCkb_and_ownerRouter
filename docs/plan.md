@@ -39,8 +39,8 @@ Status after the 2026-05-29 live Ask smoke:
   filtering, Gemini JSON validation, citation downgrade, Ask logging, Ask capture, and
   eval execution through the Ask service.
 - Spec 1 is not launch-complete yet. A cheap Lease Renewals live Ask smoke works
-  through Cloud Storage and Agent Search, but it currently uses safe seed docs rather
-  than sanitized client call context. Only Lease Renewals has the full editable Space
+  through Cloud Storage and Agent Search with safe seed docs plus one sanitized
+  transcript-derived call-notes source. Only Lease Renewals has the full editable Space
   UI, and production source corpus / Gmail notification / Admin observability work
   remains.
 - `npm run verify` and `npm run test:firestore` pass on the current host.
@@ -284,8 +284,8 @@ npm run verify:router-boundary
 
 - Brand token hex values still need verification against the live brand site.
 - Live Agent Search and Gemini adapters have been smoked against a cheap Lease
-  Renewals Cloud Storage data store with `ASK_DEMO_MODE=false`; call-derived client
-  context is still missing.
+  Renewals Cloud Storage data store with `ASK_DEMO_MODE=false`; the call-derived
+  source remains review-required until Bailey/Dan approve final SOP wording.
 - E2E tests are documented but not active until mocked auth/session fixtures exist.
 - Production source locations, Agent Search data store IDs, OAuth clients, and GCP
   projects are not known yet.
@@ -297,8 +297,8 @@ npm run verify:router-boundary
 ## Recommended Development Sequence
 
 1. Keep `npm run verify` and `npm run test:firestore` green.
-2. Add sanitized Lease Renewals call notes to the cheap Cloud Storage source corpus,
-   import the `.txt` copy, seed `sources_meta`, and rerun `npm run smoke:ask-live`.
+2. Keep the one-Space Lease Renewals live Ask smoke green, then deploy the cheap Cloud
+   Run demo if the local answer remains acceptable.
 3. Start the separate `pmi-kc-owner-router` repo so Router source docs exist before
    final KB A-16 verification.
 4. Complete M4a/M4b: all-Space editing, all-Space Approval Queue, change logs, and
