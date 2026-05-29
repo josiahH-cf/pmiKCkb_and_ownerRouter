@@ -41,9 +41,12 @@ Status after the 2026-05-29 live Ask smoke:
   eval execution through the Ask service.
 - Spec 1 is not launch-complete yet. A cheap four-workflow demo now runs through Cloud
   Storage, Agent Search, Gemini, Firebase Auth, Firestore, and Cloud Run in the
-  Cherrybridge demo project. Four approved demo workflows have editable Space UI and
-  Approval Queue coverage, but remaining launch Spaces, production source corpus, Gmail
-  notification, and Admin observability work remain.
+  Cherrybridge demo project. Four approved demo workflows have live Ask coverage. All
+  launch Space shells, all-Space editable fallbacks, all-Space Approval Queue loading,
+  change-log display, Gmail send-only notification plumbing, Admin observability, and
+  source-corpus planning helpers are implemented. PMI KC-owned source approval/import,
+  Gmail sender/recipient configuration, production observability review, and read-only
+  Owner Router Drive indexing remain cutover work.
 - `npm run verify` and `npm run test:firestore` pass on the current host.
 - The Owner Router remains correctly outside this runtime. Its separate repo must be
   initialized before final KB acceptance test A-16 can pass.
@@ -105,7 +108,7 @@ npm test
 npm run typecheck
 ```
 
-#### M2b - Editable Space UI (four demo Spaces complete; all-Space UI remains)
+#### M2b - Editable Space UI (all launch Space shell complete; e2e remains)
 
 Acceptance criteria:
 
@@ -124,7 +127,7 @@ npm test
 npm run build
 ```
 
-#### M2c - Environment Seeding (demo complete; production seeding remains)
+#### M2c - Environment Seeding (demo and launch skeleton paths complete)
 
 Acceptance criteria:
 
@@ -290,10 +293,11 @@ npm run verify:router-boundary
   sanitized demo messaging, but missing legal wording, fees, cadence, and exception
   handling still require source-backed confirmation before becoming final SOP content.
 - E2E tests are documented but not active until mocked auth/session fixtures exist.
-- Production source locations, Agent Search data store IDs, OAuth clients, and GCP
-  projects are not known yet.
-- Owner Router must be initialized in a separate repo before the read-only Owner Email
-  Space can be fully verified.
+- Production source locations, Agent Search data store IDs, OAuth clients, Gmail
+  sender/recipients, and GCP projects are not known yet.
+- The separate Owner Router repo exists locally, but the Owner Router Drive package
+  must still be completed and indexed read-only before the Owner Email Space can be
+  fully verified.
 - `npm run test:firestore` requires Java JDK 11+ on PATH; this host currently has a
   working setup path via `npm run host:check`.
 
@@ -302,9 +306,9 @@ npm run verify:router-boundary
 1. Keep `npm run verify` and `npm run test:firestore` green.
 2. Keep the four-workflow local demo smoke, deployed auth smoke, and four deployed live
    Ask smokes green.
-3. Start the separate `pmi-kc-owner-router` repo so Router source docs exist before
-   final KB A-16 verification.
-4. Complete M4a/M4b: all-Space editing, all-Space Approval Queue, change logs, and
-   Gmail send-only approval notifications.
-5. Complete M5a/M5b: Admin observability, brand verification, mocked-auth Playwright
-   e2e, staging Cloud Run, usability tests, and production cutover.
+3. Use `npm run corpus:plan -- --write-temp` and `npm run seed:launch-skeletons -- --dry-run`
+   when preparing additional approved demo or production staging sources.
+4. Configure Gmail send-only approval notifications only after sender and recipient
+   approval.
+5. Complete M5a/M5b: brand verification, mocked-auth Playwright e2e, staging Cloud
+   Run, usability tests, Owner Router read-only indexing, and production cutover.

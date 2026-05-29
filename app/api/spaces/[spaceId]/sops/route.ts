@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse, createdJson, parseJsonBody } from "@/lib/api/editable";
+import { notifySopQueueChange } from "@/lib/approval/notifications";
 import { requireCapability } from "@/lib/auth/session";
 import { createSop, listSops } from "@/lib/firestore/editable";
 import { CreateSopInputSchema } from "@/lib/firestore/schemas";
@@ -26,6 +27,8 @@ export async function POST(request: Request, context: RouteContext) {
     const { spaceId } = await context.params;
     const input = await parseJsonBody(request, CreateSopInputSchema);
     const record = await createSop(user, spaceId, input);
+
+    await notifySopQueueChange(user, record);
 
     return createdJson({ sop: record });
   } catch (error) {

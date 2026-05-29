@@ -136,8 +136,9 @@ describe("Gemini answer contract", () => {
 });
 
 function config(overrides: Partial<ServerConfig> = {}): ServerConfig {
-  return {
+  const base: ServerConfig = {
     allowedHostedDomain: "pmikcmetro.com",
+    appBaseUrl: undefined,
     askDemoMode: false,
     authSessionCookie: "__session",
     firebaseBrowserConfig: {
@@ -153,6 +154,8 @@ function config(overrides: Partial<ServerConfig> = {}): ServerConfig {
     geminiClassifyModel: "gemini-2.5-flash",
     groundingConfidenceThreshold: 0.65,
     kbApprovalLabel: "KB Approval",
+    kbApprovalNotificationsEnabled: false,
+    kbApprovalRecipients: [],
     kbApprovalSender: undefined,
     localDemoAuth: false,
     spaceDriveFolderIds: {
@@ -163,6 +166,7 @@ function config(overrides: Partial<ServerConfig> = {}): ServerConfig {
     },
     vertexAiLocation: "us-central1",
     vertexSearchLocation: "us",
-    ...overrides,
   };
+
+  return { ...base, ...overrides };
 }

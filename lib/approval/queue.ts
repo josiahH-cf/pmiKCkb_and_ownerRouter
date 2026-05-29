@@ -1,7 +1,7 @@
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import { demoSeedsBySpaceId, demoWorkflows } from "@/lib/demo/data";
 import { listPlaceholders, listSops, listTemplates } from "@/lib/firestore/editable";
 import type { PlaceholderRecord, SopRecord, TemplateRecord } from "@/lib/firestore/types";
+import { launchApprovalQueueItems } from "@/lib/launch/content";
 import { launchSpaces } from "@/lib/spaces";
 
 export interface ApprovalQueueItem {
@@ -36,41 +36,42 @@ export async function loadApprovalQueue(
 ) {
   try {
     const items = await Promise.all(
-      demoWorkflows.map(async (workflow) => {
-        const [sops, templates, placeholders] = await Promise.all([
-          loaders.listSops(user, workflow.spaceId),
-          loaders.listTemplates(user, workflow.spaceId),
-          loaders.listPlaceholders(user, workflow.spaceId),
-        ]);
-        const spaceName = spaceNameFor(workflow.spaceId);
+      launchSpaces
+        .filter((space) => !space.readOnly)
+        .map(async (space) => {
+          const [sops, templates, placeholders] = await Promise.all([
+            loaders.listSops(user, space.id),
+            loaders.listTemplates(user, space.id),
+            loaders.listPlaceholders(user, space.id),
+          ]);
 
-        return [
-          ...sops.map((sop) => ({
-            id: sop.id,
-            kind: "SOP" as const,
-            spaceId: workflow.spaceId,
-            spaceName,
-            status: sop.status,
-            title: sop.title,
-          })),
-          ...templates.map((template) => ({
-            id: template.id,
-            kind: "Template" as const,
-            spaceId: workflow.spaceId,
-            spaceName,
-            status: template.status,
-            title: template.name,
-          })),
-          ...placeholders.map((placeholder) => ({
-            id: placeholder.id,
-            kind: "Placeholder" as const,
-            spaceId: workflow.spaceId,
-            spaceName,
-            status: placeholder.status,
-            title: placeholder.missing_detail,
-          })),
-        ] satisfies ApprovalQueueItem[];
-      }),
+          return [
+            ...sops.map((sop) => ({
+              id: sop.id,
+              kind: "SOP" as const,
+              spaceId: space.id,
+              spaceName: space.name,
+              status: sop.status,
+              title: sop.title,
+            })),
+            ...templates.map((template) => ({
+              id: template.id,
+              kind: "Template" as const,
+              spaceId: space.id,
+              spaceName: space.name,
+              status: template.status,
+              title: template.name,
+            })),
+            ...placeholders.map((placeholder) => ({
+              id: placeholder.id,
+              kind: "Placeholder" as const,
+              spaceId: space.id,
+              spaceName: space.name,
+              status: placeholder.status,
+              title: placeholder.missing_detail,
+            })),
+          ] satisfies ApprovalQueueItem[];
+        }),
     );
 
     return {
@@ -86,39 +87,5 @@ export async function loadApprovalQueue(
 }
 
 export function demoApprovalQueueItems(): ApprovalQueueItem[] {
-  return demoWorkflows.flatMap((workflow) => {
-    const seed = demoSeedsBySpaceId[workflow.spaceId];
-    const spaceName = spaceNameFor(workflow.spaceId);
-
-    return [
-      ...seed.sops.map((sop) => ({
-        id: sop.id,
-        kind: "SOP" as const,
-        spaceId: workflow.spaceId,
-        spaceName,
-        status: sop.status,
-        title: sop.title,
-      })),
-      ...seed.templates.map((template) => ({
-        id: template.id,
-        kind: "Template" as const,
-        spaceId: workflow.spaceId,
-        spaceName,
-        status: template.status,
-        title: template.name,
-      })),
-      ...seed.placeholders.map((placeholder) => ({
-        id: placeholder.id,
-        kind: "Placeholder" as const,
-        spaceId: workflow.spaceId,
-        spaceName,
-        status: placeholder.status,
-        title: placeholder.missing_detail,
-      })),
-    ];
-  });
-}
-
-function spaceNameFor(spaceId: string) {
-  return launchSpaces.find((space) => space.id === spaceId)?.name ?? spaceId;
+  return launchApprovalQueueItems();
 }

@@ -14,6 +14,7 @@ describe("Ask log writer", () => {
         channel: "Gmail",
         draft_enabled: true,
         question: "What is the renewal process?",
+        space: "lease-renewals",
         urgency: "Normal",
       },
       response: {
@@ -47,6 +48,7 @@ describe("Ask log writer", () => {
       answer: "Use the approved renewal SOP.",
       grounding_source_ids: ["source-1"],
       question: "What is the renewal process?",
+      space_id: "lease-renewals",
       source_state: "Verified Source",
       user_uid: "admin",
     });

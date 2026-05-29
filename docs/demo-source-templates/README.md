@@ -34,6 +34,32 @@ Ask demo corpus.
 The matching local demo records are seeded by `npm run seed:demo` and reset by
 `npm run demo:reset`.
 
+## Remaining Launch Space Source Starters
+
+These transcript-derived starters are safe first-pass source material for launch Space
+shells. They remain review-required until Bailey/Dan approve final workflow wording and
+any customer-facing language.
+
+- `owner-renewal-outreach-sanitized-call-notes.md` - owner renewal outreach and comp
+  lookup gaps.
+- `tenant-renewal-notice-sanitized-call-notes.md` - tenant notice, DotLoop handoff,
+  and signature follow-up gaps.
+- `vendor-assignment-handoff-sanitized-call-notes.md` - Dan-owned vendor routing and
+  handoff gaps.
+- `daily-inbox-triage-sanitized-call-notes.md` - LeadSimple/Gmail triage and
+  assignment gaps.
+- `fathom-training-sanitized-call-notes.md` - meeting recording intake, training
+  index, and action-item follow-up gaps.
+- `escalation-rules-sanitized-call-notes.md` - Bailey/Dan escalation bottlenecks and
+  missing backup rules.
+- `move-in-sanitized-call-notes.md` - move-in checklist, Z-inspection, key, utility,
+  and welcome-letter gaps.
+
+The manifest at `docs/source-corpus/demo-live-source-manifest.json` catalogs the
+tracked source files and their intended Cloud Storage `.txt` object names. Use
+`npm run corpus:plan -- --write-temp` to create ignored `.txt` copies and print the
+upload, import, and `sources_meta` seed commands.
+
 ## Approval Rule
 
 The approved templates are useful for demos because they show real PMI KC pain without

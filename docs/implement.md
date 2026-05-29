@@ -6,18 +6,18 @@ Open `docs/status.md`, find the next recommended task, then compare it to
 `docs/plan.md`. Work on the earliest unfinished milestone unless the user explicitly
 redirects.
 
-After the M3a/M3b code foundation, the cheap Lease Renewals live Ask smoke is working
-through Cloud Storage and Agent Search with safe seed sources plus one approved
-sanitized call-notes source. The local show-and-tell path now covers four approved demo
-workflows: Lease Renewals, Maintenance Work Order Intake, Move-Out + Deposit
-Disposition, and Owner Onboarding. Those four workflows are also deployed in the cheap
-Cloud Run demo. The next implementation task is to keep the local demo smoke, deployed
-auth smoke, and deployed live Ask smokes green. Use
-`npm run deploy:demo -- --budget-confirmed --allow-multiple-spaces` only when the live
-source/data-store maps intentionally include the four demo Spaces.
+After the M3a/M3b code foundation, the four-workflow live Ask demo is working through
+Cloud Storage and Agent Search with approved sanitized sources. The app now also has
+all launch Space shells, all-Space editable fallbacks, all-Space Approval Queue
+loading, change-log display, Gmail send-only notification plumbing, Admin
+observability, a guarded Agent Search deletion helper, and source-corpus planning
+scripts. The next implementation task is to keep the local demo smoke, deployed auth
+smoke, and deployed live Ask smokes green while preparing only approved production or
+staging sources. Use `npm run deploy:demo -- --budget-confirmed --allow-multiple-spaces`
+only when the live source/data-store maps intentionally include multiple demo Spaces.
 
-Do not treat demo Ask, sanitized call-notes approval for demo messaging, or a demo
-Cloud Run URL as Spec 1 completion.
+Do not treat demo Ask, sanitized call-notes approval for demo messaging, launch
+skeleton records, notification plumbing, or a demo Cloud Run URL as Spec 1 completion.
 
 For demo operations, use `docs/demo-show-and-tell.md`. For production cutover
 assumptions, keep `docs/demo-cutover.md` in view before adding live Google integration
@@ -41,6 +41,14 @@ npm test
 npm run test:firestore
 npm run typecheck
 npm run lint
+```
+
+For launch source and skeleton preparation, prefer dry-run commands first:
+
+```bash
+npm run corpus:plan -- --write-temp
+npm run seed:launch-skeletons -- --dry-run
+npm run delete:agent-search-data-store -- --project=pmikckb-test --location=us --data-store=<data-store-id> --dry-run
 ```
 
 Run `npm run test:firestore` when Firestore rules or editable-layer persistence changes

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type {
+  ChangeLogRecord,
   PlaceholderRecord,
   SopRecord,
   TemplateRecord,
@@ -38,6 +39,10 @@ type EditableTool = Pick<
   | "sensitivity"
   | "url"
 >;
+type EditableChangeLog = Pick<
+  ChangeLogRecord,
+  "action" | "created_at" | "editor_uid" | "entity_id" | "entity_type" | "id" | "note"
+>;
 
 interface EditableSeed {
   placeholders: EditablePlaceholder[];
@@ -68,6 +73,7 @@ export function SpaceDetailClient({
   const [templates, setTemplates] = useState(seed.templates);
   const [placeholders, setPlaceholders] = useState(seed.placeholders);
   const [tools, setTools] = useState(seed.tools);
+  const [changeLog, setChangeLog] = useState<EditableChangeLog[]>([]);
   const [draftBody, setDraftBody] = useState(seed.sops[0]?.body_md ?? "");
   const [message, setMessage] = useState("Loading editable records.");
   const [isBusy, setIsBusy] = useState(false);
@@ -77,7 +83,10 @@ export function SpaceDetailClient({
     () =>
       sops.filter((sop) => sop.status === "In Review").length +
       templates.filter((template) => template.status === "In Review").length +
-      placeholders.filter((placeholder) => placeholder.status === "In Review").length,
+      placeholders.filter(
+        (placeholder) =>
+          placeholder.status === "In Review" || placeholder.status === "Open",
+      ).length,
     [placeholders, sops, templates],
   );
 
@@ -86,17 +95,25 @@ export function SpaceDetailClient({
 
     async function loadEditableRecords() {
       try {
-        const [sopsResult, templatesResult, placeholdersResult, toolsResult] =
-          await Promise.all([
-            fetchEditable<{ sops: EditableSop[] }>(`/api/spaces/${spaceId}/sops`),
-            fetchEditable<{ templates: EditableTemplate[] }>(
-              `/api/spaces/${spaceId}/templates`,
-            ),
-            fetchEditable<{ placeholders: EditablePlaceholder[] }>(
-              `/api/spaces/${spaceId}/placeholders`,
-            ),
-            fetchEditable<{ tools: EditableTool[] }>("/api/tools"),
-          ]);
+        const [
+          sopsResult,
+          templatesResult,
+          placeholdersResult,
+          toolsResult,
+          changeLogResult,
+        ] = await Promise.all([
+          fetchEditable<{ sops: EditableSop[] }>(`/api/spaces/${spaceId}/sops`),
+          fetchEditable<{ templates: EditableTemplate[] }>(
+            `/api/spaces/${spaceId}/templates`,
+          ),
+          fetchEditable<{ placeholders: EditablePlaceholder[] }>(
+            `/api/spaces/${spaceId}/placeholders`,
+          ),
+          fetchEditable<{ tools: EditableTool[] }>("/api/tools"),
+          fetchEditable<{ changeLog: EditableChangeLog[] }>(
+            `/api/spaces/${spaceId}/change-log`,
+          ),
+        ]);
 
         if (!isCurrent) {
           return;
@@ -106,6 +123,7 @@ export function SpaceDetailClient({
         setTemplates(templatesResult.templates);
         setPlaceholders(placeholdersResult.placeholders);
         setTools(toolsResult.tools);
+        setChangeLog(changeLogResult.changeLog);
         setDraftBody(sopsResult.sops[0]?.body_md ?? "");
         setMode("api");
         setMessage("Editable API connected.");
@@ -118,6 +136,7 @@ export function SpaceDetailClient({
         setTemplates(seed.templates);
         setPlaceholders(seed.placeholders);
         setTools(seed.tools);
+        setChangeLog([]);
         setDraftBody(seed.sops[0]?.body_md ?? "");
         setMode("seed");
         setMessage("Using local demo records until Firebase setup is complete.");
@@ -261,7 +280,7 @@ export function SpaceDetailClient({
             source_state_hint: demoSop.source_state_hint,
             status: demoSop.status,
             title: demoSop.title,
-            note: `Created from safe ${spaceName} demo seed.`,
+            note: `Created from safe ${spaceName} seed.`,
           }),
           method: "POST",
         },
@@ -269,7 +288,7 @@ export function SpaceDetailClient({
 
       setSops((records) => [sop, ...records]);
       setDraftBody(sop.body_md);
-      setMessage("Created demo SOP through editable API.");
+      setMessage("Created seed SOP through editable API.");
     });
   }
 
@@ -290,14 +309,14 @@ export function SpaceDetailClient({
             channel: demoTemplate.channel,
             name: demoTemplate.name,
             status: demoTemplate.status,
-            note: `Created from safe ${spaceName} demo seed.`,
+            note: `Created from safe ${spaceName} seed.`,
           }),
           method: "POST",
         },
       );
 
       setTemplates((records) => [template, ...records]);
-      setMessage("Created demo template through editable API.");
+      setMessage("Created seed template through editable API.");
     });
   }
 
@@ -318,13 +337,13 @@ export function SpaceDetailClient({
           owner_uid: demoPlaceholder.owner_uid,
           priority: demoPlaceholder.priority,
           status: demoPlaceholder.status,
-          note: `Created from safe ${spaceName} demo seed.`,
+          note: `Created from safe ${spaceName} seed.`,
         }),
         method: "POST",
       });
 
       setPlaceholders((records) => [placeholder, ...records]);
-      setMessage("Created demo placeholder through editable API.");
+      setMessage("Created seed placeholder through editable API.");
     });
   }
 
@@ -344,13 +363,13 @@ export function SpaceDetailClient({
           purpose: demoTool.purpose,
           sensitivity: demoTool.sensitivity,
           url: demoTool.url,
-          note: `Created from safe ${spaceName} demo seed.`,
+          note: `Created from safe ${spaceName} seed.`,
         }),
         method: "POST",
       });
 
       setTools((records) => [tool, ...records]);
-      setMessage("Created demo tool through editable API.");
+      setMessage("Created seed tool through editable API.");
     });
   }
 
@@ -424,7 +443,7 @@ export function SpaceDetailClient({
             onClick={createDemoSop}
             type="button"
           >
-            Create Demo SOP
+            Create Seed SOP
           </button>
         )}
       </section>
@@ -440,7 +459,7 @@ export function SpaceDetailClient({
                 onClick={createDemoTemplate}
                 type="button"
               >
-                Create Demo
+                Create Seed
               </button>
             ) : null}
           </div>
@@ -464,7 +483,7 @@ export function SpaceDetailClient({
                 onClick={createDemoTool}
                 type="button"
               >
-                Create Demo
+                Create Seed
               </button>
             ) : null}
           </div>
@@ -490,7 +509,7 @@ export function SpaceDetailClient({
                 onClick={createDemoPlaceholder}
                 type="button"
               >
-                Create Demo
+                Create Seed
               </button>
             ) : null}
           </div>
@@ -511,6 +530,25 @@ export function SpaceDetailClient({
               </button>
             </article>
           ))}
+        </section>
+
+        <section className="panel">
+          <h2>Change Log</h2>
+          {changeLog.length === 0 ? (
+            <p className="muted">No recent changes are available for this Space.</p>
+          ) : (
+            changeLog.map((entry) => (
+              <article className="compact-record" key={entry.id}>
+                <strong>
+                  {entry.action} {entry.entity_type}
+                </strong>
+                <p className="muted">
+                  {entry.editor_uid} - {entry.created_at}
+                  {entry.note ? ` - ${entry.note}` : ""}
+                </p>
+              </article>
+            ))
+          )}
         </section>
       </aside>
     </div>

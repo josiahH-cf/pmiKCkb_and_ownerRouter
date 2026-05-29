@@ -69,6 +69,7 @@ const evalUser: AuthenticatedUser = {
 
 const liveConfig: ServerConfig = {
   allowedHostedDomain: "pmikcmetro.com",
+  appBaseUrl: undefined,
   askDemoMode: false,
   authSessionCookie: "__session",
   firebaseBrowserConfig: {
@@ -84,6 +85,8 @@ const liveConfig: ServerConfig = {
   geminiClassifyModel: "gemini-2.5-flash",
   groundingConfidenceThreshold: 0.65,
   kbApprovalLabel: "KB Approval",
+  kbApprovalNotificationsEnabled: false,
+  kbApprovalRecipients: [],
   kbApprovalSender: undefined,
   localDemoAuth: false,
   spaceDriveFolderIds: {

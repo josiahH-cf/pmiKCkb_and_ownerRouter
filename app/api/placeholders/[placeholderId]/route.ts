@@ -6,6 +6,7 @@ import {
   parseOptionalJsonBody,
 } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
+import { notifyPlaceholderQueueChange } from "@/lib/approval/notifications";
 import {
   getPlaceholder,
   softDeletePlaceholder,
@@ -37,7 +38,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     const user = await requireCapability("edit");
     const { placeholderId } = await context.params;
     const input = await parseJsonBody(request, UpdatePlaceholderInputSchema);
+    const previous = await getPlaceholder(user, placeholderId);
     const record = await updatePlaceholder(user, placeholderId, input);
+
+    await notifyPlaceholderQueueChange(user, record, previous.status);
 
     return NextResponse.json({ placeholder: record });
   } catch (error) {

@@ -1,0 +1,130 @@
+[
+  {
+    "space_id": "lease-renewals",
+    "source_path": "docs/demo-source-templates/lease-renewals-demo-sop-source.md",
+    "gcs_uri": "gs://pmikckb-test-lease-renewals-686407/lease-renewals/01-lease-renewals-demo-sop-source.txt",
+    "data_store_id": "kb-lease-renewals-txt",
+    "approval_status": "Approved",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "lease-renewals",
+    "source_path": "docs/demo-source-templates/owner-renewal-follow-up-demo-template.md",
+    "gcs_uri": "gs://pmikckb-test-lease-renewals-686407/lease-renewals/02-owner-renewal-follow-up-demo-template.txt",
+    "data_store_id": "kb-lease-renewals-txt",
+    "approval_status": "Approved",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "lease-renewals",
+    "source_path": "docs/demo-source-templates/lease-renewals-sanitized-call-notes.md",
+    "gcs_uri": "gs://pmikckb-test-lease-renewals-686407/lease-renewals/03-lease-renewals-sanitized-call-notes.txt",
+    "data_store_id": "kb-lease-renewals-txt",
+    "approval_status": "Approved",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "maintenance-work-order-intake",
+    "source_path": "docs/demo-source-templates/maintenance-work-order-demo-sop-source.md",
+    "gcs_uri": "gs://pmikckb-test-lease-renewals-686407/maintenance-work-order-intake/01-maintenance-work-order-demo-sop-source.txt",
+    "data_store_id": "kb-maintenance-work-order-intake-txt",
+    "approval_status": "Approved",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "maintenance-work-order-intake",
+    "source_path": "docs/demo-source-templates/maintenance-work-order-sanitized-call-notes.md",
+    "gcs_uri": "gs://pmikckb-test-lease-renewals-686407/maintenance-work-order-intake/02-maintenance-work-order-sanitized-call-notes.txt",
+    "data_store_id": "kb-maintenance-work-order-intake-txt",
+    "approval_status": "Approved",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "move-out-deposit-disposition",
+    "source_path": "docs/demo-source-templates/move-out-deposit-demo-sop-source.md",
+    "gcs_uri": "gs://pmikckb-test-lease-renewals-686407/move-out-deposit-disposition/01-move-out-deposit-demo-sop-source.txt",
+    "data_store_id": "kb-move-out-deposit-disposition-txt",
+    "approval_status": "Approved",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "move-out-deposit-disposition",
+    "source_path": "docs/demo-source-templates/move-out-deposit-sanitized-call-notes.md",
+    "gcs_uri": "gs://pmikckb-test-lease-renewals-686407/move-out-deposit-disposition/02-move-out-deposit-sanitized-call-notes.txt",
+    "data_store_id": "kb-move-out-deposit-disposition-txt",
+    "approval_status": "Approved",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "owner-onboarding",
+    "source_path": "docs/demo-source-templates/owner-onboarding-demo-sop-source.md",
+    "gcs_uri": "gs://pmikckb-test-lease-renewals-686407/owner-onboarding/01-owner-onboarding-demo-sop-source.txt",
+    "data_store_id": "kb-owner-onboarding-txt",
+    "approval_status": "Approved",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "owner-onboarding",
+    "source_path": "docs/demo-source-templates/owner-onboarding-sanitized-call-notes.md",
+    "gcs_uri": "gs://pmikckb-test-lease-renewals-686407/owner-onboarding/02-owner-onboarding-sanitized-call-notes.txt",
+    "data_store_id": "kb-owner-onboarding-txt",
+    "approval_status": "Approved",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "owner-renewal-outreach",
+    "source_path": "docs/demo-source-templates/owner-renewal-outreach-sanitized-call-notes.md",
+    "gcs_uri": "gs://pmikckb-test-lease-renewals-686407/owner-renewal-outreach/01-owner-renewal-outreach-sanitized-call-notes.txt",
+    "data_store_id": "kb-owner-renewal-outreach-txt",
+    "approval_status": "Transcript-derived",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "tenant-renewal-notice",
+    "source_path": "docs/demo-source-templates/tenant-renewal-notice-sanitized-call-notes.md",
+    "gcs_uri": "gs://pmikckb-test-lease-renewals-686407/tenant-renewal-notice/01-tenant-renewal-notice-sanitized-call-notes.txt",
+    "data_store_id": "kb-tenant-renewal-notice-txt",
+    "approval_status": "Transcript-derived",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "vendor-assignment-handoff",
+    "source_path": "docs/demo-source-templates/vendor-assignment-handoff-sanitized-call-notes.md",
+    "gcs_uri": "gs://pmikckb-test-lease-renewals-686407/vendor-assignment-handoff/01-vendor-assignment-handoff-sanitized-call-notes.txt",
+    "data_store_id": "kb-vendor-assignment-handoff-txt",
+    "approval_status": "Transcript-derived",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "daily-inbox-triage",
+    "source_path": "docs/demo-source-templates/daily-inbox-triage-sanitized-call-notes.md",
+    "gcs_uri": "gs://pmikckb-test-lease-renewals-686407/daily-inbox-triage/01-daily-inbox-triage-sanitized-call-notes.txt",
+    "data_store_id": "kb-daily-inbox-triage-txt",
+    "approval_status": "Transcript-derived",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "fathom-training",
+    "source_path": "docs/demo-source-templates/fathom-training-sanitized-call-notes.md",
+    "gcs_uri": "gs://pmikckb-test-lease-renewals-686407/fathom-training/01-fathom-training-sanitized-call-notes.txt",
+    "data_store_id": "kb-fathom-training-txt",
+    "approval_status": "Transcript-derived",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "escalation-rules",
+    "source_path": "docs/demo-source-templates/escalation-rules-sanitized-call-notes.md",
+    "gcs_uri": "gs://pmikckb-test-lease-renewals-686407/escalation-rules/01-escalation-rules-sanitized-call-notes.txt",
+    "data_store_id": "kb-escalation-rules-txt",
+    "approval_status": "Transcript-derived",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "move-in",
+    "source_path": "docs/demo-source-templates/move-in-sanitized-call-notes.md",
+    "gcs_uri": "gs://pmikckb-test-lease-renewals-686407/move-in/01-move-in-sanitized-call-notes.txt",
+    "data_store_id": "kb-move-in-txt",
+    "approval_status": "Transcript-derived",
+    "sensitivity": "Low"
+  }
+]

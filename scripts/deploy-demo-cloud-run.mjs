@@ -161,6 +161,7 @@ function readRuntimeEnv(env, project, region, searchLocation) {
 
   return {
     ALLOWED_HD: withDefault("ALLOWED_HD", "pmikcmetro.com"),
+    APP_BASE_URL: withDefault("APP_BASE_URL", ""),
     ASK_DEMO_MODE: "false",
     AUTH_SESSION_COOKIE: withDefault("AUTH_SESSION_COOKIE", "__session"),
     FIREBASE_PROJECT_ID: withDefault("FIREBASE_PROJECT_ID", project),
@@ -170,6 +171,12 @@ function readRuntimeEnv(env, project, region, searchLocation) {
     GEMINI_MODEL_CLASSIFY: withDefault("GEMINI_MODEL_CLASSIFY", "gemini-2.5-flash"),
     GROUNDING_CONFIDENCE_THRESHOLD: withDefault("GROUNDING_CONFIDENCE_THRESHOLD", "0.65"),
     KB_APPROVAL_LABEL: withDefault("KB_APPROVAL_LABEL", "KB Approval"),
+    KB_APPROVAL_NOTIFICATIONS_ENABLED: withDefault(
+      "KB_APPROVAL_NOTIFICATIONS_ENABLED",
+      "false",
+    ),
+    KB_APPROVAL_RECIPIENTS: withDefault("KB_APPROVAL_RECIPIENTS", ""),
+    KB_APPROVAL_SENDER: withDefault("KB_APPROVAL_SENDER", ""),
     LOCAL_DEMO_AUTH: "false",
     NEXT_PUBLIC_FIREBASE_API_KEY: readString(env.NEXT_PUBLIC_FIREBASE_API_KEY),
     NEXT_PUBLIC_FIREBASE_APP_ID: readString(env.NEXT_PUBLIC_FIREBASE_APP_ID),

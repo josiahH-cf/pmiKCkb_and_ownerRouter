@@ -168,5 +168,13 @@ npm run host:setup
 npm run firebase:setup-demo
 npm run seed:spaces
 npm run seed:demo
+npm run seed:launch-skeletons -- --dry-run
 npm run demo:reset
 ```
+
+`npm run seed:launch-skeletons` creates stable placeholder SOP/template/placeholder
+records for the remaining writable launch Spaces without customer data. Run the
+`--dry-run` form first; omit `--dry-run` only when the target Firestore environment is
+the intended demo or production staging environment. Existing skeleton records are
+skipped unless `--force` is provided. Forced skeleton updates also clear stale
+approval/review/resolution fields so placeholders return to a clean draft state.

@@ -137,7 +137,10 @@ async function smokeApprovalQueue(page) {
   await expectBodyText(page, "Editable API connected.");
   await screenshot(page, "03-approval-before");
 
-  const maxQueueActions = demoSpaceCases.length * 3;
+  const maxQueueActions =
+    (await page.getByRole("button", { name: "Approve" }).count()) +
+    (await page.getByRole("button", { name: "Resolve" }).count()) +
+    5;
 
   for (let index = 0; index < maxQueueActions; index += 1) {
     const approve = page.getByRole("button", { name: "Approve" });
