@@ -13,15 +13,16 @@ loading, change-log display, Gmail send-only notification plumbing, Admin
 observability, a guarded Agent Search deletion helper, and source-corpus planning
 scripts. The next implementation task is to keep the local demo smoke, deployed auth
 smoke, and deployed live Ask smokes green while preparing only approved production or
-staging sources. Use `npm run deploy:demo -- --budget-confirmed --allow-multiple-spaces`
-only when the live source/data-store maps intentionally include multiple demo Spaces.
+staging sources. Use `docs/demo-readiness.md` to decide whether the demo environment
+is done. Use `docs/client-production-cutover.md` before attempting a client-owned
+environment rebuild.
 
 Do not treat demo Ask, sanitized call-notes approval for demo messaging, launch
 skeleton records, notification plumbing, or a demo Cloud Run URL as Spec 1 completion.
 
 For demo operations, use `docs/demo-show-and-tell.md`. For production cutover
-assumptions, keep `docs/demo-cutover.md` in view before adding live Google integration
-or deployment code.
+assumptions, keep `docs/demo-cutover.md` and `docs/client-production-cutover.md` in
+view before adding live Google integration or deployment code.
 
 ## Keep Changes Scoped
 
@@ -47,7 +48,9 @@ For launch source and skeleton preparation, prefer dry-run commands first:
 
 ```bash
 npm run corpus:plan -- --write-temp
+npm run corpus:plan -- --manifest=docs/source-corpus/client-production-source-manifest.template.json --project=<client-project-id> --location=us --dry-run
 npm run seed:launch-skeletons -- --dry-run
+npm run preflight:production -- --env-file=.env.production.local
 npm run delete:agent-search-data-store -- --project=pmikckb-test --location=us --data-store=<data-store-id> --dry-run
 ```
 

@@ -6,8 +6,10 @@ in `docs/spec.md` Appendix B.
 For the current demo-first path, read:
 
 - `docs/demo-show-and-tell.md` for exact local demo commands and the client walkthrough.
+- `docs/demo-readiness.md` for the demo done checklist.
 - `docs/demo-slice.md` for the first working Lease Renewals demo.
 - `docs/demo-cutover.md` for the demo-to-client environment model.
+- `docs/client-production-cutover.md` for the client-production rebuild path.
 - `docs/google-setup.md` for live Google/Firebase/Cloud Storage/Agent Search/Gmail
   setup.
 
@@ -111,7 +113,7 @@ The sequence below is based on the official Firebase and Google Cloud setup docs
    - `AUTH_SESSION_COOKIE=__session` unless intentionally changed.
    - `GCP_PROJECT_ID` and `FIREBASE_PROJECT_ID` matching the selected project.
    - `FIREBASE_GOOGLE_CLIENT_ID` and `FIREBASE_GOOGLE_CLIENT_SECRET` when using
-     `npm run firebase:setup-auth` to enable the provider.
+     `npm run firebase:setup-auth -- --project=<project-id>` to enable the provider.
 7. Create the first elevated role after the implementer signs in once. The app defaults
    missing role claims to `Editor`; `Approver` and `Admin` require privileged custom
    claims, for example `{ "role": "Admin" }`, set with the Firebase Admin SDK from a
@@ -151,8 +153,9 @@ The high-level order is:
 4. Complete the live sign-in smoke test from the Manual Setup Gate.
 5. Create Firestore Native mode in `us-central1`.
 6. Configure one source location and one Agent Search data store per live KB Space. The
-   cheap demo uses Cloud Storage `.txt` sources; production may still choose Drive if
-   the service-account limitation is resolved or user OAuth retrieval is implemented.
+   default client-production path is Cloud Storage `.txt` sources; Drive should be
+   chosen only if the service-account limitation is resolved or user OAuth retrieval is
+   implemented.
 7. Grant the KB service identity only the read permissions required for the chosen
    source location.
 8. Grant Gmail send-only authority for `KB Approval` notifications.
@@ -161,16 +164,34 @@ Do not grant Gmail read, Gmail modify, Gmail compose, Drive write, or system-of-
 write scopes.
 
 For the current `pmikckb-test` demo host, Firebase and Firestore setup can be repaired
-or completed with:
+or completed with the demo aliases:
 
 ```bash
 npm run host:setup
 npm run firebase:setup-demo
+npm run firebase:setup-auth-demo
 npm run seed:spaces
 npm run seed:demo
 npm run seed:launch-skeletons -- --dry-run
 npm run demo:reset
 ```
+
+For client production, use the neutral aliases with explicit project arguments:
+
+```bash
+npm run firebase:setup -- --project=<client-project-id> --web-app-name="PMI KC KB Production Web"
+npm run firebase:setup-auth -- --project=<client-project-id> --authorized-domain=<production-host>
+npm run preflight:production -- --env-file=.env.production.local
+npm run deploy -- --project=<client-project-id> --service=pmi-kc-kb --budget-confirmed --allow-multiple-spaces --service-account=<runtime-service-account-email>
+```
+
+The production preflight rejects demo project IDs, demo buckets, unreplaced
+placeholders, non-HTTPS or local `APP_BASE_URL`, demo auth mode, local demo mode,
+missing source/data-store maps, missing `APP_BASE_URL`, and missing Firebase public
+config. See `docs/client-production-cutover.md` before running a client deploy. Scripts
+such as `seed:spaces`, `seed:launch-skeletons`, and `deploy` read process environment
+variables and ignored `.env.local`; keep the active production values there or load them
+into the shell after preflight.
 
 `npm run seed:launch-skeletons` creates stable placeholder SOP/template/placeholder
 records for the remaining writable launch Spaces without customer data. Run the

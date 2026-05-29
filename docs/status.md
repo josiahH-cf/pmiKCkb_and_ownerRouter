@@ -1518,3 +1518,61 @@ Open items:
 - The separate Owner Router repo exists locally, but the Owner Router Drive package
   still needs substantive Bailey/Dan content and read-only indexing into the KB Owner
   Email Space before final A-16 verification.
+
+## Demo Done And Production Cutover Readiness Pass
+
+- Date: 2026-05-29
+- Added `docs/demo-readiness.md` to define the demo done state separately from
+  production completion.
+- Added `docs/client-production-cutover.md` as the ordered client-owned rebuild path.
+- Added neutral command aliases for reusable setup/deploy flows while preserving demo
+  aliases:
+  - `npm run firebase:setup`
+  - `npm run firebase:setup-auth`
+  - `npm run firebase:setup-auth-demo`
+  - `npm run deploy`
+  - `npm run preflight:production`
+- Parameterized `npm run corpus:plan` so generated Agent Search import commands can
+  target a client project/location instead of hard-coding `pmikckb-test`.
+- Added `docs/source-corpus/client-production-source-manifest.template.json` as a
+  placeholder manifest for approved PMI KC-owned sources. It intentionally excludes
+  Owner Email, which remains blocked on the separate Owner Router package and
+  read-only indexing.
+- Added a production cutover preflight that rejects demo project IDs, demo source
+  targets, demo auth mode, local demo auth, missing Firebase public config, missing
+  `APP_BASE_URL`, and missing source/data-store maps.
+- Fresh review repair: production preflight now also rejects mismatched
+  GCP/Firebase/public Firebase project IDs and demo-valued Firebase auth domains,
+  `APP_BASE_URL`, or Cloud Run service accounts. It also rejects unreplaced
+  placeholders and requires a valid HTTPS production `APP_BASE_URL`.
+- Updated README, SETUP, Google setup, demo cutover, demo show-and-tell, implementation,
+  plan, and source-template docs so demo done and production cutover ready are distinct
+  states.
+
+Validation status:
+
+- Focused unit test: `npm test -- tests/unit/live-cost-scripts.test.mjs` passed with
+  22 tests, including corpus planner parameterization, client-production manifest
+  validation, production preflight checks, mismatched project/demo auth-domain
+  rejection, and unreplaced placeholder rejection.
+- `npm run preflight:production -- --env-file=temp/production-preflight-ok.env` passed
+  against an ignored client-shaped env file.
+- `npm run corpus:plan -- --manifest=docs/source-corpus/client-production-source-manifest.template.json --project=pmikc-kb-production --location=us --dry-run`
+  passed and generated import commands for `pmikc-kb-production` rather than
+  `pmikckb-test`.
+- `npm run seed:launch-skeletons -- --dry-run` passed.
+- `npm run format:check`: passed.
+- `npm run typecheck`: passed.
+- `npm test`: passed with 121 tests.
+- `npm run test:firestore`: passed with 8 Firestore Security Rules tests.
+- `npm run verify`: passed; it checked formatting, lint, typecheck, 121 tests, Router
+  boundary, and build.
+- `git diff --check`: passed.
+
+Open items:
+
+- Re-run the documented demo readiness smoke matrix before claiming the demo is done
+  for a specific show date.
+- Client production still requires PMI KC-owned project/admin/billing access and
+  approved production source files; the repo now has a more autonomous runbook, but it
+  cannot create or approve those external assets by itself.

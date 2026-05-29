@@ -4,6 +4,9 @@ This is the operator script for showing the current PMI KC KB demo to a client o
 internal reviewer. It is deliberately demo-first: four approved workflow slices, safe
 records, and clear language about what is real today versus scaffolded.
 
+Use `docs/demo-readiness.md` as the demo done checklist. Passing this walkthrough is
+not the same as client-production cutover.
+
 ## What To Say
 
 Use this framing:
@@ -259,13 +262,14 @@ npm run smoke:demo-live
 - User can sign in but cannot open Admin: set the Admin claim with
   `npm run firebase:set-role -- --email=josiah.hunter@cherrybridge.ai --role=Admin`,
   then sign out and sign back in.
-- Firestore/API errors: run `npm run host:check`, then `npm run firebase:setup-auth`
+- Firestore/API errors: run `npm run host:check`, then `npm run firebase:setup-auth-demo`
   and `npm run firebase:setup-demo` only if setup state has drifted.
 - Full code confidence: run `npm run verify` and `npm run test:firestore`.
 
-## Demo Readiness Gaps
+## Demo Readiness Notes
 
-1. Seed launch skeletons only when the show needs all writable launch Spaces visible in
+1. Confirm the demo done checklist in `docs/demo-readiness.md` before any client show.
+2. Seed launch skeletons only when the show needs all writable launch Spaces visible in
    Firestore-backed Approval Queue:
 
 ```bash
@@ -275,5 +279,5 @@ npm run seed:launch-skeletons -- --dry-run
 After reviewing the dry-run output, omit `--dry-run` only in the intended demo
 Firestore environment.
 
-2. Add a non-human-auth CI e2e path with mocked auth/session fixtures; keep live Google
+3. Add a non-human-auth CI e2e path with mocked auth/session fixtures; keep live Google
    auth as a local smoke only.

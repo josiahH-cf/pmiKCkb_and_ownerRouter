@@ -1,0 +1,90 @@
+[
+  {
+    "space_id": "lease-renewals",
+    "source_path": "temp/client-production-sources/lease-renewals/01-approved-lease-renewals-source.md",
+    "gcs_uri": "gs://<client-source-bucket>/lease-renewals/01-approved-lease-renewals-source.txt",
+    "data_store_id": "kb-lease-renewals-txt",
+    "approval_status": "Unreviewed",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "owner-renewal-outreach",
+    "source_path": "temp/client-production-sources/owner-renewal-outreach/01-approved-owner-renewal-outreach-source.md",
+    "gcs_uri": "gs://<client-source-bucket>/owner-renewal-outreach/01-approved-owner-renewal-outreach-source.txt",
+    "data_store_id": "kb-owner-renewal-outreach-txt",
+    "approval_status": "Unreviewed",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "tenant-renewal-notice",
+    "source_path": "temp/client-production-sources/tenant-renewal-notice/01-approved-tenant-renewal-notice-source.md",
+    "gcs_uri": "gs://<client-source-bucket>/tenant-renewal-notice/01-approved-tenant-renewal-notice-source.txt",
+    "data_store_id": "kb-tenant-renewal-notice-txt",
+    "approval_status": "Unreviewed",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "maintenance-work-order-intake",
+    "source_path": "temp/client-production-sources/maintenance-work-order-intake/01-approved-maintenance-work-order-intake-source.md",
+    "gcs_uri": "gs://<client-source-bucket>/maintenance-work-order-intake/01-approved-maintenance-work-order-intake-source.txt",
+    "data_store_id": "kb-maintenance-work-order-intake-txt",
+    "approval_status": "Unreviewed",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "vendor-assignment-handoff",
+    "source_path": "temp/client-production-sources/vendor-assignment-handoff/01-approved-vendor-assignment-handoff-source.md",
+    "gcs_uri": "gs://<client-source-bucket>/vendor-assignment-handoff/01-approved-vendor-assignment-handoff-source.txt",
+    "data_store_id": "kb-vendor-assignment-handoff-txt",
+    "approval_status": "Unreviewed",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "daily-inbox-triage",
+    "source_path": "temp/client-production-sources/daily-inbox-triage/01-approved-daily-inbox-triage-source.md",
+    "gcs_uri": "gs://<client-source-bucket>/daily-inbox-triage/01-approved-daily-inbox-triage-source.txt",
+    "data_store_id": "kb-daily-inbox-triage-txt",
+    "approval_status": "Unreviewed",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "fathom-training",
+    "source_path": "temp/client-production-sources/fathom-training/01-approved-fathom-training-source.md",
+    "gcs_uri": "gs://<client-source-bucket>/fathom-training/01-approved-fathom-training-source.txt",
+    "data_store_id": "kb-fathom-training-txt",
+    "approval_status": "Unreviewed",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "escalation-rules",
+    "source_path": "temp/client-production-sources/escalation-rules/01-approved-escalation-rules-source.md",
+    "gcs_uri": "gs://<client-source-bucket>/escalation-rules/01-approved-escalation-rules-source.txt",
+    "data_store_id": "kb-escalation-rules-txt",
+    "approval_status": "Unreviewed",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "move-in",
+    "source_path": "temp/client-production-sources/move-in/01-approved-move-in-source.md",
+    "gcs_uri": "gs://<client-source-bucket>/move-in/01-approved-move-in-source.txt",
+    "data_store_id": "kb-move-in-txt",
+    "approval_status": "Unreviewed",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "move-out-deposit-disposition",
+    "source_path": "temp/client-production-sources/move-out-deposit-disposition/01-approved-move-out-deposit-disposition-source.md",
+    "gcs_uri": "gs://<client-source-bucket>/move-out-deposit-disposition/01-approved-move-out-deposit-disposition-source.txt",
+    "data_store_id": "kb-move-out-deposit-disposition-txt",
+    "approval_status": "Unreviewed",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "owner-onboarding",
+    "source_path": "temp/client-production-sources/owner-onboarding/01-approved-owner-onboarding-source.md",
+    "gcs_uri": "gs://<client-source-bucket>/owner-onboarding/01-approved-owner-onboarding-source.txt",
+    "data_store_id": "kb-owner-onboarding-txt",
+    "approval_status": "Unreviewed",
+    "sensitivity": "Low"
+  }
+]
