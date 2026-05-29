@@ -1,4 +1,7 @@
 import { spawn } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   CHEAP_LIVE_MODEL,
@@ -20,6 +23,7 @@ export function parseDeployArgs(argv = process.argv.slice(2)) {
   };
 
   return {
+    allowMultipleSpaces: argv.includes("--allow-multiple-spaces"),
     budgetConfirmed: argv.includes("--budget-confirmed"),
     dryRun: argv.includes("--dry-run"),
     project: readArg("--project"),
@@ -27,6 +31,9 @@ export function parseDeployArgs(argv = process.argv.slice(2)) {
     service: readArg("--service"),
     serviceAccount: readArg("--service-account"),
     searchLocation: readArg("--search-location"),
+    skipAllowUnauthenticated:
+      argv.includes("--skip-allow-unauthenticated") ||
+      argv.includes("--no-allow-unauthenticated"),
   };
 }
 
@@ -53,7 +60,9 @@ export function buildDemoDeployCommand({
     VERTEX_SEARCH_LOCATION: searchLocation,
   };
   const liveCostConfig = readLiveCostConfig(mergedEnv, {});
-  const liveCostResult = validateLiveCostConfig(liveCostConfig);
+  const liveCostResult = validateLiveCostConfig(liveCostConfig, {
+    allowMultipleSpaces: args.allowMultipleSpaces,
+  });
   const errors = [...liveCostResult.errors];
   const buildEnv = readRequiredBuildEnv(mergedEnv, errors);
   const runtimeEnv = readRuntimeEnv(mergedEnv, project, region, searchLocation);
@@ -64,7 +73,6 @@ export function buildDemoDeployCommand({
     "--source=.",
     `--project=${project}`,
     `--region=${region}`,
-    "--allow-unauthenticated",
     "--min-instances=0",
     "--max-instances=1",
     "--memory=512Mi",
@@ -82,9 +90,13 @@ export function buildDemoDeployCommand({
     commandArgs.push(`--service-account=${serviceAccount}`);
   }
 
+  if (!args.skipAllowUnauthenticated) {
+    commandArgs.push("--allow-unauthenticated");
+  }
+
   return {
     args: commandArgs,
-    command: "gcloud",
+    command: resolveGcloudCommand(env),
     errors,
     ok: errors.length === 0,
   };
@@ -115,7 +127,9 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
 
 export function formatGcloudMapFlag(flagName, values) {
   const delimiter = pickDelimiter(Object.values(values));
-  const entries = Object.entries(values).map(([key, value]) => `${key}=${value}`);
+  const entries = Object.entries(values).map(
+    ([key, value]) => `${key}=${escapeGcloudMapValue(value)}`,
+  );
   return `${flagName}=^${delimiter}^${entries.join(delimiter)}`;
 }
 
@@ -169,7 +183,7 @@ function readRuntimeEnv(env, project, region, searchLocation) {
 }
 
 function pickDelimiter(values) {
-  for (const delimiter of ["|", "~", "%", "^"]) {
+  for (const delimiter of ["~", "|", "%", "^"]) {
     if (values.every((value) => !String(value).includes(delimiter))) {
       return delimiter;
     }
@@ -182,12 +196,30 @@ function readString(value) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
+function escapeGcloudMapValue(value) {
+  return String(value).replace(/"/g, '\\"');
+}
+
+function resolveGcloudCommand(env) {
+  return (
+    readString(env.GCLOUD_BIN) ?? (process.platform === "win32" ? "gcloud.ps1" : "gcloud")
+  );
+}
+
 function run(command, args) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { stdio: "inherit" });
+    const cleanup = [];
+    const child =
+      process.platform === "win32"
+        ? spawnPowerShellCommand(command, args, cleanup)
+        : spawn(command, args, { stdio: "inherit" });
 
     child.on("error", reject);
     child.on("exit", (code) => {
+      for (const path of cleanup) {
+        rmSync(path, { force: true, recursive: true });
+      }
+
       if (code === 0) {
         resolve();
       } else {
@@ -195,6 +227,35 @@ function run(command, args) {
       }
     });
   });
+}
+
+function spawnPowerShellCommand(command, args, cleanup) {
+  const dir = mkdtempSync(join(tmpdir(), "pmi-kc-kb-deploy-"));
+  const scriptPath = join(dir, "run-gcloud.ps1");
+  cleanup.push(dir);
+  writeFileSync(
+    scriptPath,
+    [
+      "$ErrorActionPreference = 'Stop'",
+      "$gcloudArgs = @(",
+      ...args.map((arg) => `  '${escapePowerShell(arg)}'`),
+      ")",
+      `& '${escapePowerShell(command)}' @gcloudArgs`,
+      "if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+
+  return spawn(
+    "powershell.exe",
+    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", scriptPath],
+    { stdio: "inherit" },
+  );
+}
+
+function escapePowerShell(value) {
+  return String(value).replace(/'/g, "''");
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {

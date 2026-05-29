@@ -76,6 +76,42 @@ describe("Ask service", () => {
     });
   });
 
+  it("returns cited demo answers for the approved workflow demo Spaces", async () => {
+    const cases = [
+      {
+        question: "What should the team check when a maintenance request comes in?",
+        sourceId: "demo-maintenance-work-order-sop",
+        space: "maintenance-work-order-intake",
+      },
+      {
+        question: "What has to happen after a tenant gives move-out notice?",
+        sourceId: "demo-move-out-deposit-sop",
+        space: "move-out-deposit-disposition",
+      },
+      {
+        question: "What details does the team track during owner onboarding?",
+        sourceId: "demo-owner-onboarding-sop",
+        space: "owner-onboarding",
+      },
+    ];
+
+    for (const testCase of cases) {
+      await expect(
+        answerQuestion(user, {
+          audience: "Owner",
+          channel: "Gmail",
+          draft_enabled: true,
+          question: testCase.question,
+          space: testCase.space,
+          urgency: "Normal",
+        }),
+      ).resolves.toMatchObject({
+        source_state: "Verified Source",
+        citations: [expect.objectContaining({ source_id: testCase.sourceId })],
+      });
+    }
+  });
+
   it("keeps unsupported demo questions in no-source state", async () => {
     await expect(
       answerQuestion(user, {

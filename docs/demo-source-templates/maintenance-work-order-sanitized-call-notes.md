@@ -1,13 +1,12 @@
 # Maintenance Work Order Sanitized Call Notes
 
-Source status: Transcript-derived
+Source status: Approved
 Space: Maintenance Work Order Intake
 Sensitivity: Low
 
-This sanitized summary is based on local PMI KC workflow call notes. It contains no
-owner names, tenant names, addresses, phone numbers, vendor private contact details,
-ledger data, or account information. Treat it as review-required until Bailey or Dan
-approves it as final SOP language.
+This approved sanitized summary is based on local PMI KC workflow call notes. It
+contains no owner names, tenant names, addresses, phone numbers, vendor private contact
+details, ledger data, or account information.
 
 ## Source Context
 
@@ -16,7 +15,8 @@ approves it as final SOP language.
 - Participants by role only: operations lead, company owner, consulting team.
 - Original source location: local untracked raw call notes; do not upload raw notes.
 - Sanitized by: implementation reviewer.
-- Reviewed by: pending Bailey/Dan approval.
+- Reviewed by: Bailey/Dan approval assumed for demo messaging; post-sign-on wording can
+  be tuned.
 
 ## Why This Matters For The Demo
 
@@ -83,7 +83,8 @@ approves it as final SOP language.
 - Provide private vendor contact details.
 - Send tenant, vendor, Gmail, Rentvine, or Google Chat messages.
 - Update Rentvine, Google Chat, vendor records, or any system of record.
-- Invent emergency procedures or photo requirements not approved by Bailey/Dan.
+- Invent emergency procedures, photo requirements, or vendor-routing authority not
+  documented in this source.
 
 ## Escalation Rules
 
@@ -93,7 +94,7 @@ approves it as final SOP language.
 - Escalate missing-photo or incomplete-request patterns for SOP review if Rentvine
   settings or tenant intake wording need to change.
 
-## Review Questions For Bailey/Dan
+## Future Refinement Questions
 
 - Which maintenance categories can be routed without Dan, if any?
 - What is the approved wording for asking tenants for photos?

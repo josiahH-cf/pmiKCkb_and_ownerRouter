@@ -73,7 +73,7 @@ Before declaring client-production ready:
 
 - Allowed-domain sign-in works for a `pmikcmetro.com` Google account.
 - Wrong-domain sign-in is rejected.
-- Lease Renewals Space opens and shows seeded records.
+- The approved demo Spaces open and show seeded records.
 - Ask returns one cited `Verified Source` answer from the configured source path or
   demo retrieval mode.
 - Ask returns `No Reliable Source Found` for an unsupported question.
@@ -89,5 +89,7 @@ Before declaring client-production ready:
 The repo currently supports local and demo scaffolding. Live Firebase, source
 locations, Agent Search, Cloud Run, and Gmail setup still require external Google
 configuration for a client-owned production environment. The current demo host has a
-one-Space live Ask path for Lease Renewals through Cloud Storage `.txt` sources and
-Agent Search, while mock demo mode remains the safest unattended local walkthrough.
+four-workflow live Ask path through Cloud Storage `.txt` sources and Agent Search for
+Lease Renewals, Maintenance Work Order Intake, Move-Out + Deposit Disposition, and
+Owner Onboarding. Mock demo mode remains the safest unattended walkthrough for local
+show-and-tell resets.

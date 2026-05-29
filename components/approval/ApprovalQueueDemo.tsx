@@ -86,7 +86,7 @@ export function ApprovalQueueDemo({
           <div>
             <h2>{item.title}</h2>
             <p className="muted">
-              {item.kind} - {item.status}
+              {item.spaceName} - {item.kind} - {item.status}
             </p>
           </div>
           <button

@@ -12,19 +12,17 @@ workflow and should be created in its own repository when ready.
 
 The KB has passed the foundation, demo-slice, M3a retrieval-boundary, and M3b answer
 contract milestones. It includes Firebase Google sign-in/session boundaries,
-Firestore editable-layer APIs, live demo Firestore records for Lease Renewals, a Lease
-Renewals editable Space UI, a live-demo Approval Queue path, Vertex AI Search
-retrieval boundaries, Gemini JSON answer validation, Ask logging, Ask capture tasks,
-source-state constants, unit/eval tests, Firestore rules tests, demo reset/smoke
-scripts, and deterministic verification.
+Firestore editable-layer APIs, four approved workflow demo slices, editable Space UI
+coverage for those demo Spaces, a multi-workflow live-demo Approval Queue path, Vertex
+AI Search retrieval boundaries, Gemini JSON answer validation, Ask logging, Ask
+capture tasks, source-state constants, unit/eval tests, Firestore rules tests, demo
+reset/smoke scripts, and deterministic verification.
 
-Spec 1 is not launch-complete yet. A cheap Lease Renewals live Ask smoke now works
-through a Cloud Storage-backed Agent Search data store with safe seed sources and one
-sanitized transcript-derived call-notes source, but the real app still needs deployed
-Cloud Run smoke, all launch Spaces, full editable UI coverage, all-Space Approval
-Queue coverage, Gmail send-only
-notifications, Admin observability, and a separate Owner Router repo for the
-read-only Owner Email Space.
+Spec 1 is not launch-complete yet. A cheap four-workflow Cloud Run demo works through
+Cloud Storage-backed Agent Search data stores, approved sanitized sources, Firebase
+Auth, Firestore, and Gemini. The real app still needs remaining launch Spaces,
+production source corpus, Gmail send-only notifications, Admin observability, and a
+separate Owner Router repo for the read-only Owner Email Space.
 
 ## Prerequisites
 
@@ -78,7 +76,7 @@ Run `npm run test:firestore` separately when Java is available on PATH.
 - `docs/engineering.md`: conventions, security, and boundaries.
 - `docs/demo-show-and-tell.md`: exact local demo commands and client walkthrough.
 - `docs/demo-cutover.md`: demo-to-client environment and cutover model.
-- `docs/demo-slice.md`: first working Lease Renewals demo slice.
+- `docs/demo-slice.md`: current approved workflow demo slices.
 - `docs/demo-source-templates/`: safe source templates for current and future demos.
 - `docs/google-setup.md`: live Google/Firebase/Cloud Storage/Agent Search/Gmail setup
   runbook.
@@ -86,13 +84,13 @@ Run `npm run test:firestore` separately when Java is available on PATH.
 
 ## Next Steps
 
-1. Keep the local show-and-tell path and transcript-derived live Ask smoke green for
-   Lease Renewals.
-2. Deploy the cheap Cloud
-   Run demo with `npm run deploy:demo -- --budget-confirmed`.
+1. Keep the local four-workflow show-and-tell path and four-workflow live Ask smokes
+   green.
+2. Keep the deployed auth smoke and four deployed live Ask smokes green at
+   <https://pmi-kc-kb-demo-800237451321.us-central1.run.app/sign-in>.
 3. Create the separate `pmi-kc-owner-router` repository before final KB A-16
    verification.
-4. Expand the editable Space UI and Approval Queue from Lease Renewals to all launch
-   Spaces.
+4. Expand the editable Space UI and Approval Queue from the four demo Spaces to all
+   launch Spaces.
 5. Add mocked-auth Playwright e2e tests, staging Cloud Run, brand verification, and
    final A-1 through A-17 acceptance.

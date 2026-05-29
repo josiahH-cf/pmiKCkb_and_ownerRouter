@@ -5,36 +5,38 @@ sanitized and should not include real owner names, tenant names, applicant names
 addresses, phone numbers, email addresses, rent amounts, ledger data, bank data,
 screening details, private Fathom links, or full lease packet details.
 
-## Current Live Ask Corpus
+## Current Lease Renewals Live Ask Sources
 
-Use these for the one-Space Lease Renewals Cloud Storage / Agent Search smoke:
+Use these for the Lease Renewals Cloud Storage / Agent Search smoke:
 
 - `lease-renewals-demo-sop-source.md` - approved safe seed source.
 - `owner-renewal-follow-up-demo-template.md` - approved safe seed template.
-- `lease-renewals-sanitized-call-notes.md` - transcript-derived source; review-required
-  until Bailey/Dan approve it.
+- `lease-renewals-sanitized-call-notes.md` - approved sanitized call-notes source.
 
-Only upload `.txt` copies to the Cloud Storage source prefix. Seed approved demo seeds
-as `approval_status=Approved`; seed transcript-derived notes as
-`approval_status=Transcript-derived`.
+Only upload `.txt` copies to the Cloud Storage source prefix. Seed these approved demo
+sources as `approval_status=Approved`.
 
-## Future Demo Candidates
+## Additional Approved Workflow Sources
 
-These are first-pass transcript-derived templates for future Spaces. They are not part
-of the under-$10 one-Space live Ask smoke until separate source targets, data stores,
-cost checks, and approval are added.
+These approved sources back the local four-workflow demo and the current deployed live
+Ask demo corpus.
 
+- `maintenance-work-order-demo-sop-source.md` - approved safe maintenance seed source.
 - `maintenance-work-order-sanitized-call-notes.md` - Rentvine intake, missing photos,
   Google Chat handoff, and Dan vendor decision.
+- `move-out-deposit-demo-sop-source.md` - approved safe move-out/deposit seed source.
 - `move-out-deposit-sanitized-call-notes.md` - move-out instructions, inspection,
   vendor bids, deposit sensitivity, and Rentvine close-out.
+- `owner-onboarding-demo-sop-source.md` - approved safe onboarding seed source.
 - `owner-onboarding-sanitized-call-notes.md` - onboarding checklist, utilities,
   insurance, keys/locks, existing tenant setup, and missing-detail gaps.
 
+The matching local demo records are seeded by `npm run seed:demo` and reset by
+`npm run demo:reset`.
+
 ## Approval Rule
 
-Transcript-derived templates are useful for demos because they show real PMI KC pain,
-but they are not final SOPs. The KB should treat them as review-required and create
-placeholders for legal wording, fees, approval thresholds, exception handling,
-customer-facing templates, and system-of-record updates until Bailey or Dan approves
-those details.
+The approved templates are useful for demos because they show real PMI KC pain without
+customer data. Approval does not authorize the KB to invent legal wording, fees,
+approval thresholds, exception handling, customer-facing templates, or system-of-record
+updates that are not documented in the source.

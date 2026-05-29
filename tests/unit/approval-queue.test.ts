@@ -10,53 +10,52 @@ const user: AuthenticatedUser = {
 };
 
 describe("approval queue loader", () => {
-  it("maps live editable records into queue items", async () => {
+  it("maps live editable records across demo Spaces into queue items", async () => {
+    const seenSpaceIds: string[] = [];
     const result = await loadApprovalQueue(user, {
-      listPlaceholders: vi.fn().mockResolvedValue([
+      listPlaceholders: vi.fn(async (_user, spaceId) => {
+        seenSpaceIds.push(spaceId);
+        return [
+          {
+            id: `${spaceId}-placeholder`,
+            missing_detail: `Missing ${spaceId}`,
+            status: "Open" as const,
+          },
+        ];
+      }),
+      listSops: vi.fn(async (_user, spaceId) => [
         {
-          id: "placeholder-1",
-          missing_detail: "Missing renewal timing",
-          status: "Open",
+          id: `${spaceId}-sop`,
+          status: "In Review" as const,
+          title: `${spaceId} SOP`,
         },
       ]),
-      listSops: vi.fn().mockResolvedValue([
+      listTemplates: vi.fn(async (_user, spaceId) => [
         {
-          id: "sop-1",
-          status: "In Review",
-          title: "Lease Renewal SOP",
-        },
-      ]),
-      listTemplates: vi.fn().mockResolvedValue([
-        {
-          id: "template-1",
-          name: "Owner Renewal Follow-Up",
-          status: "In Review",
+          id: `${spaceId}-template`,
+          name: `${spaceId} Template`,
+          status: "In Review" as const,
         },
       ]),
     });
 
-    expect(result).toEqual({
-      apiBacked: true,
-      items: [
-        {
-          id: "sop-1",
-          kind: "SOP",
-          status: "In Review",
-          title: "Lease Renewal SOP",
-        },
-        {
-          id: "template-1",
-          kind: "Template",
-          status: "In Review",
-          title: "Owner Renewal Follow-Up",
-        },
-        {
-          id: "placeholder-1",
-          kind: "Placeholder",
-          status: "Open",
-          title: "Missing renewal timing",
-        },
-      ],
+    expect(result.apiBacked).toBe(true);
+    expect(new Set(seenSpaceIds)).toEqual(
+      new Set([
+        "lease-renewals",
+        "maintenance-work-order-intake",
+        "move-out-deposit-disposition",
+        "owner-onboarding",
+      ]),
+    );
+    expect(result.items).toHaveLength(12);
+    expect(result.items).toContainEqual({
+      id: "maintenance-work-order-intake-sop",
+      kind: "SOP",
+      spaceId: "maintenance-work-order-intake",
+      spaceName: "Maintenance Work Order Intake",
+      status: "In Review",
+      title: "maintenance-work-order-intake SOP",
     });
   });
 
@@ -68,10 +67,7 @@ describe("approval queue loader", () => {
     });
 
     expect(result.apiBacked).toBe(false);
-    expect(result.items.map((item) => item.kind)).toEqual([
-      "SOP",
-      "Template",
-      "Placeholder",
-    ]);
+    expect(result.items).toHaveLength(12);
+    expect(result.items.map((item) => item.spaceId)).toContain("owner-onboarding");
   });
 });

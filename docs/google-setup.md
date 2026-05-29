@@ -70,8 +70,9 @@ npm run seed:spaces
 npm run seed:demo
 ```
 
-`npm run seed:demo` creates safe Lease Renewals SOP/template/tool/placeholder records
-only when they are missing, so rerunning it does not overwrite demo edits.
+`npm run seed:demo` creates safe SOP/template/tool/placeholder records for the four
+approved demo workflows only when they are missing, so rerunning it does not overwrite
+demo edits.
 
 Live Google sign-in is a separate Auth gate:
 
@@ -220,9 +221,9 @@ Current demo values:
 - Source prefix: `gs://<bucket-name>/lease-renewals/`.
 - Durable seed templates: `docs/demo-source-templates/`.
 - Ignored upload workspace: `temp/lease-renewals-drive-seed/`.
-- Supported transcript-derived templates now exist for Lease Renewals, Maintenance Work
-  Order Intake, Move-Out + Deposit Disposition, and Owner Onboarding. Import only the
-  Lease Renewals `.txt` copy for the current under-$10 live Ask path.
+- Approved sanitized templates and demo seed sources now exist for Lease Renewals,
+  Maintenance Work Order Intake, Move-Out + Deposit Disposition, and Owner Onboarding.
+  The current demo project has all four imported for the multi-Space live demo.
 - Template catalog and approval guidance:
   `docs/demo-source-templates/README.md`.
 
@@ -230,9 +231,14 @@ Known working `pmikckb-test` smoke values from 2026-05-29:
 
 - Source prefix: `gs://pmikckb-test-lease-renewals-686407/lease-renewals/`.
 - Data store ID: `kb-lease-renewals-txt`.
+- Additional demo data stores:
+  - `kb-maintenance-work-order-intake-txt`
+  - `kb-move-out-deposit-disposition-txt`
+  - `kb-owner-onboarding-txt`
 - Imported docs:
   - `01-lease-renewals-demo-sop-source.txt`
   - `02-owner-renewal-follow-up-demo-template.txt`
+  - `03-lease-renewals-sanitized-call-notes.txt`
 - Unused data store to delete later after confirming no dependency points to it:
   `kb-lease-renewals_1780046781160`.
 
@@ -273,18 +279,22 @@ repo. Before creating any `.txt` source for Agent Search:
 - remove rent amounts, ledger amounts, bank details, payment examples tied to people,
   SSNs, screening details, Plaid/Boom raw data, and full lease packet details;
 - summarize by role and workflow step instead of quoting sensitive call passages;
-- mark the source as `Source status: Transcript-derived` and `Sensitivity: Low`;
-- seed `sources_meta` with `--approval-status=Transcript-derived --sensitivity=Low`;
+- mark the source as `Source status: Approved` and `Sensitivity: Low` only after the
+  sanitized demo messaging has Bailey/Dan approval;
+- seed `sources_meta` with `--approval-status=Approved --sensitivity=Low`;
 - keep legal deadlines, fees, notice wording, approval thresholds, and exception rules
-  review-required until Bailey or Dan approves them.
+  out of final SOP content unless those details are explicitly documented in an
+  approved source.
 
 The raw review folder `docs/context_and_calls/` is intentionally ignored by git and
 Prettier. Use it only as local source material for sanitized summaries.
 
 ## Under-$10 Live Ask And Demo Deploy
 
-Use this path before any all-Space indexing or production deployment. The goal is one
-real Lease Renewals Ask answer and one cheap Cloud Run demo URL.
+Use this path before any production deployment. The cheapest default is one real Lease
+Renewals Ask answer and one cheap Cloud Run demo URL. The current four-workflow live
+demo path uses the same guardrails with intentional multi-Space source maps and
+`--allow-multiple-spaces`.
 
 Cost guardrails:
 
@@ -294,7 +304,8 @@ Cost guardrails:
 - Cloud Run service: `pmi-kc-kb-demo`.
 - Model: `gemini-2.5-flash`.
 - Vertex AI Search pricing model: General pricing only, not Configurable pricing.
-- Scope: exactly one Space, `lease-renewals`.
+- Scope: exactly one Space, `lease-renewals`, unless explicitly running the approved
+  four-workflow demo with `--allow-multiple-spaces`.
 - Source corpus: 2-3 safe Cloud Storage docs, well below 10 GiB indexed raw data.
 - Cloud Run: generated URL only, `min-instances=0`, `max-instances=1`, no custom
   domain yet.
@@ -362,7 +373,7 @@ gcloud storage cp "temp\lease-renewals-drive-seed\01-lease-renewals-demo-sop-sou
 gcloud storage cp "temp\lease-renewals-drive-seed\02-owner-renewal-follow-up-demo-template.txt" "gs://$env:BUCKET_NAME/lease-renewals/"
 ```
 
-5. Add one sanitized real Lease Renewals call transcript or notes file when available:
+5. Add the approved sanitized Lease Renewals call-notes source:
 
 ```powershell
 Copy-Item "docs\demo-source-templates\lease-renewals-sanitized-call-notes.md" "temp\lease-renewals-drive-seed\03-lease-renewals-sanitized-call-notes.md"
@@ -372,9 +383,10 @@ Copy-Item "temp\lease-renewals-drive-seed\03-lease-renewals-sanitized-call-notes
 gcloud storage cp "temp\lease-renewals-drive-seed\03-lease-renewals-sanitized-call-notes.txt" "gs://$env:BUCKET_NAME/lease-renewals/"
 ```
 
-Future demo expansion can use the other sanitized templates in
-`docs/demo-source-templates/`, but do not import them into the one-Space cheap smoke
-until separate source prefixes, data stores, and cost checks are intentionally added.
+Four-workflow live demo expansion can use the other approved sanitized templates in
+`docs/demo-source-templates/`, but do not import them into the default one-Space cheap
+smoke until separate source prefixes, data stores, source metadata, and cost checks are
+intentionally added.
 
 6. Create one Agent Search data store from Cloud Storage:
    <https://console.cloud.google.com/gen-app-builder/data-stores?project=pmikckb-test>
@@ -409,12 +421,13 @@ until separate source prefixes, data stores, and cost checks are intentionally a
 Agent-run commands after the user-owned setup is complete:
 
 ```bash
-npm run check:live-cost
+npm run check:live-cost -- --allow-multiple-spaces
 npm run seed:source-meta -- --source-id=gs://<bucket-name>/lease-renewals/01-lease-renewals-demo-sop-source.txt
 npm run seed:source-meta -- --source-id=gs://<bucket-name>/lease-renewals/02-owner-renewal-follow-up-demo-template.txt
-npm run seed:source-meta -- --source-id=gs://<bucket-name>/lease-renewals/03-lease-renewals-sanitized-call-notes.txt --approval-status=Transcript-derived --sensitivity=Low
+npm run seed:source-meta -- --source-id=gs://<bucket-name>/lease-renewals/03-lease-renewals-sanitized-call-notes.txt --approval-status=Approved --sensitivity=Low
+npm run import:agent-search -- --project=pmikckb-test --location=us --data-store=kb-lease-renewals-txt --source-id=gs://<bucket-name>/lease-renewals/01-lease-renewals-demo-sop-source.txt --source-id=gs://<bucket-name>/lease-renewals/02-owner-renewal-follow-up-demo-template.txt --source-id=gs://<bucket-name>/lease-renewals/03-lease-renewals-sanitized-call-notes.txt
 npm run smoke:ask-live
-npm run deploy:demo -- --budget-confirmed --service-account=<service-account-email>
+npm run deploy:demo -- --budget-confirmed --allow-multiple-spaces --service-account=<service-account-email>
 npm run smoke:auth-live -- --base-url=<cloud-run-url> --pause-on-human
 npm run smoke:ask-live -- --base-url=<cloud-run-url> --browser-session
 ```
@@ -432,7 +445,42 @@ SPACE_VERTEX_DATA_STORE_IDS={"lease-renewals":"kb-lease-renewals-txt"}
 ```
 
 The deployed Cloud Run service must use `LOCAL_DEMO_AUTH=false`; the deploy helper sets
-that value automatically.
+that value automatically. The current demo URL is
+<https://pmi-kc-kb-demo-800237451321.us-central1.run.app/sign-in>.
+
+For this demo project, Cloud Run source deploy required:
+
+- `roles/storage.objectViewer` for
+  `800237451321-compute@developer.gserviceaccount.com` on
+  `gs://run-sources-pmikckb-test-us-central1`;
+- `roles/run.builder` for
+  `800237451321-compute@developer.gserviceaccount.com`;
+- `roles/firebaseauth.admin` for
+  `pmikckb-test-svc@pmikckb-test.iam.gserviceaccount.com`;
+- disabling the Cloud Run invoker IAM check on `pmi-kc-kb-demo`, because the
+  organization policy rejected an `allUsers` invoker binding;
+- adding both Cloud Run hosts to Firebase Auth authorized domains with
+  `npm run firebase:setup-auth -- --authorized-domain=<host>`.
+
+If `--allow-unauthenticated` fails because org policy blocks `allUsers`, redeploy with
+`npm run deploy:demo -- --budget-confirmed --allow-multiple-spaces --skip-allow-unauthenticated --service-account=<service-account-email>`,
+then run:
+
+```bash
+gcloud run services update pmi-kc-kb-demo --project=pmikckb-test --region=us-central1 --no-invoker-iam-check --quiet
+```
+
+For the approved four-workflow live demo, use one Cloud Storage prefix and one Agent
+Search data store per Space, then run cost/deploy checks with
+`--allow-multiple-spaces`. Example local maps:
+
+```dotenv
+SPACE_DRIVE_FOLDER_IDS={"lease-renewals":"gs://<bucket-name>/lease-renewals/","maintenance-work-order-intake":"gs://<bucket-name>/maintenance-work-order-intake/","move-out-deposit-disposition":"gs://<bucket-name>/move-out-deposit-disposition/","owner-onboarding":"gs://<bucket-name>/owner-onboarding/"}
+SPACE_VERTEX_DATA_STORE_IDS={"lease-renewals":"kb-lease-renewals-txt","maintenance-work-order-intake":"kb-maintenance-work-order-intake-txt","move-out-deposit-disposition":"kb-move-out-deposit-disposition-txt","owner-onboarding":"kb-owner-onboarding-txt"}
+```
+
+Create/import additional data stores with `npm run import:agent-search -- --create-data-store`
+only after uploading approved `.txt` sources and confirming the budget guardrail.
 
 ## Gmail Send-Only Notifications
 

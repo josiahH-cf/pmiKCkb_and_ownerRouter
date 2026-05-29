@@ -9,6 +9,46 @@ const baseUrl = readArg("--base-url") ?? "http://localhost:3000";
 const timeoutMs = Number(readArg("--timeout-ms") ?? 30000);
 const shouldReset = !hasArg("--no-reset");
 const headless = !hasArg("--headed");
+const demoAskCases = [
+  {
+    expected: "Lease Renewals Demo SOP",
+    question: "What is the lease renewal process?",
+  },
+  {
+    expected: "Maintenance Work Order Intake Demo SOP",
+    question: "What should the team check when a maintenance request comes in?",
+  },
+  {
+    expected: "Move-Out + Deposit Disposition Demo SOP",
+    question: "What has to happen after a tenant gives move-out notice?",
+  },
+  {
+    expected: "Owner Onboarding Demo SOP",
+    question: "What details does the team track during owner onboarding?",
+  },
+];
+const demoSpaceCases = [
+  {
+    name: "lease-renewals",
+    path: "lease-renewals",
+    title: "Lease Renewals",
+  },
+  {
+    name: "maintenance",
+    path: "maintenance-work-order-intake",
+    title: "Maintenance Work Order Intake",
+  },
+  {
+    name: "move-out",
+    path: "move-out-deposit-disposition",
+    title: "Move-Out + Deposit Disposition",
+  },
+  {
+    name: "owner-onboarding",
+    path: "owner-onboarding",
+    title: "Owner Onboarding",
+  },
+];
 
 mkdirSync(artifactDir, { recursive: true });
 
@@ -57,46 +97,49 @@ async function main() {
 }
 
 async function smokeAsk(page) {
-  await page.goto(`${baseUrl}/ask`, { waitUntil: "domcontentloaded" });
-  assertNotSignIn(page);
-  await expectBodyText(page, "Ask");
-  await page.locator("#question").fill("What is the lease renewal process?");
-  await page.getByRole("button", { name: "Get Answer" }).click();
-  await expectBodyText(page, "Verified Source");
-  await expectBodyText(page, "Lease Renewals Demo SOP");
-  await screenshot(page, "01-ask");
+  for (const [index, testCase] of demoAskCases.entries()) {
+    await openSignedIn(page, "/ask");
+    await expectBodyText(page, "Ask");
+    await page.locator("#question").fill(testCase.question);
+    await page.getByRole("button", { name: "Get Answer" }).click();
+    await expectBodyText(page, "Verified Source");
+    await expectBodyText(page, testCase.expected);
+    await screenshot(page, `01-ask-${index + 1}`);
+  }
 }
 
 async function smokeSpaceSave(page) {
-  await page.goto(`${baseUrl}/spaces/lease-renewals`, { waitUntil: "domcontentloaded" });
-  assertNotSignIn(page);
-  await expectBodyText(page, "Lease Renewals");
-  await expectBodyText(page, "Editable API connected.");
+  for (const testCase of demoSpaceCases) {
+    await openSignedIn(page, `/spaces/${testCase.path}`);
+    await expectBodyText(page, testCase.title);
+    await expectBodyText(page, "Editable API connected.");
 
-  const editor = page.locator("#sop-body");
-  const originalBody = await editor.inputValue();
+    const editor = page.locator("#sop-body");
+    const originalBody = await editor.inputValue();
 
-  if (!originalBody.includes("Lease Renewals")) {
-    throw new Error("Unexpected SOP body loaded from Space page.");
+    if (!originalBody.includes(testCase.title)) {
+      throw new Error(`Unexpected SOP body loaded from ${testCase.title} page.`);
+    }
+
+    await editor.fill(`${originalBody}\n\nSmoke save check ${new Date().toISOString()}`);
+    await page.getByRole("button", { name: "Save" }).click();
+    await expectBodyText(page, "Saved to editable API.");
+    await editor.fill(originalBody);
+    await page.getByRole("button", { name: "Save" }).click();
+    await expectBodyText(page, "Saved to editable API.");
+    await screenshot(page, `02-space-save-${testCase.name}`);
   }
-
-  await editor.fill(`${originalBody}\n\nSmoke save check ${new Date().toISOString()}`);
-  await page.getByRole("button", { name: "Save" }).click();
-  await expectBodyText(page, "Saved to editable API.");
-  await editor.fill(originalBody);
-  await page.getByRole("button", { name: "Save" }).click();
-  await expectBodyText(page, "Saved to editable API.");
-  await screenshot(page, "02-space-save");
 }
 
 async function smokeApprovalQueue(page) {
-  await page.goto(`${baseUrl}/approval-queue`, { waitUntil: "domcontentloaded" });
-  assertNotSignIn(page);
+  await openSignedIn(page, "/approval-queue");
   await expectBodyText(page, "Approval Queue");
   await expectBodyText(page, "Editable API connected.");
   await screenshot(page, "03-approval-before");
 
-  for (let index = 0; index < 6; index += 1) {
+  const maxQueueActions = demoSpaceCases.length * 3;
+
+  for (let index = 0; index < maxQueueActions; index += 1) {
     const approve = page.getByRole("button", { name: "Approve" });
     const resolve = page.getByRole("button", { name: "Resolve" });
     const approveCount = await approve.count();
@@ -121,10 +164,38 @@ async function smokeApprovalQueue(page) {
 }
 
 async function smokeAdmin(page) {
-  await page.goto(`${baseUrl}/admin`, { waitUntil: "domcontentloaded" });
-  assertNotSignIn(page);
+  await openSignedIn(page, "/admin");
   await expectBodyText(page, "Admin");
   await screenshot(page, "05-admin");
+}
+
+async function openSignedIn(page, path) {
+  await page.goto(`${baseUrl}${path}`, { waitUntil: "domcontentloaded" });
+
+  if (!page.url().includes("/sign-in")) {
+    await waitForClientReady(page);
+    return;
+  }
+
+  const localDemoButton = page.getByRole("button", {
+    name: "Continue in local demo mode",
+  });
+
+  if ((await localDemoButton.count().catch(() => 0)) === 0) {
+    assertNotSignIn(page);
+    return;
+  }
+
+  await localDemoButton.first().click();
+  await page.waitForURL((url) => url.pathname === "/ask", { timeout: timeoutMs });
+  await page.goto(`${baseUrl}${path}`, { waitUntil: "domcontentloaded" });
+  assertNotSignIn(page);
+  await waitForClientReady(page);
+}
+
+async function waitForClientReady(page) {
+  await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => undefined);
+  await page.waitForTimeout(250);
 }
 
 async function assertServerReady() {

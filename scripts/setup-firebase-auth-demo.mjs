@@ -21,6 +21,7 @@ async function main() {
     readArg("--client-secret") ??
     process.env.FIREBASE_GOOGLE_CLIENT_SECRET ??
     process.env.GOOGLE_CLIENT_SECRET;
+  const extraAuthorizedDomains = readRepeatedArg("--authorized-domain");
 
   if (!projectId) {
     throw new Error(
@@ -35,7 +36,10 @@ async function main() {
   };
 
   await initializeAuth(projectId);
-  const authorizedDomains = await ensureAuthorizedDomains(projectId);
+  const authorizedDomains = await ensureAuthorizedDomains(
+    projectId,
+    extraAuthorizedDomains,
+  );
   await ensureGoogleProvider(projectId, clientId, clientSecret);
 
   console.log(`Firebase Auth initialized for ${projectId}.`);
@@ -59,7 +63,7 @@ async function initializeAuth(projectId) {
   return response;
 }
 
-async function ensureAuthorizedDomains(projectId) {
+async function ensureAuthorizedDomains(projectId, extraAuthorizedDomains = []) {
   const configUrl = `https://identitytoolkit.googleapis.com/admin/v2/projects/${projectId}/config`;
   const config = await identityRequest(configUrl, { method: "GET" });
   const currentDomains = Array.isArray(config.authorizedDomains)
@@ -73,6 +77,7 @@ async function ensureAuthorizedDomains(projectId) {
         "127.0.0.1",
         `${projectId}.firebaseapp.com`,
         `${projectId}.web.app`,
+        ...extraAuthorizedDomains.map(normalizeDomain),
       ].filter(Boolean),
     ),
   ].sort();
@@ -189,6 +194,21 @@ function readArg(name) {
   const prefix = `${name}=`;
   const arg = process.argv.find((entry) => entry.startsWith(prefix));
   return arg ? arg.slice(prefix.length) : undefined;
+}
+
+function readRepeatedArg(name) {
+  const prefix = `${name}=`;
+  return process.argv
+    .filter((entry) => entry.startsWith(prefix))
+    .map((entry) => entry.slice(prefix.length));
+}
+
+function normalizeDomain(value) {
+  try {
+    return new URL(value).hostname;
+  } catch {
+    return value;
+  }
 }
 
 function printAccessToken(commandEnv) {

@@ -54,12 +54,14 @@ export function SpaceDetailClient({
   readOnly,
   seed,
   spaceId,
+  spaceName,
 }: Readonly<{
   canApprove: boolean;
   canEdit: boolean;
   readOnly?: boolean;
   seed: EditableSeed;
   spaceId: string;
+  spaceName: string;
 }>) {
   const [mode, setMode] = useState<DataMode>("loading");
   const [sops, setSops] = useState(seed.sops);
@@ -156,7 +158,7 @@ export function SpaceDetailClient({
         {
           body: JSON.stringify({
             body_md: draftBody,
-            note: "Saved from Lease Renewals Space.",
+            note: `Saved from ${spaceName} Space.`,
           }),
           method: "PATCH",
         },
@@ -192,7 +194,7 @@ export function SpaceDetailClient({
         {
           body: JSON.stringify({
             last_reviewed_at: new Date().toISOString(),
-            note: "Approved from Lease Renewals Space.",
+            note: `Approved from ${spaceName} Space.`,
             status: "Approved",
           }),
           method: "PATCH",
@@ -227,8 +229,8 @@ export function SpaceDetailClient({
         placeholder: EditablePlaceholder;
       }>(`/api/placeholders/${placeholderId}`, {
         body: JSON.stringify({
-          note: "Resolved from Lease Renewals Space.",
-          resolution: "Resolved during Lease Renewals Space review.",
+          note: `Resolved from ${spaceName} Space.`,
+          resolution: `Resolved during ${spaceName} Space review.`,
           status: "Resolved",
         }),
         method: "PATCH",
@@ -259,7 +261,7 @@ export function SpaceDetailClient({
             source_state_hint: demoSop.source_state_hint,
             status: demoSop.status,
             title: demoSop.title,
-            note: "Created from safe Lease Renewals demo seed.",
+            note: `Created from safe ${spaceName} demo seed.`,
           }),
           method: "POST",
         },
@@ -288,7 +290,7 @@ export function SpaceDetailClient({
             channel: demoTemplate.channel,
             name: demoTemplate.name,
             status: demoTemplate.status,
-            note: "Created from safe Lease Renewals demo seed.",
+            note: `Created from safe ${spaceName} demo seed.`,
           }),
           method: "POST",
         },
@@ -316,7 +318,7 @@ export function SpaceDetailClient({
           owner_uid: demoPlaceholder.owner_uid,
           priority: demoPlaceholder.priority,
           status: demoPlaceholder.status,
-          note: "Created from safe Lease Renewals demo seed.",
+          note: `Created from safe ${spaceName} demo seed.`,
         }),
         method: "POST",
       });
@@ -342,7 +344,7 @@ export function SpaceDetailClient({
           purpose: demoTool.purpose,
           sensitivity: demoTool.sensitivity,
           url: demoTool.url,
-          note: "Created from safe Lease Renewals demo seed.",
+          note: `Created from safe ${spaceName} demo seed.`,
         }),
         method: "POST",
       });
@@ -374,7 +376,7 @@ export function SpaceDetailClient({
             <p className="muted">
               {currentSop
                 ? `${currentSop.status} - ${currentSop.source_state_hint}`
-                : "Create an SOP from the safe Lease Renewals seed."}
+                : `Create an SOP from the safe ${spaceName} seed.`}
             </p>
           </div>
           {reviewCount > 0 ? (

@@ -35,9 +35,10 @@ npm run dev
 ```
 
 The scaffold runs without live Google services in demo mode. With `ASK_DEMO_MODE=true`,
-Ask returns the safe Lease Renewals demo response. With `ASK_DEMO_MODE=false`, live Ask
-requires live source and Agent Search configuration; missing setup returns an explicit
-setup error instead of falling back to a generic answer.
+Ask returns safe demo responses for Lease Renewals, Maintenance Work Order Intake,
+Move-Out + Deposit Disposition, and Owner Onboarding. With `ASK_DEMO_MODE=false`, live
+Ask requires live source and Agent Search configuration; missing setup returns an
+explicit setup error instead of falling back to a generic answer.
 
 Protected app pages require the server auth guard. Unauthenticated browser visits
 redirect to `/sign-in`, where the Firebase browser SDK signs in with Google and
@@ -149,7 +150,7 @@ The high-level order is:
 3. Complete the Manual Setup Gate above for Firebase Auth / Identity Platform.
 4. Complete the live sign-in smoke test from the Manual Setup Gate.
 5. Create Firestore Native mode in `us-central1`.
-6. Configure one source location and one Agent Search data store per KB Space. The
+6. Configure one source location and one Agent Search data store per live KB Space. The
    cheap demo uses Cloud Storage `.txt` sources; production may still choose Drive if
    the service-account limitation is resolved or user OAuth retrieval is implemented.
 7. Grant the KB service identity only the read permissions required for the chosen

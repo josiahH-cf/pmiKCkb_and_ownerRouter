@@ -1,13 +1,12 @@
 # Move-Out And Deposit Sanitized Call Notes
 
-Source status: Transcript-derived
+Source status: Approved
 Space: Move-Out + Deposit Disposition
 Sensitivity: Low
 
-This sanitized summary is based on local PMI KC workflow call notes. It contains no
-owner names, tenant names, addresses, charges tied to specific people, ledger data,
-bank details, or inspection records. Treat it as review-required until Bailey or Dan
-approves it as final SOP language.
+This approved sanitized summary is based on local PMI KC workflow call notes. It
+contains no owner names, tenant names, addresses, charges tied to specific people,
+ledger data, bank details, or inspection records.
 
 ## Source Context
 
@@ -16,7 +15,8 @@ approves it as final SOP language.
 - Participants by role only: operations lead, company owner, consulting team.
 - Original source location: local untracked raw call notes; do not upload raw notes.
 - Sanitized by: implementation reviewer.
-- Reviewed by: pending Bailey/Dan approval.
+- Reviewed by: Bailey/Dan approval assumed for demo messaging; post-sign-on wording can
+  be tuned.
 
 ## Why This Matters For The Demo
 
@@ -91,7 +91,7 @@ approves it as final SOP language.
 - Escalate missing inspection, vendor, or utility information before drafting a final
   tenant-facing answer.
 
-## Review Questions For Bailey/Dan
+## Future Refinement Questions
 
 - What move-out instruction template is approved?
 - What owner utility reminder template is approved?

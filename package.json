@@ -29,6 +29,7 @@
     "demo:reset": "node scripts/reset-demo-records.mjs",
     "check:live-cost": "node scripts/check-live-cost.mjs",
     "deploy:demo": "node scripts/deploy-demo-cloud-run.mjs",
+    "import:agent-search": "node scripts/import-agent-search-documents.mjs",
     "smoke:ask-live": "node scripts/smoke-live-ask.mjs",
     "smoke:auth-live": "node scripts/smoke-live-auth.mjs",
     "smoke:demo-live": "node scripts/smoke-demo-live.mjs",
