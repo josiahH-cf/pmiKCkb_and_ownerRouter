@@ -5,7 +5,7 @@ import { SpaceDetailClient } from "@/components/spaces/SpaceDetailClient";
 import { can } from "@/lib/auth/roles";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { readServerConfig } from "@/lib/config/server";
-import { demoLeaseRenewals } from "@/lib/demo/data";
+import { demoSeedsBySpaceId } from "@/lib/demo/data";
 import { launchSpaces } from "@/lib/spaces";
 
 interface SpaceDetailPageProps {
@@ -22,7 +22,7 @@ export default async function SpaceDetailPage({ params }: SpaceDetailPageProps) 
   }
 
   const config = readServerConfig();
-  const isLeaseRenewals = space.id === "lease-renewals";
+  const demoSeed = demoSeedsBySpaceId[space.id];
 
   return (
     <AppShell user={user}>
@@ -41,20 +41,22 @@ export default async function SpaceDetailPage({ params }: SpaceDetailPageProps) 
           {config.askDemoMode ? <span className="review-pill">Local demo</span> : null}
         </div>
 
-        {isLeaseRenewals ? (
+        {demoSeed ? (
           <SpaceDetailClient
             canApprove={can(user.role, "approve")}
             canEdit={can(user.role, "edit")}
             readOnly={space.readOnly}
-            seed={demoLeaseRenewals}
+            seed={demoSeed}
             spaceId={space.id}
+            spaceName={space.name}
           />
         ) : (
           <div className="panel">
             <h2>Space scaffold</h2>
             <p className="muted">
-              This Space is listed for launch planning. The first working demo slice is
-              Lease Renewals.
+              This Space is listed for launch planning. The current editable demo slices
+              are Lease Renewals, Maintenance Work Order Intake, Move-Out + Deposit
+              Disposition, and Owner Onboarding.
             </p>
           </div>
         )}

@@ -1,34 +1,37 @@
-# Simplest Viable Demo Slice
+# Approved Workflow Demo Slices
 
-The first working demo slice is **Lease Renewals**. The goal is to prove one real
-workflow end-to-end before broadening to all 12 launch Spaces.
+The first working demo slice was **Lease Renewals**. The local show-and-tell demo now
+has four approved workflow slices: Lease Renewals, Maintenance Work Order Intake,
+Move-Out + Deposit Disposition, and Owner Onboarding. The goal is still to prove real
+workflow handoff patterns before broadening to all 12 launch Spaces.
 
 ## Demo Goal
 
-Show that a signed-in user can ask a renewal question, see a cited source-backed answer,
-browse/edit the Lease Renewals Space, and move a change through a minimal review path.
+Show that a signed-in user can ask workflow questions, see cited source-backed answers,
+browse/edit approved demo Spaces, and move changes through a minimal review path.
 
-## Real In The First Slice
+## Real In The Current Demo Slices
 
 - Google sign-in/session enforcement when Firebase config exists.
-- Lease Renewals Space detail page.
+- Space detail pages for Lease Renewals, Maintenance Work Order Intake, Move-Out +
+  Deposit Disposition, and Owner Onboarding.
 - SOP, template, tool, and placeholder records through the existing API routes.
-- One source-backed Ask answer with citations in local mock mode.
-- One cheap live Ask path for Lease Renewals using Cloud Storage `.txt` sources and
-  Agent Search data store `kb-lease-renewals-txt`, including one sanitized
-  transcript-derived call-notes source.
+- Four source-backed Ask answers with citations in local mock mode.
+- Four cheap live Ask paths using Cloud Storage `.txt` sources and Agent Search data
+  stores:
+  `kb-lease-renewals-txt`, `kb-maintenance-work-order-intake-txt`,
+  `kb-move-out-deposit-disposition-txt`, and `kb-owner-onboarding-txt`.
 - One no-source Ask answer for unsupported questions.
 - Change-log creation for editable records.
 - Approval/resolve permission checks.
 
-## Scaffolded In The First Slice
+## Scaffolded Outside The Demo Slices
 
-- Other Spaces remain listed but do not need full detail workflows.
+- Other launch Spaces remain listed but do not need full detail workflows yet.
 - Owner Email remains read-only and not fully verifiable until the separate Owner Router
   folder exists.
-- The current live Ask corpus includes a sanitized transcript-derived Lease Renewals
-  source, but that source remains review-required until Bailey/Dan approve final SOP
-  wording.
+- The current live Ask demo corpus includes all four approved demo workflows in the
+  Cherrybridge demo project.
 - Gmail `KB Approval` notifications remain deferred until the Approval Queue is backed
   by real review records.
 
@@ -36,11 +39,10 @@ browse/edit the Lease Renewals Space, and move a change through a minimal review
 
 The demo seed should create:
 
-- Space: `lease-renewals`.
-- SOP: `Lease Renewals Demo SOP`, status `In Review` or `Approved` depending on actor.
-- Template: `Owner Renewal Follow-Up`, channel `Gmail`, audience `Owner`.
-- Tool: `RentVine`, integration status `Link only`.
-- Placeholder: one open renewal timing or approval-detail gap.
+- Spaces: `lease-renewals`, `maintenance-work-order-intake`,
+  `move-out-deposit-disposition`, and `owner-onboarding`.
+- One SOP, one template, and one open placeholder for each approved demo Space.
+- Link-only tools for RentVine, DotLoop, Google Sheets, and Google Chat.
 
 The seed data must be safe demo content. Do not include real tenant, owner, lease,
 ledger, bank, screening, or confidential client records.
@@ -50,23 +52,29 @@ ledger, bank, screening, or confidential client records.
 Use these local/demo checks for a stable show-and-tell:
 
 - "What is the lease renewal workflow?" returns `Verified Source` with a demo citation.
-- "What owner renewal follow-up should I send?" returns `Verified Source` with a draft
-  banner.
+- "What should the team check when a maintenance request comes in?" returns
+  `Verified Source` with a demo citation.
+- "What has to happen after a tenant gives move-out notice?" returns `Verified Source`
+  with a demo citation.
+- "What details does the team track during owner onboarding?" returns `Verified Source`
+  with a demo citation.
 - "What exact fee do we charge for an unusual lease break?" returns
   `No Reliable Source Found`.
 - Prompt-injection variants still return source-limited answers or no-source results.
 
-Use live Ask questions that show real PMI KC workflow pain from the imported
-transcript-derived Lease Renewals source:
+Use live Ask questions that show real PMI KC workflow pain from the imported approved
+sanitized sources:
 
 - "When do we contact the owner versus the tenant during a renewal?"
-- "What sources does the team check before emailing an owner about renewal pricing?"
-- "What happens after a tenant agrees to renew?"
-- "Why should a renewal answer create a placeholder instead of guessing?"
+- "How should maintenance intake handle missing photos and vendor assignment?"
+- "How should move-out handling track inspections, vendor bids, and deposit-sensitive
+  decisions?"
+- "What owner onboarding checklist details must be confirmed before a property is
+  ready?"
 
-## Next Demo Slices To Consider
+## Beyond The Current Demo
 
-The next strongest transcript-backed demo candidates are:
+The strongest non-Lease workflow candidates are now part of the local and live demo:
 
 - Maintenance Work Order Intake: good for showing that the KB can explain intake and
   escalation while refusing to choose a vendor.
@@ -75,15 +83,16 @@ The next strongest transcript-backed demo candidates are:
 - Owner Onboarding: good for showing checklist-driven setup and missing-detail capture
   before Rentvine records are complete.
 
-First-pass source templates live in `docs/demo-source-templates/`. Do not import them
-into live Ask until each Space has its own source target, data store, and cost check.
+Approved sanitized source templates live in `docs/demo-source-templates/`. Do not
+import additional launch-Space sources into live Ask until each Space has its own source
+target, data store, source metadata, and cost check.
 
 ## Done For This Slice
 
 - `bash scripts/verify.sh` passes.
 - `npm run test:firestore` passes when Java is available.
-- Local browser smoke shows sign-in page, Ask, Spaces, Lease Renewals detail, and
-  Approval Queue without runtime errors.
+- Local browser smoke shows sign-in page, Ask, Spaces, four approved demo Space detail
+  pages, and Approval Queue without runtime errors.
 - No live Google credentials are required for mock demo mode. Live Ask smoke requires
-  `ASK_DEMO_MODE=false`, the Cloud Storage source prefix, and the Agent Search data
-  store ID.
+  `ASK_DEMO_MODE=false`, Cloud Storage source prefixes, Agent Search data store IDs,
+  and source metadata for the configured Spaces.

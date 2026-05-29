@@ -1,11 +1,14 @@
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import { demoLeaseRenewals } from "@/lib/demo/data";
+import { demoSeedsBySpaceId, demoWorkflows } from "@/lib/demo/data";
 import { listPlaceholders, listSops, listTemplates } from "@/lib/firestore/editable";
 import type { PlaceholderRecord, SopRecord, TemplateRecord } from "@/lib/firestore/types";
+import { launchSpaces } from "@/lib/spaces";
 
 export interface ApprovalQueueItem {
   id: string;
   kind: "SOP" | "Template" | "Placeholder";
+  spaceId: string;
+  spaceName: string;
   status: string;
   title: string;
 }
@@ -32,34 +35,47 @@ export async function loadApprovalQueue(
   },
 ) {
   try {
-    const [sops, templates, placeholders] = await Promise.all([
-      loaders.listSops(user, "lease-renewals"),
-      loaders.listTemplates(user, "lease-renewals"),
-      loaders.listPlaceholders(user, "lease-renewals"),
-    ]);
+    const items = await Promise.all(
+      demoWorkflows.map(async (workflow) => {
+        const [sops, templates, placeholders] = await Promise.all([
+          loaders.listSops(user, workflow.spaceId),
+          loaders.listTemplates(user, workflow.spaceId),
+          loaders.listPlaceholders(user, workflow.spaceId),
+        ]);
+        const spaceName = spaceNameFor(workflow.spaceId);
+
+        return [
+          ...sops.map((sop) => ({
+            id: sop.id,
+            kind: "SOP" as const,
+            spaceId: workflow.spaceId,
+            spaceName,
+            status: sop.status,
+            title: sop.title,
+          })),
+          ...templates.map((template) => ({
+            id: template.id,
+            kind: "Template" as const,
+            spaceId: workflow.spaceId,
+            spaceName,
+            status: template.status,
+            title: template.name,
+          })),
+          ...placeholders.map((placeholder) => ({
+            id: placeholder.id,
+            kind: "Placeholder" as const,
+            spaceId: workflow.spaceId,
+            spaceName,
+            status: placeholder.status,
+            title: placeholder.missing_detail,
+          })),
+        ] satisfies ApprovalQueueItem[];
+      }),
+    );
 
     return {
       apiBacked: true,
-      items: [
-        ...sops.map((sop) => ({
-          id: sop.id,
-          kind: "SOP" as const,
-          status: sop.status,
-          title: sop.title,
-        })),
-        ...templates.map((template) => ({
-          id: template.id,
-          kind: "Template" as const,
-          status: template.status,
-          title: template.name,
-        })),
-        ...placeholders.map((placeholder) => ({
-          id: placeholder.id,
-          kind: "Placeholder" as const,
-          status: placeholder.status,
-          title: placeholder.missing_detail,
-        })),
-      ] satisfies ApprovalQueueItem[],
+      items: items.flat(),
     };
   } catch {
     return {
@@ -70,24 +86,39 @@ export async function loadApprovalQueue(
 }
 
 export function demoApprovalQueueItems(): ApprovalQueueItem[] {
-  return [
-    ...demoLeaseRenewals.sops.map((sop) => ({
-      id: sop.id,
-      kind: "SOP" as const,
-      status: sop.status,
-      title: sop.title,
-    })),
-    ...demoLeaseRenewals.templates.map((template) => ({
-      id: template.id,
-      kind: "Template" as const,
-      status: template.status,
-      title: template.name,
-    })),
-    ...demoLeaseRenewals.placeholders.map((placeholder) => ({
-      id: placeholder.id,
-      kind: "Placeholder" as const,
-      status: placeholder.status,
-      title: placeholder.missing_detail,
-    })),
-  ];
+  return demoWorkflows.flatMap((workflow) => {
+    const seed = demoSeedsBySpaceId[workflow.spaceId];
+    const spaceName = spaceNameFor(workflow.spaceId);
+
+    return [
+      ...seed.sops.map((sop) => ({
+        id: sop.id,
+        kind: "SOP" as const,
+        spaceId: workflow.spaceId,
+        spaceName,
+        status: sop.status,
+        title: sop.title,
+      })),
+      ...seed.templates.map((template) => ({
+        id: template.id,
+        kind: "Template" as const,
+        spaceId: workflow.spaceId,
+        spaceName,
+        status: template.status,
+        title: template.name,
+      })),
+      ...seed.placeholders.map((placeholder) => ({
+        id: placeholder.id,
+        kind: "Placeholder" as const,
+        spaceId: workflow.spaceId,
+        spaceName,
+        status: placeholder.status,
+        title: placeholder.missing_detail,
+      })),
+    ];
+  });
+}
+
+function spaceNameFor(spaceId: string) {
+  return launchSpaces.find((space) => space.id === spaceId)?.name ?? spaceId;
 }

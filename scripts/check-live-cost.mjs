@@ -59,6 +59,10 @@ export function validateLiveCostConfig(config, options = {}) {
       "SPACE_VERTEX_DATA_STORE_IDS",
       errors,
     );
+  } else if (driveSpaceIds.length === 0 || dataStoreSpaceIds.length === 0) {
+    errors.push(
+      "SPACE_DRIVE_FOLDER_IDS and SPACE_VERTEX_DATA_STORE_IDS must both contain at least one configured entry.",
+    );
   }
 
   for (const spaceId of driveSpaceIds) {
@@ -144,8 +148,9 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     }
 
     if (result.ok) {
+      const configuredSpaces = configuredKeys(config.spaceVertexDataStoreIds);
       console.log(
-        `Live cost preflight passed for ${CHEAP_LIVE_SPACE_ID} using ${config.geminiAnswerModel}.`,
+        `Live cost preflight passed for ${configuredSpaces.join(", ")} using ${config.geminiAnswerModel}.`,
       );
     } else {
       console.error("Live cost preflight failed:");

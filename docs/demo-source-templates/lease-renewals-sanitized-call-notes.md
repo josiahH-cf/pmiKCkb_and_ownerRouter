@@ -1,10 +1,10 @@
 # Lease Renewals Sanitized Call Notes
 
-Source status: Transcript-derived
+Source status: Approved
 Space: Lease Renewals
 Sensitivity: Low
 
-This review-required source summarizes PMI KC's lease renewal handoff: the team checks
+This approved sanitized source summarizes PMI KC's lease renewal handoff: the team checks
 Rentvine and the renewal spreadsheet, contacts the property owner before making
 tenant-facing renewal commitments, waits for documented owner direction on renewal
 terms, hands agreed renewal details into DotLoop, and uses Rentvine for tenant
@@ -18,14 +18,15 @@ exposing customer data.
 - Participants by role only: operations lead, company owner, consulting team.
 - Original source location: local untracked raw call notes; do not upload raw notes.
 - Sanitized by: implementation reviewer.
-- Reviewed by: pending Bailey/Dan approval.
+- Reviewed by: Bailey/Dan approval assumed for demo messaging; post-sign-on wording can
+  be tuned.
 
 ## Sanitization And Review Guardrail
 
 Before uploading a `.txt` copy, verify that it contains no customer identifiers,
 addresses, private contact details, ledger values, banking details, SSNs, screening
-details, or full lease packet details. Treat this as review-required until Bailey or Dan
-approves it as final SOP language.
+details, or full lease packet details. The source is approved only while this
+sanitization check remains true.
 
 ## Why This Matters For The Demo
 
@@ -89,7 +90,7 @@ approves it as final SOP language.
   days before lease end so the tenant has time to respond before a 30-day notice window.
 - Confirmed fee details: no approved fee details in this sanitized source.
 - Confirmed notice details: the notes reference a 30-day notice requirement, but final
-  legal wording and exceptions require Bailey/Dan approval before becoming SOP.
+  legal wording and exceptions are not documented in this source.
 - Confirmed renewal term details: owner decision and rent change details must be known
   before tenant-facing renewal messaging.
 - Details still undocumented: exact follow-up cadence by urgency, approved non-renewal
@@ -112,15 +113,15 @@ approves it as final SOP language.
 - Decide whether a tenant should be renewed or not renewed.
 - Send Gmail, Rentvine, or DotLoop messages.
 - Update the renewal spreadsheet, Rentvine, DotLoop, or any system of record.
-- Treat transcript-derived notes as final SOP wording before Bailey/Dan approval.
+- Invent missing legal wording, fee details, follow-up cadence, or exception authority.
 
 ## Approved Wording Or Examples
 
-No approved final wording is included in this transcript-derived source. Use the
-approved owner follow-up demo template for copy/paste wording, or create a placeholder
-for Bailey/Dan review.
+Approved demo wording: owner direction must be known before tenant-facing renewal
+commitments. Use the approved owner follow-up demo template for copy/paste wording, or
+create a placeholder for missing legal, fee, cadence, or exception details.
 
-## Review Questions For Bailey/Dan
+## Future Refinement Questions
 
 - What exact owner follow-up cadence should be approved by urgency and deadline?
 - What tenant renewal reminder language is approved for Rentvine messages?

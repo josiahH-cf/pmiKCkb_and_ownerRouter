@@ -1,7 +1,7 @@
 # PMI KC KB Demo Show-And-Tell Runbook
 
 This is the operator script for showing the current PMI KC KB demo to a client or
-internal reviewer. It is deliberately demo-first: one real workflow, one safe set of
+internal reviewer. It is deliberately demo-first: four approved workflow slices, safe
 records, and clear language about what is real today versus scaffolded.
 
 ## What To Say
@@ -10,28 +10,30 @@ Use this framing:
 
 > This is the PMI KC KB: an internal, source-backed knowledge and handoff app. The demo
 > uses our Cherrybridge Google Workspace and a demo Google Cloud project, not PMI KC's
-> live environment. The Lease Renewals workflow is the working slice. It demonstrates
+> live environment. The working demo slices are Lease Renewals, Maintenance Work Order
+> Intake, Move-Out + Deposit Disposition, and Owner Onboarding. They demonstrate
 > sign-in, source-state behavior, editable SOPs, placeholders, approvals, and Admin
 > visibility without writing to RentVine, LeadSimple, Gmail, Drive, DotLoop,
-> QuickBooks, Boom, or any client system of record.
+> QuickBooks, Boom, operational Sheets, or any client system of record.
 
 For show-and-tell, keep demo mode enabled unless explicitly testing live Ask. The demo
-Ask response is a safe Lease Renewals answer; the editable workflow writes to live
-Firestore in the demo project.
+Ask responses are safe approved-demo answers; the editable workflow writes to live
+Firestore in the demo project when Firebase is configured.
 
 ## What Works Today
 
 - Real Firebase Google sign-in for the demo Workspace account.
 - Real HTTP-only Firebase session cookie in the Next.js app.
-- Real Firestore-backed Lease Renewals SOP, template, tool, and placeholder records.
+- Real Firestore-backed SOP, template, and placeholder records for four approved demo
+  workflows.
 - Real editable API writes for SOP Save, SOP/template approval, and placeholder
   resolution.
 - Real Admin role claim for `josiah.hunter@cherrybridge.ai`.
-- Demo Ask response for Lease Renewals questions with `Verified Source`, citation,
+- Demo Ask responses for Lease Renewals, Maintenance Work Order Intake, Move-Out +
+  Deposit Disposition, and Owner Onboarding questions with `Verified Source`, citation,
   handling steps, and copyable draft text.
-- Optional live Ask smoke for Lease Renewals through Cloud Storage `.txt` sources and
-  Agent Search data store `kb-lease-renewals-txt`, including one sanitized
-  transcript-derived call-notes source.
+- Optional live Ask smoke for all four approved workflows through Cloud Storage `.txt`
+  sources and Agent Search data stores.
 - Local reset and smoke commands so the demo can be restored before and after a
   show-and-tell.
 
@@ -39,13 +41,13 @@ Firestore in the demo project.
 
 - Demo Ask intentionally bypasses live Vertex AI Search and Gemini while
   `ASK_DEMO_MODE=true`.
-- The current live Ask corpus is call-context-backed for Lease Renewals, but the
-  transcript-derived source is review-required and should not be presented as approved
-  SOP wording.
-- The Approval Queue currently covers the Lease Renewals demo records, not every future
+- The current deployed live Ask corpus is call-context-backed for the four approved
+  demo workflows, but it is still a demo corpus in the Cherrybridge project.
+- Approval Queue covers the four approved demo workflow records, not every launch
   Space.
 - Admin shows basic environment/config status, not the final indexing-health dashboard.
-- There is no public Cloud Run URL in this repo state; the demo runs at localhost.
+- Public demo URL:
+  <https://pmi-kc-kb-demo-800237451321.us-central1.run.app/sign-in>.
 - The Owner Router is intentionally not part of this repo or app.
 
 ## One-Time Host Check
@@ -87,9 +89,9 @@ In a second terminal, run the automated confidence check:
 npm run smoke:demo-live
 ```
 
-This checks Ask, Lease Renewals Space save/revert, Approval Queue approve/resolve,
-Admin access, and then resets the demo records again. Screenshots and events are saved
-under ignored `temp/live-demo-workflow-smoke`.
+This checks Ask, Space save/revert across the four approved demo workflows, Approval
+Queue approve/resolve, Admin access, and then resets the demo records again.
+Screenshots and events are saved under ignored `temp/live-demo-workflow-smoke`.
 
 If Google auth has expired, refresh the live sign-in profile:
 
@@ -107,13 +109,13 @@ npm run smoke:demo-live
 ## Optional Live Ask Check
 
 Use this only when explicitly showing live retrieval/Gemini behavior. Keep it scoped to
-Lease Renewals and do not upload raw transcripts.
+configured source targets and do not upload raw transcripts.
 
 Prerequisites:
 
-- In the current `pmikckb-test` demo setup, the sanitized Lease Renewals
-  transcript-derived `.txt` source is uploaded, imported into `kb-lease-renewals-txt`,
-  and seeded in `sources_meta`.
+- In the current `pmikckb-test` demo setup, approved `.txt` sources are uploaded,
+  imported into Agent Search, and seeded in `sources_meta` for Lease Renewals,
+  Maintenance Work Order Intake, Move-Out + Deposit Disposition, and Owner Onboarding.
 - If rebuilding the demo from scratch, repeat those upload/import/seed steps before
   running this smoke.
 - The local app is running with `ASK_DEMO_MODE=false`.
@@ -123,19 +125,21 @@ Run:
 ```bash
 npm run check:live-cost
 npm run smoke:ask-live -- --question="When do we contact the owner versus the tenant during a renewal?" --timeout-ms=90000
+npm run smoke:ask-live -- --space=maintenance-work-order-intake --question="How should maintenance intake handle missing photos and vendor assignment?" --timeout-ms=90000
+npm run smoke:ask-live -- --space=move-out-deposit-disposition --question="How should move-out handling track inspections, vendor bids, and deposit-sensitive decisions?" --timeout-ms=90000
+npm run smoke:ask-live -- --space=owner-onboarding --question="What owner onboarding checklist details must be confirmed before a property is ready?" --timeout-ms=90000
 ```
 
 Say:
 
-> This answer comes from a sanitized transcript-derived source, so the KB treats it as
-> review-required. That is the point: real call context becomes useful without turning
-> unapproved notes into final policy.
+> This answer comes from an approved sanitized source. It shows how real call context
+> becomes useful while the KB still refuses to invent missing legal, fee, cadence, or
+> exception details.
 
-## Stronger Future Demo Candidates
+## Approved Demo Workflows
 
-These are supported by sanitized transcript-derived source templates but should not be
-shown as live Ask Spaces until separate source targets, data stores, and demo records
-exist.
+These are supported by approved sanitized source templates, seeded demo records, and
+the current live Agent Search demo corpus.
 
 - Maintenance Work Order Intake: shows Rentvine intake, missing photos, Google Chat
   handoff, and Dan vendor assignment.
@@ -144,7 +148,7 @@ exist.
 - Owner Onboarding: shows the checklist-heavy handoff before a property, owner, and
   existing tenant are fully built out in Rentvine.
 
-Good future questions:
+Good questions:
 
 - "What should the team check when a maintenance request comes in?"
 - "Why should the KB not assign a vendor by itself?"
@@ -182,11 +186,15 @@ Use Chrome if possible. The in-app browser can be unreliable for Google sign-in.
    > The app gives a grounded answer and a draft, but it does not send anything. A
    > person still decides what to do and where to act.
 
-3. Open [Spaces](http://localhost:3000/spaces), then open
-   [Lease Renewals](http://localhost:3000/spaces/lease-renewals).
+3. Open [Spaces](http://localhost:3000/spaces), then open one or more approved demo
+   Spaces:
+   - [Lease Renewals](http://localhost:3000/spaces/lease-renewals).
+   - [Maintenance Work Order Intake](http://localhost:3000/spaces/maintenance-work-order-intake).
+   - [Move-Out + Deposit Disposition](http://localhost:3000/spaces/move-out-deposit-disposition).
+   - [Owner Onboarding](http://localhost:3000/spaces/owner-onboarding).
 
    Confirm the page says `Editable API connected.` Show the SOP, template, RentVine
-   link-only tool, and open placeholder.
+   or other link-only tool, and open placeholder.
 
    Edit the SOP body by adding a small demo line, then click **Save**. Confirm it says
    `Saved to editable API.` Either remove the line and save again, or run
@@ -199,9 +207,9 @@ Use Chrome if possible. The in-app browser can be unreliable for Google sign-in.
 
 4. Open [Approval Queue](http://localhost:3000/approval-queue).
 
-   After `npm run demo:reset`, it should show one in-review SOP, one in-review
-   template, and one open placeholder. Click **Approve** for SOP/template items and
-   **Resolve** for the placeholder.
+   After `npm run demo:reset`, it should show four in-review SOPs, four in-review
+   templates, and four open placeholders. Click **Approve** for SOP/template items and
+   **Resolve** for placeholders.
 
    Confirm the messages:
    - `Approved through editable API.`
@@ -254,12 +262,9 @@ npm run smoke:demo-live
 
 ## Demo Readiness Gaps
 
-1. Add a public deployed URL so client demos are not tied to a developer machine.
-2. Delete the unused console-created Markdown data store after confirming the working
+1. Delete the unused console-created Markdown data store after confirming the working
    `kb-lease-renewals-txt` store is the only configured Lease Renewals target.
-3. Expand Approval Queue beyond Lease Renewals when additional Spaces have real demo
-   records.
-4. Add a visible change-log panel in the Space page so save/approve/reset history is
+2. Add a visible change-log panel in the Space page so save/approve/reset history is
    inspectable during show-and-tell.
-5. Add a non-human-auth CI e2e path with mocked auth/session fixtures; keep live Google
+3. Add a non-human-auth CI e2e path with mocked auth/session fixtures; keep live Google
    auth as a local smoke only.

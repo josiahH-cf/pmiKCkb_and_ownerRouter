@@ -32,17 +32,18 @@ from the Owner Router, which remains Gmail/Drive-native in its own repository.
 Status after the 2026-05-29 live Ask smoke:
 
 - M0, M1, and M2a are complete for the KB scaffold.
-- A demo M2b/M2c slice is working for Lease Renewals with real Firebase Auth, live
+- Demo M2b/M2c slices are working for Lease Renewals, Maintenance Work Order Intake,
+  Move-Out + Deposit Disposition, and Owner Onboarding with real Firebase Auth, live
   demo Firestore records, editable APIs, Approval Queue actions, and reset/smoke
   scripts.
 - M3a/M3b code foundations are implemented: live retrieval boundary, source metadata
   filtering, Gemini JSON validation, citation downgrade, Ask logging, Ask capture, and
   eval execution through the Ask service.
-- Spec 1 is not launch-complete yet. A cheap Lease Renewals live Ask smoke works
-  through Cloud Storage and Agent Search with safe seed docs plus one sanitized
-  transcript-derived call-notes source. Only Lease Renewals has the full editable Space
-  UI, and production source corpus / Gmail notification / Admin observability work
-  remains.
+- Spec 1 is not launch-complete yet. A cheap four-workflow demo now runs through Cloud
+  Storage, Agent Search, Gemini, Firebase Auth, Firestore, and Cloud Run in the
+  Cherrybridge demo project. Four approved demo workflows have editable Space UI and
+  Approval Queue coverage, but remaining launch Spaces, production source corpus, Gmail
+  notification, and Admin observability work remain.
 - `npm run verify` and `npm run test:firestore` pass on the current host.
 - The Owner Router remains correctly outside this runtime. Its separate repo must be
   initialized before final KB acceptance test A-16 can pass.
@@ -104,11 +105,11 @@ npm test
 npm run typecheck
 ```
 
-#### M2b - Editable Space UI (Lease Renewals complete; all-Space UI remains)
+#### M2b - Editable Space UI (four demo Spaces complete; all-Space UI remains)
 
 Acceptance criteria:
 
-- Lease Renewals has a Space detail page backed by the editable API routes.
+- The approved demo Spaces have detail pages backed by the editable API routes.
 - Users can view SOPs, templates, tools, and placeholders for the Space.
 - Editors can create or update editable records.
 - Read-only Spaces do not expose edit controls.
@@ -128,7 +129,8 @@ npm run build
 Acceptance criteria:
 
 - Spaces can be seeded idempotently from environment-safe config.
-- The Lease Renewals demo records can be created without secrets or client data.
+- The four approved workflow demo records can be created without secrets or client
+  data.
 - Demo seed data is clearly separated from production/client content.
 - Production seed paths create all 12 launch Spaces without demo records or client
   secrets.
@@ -283,9 +285,10 @@ npm run verify:router-boundary
 ## Risks And Unknowns
 
 - Brand token hex values still need verification against the live brand site.
-- Live Agent Search and Gemini adapters have been smoked against a cheap Lease
-  Renewals Cloud Storage data store with `ASK_DEMO_MODE=false`; the call-derived
-  source remains review-required until Bailey/Dan approve final SOP wording.
+- Live Agent Search and Gemini adapters have been smoked against four cheap Cloud
+  Storage data stores with `ASK_DEMO_MODE=false`; Bailey/Dan approval is assumed for
+  sanitized demo messaging, but missing legal wording, fees, cadence, and exception
+  handling still require source-backed confirmation before becoming final SOP content.
 - E2E tests are documented but not active until mocked auth/session fixtures exist.
 - Production source locations, Agent Search data store IDs, OAuth clients, and GCP
   projects are not known yet.
@@ -297,8 +300,8 @@ npm run verify:router-boundary
 ## Recommended Development Sequence
 
 1. Keep `npm run verify` and `npm run test:firestore` green.
-2. Keep the one-Space Lease Renewals live Ask smoke green, then deploy the cheap Cloud
-   Run demo if the local answer remains acceptable.
+2. Keep the four-workflow local demo smoke, deployed auth smoke, and four deployed live
+   Ask smokes green.
 3. Start the separate `pmi-kc-owner-router` repo so Router source docs exist before
    final KB A-16 verification.
 4. Complete M4a/M4b: all-Space editing, all-Space Approval Queue, change logs, and

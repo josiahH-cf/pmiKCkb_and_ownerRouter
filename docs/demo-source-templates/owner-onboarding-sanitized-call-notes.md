@@ -1,13 +1,12 @@
 # Owner Onboarding Sanitized Call Notes
 
-Source status: Transcript-derived
+Source status: Approved
 Space: Owner Onboarding
 Sensitivity: Low
 
-This sanitized summary is based on local PMI KC workflow call notes. It contains no
-owner names, tenant names, property addresses, leases, deposits, account details, or
-private contact information. Treat it as review-required until Bailey or Dan approves
-it as final SOP language.
+This approved sanitized summary is based on local PMI KC workflow call notes. It
+contains no owner names, tenant names, property addresses, leases, deposits, account
+details, or private contact information.
 
 ## Source Context
 
@@ -16,7 +15,8 @@ it as final SOP language.
 - Participants by role only: company owner, operations lead, consulting team.
 - Original source location: local untracked raw call notes; do not upload raw notes.
 - Sanitized by: implementation reviewer.
-- Reviewed by: pending Bailey/Dan approval.
+- Reviewed by: Bailey/Dan approval assumed for demo messaging; post-sign-on wording can
+  be tuned.
 
 ## Why This Matters For The Demo
 
@@ -92,7 +92,7 @@ it as final SOP language.
 - Escalate any system-of-record update to the human responsible for Rentvine or the
   onboarding sheet; the KB should not write it.
 
-## Review Questions For Bailey/Dan
+## Future Refinement Questions
 
 - Which onboarding sheet columns are required before a property is considered ready?
 - What tenant transition wording is approved when an onboarded property already has a

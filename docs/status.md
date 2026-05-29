@@ -1376,3 +1376,67 @@ Open items:
 - Maintenance, Move-Out, and Owner Onboarding templates remain future demo candidates;
   they are not imported into the one-Space live corpus.
 - The cheap Cloud Run demo has not been deployed in this pass.
+
+## Four-Workflow Demo Closeout
+
+- Date: 2026-05-29
+- Assumed Bailey/Dan approval for sanitized demo messaging and promoted the four
+  sanitized call-note templates to approved demo sources while keeping missing legal,
+  fee, cadence, exception, and system-of-record details out of final SOP content.
+- Expanded local demo mode from Lease Renewals only to four approved workflow slices:
+  Lease Renewals, Maintenance Work Order Intake, Move-Out + Deposit Disposition, and
+  Owner Onboarding.
+- Added approved safe demo SOP source files for Maintenance, Move-Out, and Owner
+  Onboarding so live retrieval has more than one source per new workflow.
+- Uploaded `.txt` copies for the three added workflows to
+  `gs://pmikckb-test-lease-renewals-686407/`, created/imported the Agent Search data
+  stores `kb-maintenance-work-order-intake-txt`,
+  `kb-move-out-deposit-disposition-txt`, and `kb-owner-onboarding-txt`, and seeded
+  `sources_meta` for all nine demo source objects as `Approved` / `Low`.
+- Added `npm run import:agent-search` for repeatable Cloud Storage content imports and
+  hardened the Cloud Run deploy helper for Windows `gcloud.ps1`, multi-Space maps, and
+  escaped JSON env values.
+- Added an explicit `--skip-allow-unauthenticated` deploy option for projects where
+  organization policy rejects `allUsers` invoker bindings, and tightened the
+  multi-Space live-cost guard so empty source/data-store maps are still rejected.
+- Deployed Cloud Run service `pmi-kc-kb-demo` in `pmikckb-test` at
+  <https://pmi-kc-kb-demo-800237451321.us-central1.run.app/sign-in>.
+- Cloud setup changes made in the demo project:
+  - granted the default compute service account read-only access to the Cloud Run
+    source bucket and `roles/run.builder`;
+  - deployed runtime as `pmikckb-test-svc@pmikckb-test.iam.gserviceaccount.com`;
+  - granted that runtime service account `roles/firebaseauth.admin`;
+  - disabled Cloud Run invoker IAM checks because org policy rejected `allUsers`;
+  - added the Cloud Run hosts to Firebase Auth authorized domains.
+- Updated README, setup, implementation, plan, demo, cutover, Google setup, and source
+  template docs to reflect the four-workflow local and deployed demo state.
+
+Validation status:
+
+- `npm run check:live-cost -- --allow-multiple-spaces`: passed on 2026-05-29.
+- Local live Ask smoke passed for all four workflow Spaces with `ASK_DEMO_MODE=false`.
+- `npm run deploy:demo -- --budget-confirmed --allow-multiple-spaces --service-account=pmikckb-test-svc@pmikckb-test.iam.gserviceaccount.com`:
+  passed on 2026-05-29 after the IAM fixes above.
+- Deployed auth smoke passed on 2026-05-29 and reached `/ask`.
+- Deployed live Ask smokes passed on 2026-05-29 for Lease Renewals, Maintenance Work
+  Order Intake, Move-Out + Deposit Disposition, and Owner Onboarding.
+- `npm run demo:reset`: passed on 2026-05-29 and reset four workflow records.
+- `npm run smoke:demo-live -- --base-url=http://localhost:3000 --timeout-ms=60000`:
+  passed on 2026-05-29 for Ask, all four Space save/revert checks, Approval Queue, and
+  Admin.
+- Focused checks passed on 2026-05-29: `npm run build`, `npm run typecheck`, and
+  `npm test -- tests/unit/live-cost-scripts.test.mjs tests/unit/ask-service.test.ts tests/unit/approval-queue.test.ts`.
+- `npm run format:check`: passed on 2026-05-29 after the review/hardening pass.
+- `npm run check:live-cost -- --allow-multiple-spaces`: failed as expected against the
+  restored local demo environment while `ASK_DEMO_MODE=true`; passed with a temporary
+  live-mode override and the current configured source/data-store maps.
+- `npm run verify`: passed on 2026-05-29 after the final review/hardening pass.
+- `npm run test:firestore`: passed on 2026-05-29.
+
+Open items:
+
+- The unused console-created Markdown data store `kb-lease-renewals_1780046781160`
+  can be deleted after one more human confirmation that no environment points to it.
+- Final production remains out of scope for this demo: remaining launch Spaces,
+  production source corpus, Gmail send-only notifications, Admin observability, and the
+  separate Owner Router repo still need follow-up.

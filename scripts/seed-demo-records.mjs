@@ -3,8 +3,8 @@ import { getFirestore } from "firebase-admin/firestore";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { demoRecords } from "./demo-firestore.mjs";
 
-const DRAFT_BANNER = "Draft \u2014 Review before sending";
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const localEnv = readLocalEnv();
 
@@ -28,59 +28,6 @@ if (!getApps().length) {
 const db = getFirestore();
 const now = new Date().toISOString();
 const seedActor = "setup-seed";
-
-const demoRecords = [
-  {
-    collection: "sops",
-    id: "demo-lease-renewals-sop",
-    data: {
-      body_md:
-        "# Lease Renewals Demo SOP\n\n1. Check the current lease and renewal status.\n2. Confirm owner direction before sending owner-facing commitments.\n3. Use approved renewal follow-up wording when the source is verified.\n4. Create a placeholder when timing, fee, or approval details are not documented.",
-      owner_uid: "local-demo-admin",
-      sensitivity: "Low",
-      source_state_hint: "Verified Source",
-      space_id: "lease-renewals",
-      status: "In Review",
-      title: "Lease Renewals Demo SOP",
-    },
-  },
-  {
-    collection: "templates",
-    id: "demo-owner-renewal-follow-up",
-    data: {
-      audience: "Owner",
-      body: `${DRAFT_BANNER}\n\nHi [Owner Name],\n\nWe are checking the renewal status and will confirm the recommended next step once the documented renewal details are verified.\n\nThank you,`,
-      channel: "Gmail",
-      name: "Owner Renewal Follow-Up",
-      space_id: "lease-renewals",
-      status: "In Review",
-    },
-  },
-  {
-    collection: "tools",
-    id: "demo-rentvine",
-    data: {
-      integration_status: "Link only",
-      name: "RentVine",
-      primary_owner_uid: "local-demo-admin",
-      purpose: "Check lease and renewal context. No API write path exists in the KB.",
-      sensitivity: "Medium",
-      url: "https://example.com/rentvine",
-    },
-  },
-  {
-    collection: "placeholders",
-    id: "demo-placeholder-renewal-timing",
-    data: {
-      due_date: "2026-06-15",
-      missing_detail: "Confirm the exact renewal follow-up timing for edge cases.",
-      owner_uid: "local-demo-admin",
-      priority: "P1",
-      space_id: "lease-renewals",
-      status: "Open",
-    },
-  },
-];
 
 for (const record of demoRecords) {
   const ref = db.collection(record.collection).doc(record.id);
@@ -108,7 +55,7 @@ for (const record of demoRecords) {
       editor_uid: seedActor,
       entity_id: record.id,
       entity_type: entityTypeFor(record.collection),
-      note: "Created from safe Lease Renewals demo seed.",
+      note: "Created from safe four-workflow demo seed.",
     });
 
   console.log(`seeded ${record.collection}: ${record.id}`);
