@@ -7,6 +7,8 @@ describe("server config", () => {
     expect(readServerConfig({}).askDemoMode).toBe(true);
     expect(readServerConfig({}).groundingConfidenceThreshold).toBe(0.65);
     expect(readServerConfig({ LOCAL_DEMO_AUTH: "true" }).localDemoAuth).toBe(true);
+    expect(readServerConfig({}).vertexAiLocation).toBe("us-central1");
+    expect(readServerConfig({}).vertexSearchLocation).toBe("us");
   });
 
   it("parses Space ID maps", () => {

@@ -1,8 +1,9 @@
 # Google Setup Runbook
 
-This runbook captures the external setup needed for live Firebase, Firestore, Drive,
-Vertex AI Search, Cloud Run, and Gmail send-only behavior. Keep secrets out of git and
-store real values in `.env.local` or Secret Manager.
+This runbook captures the external setup needed for live Firebase, Firestore,
+Cloud Storage / Drive source locations, Agent Search / Vertex AI Search, Cloud Run,
+and Gmail send-only behavior. Keep secrets out of git and store real values in
+`.env.local` or Secret Manager.
 
 ## Local Prerequisites
 
@@ -197,31 +198,213 @@ Run emulator rules tests locally after Java is available:
 npm run test:firestore
 ```
 
-## Drive And Vertex AI Search
+## Source Docs And Agent Search
 
-For the first demo, create one Drive folder for `KB / Lease Renewals`. Prefer a shared
-drive or domain-owned folder so the future service identity and Vertex connector can
-access it predictably.
+For the first live Ask smoke, use a Cloud Storage-backed Agent Search data store. This
+avoids the Google Drive connector OAuth setup path and works with the server-side
+service account retrieval boundary already implemented in the KB.
 
 Record:
 
-- Drive folder ID.
-- Vertex AI Search data store ID.
+- Cloud Storage bucket name and source prefix.
+- Agent Search data store ID.
 - Display name.
 - Environment (`demo` or `client-production`).
 
-Vertex AI Search Google Drive connector caveats to verify before relying on live
-retrieval:
+Current demo values:
 
-- The Cloud Console user must be tied to the Workspace whose Drive data is connected.
-- Documents must be accessible in the domain, ideally through shared drives or
-  domain-owned files.
-- Workspace smart features may need to be enabled.
-- Specific shared drives/folders can be selected.
-- File size and indexing limits apply.
+- Project: `pmikckb-test`.
+- Agent Search location: `us`.
+- Data store display name: `KB / Lease Renewals`.
+- Data store ID: `kb-lease-renewals-txt`.
+- Source prefix: `gs://<bucket-name>/lease-renewals/`.
+- Durable seed templates: `docs/demo-source-templates/`.
+- Ignored upload workspace: `temp/lease-renewals-drive-seed/`.
 
-Official reference:
-<https://docs.cloud.google.com/generative-ai-app-builder/docs/create-data-store-es>.
+Known working `pmikckb-test` smoke values from 2026-05-29:
+
+- Source prefix: `gs://pmikckb-test-lease-renewals-686407/lease-renewals/`.
+- Data store ID: `kb-lease-renewals-txt`.
+- Imported docs:
+  - `01-lease-renewals-demo-sop-source.txt`
+  - `02-owner-renewal-follow-up-demo-template.txt`
+- Unused data store to delete later after confirming no dependency points to it:
+  `kb-lease-renewals_1780046781160`.
+
+Use raw Cloud Storage content import for the cheap smoke. Google documents that
+Cloud Storage unstructured content imports auto-generate a stable document ID from the
+first 128 bits of the SHA-256 hash of the `gs://` URI. `npm run seed:source-meta`
+accepts the same `gs://` URI and writes the matching metadata record. Upload the
+demo seed docs as `.txt` files for this route; Markdown files are useful locally, but
+they are not part of the supported raw unstructured Cloud Storage import set.
+
+Official references, verified on 2026-05-29:
+
+- Agent Search Cloud Storage data-store creation:
+  <https://docs.cloud.google.com/generative-ai-app-builder/docs/create-data-store-es#import-cloud-storage>
+- Agent Search data preparation:
+  <https://docs.cloud.google.com/generative-ai-app-builder/docs/prepare-data#cloud-storage-unstructured>
+- Agent Search locations:
+  <https://docs.cloud.google.com/generative-ai-app-builder/docs/locations>
+- Cloud Storage bucket creation:
+  <https://docs.cloud.google.com/storage/docs/creating-buckets>
+- Cloud Storage object uploads:
+  <https://docs.cloud.google.com/storage/docs/uploading-objects>
+- Cloud Storage IAM roles:
+  <https://docs.cloud.google.com/storage/docs/access-control/iam-roles>
+
+The original Google Drive folder can still be used as a human staging folder, but do
+not create the live Ask data store from Drive for this phase. Current Google docs for
+Workspace data stores say service-account search is not supported, and the user hit a
+Google Console OAuth error while creating the Drive connector.
+
+## Under-$10 Live Ask And Demo Deploy
+
+Use this path before any all-Space indexing or production deployment. The goal is one
+real Lease Renewals Ask answer and one cheap Cloud Run demo URL.
+
+Cost guardrails:
+
+- Project: `pmikckb-test`.
+- Cloud Run / Gemini region: `us-central1`.
+- Vertex AI Search location: `us`.
+- Cloud Run service: `pmi-kc-kb-demo`.
+- Model: `gemini-2.5-flash`.
+- Vertex AI Search pricing model: General pricing only, not Configurable pricing.
+- Scope: exactly one Space, `lease-renewals`.
+- Source corpus: 2-3 safe Cloud Storage docs, well below 10 GiB indexed raw data.
+- Cloud Run: generated URL only, `min-instances=0`, `max-instances=1`, no custom
+  domain yet.
+- Do not enable Advanced Generative Answers.
+
+Current pricing references:
+
+- Vertex AI Search pricing:
+  <https://cloud.google.com/generative-ai-app-builder/pricing>
+- Vertex AI Gemini pricing:
+  <https://cloud.google.com/vertex-ai/generative-ai/pricing>
+- Firestore free quota: <https://firebase.google.com/docs/firestore/pricing>
+- Cloud Run pricing: <https://cloud.google.com/run/pricing>
+- Google Cloud budgets:
+  <https://docs.cloud.google.com/billing/docs/how-to/budgets>
+
+User-owned console tasks:
+
+1. Create a `$10` project-scoped budget alert for `pmikckb-test`:
+   <https://console.cloud.google.com/billing/budgets?project=pmikckb-test>
+2. Confirm required APIs are enabled for the Cloud Storage data-store route:
+   - `aiplatform.googleapis.com` — Vertex AI Gemini model calls.
+   - `discoveryengine.googleapis.com` — Agent Search data store and retrieval.
+   - `storage.googleapis.com` — Cloud Storage source bucket and source docs.
+   - `run.googleapis.com` — Cloud Run demo service.
+   - `cloudbuild.googleapis.com` — source-based Cloud Run build.
+   - `artifactregistry.googleapis.com` — Cloud Run build image storage.
+   - `firestore.googleapis.com` and `datastore.googleapis.com` — Firestore Native.
+   - `firebase.googleapis.com`, `identitytoolkit.googleapis.com`, and
+     `securetoken.googleapis.com` — Firebase Auth / Identity Platform.
+   - `iam.googleapis.com` and `iamcredentials.googleapis.com` — service account and
+     token operations.
+   - `cloudresourcemanager.googleapis.com`, `serviceusage.googleapis.com`, and
+     `cloudbilling.googleapis.com` — project/API/billing administration.
+   - `logging.googleapis.com` and `monitoring.googleapis.com` — deployed service
+     diagnostics.
+     <https://console.cloud.google.com/apis/library?project=pmikckb-test>
+   - `drive.googleapis.com` is not required for the Cloud Storage-backed smoke; enable
+     it only if you also use the Drive folder as a human staging area.
+3. From the repo root in PowerShell, authenticate and create a small private source
+   bucket:
+
+```powershell
+gcloud auth login
+gcloud auth application-default login
+gcloud config set project pmikckb-test
+
+$env:PROJECT_ID="pmikckb-test"
+$env:BUCKET_NAME="pmikckb-test-lease-renewals-$((Get-Random -Minimum 100000 -Maximum 999999))"
+$env:PROJECT_NUMBER="800237451321"
+
+gcloud services enable aiplatform.googleapis.com discoveryengine.googleapis.com storage.googleapis.com firestore.googleapis.com datastore.googleapis.com firebase.googleapis.com identitytoolkit.googleapis.com securetoken.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com run.googleapis.com iam.googleapis.com iamcredentials.googleapis.com logging.googleapis.com monitoring.googleapis.com cloudresourcemanager.googleapis.com serviceusage.googleapis.com cloudbilling.googleapis.com --project=$env:PROJECT_ID
+
+gcloud storage buckets create "gs://$env:BUCKET_NAME" --project=$env:PROJECT_ID --location=US --default-storage-class=STANDARD --uniform-bucket-level-access
+gcloud storage buckets add-iam-policy-binding "gs://$env:BUCKET_NAME" --member="serviceAccount:service-$env:PROJECT_NUMBER@gcp-sa-discoveryengine.iam.gserviceaccount.com" --role=roles/storage.objectViewer --project=$env:PROJECT_ID
+```
+
+4. Upload the safe seed docs:
+
+```powershell
+New-Item -ItemType Directory -Force -Path "temp\lease-renewals-drive-seed"
+Copy-Item "docs\demo-source-templates\lease-renewals-demo-sop-source.md" "temp\lease-renewals-drive-seed\01-lease-renewals-demo-sop-source.txt"
+Copy-Item "docs\demo-source-templates\owner-renewal-follow-up-demo-template.md" "temp\lease-renewals-drive-seed\02-owner-renewal-follow-up-demo-template.txt"
+gcloud storage cp "temp\lease-renewals-drive-seed\01-lease-renewals-demo-sop-source.txt" "gs://$env:BUCKET_NAME/lease-renewals/"
+gcloud storage cp "temp\lease-renewals-drive-seed\02-owner-renewal-follow-up-demo-template.txt" "gs://$env:BUCKET_NAME/lease-renewals/"
+```
+
+5. Add one sanitized real Lease Renewals call transcript or notes file when available:
+
+```powershell
+Copy-Item "docs\demo-source-templates\lease-renewals-sanitized-call-notes.md" "temp\lease-renewals-drive-seed\03-lease-renewals-sanitized-call-notes.md"
+notepad "temp\lease-renewals-drive-seed\03-lease-renewals-sanitized-call-notes.md"
+Copy-Item "temp\lease-renewals-drive-seed\03-lease-renewals-sanitized-call-notes.md" "temp\lease-renewals-drive-seed\03-lease-renewals-sanitized-call-notes.txt"
+gcloud storage cp "temp\lease-renewals-drive-seed\03-lease-renewals-sanitized-call-notes.txt" "gs://$env:BUCKET_NAME/lease-renewals/"
+```
+
+6. Create one Agent Search data store from Cloud Storage:
+   <https://console.cloud.google.com/gen-app-builder/data-stores?project=pmikckb-test>
+   - Data source: Cloud Storage.
+   - Import mode: One-time ingestion if the UI asks.
+   - Source selector: Folder.
+   - Source path: `gs://<bucket-name>/lease-renewals/`.
+   - Data kind: Unstructured documents.
+   - Location: `us`.
+   - Display name: `KB / Lease Renewals`.
+   - Data store ID: `kb-lease-renewals-txt`.
+   - Document processing options: leave defaults for text docs; do not enable
+     OCR or layout parser for the cheap smoke.
+   - Advanced / Enterprise / configurable pricing features: leave off unless explicitly
+     required by the console.
+   - Finish with Create, then wait for Activity to show `Import completed`.
+   - If import stays empty or never completes, verify the uploaded objects are `.txt`
+     or another supported unstructured format, and verify the bucket IAM policy grants
+     `roles/storage.objectViewer` to
+     `service-<project-number>@gcp-sa-discoveryengine.iam.gserviceaccount.com`.
+7. Create or confirm a Cloud Run runtime service account if you do not want to use the
+   default compute identity:
+   <https://console.cloud.google.com/iam-admin/serviceaccounts?project=pmikckb-test>
+8. Grant the Cloud Run runtime identity only the roles needed for this smoke:
+   `roles/datastore.user`, `roles/discoveryengine.user`, and `roles/aiplatform.user`.
+   Review IAM here:
+   <https://console.cloud.google.com/iam-admin/iam?project=pmikckb-test>
+9. After deploy, add the generated Cloud Run host to Firebase Authentication authorized
+   domains:
+   <https://console.firebase.google.com/project/pmikckb-test/authentication/settings>
+
+Agent-run commands after the user-owned setup is complete:
+
+```bash
+npm run check:live-cost
+npm run seed:source-meta -- --source-id=gs://<bucket-name>/lease-renewals/01-lease-renewals-demo-sop-source.txt
+npm run seed:source-meta -- --source-id=gs://<bucket-name>/lease-renewals/02-owner-renewal-follow-up-demo-template.txt
+npm run seed:source-meta -- --source-id=gs://<bucket-name>/lease-renewals/03-lease-renewals-sanitized-call-notes.txt --approval-status=Transcript-derived --sensitivity=Low
+npm run smoke:ask-live
+npm run deploy:demo -- --budget-confirmed --service-account=<service-account-email>
+npm run smoke:auth-live -- --base-url=<cloud-run-url> --pause-on-human
+npm run smoke:ask-live -- --base-url=<cloud-run-url> --browser-session
+```
+
+For local live smoke, `.env.local` should keep the scope narrow:
+
+```dotenv
+ASK_DEMO_MODE=false
+LOCAL_DEMO_AUTH=true
+GEMINI_MODEL_ANSWER=gemini-2.5-flash
+VERTEX_AI_LOCATION=us-central1
+VERTEX_SEARCH_LOCATION=us
+SPACE_DRIVE_FOLDER_IDS={"lease-renewals":"gs://<bucket-name>/lease-renewals/"}
+SPACE_VERTEX_DATA_STORE_IDS={"lease-renewals":"kb-lease-renewals-txt"}
+```
+
+The deployed Cloud Run service must use `LOCAL_DEMO_AUTH=false`; the deploy helper sets
+that value automatically.
 
 ## Gmail Send-Only Notifications
 
@@ -244,8 +427,8 @@ Provide these values to unblock live setup, without posting secrets into chat:
 - Firebase Web app config.
 - Confirmation that Google sign-in is enabled.
 - Authorized local/demo domains.
-- Drive folder ID for `KB / Lease Renewals`.
-- Vertex AI Search data store ID for Lease Renewals.
+- Cloud Storage bucket/source prefix for `KB / Lease Renewals`.
+- Agent Search data store ID for Lease Renewals.
 - Later only: Gmail sender identity for `KB Approval`.
 
 ## Client Cutover

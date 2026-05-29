@@ -143,6 +143,7 @@ function config(overrides: Partial<ServerConfig> = {}): ServerConfig {
       "lease-renewals": "data-store-1",
     },
     vertexAiLocation: "us-central1",
+    vertexSearchLocation: "us",
     ...overrides,
   };
 }

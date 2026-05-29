@@ -30,7 +30,7 @@ describe("Vertex AI Search retrieval", () => {
         },
         "lease-renewals",
       ),
-    ).toThrow('Missing Vertex AI Search data store ID for Space "lease-renewals".');
+    ).toThrow('Missing Agent Search data store ID for Space "lease-renewals".');
 
     expect(() =>
       resolveSearchTargets(
@@ -40,7 +40,7 @@ describe("Vertex AI Search retrieval", () => {
         },
         "lease-renewals",
       ),
-    ).toThrow('Missing Drive folder ID for Space "lease-renewals".');
+    ).toThrow('Missing source target for Space "lease-renewals".');
   });
 
   it("resolves all configured Space targets when no Space is requested", () => {
@@ -105,6 +105,38 @@ describe("Vertex AI Search retrieval", () => {
     ]);
   });
 
+  it("normalizes Cloud Storage documents into browser citations", () => {
+    expect(
+      normalizeSearchSources("lease-renewals", [
+        {
+          document: {
+            derivedStructData: {
+              snippets: [{ snippet: "Cloud Storage excerpt." }],
+              uri: "gs://pmikckb-test-lease-renewals-123/lease-renewals/01-source.txt",
+            },
+            id: "69d4f1588f7a3d8db1d45a3dc7cfe5e5",
+            structData: {
+              title: "Lease Renewals Cloud Storage Source",
+            },
+          },
+        },
+      ]),
+    ).toEqual([
+      {
+        citation: {
+          excerpt: "Cloud Storage excerpt.",
+          source_id: "69d4f1588f7a3d8db1d45a3dc7cfe5e5",
+          title: "Lease Renewals Cloud Storage Source",
+          url: "https://storage.cloud.google.com/pmikckb-test-lease-renewals-123/lease-renewals/01-source.txt",
+        },
+        confidence: undefined,
+        driveFileId: "69d4f1588f7a3d8db1d45a3dc7cfe5e5",
+        sourceId: "69d4f1588f7a3d8db1d45a3dc7cfe5e5",
+        spaceId: "lease-renewals",
+      },
+    ]);
+  });
+
   it("builds Vertex requests and filters results through source metadata", async () => {
     const client = new FakeSearchClient([
       {
@@ -148,10 +180,15 @@ describe("Vertex AI Search retrieval", () => {
       {
         options: { autoPaginate: false },
         request: expect.objectContaining({
+          contentSearchSpec: {
+            snippetSpec: {
+              returnSnippet: true,
+            },
+          },
           pageSize: 10,
           query: "What is the renewal workflow?",
           servingConfig:
-            "projects/pmikckb-test/locations/us-central1/collections/default_collection/dataStores/data-store-1/servingConfigs/default_config",
+            "projects/pmikckb-test/locations/us/collections/default_collection/dataStores/data-store-1/servingConfigs/default_config",
         }),
       },
     ]);
@@ -230,6 +267,7 @@ function config(overrides: Partial<ServerConfig> = {}): ServerConfig {
       "lease-renewals": "data-store-1",
     },
     vertexAiLocation: "us-central1",
+    vertexSearchLocation: "us",
     ...overrides,
   };
 }

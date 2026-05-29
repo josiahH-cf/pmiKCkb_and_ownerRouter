@@ -68,6 +68,7 @@ const EnvSchema = z.object({
   SPACE_DRIVE_FOLDER_IDS: JsonMapSchema,
   SPACE_VERTEX_DATA_STORE_IDS: JsonMapSchema,
   VERTEX_AI_LOCATION: z.string().trim().min(1).default("us-central1"),
+  VERTEX_SEARCH_LOCATION: z.enum(["global", "us", "eu"]).default("us"),
 });
 
 export type ServerConfig = ReturnType<typeof readServerConfig>;
@@ -92,6 +93,7 @@ export function readServerConfig(env: Environment = process.env) {
     spaceDriveFolderIds: parsed.SPACE_DRIVE_FOLDER_IDS,
     spaceVertexDataStoreIds: parsed.SPACE_VERTEX_DATA_STORE_IDS,
     vertexAiLocation: parsed.VERTEX_AI_LOCATION,
+    vertexSearchLocation: parsed.VERTEX_SEARCH_LOCATION,
     firebaseBrowserConfig: {
       apiKey: parsed.NEXT_PUBLIC_FIREBASE_API_KEY,
       appId: parsed.NEXT_PUBLIC_FIREBASE_APP_ID,

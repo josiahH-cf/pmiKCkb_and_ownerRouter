@@ -57,6 +57,7 @@ const liveConfig: ServerConfig = {
     "lease-renewals": "data-store-1",
   },
   vertexAiLocation: "us-central1",
+  vertexSearchLocation: "us",
 };
 
 describe("Ask service", () => {
@@ -280,7 +281,7 @@ describe("Ask service", () => {
   it("surfaces retrieval setup errors from live mode", async () => {
     const retrievalClient: RetrievalClient = {
       async search() {
-        throw new RetrievalSetupError("Missing Vertex AI Search data store ID.");
+        throw new RetrievalSetupError("Missing Agent Search data store ID.");
       },
     };
 

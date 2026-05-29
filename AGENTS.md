@@ -43,8 +43,11 @@ Gmail/Drive configuration, not runtime code here.
 - Typecheck: `npm run typecheck`
 - Test: `npm test`
 - Reset demo data: `npm run demo:reset`
+- Live cost preflight: `npm run check:live-cost`
+- Seed source metadata: `npm run seed:source-meta`
 - Live demo smoke: `npm run smoke:demo-live`
 - Live Ask smoke: `npm run smoke:ask-live`
+- Demo deploy: `npm run deploy:demo`
 - Build: `npm run build`
 - Full verification: `bash scripts/verify.sh`
 

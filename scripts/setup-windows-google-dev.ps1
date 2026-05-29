@@ -168,6 +168,7 @@ $projectEnv = @{
   "LOCAL_DEMO_AUTH" = "true"
   "NEXT_PUBLIC_FIREBASE_PROJECT_ID" = $ProjectId
   "VERTEX_AI_LOCATION" = "us-central1"
+  "VERTEX_SEARCH_LOCATION" = "us"
 }
 
 foreach ($entry in $projectEnv.GetEnumerator()) {

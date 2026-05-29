@@ -200,11 +200,13 @@ npm run smoke:demo-live
 ## Demo Readiness Gaps
 
 1. Add a public deployed URL so client demos are not tied to a developer machine.
-2. Configure and smoke the live Lease Renewals Drive folder and Vertex AI Search data
-   store with `npm run smoke:ask-live`.
-3. Expand Approval Queue beyond Lease Renewals when additional Spaces have real demo
+2. Add sanitized real Lease Renewals call notes to the Cloud Storage source corpus,
+   import the `.txt` copy into Agent Search, and rerun `npm run smoke:ask-live`.
+3. Delete the unused console-created Markdown data store after confirming the working
+   `kb-lease-renewals-txt` store is the only configured Lease Renewals target.
+4. Expand Approval Queue beyond Lease Renewals when additional Spaces have real demo
    records.
-4. Add a visible change-log panel in the Space page so save/approve/reset history is
+5. Add a visible change-log panel in the Space page so save/approve/reset history is
    inspectable during show-and-tell.
-5. Add a non-human-auth CI e2e path with mocked auth/session fixtures; keep live Google
+6. Add a non-human-auth CI e2e path with mocked auth/session fixtures; keep live Google
    auth as a local smoke only.

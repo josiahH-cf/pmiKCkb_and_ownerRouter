@@ -18,11 +18,12 @@ retrieval boundaries, Gemini JSON answer validation, Ask logging, Ask capture ta
 source-state constants, unit/eval tests, Firestore rules tests, demo reset/smoke
 scripts, and deterministic verification.
 
-Spec 1 is not launch-complete yet. The live Ask path still needs Drive folder and
-Vertex data-store IDs plus a real retrieval/Gemini smoke, all launch Spaces need the
-full editable UI, Approval Queue needs all-Space coverage and Gmail send-only
-notifications, Admin needs production observability, and final acceptance depends on a
-separate Owner Router repo for the read-only Owner Email Space.
+Spec 1 is not launch-complete yet. A cheap Lease Renewals live Ask smoke now works
+through a Cloud Storage-backed Agent Search data store, but the real app still needs
+sanitized client call context, deployed Cloud Run smoke, all launch Spaces, full
+editable UI coverage, all-Space Approval Queue coverage, Gmail send-only
+notifications, Admin observability, and a separate Owner Router repo for the
+read-only Owner Email Space.
 
 ## Prerequisites
 
@@ -58,6 +59,7 @@ npm run typecheck
 npm test
 npm run test:firestore
 npm run build
+npm run check:live-cost
 npm run smoke:ask-live
 bash scripts/verify.sh
 ```
@@ -76,17 +78,20 @@ Run `npm run test:firestore` separately when Java is available on PATH.
 - `docs/demo-show-and-tell.md`: exact local demo commands and client walkthrough.
 - `docs/demo-cutover.md`: demo-to-client environment and cutover model.
 - `docs/demo-slice.md`: first working Lease Renewals demo slice.
-- `docs/google-setup.md`: live Google/Firebase/Drive/Vertex/Gmail setup runbook.
+- `docs/google-setup.md`: live Google/Firebase/Cloud Storage/Agent Search/Gmail setup
+  runbook.
 - `docs/router-repo.md`: separate Owner Router repo plan.
 
 ## Next Steps
 
-1. Configure the Lease Renewals Drive folder, Vertex AI Search data store, and
-   `sources_meta`, then run `npm run smoke:ask-live` with `ASK_DEMO_MODE=false`.
+1. Add sanitized real Lease Renewals call notes to the Cloud Storage source corpus,
+   import them into Agent Search, and seed `sources_meta` as `Transcript-derived`.
 2. Keep `docs/demo-show-and-tell.md` working for the current local client walkthrough.
-3. Create the separate `pmi-kc-owner-router` repository before final KB A-16
+3. Deploy the cheap Cloud
+   Run demo with `npm run deploy:demo -- --budget-confirmed`.
+4. Create the separate `pmi-kc-owner-router` repository before final KB A-16
    verification.
-4. Expand the editable Space UI and Approval Queue from Lease Renewals to all launch
+5. Expand the editable Space UI and Approval Queue from Lease Renewals to all launch
    Spaces.
-5. Add mocked-auth Playwright e2e tests, staging Cloud Run, brand verification, and
+6. Add mocked-auth Playwright e2e tests, staging Cloud Run, brand verification, and
    final A-1 through A-17 acceptance.

@@ -8,7 +8,8 @@ For the current demo-first path, read:
 - `docs/demo-show-and-tell.md` for exact local demo commands and the client walkthrough.
 - `docs/demo-slice.md` for the first working Lease Renewals demo.
 - `docs/demo-cutover.md` for the demo-to-client environment model.
-- `docs/google-setup.md` for live Google/Firebase/Drive/Vertex/Gmail setup.
+- `docs/google-setup.md` for live Google/Firebase/Cloud Storage/Agent Search/Gmail
+  setup.
 
 On this Windows demo host, future agents should use the repo command below to repair
 or verify Google tooling, project selection, ADC quota project, user environment
@@ -35,8 +36,8 @@ npm run dev
 
 The scaffold runs without live Google services in demo mode. With `ASK_DEMO_MODE=true`,
 Ask returns the safe Lease Renewals demo response. With `ASK_DEMO_MODE=false`, live Ask
-requires the Drive/Vertex configuration; missing setup returns an explicit setup error
-instead of falling back to a generic answer.
+requires live source and Agent Search configuration; missing setup returns an explicit
+setup error instead of falling back to a generic answer.
 
 Protected app pages require the server auth guard. Unauthenticated browser visits
 redirect to `/sign-in`, where the Firebase browser SDK signs in with Google and
@@ -142,14 +143,17 @@ When integration work begins, use `docs/google-setup.md` as the detailed runbook
 The high-level order is:
 
 1. Create staging and production GCP projects.
-2. Enable Vertex AI, Discovery Engine, Firestore, Cloud Run, Identity Platform, Gmail
-   API, Drive API, Secret Manager, Cloud Logging.
+2. Enable Vertex AI, Discovery Engine, Cloud Storage, Firestore, Cloud Run, Identity
+   Platform, Gmail API, Secret Manager, Cloud Logging, and Drive API only when Drive is
+   used as a human staging area or production source.
 3. Complete the Manual Setup Gate above for Firebase Auth / Identity Platform.
 4. Complete the live sign-in smoke test from the Manual Setup Gate.
 5. Create Firestore Native mode in `us-central1`.
-6. Configure one Drive folder and one Vertex AI Search data store per KB Space.
-7. Grant the KB service identity `drive.readonly` on KB folders and the Owner Router
-   folder only.
+6. Configure one source location and one Agent Search data store per KB Space. The
+   cheap demo uses Cloud Storage `.txt` sources; production may still choose Drive if
+   the service-account limitation is resolved or user OAuth retrieval is implemented.
+7. Grant the KB service identity only the read permissions required for the chosen
+   source location.
 8. Grant Gmail send-only authority for `KB Approval` notifications.
 
 Do not grant Gmail read, Gmail modify, Gmail compose, Drive write, or system-of-record

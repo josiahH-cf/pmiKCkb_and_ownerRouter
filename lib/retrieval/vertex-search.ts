@@ -26,9 +26,6 @@ type SearchCallOptions = {
 
 type SearchRequest = {
   contentSearchSpec: {
-    extractiveContentSpec: {
-      maxExtractiveAnswerCount: number;
-    };
     snippetSpec: {
       returnSnippet: boolean;
     };
@@ -174,7 +171,7 @@ export class VertexSearchRetrievalClient implements RetrievalClient {
     this.client =
       options.client ??
       (new v1beta.SearchServiceClient({
-        apiEndpoint: discoveryEngineEndpoint(config.vertexAiLocation),
+        apiEndpoint: discoveryEngineEndpoint(config.vertexSearchLocation),
       } satisfies SearchClientOptions) as VertexSearchApiClient);
     this.sourceMetaReader = options.sourceMetaReader ?? new FirestoreSourceMetaReader();
   }
@@ -205,7 +202,7 @@ export class VertexSearchRetrievalClient implements RetrievalClient {
   private async searchTarget(question: string, target: SearchTarget) {
     const servingConfig = this.client.projectLocationCollectionDataStoreServingConfigPath(
       requiredProjectId(this.config),
-      this.config.vertexAiLocation,
+      this.config.vertexSearchLocation,
       DEFAULT_COLLECTION_ID,
       target.dataStoreId,
       DEFAULT_SERVING_CONFIG_ID,
@@ -213,9 +210,6 @@ export class VertexSearchRetrievalClient implements RetrievalClient {
     const [, , response] = await this.client.search(
       {
         contentSearchSpec: {
-          extractiveContentSpec: {
-            maxExtractiveAnswerCount: 1,
-          },
           snippetSpec: {
             returnSnippet: true,
           },
@@ -243,13 +237,13 @@ export function resolveSearchTargets(
     | "gcpProjectId"
     | "spaceDriveFolderIds"
     | "spaceVertexDataStoreIds"
-    | "vertexAiLocation"
+    | "vertexSearchLocation"
   >,
   spaceId?: string,
 ): SearchTarget[] {
   requiredProjectId(config);
 
-  if (!config.vertexAiLocation) {
+  if (!config.vertexSearchLocation) {
     throw new RetrievalSetupError("Missing Vertex AI Search location.");
   }
 
@@ -299,8 +293,8 @@ function resolveSearchTarget(
     }
 
     const missing = [
-      !driveFolderId ? "Drive folder ID" : null,
-      !dataStoreId ? "Vertex AI Search data store ID" : null,
+      !driveFolderId ? "source target" : null,
+      !dataStoreId ? "Agent Search data store ID" : null,
     ].filter(Boolean);
 
     throw new RetrievalSetupError(
@@ -332,16 +326,19 @@ function normalizeSearchSource(
     readString(derivedStructData.uri) ??
     readString(structData.link) ??
     readString(structData.uri);
-  const driveFileId =
-    extractDriveFileId(rawUrl) ??
+  const driveUrlFileId = extractDriveFileId(rawUrl);
+  const sourceId =
+    driveUrlFileId ??
     readString(document.id) ??
     extractDocumentId(document.name) ??
-    readString(result.id);
+    readString(result.id) ??
+    normalizeCloudStorageUri(rawUrl);
   const url =
+    cloudStorageBrowserUrl(rawUrl) ??
     validUrl(rawUrl) ??
-    (driveFileId ? `https://drive.google.com/file/d/${driveFileId}/view` : null);
+    (driveUrlFileId ? `https://drive.google.com/file/d/${driveUrlFileId}/view` : null);
 
-  if (!driveFileId || !url) {
+  if (!sourceId || !url) {
     return null;
   }
 
@@ -351,11 +348,11 @@ function normalizeSearchSource(
     readString(structData.name) ??
     readString(derivedStructData.name) ??
     document.name ??
-    driveFileId;
+    sourceId;
 
   return {
     citation: {
-      source_id: driveFileId,
+      source_id: sourceId,
       title,
       url,
       excerpt:
@@ -363,8 +360,8 @@ function normalizeSearchSource(
         readSnippet(derivedStructData.snippets),
     },
     confidence: readConfidence(result),
-    driveFileId,
-    sourceId: driveFileId,
+    driveFileId: sourceId,
+    sourceId,
     spaceId,
   };
 }
@@ -566,6 +563,45 @@ function extractDocumentId(name: string | null | undefined) {
   }
 
   return name.split("/documents/")[1];
+}
+
+function cloudStorageBrowserUrl(url: string | undefined) {
+  const gcsUri = normalizeCloudStorageUri(url);
+
+  if (!gcsUri) {
+    return null;
+  }
+
+  try {
+    const parsedUrl = new URL(gcsUri);
+    const objectPath = parsedUrl.pathname
+      .replace(/^\/+/, "")
+      .split("/")
+      .map(encodeURIComponent)
+      .join("/");
+
+    return `https://storage.cloud.google.com/${parsedUrl.hostname}/${objectPath}`;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeCloudStorageUri(url: string | undefined) {
+  if (!url) {
+    return null;
+  }
+
+  try {
+    const parsedUrl = new URL(url);
+
+    if (parsedUrl.protocol !== "gs:" || !parsedUrl.hostname) {
+      return null;
+    }
+
+    return parsedUrl.toString();
+  } catch {
+    return null;
+  }
 }
 
 function validUrl(url: string | undefined) {

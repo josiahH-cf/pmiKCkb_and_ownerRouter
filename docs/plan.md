@@ -29,7 +29,7 @@ from the Owner Router, which remains Gmail/Drive-native in its own repository.
 
 ## Current Audit Snapshot
 
-Status after the 2026-05-28 Spec 1 audit:
+Status after the 2026-05-29 live Ask smoke:
 
 - M0, M1, and M2a are complete for the KB scaffold.
 - A demo M2b/M2c slice is working for Lease Renewals with real Firebase Auth, live
@@ -38,10 +38,11 @@ Status after the 2026-05-28 Spec 1 audit:
 - M3a/M3b code foundations are implemented: live retrieval boundary, source metadata
   filtering, Gemini JSON validation, citation downgrade, Ask logging, Ask capture, and
   eval execution through the Ask service.
-- Spec 1 is not launch-complete yet. Ask is still demo/no-source outside the safe demo
-  path until real Drive/Vertex data stores are configured and smoked, only Lease
-  Renewals has the full editable Space UI, and production Drive / Gmail notification /
-  Admin observability work remains.
+- Spec 1 is not launch-complete yet. A cheap Lease Renewals live Ask smoke works
+  through Cloud Storage and Agent Search, but it currently uses safe seed docs rather
+  than sanitized client call context. Only Lease Renewals has the full editable Space
+  UI, and production source corpus / Gmail notification / Admin observability work
+  remains.
 - `npm run verify` and `npm run test:firestore` pass on the current host.
 - The Owner Router remains correctly outside this runtime. Its separate repo must be
   initialized before final KB acceptance test A-16 can pass.
@@ -141,7 +142,7 @@ npm run typecheck
 
 ### M3 - Retrieval And Ask
 
-#### M3a - Live Retrieval Boundary (code complete; live smoke remains)
+#### M3a - Live Retrieval Boundary (code complete; cheap live smoke passed)
 
 Acceptance criteria:
 
@@ -149,7 +150,8 @@ Acceptance criteria:
 - Zero grounding documents returns `No Reliable Source Found` without a model call.
 - Retrieval can search a specific Space or all configured Spaces.
 - Deprecated and high-sensitivity sources are excluded using `sources_meta`.
-- Missing Drive folder IDs or data store IDs produce explicit Admin/setup errors.
+- Missing source targets or Agent Search data store IDs produce explicit Admin/setup
+  errors.
 
 Validation:
 
@@ -281,11 +283,12 @@ npm run verify:router-boundary
 ## Risks And Unknowns
 
 - Brand token hex values still need verification against the live brand site.
-- Live Vertex AI Search and Gemini adapters are implemented but have not yet been
-  smoked against a real Lease Renewals data store with `ASK_DEMO_MODE=false`.
+- Live Agent Search and Gemini adapters have been smoked against a cheap Lease
+  Renewals Cloud Storage data store with `ASK_DEMO_MODE=false`; call-derived client
+  context is still missing.
 - E2E tests are documented but not active until mocked auth/session fixtures exist.
-- Production Drive folder IDs, Vertex data store IDs, OAuth clients, and GCP projects
-  are not known yet.
+- Production source locations, Agent Search data store IDs, OAuth clients, and GCP
+  projects are not known yet.
 - Owner Router must be initialized in a separate repo before the read-only Owner Email
   Space can be fully verified.
 - `npm run test:firestore` requires Java JDK 11+ on PATH; this host currently has a
@@ -294,8 +297,8 @@ npm run verify:router-boundary
 ## Recommended Development Sequence
 
 1. Keep `npm run verify` and `npm run test:firestore` green.
-2. Configure the Lease Renewals Drive folder, Vertex data store, and `sources_meta`,
-   then run `npm run smoke:ask-live` with `ASK_DEMO_MODE=false`.
+2. Add sanitized Lease Renewals call notes to the cheap Cloud Storage source corpus,
+   import the `.txt` copy, seed `sources_meta`, and rerun `npm run smoke:ask-live`.
 3. Start the separate `pmi-kc-owner-router` repo so Router source docs exist before
    final KB A-16 verification.
 4. Complete M4a/M4b: all-Space editing, all-Space Approval Queue, change logs, and

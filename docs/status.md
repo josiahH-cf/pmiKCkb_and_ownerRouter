@@ -930,3 +930,270 @@ Next recommended task:
 
 Merge PR #2, sync local `main`, start a fresh branch, then configure the Lease
 Renewals Drive/Vertex setup for live Ask smoke.
+
+## Under-$10 Live Ask And Demo Deploy Helpers
+
+- Date: 2026-05-28
+- Added cost-guarded helper scripts for the next setup phase:
+  - `npm run check:live-cost` blocks live smoke/deploy unless Ask is non-demo,
+    `gemini-2.5-flash` is selected, and only the `lease-renewals` Space is configured.
+  - `npm run seed:source-meta` upserts `sources_meta` entries from source IDs,
+    Google Drive file URLs, or Cloud Storage `gs://` object URIs.
+  - `npm run deploy:demo` deploys the demo to Cloud Run only when
+    `--budget-confirmed` is supplied, with scale-to-zero settings and a one-instance
+    cap.
+- Extended `npm run smoke:ask-live` with `--browser-session` so deployed Cloud Run
+  smoke can reuse the signed-in browser profile instead of enabling local demo auth.
+- Updated `.env.example`, `AGENTS.md`, `README.md`, `docs/implement.md`, and
+  `docs/google-setup.md` with the cheap live path, command list, console links, and
+  user-owned setup steps.
+- Kept this phase scoped to one Lease Renewals data store. No Owner Router runtime,
+  Gmail notification path, production cutover, all-Space indexing, or custom domain
+  mapping was added.
+
+Validation status:
+
+- `npm run format:check`: passed on 2026-05-28.
+- Focused tests: `npm test -- tests/unit/live-cost-scripts.test.mjs` passed on
+  2026-05-28 with 5 tests.
+- `npm run lint`: passed on 2026-05-28.
+- `npm run typecheck`: passed on 2026-05-28.
+- `npm test`: passed on 2026-05-28 with 91 tests.
+- Dry-run `npm run check:live-cost`: passed on 2026-05-28 with a mocked one-Space
+  Flash config.
+- Dry-run `npm run seed:source-meta`: passed on 2026-05-28 and normalized a Google
+  Docs URL into a Drive file ID.
+- Dry-run `npm run deploy:demo -- --budget-confirmed`: passed on 2026-05-28 and
+  produced a scale-to-zero Cloud Run command.
+- `npm run build`: passed on 2026-05-28.
+- `npm run test:firestore`: passed on 2026-05-28 with 7 Firestore Security Rules
+  tests.
+- `npm run verify`: passed on 2026-05-28; it reinstalled from the lockfile, checked
+  formatting, linted, typechecked, ran 91 tests, passed Router boundary verification,
+  and built the app.
+
+Open items:
+
+- A human still needs to complete the linked Google Console tasks in
+  `docs/google-setup.md`: budget alert, Drive folder/source docs, Vertex AI Search
+  data store, service-account/IAM review, and Firebase authorized domain after deploy.
+- Live Ask and deployed Cloud Run smoke have not been run because the real Drive folder
+  ID, Vertex data store ID, source file IDs, and Cloud Run URL do not exist in the repo.
+
+Next recommended task:
+
+Complete the user-owned console setup in `docs/google-setup.md`, populate ignored
+`.env.local` with the one-Space Lease Renewals IDs, then run `npm run check:live-cost`,
+`npm run seed:source-meta`, local `npm run smoke:ask-live`, `npm run deploy:demo`, and
+deployed `npm run smoke:ask-live -- --browser-session`.
+
+## Live Setup Follow-Up: APIs, Search Location, And Seed Docs
+
+- Date: 2026-05-28
+- Confirmed the `$10` budget alert exists per user report.
+- Enabled the missing APIs needed for the cheap live/deploy path in `pmikckb-test`:
+  `aiplatform.googleapis.com`, `run.googleapis.com`, `cloudbuild.googleapis.com`,
+  `artifactregistry.googleapis.com`, `iam.googleapis.com`, and
+  `iamcredentials.googleapis.com`.
+- Verified the full required API set is now enabled for the current cheap path,
+  including Discovery Engine / Vertex AI Search, Drive, Firestore, Firebase /
+  Identity Platform, Cloud Billing, Service Usage, Logging, and Monitoring.
+- Verified `pmikckb-test-svc@pmikckb-test.iam.gserviceaccount.com` has the intended
+  runtime roles: `roles/aiplatform.user`, `roles/datastore.user`, and
+  `roles/discoveryengine.user`.
+- Split Gemini and Vertex AI Search locations in config:
+  - `VERTEX_AI_LOCATION=us-central1` for Gemini.
+  - `VERTEX_SEARCH_LOCATION=us` for Agent Search / Vertex AI Search data stores.
+- Updated setup docs with exact API names, exact Lease Renewals Drive folder ID,
+  recommended data store name/id, and the current Google Workspace data-store caveat
+  that service-account search is not supported for Workspace data stores.
+- Created ignored local seed docs under `temp/lease-renewals-drive-seed/` for user
+  upload to the Lease Renewals Drive folder. These are safe demo docs, not real call
+  transcripts.
+
+Validation status:
+
+- API enablement: succeeded on 2026-05-28.
+- IAM verification for `pmikckb-test-svc`: passed on 2026-05-28.
+- `npm run format:check`: passed on 2026-05-28.
+- Focused tests for config/search/deploy helpers: passed on 2026-05-28 with 29 tests.
+- `npm run lint`: passed on 2026-05-28.
+- `npm run typecheck`: passed on 2026-05-28.
+- `npm test`: passed on 2026-05-28 with 91 tests.
+- `npm run build`: passed on 2026-05-28.
+- `npm run test:firestore`: passed on 2026-05-28 with 7 Firestore Security Rules
+  tests.
+- `npm run verify`: passed on 2026-05-28; it reinstalled from the lockfile, checked
+  formatting, linted, typechecked, ran 91 tests, passed Router boundary verification,
+  and built the app.
+- Dry-run `npm run check:live-cost`: passed on 2026-05-28 with a mocked one-Space
+  Flash config.
+- Dry-run `npm run deploy:demo -- --budget-confirmed`: passed on 2026-05-28 and
+  included `VERTEX_SEARCH_LOCATION=us`.
+
+Open items:
+
+- The user hit a Google console OAuth error while creating the Google Drive data store:
+  `Access blocked: Authorization Error`, `Client missing a project id`, `invalid_client`.
+- The original call/transcript files referenced by `docs/spec.md`
+  (`pmi_-_call_1.md`, `pmi_-_call_2.md`, `transcript_analysis.md`) are not present in
+  the local repos found under `C:\Users\josia\Documents\github-windows`.
+- Because Google docs currently say service-account credentials cannot search Google
+  Workspace data stores, a Drive-backed data store may not work with the current
+  server-side retrieval boundary. If the data store can be created but live Ask returns
+  403, use a Cloud Storage data store for the cheap demo smoke or implement user OAuth
+  retrieval before accepting the Drive-backed path.
+
+Next recommended task:
+
+Upload the two safe seed docs from `temp/lease-renewals-drive-seed/` plus one
+sanitized real Lease Renewals call transcript or notes file, retry data-store creation
+from the exact project-scoped console link, then provide the data store ID and Drive
+file IDs for `npm run seed:source-meta` and live smoke.
+
+## Cloud Storage Data Store Route
+
+- Date: 2026-05-29
+- Switched the cheap live Ask setup path from a Drive-backed data store to a
+  Cloud Storage-backed Agent Search data store after the Drive connector OAuth error
+  and the documented Workspace service-account search limitation.
+- Updated retrieval citation normalization so `gs://` results are shown as
+  `https://storage.cloud.google.com/...` browser links while still using the Agent
+  Search document ID as the source key.
+- Updated `npm run seed:source-meta` so `--source-id=gs://...` accepts a Cloud
+  Storage object URI and derives the same deterministic raw-content document ID that
+  Agent Search documents for Cloud Storage content imports.
+- Added a reusable sanitized call-notes template at
+  `docs/demo-source-templates/lease-renewals-sanitized-call-notes.md` so the demo can
+  include real process context without committing sensitive source material.
+- Updated `docs/google-setup.md`, `docs/implement.md`, `.env.example`, and
+  `README.md` for the Cloud Storage source-prefix workflow.
+
+Validation status:
+
+- Focused retrieval/script tests passed on 2026-05-29 with 11 tests.
+- `npm run format:check`: passed on 2026-05-29.
+- `npm run lint`: passed on 2026-05-29.
+- `npm run typecheck`: passed on 2026-05-29.
+- `npm test`: passed on 2026-05-29 with 93 tests.
+- `npm run verify`: passed on 2026-05-29; it reinstalled from the lockfile, checked
+  formatting, linted, typechecked, ran 93 tests, passed Router boundary verification,
+  and built the app.
+- `npm run test:firestore`: passed on 2026-05-29 with 7 Firestore Security Rules
+  tests.
+
+Open items:
+
+- A human still needs to add one sanitized Lease Renewals call transcript or notes
+  file before the demo can prove actual call-derived context.
+- A human still needs to create the Cloud Storage-backed Agent Search data store and
+  provide the bucket name if the agent cannot run authenticated `gcloud` commands.
+
+Next recommended task:
+
+Run the exact Cloud Storage setup workflow in `docs/google-setup.md`, seed
+`sources_meta` using the uploaded `gs://` source URIs, then run local live Ask smoke.
+
+## Cloud Storage Live Ask Smoke
+
+- Date: 2026-05-29
+- Completed Google auth reauthentication for local CLI and Application Default
+  Credentials.
+- Created source bucket `gs://pmikckb-test-lease-renewals-686407` and uploaded the
+  safe Lease Renewals demo sources.
+- Confirmed the console-created Markdown data store
+  `kb-lease-renewals_1780046781160` did not index documents for the smoke path.
+- Corrected the source format to supported `.txt` Cloud Storage content files and
+  granted the Discovery Engine service agent read-only access to the source bucket.
+- Created working standard-edition data store `kb-lease-renewals-txt` and imported
+  2 of 2 text documents.
+- Updated `.env.local` to use:
+  - `ASK_DEMO_MODE=false`
+  - `GEMINI_MODEL_ANSWER=gemini-2.5-flash`
+  - `SPACE_DRIVE_FOLDER_IDS={"lease-renewals":"gs://pmikckb-test-lease-renewals-686407/lease-renewals/"}`
+  - `SPACE_VERTEX_DATA_STORE_IDS={"lease-renewals":"kb-lease-renewals-txt"}`
+- Seeded `sources_meta` for both imported `.txt` Cloud Storage objects.
+- Removed the standard-edition blocker by dropping the Enterprise-only extractive
+  answer request from the Vertex AI Search query and using snippets only.
+- Updated `docs/google-setup.md` so future setup uses supported `.txt` uploads, the
+  service-agent bucket grant, and the working data-store ID pattern.
+
+Validation status:
+
+- Corrected TXT import completed with `successCount=2` and `totalCount=2` on
+  2026-05-29.
+- `npm run check:live-cost`: passed on 2026-05-29 for one Lease Renewals space using
+  `gemini-2.5-flash`.
+- Focused retrieval test passed on 2026-05-29 with 5 tests.
+- `npm run typecheck`: passed on 2026-05-29.
+- `npm run smoke:ask-live -- --timeout-ms=90000`: passed on 2026-05-29 against
+  `http://localhost:3000`.
+
+Open items:
+
+- The sanitized real call-notes file still matches the blank template and was not
+  uploaded. The live smoke currently proves safe seed sources only, not call-derived
+  client context.
+- The console-created `kb-lease-renewals_1780046781160` data store can be deleted
+  later to avoid confusion after confirming no dependency points to it.
+
+Next recommended task:
+
+Add sanitized real Lease Renewals call notes, upload/import the `.txt` copy, seed its
+`sources_meta` record as `Transcript-derived`, then deploy the cheap Cloud Run demo if
+the local result is acceptable.
+
+## Fresh Review And Documentation Alignment
+
+- Date: 2026-05-29
+- Reviewed the live Ask / Cloud Storage work as a fresh-context verification pass.
+- Found and fixed stale wording in active docs and scripts that still implied the
+  cheap live path was Drive/Vertex-only after the working path moved to Cloud Storage
+  plus Agent Search.
+- Added tracked safe demo source templates under `docs/demo-source-templates/` so a
+  future clone is not dependent on ignored `temp/` files for the live Ask smoke setup.
+- Updated `docs/google-setup.md` with the known working `pmikckb-test` bucket and
+  data-store values, supported `.txt` upload flow, the Discovery Engine service-agent
+  bucket read grant, and troubleshooting for empty/stuck imports.
+- Updated `SETUP.md`, `README.md`, `docs/plan.md`, `docs/implement.md`, and
+  `docs/demo-show-and-tell.md` so the current next task is sanitized real call notes
+  and cheap Cloud Run deploy, not first-time live retrieval setup.
+- Updated source metadata seeding to prefer `--source-id` while keeping legacy
+  `--drive-file-id` accepted.
+- Updated user-facing setup errors and smoke failures to say source target / Agent
+  Search instead of Drive folder / Drive-Vertex when the value may be a Cloud Storage
+  prefix.
+
+Validation status:
+
+- Official Google documentation was rechecked on 2026-05-29 for Cloud Storage
+  unstructured file support and `roles/storage.objectViewer` bucket access.
+- Focused tests passed on 2026-05-29 with 22 tests across retrieval, live-cost/source
+  scripts, and Ask service setup-error behavior.
+- `npm run format:check`: passed on 2026-05-29.
+- `npm run lint`: passed on 2026-05-29.
+- `npm run typecheck`: passed on 2026-05-29.
+- `npm test`: passed on 2026-05-29 with 94 tests.
+- `npm run build`: passed on 2026-05-29.
+- `npm run test:firestore`: passed on 2026-05-29 with 7 Firestore Security Rules
+  tests.
+- `npm run verify`: passed on 2026-05-29; it reinstalled from the lockfile, checked
+  formatting, linted, typechecked, ran 94 tests, passed Router boundary verification,
+  and built the app.
+- `git diff --check`: passed on 2026-05-29.
+- Quality-control review found no unexpectedly large code file changes; the largest
+  new tracked content is documentation and safe demo source templates.
+
+Open items:
+
+- The safe seed live Ask smoke is complete, but sanitized real Lease Renewals call
+  notes are still needed before treating the demo as call-context-backed.
+- The unused console-created Markdown data store `kb-lease-renewals_1780046781160`
+  should be deleted later after confirming the app and docs continue to point at
+  `kb-lease-renewals-txt`.
+
+Next recommended task:
+
+Add sanitized Lease Renewals call notes, upload/import the `.txt` copy into
+`kb-lease-renewals-txt`, seed `sources_meta` with `approval_status=Transcript-derived`,
+rerun live Ask smoke, then deploy the cheap Cloud Run demo.

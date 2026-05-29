@@ -93,6 +93,7 @@ const liveConfig: ServerConfig = {
     "lease-renewals": "data-store-1",
   },
   vertexAiLocation: "us-central1",
+  vertexSearchLocation: "us",
 };
 
 const noopAskLogWriter: AskLogWriter = {
