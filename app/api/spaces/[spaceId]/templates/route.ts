@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse, createdJson, parseJsonBody } from "@/lib/api/editable";
+import { notifyTemplateQueueChange } from "@/lib/approval/notifications";
 import { requireCapability } from "@/lib/auth/session";
 import { createTemplate, listTemplates } from "@/lib/firestore/editable";
 import { CreateTemplateInputSchema } from "@/lib/firestore/schemas";
@@ -26,6 +27,8 @@ export async function POST(request: Request, context: RouteContext) {
     const { spaceId } = await context.params;
     const input = await parseJsonBody(request, CreateTemplateInputSchema);
     const record = await createTemplate(user, spaceId, input);
+
+    await notifyTemplateQueueChange(user, record);
 
     return createdJson({ template: record });
   } catch (error) {

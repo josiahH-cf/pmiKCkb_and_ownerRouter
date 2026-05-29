@@ -56,6 +56,38 @@ export function ApprovalQueueDemo({
     }
   }
 
+  async function returnForRevision(item: QueueItem) {
+    if (!canApprove || busyItemId || item.kind === "Placeholder") {
+      return;
+    }
+
+    const note = window.prompt("Return note");
+
+    if (!note?.trim()) {
+      setMessage("Return note is required.");
+      return;
+    }
+
+    if (!apiBacked) {
+      updateLocalStatus(item.id, "Draft");
+      setMessage("Returned in local demo queue.");
+      return;
+    }
+
+    setBusyItemId(item.id);
+    setMessage("Saving.");
+
+    try {
+      await returnEditableQueueItem(item, note);
+      updateLocalStatus(item.id, "Draft");
+      setMessage("Returned for revision through editable API.");
+    } catch (error) {
+      setMessage(readErrorMessage(error));
+    } finally {
+      setBusyItemId(null);
+    }
+  }
+
   function updateLocalStatus(itemId: string, status: string) {
     setQueueItems((records) =>
       records.map((record) =>
@@ -89,22 +121,54 @@ export function ApprovalQueueDemo({
               {item.spaceName} - {item.kind} - {item.status}
             </p>
           </div>
-          <button
-            className="primary-button"
-            disabled={!canApprove || busyItemId !== null}
-            onClick={() => void approve(item)}
-            type="button"
-          >
-            {busyItemId === item.id
-              ? "Saving"
-              : item.kind === "Placeholder"
-                ? "Resolve"
-                : "Approve"}
-          </button>
+          <div className="action-row">
+            {item.kind !== "Placeholder" ? (
+              <button
+                className="secondary-button"
+                disabled={!canApprove || busyItemId !== null}
+                onClick={() => void returnForRevision(item)}
+                type="button"
+              >
+                Return
+              </button>
+            ) : null}
+            <button
+              className="primary-button"
+              disabled={!canApprove || busyItemId !== null}
+              onClick={() => void approve(item)}
+              type="button"
+            >
+              {busyItemId === item.id
+                ? "Saving"
+                : item.kind === "Placeholder"
+                  ? "Resolve"
+                  : "Approve"}
+            </button>
+          </div>
         </article>
       ))}
     </div>
   );
+}
+
+async function returnEditableQueueItem(item: QueueItem, note: string) {
+  const body = JSON.stringify({
+    note,
+    status: "Draft",
+  });
+
+  if (item.kind === "SOP") {
+    await fetchEditable(`/api/sops/${item.id}`, {
+      body,
+      method: "PATCH",
+    });
+    return;
+  }
+
+  await fetchEditable(`/api/templates/${item.id}`, {
+    body,
+    method: "PATCH",
+  });
 }
 
 async function updateEditableQueueItem(item: QueueItem, actorUid: string) {

@@ -3,10 +3,11 @@ import { POST as POST_SOP } from "@/app/api/spaces/[spaceId]/sops/route";
 import { DELETE as DELETE_SOP, PATCH as PATCH_SOP } from "@/app/api/sops/[sopId]/route";
 import { setAuthResolverForTest } from "@/lib/auth/session";
 import { EditableLayerError } from "@/lib/firestore/errors";
-import { createSop, softDeleteSop, updateSop } from "@/lib/firestore/editable";
+import { createSop, getSop, softDeleteSop, updateSop } from "@/lib/firestore/editable";
 
 vi.mock("@/lib/firestore/editable", () => ({
   createSop: vi.fn(),
+  getSop: vi.fn(),
   softDeleteSop: vi.fn(),
   updateSop: vi.fn(),
 }));
@@ -14,6 +15,7 @@ vi.mock("@/lib/firestore/editable", () => ({
 afterEach(() => {
   setAuthResolverForTest(null);
   vi.mocked(createSop).mockReset();
+  vi.mocked(getSop).mockReset();
   vi.mocked(updateSop).mockReset();
   vi.mocked(softDeleteSop).mockReset();
 });
@@ -75,6 +77,18 @@ describe("editable API routes", () => {
 
   it("maps editable-layer errors to API responses", async () => {
     setEditor();
+    vi.mocked(getSop).mockResolvedValue({
+      body_md: "# SOP",
+      created_at: "2026-05-27T00:00:00.000Z",
+      id: "sop-1",
+      owner_uid: "owner-uid",
+      sensitivity: "Low",
+      source_state_hint: "Bailey Placeholder",
+      space_id: "lease-renewals",
+      status: "Draft",
+      title: "Lease Renewals",
+      updated_at: "2026-05-27T00:00:00.000Z",
+    });
     vi.mocked(updateSop).mockRejectedValue(
       new EditableLayerError("Editor role cannot approve SOPs.", 403),
     );

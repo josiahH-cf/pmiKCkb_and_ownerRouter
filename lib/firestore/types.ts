@@ -40,6 +40,7 @@ export type ChangeLogEntityType =
   | "source"
   | "user";
 export type ChangeLogAction = "create" | "update" | "approve" | "reject" | "deprecate";
+export type NotificationLogStatus = "Sent" | "Skipped" | "Failed";
 
 export interface UserRecord {
   uid: string;
@@ -134,6 +135,7 @@ export interface SourceMetaRecord {
 export interface AskLogRecord {
   id: string;
   user_uid: string;
+  space_id?: string;
   question: string;
   audience: string;
   channel: string;
@@ -157,5 +159,19 @@ export interface ChangeLogRecord {
   diff?: string;
   note?: string;
   actor_via_email_token?: string;
+  created_at: string;
+}
+
+export interface NotificationLogRecord {
+  id: string;
+  channel: "Gmail";
+  entity_id: string;
+  entity_type: "sop" | "template" | "placeholder";
+  event: string;
+  recipients: string[];
+  sender?: string;
+  status: NotificationLogStatus;
+  subject: string;
+  error?: string;
   created_at: string;
 }

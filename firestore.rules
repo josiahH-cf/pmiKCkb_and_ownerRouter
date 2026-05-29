@@ -156,6 +156,11 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    match /notification_logs/{logId} {
+      allow read: if signedIn() && admin();
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

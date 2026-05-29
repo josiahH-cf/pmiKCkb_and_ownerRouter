@@ -43,6 +43,16 @@ beforeEach(async () => {
       status: "Draft",
       title: "Lease Renewals",
     });
+    await setDoc(doc(db, "notification_logs/log-1"), {
+      id: "log-1",
+      channel: "Gmail",
+      entity_id: "sop-1",
+      entity_type: "sop",
+      event: "entered_queue",
+      recipients: ["approver@example.com"],
+      status: "Sent",
+      subject: "Approval changed",
+    });
   });
 });
 
@@ -144,6 +154,26 @@ describe("Firestore security rules", () => {
         source_state: "Verified Source",
         urgency: "Normal",
         user_uid: "editor-uid",
+      }),
+    );
+  });
+
+  it("allows only admins to read notification logs and blocks all client writes", async () => {
+    const editorDb = authedDb("Editor");
+    const adminDb = authedDb("Admin");
+
+    await assertFails(getDoc(doc(editorDb, "notification_logs/log-1")));
+    await assertSucceeds(getDoc(doc(adminDb, "notification_logs/log-1")));
+    await assertFails(
+      setDoc(doc(adminDb, "notification_logs/log-2"), {
+        id: "log-2",
+        channel: "Gmail",
+        entity_id: "sop-1",
+        entity_type: "sop",
+        event: "approved",
+        recipients: ["approver@example.com"],
+        status: "Sent",
+        subject: "Approval changed",
       }),
     );
   });

@@ -12,17 +12,19 @@ workflow and should be created in its own repository when ready.
 
 The KB has passed the foundation, demo-slice, M3a retrieval-boundary, and M3b answer
 contract milestones. It includes Firebase Google sign-in/session boundaries,
-Firestore editable-layer APIs, four approved workflow demo slices, editable Space UI
-coverage for those demo Spaces, a multi-workflow live-demo Approval Queue path, Vertex
-AI Search retrieval boundaries, Gemini JSON answer validation, Ask logging, Ask
-capture tasks, source-state constants, unit/eval tests, Firestore rules tests, demo
+Firestore editable-layer APIs, four approved workflow demo slices, all launch Space
+shells, all-Space editable UI fallbacks, all-Space Approval Queue loading, change-log
+display, Gmail send-only approval notification plumbing, Admin observability, Vertex AI
+Search retrieval boundaries, Gemini JSON answer validation, Ask logging, Ask capture
+tasks, source-state constants, unit/eval tests, Firestore rules tests, demo
 reset/smoke scripts, and deterministic verification.
 
 Spec 1 is not launch-complete yet. A cheap four-workflow Cloud Run demo works through
 Cloud Storage-backed Agent Search data stores, approved sanitized sources, Firebase
-Auth, Firestore, and Gemini. The real app still needs remaining launch Spaces,
-production source corpus, Gmail send-only notifications, Admin observability, and a
-separate Owner Router repo for the read-only Owner Email Space.
+Auth, Firestore, and Gemini. The real app still needs PMI KC-owned production source
+approval/import, production launch configuration, Gmail sender/recipient setup,
+production observability review, and read-only indexing of the separate Owner Router
+Drive package for the Owner Email Space.
 
 ## Prerequisites
 
@@ -88,9 +90,10 @@ Run `npm run test:firestore` separately when Java is available on PATH.
    green.
 2. Keep the deployed auth smoke and four deployed live Ask smokes green at
    <https://pmi-kc-kb-demo-800237451321.us-central1.run.app/sign-in>.
-3. Create the separate `pmi-kc-owner-router` repository before final KB A-16
-   verification.
-4. Expand the editable Space UI and Approval Queue from the four demo Spaces to all
-   launch Spaces.
+3. Use `npm run corpus:plan -- --write-temp` to stage sanitized `.txt` source copies,
+   then upload/import only approved sources into the intended demo or production
+   Agent Search data stores.
+4. Configure `KB_APPROVAL_*` and `APP_BASE_URL` only after a Gmail send-only sender
+   identity and recipient list are approved.
 5. Add mocked-auth Playwright e2e tests, staging Cloud Run, brand verification, and
    final A-1 through A-17 acceptance.

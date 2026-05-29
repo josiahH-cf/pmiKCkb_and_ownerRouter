@@ -1433,10 +1433,88 @@ Validation status:
 - `npm run verify`: passed on 2026-05-29 after the final review/hardening pass.
 - `npm run test:firestore`: passed on 2026-05-29.
 
-Open items:
+Open items at that time:
 
 - The unused console-created Markdown data store `kb-lease-renewals_1780046781160`
-  can be deleted after one more human confirmation that no environment points to it.
-- Final production remains out of scope for this demo: remaining launch Spaces,
-  production source corpus, Gmail send-only notifications, Admin observability, and the
-  separate Owner Router repo still need follow-up.
+  still needed deletion confirmation. This is resolved in the following production
+  follow-up pass.
+- Final production remained out of scope for this demo. The following production
+  follow-up pass implements launch skeletons, notification plumbing, and Admin
+  observability, while keeping PMI KC-owned production source approval/import and
+  Owner Router read-only indexing as open cutover work.
+
+## Production Follow-Up Workflow Pass
+
+- Date: 2026-05-29
+- Implemented all launch Space shells and safe launch skeletons for the seven remaining
+  writable Spaces: owner renewal outreach, tenant renewal notice, vendor assignment
+  handoff, daily inbox triage, Fathom training, escalation rules, and move-in.
+- Added all-Space Approval Queue loading, Return-for-revision actions for SOP/template
+  items, visible Space change-log history, and Admin observability for Ask volume,
+  queue depth, notification failures, source states, top Spaces, open placeholders, and
+  setup health.
+- Added Gmail send-only approval notification plumbing behind
+  `KB_APPROVAL_NOTIFICATIONS_ENABLED=false` by default. The implementation uses only
+  the Gmail send scope, logs sent/skipped/failed notification attempts, and keeps KB
+  approval notifications internal-only.
+- Added transcript-derived safe source starters for the seven remaining launch Spaces,
+  plus `docs/source-corpus/demo-live-source-manifest.json` and
+  `npm run corpus:plan` to produce `.txt` staging copies, upload commands, import
+  commands, and `sources_meta` seed commands.
+- Added guarded operational scripts:
+  - `npm run seed:launch-skeletons` for idempotent launch skeleton seeding.
+  - `npm run delete:agent-search-data-store` for confirmed Agent Search data-store
+    deletion with an active-env-map guard.
+- Fresh review repair: launch skeleton reset/force-seed paths now clear stale
+  approval, review, related-SOP, and resolution fields so a previously approved or
+  resolved skeleton returns to a clean placeholder state.
+- Seeded the demo Firestore with all 12 Space records and 21 safe launch skeleton
+  records. Existing records are skipped by the skeleton seeder unless `--force` is
+  used.
+- Confirmed the deployed Cloud Run service and local `.env.local` maps referenced
+  `kb-lease-renewals-txt`, not `kb-lease-renewals_1780046781160`, then deleted the
+  unused console-created Agent Search data store
+  `kb-lease-renewals_1780046781160`.
+- Updated README, setup, Google setup, implementation, plan, demo show-and-tell, and
+  demo source template docs to reflect the new launch skeleton, notification,
+  observability, corpus-manifest, and deletion-helper state.
+
+Validation status:
+
+- `npm run corpus:plan -- --write-temp`: passed and generated ignored `.txt` staging
+  copies under `temp/source-corpus`.
+- `npm run seed:launch-skeletons -- --dry-run`: passed and previewed 21 safe records.
+- Focused launch skeleton helper regression test: passed.
+- `npm run seed:spaces`: passed against the demo project.
+- `npm run seed:launch-skeletons`: passed against the demo project and created 21
+  safe launch skeleton records.
+- Guarded stale data-store deletion: passed and deleted
+  `kb-lease-renewals_1780046781160`.
+- Sensitive-pattern scan over `docs/demo-source-templates/`: no actual URLs, emails,
+  phone numbers, or dollar amounts found.
+- Oversized-file check: no unexpected tracked files over 300 KB outside generated or
+  lockfile paths.
+- `npm run format:check`: passed.
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm test`: passed with 115 tests.
+- `npm run build`: passed.
+- `npm run test:firestore`: passed with 8 Firestore Security Rules tests.
+- `npm run smoke:demo-live -- --base-url=http://localhost:3000 --timeout-ms=90000`:
+  passed after starting the local dev server with demo mode enabled; the server was
+  stopped afterward.
+- `npm run check:live-cost`: passed with explicit `ASK_DEMO_MODE=false`.
+- `npm run verify`: passed; it checked formatting, lint, typecheck, 115 tests, Router
+  boundary, and build.
+- `git diff --check`: passed.
+
+Open items:
+
+- Production source corpus is not complete until PMI KC-owned source locations and
+  approved production source files are provided/imported. The manifest is a safe demo
+  and staging preparation path, not a substitute for production source approval.
+- Gmail approval notifications remain disabled until the sender identity, recipient
+  list, and deployed `APP_BASE_URL` are approved and configured.
+- The separate Owner Router repo exists locally, but the Owner Router Drive package
+  still needs substantive Bailey/Dan content and read-only indexing into the KB Owner
+  Email Space before final A-16 verification.

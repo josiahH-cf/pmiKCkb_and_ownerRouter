@@ -37,6 +37,7 @@ export class FirestoreAskLogWriter implements AskLogWriter {
       grounding_source_ids: input.groundingSourceIds,
       id,
       question: input.request.question,
+      space_id: input.request.space,
       source_state: input.response.source_state,
       urgency: input.request.urgency,
       user_uid: input.user.uid,

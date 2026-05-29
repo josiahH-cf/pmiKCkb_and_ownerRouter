@@ -33,6 +33,7 @@ const request: AskRequest = {
 
 const liveConfig: ServerConfig = {
   allowedHostedDomain: "pmikcmetro.com",
+  appBaseUrl: undefined,
   askDemoMode: false,
   authSessionCookie: "__session",
   firebaseBrowserConfig: {
@@ -48,6 +49,8 @@ const liveConfig: ServerConfig = {
   geminiClassifyModel: "gemini-2.5-flash",
   groundingConfidenceThreshold: 0.65,
   kbApprovalLabel: "KB Approval",
+  kbApprovalNotificationsEnabled: false,
+  kbApprovalRecipients: [],
   kbApprovalSender: undefined,
   localDemoAuth: false,
   spaceDriveFolderIds: {
@@ -59,17 +62,25 @@ const liveConfig: ServerConfig = {
   vertexAiLocation: "us-central1",
   vertexSearchLocation: "us",
 };
+const demoConfig: ServerConfig = {
+  ...liveConfig,
+  askDemoMode: true,
+};
 
 describe("Ask service", () => {
   it("returns a cited demo answer for Lease Renewals", async () => {
     await expect(
-      answerQuestion(user, {
-        audience: "Owner",
-        channel: "Gmail",
-        draft_enabled: true,
-        question: "What is the lease renewal workflow?",
-        urgency: "Normal",
-      }),
+      answerQuestion(
+        user,
+        {
+          audience: "Owner",
+          channel: "Gmail",
+          draft_enabled: true,
+          question: "What is the lease renewal workflow?",
+          urgency: "Normal",
+        },
+        { config: demoConfig },
+      ),
     ).resolves.toMatchObject({
       source_state: "Verified Source",
       citations: [expect.objectContaining({ source_id: "demo-lease-renewals-sop" })],
@@ -97,14 +108,18 @@ describe("Ask service", () => {
 
     for (const testCase of cases) {
       await expect(
-        answerQuestion(user, {
-          audience: "Owner",
-          channel: "Gmail",
-          draft_enabled: true,
-          question: testCase.question,
-          space: testCase.space,
-          urgency: "Normal",
-        }),
+        answerQuestion(
+          user,
+          {
+            audience: "Owner",
+            channel: "Gmail",
+            draft_enabled: true,
+            question: testCase.question,
+            space: testCase.space,
+            urgency: "Normal",
+          },
+          { config: demoConfig },
+        ),
       ).resolves.toMatchObject({
         source_state: "Verified Source",
         citations: [expect.objectContaining({ source_id: testCase.sourceId })],
@@ -114,13 +129,17 @@ describe("Ask service", () => {
 
   it("keeps unsupported demo questions in no-source state", async () => {
     await expect(
-      answerQuestion(user, {
-        audience: "Owner",
-        channel: "Gmail",
-        draft_enabled: true,
-        question: "What exact fee do we charge for an unusual lease break?",
-        urgency: "Normal",
-      }),
+      answerQuestion(
+        user,
+        {
+          audience: "Owner",
+          channel: "Gmail",
+          draft_enabled: true,
+          question: "What exact fee do we charge for an unusual lease break?",
+          urgency: "Normal",
+        },
+        { config: demoConfig },
+      ),
     ).resolves.toMatchObject({
       source_state: "No Reliable Source Found",
       citations: [],

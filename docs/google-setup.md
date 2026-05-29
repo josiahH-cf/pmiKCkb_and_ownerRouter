@@ -224,8 +224,11 @@ Current demo values:
 - Approved sanitized templates and demo seed sources now exist for Lease Renewals,
   Maintenance Work Order Intake, Move-Out + Deposit Disposition, and Owner Onboarding.
   The current demo project has all four imported for the multi-Space live demo.
+- Transcript-derived source starters also exist for the remaining writable launch
+  Spaces. They should be imported only after approval for demo/production use.
 - Template catalog and approval guidance:
   `docs/demo-source-templates/README.md`.
+- Source corpus manifest: `docs/source-corpus/demo-live-source-manifest.json`.
 
 Known working `pmikckb-test` smoke values from 2026-05-29:
 
@@ -239,8 +242,25 @@ Known working `pmikckb-test` smoke values from 2026-05-29:
   - `01-lease-renewals-demo-sop-source.txt`
   - `02-owner-renewal-follow-up-demo-template.txt`
   - `03-lease-renewals-sanitized-call-notes.txt`
-- Unused data store to delete later after confirming no dependency points to it:
-  `kb-lease-renewals_1780046781160`.
+- The unused console-created data store `kb-lease-renewals_1780046781160` was deleted
+  on 2026-05-29 after confirming local and deployed environment maps did not reference
+  it.
+
+Use the manifest helper to stage `.txt` upload copies and print exact upload/import/
+metadata commands:
+
+```bash
+npm run corpus:plan -- --write-temp
+```
+
+Use the guarded deletion helper for stale Agent Search data stores. It refuses to
+delete a store that appears in `SPACE_VERTEX_DATA_STORE_IDS` and requires an explicit
+confirmation flag for live deletion:
+
+```bash
+npm run delete:agent-search-data-store -- --project=pmikckb-test --location=us --data-store=kb-lease-renewals_1780046781160 --dry-run
+npm run delete:agent-search-data-store -- --project=pmikckb-test --location=us --data-store=kb-lease-renewals_1780046781160 --confirm-delete=kb-lease-renewals_1780046781160
+```
 
 Use raw Cloud Storage content import for the cheap smoke. Google documents that
 Cloud Storage unstructured content imports auto-generate a stable document ID from the
@@ -388,6 +408,15 @@ Four-workflow live demo expansion can use the other approved sanitized templates
 smoke until separate source prefixes, data stores, source metadata, and cost checks are
 intentionally added.
 
+For all launch Space source starters, prefer the manifest workflow:
+
+```bash
+npm run corpus:plan -- --write-temp
+```
+
+Review the generated plan before uploading or importing. Do not upload raw transcript
+files from `docs/context_and_calls/`.
+
 6. Create one Agent Search data store from Cloud Storage:
    <https://console.cloud.google.com/gen-app-builder/data-stores?project=pmikckb-test>
    - Data source: Cloud Storage.
@@ -484,7 +513,18 @@ only after uploading approved `.txt` sources and confirming the budget guardrail
 
 ## Gmail Send-Only Notifications
 
-Defer Gmail notifications until the Approval Queue is real. When added, use only:
+Approval notification plumbing is implemented but disabled by default. It sends only
+internal `KB Approval` notifications and logs sent/skipped/failed notifications in
+Firestore. Configure it only after the sender identity and recipients are approved:
+
+```dotenv
+KB_APPROVAL_NOTIFICATIONS_ENABLED=true
+KB_APPROVAL_SENDER=<approved-sender@example.com>
+KB_APPROVAL_RECIPIENTS=<approver-1@example.com>,<approver-2@example.com>
+APP_BASE_URL=<deployed-kb-url>
+```
+
+The app uses only:
 
 ```text
 https://www.googleapis.com/auth/gmail.send

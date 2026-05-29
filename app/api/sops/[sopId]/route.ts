@@ -6,6 +6,7 @@ import {
   parseOptionalJsonBody,
 } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
+import { notifySopQueueChange } from "@/lib/approval/notifications";
 import { getSop, softDeleteSop, updateSop } from "@/lib/firestore/editable";
 import { ChangeLogNoteSchema, UpdateSopInputSchema } from "@/lib/firestore/schemas";
 
@@ -30,7 +31,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     const user = await requireCapability("edit");
     const { sopId } = await context.params;
     const input = await parseJsonBody(request, UpdateSopInputSchema);
+    const previous = await getSop(user, sopId);
     const record = await updateSop(user, sopId, input);
+
+    await notifySopQueueChange(user, record, previous.status);
 
     return NextResponse.json({ sop: record });
   } catch (error) {

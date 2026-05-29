@@ -780,6 +780,10 @@ function actionFromStatus(
     return "deprecate";
   }
 
+  if (previousStatus === "In Review" && nextStatus === "Draft") {
+    return "reject";
+  }
+
   return "update";
 }
 

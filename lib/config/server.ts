@@ -37,9 +37,20 @@ const OptionalStringSchema = z
   .trim()
   .transform((value) => (value.length > 0 ? value : undefined))
   .optional();
+const OptionalCsvSchema = z
+  .string()
+  .trim()
+  .default("")
+  .transform((value) =>
+    value
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean),
+  );
 
 const EnvSchema = z.object({
   ALLOWED_HD: z.string().trim().min(1).default(ALLOWED_HD_DEFAULT),
+  APP_BASE_URL: OptionalStringSchema,
   ASK_DEMO_MODE: z
     .string()
     .trim()
@@ -54,6 +65,13 @@ const EnvSchema = z.object({
   GEMINI_MODEL_CLASSIFY: z.string().trim().min(1).default("gemini-2.5-flash"),
   GROUNDING_CONFIDENCE_THRESHOLD: z.coerce.number().min(0).max(1).default(0.65),
   KB_APPROVAL_LABEL: z.string().trim().min(1).default(KB_APPROVAL_LABEL),
+  KB_APPROVAL_NOTIFICATIONS_ENABLED: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .default("false")
+    .transform((value) => value === "true" || value === "1"),
+  KB_APPROVAL_RECIPIENTS: OptionalCsvSchema,
   KB_APPROVAL_SENDER: OptionalStringSchema,
   LOCAL_DEMO_AUTH: z
     .string()
@@ -79,6 +97,7 @@ export function readServerConfig(env: Environment = process.env) {
 
   return {
     allowedHostedDomain: parsed.ALLOWED_HD.toLowerCase(),
+    appBaseUrl: parsed.APP_BASE_URL,
     askDemoMode: parsed.ASK_DEMO_MODE,
     authSessionCookie: parsed.AUTH_SESSION_COOKIE,
     firebaseProjectId: parsed.FIREBASE_PROJECT_ID,
@@ -88,6 +107,8 @@ export function readServerConfig(env: Environment = process.env) {
     geminiClassifyModel: parsed.GEMINI_MODEL_CLASSIFY,
     groundingConfidenceThreshold: parsed.GROUNDING_CONFIDENCE_THRESHOLD,
     kbApprovalLabel: parsed.KB_APPROVAL_LABEL,
+    kbApprovalNotificationsEnabled: parsed.KB_APPROVAL_NOTIFICATIONS_ENABLED,
+    kbApprovalRecipients: parsed.KB_APPROVAL_RECIPIENTS,
     kbApprovalSender: parsed.KB_APPROVAL_SENDER,
     localDemoAuth: parsed.LOCAL_DEMO_AUTH && process.env.NODE_ENV !== "production",
     spaceDriveFolderIds: parsed.SPACE_DRIVE_FOLDER_IDS,

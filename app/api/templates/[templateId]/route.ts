@@ -6,6 +6,7 @@ import {
   parseOptionalJsonBody,
 } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
+import { notifyTemplateQueueChange } from "@/lib/approval/notifications";
 import {
   getTemplate,
   softDeleteTemplate,
@@ -34,7 +35,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     const user = await requireCapability("edit");
     const { templateId } = await context.params;
     const input = await parseJsonBody(request, UpdateTemplateInputSchema);
+    const previous = await getTemplate(user, templateId);
     const record = await updateTemplate(user, templateId, input);
+
+    await notifyTemplateQueueChange(user, record, previous.status);
 
     return NextResponse.json({ template: record });
   } catch (error) {

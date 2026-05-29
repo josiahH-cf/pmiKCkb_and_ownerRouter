@@ -3,6 +3,10 @@ import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  buildLaunchSkeletonRecords,
+  launchSkeletonDeleteFieldsFor,
+} from "./seed-launch-skeletons.mjs";
 
 const DRAFT_BANNER = "Draft \u2014 Review before sending";
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -192,8 +196,15 @@ export async function resetDemoRecords({
 } = {}) {
   const db = getDemoFirestore();
   const now = new Date().toISOString();
+  const resetRecords = [
+    ...demoRecords,
+    ...buildLaunchSkeletonRecords(now).map((record) => ({
+      ...record,
+      deleteFields: launchSkeletonDeleteFieldsFor(record.collection),
+    })),
+  ];
 
-  for (const record of demoRecords) {
+  for (const record of resetRecords) {
     const ref = db.collection(record.collection).doc(record.id);
     const snapshot = await ref.get();
 

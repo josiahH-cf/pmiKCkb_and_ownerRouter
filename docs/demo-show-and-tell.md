@@ -43,9 +43,11 @@ Firestore in the demo project when Firebase is configured.
   `ASK_DEMO_MODE=true`.
 - The current deployed live Ask corpus is call-context-backed for the four approved
   demo workflows, but it is still a demo corpus in the Cherrybridge project.
-- Approval Queue covers the four approved demo workflow records, not every launch
-  Space.
-- Admin shows basic environment/config status, not the final indexing-health dashboard.
+- Approval Queue can load records across all writable launch Spaces. The seeded demo
+  records are still the four approved workflow slices unless launch skeletons are
+  explicitly seeded.
+- Admin shows Ask volume, queue depth, notification failures, source states, and Space
+  setup health. Production observability still needs PMI KC review before cutover.
 - Public demo URL:
   <https://pmi-kc-kb-demo-800237451321.us-central1.run.app/sign-in>.
 - The Owner Router is intentionally not part of this repo or app.
@@ -227,6 +229,7 @@ Use Chrome if possible. The in-app browser can be unreliable for Google sign-in.
    - Allowed domain.
    - Approval label.
    - Whether demo retrieval mode is active.
+   - Ask volume, queue depth, notification failures, and Space setup health.
 
    Say:
 
@@ -262,9 +265,15 @@ npm run smoke:demo-live
 
 ## Demo Readiness Gaps
 
-1. Delete the unused console-created Markdown data store after confirming the working
-   `kb-lease-renewals-txt` store is the only configured Lease Renewals target.
-2. Add a visible change-log panel in the Space page so save/approve/reset history is
-   inspectable during show-and-tell.
-3. Add a non-human-auth CI e2e path with mocked auth/session fixtures; keep live Google
+1. Seed launch skeletons only when the show needs all writable launch Spaces visible in
+   Firestore-backed Approval Queue:
+
+```bash
+npm run seed:launch-skeletons -- --dry-run
+```
+
+After reviewing the dry-run output, omit `--dry-run` only in the intended demo
+Firestore environment.
+
+2. Add a non-human-auth CI e2e path with mocked auth/session fixtures; keep live Google
    auth as a local smoke only.

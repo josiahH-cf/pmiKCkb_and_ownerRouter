@@ -9,6 +9,8 @@ describe("server config", () => {
     expect(readServerConfig({ LOCAL_DEMO_AUTH: "true" }).localDemoAuth).toBe(true);
     expect(readServerConfig({}).vertexAiLocation).toBe("us-central1");
     expect(readServerConfig({}).vertexSearchLocation).toBe("us");
+    expect(readServerConfig({}).kbApprovalNotificationsEnabled).toBe(false);
+    expect(readServerConfig({}).kbApprovalRecipients).toEqual([]);
   });
 
   it("parses Space ID maps", () => {
@@ -27,6 +29,23 @@ describe("server config", () => {
         SPACE_DRIVE_FOLDER_IDS: "not-json",
       }),
     ).toThrow();
+  });
+
+  it("parses approval notification setup", () => {
+    const config = readServerConfig({
+      APP_BASE_URL: "https://kb.example.com",
+      KB_APPROVAL_NOTIFICATIONS_ENABLED: "true",
+      KB_APPROVAL_RECIPIENTS: "bailey@example.com, dan@example.com",
+      KB_APPROVAL_SENDER: "kb@example.com",
+    });
+
+    expect(config.appBaseUrl).toBe("https://kb.example.com");
+    expect(config.kbApprovalNotificationsEnabled).toBe(true);
+    expect(config.kbApprovalRecipients).toEqual([
+      "bailey@example.com",
+      "dan@example.com",
+    ]);
+    expect(config.kbApprovalSender).toBe("kb@example.com");
   });
 
   it("reports missing live Google setup values", () => {

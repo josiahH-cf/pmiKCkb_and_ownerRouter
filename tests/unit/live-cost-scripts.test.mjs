@@ -14,6 +14,18 @@ import {
   buildCreateDataStoreRequest,
   buildImportDocumentsRequest,
 } from "../../scripts/import-agent-search-documents.mjs";
+import {
+  buildDeleteDataStorePlan,
+  parseDeleteDataStoreArgs,
+} from "../../scripts/delete-agent-search-data-store.mjs";
+import {
+  buildSourceCorpusPlan,
+  validateSourceManifest,
+} from "../../scripts/source-corpus-manifest.mjs";
+import {
+  buildLaunchSkeletonRecords,
+  launchSkeletonDeleteFieldsFor,
+} from "../../scripts/seed-launch-skeletons.mjs";
 import { demoRecords } from "../../scripts/demo-firestore.mjs";
 
 const oneSpaceMap = JSON.stringify({ "lease-renewals": "configured-id" });
@@ -275,6 +287,76 @@ describe("cheap live setup scripts", () => {
         "projects/pmikckb-test/locations/us/collections/default_collection/dataStores/kb-maintenance-work-order-intake-txt/branches/default_branch",
       reconciliationMode: "INCREMENTAL",
     });
+  });
+
+  it("plans demo source corpus uploads, metadata seeds, and imports by data store", () => {
+    const entries = validateSourceManifest([
+      {
+        approval_status: "Transcript-derived",
+        data_store_id: "kb-lease-renewals-txt",
+        gcs_uri: "gs://bucket/lease-renewals/source-a.txt",
+        sensitivity: "Low",
+        source_path: "docs/demo-source-templates/lease-renewals-sanitized-call-notes.md",
+        space_id: "lease-renewals",
+      },
+      {
+        approval_status: "Approved",
+        data_store_id: "kb-lease-renewals-txt",
+        gcs_uri: "gs://bucket/lease-renewals/source-b.txt",
+        sensitivity: "Low",
+        source_path: "docs/demo-source-templates/lease-renewals-demo-sop-source.md",
+        space_id: "lease-renewals",
+      },
+    ]);
+    const plan = buildSourceCorpusPlan(entries, "temp/source-corpus");
+
+    expect(plan.entries[0].document_id).toMatch(/^[0-9a-f]{32}$/);
+    expect(plan.uploadCommands[0]).toContain("gcloud storage cp");
+    expect(plan.seedCommands[0]).toContain("--approval-status=Transcript-derived");
+    expect(plan.importCommands).toHaveLength(1);
+    expect(plan.importCommands[0]).toContain("--data-store=kb-lease-renewals-txt");
+    expect(plan.importCommands[0]).toContain(
+      "--source-id=gs://bucket/lease-renewals/source-b.txt",
+    );
+  });
+
+  it("guards Agent Search data-store deletion against active Space maps", () => {
+    const args = parseDeleteDataStoreArgs(
+      ["--project=pmikckb-test", "--location=us", "--data-store=kb-unused-store"],
+      {},
+      {
+        SPACE_VERTEX_DATA_STORE_IDS: JSON.stringify({
+          "lease-renewals": "kb-lease-renewals-txt",
+        }),
+      },
+    );
+
+    expect(buildDeleteDataStorePlan(args)).toMatchObject({
+      name: "projects/pmikckb-test/locations/us/collections/default_collection/dataStores/kb-unused-store",
+    });
+    expect(() =>
+      buildDeleteDataStorePlan({
+        ...args,
+        dataStore: "kb-lease-renewals-txt",
+      }),
+    ).toThrow(/Refusing to delete active data store/);
+  });
+
+  it("builds source-backed launch skeleton records for the remaining launch Spaces", () => {
+    const records = buildLaunchSkeletonRecords("2026-05-29T00:00:00.000Z");
+
+    expect(records).toHaveLength(21);
+    expect(records.map((record) => record.data.space_id)).toContain("move-in");
+    expect(records.find((record) => record.id === "launch-move-in-sop")).toMatchObject({
+      collection: "sops",
+      data: {
+        source_state_hint: "Bailey Placeholder",
+        status: "Placeholder",
+      },
+    });
+    expect(launchSkeletonDeleteFieldsFor("sops")).toContain("last_reviewed_at");
+    expect(launchSkeletonDeleteFieldsFor("templates")).toContain("approved_by_uid");
+    expect(launchSkeletonDeleteFieldsFor("placeholders")).toContain("resolution");
   });
 
   it("defines resettable demo records for all four approved workflow Spaces", () => {

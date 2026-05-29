@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse, createdJson, parseJsonBody } from "@/lib/api/editable";
+import { notifyPlaceholderQueueChange } from "@/lib/approval/notifications";
 import { requireCapability } from "@/lib/auth/session";
 import { createPlaceholder, listPlaceholders } from "@/lib/firestore/editable";
 import { CreatePlaceholderInputSchema } from "@/lib/firestore/schemas";
@@ -26,6 +27,8 @@ export async function POST(request: Request, context: RouteContext) {
     const { spaceId } = await context.params;
     const input = await parseJsonBody(request, CreatePlaceholderInputSchema);
     const record = await createPlaceholder(user, spaceId, input);
+
+    await notifyPlaceholderQueueChange(user, record);
 
     return createdJson({ placeholder: record });
   } catch (error) {

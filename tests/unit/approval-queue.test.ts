@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { loadApprovalQueue } from "@/lib/approval/queue";
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { launchSpaces } from "@/lib/spaces";
 
 const user: AuthenticatedUser = {
   email: "admin@example.com",
@@ -40,15 +41,12 @@ describe("approval queue loader", () => {
     });
 
     expect(result.apiBacked).toBe(true);
-    expect(new Set(seenSpaceIds)).toEqual(
-      new Set([
-        "lease-renewals",
-        "maintenance-work-order-intake",
-        "move-out-deposit-disposition",
-        "owner-onboarding",
-      ]),
-    );
-    expect(result.items).toHaveLength(12);
+    const writableSpaceIds = launchSpaces
+      .filter((space) => !space.readOnly)
+      .map((space) => space.id);
+
+    expect(new Set(seenSpaceIds)).toEqual(new Set(writableSpaceIds));
+    expect(result.items).toHaveLength(writableSpaceIds.length * 3);
     expect(result.items).toContainEqual({
       id: "maintenance-work-order-intake-sop",
       kind: "SOP",
@@ -67,7 +65,9 @@ describe("approval queue loader", () => {
     });
 
     expect(result.apiBacked).toBe(false);
-    expect(result.items).toHaveLength(12);
+    expect(result.items).toHaveLength(
+      launchSpaces.filter((space) => !space.readOnly).length * 3,
+    );
     expect(result.items.map((item) => item.spaceId)).toContain("owner-onboarding");
   });
 });

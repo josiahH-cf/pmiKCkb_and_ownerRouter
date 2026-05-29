@@ -5,7 +5,10 @@ import { SpaceDetailClient } from "@/components/spaces/SpaceDetailClient";
 import { can } from "@/lib/auth/roles";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { readServerConfig } from "@/lib/config/server";
-import { demoSeedsBySpaceId } from "@/lib/demo/data";
+import {
+  launchEditableSeedsBySpaceId,
+  ownerEmailReadOnlySources,
+} from "@/lib/launch/content";
 import { launchSpaces } from "@/lib/spaces";
 
 interface SpaceDetailPageProps {
@@ -22,7 +25,7 @@ export default async function SpaceDetailPage({ params }: SpaceDetailPageProps) 
   }
 
   const config = readServerConfig();
-  const demoSeed = demoSeedsBySpaceId[space.id];
+  const editableSeed = launchEditableSeedsBySpaceId[space.id];
 
   return (
     <AppShell user={user}>
@@ -41,12 +44,26 @@ export default async function SpaceDetailPage({ params }: SpaceDetailPageProps) 
           {config.askDemoMode ? <span className="review-pill">Local demo</span> : null}
         </div>
 
-        {demoSeed ? (
+        {space.readOnly ? (
+          <div className="panel">
+            <h2>Read-only Router sources</h2>
+            <p className="muted">
+              Owner Email is sourced from the separate Owner Router Drive folder. The KB
+              can index and cite those files after read-only retrieval is configured, but
+              it must not edit the Router folder.
+            </p>
+            <ul className="compact-list">
+              {ownerEmailReadOnlySources.map((source) => (
+                <li key={source}>{source}</li>
+              ))}
+            </ul>
+          </div>
+        ) : editableSeed ? (
           <SpaceDetailClient
             canApprove={can(user.role, "approve")}
             canEdit={can(user.role, "edit")}
             readOnly={space.readOnly}
-            seed={demoSeed}
+            seed={editableSeed}
             spaceId={space.id}
             spaceName={space.name}
           />
@@ -54,9 +71,8 @@ export default async function SpaceDetailPage({ params }: SpaceDetailPageProps) 
           <div className="panel">
             <h2>Space scaffold</h2>
             <p className="muted">
-              This Space is listed for launch planning. The current editable demo slices
-              are Lease Renewals, Maintenance Work Order Intake, Move-Out + Deposit
-              Disposition, and Owner Onboarding.
+              This Space is listed for launch planning. Add approved sources before
+              treating its placeholder content as final operating procedure.
             </p>
           </div>
         )}
