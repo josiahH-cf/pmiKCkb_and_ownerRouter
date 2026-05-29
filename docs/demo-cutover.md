@@ -12,7 +12,9 @@ builder's Google Workspace before the app is reconfigured for PMI KC Metro.
 | `client-production` | Purchased/client deployment                                  | `pmikcmetro.com`               | PMI KC GCP/Firebase/Drive  |
 
 Do not treat demo data as production data. The production environment is recreated from
-configuration and approved seed templates, then filled with client-owned Drive sources.
+configuration and approved seed templates, then filled with client-owned source
+locations. Use `docs/client-production-cutover.md` for the executable client rebuild
+runbook.
 
 ## Environment-Specific Values
 
@@ -58,8 +60,9 @@ Default to a clean client-production setup:
 1. Provision a separate PMI KC GCP/Firebase project.
 2. Configure `ALLOWED_HD=pmikcmetro.com`.
 3. Register a new Firebase Web app and OAuth client.
-4. Create new client-owned Drive folders.
-5. Create new client-owned source locations and Agent Search data stores.
+4. Create new client-owned source locations. Cloud Storage `.txt` prefixes are the
+   default path unless Drive retrieval is intentionally revisited.
+5. Create client-owned Agent Search data stores.
 6. Re-seed Spaces from code/config.
 7. Add only approved PMI KC source files to the configured source locations.
 8. Re-run smoke tests.
@@ -86,10 +89,16 @@ Before declaring client-production ready:
 
 ## Current State
 
-The repo currently supports local and demo scaffolding. Live Firebase, source
-locations, Agent Search, Cloud Run, and Gmail setup still require external Google
-configuration for a client-owned production environment. The current demo host has a
-four-workflow live Ask path through Cloud Storage `.txt` sources and Agent Search for
-Lease Renewals, Maintenance Work Order Intake, Move-Out + Deposit Disposition, and
-Owner Onboarding. Mock demo mode remains the safest unattended walkthrough for local
-show-and-tell resets.
+The repo currently supports local and demo scaffolding plus a documented
+client-production rebuild path. Live Firebase, source locations, Agent Search, Cloud
+Run, and Gmail setup still require external Google configuration for a client-owned
+production environment. The current demo host has a four-workflow live Ask path through
+Cloud Storage `.txt` sources and Agent Search for Lease Renewals, Maintenance Work
+Order Intake, Move-Out + Deposit Disposition, and Owner Onboarding. Mock demo mode
+remains the safest unattended walkthrough for local show-and-tell resets.
+
+Before any production deploy, run:
+
+```bash
+npm run preflight:production -- --env-file=.env.production.local
+```

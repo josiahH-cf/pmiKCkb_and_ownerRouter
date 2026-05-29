@@ -20,12 +20,14 @@ import {
 } from "../../scripts/delete-agent-search-data-store.mjs";
 import {
   buildSourceCorpusPlan,
+  readSourceManifest,
   validateSourceManifest,
 } from "../../scripts/source-corpus-manifest.mjs";
 import {
   buildLaunchSkeletonRecords,
   launchSkeletonDeleteFieldsFor,
 } from "../../scripts/seed-launch-skeletons.mjs";
+import { validateProductionCutoverConfig } from "../../scripts/preflight-production-cutover.mjs";
 import { demoRecords } from "../../scripts/demo-firestore.mjs";
 
 const oneSpaceMap = JSON.stringify({ "lease-renewals": "configured-id" });
@@ -318,6 +320,171 @@ describe("cheap live setup scripts", () => {
     expect(plan.importCommands[0]).toContain(
       "--source-id=gs://bucket/lease-renewals/source-b.txt",
     );
+  });
+
+  it("parameterizes source corpus import commands for client production", () => {
+    const entries = validateSourceManifest([
+      {
+        approval_status: "Approved",
+        data_store_id: "kb-lease-renewals-txt",
+        gcs_uri: "gs://pmikc-kb-production-sources/lease-renewals/source-a.txt",
+        sensitivity: "Low",
+        source_path: "temp/client-production-sources/lease-renewals/source-a.md",
+        space_id: "lease-renewals",
+      },
+    ]);
+    const plan = buildSourceCorpusPlan(entries, {
+      location: "us",
+      project: "pmikc-kb-production",
+      tempDir: "temp/source-corpus",
+    });
+
+    expect(plan.importCommands[0]).toContain("--project=pmikc-kb-production");
+    expect(plan.importCommands[0]).toContain("--location=us");
+    expect(plan.importCommands[0]).not.toContain("pmikckb-test");
+  });
+
+  it("validates the client-production source manifest template shape", () => {
+    const entries = readSourceManifest(
+      "docs/source-corpus/client-production-source-manifest.template.json",
+    );
+
+    expect(entries).toHaveLength(11);
+    expect(entries.map((entry) => entry.space_id)).toContain("move-in");
+    expect(entries.map((entry) => entry.space_id)).not.toContain("owner-email");
+    expect(entries.every((entry) => entry.approval_status === "Unreviewed")).toBe(true);
+    expect(entries.every((entry) => entry.gcs_uri.startsWith("gs://"))).toBe(true);
+  });
+
+  it("rejects demo-shaped production cutover configuration", () => {
+    const result = validateProductionCutoverConfig({
+      ALLOWED_HD: "pmikcmetro.com",
+      APP_BASE_URL: "http://localhost:3000",
+      ASK_DEMO_MODE: "true",
+      FIREBASE_PROJECT_ID: "pmikckb-test",
+      GCP_PROJECT_ID: "pmikckb-test",
+      LOCAL_DEMO_AUTH: "true",
+      NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
+      NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmikckb-test.firebaseapp.com",
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmikckb-test",
+      SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
+        "lease-renewals": "gs://pmikckb-test-lease-renewals-686407/lease-renewals/",
+      }),
+      SPACE_VERTEX_DATA_STORE_IDS: JSON.stringify({
+        "lease-renewals": "kb-lease-renewals-txt",
+      }),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContain(
+      "GCP_PROJECT_ID must not point at demo project pmikckb-test.",
+    );
+    expect(result.errors).toContain("ASK_DEMO_MODE must be false for client-production.");
+    expect(result.errors).toContain(
+      "LOCAL_DEMO_AUTH must be false for client-production.",
+    );
+    expect(result.errors).toContain(
+      "APP_BASE_URL must be the deployed production URL, not localhost.",
+    );
+    expect(result.errors).toContain(
+      "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN must not reference demo resource pmikckb-test.firebaseapp.com.",
+    );
+    expect(result.errors).toContain(
+      "SPACE_DRIVE_FOLDER_IDS.lease-renewals must not reference demo resource gs://pmikckb-test-lease-renewals-686407/lease-renewals/.",
+    );
+  });
+
+  it("rejects mismatched production Firebase project IDs", () => {
+    const result = validateProductionCutoverConfig({
+      ALLOWED_HD: "pmikcmetro.com",
+      APP_BASE_URL: "https://kb.pmikcmetro.example",
+      ASK_DEMO_MODE: "false",
+      FIREBASE_PROJECT_ID: "pmikc-kb-firebase",
+      GCP_PROJECT_ID: "pmikc-kb-production",
+      LOCAL_DEMO_AUTH: "false",
+      NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
+      NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmikc-kb-firebase.firebaseapp.com",
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmikc-kb-public",
+      SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
+        "lease-renewals": "gs://pmikc-kb-production-sources/lease-renewals/",
+      }),
+      SPACE_VERTEX_DATA_STORE_IDS: JSON.stringify({
+        "lease-renewals": "kb-lease-renewals-txt",
+      }),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContain(
+      "GCP_PROJECT_ID and FIREBASE_PROJECT_ID must match for cutover.",
+    );
+    expect(result.errors).toContain(
+      "FIREBASE_PROJECT_ID and NEXT_PUBLIC_FIREBASE_PROJECT_ID must match for cutover.",
+    );
+  });
+
+  it("rejects unreplaced production cutover placeholders", () => {
+    const result = validateProductionCutoverConfig({
+      ALLOWED_HD: "pmikcmetro.com",
+      APP_BASE_URL: "<deployed-production-url>",
+      ASK_DEMO_MODE: "false",
+      FIREBASE_PROJECT_ID: "pmikc-kb-production",
+      GCP_PROJECT_ID: "pmikc-kb-production",
+      LOCAL_DEMO_AUTH: "false",
+      NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
+      NEXT_PUBLIC_FIREBASE_APP_ID: "<from-client-firebase-web-app>",
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "<client-project-id>.firebaseapp.com",
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmikc-kb-production",
+      SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
+        "lease-renewals": "gs://<client-source-bucket>/lease-renewals/",
+      }),
+      SPACE_VERTEX_DATA_STORE_IDS: JSON.stringify({
+        "lease-renewals": "<kb-lease-renewals-data-store>",
+      }),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContain("APP_BASE_URL must be a valid URL.");
+    expect(result.errors).toContain(
+      "APP_BASE_URL must be replaced with a real production value.",
+    );
+    expect(result.errors).toContain(
+      "NEXT_PUBLIC_FIREBASE_APP_ID must be replaced with a real production value.",
+    );
+    expect(result.errors).toContain(
+      "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN must be replaced with a real production value.",
+    );
+    expect(result.errors).toContain(
+      "SPACE_DRIVE_FOLDER_IDS.lease-renewals must be replaced with a real production value.",
+    );
+    expect(result.errors).toContain(
+      "SPACE_VERTEX_DATA_STORE_IDS.lease-renewals must be replaced with a real production value.",
+    );
+  });
+
+  it("accepts a complete client-production preflight configuration", () => {
+    const result = validateProductionCutoverConfig({
+      ALLOWED_HD: "pmikcmetro.com",
+      APP_BASE_URL: "https://kb.pmikcmetro.example",
+      ASK_DEMO_MODE: "false",
+      FIREBASE_PROJECT_ID: "pmikc-kb-production",
+      GCP_PROJECT_ID: "pmikc-kb-production",
+      LOCAL_DEMO_AUTH: "false",
+      NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
+      NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmikc-kb-production.firebaseapp.com",
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmikc-kb-production",
+      SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
+        "lease-renewals": "gs://pmikc-kb-production-sources/lease-renewals/",
+      }),
+      SPACE_VERTEX_DATA_STORE_IDS: JSON.stringify({
+        "lease-renewals": "kb-lease-renewals-txt",
+      }),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.errors).toEqual([]);
   });
 
   it("guards Agent Search data-store deletion against active Space maps", () => {

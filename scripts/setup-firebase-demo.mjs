@@ -181,7 +181,7 @@ function readSetupError(error) {
     return [
       "Firebase project attachment is blocked by Google auth consent.",
       "The current account is project Owner, but the local credential is missing the Firebase Management scope.",
-      "A human must complete a browser consent flow for Firebase, or attach Firebase in the Firebase Console, then rerun npm run firebase:setup-demo.",
+      "A human must complete a browser consent flow for Firebase, or attach Firebase in the Firebase Console, then rerun npm run firebase:setup with the same project argument.",
     ].join("\n");
   }
 

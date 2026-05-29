@@ -74,10 +74,10 @@ npm run seed:demo
 approved demo workflows only when they are missing, so rerunning it does not overwrite
 demo edits.
 
-Live Google sign-in is a separate Auth gate:
+Live Google sign-in is a separate Auth gate for the demo project:
 
 ```bash
-npm run firebase:setup-auth
+npm run firebase:setup-auth-demo
 ```
 
 This command initializes Firebase Auth / Identity Platform, adds local/demo authorized
@@ -115,7 +115,7 @@ Current demo-host state:
 - Firebase Auth / Identity Platform is initialized.
 - Authorized domains are set for `localhost`, `127.0.0.1`,
   `pmikckb-test.firebaseapp.com`, and `pmikckb-test.web.app`.
-- Google sign-in provider setup is verified by `npm run firebase:setup-auth`.
+- Google sign-in provider setup is verified by `npm run firebase:setup-auth-demo`.
 - Live Google sign-in for `josiah.hunter@cherrybridge.ai` has been smoked through the
   Playwright utility, and that user has the Firebase custom claim `role=Admin`.
 - If the persistent browser profile expires or Google asks for fresh verification, use
@@ -141,7 +141,7 @@ emulator is Java-based:
    URI is `https://<project-id>.firebaseapp.com/__/auth/handler`.
 5. Enable Google sign-in for Firebase Auth / Identity Platform.
 6. Add authorized domains for local development and demo deployment.
-   `npm run firebase:setup-auth` adds `localhost`, `127.0.0.1`,
+   `npm run firebase:setup-auth -- --project=<project-id>` adds `localhost`, `127.0.0.1`,
    `<project-id>.firebaseapp.com`, and `<project-id>.web.app`.
 7. Set `ALLOWED_HD` to the demo Workspace domain.
 8. Configure server credentials through Application Default Credentials locally and an
@@ -165,7 +165,7 @@ Manual console fallback:
    `pmikckb-test.firebaseapp.com`, and `pmikckb-test.web.app`.
 5. Set `ALLOWED_HD` to the demo Workspace domain.
 6. Tell the agent when billing/Auth are active so it can rerun
-   `npm run firebase:setup-auth` and smoke real sign-in.
+   `npm run firebase:setup-auth-demo` and smoke real sign-in.
 
 Official references:
 
@@ -251,6 +251,13 @@ metadata commands:
 
 ```bash
 npm run corpus:plan -- --write-temp
+```
+
+For client production, pass explicit project/location values and use a copied
+production manifest:
+
+```bash
+npm run corpus:plan -- --manifest=temp/client-production-source-manifest.json --project=<client-project-id> --location=us --dry-run
 ```
 
 Use the guarded deletion helper for stale Agent Search data stores. It refuses to
@@ -489,7 +496,7 @@ For this demo project, Cloud Run source deploy required:
 - disabling the Cloud Run invoker IAM check on `pmi-kc-kb-demo`, because the
   organization policy rejected an `allUsers` invoker binding;
 - adding both Cloud Run hosts to Firebase Auth authorized domains with
-  `npm run firebase:setup-auth -- --authorized-domain=<host>`.
+  `npm run firebase:setup-auth-demo -- --authorized-domain=<host>`.
 
 If `--allow-unauthenticated` fails because org policy blocks `allUsers`, redeploy with
 `npm run deploy:demo -- --budget-confirmed --allow-multiple-spaces --skip-allow-unauthenticated --service-account=<service-account-email>`,
@@ -549,12 +556,44 @@ Provide these values to unblock live setup, without posting secrets into chat:
 
 ## Client Cutover
 
-At purchase/cutover:
+At purchase/cutover, follow `docs/client-production-cutover.md` as the authoritative
+ordered runbook. The short version is:
 
-1. Repeat setup in the PMI KC-owned GCP/Firebase project.
-2. Set `ALLOWED_HD=pmikcmetro.com`.
-3. Register a new Firebase Web app and OAuth client.
-4. Create client-owned Drive folders.
-5. Create client-owned source locations and Agent Search data stores.
-6. Re-seed Spaces from the repo.
-7. Re-run the smoke test in `docs/demo-cutover.md`.
+1. Create or select the PMI KC-owned GCP/Firebase project.
+2. Set `ALLOWED_HD=pmikcmetro.com`, `ASK_DEMO_MODE=false`, and
+   `LOCAL_DEMO_AUTH=false`.
+3. Register a new Firebase Web app and OAuth client with the neutral aliases:
+
+```bash
+npm run firebase:setup -- --project=<client-project-id> --web-app-name="PMI KC KB Production Web"
+npm run firebase:setup-auth -- --project=<client-project-id> --authorized-domain=<production-host>
+```
+
+4. Create Firestore, deploy rules/indexes, and re-seed Spaces from the repo.
+5. Use Cloud Storage `.txt` production source prefixes plus Agent Search data stores
+   unless Drive retrieval has been intentionally redesigned.
+6. Copy `docs/source-corpus/client-production-source-manifest.template.json` to an
+   ignored `temp/` manifest, replace placeholders with approved PMI KC source details,
+   and run:
+
+```bash
+npm run corpus:plan -- --manifest=temp/client-production-source-manifest.json --project=<client-project-id> --location=us --dry-run
+```
+
+7. Run production preflight before deploy:
+
+```bash
+npm run preflight:production -- --env-file=.env.production.local
+```
+
+8. Deploy with the neutral Cloud Run alias:
+
+```bash
+npm run deploy -- --project=<client-project-id> --service=pmi-kc-kb --budget-confirmed --allow-multiple-spaces --service-account=<runtime-service-account-email>
+```
+
+9. Assign first Admin/Approver roles, run the production smoke checklist in
+   `docs/client-production-cutover.md`, and record results in `docs/status.md`.
+
+Do not copy demo Firestore data, demo OAuth clients, demo service accounts, or demo
+Cloud Storage buckets into client production.

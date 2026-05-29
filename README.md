@@ -21,10 +21,12 @@ reset/smoke scripts, and deterministic verification.
 
 Spec 1 is not launch-complete yet. A cheap four-workflow Cloud Run demo works through
 Cloud Storage-backed Agent Search data stores, approved sanitized sources, Firebase
-Auth, Firestore, and Gemini. The real app still needs PMI KC-owned production source
-approval/import, production launch configuration, Gmail sender/recipient setup,
-production observability review, and read-only indexing of the separate Owner Router
-Drive package for the Owner Email Space.
+Auth, Firestore, and Gemini. The demo can be considered done only when the smoke matrix
+in `docs/demo-readiness.md` passes. The real app still needs PMI KC-owned production
+source approval/import, client-production launch configuration, Gmail
+sender/recipient setup or an explicit disabled decision, production observability
+review, and read-only indexing of the separate Owner Router Drive package for the
+Owner Email Space.
 
 ## Prerequisites
 
@@ -77,7 +79,9 @@ Run `npm run test:firestore` separately when Java is available on PATH.
 - `docs/status.md`: project audit log.
 - `docs/engineering.md`: conventions, security, and boundaries.
 - `docs/demo-show-and-tell.md`: exact local demo commands and client walkthrough.
+- `docs/demo-readiness.md`: demo done definition and smoke matrix.
 - `docs/demo-cutover.md`: demo-to-client environment and cutover model.
+- `docs/client-production-cutover.md`: ordered client-production rebuild runbook.
 - `docs/demo-slice.md`: current approved workflow demo slices.
 - `docs/demo-source-templates/`: safe source templates for current and future demos.
 - `docs/google-setup.md`: live Google/Firebase/Cloud Storage/Agent Search/Gmail setup
@@ -90,10 +94,13 @@ Run `npm run test:firestore` separately when Java is available on PATH.
    green.
 2. Keep the deployed auth smoke and four deployed live Ask smokes green at
    <https://pmi-kc-kb-demo-800237451321.us-central1.run.app/sign-in>.
-3. Use `npm run corpus:plan -- --write-temp` to stage sanitized `.txt` source copies,
-   then upload/import only approved sources into the intended demo or production
-   Agent Search data stores.
-4. Configure `KB_APPROVAL_*` and `APP_BASE_URL` only after a Gmail send-only sender
+3. Use `npm run corpus:plan -- --write-temp` for demo source staging, or the
+   parameterized production form in `docs/client-production-cutover.md` for client
+   resources.
+4. Run `npm run preflight:production -- --env-file=.env.production.local` before any
+   client-production deploy, then make those values active through `.env.local` or the
+   shell for seed/deploy commands.
+5. Configure `KB_APPROVAL_*` and `APP_BASE_URL` only after a Gmail send-only sender
    identity and recipient list are approved.
-5. Add mocked-auth Playwright e2e tests, staging Cloud Run, brand verification, and
+6. Add mocked-auth Playwright e2e tests, staging Cloud Run, brand verification, and
    final A-1 through A-17 acceptance.

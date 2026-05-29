@@ -44,9 +44,10 @@ Status after the 2026-05-29 live Ask smoke:
   Cherrybridge demo project. Four approved demo workflows have live Ask coverage. All
   launch Space shells, all-Space editable fallbacks, all-Space Approval Queue loading,
   change-log display, Gmail send-only notification plumbing, Admin observability, and
-  source-corpus planning helpers are implemented. PMI KC-owned source approval/import,
-  Gmail sender/recipient configuration, production observability review, and read-only
-  Owner Router Drive indexing remain cutover work.
+  source-corpus planning helpers are implemented. A demo done checklist and
+  client-production cutover runbook now exist. PMI KC-owned source approval/import,
+  Gmail sender/recipient configuration or explicit disabled decision, production
+  observability review, and read-only Owner Router Drive indexing remain cutover work.
 - `npm run verify` and `npm run test:firestore` pass on the current host.
 - The Owner Router remains correctly outside this runtime. Its separate repo must be
   initialized before final KB acceptance test A-16 can pass.
@@ -294,7 +295,8 @@ npm run verify:router-boundary
   handling still require source-backed confirmation before becoming final SOP content.
 - E2E tests are documented but not active until mocked auth/session fixtures exist.
 - Production source locations, Agent Search data store IDs, OAuth clients, Gmail
-  sender/recipients, and GCP projects are not known yet.
+  sender/recipients, and GCP projects are not known yet. `npm run preflight:production`
+  guards against accidentally deploying demo settings into client production.
 - The separate Owner Router repo exists locally, but the Owner Router Drive package
   must still be completed and indexed read-only before the Owner Email Space can be
   fully verified.
@@ -306,9 +308,11 @@ npm run verify:router-boundary
 1. Keep `npm run verify` and `npm run test:firestore` green.
 2. Keep the four-workflow local demo smoke, deployed auth smoke, and four deployed live
    Ask smokes green.
-3. Use `npm run corpus:plan -- --write-temp` and `npm run seed:launch-skeletons -- --dry-run`
-   when preparing additional approved demo or production staging sources.
-4. Configure Gmail send-only approval notifications only after sender and recipient
+3. Use `docs/demo-readiness.md` to keep the demo done state explicit.
+4. Use `docs/client-production-cutover.md`, `npm run corpus:plan -- --project=<client-project-id>`,
+   and `npm run preflight:production` when preparing client-owned production sources
+   and deployment.
+5. Configure Gmail send-only approval notifications only after sender and recipient
    approval.
-5. Complete M5a/M5b: brand verification, mocked-auth Playwright e2e, staging Cloud
+6. Complete M5a/M5b: brand verification, mocked-auth Playwright e2e, staging Cloud
    Run, usability tests, Owner Router read-only indexing, and production cutover.

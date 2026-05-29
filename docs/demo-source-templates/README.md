@@ -60,6 +60,12 @@ tracked source files and their intended Cloud Storage `.txt` object names. Use
 `npm run corpus:plan -- --write-temp` to create ignored `.txt` copies and print the
 upload, import, and `sources_meta` seed commands.
 
+For client production, do not reuse the demo manifest. Copy
+`docs/source-corpus/client-production-source-manifest.template.json` to an ignored
+`temp/` manifest, replace the placeholder bucket/source paths with approved PMI KC
+source files, and run `npm run corpus:plan` with explicit `--project` and `--location`
+arguments.
+
 ## Approval Rule
 
 The approved templates are useful for demos because they show real PMI KC pain without

@@ -11,18 +11,20 @@ Gmail/Drive configuration, not runtime code here.
 
 ## Route Table
 
-| Need                                   | Read                               |
-| -------------------------------------- | ---------------------------------- |
-| Product source of truth                | `docs/spec.md`, then `docs/specs/` |
-| Milestones and acceptance gates        | `docs/plan.md`                     |
-| How to work next                       | `docs/implement.md`                |
-| Current audit log and open items       | `docs/status.md`                   |
-| Engineering conventions and boundaries | `docs/engineering.md`              |
-| Client demo walkthrough                | `docs/demo-show-and-tell.md`       |
-| Demo and cutover model                 | `docs/demo-cutover.md`             |
-| First working demo slice               | `docs/demo-slice.md`               |
-| Separate Owner Router repo setup       | `docs/router-repo.md`              |
-| Google setup details                   | `docs/google-setup.md`, `SETUP.md` |
+| Need                                   | Read                                |
+| -------------------------------------- | ----------------------------------- |
+| Product source of truth                | `docs/spec.md`, then `docs/specs/`  |
+| Milestones and acceptance gates        | `docs/plan.md`                      |
+| How to work next                       | `docs/implement.md`                 |
+| Current audit log and open items       | `docs/status.md`                    |
+| Engineering conventions and boundaries | `docs/engineering.md`               |
+| Client demo walkthrough                | `docs/demo-show-and-tell.md`        |
+| Demo done checklist                    | `docs/demo-readiness.md`            |
+| Demo and cutover model                 | `docs/demo-cutover.md`              |
+| Client production cutover              | `docs/client-production-cutover.md` |
+| First working demo slice               | `docs/demo-slice.md`                |
+| Separate Owner Router repo setup       | `docs/router-repo.md`               |
+| Google setup details                   | `docs/google-setup.md`, `SETUP.md`  |
 
 ## Project Map
 

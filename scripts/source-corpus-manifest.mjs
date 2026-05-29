@@ -10,6 +10,8 @@ const defaultManifest = join(
   "source-corpus",
   "demo-live-source-manifest.json",
 );
+const DEFAULT_PROJECT = "pmikckb-test";
+const DEFAULT_LOCATION = "us";
 const approvalStatuses = new Set([
   "Unreviewed",
   "Transcript-derived",
@@ -27,7 +29,10 @@ export function parseCorpusArgs(argv = process.argv.slice(2)) {
 
   return {
     dryRun: argv.includes("--dry-run"),
+    location:
+      readArg("--location") ?? process.env.VERTEX_SEARCH_LOCATION ?? DEFAULT_LOCATION,
     manifest: readArg("--manifest") ?? defaultManifest,
+    project: readArg("--project") ?? process.env.GCP_PROJECT_ID ?? DEFAULT_PROJECT,
     tempDir: readArg("--temp-dir") ?? join(root, "temp", "source-corpus"),
     writeTemp: argv.includes("--write-temp"),
   };
@@ -46,7 +51,11 @@ export function validateSourceManifest(value) {
   return value.map((entry, index) => validateEntry(entry, index));
 }
 
-export function buildSourceCorpusPlan(entries, tempDir = "temp/source-corpus") {
+export function buildSourceCorpusPlan(entries, options = {}) {
+  const config = typeof options === "string" ? { tempDir: options } : options;
+  const tempDir = config.tempDir ?? "temp/source-corpus";
+  const project = config.project ?? DEFAULT_PROJECT;
+  const location = config.location ?? DEFAULT_LOCATION;
   const preparedEntries = entries.map((entry) => {
     const tempPath = join(tempDir, entry.space_id, basenameAsTxt(entry.source_path));
     return {
@@ -63,8 +72,8 @@ export function buildSourceCorpusPlan(entries, tempDir = "temp/source-corpus") {
       ([dataStoreId, dataStoreEntries]) =>
         [
           "npm run import:agent-search --",
-          "--project=pmikckb-test",
-          "--location=us",
+          `--project=${project}`,
+          `--location=${location}`,
           `--data-store=${dataStoreId}`,
           "--create-data-store",
           ...dataStoreEntries.map((entry) => `--source-id=${entry.gcs_uri}`),
@@ -88,7 +97,7 @@ export function buildSourceCorpusPlan(entries, tempDir = "temp/source-corpus") {
 export async function main(argv = process.argv.slice(2)) {
   const args = parseCorpusArgs(argv);
   const entries = readSourceManifest(args.manifest);
-  const plan = buildSourceCorpusPlan(entries, args.tempDir);
+  const plan = buildSourceCorpusPlan(entries, args);
 
   if (args.writeTemp) {
     writeTempCopies(plan.entries);

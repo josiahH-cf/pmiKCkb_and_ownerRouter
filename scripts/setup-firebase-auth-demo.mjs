@@ -269,16 +269,16 @@ function readSetupError(error) {
 
   if (message.includes("BILLING_NOT_ENABLED")) {
     return [
-      "Firebase Auth setup is blocked because billing is not enabled for the demo project.",
-      "A human must attach or create a billing account for pmikckb-test in Google Cloud Console.",
-      "After billing is active, rerun npm run firebase:setup-auth.",
+      "Firebase Auth setup is blocked because billing is not enabled for the target project.",
+      "A human must attach or create a billing account for the selected Google Cloud project.",
+      "After billing is active, rerun npm run firebase:setup-auth with the same project argument.",
     ].join("\n");
   }
 
   if (message.includes("CONFIGURATION_NOT_FOUND")) {
     return [
       "Firebase Auth setup is blocked because the Auth configuration does not exist yet.",
-      "Enable Authentication once in Firebase Console or attach billing, then rerun npm run firebase:setup-auth.",
+      "Enable Authentication once in Firebase Console or attach billing, then rerun npm run firebase:setup-auth with the same project argument.",
     ].join("\n");
   }
 
