@@ -1,5 +1,6 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { readServerConfig, type ServerConfig } from "@/lib/config/server";
+import { demoWorkflows } from "@/lib/demo/data";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import type { SourceState } from "@/lib/source-state";
 import { launchSpaces } from "@/lib/spaces";
@@ -87,6 +88,65 @@ export async function readAdminObservability({
     ) as Partial<Record<SourceState, number>>,
     topSpaces: topSpaceCounts(recentAskLogs),
   };
+}
+
+export function readDemoAdminObservability({
+  config = readServerConfig(),
+}: {
+  config?: ServerConfig;
+} = {}): AdminObservability {
+  const demoSpaceIds = new Set(demoWorkflows.map((workflow) => workflow.spaceId));
+  const openPlaceholders = demoWorkflows.flatMap((workflow) =>
+    workflow.placeholders.filter((placeholder) => placeholder.status === "Open"),
+  );
+
+  return {
+    askLast30Days: 0,
+    askLast7Days: 0,
+    notificationFailures: 0,
+    openPlaceholdersByOwner: countBy(
+      openPlaceholders,
+      (placeholder) => placeholder.owner_uid,
+    ),
+    queueDepthByType: {
+      Placeholder: openPlaceholders.length,
+      SOP: demoWorkflows.flatMap((workflow) =>
+        workflow.sops.filter((sop) => sop.status === "In Review"),
+      ).length,
+      Template: demoWorkflows.flatMap((workflow) =>
+        workflow.templates.filter((template) => template.status === "In Review"),
+      ).length,
+    },
+    setupHealth: launchSpaces.map((space) => ({
+      dataStoreConfigured:
+        Boolean(config.spaceVertexDataStoreIds[space.id]?.trim()) ||
+        demoSpaceIds.has(space.id),
+      readOnly: space.readOnly === true,
+      sourceMetaCount: demoSpaceIds.has(space.id) ? 1 : 0,
+      sourceTargetConfigured:
+        Boolean(config.spaceDriveFolderIds[space.id]?.trim()) ||
+        demoSpaceIds.has(space.id),
+      spaceId: space.id,
+      spaceName: space.name,
+    })),
+    sourceStateCounts: {
+      "No Reliable Source Found": 1,
+      "Verified Source": demoWorkflows.length,
+    },
+    topSpaces: demoWorkflows.map((workflow) => ({
+      count: 1,
+      spaceId: workflow.spaceId,
+      spaceName:
+        launchSpaces.find((space) => space.id === workflow.spaceId)?.name ??
+        workflow.spaceId,
+    })),
+  };
+}
+
+export function adminObservabilityUnavailableMessage(config: ServerConfig) {
+  return config.askDemoMode
+    ? "Using local demo metrics because Firestore observability is not available in this session."
+    : "Admin observability is unavailable. Refresh Google credentials or check Firestore setup before a live/API-backed demo.";
 }
 
 async function readCollection(db: Firestore, collection: string) {

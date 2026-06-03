@@ -1,5 +1,9 @@
 # Client Production Cutover Runbook
 
+> Current governance note, 2026-06-03: this is the PMI KC KB production rebuild
+> runbook. Cross-product integration and cutover planning for PMI KC KB, Lease Renewal
+> Agent, and Gmail Inbox 0 lives in `docs/integration-cutover-plan.md`.
+
 This is the clean PMI KC-owned environment path. Do not copy demo Firestore exports,
 demo OAuth clients, demo service accounts, or demo Cloud Storage buckets into
 production.
@@ -208,7 +212,7 @@ Production smoke checklist:
 - Editor can save an editable record but cannot approve.
 - Approver/Admin can approve, return, or resolve queue items.
 - The app does not write to RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Sheets,
-  Gmail inboxes, Drive folders, or Owner Router sources.
+  Gmail inboxes, Drive folders, or Gmail Inbox 0/legacy Owner Router source artifacts.
 
 ## Production Blockers
 
@@ -219,6 +223,7 @@ Production cannot be declared complete until:
 - The source/data-store maps point only at client-owned resources.
 - Gmail notification sender and recipients are approved, or notifications remain
   disabled by explicit decision.
-- Owner Router Drive package exists in the separate Owner Router repo/folder and is
-  indexed read-only by the KB Owner Email Space for final A-16.
+- Gmail Inbox 0 source package exists, with any reused legacy Owner Router artifacts
+  renamed or clearly mapped, and is indexed read-only by the KB Owner Email Space for
+  final owner-email verification.
 - Final smoke results and any exceptions are recorded in `docs/status.md`.

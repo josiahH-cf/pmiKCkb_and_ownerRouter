@@ -1,7 +1,7 @@
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { demoWorkflows } from "@/lib/demo/data";
 import { listPlaceholders, listSops, listTemplates } from "@/lib/firestore/editable";
 import type { PlaceholderRecord, SopRecord, TemplateRecord } from "@/lib/firestore/types";
-import { launchApprovalQueueItems } from "@/lib/launch/content";
 import { launchSpaces } from "@/lib/spaces";
 
 export interface ApprovalQueueItem {
@@ -87,5 +87,36 @@ export async function loadApprovalQueue(
 }
 
 export function demoApprovalQueueItems(): ApprovalQueueItem[] {
-  return launchApprovalQueueItems();
+  return demoWorkflows.flatMap((workflow) => {
+    const spaceName =
+      launchSpaces.find((space) => space.id === workflow.spaceId)?.name ??
+      workflow.spaceId;
+
+    return [
+      ...workflow.sops.map((sop) => ({
+        id: sop.id,
+        kind: "SOP" as const,
+        spaceId: workflow.spaceId,
+        spaceName,
+        status: sop.status,
+        title: sop.title,
+      })),
+      ...workflow.templates.map((template) => ({
+        id: template.id,
+        kind: "Template" as const,
+        spaceId: workflow.spaceId,
+        spaceName,
+        status: template.status,
+        title: template.name,
+      })),
+      ...workflow.placeholders.map((placeholder) => ({
+        id: placeholder.id,
+        kind: "Placeholder" as const,
+        spaceId: workflow.spaceId,
+        spaceName,
+        status: placeholder.status,
+        title: placeholder.missing_detail,
+      })),
+    ];
+  });
 }

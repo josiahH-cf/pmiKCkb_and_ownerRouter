@@ -1,11 +1,40 @@
 # Demo Readiness
 
-This document defines when the current PMI KC KB demo can be called done. It is not a
-production acceptance checklist.
+This document defines when the current PMI KC demo can be called done. It is not a
+production acceptance checklist. Current product routing lives in `docs/north-star.md`
+and `docs/products/`; older Owner Router/Dan's AI Assistant names in demo artifacts are
+legacy source context for Gmail Inbox 0.
 
 ## Demo Done Definition
 
 The demo environment is done when all of these are true:
+
+- One-command local operator rehearsal passes:
+
+```powershell
+.\scripts\demo-operator.ps1 -Mode TestRun -SkipInstall
+```
+
+If Google credentials or the demo project are unavailable, the approved fallback is:
+
+```powershell
+.\scripts\demo-operator.ps1 -Mode TestRun -SkipInstall -OfflineLocal
+```
+
+This fallback proves the same four screenshare workflows from local seed records. It is
+acceptable for a sales/demo call, but it is not evidence that the Google-backed editable
+API or live Agent Search path is healthy.
+
+- Gmail Inbox 0 demo artifacts are present. The current source artifacts still live in
+  the old local Owner Router package until naming and migration are approved:
+
+```powershell
+C:\Users\josia\Documents\github-windows\pmi-kc-owner-router\scripts\verify-owner-router.ps1
+```
+
+This checks the Gmail-native demo package, required labels, required anti-hallucination
+phrases, and absence of obvious Apps Script send/draft capabilities. It does not touch
+live Gmail and does not make the old separate-repo model active again.
 
 - Local demo reset and workflow smoke pass:
 
@@ -39,8 +68,14 @@ npm run seed:launch-skeletons -- --dry-run
 
 - Gmail approval notifications remain disabled unless an approved sender, recipient
   list, and deployed `APP_BASE_URL` are configured.
-- The demo script clearly says Owner Router and the PMI KC production source corpus are
-  out of demo scope.
+- The demo script clearly says Gmail Inbox 0 live Gmail setup, Lease Renewal Agent
+  runtime, and the PMI KC production source corpus are out of demo scope.
+- If showing Gmail Inbox 0, the demo uses sanitized owner-email scenarios from the old
+  Owner Router artifact package and clearly says the KB does not own live Gmail, write
+  Gmail drafts, alter labels, or send mail.
+- The customer-close story uses `docs/customer-close-demo.md` so the sales pitch is
+  KB first, Gmail Inbox 0 second, Lease Renewal Agent as a scoped next lane, and
+  production cutover last.
 
 ## What Counts As Demo Scope
 
@@ -66,7 +101,8 @@ The demo is not production-complete until separate client-production work finish
   data stores.
 - Gmail send-only sender/recipient approval if notifications are enabled.
 - Production observability review.
-- Owner Router Drive package and read-only Owner Email indexing for final A-16.
+- Gmail Inbox 0 Drive/source package and read-only Owner Email indexing for final KB
+  owner-email verification.
 - Mocked-auth Playwright e2e coverage for non-human CI.
 
 ## Current Demo Snapshot
@@ -75,3 +111,10 @@ As of 2026-05-29, `docs/status.md` records passing local demo smoke, deployed au
 smoke, deployed live Ask smokes for the four approved workflows, Firestore rules tests,
 and full verification. Re-run the smoke commands above before any new show-and-tell
 and record the new date/result in `docs/status.md`.
+
+For a fast local show, use `.\scripts\demo-operator.ps1 -Mode Showtime -SkipInstall`.
+When Google reauth is blocked, use
+`.\scripts\demo-operator.ps1 -Mode Showtime -SkipInstall -OfflineLocal`. After the call,
+run `.\scripts\demo-operator.ps1 -Mode Teardown` with the same fallback flag used for
+showtime to reset records when available and stop only the dev server started by the
+operator.

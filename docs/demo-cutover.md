@@ -1,5 +1,9 @@
 # Demo And Client Cutover Model
 
+> Current governance note, 2026-06-03: this file is mainly the PMI KC KB environment
+> cutover model. Cross-product cutover across KB, Lease Renewal Agent, and Gmail Inbox 0
+> lives in `docs/integration-cutover-plan.md`.
+
 This repo is built demo-first. The demo environment should prove the PMI KC KB in the
 builder's Google Workspace before the app is reconfigured for PMI KC Metro.
 
@@ -84,8 +88,8 @@ Before declaring client-production ready:
 - An Editor cannot approve.
 - An Approver/Admin can approve or resolve.
 - No app code writes to Gmail, Drive, RentVine, LeadSimple, DotLoop, QuickBooks, Boom,
-  operational Sheets, or the Owner Router folder beyond explicitly allowed send-only
-  notification behavior.
+  operational Sheets, or Gmail Inbox 0 source folders beyond explicitly allowed
+  send-only notification behavior.
 
 ## Current State
 

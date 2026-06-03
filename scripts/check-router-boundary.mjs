@@ -9,7 +9,12 @@ const requiredFiles = [
   "docs/specs/spec-2-technical-spec.md",
   "docs/specs/spec-3-operating-north-star-spec.md",
   "docs/specs/spec-4-implementation-meta-implementation-spec.md",
+  "docs/north-star.md",
+  "docs/products/pmi-kc-kb.md",
+  "docs/products/lease-renewal-agent.md",
+  "docs/products/gmail-inbox-zero.md",
   "docs/router-repo.md",
+  "docs/legacy/owner-router-separate-repo.md",
 ];
 
 for (const file of requiredFiles) {
@@ -21,6 +26,8 @@ for (const file of requiredFiles) {
 const constants = readFileSync(join(root, "lib/constants.ts"), "utf8");
 for (const expected of [
   "PMI KC KB",
+  "Lease Renewal Agent",
+  "Gmail Inbox 0",
   "Owner Router",
   "Owner Router - PMI KC Metro",
   "Draft — Review before sending",
@@ -33,13 +40,28 @@ for (const expected of [
 
 const routerDoc = readFileSync(join(root, "docs/router-repo.md"), "utf8");
 for (const expected of [
-  "pmi-kc-owner-router",
-  "Owner Router - PMI KC Metro",
-  "Owner Router / New",
-  "No standalone app",
+  "Superseded",
+  "Gmail Inbox 0",
+  "docs/products/gmail-inbox-zero.md",
+  "docs/legacy/owner-router-separate-repo.md",
 ]) {
   if (!routerDoc.includes(expected)) {
-    throw new Error(`Router repo handoff is missing: ${expected}`);
+    throw new Error(`Superseded router stub is missing: ${expected}`);
+  }
+}
+
+const gmailInboxZeroDoc = readFileSync(
+  join(root, "docs/products/gmail-inbox-zero.md"),
+  "utf8",
+);
+for (const expected of [
+  "owner-email-first",
+  "Human send",
+  "No autonomous send",
+  "No Gmail draft creation",
+]) {
+  if (!gmailInboxZeroDoc.includes(expected)) {
+    throw new Error(`Gmail Inbox 0 boundary is missing: ${expected}`);
   }
 }
 

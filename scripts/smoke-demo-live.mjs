@@ -8,6 +8,7 @@ const profileDir = resolve(readArg("--profile") ?? "temp/live-auth-profile");
 const baseUrl = readArg("--base-url") ?? "http://localhost:3000";
 const timeoutMs = Number(readArg("--timeout-ms") ?? 30000);
 const shouldReset = !hasArg("--no-reset");
+const allowLocalFallback = hasArg("--allow-local-fallback");
 const headless = !hasArg("--headed");
 const demoAskCases = [
   {
@@ -112,7 +113,12 @@ async function smokeSpaceSave(page) {
   for (const testCase of demoSpaceCases) {
     await openSignedIn(page, `/spaces/${testCase.path}`);
     await expectBodyText(page, testCase.title);
-    await expectBodyText(page, "Editable API connected.");
+    await expectAnyBodyText(page, [
+      "Editable API connected.",
+      ...(allowLocalFallback
+        ? ["Using local demo records until Firebase setup is complete."]
+        : []),
+    ]);
 
     const editor = page.locator("#sop-body");
     const originalBody = await editor.inputValue();
@@ -123,10 +129,16 @@ async function smokeSpaceSave(page) {
 
     await editor.fill(`${originalBody}\n\nSmoke save check ${new Date().toISOString()}`);
     await page.getByRole("button", { name: "Save" }).click();
-    await expectBodyText(page, "Saved to editable API.");
+    await expectAnyBodyText(page, [
+      "Saved to editable API.",
+      ...(allowLocalFallback ? ["Saved local demo changes."] : []),
+    ]);
     await editor.fill(originalBody);
     await page.getByRole("button", { name: "Save" }).click();
-    await expectBodyText(page, "Saved to editable API.");
+    await expectAnyBodyText(page, [
+      "Saved to editable API.",
+      ...(allowLocalFallback ? ["Saved local demo changes."] : []),
+    ]);
     await screenshot(page, `02-space-save-${testCase.name}`);
   }
 }
@@ -134,7 +146,10 @@ async function smokeSpaceSave(page) {
 async function smokeApprovalQueue(page) {
   await openSignedIn(page, "/approval-queue");
   await expectBodyText(page, "Approval Queue");
-  await expectBodyText(page, "Editable API connected.");
+  await expectAnyBodyText(page, [
+    "Editable API connected.",
+    ...(allowLocalFallback ? ["Using local demo queue."] : []),
+  ]);
   await screenshot(page, "03-approval-before");
 
   const maxQueueActions =
@@ -154,12 +169,18 @@ async function smokeApprovalQueue(page) {
 
     if (approveCount > 0) {
       await approve.first().click();
-      await expectBodyText(page, "Approved through editable API.");
+      await expectAnyBodyText(page, [
+        "Approved through editable API.",
+        ...(allowLocalFallback ? ["Updated local demo queue."] : []),
+      ]);
       continue;
     }
 
     await resolve.first().click();
-    await expectBodyText(page, "Resolved through editable API.");
+    await expectAnyBodyText(page, [
+      "Resolved through editable API.",
+      ...(allowLocalFallback ? ["Updated local demo queue."] : []),
+    ]);
   }
 
   await expectBodyText(page, "No in-review items are present in the approval queue.");
@@ -230,6 +251,18 @@ async function expectBodyText(page, text) {
     { timeout: timeoutMs },
   );
   record("text", { text });
+}
+
+async function expectAnyBodyText(page, texts) {
+  await page.waitForFunction(
+    (expectedTexts) =>
+      expectedTexts.some((expectedText) =>
+        document.body.innerText.includes(expectedText),
+      ),
+    texts,
+    { timeout: timeoutMs },
+  );
+  record("text", { text: texts.join(" | ") });
 }
 
 async function screenshot(page, name) {

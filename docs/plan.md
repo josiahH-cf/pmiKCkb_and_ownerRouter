@@ -1,318 +1,226 @@
-# PMI KC KB Plan
+# PMI KC Three-Product Plan
 
 ## Product Summary
 
-PMI KC KB is a standalone internal web app for source-backed operational Q&A, editable
-SOPs, placeholders, tool/template directories, and approval workflows. It is separate
-from the Owner Router, which remains Gmail/Drive-native in its own repository.
+This repo governs three purchased PMI KC products:
 
-## Goals
+- PMI KC KB: existing source-backed web app runtime.
+- Lease Renewal Agent: separate product lane; discovery and approval before runtime.
+- Gmail Inbox 0: owner-email-first Gmail workflow, successor to Owner Router/Dan's AI
+  Assistant.
 
-- Restrict access to approved Google Workspace users.
-- Return cited answers only when grounding supports them.
-- Return `No Reliable Source Found` when sources are weak.
-- Preserve editable SOPs, templates, tools, placeholders, change logs, and source
-  metadata in Firestore.
-- Index one Drive folder per Space through Vertex AI Search.
-- Send internal `KB Approval` notifications only.
-- Keep no-write boundaries for all external systems and the Owner Router folder.
-
-## Non-Goals
-
-- No Owner Router implementation in this repo.
-- No autonomous send.
-- No Gmail content ingestion.
-- No Gmail draft creation.
-- No writes to RentVine, LeadSimple, DotLoop, QuickBooks, Boom, operational Sheets, or
-  the Owner Router Drive folder.
-- No multi-tenant app.
+Older KB-only and separate Owner Router repo plans are legacy unless this plan or a
+product doc explicitly preserves a safety boundary.
 
 ## Current Audit Snapshot
 
-Status after the 2026-05-29 live Ask smoke:
+- PMI KC KB has a working demo/runtime foundation: auth boundaries, editable API/UI
+  paths, Approval Queue behavior, Admin observability, live retrieval boundaries, Gemini
+  answer validation, Ask logging/capture, source-state handling, tests, demo scripts,
+  and deployment helpers.
+- The KB is not client-production complete. It still needs PMI KC-owned resources,
+  approved production sources, auth/domain/role setup, source/data-store maps, Gmail
+  notification decision, and final acceptance.
+- Lease Renewal Agent is purchased but not specified. Existing Lease Renewals KB
+  material is reference material, not a standalone product spec.
+- Gmail Inbox 0 is the active client-facing name for the Owner Router/Dan's AI
+  Assistant direction. The default v1 scope is owner-email-first and Gmail-native.
+- The old sibling Owner Router artifact repo exists locally and may be mined for Gmail
+  Inbox 0 source material, but active governance now lives in this monorepo.
 
-- M0, M1, and M2a are complete for the KB scaffold.
-- Demo M2b/M2c slices are working for Lease Renewals, Maintenance Work Order Intake,
-  Move-Out + Deposit Disposition, and Owner Onboarding with real Firebase Auth, live
-  demo Firestore records, editable APIs, Approval Queue actions, and reset/smoke
-  scripts.
-- M3a/M3b code foundations are implemented: live retrieval boundary, source metadata
-  filtering, Gemini JSON validation, citation downgrade, Ask logging, Ask capture, and
-  eval execution through the Ask service.
-- Spec 1 is not launch-complete yet. A cheap four-workflow demo now runs through Cloud
-  Storage, Agent Search, Gemini, Firebase Auth, Firestore, and Cloud Run in the
-  Cherrybridge demo project. Four approved demo workflows have live Ask coverage. All
-  launch Space shells, all-Space editable fallbacks, all-Space Approval Queue loading,
-  change-log display, Gmail send-only notification plumbing, Admin observability, and
-  source-corpus planning helpers are implemented. A demo done checklist and
-  client-production cutover runbook now exist. PMI KC-owned source approval/import,
-  Gmail sender/recipient configuration or explicit disabled decision, production
-  observability review, and read-only Owner Router Drive indexing remain cutover work.
-- `npm run verify` and `npm run test:firestore` pass on the current host.
-- The Owner Router remains correctly outside this runtime. Its separate repo must be
-  initialized before final KB acceptance test A-16 can pass.
+## Cross-Product Phases
 
-## Milestones
-
-### M0 - Scaffold (complete)
+### P0 - Governance Realignment
 
 Acceptance criteria:
 
-- Specs preserved under `docs/specs/`.
-- KB spec copied to `docs/spec.md`.
-- Next.js app builds locally.
-- Unit/eval tests pass.
-- `scripts/verify.sh` passes.
-- Owner Router repo plan exists without Router runtime code.
+- `AGENTS.md` routes to the three product lanes.
+- `docs/north-star.md`, `docs/products/`, and cross-product checklists exist.
+- Legacy separate-Owner-Router docs are moved or marked as superseded.
+- `docs/status.md` records the realignment and next step.
 
 Validation:
 
 ```bash
-bash scripts/verify.sh
+npm run format:check
+git diff --check
 ```
 
-### M1 - Auth And Roles (complete)
+### P1 - Discovery And Source Inventory
 
 Acceptance criteria:
 
-- Google sign-in is wired through Firebase Auth / Identity Platform.
-- `ALLOWED_HD` is enforced server-side.
-- Editor, Approver, and Admin roles are represented in custom claims and route guards.
-- Editor cannot approve content.
+- Product owners and acceptance reviewers are named.
+- Client answers the concrete asks in `docs/client-checklist.md`.
+- `docs/research-backlog.md` is updated with answered, open, and blocked items.
+- Each product lane distinguishes confirmed facts from assumptions.
+
+Validation:
+
+```bash
+npm run format:check
+```
+
+### P2 - Access And Account Setup
+
+Acceptance criteria:
+
+- PMI KC-owned GCP/Firebase project and billing path are confirmed.
+- Workspace domains, test users, and authorized domains are approved.
+- Drive folder/source ownership is known.
+- Gmail Inbox 0 setup authority and safe test approach are approved.
+- No secrets or raw client data are committed.
+
+Validation:
+
+```bash
+npm run host:check
+npm run preflight:production -- --env-file=.env.production.local
+```
+
+### P3 - Integration Capability Verification
+
+Acceptance criteria:
+
+- KB production integrations are verified against client-owned or approved staging
+  resources.
+- Gmail Inbox 0 label/filter/Gem or prompt-pack capability is verified without touching
+  live client mail unsafely.
+- Lease Renewal Agent candidate integrations are classified as read-only, write-capable,
+  unsupported, or blocked.
+- Unverified capabilities remain in `docs/research-backlog.md`.
+
+Validation:
+
+```bash
+npm test
+npm run test:firestore
+```
+
+### P4 - Product V1 Scope Lock
+
+Acceptance criteria:
+
+- PMI KC KB production cutover scope is locked.
+- Lease Renewal Agent has approved v1 inputs, outputs, trigger model, permissions,
+  source requirements, and acceptance scenarios.
+- Gmail Inbox 0 has approved label names, owner-email sender rules, human send model,
+  source files, and live testing plan.
+
+Validation:
+
+```bash
+npm run format:check
+```
+
+### P5 - Build And Migration Preparation
+
+Acceptance criteria:
+
+- KB production source manifests are prepared from approved PMI KC sources.
+- Lease Renewal Agent implementation tickets and tests are created only after P4.
+- Gmail Inbox 0 artifacts are migrated or renamed from Owner Router source material
+  only after P4.
+- Dry-runs exist for imports, setup scripts, seeders, and preflights.
+
+Validation:
+
+```bash
+npm run corpus:plan -- --manifest=<approved-manifest> --project=<client-project-id> --location=us --dry-run
+npm run seed:launch-skeletons -- --dry-run
+```
+
+### P6 - Testing, Training, And Acceptance
+
+Acceptance criteria:
+
+- KB production smoke covers auth, Ask, citations, no-source behavior, edits,
+  approvals, and Admin visibility.
+- Lease Renewal Agent acceptance scenarios pass once runtime exists.
+- Gmail Inbox 0 test scenarios pass against approved safe threads or sanitized threads.
+- Dan, Bailey, and named operators complete training and signoff tasks.
 
 Validation:
 
 ```bash
 npm run typecheck
 npm test
-npm run build
-```
-
-### M2 - Firestore Editable Layer (partly complete)
-
-M2 is split so future work does not confuse the API foundation with a usable editing
-experience.
-
-#### M2a - Editable API Foundation (complete)
-
-Acceptance criteria:
-
-- Collections match the spec data model.
-- SOP/template/tool/placeholder CRUD uses server-side permission checks.
-- Change-log entries are created for mutations.
-- Soft delete is the only delete path.
-
-Validation:
-
-```bash
-npm test
-npm run typecheck
-```
-
-#### M2b - Editable Space UI (all launch Space shell complete; e2e remains)
-
-Acceptance criteria:
-
-- The approved demo Spaces have detail pages backed by the editable API routes.
-- Users can view SOPs, templates, tools, and placeholders for the Space.
-- Editors can create or update editable records.
-- Read-only Spaces do not expose edit controls.
-- The same editable experience works for every writable launch Space.
-- The Owner Email Space remains read-only and points to the Owner Router source docs.
-- Space pages show change-log history for saves, approvals, and placeholder resolution.
-
-Validation:
-
-```bash
-npm test
-npm run build
-```
-
-#### M2c - Environment Seeding (demo and launch skeleton paths complete)
-
-Acceptance criteria:
-
-- Spaces can be seeded idempotently from environment-safe config.
-- The four approved workflow demo records can be created without secrets or client
-  data.
-- Demo seed data is clearly separated from production/client content.
-- Production seed paths create all 12 launch Spaces without demo records or client
-  secrets.
-
-Validation:
-
-```bash
-npm test
-npm run typecheck
-```
-
-### M3 - Retrieval And Ask
-
-#### M3a - Live Retrieval Boundary (code complete; cheap live smoke passed)
-
-Acceptance criteria:
-
-- Vertex AI Search is called through a boundary module.
-- Zero grounding documents returns `No Reliable Source Found` without a model call.
-- Retrieval can search a specific Space or all configured Spaces.
-- Deprecated and high-sensitivity sources are excluded using `sources_meta`.
-- Missing source targets or Agent Search data store IDs produce explicit Admin/setup
-  errors.
-
-Validation:
-
-```bash
-npm test
-npm run build
-```
-
-#### M3b - Gemini Answer Contract And Capture Tasks (code complete)
-
-Acceptance criteria:
-
-- Gemini output is schema-validated.
-- Invalid citations are stripped.
-- If all citations are stripped, the answer is downgraded to
-  `No Reliable Source Found`.
-- Ask logs persist source state, citations, draft, and feedback.
-- Partial/no-source answers can create owned placeholders from Ask.
-- The 50-case eval set executes against the Ask service, not only the seed file shape.
-
-Validation:
-
-```bash
-npm test
-npm run build
-```
-
-### M4 - Spaces And Approval Queue
-
-#### M4a - All-Space Editing
-
-Acceptance criteria:
-
-- All 12 launch Spaces exist, including read-only Owner Email.
-- SOP inline edit, template edit, tool links, placeholder creation, and change-log
-  display work across all writable Spaces.
-- The Owner Email Space cannot be edited from the KB and renders its Router source
-  pointers as read-only.
-
-Validation:
-
-```bash
-npm test
-npm run build
-```
-
-#### M4b - Approval Queue And Notifications
-
-Acceptance criteria:
-
-- Approval Queue loads in-review SOPs/templates and filled placeholders across all
-  Spaces.
-- Queue is visible to all signed-in users and actionable only by Approvers.
-- Approve, reject/return, and resolve actions write change-log entries with actor,
-  timestamp, and note.
-- `KB Approval` notification template sends via Gmail send-only scope only.
-- No Gmail read, modify, or compose scope is introduced.
-
-Validation:
-
-```bash
-npm test
-npm run build
-```
-
-### M5 - Acceptance And Deployment
-
-#### M5a - Admin, Observability, And Staging
-
-Acceptance criteria:
-
-- Brand tokens are verified against the brand site.
-- Cloud Run deployment is documented and repeatable.
-- Admin dashboard shows indexing status, Ask counts, open-placeholder counts by owner,
-  Approval Queue depth by type, and setup health.
-- Staging runs with production-like demo flags disabled unless explicitly set for a
-  show-and-tell.
-
-Validation:
-
-```bash
 bash scripts/verify.sh
 ```
 
-#### M5b - Final Acceptance And Cutover
+### P7 - Production Cutover And Monitoring
 
 Acceptance criteria:
 
-- Eval set has at least 50 cases and runs in CI with zero hallucination-rule failures.
-- Playwright critical flows pass with mocked auth/session fixtures.
-- All A-1 through A-17 acceptance criteria are testable.
-- A-16 passes after the separate Owner Router repo/folder exists and is indexed
-  read-only as the Owner Email Space.
-- Usability tasks are completed by Chastity, Estelle, and Shane.
-- Production cutover uses a clean PMI KC-owned GCP/Firebase/Drive setup, not copied
-  demo Firestore data.
+- Go-live owner, support window, rollback owner, and monitoring owner are named.
+- Production deploy/setup steps are executed from client-owned resources.
+- Smoke tests pass after cutover.
+- Exceptions and next iteration work are recorded in `docs/status.md`.
 
 Validation:
 
 ```bash
+npm run preflight:production -- --env-file=.env.production.local
 bash scripts/verify.sh
 ```
 
-## Parallel Spec 2 Track
+## Product Lane Gates
 
-Spec 2 is implemented in a separate repository named `pmi-kc-owner-router`. It should
-start after M3a live retrieval groundwork is underway, and it must be ready before M5b
-because KB acceptance criterion A-16 depends on Router source docs being indexed.
+### PMI KC KB
 
-Acceptance criteria:
+Current state: runtime exists; production cutover remains.
 
-- Separate repo exists outside this KB runtime.
-- Spec 2, Spec 3, and Spec 4 are preserved in that repo.
-- Six canonical Drive file templates exist.
-- Nine exact `Owner Router / *` labels are documented.
-- Prompt pack or Gem system prompt uses `Needs Verification: <fact>` and
-  `Draft — Review before sending` verbatim.
-- Optional Apps Script is scoped to label creation, sheet headers, and health digest;
-  it cannot send, mutate existing thread labels, or write outside the Router folder.
-- Router acceptance checklist and historical-thread dry-run templates exist.
-- KB gets read-only access to `Owner Router - PMI KC Metro`; Router does not call KB.
+Key gates:
 
-Validation:
+- Approved production sources and source-state metadata.
+- Client-owned GCP/Firebase/Auth/Firestore/Agent Search setup.
+- Production `APP_BASE_URL`, source maps, data-store maps, and role assignments.
+- KB approval Gmail notification enabled only after sender/recipient approval, or
+  explicitly disabled.
 
-```bash
-npm run verify:router-boundary
-```
+### Lease Renewal Agent
+
+Current state: discovery required.
+
+Key gates:
+
+- Confirm trigger model, source systems, allowed actions, human review points, and
+  acceptance scenarios.
+- Confirm whether it is a web app feature, scheduled workflow, email assistant,
+  internal queue, or another shape.
+- No runtime work until scope is locked.
+
+### Gmail Inbox 0
+
+Current state: owner-email-first planning lane with reusable Owner Router artifacts.
+
+Key gates:
+
+- Confirm label names, owner sender rules, Drive source folder/files, Gem or prompt-pack
+  path, and safe live testing approach.
+- Preserve human send authority.
+- No autonomous send, no unapproved Gmail read/modify runtime, and no system-of-record
+  writes.
 
 ## Risks And Unknowns
 
-- Brand token hex values still need verification against the live brand site.
-- Live Agent Search and Gemini adapters have been smoked against four cheap Cloud
-  Storage data stores with `ASK_DEMO_MODE=false`; Bailey/Dan approval is assumed for
-  sanitized demo messaging, but missing legal wording, fees, cadence, and exception
-  handling still require source-backed confirmation before becoming final SOP content.
-- E2E tests are documented but not active until mocked auth/session fixtures exist.
-- Production source locations, Agent Search data store IDs, OAuth clients, Gmail
-  sender/recipients, and GCP projects are not known yet. `npm run preflight:production`
-  guards against accidentally deploying demo settings into client production.
-- The separate Owner Router repo exists locally, but the Owner Router Drive package
-  must still be completed and indexed read-only before the Owner Email Space can be
-  fully verified.
-- `npm run test:firestore` requires Java JDK 11+ on PATH; this host currently has a
-  working setup path via `npm run host:check`.
+- Client production resources and admin access are not yet available.
+- Lease Renewal Agent could require integrations or permissions not yet known.
+- Gmail Inbox 0 naming may require label migration from Owner Router language.
+- Some historical demo/status/spec material still mentions Bailey Brain, Dan's AI
+  Assistant, and Owner Router; those names must be read as demo/legacy context unless
+  updated by product docs.
+- Raw client source material must stay out of git.
+- Google credentials on this host have recently required reauth for Google-backed demo
+  paths.
 
 ## Recommended Development Sequence
 
-1. Keep `npm run verify` and `npm run test:firestore` green.
-2. Keep the four-workflow local demo smoke, deployed auth smoke, and four deployed live
-   Ask smokes green.
-3. Use `docs/demo-readiness.md` to keep the demo done state explicit.
-4. Use `docs/client-production-cutover.md`, `npm run corpus:plan -- --project=<client-project-id>`,
-   and `npm run preflight:production` when preparing client-owned production sources
-   and deployment.
-5. Configure Gmail send-only approval notifications only after sender and recipient
-   approval.
-6. Complete M5a/M5b: brand verification, mocked-auth Playwright e2e, staging Cloud
-   Run, usability tests, Owner Router read-only indexing, and production cutover.
+1. Keep the KB demo and verification path green.
+2. Complete P0 governance realignment and status update.
+3. Use `docs/client-checklist.md` to collect client answers and access.
+4. Update product lane docs as client answers arrive.
+5. Complete KB production cutover readiness from `docs/client-production-cutover.md`.
+6. Scope Lease Renewal Agent before any runtime implementation.
+7. Rename/migrate Owner Router artifacts into Gmail Inbox 0 only after label/testing
+   decisions are approved.

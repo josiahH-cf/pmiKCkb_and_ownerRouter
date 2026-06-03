@@ -46,11 +46,11 @@ export default async function SpaceDetailPage({ params }: SpaceDetailPageProps) 
 
         {space.readOnly ? (
           <div className="panel">
-            <h2>Read-only Router sources</h2>
+            <h2>Read-only Gmail Inbox 0 sources</h2>
             <p className="muted">
-              Owner Email is sourced from the separate Owner Router Drive folder. The KB
-              can index and cite those files after read-only retrieval is configured, but
-              it must not edit the Router folder.
+              Owner Email is sourced from the Gmail Inbox 0 source package. The KB can
+              index and cite those files after read-only retrieval is configured, but it
+              must not edit Gmail Inbox 0 sources or live Gmail.
             </p>
             <ul className="compact-list">
               {ownerEmailReadOnlySources.map((source) => (

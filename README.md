@@ -1,32 +1,28 @@
-# PMI KC KB
+# PMI KC Product Workstream
 
-PMI KC KB is the internal, source-backed knowledge base for PMI KC Metro. The app is
-intended to help the team ask operational questions, browse process Spaces, capture
-missing knowledge as placeholders, review SOP/template changes, and produce copyable
-drafts that are grounded in approved sources.
+This repository now governs the three purchased PMI KC product lanes:
 
-This repository is the KB scaffold only. The Owner Router is a separate Gmail/Drive
-workflow and should be created in its own repository when ready.
+- PMI KC KB: the existing source-backed knowledge and handoff web app.
+- Lease Renewal Agent: a separate renewal workflow product track that still needs
+  discovery before runtime work.
+- Gmail Inbox 0: owner-email-first Gmail workflow, successor to Owner Router/Dan's AI
+  Assistant.
+
+Older KB-only and separate Owner Router repo language is legacy. Use `AGENTS.md`,
+`docs/north-star.md`, and `docs/products/` before older demo or spec material.
 
 ## Current Status
 
-The KB has passed the foundation, demo-slice, M3a retrieval-boundary, and M3b answer
-contract milestones. It includes Firebase Google sign-in/session boundaries,
-Firestore editable-layer APIs, four approved workflow demo slices, all launch Space
-shells, all-Space editable UI fallbacks, all-Space Approval Queue loading, change-log
-display, Gmail send-only approval notification plumbing, Admin observability, Vertex AI
-Search retrieval boundaries, Gemini JSON answer validation, Ask logging, Ask capture
-tasks, source-state constants, unit/eval tests, Firestore rules tests, demo
-reset/smoke scripts, and deterministic verification.
+The PMI KC KB runtime is the only built application in this repo today. It includes
+Firebase Google sign-in/session boundaries, Firestore editable-layer APIs, approved demo
+workflow slices, Approval Queue behavior, Admin observability, Vertex AI Search
+retrieval boundaries, Gemini answer validation, Ask logging, Ask capture tasks,
+source-state constants, unit/eval tests, Firestore rules tests, demo reset/smoke
+scripts, and deterministic verification.
 
-Spec 1 is not launch-complete yet. A cheap four-workflow Cloud Run demo works through
-Cloud Storage-backed Agent Search data stores, approved sanitized sources, Firebase
-Auth, Firestore, and Gemini. The demo can be considered done only when the smoke matrix
-in `docs/demo-readiness.md` passes. The real app still needs PMI KC-owned production
-source approval/import, client-production launch configuration, Gmail
-sender/recipient setup or an explicit disabled decision, production observability
-review, and read-only indexing of the separate Owner Router Drive package for the
-Owner Email Space.
+Lease Renewal Agent and Gmail Inbox 0 are active product lanes, but runtime work remains
+blocked until requirements, permissions, access, and acceptance gates are confirmed in
+their product docs.
 
 ## Prerequisites
 
@@ -72,35 +68,32 @@ Run `npm run test:firestore` separately when Java is available on PATH.
 
 ## Documentation Map
 
-- `docs/spec.md`: KB technical spec copied from the original root spec.
-- `docs/specs/`: all four original specs preserved.
-- `docs/plan.md`: milestones, goals, risks, and validation gates.
-- `docs/implement.md`: runbook for future Codex work.
-- `docs/status.md`: project audit log.
+- `AGENTS.md`: active agent routing.
+- `docs/north-star.md`: current three-product direction and safety rules.
+- `docs/products/`: product-lane docs for KB, Lease Renewal Agent, and Gmail Inbox 0.
+- `docs/plan.md`: phases, milestones, acceptance gates, risks, and sequence.
+- `docs/integration-cutover-plan.md`: cross-product integration and cutover plan.
+- `docs/client-checklist.md`: client-owned asks, access, source, and training needs.
+- `docs/engineering-checklist.md`: engineering tasks after admin access.
+- `docs/ai-execution-workflow.md`: daily AI workflow and blocked-work protocol.
+- `docs/research-backlog.md`: unanswered questions and research items.
+- `docs/implement.md`: operating runbook for future Codex work.
+- `docs/status.md`: project audit log and next recommended task.
 - `docs/engineering.md`: conventions, security, and boundaries.
-- `docs/demo-show-and-tell.md`: exact local demo commands and client walkthrough.
-- `docs/demo-readiness.md`: demo done definition and smoke matrix.
-- `docs/demo-cutover.md`: demo-to-client environment and cutover model.
-- `docs/client-production-cutover.md`: ordered client-production rebuild runbook.
-- `docs/demo-slice.md`: current approved workflow demo slices.
-- `docs/demo-source-templates/`: safe source templates for current and future demos.
-- `docs/google-setup.md`: live Google/Firebase/Cloud Storage/Agent Search/Gmail setup
-  runbook.
-- `docs/router-repo.md`: separate Owner Router repo plan.
+- `docs/spec.md`: KB technical spec, interpreted through the current north star.
+- `docs/specs/`: original preserved specs.
+- `docs/client-production-cutover.md`: KB production rebuild runbook.
+- `docs/google-setup.md`: Google/Firebase/Cloud Storage/Agent Search/Gmail setup notes.
+- `docs/legacy/`: superseded context, including the old separate Owner Router plan.
 
 ## Next Steps
 
-1. Keep the local four-workflow show-and-tell path and four-workflow live Ask smokes
-   green.
-2. Keep the deployed auth smoke and four deployed live Ask smokes green at
-   <https://pmi-kc-kb-demo-800237451321.us-central1.run.app/sign-in>.
-3. Use `npm run corpus:plan -- --write-temp` for demo source staging, or the
-   parameterized production form in `docs/client-production-cutover.md` for client
-   resources.
-4. Run `npm run preflight:production -- --env-file=.env.production.local` before any
-   client-production deploy, then make those values active through `.env.local` or the
-   shell for seed/deploy commands.
-5. Configure `KB_APPROVAL_*` and `APP_BASE_URL` only after a Gmail send-only sender
-   identity and recipient list are approved.
-6. Add mocked-auth Playwright e2e tests, staging Cloud Run, brand verification, and
-   final A-1 through A-17 acceptance.
+1. Keep the PMI KC KB verification and demo smoke path green.
+2. Collect client answers from `docs/client-checklist.md`.
+3. Fill the open research items in `docs/research-backlog.md`.
+4. Do not build Lease Renewal Agent runtime until `docs/products/lease-renewal-agent.md`
+   has approved v1 scope and acceptance gates.
+5. Convert Owner Router/Dan's AI Assistant artifacts into the Gmail Inbox 0 lane only
+   after label naming, Gmail access, and testing approach are approved.
+6. Use `docs/integration-cutover-plan.md` and `docs/client-production-cutover.md` before
+   any client-owned production deployment.

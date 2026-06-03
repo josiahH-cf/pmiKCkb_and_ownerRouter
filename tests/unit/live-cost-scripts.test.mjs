@@ -28,7 +28,7 @@ import {
   launchSkeletonDeleteFieldsFor,
 } from "../../scripts/seed-launch-skeletons.mjs";
 import { validateProductionCutoverConfig } from "../../scripts/preflight-production-cutover.mjs";
-import { demoRecords } from "../../scripts/demo-firestore.mjs";
+import { buildDemoResetRecords, demoRecords } from "../../scripts/demo-firestore.mjs";
 
 const oneSpaceMap = JSON.stringify({ "lease-renewals": "configured-id" });
 const multiSpaceMap = JSON.stringify({
@@ -545,5 +545,16 @@ describe("cheap live setup scripts", () => {
     expect(
       demoRecords.filter((record) => record.collection === "placeholders"),
     ).toHaveLength(4);
+  });
+
+  it("keeps launch skeleton records out of default demo resets", () => {
+    const defaultReset = buildDemoResetRecords("2026-06-02T00:00:00.000Z");
+    const resetWithSkeletons = buildDemoResetRecords("2026-06-02T00:00:00.000Z", {
+      includeLaunchSkeletons: true,
+    });
+
+    expect(defaultReset).toHaveLength(demoRecords.length);
+    expect(defaultReset.map((record) => record.id)).not.toContain("launch-move-in-sop");
+    expect(resetWithSkeletons.map((record) => record.id)).toContain("launch-move-in-sop");
   });
 });

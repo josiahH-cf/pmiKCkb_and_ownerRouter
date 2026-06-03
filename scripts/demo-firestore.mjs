@@ -192,17 +192,12 @@ export const demoRecords = [
 ];
 
 export async function resetDemoRecords({
+  includeLaunchSkeletons = false,
   note = "Reset safe four-workflow demo records.",
 } = {}) {
   const db = getDemoFirestore();
   const now = new Date().toISOString();
-  const resetRecords = [
-    ...demoRecords,
-    ...buildLaunchSkeletonRecords(now).map((record) => ({
-      ...record,
-      deleteFields: launchSkeletonDeleteFieldsFor(record.collection),
-    })),
-  ];
+  const resetRecords = buildDemoResetRecords(now, { includeLaunchSkeletons });
 
   for (const record of resetRecords) {
     const ref = db.collection(record.collection).doc(record.id);
@@ -243,6 +238,18 @@ export async function resetDemoRecords({
         note,
       });
   }
+}
+
+export function buildDemoResetRecords(now, { includeLaunchSkeletons = false } = {}) {
+  return [
+    ...demoRecords,
+    ...(includeLaunchSkeletons
+      ? buildLaunchSkeletonRecords(now).map((record) => ({
+          ...record,
+          deleteFields: launchSkeletonDeleteFieldsFor(record.collection),
+        }))
+      : []),
+  ];
 }
 
 function getDemoFirestore() {

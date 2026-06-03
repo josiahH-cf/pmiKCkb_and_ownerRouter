@@ -1,4 +1,9 @@
-# Owner Router Repo Template
+# Legacy Owner Router Repo Template
+
+> Superseded on 2026-06-03. Do not use this to start new work unless the active Gmail
+> Inbox 0 product doc explicitly calls for a historical artifact migration.
+>
+> Current active lane: `docs/products/gmail-inbox-zero.md`.
 
 Use this as a seed for the separate `pmi-kc-owner-router` repository.
 

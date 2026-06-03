@@ -28,8 +28,9 @@ browse/edit approved demo Spaces, and move changes through a minimal review path
 ## Scaffolded Outside The Demo Slices
 
 - Other launch Spaces remain listed but do not need full detail workflows yet.
-- Owner Email remains read-only and not fully verifiable until the separate Owner Router
-  folder exists.
+- Owner Email remains read-only and not fully verifiable until the Gmail Inbox 0 source
+  package and owner-email indexing approach are approved. Legacy Owner Router artifacts
+  may be reused as source material.
 - The current live Ask demo corpus includes all four approved demo workflows in the
   Cherrybridge demo project.
 - Gmail `KB Approval` notifications remain deferred until the Approval Queue is backed

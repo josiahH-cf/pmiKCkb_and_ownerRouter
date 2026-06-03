@@ -28,6 +28,7 @@
     "firebase:setup-auth": "node scripts/setup-firebase-auth-demo.mjs",
     "firebase:setup-auth-demo": "node scripts/setup-firebase-auth-demo.mjs --project=pmikckb-test",
     "firebase:set-role": "node scripts/set-firebase-user-role.mjs",
+    "demo:operator": "node scripts/demo-operator.mjs",
     "demo:reset": "node scripts/reset-demo-records.mjs",
     "check:live-cost": "node scripts/check-live-cost.mjs",
     "corpus:plan": "node scripts/source-corpus-manifest.mjs",
@@ -67,7 +68,7 @@
     "playwright-core": "^1.60.0",
     "prettier": "3.7.3",
     "typescript": "5.9.3",
-    "vitest": "4.0.14"
+    "vitest": "^4.1.8"
   },
   "overrides": {
     "postcss": "8.5.10",

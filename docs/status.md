@@ -1,4 +1,9 @@
-# PMI KC KB Status
+# PMI KC Status
+
+> Current governance note, 2026-06-03: entries before the three-product governance
+> realignment are historical. They may mention KB-only scope, separate Owner Router repo
+> setup, Bailey Brain, or Dan's AI Assistant. Active routing now lives in `AGENTS.md`,
+> `docs/north-star.md`, and `docs/products/`.
 
 ## Initial Scaffold
 
@@ -1576,3 +1581,264 @@ Open items:
 - Client production still requires PMI KC-owned project/admin/billing access and
   approved production source files; the repo now has a more autonomous runbook, but it
   cannot create or approve those external assets by itself.
+
+## One-Command Local Demo Operator
+
+- Date: 2026-05-29
+- Added `npm run demo:operator` and `scripts/demo-operator.ps1` for local demo
+  rehearsal, showtime startup, and teardown.
+- The operator supports:
+  - `TestRun`: host check, demo reset, local dev server start/reuse, local workflow
+    smoke, launch skeleton dry-run, and operator link generation.
+  - `Showtime`: clean reset, quick local smoke, final reset, and browser launch for
+    the local sign-in flow.
+  - `Teardown`: demo reset and stop only the dev server started by the operator.
+- Updated `docs/demo-readiness.md` and `docs/demo-show-and-tell.md` so the preferred
+  tomorrow-demo path is the operator script with local demo sign-in.
+
+Validation status:
+
+- `npm test -- tests/unit/demo-operator.test.mjs`: passed with 7 tests.
+- `npm run format:check`: passed after formatting the new operator and tests.
+- `npm run typecheck`: passed.
+- `npm test`: passed with 128 tests across 23 files.
+- `node scripts/demo-operator.mjs --mode=test-run --skip-install --no-open-browser --dry-run`:
+  passed and printed the expected command plan.
+- `.\scripts\demo-operator.ps1 -Mode TestRun -SkipInstall -NoOpenBrowser -DryRun`:
+  passed and printed the same plan through the PowerShell wrapper.
+- `.\scripts\demo-operator.ps1 -Mode TestRun -SkipInstall -NoOpenBrowser`: passed. It
+  verified host setup, reset demo records, started/reused the local dev server,
+  passed `smoke:demo-live`, dry-ran launch skeleton seeding, and generated
+  `temp/demo-operator/demo-links.html`.
+- `npm run demo:operator -- --mode=showtime --skip-install --no-open-browser --dry-run`
+  and `npm run demo:operator -- --mode=teardown --dry-run`: passed.
+- `git diff --check`: passed.
+
+Open items:
+
+- When the presenter is ready, run
+  `.\scripts\demo-operator.ps1 -Mode Showtime -SkipInstall`.
+- After the demo, run `.\scripts\demo-operator.ps1 -Mode Teardown`.
+
+## June 2 Demo Readiness Hardening
+
+- Date: 2026-06-02
+- Added explicit offline-local demo operator support for the same four-workflow
+  screenshare when Google project access or ADC reauth is unavailable.
+- The offline path skips Google host checks and Firestore resets, starts the app with
+  local demo auth/retrieval, runs `smoke:demo-live` with local fallback assertions, and
+  still generates the operator links page.
+- Narrowed default fallback/demo reset behavior back to the four approved workflow
+  slices. Launch skeletons remain available through `npm run seed:launch-skeletons`
+  and are no longer part of default demo reset or fallback Approval Queue.
+- Added demo-safe Admin observability fallback so stale Google credentials do not
+  surface raw `invalid_grant` messages during screenshare.
+- Updated `docs/demo-show-and-tell.md` and `docs/demo-readiness.md` with normal
+  API-backed and offline-local runbooks.
+- Updated Vitest to `4.1.8` after npm audit reported a critical advisory in the older
+  dev dependency.
+
+Validation status:
+
+- `npm run demo:operator -- --mode=test-run --skip-install --offline-local --no-open-browser --timeout-ms=120000`:
+  passed; local app started, four-workflow smoke passed with local fallback, launch
+  skeleton seed dry-run passed, and operator links were generated.
+- `npm run demo:operator -- --mode=teardown --offline-local --no-open-browser`: passed
+  and stopped the operator-started dev server.
+- `npm test`: passed with 132 tests.
+- `npm run test:firestore`: passed with 8 Firestore Security Rules tests.
+- `npm run build`: passed.
+- `npm audit --json`: passed with 0 vulnerabilities after the Vitest update.
+- `bash scripts/verify.sh`: passed after the demo-hardening changes; it reinstalled
+  from the lockfile, checked formatting, linted, typechecked, ran 132 tests, passed
+  Router boundary verification, and built the app.
+
+Google-backed demo status:
+
+- `npm run host:check`: blocked because `pmikckb-test` is not currently accessible in
+  this non-interactive shell. Earlier direct `gcloud` checks reported Google reauth
+  failure.
+- `npm run demo:reset`: blocked by ADC `invalid_grant` / `invalid_rapt`, so Firestore
+  demo resets require Google reauth before the normal API-backed path is used.
+- `npm run check:live-cost -- --json`: fails under the current user env because
+  `ASK_DEMO_MODE=true`, as intended by the guard.
+- Four-workflow live-cost preflight with explicit live-mode overrides passed for Lease
+  Renewals, Maintenance Work Order Intake, Move-Out + Deposit Disposition, and Owner
+  Onboarding.
+
+Next recommended task:
+
+- For today's PMI KC Metro screenshare, use
+  `.\scripts\demo-operator.ps1 -Mode Showtime -SkipInstall -OfflineLocal` unless Google
+  reauth is completed first. If showing the normal API-backed path, refresh `gcloud`
+  and Application Default Credentials, then rerun `npm run host:check`,
+  `npm run demo:reset`, the normal demo operator, and the live Ask smokes.
+
+## Dan's AI Assistant Demo Segment
+
+- Date: 2026-06-02
+- Implemented the approved native-Gmail Owner Router plan in the separate sibling repo
+  `C:\Users\josia\Documents\github-windows\pmi-kc-owner-router`.
+- Added customer-facing positioning for "Dan's AI Assistant" while preserving Owner
+  Router as the implementation/spec name.
+- Added demo-safe sanitized owner-email scenarios for Renewal Follow-Up, Maintenance
+  Approval, and Accounting / Disbursement.
+- Added a Dan's AI Assistant runbook to this KB show-and-tell doc so the segment can be
+  shown after the KB workflow without implying the KB app owns Gmail.
+- Added an Owner Router artifact verifier that checks the required labels, required
+  source-safety language, demo package files, and absence of obvious Apps Script
+  send/draft capabilities.
+- No KB runtime code, Gmail read/modify/compose scope, Gmail draft creation, Owner
+  Router runtime, autonomous send, or external-system write path was added.
+
+Validation status:
+
+- `C:\Users\josia\Documents\github-windows\pmi-kc-owner-router\scripts\verify-owner-router.ps1`:
+  passed.
+- `bash scripts/verify.sh`: passed after the Dan's AI Assistant demo docs update. It
+  reinstalled from the lockfile, checked formatting, linted, typechecked, ran 132
+  tests, passed Router boundary verification, and built the app.
+- `.\scripts\demo-operator.ps1 -Mode Showtime -SkipInstall -OfflineLocal -NoOpenBrowser -TimeoutMs 120000`:
+  passed; the local app is running at `http://localhost:3000/sign-in`, and
+  `smoke:demo-live` passed with local fallback.
+
+Next recommended task:
+
+- During the customer show, use the KB local demo first, then show the Dan's AI
+  Assistant segment from the sibling Owner Router repo with sanitized scenarios only.
+
+## Customer Close Demo Revamp
+
+- Date: 2026-06-02
+- Reworked the demo narrative around the new sales goal: Bailey Brain as the
+  source-backed operating layer, with Dan's AI Assistant as the Gmail-native owner-email
+  extension.
+- Added `docs/customer-close-demo.md` as the concise run order for the screenshare.
+- Updated `docs/demo-show-and-tell.md` so Dan's AI Assistant is a core sales segment
+  after Approval Queue, not an optional appendix.
+- Added explicit transition, sell, and close language focused on reducing context
+  rebuild, keeping Gmail native, preserving human send authority, and making Dan's
+  preferences reusable through approved documents.
+- No runtime behavior, Gmail scope, Gmail draft creation, autonomous send, or
+  system-of-record write path was added.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `C:\Users\josia\Documents\github-windows\pmi-kc-owner-router\scripts\verify-owner-router.ps1`:
+  passed.
+
+## Three-Product Governance Realignment
+
+- Date: 2026-06-03
+- Replaced active KB-only routing with the purchased three-product direction:
+  PMI KC KB, Lease Renewal Agent, and Gmail Inbox 0.
+- Added the new active governance docs:
+  - `docs/north-star.md`
+  - `docs/products/README.md`
+  - `docs/products/pmi-kc-kb.md`
+  - `docs/products/lease-renewal-agent.md`
+  - `docs/products/gmail-inbox-zero.md`
+  - `docs/integration-cutover-plan.md`
+  - `docs/client-checklist.md`
+  - `docs/engineering-checklist.md`
+  - `docs/ai-execution-workflow.md`
+  - `docs/research-backlog.md`
+- Updated `AGENTS.md`, `README.md`, `docs/plan.md`, `docs/implement.md`, and
+  `docs/engineering.md` so future AI sessions start from the three-lane model.
+- Marked old separate Owner Router direction as legacy:
+  - moved the full separate-repo plan to
+    `docs/legacy/owner-router-separate-repo.md`;
+  - kept `docs/router-repo.md` as a superseded stub so old links do not break;
+  - marked `docs/router-repo-template/README.md` as legacy.
+- Updated active demo/cutover docs so Gmail Inbox 0 is the active client-facing owner
+  email lane, while Owner Router/Dan's AI Assistant references are legacy source
+  context until naming and artifact migration are approved.
+- Added a governance notice to `docs/spec.md`; it remains the KB technical spec, but
+  cross-product routing now comes from `docs/north-star.md` and `docs/products/`.
+- Updated the Owner Email read-only copy and launch source labels from separate Owner
+  Router wording to Gmail Inbox 0 source-package wording.
+- Updated `scripts/check-router-boundary.mjs` so the verification guard now enforces
+  active Gmail Inbox 0/legacy-boundary docs instead of requiring the retired separate
+  Router handoff.
+- Added constants for `Lease Renewal Agent` and `Gmail Inbox 0` while preserving
+  legacy Owner Router constants used by existing KB references.
+
+Validation status:
+
+- `npm run format:check`: initially failed on new markdown wrapping, then passed after
+  formatting the named files.
+- `git diff --check`: passed.
+- First `bash scripts/verify.sh`: failed at `npm run verify:router-boundary` because
+  the old guard still required the separate `pmi-kc-owner-router` handoff in
+  `docs/router-repo.md`.
+- `npm run verify:router-boundary`: passed after updating the guard.
+- Final `bash scripts/verify.sh`: passed. It reinstalled dependencies, checked
+  formatting, linted, typechecked, ran 132 tests, passed the updated boundary check,
+  and built the app.
+
+Open blockers and client asks:
+
+- PMI KC KB production needs client-owned GCP/Firebase billing/project access,
+  authorized domains, role users, approved production source files, source sensitivity
+  decisions, source/data-store maps, and a Gmail notification enabled/disabled
+  decision.
+- Lease Renewal Agent needs v1 scope: trigger model, source systems, allowed actions,
+  human review points, required source documents, and acceptance scenarios.
+- Gmail Inbox 0 needs v1 setup decisions: final label naming, owner sender rules,
+  Dan/Bailey access model, Drive source package, Gemini Gem/prompt-pack availability,
+  and safe live-Gmail test approach.
+- No raw customer records, live Gmail contents, credentials, ledgers, bank data, SSNs,
+  or full lease packets may be committed.
+
+Repository note:
+
+- The worktree already contained uncommitted demo-hardening/runtime changes before this
+  pass. They were preserved and not reverted.
+
+Next recommended task:
+
+- Use `docs/client-checklist.md` to collect client answers, then update
+  `docs/products/lease-renewal-agent.md`, `docs/products/gmail-inbox-zero.md`, and
+  `docs/research-backlog.md` before starting any new runtime product work.
+
+## Three-Product Governance Review And Repair Pass
+
+- Date: 2026-06-03
+- Reviewed the three-product governance migration against the pasted plan, active
+  routing docs, product-lane docs, cutover docs, status log, and validation guard.
+- Confirmed the active docs now route new work through PMI KC KB, Lease Renewal Agent,
+  and Gmail Inbox 0, while preserving original specs and marking the old separate
+  Owner Router direction as legacy.
+- Found and repaired a status-log ordering bug: the new Three-Product Governance
+  Realignment section had been inserted inside the older Dan's AI Assistant entry. It
+  now appears after the June 2 demo/customer-close entries as the latest active status.
+- Fixed stale wording in `docs/integration-cutover-plan.md` that still described
+  monorepo governance as a remaining Gmail Inbox 0 blocker after governance had already
+  been added.
+- Fixed a small no-write wording typo in `docs/products/lease-renewal-agent.md`
+  (`Sheet` to `Sheets`).
+- Ran stale-context searches for active KB-only/separate-Owner-Router routing language.
+  Remaining matches outside preserved specs are historical status text, explicit legacy
+  notices, or intentional legacy source-context references.
+- Ran an oversized-file check excluding expected generated/dependency files; no
+  unexpected tracked or working files over 300 KB were found.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+- `bash scripts/verify.sh`: passed. It reinstalled dependencies, checked formatting,
+  linted, typechecked, ran 132 tests, passed the updated boundary check, and built the
+  app.
+
+Remaining risk:
+
+- The worktree still includes earlier uncommitted demo-hardening/runtime changes that
+  predate the governance migration. They were not reverted or folded into this review.
+- Preserved specs and historical status entries still contain Owner Router language by
+  design. Active docs now carry override/legacy notices, but a future human reviewer may
+  still choose to do a deeper spec rewrite after the client confirms final Gmail Inbox 0
+  naming and label migration.

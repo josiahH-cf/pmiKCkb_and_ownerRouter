@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { readAdminObservability } from "@/lib/admin/observability";
+import {
+  adminObservabilityUnavailableMessage,
+  readAdminObservability,
+  readDemoAdminObservability,
+} from "@/lib/admin/observability";
 import { readServerConfig } from "@/lib/config/server";
 import { FakeFirestore } from "@/tests/helpers/fake-firestore";
 
@@ -70,5 +74,47 @@ describe("admin observability", () => {
       sourceMetaCount: 1,
       sourceTargetConfigured: true,
     });
+  });
+
+  it("provides demo-safe local metrics when Firestore observability is unavailable", () => {
+    const metrics = readDemoAdminObservability({
+      config: readServerConfig({
+        ASK_DEMO_MODE: "true",
+        SPACE_DRIVE_FOLDER_IDS: "{}",
+        SPACE_VERTEX_DATA_STORE_IDS: "{}",
+      }),
+    });
+
+    expect(metrics.queueDepthByType).toEqual({
+      Placeholder: 4,
+      SOP: 4,
+      Template: 4,
+    });
+    expect(metrics.notificationFailures).toBe(0);
+    expect(metrics.sourceStateCounts).toMatchObject({
+      "No Reliable Source Found": 1,
+      "Verified Source": 4,
+    });
+    expect(
+      metrics.setupHealth.find(
+        (space) => space.spaceId === "maintenance-work-order-intake",
+      ),
+    ).toMatchObject({
+      dataStoreConfigured: true,
+      sourceMetaCount: 1,
+      sourceTargetConfigured: true,
+    });
+  });
+
+  it("sanitizes unavailable observability messages", () => {
+    const demoConfig = readServerConfig({ ASK_DEMO_MODE: "true" });
+    const liveConfig = readServerConfig({ ASK_DEMO_MODE: "false" });
+
+    expect(adminObservabilityUnavailableMessage(demoConfig)).not.toContain(
+      "invalid_grant",
+    );
+    expect(adminObservabilityUnavailableMessage(liveConfig)).toBe(
+      "Admin observability is unavailable. Refresh Google credentials or check Firestore setup before a live/API-backed demo.",
+    );
   });
 });

@@ -1,15 +1,28 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { requirePageRole } from "@/lib/auth/page-guards";
-import { readAdminObservability } from "@/lib/admin/observability";
+import {
+  type AdminObservability,
+  adminObservabilityUnavailableMessage,
+  readAdminObservability,
+  readDemoAdminObservability,
+} from "@/lib/admin/observability";
 import { readServerConfig } from "@/lib/config/server";
 
 export default async function AdminPage() {
   const user = await requirePageRole("Admin");
   const config = readServerConfig();
-  const observability = await readAdminObservability({ config }).catch((error) => ({
-    error: error instanceof Error ? error.message : "Admin observability unavailable.",
-  }));
-  const hasMetrics = !("error" in observability);
+  let observability: AdminObservability | undefined;
+  let observabilityNote: string | undefined;
+
+  try {
+    observability = await readAdminObservability({ config });
+  } catch {
+    observabilityNote = adminObservabilityUnavailableMessage(config);
+    observability = config.askDemoMode
+      ? readDemoAdminObservability({ config })
+      : undefined;
+  }
+  const hasMetrics = Boolean(observability);
 
   return (
     <AppShell user={user}>
@@ -40,33 +53,39 @@ export default async function AdminPage() {
         </div>
         {hasMetrics ? (
           <>
+            {observabilityNote ? (
+              <article className="panel">
+                <h2>Observability</h2>
+                <p className="muted">{observabilityNote}</p>
+              </article>
+            ) : null}
             <div className="grid three">
               <article className="panel">
                 <h2>Ask Volume</h2>
-                <p>{observability.askLast7Days} in 7 days</p>
-                <p className="muted">{observability.askLast30Days} in 30 days</p>
+                <p>{observability?.askLast7Days} in 7 days</p>
+                <p className="muted">{observability?.askLast30Days} in 30 days</p>
               </article>
               <article className="panel">
                 <h2>Approval Queue</h2>
-                <p>{observability.queueDepthByType.SOP} SOPs</p>
+                <p>{observability?.queueDepthByType.SOP} SOPs</p>
                 <p className="muted">
-                  {observability.queueDepthByType.Template} templates,{" "}
-                  {observability.queueDepthByType.Placeholder} placeholders
+                  {observability?.queueDepthByType.Template} templates,{" "}
+                  {observability?.queueDepthByType.Placeholder} placeholders
                 </p>
               </article>
               <article className="panel">
                 <h2>Notification Failures</h2>
-                <p>{observability.notificationFailures}</p>
+                <p>{observability?.notificationFailures}</p>
               </article>
             </div>
             <div className="grid two">
               <article className="panel">
                 <h2>Top Spaces</h2>
-                {observability.topSpaces.length === 0 ? (
+                {observability?.topSpaces.length === 0 ? (
                   <p className="muted">No Ask logs in the last 30 days.</p>
                 ) : (
                   <ul className="compact-list">
-                    {observability.topSpaces.map((space) => (
+                    {observability?.topSpaces.map((space) => (
                       <li key={space.spaceId}>
                         {space.spaceName}: {space.count}
                       </li>
@@ -77,7 +96,7 @@ export default async function AdminPage() {
               <article className="panel">
                 <h2>Source States</h2>
                 <ul className="compact-list">
-                  {Object.entries(observability.sourceStateCounts).map(
+                  {Object.entries(observability?.sourceStateCounts ?? {}).map(
                     ([state, count]) => (
                       <li key={state}>
                         {state}: {count}
@@ -90,7 +109,7 @@ export default async function AdminPage() {
             <article className="panel">
               <h2>Space Setup Health</h2>
               <div className="queue-list">
-                {observability.setupHealth.map((space) => (
+                {observability?.setupHealth.map((space) => (
                   <div className="compact-record" key={space.spaceId}>
                     <strong>{space.spaceName}</strong>
                     <p className="muted">
@@ -107,7 +126,7 @@ export default async function AdminPage() {
         ) : (
           <article className="panel">
             <h2>Observability</h2>
-            <p className="muted">{observability.error}</p>
+            <p className="muted">{observabilityNote}</p>
           </article>
         )}
       </section>

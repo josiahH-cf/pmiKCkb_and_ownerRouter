@@ -131,7 +131,8 @@ export const launchEditableSeedsBySpaceId: Readonly<Record<string, LaunchEditabl
   );
 
 export const ownerEmailReadOnlySources = [
-  "Owner Router - PMI KC Metro",
+  "Gmail Inbox 0 source package",
+  "Legacy Owner Router artifacts, pending naming migration",
   "01 Reply Patterns - Approved",
   "03 Routing Rules",
 ] as const;

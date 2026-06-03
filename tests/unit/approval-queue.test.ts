@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { loadApprovalQueue } from "@/lib/approval/queue";
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { demoWorkflows } from "@/lib/demo/data";
 import { launchSpaces } from "@/lib/spaces";
 
 const user: AuthenticatedUser = {
@@ -65,9 +66,8 @@ describe("approval queue loader", () => {
     });
 
     expect(result.apiBacked).toBe(false);
-    expect(result.items).toHaveLength(
-      launchSpaces.filter((space) => !space.readOnly).length * 3,
-    );
+    expect(result.items).toHaveLength(demoWorkflows.length * 3);
     expect(result.items.map((item) => item.spaceId)).toContain("owner-onboarding");
+    expect(result.items.map((item) => item.spaceId)).not.toContain("move-in");
   });
 });

@@ -1,103 +1,102 @@
-# PMI KC KB Implementation Runbook
+# PMI KC Implementation Runbook
 
-## Select The Next Milestone
+## Start Here
 
-Open `docs/status.md`, find the next recommended task, then compare it to
-`docs/plan.md`. Work on the earliest unfinished milestone unless the user explicitly
-redirects.
+1. Read `AGENTS.md`.
+2. Read `docs/north-star.md`.
+3. Read the relevant file in `docs/products/`.
+4. Read the latest entries in `docs/status.md`.
+5. Check the git worktree and preserve user changes.
 
-After the M3a/M3b code foundation, the four-workflow live Ask demo is working through
-Cloud Storage and Agent Search with approved sanitized sources. The app now also has
-all launch Space shells, all-Space editable fallbacks, all-Space Approval Queue
-loading, change-log display, Gmail send-only notification plumbing, Admin
-observability, a guarded Agent Search deletion helper, and source-corpus planning
-scripts. The next implementation task is to keep the local demo smoke, deployed auth
-smoke, and deployed live Ask smokes green while preparing only approved production or
-staging sources. Use `docs/demo-readiness.md` to decide whether the demo environment
-is done. Use `docs/client-production-cutover.md` before attempting a client-owned
-environment rebuild.
+Do not start from older KB-only or separate Owner Router assumptions. Those are legacy
+unless an active product doc preserves a specific safety rule.
 
-Do not treat demo Ask, sanitized call-notes approval for demo messaging, launch
-skeleton records, notification plumbing, or a demo Cloud Run URL as Spec 1 completion.
+## Select The Next Task
 
-For demo operations, use `docs/demo-show-and-tell.md`. For production cutover
-assumptions, keep `docs/demo-cutover.md` and `docs/client-production-cutover.md` in
-view before adding live Google integration or deployment code.
+Default priority:
+
+1. Keep the existing PMI KC KB verification/demo path healthy.
+2. Clear P0/P1 governance and discovery blockers from `docs/plan.md`.
+3. Convert client answers into product-lane scope and acceptance gates.
+4. Prepare KB production cutover only from approved client-owned resources.
+5. Scope Lease Renewal Agent before implementation.
+6. Scope Gmail Inbox 0 live Gmail setup before implementation.
+
+If the user asks for runtime work in Lease Renewal Agent or Gmail Inbox 0, first confirm
+that the relevant product doc contains approved v1 scope, permissions, and acceptance
+criteria. If not, document the blocker and prepare the missing checklist instead of
+building speculative features.
 
 ## Keep Changes Scoped
 
-- Work inside the KB runtime only.
-- Keep Owner Router work to `docs/router-repo.md` unless the separate
-  `pmi-kc-owner-router` repo is opened.
-- Prefer existing boundaries in `lib/`.
-- Add a dependency only when a milestone needs it.
-- Do not add product behavior not present in the specs.
+- KB runtime changes belong in the existing Next.js/Firebase/Firestore/Vertex/Gemini
+  boundaries.
+- Lease Renewal Agent changes are docs/discovery only until scope is locked.
+- Gmail Inbox 0 changes are docs/artifact migration only until Gmail setup authority and
+  test model are approved.
+- Do not add a dependency or integration unless the active product lane needs it.
+- Do not add product behavior not present in confirmed direction or approved sources.
 
-## Validate After Each Meaningful Change
+## Blocked Work
 
-Use the smallest relevant check during development:
+When blocked, update `docs/status.md` and, if durable, `docs/research-backlog.md` with:
+
+- Product lane.
+- Missing access, answer, source, or permission.
+- Why it blocks work.
+- Exact client ask.
+- What AI can still do while waiting.
+- Verification step after unblock.
+
+Avoid vague blockers such as "coordinate with client" when a concrete ask can be named.
+
+## Validate After Meaningful Changes
+
+Use the smallest relevant checks during development:
 
 ```bash
-npm test
-npm run test:firestore
+npm run format:check
 npm run typecheck
+npm test
 npm run lint
 ```
 
-For launch source and skeleton preparation, prefer dry-run commands first:
+For Firestore rules or editable persistence:
+
+```bash
+npm run test:firestore
+```
+
+For KB source and cutover preparation, prefer dry-runs first:
 
 ```bash
 npm run corpus:plan -- --write-temp
 npm run corpus:plan -- --manifest=docs/source-corpus/client-production-source-manifest.template.json --project=<client-project-id> --location=us --dry-run
 npm run seed:launch-skeletons -- --dry-run
 npm run preflight:production -- --env-file=.env.production.local
-npm run delete:agent-search-data-store -- --project=pmikckb-test --location=us --data-store=<data-store-id> --dry-run
 ```
 
-Run `npm run test:firestore` when Firestore rules or editable-layer persistence changes
-and Java JDK 11+ is installed locally. Keep it separate from `bash scripts/verify.sh`
-until the Java prerequisite is available in every development and CI environment. This
-command uses `vitest.firestore.config.ts`; keep the normal Vitest config excluding
-emulator tests so `npm test` remains a fast non-emulator suite.
-
-Before handing off, run:
+Before handoff when relevant:
 
 ```bash
 bash scripts/verify.sh
 ```
 
-## Update Status
+## Update Documentation
 
-After meaningful work, update `docs/status.md` with:
-
-- Date.
-- Files changed.
-- Validation command and result.
-- New decisions.
-- Open questions.
-- Next recommended task.
-
-## Handle Failing Tests
-
-1. Read the failure.
-2. Decide whether the test or code conflicts with the specs.
-3. Fix the code when the spec is clear.
-4. Update or add tests only when behavior intentionally changes.
-5. Record unresolved blockers in `docs/status.md`.
-
-Never loosen anti-hallucination, citation validation, role checks, or no-write
-boundaries to make tests pass.
-
-## Ask For Clarification
-
-Ask only when the answer would materially change architecture, dependencies, hosting,
-database, authentication, payment handling, external APIs, UI framework, deployment,
-licensing, or security posture. Minor unknowns belong in `docs/status.md`.
+- Update `docs/status.md` after meaningful work.
+- Update `docs/plan.md` only when phases, milestones, or acceptance gates change.
+- Update this file when the operating workflow changes.
+- Update `docs/products/*.md` when product scope changes.
+- Update `docs/client-checklist.md` when new client asks are discovered.
+- Update `docs/research-backlog.md` when questions are answered or added.
+- Preserve original specs in `docs/specs/`.
+- Mark or move stale docs as legacy before adding contradictory guidance.
 
 ## Prepare Changes For Review
 
-- Keep `AGENTS.md` as a router under 150 lines.
-- Keep root docs current.
-- Include tests for every behavioral change.
-- Run `bash scripts/verify.sh`.
-- Summarize remaining risks and open decisions.
+- Keep `AGENTS.md` concise and routing-focused.
+- Include tests for behavior changes.
+- Do not commit secrets or raw client/customer material.
+- Summarize validation, remaining blockers, exact client asks, and next recommended
+  step.

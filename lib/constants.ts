@@ -1,4 +1,6 @@
 export const PRODUCT_NAME = "PMI KC KB";
+export const LEASE_RENEWAL_AGENT_NAME = "Lease Renewal Agent";
+export const GMAIL_INBOX_ZERO_NAME = "Gmail Inbox 0";
 export const OWNER_ROUTER_NAME = "Owner Router";
 export const OWNER_ROUTER_REPO_NAME = "pmi-kc-owner-router";
 export const OWNER_ROUTER_FOLDER_NAME = "Owner Router - PMI KC Metro";
