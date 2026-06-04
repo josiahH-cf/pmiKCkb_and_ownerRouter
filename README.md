@@ -3,9 +3,8 @@
 This repository now governs the three purchased PMI KC product lanes:
 
 - PMI KC KB: the existing source-backed knowledge and handoff web app.
-- Lease Renewal Agent: a separate renewal workflow product track that still needs
-  discovery before runtime work.
-- Gmail Inbox 0: owner-email-first Gmail workflow, successor to Owner Router/Dan's AI
+- Lease Renewal Agent: the first backend automation target after the KB production lift.
+- Gmail Inbox 0: Dan-email-first Gmail workflow, successor to Owner Router/Dan's AI
   Assistant.
 
 Older KB-only and separate Owner Router repo language is legacy. Use `AGENTS.md`,
@@ -20,9 +19,9 @@ retrieval boundaries, Gemini answer validation, Ask logging, Ask capture tasks,
 source-state constants, unit/eval tests, Firestore rules tests, demo reset/smoke
 scripts, and deterministic verification.
 
-Lease Renewal Agent and Gmail Inbox 0 are active product lanes, but runtime work remains
-blocked until requirements, permissions, access, and acceptance gates are confirmed in
-their product docs.
+Lease Renewal Agent and Gmail Inbox 0 are active product lanes, but external write,
+Gmail read/modify, and send behavior remains blocked until requirements, permissions,
+access, and acceptance gates are confirmed in their product docs.
 
 ## Prerequisites
 
@@ -89,11 +88,11 @@ Run `npm run test:firestore` separately when Java is available on PATH.
 ## Next Steps
 
 1. Keep the PMI KC KB verification and demo smoke path green.
-2. Collect client answers from `docs/client-checklist.md`.
-3. Fill the open research items in `docs/research-backlog.md`.
-4. Do not build Lease Renewal Agent runtime until `docs/products/lease-renewal-agent.md`
-   has approved v1 scope and acceptance gates.
-5. Convert Owner Router/Dan's AI Assistant artifacts into the Gmail Inbox 0 lane only
-   after label naming, Gmail access, and testing approach are approved.
+2. Stand up the internal PMI KC KB production app with the first four Spaces.
+3. Move Gmail Inbox 0 in tandem as a Dan Gmail pilot with approved mailbox access and a
+   minimal KB-hosted management page.
+4. Scope Lease Renewal as the first full backend automation after the KB production
+   lift.
+5. Fill the open research items in `docs/research-backlog.md`.
 6. Use `docs/integration-cutover-plan.md` and `docs/client-production-cutover.md` before
    any client-owned production deployment.

@@ -2,7 +2,7 @@
 
 This is the operator script for showing the current PMI KC demo to a client or internal
 reviewer. It is deliberately demo-first: four approved KB workflow slices, Gmail Inbox
-0 as the Gmail-native owner-email pitch, safe records, and clear language about what is
+0 as the Gmail-native Dan-email pitch, safe records, and clear language about what is
 real today versus scaffolded.
 
 Use `docs/demo-readiness.md` as the demo done checklist. Passing this walkthrough is
@@ -30,7 +30,7 @@ Close framing:
 
 > The sell is not "AI replaces the team." The sell is that the team stops rebuilding
 > context from memory, email, sheets, and calls. The KB makes operating knowledge
-> reusable; Gmail Inbox 0 turns the highest-friction inbox work into a visible,
+> reusable; Gmail Inbox 0 turns Dan's highest-friction inbox work into a visible,
 > source-checked queue.
 
 For show-and-tell, keep demo mode enabled unless explicitly testing live Ask. The demo
@@ -67,7 +67,7 @@ Use this transition after the KB Approval Queue:
   workflows.
 - Real editable API writes for SOP Save, SOP/template approval, and placeholder
   resolution.
-- Real Admin role claim for `josiah.hunter@cherrybridge.ai`.
+- Real Admin role claim for the active test Admin account.
 - Demo Ask responses for Lease Renewals, Maintenance Work Order Intake, Move-Out +
   Deposit Disposition, and Owner Onboarding questions with `Verified Source`, citation,
   handling steps, and copyable draft text.
@@ -81,7 +81,7 @@ Use this transition after the KB Approval Queue:
 - Demo Ask intentionally bypasses live Vertex AI Search and Gemini while
   `ASK_DEMO_MODE=true`.
 - The current deployed live Ask corpus is call-context-backed for the four approved
-  demo workflows, but it is still a demo corpus in the Cherrybridge project.
+  demo workflows, but it is still a demo corpus in the demo project.
 - Approval Queue can load records across all writable launch Spaces. The seeded demo
   records are still the four approved workflow slices unless launch skeletons are
   explicitly seeded.
@@ -195,7 +195,7 @@ Screenshots and events are saved under ignored `temp/live-demo-workflow-smoke`.
 If Google auth has expired, refresh the live sign-in profile:
 
 ```bash
-npm run smoke:auth-live -- --email=josiah.hunter@cherrybridge.ai --timeout-ms=180000 --pause-on-human
+npm run smoke:auth-live -- --email=<josiah-pmi-kc-account@pmikcmetro.com> --timeout-ms=180000 --pause-on-human
 ```
 
 Complete any Google password, MFA, or consent screen in the Chrome window that opens.
@@ -431,8 +431,9 @@ npm run smoke:demo-live
 - Redirected to `/sign-in`: run the live auth smoke with `--pause-on-human` and finish
   Google auth in Chrome.
 - Approval Queue is empty before the show: run `npm run demo:reset`.
-- User can sign in but cannot open Admin: set the Admin claim with
-  `npm run firebase:set-role -- --email=josiah.hunter@cherrybridge.ai --role=Admin`,
+- User can sign in but cannot open Admin: set the Admin claim for the active PMI KC test
+  account with
+  `npm run firebase:set-role -- --email=<josiah-pmi-kc-account@pmikcmetro.com> --role=Admin`,
   then sign out and sign back in.
 - Firestore/API errors: run `npm run host:check`, then `npm run firebase:setup-auth-demo`
   and `npm run firebase:setup-demo` only if setup state has drifted.

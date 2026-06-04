@@ -9,7 +9,7 @@ Govern and build the PMI KC three-product workstream:
 
 - PMI KC KB: source-backed knowledge and handoff web app.
 - Lease Renewal Agent: separate renewal workflow product lane; discovery before runtime.
-- Gmail Inbox 0: owner-email-first Gmail workflow, successor to Owner Router/Dan's AI
+- Gmail Inbox 0: Dan-email-first Gmail workflow, successor to Owner Router/Dan's AI
   Assistant.
 
 The old KB-only/separate-Owner-Router direction is legacy. Preserve useful history, but
@@ -23,6 +23,7 @@ route new work through the three-product docs.
 | Product lane routing             | `docs/products/README.md`, then the relevant product doc |
 | Phase plan and acceptance gates  | `docs/plan.md`                                           |
 | Integration and cutover          | `docs/integration-cutover-plan.md`                       |
+| Product definition gaps          | `docs/product-definition-gap-plan.md`                    |
 | How to work next                 | `docs/implement.md`                                      |
 | Current status and blockers      | `docs/status.md`                                         |
 | Client asks                      | `docs/client-checklist.md`                               |

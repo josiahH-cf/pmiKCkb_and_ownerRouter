@@ -66,8 +66,9 @@ npm run smoke:ask-live -- --base-url=https://pmi-kc-kb-demo-800237451321.us-cent
 npm run seed:launch-skeletons -- --dry-run
 ```
 
-- Gmail approval notifications remain disabled unless an approved sender, recipient
-  list, and deployed `APP_BASE_URL` are configured.
+- Gmail approval notifications remain disabled in local/demo mode, but production launch
+  enables them with `kb-automation@pmikcmetro.com`, Dan/Josiah recipients, and deployed
+  `APP_BASE_URL`.
 - The demo script clearly says Gmail Inbox 0 live Gmail setup, Lease Renewal Agent
   runtime, and the PMI KC production source corpus are out of demo scope.
 - If showing Gmail Inbox 0, the demo uses sanitized owner-email scenarios from the old
@@ -99,7 +100,7 @@ The demo is not production-complete until separate client-production work finish
   storage.
 - Approved PMI KC production sources uploaded/imported into client-owned Agent Search
   data stores.
-- Gmail send-only sender/recipient approval if notifications are enabled.
+- `kb-automation@pmikcmetro.com` and Dan/Josiah notification recipients.
 - Production observability review.
 - Gmail Inbox 0 Drive/source package and read-only Owner Email indexing for final KB
   owner-email verification.

@@ -475,6 +475,9 @@ describe("cheap live setup scripts", () => {
       NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
       NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmikc-kb-production.firebaseapp.com",
       NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmikc-kb-production",
+      KB_APPROVAL_NOTIFICATIONS_ENABLED: "true",
+      KB_APPROVAL_RECIPIENTS: "dan@pmikcmetro.com,josiah-pmi-kc-account@pmikcmetro.com",
+      KB_APPROVAL_SENDER: "kb-automation@pmikcmetro.com",
       SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
         "lease-renewals": "gs://pmikc-kb-production-sources/lease-renewals/",
       }),
@@ -485,6 +488,41 @@ describe("cheap live setup scripts", () => {
 
     expect(result.ok).toBe(true);
     expect(result.errors).toEqual([]);
+  });
+
+  it("requires enabled pmikcmetro.com approval notifications for production", () => {
+    const result = validateProductionCutoverConfig({
+      ALLOWED_HD: "pmikcmetro.com",
+      APP_BASE_URL: "https://kb.pmikcmetro.example",
+      ASK_DEMO_MODE: "false",
+      FIREBASE_PROJECT_ID: "pmikc-kb-production",
+      GCP_PROJECT_ID: "pmikc-kb-production",
+      LOCAL_DEMO_AUTH: "false",
+      NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
+      NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmikc-kb-production.firebaseapp.com",
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmikc-kb-production",
+      KB_APPROVAL_NOTIFICATIONS_ENABLED: "false",
+      KB_APPROVAL_RECIPIENTS: "outside-user@example.com",
+      KB_APPROVAL_SENDER: "kb-automation@example.com",
+      SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
+        "lease-renewals": "gs://pmikc-kb-production-sources/lease-renewals/",
+      }),
+      SPACE_VERTEX_DATA_STORE_IDS: JSON.stringify({
+        "lease-renewals": "kb-lease-renewals-txt",
+      }),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContain(
+      "KB_APPROVAL_NOTIFICATIONS_ENABLED must be true for client-production.",
+    );
+    expect(result.errors).toContain(
+      "KB_APPROVAL_SENDER must use only pmikcmetro.com email addresses.",
+    );
+    expect(result.errors).toContain(
+      "KB_APPROVAL_RECIPIENTS must use only pmikcmetro.com email addresses.",
+    );
   });
 
   it("guards Agent Search data-store deletion against active Space maps", () => {

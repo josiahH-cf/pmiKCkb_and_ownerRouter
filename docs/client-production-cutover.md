@@ -51,7 +51,9 @@ NEXT_PUBLIC_FIREBASE_APP_ID=<from-client-firebase-web-app>
 SPACE_DRIVE_FOLDER_IDS={}
 SPACE_VERTEX_DATA_STORE_IDS={}
 APP_BASE_URL=<deployed-production-url>
-KB_APPROVAL_NOTIFICATIONS_ENABLED=false
+KB_APPROVAL_NOTIFICATIONS_ENABLED=true
+KB_APPROVAL_SENDER=<kb-automation@pmikcmetro.com>
+KB_APPROVAL_RECIPIENTS=<dan-pmi-kc-account@pmikcmetro.com>,<josiah-pmi-kc-account@pmikcmetro.com>
 ```
 
 Most repo scripts read process environment variables and ignored `.env.local`; only
@@ -107,6 +109,22 @@ Do not run `npm run seed:demo` in client production.
 Use Cloud Storage `.txt` sources and Agent Search data stores as the default production
 path unless Drive service-account retrieval is intentionally revisited.
 
+For the Lease Renewal source-of-truth flow, the first automatic indexed-source
+candidate to test is Cloud Storage plus Agent Search periodic ingestion. Drive remains
+the team collaboration folder unless setup proves a stronger client-accessible source.
+Assume the first Drive-to-Cloud-Storage handoff is the simplest low-cost copy automation
+that works for users. Cloud costs are pass-through, so keep the first test small and do
+not add extra services, duplicate stores, or large indexed corpora without an explicit
+need.
+
+The Lease Renewal source folder may contain all useful source file types, not only
+Docs/text/PDF. For the first indexed test, map each useful type to direct ingestion,
+conversion/summary into an indexed format, or a visible skip reason.
+
+Keep the Lease Renewal source folder clean for production cutover. Non-sources-of-truth
+should be moved out of the source folder rather than left there for the copy or indexing
+path to skip. The non-source, reference, or archive destination remains TBD.
+
 1. Create one private production source bucket or separate buckets per policy.
 2. Grant the Discovery Engine service agent `roles/storage.objectViewer` on the source
    bucket.
@@ -134,7 +152,9 @@ npm run corpus:plan -- --manifest=temp/client-production-source-manifest.json --
 ```
 
 7. Upload the generated `.txt` copies, import them into Agent Search, and seed
-   `sources_meta` using the printed commands.
+   `sources_meta` using the printed commands. For the Lease Renewal continuous-source
+   test, separately validate whether the team-editable Drive source folder can feed
+   Cloud Storage plus Agent Search periodic ingestion without manual refresh.
 
 Never upload or commit raw `docs/context_and_calls/` material. Production sources must
 be approved, client-safe summaries or approved client-owned operating documents.
@@ -170,7 +190,7 @@ KB runtime:
 - `roles/datastore.user`
 - `roles/discoveryengine.user`
 - `roles/aiplatform.user`
-- Gmail send-only authority only if approval notifications are enabled
+- Gmail send-only authority for `kb-automation@pmikcmetro.com`
 
 Deploy with production flags:
 
@@ -198,7 +218,6 @@ context:
 
 ```bash
 npm run firebase:set-role -- --email=<admin@pmikcmetro.com> --role=Admin
-npm run firebase:set-role -- --email=<approver@pmikcmetro.com> --role=Approver
 ```
 
 Production smoke checklist:
@@ -209,8 +228,8 @@ Production smoke checklist:
 - At least one approved Space opens and shows seeded records.
 - Ask returns a cited `Verified Source` answer from an approved production source.
 - Ask returns `No Reliable Source Found` for an unsupported question.
-- Editor can save an editable record but cannot approve.
-- Approver/Admin can approve, return, or resolve queue items.
+- User can save or suggest editable records but cannot approve.
+- Admin can approve, return, or resolve queue items.
 - The app does not write to RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Sheets,
   Gmail inboxes, Drive folders, or Gmail Inbox 0/legacy Owner Router source artifacts.
 
@@ -221,8 +240,7 @@ Production cannot be declared complete until:
 - PMI KC-approved production source files are uploaded/imported and seeded in
   `sources_meta`.
 - The source/data-store maps point only at client-owned resources.
-- Gmail notification sender and recipients are approved, or notifications remain
-  disabled by explicit decision.
+- `kb-automation@pmikcmetro.com` and Dan/Josiah notification recipients are configured.
 - Gmail Inbox 0 source package exists, with any reused legacy Owner Router artifacts
   renamed or clearly mapped, and is indexed read-only by the KB Owner Email Space for
   final owner-email verification.

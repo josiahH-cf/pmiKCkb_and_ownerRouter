@@ -8,7 +8,7 @@ For live, human-assisted Firebase Google sign-in diagnostics, use the repository
 utility instead of adding it to CI:
 
 ```bash
-npm run smoke:auth-live -- --email=josiah.hunter@cherrybridge.ai --timeout-ms=90000
+npm run smoke:auth-live -- --email=<josiah-pmi-kc-account@pmikcmetro.com> --timeout-ms=90000
 ```
 
 That command uses installed Chrome or Edge through `playwright-core`, records ignored

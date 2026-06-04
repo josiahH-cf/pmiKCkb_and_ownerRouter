@@ -1842,3 +1842,1149 @@ Remaining risk:
   design. Active docs now carry override/legacy notices, but a future human reviewer may
   still choose to do a deeper spec rewrite after the client confirms final Gmail Inbox 0
   naming and label migration.
+
+## Product Definition Gap Plan
+
+- Date: 2026-06-03
+- Added `docs/product-definition-gap-plan.md` as the durable explanation of what the
+  current three-product plan actually supports, what exists now, and what must be
+  decided before runtime work expands.
+- Wired the new gap plan into `AGENTS.md` and `docs/implement.md` so future sessions
+  use it when scope, product shape, or follow-up questions are part of the task.
+- Expanded `docs/client-checklist.md` with concrete product-definition follow-ups for
+  KB launch Spaces, Lease Renewal Agent trigger/output shape, and Gmail Inbox 0 label,
+  sender, and safe-test decisions.
+- Expanded `docs/research-backlog.md` with the missing v1 success statements,
+  acceptance questions, first-output decision, and Gmail Inbox 0 naming/migration
+  decision.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Product Definition Decisions Round 1
+
+- Date: 2026-06-03
+- Captured the user-confirmed roadmap: PMI KC KB production lift and Gmail Inbox 0 Dan
+  pilot move in tandem; Lease Renewal is the first full backend automation after KB
+  production; Maintenance follows after chatbot/phone alignment; Move-Out follows after
+  workflow-run and approval patterns mature.
+- Updated active docs so PMI KC KB is now described as both the source-backed app and
+  future workflow-control layer. The KB still launches before external write paths are
+  added.
+- Recorded the first three automation processes: Lease Renewal, Maintenance Work Order
+  Intake, and Move-Out + Deposit Disposition, with Owner Onboarding as the fourth/fallback
+  workflow.
+- Recorded the backend automation model: Users can start workflows, Admins approve by
+  default, each write/send/update is individually approved at first, and executed actions
+  record approver, change, source facts, before/after values, target system, and
+  timestamp.
+- Updated Gmail Inbox 0 from owner-email-first to Dan-email-first: the pilot evaluates
+  Dan's whole mailbox, starts with `Waiting on Outside` and `Waiting on Team`, suggests
+  labels by default, auto-labels only exact or repeated Dan-approved patterns, and keeps
+  Dan manual-send for now.
+- Recorded the first Gmail Inbox 0 management surface inside the KB app: Admin-only
+  labels, rules, approved replies, change history, and Gmail/Gemini health status.
+- Updated Lease Renewal direction: a team member starts the workflow, the system should
+  anticipate from signed-lease timing, Dan approves owner-facing information and
+  communication, and the system may send after approval once a future send/write spec is
+  approved.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed after updating the routing guard from the
+  retired owner-email-first boundary to the Dan mailbox boundary.
+
+## Admin Role Decision
+
+- Date: 2026-06-03
+- Recorded Josiah and Dan as the initial Admins for the KB and Gmail Inbox 0 management
+  layer.
+- Recorded that Admins may grant the Admin role to additional users they choose.
+- Updated the client checklist and research backlog so the remaining user-access
+  blocker is the initial User list and any process-specific approvers beyond the Admin
+  default.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Initial User Scope Decision
+
+- Date: 2026-06-03
+- Recorded that the initial KB/Gmail Inbox 0 launch does not need separate `User`
+  accounts beyond Josiah and Dan.
+- Kept the `User` role as a future delegation path once Josiah or Dan choose to grant
+  broader access.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## KB Approval Notification Decision
+
+- Date: 2026-06-03
+- Recorded that Gmail send-only KB approval notifications should be enabled at
+  production launch.
+- Recorded that approval notifications should be incorporated into the Gmail Inbox 0
+  vision so approval work can eventually flow between the KB app and Gmail while
+  preserving human approval.
+- Updated remaining blockers from "enabled or disabled" to the concrete production
+  configuration: sender identity, recipients, Gmail label behavior, and delivery/error
+  handling.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## KB Approval Notification Recipients
+
+- Date: 2026-06-03
+- Recorded Dan and Josiah as the launch recipients for Gmail send-only KB approval
+  notifications.
+- Left sender identity, Gmail label behavior, and delivery/error handling as the
+  remaining production notification configuration items.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## KB Notification Sender And PMI KC Test Identity
+
+- Date: 2026-06-03
+- Recorded that KB approval notifications should use a dedicated `pmikcmetro.com` KB
+  automation sender provisioned for the KB, not a personal or consultant email account.
+- Recorded that Josiah should use a PMI KC `pmikcmetro.com` email account for future
+  auth and automation testing once provisioned.
+- Active setup and production docs should not use Josiah's historical Cherrybridge email;
+  older status/spec references are historical only.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+- `npm test -- tests/unit/live-cost-scripts.test.mjs`: passed.
+
+## KB Automation Sender Address
+
+- Date: 2026-06-03
+- Recorded `kb-automation@pmikcmetro.com` as the dedicated sender for KB approval
+  notifications.
+- Updated active docs and remaining blockers so only Gmail label behavior and
+  delivery/error handling remain open for notification setup.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+- `npm test -- tests/unit/live-cost-scripts.test.mjs`: passed.
+
+## KB Approval Notification Labeling
+
+- Date: 2026-06-03
+- Recorded that KB approval notifications should use a clear approval subject line and
+  apply the `KB Approval` Gmail label.
+- Updated active docs and remaining blockers so only notification delivery/error
+  handling remained open at that point.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## KB Approval Notification Failure Handling
+
+- Date: 2026-06-03
+- Recorded that KB approval notification failures should escalate instead of failing
+  silently.
+- Kept the exact escalation meaning as TBD: channel, owner, retry behavior, and alert
+  surface still need definition.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Starter Sources And Chrome Discovery
+
+- Date: 2026-06-03
+- Recorded that the Lease Renewals Space can start from a video demo, context from the
+  client, and information from the team.
+- Marked those as starter materials, not final source-of-truth materials, until they are
+  sensitivity-reviewed, placed in a client-owned source location, and Admin-approved.
+- Recorded Chrome-based process observation as feasible in principle for discovery when
+  explicitly approved, while keeping production browser automation and writes blocked
+  until a future approved spec exists.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Walkthrough Mode
+
+- Date: 2026-06-03
+- Recorded that the first Lease Renewal discovery pass should use both a recorded
+  walkthrough and a live supervised Chrome session.
+- Kept Chrome/browser observation scoped to discovery until approved setup, permissions,
+  and a later automation spec exist.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Walkthrough Lead
+
+- Date: 2026-06-03
+- Recorded two acceptable walkthrough ownership paths: a client-led show-and-tell, or
+  the client showing Josiah so he can capture and translate the workflow data.
+- Kept captured workflow data subject to sensitivity review, client-owned source
+  placement, and Admin approval before it becomes source-of-truth material.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Source Location Principle
+
+- Date: 2026-06-03
+- Recorded that captured Lease Renewal workflow notes should live first in a
+  client-accessible source location where PMI KC can add more context.
+- Recorded that the location should be chosen to connect to the app's approved
+  source-backed retrieval or workflow capability, not treated as a private scratchpad.
+- Kept the exact folder, system, or connector as TBD.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Default Source Location
+
+- Date: 2026-06-03
+- Recorded Google Drive as the default first capture/collaboration location for Lease
+  Renewal workflow notes, unless setup identifies a better client-accessible,
+  app-connected source.
+- Clarified that Drive may be the human collaboration layer even if the approved
+  production retrieval/indexing path uses another target.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Source-Of-Truth Curation Model
+
+- Date: 2026-06-03
+- Recorded that the Lease Renewal Drive/source location should not default to separate
+  raw-discovery and approved-source areas.
+- Recorded that material in the client-accessible source folder should be treated as
+  source-of-truth input and curated frequently.
+- Kept the curation workflow as TBD, including AI-assisted update proposals, human
+  approval, cadence, and sync into the app's indexed source set.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Source Folder Edit Access
+
+- Date: 2026-06-03
+- Recorded that the whole PMI KC team should be allowed to directly edit the initial
+  Lease Renewal source-of-truth folder.
+- Kept the exact Workspace group or named-user list as a client setup detail.
+- Kept curation, indexing, and automation-use rules separate and still TBD.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal AI-Assisted Source Curation
+
+- Date: 2026-06-03
+- Recorded the first curation model for the Lease Renewal source-of-truth folder:
+  AI-proposed changes with human review.
+- Recorded the goal as continuous documentation improvement, not one-time source
+  capture.
+- Kept reviewer identity, review cadence, and app-index sync path as TBD.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Source Curation Reviewer
+
+- Date: 2026-06-03
+- Recorded Dan as the initial human reviewer for AI-proposed Lease Renewal source
+  updates.
+- Kept review cadence and app-index sync path as TBD.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Source Curation Cadence
+
+- Date: 2026-06-03
+- Recorded that Dan should decide the review cadence for AI-proposed Lease Renewal
+  source updates.
+- Kept the app-index sync path as TBD.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Continuous Source Sync
+
+- Date: 2026-06-03
+- Recorded that the app should automatically and continuously read from the
+  team-editable source-of-truth folder rather than rely on manual import-on-demand.
+- Kept the exact connector or indexing implementation as TBD pending client-owned setup
+  validation.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Indexed Source Layer Direction
+
+- Date: 2026-06-03
+- Recorded the likely source-sync architecture: the PMI KC Drive source-of-truth folder
+  should feed an indexed source layer automatically, rather than relying only on direct
+  Drive reads.
+- Ran a narrow official Google docs check. Current docs show Drive data federation is
+  available but has Workspace/search limitations, while Cloud Storage supports indexed
+  ingestion and periodic update options.
+- Kept the exact connector/indexing path as a research/setup decision before runtime
+  implementation.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal First Indexed-Source Candidate
+
+- Date: 2026-06-03
+- Recorded Cloud Storage plus Agent Search periodic ingestion as the first
+  indexed-source candidate to test for Lease Renewal source folder updates.
+- Kept Drive as the team-facing collaboration folder.
+- Left the Drive-to-Cloud-Storage handoff or connector mechanism as a setup/research
+  item.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Low-Cost Source Handoff
+
+- Date: 2026-06-03
+- Recorded the first Drive-to-Cloud-Storage handoff assumption: use the simplest
+  low-cost automation that works for users, copying changes from the team-editable Drive
+  source folder into Cloud Storage for indexing.
+- Recorded the cost constraint explicitly: cloud costs are pass-through, so minimize
+  ongoing services, polling frequency, indexed volume, duplicate stores, and unnecessary
+  automation.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Source Sync Gate
+
+- Date: 2026-06-03
+- Recorded that the first copy automation should copy changes from the team-editable
+  Drive source folder, rather than wait for Dan's AI-proposed-update review.
+- Kept Dan's review as part of curation and continuous documentation improvement, not as
+  the first sync gate.
+- Recorded that the index/app should handle freshness after the copy.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Source File-Type Rule
+
+- Date: 2026-06-03
+- Recorded that the first copy path should not restrict the Lease Renewal source folder
+  to only Docs, text, or PDF files.
+- Recorded that all useful source file types are eligible, subject to sensitivity rules
+  and setup validation.
+- If a useful file type cannot be indexed directly, the automation should convert,
+  summarize, or skip it with a visible reason.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Source Folder Hygiene
+
+- Date: 2026-06-03
+- Recorded that non-sources-of-truth should be moved out of the Lease Renewal source
+  folder instead of left for copy or indexing automation to skip.
+- Kept the destination for non-source, reference, or archive material as TBD.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Non-Source Destination
+
+- Date: 2026-06-03
+- Confirmed the destination for non-source, reference, or archive material remains TBD.
+- No folder name, owner, or retention rule has been defined yet.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Loosely Editable Process Definitions
+
+- Date: 2026-06-04
+- Recorded that the first workflow-management layer should be loosely editable for
+  process definitions, including creating new processes and pointing those processes to
+  new documentation as discovery matures.
+- Kept the distinction between process configuration editability and external
+  system-of-record writes. External write/update/send paths still need approved
+  process-specific specs, permissions, tests, audit logging, and rollback/error handling.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Process Definition Configuration Batch
+
+- Date: 2026-06-04
+- Recorded that the whole team should be able to propose or edit process definitions,
+  but those changes must go through approval before becoming active.
+- Recorded that the KB should own the first central workflow-run record, with backlinks
+  and action records pointing out to external systems. This keeps context in one
+  non-technical place and allows separate processes to merge into larger workflows over
+  time.
+- Set the v1 minimum fields for a startable process definition: process name, short
+  outcome, trigger or manual start condition, process owner/default approver,
+  source/documentation links, required starting inputs, initial steps, action references
+  with execution status, and success/stop/escalation condition.
+- Recorded that process definitions may reference future external actions before those
+  actions are connected or approved, but those references remain planned/non-executable
+  until a future spec approves the integration.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Process Approval And Workflow State Batch
+
+- Date: 2026-06-04
+- Recorded that future product-definition question batches should include recommended
+  default answers based on context so the client can answer yes or provide targeted
+  edits.
+- Recorded Dan and Josiah as the default Admin approvers for process-definition changes
+  until they delegate approval authority.
+- Recorded process definition statuses: `Draft`, `Testing`, `Pending Approval`,
+  `Active`, `Needs Revision`, and `Retired`.
+- Recorded that Draft or Testing process definitions can be started for clearly marked
+  test runs, but Active definitions are required for real operational runs.
+- Recorded that future automation steps should show as pending automation. The AI can
+  explain how the automation is expected to work, but the action remains non-executable
+  until an approved integration spec exists.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Process Testing And Versioning Batch
+
+- Date: 2026-06-04
+- Accepted the recommended testing and versioning defaults.
+- Recorded that Draft and Testing workflow runs are simulation-only: no external writes,
+  no sends, and no live system updates.
+- Recorded that every approved process definition should create a versioned Active copy
+  with history and rollback.
+- Recorded that process activation requires source/documentation links and at least one
+  successful test run unless Dan or Josiah explicitly override the gate.
+- Recorded that pending future automation steps must show target system, expected action,
+  missing permission or connection, and approval owner.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Workflow Run UX And Audit Batch
+
+- Date: 2026-06-04
+- Accepted the recommended workflow-run UX and audit defaults.
+- Recorded that workflow runs should show a timeline of steps, decisions, approvals,
+  comments, and system actions.
+- Recorded that each run should show a top human-readable summary with current status,
+  next action, blocker, owner, and due date if known.
+- Recorded that test runs should be visually separate from real runs and excluded from
+  production metrics unless an Admin explicitly includes them.
+- Recorded that each AI-generated recommendation should keep source links, confidence,
+  and reasoning visible to the reviewer.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Workflow Run Status And Notification Batch
+
+- Date: 2026-06-04
+- Accepted workflow run statuses: `Not Started`, `In Progress`, `Waiting on Team`,
+  `Waiting on Outside`, `Blocked`, `Ready for Approval`, `Approved`, `Completed`,
+  `Cancelled`, and `Failed`.
+- Recorded that the workflow run owner should be the final approver, not necessarily the
+  person who started the run.
+- Recorded that due dates should use the source process due date when one exists;
+  otherwise, they default to today.
+- Recorded that workflow notifications should fire for `Ready for Approval`, `Blocked`,
+  failed automation, and overdue due dates, including internal email notifications.
+- Kept the boundary that workflow notification emails are internal and do not authorize
+  owner-facing or tenant-facing sends.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Workflow Notification Recipients And Channels Batch
+
+- Date: 2026-06-04
+- Accepted the recommended workflow notification recipient and channel defaults.
+- Recorded that default internal workflow notifications go to the owner/final approver
+  and the person assigned the next action.
+- Recorded that the workflow starter receives notifications only when their action is
+  needed or when the run completes or fails.
+- Recorded that notifications should appear in-app and by internal email at first, with
+  other channels future/TBD.
+- Recorded that notification email subjects should include product/process name, run
+  status, property/context when available, and required action.
+- Kept the boundary that these are internal workflow notifications and do not authorize
+  owner-facing or tenant-facing sends.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Escalation And Failure Handling Batch
+
+- Date: 2026-06-04
+- Accepted the recommended escalation and failure-handling defaults.
+- Recorded that a failed automation marks the run `Failed` only when the failure blocks
+  the run; otherwise, the failed step is marked `Failed` and the run moves to `Blocked`.
+- Recorded that failed internal notifications create an in-app alert and retry email
+  once.
+- Recorded that if the retry fails, escalation goes to Dan/Josiah Admins in-app and by
+  email.
+- Recorded that external action failures preserve attempted payload, error message,
+  target system, timestamp, and retry status in the audit trail.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## External Action Approval Batch
+
+- Date: 2026-06-04
+- Accepted the recommended external-action approval defaults.
+- Recorded that each external action type must be individually approved before it becomes
+  executable.
+- Recorded that approval is scoped by target system and action type, not blanket system
+  access.
+- Recorded that first executable external actions still require per-run human approval
+  even after the action type is approved.
+- Recorded that planned actions should remain visible while non-executable so the team
+  can refine workflows before integrations are live.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## External Action Readiness Batch
+
+- Date: 2026-06-04
+- Accepted the recommended external-action readiness defaults.
+- Recorded external action readiness states: `Planned`, `Needs Connection`,
+  `Needs Permission`, `Ready for Test`, `Approved for Execution`, and `Disabled`.
+- Recorded that before execution, the app should show a preview of exactly what will
+  change, where it will change, and why.
+- Recorded that every executable external action should have a rollback or correction
+  note before approval.
+- Recorded that Admins can disable any action type immediately without deleting the
+  process definition.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal First Actions Batch
+
+- Date: 2026-06-04
+- Accepted read/gather actions before write actions as the first Lease Renewal planned
+  action sequence.
+- Recorded first planned reads: signed lease and lease dates, tenant/property facts,
+  owner information, current rent/terms, and renewal timeline.
+- Recorded first planned outputs: workflow summary, owner communication draft, internal
+  update preview, and approval package.
+- Recorded that write/update action design should still be AI-assisted during process
+  editing and refinement, including suggestions to add/remove actions, missing-fact
+  detection, and explanations of future write/update/send behavior.
+- Recorded that deterministic checks should verify API connections are configured and
+  healthy for each consumed app before an action can move toward execution.
+- Recorded that first executable write/send actions wait until after the read/gather
+  flow and approval package are tested.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Lease Renewal Read Sources Batch
+
+- Date: 2026-06-04
+- Recorded signed lease or lease-term record as the first authoritative renewal trigger
+  source, pending client system confirmation.
+- Recorded that manual workflow start remains allowed.
+- Recorded that imported property, tenant, owner, rent, and lease facts should show
+  source, timestamp, and confidence before approval.
+- Recorded that conflicting facts across systems block the run until a human chooses the
+  correct source.
+- Recorded that the app should keep a missing-facts list, let AI suggest where to find
+  each missing fact, and include a link to add the missing resource or description
+  through the right path, such as in-place process edit or the approved Drive/source
+  folder.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Missing Facts And Source Updates Batch
+
+- Date: 2026-06-04
+- Accepted the recommended missing-facts/source-update defaults.
+- Recorded that missing-fact links should offer two first actions: `Add process note`
+  and `Add source document`.
+- Recorded that `Add process note` creates a proposed process-definition or source
+  update that requires approval before becoming active.
+- Recorded that `Add source document` points to the approved Drive/source folder and
+  relies on the approved source sync/indexing path.
+- Recorded that once a missing fact is filled, the run should re-check only affected
+  facts and steps instead of restarting the whole run.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Fact Confidence And Approval Batch
+
+- Date: 2026-06-04
+- Accepted the recommended imported-fact confidence and approval defaults.
+- Recorded imported fact confidence levels: `Verified`, `Likely`, `Needs Review`, and
+  `Conflict`.
+- Recorded that only `Verified` facts can flow into owner-facing drafts without a visible
+  warning.
+- Recorded that `Likely` facts can be used in internal summaries, but must be reviewed
+  before approval.
+- Recorded that `Conflict` facts block owner-facing drafts and executable actions until
+  resolved.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Conflict Resolution Batch
+
+- Date: 2026-06-04
+- Accepted the recommended conflict-resolution defaults.
+- Recorded that conflict resolution requires a human to pick the winning source or enter
+  a corrected value.
+- Recorded that each resolution saves who resolved it, why, source chosen or corrected
+  value, and timestamp.
+- Recorded that a corrected value creates a proposed source or process update so the
+  same conflict is less likely next time.
+- Recorded that legal, financial, or notice-timing conflicts require Dan/Josiah Admin
+  approval even if another user proposes the resolution.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Owner Communication Drafts Batch
+
+- Date: 2026-06-04
+- Recorded that facts must be both `Verified` and approved before they can flow into
+  owner-facing drafts without a visible warning.
+- Recorded that owner-facing drafts should always show traceable links, sources, and
+  supporting facts so the process can be improved.
+- Recorded that Dan can edit any generated or prepared document because he has Admin
+  authority.
+- Recorded that human send authority remains preserved: Dan approves and sends first,
+  and later send automation can be layered only after testing and a future approved spec.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Package Batch
+
+- Date: 2026-06-04
+- Recorded that approval packages should include workflow summary, the relevant
+  draft/output/action being automated, verified fact list, unresolved warnings, planned
+  internal updates, pending automation notes, and send/update preview.
+- Recorded that Dan approval covers the owner communication and facts used by it.
+- Recorded that external writes can also be approved from the package when explicitly
+  included as separate action approvals, but owner communication approval does not
+  silently approve unrelated external writes.
+- Recorded that internal update previews remain separately approvable by action through
+  an obvious, low-friction approval queue designed for client and staff review.
+- Recorded that approval package history preserves every revision Dan reviewed.
+- Recorded correction-style rollback where APIs allow it: store the previous entry and
+  re-enter that previous value through the API, rather than treating rollback as a
+  universal true revert.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue UX Batch
+
+- Date: 2026-06-04
+- Recorded that approval queue items should be grouped by audience: Dan/Admin decisions,
+  team follow-up, outside waiting, and failed/blocked automation.
+- Recorded that each approval item should show plain-English action, risk level, source
+  evidence, affected system, before/after preview, and required approver.
+- Recorded queue actions: `Approve`, `Return for Revision`, `Assign`, `Snooze`,
+  `Disable Action`, and `Open Run`.
+- Recorded that all clarification, next steps, errors, and messaging should assume
+  non-technical, new users who do not understand automation internals.
+- Recorded that high-risk items use a simple confirm popup before approval, while
+  low-risk internal updates can be one-click after review.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue Risk Levels Batch
+
+- Date: 2026-06-04
+- Accepted the recommended approval queue risk defaults.
+- Recorded risk levels: `Low`, `Medium`, `High`, and `Blocked`.
+- Recorded `High` as owner/tenant-facing, legal/financial/timing impact, or external
+  system write.
+- Recorded `Medium` as internal process/state update or fact correction that affects a
+  workflow but not an external system.
+- Recorded `Low` as internal note, assignment, snooze, or non-executable process
+  cleanup.
+- Recorded `Blocked` as unable to proceed until a missing fact, conflict, connection,
+  permission, or approver issue is resolved.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue Filters And Views Batch
+
+- Date: 2026-06-04
+- Accepted the recommended approval queue filters and view defaults.
+- Recorded that the default approval queue view should put `Ready for Approval`,
+  `Blocked`, `Failed`, and overdue items first.
+- Recorded queue filters: process, owner/final approver, assignee, risk level, status,
+  due date, and audience group.
+- Recorded that staff view should hide technical details by default and show what
+  happened, why it matters, and what to do next.
+- Recorded that Admin view should allow expansion into technical details, source
+  evidence, API/connection status, and audit trail.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue Item Lifecycle Batch
+
+- Date: 2026-06-04
+- Accepted the recommended approval queue item lifecycle defaults.
+- Recorded that each approval queue item should have one current assignee and one
+  required approver.
+- Recorded that `Return for Revision` should require a plain-English reason and send the
+  item back to the creator or last editor.
+- Recorded that `Snooze` should require a date and reason, then automatically return the
+  item to the active queue on that date or if risk/status changes.
+- Recorded that `Disable Action` should be Admin-only, require a reason, and preserve the
+  disabled action in history.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue Creation And Cleanup Batch
+
+- Date: 2026-06-04
+- Accepted the recommended approval queue creation and cleanup defaults.
+- Recorded that queue items should be created from approval packages,
+  process-definition changes, failed/blocked automation, external-action readiness, and
+  source/fact conflicts.
+- Recorded that duplicate items for the same run/action should merge into one open item
+  with history instead of creating multiple tasks.
+- Recorded that if the underlying fact, draft, action, or preview changes, the queue
+  item should refresh and preserve the prior version in history.
+- Recorded that a queue item should close automatically when approved, completed,
+  cancelled, disabled, or when the blocker is resolved and no approval remains.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue Notifications And Reminders Batch
+
+- Date: 2026-06-04
+- Recorded that approval queue notifications should appear in the app console when an
+  item is created, assigned, returned for revision, unsnoozed, blocked, unblocked,
+  overdue, or closed.
+- Recorded that these queue events should not all send email by default; email delivery
+  can be configured separately.
+- Recorded that queue notifications should go to the current assignee and required
+  approver, while creators/editors are notified only when their action is needed or their
+  item closes.
+- Recorded that reminders should start as a single console notification, with no default
+  24-hour follow-up or Admin escalation sequence unless configured later.
+- Recorded that notifications should include the plain-English action needed, due date,
+  risk level, affected process/run, and a direct link to the queue item.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue Email Configuration Batch
+
+- Date: 2026-06-04
+- Accepted the recommended approval queue email-configuration defaults.
+- Recorded that queue email delivery should be off by default and configurable by Admins
+  per event type and recipient role.
+- Recorded that email settings should show event type, enabled state, recipient roles,
+  trigger condition, frequency/cooldown, subject preview, and last send/error status.
+- Recorded that email should never replace console notifications; the app console
+  remains the default source of truth.
+- Recorded that email delivery failure should not block the queue item, but should create
+  an Admin-visible health warning and audit entry.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue Admin Health Batch
+
+- Date: 2026-06-04
+- Accepted the recommended approval queue Admin-health defaults.
+- Recorded that Admin health should show queue email status, failed delivery count, last
+  failure, disabled event types, stale overdue count, and blocked item count.
+- Recorded health states: `Healthy`, `Needs Attention`, and `Action Required`.
+- Recorded that `Action Required` means something is broken or blocking work, such as
+  failed notification delivery, disconnected email config, or unresolved blocked
+  high-risk items.
+- Recorded that Admins should be able to open health details directly into affected queue
+  items, email settings, or audit records.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue Simple Audit And History Batch
+
+- Date: 2026-06-04
+- Accepted the audit/history direction with the simplicity caveat that the queue should
+  avoid many options, toggles, or separate audit modes.
+- Recorded the simpler alternative: one automatic append-only Activity log per queue
+  item.
+- Recorded that meaningful queue state changes capture actor, timestamp, action,
+  previous state, new state, reason when supplied or required, and source trigger.
+- Recorded that staff see plain-English Activity summaries only when action-relevant,
+  while Admins can expand the same feed for full audit fields.
+- Recorded that prior versions are preserved automatically for approval-critical facts,
+  drafts, previews, notification settings, and disabled actions.
+- Recorded that corrections create new entries instead of editing or deleting old ones,
+  and low-level system entries can collapse by default to reduce clutter.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue Simplicity Guardrails Batch
+
+- Date: 2026-06-04
+- Accepted the recommended simplicity guardrails.
+- Recorded that Approval Queue v1 should avoid extra user-facing toggles, per-user
+  customization, and complex settings unless they solve an observed workflow problem.
+- Recorded that normal users should see only the core queue actions and one plain
+  `Activity` view, while Admin-only details and settings live behind obvious Admin
+  surfaces.
+- Recorded that AI and automation should rely on a small fixed set of structured fields,
+  not many optional UI settings.
+- Recorded that any new setting requires an owner, plain-English default, disable path,
+  and test coverage before it is added.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue Fixed Fields Batch
+
+- Date: 2026-06-04
+- Accepted the recommended Approval Queue fixed-field defaults.
+- Recorded v1 queue item fields: process/run, item type/source trigger, status, risk,
+  audience group, assignee, required approver, due date, action needed, affected
+  system/action, direct link, created timestamp, and updated timestamp.
+- Recorded that evidence and details should attach through source links, previews, and
+  the `Activity` log instead of extra toggles or custom fields.
+- Recorded that AI-readable queue state should come from the fixed fields plus
+  `Activity`, not user-specific settings.
+- Recorded that v1 should not support custom queue fields; any new field must go through
+  the new-setting guardrail.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue MVP Screen Batch
+
+- Date: 2026-06-04
+- Accepted the recommended Approval Queue MVP screen defaults.
+- Recorded that v1 should use one main queue table/list plus a right-side or modal detail
+  view, not multiple queue dashboards.
+- Recorded that the list should show only status, risk, action needed, process/run,
+  assignee, required approver, due date, and a direct link or open action.
+- Recorded that the detail view should show summary, evidence links/previews, available
+  actions, and `Activity`.
+- Recorded that Admin-only health and settings should be reachable from a simple Admin
+  area, not mixed into every normal queue item.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue Mobile And Responsiveness Batch
+
+- Date: 2026-06-04
+- Accepted the recommended Approval Queue mobile and responsiveness defaults.
+- Recorded that mobile v1 should use the same queue list and detail view, with rows or
+  cards stacked for readability instead of a separate mobile workflow.
+- Recorded that mobile list items should show only status, risk, action needed, due date,
+  and open action; other fixed fields can appear in detail.
+- Recorded that primary actions should remain visible in the detail view without
+  requiring users to understand Admin settings.
+- Recorded that desktop and mobile should use the same fixed fields and `Activity` source
+  so AI and automation see one queue model.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue Empty And Error States Batch
+
+- Date: 2026-06-04
+- Accepted the recommended Approval Queue empty and error state defaults.
+- Recorded that an empty queue should say nothing is currently waiting for review and
+  should not show fake/demo queue items.
+- Recorded that loading and error states should use plain-English messages with one
+  obvious retry or open action.
+- Recorded that missing evidence, permissions, or connections should create or route to a
+  `Blocked` queue item instead of appearing as a vague broken screen.
+- Recorded that production queue views should never show demo/test items unless the run
+  is clearly marked as a test/demo run.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue Permissions And One-Pass Defaults
+
+- Date: 2026-06-04
+- Accepted the recommended Approval Queue permission defaults.
+- Recorded that normal users can view assigned/relevant queue items, open details, take
+  assigned actions, add comments/reasons, and return assigned items for revision.
+- Recorded that Admins can view all queue items, approve high-risk items, disable
+  actions, manage email settings, view health, and expand full Activity/audit details.
+- Recorded that users cannot approve their own proposed process/source/fact change unless
+  they are Admin and explicitly acting as approver.
+- Recorded that permission errors should explain the missing role/action and route to a
+  safe next step.
+- Added inferred one-pass defaults: changed closed items create new linked items and
+  direct queue links stay stable.
+- Updated bulk-action default after user correction: v1 includes bulk approve, bulk
+  disable, bulk execute, bulk assign, and bulk snooze for selected visible items, with
+  per-item permission/risk/readiness enforcement and Activity records.
+- Added inferred one-pass defaults for missing assignee/approver: route to `Blocked` and
+  Admin triage instead of guessing.
+- Added inferred one-pass AI defaults: AI can suggest assignee, approver, risk, status,
+  and action-needed values from fixed fields/source evidence/Activity, but cannot
+  approve, disable, close, execute, override permissions, or make suggestions effective
+  outside the normal queue action path.
+- Added inferred one-pass comment defaults: comments/reasons are Activity entries and do
+  not directly mutate facts, drafts, process definitions, sources, or external actions.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue Bulk Correction And Open Question Answers
+
+- Date: 2026-06-04
+- Corrected the prior inferred default: Approval Queue v1 should include bulk approve,
+  bulk disable, bulk execute, bulk assign, and bulk snooze for selected visible items.
+- Recorded bulk-action guardrails: respect each selected item's permissions, risk,
+  required approver, and readiness; show a plain-English preview; require confirmation;
+  skip or block ineligible items with a clear reason; and write per-item Activity.
+- Recorded that bulk execute does not bypass external-action approval,
+  owner/tenant-facing send authority, or high-risk confirmation.
+- Recorded open-question answers: client systems remain TBD and will be scoped with the
+  client; delegated approvers beyond Dan/Josiah remain TBD but should be easy to manage
+  through an Admin console; Activity/audit retention and export should follow standard
+  SaaS audit best practices unless client/legal policy overrides.
+- Recorded configured queue email recipients as assigned and/or Admin-selected.
+- Recorded unresolved important `Blocked` or overdue item escalation as portal
+  notification and email notification for now.
+- Recorded Maintenance and Move-Out tools, services, systems, triggers, and connections
+  as TBD until scoped with the client.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Approval Queue Review Repair Pass
+
+- Date: 2026-06-04
+- Reviewed the recent Approval Queue documentation from a fresh-context/falsification
+  stance for contradictions, stale defaults, and downstream alignment issues.
+- Fixed approval-queue email wording so routine queue-event email remains off by default
+  and Admin-configurable, while unresolved important `Blocked` or overdue escalation is
+  explicitly the built-in portal-plus-email exception.
+- Confirmed old no-bulk default wording was removed from the affected active docs and
+  v1 bulk actions are now documented with selected-item guardrails.
+- Confirmed remaining TBDs are client-scoped implementation questions rather than
+  unresolved Approval Queue product-definition blockers.
+- Confirmed the status entry for this repair pass is at the end of the status log and
+  does not split an older validation section.
+- Ran file-size and diff-size quality checks on the affected docs. No affected doc is
+  unexpectedly oversized; `docs/status.md` is large because it is the running historical
+  project log, and `docs/product-definition-gap-plan.md` remains an untracked new doc
+  until intentionally added.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+- `bash scripts/verify.sh`: passed. It reinstalled dependencies, checked formatting,
+  linted, typechecked, ran 133 tests, passed the router boundary check, and built the
+  app.

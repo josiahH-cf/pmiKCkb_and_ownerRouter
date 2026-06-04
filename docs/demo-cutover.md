@@ -37,7 +37,7 @@ Each environment owns these values:
 - Space source targets, such as Drive folder IDs or Cloud Storage `gs://` prefixes
 - Agent Search / Vertex AI Search data store IDs
 - Cloud Run service account email
-- Gmail sender identity for `KB Approval`
+- `kb-automation@pmikcmetro.com` sender for `KB Approval`
 - Secret Manager secret names/versions
 
 Values that must not move from demo to production:
@@ -84,9 +84,9 @@ Before declaring client-production ready:
 - Ask returns one cited `Verified Source` answer from the configured source path or
   demo retrieval mode.
 - Ask returns `No Reliable Source Found` for an unsupported question.
-- An Editor can save an SOP/template/placeholder change.
-- An Editor cannot approve.
-- An Approver/Admin can approve or resolve.
+- A User can save or suggest an SOP/template/placeholder change.
+- A User cannot approve.
+- An Admin can approve or resolve.
 - No app code writes to Gmail, Drive, RentVine, LeadSimple, DotLoop, QuickBooks, Boom,
   operational Sheets, or Gmail Inbox 0 source folders beyond explicitly allowed
   send-only notification behavior.

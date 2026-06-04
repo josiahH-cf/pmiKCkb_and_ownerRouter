@@ -21,11 +21,11 @@ Inbox 0. It is intentionally more current than older KB-only demo docs.
 
 ## Product-Specific Cutover Notes
 
-| Product             | Current cutover posture                                                                                                          | Primary blockers                                                                                                              |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| PMI KC KB           | Demo runtime exists; production cutover runbook exists and needs client-owned resources.                                         | PMI KC admin/billing, approved production sources, source/data-store maps, auth domains, roles, Gmail notification decision.  |
-| Lease Renewal Agent | No standalone agent runtime should be built yet.                                                                                 | Requirements, permitted systems, trigger model, data source list, user approval model, and acceptance tests.                  |
-| Gmail Inbox 0       | Owner-email-first package exists as legacy Owner Router artifacts; active product needs naming and artifact migration decisions. | Dan/Bailey Gmail access model, owner sender rules, label setup authority, live Gmail testing approach, Drive source approval. |
+| Product             | Current cutover posture                                                                    | Primary blockers                                                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| PMI KC KB           | Demo runtime exists; production cutover runbook exists and needs client-owned resources.   | PMI KC admin/billing, approved production sources, source/data-store maps, auth domains, roles, Gmail notification decision.   |
+| Lease Renewal Agent | No standalone agent runtime should be built yet.                                           | Requirements, permitted systems, trigger model, data source list, user approval model, and acceptance tests.                   |
+| Gmail Inbox 0       | Dan-email-first pilot direction exists; legacy Owner Router artifacts are source material. | Dan mailbox access model, historical scan protocol, label setup authority, live Gmail testing approach, Drive source approval. |
 
 ## Integration Rules
 

@@ -32,7 +32,7 @@ browse/edit approved demo Spaces, and move changes through a minimal review path
   package and owner-email indexing approach are approved. Legacy Owner Router artifacts
   may be reused as source material.
 - The current live Ask demo corpus includes all four approved demo workflows in the
-  Cherrybridge demo project.
+  demo project.
 - Gmail `KB Approval` notifications remain deferred until the Approval Queue is backed
   by real review records.
 

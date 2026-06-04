@@ -3,10 +3,12 @@
 ## Active Product Boundaries
 
 - PMI KC KB is the only current web app runtime in this repo.
-- Lease Renewal Agent is a separate product lane, but runtime architecture is not
-  approved yet.
-- Gmail Inbox 0 is owner-email-first and Gmail-native for v1; it supersedes the
-  client-facing Owner Router/Dan's AI Assistant naming.
+- PMI KC KB is also the future workflow-control surface for approved backend
+  automations.
+- Lease Renewal Agent is the first backend automation target after KB production, but
+  integration architecture and write permissions are not approved yet.
+- Gmail Inbox 0 is Dan-email-first and Gmail-native for v1; it supersedes the
+  client-facing Owner Router/Dan's AI Assistant naming and starts with Dan's mailbox.
 - Older KB-only and separate-Owner-Router repository instructions are legacy unless
   preserved in `docs/north-star.md` or a product lane doc as a safety boundary.
 
@@ -51,7 +53,8 @@
 - Do not log PII, raw owner/tenant financial facts, live Gmail contents, or LLM prompt
   payloads containing sensitive data.
 - Do not add autonomous send.
-- Do not add system-of-record writes without a future approved product spec.
+- Do not add system-of-record writes without a future approved product spec, explicit
+  approval flow, audit record, tests, and rollback/error handling.
 
 ## Product Constants
 
@@ -61,6 +64,8 @@ Do not rename casually:
 - `Lease Renewal Agent`
 - `Gmail Inbox 0`
 - `Owner Router` as legacy/internal source context only
+- `Admin`
+- `User`
 - `Draft — Review before sending`
 - `Needs Verification: <fact>`
 - `No Reliable Source Found`

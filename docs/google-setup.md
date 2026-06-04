@@ -87,7 +87,7 @@ available in ignored `.env.local`.
 Use the live auth smoke utility when the visible in-app browser is unreliable:
 
 ```bash
-npm run smoke:auth-live -- --email=josiah.hunter@cherrybridge.ai --timeout-ms=90000
+npm run smoke:auth-live -- --email=<josiah-pmi-kc-account@pmikcmetro.com> --timeout-ms=90000
 ```
 
 The utility opens installed Chrome or Edge through Playwright, starts at
@@ -98,7 +98,7 @@ such as password, MFA, or consent. To keep the opened browser waiting while a hu
 finishes that checkpoint, add `--pause-on-human`:
 
 ```bash
-npm run smoke:auth-live -- --email=josiah.hunter@cherrybridge.ai --timeout-ms=180000 --pause-on-human
+npm run smoke:auth-live -- --email=<josiah-pmi-kc-account@pmikcmetro.com> --timeout-ms=180000 --pause-on-human
 ```
 
 The persistent browser profile lives under ignored `temp/live-auth-profile`, so a
@@ -116,8 +116,8 @@ Current demo-host state:
 - Authorized domains are set for `localhost`, `127.0.0.1`,
   `pmikckb-test.firebaseapp.com`, and `pmikckb-test.web.app`.
 - Google sign-in provider setup is verified by `npm run firebase:setup-auth-demo`.
-- Live Google sign-in for `josiah.hunter@cherrybridge.ai` has been smoked through the
-  Playwright utility, and that user has the Firebase custom claim `role=Admin`.
+- Future auth and automation tests should use Josiah's PMI KC `pmikcmetro.com` account
+  once provisioned, with Firebase custom claim `role=Admin`.
 - If the persistent browser profile expires or Google asks for fresh verification, use
   the `--pause-on-human` smoke command above, complete the Google screen in the opened
   browser, then let the script confirm whether the app reaches `/ask`.
@@ -291,10 +291,47 @@ Official references, verified on 2026-05-29:
 - Cloud Storage IAM roles:
   <https://docs.cloud.google.com/storage/docs/access-control/iam-roles>
 
-The original Google Drive folder can still be used as a human staging folder, but do
-not create the live Ask data store from Drive for this phase. Current Google docs for
-Workspace data stores say service-account search is not supported, and the user hit a
-Google Console OAuth error while creating the Drive connector.
+The original Google Drive folder can still be used as a human staging folder. For Lease
+Renewal discovery, the default first capture/collaboration location is a PMI KC-accessible
+Google Drive folder unless setup identifies a better client-accessible, app-connected
+source. Do not create the live Ask data store from Drive for this phase unless the Drive
+connector path is intentionally revisited. Current Google docs for Workspace data stores
+say service-account search is not supported, and the user hit a Google Console OAuth
+error while creating the Drive connector.
+
+For the Lease Renewal discovery folder, do not create a raw/approved split by default.
+Treat material in the client-accessible folder as source-of-truth input, then curate it
+frequently. The curation workflow should use AI-proposed documentation updates, human
+review by Dan, and continuous documentation improvement. Dan decides the review cadence;
+the intended behavior is automatic continuous app reads from the source, not manual
+import-on-demand and not gated on Dan approval. The connector/indexing implementation is
+still TBD and must be validated against the client-owned source location.
+
+Research note, 2026-06-03: the likely path is Drive as the team collaboration folder
+feeding an indexed source layer automatically. Google documents two relevant options:
+Drive data federation, which searches Drive without copying data into the Agent Search
+index, and Cloud Storage ingestion, which can create an indexed data store and has a
+periodic ingestion option. Direct Drive federation has setup and search limitations, so
+do not assume it is the production path until tested in the client-owned Workspace.
+The first indexed-source candidate to test is Cloud Storage plus Agent Search periodic
+ingestion, with a Drive-to-Cloud-Storage handoff or connector step still to be defined.
+Assume the first handoff test is the simplest low-cost automation that works for users:
+copy changes from the team-editable Drive source folder into Cloud Storage for indexing,
+then let the index/app handle freshness. Because cloud costs are pass-through, keep the
+test small and avoid unnecessary always-on services, frequent polling, large indexed
+corpora, duplicate data stores, or extra automation.
+
+Do not start with a Docs/text/PDF-only source rule. The Lease Renewal source folder may
+contain all useful file types. During setup, identify which useful file types can be
+indexed directly and which need conversion or summary into a supported indexed form. If
+a useful file cannot be safely converted, skip it with a visible reason rather than
+silently dropping it. If a file is not source-of-truth material, move it out of the
+source folder instead of relying on the copy or indexing path to ignore it. The
+destination for non-source, reference, or archive material is TBD.
+
+Grant the whole PMI KC team direct edit access to the initial Lease Renewal
+source-of-truth folder. The exact group or named-user list still needs to come from the
+client's Workspace setup.
 
 ### Sanitizing Raw Call Context
 
@@ -526,8 +563,8 @@ Firestore. Configure it only after the sender identity and recipients are approv
 
 ```dotenv
 KB_APPROVAL_NOTIFICATIONS_ENABLED=true
-KB_APPROVAL_SENDER=<approved-sender@example.com>
-KB_APPROVAL_RECIPIENTS=<approver-1@example.com>,<approver-2@example.com>
+KB_APPROVAL_SENDER=<kb-automation@pmikcmetro.com>
+KB_APPROVAL_RECIPIENTS=<dan-pmi-kc-account@pmikcmetro.com>,<josiah-pmi-kc-account@pmikcmetro.com>
 APP_BASE_URL=<deployed-kb-url>
 ```
 
@@ -552,7 +589,7 @@ Provide these values to unblock live setup, without posting secrets into chat:
 - Authorized local/demo domains.
 - Cloud Storage bucket/source prefix for `KB / Lease Renewals`.
 - Agent Search data store ID for Lease Renewals.
-- Later only: Gmail sender identity for `KB Approval`.
+- `kb-automation@pmikcmetro.com` sender for `KB Approval`.
 
 ## Client Cutover
 
@@ -592,7 +629,7 @@ npm run preflight:production -- --env-file=.env.production.local
 npm run deploy -- --project=<client-project-id> --service=pmi-kc-kb --budget-confirmed --allow-multiple-spaces --service-account=<runtime-service-account-email>
 ```
 
-9. Assign first Admin/Approver roles, run the production smoke checklist in
+9. Assign first Admin roles, run the production smoke checklist in
    `docs/client-production-cutover.md`, and record results in `docs/status.md`.
 
 Do not copy demo Firestore data, demo OAuth clients, demo service accounts, or demo

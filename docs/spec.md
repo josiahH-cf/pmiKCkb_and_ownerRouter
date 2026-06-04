@@ -15,6 +15,8 @@ implementation_meta: spec-4-implementation-meta-implementation-spec.md
 > Renewal Agent, and Gmail Inbox 0 through `docs/north-star.md` and `docs/products/`.
 > Statements below that describe a separate Owner Router repository are legacy repo
 > topology. The safety boundaries still apply unless an active product doc changes them.
+> Current product-facing decisions in `docs/products/pmi-kc-kb.md` supersede older role,
+> approver, account, and notification examples below.
 
 This document is the authoritative source of truth for building and deploying **PMI KC KB**, the standalone internal knowledge and handoff web application for PMI KC Metro. It is one of four aligned specifications in this project. It defines the KB product end-to-end at a level an outside implementer can scaffold, build, test, and ship from without further interpretation.
 

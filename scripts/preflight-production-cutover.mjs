@@ -133,18 +133,18 @@ export function validateProductionCutoverConfig(env) {
   assertNoPlaceholderValues("SPACE_DRIVE_FOLDER_IDS", sourceTargets, errors);
   assertNoPlaceholderValues("SPACE_VERTEX_DATA_STORE_IDS", dataStores, errors);
 
-  if (readBoolean(env.KB_APPROVAL_NOTIFICATIONS_ENABLED, false)) {
-    requireValue(readString(env.KB_APPROVAL_SENDER), "KB_APPROVAL_SENDER", errors);
-    requireValue(
-      readString(env.KB_APPROVAL_RECIPIENTS),
-      "KB_APPROVAL_RECIPIENTS",
-      errors,
-    );
-  } else {
-    warnings.push(
-      "Gmail approval notifications are disabled; this is acceptable for initial production if approved.",
-    );
+  if (!readBoolean(env.KB_APPROVAL_NOTIFICATIONS_ENABLED, false)) {
+    errors.push("KB_APPROVAL_NOTIFICATIONS_ENABLED must be true for client-production.");
   }
+
+  const approvalSender = readString(env.KB_APPROVAL_SENDER);
+  const approvalRecipients = readString(env.KB_APPROVAL_RECIPIENTS);
+  requireValue(approvalSender, "KB_APPROVAL_SENDER", errors);
+  requireValue(approvalRecipients, "KB_APPROVAL_RECIPIENTS", errors);
+  assertNoPlaceholderString("KB_APPROVAL_SENDER", approvalSender, errors);
+  assertNoPlaceholderString("KB_APPROVAL_RECIPIENTS", approvalRecipients, errors);
+  assertPmikcmetroEmailList("KB_APPROVAL_SENDER", approvalSender, errors);
+  assertPmikcmetroEmailList("KB_APPROVAL_RECIPIENTS", approvalRecipients, errors);
 
   if (!readString(env.CLOUD_RUN_SERVICE_ACCOUNT)) {
     warnings.push(
@@ -253,6 +253,28 @@ function assertNoPlaceholderString(name, value, errors) {
 
   if (PLACEHOLDER_VALUE_PATTERN.test(value)) {
     errors.push(`${name} must be replaced with a real production value.`);
+  }
+}
+
+function assertPmikcmetroEmailList(name, value, errors) {
+  if (!value) {
+    return;
+  }
+
+  const entries = value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  if (entries.length === 0) {
+    return;
+  }
+
+  for (const entry of entries) {
+    if (!/^[^@\s]+@pmikcmetro\.com$/i.test(entry)) {
+      errors.push(`${name} must use only pmikcmetro.com email addresses.`);
+      return;
+    }
   }
 }
 

@@ -5,15 +5,15 @@
 PMI KC has purchased three related products that should now be governed from this
 repository as one coordinated workstream:
 
-| Product             | Purpose                                                                                             | Current implementation posture                                                                                         |
-| ------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| PMI KC KB           | Source-backed knowledge and handoff web app for operational Q&A, SOPs, placeholders, and approvals. | Existing Next.js/Firebase/Firestore/Vertex/Gemini runtime in this repo.                                                |
-| Lease Renewal Agent | Dedicated agent track for lease renewal workflows and handoffs.                                     | Separate product lane; use the existing KB Lease Renewals workflow as reference only until requirements are confirmed. |
-| Gmail Inbox 0       | Gmail-native owner-email triage and drafting workflow.                                              | Client-facing successor to Owner Router/Dan's AI Assistant; owner-email-first in v1.                                   |
+| Product             | Purpose                                                                                         | Current implementation posture                                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| PMI KC KB           | Source-backed knowledge, approval, and workflow-control app for operational Q&A and automation. | Existing Next.js/Firebase/Firestore/Vertex/Gemini runtime in this repo; production lift comes before automation writes. |
+| Lease Renewal Agent | Dedicated agent track for lease renewal workflows and handoffs.                                 | Separate product lane; use the existing KB Lease Renewals workflow as reference only until requirements are confirmed.  |
+| Gmail Inbox 0       | Gmail-native triage, drafting, and learning workflow for Dan's email.                           | Client-facing successor to Owner Router/Dan's AI Assistant; starts with Dan's mailbox and minimal labels.               |
 
 The end state is a coordinated operating system for PMI KC Metro: source-backed answers,
-repeatable renewal handoffs, and a visible owner-email queue that keeps humans in
-control of approvals, sends, and system-of-record actions.
+approved backend workflow automation, repeatable renewal handoffs, and a visible Gmail
+queue that keeps humans in control of approvals, sends, and system-of-record actions.
 
 ## Decision Rules
 
@@ -45,13 +45,14 @@ control of approvals, sends, and system-of-record actions.
 ## Product Relationship
 
 - PMI KC KB is the current web app runtime and remains the first lane to production
-  hardening.
-- Lease Renewal Agent is not automatically "done" because a Lease Renewals KB Space
-  exists. The KB Space is useful source material and a demo reference, not a confirmed
-  standalone agent spec.
+  hardening. Its target end state includes AI-started workflow automation, but production
+  launch should happen before external write paths are added.
+- Lease Renewal Agent is the first backend automation target after KB production. The
+  KB Lease Renewals Space is useful source material and a demo reference, not enough by
+  itself to identify external systems or write permissions.
 - Gmail Inbox 0 supersedes the client-facing Owner Router/Dan's AI Assistant naming.
   Existing Owner Router artifacts are reusable source material, but the active product
-  lane is Gmail Inbox 0.
+  lane starts with Dan's whole mailbox, not owner-email-only.
 - Cross-product integrations must be explicitly documented before implementation. Until
   then, product lanes share governance, vocabulary, and source discipline, not hidden
   runtime dependencies.

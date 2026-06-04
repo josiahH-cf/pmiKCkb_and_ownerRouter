@@ -55,7 +55,7 @@ const gmailInboxZeroDoc = readFileSync(
   "utf8",
 );
 for (const expected of [
-  "owner-email-first",
+  "Dan's Gmail",
   "Human send",
   "No autonomous send",
   "No Gmail draft creation",

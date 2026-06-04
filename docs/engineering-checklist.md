@@ -35,25 +35,28 @@ npm test
 
 ## Lease Renewal Agent
 
-- Do not build runtime until the product doc has approved v1 scope.
+- Do not build external write/send runtime until the product doc has approved source
+  systems, permissions, approval model, and acceptance tests.
 - Inventory renewal source systems, allowed source documents, trigger events, review
   owners, notification channels, and prohibited write paths.
 - Identify which current KB Lease Renewals artifacts can be reused as source material.
-- Draft acceptance scenarios before selecting runtime architecture.
+- Draft acceptance scenarios before selecting integration architecture.
 - Add tests only after an implementation boundary is approved.
 
 ## Gmail Inbox 0
 
 - Treat existing Owner Router/Dan's AI Assistant artifacts as source material to migrate
   or rename, not as final production setup by themselves.
-- Confirm the nine existing owner-email state labels still fit the Gmail Inbox 0 v1
-  owner-email-first scope.
-- Verify Gmail labels and filters manually or with approved setup scripts only.
+- Start the pilot with Dan's mailbox and the `Waiting on Outside` / `Waiting on Team`
+  labels.
+- Verify Gmail labels, filters, and historical-scan behavior manually or with approved
+  setup scripts only.
 - Ensure optional Apps Script remains setup/health-only unless a future approved spec
   expands scope.
 - Do not add autonomous send, Gmail draft creation, Gmail read/modify runtime code, or
   system-of-record writes without a new approved spec and tests.
-- Test with sanitized or client-approved safe threads before touching live owner email.
+- Test with sanitized, historical-read-only, or client-approved safe threads before
+  touching live Dan email.
 
 ## Final Verification
 
