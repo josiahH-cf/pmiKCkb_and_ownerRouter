@@ -10,7 +10,7 @@ export default defineConfig({
     ],
     environment: "node",
     globals: true,
-    include: ["tests/**/*.test.ts", "tests/**/*.test.mjs"],
+    include: ["tests/**/*.test.ts", "tests/**/*.test.tsx", "tests/**/*.test.mjs"],
   },
   resolve: {
     alias: {

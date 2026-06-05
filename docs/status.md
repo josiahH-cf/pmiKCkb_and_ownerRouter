@@ -3287,6 +3287,129 @@ Validation status:
 
 Remaining risk:
 
-- No component-level React test harness exists in this repo, so the queue UI is covered
-  through API/helper tests, type/lint checks, build verification, and browser inspection
-  rather than direct component tests.
+- Component-level React coverage now exists for critical bulk queue flows as of the
+  later risk-reduction pass, but broader queue component coverage is still intentionally
+  limited.
+
+## Approval Queue Bulk Actions Feature Cycle
+
+- Date: 2026-06-05
+- Product lane: PMI KC KB workflow-control layer.
+- Added production-ready local bulk actions for Approval Queue v1 without authorizing
+  cloud setup, Gmail access, deploys, live imports, keys, client-environment writes, or
+  external-system writes.
+- Added `POST /api/approval-queue/bulk` plus bulk input validation for action,
+  selected item IDs, reasons, snooze dates, assignment fields, and explicit High-risk
+  confirmation.
+- Added repository-level bulk transition handling with per-item `updated`, `skipped`,
+  or `failed` results and summary counts. Visible ineligible items receive a small
+  `skipped` Activity entry; hidden or unauthorized item IDs return a generic skipped
+  result without leaking item details or writing Activity.
+- Tightened single-item and bulk High-risk approval so the server requires
+  `confirm_high_risk: true`; the browser sends that flag only after the user accepts
+  the confirmation prompt.
+- Implemented bulk `execute` as a guarded skip until approved executable
+  external-action runtime exists. Current bulk execute results clearly state that no
+  external write was attempted.
+- Updated `/approval-queue` with select-visible, row checkboxes, bulk action controls,
+  action-specific fields, preview counts, High-risk preview text, and per-item bulk
+  results while preserving the one-list/detail screen model.
+- Updated the client production cutover runbook so "cutover to the main app" means the
+  gated production path: local readiness, production preflight, explicit deploy/client
+  approval, role assignment, and post-deploy smoke. Production bulk smoke must use real
+  or explicitly approved test queue items, not demo queue seeding.
+- Added a scratch feature-cycle packet at
+  `docs/temp/approval-queue-bulk-actions-cycle.md`; it remains an ignored disposable
+  planning artifact per the `docs/temp/` policy.
+
+Validation status:
+
+- `npm test -- approval-queue`: passed with 41 focused queue tests.
+- `npm run format:check`: passed.
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm test`: passed with 173 tests.
+- `npm run verify:router-boundary`: passed.
+- `npm run test:firestore`: passed with 14 Firestore Security Rules tests.
+- `git diff --check`: passed.
+- `bash scripts/verify.sh`: passed. It reinstalled dependencies, checked formatting,
+  linted, typechecked, ran 173 tests, passed the router-boundary check, and built the
+  app including `POST /api/approval-queue/bulk`.
+- Local browser smoke: passed against a temporary local Firestore emulator seeded with
+  demo queue records. Verified `/approval-queue` rendered, bulk selection worked, the
+  50-item request-limit copy was visible, guarded execute copy was visible, and the
+  mobile viewport had no horizontal overflow. The in-app browser could not reach the
+  local server from its environment, so the smoke used a local headless browser.
+- Local browser check: passed against a local Firestore emulator with temporary queue
+  records. Verified `/approval-queue` rendered the bulk panel and queue rows, select
+  visible selected three items, the preview showed two ready/one skipped plus one
+  High-risk confirmation note, `Execute` showed the guarded v1 copy, and bulk execute
+  returned `0 updated, 3 skipped, 0 failed` with "No external write was attempted."
+- Browser screenshot capture timed out once after the successful execute check, so the
+  final browser evidence is DOM/text verification rather than an attached screenshot.
+
+Remaining risk:
+
+- Component-level React coverage now exists for the critical bulk queue flows. Broader
+  queue component coverage remains intentionally limited to keep this pass focused.
+- Bulk execute is intentionally non-executable until workflow-run and external-action
+  runtime records are built behind a future approved spec.
+
+## Approval Queue Bulk Actions Review Repair Pass
+
+- Date: 2026-06-05
+- Reviewed the bulk-actions implementation from a fresh-context falsification stance
+  against the feature-cycle plan, active product/cutover docs, route/API tests,
+  repository tests, client queue screen, and smoke-script call paths.
+- Fixed a UI/server contract gap: the browser now caps bulk selection and submit at
+  the 50 visible-item request limit that the server schema already enforces.
+- Fixed downstream documentation drift: active planning docs now include bulk return
+  alongside approve, disable, execute, assign, and snooze; the production smoke
+  checklist no longer uses the stale "resolve queue items" wording.
+- Confirmed no script or app path directly calls High-risk single-item approve without
+  the explicit confirmation flag; direct approve calls found during review are tests or
+  the updated queue UI path.
+
+Validation status:
+
+- `npm test -- approval-queue`: passed with 41 focused queue tests.
+- `npm run format:check`: passed after formatting the touched queue component.
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm run test:firestore`: passed with 14 Firestore Security Rules tests.
+- `npm run verify:router-boundary`: passed.
+- `npm test`: passed with 173 tests.
+- `git diff --check`: passed.
+- `bash scripts/verify.sh`: passed. It reinstalled dependencies, checked formatting,
+  linted, typechecked, ran 173 tests, passed the router-boundary check, and built the
+  app including `POST /api/approval-queue/bulk`.
+
+## Approval Queue UI Risk Reduction Pass
+
+- Date: 2026-06-05
+- Reduced the remaining queue UI risk by splitting the oversized
+  `ApprovalQueue.tsx` screen into a state/API shell, focused filter/bulk/list/detail
+  panels, and a small queue model/helper module.
+- Added a React DOM test harness for the Approval Queue bulk UI with jsdom and Testing
+  Library. New tests cover the 50-item select-visible cap, guarded execute copy,
+  High-risk bulk confirmation payloads, and cancelled High-risk confirmation.
+- Quality-control check: no approval UI source file is now over 522 lines; the prior
+  monolithic queue component was 1170 lines.
+
+Validation status:
+
+- `npm test -- approval-queue`: passed with 44 focused queue tests.
+- `npm run format:check`: passed.
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm test`: passed with 176 tests.
+- `npm run test:firestore`: passed with 14 Firestore Security Rules tests.
+- `npm run verify:router-boundary`: passed.
+- `git diff --check`: passed.
+- `bash scripts/verify.sh`: passed. It reinstalled dependencies, checked formatting,
+  linted, typechecked, ran 176 tests, passed the router-boundary check, and built the
+  app including `POST /api/approval-queue/bulk`.
+- Local browser smoke: passed after the refactor against a temporary local Firestore
+  emulator seeded with demo queue records. Verified `/approval-queue` rendered, bulk
+  selection worked, the 50-item request-limit copy was visible, guarded execute copy
+  was visible, and the mobile viewport had no horizontal overflow.

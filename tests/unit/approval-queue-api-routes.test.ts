@@ -4,8 +4,10 @@ import {
   GET as GET_ITEM,
   PATCH as PATCH_ITEM,
 } from "@/app/api/approval-queue/[itemId]/route";
+import { POST as POST_BULK } from "@/app/api/approval-queue/bulk/route";
 import { setAuthResolverForTest } from "@/lib/auth/session";
 import {
+  bulkTransitionApprovalQueueItems,
   getApprovalQueueItem,
   listApprovalQueue,
   listApprovalQueueActivity,
@@ -17,6 +19,7 @@ import type {
 } from "@/lib/firestore/types";
 
 vi.mock("@/lib/firestore/approval-queue", () => ({
+  bulkTransitionApprovalQueueItems: vi.fn(),
   getApprovalQueueItem: vi.fn(),
   listApprovalQueue: vi.fn(),
   listApprovalQueueActivity: vi.fn(),
@@ -25,6 +28,7 @@ vi.mock("@/lib/firestore/approval-queue", () => ({
 
 afterEach(() => {
   setAuthResolverForTest(null);
+  vi.mocked(bulkTransitionApprovalQueueItems).mockReset();
   vi.mocked(getApprovalQueueItem).mockReset();
   vi.mocked(listApprovalQueue).mockReset();
   vi.mocked(listApprovalQueueActivity).mockReset();
@@ -119,7 +123,7 @@ describe("Approval Queue API routes", () => {
     ]);
 
     const response = await PATCH_ITEM(
-      jsonRequest({ action: "approve" }),
+      jsonRequest({ action: "approve", confirm_high_risk: true }),
       itemContext("item-1"),
     );
 
@@ -131,7 +135,7 @@ describe("Approval Queue API routes", () => {
     expect(transitionApprovalQueueItem).toHaveBeenCalledWith(
       expect.objectContaining({ uid: "admin-1" }),
       "item-1",
-      { action: "approve" },
+      { action: "approve", confirm_high_risk: true },
     );
   });
 
@@ -144,6 +148,81 @@ describe("Approval Queue API routes", () => {
 
     expect(response.status).toBe(400);
     expect(transitionApprovalQueueItem).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 before bulk actions when unauthenticated", async () => {
+    setAuthResolverForTest(() => null);
+
+    const response = await POST_BULK(
+      jsonRequest({ action: "approve", item_ids: ["item-1"] }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(bulkTransitionApprovalQueueItems).not.toHaveBeenCalled();
+  });
+
+  it("applies bulk actions and returns per-item results", async () => {
+    setAdmin();
+    vi.mocked(bulkTransitionApprovalQueueItems).mockResolvedValue({
+      results: [
+        {
+          item: queueItem({ status: "Approved" }),
+          item_id: "item-1",
+          message: "Queue item approved.",
+          outcome: "updated",
+        },
+        {
+          item_id: "item-2",
+          message: "Only Ready for Approval items can be approved.",
+          outcome: "skipped",
+        },
+      ],
+      summary: { failed: 0, requested: 2, skipped: 1, updated: 1 },
+    });
+
+    const response = await POST_BULK(
+      jsonRequest({
+        action: "approve",
+        confirm_high_risk: true,
+        item_ids: ["item-1", "item-2"],
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      results: [
+        { item_id: "item-1", outcome: "updated" },
+        { item_id: "item-2", outcome: "skipped" },
+      ],
+      summary: { requested: 2, skipped: 1, updated: 1 },
+    });
+    expect(bulkTransitionApprovalQueueItems).toHaveBeenCalledWith(
+      expect.objectContaining({ uid: "admin-1" }),
+      { action: "approve", confirm_high_risk: true, item_ids: ["item-1", "item-2"] },
+    );
+  });
+
+  it("rejects invalid bulk payloads before the repository runs", async () => {
+    setAdmin();
+
+    const response = await POST_BULK(jsonRequest({ action: "execute", item_ids: [] }));
+
+    expect(response.status).toBe(400);
+    expect(bulkTransitionApprovalQueueItems).not.toHaveBeenCalled();
+  });
+
+  it("rejects bulk payloads over the 50 item limit", async () => {
+    setAdmin();
+
+    const response = await POST_BULK(
+      jsonRequest({
+        action: "approve",
+        item_ids: Array.from({ length: 51 }, (_, index) => `item-${index}`),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(bulkTransitionApprovalQueueItems).not.toHaveBeenCalled();
   });
 });
 

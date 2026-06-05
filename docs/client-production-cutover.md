@@ -8,6 +8,13 @@ This is the clean PMI KC-owned environment path. Do not copy demo Firestore expo
 demo OAuth clients, demo service accounts, or demo Cloud Storage buckets into
 production.
 
+When an agent or operator says "cutover to the main app," treat that as this gated
+sequence: confirm local readiness, run production preflight against reviewed
+non-demo values, get explicit deploy/client-environment approval, deploy, assign roles,
+and complete the production smoke checklist. It does not mean seeding demo data,
+touching Gmail, importing live sources, or changing client resources without the
+specific approval gate named in this runbook.
+
 ## 1. Confirm Local Readiness
 
 Run from the repo root:
@@ -229,7 +236,10 @@ Production smoke checklist:
 - Ask returns a cited `Verified Source` answer from an approved production source.
 - Ask returns `No Reliable Source Found` for an unsupported question.
 - User can save or suggest editable records but cannot approve.
-- Admin can approve, return, or resolve queue items.
+- Admin can approve, return, assign, snooze, and disable eligible queue items.
+- Admin can run Approval Queue bulk actions against real or explicitly approved test
+  queue items, with per-item skipped reasons visible. Do not seed demo queue records in
+  production just to test this path.
 - The app does not write to RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Sheets,
   Gmail inboxes, Drive folders, or Gmail Inbox 0/legacy Owner Router source artifacts.
 

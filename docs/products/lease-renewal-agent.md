@@ -194,9 +194,9 @@ instead of silently reopening or editing the closed record. Queue item direct li
 should remain stable after status changes so notifications, history, and backlinks do
 not break.
 
-Approval Queue v1 should include bulk approve, bulk disable, bulk execute, bulk assign,
-and bulk snooze for selected visible items. Bulk actions must respect every selected
-item's individual permissions, risk level, required approver, and readiness state. Bulk
+Approval Queue v1 should include bulk approve, bulk return, bulk disable, bulk execute,
+bulk assign, and bulk snooze for selected visible items. Bulk actions must respect every
+selected item's individual permissions, risk level, required approver, and readiness state. Bulk
 actions should show a plain-English preview, require confirmation, skip or block
 ineligible items with a clear reason, and write per-item Activity entries. Bulk execute
 does not bypass external-action approval, owner/tenant-facing send authority, or

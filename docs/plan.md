@@ -194,8 +194,8 @@ Acceptance criteria:
 - Approval queue closed-item tests prove changed underlying facts/drafts/actions create a
   new linked queue item instead of silently reopening or editing closed records, and
   prove direct links remain stable.
-- Approval queue bulk-action tests prove selected-item bulk approve, disable, execute,
-  assign, and snooze paths; per-item permission/risk/readiness enforcement;
+- Approval queue bulk-action tests prove selected-item bulk approve, return, disable,
+  execute, assign, and snooze paths; per-item permission/risk/readiness enforcement;
   plain-English preview and confirmation; clear ineligible-item handling; per-item
   Activity entries; and no bypass of external-action approval, send authority, or
   high-risk confirmation.
@@ -338,9 +338,9 @@ Key gates:
   creates a new queue item linked to prior Activity history instead of silently reopening
   or editing the closed record. Queue item direct links remain stable after status
   changes.
-- Approval Queue v1 includes bulk approve, bulk disable, bulk execute, bulk assign, and
-  bulk snooze for selected visible items. Bulk actions respect every selected item's
-  individual permissions, risk level, required approver, and readiness state. Bulk
+- Approval Queue v1 includes bulk approve, bulk return, bulk disable, bulk execute,
+  bulk assign, and bulk snooze for selected visible items. Bulk actions respect every
+  selected item's individual permissions, risk level, required approver, and readiness state. Bulk
   actions show a plain-English preview, require confirmation, skip or block ineligible
   items with a clear reason, and write per-item Activity entries. Bulk execute does not
   bypass external-action approval, owner/tenant-facing send authority, or high-risk

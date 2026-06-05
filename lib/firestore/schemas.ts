@@ -192,6 +192,15 @@ export const QueueTransitionActionSchema = z.enum([
   "close",
 ]);
 
+export const QueueBulkActionSchema = z.enum([
+  "approve",
+  "return",
+  "assign",
+  "snooze",
+  "disable",
+  "execute",
+]);
+
 const queueProcessRunRefSchema = z.object({
   id: requiredTextSchema,
   label: requiredTextSchema,
@@ -231,7 +240,23 @@ export const TransitionApprovalQueueItemInputSchema = z.object({
   snooze_until: isoDateSchema.optional(),
   assignee_uid: optionalTextSchema,
   required_approver_uid: optionalTextSchema,
+  confirm_high_risk: z.boolean().optional(),
 });
+
+export const BulkApprovalQueueInputSchema = z
+  .object({
+    action: QueueBulkActionSchema,
+    item_ids: z.array(requiredTextSchema).min(1).max(50),
+    reason: optionalTextSchema,
+    snooze_until: isoDateSchema.optional(),
+    assignee_uid: optionalTextSchema,
+    required_approver_uid: optionalTextSchema,
+    confirm_high_risk: z.boolean().optional(),
+  })
+  .refine((input) => new Set(input.item_ids).size === input.item_ids.length, {
+    message: "Bulk action item IDs must be unique.",
+    path: ["item_ids"],
+  });
 
 export type CreateSopInput = z.input<typeof CreateSopInputSchema>;
 export type UpdateSopInput = z.input<typeof UpdateSopInputSchema>;
@@ -247,6 +272,11 @@ export type CreateApprovalQueueItemInput = z.input<
 export type TransitionApprovalQueueItemInput = z.input<
   typeof TransitionApprovalQueueItemInputSchema
 >;
+export type ParsedTransitionApprovalQueueItemInput = z.output<
+  typeof TransitionApprovalQueueItemInputSchema
+>;
+export type BulkApprovalQueueInput = z.input<typeof BulkApprovalQueueInputSchema>;
+export type ParsedBulkApprovalQueueInput = z.output<typeof BulkApprovalQueueInputSchema>;
 export type QueueRiskSignals = NonNullable<
   z.input<typeof CreateApprovalQueueItemInputSchema>["risk_signals"]
 >;

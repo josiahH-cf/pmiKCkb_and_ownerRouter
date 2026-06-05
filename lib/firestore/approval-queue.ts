@@ -6,8 +6,12 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
+  BulkApprovalQueueInputSchema,
+  type BulkApprovalQueueInput,
   CreateApprovalQueueItemInputSchema,
   type CreateApprovalQueueItemInput,
+  type ParsedBulkApprovalQueueInput,
+  type ParsedTransitionApprovalQueueItemInput,
   type QueueRiskSignals,
   TransitionApprovalQueueItemInputSchema,
   type TransitionApprovalQueueItemInput,
@@ -26,6 +30,10 @@ const COLLECTIONS = {
   queueItems: "approval_queue_items",
   queueActivity: "approval_queue_activity",
 } as const;
+
+const BULK_EXECUTE_BLOCKED_MESSAGE =
+  "Bulk execute is not available until approved executable external-action runtime exists. No external write was attempted.";
+const BULK_UNAVAILABLE_ITEM_MESSAGE = "Queue item is not available for this bulk action.";
 
 // Approval-critical fields snapshotted into Activity when an open item refreshes.
 const APPROVAL_CRITICAL_FIELDS = [
@@ -53,6 +61,25 @@ export interface ListApprovalQueueOptions {
   };
   // ISO date (YYYY-MM-DD) used to rank overdue items first. Injectable for tests.
   referenceDate?: string;
+}
+
+export type BulkApprovalQueueOutcome = "updated" | "skipped" | "failed";
+
+export interface BulkApprovalQueueResultItem {
+  item?: ApprovalQueueItemRecord;
+  item_id: string;
+  message: string;
+  outcome: BulkApprovalQueueOutcome;
+}
+
+export interface BulkApprovalQueueResult {
+  results: BulkApprovalQueueResultItem[];
+  summary: {
+    failed: number;
+    requested: number;
+    skipped: number;
+    updated: number;
+  };
 }
 
 export function classifyQueueRisk(
@@ -250,6 +277,32 @@ export async function transitionApprovalQueueItem(
   return getApprovalQueueItem(actor, itemId, db);
 }
 
+export async function bulkTransitionApprovalQueueItems(
+  actor: AuthenticatedUser,
+  input: BulkApprovalQueueInput,
+  db = getAdminFirestore(),
+): Promise<BulkApprovalQueueResult> {
+  assertCan(actor, "read");
+  const parsed = BulkApprovalQueueInputSchema.parse(input);
+  assertBulkActionInput(parsed);
+
+  const results: BulkApprovalQueueResultItem[] = [];
+
+  for (const itemId of parsed.item_ids) {
+    results.push(await bulkTransitionApprovalQueueItem(actor, itemId, parsed, db));
+  }
+
+  return {
+    results,
+    summary: {
+      failed: results.filter((result) => result.outcome === "failed").length,
+      requested: parsed.item_ids.length,
+      skipped: results.filter((result) => result.outcome === "skipped").length,
+      updated: results.filter((result) => result.outcome === "updated").length,
+    },
+  };
+}
+
 interface TransitionPlan {
   updates: Partial<ApprovalQueueItemRecord>;
   action: QueueActivityAction;
@@ -260,7 +313,7 @@ interface TransitionPlan {
 function planTransition(
   actor: AuthenticatedUser,
   current: ApprovalQueueItemRecord,
-  input: TransitionApprovalQueueItemInput,
+  input: ParsedTransitionApprovalQueueItemInput,
 ): TransitionPlan {
   switch (input.action) {
     case "approve": {
@@ -269,6 +322,12 @@ function planTransition(
         throw new EditableLayerError(
           "Only Ready for Approval queue items can be approved.",
           409,
+        );
+      }
+      if (current.risk === "High" && input.confirm_high_risk !== true) {
+        throw new EditableLayerError(
+          "High-risk approval requires explicit confirmation.",
+          400,
         );
       }
       assertCanApprove(actor, current);
@@ -343,7 +402,7 @@ function planTransition(
 
 function planAssign(
   current: ApprovalQueueItemRecord,
-  input: TransitionApprovalQueueItemInput,
+  input: ParsedTransitionApprovalQueueItemInput,
 ): TransitionPlan {
   const assigneeUid = input.assignee_uid?.trim() || current.assignee_uid;
   const approverUid =
@@ -372,6 +431,190 @@ function planAssign(
   }
 
   return { updates, action: "assigned", newState: current.status };
+}
+
+async function bulkTransitionApprovalQueueItem(
+  actor: AuthenticatedUser,
+  itemId: string,
+  input: ParsedBulkApprovalQueueInput,
+  db: Firestore,
+): Promise<BulkApprovalQueueResultItem> {
+  try {
+    const result = await db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(itemRef(db, itemId));
+      const data = snapshot.data();
+
+      if (!data) {
+        return unavailableBulkResult(itemId);
+      }
+
+      const current = readRecord<ApprovalQueueItemRecord>(snapshot.id, data);
+
+      if (!canViewApprovalQueueItem(actor, current)) {
+        return unavailableBulkResult(itemId);
+      }
+
+      if (input.action === "execute") {
+        return appendSkippedBulkResult(
+          transaction,
+          db,
+          actor,
+          current,
+          BULK_EXECUTE_BLOCKED_MESSAGE,
+        );
+      }
+
+      if (isTerminal(current.status)) {
+        return appendSkippedBulkResult(
+          transaction,
+          db,
+          actor,
+          current,
+          "This queue item is already closed.",
+        );
+      }
+
+      try {
+        const transition = planTransition(actor, current, transitionInputFromBulk(input));
+
+        transaction.update(itemRef(db, itemId), {
+          ...transition.updates,
+          updated_at: FieldValue.serverTimestamp(),
+        });
+        appendActivity(transaction, db, {
+          itemId,
+          actor,
+          action: transition.action,
+          previousState: current.status,
+          newState: transition.newState,
+          reason: transition.reason,
+          sourceTrigger: current.item_type,
+        });
+
+        return {
+          item_id: current.id,
+          message: bulkUpdatedMessage(transition.action),
+          outcome: "updated" as const,
+        };
+      } catch (error) {
+        if (error instanceof EditableLayerError) {
+          return appendSkippedBulkResult(transaction, db, actor, current, error.message);
+        }
+
+        throw error;
+      }
+    });
+
+    if (result.outcome !== "updated") {
+      return result;
+    }
+
+    return {
+      ...result,
+      item: await getApprovalQueueItem(actor, result.item_id, db),
+    };
+  } catch {
+    return {
+      item_id: itemId,
+      message: "Bulk action failed for this item.",
+      outcome: "failed",
+    };
+  }
+}
+
+function assertBulkActionInput(input: ParsedBulkApprovalQueueInput) {
+  switch (input.action) {
+    case "return": {
+      requireReason(input.reason, "Return for Revision");
+      return;
+    }
+    case "disable": {
+      requireReason(input.reason, "Disable Action");
+      return;
+    }
+    case "snooze": {
+      requireReason(input.reason, "Snooze");
+      if (!input.snooze_until) {
+        throw new EditableLayerError("Snooze requires a date.", 400);
+      }
+      return;
+    }
+    case "assign": {
+      if (!input.assignee_uid?.trim() && !input.required_approver_uid?.trim()) {
+        throw new EditableLayerError(
+          "Assign requires an assignee or required approver.",
+          400,
+        );
+      }
+      return;
+    }
+    case "approve":
+    case "execute": {
+      return;
+    }
+  }
+}
+
+function transitionInputFromBulk(
+  input: ParsedBulkApprovalQueueInput,
+): ParsedTransitionApprovalQueueItemInput {
+  if (input.action === "execute") {
+    throw new EditableLayerError("Execute cannot use queue transition input.", 400);
+  }
+
+  return {
+    action: input.action,
+    assignee_uid: input.assignee_uid,
+    confirm_high_risk: input.confirm_high_risk,
+    reason: input.reason,
+    required_approver_uid: input.required_approver_uid,
+    snooze_until: input.snooze_until,
+  };
+}
+
+function unavailableBulkResult(itemId: string): BulkApprovalQueueResultItem {
+  return {
+    item_id: itemId,
+    message: BULK_UNAVAILABLE_ITEM_MESSAGE,
+    outcome: "skipped",
+  };
+}
+
+function appendSkippedBulkResult(
+  transaction: Transaction,
+  db: Firestore,
+  actor: AuthenticatedUser,
+  current: ApprovalQueueItemRecord,
+  reason: string,
+): BulkApprovalQueueResultItem {
+  appendActivity(transaction, db, {
+    itemId: current.id,
+    actor,
+    action: "skipped",
+    previousState: current.status,
+    newState: current.status,
+    reason,
+    sourceTrigger: current.item_type,
+  });
+
+  return {
+    item_id: current.id,
+    message: reason,
+    outcome: "skipped",
+  };
+}
+
+function bulkUpdatedMessage(action: QueueActivityAction) {
+  const messages: Partial<Record<QueueActivityAction, string>> = {
+    approved: "Queue item approved.",
+    assigned: "Queue item assigned.",
+    disabled: "Queue action disabled.",
+    returned: "Queue item returned for revision.",
+    snoozed: "Queue item snoozed.",
+    unblocked: "Queue item assigned and unblocked.",
+  };
+
+  return messages[action] ?? "Queue item updated.";
 }
 
 function assertCanApprove(actor: AuthenticatedUser, item: ApprovalQueueItemRecord) {

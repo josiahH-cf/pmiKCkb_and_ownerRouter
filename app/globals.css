@@ -246,6 +246,64 @@ button {
   margin: 0;
 }
 
+.queue-bulk-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.queue-bulk-controls {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.queue-bulk-controls label,
+.queue-select-all {
+  color: var(--color-text);
+  display: grid;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.queue-select-all {
+  align-items: center;
+  display: flex;
+  min-height: 34px;
+}
+
+.queue-bulk-controls input,
+.queue-bulk-controls select,
+.queue-bulk-controls textarea {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text);
+  min-height: 40px;
+  min-width: 0;
+  padding: 8px 10px;
+}
+
+.queue-bulk-reason {
+  grid-column: span 2;
+}
+
+.queue-bulk-reason textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.queue-bulk-preview {
+  margin: 0;
+}
+
+.queue-bulk-results {
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+}
+
 .approval-queue-layout {
   align-items: start;
   display: grid;
@@ -259,20 +317,37 @@ button {
 }
 
 .queue-row {
-  background: transparent;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   color: var(--color-text);
   display: grid;
-  gap: 10px;
-  padding: 12px;
-  text-align: left;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr);
+  padding: 8px;
   width: 100%;
 }
 
-.queue-row[aria-current="true"] {
+.queue-row[data-current="true"] {
   background: var(--color-primary-100);
   border-color: var(--color-primary-500);
+}
+
+.queue-row-select {
+  align-items: start;
+  display: flex;
+  padding-top: 4px;
+}
+
+.queue-row-open {
+  background: transparent;
+  border: 0;
+  color: var(--color-text);
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+  width: 100%;
 }
 
 .queue-row-main,
@@ -390,6 +465,18 @@ button {
   margin: 4px 0 0;
 }
 
+.sr-only {
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
 @media (max-width: 760px) {
   .space-detail-grid {
     grid-template-columns: 1fr;
@@ -408,8 +495,13 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .queue-bulk-reason {
+    grid-column: auto;
+  }
+
   .queue-detail-actions .compact-button,
-  .queue-filter-actions .compact-button {
+  .queue-filter-actions .compact-button,
+  .queue-bulk-controls .compact-button {
     flex: 1 1 140px;
   }
 }

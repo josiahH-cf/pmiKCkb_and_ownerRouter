@@ -78,6 +78,7 @@ export type QueueActivityAction =
   | "disabled"
   | "closed"
   | "refreshed"
+  | "skipped"
   | "comment";
 
 export interface UserRecord {

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { Role } from "@/lib/auth/roles";
 import {
+  bulkTransitionApprovalQueueItems,
   classifyQueueRisk,
   createApprovalQueueItem,
   defaultAudienceGroup,
@@ -166,6 +167,30 @@ describe("transitionApprovalQueueItem", () => {
       previous_state: "Ready for Approval",
       new_state: "Approved",
     });
+  });
+
+  it("requires explicit confirmation before approving a High-risk item", async () => {
+    const item = await createApprovalQueueItem(
+      editor,
+      baseInput({
+        risk_signals: { owner_or_tenant_facing: true },
+        source_trigger_key: "high-risk-confirmation",
+      }),
+      db,
+    );
+    expect(item.risk).toBe("High");
+
+    await expect(
+      transitionApprovalQueueItem(approver, item.id, { action: "approve" }, db),
+    ).rejects.toThrow(/High-risk approval requires explicit confirmation/);
+
+    const approved = await transitionApprovalQueueItem(
+      approver,
+      item.id,
+      { action: "approve", confirm_high_risk: true },
+      db,
+    );
+    expect(approved.status).toBe("Approved");
   });
 
   it("blocks a non-Admin from approving their own item", async () => {
@@ -334,6 +359,214 @@ describe("transitionApprovalQueueItem", () => {
         db,
       ),
     ).rejects.toThrow(/already closed/);
+  });
+});
+
+describe("bulkTransitionApprovalQueueItems", () => {
+  it("updates eligible items and skips visible ineligible items with Activity", async () => {
+    const ready = await createApprovalQueueItem(
+      editor,
+      baseInput({ source_trigger_key: "bulk-ready" }),
+      db,
+    );
+    const highRisk = await createApprovalQueueItem(
+      editor,
+      baseInput({
+        risk_signals: { owner_or_tenant_facing: true },
+        source_trigger_key: "bulk-high",
+      }),
+      db,
+    );
+    const returned = await createApprovalQueueItem(
+      editor,
+      baseInput({ source_trigger_key: "bulk-returned" }),
+      db,
+    );
+    await transitionApprovalQueueItem(
+      editor,
+      returned.id,
+      { action: "return", reason: "Needs a better source." },
+      db,
+    );
+    const terminal = await createApprovalQueueItem(
+      editor,
+      baseInput({ source_trigger_key: "bulk-terminal" }),
+      db,
+    );
+    await transitionApprovalQueueItem(approver, terminal.id, { action: "approve" }, db);
+    const hidden = await createApprovalQueueItem(
+      admin,
+      baseInput({
+        assignee_uid: "someone-else",
+        required_approver_uid: "someone-else",
+        source_trigger_key: "bulk-hidden",
+      }),
+      db,
+    );
+
+    const result = await bulkTransitionApprovalQueueItems(
+      approver,
+      {
+        action: "approve",
+        item_ids: [ready.id, highRisk.id, returned.id, terminal.id, hidden.id],
+      },
+      db,
+    );
+
+    expect(result.summary).toEqual({
+      failed: 0,
+      requested: 5,
+      skipped: 4,
+      updated: 1,
+    });
+    expect(result.results.find((entry) => entry.item_id === ready.id)).toMatchObject({
+      outcome: "updated",
+    });
+    expect(
+      result.results.find((entry) => entry.item_id === highRisk.id)?.message,
+    ).toMatch(/High-risk approval/);
+    expect(result.results.find((entry) => entry.item_id === hidden.id)).toMatchObject({
+      message: "Queue item is not available for this bulk action.",
+      outcome: "skipped",
+    });
+
+    const highRiskActivity = await listApprovalQueueActivity(admin, highRisk.id, db);
+    expect(highRiskActivity.at(-1)).toMatchObject({
+      action: "skipped",
+      reason: "High-risk approval requires explicit confirmation.",
+    });
+    const hiddenActivity = await listApprovalQueueActivity(admin, hidden.id, db);
+    expect(hiddenActivity.some((entry) => entry.action === "skipped")).toBe(false);
+  });
+
+  it("approves High-risk items only when bulk confirmation is explicit", async () => {
+    const item = await createApprovalQueueItem(
+      editor,
+      baseInput({
+        risk_signals: { legal_financial_timing: true },
+        source_trigger_key: "bulk-high-confirmed",
+      }),
+      db,
+    );
+
+    const result = await bulkTransitionApprovalQueueItems(
+      approver,
+      { action: "approve", confirm_high_risk: true, item_ids: [item.id] },
+      db,
+    );
+
+    expect(result.summary.updated).toBe(1);
+    expect(result.results[0].item?.status).toBe("Approved");
+  });
+
+  it("enforces bulk action-level field requirements before records are touched", async () => {
+    const item = await createApprovalQueueItem(
+      editor,
+      baseInput({ source_trigger_key: "bulk-requirements" }),
+      db,
+    );
+
+    await expect(
+      bulkTransitionApprovalQueueItems(
+        admin,
+        { action: "return", item_ids: [item.id] },
+        db,
+      ),
+    ).rejects.toThrow(/reason/);
+    await expect(
+      bulkTransitionApprovalQueueItems(
+        admin,
+        { action: "snooze", item_ids: [item.id], reason: "Waiting." },
+        db,
+      ),
+    ).rejects.toThrow(/date/);
+    await expect(
+      bulkTransitionApprovalQueueItems(
+        admin,
+        { action: "assign", item_ids: [item.id] },
+        db,
+      ),
+    ).rejects.toThrow(/assignee or required approver/);
+
+    const activity = await listApprovalQueueActivity(admin, item.id, db);
+    expect(activity).toHaveLength(1);
+  });
+
+  it("skips Admin-only bulk assign and disable when a non-Admin requests them", async () => {
+    const item = await createApprovalQueueItem(
+      editor,
+      baseInput({ source_trigger_key: "bulk-admin-only" }),
+      db,
+    );
+
+    const assignResult = await bulkTransitionApprovalQueueItems(
+      editor,
+      { action: "assign", assignee_uid: "someone-else", item_ids: [item.id] },
+      db,
+    );
+    const disableResult = await bulkTransitionApprovalQueueItems(
+      approver,
+      {
+        action: "disable",
+        item_ids: [item.id],
+        reason: "Action type is not approved.",
+      },
+      db,
+    );
+
+    expect(assignResult.summary).toMatchObject({ skipped: 1, updated: 0 });
+    expect(assignResult.results[0].message).toMatch(/Admins/);
+    expect(disableResult.summary).toMatchObject({ skipped: 1, updated: 0 });
+    expect(disableResult.results[0].message).toMatch(/Admin/);
+  });
+
+  it("unblocks Blocked items when bulk assignment fills missing ownership", async () => {
+    const item = await createApprovalQueueItem(
+      editor,
+      baseInput({
+        required_approver_uid: undefined,
+        source_trigger_key: "bulk-unblock",
+      }),
+      db,
+    );
+    expect(item.status).toBe("Blocked");
+
+    const result = await bulkTransitionApprovalQueueItems(
+      admin,
+      {
+        action: "assign",
+        item_ids: [item.id],
+        required_approver_uid: "approver-1",
+      },
+      db,
+    );
+
+    expect(result.summary.updated).toBe(1);
+    expect(result.results[0].item?.status).toBe("Ready for Approval");
+    const activity = await listApprovalQueueActivity(admin, item.id, db);
+    expect(activity.at(-1)?.action).toBe("unblocked");
+  });
+
+  it("keeps bulk execute visible but guarded until executable runtime exists", async () => {
+    const item = await createApprovalQueueItem(
+      editor,
+      baseInput({ source_trigger_key: "bulk-execute" }),
+      db,
+    );
+
+    const result = await bulkTransitionApprovalQueueItems(
+      admin,
+      { action: "execute", item_ids: [item.id] },
+      db,
+    );
+
+    expect(result.summary).toMatchObject({ skipped: 1, updated: 0 });
+    expect(result.results[0].message).toMatch(/No external write was attempted/);
+    const activity = await listApprovalQueueActivity(admin, item.id, db);
+    expect(activity.at(-1)).toMatchObject({
+      action: "skipped",
+      reason: expect.stringContaining("No external write was attempted"),
+    });
   });
 });
 
