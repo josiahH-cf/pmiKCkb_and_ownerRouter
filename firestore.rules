@@ -161,6 +161,19 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Approval Queue v1 items and Activity are written server-side through the
+    // Admin SDK boundary only. Clients may read but never write directly; the
+    // Activity log is append-only.
+    match /approval_queue_items/{itemId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
+    match /approval_queue_activity/{activityId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
