@@ -7,6 +7,11 @@ pilot starts with Dan's Gmail and all of Dan's email, not only owner email. Exis
 Owner Router artifacts in the sibling repo are source material to migrate, rename, or
 reference, but the active product lane is Gmail Inbox 0 in this monorepo.
 
+The local Owner Router source package is mapped in
+`docs/legacy/owner-router-artifact-source.md`. Use that map before inspecting
+`C:\Users\josia\Documents\github-windows\pmi-kc-owner-router`, and treat the sibling
+package as historical source material only.
+
 ## Known Facts
 
 - The product stays Gmail-native for v1.
@@ -16,6 +21,9 @@ reference, but the active product lane is Gmail Inbox 0 in this monorepo.
 - Human send authority remains mandatory for now; Dan presses Send.
 - The current artifact set includes labels, prompt pack, sanitized scenarios, Drive
   package templates, and optional setup/health Apps Script.
+- The sibling Owner Router package can supply source ideas for labels, prompts,
+  templates, safe scenarios, and setup helpers, but final Gmail Inbox 0 scope must be
+  approved here.
 - The workflow must not add autonomous sending or system-of-record writes.
 - Gmail Inbox 0 should have a minimal management page inside the KB app from the start.
 - KB approval notifications are part of the Gmail Inbox 0 vision: approval work should

@@ -23,6 +23,7 @@ route new work through the three-product docs.
 | Product lane routing             | `docs/products/README.md`, then the relevant product doc |
 | Phase plan and acceptance gates  | `docs/plan.md`                                           |
 | Integration and cutover          | `docs/integration-cutover-plan.md`                       |
+| Environment and key handoff      | `docs/environment-handoff.md`                            |
 | Product definition gaps          | `docs/product-definition-gap-plan.md`                    |
 | How to work next                 | `docs/implement.md`                                      |
 | Autonomous feature-cycle runner  | `docs/autonomous-agent-runner.md`                        |
@@ -35,6 +36,7 @@ route new work through the three-product docs.
 | Original preserved specs         | `docs/specs/`                                            |
 | KB technical spec                | `docs/spec.md`                                           |
 | Legacy Owner Router split        | `docs/legacy/owner-router-separate-repo.md`              |
+| Owner Router artifact source     | `docs/legacy/owner-router-artifact-source.md`            |
 | Google setup details             | `docs/google-setup.md`, `SETUP.md`                       |
 
 ## Project Map
@@ -46,7 +48,11 @@ route new work through the three-product docs.
   Inbox 0.
 - `docs/autonomous-agent-runner.md`: production feature-cycle runner and approval
   gates.
+- `docs/environment-handoff.md`: non-secret environment, setup, and key ownership
+  registry.
 - `docs/legacy/`: retired or superseded context kept for history.
+- `docs/legacy/owner-router-artifact-source.md`: local sibling Owner Router package
+  map for Gmail Inbox 0 source-material mining only.
 - `docs/specs/`: preserved original spec set.
 - `docs/temp/`: disposable planning packets and draft communications only.
 - `tests/`: unit, eval, Firestore, and future e2e tests.

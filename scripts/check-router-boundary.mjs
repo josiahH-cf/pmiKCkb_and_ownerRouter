@@ -15,6 +15,7 @@ const requiredFiles = [
   "docs/autonomous-agent-runner.md",
   "docs/autonomous-feature-cycle-packet-template.md",
   "docs/temp/README.md",
+  "docs/legacy/owner-router-artifact-source.md",
   "docs/north-star.md",
   "docs/products/pmi-kc-kb.md",
   "docs/products/lease-renewal-agent.md",
@@ -66,10 +67,23 @@ assertIncludes("docs/products/gmail-inbox-zero.md", [
   "Human send",
   "No autonomous send",
   "No Gmail draft creation",
+  "docs/legacy/owner-router-artifact-source.md",
 ]);
+
+const productReadme = assertIncludes("docs/products/README.md", [
+  "Dan-email-first Gmail workflow",
+]);
+
+if (productReadme.includes("Owner-email-first Gmail workflow")) {
+  throw new Error(
+    "docs/products/README.md still describes Gmail Inbox 0 as owner-email-first.",
+  );
+}
 
 const agentsDoc = assertIncludes("AGENTS.md", [
   "docs/autonomous-agent-runner.md",
+  "docs/environment-handoff.md",
+  "docs/legacy/owner-router-artifact-source.md",
   "docs/temp/",
   "CLAUDE.md",
 ]);
@@ -82,11 +96,17 @@ if (
   throw new Error("AGENTS.md still routes autonomous cycles to the prompt pack.");
 }
 
-assertIncludes("CLAUDE.md", ["AGENTS.md"], "CLAUDE.md compatibility pointer");
+assertIncludes(
+  "CLAUDE.md",
+  ["AGENTS.md", "docs/autonomous-agent-runner.md"],
+  "CLAUDE.md compatibility pointer",
+);
 
 assertIncludes("README.md", [
   "docs/autonomous-agent-runner.md",
+  "docs/environment-handoff.md",
   "docs/autonomous-feature-cycle-packet-template.md",
+  "docs/legacy/owner-router-artifact-source.md",
   "docs/temp/",
 ]);
 
@@ -98,14 +118,35 @@ assertIncludes("docs/ai-execution-workflow.md", [
 
 assertIncludes("docs/implement.md", ["docs/autonomous-agent-runner.md", "docs/temp/"]);
 
+assertIncludes("docs/environment-handoff.md", [
+  "Do not put secrets",
+  "Non-Secret Source Artifact Registry",
+  "C:\\Users\\josia\\Documents\\github-windows\\pmi-kc-owner-router",
+  "Environment Registry",
+  "Key And Secret Ownership",
+  "Manual Setup And Web-App Testing",
+  "Handoff Checklist",
+]);
+
 assertIncludes("docs/autonomous-agent-runner.md", [
   "let's plan the next feature run cycle",
   "docs/temp/",
+  "docs/environment-handoff.md",
+  "docs/legacy/owner-router-artifact-source.md",
+  "End-State First Planning",
   "Approval Gates",
   "Secrets And Environments",
   "Unattended Implementation Loop",
+  "Commit Queue",
   "Stale Context Retirement",
   "Final Handoff",
+]);
+
+assertIncludes("docs/legacy/owner-router-artifact-source.md", [
+  "C:\\Users\\josia\\Documents\\github-windows\\pmi-kc-owner-router",
+  "source material, not active governance",
+  "The active product lane is Gmail Inbox 0",
+  "Do not revive the separate Owner Router product direction",
 ]);
 
 assertIncludes("docs/temp/README.md", [

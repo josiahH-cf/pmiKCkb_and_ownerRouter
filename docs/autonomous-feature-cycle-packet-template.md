@@ -11,6 +11,10 @@ Product lane:
 
 Why this is next:
 
+End-state target:
+
+Backward dependencies:
+
 Confirmed context used:
 
 In scope:
@@ -23,9 +27,15 @@ Decisions or approvals still needed:
 
 Cost, cloud, API, Gmail, deploy, import, key, or client-environment gates:
 
+Environment or secret impact:
+
+Manual setup or web-app testing required:
+
 Implementation batches:
 
 Verification plan:
+
+Final user verification:
 
 Human-side work:
 
@@ -101,3 +111,17 @@ Exact client asks:
 Commit queue:
 
 Manual user review at the end of the run:
+
+## Commit Queue Item
+
+Suggested commit title:
+
+Files or concerns included:
+
+Validation run:
+
+Validation result:
+
+Manual review required before ship:
+
+Excluded or unrelated changes:

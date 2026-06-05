@@ -1831,6 +1831,31 @@ Validation status:
 - `git diff --check`: passed.
 - `npm run verify:router-boundary`: passed.
 
+## Owner Router Artifact Source Routing
+
+- Date: 2026-06-05
+- Audited the local sibling package at
+  `C:\Users\josia\Documents\github-windows\pmi-kc-owner-router`.
+- Confirmed the package exists locally with the expected Owner Router artifact shape:
+  docs, Drive package templates, prompt pack, Gmail filters, Apps Script helpers,
+  scripts, and tests.
+- Confirmed the sibling repo is outside the current workspace root and has no commits
+  yet, so agents cannot assume it is automatically available or remotely handed off.
+- Added `docs/legacy/owner-router-artifact-source.md` as the controlled source map for
+  when and how Gmail Inbox 0 work may inspect the sibling package.
+- Linked that source map from `AGENTS.md`, `README.md`,
+  `docs/products/gmail-inbox-zero.md`, `docs/autonomous-agent-runner.md`, and
+  `docs/environment-handoff.md`.
+- Extended `npm run verify:router-boundary` so the sibling package route and
+  source-material-only boundary cannot disappear silently.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+- Quality-control check: `AGENTS.md` remains under 150 lines at 102 lines.
+
 - `bash scripts/verify.sh`: passed. It reinstalled dependencies, checked formatting,
   linted, typechecked, ran 132 tests, passed the updated boundary check, and built the
   app.
@@ -3057,3 +3082,30 @@ Validation status:
 - `npm run verify:router-boundary`: passed.
 - Quality-control check: `AGENTS.md` remains under 150 lines; the largest changed doc is
   `docs/status.md`, which is expected because it is the running historical log.
+
+## Autonomous Runner Handoff Alignment
+
+- Date: 2026-06-05
+- Added `docs/environment-handoff.md` as the central non-secret registry for
+  environment IDs, setup state, key/secret ownership, manual setup, verification
+  evidence, and handoff readiness.
+- Linked environment handoff guidance from `AGENTS.md`, `README.md`,
+  `docs/implement.md`, and `docs/client-checklist.md`.
+- Strengthened `docs/autonomous-agent-runner.md` with end-state-first planning,
+  explicit planning-vs-implementation behavior, environment handoff updates, and commit
+  queue expectations.
+- Expanded the feature-cycle packet template with end-state, backward dependencies,
+  environment/secret impact, manual setup, final user verification, and commit-queue
+  fields.
+- Expanded `CLAUDE.md` just enough to route Claude-style sessions to the same
+  autonomous runner trigger without duplicating durable rules.
+- Fixed active product-lane routing so Gmail Inbox 0 is consistently Dan-email-first,
+  not owner-email-first.
+- Extended `npm run verify:router-boundary` to guard the environment handoff doc,
+  Claude route, Dan-email-first wording, and stronger runner sections.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.

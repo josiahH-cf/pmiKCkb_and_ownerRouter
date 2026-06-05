@@ -4,6 +4,9 @@ This checklist names what PMI KC must purchase, provision, answer, or approve be
 engineering can complete production work. Do not put credentials or customer records in
 this repo; record only names, owners, decisions, and non-secret identifiers.
 
+Use `docs/environment-handoff.md` to track non-secret environment identifiers, secret
+ownership, manual setup status, and verification evidence after these asks are answered.
+
 ## Decisions To Confirm
 
 | Ask                                                                         | Why it matters                                                    | Needed for          |

@@ -92,6 +92,9 @@ npm run seed:launch-skeletons -- --dry-run
 npm run preflight:production -- --env-file=.env.production.local
 ```
 
+For production or staging setup, record non-secret identifiers, manual setup state,
+secret-owner records, and verification evidence in `docs/environment-handoff.md`.
+
 Before handoff when relevant:
 
 ```bash
@@ -106,6 +109,8 @@ bash scripts/verify.sh
 - Update `docs/products/*.md` when product scope changes.
 - Update `docs/client-checklist.md` when new client asks are discovered.
 - Update `docs/research-backlog.md` when questions are answered or added.
+- Update `docs/environment-handoff.md` when environment ownership, manual setup,
+  non-secret identifiers, or secret storage locations change.
 - Preserve original specs in `docs/specs/`.
 - Mark or move stale docs as legacy before adding contradictory guidance.
 

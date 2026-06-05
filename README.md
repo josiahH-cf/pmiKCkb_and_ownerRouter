@@ -74,6 +74,8 @@ Run `npm run test:firestore` separately when Java is available on PATH.
 - `docs/products/`: product-lane docs for KB, Lease Renewal Agent, and Gmail Inbox 0.
 - `docs/plan.md`: phases, milestones, acceptance gates, risks, and sequence.
 - `docs/integration-cutover-plan.md`: cross-product integration and cutover plan.
+- `docs/environment-handoff.md`: non-secret environment, setup, key ownership, and
+  handoff registry.
 - `docs/autonomous-agent-runner.md`: production feature-cycle loop, approvals, secrets,
   blockers, handoff, and commit queue.
 - `docs/autonomous-feature-cycle-packet-template.md`: packet template for temporary
@@ -90,6 +92,8 @@ Run `npm run test:firestore` separately when Java is available on PATH.
 - `docs/client-production-cutover.md`: KB production rebuild runbook.
 - `docs/google-setup.md`: Google/Firebase/Cloud Storage/Agent Search/Gmail setup notes.
 - `docs/legacy/`: superseded context, including the old separate Owner Router plan.
+- `docs/legacy/owner-router-artifact-source.md`: local sibling Owner Router artifact
+  map for Gmail Inbox 0 source-material mining only.
 - `docs/temp/`: ignored scratch space for generated cycle packets and draft
   communications; durable decisions must be promoted into active docs.
 

@@ -34,6 +34,10 @@ Before choosing work, read:
 8. `docs/client-checklist.md`
 9. `docs/research-backlog.md`
 10. `docs/engineering.md` and `docs/engineering-checklist.md`
+11. `docs/environment-handoff.md` when setup, keys, environments, manual tests, or
+    handoff are relevant
+12. `docs/legacy/owner-router-artifact-source.md` only when Gmail Inbox 0 artifact
+    migration, naming, prompt, label, template, or demo-safe scenario work is in scope
 
 Check the git worktree before edits and preserve user changes. Use `docs/specs/`,
 `docs/legacy/`, and old demo docs only as historical source material unless an active
@@ -54,6 +58,21 @@ If more than one lane is plausible, choose the lane with the clearest active roa
 entry and record why. If the choice would invent product scope, ask during the planning
 phase before implementation begins.
 
+## End-State First Planning
+
+Start each cycle by describing the desired end state, then work backward. The cycle
+packet must make clear:
+
+- What a user or operator can do at the end of the run.
+- What production, staging, client-environment, source, or handoff state changes.
+- Which docs, code paths, tests, setup steps, and approvals must exist before that end
+  state is credible.
+- Which dependencies can be handled locally and which require explicit approval.
+- What the user should verify manually at the end of the run.
+
+If the end state cannot be stated without inventing product requirements, ask planning
+questions before implementation.
+
 ## Cycle Packet
 
 Create or update a cycle packet before implementation. Store scratch packets in
@@ -69,15 +88,20 @@ The packet must lock:
 - Decisions already answered by docs.
 - Decisions or approvals still needed before unattended execution.
 - Implementation approach and affected subsystems.
+- End-state target and backward dependencies.
 - Cost, cloud, API, Gmail, deploy, import, key, and client-environment gates.
-- Secrets, manual setup, and handoff requirements with no real secret values.
+- Environment, secrets, manual setup, and handoff requirements with no real secret
+  values; update `docs/environment-handoff.md` when durable.
 - Human-side work: client asks, manual setup, draft communications, and acceptance
   review.
 - Verification commands, acceptance scenarios, stop conditions, and commit queue plan.
 
 Ask planning questions in one batch when a reasonable autonomous choice would be risky,
 would incur cost, would touch a client environment, or would invent product behavior.
-After the packet is locked, do not ask the user to review every internal phase.
+When the trigger is only "plan the next feature cycle", stop after the packet unless the
+user asks to run it or the current session instructions clearly authorize implementation.
+After an implementation packet is locked, do not ask the user to review every internal
+phase.
 
 ## Autonomous Choices
 
@@ -135,6 +159,8 @@ remains blocked without approval.
 - Handoff docs should explain where non-secret identifiers live, who owns each
   environment, what manual setup remains, and how a future team can rotate or revoke
   access.
+- Use `docs/environment-handoff.md` as the central non-secret registry for environment
+  IDs, key owners, manual setup state, and verification evidence.
 
 ## Human-Side Parallel Track
 
@@ -177,6 +203,20 @@ After the cycle packet is decision-complete:
 The user verifies behavior at the end of the agentic run unless a stop condition occurs.
 Do not pause after every internal phase.
 
+## Commit Queue
+
+Prepare a commit queue; do not assume commit, push, deploy, or merge authority unless the
+user explicitly asks for it. The queue should list:
+
+- Suggested commit title.
+- Files or concerns included.
+- Validation run and result.
+- Manual end-of-run verification still needed.
+- Any excluded changes or unrelated work left untouched.
+
+If the user asks to ship, first confirm the branch, remotes, status, relevant diff,
+validation, and absence of unrelated changes.
+
 ## Verification
 
 Use checks proportional to the change:
@@ -200,6 +240,11 @@ Do not delete preserved history solely because direction changed. Instead:
   `docs/products/`, `docs/plan.md`, and `docs/implement.md`;
 - keep original specs in `docs/specs/` as historical preserved specs;
 - keep superseded material in `docs/legacy/` or explicitly label it as demo/history;
+- treat `docs/router-repo-template/` as a legacy template and do not use it to start
+  new work unless the active Gmail Inbox 0 product doc requests historical artifact
+  migration;
+- treat the local sibling Owner Router repo as source material through
+  `docs/legacy/owner-router-artifact-source.md`, not as active governance;
 - remove stale docs from active routes when they no longer support production;
 - update validation guards when stale language could misroute future agents.
 
