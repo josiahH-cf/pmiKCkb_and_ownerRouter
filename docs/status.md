@@ -3109,3 +3109,82 @@ Validation status:
 - `npm run format:check`: passed.
 - `git diff --check`: passed.
 - `npm run verify:router-boundary`: passed.
+
+## Approval Queue v1 Backend Data Foundation
+
+- Date: 2026-06-05
+- Product lane: PMI KC KB workflow-control layer.
+- First code cycle after the recent documentation run. The Approval Queue v1 product
+  definition was decision-complete in `docs/product-definition-gap-plan.md` and
+  `docs/plan.md` but had no implementation; the live `/approval-queue` page still only
+  reviews SOP/Template/Placeholder content. This cycle builds the backend data
+  foundation. No UI, notifications, bulk actions, or workflow-run/process-definition
+  machinery yet; those are deferred to later cycles.
+- Added Approval Queue v1 record types and enums to `lib/firestore/types.ts`:
+  `ApprovalQueueItemRecord`, `ApprovalQueueActivityRecord`, `QueueItemStatus`,
+  `QueueRiskLevel`, `QueueAudienceGroup`, `QueueItemType`, `QueueActivityAction`, and the
+  `QueueProcessRunRef` stub (runs/process definitions are not built yet, so a queue item
+  references its run by `{ id, label }`).
+- Added Zod input schemas to `lib/firestore/schemas.ts`:
+  `CreateApprovalQueueItemInputSchema` and `TransitionApprovalQueueItemInputSchema`. Risk
+  is classified deterministically by the repository from explicit signals, never passed
+  in, so a caller cannot self-assign a lower risk level.
+- Added the repository boundary `lib/firestore/approval-queue.ts`, mirroring
+  `lib/firestore/editable.ts` (transactions, server timestamps, `uuidv7`, role gating via
+  `can()`):
+  - `classifyQueueRisk` (external write / owner-tenant-facing / legal-financial-timing →
+    `High`; internal workflow update → `Medium`; note/assign/snooze/cleanup → `Low`;
+    blocking issue or missing assignee/approver → `Blocked`).
+  - `createApprovalQueueItem` with missing-assignee-or-approver → `Blocked`,
+    duplicate-merge by `source_trigger_key` (refresh the open item with a prior-version
+    snapshot instead of creating a second), and closed-item relink
+    (`supersedes_item_id` / `superseded_by_item_id`) instead of reopening a closed item.
+  - `transitionApprovalQueueItem` single guarded entry point for `approve`, `return`,
+    `assign`, `snooze`, `disable`, `close`: high-risk approve requires the `approve`
+    capability; disable is Admin-only; self-approval is blocked (a non-Admin cannot
+    approve their own item, and only the required approver or an Admin can approve);
+    return/snooze/disable require a reason; snooze requires a date; terminal items reject
+    further transitions.
+  - `listApprovalQueue` (default ordering: Ready for Approval, Blocked, Failed, then
+    overdue first, then due date; fixed filters) and `listApprovalQueueActivity`
+    (append-only feed). The list fetches and filters in memory, like `listTools`, so no
+    new composite indexes are required and `firestore.indexes.json` is unchanged.
+  - Every meaningful change appends an immutable Activity entry (actor, action, previous
+    and new state, reason, source trigger, and a prior-version snapshot on refresh).
+- Reused existing `can()` capabilities (`edit`, `read`, `approve`, `manageAdmin`); no new
+  capability was added to `lib/auth/roles.ts`.
+- Added `firestore.rules` match blocks for `approval_queue_items` and
+  `approval_queue_activity`: read for editor-or-better, all client writes denied (writes
+  flow through the Admin SDK boundary), Activity append-only.
+- Inferred implementation detail flagged for confirmation: the concrete `QueueItemStatus`
+  enum (`Ready for Approval`, `Blocked`, `Snoozed`, `Returned`, `Approved`, `Completed`,
+  `Cancelled`, `Disabled`, `Failed`, `Closed`) is consistent with the locked lifecycle
+  language in `docs/plan.md` but is not an explicit enum there. Adjust before the UI
+  cycle builds on it if different names are preferred.
+
+Validation status:
+
+- `npm run format:check`: passed on 2026-06-05.
+- `npm run lint`: passed on 2026-06-05.
+- `npm run typecheck`: passed on 2026-06-05.
+- `npm test`: passed on 2026-06-05 with 151 tests (18 new approval-queue-foundation
+  unit tests).
+- `npm run test:firestore`: passed on 2026-06-05 with 12 Firestore Security Rules tests
+  (4 new). Fixed a test-isolation bug: the new emulator test uses a distinct `projectId`
+  so vitest's parallel test files do not clear each other's seeded data on the shared
+  emulator.
+- `npm run verify:router-boundary`: passed on 2026-06-05.
+- `bash scripts/verify.sh`: passed on 2026-06-05.
+
+Open items:
+
+- No UI surface yet; the queue model is backend-only. The next cycle builds the queue
+  list/detail UI on top of this boundary.
+- Notifications, email configuration, Admin health, and bulk actions remain deferred.
+- Workflow-run and process-definition machinery is still a stub reference.
+
+Next recommended task:
+
+Build the Approval Queue v1 UI (list + detail view, empty/error states) on top of the
+new repository boundary, then wire the existing demo `/approval-queue` page to the new
+model.
