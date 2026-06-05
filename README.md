@@ -8,7 +8,8 @@ This repository now governs the three purchased PMI KC product lanes:
   Assistant.
 
 Older KB-only and separate Owner Router repo language is legacy. Use `AGENTS.md`,
-`docs/north-star.md`, and `docs/products/` before older demo or spec material.
+`CLAUDE.md`, `docs/north-star.md`, `docs/products/`, and
+`docs/autonomous-agent-runner.md` before older demo or spec material.
 
 ## Current Status
 
@@ -68,10 +69,15 @@ Run `npm run test:firestore` separately when Java is available on PATH.
 ## Documentation Map
 
 - `AGENTS.md`: active agent routing.
+- `CLAUDE.md`: compatibility pointer to the same active router.
 - `docs/north-star.md`: current three-product direction and safety rules.
 - `docs/products/`: product-lane docs for KB, Lease Renewal Agent, and Gmail Inbox 0.
 - `docs/plan.md`: phases, milestones, acceptance gates, risks, and sequence.
 - `docs/integration-cutover-plan.md`: cross-product integration and cutover plan.
+- `docs/autonomous-agent-runner.md`: production feature-cycle loop, approvals, secrets,
+  blockers, handoff, and commit queue.
+- `docs/autonomous-feature-cycle-packet-template.md`: packet template for temporary
+  cycle planning artifacts.
 - `docs/client-checklist.md`: client-owned asks, access, source, and training needs.
 - `docs/engineering-checklist.md`: engineering tasks after admin access.
 - `docs/ai-execution-workflow.md`: daily AI workflow and blocked-work protocol.
@@ -84,6 +90,8 @@ Run `npm run test:firestore` separately when Java is available on PATH.
 - `docs/client-production-cutover.md`: KB production rebuild runbook.
 - `docs/google-setup.md`: Google/Firebase/Cloud Storage/Agent Search/Gmail setup notes.
 - `docs/legacy/`: superseded context, including the old separate Owner Router plan.
+- `docs/temp/`: ignored scratch space for generated cycle packets and draft
+  communications; durable decisions must be promoted into active docs.
 
 ## Next Steps
 

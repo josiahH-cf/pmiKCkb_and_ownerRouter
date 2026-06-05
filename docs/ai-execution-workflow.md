@@ -10,6 +10,23 @@ This workflow keeps daily AI sessions aligned with the three purchased products.
 4. Read `docs/status.md` from the latest entry backward.
 5. Check the git worktree before edits and preserve user changes.
 
+## Autonomous Feature Run Cycle
+
+When the user asks to plan the next feature run cycle, use
+`docs/autonomous-agent-runner.md`.
+
+The target loop is: gather context, create a decision-complete cycle packet in
+`docs/temp/`, ask planning-phase questions in one batch when needed, build safe local
+work unattended, verify, prepare a commit queue, and then hand one end-of-run review
+point to the user.
+
+Stop before any unapproved cloud cost, API setup, key creation, deploy, live import,
+Gmail access, client-environment change, send, or external system write.
+
+Use `docs/autonomous-feature-cycle-packet-template.md` when a packet or handoff template
+is useful. Treat `docs/agent-runner/` as the scaffold prompt pack that created the
+runner, not as active production routing.
+
 ## Work AI Can Do Now
 
 - Maintain governance, plans, checklists, and status.

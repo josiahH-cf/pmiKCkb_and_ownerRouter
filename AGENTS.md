@@ -25,6 +25,7 @@ route new work through the three-product docs.
 | Integration and cutover          | `docs/integration-cutover-plan.md`                       |
 | Product definition gaps          | `docs/product-definition-gap-plan.md`                    |
 | How to work next                 | `docs/implement.md`                                      |
+| Autonomous feature-cycle runner  | `docs/autonomous-agent-runner.md`                        |
 | Current status and blockers      | `docs/status.md`                                         |
 | Client asks                      | `docs/client-checklist.md`                               |
 | Engineering checklist            | `docs/engineering-checklist.md`                          |
@@ -43,8 +44,11 @@ route new work through the three-product docs.
 - `lib/`: KB auth, source-state, retrieval, prompt, Firestore, and citation boundaries.
 - `docs/products/`: active product-lane docs for KB, Lease Renewal Agent, and Gmail
   Inbox 0.
+- `docs/autonomous-agent-runner.md`: production feature-cycle runner and approval
+  gates.
 - `docs/legacy/`: retired or superseded context kept for history.
 - `docs/specs/`: preserved original spec set.
+- `docs/temp/`: disposable planning packets and draft communications only.
 - `tests/`: unit, eval, Firestore, and future e2e tests.
 - `scripts/verify.sh`: all-in-one deterministic validation.
 
@@ -94,6 +98,7 @@ route new work through the three-product docs.
 - Update `docs/products/*.md` when product scope changes.
 - Preserve all original specs in `docs/specs/`.
 - Mark or move stale docs as legacy instead of leaving contradictory active guidance.
+- Keep `CLAUDE.md` as a short pointer to this router.
 
 ## Definition of Done
 

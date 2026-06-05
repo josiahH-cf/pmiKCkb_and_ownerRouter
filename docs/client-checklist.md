@@ -26,6 +26,7 @@ this repo; record only names, owners, decisions, and non-secret identifiers.
 | Gmail Inbox 0 test access | Provide Dan-approved Dan mailbox scan/testing approach: live supervised account, safe test threads, or sanitized export.                                                     |
 | Approval notifications    | Provision `kb-automation@pmikcmetro.com` for in-app/internal-email approval notifications with one email retry and Dan/Josiah escalation after retry failure.                |
 | Deployment domain         | Provide the production URL/domain or approve the Cloud Run URL.                                                                                                              |
+| Secret ownership          | Name who owns production and staging Secret Manager access, API-key custody, key rotation, break-glass access, and revocation for each approved environment.                 |
 | Signed lease system       | Identify where signed leases live and how lease end dates can be read safely.                                                                                                |
 | Renewal walkthrough       | Provide both a recorded walkthrough and a supervised Chrome session, either as a client-led show-and-tell or by showing Josiah so he can capture workflow data.              |
 | Renewal source location   | Provide a PMI KC-accessible Google Drive folder for captured workflow notes unless setup identifies a better client-accessible app-connected source.                         |

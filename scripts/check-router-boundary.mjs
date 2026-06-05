@@ -4,11 +4,17 @@ import { join } from "node:path";
 const root = process.cwd();
 
 const requiredFiles = [
+  "AGENTS.md",
+  "CLAUDE.md",
+  "README.md",
   "docs/spec.md",
   "docs/specs/spec-1-technical-spec.md",
   "docs/specs/spec-2-technical-spec.md",
   "docs/specs/spec-3-operating-north-star-spec.md",
   "docs/specs/spec-4-implementation-meta-implementation-spec.md",
+  "docs/autonomous-agent-runner.md",
+  "docs/autonomous-feature-cycle-packet-template.md",
+  "docs/temp/README.md",
   "docs/north-star.md",
   "docs/products/pmi-kc-kb.md",
   "docs/products/lease-renewal-agent.md",
@@ -21,6 +27,16 @@ for (const file of requiredFiles) {
   if (!existsSync(join(root, file))) {
     throw new Error(`Missing required file: ${file}`);
   }
+}
+
+function assertIncludes(file, expected, label = file) {
+  const text = readFileSync(join(root, file), "utf8");
+  for (const item of expected) {
+    if (!text.includes(item)) {
+      throw new Error(`${label} is missing: ${item}`);
+    }
+  }
+  return text;
 }
 
 const constants = readFileSync(join(root, "lib/constants.ts"), "utf8");
@@ -38,32 +54,65 @@ for (const expected of [
   }
 }
 
-const routerDoc = readFileSync(join(root, "docs/router-repo.md"), "utf8");
-for (const expected of [
+assertIncludes("docs/router-repo.md", [
   "Superseded",
   "Gmail Inbox 0",
   "docs/products/gmail-inbox-zero.md",
   "docs/legacy/owner-router-separate-repo.md",
-]) {
-  if (!routerDoc.includes(expected)) {
-    throw new Error(`Superseded router stub is missing: ${expected}`);
-  }
-}
+]);
 
-const gmailInboxZeroDoc = readFileSync(
-  join(root, "docs/products/gmail-inbox-zero.md"),
-  "utf8",
-);
-for (const expected of [
+assertIncludes("docs/products/gmail-inbox-zero.md", [
   "Dan's Gmail",
   "Human send",
   "No autonomous send",
   "No Gmail draft creation",
-]) {
-  if (!gmailInboxZeroDoc.includes(expected)) {
-    throw new Error(`Gmail Inbox 0 boundary is missing: ${expected}`);
-  }
+]);
+
+const agentsDoc = assertIncludes("AGENTS.md", [
+  "docs/autonomous-agent-runner.md",
+  "docs/temp/",
+  "CLAUDE.md",
+]);
+
+if (
+  agentsDoc.includes(
+    "Autonomous feature-cycle runner  | `docs/ai-execution-workflow.md`, `docs/agent-runner/`",
+  )
+) {
+  throw new Error("AGENTS.md still routes autonomous cycles to the prompt pack.");
 }
+
+assertIncludes("CLAUDE.md", ["AGENTS.md"], "CLAUDE.md compatibility pointer");
+
+assertIncludes("README.md", [
+  "docs/autonomous-agent-runner.md",
+  "docs/autonomous-feature-cycle-packet-template.md",
+  "docs/temp/",
+]);
+
+assertIncludes("docs/ai-execution-workflow.md", [
+  "docs/autonomous-agent-runner.md",
+  "docs/temp/",
+  "docs/autonomous-feature-cycle-packet-template.md",
+]);
+
+assertIncludes("docs/implement.md", ["docs/autonomous-agent-runner.md", "docs/temp/"]);
+
+assertIncludes("docs/autonomous-agent-runner.md", [
+  "let's plan the next feature run cycle",
+  "docs/temp/",
+  "Approval Gates",
+  "Secrets And Environments",
+  "Unattended Implementation Loop",
+  "Stale Context Retirement",
+  "Final Handoff",
+]);
+
+assertIncludes("docs/temp/README.md", [
+  "Do not store secrets",
+  "Promote durable decisions",
+  "docs/autonomous-agent-runner.md",
+]);
 
 const runtimeRoots = ["app", "components", "lib"];
 const forbiddenRuntimePatterns = [

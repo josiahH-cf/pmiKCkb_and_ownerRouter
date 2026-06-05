@@ -23,6 +23,9 @@ npm-debug.log*
 # Local diagnostic artifacts and raw review context
 temp/
 docs/context_and_calls/
+!docs/temp/
+docs/temp/*
+!docs/temp/README.md
 
 # OS/editor
 .DS_Store

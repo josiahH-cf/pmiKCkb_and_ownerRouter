@@ -30,6 +30,14 @@ When running product-definition follow-up loops, group related questions into sm
 batches. Include a recommended default answer for each question based on the active
 context so the client can answer "yes" or provide targeted edits.
 
+When the user asks to plan the next feature run cycle, route through
+`docs/autonomous-agent-runner.md`. The cycle should front-load decisions in a
+decision-complete packet, then let safe local implementation, verification, and
+commit-queue preparation run without user review after every internal phase.
+
+Use `docs/temp/` for scratch cycle packets and draft client communications. Promote only
+durable decisions, blockers, client asks, and research questions into active docs.
+
 If the user asks for runtime work in Lease Renewal Agent or Gmail Inbox 0, first confirm
 that the relevant product doc contains approved v1 scope, permissions, and acceptance
 criteria. If not, document the blocker and prepare the missing checklist instead of

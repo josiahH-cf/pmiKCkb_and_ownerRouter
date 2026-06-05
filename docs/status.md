@@ -1830,6 +1830,7 @@ Validation status:
 - `npm run format:check`: passed.
 - `git diff --check`: passed.
 - `npm run verify:router-boundary`: passed.
+
 - `bash scripts/verify.sh`: passed. It reinstalled dependencies, checked formatting,
   linted, typechecked, ran 132 tests, passed the updated boundary check, and built the
   app.
@@ -2988,3 +2989,71 @@ Validation status:
 - `bash scripts/verify.sh`: passed. It reinstalled dependencies, checked formatting,
   linted, typechecked, ran 133 tests, passed the router boundary check, and built the
   app.
+
+## Autonomous Feature-Cycle Prompt Pack
+
+- Date: 2026-06-05
+- Added an outside-agent prompt pack for implementing the production autonomous
+  feature-cycle scaffold.
+- Defined the desired "let's plan the next feature run cycle" loop: context intake,
+  decision-complete planning packet, batched planning questions, safe unattended local
+  build, verification, commit queue, and one end-of-run user review point.
+- Added explicit approval gates for cloud/API costs, key creation, deployment, live
+  imports, Gmail access, client-environment changes, sends, and external system writes.
+- Added supporting scaffold, runbook, and handoff-template docs in `docs/agent-runner/`.
+- Routed active AI workflow and implementation docs to the new prompt pack without
+  changing product scope or authorizing runtime/client-environment work.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Autonomous Production Runner Scaffold
+
+- Date: 2026-06-05
+- Promoted the autonomous feature-cycle prompt pack into active production routing with
+  `docs/autonomous-agent-runner.md`.
+- Added `CLAUDE.md` as a compatibility pointer to `AGENTS.md`; Git symlink support is
+  disabled in this checkout, so the compatibility surface is a short redirect file
+  instead of a tracked symlink.
+- Added a durable packet template and `docs/temp/` policy for disposable planning
+  packets, draft communications, and scratch meta-prompts.
+- Updated active routing in `AGENTS.md`, `README.md`, `docs/ai-execution-workflow.md`,
+  and `docs/implement.md` so future agents start from the durable runner rather than
+  the seed prompt pack.
+- Added a concrete client ask for production/staging secret ownership and a research
+  item for non-secret environment handoff records.
+- Extended `npm run verify:router-boundary` so the durable runner, packet template,
+  temp-folder policy, `CLAUDE.md` pointer, and active routing cannot be dropped
+  silently.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+
+## Autonomous Runner Review Repair Pass
+
+- Date: 2026-06-05
+- Reviewed the autonomous production runner scaffold from a fresh-context/falsification
+  stance for stale routes, misplaced status entries, inaccurate validation claims,
+  ignored temp artifacts, and downstream documentation drift.
+- Fixed the misplaced `Autonomous Production Runner Scaffold` status entry so it now
+  appears after the prompt-pack entry instead of splitting an older status entry.
+- Aligned `CLAUDE.md` wording so it is consistently described as a short pointer rather
+  than a duplicate rule file.
+- Confirmed `docs/temp/README.md` is trackable while generated scratch packets under
+  `docs/temp/` remain ignored.
+- Confirmed active routing points to `docs/autonomous-agent-runner.md` and the prompt
+  pack is marked as scaffold source material only.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+- Quality-control check: `AGENTS.md` remains under 150 lines; the largest changed doc is
+  `docs/status.md`, which is expected because it is the running historical log.
