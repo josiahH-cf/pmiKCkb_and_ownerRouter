@@ -78,7 +78,7 @@ const demoLinks = [
   },
   {
     label: "Approval Queue",
-    note: "Approve one item or resolve one placeholder if the show needs workflow action.",
+    note: "Show the seeded v1 queue, Activity, and one approval if the show needs workflow action.",
     path: "/approval-queue",
   },
   {

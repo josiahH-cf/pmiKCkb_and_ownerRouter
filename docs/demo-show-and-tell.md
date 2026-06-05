@@ -82,9 +82,9 @@ Use this transition after the KB Approval Queue:
   `ASK_DEMO_MODE=true`.
 - The current deployed live Ask corpus is call-context-backed for the four approved
   demo workflows, but it is still a demo corpus in the demo project.
-- Approval Queue can load records across all writable launch Spaces. The seeded demo
-  records are still the four approved workflow slices unless launch skeletons are
-  explicitly seeded.
+- Approval Queue shows seeded v1 queue items for the four approved workflow slices.
+  The rows use real `approval_queue_items` and `approval_queue_activity` records marked
+  with `Demo/Test` process labels.
 - Admin shows Ask volume, queue depth, notification failures, source states, and Space
   setup health. Production observability still needs PMI KC review before cutover.
 - Public demo URL:
@@ -323,17 +323,20 @@ complete.` Show the SOP, template, RentVine or other link-only tool, and open
 
 4. Open [Approval Queue](http://localhost:3000/approval-queue).
 
-   It should show four in-review SOPs, four in-review templates, and four open
-   placeholders for the approved demo workflows. Click **Approve** for SOP/template
-   items and **Resolve** for placeholders.
+   It should show real seeded v1 queue items for the approved demo workflows. Confirm
+   the list includes `Demo/Test` process labels, status/risk pills, assignee, approver,
+   due date, a detail view, and `Activity`.
+
+   Click **Approve** on the selected item. If the item is high risk, accept the confirm
+   popup.
 
    Confirm the messages:
-   - `Approved through editable API.`
-   - `Resolved through editable API.`
-   - `No in-review items are present in the approval queue.`
+   - `Approval Queue connected.`
+   - `Queue item updated.`
+   - `Approved`
 
-   Offline local fallback may show `Updated local demo queue.` instead of the editable
-   API messages. That is expected when Google credentials are unavailable.
+   If Google credentials are unavailable, the page should show that the Approval Queue
+   is unavailable instead of silently showing fake queue records.
 
    Say:
 
@@ -430,7 +433,8 @@ npm run smoke:demo-live
 - `Local app is not reachable`: start the app with `npm run dev`.
 - Redirected to `/sign-in`: run the live auth smoke with `--pause-on-human` and finish
   Google auth in Chrome.
-- Approval Queue is empty before the show: run `npm run demo:reset`.
+- Approval Queue is empty or missing `Demo/Test` queue items before the show: run
+  `npm run demo:reset`.
 - User can sign in but cannot open Admin: set the Admin claim for the active PMI KC test
   account with
   `npm run firebase:set-role -- --email=<josiah-pmi-kc-account@pmikcmetro.com> --role=Admin`,
@@ -443,7 +447,7 @@ npm run smoke:demo-live
 
 1. Confirm the demo done checklist in `docs/demo-readiness.md` before any client show.
 2. Seed launch skeletons only when the show needs all writable launch Spaces visible in
-   Firestore-backed Approval Queue:
+   Firestore-backed Space/Admin views:
 
 ```bash
 npm run seed:launch-skeletons -- --dry-run

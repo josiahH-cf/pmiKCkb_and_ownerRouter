@@ -6,6 +6,7 @@ import {
   classifyQueueRisk,
   createApprovalQueueItem,
   defaultAudienceGroup,
+  getApprovalQueueItem,
   listApprovalQueue,
   listApprovalQueueActivity,
   transitionApprovalQueueItem,
@@ -169,7 +170,7 @@ describe("transitionApprovalQueueItem", () => {
 
   it("blocks a non-Admin from approving their own item", async () => {
     const item = await createApprovalQueueItem(
-      editor,
+      admin,
       baseInput({ assignee_uid: "approver-1" }),
       db,
     );
@@ -179,21 +180,21 @@ describe("transitionApprovalQueueItem", () => {
     ).rejects.toThrow(EditableLayerError);
   });
 
-  it("blocks anyone but the required approver or an Admin from approving", async () => {
+  it("blocks unrelated non-Admins before approval", async () => {
     const item = await createApprovalQueueItem(
-      editor,
+      admin,
       baseInput({ required_approver_uid: "someone-else" }),
       db,
     );
 
     await expect(
       transitionApprovalQueueItem(approver, item.id, { action: "approve" }, db),
-    ).rejects.toThrow(/required approver or an Admin/);
+    ).rejects.toThrow(/assignee/);
   });
 
   it("lets an Admin approve any item, including one they are assigned", async () => {
     const item = await createApprovalQueueItem(
-      editor,
+      admin,
       baseInput({ assignee_uid: "admin-1", required_approver_uid: "admin-1" }),
       db,
     );
@@ -221,6 +222,20 @@ describe("transitionApprovalQueueItem", () => {
       db,
     );
     expect(returned.status).toBe("Returned");
+  });
+
+  it("rejects approve unless the item is Ready for Approval", async () => {
+    const item = await createApprovalQueueItem(editor, baseInput(), db);
+    const returned = await transitionApprovalQueueItem(
+      editor,
+      item.id,
+      { action: "return", reason: "Owner name is misspelled." },
+      db,
+    );
+
+    await expect(
+      transitionApprovalQueueItem(approver, returned.id, { action: "approve" }, db),
+    ).rejects.toThrow(/Ready for Approval/);
   });
 
   it("requires a date and reason for Snooze", async () => {
@@ -266,6 +281,27 @@ describe("transitionApprovalQueueItem", () => {
     expect(disabled.status).toBe("Disabled");
   });
 
+  it("only allows Admins to assign or reassign queue items", async () => {
+    const item = await createApprovalQueueItem(editor, baseInput(), db);
+
+    await expect(
+      transitionApprovalQueueItem(
+        editor,
+        item.id,
+        { action: "assign", assignee_uid: "someone-else" },
+        db,
+      ),
+    ).rejects.toThrow(/Admins/);
+
+    const assigned = await transitionApprovalQueueItem(
+      admin,
+      item.id,
+      { action: "assign", assignee_uid: "someone-else" },
+      db,
+    );
+    expect(assigned.assignee_uid).toBe("someone-else");
+  });
+
   it("unblocks an item when a missing approver is assigned", async () => {
     const item = await createApprovalQueueItem(
       editor,
@@ -302,6 +338,50 @@ describe("transitionApprovalQueueItem", () => {
 });
 
 describe("listApprovalQueue", () => {
+  it("shows Admins every item and non-Admins only assigned or approver-relevant items", async () => {
+    const assigned = await createApprovalQueueItem(
+      admin,
+      baseInput({
+        source_trigger_key: "visible-assigned",
+        assignee_uid: "editor-1",
+        required_approver_uid: "approver-1",
+      }),
+      db,
+    );
+    const hidden = await createApprovalQueueItem(
+      admin,
+      baseInput({
+        source_trigger_key: "hidden-from-editor",
+        assignee_uid: "someone-else",
+        required_approver_uid: "approver-1",
+      }),
+      db,
+    );
+    await createApprovalQueueItem(
+      admin,
+      baseInput({
+        source_trigger_key: "admin-only",
+        assignee_uid: "someone-else",
+        required_approver_uid: "admin-1",
+      }),
+      db,
+    );
+
+    await expect(getApprovalQueueItem(editor, hidden.id, db)).rejects.toThrow(/assignee/);
+    await expect(listApprovalQueueActivity(editor, hidden.id, db)).rejects.toThrow(
+      /assignee/,
+    );
+
+    const adminItems = await listApprovalQueue(admin, {}, db);
+    expect(adminItems).toHaveLength(3);
+
+    const editorItems = await listApprovalQueue(editor, {}, db);
+    expect(editorItems.map((item) => item.id)).toEqual([assigned.id]);
+
+    const approverItems = await listApprovalQueue(approver, {}, db);
+    expect(approverItems.map((item) => item.id)).toEqual([assigned.id, hidden.id]);
+  });
+
   it("orders Ready for Approval, then Blocked, then overdue first, with filters", async () => {
     await createApprovalQueueItem(
       editor,

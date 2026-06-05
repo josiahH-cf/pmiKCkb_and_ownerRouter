@@ -3188,3 +3188,105 @@ Next recommended task:
 Build the Approval Queue v1 UI (list + detail view, empty/error states) on top of the
 new repository boundary, then wire the existing demo `/approval-queue` page to the new
 model.
+
+## Approval Queue v1 UI Feature Cycle
+
+- Date: 2026-06-05
+- Product lane: PMI KC KB workflow-control layer.
+- Replaced the old SOP/template/placeholder Approval Queue demo surface with a v1
+  queue screen backed by `approval_queue_items` and `approval_queue_activity`.
+- Added `/api/approval-queue` list and `/api/approval-queue/:itemId` detail/transition
+  routes. Queue creation remains internal; no public POST route was added.
+- Added fixed filters for process/run, status, risk, audience group, assignee, required
+  approver, and due date.
+- Added one list/detail screen with status/risk fields, action-needed summary,
+  direct-link Open Run action, available single-item actions, and Activity history.
+- Enforced queue visibility in the repository, API path, and Firestore rules: Admins can
+  see all queue records; non-Admins see only items where they are assignee or required
+  approver.
+- Tightened queue transitions: Approve requires `Ready for Approval`; assignment is
+  Admin-only for this cycle; Disable remains Admin-only; return/snooze still require
+  plain-English reasons.
+- Removed the silent fake queue fallback. If Firestore is unavailable, the page now
+  shows a plain unavailable state. Demo/test queue rows are real seeded queue records
+  with `Demo/Test` process labels.
+- Extended safe demo reset data to seed real Approval Queue v1 items and Activity
+  entries, and updated the live demo smoke script and demo walkthrough for the new
+  queue behavior.
+
+Validation status:
+
+- `npm test -- approval-queue`: passed with 30 focused queue tests.
+- `npm run format:check`: passed.
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm test`: passed with 161 tests.
+- `npm run test:firestore`: passed with 14 Firestore Security Rules tests.
+- `npm run verify:router-boundary`: passed.
+- `bash scripts/verify.sh`: passed; it reinstalled dependencies, checked formatting,
+  linted, typechecked, ran 161 tests, passed the router boundary check, and built the
+  app.
+- Local browser check: `/approval-queue` rendered after local demo sign-in and showed
+  the new filter shell plus the production-safe Firestore-unavailable state. Browser
+  screenshot capture through the in-app browser plugin timed out twice; no queue action
+  was clicked because that would write through the connected queue API if demo Firestore
+  credentials were available.
+
+Open items:
+
+- Bulk actions, queue notifications, email configuration, Admin health, workflow-run
+  runtime, and process-definition runtime remain deferred.
+- Demo reset/live smoke against the demo Firebase project remains approval-gated because
+  it writes demo Firestore records.
+- A connected demo/prod environment should seed real queue records before user-facing
+  queue action smoke testing.
+
+Next recommended task:
+
+Build the next Approval Queue v1 slice: either bulk-action support with per-item
+guardrails or the Admin health/notification configuration surface, after choosing the
+next scope.
+
+## Approval Queue v1 UI Review Repair Pass
+
+- Date: 2026-06-05
+- Reviewed the new Approval Queue v1 UI/API/demo changes from a fresh-context
+  falsification stance against the locked feature-cycle plan, active product docs,
+  active KB spec, demo scripts, and queue tests.
+- Fixed a client-side recovery bug: the queue page no longer stays permanently in the
+  initial Firestore-unavailable state after a successful client retry.
+- Fixed demo seed/reset schema drift: demo `approval_queue_items` and
+  `approval_queue_activity` records no longer write generic `change_log` rows, and demo
+  Activity reset records avoid `updated_at` to stay closer to the append-only Activity
+  model.
+- Updated the one-time demo seed command to honor the same queue metadata flags as the
+  reset command.
+- Aligned `docs/spec.md`, `docs/demo-show-and-tell.md`, and `scripts/demo-operator.mjs`
+  with the v1 queue model instead of the retired SOP/template/placeholder fallback
+  queue.
+- Added unit coverage for the queue demo seed/reset metadata.
+- Quality-control check: no stale references to the deleted `ApprovalQueueDemo` or
+  local demo queue fallback remain. The largest touched code file is the self-contained
+  queue UI component; it is sizeable but isolated. `docs/status.md` remains the largest
+  file because it is the running historical log.
+
+Validation status:
+
+- `npm test -- approval-queue live-cost-scripts`: passed with 55 focused tests.
+- `npm run format:check`: passed.
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm run test:firestore`: passed with 14 Firestore Security Rules tests.
+- `npm test`: passed with 162 tests.
+- `npm run verify:router-boundary`: passed.
+- `git diff --check`: passed.
+- `bash scripts/verify.sh`: passed after retry. The first attempt hit a Windows `EPERM`
+  unlink on Next's SWC binary while a local dev-server/browser-inspection process was
+  still being released; the retry completed dependency install, format, lint,
+  typecheck, unit tests, router-boundary verification, and production build.
+
+Remaining risk:
+
+- No component-level React test harness exists in this repo, so the queue UI is covered
+  through API/helper tests, type/lint checks, build verification, and browser inspection
+  rather than direct component tests.

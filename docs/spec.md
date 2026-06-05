@@ -58,7 +58,7 @@ Capture PMI KC Metro's operational knowledge into an internal, source-backed, ed
 | One Drive folder per Space | Source files live in Drive; Vertex AI Search indexes them automatically. |
 | Templates and tool directory | Per-Space templates and a tool list with real links. |
 | Placeholders and gap tracking | Missing knowledge is recorded as a first-class entity with owner, priority, and due date. |
-| Approval Queue | Shared list of in-review SOPs, templates, and resolved placeholders; visible to all, actionable by Approvers. |
+| Approval Queue | Workflow-control list of approval packages, process changes, blockers, and related review items; Admins see all, while non-Admins see assigned/relevant items. |
 | Copyable drafts | Generated drafts can be copied; the KB never sends. |
 | Internal approval notifications | Gmail send-only notifications to Approvers with the `KB Approval` label. |
 | Owner Email Space (read-only) | Indexes the Owner Router's restricted Drive folder read-only so KB users can cite owner-email reply patterns and routing rules without leaving the KB. |
@@ -430,10 +430,10 @@ Each requirement has an ID. Each is testable; acceptance is in §15.
 
 ### 11.7 Approval Queue
 
-- **F-26.** Any in-review SOP, template, or resolved placeholder appears in the Approval Queue.
-- **F-27.** The queue is visible to all signed-in users (Editors and above). Only Approvers can act.
-- **F-28.** Approve / Reject actions write to the change log with actor, timestamp, and note.
-- **F-29.** When an item is created or modified in the queue, the system sends a Gmail notification to all Approvers (Dan, Bailey, Chastity) with a `KB Approval` label. The email is plain HTML, identifies the item, and links to it in the app. (V1.5 will add an approve-by-reply token; not in v1.)
+- **F-26.** Server-created `approval_queue_items` appear in the Approval Queue for approval packages, process-definition changes, failed/blocked automation, external-action readiness, and source/fact conflicts. SOP/template/placeholder review appears only when a queue producer creates a corresponding queue item.
+- **F-27.** Admins can view all queue items. Non-Admins can view only queue items where they are the assignee or required approver.
+- **F-28.** Queue transitions use server-side actions and append `approval_queue_activity` entries with actor, timestamp, previous/new state, source trigger, and required reasons.
+- **F-29.** Queue notification and email behavior follows the active Approval Queue plan: routine email is configurable and deferred from the v1 UI slice; unresolved important `Blocked` or overdue escalation remains a future approved notification path.
 
 ### 11.8 Integrations (v1)
 
@@ -711,7 +711,7 @@ A set of **≥ 50 question / expected-state pairs** covering P0 processes and de
 - **A-4.** Question with no documented answer → `No Reliable Source Found` + capture task. Never an invented answer.
 - **A-5.** Bailey adds a new process detail in under 5 minutes per item, no developer help.
 - **A-6.** Each cited source is clickable and opens the actual file/SOP.
-- **A-7.** Approver can mark items Approved; Editor cannot.
+- **A-7.** Required approver or Admin can mark eligible queue items Approved; unrelated Editors cannot approve or view unrelated queue items.
 - **A-8.** Source-state distinctions are visible in the data model and the UI.
 - **A-9.** No external email/message sent automatically. Drafts are copy-to-clipboard.
 - **A-10.** No write to RentVine, LeadSimple, DotLoop, QuickBooks, Boom, or any operational Sheet.

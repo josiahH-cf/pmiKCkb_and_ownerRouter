@@ -1,5 +1,6 @@
 import { FieldValue, type Firestore, type Transaction } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
+import { canViewApprovalQueueItem, isQueueItemTerminal } from "@/lib/approval/queue";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
@@ -25,16 +26,6 @@ const COLLECTIONS = {
   queueItems: "approval_queue_items",
   queueActivity: "approval_queue_activity",
 } as const;
-
-// Terminal statuses are closed: no further transitions, and a same-trigger duplicate
-// creates a new linked item rather than reopening the closed one.
-const TERMINAL_STATUSES: ReadonlySet<QueueItemStatus> = new Set([
-  "Approved",
-  "Completed",
-  "Cancelled",
-  "Disabled",
-  "Closed",
-]);
 
 // Approval-critical fields snapshotted into Activity when an open item refreshes.
 const APPROVAL_CRITICAL_FIELDS = [
@@ -182,7 +173,9 @@ export async function getApprovalQueueItem(
 ) {
   assertCan(actor, "read");
   const snapshot = await itemRef(db, itemId).get();
-  return readRequiredItem(snapshot.id, snapshot.data());
+  const item = readRequiredItem(snapshot.id, snapshot.data());
+  assertCanViewItem(actor, item);
+  return item;
 }
 
 export async function listApprovalQueue(
@@ -197,6 +190,7 @@ export async function listApprovalQueue(
 
   return snapshot.docs
     .map((doc) => readRecord<ApprovalQueueItemRecord>(doc.id, doc.data()))
+    .filter((item) => canViewApprovalQueueItem(actor, item))
     .filter((item) => matchesFilters(item, filters))
     .sort((left, right) => compareQueueItems(left, right, referenceDate));
 }
@@ -207,6 +201,7 @@ export async function listApprovalQueueActivity(
   db = getAdminFirestore(),
 ) {
   assertCan(actor, "read");
+  await getApprovalQueueItem(actor, itemId, db);
   const snapshot = await db
     .collection(COLLECTIONS.queueActivity)
     .where("item_id", "==", itemId)
@@ -229,6 +224,7 @@ export async function transitionApprovalQueueItem(
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(itemRef(db, itemId));
     const current = readRequiredItem(snapshot.id, snapshot.data());
+    assertCanViewItem(actor, current);
 
     if (isTerminal(current.status)) {
       throw new EditableLayerError("This queue item is already closed.", 409);
@@ -269,6 +265,12 @@ function planTransition(
   switch (input.action) {
     case "approve": {
       assertCan(actor, "approve");
+      if (current.status !== "Ready for Approval") {
+        throw new EditableLayerError(
+          "Only Ready for Approval queue items can be approved.",
+          409,
+        );
+      }
       assertCanApprove(actor, current);
       return {
         updates: { status: "Approved", closed_at: serverTimestamp() },
@@ -287,7 +289,12 @@ function planTransition(
       };
     }
     case "assign": {
-      assertCan(actor, "edit");
+      if (!can(actor.role, "manageAdmin")) {
+        throw new EditableLayerError(
+          "Only Admins can assign or reassign queue items.",
+          403,
+        );
+      }
       return planAssign(current, input);
     }
     case "snooze": {
@@ -570,7 +577,16 @@ function assertCan(actor: AuthenticatedUser, capability: Parameters<typeof can>[
 }
 
 function isTerminal(status: QueueItemStatus) {
-  return TERMINAL_STATUSES.has(status);
+  return isQueueItemTerminal(status);
+}
+
+function assertCanViewItem(actor: AuthenticatedUser, item: ApprovalQueueItemRecord) {
+  if (!canViewApprovalQueueItem(actor, item)) {
+    throw new EditableLayerError(
+      "Only the assignee, required approver, or an Admin can view this queue item.",
+      403,
+    );
+  }
 }
 
 function itemRef(db: Firestore, id: string) {

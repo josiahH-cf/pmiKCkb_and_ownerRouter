@@ -133,6 +133,100 @@ const demoToolRecords = [
   },
 ];
 
+const demoApprovalQueueItemRecords = [
+  {
+    id: "demo-queue-lease-renewals-owner-comms",
+    data: {
+      action_needed: "Approve the demo owner renewal email.",
+      affected_system_action: "Owner Gmail draft review",
+      assignee_uid: "local-demo-admin",
+      audience_group: "Dan/Admin decisions",
+      direct_link: "/spaces/lease-renewals",
+      due_date: "2026-06-15",
+      item_type: "ApprovalPackage",
+      process_run_ref: {
+        id: "demo-lease-renewal-run",
+        label: "Demo/Test - Lease Renewal - 123 Main",
+      },
+      required_approver_uid: "local-demo-admin",
+      risk: "High",
+      source_trigger_key: "demo-lease-renewal-run:owner-comms",
+      status: "Ready for Approval",
+    },
+  },
+  {
+    id: "demo-queue-maintenance-routing-blocked",
+    data: {
+      action_needed: "Assign an approver for the demo maintenance routing blocker.",
+      affected_system_action: "Maintenance routing review",
+      assignee_uid: "local-demo-admin",
+      audience_group: "Failed/Blocked automation",
+      direct_link: "/spaces/maintenance-work-order-intake",
+      due_date: "2026-06-12",
+      item_type: "AutomationFailure",
+      process_run_ref: {
+        id: "demo-maintenance-run",
+        label: "Demo/Test - Maintenance intake - Photos missing",
+      },
+      risk: "Blocked",
+      source_trigger_key: "demo-maintenance-run:routing-blocker",
+      status: "Blocked",
+    },
+  },
+  {
+    id: "demo-queue-move-out-snoozed",
+    data: {
+      action_needed: "Review the demo move-out owner update after inspection timing.",
+      affected_system_action: "Owner update draft review",
+      assignee_uid: "local-demo-admin",
+      audience_group: "Team follow-up",
+      direct_link: "/spaces/move-out-deposit-disposition",
+      due_date: "2026-06-20",
+      item_type: "ApprovalPackage",
+      process_run_ref: {
+        id: "demo-move-out-run",
+        label: "Demo/Test - Move-Out - Inspection timing",
+      },
+      required_approver_uid: "local-demo-admin",
+      risk: "Medium",
+      snooze_until: "2026-06-10",
+      source_trigger_key: "demo-move-out-run:owner-update",
+      status: "Snoozed",
+    },
+  },
+  {
+    id: "demo-queue-owner-onboarding-cleanup",
+    data: {
+      action_needed: "Approve the demo owner-onboarding process note.",
+      affected_system_action: "Internal process note",
+      assignee_uid: "local-demo-admin",
+      audience_group: "Dan/Admin decisions",
+      direct_link: "/spaces/owner-onboarding",
+      due_date: "2026-06-18",
+      item_type: "ProcessDefinitionChange",
+      process_run_ref: {
+        id: "demo-owner-onboarding-run",
+        label: "Demo/Test - Owner Onboarding - Setup note",
+      },
+      required_approver_uid: "local-demo-admin",
+      risk: "Low",
+      source_trigger_key: "demo-owner-onboarding-run:process-note",
+      status: "Ready for Approval",
+    },
+  },
+];
+
+const demoApprovalQueueActivityRecords = demoApprovalQueueItemRecords.map((record) => ({
+  id: `${record.id}-created`,
+  data: {
+    action: "created",
+    actor_uid: "demo-reset",
+    item_id: record.id,
+    new_state: record.data.status,
+    source_trigger: record.data.item_type,
+  },
+}));
+
 export const demoRecords = [
   ...demoWorkflowRecords.flatMap((workflow) => [
     {
@@ -189,6 +283,27 @@ export const demoRecords = [
       url: tool.url,
     },
   })),
+  ...demoApprovalQueueItemRecords.map((item) => ({
+    collection: "approval_queue_items",
+    deleteFields: [
+      "closed_at",
+      "superseded_by_item_id",
+      "supersedes_item_id",
+      ...(item.data.snooze_until ? [] : ["snooze_until"]),
+      ...(item.data.required_approver_uid ? [] : ["required_approver_uid"]),
+    ],
+    id: item.id,
+    data: item.data,
+    writeChangeLog: false,
+  })),
+  ...demoApprovalQueueActivityRecords.map((entry) => ({
+    collection: "approval_queue_activity",
+    deleteFields: ["previous_state", "prior_version_snapshot", "reason", "updated_at"],
+    id: entry.id,
+    data: entry.data,
+    includeUpdatedAt: false,
+    writeChangeLog: false,
+  })),
 ];
 
 export async function resetDemoRecords({
@@ -207,7 +322,7 @@ export async function resetDemoRecords({
       id: record.id,
       ...record.data,
       created_at: snapshot.exists ? (snapshot.data()?.created_at ?? now) : now,
-      updated_at: now,
+      ...(record.includeUpdatedAt === false ? {} : { updated_at: now }),
     };
 
     await ref.set(
@@ -223,20 +338,24 @@ export async function resetDemoRecords({
       );
     }
 
-    const changeLogId = `demo-reset-${Date.now()}-${record.id}`;
+    const entityType = entityTypeFor(record.collection);
 
-    await db
-      .collection("change_log")
-      .doc(changeLogId)
-      .set({
-        id: changeLogId,
-        action: snapshot.exists ? "update" : "create",
-        created_at: now,
-        editor_uid: "demo-reset",
-        entity_id: record.id,
-        entity_type: entityTypeFor(record.collection),
-        note,
-      });
+    if (record.writeChangeLog !== false && entityType) {
+      const changeLogId = `demo-reset-${Date.now()}-${record.id}`;
+
+      await db
+        .collection("change_log")
+        .doc(changeLogId)
+        .set({
+          id: changeLogId,
+          action: snapshot.exists ? "update" : "create",
+          created_at: now,
+          editor_uid: "demo-reset",
+          entity_id: record.id,
+          entity_type: entityType,
+          note,
+        });
+    }
   }
 }
 
@@ -286,7 +405,11 @@ function entityTypeFor(collection) {
     return "placeholder";
   }
 
-  return "tool";
+  if (collection === "tools") {
+    return "tool";
+  }
+
+  return null;
 }
 
 function readEnv(name) {

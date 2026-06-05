@@ -583,6 +583,30 @@ describe("cheap live setup scripts", () => {
     expect(
       demoRecords.filter((record) => record.collection === "placeholders"),
     ).toHaveLength(4);
+    expect(
+      demoRecords.filter((record) => record.collection === "approval_queue_items"),
+    ).toHaveLength(4);
+    expect(
+      demoRecords.filter((record) => record.collection === "approval_queue_activity"),
+    ).toHaveLength(4);
+  });
+
+  it("keeps queue demo Activity append-style and out of generic change logs", () => {
+    const queueRecords = demoRecords.filter((record) =>
+      record.collection.startsWith("approval_queue_"),
+    );
+    const activityRecords = demoRecords.filter(
+      (record) => record.collection === "approval_queue_activity",
+    );
+
+    expect(queueRecords).toHaveLength(8);
+    expect(queueRecords.every((record) => record.writeChangeLog === false)).toBe(true);
+    expect(activityRecords.every((record) => record.includeUpdatedAt === false)).toBe(
+      true,
+    );
+    expect(
+      activityRecords.every((record) => record.deleteFields.includes("updated_at")),
+    ).toBe(true);
   });
 
   it("keeps launch skeleton records out of default demo resets", () => {

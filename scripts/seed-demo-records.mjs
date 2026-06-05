@@ -42,21 +42,25 @@ for (const record of demoRecords) {
     id: record.id,
     ...record.data,
     created_at: now,
-    updated_at: now,
+    ...(record.includeUpdatedAt === false ? {} : { updated_at: now }),
   });
 
-  await db
-    .collection("change_log")
-    .doc(`seed-${record.id}`)
-    .set({
-      id: `seed-${record.id}`,
-      action: "create",
-      created_at: now,
-      editor_uid: seedActor,
-      entity_id: record.id,
-      entity_type: entityTypeFor(record.collection),
-      note: "Created from safe four-workflow demo seed.",
-    });
+  const entityType = entityTypeFor(record.collection);
+
+  if (record.writeChangeLog !== false && entityType) {
+    await db
+      .collection("change_log")
+      .doc(`seed-${record.id}`)
+      .set({
+        id: `seed-${record.id}`,
+        action: "create",
+        created_at: now,
+        editor_uid: seedActor,
+        entity_id: record.id,
+        entity_type: entityType,
+        note: "Created from safe four-workflow demo seed.",
+      });
+  }
 
   console.log(`seeded ${record.collection}: ${record.id}`);
 }
@@ -74,7 +78,11 @@ function entityTypeFor(collection) {
     return "placeholder";
   }
 
-  return "tool";
+  if (collection === "tools") {
+    return "tool";
+  }
+
+  return null;
 }
 
 function readEnv(name) {

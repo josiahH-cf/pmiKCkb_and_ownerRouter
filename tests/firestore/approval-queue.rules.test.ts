@@ -35,6 +35,8 @@ beforeEach(async () => {
       status: "Ready for Approval",
       risk: "High",
       audience_group: "Dan/Admin decisions",
+      assignee_uid: "editor-uid",
+      required_approver_uid: "approver-uid",
       action_needed: "Approve the owner renewal email.",
       direct_link: "/runs/run-1",
     });
@@ -42,6 +44,27 @@ beforeEach(async () => {
       id: "activity-1",
       item_id: "item-1",
       actor_uid: "editor-uid",
+      action: "created",
+      new_state: "Ready for Approval",
+      source_trigger: "ApprovalPackage",
+    });
+    await setDoc(doc(db, "approval_queue_items/item-2"), {
+      id: "item-2",
+      process_run_ref: { id: "run-2", label: "Hidden Lease Renewal" },
+      item_type: "ApprovalPackage",
+      source_trigger_key: "run-2:owner-comms",
+      status: "Ready for Approval",
+      risk: "Low",
+      audience_group: "Dan/Admin decisions",
+      assignee_uid: "someone-else",
+      required_approver_uid: "someone-else",
+      action_needed: "Hidden approval.",
+      direct_link: "/runs/run-2",
+    });
+    await setDoc(doc(db, "approval_queue_activity/activity-2"), {
+      id: "activity-2",
+      item_id: "item-2",
+      actor_uid: "someone-else",
       action: "created",
       new_state: "Ready for Approval",
       source_trigger: "ApprovalPackage",
@@ -61,11 +84,27 @@ describe("Approval Queue Firestore rules", () => {
     await assertFails(getDoc(doc(db, "approval_queue_activity/activity-1")));
   });
 
-  it("allows editor-or-better roles to read queue items and Activity", async () => {
+  it("allows assigned users and required approvers to read queue items and Activity", async () => {
     const db = authedDb("Editor");
+    const approverDb = authedDb("Approver");
 
     await assertSucceeds(getDoc(doc(db, "approval_queue_items/item-1")));
     await assertSucceeds(getDoc(doc(db, "approval_queue_activity/activity-1")));
+    await assertSucceeds(getDoc(doc(approverDb, "approval_queue_items/item-1")));
+  });
+
+  it("blocks non-Admins from reading unrelated queue items and Activity", async () => {
+    const db = authedDb("Editor");
+
+    await assertFails(getDoc(doc(db, "approval_queue_items/item-2")));
+    await assertFails(getDoc(doc(db, "approval_queue_activity/activity-2")));
+  });
+
+  it("allows Admins to read every queue item and Activity entry", async () => {
+    const db = authedDb("Admin");
+
+    await assertSucceeds(getDoc(doc(db, "approval_queue_items/item-2")));
+    await assertSucceeds(getDoc(doc(db, "approval_queue_activity/activity-2")));
   });
 
   it("blocks all direct client writes to queue items, even for Admins", async () => {

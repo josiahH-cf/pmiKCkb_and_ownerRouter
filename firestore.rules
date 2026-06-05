@@ -22,6 +22,23 @@ service cloud.firestore {
       return role() == 'Admin';
     }
 
+    function queueItemVisible(item) {
+      return admin() ||
+        ('assignee_uid' in item && item.assignee_uid == request.auth.uid) ||
+        (
+          'required_approver_uid' in item &&
+          item.required_approver_uid == request.auth.uid
+        );
+    }
+
+    function queueActivityItemVisible(activity) {
+      return 'item_id' in activity &&
+        exists(/databases/$(database)/documents/approval_queue_items/$(activity.item_id)) &&
+        queueItemVisible(
+          get(/databases/$(database)/documents/approval_queue_items/$(activity.item_id)).data
+        );
+    }
+
     function active() {
       return !('deleted_at' in resource.data);
     }
@@ -165,12 +182,13 @@ service cloud.firestore {
     // Admin SDK boundary only. Clients may read but never write directly; the
     // Activity log is append-only.
     match /approval_queue_items/{itemId} {
-      allow read: if signedIn() && editorOrBetter();
+      allow read: if signedIn() && editorOrBetter() && queueItemVisible(resource.data);
       allow create, update, delete: if false;
     }
 
     match /approval_queue_activity/{activityId} {
-      allow read: if signedIn() && editorOrBetter();
+      allow read: if signedIn() && editorOrBetter() &&
+        queueActivityItemVisible(resource.data);
       allow create, update, delete: if false;
     }
 

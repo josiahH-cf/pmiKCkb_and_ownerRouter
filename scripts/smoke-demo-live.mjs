@@ -146,44 +146,17 @@ async function smokeSpaceSave(page) {
 async function smokeApprovalQueue(page) {
   await openSignedIn(page, "/approval-queue");
   await expectBodyText(page, "Approval Queue");
-  await expectAnyBodyText(page, [
-    "Editable API connected.",
-    ...(allowLocalFallback ? ["Using local demo queue."] : []),
-  ]);
+  await expectBodyText(page, "Approval Queue connected.");
+  await expectBodyText(page, "Demo/Test");
+  await expectBodyText(page, "Activity");
   await screenshot(page, "03-approval-before");
 
-  const maxQueueActions =
-    (await page.getByRole("button", { name: "Approve" }).count()) +
-    (await page.getByRole("button", { name: "Resolve" }).count()) +
-    5;
-
-  for (let index = 0; index < maxQueueActions; index += 1) {
-    const approve = page.getByRole("button", { name: "Approve" });
-    const resolve = page.getByRole("button", { name: "Resolve" });
-    const approveCount = await approve.count();
-    const resolveCount = await resolve.count();
-
-    if (approveCount === 0 && resolveCount === 0) {
-      break;
-    }
-
-    if (approveCount > 0) {
-      await approve.first().click();
-      await expectAnyBodyText(page, [
-        "Approved through editable API.",
-        ...(allowLocalFallback ? ["Updated local demo queue."] : []),
-      ]);
-      continue;
-    }
-
-    await resolve.first().click();
-    await expectAnyBodyText(page, [
-      "Resolved through editable API.",
-      ...(allowLocalFallback ? ["Updated local demo queue."] : []),
-    ]);
-  }
-
-  await expectBodyText(page, "No in-review items are present in the approval queue.");
+  page.once("dialog", async (dialog) => {
+    await dialog.accept();
+  });
+  await page.getByRole("button", { name: "Approve" }).first().click();
+  await expectBodyText(page, "Queue item updated.");
+  await expectBodyText(page, "Approved");
   await screenshot(page, "04-approval-after");
 }
 
