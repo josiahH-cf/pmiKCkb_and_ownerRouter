@@ -42,6 +42,44 @@ export type ChangeLogEntityType =
 export type ChangeLogAction = "create" | "update" | "approve" | "reject" | "deprecate";
 export type NotificationLogStatus = "Sent" | "Skipped" | "Failed";
 
+// Approval Queue v1 (workflow-control layer). See docs/product-definition-gap-plan.md.
+export type QueueItemStatus =
+  | "Ready for Approval"
+  | "Blocked"
+  | "Snoozed"
+  | "Returned"
+  | "Approved"
+  | "Completed"
+  | "Cancelled"
+  | "Disabled"
+  | "Failed"
+  | "Closed";
+export type QueueRiskLevel = "Low" | "Medium" | "High" | "Blocked";
+export type QueueAudienceGroup =
+  | "Dan/Admin decisions"
+  | "Team follow-up"
+  | "Outside waiting"
+  | "Failed/Blocked automation";
+export type QueueItemType =
+  | "ApprovalPackage"
+  | "ProcessDefinitionChange"
+  | "AutomationFailure"
+  | "ExternalActionReadiness"
+  | "SourceFactConflict";
+export type QueueActivityAction =
+  | "created"
+  | "assigned"
+  | "returned"
+  | "snoozed"
+  | "unsnoozed"
+  | "blocked"
+  | "unblocked"
+  | "approved"
+  | "disabled"
+  | "closed"
+  | "refreshed"
+  | "comment";
+
 export interface UserRecord {
   uid: string;
   email: string;
@@ -173,5 +211,51 @@ export interface NotificationLogRecord {
   status: NotificationLogStatus;
   subject: string;
   error?: string;
+  created_at: string;
+}
+
+// A queue item references a workflow run by id + display label. The run/process
+// definition machinery is not built yet, so this is a stub reference for v1.
+export interface QueueProcessRunRef {
+  id: string;
+  label: string;
+}
+
+export interface ApprovalQueueItemRecord {
+  id: string;
+  process_run_ref: QueueProcessRunRef;
+  space_id?: string;
+  item_type: QueueItemType;
+  // Stable key for the originating run/action used to merge duplicates and relink
+  // superseding items.
+  source_trigger_key: string;
+  status: QueueItemStatus;
+  risk: QueueRiskLevel;
+  audience_group: QueueAudienceGroup;
+  assignee_uid?: string;
+  required_approver_uid?: string;
+  due_date?: string;
+  action_needed: string;
+  affected_system_action?: string;
+  direct_link: string;
+  snooze_until?: string;
+  closed_at?: string;
+  supersedes_item_id?: string;
+  superseded_by_item_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApprovalQueueActivityRecord {
+  id: string;
+  item_id: string;
+  actor_uid: string;
+  action: QueueActivityAction;
+  previous_state?: string;
+  new_state?: string;
+  reason?: string;
+  source_trigger: string;
+  // JSON snapshot of approval-critical fields preserved when an open item refreshes.
+  prior_version_snapshot?: string;
   created_at: string;
 }
