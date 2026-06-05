@@ -50,25 +50,29 @@ ownership, manual setup status, and verification evidence after these asks are a
 
 ## Product Definition Follow-Ups
 
-| Product             | Exact client answer needed                                                                                                                                   |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| PMI KC KB           | Which source folders feed Lease Renewals, Maintenance Work Order Intake, Move-Out + Deposit Disposition, and Owner Onboarding?                               |
-| Lease Renewal Agent | Which starter renewal materials should go into the source-of-truth folder first?                                                                             |
-| Lease Renewal Agent | Which Google Drive folder should captured Lease Renewal workflow notes live in first, unless setup selects a better source?                                  |
-| Lease Renewal Agent | Which people are included in the initial whole-team edit group for the Lease Renewal source-of-truth folder?                                                 |
-| Lease Renewal Agent | Which systems expose signed lease/dates, tenant/property facts, owner information, current rent/terms, and renewal timeline when integration scoping begins? |
-| Lease Renewal Agent | Which approved edit/add-resource path should missing facts link to: in-place process edit, Drive/source folder add, or another source path?                  |
-| Lease Renewal Agent | Does a simple low-cost copy automation handle all useful source file types from Drive, with conversion or visible skips when needed?                         |
-| Lease Renewal Agent | Where should non-source, reference, or archive material live outside the Lease Renewal source folder?                                                        |
-| Lease Renewal Agent | Which target-system/action-type pairs can be approved for future executable external actions?                                                                |
-| Lease Renewal Agent | Which external systems later need mirrored workflow-run state from the KB-owned central workflow record?                                                     |
-| Lease Renewal Agent | Who, if anyone, should be added as an initial delegated approver beyond Dan and Josiah in the Admin console?                                                 |
-| Lease Renewal Agent | Which people or groups should receive internal workflow notification emails beyond the default owner/final approver and next-action assignee?                |
-| Maintenance         | Which tools, services, connections, and chatbot/phone system should support intake when Maintenance scoping begins?                                          |
-| Maintenance         | Who approves common issue templates and escalation rules?                                                                                                    |
-| Move-Out            | Which tools, services, connections, natural triggers, and approvers apply when Move-Out scoping begins?                                                      |
-| Gmail Inbox 0       | What Dan mailbox scan model is approved, and may approved rules back-label historical threads?                                                               |
-| Gmail Inbox 0       | Which Gmail draft/reply capabilities are allowed while Dan still presses Send?                                                                               |
+| Product             | Exact client answer needed                                                                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PMI KC KB           | Which source folders feed Lease Renewals, Maintenance Work Order Intake, Move-Out + Deposit Disposition, and Owner Onboarding?                                |
+| Lease Renewal Agent | Which starter renewal materials should go into the source-of-truth folder first?                                                                              |
+| Lease Renewal Agent | Which Google Drive folder should captured Lease Renewal workflow notes live in first, unless setup selects a better source?                                   |
+| Lease Renewal Agent | Which people are included in the initial whole-team edit group for the Lease Renewal source-of-truth folder?                                                  |
+| Lease Renewal Agent | Which systems expose signed lease/dates, tenant/property facts, owner information, current rent/terms, and renewal timeline when integration scoping begins?  |
+| Lease Renewal Agent | Which approved edit/add-resource path should missing facts link to: in-place process edit, Drive/source folder add, or another source path?                   |
+| Lease Renewal Agent | Does a simple low-cost copy automation handle all useful source file types from Drive, with conversion or visible skips when needed?                          |
+| Lease Renewal Agent | Where should non-source, reference, or archive material live outside the Lease Renewal source folder?                                                         |
+| Lease Renewal Agent | Which target-system/action-type pairs can be approved for future executable external actions?                                                                 |
+| Lease Renewal Agent | Which external systems later need mirrored workflow-run state from the KB-owned central workflow record?                                                      |
+| Lease Renewal Agent | Who, if anyone, should be added as an initial delegated approver beyond Dan and Josiah in the Admin console?                                                  |
+| Lease Renewal Agent | Which people or groups should receive internal workflow notification emails beyond the default owner/final approver and next-action assignee?                 |
+| Maintenance         | Which tools, services, connections, and chatbot/phone system should support intake when Maintenance scoping begins?                                           |
+| Maintenance         | Who approves common issue templates and escalation rules?                                                                                                     |
+| Move-Out            | Which tools, services, connections, natural triggers, and approvers apply when Move-Out scoping begins?                                                       |
+| Gmail Inbox 0       | What Dan mailbox scan model is approved, and may approved rules back-label historical threads?                                                                |
+| Gmail Inbox 0       | Which Gmail draft/reply capabilities are allowed while Dan still presses Send?                                                                                |
+| Gmail Inbox 0       | Discovery 1: When Dan opens his inbox, what 3-5 piles does he mentally sort mail into? (Defines the label taxonomy; see `docs/products/gmail-inbox-zero.md`.) |
+| Gmail Inbox 0       | Discovery 2: Which kinds of emails does Dan reply to the same way most of the time? (Defines the first safe auto-draft templates.)                            |
+| Gmail Inbox 0       | Discovery 3: Which emails must never be auto-touched? (Defines hard exclusions: owner-money, legal/notices, tenant disputes -> label only.)                   |
+| Gmail Inbox 0       | Discovery 4: How does Dan currently know an email is stuck waiting on someone, and on whom? (Defines follow-up/aging logic and waiting parties.)              |
 
 ## Testing And Training
 

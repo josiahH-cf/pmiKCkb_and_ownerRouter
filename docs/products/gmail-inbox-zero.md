@@ -52,6 +52,76 @@ package as historical source material only.
   patterns become active.
 - Learning material starts in Gemini Gems and should also be managed through the KB app.
 
+## Connective Architecture
+
+Decided 2026-06-05. This records the intended design; Gmail runtime remains client-gated
+and docs-only until access and scope are approved (see Safety Boundaries and Blockers).
+The backend never paints its own screen over Gmail. It reaches back into Dan's inbox
+through Gmail's own objects plus one sanctioned in-Gmail panel, and it learns by observing
+what Dan does to those objects. It is a two-way street on native Gmail surfaces, so Dan
+never leaves his inbox.
+
+### Backend to Gmail (how tailoring appears where Dan works)
+
+- Labels applied via the Gmail API appear natively in Dan's sidebar and on threads
+  (additive only).
+- Drafts created via the Gmail API appear as native unsent `Draft` replies in the thread.
+- Decided in-Gmail UI surface: a Google Workspace Add-on contextual card that our backend
+  controls, shown in the Gmail side panel when Dan opens a message (suggested label,
+  draft-ready, plain-English "why", and feedback controls). This is the target surface for
+  the drafting/explainability phase (Phase C+); Phases A and B work with labels and drafts
+  alone and do not require the add-on. The add-on path implies a future Workspace
+  Marketplace review.
+
+### Gmail to backend (how it learns)
+
+- The backend registers `users.watch` and reads `users.history.list` to observe
+  `labelAdded`, `labelRemoved`, message additions, and drafts that became sent messages.
+- Implicit signals (kept vs removed label; draft sent as-is, edited, or deleted) plus
+  optional explicit thumbs feedback flow back to the backend.
+
+### Learning governance (decided: reuse the KB model)
+
+- Gmail Inbox 0 "learning" is not opaque retraining. It is the KB pattern set growing:
+  reply templates, label rules, and sender/category mappings stored in the KB and fed into
+  Gemini each time (the same source-backed approach the KB already uses).
+- Dan's edits become approval-gated proposed updates through the existing source-state and
+  approval-queue model. Nothing self-modifies; improvements are human-confirmed, matching
+  the no-autonomous-send philosophy.
+
+### Split-scope safety model
+
+- There is no Gmail OAuth scope that allows labeling/drafting while blocking send, so the
+  no-send guarantee is enforced in code, not by a scope.
+- Background triage uses `gmail.readonly` + `gmail.labels` only, which have no send
+  capability at all.
+- Draft creation uses a send-capable scope (`gmail.compose`), but the code never calls the
+  send method; Dan presses Send in Gmail.
+
+### Rollout (reversible, opt-in)
+
+- Phase A shadow (classify only, apply nothing) -> Phase B suggest/auto-label exact
+  matches -> Phase C drafts -> later phases only after testing and explicit sign-off.
+- Back-labeling historical threads is opt-in. Disconnecting the integration stops
+  everything; remaining labels are ordinary Gmail labels.
+
+## Discovery Questions (ask Dan first)
+
+These four high-leverage questions define the initial labels, draft templates, routing,
+and exclusions. Each lists the default to assume if Dan is brief.
+
+1. When you open your inbox, what 3-5 piles do you mentally sort mail into? (Defines the
+   label taxonomy. Default to validate: Waiting on Outside, Waiting on Team, Dan Decision,
+   Draft Ready.)
+2. Which kinds of emails do you reply to the same way most of the time? (Defines first
+   auto-draft templates and which cases are safe to draft. Default: start with the 2-3
+   most repetitive.)
+3. Which emails must never be auto-touched? (Defines hard exclusions. Default:
+   owner-money, legal/notices, tenant disputes -> label only, never draft.)
+4. How do you currently know an email is stuck waiting on someone, and on whom? (Defines
+   the follow-up/aging logic and the waiting parties. Default: surface anything in a
+   Waiting label with no reply after N days.)
+
 ## Management Page
 
 The first KB-hosted Gmail Inbox 0 management page should be Admin-only and include:
