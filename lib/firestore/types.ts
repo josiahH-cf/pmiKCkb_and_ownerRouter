@@ -102,6 +102,59 @@ export type QueueNotificationHealthStatus =
   | "Healthy"
   | "Needs Attention"
   | "Action Required";
+export type ProcessDefinitionStatus =
+  | "Draft"
+  | "Testing"
+  | "Pending Approval"
+  | "Active"
+  | "Needs Revision"
+  | "Retired";
+export type WorkflowRunStatus =
+  | "Not Started"
+  | "In Progress"
+  | "Waiting on Team"
+  | "Waiting on Outside"
+  | "Blocked"
+  | "Ready for Approval"
+  | "Approved"
+  | "Completed"
+  | "Cancelled"
+  | "Failed";
+export type ExternalActionReadiness =
+  | "Planned"
+  | "Needs Connection"
+  | "Needs Permission"
+  | "Ready for Test"
+  | "Approved for Execution"
+  | "Disabled";
+export type WorkflowRunTimelineEvent =
+  | "started"
+  | "status_changed"
+  | "completed"
+  | "failed"
+  | "comment";
+
+export interface ProcessDefinitionSourceLink {
+  label: string;
+  url: string;
+}
+
+export interface ProcessDefinitionStep {
+  id: string;
+  title: string;
+  description?: string;
+}
+
+export interface ProcessDefinitionActionReference {
+  id: string;
+  label: string;
+  target_system: string;
+  expected_action: string;
+  readiness: ExternalActionReadiness;
+  missing_connection_or_permission?: string;
+  approval_owner_uid?: string;
+  rollback_or_correction_note?: string;
+}
 
 export interface UserRecord {
   uid: string;
@@ -331,4 +384,74 @@ export interface ApprovalQueueNotificationHealth {
   action_required_reasons: string[];
   needs_attention_reasons: string[];
   email_setup_error?: string;
+}
+
+export interface ProcessDefinitionRecord {
+  id: string;
+  name: string;
+  short_outcome: string;
+  trigger: string;
+  owner_uid: string;
+  default_approver_uid: string;
+  source_links: ProcessDefinitionSourceLink[];
+  required_starting_inputs: string[];
+  steps: ProcessDefinitionStep[];
+  action_references: ProcessDefinitionActionReference[];
+  success_condition: string;
+  stop_condition?: string;
+  escalation_condition?: string;
+  status: ProcessDefinitionStatus;
+  pending_queue_item_id?: string;
+  active_version_id?: string;
+  last_successful_test_run_id?: string;
+  activation_override_reason?: string;
+  created_by_uid: string;
+  updated_by_uid?: string;
+  submitted_at?: string;
+  activated_at?: string;
+  activated_by_uid?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProcessDefinitionVersionRecord {
+  id: string;
+  definition_id: string;
+  version_number: number;
+  activated_by_uid: string;
+  activation_override_reason?: string;
+  snapshot_json: string;
+  created_at: string;
+}
+
+export interface WorkflowRunRecord {
+  id: string;
+  definition_id: string;
+  definition_version_id?: string;
+  process_name: string;
+  status: WorkflowRunStatus;
+  owner_uid: string;
+  next_action: string;
+  blocker?: string;
+  due_date: string;
+  is_test_run: boolean;
+  simulation_only: boolean;
+  production_metrics_included: boolean;
+  started_by_uid: string;
+  outcome_notes?: string;
+  completed_at?: string;
+  failed_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkflowRunTimelineRecord {
+  id: string;
+  run_id: string;
+  actor_uid: string;
+  event_type: WorkflowRunTimelineEvent;
+  summary: string;
+  previous_status?: WorkflowRunStatus;
+  new_status?: WorkflowRunStatus;
+  created_at: string;
 }

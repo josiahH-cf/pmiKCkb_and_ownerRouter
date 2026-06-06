@@ -26,6 +26,30 @@ Default priority:
 6. Scope Lease Renewal Agent before implementation.
 7. Scope Gmail Inbox 0 live Gmail setup before implementation.
 
+## While Waiting On Client Replies
+
+The current outbound client asks are tracked in `docs/client-checklist.md`. They block
+production migration, live imports, live Gmail work, external-system access, and Lease
+Renewal runtime execution, but they do not block safe local development.
+
+Continue iterating on:
+
+- KB demo/runtime health, tests, preflights, dry-runs, Admin visibility, and source
+  manifest templates.
+- Approval Queue and workflow-control primitives that do not require live integrations
+  or client data.
+- Lease Renewal discovery artifacts, workflow-run/process-definition modeling,
+  acceptance scenarios, read/gather fact models, and non-executable fixtures.
+- Gmail Inbox 0 label/rule/prompt planning, legacy artifact mining, safe-thread
+  scenario design, and management-page planning without live Gmail access.
+- Tool access templates and integration capability classification using placeholders
+  until Dan/team provide the spreadsheet answers.
+
+Stop before any Google Cloud billing/cost action, production setup, live source import,
+deploy, Gmail read/modify/draft/send, API-key use, client Drive write, or
+RentVine/LeadSimple/DotLoop/QuickBooks/Boom/Sheets write unless the user explicitly says
+the relevant Dan/team reply has unblocked that exact action.
+
 When running product-definition follow-up loops, group related questions into small
 batches. Include a recommended default answer for each question based on the active
 context so the client can answer "yes" or provide targeted edits.

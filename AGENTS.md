@@ -17,27 +17,28 @@ route new work through the three-product docs.
 
 ## Route Table
 
-| Need                             | Read                                                     |
-| -------------------------------- | -------------------------------------------------------- |
-| North star and product direction | `docs/north-star.md`                                     |
-| Product lane routing             | `docs/products/README.md`, then the relevant product doc |
-| Phase plan and acceptance gates  | `docs/plan.md`                                           |
-| Integration and cutover          | `docs/integration-cutover-plan.md`                       |
-| Environment and key handoff      | `docs/environment-handoff.md`                            |
-| Product definition gaps          | `docs/product-definition-gap-plan.md`                    |
-| How to work next                 | `docs/implement.md`                                      |
-| Autonomous feature-cycle runner  | `docs/autonomous-agent-runner.md`                        |
-| Current status and blockers      | `docs/status.md`                                         |
-| Client asks                      | `docs/client-checklist.md`                               |
-| Engineering checklist            | `docs/engineering-checklist.md`                          |
-| AI execution workflow            | `docs/ai-execution-workflow.md`                          |
-| Research backlog                 | `docs/research-backlog.md`                               |
-| Security and conventions         | `docs/engineering.md`                                    |
-| Original preserved specs         | `docs/specs/`                                            |
-| KB technical spec                | `docs/spec.md`                                           |
-| Legacy Owner Router split        | `docs/legacy/owner-router-separate-repo.md`              |
-| Owner Router artifact source     | `docs/legacy/owner-router-artifact-source.md`            |
-| Google setup details             | `docs/google-setup.md`, `SETUP.md`                       |
+| Need                             | Read                                                              |
+| -------------------------------- | ----------------------------------------------------------------- |
+| North star and product direction | `docs/north-star.md`                                              |
+| Product lane routing             | `docs/products/README.md`, then the relevant product doc          |
+| Phase plan and acceptance gates  | `docs/plan.md`                                                    |
+| Integration and cutover          | `docs/integration-cutover-plan.md`                                |
+| Environment and key handoff      | `docs/environment-handoff.md`                                     |
+| Product definition gaps          | `docs/product-definition-gap-plan.md`                             |
+| How to work next                 | `docs/implement.md`                                               |
+| Autonomous feature-cycle runner  | `docs/autonomous-agent-runner.md`                                 |
+| Current status and blockers      | `docs/status.md`                                                  |
+| Client asks                      | `docs/client-checklist.md`                                        |
+| Client unblock and parallel work | `docs/status.md`, `docs/client-checklist.md`, `docs/implement.md` |
+| Engineering checklist            | `docs/engineering-checklist.md`                                   |
+| AI execution workflow            | `docs/ai-execution-workflow.md`                                   |
+| Research backlog                 | `docs/research-backlog.md`                                        |
+| Security and conventions         | `docs/engineering.md`                                             |
+| Original preserved specs         | `docs/specs/`                                                     |
+| KB technical spec                | `docs/spec.md`                                                    |
+| Legacy Owner Router split        | `docs/legacy/owner-router-separate-repo.md`                       |
+| Owner Router artifact source     | `docs/legacy/owner-router-artifact-source.md`                     |
+| Google setup details             | `docs/google-setup.md`, `SETUP.md`                                |
 
 ## Project Map
 
@@ -72,6 +73,7 @@ route new work through the three-product docs.
 - Seed source metadata: `npm run seed:source-meta`
 - Live demo smoke: `npm run smoke:demo-live`
 - Live Ask smoke: `npm run smoke:ask-live`
+- Queue notifications dry-run: `npm run queue:notifications -- --dry-run --date=YYYY-MM-DD`
 - Demo deploy: `npm run deploy:demo`
 - Build: `npm run build`
 - Full verification: `bash scripts/verify.sh`

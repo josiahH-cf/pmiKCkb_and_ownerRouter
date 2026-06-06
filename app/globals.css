@@ -620,6 +620,120 @@ button {
   gap: 8px;
 }
 
+.workflow-list-layout,
+.workflow-detail-layout,
+.workflow-run-layout {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+}
+
+.workflow-list-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.45fr);
+}
+
+.workflow-detail-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.45fr);
+}
+
+.workflow-run-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.45fr);
+}
+
+.workflow-timeline-panel {
+  grid-column: 1 / -1;
+}
+
+.workflow-create-panel,
+.workflow-definition-editor,
+.workflow-side,
+.workflow-record-list {
+  display: grid;
+  gap: 14px;
+}
+
+.workflow-create-panel fieldset,
+.workflow-definition-editor fieldset {
+  border: 0;
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.workflow-create-panel label,
+.workflow-definition-editor label,
+.workflow-side label,
+.workflow-note-field {
+  color: var(--color-text);
+  display: grid;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.workflow-create-panel input,
+.workflow-create-panel textarea,
+.workflow-definition-editor input,
+.workflow-definition-editor textarea,
+.workflow-side input,
+.workflow-side textarea,
+.workflow-note-field textarea {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text);
+  min-height: 40px;
+  min-width: 0;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.workflow-create-panel textarea,
+.workflow-definition-editor textarea,
+.workflow-side textarea,
+.workflow-note-field textarea {
+  resize: vertical;
+}
+
+.workflow-two-column-fields {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.workflow-record-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.workflow-side {
+  min-width: 0;
+}
+
+.workflow-test-banner {
+  background: var(--color-accent-100);
+  border: 1px solid var(--color-accent-500);
+  border-radius: 8px;
+  font-weight: 800;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+}
+
+.workflow-blocker {
+  background: #fff5f5;
+  border: 1px solid var(--state-no-source);
+  border-radius: 8px;
+  margin-top: 14px;
+  padding: 12px;
+}
+
+.workflow-blocker p {
+  margin-bottom: 0;
+}
+
 .sr-only {
   clip: rect(0, 0, 0, 0);
   border: 0;
@@ -655,6 +769,12 @@ button {
   }
 
   .queue-setting-row {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-list-layout,
+  .workflow-detail-layout,
+  .workflow-run-layout {
     grid-template-columns: 1fr;
   }
 

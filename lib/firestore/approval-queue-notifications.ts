@@ -80,7 +80,7 @@ const DEFAULT_QUEUE_EMAIL_SETTINGS: ApprovalQueueEmailSettingRecord[] = [
   }),
 ];
 
-type QueueNotificationItem = Pick<
+export type QueueNotificationItem = Pick<
   ApprovalQueueItemRecord,
   | "action_needed"
   | "direct_link"
@@ -430,7 +430,7 @@ function defaultSetting({
   };
 }
 
-function queueNotificationRecipientsForItem(item: QueueNotificationItem) {
+export function queueNotificationRecipientsForItem(item: QueueNotificationItem) {
   const recipients: Array<{
     role: QueueNotificationRecipientRole;
     uid: string;
@@ -450,7 +450,7 @@ function queueNotificationRecipientsForItem(item: QueueNotificationItem) {
   return recipients;
 }
 
-function queueNotificationTitle(
+export function queueNotificationTitle(
   event: QueueNotificationEvent,
   item: QueueNotificationItem,
 ) {
@@ -468,7 +468,7 @@ function queueNotificationTitle(
   return `${label[event]}: ${item.process_run_ref.label}`;
 }
 
-function queueNotificationMessage(
+export function queueNotificationMessage(
   event: QueueNotificationEvent,
   item: QueueNotificationItem,
 ) {

@@ -30,6 +30,7 @@
     "firebase:set-role": "node scripts/set-firebase-user-role.mjs",
     "demo:operator": "node scripts/demo-operator.mjs",
     "demo:reset": "node scripts/reset-demo-records.mjs",
+    "queue:notifications": "tsx scripts/run-approval-queue-notifications.ts",
     "check:live-cost": "node scripts/check-live-cost.mjs",
     "corpus:plan": "node scripts/source-corpus-manifest.mjs",
     "delete:agent-search-data-store": "node scripts/delete-agent-search-data-store.mjs",
@@ -71,6 +72,7 @@
     "jsdom": "^29.1.1",
     "playwright-core": "^1.60.0",
     "prettier": "3.7.3",
+    "tsx": "^4.22.4",
     "typescript": "5.9.3",
     "vitest": "^4.1.8"
   },

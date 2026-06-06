@@ -211,6 +211,28 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Workflow-control foundation records are written server-side only. Client
+    // writes stay denied so simulation-only and activation gates cannot be bypassed.
+    match /process_definitions/{definitionId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
+    match /process_definition_versions/{versionId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
+    match /workflow_runs/{runId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
+    match /workflow_run_timeline/{timelineId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

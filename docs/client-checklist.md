@@ -7,6 +7,22 @@ this repo; record only names, owners, decisions, and non-secret identifiers.
 Use `docs/environment-handoff.md` to track non-secret environment identifiers, secret
 ownership, manual setup status, and verification evidence after these asks are answered.
 
+## Current Outbound Asks
+
+These asks were sent to Dan/PMI KC and are awaiting reply. Treat them as the current
+client-side unblock thread. Do not paste credentials, source records, live Gmail
+content, leases, or tool secrets into this repo when answers arrive.
+
+| Ask                                | Exact client action                                                                                                                                                                                                      | Needed for                                         | Status                                     | Verification after unblock                                                        |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------- |
+| Google Cloud billing card          | Add a card to the Google Cloud billing account at `https://console.cloud.google.com/billing`. Budget context sent: keep spend at $10 and do not spend without approval.                                                  | KB migration to client-owned cloud platform.       | Awaiting Dan.                              | Billing visible/enabled, then run approved setup/preflight dry-runs.              |
+| Lease Renewal walkthrough          | Provide one full start-to-finish renewal walkthrough, ideally Wednesday, June 17, 2026, 9:30-10:15 AM, with fallback windows Wednesday morning, Thursday, June 18, 2026, 11:00 AM-4:00 PM, or before 9:00 AM either day. | Lease Renewal Agent discovery and prototype scope. | Awaiting team.                             | Record/summarize walkthrough into source notes without raw client data in git.    |
+| Tool access spreadsheet            | Fill in tool, available access type, location, and notes for RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Google Sheets including which sheets, and any missing tools.                                               | Integration capability classification.             | Awaiting team.                             | Update research backlog and environment handoff with non-secret locations/owners. |
+| Approval notification sender       | Confirm default that approval emails can come from `kb-automation@pmikcmetro.com`.                                                                                                                                       | KB approval notification setup.                    | Awaiting exceptions; default yes was sent. | Sender/recipient setup recorded; no send until approved.                          |
+| Launch approvers                   | Confirm default that launch approval is Dan and Josiah only.                                                                                                                                                             | Production role and approval routing.              | Awaiting exceptions; default yes was sent. | Role/approver notes updated in product docs and auth setup.                       |
+| Gmail helper safe test model       | Confirm default that Gmail Inbox 0 starts with a few safe test threads before touching Dan's live inbox.                                                                                                                 | Gmail Inbox 0 safe rollout.                        | Awaiting exceptions; default yes was sent. | Safe-thread protocol recorded before any Gmail read/modify runtime.               |
+| Signed lease and lease-date source | Identify where signed leases and lease end dates live.                                                                                                                                                                   | Lease Renewal Agent first authoritative trigger.   | Awaiting Dan.                              | Source system classified as read-only/write-capable/blocked.                      |
+
 ## Decisions To Confirm
 
 | Ask                                                                         | Why it matters                                                    | Needed for          |
@@ -85,9 +101,13 @@ ownership, manual setup status, and verification evidence after these asks are a
 
 ## Current Blockers
 
-- No Lease Renewal Agent runtime scope is approved yet.
-- Gmail Inbox 0 live Gmail setup needs Dan/Bailey approval and a safe testing plan.
-- KB production still needs PMI KC-owned project access, production sources, auth
-  domains, role assignments, and source/data-store maps.
+- KB production migration is waiting on Google Cloud billing/card setup, approved
+  client-owned resources, production sources, auth domains, role assignments, and
+  source/data-store maps.
+- Lease Renewal Agent runtime scope is waiting on the full walkthrough, signed
+  lease/date source location, tool access spreadsheet, and future approval of read/write
+  permissions.
+- Gmail Inbox 0 live Gmail setup is waiting on Dan approval of the safe test-thread
+  model and later Gmail access/scope decisions.
 - Any request involving raw customer records, ledgers, bank data, SSNs, full lease
   packets, or live Gmail content must be handled outside git.

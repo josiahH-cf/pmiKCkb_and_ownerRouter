@@ -231,6 +231,37 @@ export const QueueNotificationRecipientRoleSchema = z.enum([
   "Admin selected",
 ]);
 
+export const ProcessDefinitionStatusSchema = z.enum([
+  "Draft",
+  "Testing",
+  "Pending Approval",
+  "Active",
+  "Needs Revision",
+  "Retired",
+]);
+
+export const WorkflowRunStatusSchema = z.enum([
+  "Not Started",
+  "In Progress",
+  "Waiting on Team",
+  "Waiting on Outside",
+  "Blocked",
+  "Ready for Approval",
+  "Approved",
+  "Completed",
+  "Cancelled",
+  "Failed",
+]);
+
+export const ExternalActionReadinessSchema = z.enum([
+  "Planned",
+  "Needs Connection",
+  "Needs Permission",
+  "Ready for Test",
+  "Approved for Execution",
+  "Disabled",
+]);
+
 const queueProcessRunRefSchema = z.object({
   id: requiredTextSchema,
   label: requiredTextSchema,
@@ -303,6 +334,86 @@ export const UpdateApprovalQueueNotificationInputSchema = z.object({
   action: z.enum(["mark_read"]),
 });
 
+const processDefinitionSourceLinkInputSchema = z.object({
+  label: requiredTextSchema,
+  url: z.string().trim().url(),
+});
+
+const processDefinitionStepInputSchema = z.object({
+  id: optionalTextSchema,
+  title: requiredTextSchema,
+  description: optionalTextSchema,
+});
+
+const processDefinitionActionReferenceInputSchema = z.object({
+  id: optionalTextSchema,
+  label: requiredTextSchema,
+  target_system: requiredTextSchema,
+  expected_action: requiredTextSchema,
+  readiness: ExternalActionReadinessSchema.default("Planned"),
+  missing_connection_or_permission: optionalTextSchema,
+  approval_owner_uid: optionalTextSchema,
+  rollback_or_correction_note: optionalTextSchema,
+});
+
+export const CreateProcessDefinitionInputSchema = z.object({
+  name: requiredTextSchema,
+  short_outcome: requiredTextSchema,
+  trigger: requiredTextSchema,
+  owner_uid: requiredTextSchema,
+  default_approver_uid: requiredTextSchema,
+  source_links: z.array(processDefinitionSourceLinkInputSchema).default([]),
+  required_starting_inputs: z.array(requiredTextSchema).default([]),
+  steps: z.array(processDefinitionStepInputSchema).min(1),
+  action_references: z.array(processDefinitionActionReferenceInputSchema).default([]),
+  success_condition: requiredTextSchema,
+  stop_condition: optionalTextSchema,
+  escalation_condition: optionalTextSchema,
+});
+
+export const UpdateProcessDefinitionInputSchema = z
+  .object({
+    name: requiredTextSchema.optional(),
+    short_outcome: requiredTextSchema.optional(),
+    trigger: requiredTextSchema.optional(),
+    owner_uid: requiredTextSchema.optional(),
+    default_approver_uid: requiredTextSchema.optional(),
+    source_links: z.array(processDefinitionSourceLinkInputSchema).optional(),
+    required_starting_inputs: z.array(requiredTextSchema).optional(),
+    steps: z.array(processDefinitionStepInputSchema).min(1).optional(),
+    action_references: z.array(processDefinitionActionReferenceInputSchema).optional(),
+    success_condition: requiredTextSchema.optional(),
+    stop_condition: optionalTextSchema,
+    escalation_condition: optionalTextSchema,
+  })
+  .refine(
+    (input) => Object.keys(input).length > 0,
+    "At least one process definition field is required.",
+  );
+
+export const SubmitProcessDefinitionInputSchema = z.object({
+  note: optionalTextSchema,
+});
+
+export const ActivateProcessDefinitionInputSchema = z.object({
+  override_reason: optionalTextSchema,
+});
+
+export const StartWorkflowTestRunInputSchema = z.object({
+  due_date: isoDateSchema.optional(),
+  note: optionalTextSchema,
+});
+
+export const UpdateWorkflowRunInputSchema = z
+  .object({
+    action: z.enum(["complete_test", "fail_test"]),
+    notes: optionalTextSchema,
+  })
+  .refine(
+    (input) => input.action !== "fail_test" || Boolean(input.notes?.trim()),
+    "Failing a test run requires a plain-English reason.",
+  );
+
 export type CreateSopInput = z.input<typeof CreateSopInputSchema>;
 export type UpdateSopInput = z.input<typeof UpdateSopInputSchema>;
 export type CreateTemplateInput = z.input<typeof CreateTemplateInputSchema>;
@@ -331,6 +442,27 @@ export type ParsedUpdateApprovalQueueEmailSettingInput = z.output<
 export type UpdateApprovalQueueNotificationInput = z.input<
   typeof UpdateApprovalQueueNotificationInputSchema
 >;
+export type CreateProcessDefinitionInput = z.input<
+  typeof CreateProcessDefinitionInputSchema
+>;
+export type ParsedCreateProcessDefinitionInput = z.output<
+  typeof CreateProcessDefinitionInputSchema
+>;
+export type UpdateProcessDefinitionInput = z.input<
+  typeof UpdateProcessDefinitionInputSchema
+>;
+export type ParsedUpdateProcessDefinitionInput = z.output<
+  typeof UpdateProcessDefinitionInputSchema
+>;
+export type SubmitProcessDefinitionInput = z.input<
+  typeof SubmitProcessDefinitionInputSchema
+>;
+export type ActivateProcessDefinitionInput = z.input<
+  typeof ActivateProcessDefinitionInputSchema
+>;
+export type StartWorkflowTestRunInput = z.input<typeof StartWorkflowTestRunInputSchema>;
+export type UpdateWorkflowRunInput = z.input<typeof UpdateWorkflowRunInputSchema>;
+export type ParsedUpdateWorkflowRunInput = z.output<typeof UpdateWorkflowRunInputSchema>;
 export type QueueRiskSignals = NonNullable<
   z.input<typeof CreateApprovalQueueItemInputSchema>["risk_signals"]
 >;

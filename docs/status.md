@@ -3542,3 +3542,185 @@ Next recommended task:
 
 Build the scheduled overdue/unsnoozed queue notification generator as a dry-run-capable
 local job, still without sending email.
+
+## Approval Queue Scheduled Notifications Cycle
+
+- Date: 2026-06-06
+- Product lane: PMI KC KB workflow-control layer.
+- Built the scheduled Approval Queue console-notification generator as a local
+  dry-run-first job.
+- Added a server-only scheduler boundary for:
+  - due snoozed items where `snooze_until <= referenceDate`;
+  - active overdue items where `due_date < referenceDate`;
+  - deterministic notification IDs keyed by event, item, recipient, and the trigger
+    date.
+- Unsnoozed items move to `Ready for Approval` unless their risk is `Blocked` or
+  required ownership is missing, in which case they move to `Blocked`. The write path
+  clears `snooze_until`, appends one `unsnoozed` Activity entry, and creates recipient
+  console notifications.
+- Overdue generation creates console notifications only. It does not change queue
+  status and does not write Activity. Overdue notifications dedupe by due date so the
+  job does not create a repeating daily reminder by default.
+- Added `npm run queue:notifications` using a dev-only `tsx` runner. The command
+  defaults to dry-run and requires `--write` before any Firestore write. It supports
+  `--date=YYYY-MM-DD` and `--json`.
+- Added focused unit coverage for dry-run immutability, unsnooze writes, Activity
+  creation, idempotency, overdue filtering, no-recipient skips, blocked routing, CLI
+  parsing, and safe text output.
+- No Gmail send, Gmail read/modify, Cloud Scheduler setup, deploy, import, key
+  creation, client-environment write, or external-system write was added or run.
+
+Validation status:
+
+- `npm test -- approval-queue-scheduled-notifications`: passed with 9 focused tests.
+- `npm run queue:notifications -- --help`: passed.
+- `npm run format:check`: passed.
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm test`: passed with 205 tests.
+- `npm run test:firestore`: passed with 17 Firestore Security Rules tests.
+- `npm run verify:router-boundary`: passed.
+- `bash scripts/verify.sh`: passed on retry. The first attempt hit the known Windows
+  `EPERM` unlink on Next's SWC binary during dependency reinstall, before checks ran.
+  The retry reinstalled dependencies, checked formatting, linted, typechecked, ran 205
+  tests, passed router-boundary verification, and built the app.
+
+Open items:
+
+- `--write` has not been run against connected demo, staging, or production Firestore;
+  that still requires explicit approval for the exact target environment.
+- Cloud Scheduler or any recurring hosted execution remains unbuilt and gated.
+- Queue notification email delivery, retry, and escalation execution remains gated on
+  approved sender, recipients, Gmail setup, and production environment ownership.
+
+Next recommended task:
+
+After the target Firestore environment is approved, run
+`npm run queue:notifications -- --dry-run --date=<YYYY-MM-DD> --json` against that
+environment and review the planned item IDs before any approved `--write` run.
+
+## Client Unblock Communications Sent
+
+- Date: 2026-06-06
+- Product lanes: PMI KC KB, Lease Renewal Agent, and Gmail Inbox 0.
+- Two outbound communications are now the active client-side unblock thread. The tone is
+  pragmatic and lightweight: the demo app is working, the next step is migration and
+  process discovery, budget should stay tightly controlled, and Dan/team are being
+  asked for concrete access/process answers instead of broad technical work.
+- Communication 1 asked Dan for:
+  - a card on file in Google Cloud billing, with a stated $10 budget guardrail and no
+    spend without approval;
+  - one full Lease Renewal walkthrough, preferably Wednesday, June 17, 2026, 9:30-10:15
+    AM, with fallback windows Wednesday morning, Thursday, June 18, 2026, 11:00 AM-4:00
+    PM, or before 9:00 AM either day.
+- Communication 2 told Dan a simple tool access spreadsheet would be added to Google
+  Drive and asked for each tool's access type, location, and notes. Starting tools:
+  RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Google Sheets including which sheets,
+  and any missing tools.
+- Communication 2 also sent default assumptions for Dan to correct:
+  - approval emails can come from `kb-automation@pmikcmetro.com`;
+  - launch approval is Dan and Josiah only for now;
+  - the Gmail helper starts with a few safe test threads before anything touches the
+    live inbox;
+  - signed leases and lease end dates still need a source location answer.
+- The stated target is a working Lease Renewal process prototype by July 3, 2026,
+  provided the needed access and walkthrough answers arrive.
+
+Current blockers awaiting Dan/team reply:
+
+- Google Cloud billing card and any explicit approval for cost-bearing migration steps.
+- Lease Renewal walkthrough and source notes.
+- Tool access spreadsheet for RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Google
+  Sheets, and any missing systems.
+- Signed lease / lease-end-date source location.
+- Gmail Inbox 0 safe test-thread protocol confirmation.
+- Approval sender and launch approver defaults, unless Dan confirms or corrects them.
+
+Work that can continue while waiting:
+
+- Keep the KB demo/runtime verification path green.
+- Continue local Approval Queue, workflow-control, process-definition, Admin health,
+  dry-run, and preflight improvements that do not touch client resources.
+- Continue Lease Renewal discovery/modeling: workflow-run shape, process-definition
+  model, acceptance scenarios, read/gather fact model, and non-executable fixtures.
+- Continue Gmail Inbox 0 planning, legacy artifact mining, safe-thread scenario design,
+  label/rule/prompt modeling, and management-page planning without live Gmail access.
+- Prepare tool-access templates and integration capability classification locally.
+
+Stop conditions remain:
+
+- No Google Cloud billing/cost action, production setup, deploy, live source import,
+  Gmail read/modify/draft/send, API-key use, client Drive write, or
+  RentVine/LeadSimple/DotLoop/QuickBooks/Boom/Sheets write until the user says the
+  relevant Dan/team reply has unblocked that exact action.
+
+Docs updated for future agents:
+
+- `docs/client-checklist.md`: current outbound asks and verification after unblock.
+- `docs/research-backlog.md`: asked/awaiting-reply statuses.
+- `docs/environment-handoff.md`: non-secret setup gates.
+- `docs/implement.md` and `docs/ai-execution-workflow.md`: safe local parallel work
+  while waiting on client replies.
+- `AGENTS.md`: route-table pointer for client unblock state.
+
+## Workflow Foundation Dev Cycle
+
+- Date: 2026-06-06
+- Product lane: PMI KC KB workflow-control layer.
+- Built the first local workflow-control foundation for editable process definitions
+  and simulation-only workflow runs.
+- Added server-side Firestore records for process definitions, immutable active
+  versions, workflow runs, and append-only workflow-run timeline entries.
+- Added process-definition APIs for list/create/read/update, Approval Queue-backed
+  submission, Admin activation, and simulation test-run start.
+- Added workflow-run APIs for detail, timeline, and simulation test-run completion or
+  failure.
+- Added `/processes`, `/processes/[definitionId]`, and `/workflow-runs/[runId]` UI
+  surfaces. The UI uses UID fields for owner/approver entry for now, creates no seeded
+  demo workflow records, and exposes no execute/send/external-write controls.
+- Process-definition submission creates or refreshes one `ProcessDefinitionChange`
+  Approval Queue item. Admin activation requires source links and an approved queue
+  item; a successful simulation test run is required unless an Admin supplies an
+  override reason.
+- Test runs created by this cycle are always `is_test_run: true`, `simulation_only:
+true`, and excluded from production metrics by default.
+- Firestore rules allow signed-in app users to read workflow records but deny direct
+  client writes to workflow collections.
+- No Lease Renewal runtime integration, Gmail access, email delivery worker, Cloud
+  Scheduler setup, deploy, import, key creation, client-environment change, client Drive
+  write, live client data handling, or external-system write was added or run.
+
+Validation status:
+
+- `npm test -- workflow`: passed with 17 focused workflow tests.
+- `npm run format:check`: passed.
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm test`: passed with 222 tests.
+- `npm run test:firestore`: passed with 20 Firestore Security Rules tests.
+- `npm run verify:router-boundary`: passed.
+- `bash scripts/verify.sh`: passed on retry. The first attempt stopped at
+  `docs/status.md` formatting after dependency install; the retry reinstalled
+  dependencies, checked formatting, linted, typechecked, ran 222 tests, passed
+  router-boundary verification, and built the app including the new process/workflow
+  routes.
+- Local browser smoke: passed on `/processes` after starting the dev server. Verified
+  the process-definition list/create panels render, the production-safe empty/unavailable
+  local Firestore state is visible, there are no browser console errors, and the desktop
+  viewport has no horizontal overflow.
+
+Open items:
+
+- The workflow UI intentionally uses UID entry fields; human-friendly user pickers remain
+  a future Admin/user-management improvement.
+- Real operational workflow runs, executable external actions, Lease Renewal runtime
+  fact gathering, production metrics, and workflow notification/email behavior remain
+  future gated work.
+- Client production setup, live source imports, Gmail setup, and system-of-record
+  integrations remain blocked on the active Dan/team asks.
+
+Next recommended task:
+
+Build the next local workflow-control slice: process-definition approval return/revision
+handling and a simple read-only process/run index for recent simulation runs, still
+without external writes or client-resource access.

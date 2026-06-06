@@ -91,10 +91,7 @@ class FakeTransaction {
       throw new Error(`Document not found: ${ref.path}`);
     }
 
-    this.db.store.set(ref.path, {
-      ...current,
-      ...resolveSentinels(data),
-    });
+    this.db.store.set(ref.path, applyUpdate(current, data));
   }
 }
 
@@ -130,6 +127,20 @@ function resolveSentinels(value: unknown): Record<string, unknown> {
   return resolveValue(value) as Record<string, unknown>;
 }
 
+function applyUpdate(current: Record<string, unknown>, update: Record<string, unknown>) {
+  const next = { ...current };
+
+  for (const [key, value] of Object.entries(update)) {
+    if (isDelete(value)) {
+      delete next[key];
+    } else {
+      next[key] = resolveValue(value);
+    }
+  }
+
+  return next;
+}
+
 function resolveValue(value: unknown): unknown {
   if (isServerTimestamp(value)) {
     return "2026-05-27T00:00:00.000Z";
@@ -153,5 +164,11 @@ function isServerTimestamp(value: unknown) {
     value &&
     typeof value === "object" &&
     value.constructor.name === "ServerTimestampTransform"
+  );
+}
+
+function isDelete(value: unknown) {
+  return (
+    value && typeof value === "object" && value.constructor.name === "DeleteTransform"
   );
 }

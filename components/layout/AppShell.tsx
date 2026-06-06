@@ -7,6 +7,7 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 const navItems = [
   { href: "/ask", label: "Ask" },
   { href: "/spaces", label: "Spaces" },
+  { href: "/processes", label: "Processes" },
   { href: "/approval-queue", label: "Approval Queue" },
 ];
 

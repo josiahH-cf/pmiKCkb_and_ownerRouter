@@ -35,6 +35,9 @@ runner, not as active production routing.
 - Draft non-secret setup runbooks and validation checklists.
 - Add or improve tests for existing KB behavior when implementation changes.
 - Audit docs for stale KB-only or separate-Owner-Router assumptions.
+- While Dan/team replies are pending, continue local KB/workflow-control hardening,
+  Lease Renewal discovery/modeling, Gmail Inbox 0 planning, tool-access templates, and
+  dry-run/preflight work that does not touch client resources.
 
 ## Work Humans Or Client Can Do In Parallel
 
@@ -50,10 +53,15 @@ runner, not as active production routing.
 - Client-owned KB production deploy.
 - Live Agent Search imports from PMI KC sources.
 - Firebase production role assignment.
-- Gmail Inbox 0 live label/filter setup.
+- Google Cloud billing/client-project migration until Dan adds billing and approves
+  exact cost-bearing actions.
+- Gmail Inbox 0 live label/filter/setup beyond safe local planning until Dan approves
+  the safe test-thread model.
 - Any Lease Renewal Agent runtime design.
 - Any integration with RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Sheets, or live
-  Gmail beyond explicitly approved safe setup.
+  Gmail beyond explicitly approved safe setup and tool-access answers.
+- The first authoritative Lease Renewal trigger source until Dan identifies where signed
+  leases and lease end dates live.
 
 ## Blocked-Work Protocol
 
