@@ -32,6 +32,14 @@ The current outbound client asks are tracked in `docs/client-checklist.md`. They
 production migration, live imports, live Gmail work, external-system access, and Lease
 Renewal runtime execution, but they do not block safe local development.
 
+Safe local development is not unlimited. Before starting another local feature cycle,
+check whether the work still improves production readiness, migration/cutover prep,
+verification quality, handoff, or a known regression. If local verification is green,
+cutover/preflight artifacts are prepared or blocked only on client-owned values, and
+the next idea would add speculative product surface, stop the feature loop. Record the
+repo as migration-ready but client-blocked and make the next recommended task client
+unblock, approved production setup, migration, or cutover prep.
+
 Continue iterating on:
 
 - KB demo/runtime health, tests, preflights, dry-runs, Admin visibility, and source
@@ -44,6 +52,13 @@ Continue iterating on:
   scenario design, and management-page planning without live Gmail access.
 - Tool access templates and integration capability classification using placeholders
   until Dan/team provide the spreadsheet answers.
+
+After the migration-readiness stop gate is reached, keep only the work that preserves or
+improves readiness: regression fixes, docs/status/client asks, test coverage, source
+manifest templates, cutover runbooks, dry-run/preflight checks, acceptance scenarios,
+and handoff evidence. Defer new workflow-control slices, Approval Queue expansion,
+Lease Renewal runtime, Gmail runtime, or demo-only complexity unless the active docs
+show a direct cutover or quality reason.
 
 Stop before any Google Cloud billing/cost action, production setup, live source import,
 deploy, Gmail read/modify/draft/send, API-key use, client Drive write, or

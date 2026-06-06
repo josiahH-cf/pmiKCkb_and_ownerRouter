@@ -29,6 +29,11 @@ npm run test:firestore
 npm run verify
 ```
 
+If these checks pass and production-specific values are still missing, record the repo
+as migration-ready but client-blocked in `docs/status.md` and
+`docs/environment-handoff.md`. Do not keep adding local product features as a substitute
+for approved client-owned setup, production source approval, migration, or cutover.
+
 If `host:check` fails on Windows, repair local Google tooling with:
 
 ```bash

@@ -27,6 +27,7 @@ route new work through the three-product docs.
 | Product definition gaps          | `docs/product-definition-gap-plan.md`                             |
 | How to work next                 | `docs/implement.md`                                               |
 | Autonomous feature-cycle runner  | `docs/autonomous-agent-runner.md`                                 |
+| Local-dev stop/cutover gate      | `docs/autonomous-agent-runner.md`, `docs/implement.md`            |
 | Current status and blockers      | `docs/status.md`                                                  |
 | Client asks                      | `docs/client-checklist.md`                                        |
 | Client unblock and parallel work | `docs/status.md`, `docs/client-checklist.md`, `docs/implement.md` |

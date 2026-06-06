@@ -131,6 +131,27 @@ describe("createApprovalQueueItem", () => {
     );
   });
 
+  it("refreshes a returned same-trigger duplicate back to Ready for Approval", async () => {
+    const first = await createApprovalQueueItem(editor, baseInput(), db);
+    const returned = await transitionApprovalQueueItem(
+      editor,
+      first.id,
+      { action: "return", reason: "Needs a clearer source link." },
+      db,
+    );
+    expect(returned.status).toBe("Returned");
+
+    const refreshed = await createApprovalQueueItem(
+      editor,
+      baseInput({ action_needed: "Updated: approve the revised owner email." }),
+      db,
+    );
+
+    expect(refreshed.id).toBe(first.id);
+    expect(refreshed.status).toBe("Ready for Approval");
+    expect(refreshed.action_needed).toBe("Updated: approve the revised owner email.");
+  });
+
   it("relinks a new item to a closed same-trigger item instead of reopening it", async () => {
     const first = await createApprovalQueueItem(editor, baseInput(), db);
     await transitionApprovalQueueItem(approver, first.id, { action: "approve" }, db);

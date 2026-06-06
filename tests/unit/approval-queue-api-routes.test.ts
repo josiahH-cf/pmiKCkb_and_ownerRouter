@@ -7,32 +7,37 @@ import {
 import { POST as POST_BULK } from "@/app/api/approval-queue/bulk/route";
 import { setAuthResolverForTest } from "@/lib/auth/session";
 import {
-  bulkTransitionApprovalQueueItems,
   getApprovalQueueItem,
   listApprovalQueue,
   listApprovalQueueActivity,
-  transitionApprovalQueueItem,
 } from "@/lib/firestore/approval-queue";
+import {
+  bulkTransitionApprovalQueueItemsWithWorkflowSync,
+  transitionApprovalQueueItemWithWorkflowSync,
+} from "@/lib/firestore/workflow-approval-queue-sync";
 import type {
   ApprovalQueueActivityRecord,
   ApprovalQueueItemRecord,
 } from "@/lib/firestore/types";
 
 vi.mock("@/lib/firestore/approval-queue", () => ({
-  bulkTransitionApprovalQueueItems: vi.fn(),
   getApprovalQueueItem: vi.fn(),
   listApprovalQueue: vi.fn(),
   listApprovalQueueActivity: vi.fn(),
-  transitionApprovalQueueItem: vi.fn(),
+}));
+
+vi.mock("@/lib/firestore/workflow-approval-queue-sync", () => ({
+  bulkTransitionApprovalQueueItemsWithWorkflowSync: vi.fn(),
+  transitionApprovalQueueItemWithWorkflowSync: vi.fn(),
 }));
 
 afterEach(() => {
   setAuthResolverForTest(null);
-  vi.mocked(bulkTransitionApprovalQueueItems).mockReset();
+  vi.mocked(bulkTransitionApprovalQueueItemsWithWorkflowSync).mockReset();
   vi.mocked(getApprovalQueueItem).mockReset();
   vi.mocked(listApprovalQueue).mockReset();
   vi.mocked(listApprovalQueueActivity).mockReset();
-  vi.mocked(transitionApprovalQueueItem).mockReset();
+  vi.mocked(transitionApprovalQueueItemWithWorkflowSync).mockReset();
 });
 
 describe("Approval Queue API routes", () => {
@@ -109,7 +114,7 @@ describe("Approval Queue API routes", () => {
 
   it("applies a queue transition and returns refreshed Activity", async () => {
     setAdmin();
-    vi.mocked(transitionApprovalQueueItem).mockResolvedValue(
+    vi.mocked(transitionApprovalQueueItemWithWorkflowSync).mockResolvedValue(
       queueItem({ status: "Approved" }),
     );
     vi.mocked(listApprovalQueueActivity).mockResolvedValue([
@@ -132,7 +137,7 @@ describe("Approval Queue API routes", () => {
       activity: [{ id: "activity-1" }, { id: "activity-2" }],
       item: { status: "Approved" },
     });
-    expect(transitionApprovalQueueItem).toHaveBeenCalledWith(
+    expect(transitionApprovalQueueItemWithWorkflowSync).toHaveBeenCalledWith(
       expect.objectContaining({ uid: "admin-1" }),
       "item-1",
       { action: "approve", confirm_high_risk: true },
@@ -147,7 +152,7 @@ describe("Approval Queue API routes", () => {
     });
 
     expect(response.status).toBe(400);
-    expect(transitionApprovalQueueItem).not.toHaveBeenCalled();
+    expect(transitionApprovalQueueItemWithWorkflowSync).not.toHaveBeenCalled();
   });
 
   it("returns 401 before bulk actions when unauthenticated", async () => {
@@ -158,12 +163,12 @@ describe("Approval Queue API routes", () => {
     );
 
     expect(response.status).toBe(401);
-    expect(bulkTransitionApprovalQueueItems).not.toHaveBeenCalled();
+    expect(bulkTransitionApprovalQueueItemsWithWorkflowSync).not.toHaveBeenCalled();
   });
 
   it("applies bulk actions and returns per-item results", async () => {
     setAdmin();
-    vi.mocked(bulkTransitionApprovalQueueItems).mockResolvedValue({
+    vi.mocked(bulkTransitionApprovalQueueItemsWithWorkflowSync).mockResolvedValue({
       results: [
         {
           item: queueItem({ status: "Approved" }),
@@ -196,7 +201,7 @@ describe("Approval Queue API routes", () => {
       ],
       summary: { requested: 2, skipped: 1, updated: 1 },
     });
-    expect(bulkTransitionApprovalQueueItems).toHaveBeenCalledWith(
+    expect(bulkTransitionApprovalQueueItemsWithWorkflowSync).toHaveBeenCalledWith(
       expect.objectContaining({ uid: "admin-1" }),
       { action: "approve", confirm_high_risk: true, item_ids: ["item-1", "item-2"] },
     );
@@ -208,7 +213,7 @@ describe("Approval Queue API routes", () => {
     const response = await POST_BULK(jsonRequest({ action: "execute", item_ids: [] }));
 
     expect(response.status).toBe(400);
-    expect(bulkTransitionApprovalQueueItems).not.toHaveBeenCalled();
+    expect(bulkTransitionApprovalQueueItemsWithWorkflowSync).not.toHaveBeenCalled();
   });
 
   it("rejects bulk payloads over the 50 item limit", async () => {
@@ -222,7 +227,7 @@ describe("Approval Queue API routes", () => {
     );
 
     expect(response.status).toBe(400);
-    expect(bulkTransitionApprovalQueueItems).not.toHaveBeenCalled();
+    expect(bulkTransitionApprovalQueueItemsWithWorkflowSync).not.toHaveBeenCalled();
   });
 });
 

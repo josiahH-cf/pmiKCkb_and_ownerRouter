@@ -3724,3 +3724,106 @@ Next recommended task:
 Build the next local workflow-control slice: process-definition approval return/revision
 handling and a simple read-only process/run index for recent simulation runs, still
 without external writes or client-resource access.
+
+## Workflow Return/Revision Dev Cycle
+
+- Date: 2026-06-06
+- Product lane: PMI KC KB workflow-control layer.
+- Built the next local workflow-control slice for process-definition return/revision
+  handling and recent simulation-run visibility.
+- Added workflow-specific Approval Queue sync outside the generic queue repository.
+  Returning a `ProcessDefinitionChange` queue item now moves the linked process
+  definition to `Needs Revision`, keeps the pending queue backlink, and leaves Admin
+  activation as a separate gated action.
+- Updated returned-item resubmission behavior so the same nonterminal returned queue
+  item refreshes back to `Ready for Approval` when ownership is complete, or `Blocked`
+  when ownership is missing. Approved/closed queue items still create successor items
+  instead of being reopened.
+- Extended workflow-run listing with local options for `definitionId`, `simulationOnly`,
+  and `limit`.
+- Added a read-only Recent Simulation Runs panel to `/processes`, showing simulation
+  test runs with status, due date, owner, direct run link, and explicit non-production
+  marking.
+- No cloud setup, Gmail access, deploy, client-resource change, client data handling,
+  external send, or system-of-record write was added or run.
+
+Validation status:
+
+- `npm test -- workflow approval-queue`: passed with 95 focused tests.
+- `npm run format:check`: passed.
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm test`: passed with 229 tests.
+- `npm run test:firestore`: passed with 20 Firestore Security Rules tests.
+- `npm run verify:router-boundary`: passed.
+- `git diff --check`: passed.
+- `npm run build`: passed.
+- `bash scripts/verify.sh`: passed on final retry. Two earlier attempts hit the known
+  Windows `EPERM` unlink on Next's SWC binary during dependency reinstall; dependencies
+  were restored with `npm install` before retrying.
+- Local browser smoke: passed against a temporary local Firestore emulator seeded with
+  one returned process definition and one simulation run. Verified `/processes` shows
+  the Recent Simulation Runs panel, the returned detail page shows `Needs Revision`,
+  the Approval Queue backlink, Save/Submit controls, and recent test run, and the
+  mobile 390px viewport has no horizontal overflow. Browser screenshot capture timed
+  out in the in-app browser runtime, so the smoke used DOM and console checks.
+
+Open items:
+
+- Screenshot capture through the in-app browser timed out during this smoke run, though
+  DOM, console, and overflow checks passed.
+- Real operational workflow runs, executable external actions, workflow-run
+  notifications, production metrics, and Lease Renewal runtime fact gathering remain
+  future gated work.
+- Client production setup, live source imports, Gmail setup, and system-of-record
+  integrations remain blocked on the active Dan/team asks.
+
+Next recommended task:
+
+Build the next local workflow-control slice: add a small process-definition Activity or
+revision-history view that surfaces linked Approval Queue return reasons on the process
+detail page, still without external writes or client-resource access.
+
+## Migration-Readiness Stop Guardrail Context Update
+
+- Date: 2026-06-06
+- Product lanes: PMI KC KB, Lease Renewal Agent, and Gmail Inbox 0.
+- Added a local-development exhaustion gate to the active agent loop. Future feature
+  cycles must now prove that the proposed local work improves production readiness,
+  migration/cutover prep, verification quality, handoff, or a known quality issue.
+- Clarified that safe local work is still encouraged when it is readiness work:
+  regression fixes, docs/status/client asks, source manifest templates, preflight and
+  dry-run checks, cutover runbooks, acceptance scenarios, tests, and environment
+  handoff evidence.
+- Clarified the stop point: once local verification is green, cutover/preflight inputs
+  are prepared or blocked only on client-owned values, and the remaining work is client
+  migration, approved production setup, source approval, or real product decisions,
+  future agents should stop adding speculative local product surface.
+- Deferred local feature loops now include workflow-control slices, Approval Queue
+  expansion, Lease Renewal runtime, Gmail runtime, and demo-only complexity unless the
+  active docs show a direct cutover, acceptance, or quality reason.
+- Added the guardrail across the active routing, runner, packet template, implementation
+  runbook, AI workflow, phase plan, KB product lane, environment handoff, client
+  checklist, research backlog, cross-product cutover plan, client production cutover
+  runbook, engineering checklist, and product-lane README.
+- No cloud setup, Gmail access, deploy, client-resource change, client data handling,
+  external send, live import, or system-of-record write was added or run.
+
+Validation status:
+
+- `npm run format:check`: passed.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+- `npm test -- workflow approval-queue`: passed with 95 focused tests.
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm test`: passed with 229 tests.
+- `npm run test:firestore`: passed with 20 Firestore Security Rules tests.
+- `bash scripts/verify.sh`: passed, including production build.
+
+Next recommended task:
+
+Before starting another local workflow-control or Approval Queue slice, run the
+migration-readiness stop gate. If the only remaining blockers are Dan/team replies,
+client-owned production setup, approved sources, or migration/cutover approval, stop
+local feature expansion and prepare the client unblock/cutover handoff instead.

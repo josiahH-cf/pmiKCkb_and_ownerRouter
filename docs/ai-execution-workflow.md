@@ -20,6 +20,11 @@ The target loop is: gather context, create a decision-complete cycle packet in
 work unattended, verify, prepare a commit queue, and then hand one end-of-run review
 point to the user.
 
+Before choosing a local feature, run the migration-readiness stop gate in
+`docs/autonomous-agent-runner.md`. If the proposed work does not improve production
+readiness, migration/cutover prep, verification, handoff, or an approved product
+quality issue, defer it and move the session toward client unblock or cutover prep.
+
 Stop before any unapproved cloud cost, API setup, key creation, deploy, live import,
 Gmail access, client-environment change, send, or external system write.
 
@@ -38,6 +43,9 @@ runner, not as active production routing.
 - While Dan/team replies are pending, continue local KB/workflow-control hardening,
   Lease Renewal discovery/modeling, Gmail Inbox 0 planning, tool-access templates, and
   dry-run/preflight work that does not touch client resources.
+- Once local readiness is green and the remaining blockers are client-owned access,
+  sources, billing, production setup, migration, or real product decisions, stop
+  selecting new local product-surface work and record the migration-ready blocked state.
 
 ## Work Humans Or Client Can Do In Parallel
 

@@ -73,6 +73,31 @@ packet must make clear:
 If the end state cannot be stated without inventing product requirements, ask planning
 questions before implementation.
 
+## Migration-Readiness Stop Gate
+
+Safe local development is useful only while it improves the production path. Before
+selecting another local feature cycle, decide whether the proposed work is still one of
+these:
+
+- removes a migration, cutover, verification, handoff, or known quality blocker;
+- prepares source manifests, preflights, dry-runs, acceptance scenarios, tests, or
+  client asks needed for migration;
+- fixes a real regression in existing approved behavior;
+- hardens existing KB/workflow behavior that will ship to the client-owned
+  environment; or
+- records product decisions, blockers, and setup evidence without inventing scope.
+
+If the repo already has green local verification, current cutover/preflight artifacts,
+clear client asks, and no known migration-relevant bug, stop adding new local product
+surface. Record the state as migration-ready but client-blocked, move speculative work
+to backlog/status, and make the next recommended task client unblock, production setup,
+approved migration, or cutover prep.
+
+Defer work that would expand workflow, Approval Queue, Lease Renewal, Gmail Inbox 0, or
+demo-only behavior without a direct migration-readiness reason. This is not a hard stop
+on useful prep; it is a stop on local feature loops that substitute for customer
+unblock, production migration, or real application decisions.
+
 ## Cycle Packet
 
 Create or update a cycle packet before implementation. Store scratch packets in
@@ -83,6 +108,9 @@ The packet must lock:
 
 - Feature-cycle objective and product lane.
 - Why this is the next task from roadmap, status, client checklist, or backlog context.
+- Migration-readiness impact and why the work belongs before production cutover.
+- Local-development exhaustion check: what would make this work deferred instead of
+  implemented now.
 - In-scope and out-of-scope work.
 - Confirmed facts and constraints from active docs.
 - Decisions already answered by docs.

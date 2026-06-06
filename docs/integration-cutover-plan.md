@@ -31,6 +31,8 @@ Inbox 0. It is intentionally more current than older KB-only demo docs.
 
 - Prefer read-only verification first.
 - Use dry-run commands before imports, seeding, deployment, or label setup.
+- Once local verification and cutover prep are green, stop adding local product surface
+  unless it directly fixes a migration, acceptance, or known quality issue.
 - Do not copy demo Firestore data, demo OAuth clients, demo service accounts, or demo
   buckets into production.
 - Production sources must be approved PMI KC-owned files or approved safe summaries.

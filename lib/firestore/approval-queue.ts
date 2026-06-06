@@ -146,10 +146,24 @@ export async function createApprovalQueueItem(
     // Same-trigger duplicate that is still open: merge into it (refresh + history),
     // never create a second task.
     if (openDuplicate) {
+      const effectiveAssigneeUid = rest.assignee_uid ?? openDuplicate.assignee_uid;
+      const effectiveApproverUid =
+        rest.required_approver_uid ?? openDuplicate.required_approver_uid;
+      const refreshedRisk = classifyQueueRisk(risk_signals, {
+        hasAssignee: Boolean(effectiveAssigneeUid),
+        hasApprover: Boolean(effectiveApproverUid),
+      });
       const updates = stripUndefined({
         ...rest,
-        risk,
+        risk: refreshedRisk,
         audience_group: audienceGroup,
+        status:
+          openDuplicate.status === "Returned"
+            ? refreshedReturnedStatus({
+                hasAssignee: Boolean(effectiveAssigneeUid),
+                hasApprover: Boolean(effectiveApproverUid),
+              })
+            : undefined,
       });
       refreshOpenItem(transaction, db, actor, openDuplicate, updates, note);
       return openDuplicate.id;
@@ -681,6 +695,15 @@ function refreshOpenItem(
     sourceTrigger: current.item_type,
     priorVersionSnapshot: snapshotApprovalCriticalFields(current),
   });
+}
+
+function refreshedReturnedStatus(ownership: {
+  hasAssignee: boolean;
+  hasApprover: boolean;
+}): QueueItemStatus {
+  return ownership.hasAssignee && ownership.hasApprover
+    ? "Ready for Approval"
+    : "Blocked";
 }
 
 interface ActivityInput {

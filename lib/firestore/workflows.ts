@@ -25,6 +25,7 @@ import {
   UpdateWorkflowRunInputSchema,
 } from "@/lib/firestore/schemas";
 import type {
+  ApprovalQueueItemRecord,
   ProcessDefinitionActionReference,
   ProcessDefinitionRecord,
   ProcessDefinitionStatus,
@@ -47,6 +48,8 @@ type FirestoreValue = Record<string, unknown>;
 
 export interface ListWorkflowRunsOptions {
   definitionId?: string;
+  limit?: number;
+  simulationOnly?: boolean;
 }
 
 export async function listProcessDefinitions(
@@ -330,7 +333,13 @@ export async function listWorkflowRuns(
 
   return snapshot.docs
     .map((doc) => readRecord<WorkflowRunRecord>(doc.id, doc.data()))
-    .sort((left, right) => right.created_at.localeCompare(left.created_at));
+    .filter(
+      (run) =>
+        options.simulationOnly === undefined ||
+        run.simulation_only === options.simulationOnly,
+    )
+    .sort((left, right) => right.created_at.localeCompare(left.created_at))
+    .slice(0, options.limit);
 }
 
 export async function getWorkflowRun(
@@ -420,6 +429,45 @@ export async function updateWorkflowRunOutcome(
   });
 
   return getWorkflowRun(actor, runId, db);
+}
+
+export async function syncProcessDefinitionQueueItemTransition(
+  actor: AuthenticatedUser,
+  item: Pick<ApprovalQueueItemRecord, "id" | "item_type" | "process_run_ref" | "status">,
+  db = getAdminFirestore(),
+) {
+  assertCan(actor, "read");
+
+  const definitionId = processDefinitionIdFromQueueItem(item);
+
+  if (!definitionId || item.status !== "Returned") {
+    return;
+  }
+
+  await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(definitionRef(db, definitionId));
+    const data = snapshot.data();
+
+    if (!data) {
+      return;
+    }
+
+    const current = readRecord<ProcessDefinitionRecord>(snapshot.id, data);
+
+    if (
+      current.pending_queue_item_id !== item.id ||
+      current.status === "Active" ||
+      current.status === "Retired"
+    ) {
+      return;
+    }
+
+    transaction.update(definitionRef(db, definitionId), {
+      status: "Needs Revision",
+      updated_at: FieldValue.serverTimestamp(),
+      updated_by_uid: actor.uid,
+    });
+  });
 }
 
 function assertActivationGates(
@@ -564,6 +612,22 @@ function appendTimeline(
 
 function processDefinitionQueueTriggerKey(definitionId: string) {
   return `process-definition:${definitionId}:approval`;
+}
+
+function processDefinitionIdFromQueueItem(
+  item: Pick<ApprovalQueueItemRecord, "item_type" | "process_run_ref">,
+) {
+  if (item.item_type !== "ProcessDefinitionChange") {
+    return null;
+  }
+
+  const prefix = "process-definition:";
+
+  if (!item.process_run_ref.id.startsWith(prefix)) {
+    return null;
+  }
+
+  return item.process_run_ref.id.slice(prefix.length);
 }
 
 function isTerminalRunStatus(status: WorkflowRunStatus) {

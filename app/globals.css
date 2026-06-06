@@ -646,6 +646,8 @@ button {
 
 .workflow-create-panel,
 .workflow-definition-editor,
+.workflow-main-column,
+.workflow-run-index,
 .workflow-side,
 .workflow-record-list {
   display: grid;
@@ -707,6 +709,17 @@ button {
   display: flex;
   gap: 12px;
   justify-content: space-between;
+}
+
+.workflow-pill-group {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.workflow-main-column {
+  min-width: 0;
 }
 
 .workflow-side {

@@ -5,6 +5,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ProcessDefinitionDetailClient } from "@/components/workflows/ProcessDefinitionDetailClient";
+import { ProcessDefinitionListClient } from "@/components/workflows/ProcessDefinitionListClient";
 import { WorkflowRunClient } from "@/components/workflows/WorkflowRunClient";
 import type {
   ProcessDefinitionRecord,
@@ -130,6 +131,48 @@ describe("workflow components", () => {
       expect(screen.getByText("Simulation test run completed.")).toBeInTheDocument(),
     );
     expect(screen.getAllByText("All simulated steps passed.")).toHaveLength(2);
+  });
+
+  it("shows a read-only recent simulation-run index", () => {
+    render(
+      <ProcessDefinitionListClient
+        canEdit
+        currentUserUid="editor-1"
+        initialDefinitions={[definition()]}
+        initialRecentRuns={[workflowRun({ id: "run-2", status: "Failed" })]}
+      />,
+    );
+
+    expect(screen.getByText("Recent Simulation Runs")).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByRole("link", { name: "Lease Renewal Test Process" })
+        .some((link) => link.getAttribute("href") === "/workflow-runs/run-2"),
+    ).toBe(true);
+    expect(screen.getByText("Simulation")).toBeInTheDocument();
+    expect(
+      screen.getByText("Test run. No production metrics or external actions."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /execute/i })).not.toBeInTheDocument();
+  });
+
+  it("shows a safe empty state when recent simulation runs are unavailable", () => {
+    render(
+      <ProcessDefinitionListClient
+        canEdit={false}
+        currentUserUid="editor-1"
+        initialDefinitions={[]}
+        initialRecentRuns={[]}
+        initialRunsError="Recent simulation runs are unavailable."
+      />,
+    );
+
+    expect(
+      screen.getByText("Recent simulation runs are unavailable."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("No simulation-only workflow runs exist yet."),
+    ).toBeInTheDocument();
   });
 });
 

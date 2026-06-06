@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { ProcessDefinitionRecord } from "@/lib/firestore/types";
+import type { ProcessDefinitionRecord, WorkflowRunRecord } from "@/lib/firestore/types";
 
 interface ProcessDefinitionListClientProps {
   canEdit: boolean;
   currentUserUid: string;
   initialDefinitions: ProcessDefinitionRecord[];
   initialError?: string;
+  initialRecentRuns: WorkflowRunRecord[];
+  initialRunsError?: string;
 }
 
 export function ProcessDefinitionListClient({
@@ -16,11 +18,16 @@ export function ProcessDefinitionListClient({
   currentUserUid,
   initialDefinitions,
   initialError,
+  initialRecentRuns,
+  initialRunsError,
 }: Readonly<ProcessDefinitionListClientProps>) {
   const [definitions, setDefinitions] = useState(initialDefinitions);
+  const [recentRuns] = useState(initialRecentRuns);
   const [message, setMessage] = useState(
     initialError ?? "Workflow process definitions are ready.",
   );
+  const recentRunsMessage =
+    initialRunsError ?? "Recent simulation-only workflow runs are ready.";
   const [isBusy, setIsBusy] = useState(false);
   const [form, setForm] = useState({
     default_approver_uid: currentUserUid,
@@ -87,39 +94,79 @@ export function ProcessDefinitionListClient({
 
   return (
     <div className="workflow-list-layout">
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <h2>Process Definitions</h2>
-            <p className="muted">{message}</p>
+      <div className="workflow-main-column">
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <h2>Process Definitions</h2>
+              <p className="muted">{message}</p>
+            </div>
           </div>
-        </div>
-        {definitions.length === 0 ? (
-          <p className="muted">No process definitions exist yet.</p>
-        ) : (
-          <div className="workflow-record-list">
-            {definitions.map((definition) => (
-              <article className="compact-record" key={definition.id}>
-                <div className="workflow-record-heading">
-                  <div>
-                    <Link className="text-link" href={`/processes/${definition.id}`}>
-                      {definition.name}
-                    </Link>
-                    <p className="muted">{definition.short_outcome}</p>
+          {definitions.length === 0 ? (
+            <p className="muted">No process definitions exist yet.</p>
+          ) : (
+            <div className="workflow-record-list">
+              {definitions.map((definition) => (
+                <article className="compact-record" key={definition.id}>
+                  <div className="workflow-record-heading">
+                    <div>
+                      <Link className="text-link" href={`/processes/${definition.id}`}>
+                        {definition.name}
+                      </Link>
+                      <p className="muted">{definition.short_outcome}</p>
+                    </div>
+                    <span className="queue-pill" data-value={definition.status}>
+                      {definition.status}
+                    </span>
                   </div>
-                  <span className="queue-pill" data-value={definition.status}>
-                    {definition.status}
-                  </span>
-                </div>
-                <p className="muted">
-                  Owner: {definition.owner_uid} - Approver:{" "}
-                  {definition.default_approver_uid}
-                </p>
-              </article>
-            ))}
+                  <p className="muted">
+                    Owner: {definition.owner_uid} - Approver:{" "}
+                    {definition.default_approver_uid}
+                  </p>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="panel workflow-run-index">
+          <div className="panel-heading">
+            <div>
+              <h2>Recent Simulation Runs</h2>
+              <p className="muted">{recentRunsMessage}</p>
+            </div>
           </div>
-        )}
-      </section>
+          {recentRuns.length === 0 ? (
+            <p className="muted">No simulation-only workflow runs exist yet.</p>
+          ) : (
+            <div className="workflow-record-list">
+              {recentRuns.map((run) => (
+                <article className="compact-record" key={run.id}>
+                  <div className="workflow-record-heading">
+                    <div>
+                      <Link className="text-link" href={`/workflow-runs/${run.id}`}>
+                        {run.process_name}
+                      </Link>
+                      <p className="muted">
+                        Due {run.due_date} - Owner {run.owner_uid}
+                      </p>
+                    </div>
+                    <div className="workflow-pill-group">
+                      <span className="queue-pill" data-value={run.status}>
+                        {run.status}
+                      </span>
+                      <span className="review-pill">Simulation</span>
+                    </div>
+                  </div>
+                  <p className="muted">
+                    Test run. No production metrics or external actions.
+                  </p>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
 
       <aside className="panel workflow-create-panel">
         <h2>Create Process</h2>

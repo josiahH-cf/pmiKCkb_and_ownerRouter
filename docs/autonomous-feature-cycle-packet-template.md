@@ -13,6 +13,14 @@ Why this is next:
 
 End-state target:
 
+Migration-readiness impact:
+
+Reason this should happen before production cutover:
+
+Local-development exhaustion check:
+
+If this is deferred, what remains before migration:
+
 Backward dependencies:
 
 Confirmed context used:

@@ -18,5 +18,8 @@ Use it before older demo docs or preserved specs.
   override the monorepo governance in `docs/north-star.md`.
 - Do not build runtime code for Lease Renewal Agent or Gmail Inbox 0 until their
   requirements, permissions, and acceptance gates are confirmed in the product doc.
+- Stop local product-surface expansion once the remaining blockers are client-owned
+  migration, production setup, approved sources, or real product decisions; keep only
+  readiness, verification, docs, and regression-fix work moving.
 - Keep all three lanes free of secrets, raw customer records, and unsupported
   system-of-record writes.

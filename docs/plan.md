@@ -33,6 +33,19 @@ product doc explicitly preserves a safety boundary.
 - The old sibling Owner Router artifact repo exists locally and may be mined for Gmail
   Inbox 0 source material, but active governance now lives in this monorepo.
 
+## Local Development Exhaustion Gate
+
+Local development should continue while it moves the products closer to a clean
+client-owned production cutover. It should stop producing new local product surface
+when the remaining blockers are client-owned access, approved sources, production
+configuration, migration approval, or real product decisions.
+
+Allowed work after that point is readiness work: verification, regression fixes,
+preflight/dry-run improvements, source manifest templates, cutover docs, acceptance
+scenarios, handoff notes, client asks, and research backlog updates. Defer speculative
+workflow, Approval Queue, Lease Renewal, Gmail, or demo-only expansion unless it
+directly satisfies a migration, acceptance, or approved quality gate.
+
 ## Cross-Product Phases
 
 ### P0 - Governance Realignment
@@ -151,6 +164,9 @@ Acceptance criteria:
 - Gmail Inbox 0 management-page tickets and Gmail/Gemini integration tickets are created
   only after the Dan mailbox access and safe-scan model are approved.
 - Dry-runs exist for imports, setup scripts, seeders, and preflights.
+- The migration-readiness stop gate is evaluated before any additional local feature
+  slice; nonessential local expansion is deferred once migration/client unblock is the
+  next real dependency.
 
 Validation:
 
@@ -236,6 +252,9 @@ Acceptance criteria:
 - Approval queue comment/reason tests prove comments and reasons are Activity entries,
   not direct fact/draft/process/source/action mutations, and that proposed updates are
   created when comments identify needed changes.
+- Testing focuses on production readiness and accepted behavior. New local-only
+  workflow, queue, Lease Renewal, Gmail, or demo surfaces are deferred unless they are
+  required for cutover, acceptance, or a known quality issue.
 
 Validation:
 
@@ -253,6 +272,9 @@ Acceptance criteria:
 - Production deploy/setup steps are executed from client-owned resources.
 - Smoke tests pass after cutover.
 - Exceptions and next iteration work are recorded in `docs/status.md`.
+- Post-cutover iteration decisions are based on production smoke, user acceptance,
+  client-approved scope, and recorded blockers rather than pre-cutover local feature
+  loops.
 
 Validation:
 

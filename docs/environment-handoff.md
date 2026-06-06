@@ -50,6 +50,27 @@ approval to spend, deploy, import sources, use credentials, or touch live Gmail.
 | Gmail helper safe-thread protocol | Dan        | Default sent: start with a few safe test threads first.                                       | Approved test-thread model, exclusion rules, and rollback owner.              | Safe Gmail test protocol documented before live Gmail runtime.           |
 | Approval notification sender      | Dan/PMI KC | Default sent: `kb-automation@pmikcmetro.com`; awaiting exceptions.                            | Sender address, recipient group, label name, support owner.                   | Send-only notification smoke only after explicit approval.               |
 
+## Migration-Ready But Client-Blocked State
+
+Use this state when local work is no longer the limiting factor. Record it before
+stopping local feature loops.
+
+Required evidence:
+
+- Latest relevant local checks pass, or failures are documented as environment-only or
+  client-blocked.
+- Production preflight, source manifest, cutover, and handoff inputs are either
+  prepared with placeholders or blocked only on client-owned values.
+- `docs/client-checklist.md` names the exact client actions needed next.
+- `docs/status.md` says what local feature ideas were deferred and why.
+- No secrets, client records, live Gmail content, deploys, imports, sends, or external
+  writes were performed without approval.
+
+Once recorded, future agents should keep readiness artifacts current and fix real
+regressions, but should not add new local product surface until a client answer,
+approved migration step, production smoke result, or accepted product decision creates a
+specific need.
+
 ## Setup Inventory
 
 | Area                         | Environment  | Non-secret values to record                                   | Where real secrets live                                  | Manual setup or approval required                                   | Verification                                       | Approval gate                                  |
@@ -106,4 +127,7 @@ Before a handoff is considered simple enough for a new team:
 - `docs/status.md` records the latest successful verification and remaining blockers.
 
 If any item is missing, a future agent should treat production/client-environment work
-as blocked and continue with safe local planning, documentation, tests, or dry-runs.
+as blocked. Continue only with planning, documentation, tests, dry-runs, regression
+fixes, and handoff work that improves readiness. If the migration-ready but
+client-blocked state has been reached, stop adding local product surface and route the
+next task to client unblock or cutover prep.

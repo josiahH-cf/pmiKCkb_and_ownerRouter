@@ -25,14 +25,15 @@ content, leases, or tool secrets into this repo when answers arrive.
 
 ## Decisions To Confirm
 
-| Ask                                                                         | Why it matters                                                    | Needed for          |
-| --------------------------------------------------------------------------- | ----------------------------------------------------------------- | ------------------- |
-| Confirm final product names: PMI KC KB, Lease Renewal Agent, Gmail Inbox 0. | Prevents docs and training from drifting.                         | All lanes           |
-| Confirm Gmail Inbox 0 starts with Dan's whole mailbox.                      | Defines Gmail scan, label, and privacy scope.                     | Gmail Inbox 0       |
-| Confirm Lease Renewal Agent integration scope.                              | Identifies the systems, writes, and approvals needed.             | Lease Renewal Agent |
-| Name product owners and acceptance reviewers.                               | Needed for approvals, training, and cutover signoff.              | All lanes           |
-| Confirm later User list and process-specific approvers.                     | Determines who can use workflows and who approves edge cases.     | All lanes           |
-| Confirm initial delegated approvers beyond Dan/Josiah, if any.              | Later approver changes should be manageable in the Admin console. | All lanes           |
+| Ask                                                                              | Why it matters                                                         | Needed for          |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------- |
+| Confirm final product names: PMI KC KB, Lease Renewal Agent, Gmail Inbox 0.      | Prevents docs and training from drifting.                              | All lanes           |
+| Confirm Gmail Inbox 0 starts with Dan's whole mailbox.                           | Defines Gmail scan, label, and privacy scope.                          | Gmail Inbox 0       |
+| Confirm Lease Renewal Agent integration scope.                                   | Identifies the systems, writes, and approvals needed.                  | Lease Renewal Agent |
+| Name product owners and acceptance reviewers.                                    | Needed for approvals, training, and cutover signoff.                   | All lanes           |
+| Confirm migration/cutover should be the next step once local readiness is green. | Prevents extra local feature loops from delaying production decisions. | All lanes           |
+| Confirm later User list and process-specific approvers.                          | Determines who can use workflows and who approves edge cases.          | All lanes           |
+| Confirm initial delegated approvers beyond Dan/Josiah, if any.                   | Later approver changes should be manageable in the Admin console.      | All lanes           |
 
 ## Access And Accounts
 
@@ -104,6 +105,9 @@ content, leases, or tool secrets into this repo when answers arrive.
 - KB production migration is waiting on Google Cloud billing/card setup, approved
   client-owned resources, production sources, auth domains, role assignments, and
   source/data-store maps.
+- Once local readiness evidence is green, the remaining KB work should move to
+  client-owned migration/cutover prep rather than additional speculative local feature
+  cycles.
 - Lease Renewal Agent runtime scope is waiting on the full walkthrough, signed
   lease/date source location, tool access spreadsheet, and future approval of read/write
   permissions.

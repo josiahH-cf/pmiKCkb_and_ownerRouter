@@ -2,8 +2,15 @@ import type { Firestore } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Role } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import { transitionApprovalQueueItem } from "@/lib/firestore/approval-queue";
+import {
+  getApprovalQueueItem,
+  transitionApprovalQueueItem,
+} from "@/lib/firestore/approval-queue";
 import type { CreateProcessDefinitionInput } from "@/lib/firestore/schemas";
+import {
+  bulkTransitionApprovalQueueItemsWithWorkflowSync,
+  transitionApprovalQueueItemWithWorkflowSync,
+} from "@/lib/firestore/workflow-approval-queue-sync";
 import {
   activateProcessDefinition,
   createProcessDefinition,
@@ -135,6 +142,94 @@ describe("workflow foundation repository", () => {
     expect(version?.snapshot_json).toContain("Lease Renewal Test Process");
   });
 
+  it("moves returned process-definition approvals into Needs Revision", async () => {
+    const definition = await createProcessDefinition(editor, baseDefinitionInput(), db);
+    const submitted = await submitProcessDefinitionForApproval(
+      editor,
+      definition.id,
+      { note: "Ready for review." },
+      db,
+    );
+
+    const returned = await transitionApprovalQueueItemWithWorkflowSync(
+      editor,
+      submitted.pending_queue_item_id!,
+      { action: "return", reason: "Add the missing source notes." },
+      db,
+    );
+    const revised = await getProcessDefinition(editor, definition.id, db);
+
+    expect(returned.status).toBe("Returned");
+    expect(revised.status).toBe("Needs Revision");
+    expect(revised.pending_queue_item_id).toBe(submitted.pending_queue_item_id);
+  });
+
+  it("edits Needs Revision definitions and resubmits the same queue item", async () => {
+    const definition = await createProcessDefinition(editor, baseDefinitionInput(), db);
+    const submitted = await submitProcessDefinitionForApproval(
+      editor,
+      definition.id,
+      {},
+      db,
+    );
+    await transitionApprovalQueueItemWithWorkflowSync(
+      editor,
+      submitted.pending_queue_item_id!,
+      { action: "return", reason: "Clarify the owner communication step." },
+      db,
+    );
+
+    const edited = await updateProcessDefinition(
+      editor,
+      definition.id,
+      {
+        steps: [{ title: "Gather lease facts" }, { title: "Draft owner summary" }],
+      },
+      db,
+    );
+    const resubmitted = await submitProcessDefinitionForApproval(
+      editor,
+      definition.id,
+      { note: "Revision ready." },
+      db,
+    );
+    const queueItem = await getApprovalQueueItem(
+      admin,
+      submitted.pending_queue_item_id!,
+      db,
+    );
+
+    expect(edited.status).toBe("Needs Revision");
+    expect(resubmitted.status).toBe("Pending Approval");
+    expect(resubmitted.pending_queue_item_id).toBe(submitted.pending_queue_item_id);
+    expect(queueItem.status).toBe("Ready for Approval");
+  });
+
+  it("syncs bulk return for process-definition queue items", async () => {
+    const definition = await createProcessDefinition(editor, baseDefinitionInput(), db);
+    const submitted = await submitProcessDefinitionForApproval(
+      editor,
+      definition.id,
+      {},
+      db,
+    );
+
+    const result = await bulkTransitionApprovalQueueItemsWithWorkflowSync(
+      editor,
+      {
+        action: "return",
+        item_ids: [submitted.pending_queue_item_id!],
+        reason: "Add the source link before activation.",
+      },
+      db,
+    );
+
+    expect(result.summary.updated).toBe(1);
+    expect((await getProcessDefinition(editor, definition.id, db)).status).toBe(
+      "Needs Revision",
+    );
+  });
+
   it("allows Admin activation override only after source links and queue approval exist", async () => {
     const definition = await createProcessDefinition(editor, baseDefinitionInput(), db);
     const submitted = await submitProcessDefinitionForApproval(
@@ -241,6 +336,59 @@ describe("workflow foundation repository", () => {
     const runs = await listWorkflowRuns(editor, { definitionId: definition.id }, db);
 
     expect(runs.map((run) => run.id).sort()).toEqual([first.id, second.id].sort());
+  });
+
+  it("filters recent simulation workflow runs and applies limits", async () => {
+    const fake = db as unknown as FakeFirestore;
+    fake.seed("workflow_runs/run-old-test", {
+      created_at: "2026-06-01T00:00:00.000Z",
+      definition_id: "definition-1",
+      due_date: "2026-06-10",
+      id: "run-old-test",
+      is_test_run: true,
+      next_action: "Old test",
+      owner_uid: "admin-1",
+      process_name: "Old Test Process",
+      production_metrics_included: false,
+      simulation_only: true,
+      started_by_uid: "editor-1",
+      status: "Completed",
+      updated_at: "2026-06-01T00:00:00.000Z",
+    });
+    fake.seed("workflow_runs/run-live", {
+      created_at: "2026-06-03T00:00:00.000Z",
+      definition_id: "definition-1",
+      due_date: "2026-06-12",
+      id: "run-live",
+      is_test_run: false,
+      next_action: "Live action",
+      owner_uid: "admin-1",
+      process_name: "Live Process",
+      production_metrics_included: true,
+      simulation_only: false,
+      started_by_uid: "editor-1",
+      status: "In Progress",
+      updated_at: "2026-06-03T00:00:00.000Z",
+    });
+    fake.seed("workflow_runs/run-new-test", {
+      created_at: "2026-06-04T00:00:00.000Z",
+      definition_id: "definition-1",
+      due_date: "2026-06-15",
+      id: "run-new-test",
+      is_test_run: true,
+      next_action: "New test",
+      owner_uid: "admin-1",
+      process_name: "New Test Process",
+      production_metrics_included: false,
+      simulation_only: true,
+      started_by_uid: "editor-1",
+      status: "In Progress",
+      updated_at: "2026-06-04T00:00:00.000Z",
+    });
+
+    const runs = await listWorkflowRuns(editor, { limit: 1, simulationOnly: true }, db);
+
+    expect(runs.map((run) => run.id)).toEqual(["run-new-test"]);
   });
 });
 

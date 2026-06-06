@@ -227,6 +227,10 @@ proven reliable.
 - Add production-hardening code only when it maps to the KB spec and current milestone.
 - Scope workflow-run pages and action-approval models without adding external writes
   until the relevant process spec is approved.
+- Apply the migration-readiness stop gate before starting another local workflow or
+  Approval Queue slice. If the next change does not improve cutover readiness,
+  verification, handoff, or a known quality issue, defer it until client-owned
+  production context or approved product scope is available.
 
 ## Current Blockers
 

@@ -5,6 +5,8 @@ Use this after client admin access or confirmed non-secret identifiers are avail
 ## Shared Setup
 
 - Confirm the working branch and preserve existing uncommitted work.
+- Before starting new local product work, confirm it still improves production
+  readiness, cutover prep, verification, handoff, or a known quality issue.
 - Run the repo validation baseline:
 
 ```bash
