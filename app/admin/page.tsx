@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/layout/AppShell";
+import { ApprovalQueueAdminPanel } from "@/components/admin/ApprovalQueueAdminPanel";
 import { requirePageRole } from "@/lib/auth/page-guards";
 import {
   type AdminObservability,
@@ -7,12 +8,21 @@ import {
   readDemoAdminObservability,
 } from "@/lib/admin/observability";
 import { readServerConfig } from "@/lib/config/server";
+import {
+  listApprovalQueueEmailSettings,
+  readApprovalQueueNotificationHealth,
+  readDefaultApprovalQueueEmailSettings,
+} from "@/lib/firestore/approval-queue-notifications";
+import type { ApprovalQueueNotificationHealth } from "@/lib/firestore/types";
 
 export default async function AdminPage() {
   const user = await requirePageRole("Admin");
   const config = readServerConfig();
   let observability: AdminObservability | undefined;
   let observabilityNote: string | undefined;
+  let queueEmailSettings = readDefaultApprovalQueueEmailSettings();
+  let queueHealth: ApprovalQueueNotificationHealth | undefined;
+  let queueAdminNote: string | undefined;
 
   try {
     observability = await readAdminObservability({ config });
@@ -21,6 +31,16 @@ export default async function AdminPage() {
     observability = config.askDemoMode
       ? readDemoAdminObservability({ config })
       : undefined;
+  }
+  try {
+    [queueEmailSettings, queueHealth] = await Promise.all([
+      listApprovalQueueEmailSettings(user),
+      readApprovalQueueNotificationHealth({ actor: user, config }),
+    ]);
+  } catch {
+    queueAdminNote = config.askDemoMode
+      ? "Using default queue email settings because Firestore notification health is not available in this session."
+      : "Approval Queue notification health is unavailable. Refresh Google credentials or check Firestore setup before relying on notification status.";
   }
   const hasMetrics = Boolean(observability);
 
@@ -129,6 +149,11 @@ export default async function AdminPage() {
             <p className="muted">{observabilityNote}</p>
           </article>
         )}
+        <ApprovalQueueAdminPanel
+          initialHealth={queueHealth}
+          initialSettings={queueEmailSettings}
+          unavailableNote={queueAdminNote}
+        />
       </section>
     </AppShell>
   );

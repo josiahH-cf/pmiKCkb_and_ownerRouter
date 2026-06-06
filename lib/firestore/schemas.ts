@@ -201,6 +201,36 @@ export const QueueBulkActionSchema = z.enum([
   "execute",
 ]);
 
+export const QueueNotificationEventSchema = z.enum([
+  "created",
+  "assigned",
+  "returned_for_revision",
+  "unsnoozed",
+  "blocked",
+  "unblocked",
+  "overdue",
+  "closed",
+]);
+
+export const QueueEmailSettingEventSchema = z.enum([
+  "created",
+  "assigned",
+  "returned_for_revision",
+  "unsnoozed",
+  "blocked",
+  "unblocked",
+  "overdue",
+  "closed",
+  "blocked_overdue_escalation",
+]);
+
+export const QueueNotificationRecipientRoleSchema = z.enum([
+  "Assignee",
+  "Required approver",
+  "Creator/editor",
+  "Admin selected",
+]);
+
 const queueProcessRunRefSchema = z.object({
   id: requiredTextSchema,
   label: requiredTextSchema,
@@ -258,6 +288,21 @@ export const BulkApprovalQueueInputSchema = z
     path: ["item_ids"],
   });
 
+export const UpdateApprovalQueueEmailSettingInputSchema = z.object({
+  email_enabled: z.boolean().optional(),
+  recipient_roles: z
+    .array(QueueNotificationRecipientRoleSchema)
+    .min(1, "Select at least one recipient role.")
+    .optional(),
+  trigger_condition: requiredTextSchema.optional(),
+  cooldown_hours: z.number().int().min(0).max(720).optional(),
+  subject_preview: requiredTextSchema.optional(),
+});
+
+export const UpdateApprovalQueueNotificationInputSchema = z.object({
+  action: z.enum(["mark_read"]),
+});
+
 export type CreateSopInput = z.input<typeof CreateSopInputSchema>;
 export type UpdateSopInput = z.input<typeof UpdateSopInputSchema>;
 export type CreateTemplateInput = z.input<typeof CreateTemplateInputSchema>;
@@ -277,6 +322,15 @@ export type ParsedTransitionApprovalQueueItemInput = z.output<
 >;
 export type BulkApprovalQueueInput = z.input<typeof BulkApprovalQueueInputSchema>;
 export type ParsedBulkApprovalQueueInput = z.output<typeof BulkApprovalQueueInputSchema>;
+export type UpdateApprovalQueueEmailSettingInput = z.input<
+  typeof UpdateApprovalQueueEmailSettingInputSchema
+>;
+export type ParsedUpdateApprovalQueueEmailSettingInput = z.output<
+  typeof UpdateApprovalQueueEmailSettingInputSchema
+>;
+export type UpdateApprovalQueueNotificationInput = z.input<
+  typeof UpdateApprovalQueueNotificationInputSchema
+>;
 export type QueueRiskSignals = NonNullable<
   z.input<typeof CreateApprovalQueueItemInputSchema>["risk_signals"]
 >;

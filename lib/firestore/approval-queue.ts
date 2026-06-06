@@ -4,6 +4,7 @@ import { canViewApprovalQueueItem, isQueueItemTerminal } from "@/lib/approval/qu
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
+import { appendApprovalQueueNotificationsForActivity } from "@/lib/firestore/approval-queue-notifications";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   BulkApprovalQueueInputSchema,
@@ -157,7 +158,7 @@ export async function createApprovalQueueItem(
     const id = uuidv7();
     const closedDuplicate = existing.find((item) => isTerminal(item.status));
 
-    transaction.set(itemRef(db, id), {
+    const newItem = stripUndefined({
       id,
       ...stripUndefined({
         ...rest,
@@ -166,6 +167,10 @@ export async function createApprovalQueueItem(
         audience_group: audienceGroup,
         supersedes_item_id: closedDuplicate?.id,
       }),
+    }) as Omit<ApprovalQueueItemRecord, "created_at" | "updated_at">;
+
+    transaction.set(itemRef(db, id), {
+      ...newItem,
       created_at: FieldValue.serverTimestamp(),
       updated_at: FieldValue.serverTimestamp(),
     });
@@ -182,6 +187,7 @@ export async function createApprovalQueueItem(
       itemId: id,
       actor,
       action: "created",
+      item: newItem,
       newState: status,
       sourceTrigger: rest.item_type,
       reason: note,
@@ -263,10 +269,16 @@ export async function transitionApprovalQueueItem(
       ...updates,
       updated_at: FieldValue.serverTimestamp(),
     });
+    const nextItem = {
+      ...current,
+      ...stripUndefined(updates),
+      status: newState,
+    };
     appendActivity(transaction, db, {
       itemId,
       actor,
       action,
+      item: nextItem,
       previousState: current.status,
       newState,
       reason,
@@ -485,6 +497,11 @@ async function bulkTransitionApprovalQueueItem(
           itemId,
           actor,
           action: transition.action,
+          item: {
+            ...current,
+            ...stripUndefined(transition.updates),
+            status: transition.newState,
+          },
           previousState: current.status,
           newState: transition.newState,
           reason: transition.reason,
@@ -591,6 +608,7 @@ function appendSkippedBulkResult(
     itemId: current.id,
     actor,
     action: "skipped",
+    item: current,
     previousState: current.status,
     newState: current.status,
     reason,
@@ -656,6 +674,7 @@ function refreshOpenItem(
     itemId: current.id,
     actor,
     action: "refreshed",
+    item: current,
     previousState: current.status,
     newState: (updates.status as QueueItemStatus | undefined) ?? current.status,
     reason,
@@ -668,6 +687,18 @@ interface ActivityInput {
   itemId: string;
   actor: Pick<AuthenticatedUser, "uid">;
   action: QueueActivityAction;
+  item: Pick<
+    ApprovalQueueItemRecord,
+    | "action_needed"
+    | "assignee_uid"
+    | "direct_link"
+    | "due_date"
+    | "id"
+    | "process_run_ref"
+    | "required_approver_uid"
+    | "risk"
+    | "status"
+  >;
   previousState?: string;
   newState?: string;
   reason?: string;
@@ -695,6 +726,12 @@ function appendActivity(transaction: Transaction, db: Firestore, input: Activity
   };
 
   transaction.set(db.collection(COLLECTIONS.queueActivity).doc(id), record);
+  appendApprovalQueueNotificationsForActivity(transaction, db, {
+    action: input.action,
+    actor: input.actor,
+    item: input.item,
+    newState: input.newState,
+  });
 }
 
 async function findBySourceTriggerKey(

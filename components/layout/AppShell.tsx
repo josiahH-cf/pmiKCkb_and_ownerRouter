@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { NotificationMenu } from "@/components/layout/NotificationMenu";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 
@@ -26,6 +27,7 @@ export function AppShell({
             </Link>
           ))}
           {can(user.role, "manageAdmin") ? <Link href="/admin">Admin</Link> : null}
+          <NotificationMenu />
           <span className="user-role">{user.role}</span>
           <SignOutButton />
         </nav>

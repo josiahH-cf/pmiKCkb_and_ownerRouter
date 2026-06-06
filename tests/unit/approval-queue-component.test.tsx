@@ -17,6 +17,20 @@ afterEach(() => {
 });
 
 describe("ApprovalQueue bulk UI", () => {
+  it("opens with the requested queue item selected", () => {
+    renderQueue({
+      initialSelectedItemId: "item-2",
+      items: [
+        queueItem({ id: "item-1" }),
+        queueItem({ id: "item-2", action_needed: "Approve selected item" }),
+      ],
+    });
+
+    expect(
+      screen.getByRole("heading", { name: "Approve selected item" }),
+    ).toBeInTheDocument();
+  });
+
   it("caps Select visible at the 50-item bulk limit and keeps execute visibly guarded", async () => {
     const user = userEvent.setup();
     renderQueue({
@@ -141,9 +155,11 @@ describe("ApprovalQueue bulk UI", () => {
 
 function renderQueue({
   activity = [activityEntry()],
+  initialSelectedItemId,
   items,
 }: {
   activity?: ApprovalQueueActivityRecord[];
+  initialSelectedItemId?: string;
   items: ApprovalQueueItemRecord[];
 }) {
   return render(
@@ -151,6 +167,7 @@ function renderQueue({
       currentUser={{ role: "Admin", uid: "admin-1" }}
       initialActivity={activity}
       initialItems={items}
+      initialSelectedItemId={initialSelectedItemId}
     />,
   );
 }

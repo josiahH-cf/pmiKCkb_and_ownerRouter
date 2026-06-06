@@ -80,6 +80,28 @@ export type QueueActivityAction =
   | "refreshed"
   | "skipped"
   | "comment";
+export type QueueNotificationEvent =
+  | "created"
+  | "assigned"
+  | "returned_for_revision"
+  | "unsnoozed"
+  | "blocked"
+  | "unblocked"
+  | "overdue"
+  | "closed";
+export type QueueEmailSettingEvent =
+  | QueueNotificationEvent
+  | "blocked_overdue_escalation";
+export type QueueNotificationRecipientRole =
+  | "Assignee"
+  | "Required approver"
+  | "Creator/editor"
+  | "Admin selected";
+export type QueueEmailSetupStatus = "Ready" | "Disconnected" | "Not Required";
+export type QueueNotificationHealthStatus =
+  | "Healthy"
+  | "Needs Attention"
+  | "Action Required";
 
 export interface UserRecord {
   uid: string;
@@ -259,4 +281,54 @@ export interface ApprovalQueueActivityRecord {
   // JSON snapshot of approval-critical fields preserved when an open item refreshes.
   prior_version_snapshot?: string;
   created_at: string;
+}
+
+export interface ApprovalQueueNotificationRecord {
+  id: string;
+  item_id: string;
+  event: QueueNotificationEvent;
+  recipient_uid: string;
+  recipient_role: QueueNotificationRecipientRole;
+  title: string;
+  message: string;
+  process_run_ref: QueueProcessRunRef;
+  status: QueueItemStatus;
+  risk: QueueRiskLevel;
+  due_date?: string;
+  direct_link: string;
+  read_at?: string;
+  created_at: string;
+}
+
+export interface ApprovalQueueEmailSettingRecord {
+  id: string;
+  event_type: QueueEmailSettingEvent;
+  email_enabled: boolean;
+  recipient_roles: QueueNotificationRecipientRole[];
+  trigger_condition: string;
+  cooldown_hours: number;
+  subject_preview: string;
+  last_send_status?: NotificationLogStatus;
+  last_send_at?: string;
+  last_error?: string;
+  updated_at: string;
+  updated_by_uid?: string;
+}
+
+export interface ApprovalQueueNotificationHealth {
+  status: QueueNotificationHealthStatus;
+  queue_email_status: QueueEmailSetupStatus;
+  failed_delivery_count: number;
+  last_failure?: {
+    created_at?: string;
+    error?: string;
+    subject?: string;
+  };
+  disabled_event_types: QueueEmailSettingEvent[];
+  stale_overdue_count: number;
+  blocked_item_count: number;
+  blocked_high_risk_count: number;
+  action_required_reasons: string[];
+  needs_attention_reasons: string[];
+  email_setup_error?: string;
 }

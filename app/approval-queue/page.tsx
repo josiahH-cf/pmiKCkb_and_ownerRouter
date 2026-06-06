@@ -10,16 +10,24 @@ import type {
   ApprovalQueueItemRecord,
 } from "@/lib/firestore/types";
 
-export default async function ApprovalQueuePage() {
+export default async function ApprovalQueuePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ item_id?: string }>;
+}) {
   const user = await requirePageCapability("read");
   let initialActivity: ApprovalQueueActivityRecord[] = [];
   let items: ApprovalQueueItemRecord[] = [];
   let initialError: string | undefined;
+  const requestedItemId = (await searchParams)?.item_id?.trim();
+  let initialSelectedItemId: string | undefined;
 
   try {
     items = await listApprovalQueue(user);
-    if (items[0]) {
-      initialActivity = await listApprovalQueueActivity(user, items[0].id);
+    initialSelectedItemId =
+      items.find((item) => item.id === requestedItemId)?.id ?? items[0]?.id;
+    if (initialSelectedItemId) {
+      initialActivity = await listApprovalQueueActivity(user, initialSelectedItemId);
     }
   } catch {
     initialError =
@@ -35,6 +43,7 @@ export default async function ApprovalQueuePage() {
           initialActivity={initialActivity}
           initialError={initialError}
           initialItems={items}
+          initialSelectedItemId={initialSelectedItemId}
         />
       </section>
     </AppShell>

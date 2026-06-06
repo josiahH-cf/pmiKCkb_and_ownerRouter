@@ -3413,3 +3413,132 @@ Validation status:
   emulator seeded with demo queue records. Verified `/approval-queue` rendered, bulk
   selection worked, the 50-item request-limit copy was visible, guarded execute copy
   was visible, and the mobile viewport had no horizontal overflow.
+
+## Approval Queue Notifications And Admin Health Cycle
+
+- Date: 2026-06-06
+- Product lane: PMI KC KB workflow-control layer.
+- Built the next local Approval Queue v1 slice for console notifications, Admin email
+  settings, and notification health without authorizing Gmail sends, cloud setup,
+  deploys, imports, keys, client-environment writes, or external-system writes.
+- Added typed queue notification, email-setting, and health records:
+  `ApprovalQueueNotificationRecord`, `ApprovalQueueEmailSettingRecord`, and
+  `ApprovalQueueNotificationHealth`, plus schemas for queue notification events,
+  email-setting event types, recipient roles, and Admin setting updates.
+- Added `lib/firestore/approval-queue-notifications.ts` as the server-side boundary for:
+  - creating in-app notification records when queue Activity creates product-relevant
+    events (`created`, `assigned`, `returned_for_revision`, `blocked`, `unblocked`, and
+    `closed`);
+  - listing recipient-visible console notifications;
+  - reading default email settings where routine email is off and blocked/overdue
+    escalation is the built-in email exception;
+  - Admin-only email-setting updates;
+  - Admin health classification using `Healthy`, `Needs Attention`, and
+    `Action Required`.
+- Wired queue create/transition/bulk transition Activity writes to create console
+  notification records in the same Firestore transaction. Skipped/refreshed/snoozed
+  Activity remains non-notifying for now; scheduled overdue/unsnoozed execution remains
+  future work.
+- Added API routes:
+  - `GET /api/approval-queue/notifications`
+  - `GET /api/approval-queue/health`
+  - `GET /api/approval-queue/email-settings`
+  - `PATCH /api/approval-queue/email-settings/:settingId`
+- Added an Admin page Approval Queue Health and Queue Email Settings panel. The panel
+  shows health summary, setup fallback copy, default settings, event trigger text,
+  subject previews, no-repeat cooldowns, and Admin controls for email enablement and
+  recipient roles. Console notifications remain the source of truth regardless of email
+  settings.
+- Extended Firestore rules so `approval_queue_notifications` are readable only by the
+  notification recipient or Admin, `approval_queue_email_settings` are Admin-readable
+  only, and both collections deny direct client writes.
+- No Gmail send path was added for v1 queue notifications in this cycle. Existing legacy
+  editable-content Gmail notifications are unchanged.
+
+Validation status:
+
+- `npm test -- approval-queue-notifications-v1 approval-queue-notification-routes`:
+  passed with 13 focused tests.
+- `npm test -- approval-queue`: passed with 57 focused queue tests.
+- `npm run format:check`: passed.
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm test`: passed with 189 tests.
+- `npm run test:firestore`: passed with 17 Firestore Security Rules tests.
+- `npm run verify:router-boundary`: passed.
+- `bash scripts/verify.sh`: passed. It reinstalled dependencies, checked formatting,
+  linted, typechecked, ran 189 tests, passed the router-boundary check, and built the app
+  including the new Approval Queue notification/settings/health API routes.
+- Local browser check: passed on `/admin` after local demo sign-in. Verified the
+  Approval Queue Health panel, Queue Email Settings panel, blocked/overdue escalation
+  default, fallback health copy when Firestore health is unavailable, and no horizontal
+  overflow at a 390px mobile viewport.
+
+Open items:
+
+- The app now stores console notification records, but there is not yet a user-facing
+  notification inbox/badge or read/unread interaction outside the Admin settings panel.
+- Email delivery/retry/escalation execution for queue notifications remains unbuilt and
+  must stay gated until sender, recipient, Gmail setup, and production environment
+  ownership are approved.
+- Scheduled overdue and unsnoozed notification generation remains future workflow-run or
+  job-runner work.
+
+Next recommended task:
+
+Surface Approval Queue console notifications in the app shell or queue screen, with a
+small read/unread interaction, before adding any email-delivery worker.
+
+## Approval Queue Header Notifications Cycle
+
+- Date: 2026-06-06
+- Product lane: PMI KC KB workflow-control layer.
+- Implemented the recommended next iteration from the prior plan: a global app-shell
+  notification dropdown for the current user's unread Approval Queue console
+  notifications, with mark-on-open behavior.
+- Added current-user-only notification listing for the header while preserving Admin's
+  broader server-side ability to inspect notification records when explicitly requested.
+- Added `PATCH /api/approval-queue/notifications/:notificationId` with the narrow
+  `mark_read` action. Only the notification recipient can mark that notification read.
+- Updated `/approval-queue` so notification links can land on a specific queue item with
+  `?item_id=<queueItemId>` and preselect that item in the detail panel.
+- Added `NotificationMenu` to the app shell. It fetches up to five unread current-user
+  notifications, shows a compact badge, opens a dropdown with plain-English notification
+  details, marks a notification read before navigating to the queue item, and degrades to
+  a clear unavailable message when local Firestore is not connected.
+- No email-delivery worker, Gmail send, cloud setup, deploy, import, key creation,
+  client-environment change, or external-system write was added.
+
+Validation status:
+
+- `npm test -- approval-queue-notifications-v1 approval-queue-notification-routes
+notification-menu-component approval-queue-component`: passed with 23 focused tests.
+- `npm run format:check`: passed.
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm test`: passed with 196 tests.
+- `npm run test:firestore`: passed with 17 Firestore Security Rules tests.
+- `npm run verify:router-boundary`: passed.
+- `bash scripts/verify.sh`: passed on retry. The first attempt hit a Windows `EPERM`
+  unlink on Next's SWC binary while the local dev/browser smoke process was still
+  releasing the file; the retry reinstalled dependencies, checked formatting, linted,
+  typechecked, ran 196 tests, passed router-boundary verification, and built the app
+  including `PATCH /api/approval-queue/notifications/:notificationId`.
+- Local browser check: passed on `/ask` after local demo sign-in. Verified the
+  Notifications button renders in the header, the dropdown opens, the unavailable state
+  is readable when Firestore notifications are unavailable locally, the Open Approval
+  Queue link remains present, and the mobile viewport has no horizontal overflow.
+
+Open items:
+
+- Live unread notification rendering should be smoke-tested against connected demo or
+  staging Firestore records when credentials are available.
+- Scheduled overdue and unsnoozed notification generation remains future workflow-run or
+  job-runner work.
+- Queue notification email delivery/retry/escalation remains gated on approved sender,
+  recipients, Gmail setup, and production environment ownership.
+
+Next recommended task:
+
+Build the scheduled overdue/unsnoozed queue notification generator as a dry-run-capable
+local job, still without sending email.

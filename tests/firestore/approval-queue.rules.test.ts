@@ -69,6 +69,41 @@ beforeEach(async () => {
       new_state: "Ready for Approval",
       source_trigger: "ApprovalPackage",
     });
+    await setDoc(doc(db, "approval_queue_notifications/notification-1"), {
+      id: "notification-1",
+      item_id: "item-1",
+      event: "created",
+      recipient_uid: "editor-uid",
+      recipient_role: "Assignee",
+      title: "New queue item: Lease Renewal",
+      message: "Review the requested approval action.",
+      process_run_ref: { id: "run-1", label: "Lease Renewal" },
+      status: "Ready for Approval",
+      risk: "High",
+      direct_link: "/runs/run-1",
+    });
+    await setDoc(doc(db, "approval_queue_notifications/notification-2"), {
+      id: "notification-2",
+      item_id: "item-2",
+      event: "created",
+      recipient_uid: "someone-else",
+      recipient_role: "Assignee",
+      title: "Hidden notification",
+      message: "Hidden notification.",
+      process_run_ref: { id: "run-2", label: "Hidden Lease Renewal" },
+      status: "Ready for Approval",
+      risk: "Low",
+      direct_link: "/runs/run-2",
+    });
+    await setDoc(doc(db, "approval_queue_email_settings/created"), {
+      id: "created",
+      event_type: "created",
+      email_enabled: false,
+      recipient_roles: ["Assignee", "Required approver"],
+      trigger_condition: "A queue item is created for review.",
+      cooldown_hours: 0,
+      subject_preview: "[Approval Queue] New item needs review",
+    });
   });
 });
 
@@ -147,6 +182,59 @@ describe("Approval Queue Firestore rules", () => {
       }),
     );
     await assertFails(deleteDoc(doc(adminDb, "approval_queue_activity/activity-1")));
+  });
+
+  it("allows only notification recipients or Admins to read queue notifications", async () => {
+    const db = authedDb("Editor");
+    const adminDb = authedDb("Admin");
+
+    await assertSucceeds(getDoc(doc(db, "approval_queue_notifications/notification-1")));
+    await assertFails(getDoc(doc(db, "approval_queue_notifications/notification-2")));
+    await assertSucceeds(
+      getDoc(doc(adminDb, "approval_queue_notifications/notification-2")),
+    );
+  });
+
+  it("blocks all direct client writes to queue notifications", async () => {
+    const adminDb = authedDb("Admin");
+
+    await assertFails(
+      setDoc(doc(adminDb, "approval_queue_notifications/notification-3"), {
+        id: "notification-3",
+        item_id: "item-1",
+        event: "closed",
+        recipient_uid: "admin-uid",
+        recipient_role: "Admin selected",
+        title: "Forged notification",
+        message: "Forged notification.",
+        process_run_ref: { id: "run-1", label: "Lease Renewal" },
+        status: "Closed",
+        risk: "High",
+        direct_link: "/runs/run-1",
+      }),
+    );
+    await assertFails(
+      updateDoc(doc(adminDb, "approval_queue_notifications/notification-1"), {
+        read_at: "2026-06-05T00:00:00.000Z",
+      }),
+    );
+    await assertFails(
+      deleteDoc(doc(adminDb, "approval_queue_notifications/notification-1")),
+    );
+  });
+
+  it("keeps queue email settings Admin-readable and server-written", async () => {
+    const db = authedDb("Editor");
+    const adminDb = authedDb("Admin");
+
+    await assertFails(getDoc(doc(db, "approval_queue_email_settings/created")));
+    await assertSucceeds(getDoc(doc(adminDb, "approval_queue_email_settings/created")));
+    await assertFails(
+      updateDoc(doc(adminDb, "approval_queue_email_settings/created"), {
+        email_enabled: true,
+      }),
+    );
+    await assertFails(deleteDoc(doc(adminDb, "approval_queue_email_settings/created")));
   });
 });
 

@@ -39,6 +39,14 @@ service cloud.firestore {
         );
     }
 
+    function queueNotificationVisible(notification) {
+      return admin() ||
+        (
+          'recipient_uid' in notification &&
+          notification.recipient_uid == request.auth.uid
+        );
+    }
+
     function active() {
       return !('deleted_at' in resource.data);
     }
@@ -189,6 +197,17 @@ service cloud.firestore {
     match /approval_queue_activity/{activityId} {
       allow read: if signedIn() && editorOrBetter() &&
         queueActivityItemVisible(resource.data);
+      allow create, update, delete: if false;
+    }
+
+    match /approval_queue_notifications/{notificationId} {
+      allow read: if signedIn() && editorOrBetter() &&
+        queueNotificationVisible(resource.data);
+      allow create, update, delete: if false;
+    }
+
+    match /approval_queue_email_settings/{settingId} {
+      allow read: if signedIn() && admin();
       allow create, update, delete: if false;
     }
 

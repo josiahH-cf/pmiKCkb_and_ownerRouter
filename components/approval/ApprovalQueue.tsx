@@ -36,13 +36,16 @@ export function ApprovalQueue({
   initialActivity,
   initialError,
   initialItems,
+  initialSelectedItemId,
 }: Readonly<{
   currentUser: { role: Role; uid: string };
   initialActivity: ApprovalQueueActivityRecord[];
   initialError?: string;
   initialItems: ApprovalQueueItemRecord[];
+  initialSelectedItemId?: string;
 }>) {
-  const firstInitialItem = initialItems.at(0);
+  const firstInitialItem =
+    initialItems.find((item) => item.id === initialSelectedItemId) ?? initialItems.at(0);
   const [items, setItems] = useState(initialItems);
   const [selectedItemId, setSelectedItemId] = useState(firstInitialItem?.id ?? null);
   const [detailsById, setDetailsById] = useState<Record<string, QueueDetail>>(

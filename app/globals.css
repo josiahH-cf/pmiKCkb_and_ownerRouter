@@ -381,20 +381,23 @@ button {
 
 .queue-pill[data-value="High"],
 .queue-pill[data-value="Blocked"],
-.queue-pill[data-value="Failed"] {
+.queue-pill[data-value="Failed"],
+.queue-pill[data-value="Action Required"] {
   background: #fff5f5;
   border-color: var(--state-no-source);
 }
 
 .queue-pill[data-value="Ready for Approval"],
-.queue-pill[data-value="Medium"] {
+.queue-pill[data-value="Medium"],
+.queue-pill[data-value="Needs Attention"] {
   background: var(--color-accent-100);
   border-color: var(--color-accent-500);
 }
 
 .queue-pill[data-value="Low"],
 .queue-pill[data-value="Approved"],
-.queue-pill[data-value="Completed"] {
+.queue-pill[data-value="Completed"],
+.queue-pill[data-value="Healthy"] {
   background: #edf7f1;
   border-color: var(--state-verified);
 }
@@ -465,6 +468,158 @@ button {
   margin: 4px 0 0;
 }
 
+.notification-menu {
+  position: relative;
+}
+
+.notification-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgb(255 255 255 / 0.7);
+  border-radius: 8px;
+  color: #ffffff;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 10px;
+}
+
+.notification-badge {
+  align-items: center;
+  background: var(--color-accent-500);
+  border-radius: 999px;
+  color: var(--color-primary-900);
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 20px;
+  min-width: 20px;
+  padding: 0 6px;
+}
+
+.notification-popover {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 18px 38px rgb(14 42 74 / 0.18);
+  color: var(--color-text);
+  display: grid;
+  gap: 10px;
+  max-width: min(360px, calc(100vw - 32px));
+  min-width: min(320px, calc(100vw - 32px));
+  padding: 14px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 10;
+}
+
+.notification-popover-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.notification-refresh {
+  background: transparent;
+  border: 0;
+  color: var(--color-primary-700);
+  font-weight: 800;
+  padding: 4px;
+}
+
+.notification-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notification-item {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text);
+  display: grid;
+  gap: 5px;
+  padding: 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.notification-item span,
+.notification-item small {
+  color: var(--color-text-muted);
+}
+
+.notification-all-link {
+  color: var(--color-primary-700);
+  font-weight: 800;
+  text-decoration: underline;
+}
+
+.approval-admin-panel {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.queue-health-reasons {
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+.queue-settings-section {
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+}
+
+.queue-settings-section h3 {
+  margin: 0;
+}
+
+.queue-settings-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.queue-setting-row {
+  align-items: start;
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.45fr);
+  padding-top: 12px;
+}
+
+.queue-setting-row:first-child {
+  border-top: 0;
+}
+
+.queue-setting-row p {
+  margin: 4px 0 0;
+}
+
+.queue-setting-controls,
+.queue-role-checks {
+  display: grid;
+  gap: 8px;
+}
+
+.queue-toggle,
+.queue-role-checks label {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
 .sr-only {
   clip: rect(0, 0, 0, 0);
   border: 0;
@@ -497,6 +652,24 @@ button {
 
   .queue-bulk-reason {
     grid-column: auto;
+  }
+
+  .queue-setting-row {
+    grid-template-columns: 1fr;
+  }
+
+  .notification-menu,
+  .notification-button {
+    width: 100%;
+  }
+
+  .notification-button {
+    justify-content: space-between;
+  }
+
+  .notification-popover {
+    left: 0;
+    right: auto;
   }
 
   .queue-detail-actions .compact-button,
