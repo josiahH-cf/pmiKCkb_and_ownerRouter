@@ -14,6 +14,7 @@ const requiredFiles = [
   "docs/specs/spec-4-implementation-meta-implementation-spec.md",
   "docs/autonomous-agent-runner.md",
   "docs/autonomous-feature-cycle-packet-template.md",
+  "docs/loop-state.md",
   "docs/temp/README.md",
   "docs/legacy/owner-router-artifact-source.md",
   "docs/north-star.md",

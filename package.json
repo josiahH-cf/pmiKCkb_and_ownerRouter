@@ -21,6 +21,7 @@
     "test:watch": "vitest",
     "verify": "bash scripts/verify.sh",
     "verify:router-boundary": "node scripts/check-router-boundary.mjs",
+    "verify:falsification": "node scripts/check-falsification-preflight.mjs",
     "host:setup": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/setup-windows-google-dev.ps1 -EnableApis",
     "host:check": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/setup-windows-google-dev.ps1 -CheckOnly",
     "firebase:setup": "node scripts/setup-firebase-demo.mjs",

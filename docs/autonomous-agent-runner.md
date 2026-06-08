@@ -22,22 +22,29 @@ creation, deploys, sends, or external system writes.
 
 ## Context Intake
 
+This is the canonical context-intake order for the loop. `docs/implement.md` and
+`docs/ai-execution-workflow.md` point here instead of repeating a divergent list.
+
 Before choosing work, read:
 
-1. `AGENTS.md`
-2. `docs/north-star.md`
-3. `docs/products/README.md` and the relevant product lane doc
-4. `docs/plan.md`
-5. `docs/implement.md`
-6. `docs/ai-execution-workflow.md`
-7. the latest entries in `docs/status.md`
-8. `docs/client-checklist.md`
-9. `docs/research-backlog.md`
-10. `docs/engineering.md` and `docs/engineering-checklist.md`
-11. `docs/environment-handoff.md` when setup, keys, environments, manual tests, or
+1. `docs/loop-state.md` first, to resume without rediscovering prior context.
+2. `AGENTS.md`
+3. `docs/north-star.md`
+4. `docs/products/README.md` and the relevant product lane doc
+5. `docs/plan.md`
+6. `docs/implement.md`
+7. `docs/ai-execution-workflow.md`
+8. the latest entries in `docs/status.md`
+9. `docs/client-checklist.md`
+10. `docs/research-backlog.md`
+11. `docs/engineering.md` and `docs/engineering-checklist.md`
+12. `docs/environment-handoff.md` when setup, keys, environments, manual tests, or
     handoff are relevant
-12. `docs/legacy/owner-router-artifact-source.md` only when Gmail Inbox 0 artifact
+13. `docs/legacy/owner-router-artifact-source.md` only when Gmail Inbox 0 artifact
     migration, naming, prompt, label, template, or demo-safe scenario work is in scope
+
+`docs/loop-state.md` is the single-read resume artifact. If it conflicts with the latest
+`docs/status.md` entry, trust `docs/status.md` and correct `docs/loop-state.md`.
 
 Check the git worktree before edits and preserve user changes. Use `docs/specs/`,
 `docs/legacy/`, and old demo docs only as historical source material unless an active
@@ -126,10 +133,19 @@ The packet must lock:
 
 Ask planning questions in one batch when a reasonable autonomous choice would be risky,
 would incur cost, would touch a client environment, or would invent product behavior.
-When the trigger is only "plan the next feature cycle", stop after the packet unless the
-user asks to run it or the current session instructions clearly authorize implementation.
+
+Read the trigger literally to avoid re-prompting:
+
+- "Plan the next feature cycle" (or "plan", "draft a packet"): produce the
+  decision-complete packet, update `docs/loop-state.md`, then stop and offer to run it.
+  Do not start building.
+- "Run the loop", "continue the loop", "build the next slice", "implement", or an
+  explicit instruction authorizing implementation: proceed through the unattended
+  implementation loop and into the multi-slice continuation loop without asking again
+  between internal phases or between safe slices.
+
 After an implementation packet is locked, do not ask the user to review every internal
-phase.
+phase. Only stop for an approval gate, a stop-and-reset condition, or a genuine blocker.
 
 ## Autonomous Choices
 
@@ -218,18 +234,23 @@ continue, and verification after unblock.
 
 ## Unattended Implementation Loop
 
-After the cycle packet is decision-complete:
+After the cycle packet is decision-complete, run one slice end to end:
 
 1. Build safe local changes.
 2. Add or update tests for behavior changes.
 3. Update durable docs future agents need.
 4. Track discovered blockers and human-side asks.
 5. Run the smallest relevant checks while working.
-6. Prepare a commit queue with related change groups.
-7. Hand the user one end-of-run review point.
+6. Run the Verification And Falsification phase for the slice.
+7. Repair clear in-scope issues, then re-verify.
+8. Align affected docs, help text, specs, and `docs/loop-state.md`.
+9. Prepare a commit queue with related change groups.
+10. Enter the Multi-Slice Continuation Loop to decide whether to start the next slice.
 
-The user verifies behavior at the end of the agentic run unless a stop condition occurs.
-Do not pause after every internal phase.
+Do not pause after every internal phase. When the loop is authorized to run, continue
+into the next safe slice instead of stopping for routine review. The user verifies
+behavior at an end-of-run review point that occurs when a stop-and-reset condition fires,
+not after each internal phase.
 
 ## Commit Queue
 
@@ -245,20 +266,109 @@ user explicitly asks for it. The queue should list:
 If the user asks to ship, first confirm the branch, remotes, status, relevant diff,
 validation, and absence of unrelated changes.
 
-## Verification
+## Verification And Falsification
 
-Use checks proportional to the change:
+Treat verification as a first-class phase, not a final command run. Assume the slice was
+just completed by someone else and now needs an objective pass from fresh context, like
+an outside model reviewing unfamiliar work. Prefer trying to break the work over
+confirming it.
 
-- Documentation-only: `npm run format:check`, `git diff --check`, and
-  `npm run verify:router-boundary`.
-- TypeScript/runtime changes: add `npm run lint`, `npm run typecheck`, and `npm test`.
-- Firestore or persistence changes: add `npm run test:firestore` when Java is
-  available.
-- Production or live setup preparation: dry-run first and stop before any unapproved
-  live action.
-- End-of-cycle handoff: run `bash scripts/verify.sh` when relevant and practical.
+Run this phase for every slice:
 
-If a check cannot run, record the reason and residual risk.
+1. Explain in plain English what the slice actually changed.
+2. Verify the implementation against intended behavior, the packet objective, acceptance
+   criteria, and any referenced spec.
+3. Try to falsify it. Actively look for:
+   - mismatches between stated intent and actual behavior,
+   - omissions and missing acceptance-criteria coverage,
+   - regressions and downstream breakage in code, docs, or commands,
+   - broken assumptions and rule violations against north-star and security rules,
+   - edge cases and unhandled states,
+   - invalid JSON or Markdown,
+   - stale command descriptions, stale prompt-chain hints, and missing linked docs,
+   - oversized-file risk and suspiciously large or unrelated diffs.
+4. Run `npm run verify:falsification` for the deterministic preflight (secret scan,
+   oversized-file check, JSON validity, internal doc-link existence). Treat its failures
+   as hard blockers.
+5. Run checks proportional to the change:
+   - Documentation-only: `npm run format:check`, `git diff --check`,
+     `npm run verify:router-boundary`, and `npm run verify:falsification`.
+   - TypeScript/runtime changes: add `npm run lint`, `npm run typecheck`, and `npm test`.
+   - Firestore or persistence changes: add `npm run test:firestore` when Java is
+     available.
+   - Production or live setup preparation: dry-run first and stop before any unapproved
+     live action.
+   - End-of-cycle handoff: run `bash scripts/verify.sh` when relevant and practical.
+6. Repair clear in-scope issues immediately when the correct fix is supported by current
+   context, then re-run the affected checks.
+7. Align affected docs, help text, specs, task notes, and workflow references when the
+   slice made them stale.
+8. If a real issue cannot be fixed safely from available context, record it as a blocker
+   instead of guessing.
+
+If a check cannot run, record the reason and residual risk. Record the falsification
+result and last-known-green checks in `docs/loop-state.md`.
+
+## Multi-Slice Continuation Loop
+
+When the loop is authorized to run, do not stop after one slice. After a slice passes
+Verification And Falsification, repair, doc alignment, and commit-queue preparation,
+decide whether to continue:
+
+1. Re-check the Migration-Readiness Stop Gate for the next candidate slice.
+2. If a safe, readiness-improving slice exists in the active lane, front-load a new
+   decision-complete cycle packet for it and run it through the Unattended Implementation
+   Loop.
+3. If the next safe step is client unblock, cutover prep, docs, or regression hardening,
+   route there instead of expanding local product surface just to keep the loop active.
+4. Update `docs/loop-state.md` at every slice boundary so a fresh session can resume.
+5. Continue until a Stop And Reset condition fires.
+
+Select the next slice from the active roadmap, status, client checklist, or backlog. Do
+not invent product scope to manufacture a next slice. If no safe slice remains, stop and
+record the migration-ready but client-blocked state.
+
+## Stop And Reset Conditions
+
+Keep going while slices stay safe, decision-complete, and readiness-improving. Stop and
+hand back when any condition below fires. State which condition fired and the recommended
+next action in `docs/loop-state.md`.
+
+- Approval gate: the next safe step needs cloud/API cost, key creation or use, deploy,
+  live import, Gmail access, external communication, client-environment change, or an
+  external system write. Stop and raise an approval request.
+- Migration readiness reached: local verification is green, cutover/preflight artifacts
+  are current, client asks are clear, and the remaining blockers are client-owned. Stop
+  adding local product surface and recommend client unblock or cutover prep.
+- Quality degrading: the same root issue survives two repair cycles, checks that were
+  green turn red and do not recover, or new lint/type/test failures are introduced and
+  not fixed in the same slice. Stop, record the regression, and recommend a focused fix
+  session.
+- Uncertainty too high: the next slice cannot be made decision-complete without inventing
+  scope, a product decision, a source, a credential, or an approval. Stop and record the
+  exact missing decision as a blocker.
+- Context reset needed: the working context is large or drifting, lane focus is slipping,
+  or accumulated state risks errors. Write `docs/loop-state.md`, recommend a fresh context
+  window, and stop.
+- No safe slice remains: every readiness-improving option is done or client-blocked.
+  Record the migration-ready but client-blocked state and stop.
+
+A clean stop with a current `docs/loop-state.md` is a successful outcome, not a failure.
+
+## Loop State Capture
+
+`docs/loop-state.md` is the durable single-read resume artifact for the loop. Keep it
+current so the next unattended session resumes without rediscovering context.
+
+Update it:
+
+- at the start of a cycle, with the selected slice and why it is next,
+- at each slice boundary, with what was built, verified, and queued,
+- whenever a blocker, approval gate, or stop-and-reset condition changes.
+
+Record only non-secret state. Keep `docs/status.md` as the append-only history and
+`docs/loop-state.md` as the always-current pointer. If they disagree, `docs/status.md`
+wins and `docs/loop-state.md` is corrected.
 
 ## Stale Context Retirement
 

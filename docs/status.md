@@ -5,6 +5,12 @@
 > setup, Bailey Brain, or Dan's AI Assistant. Active routing now lives in `AGENTS.md`,
 > `docs/north-star.md`, and `docs/products/`.
 
+## Current Loop State
+
+This log is the append-only history. For the always-current resume pointer (active lane,
+next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
+two disagree, this status log wins and `docs/loop-state.md` is corrected.
+
 ## Initial Scaffold
 
 - Date: 2026-05-27
@@ -3827,3 +3833,69 @@ Before starting another local workflow-control or Approval Queue slice, run the
 migration-readiness stop gate. If the only remaining blockers are Dan/team replies,
 client-owned production setup, approved sources, or migration/cutover approval, stop
 local feature expansion and prepare the client unblock/cutover handoff instead.
+
+## Autonomous Loop Hardening And Loop-State Capture
+
+- Date: 2026-06-08
+- Product lanes: PMI KC KB (workflow/runner governance); cross-product loop process.
+- Reworked the unattended feature loop from a single-slice runner into a multi-slice loop
+  with a first-class verification-and-falsification phase, explicit stop-and-reset
+  conditions, and durable single-read resume state.
+- `docs/autonomous-agent-runner.md`: replaced the thin Verification section with a
+  Verification And Falsification phase (plain-English explanation, verify-then-falsify,
+  explicit risk list, repair, doc alignment); added a Multi-Slice Continuation Loop, a
+  Stop And Reset Conditions section (approval gate, migration readiness, quality
+  degrading, uncertainty too high, context reset, no safe slice), and a Loop State
+  Capture section; made the context-intake order canonical with `docs/loop-state.md`
+  first; and clarified the plan-vs-run trigger to remove re-prompting.
+- Added `docs/loop-state.md` as the always-current single-read resume artifact, seeded
+  with the real current state (migration-ready but client-blocked, active lane, next safe
+  slice candidates, blockers, stop-condition state). Added a Current Loop State pointer to
+  the top of this status log and registered the file in `npm run verify:router-boundary`.
+- Added `scripts/check-falsification-preflight.mjs` and `npm run verify:falsification`: a
+  git-aware, read-only preflight that scans only committable files (tracked plus
+  untracked-not-ignored, respecting `.gitignore`) for secret patterns, oversized files,
+  invalid JSON, and broken internal doc links, with an informational large-diff warning.
+  Chained it into `scripts/verify.sh` and added
+  `tests/unit/falsification-preflight.test.mjs`.
+- Extended `docs/autonomous-feature-cycle-packet-template.md` with a falsification
+  checklist, slice-continuation decision, stop-and-reset check, next-slice candidate, and
+  loop-state snapshot fields.
+- Reconciled the divergent context-intake orders and the plan-vs-run trigger across
+  `docs/implement.md`, `docs/ai-execution-workflow.md`, and `CLAUDE.md`, and relabeled
+  `docs/agent-runner/README.md` as a historical scaffold rather than active guidance.
+- Updated `AGENTS.md` route table, project map, commands, and documentation rules for the
+  loop-state artifact and the falsification preflight; `AGENTS.md` remains under 150
+  lines.
+- Security: the newly added `docs/client_docs/` tool-access spreadsheet contained live
+  RentVine API credentials in a notes cell and was untracked but not ignored. Added
+  `docs/client_docs/` to `.gitignore` so client spreadsheets, ledgers, invoices, and any
+  secrets stay local and cannot be committed. No secret values were committed.
+
+Validation status:
+
+- `npm run format:check`: passed on 2026-06-08.
+- `npm run lint`: passed on 2026-06-08.
+- `npm run typecheck`: passed on 2026-06-08.
+- `npm test`: passed on 2026-06-08 with 243 tests.
+- `npm run verify:router-boundary`: passed on 2026-06-08 (now also requires
+  `docs/loop-state.md`).
+- `npm run verify:falsification`: passed on 2026-06-08 across 246 committable files.
+- `npm run build`: passed on 2026-06-08.
+- `git diff --check`: passed on 2026-06-08.
+- `bash scripts/verify.sh` and `npm run test:firestore` were not re-run this pass; every
+  step verify.sh chains except `npm ci` was run individually, and no Firestore rules or
+  persistence behavior changed.
+
+Security follow-up for the client:
+
+- Rotate the RentVine API key and secret that were shared in the tool-access spreadsheet,
+  and keep tool-access answers as non-secret references only.
+
+Next recommended task:
+
+Honor the migration-readiness stop gate recorded in `docs/loop-state.md`: the remaining
+blockers are client-owned, so prepare the client unblock / cutover handoff or reconcile
+the newly arrived tool-access answers (non-secret references only) rather than expanding
+local product surface. Run `npm run verify:falsification` as part of verification on the
+next cycle.

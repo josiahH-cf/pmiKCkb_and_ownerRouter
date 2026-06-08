@@ -27,8 +27,10 @@ route new work through the three-product docs.
 | Product definition gaps          | `docs/product-definition-gap-plan.md`                             |
 | How to work next                 | `docs/implement.md`                                               |
 | Autonomous feature-cycle runner  | `docs/autonomous-agent-runner.md`                                 |
+| Plan, run, or continue the loop  | `docs/loop-state.md`, then `docs/autonomous-agent-runner.md`      |
 | Local-dev stop/cutover gate      | `docs/autonomous-agent-runner.md`, `docs/implement.md`            |
 | Current status and blockers      | `docs/status.md`                                                  |
+| Loop resume state and next slice | `docs/loop-state.md`                                              |
 | Client asks                      | `docs/client-checklist.md`                                        |
 | Client unblock and parallel work | `docs/status.md`, `docs/client-checklist.md`, `docs/implement.md` |
 | Engineering checklist            | `docs/engineering-checklist.md`                                   |
@@ -50,6 +52,8 @@ route new work through the three-product docs.
   Inbox 0.
 - `docs/autonomous-agent-runner.md`: production feature-cycle runner and approval
   gates.
+- `docs/loop-state.md`: single-read resume state for the unattended loop; update it at
+  each slice boundary.
 - `docs/environment-handoff.md`: non-secret environment, setup, and key ownership
   registry.
 - `docs/legacy/`: retired or superseded context kept for history.
@@ -68,6 +72,7 @@ route new work through the three-product docs.
 - Lint: `npm run lint`
 - Typecheck: `npm run typecheck`
 - Test: `npm test`
+- Falsification preflight: `npm run verify:falsification`
 - Reset demo data: `npm run demo:reset`
 - Demo operator: `npm run demo:operator`
 - Live cost preflight: `npm run check:live-cost`
@@ -101,6 +106,7 @@ route new work through the three-product docs.
 
 ## Documentation Rules
 
+- Update `docs/loop-state.md` at the start of a cycle and at each slice boundary.
 - Update `docs/status.md` after meaningful work.
 - Update `docs/plan.md` only when phases, milestones, or acceptance criteria change.
 - Update `docs/implement.md` when the operating workflow changes.

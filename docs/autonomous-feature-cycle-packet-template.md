@@ -43,11 +43,30 @@ Implementation batches:
 
 Verification plan:
 
+Falsification checklist (try to break the slice from fresh context):
+
+- Mismatches between intent and actual behavior:
+- Omissions or missing acceptance criteria:
+- Regressions or downstream breakage:
+- Rule or security-boundary violations:
+- Edge cases and unhandled states:
+- Invalid JSON or Markdown:
+- Stale command descriptions, prompt-chain hints, or missing linked docs:
+- Oversized files or suspiciously large diffs:
+
 Final user verification:
 
 Human-side work:
 
 Stop conditions:
+
+Slice continuation decision (continue to next slice or stop, and why):
+
+Stop-and-reset condition checked:
+
+Next safe slice candidate:
+
+Loop-state snapshot to record in `docs/loop-state.md`:
 
 ## Blocker Record
 
@@ -110,6 +129,8 @@ Validation run:
 
 Validation result:
 
+Falsification result:
+
 Cost or client-environment actions avoided:
 
 Remaining blockers:
@@ -117,6 +138,8 @@ Remaining blockers:
 Exact client asks:
 
 Commit queue:
+
+Loop-state updates recorded:
 
 Manual user review at the end of the run:
 

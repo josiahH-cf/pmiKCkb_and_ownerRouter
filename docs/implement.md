@@ -2,13 +2,17 @@
 
 ## Start Here
 
-1. Read `AGENTS.md`.
-2. Read `docs/north-star.md`.
-3. Read the relevant file in `docs/products/`.
-4. Read `docs/product-definition-gap-plan.md` when scope, product shape, or follow-up
+1. Read `docs/loop-state.md` first to resume the loop without rediscovering context.
+2. Read `AGENTS.md`.
+3. Read `docs/north-star.md`.
+4. Read the relevant file in `docs/products/`.
+5. Read `docs/product-definition-gap-plan.md` when scope, product shape, or follow-up
    questions are part of the task.
-5. Read the latest entries in `docs/status.md`.
-6. Check the git worktree and preserve user changes.
+6. Read the latest entries in `docs/status.md`.
+7. Check the git worktree and preserve user changes.
+
+For a full feature cycle, `docs/autonomous-agent-runner.md` holds the canonical
+context-intake order; this list is the lighter task-triage entry point.
 
 Do not start from older KB-only or separate Owner Router assumptions. Those are legacy
 unless an active product doc preserves a specific safety rule.
@@ -70,9 +74,12 @@ batches. Include a recommended default answer for each question based on the act
 context so the client can answer "yes" or provide targeted edits.
 
 When the user asks to plan the next feature run cycle, route through
-`docs/autonomous-agent-runner.md`. The cycle should front-load decisions in a
-decision-complete packet, then let safe local implementation, verification, and
-commit-queue preparation run without user review after every internal phase.
+`docs/autonomous-agent-runner.md`. Read the trigger literally: "plan" produces a
+decision-complete packet and stops; "run the loop", "continue", "build", or "implement"
+authorizes the unattended implementation loop, the verification-and-falsification phase,
+and the multi-slice continuation loop without user review between internal phases or safe
+slices. Update `docs/loop-state.md` at each slice boundary and stop when a stop-and-reset
+condition fires.
 
 Use `docs/temp/` for scratch cycle packets and draft client communications. Promote only
 durable decisions, blockers, client asks, and research questions into active docs.

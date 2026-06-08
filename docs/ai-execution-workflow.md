@@ -4,21 +4,28 @@ This workflow keeps daily AI sessions aligned with the three purchased products.
 
 ## Start Of Session
 
-1. Read `AGENTS.md`.
-2. Read `docs/north-star.md`.
-3. Read the relevant product lane in `docs/products/`.
-4. Read `docs/status.md` from the latest entry backward.
-5. Check the git worktree before edits and preserve user changes.
+1. Read `docs/loop-state.md` first to resume the loop without rediscovering context.
+2. Read `AGENTS.md`.
+3. Read `docs/north-star.md`.
+4. Read the relevant product lane in `docs/products/`.
+5. Read `docs/status.md` from the latest entry backward.
+6. Check the git worktree before edits and preserve user changes.
+
+`docs/autonomous-agent-runner.md` holds the canonical full context-intake order for
+feature cycles.
 
 ## Autonomous Feature Run Cycle
 
 When the user asks to plan the next feature run cycle, use
-`docs/autonomous-agent-runner.md`.
+`docs/autonomous-agent-runner.md`. "Plan" produces a decision-complete packet and stops;
+"run the loop", "continue", "build", or "implement" authorizes unattended execution.
 
-The target loop is: gather context, create a decision-complete cycle packet in
-`docs/temp/`, ask planning-phase questions in one batch when needed, build safe local
-work unattended, verify, prepare a commit queue, and then hand one end-of-run review
-point to the user.
+The target loop is: gather context starting from `docs/loop-state.md`, create a
+decision-complete cycle packet in `docs/temp/`, ask planning-phase questions in one batch
+when needed, build safe local work unattended, run the verification-and-falsification
+phase, repair clear issues, align docs and `docs/loop-state.md`, prepare a commit queue,
+and continue into the next safe slice until a stop-and-reset condition fires. The user
+verifies at the end-of-run review point, not after every internal phase.
 
 Before choosing a local feature, run the migration-readiness stop gate in
 `docs/autonomous-agent-runner.md`. If the proposed work does not improve production
