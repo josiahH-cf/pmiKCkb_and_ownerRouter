@@ -294,6 +294,6 @@ export function main() {
   console.log(`Falsification preflight passed across ${files.length} committable files.`);
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main();
 }
