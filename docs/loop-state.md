@@ -32,6 +32,11 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- Auth Page-Guard Test Coverage (2026-06-09, away-mode safe backlog item #2): added
+  `tests/unit/page-guards.test.ts` covering the previously-untested `lib/auth/page-guards.ts`
+  — capability/role pass-through, 401 redirect to `/sign-in`, 403 redirect to
+  `/sign-in?error=forbidden`, and non-auth-error rethrow. No runtime change. Verified green
+  (276 tests) and pushed to the `work/` branch.
 - Away-Mode Enablement + Entrypoint-Guard Hardening (2026-06-09): added the reversible
   away-mode overlay, the durable `$10` budget policy and `npm run check:budget-guard`
   preflight, CI guard step, and `.gitignore` hardening; then enabled the away-mode safe
@@ -68,6 +73,9 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-09 (auth page-guard test coverage): `npm run format:check`, `npm run lint`,
+  `npm run typecheck`, `npm test` (276 tests, 39 files), `npm run verify:falsification`
+  (259 files), and `npm run verify:router-boundary` all passed.
 - 2026-06-09 (away-mode enablement + entrypoint-guard hardening): `npm run format:check`,
   `npm run lint`, `npm run typecheck`, `npm test` (270 tests), `npm run test:firestore`
   (23 rules tests, Java 21 present), `npm run verify:router-boundary`,
