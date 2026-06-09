@@ -66,6 +66,46 @@ Batch everything that needs the owner into the On-Return Review Queue rather tha
 approval prompts or notifications during the window. A clean stop with a current
 `docs/loop-state.md` is a successful outcome.
 
+## Safe Backlog While Away
+
+While away mode is active, the unattended loop is authorized to execute the bounded
+backlog below without further approval. This is the work that lets the loop run unattended
+without stalling on the client-owned blockers (which cannot progress while the owner is
+away). It is consistent with the Migration-Readiness Stop Gate: it is quality and
+readiness work, **not new product surface**.
+
+Per-slice rules:
+
+- Only quality/readiness work: regression fixes, test-coverage gaps, dry-run/preflight and
+  cutover-prep tooling, and non-secret docs/handoff hygiene. Do not add new product
+  features, runtime, or speculative surface.
+- No cost/cloud/external action: no live (`ASK_DEMO_MODE=false`) runs, deploys, imports,
+  Gmail, key use, external-system writes, or sends. Run `npm run check:budget-guard` first.
+- Verify proportional to the change (at least `npm run verify:falsification`; add
+  `lint`/`typecheck`/`test` for code; `test:firestore` for persistence — Java is available).
+- Commit and push only to the current `work/` branch. No PR, no merge to `main`.
+- Update `docs/loop-state.md` at each slice boundary; queue anything needing the owner.
+
+Backlog (ranked, finite — work top-down, skip what needs a client/cost/external decision):
+
+1. Script entrypoint-guard hardening — **done 2026-06-09** (`process.argv[1]` guard across
+   all `scripts/*.mjs|ts`).
+2. Test-coverage gaps on shipping behavior (KB Ask/citations, Approval Queue,
+   workflow-run/process-definition, source-state/permission/prompt) — add tests only where
+   a real, currently-uncovered behavior gap exists.
+3. Regression and simplification sweeps over the KB runtime — fix real bugs or dead code,
+   not cosmetic churn.
+4. Cutover/migration-readiness tooling, dry-run only — tighten `preflight:production`,
+   `corpus:plan` manifests/templates, deploy dry-run output, rollback notes, and acceptance
+   fixtures.
+5. Docs/runbook/handoff hygiene (non-secret) — keep `status.md`, this file, loop-state,
+   `client-checklist.md`, and `environment-handoff.md` current and discoverable.
+
+Exhaustion stop: when the backlog is cleared and verification (including `test:firestore`)
+is green with no real regression, **stop and wait for return**. Do not invent product
+surface to keep the loop busy. Record the stop in `docs/loop-state.md` and notify only if a
+decision is newly required.
+
 ## Daily Self-Check
 
 While away mode is active, run `npm run check:budget-guard` before any borderline action

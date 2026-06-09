@@ -15,8 +15,10 @@ continuation, and stop-and-reset rules.
 - Operating mode: AWAY MODE active (see `docs/away-mode.md`) — owner on vacation, expected
   return ~2026-06-16; spend nothing (~$10 cap), queue approvals for return, do not ping.
   Restore full openness via the Return Checklist in `docs/away-mode.md`.
-- Active product lane: Cross-product client unblock / cutover handoff
-- Loop status: Stopped — migration-ready but client-blocked
+- Active product lane: Cross-product readiness/quality hardening (away-mode safe backlog)
+- Loop status: Running the away-mode safe backlog (see `docs/away-mode.md`). Still
+  migration-ready and client-blocked for all cost/cloud/external work; client-unblock
+  items are queued for return because they cannot progress while the owner is away.
 - Recommend fresh context window: not required; safe to resume from this file
 
 ## Migration Readiness
@@ -30,6 +32,13 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- Away-Mode Enablement + Entrypoint-Guard Hardening (2026-06-09): added the reversible
+  away-mode overlay, the durable `$10` budget policy and `npm run check:budget-guard`
+  preflight, CI guard step, and `.gitignore` hardening; then enabled the away-mode safe
+  backlog and ran its first slice — guarded the `process.argv[1]` entrypoint check across
+  all `scripts/*.mjs|ts` so the cost/tooling scripts are safe to import dynamically.
+  Verified green and pushed to the `work/` branch. No cloud, Gmail, credential, deploy,
+  import, send, or external-system action.
 - Client Unblock / Tool-Access Reconciliation (2026-06-09): reconciled the returned
   ignored tool-access spreadsheet into tracked non-secret docs. `docs/client-checklist.md`,
   `docs/research-backlog.md`, and `docs/environment-handoff.md` now mark tool access as
@@ -59,6 +68,11 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-09 (away-mode enablement + entrypoint-guard hardening): `npm run format:check`,
+  `npm run lint`, `npm run typecheck`, `npm test` (270 tests), `npm run test:firestore`
+  (23 rules tests, Java 21 present), `npm run verify:router-boundary`,
+  `npm run verify:falsification` (258 committable files), `npm run build`, and
+  `npm run check:budget-guard` (demo posture, away mode active, $10 cap) all passed.
 - 2026-06-09 (client unblock / tool-access reconciliation docs pass):
   `npm run format:check`, `git diff --check`, `npm run verify:router-boundary`, and
   `npm run verify:falsification` (254 committable files) all passed. Runtime checks were
@@ -87,21 +101,23 @@ continuation, and stop-and-reset rules.
 
 ## Next Safe Slice Candidates
 
-Ranked. Choose per the Multi-Slice Continuation Loop and Stop-And-Reset rules.
+While away mode is active, work the **Safe Backlog While Away** in `docs/away-mode.md`
+top-down (entrypoint-guard hardening is done; next is test-coverage gaps, then regression
+sweeps, then dry-run cutover tooling, then docs hygiene). Each slice is
+quality/readiness only, verified, committed and pushed to the `work/` branch, with no
+cost/cloud/external action. When that backlog is exhausted and verification is green, stop
+and wait for return.
 
-1. Client unblock / cutover handoff (preferred). The remaining blockers are client-owned,
-   so the highest-value safe work is preparing and tightening the client unblock and
-   cutover handoff, not new local feature surface. See `docs/client-checklist.md`.
+Queued for return (cannot progress while the owner is away):
+
+1. Client unblock / cutover handoff. The remaining blockers are client-owned, so this is
+   on-return work, not an away-mode slice. See `docs/client-checklist.md`.
 2. Client follow-up draft review. An ignored draft exists at
    `docs/temp/2026-06-09-tool-access-follow-up.md`; sending or posting it is an external
-   communication and still needs explicit user/client approval.
-3. Regression hardening / docs alignment only. Safe if it fixes a real regression or
-   stale doc; otherwise deferred by the stop gate.
-
-Deferred (blocked by the stop gate unless tied to cutover/acceptance/quality): the
-process-definition Activity / revision-history view that surfaces Approval Queue return
-reasons on the process detail page. This was the prior "next local slice" idea but is now
-deferred because remaining blockers are client-owned.
+   communication and needs explicit user/client approval.
+3. Process-definition Activity / revision-history view (surfaces Approval Queue return
+   reasons on the process detail page). Deferred by the stop gate as new product surface;
+   revisit on return unless it becomes tied to cutover/acceptance/quality.
 
 ## Active Blockers And Exact Client Asks
 
@@ -144,10 +160,15 @@ review, then continue with safe local work or stop cleanly.
 
 ## Stop-Condition State
 
-- Fired: Migration readiness reached — local verification green, cutover/preflight
-  artifacts current, client asks clear, remaining blockers client-owned.
-- Recommended next action: client unblock / cutover prep and follow-up on the remaining
-  client-owned asks. Do not expand local product surface to keep the loop active.
+- Active: Running the away-mode safe backlog (`docs/away-mode.md`). Migration readiness
+  remains reached (verification green, cutover/preflight artifacts current, client asks
+  clear, remaining blockers client-owned); the loop is doing bounded quality/readiness
+  work only, not expanding product surface.
+- Stop when: the safe backlog is exhausted with verification green, or any away-mode stop
+  condition fires (a step needs cost/cloud/external/approval). Then wait for return; do not
+  invent product surface to keep the loop active.
+- Recommended next action: continue the away-mode safe backlog; route client unblock /
+  cutover prep to the on-return queue.
 
 ## Commit Queue Status
 
