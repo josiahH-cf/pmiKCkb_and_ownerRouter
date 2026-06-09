@@ -32,6 +32,12 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- KB Core Bug-Hunt Sweep (2026-06-09, away-mode safe backlog item #3): ran a read-only
+  adversarial sweep over the anti-hallucination, ask-orchestration, and approval/workflow
+  paths. Ask orchestration and demo/cost gating are sound. Surfaced four candidate issues
+  in sensitive subsystems whose fixes need owner decisions; recorded them in the On-Return
+  Review Queue and made no runtime change. The decision-free safe backlog (entrypoint
+  guards, page-guard coverage) is now essentially exhausted.
 - Auth Page-Guard Test Coverage (2026-06-09, away-mode safe backlog item #2): added
   `tests/unit/page-guards.test.ts` covering the previously-untested `lib/auth/page-guards.ts`
   — capability/role pass-through, 401 redirect to `/sign-in`, 403 redirect to
@@ -161,10 +167,36 @@ review, then continue with safe local work or stop cleanly.
 
 - Away mode state: ACTIVE; activated 2026-06-09; expected return ~2026-06-16; review-by
   2026-06-20. Budget cap $10; no live cloud spend (billing unprovisioned).
-- (No new items queued this cycle.) All existing client-owned asks remain tracked in
-  `docs/client-checklist.md` and the Active Blockers section above; do not re-raise them
-  as approval pings while away.
-- On return: work the Return Checklist in `docs/away-mode.md`, then clear this queue.
+- All existing client-owned asks remain tracked in `docs/client-checklist.md` and the
+  Active Blockers section above; do not re-raise them as approval pings while away.
+- Bug-hunt sweep candidates (2026-06-09, read-only; pre-existing, NOT regressions from
+  this cycle). Each needs owner verification/decision before any fix — left unchanged
+  while away because the fixes are product-contract or state-machine decisions:
+  1. Anti-hallucination contract: the `UNVERIFIED_PLACEHOLDER` ("Needs Verification:
+     <fact>") can reach the customer-facing `answer` field — `finalizeGeneratedAnswer`/
+     `stripDraftBannerFromAnswer` (`lib/ask/service.ts:135,152`) don't strip/reject it and
+     the prompt (`lib/llm/prompt.ts:14`) doesn't scope it to draft only. DECISION:
+     `docs/north-star.md` lists this placeholder as acceptable visible uncertainty, but
+     `docs/spec.md` (~280) says placeholders belong in draft only. Resolve the contract,
+     then either guard the answer field (downgrade to No Reliable Source) + clarify the
+     prompt, or document that it is allowed.
+  2. Workflow sync: `syncProcessDefinitionQueueItemTransition` (`lib/firestore/workflows.ts:443`)
+     only reverts a definition out of "Pending Approval" when its queue item is
+     "Returned". If a process-definition queue item can reach a terminal non-Returned
+     state (Cancelled/Disabled/Closed), the definition may stay "Pending Approval"
+     (uneditable, unactivatable). Reachability UNVERIFIED; decide the revert-status mapping
+     before fixing, then add tests.
+  3. Approval-queue refresh: `refreshOpenItem` (`lib/firestore/approval-queue.ts:687`)
+     passes the pre-update `current` item to `appendActivity`/notifications, while
+     `transitionApprovalQueueItem` passes the merged item — so a refresh that changes
+     assignee/required_approver may notify stale recipients. Note the audit
+     `prior_version_snapshot` intentionally captures the prior state, so a fix must keep
+     the audit snapshot (prior) separate from the notification item (current). Verify
+     `appendApprovalQueueNotificationsForActivity` recipient logic, then fix + test.
+  4. Test gap (depends on #2): no coverage for process-definition queue items in terminal
+     non-Returned states.
+- On return: work the Return Checklist in `docs/away-mode.md`, then triage the bug-hunt
+  candidates above and clear this queue.
 
 ## Stop-Condition State
 
