@@ -105,7 +105,8 @@ Acceptance criteria:
 - Gmail Inbox 0 label/filter/Gem or prompt-pack capability is verified without touching
   live client mail unsafely.
 - Lease Renewal Agent candidate integrations are classified as read-only, write-capable,
-  unsupported, or blocked.
+  unsupported, or blocked. The verified starting classification and per-vendor evidence
+  live in `docs/integration-architecture.md`; client confirmation can still change it.
 - Unverified capabilities remain in `docs/research-backlog.md`.
 
 Validation:
@@ -148,6 +149,17 @@ Acceptance criteria:
   `Needs Connection`, `Needs Permission`, `Ready for Test`, `Approved for Execution`,
   and `Disabled`; execution requires a change preview and rollback/correction note; and
   Admins can disable an action type without deleting the process definition.
+- Action Registry is the acceptance artifact for the model above: one record per external
+  action type carrying target system, documented evidence, required permissions, plan
+  tier, readiness, preview, rollback, and a `production_allowed` gate that stays false
+  until an approved spec changes it. See `docs/integration-architecture.md`.
+- Integration build order is approved: Maintenance Work Order Intake is the first
+  executable-write target (documented Rentvine work-order writes plus the LeadSimple
+  Rentvine maintenance sync); the Rentvine lease-renewal writeback stays non-executable
+  until vendor-confirmed and approved.
+- Source-vocabulary normalization is a gate before any live connector work: canonical
+  stage, system, record-ID, and approval names are frozen so authoritative field meaning
+  is unambiguous across legacy and current systems.
 
 Validation:
 
@@ -314,6 +326,9 @@ Key gates:
   source, pending client system confirmation, while preserving manual start.
 - Build read/gather actions before write actions: signed lease and dates,
   tenant/property facts, owner information, current rent/terms, and renewal timeline.
+- Keep the Rentvine lease-renewal writeback non-executable: the renewal-write endpoint is
+  undocumented in the public API, so it stays vendor-confirmation-required and gated
+  behind an approved per-action spec even after reads are working.
 - Show imported fact source, timestamp, and confidence before approval; block conflicting
   facts until a human chooses the correct source; and maintain a missing-facts list with
   AI-suggested locations plus links to add the missing resource or description.

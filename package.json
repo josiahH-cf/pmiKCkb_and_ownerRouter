@@ -45,7 +45,8 @@
     "seed:launch-skeletons": "node scripts/seed-launch-skeletons.mjs",
     "seed:source-meta": "node scripts/seed-source-meta.mjs",
     "seed:spaces": "node scripts/seed-spaces.mjs",
-    "seed:demo": "node scripts/seed-demo-records.mjs"
+    "seed:demo": "node scripts/seed-demo-records.mjs",
+    "seed:action-registry": "tsx scripts/seed-action-registry.ts"
   },
   "dependencies": {
     "@google-cloud/discoveryengine": "^2.7.0",

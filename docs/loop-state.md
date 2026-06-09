@@ -27,20 +27,32 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
-- Workflow Return/Revision Dev Cycle (2026-06-06): process-definition return/revision
-  handling, returned-item resubmission behavior, and a read-only Recent Simulation Runs
-  panel on `/processes`. Followed by the Migration-Readiness Stop Guardrail Context
-  Update, which propagated the stop gate across the active routing/runner/docs.
-- Status: built, verified, doc-aligned. No commit/push performed by that cycle.
+- Integration Architecture + Action Registry Foundation (2026-06-08): ratified the
+  verified tool-stack research into `docs/integration-architecture.md` and
+  `docs/research/integration-capability-2026-06.md`, propagated downstream effects across
+  governance/product/pipeline docs, and built the metadata-only Action Registry
+  (constants, `ActionRegistryRecord` type + Zod schema with a `production_allowed`
+  governance refine, read-only `lib/firestore/action-registry.ts`, typed seed catalog,
+  `scripts/seed-action-registry.ts` + `npm run seed:action-registry`, server-write-only
+  `action_registry` Firestore rule, and tests). Every seeded entry is
+  `production_allowed: false`; no external write paths were added.
+- Decisions: Maintenance Work Order Intake is the first executable-write target; the
+  Rentvine lease-renewal writeback is undocumented and stays gated; Sheets is an
+  exception surface, not a source of truth.
+- Status: built and doc-aligned. No commit/push performed by this cycle.
+- Prior slice: Workflow Return/Revision Dev Cycle (2026-06-06): process-definition
+  return/revision handling, returned-item resubmission behavior, and a read-only Recent
+  Simulation Runs panel on `/processes`.
 
 ## Last-Known-Green Verification
 
-- 2026-06-08 (loop-hardening pass): `npm run format:check`, `npm run lint`,
-  `npm run typecheck`, `npm test` (243 tests), `npm run verify:router-boundary`,
-  `npm run verify:falsification` (246 files), `npm run build`, and `git diff --check` all
-  passed. `bash scripts/verify.sh` and `npm run test:firestore` were not re-run this pass;
-  every step `verify.sh` chains except `npm ci` and the Firestore emulator was run
-  individually.
+- 2026-06-08 (integration architecture + Action Registry pass): `npm run typecheck`,
+  `npm run lint`, `npm run format:check`, `npm test` (257 tests),
+  `npm run test:firestore` (23 rules tests), `npm run seed:action-registry -- --dry-run`
+  (9 entries, all `production_allowed: false`, no writes), `npm run verify:falsification`
+  (254 files), `npm run verify:router-boundary`, and `npm run build` all passed. Full
+  `bash scripts/verify.sh` was not re-run as one command this pass; every step it chains
+  except `npm ci` was run individually.
 - 2026-06-06: `bash scripts/verify.sh` passed (format, lint, typecheck, 229 tests, router
   boundary, build); `npm run test:firestore` passed (20 rules tests).
 - Re-run after any change in this loop; record new results here and in `docs/status.md`.
@@ -82,6 +94,11 @@ All client-owned (tracked in `docs/client-checklist.md` and `docs/research-backl
 - Tool-access answers — PARTIALLY RECEIVED in `docs/client_docs/` (still needs QuickBooks;
   confirm which Google Sheets are in scope).
 - Signed lease / lease-end-date source location.
+- Rentvine lease-renewal-write endpoint confirmation — undocumented in the public API;
+  vendor confirmation required before any renewal writeback (see
+  `docs/integration-architecture.md`).
+- Source-vocabulary normalization — freeze canonical stage/system/record-ID/approval names
+  (legacy Propertyware vs Rentvine "RV") before any live connector work.
 - Gmail Inbox 0 safe test-thread protocol confirmation.
 - Approval sender (`kb-automation@pmikcmetro.com`) and launch approver defaults
   (Dan + Josiah) — confirm or correct.

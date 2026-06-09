@@ -14,6 +14,12 @@ Use it before older demo docs or preserved specs.
 ## Rules
 
 - Treat these docs as the current client-purchased direction.
+- For external-tool roles, event model, build order, and the Action Registry, read
+  `docs/integration-architecture.md`. Tools are not interchangeable: Rentvine is the
+  system of record, LeadSimple orchestrates, Dotloop holds documents, QuickBooks is
+  downstream accounting, Boom is auxiliary resident services, and Sheets is an exception
+  surface. Maintenance Work Order Intake is the first executable-write target; Rentvine
+  lease-renewal writeback is undocumented and stays gated.
 - Preserve original specs in `docs/specs/`, but do not let older repo-boundary language
   override the monorepo governance in `docs/north-star.md`.
 - Do not build runtime code for Lease Renewal Agent or Gmail Inbox 0 until their

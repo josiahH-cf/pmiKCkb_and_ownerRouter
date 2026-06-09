@@ -17,31 +17,33 @@ route new work through the three-product docs.
 
 ## Route Table
 
-| Need                             | Read                                                              |
-| -------------------------------- | ----------------------------------------------------------------- |
-| North star and product direction | `docs/north-star.md`                                              |
-| Product lane routing             | `docs/products/README.md`, then the relevant product doc          |
-| Phase plan and acceptance gates  | `docs/plan.md`                                                    |
-| Integration and cutover          | `docs/integration-cutover-plan.md`                                |
-| Environment and key handoff      | `docs/environment-handoff.md`                                     |
-| Product definition gaps          | `docs/product-definition-gap-plan.md`                             |
-| How to work next                 | `docs/implement.md`                                               |
-| Autonomous feature-cycle runner  | `docs/autonomous-agent-runner.md`                                 |
-| Plan, run, or continue the loop  | `docs/loop-state.md`, then `docs/autonomous-agent-runner.md`      |
-| Local-dev stop/cutover gate      | `docs/autonomous-agent-runner.md`, `docs/implement.md`            |
-| Current status and blockers      | `docs/status.md`                                                  |
-| Loop resume state and next slice | `docs/loop-state.md`                                              |
-| Client asks                      | `docs/client-checklist.md`                                        |
-| Client unblock and parallel work | `docs/status.md`, `docs/client-checklist.md`, `docs/implement.md` |
-| Engineering checklist            | `docs/engineering-checklist.md`                                   |
-| AI execution workflow            | `docs/ai-execution-workflow.md`                                   |
-| Research backlog                 | `docs/research-backlog.md`                                        |
-| Security and conventions         | `docs/engineering.md`                                             |
-| Original preserved specs         | `docs/specs/`                                                     |
-| KB technical spec                | `docs/spec.md`                                                    |
-| Legacy Owner Router split        | `docs/legacy/owner-router-separate-repo.md`                       |
-| Owner Router artifact source     | `docs/legacy/owner-router-artifact-source.md`                     |
-| Google setup details             | `docs/google-setup.md`, `SETUP.md`                                |
+| Need                              | Read                                                              |
+| --------------------------------- | ----------------------------------------------------------------- |
+| North star and product direction  | `docs/north-star.md`                                              |
+| Product lane routing              | `docs/products/README.md`, then the relevant product doc          |
+| Phase plan and acceptance gates   | `docs/plan.md`                                                    |
+| Integration and cutover           | `docs/integration-cutover-plan.md`                                |
+| Verified integration architecture | `docs/integration-architecture.md`                                |
+| Integration capability research   | `docs/research/integration-capability-2026-06.md`                 |
+| Environment and key handoff       | `docs/environment-handoff.md`                                     |
+| Product definition gaps           | `docs/product-definition-gap-plan.md`                             |
+| How to work next                  | `docs/implement.md`                                               |
+| Autonomous feature-cycle runner   | `docs/autonomous-agent-runner.md`                                 |
+| Plan, run, or continue the loop   | `docs/loop-state.md`, then `docs/autonomous-agent-runner.md`      |
+| Local-dev stop/cutover gate       | `docs/autonomous-agent-runner.md`, `docs/implement.md`            |
+| Current status and blockers       | `docs/status.md`                                                  |
+| Loop resume state and next slice  | `docs/loop-state.md`                                              |
+| Client asks                       | `docs/client-checklist.md`                                        |
+| Client unblock and parallel work  | `docs/status.md`, `docs/client-checklist.md`, `docs/implement.md` |
+| Engineering checklist             | `docs/engineering-checklist.md`                                   |
+| AI execution workflow             | `docs/ai-execution-workflow.md`                                   |
+| Research backlog                  | `docs/research-backlog.md`                                        |
+| Security and conventions          | `docs/engineering.md`                                             |
+| Original preserved specs          | `docs/specs/`                                                     |
+| KB technical spec                 | `docs/spec.md`                                                    |
+| Legacy Owner Router split         | `docs/legacy/owner-router-separate-repo.md`                       |
+| Owner Router artifact source      | `docs/legacy/owner-router-artifact-source.md`                     |
+| Google setup details              | `docs/google-setup.md`, `SETUP.md`                                |
 
 ## Project Map
 
@@ -50,6 +52,9 @@ route new work through the three-product docs.
 - `lib/`: KB auth, source-state, retrieval, prompt, Firestore, and citation boundaries.
 - `docs/products/`: active product-lane docs for KB, Lease Renewal Agent, and Gmail
   Inbox 0.
+- `docs/integration-architecture.md`: verified tool-role map, event model, build order,
+  and the Action Registry model for external integrations.
+- `docs/research/`: durable, citable research findings (e.g. integration capability).
 - `docs/autonomous-agent-runner.md`: production feature-cycle runner and approval
   gates.
 - `docs/loop-state.md`: single-read resume state for the unattended loop; update it at
@@ -90,6 +95,9 @@ route new work through the three-product docs.
 - Source states and shared vocabulary are constants; do not rename them casually.
 - Enforce anti-hallucination in code before model calls.
 - Keep runtime changes scoped to the relevant product lane.
+- External-tool roles and per-action readiness live in the Action Registry and
+  `docs/integration-architecture.md`; Maintenance Work Order Intake is the first
+  executable write, and Rentvine lease-renewal writeback stays gated as undocumented.
 - Add tests with any behavior change.
 - Do not build Lease Renewal Agent or Gmail Inbox 0 runtime behavior until their
   product docs define scope, permissions, and acceptance gates.

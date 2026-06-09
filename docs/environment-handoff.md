@@ -87,6 +87,21 @@ specific need.
 | Gmail Inbox 0                | Prod         | Label names, safe test model, management-page scope.          | Gmail credentials only through approved setup.           | Dan-approved mailbox scan, label/filter, and draft/reply model.     | Safe thread or supervised test.                    | Live Gmail read/modify/draft approval.         |
 | External systems             | Future       | Target system, action type, readiness state, owner, rollback. | Per-system approved credential storage.                  | Future approved spec, tests, audit fields, rollback/error handling. | Deterministic API health checks.                   | Per target-system/action-type approval.        |
 
+### External System Integration Registry
+
+Per-vendor handoff detail for the future integrations, aligned with the verified roles in
+`docs/integration-architecture.md`. None are provisioned; all writes stay gated. Action
+types are catalogued in the `action_registry` collection (`production_allowed: false`).
+
+| System        | Role                          | Event mode                | Plan/tier note                        | Credential owner (future)        |
+| ------------- | ----------------------------- | ------------------------- | ------------------------------------- | -------------------------------- |
+| Rentvine      | Operational system of record  | Polling / LeadSimple sync | Account API key + roles; rotate creds | PMI KC; key rotation required    |
+| LeadSimple    | Workflow orchestration        | LeadSimple sync           | Operations plan for Rentvine sync     | PMI KC admin-enabled REST key    |
+| Dotloop       | Document-package layer        | Webhook                   | OAuth2 approved app program           | PMI KC approved app registration |
+| QuickBooks    | Accounting (downstream)       | Webhook                   | Online Accounting API; still missing  | PMI KC; not in tool-access sheet |
+| Boom          | Resident services (auxiliary) | Webhook (vendor-packet)   | Endpoint contract request-only        | PMI KC; vendor packet required   |
+| Google Sheets | Exception / control plane     | Apps Script triggers      | Confirm which sheets are in scope     | PMI KC Workspace owner           |
+
 ## Key And Secret Ownership
 
 | Secret or credential class       | Preferred storage                      | Repo record allowed                  | Owner needed before production? | Rotation/revocation note                                    |

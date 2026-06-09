@@ -1,4 +1,9 @@
 import type { Role } from "@/lib/auth/roles";
+import type {
+  ACTION_EVENT_MODES,
+  ACTION_EVIDENCE_STATUSES,
+  ACTION_TARGET_SYSTEMS,
+} from "@/lib/constants";
 import type { Citation } from "@/lib/schemas";
 import type { SourceState } from "@/lib/source-state";
 
@@ -127,6 +132,9 @@ export type ExternalActionReadiness =
   | "Ready for Test"
   | "Approved for Execution"
   | "Disabled";
+export type ActionTargetSystem = (typeof ACTION_TARGET_SYSTEMS)[number];
+export type ActionEventMode = (typeof ACTION_EVENT_MODES)[number];
+export type ActionEvidenceStatus = (typeof ACTION_EVIDENCE_STATUSES)[number];
 export type WorkflowRunTimelineEvent =
   | "started"
   | "status_changed"
@@ -154,6 +162,33 @@ export interface ProcessDefinitionActionReference {
   missing_connection_or_permission?: string;
   approval_owner_uid?: string;
   rollback_or_correction_note?: string;
+  action_registry_key?: string;
+}
+
+// One record per external action type. This is a metadata catalog that mirrors the
+// verified tool roles in docs/integration-architecture.md. It executes nothing: an entry
+// is eligible for production execution only when an approved spec sets `production_allowed`
+// to true, which the schema gates behind `Approved for Execution` + `Documented` evidence.
+export interface ActionRegistryRecord {
+  id: string;
+  key: string;
+  label: string;
+  target_system: ActionTargetSystem;
+  expected_action: string;
+  product_lane?: string;
+  readiness: ExternalActionReadiness;
+  evidence_status: ActionEvidenceStatus;
+  documented_evidence: string;
+  required_permissions: string[];
+  required_plan?: string;
+  event_ingestion_mode: ActionEventMode;
+  preview_schema_note: string;
+  test_notes?: string;
+  rollback_note: string;
+  connection_health_check_ref?: string;
+  production_allowed: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface UserRecord {

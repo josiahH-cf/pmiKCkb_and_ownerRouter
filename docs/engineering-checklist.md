@@ -26,6 +26,9 @@ npm test
 - Configure Firebase web app values and authorized production domains.
 - Deploy Firestore rules and indexes.
 - Seed Spaces and launch skeletons only after project confirmation.
+- Seed the Action Registry catalog with `npm run seed:action-registry` (Admin SDK only);
+  confirm every entry stays `production_allowed: false` until an approved per-action spec
+  changes it.
 - Build approved production source manifests from client-provided sources.
 - Import sources to Agent Search and seed `sources_meta`.
 - Configure `SPACE_DRIVE_FOLDER_IDS`, `SPACE_VERTEX_DATA_STORE_IDS`, and `APP_BASE_URL`.
@@ -43,6 +46,19 @@ npm test
   owners, notification channels, and prohibited write paths.
 - Identify which current KB Lease Renewals artifacts can be reused as source material.
 - Draft acceptance scenarios before selecting integration architecture.
+
+## Maintenance Work Order Intake
+
+- Treat this as the first executable-write target per `docs/integration-architecture.md`,
+  ahead of any Rentvine lease-renewal writeback.
+- Inventory the Rentvine work-order fields, statuses, vendor trades, and inspection
+  objects the intake will read and create.
+- Confirm the LeadSimple Rentvine maintenance sync availability and Operations plan tier,
+  and map LeadSimple stages to Rentvine work-order statuses before building.
+- Keep QuickBooks downstream: preserve the Rentvine work-order number and property/unit
+  context on any accounting artifact, and do not originate workflow there.
+- Catalog each action in the Action Registry with documented evidence, readiness,
+  preview, and rollback before requesting any executable approval.
 - Add tests only after an implementation boundary is approved.
 
 ## Gmail Inbox 0

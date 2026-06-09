@@ -7,6 +7,13 @@
   automations.
 - Lease Renewal Agent is the first backend automation target after KB production, but
   integration architecture and write permissions are not approved yet.
+- External-tool roles, event model, build order, and the Action Registry are defined in
+  `docs/integration-architecture.md`: Rentvine is the system of record, LeadSimple
+  orchestrates, Dotloop holds documents, QuickBooks is downstream accounting, Boom is
+  auxiliary, and Sheets is an exception surface. Maintenance Work Order Intake is the
+  first executable-write target; the Rentvine lease-renewal writeback is undocumented and
+  stays gated. Resulting state changes use webhooks where documented (Dotloop,
+  QuickBooks) and polling or LeadSimple sync for Rentvine.
 - Gmail Inbox 0 is Dan-email-first and Gmail-native for v1; it supersedes the
   client-facing Owner Router/Dan's AI Assistant naming and starts with Dan's mailbox.
 - Older KB-only and separate-Owner-Router repository instructions are legacy unless
@@ -31,6 +38,8 @@
 - `lib/llm/` owns prompt assembly and model contracts.
 - `lib/citations/` owns citation validation.
 - `lib/firestore/` owns KB data model types and data access.
+- `lib/firestore/action-registry.ts` owns read-only access to the `action_registry`
+  catalog; it holds metadata only and executes no external action.
 
 ## Testing Expectations
 

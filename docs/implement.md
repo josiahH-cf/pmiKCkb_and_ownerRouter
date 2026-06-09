@@ -52,6 +52,10 @@ Continue iterating on:
   or client data.
 - Lease Renewal discovery artifacts, workflow-run/process-definition modeling,
   acceptance scenarios, read/gather fact models, and non-executable fixtures.
+- Action Registry catalog/schema modeling (metadata only, `production_allowed: false`)
+  and integration architecture per `docs/integration-architecture.md`, with Maintenance
+  Work Order Intake as the first executable-write target and the Rentvine lease-renewal
+  writeback gated as undocumented.
 - Gmail Inbox 0 label/rule/prompt planning, legacy artifact mining, safe-thread
   scenario design, and management-page planning without live Gmail access.
 - Tool access templates and integration capability classification using placeholders

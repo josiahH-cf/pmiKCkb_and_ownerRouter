@@ -43,6 +43,9 @@ runner, not as active production routing.
 
 - Maintain governance, plans, checklists, and status.
 - Convert confirmed client answers into product docs and acceptance gates.
+- Maintain `docs/integration-architecture.md` and the Action Registry catalog
+  (`action_registry`); registry entries are metadata only, stay `production_allowed:
+false`, and execute no external action.
 - Prepare source manifests and templates without committing source content.
 - Draft non-secret setup runbooks and validation checklists.
 - Add or improve tests for existing KB behavior when implementation changes.

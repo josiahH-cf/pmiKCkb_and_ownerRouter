@@ -120,6 +120,19 @@ Approval is scoped by target system and action type, not blanket system access.
 External action readiness states should be `Planned`, `Needs Connection`,
 `Needs Permission`, `Ready for Test`, `Approved for Execution`, and `Disabled`.
 
+Build order follows documented capability, per `docs/integration-architecture.md`.
+Maintenance Work Order Intake is the first executable-write target because Rentvine
+work-order writes and the LeadSimple Rentvine maintenance sync are documented; Rentvine
+holds the work order, LeadSimple orchestrates, QuickBooks records the downstream
+accounting artifact, and Sheets stays an exception/coordination surface. Lease Renewal
+preparation can proceed read-only, but the Rentvine lease-renewal writeback is
+undocumented in the public API and stays non-executable until vendor confirmation and an
+approved per-action spec. Each external action type is catalogued in the Action Registry
+(`action_registry` collection, seeded by `npm run seed:action-registry`), which records
+target system, documented evidence, required permissions and plan, readiness, preview,
+rollback, and whether production execution is allowed; every registry entry is
+`production_allowed: false` until an approved spec changes it.
+
 The first workflow-management layer should be loosely editable for process definitions.
 The whole team should be able to propose or edit process templates, steps, source links,
 and documentation pointers as new processes are discovered. Those changes should go
@@ -133,7 +146,10 @@ until they delegate that approval authority to someone else.
 The KB should own the first workflow-run record so context stays in one central,
 non-technical place. External systems should be referenced with backlinks and action
 records, not treated as the first source for workflow state. This keeps process context
-together now and allows separate processes to merge into larger workflows later.
+together now and allows separate processes to merge into larger workflows later. Owning
+the workflow-run record does not make the KB the system of record for external facts:
+Rentvine stays authoritative for leases, properties, contacts, work orders, and
+inspections, and the KB references those facts rather than replacing them.
 
 Each workflow run should show a human-readable summary at the top with current status,
 next action, blocker, owner, and due date if known. The run should also show a timeline

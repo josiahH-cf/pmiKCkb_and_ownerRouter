@@ -19,3 +19,31 @@ export const SOURCE_STATES = [
 ] as const;
 
 export const ROLES = ["Editor", "Approver", "Admin"] as const;
+
+// Action Registry vocabulary. One record per external action type catalogs the verified
+// integration roles in docs/integration-architecture.md. These are metadata only; nothing
+// here authorizes an external write.
+export const ACTION_TARGET_SYSTEMS = [
+  "Rentvine",
+  "LeadSimple",
+  "Dotloop",
+  "QuickBooks",
+  "Boom",
+  "Google Sheets",
+  "KB Internal",
+] as const;
+
+export const ACTION_EVENT_MODES = [
+  "Webhook",
+  "Polling",
+  "LeadSimple Sync",
+  "Apps Script",
+  "Manual",
+  "None",
+] as const;
+
+export const ACTION_EVIDENCE_STATUSES = [
+  "Documented",
+  "Vendor-Confirmation-Required",
+  "Undocumented",
+] as const;

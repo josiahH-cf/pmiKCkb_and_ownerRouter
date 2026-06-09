@@ -19,6 +19,10 @@ queue that keeps humans in control of approvals, sends, and system-of-record act
 
 - Current product routing lives in `AGENTS.md`, this file, `docs/products/`, and
   `docs/plan.md`.
+- Verified external-tool roles, event model, build order, and the Action Registry model
+  live in `docs/integration-architecture.md`, backed by
+  `docs/research/integration-capability-2026-06.md`. Tools are not interchangeable: each
+  has a distinct role, and Google Sheets is not a primary source of truth.
 - Older "KB-only" and "separate Owner Router repo" language is legacy unless a product
   doc explicitly preserves it as a runtime safety boundary.
 - Preserve original specs in `docs/specs/`; mark conflicts instead of silently merging
@@ -47,9 +51,19 @@ queue that keeps humans in control of approvals, sends, and system-of-record act
 - PMI KC KB is the current web app runtime and remains the first lane to production
   hardening. Its target end state includes AI-started workflow automation, but production
   launch should happen before external write paths are added.
-- Lease Renewal Agent is the first backend automation target after KB production. The
+- Rentvine is the operational system of record; LeadSimple is workflow orchestration;
+  Dotloop is the document-package layer; QuickBooks is the accounting layer downstream;
+  Boom is an auxiliary resident rent-reporting/screening service; Google Sheets is an
+  exception/control surface. The KB owns the central workflow-run record and references
+  external systems through backlinks and Action Registry action records.
+- Maintenance Work Order Intake is the first executable-write integration target, because
+  Rentvine work-order writes and the LeadSimple Rentvine maintenance sync are documented.
+  It is built inside the KB automation surface before lease-renewal writeback.
+- Lease Renewal Agent is the first backend automation product lane after KB production. The
   KB Lease Renewals Space is useful source material and a demo reference, not enough by
-  itself to identify external systems or write permissions.
+  itself to identify external systems or write permissions. Renewal preparation can proceed
+  read-only, but the Rentvine lease-renewal writeback is undocumented in the public API and
+  stays non-executable until vendor confirmation and an approved per-action spec.
 - Gmail Inbox 0 supersedes the client-facing Owner Router/Dan's AI Assistant naming.
   Existing Owner Router artifacts are reusable source material, but the active product
   lane starts with Dan's whole mailbox, not owner-email-only.

@@ -8,6 +8,15 @@ stood up in production. The existing KB Lease Renewals Space, demo source templa
 Ask scenarios are useful reference material only; they do not identify the live systems,
 permissions, or write paths needed for the full workflow.
 
+Verified tool-stack research (`docs/integration-architecture.md`, backed by
+`docs/research/integration-capability-2026-06.md`) clarifies the roles this lane depends
+on: Rentvine is the operational system of record and is read-authoritative for renewal
+candidate discovery (lease dates, tenant contacts, property/owner context); LeadSimple
+orchestrates the workflow; Dotloop is the candidate document-package/signing layer; Boom
+is optional resident rent-reporting at move-in/renewal. Critically, the Rentvine
+lease-renewal writeback (executing a renewal or changing renewal charges) is undocumented
+in the public API and is gated as vendor-confirmation-required.
+
 ## Planning Default
 
 Treat Lease Renewal Agent as a separate product lane in this monorepo. Do not build
@@ -110,6 +119,16 @@ The desired end state is: a team member starts the process, the automation gathe
 from connected systems, updates approved internal systems with backlinks, prepares a
 review package and owner email, Dan approves, and the system sends the approved owner
 communication.
+
+Lease renewal is a multi-step operational chain, not a single system action. The verified
+stage model is: candidate detection, owner decision, tenant intake, document package,
+signature/confirmation, system-of-record update, service/charge verification, and
+closeout. Detection and reads come from Rentvine; orchestration from LeadSimple; document
+packages from Dotloop; optional resident enrollment from Boom. The system-of-record
+update stage (writing the renewal back into Rentvine) stays non-executable until the
+Rentvine renewal-write endpoint is vendor-confirmed and an approved per-action spec,
+tests, and rollback exist. Renewal preparation and verification can proceed read-only
+before that gate clears.
 
 The first Lease Renewal planned actions should be read/gather actions before write
 actions. Initial planned reads should include signed lease and lease dates,
@@ -386,6 +405,13 @@ and success/stop/escalation condition.
 ## Discovery Needed
 
 - Where signed leases live and how lease timing can be read safely.
+- Whether Rentvine exposes a private or vendor-confirmed lease-renewal-write endpoint
+  (renewal execution, rent-increase, or renewal charge update). Public API docs do not
+  document one; this is the gate on renewal writeback.
+- Whether Dotloop is the renewal signing/document workspace, and the exact
+  signature-state lifecycle (send for signature, remind, completed, declined) needed.
+- Whether the LeadSimple Operations plan and Rentvine direct integration are available
+  for orchestration and read sync.
 - Whether any external system later needs to mirror or receive workflow-run state from
   the KB-owned record.
 - Which systems may be read, and which external system writes are allowed after an
@@ -435,5 +461,7 @@ and success/stop/escalation condition.
 
 - No automated renewal sender.
 - No RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Sheets, or bank write path.
+- No Rentvine lease-renewal writeback: the endpoint is undocumented in the public API and
+  stays non-executable until vendor confirmation plus an approved per-action spec.
 - No runtime trigger, queue, agent, or API integration until v1 scope is approved.
 - No confident renewal policy output without approved PMI KC sources.

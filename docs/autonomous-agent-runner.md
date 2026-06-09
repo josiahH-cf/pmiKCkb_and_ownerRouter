@@ -178,12 +178,19 @@ would:
 - read, modify, label, draft, or send live Gmail,
 - send email or external communications,
 - write to RentVine, LeadSimple, DotLoop, QuickBooks, Boom, operating Sheets, banks,
-  ledgers, client Drive folders, or any system of record.
+  ledgers, client Drive folders, or any system of record,
+- execute any external action whose Action Registry entry is not `Approved for Execution`
+  with `Documented` evidence, including any capability that is undocumented or only
+  vendor-confirmation-required (for example the Rentvine lease-renewal writeback).
 
 Approval requests must state the exact action, affected environment, product lane,
 expected cost or usage exposure when known, data touched, secrets/keys/roles/domains or
 external systems involved, verification path, rollback or correction path, and what
-remains blocked without approval.
+remains blocked without approval. The Action Registry (`docs/integration-architecture.md`)
+is the structure that carries each action type's target system, documented evidence,
+required permissions and plan, readiness, preview, and rollback; an action is eligible for
+execution approval only when its registry entry is `Approved for Execution`, `Documented`,
+and `production_allowed`.
 
 ## Secrets And Environments
 

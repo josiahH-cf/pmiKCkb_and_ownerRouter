@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { SOURCE_STATES } from "@/lib/constants";
+import {
+  ACTION_EVENT_MODES,
+  ACTION_EVIDENCE_STATUSES,
+  ACTION_TARGET_SYSTEMS,
+  SOURCE_STATES,
+} from "@/lib/constants";
 
 const isoDateSchema = z
   .string()
@@ -262,6 +267,56 @@ export const ExternalActionReadinessSchema = z.enum([
   "Disabled",
 ]);
 
+export const ActionTargetSystemSchema = z.enum(ACTION_TARGET_SYSTEMS);
+export const ActionEventModeSchema = z.enum(ACTION_EVENT_MODES);
+export const ActionEvidenceStatusSchema = z.enum(ACTION_EVIDENCE_STATUSES);
+
+const actionRegistryKeySchema = z
+  .string()
+  .trim()
+  .regex(
+    /^[a-z0-9]+(?:[._][a-z0-9]+)*$/,
+    "Expected a lowercase action key like rentvine.work_order.create.",
+  );
+
+// One record per external action type. `production_allowed` is the production execution
+// gate: it may be true only when the action is `Approved for Execution` with `Documented`
+// evidence, so an undocumented or vendor-confirmation-required capability can never be
+// marked production-eligible by accident.
+export const CreateActionRegistryInputSchema = z
+  .object({
+    key: actionRegistryKeySchema,
+    label: requiredTextSchema,
+    target_system: ActionTargetSystemSchema,
+    expected_action: requiredTextSchema,
+    product_lane: optionalTextSchema,
+    readiness: ExternalActionReadinessSchema.default("Planned"),
+    evidence_status: ActionEvidenceStatusSchema,
+    documented_evidence: requiredTextSchema,
+    required_permissions: z.array(requiredTextSchema).default([]),
+    required_plan: optionalTextSchema,
+    event_ingestion_mode: ActionEventModeSchema.default("None"),
+    preview_schema_note: requiredTextSchema,
+    test_notes: optionalTextSchema,
+    rollback_note: requiredTextSchema,
+    connection_health_check_ref: optionalTextSchema,
+    production_allowed: z.boolean().default(false),
+  })
+  .refine(
+    (input) =>
+      !input.production_allowed ||
+      (input.readiness === "Approved for Execution" &&
+        input.evidence_status === "Documented"),
+    {
+      message:
+        "production_allowed requires readiness 'Approved for Execution' and 'Documented' evidence.",
+      path: ["production_allowed"],
+    },
+  );
+
+export type CreateActionRegistryInput = z.input<typeof CreateActionRegistryInputSchema>;
+export type ParsedActionRegistryInput = z.output<typeof CreateActionRegistryInputSchema>;
+
 const queueProcessRunRefSchema = z.object({
   id: requiredTextSchema,
   label: requiredTextSchema,
@@ -354,6 +409,7 @@ const processDefinitionActionReferenceInputSchema = z.object({
   missing_connection_or_permission: optionalTextSchema,
   approval_owner_uid: optionalTextSchema,
   rollback_or_correction_note: optionalTextSchema,
+  action_registry_key: optionalTextSchema,
 });
 
 export const CreateProcessDefinitionInputSchema = z.object({

@@ -555,6 +555,7 @@ function normalizeSteps(
 
 function normalizeActionReferences(
   actions: Array<{
+    action_registry_key?: string;
     approval_owner_uid?: string;
     expected_action: string;
     id?: string;
@@ -575,6 +576,7 @@ function normalizeActionReferences(
       missing_connection_or_permission: action.missing_connection_or_permission,
       approval_owner_uid: action.approval_owner_uid,
       rollback_or_correction_note: action.rollback_or_correction_note,
+      action_registry_key: action.action_registry_key,
     }),
   ) as ProcessDefinitionActionReference[];
 }

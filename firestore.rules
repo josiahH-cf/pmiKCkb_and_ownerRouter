@@ -164,6 +164,13 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Action Registry is a server-seeded catalog (Admin SDK only). Client writes stay
+    // denied so readiness and the production_allowed gate cannot be changed from the app.
+    match /action_registry/{actionId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
     match /ask_logs/{logId} {
       allow read: if signedIn() && editorOrBetter();
       allow create, update, delete: if false;

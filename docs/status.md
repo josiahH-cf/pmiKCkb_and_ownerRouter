@@ -3899,3 +3899,39 @@ blockers are client-owned, so prepare the client unblock / cutover handoff or re
 the newly arrived tool-access answers (non-secret references only) rather than expanding
 local product surface. Run `npm run verify:falsification` as part of verification on the
 next cycle.
+
+## Integration Architecture Ratified And Action Registry Foundation
+
+- Date: 2026-06-08
+- Trigger: verified deep-research review of the tool stack (Rentvine, LeadSimple, Dotloop,
+  QuickBooks, Boom, Google Sheets). The research did not contradict governance; it added
+  decision-grade specificity that the docs lacked.
+- Preserved the verified findings and sources in
+  `docs/research/integration-capability-2026-06.md` (durable, out of `docs/temp/`).
+- Added `docs/integration-architecture.md`: tool-role map, event model, build order,
+  lease-renewal and maintenance process chains, the Action Registry model, the
+  vendor-confirmation matrix, and the source-normalization requirement.
+- Encoded downstream effects across governance and pipeline docs: `docs/north-star.md`,
+  `docs/products/README.md`, `docs/products/pmi-kc-kb.md`,
+  `docs/products/lease-renewal-agent.md`, `docs/plan.md`, `docs/engineering.md`,
+  `docs/engineering-checklist.md`, `AGENTS.md`, `docs/integration-cutover-plan.md`,
+  `docs/environment-handoff.md`, `docs/ai-execution-workflow.md`, `docs/implement.md`,
+  `docs/autonomous-agent-runner.md`, and `docs/research-backlog.md`.
+- Key decisions recorded: Maintenance Work Order Intake is the first executable-write
+  target; the Rentvine lease-renewal writeback is undocumented and stays gated;
+  Google Sheets is an exception/control surface, not a primary source of truth.
+- Built the metadata-only Action Registry foundation: `ACTION_TARGET_SYSTEMS`,
+  `ACTION_EVENT_MODES`, and `ACTION_EVIDENCE_STATUSES` constants; `ActionRegistryRecord`
+  type and Zod schema with a `production_allowed` governance refine; read-only repository
+  `lib/firestore/action-registry.ts`; typed seed catalog; `scripts/seed-action-registry.ts`
+  with `npm run seed:action-registry`; server-write-only `action_registry` Firestore rule;
+  and unit, repository, and rules tests. Every seeded entry is `production_allowed: false`,
+  so the no-system-of-record-writes boundary is unchanged.
+
+Next recommended task:
+
+Continue honoring the migration-readiness stop gate: the integration architecture is now
+ratified in docs and the Action Registry catalog exists as metadata only. Remaining
+external-integration progress is client- and vendor-confirmation-blocked (tool-access
+spreadsheet completion, QuickBooks access, Rentvine renewal-write confirmation, RentVine
+key rotation). Prefer client unblock / cutover handoff over new local product surface.
