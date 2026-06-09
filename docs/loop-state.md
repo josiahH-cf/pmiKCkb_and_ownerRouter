@@ -38,8 +38,8 @@ continuation, and stop-and-reset rules.
   prompt scopes the placeholder to draft; (2) disabled/closed/cancelled process-definition
   queue items revert the definition to Draft instead of stranding it in Pending Approval;
   (3) approval-queue refresh notifies the merged (current) approver, keeping the audit
-  prior-version snapshot. Each shipped with a test (279 tests total, Firestore rules tests
-  - build green). Pushed to the `work/` branch and merged to `main`.
+  prior-version snapshot. Each shipped with a test (279 unit tests, Firestore rules tests,
+  and build all green). Pushed to the `work/` branch and merged to `main`.
 - KB Core Bug-Hunt Sweep (2026-06-09, away-mode safe backlog item #3): ran a read-only
   adversarial sweep over the anti-hallucination, ask-orchestration, and approval/workflow
   paths. Ask orchestration and demo/cost gating are sound. Surfaced four candidate issues
