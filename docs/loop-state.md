@@ -16,10 +16,10 @@ continuation, and stop-and-reset rules.
   return ~2026-06-16; spend nothing (~$10 cap), queue approvals for return, do not ping.
   Restore full openness via the Return Checklist in `docs/away-mode.md`.
 - Active product lane: Cross-product readiness/quality hardening (away-mode safe backlog)
-- Loop status: Stopped — away-mode safe backlog exhausted. The decision-free quality work
-  is done (entrypoint-guard hardening, auth page-guard coverage, KB core bug-hunt sweep);
-  remaining items need owner decisions (see On-Return Review Queue) or would invent scope.
-  Still migration-ready and client-blocked for all cost/cloud/external work.
+- Loop status: Idle — safe backlog complete and all bug-hunt findings triaged/fixed
+  (entrypoint guards, page-guard coverage, and the three core fixes). Nothing queued; no
+  decision-free work remains without new input. Still migration-ready and client-blocked
+  for all cost/cloud/external work.
 - Recommend fresh context window: not required; safe to resume from this file
 
 ## Migration Readiness
@@ -33,6 +33,13 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- Bug-Hunt Triage Fixes (2026-06-09, owner-directed): resolved all four bug-hunt
+  candidates. (1) Ask answers reject leaked `Needs Verification:` placeholders and the
+  prompt scopes the placeholder to draft; (2) disabled/closed/cancelled process-definition
+  queue items revert the definition to Draft instead of stranding it in Pending Approval;
+  (3) approval-queue refresh notifies the merged (current) approver, keeping the audit
+  prior-version snapshot. Each shipped with a test (279 tests total, Firestore rules tests
+  - build green). Pushed to the `work/` branch and merged to `main`.
 - KB Core Bug-Hunt Sweep (2026-06-09, away-mode safe backlog item #3): ran a read-only
   adversarial sweep over the anti-hallucination, ask-orchestration, and approval/workflow
   paths. Ask orchestration and demo/cost gating are sound. Surfaced four candidate issues
@@ -80,6 +87,10 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-09 (bug-hunt triage fixes): `npm run format:check`, `npm run lint`,
+  `npm run typecheck`, `npm test` (279 tests), `npm run test:firestore` (23 rules tests),
+  `npm run build`, `npm run verify:falsification` (259 files), `npm run verify:router-boundary`,
+  and `npm run check:budget-guard` all passed.
 - 2026-06-09 (auth page-guard test coverage): `npm run format:check`, `npm run lint`,
   `npm run typecheck`, `npm test` (276 tests, 39 files), `npm run verify:falsification`
   (259 files), and `npm run verify:router-boundary` all passed.
@@ -170,34 +181,23 @@ review, then continue with safe local work or stop cleanly.
   2026-06-20. Budget cap $10; no live cloud spend (billing unprovisioned).
 - All existing client-owned asks remain tracked in `docs/client-checklist.md` and the
   Active Blockers section above; do not re-raise them as approval pings while away.
-- Bug-hunt sweep candidates (2026-06-09, read-only; pre-existing, NOT regressions from
-  this cycle). Each needs owner verification/decision before any fix — left unchanged
-  while away because the fixes are product-contract or state-machine decisions:
-  1. Anti-hallucination contract: the `UNVERIFIED_PLACEHOLDER` ("Needs Verification:
-     <fact>") can reach the customer-facing `answer` field — `finalizeGeneratedAnswer`/
-     `stripDraftBannerFromAnswer` (`lib/ask/service.ts:135,152`) don't strip/reject it and
-     the prompt (`lib/llm/prompt.ts:14`) doesn't scope it to draft only. DECISION:
-     `docs/north-star.md` lists this placeholder as acceptable visible uncertainty, but
-     `docs/spec.md` (~280) says placeholders belong in draft only. Resolve the contract,
-     then either guard the answer field (downgrade to No Reliable Source) + clarify the
-     prompt, or document that it is allowed.
-  2. Workflow sync: `syncProcessDefinitionQueueItemTransition` (`lib/firestore/workflows.ts:443`)
-     only reverts a definition out of "Pending Approval" when its queue item is
-     "Returned". If a process-definition queue item can reach a terminal non-Returned
-     state (Cancelled/Disabled/Closed), the definition may stay "Pending Approval"
-     (uneditable, unactivatable). Reachability UNVERIFIED; decide the revert-status mapping
-     before fixing, then add tests.
-  3. Approval-queue refresh: `refreshOpenItem` (`lib/firestore/approval-queue.ts:687`)
-     passes the pre-update `current` item to `appendActivity`/notifications, while
-     `transitionApprovalQueueItem` passes the merged item — so a refresh that changes
-     assignee/required_approver may notify stale recipients. Note the audit
-     `prior_version_snapshot` intentionally captures the prior state, so a fix must keep
-     the audit snapshot (prior) separate from the notification item (current). Verify
-     `appendApprovalQueueNotificationsForActivity` recipient logic, then fix + test.
-  4. Test gap (depends on #2): no coverage for process-definition queue items in terminal
-     non-Returned states.
-- On return: work the Return Checklist in `docs/away-mode.md`, then triage the bug-hunt
-  candidates above and clear this queue.
+- Bug-hunt sweep candidates (2026-06-09) — TRIAGED AND RESOLVED 2026-06-09 with owner
+  go-ahead (all confirmed real; ask orchestration/demo gating was already sound):
+  1. Anti-hallucination contract: confirmed via `docs/spec.md` §10.2 that the placeholder
+     is draft-only. The Ask answer field now downgrades to "No Reliable Source Found" if a
+     `Needs Verification:` marker leaks in, and the prompt scopes the placeholder to draft.
+     (`lib/ask/service.ts`, `lib/llm/prompt.ts`)
+  2. Workflow sync: disabling/closing/cancelling a process-definition queue item now
+     reverts the definition to Draft (Returned still → Needs Revision; Approved untouched),
+     so it is no longer stranded in Pending Approval. (`lib/firestore/workflows.ts`)
+  3. Approval-queue refresh: refresh now passes the merged item to the notification path
+     (audit prior-version snapshot unchanged), so a refreshed approver is notified rather
+     than the stale set. Impact was narrow (only the refresh→Blocked notification).
+     (`lib/firestore/approval-queue.ts`)
+  4. Test gap: covered by new tests in `workflow-foundation`, `ask-service`, and
+     `approval-queue-notifications-v1`.
+- On return: nothing queued. Work the Return Checklist in `docs/away-mode.md` only if you
+  want to restore full openness.
 
 ## Stop-Condition State
 
