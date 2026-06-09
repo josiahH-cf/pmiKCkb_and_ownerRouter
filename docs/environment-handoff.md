@@ -41,6 +41,10 @@ content, leases, ledgers, bank data, SSNs, or full source packets in this docume
 These gates come from the current outbound Dan/team communications. They are not
 approval to spend, deploy, import sources, use credentials, or touch live Gmail.
 
+The cost ceiling and free-tier-first defaults behind these gates are governed by
+`docs/budget-and-cost-policy.md` (~$10 total, no spend without approval). Validate the
+current cost posture with `npm run check:budget-guard`.
+
 | Gate                              | Owner      | Current status                                                                                                                          | Record only these non-secret details after unblock                            | Verification after unblock                                               |
 | --------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | Google Cloud billing card         | Dan/PMI KC | Asked Dan to add a card; awaiting reply. Budget context is $10 and no spend without approval.                                           | Billing account/project names or IDs; budget/alert owner.                     | Billing is visible/enabled, then approved dry-run preflights.            |

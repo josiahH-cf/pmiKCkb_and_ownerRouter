@@ -192,6 +192,25 @@ required permissions and plan, readiness, preview, and rollback; an action is el
 execution approval only when its registry entry is `Approved for Execution`, `Documented`,
 and `production_allowed`.
 
+## Cost Ceiling And Budget Policy
+
+The cloud budget is approximately **$10 total** and no spend happens without approval.
+`docs/budget-and-cost-policy.md` is the single source of truth: it holds the cap, the
+free-tier-first defaults, the inventory of every cost-bearing path and its gate, and the
+`npm run check:budget-guard` preflight. Read it before any cost-bearing step.
+
+- Default to the cheapest safe option: local emulation, then demo mode (`ASK_DEMO_MODE=true`,
+  no live calls), then the sanctioned cheap-live path (Flash + single `lease-renewals`
+  Space + scale-to-zero Cloud Run), then anything billed.
+- Run `npm run check:budget-guard` before any live, deploy, import, or notification command.
+  It refuses cost-bearing overrides while the away-mode overlay is active.
+- The $10 total cap supersedes higher per-service figures in older preserved specs. Treat
+  it as a hard ceiling: if a step would approach it, stop and raise an approval request.
+- While billing is unprovisioned, all cost-bearing cloud actions stay blocked regardless of
+  the cap.
+- When the temporary overlay in `docs/away-mode.md` is active, do not raise per-item
+  approval requests; queue them in `docs/loop-state.md` for the owner's return.
+
 ## Secrets And Environments
 
 - Store no real secrets in git, docs, status entries, tickets, prompt packets, or draft

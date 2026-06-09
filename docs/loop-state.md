@@ -12,6 +12,9 @@ continuation, and stop-and-reset rules.
 ## Snapshot
 
 - Last updated: 2026-06-09
+- Operating mode: AWAY MODE active (see `docs/away-mode.md`) — owner on vacation, expected
+  return ~2026-06-16; spend nothing (~$10 cap), queue approvals for return, do not ping.
+  Restore full openness via the Return Checklist in `docs/away-mode.md`.
 - Active product lane: Cross-product client unblock / cutover handoff
 - Loop status: Stopped — migration-ready but client-blocked
 - Recommend fresh context window: not required; safe to resume from this file
@@ -125,6 +128,19 @@ All client-owned (tracked in `docs/client-checklist.md` and `docs/research-backl
 None active. The next cost-bearing or external step (billing, deploy, live import, Gmail
 access, system-of-record writes) requires an explicit approval request and a user
 confirmation that the matching Dan/team reply has unblocked that exact action.
+
+## On-Return Review Queue
+
+Away mode is active (`docs/away-mode.md`). Instead of pinging the owner during the
+vacation window, accumulate anything that needs a human decision here for the on-return
+review, then continue with safe local work or stop cleanly.
+
+- Away mode state: ACTIVE; activated 2026-06-09; expected return ~2026-06-16; review-by
+  2026-06-20. Budget cap $10; no live cloud spend (billing unprovisioned).
+- (No new items queued this cycle.) All existing client-owned asks remain tracked in
+  `docs/client-checklist.md` and the Active Blockers section above; do not re-raise them
+  as approval pings while away.
+- On return: work the Return Checklist in `docs/away-mode.md`, then clear this queue.
 
 ## Stop-Condition State
 

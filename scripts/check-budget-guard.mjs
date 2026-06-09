@@ -1,0 +1,220 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  CHEAP_LIVE_MODEL,
+  CHEAP_LIVE_SPACE_ID,
+  PRO_MODEL,
+  readJsonMap,
+  readLocalEnv,
+} from "./check-live-cost.mjs";
+
+// Single source of truth for the cloud budget ceiling. The communicated cap is $10 total
+// (see docs/budget-and-cost-policy.md). Keep this constant in sync with that doc.
+export const BUDGET_CAP_USD = 10;
+
+// The reversible away-mode overlay lives in this doc. When its machine-readable marker is
+// ACTIVE, cost-bearing overrides are refused because the owner cannot approve spend while
+// away. See docs/away-mode.md.
+export const AWAY_MODE_DOC = "docs/away-mode.md";
+
+const root = dirname(dirname(fileURLToPath(import.meta.url)));
+
+/**
+ * Read the cost-relevant posture from the environment and ignored `.env.local`. This is a
+ * read-only check; it never mutates state and never performs a network call.
+ */
+export function readBudgetGuardConfig(env = process.env, localEnv = readLocalEnv()) {
+  const readEnv = (name) => env[name] ?? localEnv[name];
+
+  return {
+    askDemoMode: readBoolean(readEnv("ASK_DEMO_MODE"), true),
+    notificationsEnabled: readBoolean(
+      readEnv("KB_APPROVAL_NOTIFICATIONS_ENABLED"),
+      false,
+    ),
+    // Unset answer model defaults to the expensive Pro model, mirroring check-live-cost.mjs
+    // so the guard is conservative when the model is not pinned.
+    geminiAnswerModel: readString(readEnv("GEMINI_MODEL_ANSWER")) ?? PRO_MODEL,
+    liveSpaceIds: configuredKeys(
+      readJsonMap(
+        readEnv("SPACE_VERTEX_DATA_STORE_IDS") ?? "{}",
+        "SPACE_VERTEX_DATA_STORE_IDS",
+      ),
+    ),
+    budgetCapUsd: readNumber(readEnv("AUTONOMOUS_BUDGET_CAP_USD"), BUDGET_CAP_USD),
+  };
+}
+
+/**
+ * Evaluate the cost posture. Pure: no filesystem or network access. The current safe
+ * defaults (demo mode, or the sanctioned cheap-live path: Flash + single lease-renewals
+ * Space + notifications off) pass with no flags. Unsafe live configurations require the
+ * matching --allow-* flag, and while away-mode is active those overrides are refused
+ * outright because the owner cannot approve spend.
+ */
+export function evaluateBudgetGuard(config, options = {}) {
+  const errors = [];
+  const warnings = [];
+  const cap = config.budgetCapUsd ?? BUDGET_CAP_USD;
+  const live = !config.askDemoMode;
+  const awayModeActive = Boolean(options.awayModeActive);
+
+  if (awayModeActive) {
+    const refusedOverrides = [
+      [options.allowPro, "--allow-pro"],
+      [options.allowMultipleSpaces, "--allow-multiple-spaces"],
+      [options.allowNotifications, "--allow-notifications"],
+    ];
+
+    for (const [provided, flag] of refusedOverrides) {
+      if (provided) {
+        errors.push(
+          `Away mode is active: ${flag} is refused. Cost-bearing overrides need the owner's explicit approval, which cannot be given while away. Queue this for the on-return review (see ${AWAY_MODE_DOC}).`,
+        );
+      }
+    }
+  }
+
+  if (live) {
+    if (config.geminiAnswerModel !== CHEAP_LIVE_MODEL && !options.allowPro) {
+      errors.push(
+        `Live mode is on (ASK_DEMO_MODE=false) with GEMINI_MODEL_ANSWER=${config.geminiAnswerModel}. Use ${CHEAP_LIVE_MODEL}, or pass --allow-pro only after explicit budget approval; ${PRO_MODEL} bills more against the $${cap} cap.`,
+      );
+    }
+
+    const liveSpaceCount = config.liveSpaceIds.length;
+    const onlyCheapSpace =
+      liveSpaceCount === 1 && config.liveSpaceIds[0] === CHEAP_LIVE_SPACE_ID;
+
+    if (liveSpaceCount > 0 && !onlyCheapSpace && !options.allowMultipleSpaces) {
+      errors.push(
+        `Live mode has ${liveSpaceCount} configured Space(s) (${config.liveSpaceIds.join(", ")}). The cheap path is the single "${CHEAP_LIVE_SPACE_ID}" Space; pass --allow-multiple-spaces only after explicit budget approval.`,
+      );
+    }
+
+    if (config.notificationsEnabled && !options.allowNotifications) {
+      errors.push(
+        "KB approval Gmail notifications are enabled (KB_APPROVAL_NOTIFICATIONS_ENABLED=true). Gmail send is approval-gated; pass --allow-notifications only after explicit approval.",
+      );
+    }
+
+    if (awayModeActive) {
+      warnings.push(
+        `Away mode is active and live mode is on (ASK_DEMO_MODE=false). Live Gemini/Vertex calls bill against the $${cap} cap. Prefer demo mode (ASK_DEMO_MODE=true) while the owner is away; only run already-approved live commands.`,
+      );
+    }
+  } else if (config.notificationsEnabled && !options.allowNotifications) {
+    warnings.push(
+      "KB_APPROVAL_NOTIFICATIONS_ENABLED=true while ASK_DEMO_MODE=true. No live calls run in demo mode, but disable notifications unless a send was explicitly approved.",
+    );
+  }
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings,
+    budgetCapUsd: cap,
+    posture: live ? "live" : "demo",
+    awayModeActive,
+  };
+}
+
+/**
+ * Parse the away-mode status from a docs/away-mode.md body. The overlay carries a
+ * machine-readable marker line `AWAY_MODE_STATUS: ACTIVE|INACTIVE`. Returns "ACTIVE",
+ * "INACTIVE", or "UNKNOWN" when no marker is present.
+ */
+export function parseAwayModeStatus(text) {
+  const match = /AWAY_MODE_STATUS:\s*(ACTIVE|INACTIVE)/i.exec(String(text));
+  return match ? match[1].toUpperCase() : "UNKNOWN";
+}
+
+/**
+ * Read the away-mode status from disk. A missing or markerless doc is treated as UNKNOWN,
+ * which the guard maps to "not active" so deleting docs/away-mode.md safely disables the
+ * overlay.
+ */
+export function readAwayModeStatus(docPath = join(root, AWAY_MODE_DOC)) {
+  try {
+    return parseAwayModeStatus(readFileSync(docPath, "utf8"));
+  } catch {
+    return "UNKNOWN";
+  }
+}
+
+export function parseBudgetGuardArgs(argv = process.argv.slice(2)) {
+  return {
+    allowMultipleSpaces: argv.includes("--allow-multiple-spaces"),
+    allowNotifications: argv.includes("--allow-notifications"),
+    allowPro: argv.includes("--allow-pro"),
+    json: argv.includes("--json"),
+  };
+}
+
+export async function main(argv = process.argv.slice(2), env = process.env) {
+  const options = parseBudgetGuardArgs(argv);
+  const config = readBudgetGuardConfig(env);
+  const awayModeActive = readAwayModeStatus() === "ACTIVE";
+  const result = evaluateBudgetGuard(config, { ...options, awayModeActive });
+
+  if (options.json) {
+    console.log(JSON.stringify({ config, result }, null, 2));
+  } else {
+    for (const warning of result.warnings) {
+      console.warn(`Warning: ${warning}`);
+    }
+
+    if (result.ok) {
+      console.log(
+        `Budget guard passed. Posture: ${result.posture}; away mode: ${
+          awayModeActive ? "active" : "inactive"
+        }; cap: $${result.budgetCapUsd}. No cost-bearing override is active.`,
+      );
+    } else {
+      console.error("Budget guard failed:");
+      for (const error of result.errors) {
+        console.error(`- ${error}`);
+      }
+      console.error(
+        `Budget cap is $${result.budgetCapUsd}. See docs/budget-and-cost-policy.md and ${AWAY_MODE_DOC}.`,
+      );
+    }
+  }
+
+  if (!result.ok) {
+    process.exitCode = 1;
+  }
+}
+
+function configuredKeys(map) {
+  return Object.entries(map)
+    .filter(([, value]) => value.trim().length > 0)
+    .map(([key]) => key)
+    .sort();
+}
+
+function readString(value) {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function readNumber(value, defaultValue) {
+  const parsed = Number(readString(value));
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : defaultValue;
+}
+
+function readBoolean(value, defaultValue) {
+  if (value === undefined || value === null || value === "") {
+    return defaultValue;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  return normalized !== "false" && normalized !== "0";
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });
+}

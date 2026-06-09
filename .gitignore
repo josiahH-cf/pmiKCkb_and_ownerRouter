@@ -28,9 +28,27 @@ docs/context_and_calls/
 docs/client_docs/
 # Local-only secrets (API keys, tokens) kept on this machine but never committed.
 secrets/
+
+# Service-account keys, credential files, and provider state. Targeted patterns only so
+# real repo JSON (package.json, firebase.json, tsconfig.json, etc.) is never ignored.
+*-key.json
+*-sa.json
+*service-account*.json
+*serviceaccount*.json
+*-credentials.json
+application_default_credentials.json
+gha-creds-*.json
+adc.json
+*.pem
+.terraform/
+*.tfstate
+*.tfstate.*
 !docs/temp/
 docs/temp/*
 !docs/temp/README.md
+
+# Claude Code runtime locks (harness-generated; never commit)
+.claude/*.lock
 
 # OS/editor
 .DS_Store

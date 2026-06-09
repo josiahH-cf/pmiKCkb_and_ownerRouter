@@ -3,6 +3,13 @@
 This file routes future Codex sessions. Keep it under 150 lines; put durable detail in
 `docs/`.
 
+> ⏸ **Temporary Operating Overlay — Away Mode (ACTIVE until ~2026-06-16).** The owner is
+> away. Run safe local slices only, spend nothing (~$10 cap; see
+> `docs/budget-and-cost-policy.md`), and queue anything needing approval for the owner's
+> return instead of pinging. Full rules and the **Return Checklist** to restore full
+> openness are in `docs/away-mode.md`. To lift the overlay, follow that checklist and
+> delete this block.
+
 ## Purpose
 
 Govern and build the PMI KC three-product workstream:
@@ -30,6 +37,8 @@ route new work through the three-product docs.
 | How to work next                  | `docs/implement.md`                                               |
 | Autonomous feature-cycle runner   | `docs/autonomous-agent-runner.md`                                 |
 | Plan, run, or continue the loop   | `docs/loop-state.md`, then `docs/autonomous-agent-runner.md`      |
+| Cost ceiling and budget policy    | `docs/budget-and-cost-policy.md`                                  |
+| Vacation / away-mode overlay      | `docs/away-mode.md`                                               |
 | Local-dev stop/cutover gate       | `docs/autonomous-agent-runner.md`, `docs/implement.md`            |
 | Current status and blockers       | `docs/status.md`                                                  |
 | Loop resume state and next slice  | `docs/loop-state.md`                                              |
