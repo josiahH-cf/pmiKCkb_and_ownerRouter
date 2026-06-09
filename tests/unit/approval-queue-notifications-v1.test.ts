@@ -118,6 +118,38 @@ describe("Approval Queue v1 console notifications", () => {
     });
   });
 
+  it("notifies the refreshed required approver, not the stale recipient set", async () => {
+    // First submission is missing an approver, so the item is Blocked with no approver.
+    const item = await createApprovalQueueItem(
+      editor,
+      baseInput({
+        required_approver_uid: undefined,
+        source_trigger_key: "run-1:refresh-approver",
+      }),
+      db,
+    );
+    expect(item.status).toBe("Blocked");
+    expect(await listApprovalQueueNotifications(approver, {}, db)).toHaveLength(0);
+
+    // A same-trigger resubmission supplies the approver, refreshing the open item. The
+    // blocked notification must reach the refreshed approver, not the stale (empty) set.
+    await createApprovalQueueItem(
+      editor,
+      baseInput({
+        required_approver_uid: "approver-1",
+        source_trigger_key: "run-1:refresh-approver",
+      }),
+      db,
+    );
+
+    const approverNotifications = await listApprovalQueueNotifications(approver, {}, db);
+    expect(approverNotifications.length).toBeGreaterThan(0);
+    expect(approverNotifications[0]).toMatchObject({
+      item_id: item.id,
+      recipient_uid: "approver-1",
+    });
+  });
+
   it("marks only the recipient's notification read", async () => {
     await createApprovalQueueItem(editor, baseInput(), db);
     const [notification] = await listApprovalQueueNotifications(editor, {}, db);

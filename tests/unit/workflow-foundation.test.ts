@@ -164,6 +164,36 @@ describe("workflow foundation repository", () => {
     expect(revised.pending_queue_item_id).toBe(submitted.pending_queue_item_id);
   });
 
+  it("returns a disabled process-definition to Draft so it is not stranded", async () => {
+    const definition = await createProcessDefinition(editor, baseDefinitionInput(), db);
+    const submitted = await submitProcessDefinitionForApproval(
+      editor,
+      definition.id,
+      {},
+      db,
+    );
+
+    const disabled = await transitionApprovalQueueItemWithWorkflowSync(
+      admin,
+      submitted.pending_queue_item_id!,
+      { action: "disable", reason: "Abandoning this change for now." },
+      db,
+    );
+    const reverted = await getProcessDefinition(editor, definition.id, db);
+
+    expect(disabled.status).toBe("Disabled");
+    expect(reverted.status).toBe("Draft");
+
+    // The definition is editable again rather than stuck in Pending Approval.
+    const edited = await updateProcessDefinition(
+      editor,
+      definition.id,
+      { name: "Revised after disable" },
+      db,
+    );
+    expect(edited.status).toBe("Draft");
+  });
+
   it("edits Needs Revision definitions and resubmits the same queue item", async () => {
     const definition = await createProcessDefinition(editor, baseDefinitionInput(), db);
     const submitted = await submitProcessDefinitionForApproval(

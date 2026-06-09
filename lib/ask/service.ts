@@ -1,4 +1,4 @@
-import { DRAFT_BANNER } from "@/lib/constants";
+import { DRAFT_BANNER, UNVERIFIED_PLACEHOLDER } from "@/lib/constants";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { canonicalizeValidCitations } from "@/lib/citations/validate";
 import { readServerConfig, type ServerConfig } from "@/lib/config/server";
@@ -134,7 +134,7 @@ function finalizeGeneratedAnswer(
   const citations = canonicalizeValidCitations(generated.citations, grounding.citations);
   const answer = stripDraftBannerFromAnswer(generated.answer);
 
-  if (!answer || citations.length === 0) {
+  if (!answer || citations.length === 0 || containsUnverifiedPlaceholder(answer)) {
     return noReliableSourceResponse(request.question);
   }
 
@@ -157,6 +157,15 @@ function stripDraftBannerFromAnswer(answer: string) {
   }
 
   return trimmed.slice(DRAFT_BANNER.length).trim();
+}
+
+// The "Needs Verification: <fact>" placeholder belongs only in the draft (spec.md §10.2),
+// never in the customer-facing answer. If the model leaks it into the answer, treat the
+// answer as unsupported rather than returning unverified content to the user.
+const UNVERIFIED_ANSWER_MARKER = UNVERIFIED_PLACEHOLDER.split("<")[0].trim();
+
+function containsUnverifiedPlaceholder(answer: string) {
+  return answer.toLowerCase().includes(UNVERIFIED_ANSWER_MARKER.toLowerCase());
 }
 
 function normalizeEscalationOwner(

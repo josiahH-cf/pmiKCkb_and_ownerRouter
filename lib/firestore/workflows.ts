@@ -439,8 +439,9 @@ export async function syncProcessDefinitionQueueItemTransition(
   assertCan(actor, "read");
 
   const definitionId = processDefinitionIdFromQueueItem(item);
+  const revertStatus = definitionStatusForTerminalQueueItem(item.status);
 
-  if (!definitionId || item.status !== "Returned") {
+  if (!definitionId || !revertStatus) {
     return;
   }
 
@@ -463,11 +464,30 @@ export async function syncProcessDefinitionQueueItemTransition(
     }
 
     transaction.update(definitionRef(db, definitionId), {
-      status: "Needs Revision",
+      status: revertStatus,
       updated_at: FieldValue.serverTimestamp(),
       updated_by_uid: actor.uid,
     });
   });
+}
+
+// A process definition waits in "Pending Approval" while its queue item is open. When that
+// item reaches a terminal state without activation, move the definition back to an editable
+// status so it is never stranded: "Returned" carries reviewer feedback (Needs Revision),
+// while Disabled/Closed/Cancelled abandon the change (back to Draft to edit or resubmit).
+// "Approved" is left untouched — the definition stays Pending Approval awaiting activation.
+function definitionStatusForTerminalQueueItem(
+  status: ApprovalQueueItemRecord["status"],
+): ProcessDefinitionStatus | null {
+  if (status === "Returned") {
+    return "Needs Revision";
+  }
+
+  if (status === "Disabled" || status === "Closed" || status === "Cancelled") {
+    return "Draft";
+  }
+
+  return null;
 }
 
 function assertActivationGates(

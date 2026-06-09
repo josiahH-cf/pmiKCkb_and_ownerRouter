@@ -337,6 +337,22 @@ describe("Ask service", () => {
     });
   });
 
+  it("downgrades to no-source when the answer leaks an unverified placeholder", async () => {
+    await expect(
+      answerQuestion(user, request, {
+        answerGenerator: answerGenerator({
+          answer: "Needs Verification: the exact renewal rent cap.",
+        }),
+        askLogWriter: noopAskLogWriter,
+        config: liveConfig,
+        retrievalClient: retrievalClient(grounding(["drive-file-1"])),
+      }),
+    ).resolves.toMatchObject({
+      citations: [],
+      source_state: "No Reliable Source Found",
+    });
+  });
+
   it("falls back to no-source when Gemini cannot return valid JSON", async () => {
     const failingAnswerGenerator: AnswerGenerator = {
       async generateAnswer() {

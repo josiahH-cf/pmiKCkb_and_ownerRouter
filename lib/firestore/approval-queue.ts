@@ -688,7 +688,10 @@ function refreshOpenItem(
     itemId: current.id,
     actor,
     action: "refreshed",
-    item: current,
+    // Notifications must reflect the refreshed recipients/status (mirrors
+    // transitionApprovalQueueItem); the audit prior_version_snapshot below keeps the
+    // pre-refresh state separately.
+    item: { ...current, ...stripUndefined(updates) },
     previousState: current.status,
     newState: (updates.status as QueueItemStatus | undefined) ?? current.status,
     reason,

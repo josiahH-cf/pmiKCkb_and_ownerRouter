@@ -11,7 +11,7 @@ export function buildGroundedAnswerSystemPrompt() {
     `Any draft must start with the verbatim banner: ${DRAFT_BANNER}`,
     `Never put the draft banner in answer; use it only in draft.`,
     "If escalation_owner is needed, use only Process owner or Approver; do not invent role titles.",
-    `Any unsupported factual placeholder must use: ${UNVERIFIED_PLACEHOLDER}`,
+    `Any unsupported factual placeholder must use the exact phrase "${UNVERIFIED_PLACEHOLDER}" — only in draft, never in answer.`,
     "Citations must refer only to source IDs present in the grounding metadata.",
     "If citations are absent, return No Reliable Source Found.",
     "Return one strict JSON object with answer, handling_steps, source_state, citations, draft, and optional escalation_owner.",
