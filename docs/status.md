@@ -3935,3 +3935,46 @@ ratified in docs and the Action Registry catalog exists as metadata only. Remain
 external-integration progress is client- and vendor-confirmation-blocked (tool-access
 spreadsheet completion, QuickBooks access, Rentvine renewal-write confirmation, RentVine
 key rotation). Prefer client unblock / cutover handoff over new local product surface.
+
+## Client Unblock / Tool-Access Reconciliation
+
+- Date: 2026-06-09
+- Product lanes: PMI KC KB cutover, Lease Renewal Agent discovery, Gmail Inbox 0
+  governance.
+- Reconciled the ignored returned tool-access spreadsheet into tracked non-secret docs.
+  `docs/client-checklist.md`, `docs/research-backlog.md`, and
+  `docs/environment-handoff.md` now mark tool access as partially received.
+- Non-secret access status recorded: RentVine has both access/API location; LeadSimple,
+  DotLoop, Boom, and Google Sheets have admin/location answers; QuickBooks is blank;
+  Google Sheets exact in-scope sheets still need confirmation.
+- Added RentVine credential rotation as an explicit client ask because a credential was
+  present in ignored spreadsheet notes. No credential value was copied into tracked docs.
+- Created an ignored local follow-up draft at
+  `docs/temp/2026-06-09-tool-access-follow-up.md`; it was not sent.
+- No code/runtime behavior, cloud setup, billing action, Gmail access, credential use,
+  client Drive write, deploy, source import, email send, or external-system write was
+  performed.
+
+Validation status:
+
+- `npm run format:check`: passed after Prettier normalized the edited Markdown tables.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+- `npm run verify:falsification`: passed across 254 committable files.
+
+Remaining blockers:
+
+- Google Cloud billing card and explicit approval for any cost-bearing migration step.
+- Lease Renewal walkthrough and signed lease / lease-end-date source location.
+- QuickBooks access status/location.
+- Exact Google Sheets scope and owner.
+- RentVine credential rotation and future vendor confirmation for undocumented renewal
+  writeback.
+- Gmail Inbox 0 safe test-thread protocol, approval sender, and launch approver
+  confirmations.
+
+Next recommended task:
+
+Continue the client unblock / cutover handoff track. Do not expand local product surface
+unless a new client answer, approved migration step, production smoke result, regression,
+or accepted product decision creates a specific readiness need.

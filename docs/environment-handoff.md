@@ -41,14 +41,14 @@ content, leases, ledgers, bank data, SSNs, or full source packets in this docume
 These gates come from the current outbound Dan/team communications. They are not
 approval to spend, deploy, import sources, use credentials, or touch live Gmail.
 
-| Gate                              | Owner      | Current status                                                                                | Record only these non-secret details after unblock                            | Verification after unblock                                               |
-| --------------------------------- | ---------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Google Cloud billing card         | Dan/PMI KC | Asked Dan to add a card; awaiting reply. Budget context is $10 and no spend without approval. | Billing account/project names or IDs; budget/alert owner.                     | Billing is visible/enabled, then approved dry-run preflights.            |
-| Tool access spreadsheet           | Dan/team   | Asked team to fill access type, location, and notes.                                          | Tool names, access owner, login page/shared folder link, API availability.    | Classify each tool as read-only, write-capable, unsupported, or blocked. |
-| Lease Renewal walkthrough         | Dan/team   | Asked for a full renewal walkthrough around June 17-18, 2026.                                 | Recorded walkthrough location, source-note owner, and sanitized summary path. | Walkthrough notes captured without raw client records in git.            |
-| Signed lease / lease-date source  | Dan/team   | Blank answer requested; awaiting reply.                                                       | System/folder/sheet name, owner, and whether dates can be read safely.        | First authoritative renewal trigger source recorded.                     |
-| Gmail helper safe-thread protocol | Dan        | Default sent: start with a few safe test threads first.                                       | Approved test-thread model, exclusion rules, and rollback owner.              | Safe Gmail test protocol documented before live Gmail runtime.           |
-| Approval notification sender      | Dan/PMI KC | Default sent: `kb-automation@pmikcmetro.com`; awaiting exceptions.                            | Sender address, recipient group, label name, support owner.                   | Send-only notification smoke only after explicit approval.               |
+| Gate                              | Owner      | Current status                                                                                                                          | Record only these non-secret details after unblock                            | Verification after unblock                                               |
+| --------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Google Cloud billing card         | Dan/PMI KC | Asked Dan to add a card; awaiting reply. Budget context is $10 and no spend without approval.                                           | Billing account/project names or IDs; budget/alert owner.                     | Billing is visible/enabled, then approved dry-run preflights.            |
+| Tool access spreadsheet           | Dan/team   | Partially returned: RentVine both/API; LeadSimple, DotLoop, Boom, and Sheets admin/location; QuickBooks blank; Sheets scope unresolved. | Tool names, access owner, login page/shared folder label, API availability.   | Classify each tool as read-only, write-capable, unsupported, or blocked. |
+| Lease Renewal walkthrough         | Dan/team   | Asked for a full renewal walkthrough around June 17-18, 2026.                                                                           | Recorded walkthrough location, source-note owner, and sanitized summary path. | Walkthrough notes captured without raw client records in git.            |
+| Signed lease / lease-date source  | Dan/team   | Blank answer requested; awaiting reply.                                                                                                 | System/folder/sheet name, owner, and whether dates can be read safely.        | First authoritative renewal trigger source recorded.                     |
+| Gmail helper safe-thread protocol | Dan        | Default sent: start with a few safe test threads first.                                                                                 | Approved test-thread model, exclusion rules, and rollback owner.              | Safe Gmail test protocol documented before live Gmail runtime.           |
+| Approval notification sender      | Dan/PMI KC | Default sent: `kb-automation@pmikcmetro.com`; awaiting exceptions.                                                                      | Sender address, recipient group, label name, support owner.                   | Send-only notification smoke only after explicit approval.               |
 
 ## Migration-Ready But Client-Blocked State
 
@@ -73,6 +73,20 @@ specific need.
 
 ## Setup Inventory
 
+### Non-Secret Tool-Access Snapshot
+
+Recorded from the ignored local tool-access spreadsheet on 2026-06-09. Do not copy
+spreadsheet notes or credentials into tracked files.
+
+| Tool          | Non-secret access answer | Remaining handoff gap                                      |
+| ------------- | ------------------------ | ---------------------------------------------------------- |
+| RentVine      | Both access/API location | Rotate exposed API credential before any future use.       |
+| LeadSimple    | Admin account            | Confirm Operations plan and endpoint coverage.             |
+| DotLoop       | Admin account            | Confirm signing/send lifecycle before runtime integration. |
+| QuickBooks    | Blank                    | Client still needs to provide access status/location.      |
+| Boom          | Admin account            | Vendor endpoint contract packet still required.            |
+| Google Sheets | Admin account            | Confirm exact in-scope sheets and owner.                   |
+
 | Area                         | Environment  | Non-secret values to record                                   | Where real secrets live                                  | Manual setup or approval required                                   | Verification                                       | Approval gate                                  |
 | ---------------------------- | ------------ | ------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------- |
 | Firebase web app             | Staging/Prod | Project ID, auth domain, app ID.                              | Firebase config values in ignored env/Secret Manager.    | Create web app and approved authorized domains.                     | `npm run firebase:setup -- --project=<id>`         | Client project/domain approval.                |
@@ -93,14 +107,14 @@ Per-vendor handoff detail for the future integrations, aligned with the verified
 `docs/integration-architecture.md`. None are provisioned; all writes stay gated. Action
 types are catalogued in the `action_registry` collection (`production_allowed: false`).
 
-| System        | Role                          | Event mode                | Plan/tier note                        | Credential owner (future)        |
-| ------------- | ----------------------------- | ------------------------- | ------------------------------------- | -------------------------------- |
-| Rentvine      | Operational system of record  | Polling / LeadSimple sync | Account API key + roles; rotate creds | PMI KC; key rotation required    |
-| LeadSimple    | Workflow orchestration        | LeadSimple sync           | Operations plan for Rentvine sync     | PMI KC admin-enabled REST key    |
-| Dotloop       | Document-package layer        | Webhook                   | OAuth2 approved app program           | PMI KC approved app registration |
-| QuickBooks    | Accounting (downstream)       | Webhook                   | Online Accounting API; still missing  | PMI KC; not in tool-access sheet |
-| Boom          | Resident services (auxiliary) | Webhook (vendor-packet)   | Endpoint contract request-only        | PMI KC; vendor packet required   |
-| Google Sheets | Exception / control plane     | Apps Script triggers      | Confirm which sheets are in scope     | PMI KC Workspace owner           |
+| System        | Role                          | Event mode                | Plan/tier note                                                | Credential owner (future)          |
+| ------------- | ----------------------------- | ------------------------- | ------------------------------------------------------------- | ---------------------------------- |
+| Rentvine      | Operational system of record  | Polling / LeadSimple sync | Account API key + roles; rotate exposed credential before use | PMI KC; key rotation required      |
+| LeadSimple    | Workflow orchestration        | LeadSimple sync           | Operations plan for Rentvine sync                             | PMI KC admin-enabled REST key      |
+| Dotloop       | Document-package layer        | Webhook                   | OAuth2 approved app program                                   | PMI KC approved app registration   |
+| QuickBooks    | Accounting (downstream)       | Webhook                   | Online Accounting API; blank in returned tool-access sheet    | PMI KC; access status still needed |
+| Boom          | Resident services (auxiliary) | Webhook (vendor-packet)   | Endpoint contract request-only                                | PMI KC; vendor packet required     |
+| Google Sheets | Exception / control plane     | Apps Script triggers      | Admin account/location returned; exact sheets still TBD       | PMI KC Workspace owner             |
 
 ## Key And Secret Ownership
 

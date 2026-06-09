@@ -11,8 +11,8 @@ continuation, and stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-06-08
-- Active product lane: PMI KC KB (workflow-control layer)
+- Last updated: 2026-06-09
+- Active product lane: Cross-product client unblock / cutover handoff
 - Loop status: Stopped — migration-ready but client-blocked
 - Recommend fresh context window: not required; safe to resume from this file
 
@@ -27,6 +27,16 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- Client Unblock / Tool-Access Reconciliation (2026-06-09): reconciled the returned
+  ignored tool-access spreadsheet into tracked non-secret docs. `docs/client-checklist.md`,
+  `docs/research-backlog.md`, and `docs/environment-handoff.md` now mark tool access as
+  partially received: RentVine, LeadSimple, DotLoop, Boom, and Google Sheets have
+  non-secret access/location answers; QuickBooks remains blank; Google Sheets exact
+  scope still needs confirmation. Added RentVine credential rotation as an explicit
+  client ask because a credential appeared in spreadsheet notes. Created an ignored
+  local follow-up draft in `docs/temp/`; no external communication was sent.
+- Status: docs reconciled and verified. No code/runtime, cloud, Gmail, credential use,
+  client-resource, deploy, import, send, or external-system write was performed.
 - Integration Architecture + Action Registry Foundation (2026-06-08): ratified the
   verified tool-stack research into `docs/integration-architecture.md` and
   `docs/research/integration-capability-2026-06.md`, propagated downstream effects across
@@ -46,6 +56,10 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-09 (client unblock / tool-access reconciliation docs pass):
+  `npm run format:check`, `git diff --check`, `npm run verify:router-boundary`, and
+  `npm run verify:falsification` (254 committable files) all passed. Runtime checks were
+  not run because this was a tracked-doc-only reconciliation.
 - 2026-06-08 (integration architecture + Action Registry pass): `npm run typecheck`,
   `npm run lint`, `npm run format:check`, `npm test` (257 tests),
   `npm run test:firestore` (23 rules tests), `npm run seed:action-registry -- --dry-run`
@@ -59,6 +73,9 @@ continuation, and stop-and-reset rules.
 
 ## Last Falsification Result
 
+- 2026-06-09: `npm run verify:falsification` passed across 254 committable files. The
+  ignored `docs/client_docs/` and `docs/temp/` files remain excluded from committable
+  checks by design; tracked docs record only non-secret summaries.
 - 2026-06-08: `npm run verify:falsification` passed across 246 committable files (no
   secrets, oversized files, invalid JSON, or broken internal doc links). Self-review of
   the loop-hardening changes found no rule violations, stale commands, or broken
@@ -72,11 +89,9 @@ Ranked. Choose per the Multi-Slice Continuation Loop and Stop-And-Reset rules.
 1. Client unblock / cutover handoff (preferred). The remaining blockers are client-owned,
    so the highest-value safe work is preparing and tightening the client unblock and
    cutover handoff, not new local feature surface. See `docs/client-checklist.md`.
-2. Reconcile newly arrived tool-access answers. `docs/client_docs/` now contains the
-   returned tool-access spreadsheet (RentVine, LeadSimple, DotLoop, QuickBooks, Boom,
-   Google Sheets). Update `docs/client-checklist.md` and `docs/research-backlog.md` to
-   mark the tool-access ask as partially answered, recording only non-secret references.
-   See the Security Note below before touching that file.
+2. Client follow-up draft review. An ignored draft exists at
+   `docs/temp/2026-06-09-tool-access-follow-up.md`; sending or posting it is an external
+   communication and still needs explicit user/client approval.
 3. Regression hardening / docs alignment only. Safe if it fixes a real regression or
    stale doc; otherwise deferred by the stop gate.
 
@@ -91,8 +106,10 @@ All client-owned (tracked in `docs/client-checklist.md` and `docs/research-backl
 
 - Google Cloud billing card + explicit approval for any cost-bearing migration step.
 - Lease Renewal walkthrough (target Wed Jun 17 2026, 9:30-10:15 AM; fallbacks Jun 17-18).
-- Tool-access answers — PARTIALLY RECEIVED in `docs/client_docs/` (still needs QuickBooks;
-  confirm which Google Sheets are in scope).
+- QuickBooks access status/location — blank in the returned tool-access spreadsheet.
+- Google Sheets exact in-scope sheet list and owner confirmation.
+- RentVine credential rotation — a credential appeared in ignored spreadsheet notes and
+  must be rotated/stored outside the repo before future use.
 - Signed lease / lease-end-date source location.
 - Rentvine lease-renewal-write endpoint confirmation — undocumented in the public API;
   vendor confirmation required before any renewal writeback (see
@@ -113,15 +130,16 @@ confirmation that the matching Dan/team reply has unblocked that exact action.
 
 - Fired: Migration readiness reached — local verification green, cutover/preflight
   artifacts current, client asks clear, remaining blockers client-owned.
-- Recommended next action: client unblock / cutover prep, or reconcile the newly arrived
-  tool-access answers (non-secret references only). Do not expand local product surface
-  to keep the loop active.
+- Recommended next action: client unblock / cutover prep and follow-up on the remaining
+  client-owned asks. Do not expand local product surface to keep the loop active.
 
 ## Commit Queue Status
 
-- No pending commit queue. The 2026-06-08 loop-hardening changes are documentation, one
-  read-only verification helper script, and one test; group them as a single
-  "autonomous loop hardening" change set. Do not commit, push, or merge without an
+- Pending doc-only commit queue: group the 2026-06-09 tool-access reconciliation as
+  "client unblock tool-access reconciliation." It includes tracked updates to
+  `docs/client-checklist.md`, `docs/research-backlog.md`, `docs/environment-handoff.md`,
+  `docs/status.md`, and this file. The ignored `docs/temp/` follow-up draft is local
+  scratch and is not part of the commit queue. Do not commit, push, or merge without an
   explicit request.
 
 ## Security Note
