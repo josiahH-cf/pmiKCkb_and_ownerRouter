@@ -16,9 +16,10 @@ continuation, and stop-and-reset rules.
   return ~2026-06-16; spend nothing (~$10 cap), queue approvals for return, do not ping.
   Restore full openness via the Return Checklist in `docs/away-mode.md`.
 - Active product lane: Cross-product readiness/quality hardening (away-mode safe backlog)
-- Loop status: Running the away-mode safe backlog (see `docs/away-mode.md`). Still
-  migration-ready and client-blocked for all cost/cloud/external work; client-unblock
-  items are queued for return because they cannot progress while the owner is away.
+- Loop status: Stopped — away-mode safe backlog exhausted. The decision-free quality work
+  is done (entrypoint-guard hardening, auth page-guard coverage, KB core bug-hunt sweep);
+  remaining items need owner decisions (see On-Return Review Queue) or would invent scope.
+  Still migration-ready and client-blocked for all cost/cloud/external work.
 - Recommend fresh context window: not required; safe to resume from this file
 
 ## Migration Readiness
@@ -200,15 +201,13 @@ review, then continue with safe local work or stop cleanly.
 
 ## Stop-Condition State
 
-- Active: Running the away-mode safe backlog (`docs/away-mode.md`). Migration readiness
-  remains reached (verification green, cutover/preflight artifacts current, client asks
-  clear, remaining blockers client-owned); the loop is doing bounded quality/readiness
-  work only, not expanding product surface.
-- Stop when: the safe backlog is exhausted with verification green, or any away-mode stop
-  condition fires (a step needs cost/cloud/external/approval). Then wait for return; do not
-  invent product surface to keep the loop active.
-- Recommended next action: continue the away-mode safe backlog; route client unblock /
-  cutover prep to the on-return queue.
+- Fired: away-mode safe backlog exhausted with verification green (276 tests, 23 Firestore
+  rules tests, build, falsification all passing). Decision-free quality work is complete;
+  the unattended loop has stopped to wait for return rather than invent product surface.
+- Recommended next action on return: work the Return Checklist in `docs/away-mode.md`,
+  then triage the On-Return Review Queue (bug-hunt candidates) and resume client unblock /
+  cutover prep. To re-run the loop unattended again, re-arm it after queuing a new safe
+  slice.
 
 ## Commit Queue Status
 
