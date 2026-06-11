@@ -3978,3 +3978,46 @@ Next recommended task:
 Continue the client unblock / cutover handoff track. Do not expand local product surface
 unless a new client answer, approved migration step, production smoke result, regression,
 or accepted product decision creates a specific readiness need.
+
+## Source-Corpus Readiness Dry-Run Hardening
+
+- Date: 2026-06-11
+- Product lanes: PMI KC KB cutover readiness; cross-product away-mode quality hardening.
+- Added production-readiness output to `npm run corpus:plan`. The generated plan now
+  includes `readiness.ok`, `readiness.blockers`, `readiness.warnings`, and summary counts
+  for entries, Spaces, data stores, approval statuses, and sensitivities.
+- The readiness pass flags unreplaced placeholders, non-`Approved` source metadata,
+  `High` sensitivity entries, raw `docs/context_and_calls/` source paths, duplicate Cloud
+  Storage URIs, and duplicate derived Agent Search document IDs before any upload/import
+  command is used.
+- Updated `docs/client-production-cutover.md`, `docs/implement.md`, and
+  `docs/demo-source-templates/README.md` so operators know the production manifest
+  template is expected to report blockers until placeholders are replaced and sources are
+  approved, and that staging-copy creation/upload/import/metadata seeding waits for
+  `readiness.ok === true`.
+- No cloud setup, billing action, Gmail access, credential use, client-resource change,
+  deploy, source import, email send, or external-system write was performed.
+
+Validation status:
+
+- `npm run check:budget-guard`: passed; demo posture, away mode active, $10 cap.
+- `npm test -- live-cost-scripts`: passed with 26 focused script tests.
+- `npm run corpus:plan -- --manifest=docs/source-corpus/client-production-source-manifest.template.json --project=pmikc-kb-production --location=us --dry-run`:
+  passed as a local dry-run and printed expected readiness blockers for template
+  placeholders and `Unreviewed` source metadata.
+- `npm run format:check`: passed.
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm test`: passed with 280 tests.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+- `npm run verify:falsification`: passed across 259 committable files.
+- `npm run test:firestore`: passed with 23 Firestore Security Rules tests.
+- `npm run build`: passed.
+
+Stop condition:
+
+- Away mode remains active. After this bounded dry-run tooling slice, no further
+  decision-free local work is selected. Continue only for a concrete regression,
+  test/preflight gap, or docs/handoff inconsistency; otherwise wait for return/client
+  unblock and resume cutover from `docs/client-checklist.md`.

@@ -11,15 +11,14 @@ continuation, and stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-06-09
+- Last updated: 2026-06-11
 - Operating mode: AWAY MODE active (see `docs/away-mode.md`) — owner on vacation, expected
   return ~2026-06-16; spend nothing (~$10 cap), queue approvals for return, do not ping.
   Restore full openness via the Return Checklist in `docs/away-mode.md`.
 - Active product lane: Cross-product readiness/quality hardening (away-mode safe backlog)
-- Loop status: Idle — safe backlog complete and all bug-hunt findings triaged/fixed
-  (entrypoint guards, page-guard coverage, and the three core fixes). Nothing queued; no
-  decision-free work remains without new input. Still migration-ready and client-blocked
-  for all cost/cloud/external work.
+- Loop status: Idle — completed a bounded dry-run cutover-tooling slice for
+  source-corpus manifest readiness output. Still migration-ready and client-blocked for
+  all cost/cloud/external work; no further decision-free local slice is selected.
 - Recommend fresh context window: not required; safe to resume from this file
 
 ## Migration Readiness
@@ -33,6 +32,17 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- Source-Corpus Readiness Dry-Run Hardening (2026-06-11, away-mode safe backlog item #4):
+  added a `readiness` object to `npm run corpus:plan` output so production dry-runs flag
+  placeholder manifest values, non-Approved source metadata, High-sensitivity entries,
+  raw context/call source paths, duplicate Cloud Storage URIs, duplicate derived document
+  IDs, and summary counts before any upload/import/metadata command is used. Updated the
+  client cutover runbook and implementation notes to require `readiness.ok === true` and
+  empty blockers before staging-copy creation, upload, import, or `sources_meta` seeding.
+  Verified with focused script tests, full unit tests, Firestore rules tests, build,
+  router-boundary, falsification, budget guard, and a dry-run against the production
+  manifest template. No cloud, Gmail, credential, deploy, import, send, client-resource,
+  or external-system action was performed.
 - Bug-Hunt Triage Fixes (2026-06-09, owner-directed): resolved all four bug-hunt
   candidates. (1) Ask answers reject leaked `Needs Verification:` placeholders and the
   prompt scopes the placeholder to draft; (2) disabled/closed/cancelled process-definition
@@ -87,6 +97,13 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-11 (source-corpus readiness dry-run hardening): `npm run check:budget-guard`,
+  `npm test -- live-cost-scripts` (26 tests), production-template
+  `npm run corpus:plan -- --manifest=docs/source-corpus/client-production-source-manifest.template.json --project=pmikc-kb-production --location=us --dry-run`
+  (local dry-run only; readiness blockers printed for placeholders/unreviewed sources),
+  `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test` (280 tests),
+  `git diff --check`, `npm run verify:router-boundary`, `npm run verify:falsification`
+  (259 files), `npm run test:firestore` (23 rules tests), and `npm run build` all passed.
 - 2026-06-09 (bug-hunt triage fixes): `npm run format:check`, `npm run lint`,
   `npm run typecheck`, `npm test` (279 tests), `npm run test:firestore` (23 rules tests),
   `npm run build`, `npm run verify:falsification` (259 files), `npm run verify:router-boundary`,
@@ -116,6 +133,10 @@ continuation, and stop-and-reset rules.
 
 ## Last Falsification Result
 
+- 2026-06-11: `npm run verify:falsification` passed across 259 committable files after the
+  source-corpus readiness hardening slice. Self-review found the change stayed within
+  away-mode safe dry-run tooling: no secrets, no client data, no cloud/API/Gmail action,
+  no deploy/import/send, and no system-of-record write path.
 - 2026-06-09: `npm run verify:falsification` passed across 254 committable files. The
   ignored `docs/client_docs/` and `docs/temp/` files remain excluded from committable
   checks by design; tracked docs record only non-secret summaries.
@@ -127,12 +148,11 @@ continuation, and stop-and-reset rules.
 
 ## Next Safe Slice Candidates
 
-While away mode is active, work the **Safe Backlog While Away** in `docs/away-mode.md`
-top-down (entrypoint-guard hardening is done; next is test-coverage gaps, then regression
-sweeps, then dry-run cutover tooling, then docs hygiene). Each slice is
-quality/readiness only, verified, committed and pushed to the `work/` branch, with no
-cost/cloud/external action. When that backlog is exhausted and verification is green, stop
-and wait for return.
+Away-mode safe backlog has now covered entrypoint guards, page-guard coverage, regression
+sweeps/bug triage, and one dry-run cutover-tooling hardening slice. Continue only if a
+concrete regression, test gap, dry-run/preflight gap, or docs/handoff inconsistency is
+identified from current context. Otherwise stop and wait for return/client unblock rather
+than inventing product surface.
 
 Queued for return (cannot progress while the owner is away):
 
@@ -201,22 +221,23 @@ review, then continue with safe local work or stop cleanly.
 
 ## Stop-Condition State
 
-- Fired: away-mode safe backlog exhausted with verification green (276 tests, 23 Firestore
-  rules tests, build, falsification all passing). Decision-free quality work is complete;
-  the unattended loop has stopped to wait for return rather than invent product surface.
+- Fired: no safe slice remains after source-corpus readiness hardening with verification
+  green (280 unit tests, 23 Firestore rules tests, build, router-boundary, falsification,
+  budget guard, and production-template corpus dry-run all passing). Decision-free quality
+  work is complete for now; the unattended loop has stopped to wait for return/client
+  unblock rather than invent product surface.
 - Recommended next action on return: work the Return Checklist in `docs/away-mode.md`,
-  then triage the On-Return Review Queue (bug-hunt candidates) and resume client unblock /
-  cutover prep. To re-run the loop unattended again, re-arm it after queuing a new safe
-  slice.
+  then resume client unblock / cutover prep from `docs/client-checklist.md` and
+  `docs/client-production-cutover.md`. To re-run the loop unattended again, re-arm it
+  after queuing a concrete safe slice.
 
 ## Commit Queue Status
 
-- Pending doc-only commit queue: group the 2026-06-09 tool-access reconciliation as
-  "client unblock tool-access reconciliation." It includes tracked updates to
-  `docs/client-checklist.md`, `docs/research-backlog.md`, `docs/environment-handoff.md`,
-  `docs/status.md`, and this file. The ignored `docs/temp/` follow-up draft is local
-  scratch and is not part of the commit queue. Do not commit, push, or merge without an
-  explicit request.
+- Pending commit queue: group this slice as "source corpus readiness dry-run hardening."
+  Include `scripts/source-corpus-manifest.mjs`, `tests/unit/live-cost-scripts.test.mjs`,
+  `docs/client-production-cutover.md`, `docs/demo-source-templates/README.md`,
+  `docs/implement.md`, `docs/status.md`, and this file. Do not commit, push, or merge
+  without an explicit request.
 
 ## Security Note
 

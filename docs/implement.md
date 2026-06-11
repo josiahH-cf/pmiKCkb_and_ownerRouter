@@ -142,6 +142,10 @@ npm run seed:launch-skeletons -- --dry-run
 npm run preflight:production -- --env-file=.env.production.local
 ```
 
+For production corpus plans, inspect the printed `readiness` object. Continue to
+staging-copy creation, upload, import, or metadata seeding only when `readiness.ok` is
+`true` and `readiness.blockers` is empty.
+
 For production or staging setup, record non-secret identifiers, manual setup state,
 secret-owner records, and verification evidence in `docs/environment-handoff.md`.
 

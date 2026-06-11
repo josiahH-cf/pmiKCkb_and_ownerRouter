@@ -19,6 +19,7 @@ import {
   parseDeleteDataStoreArgs,
 } from "../../scripts/delete-agent-search-data-store.mjs";
 import {
+  buildSourceCorpusReadiness,
   buildSourceCorpusPlan,
   readSourceManifest,
   validateSourceManifest,
@@ -313,6 +314,14 @@ describe("cheap live setup scripts", () => {
     const plan = buildSourceCorpusPlan(entries, "temp/source-corpus");
 
     expect(plan.entries[0].document_id).toMatch(/^[0-9a-f]{32}$/);
+    expect(plan.readiness.ok).toBe(false);
+    expect(plan.readiness.blockers).toContain(
+      "Manifest entry 0 (lease-renewals) approval_status is Transcript-derived; production import requires Approved source metadata.",
+    );
+    expect(plan.readiness.counts.approvalStatus).toEqual({
+      Approved: 1,
+      "Transcript-derived": 1,
+    });
     expect(plan.uploadCommands[0]).toContain("gcloud storage cp");
     expect(plan.seedCommands[0]).toContain("--approval-status=Transcript-derived");
     expect(plan.importCommands).toHaveLength(1);
@@ -342,6 +351,8 @@ describe("cheap live setup scripts", () => {
     expect(plan.importCommands[0]).toContain("--project=pmikc-kb-production");
     expect(plan.importCommands[0]).toContain("--location=us");
     expect(plan.importCommands[0]).not.toContain("pmikckb-test");
+    expect(plan.readiness.ok).toBe(true);
+    expect(plan.readiness.blockers).toEqual([]);
   });
 
   it("validates the client-production source manifest template shape", () => {
@@ -354,6 +365,59 @@ describe("cheap live setup scripts", () => {
     expect(entries.map((entry) => entry.space_id)).not.toContain("owner-email");
     expect(entries.every((entry) => entry.approval_status === "Unreviewed")).toBe(true);
     expect(entries.every((entry) => entry.gcs_uri.startsWith("gs://"))).toBe(true);
+
+    const plan = buildSourceCorpusPlan(entries, {
+      location: "us",
+      project: "pmikc-kb-production",
+      tempDir: "temp/source-corpus",
+    });
+
+    expect(plan.readiness.ok).toBe(false);
+    expect(plan.readiness.counts.entries).toBe(11);
+    expect(plan.readiness.blockers).toContain(
+      "Manifest entry 0 (lease-renewals) gcs_uri must be replaced with a real production value.",
+    );
+    expect(plan.readiness.blockers).toContain(
+      "Manifest entry 0 (lease-renewals) approval_status is Unreviewed; production import requires Approved source metadata.",
+    );
+  });
+
+  it("flags unsafe source corpus manifest entries before import", () => {
+    const entries = validateSourceManifest([
+      {
+        approval_status: "Approved",
+        data_store_id: "kb-lease-renewals-txt",
+        gcs_uri: "gs://pmikc-kb-production-sources/lease-renewals/source-a.txt",
+        sensitivity: "High",
+        source_path: "docs/context_and_calls/raw-call-notes.md",
+        space_id: "lease-renewals",
+      },
+      {
+        approval_status: "Approved",
+        data_store_id: "kb-lease-renewals-txt",
+        gcs_uri: "gs://pmikc-kb-production-sources/lease-renewals/source-a.txt",
+        sensitivity: "Low",
+        source_path: "temp/client-production-sources/lease-renewals/source-b.md",
+        space_id: "lease-renewals",
+      },
+    ]);
+    const readiness = buildSourceCorpusReadiness(entries);
+
+    expect(readiness.ok).toBe(false);
+    expect(readiness.blockers).toContain(
+      "Manifest entry 0 (lease-renewals) is High sensitivity and must not be imported for retrieval.",
+    );
+    expect(readiness.blockers).toContain(
+      "Manifest entry 0 (lease-renewals) source_path points at raw context/call material; use an approved client-safe summary instead.",
+    );
+    expect(readiness.blockers).toContain(
+      "Duplicate gcs_uri in manifest: gs://pmikc-kb-production-sources/lease-renewals/source-a.txt.",
+    );
+    expect(
+      readiness.blockers.some((blocker) =>
+        blocker.startsWith("Duplicate derived document_id"),
+      ),
+    ).toBe(true);
   });
 
   it("rejects demo-shaped production cutover configuration", () => {

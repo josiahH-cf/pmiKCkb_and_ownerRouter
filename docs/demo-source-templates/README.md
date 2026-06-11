@@ -60,6 +60,11 @@ tracked source files and their intended Cloud Storage `.txt` object names. Use
 `npm run corpus:plan -- --write-temp` to create ignored `.txt` copies and print the
 upload, import, and `sources_meta` seed commands.
 
+The plan output includes a production-readiness section. It is normal for the demo
+manifest to report blockers for `Transcript-derived` sources because those launch-space
+starters are review-required for production; do not treat that as approval to import
+them into client production.
+
 For client production, do not reuse the demo manifest. Copy
 `docs/source-corpus/client-production-source-manifest.template.json` to an ignored
 `temp/` manifest, replace the placeholder bucket/source paths with approved PMI KC

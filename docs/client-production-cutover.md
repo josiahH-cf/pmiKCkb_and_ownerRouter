@@ -156,6 +156,12 @@ Copy-Item docs/source-corpus/client-production-source-manifest.template.json tem
 npm run corpus:plan -- --manifest=temp/client-production-source-manifest.json --project=<client-project-id> --location=us --dry-run
 ```
 
+Review the printed `readiness` object before continuing. `readiness.ok` must be
+`true`, `readiness.blockers` must be empty, and any `readiness.warnings` must be
+resolved or explicitly accepted in the cutover notes. The template is expected to
+report blockers until every placeholder bucket/source path is replaced and every
+source is marked `Approved`.
+
 6. After human source approval, create `.txt` staging copies and review the printed
    upload/import/metadata commands:
 
