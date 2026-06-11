@@ -103,9 +103,15 @@ Create Firestore Native mode, deploy rules/indexes, and seed non-secret KB recor
 ```bash
 gcloud firestore databases create --database='(default)' --location=us-central1 --type=firestore-native --project=<client-project-id> --quiet
 npm exec firebase -- deploy --only firestore:rules,firestore:indexes --project <client-project-id>
+npm run seed:spaces -- --dry-run
 npm run seed:spaces
 npm run seed:launch-skeletons -- --dry-run
 ```
+
+`seed:spaces` is idempotent: `--dry-run` prints the exact records without writing,
+reruns skip existing space documents, and `--force` updates existing documents while
+preserving their original `created_at`. Rollback for seeded spaces is deleting the
+listed `spaces/<space-id>` documents (they are app-owned metadata, not client data).
 
 Only omit `--dry-run` after confirming the active project and ADC target are the client
 project:
