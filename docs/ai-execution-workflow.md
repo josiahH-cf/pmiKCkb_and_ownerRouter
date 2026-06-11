@@ -22,18 +22,22 @@ When the user asks to plan the next feature run cycle, use
 
 The target loop is: gather context starting from `docs/loop-state.md`, create a
 decision-complete cycle packet in `docs/temp/`, ask planning-phase questions in one batch
-when needed, build safe local work unattended, run the verification-and-falsification
-phase, repair clear issues, align docs and `docs/loop-state.md`, prepare a commit queue,
-and continue into the next safe slice until a stop-and-reset condition fires. The user
-verifies at the end-of-run review point, not after every internal phase.
+when needed, build unattended, run the verification-and-falsification phase, repair clear
+issues, align docs and `docs/loop-state.md`, prepare a commit queue, and continue into the
+next safe slice until a stop-and-reset condition fires. The user verifies at the
+end-of-run review point, not after every internal phase.
 
 Before choosing a local feature, run the migration-readiness stop gate in
 `docs/autonomous-agent-runner.md`. If the proposed work does not improve production
 readiness, migration/cutover prep, verification, handoff, or an approved product
 quality issue, defer it and move the session toward client unblock or cutover prep.
 
-Stop before any unapproved cloud cost, API setup, key creation, deploy, live import,
-Gmail access, client-environment change, send, or external system write.
+When Remote Away Mode is active, do not stop merely because work uses APIs, migration
+setup, or client-environment setup. Proceed when the action is reversible/idempotent,
+budget-guarded, documented, and does not hit a Hard Stop in `docs/away-mode.md`. Stop
+before unbounded cost, breaking/destructive change, key creation without an approved
+storage plan, Gmail send/live mailbox access, external communication, or unapproved
+system-of-record write.
 
 Use `docs/autonomous-feature-cycle-packet-template.md` when a packet or handoff template
 is useful. Treat `docs/agent-runner/` as the scaffold prompt pack that created the
@@ -50,9 +54,10 @@ false`, and execute no external action.
 - Draft non-secret setup runbooks and validation checklists.
 - Add or improve tests for existing KB behavior when implementation changes.
 - Audit docs for stale KB-only or separate-Owner-Router assumptions.
-- While Dan/team replies are pending, continue local KB/workflow-control hardening,
-  Lease Renewal discovery/modeling, Gmail Inbox 0 planning, tool-access templates, and
-  dry-run/preflight work that does not touch client resources.
+- While Dan/team replies are pending, continue KB/workflow-control hardening, Lease
+  Renewal discovery/modeling, Gmail Inbox 0 planning, tool-access templates, and
+  dry-run/preflight/API setup work that is reversible, budget-guarded, and does not touch
+  raw client data or systems of record.
 - Once local readiness is green and the remaining blockers are client-owned access,
   sources, billing, production setup, migration, or real product decisions, stop
   selecting new local product-surface work and record the migration-ready blocked state.
@@ -73,8 +78,8 @@ false`, and execute no external action.
 - Firebase production role assignment.
 - Google Cloud billing/client-project migration until Dan adds billing and approves
   exact cost-bearing actions.
-- Gmail Inbox 0 live label/filter/setup beyond safe local planning until Dan approves
-  the safe test-thread model.
+- Gmail Inbox 0 live mailbox read/modify/draft/send beyond documented safe-thread setup
+  until Dan approves the safe test-thread model.
 - Any Lease Renewal Agent runtime design.
 - Any integration with RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Sheets, or live
   Gmail beyond explicitly approved safe setup and tool-access answers.

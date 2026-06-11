@@ -38,8 +38,10 @@ content, leases, ledgers, bank data, SSNs, or full source packets in this docume
 
 ## Current Client-Side Setup Gates
 
-These gates come from the current outbound Dan/team communications. They are not
-approval to spend, deploy, import sources, use credentials, or touch live Gmail.
+These gates come from the current outbound Dan/team communications. In Remote Away Mode,
+answered gates may unblock reversible API setup and migration prep when the budget guard
+passes and identifiers are recorded here. They are not approval for unbounded spend,
+autonomous sends, raw data handling, destructive changes, or system-of-record writes.
 
 The cost ceiling and free-tier-first defaults behind these gates are governed by
 `docs/budget-and-cost-policy.md` (~$10 total, no spend without approval). Validate the
@@ -91,19 +93,19 @@ spreadsheet notes or credentials into tracked files.
 | Boom          | Admin account            | Vendor endpoint contract packet still required.            |
 | Google Sheets | Admin account            | Confirm exact in-scope sheets and owner.                   |
 
-| Area                         | Environment  | Non-secret values to record                                   | Where real secrets live                                  | Manual setup or approval required                                   | Verification                                       | Approval gate                                  |
-| ---------------------------- | ------------ | ------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------- |
-| Firebase web app             | Staging/Prod | Project ID, auth domain, app ID.                              | Firebase config values in ignored env/Secret Manager.    | Create web app and approved authorized domains.                     | `npm run firebase:setup -- --project=<id>`         | Client project/domain approval.                |
-| Firebase Auth / Identity     | Staging/Prod | Allowed domain, OAuth client ID name.                         | OAuth client secret in Secret Manager/ignored env.       | Enable Google provider, consent if Google requires it.              | Sign-in smoke; wrong-domain rejection.             | Client Workspace/domain approval.              |
-| Firestore                    | Staging/Prod | Project ID, database ID, region.                              | None for rules/index identifiers.                        | Create Native mode database and deploy rules/indexes.               | `npm run test:firestore`; production smoke.        | Client project approval.                       |
-| Cloud Run                    | Staging/Prod | Service name, region, runtime service account, URL.           | Runtime env secrets in Secret Manager or shell.          | Deploy only after preflight and explicit budget/deploy approval.    | `npm run preflight:production -- --env-file=...`   | Deploy and cost approval.                      |
-| Vertex AI / Gemini           | Staging/Prod | Region, model names.                                          | ADC/workload identity only.                              | Enable API and confirm model/cost choice.                           | `npm run check:live-cost`; Ask smoke.              | Cloud/API cost approval.                       |
-| Agent Search                 | Staging/Prod | Location, data-store IDs, display names.                      | ADC/workload identity only.                              | Create/import only approved source corpora.                         | `npm run corpus:plan -- --dry-run`; Ask smoke.     | Source import and indexed-volume approval.     |
-| Cloud Storage source buckets | Staging/Prod | Bucket names, prefixes, service-agent grants.                 | IAM/workload identity only.                              | Create buckets and upload approved source copies.                   | `npm run corpus:plan`; import dry-run.             | Source and cloud cost approval.                |
-| Drive source folders         | Staging/Prod | Folder names, owners, access groups.                          | Workspace permissions, not repo secrets.                 | Client creates/shares source-of-truth folders.                      | Manual access check; source-sync test when scoped. | Client Workspace approval.                     |
-| Gmail KB Approval sender     | Prod         | Sender address, recipient list, label name, app base URL.     | Gmail auth/identity in Secret Manager or approved setup. | Provision `kb-automation@pmikcmetro.com`; approve recipients.       | Notification smoke after approval.                 | Gmail sender/recipient and send-only approval. |
-| Gmail Inbox 0                | Prod         | Label names, safe test model, management-page scope.          | Gmail credentials only through approved setup.           | Dan-approved mailbox scan, label/filter, and draft/reply model.     | Safe thread or supervised test.                    | Live Gmail read/modify/draft approval.         |
-| External systems             | Future       | Target system, action type, readiness state, owner, rollback. | Per-system approved credential storage.                  | Future approved spec, tests, audit fields, rollback/error handling. | Deterministic API health checks.                   | Per target-system/action-type approval.        |
+| Area                         | Environment  | Non-secret values to record                                   | Where real secrets live                                  | Manual setup or approval required                                                                   | Verification                                       | Approval gate                                  |
+| ---------------------------- | ------------ | ------------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------- |
+| Firebase web app             | Staging/Prod | Project ID, auth domain, app ID.                              | Firebase config values in ignored env/Secret Manager.    | Create web app and approved authorized domains.                                                     | `npm run firebase:setup -- --project=<id>`         | Client project/domain approval.                |
+| Firebase Auth / Identity     | Staging/Prod | Allowed domain, OAuth client ID name.                         | OAuth client secret in Secret Manager/ignored env.       | Enable Google provider, consent if Google requires it.                                              | Sign-in smoke; wrong-domain rejection.             | Client Workspace/domain approval.              |
+| Firestore                    | Staging/Prod | Project ID, database ID, region.                              | None for rules/index identifiers.                        | Create Native mode database and deploy rules/indexes.                                               | `npm run test:firestore`; production smoke.        | Client project approval.                       |
+| Cloud Run                    | Staging/Prod | Service name, region, runtime service account, URL.           | Runtime env secrets in Secret Manager or shell.          | Scale-to-zero deploys may proceed in Remote Away Mode when budget-guarded and rollback is recorded. | `npm run preflight:production -- --env-file=...`   | Cost cap and rollback gate.                    |
+| Vertex AI / Gemini           | Staging/Prod | Region, model names.                                          | ADC/workload identity only.                              | Enable API and confirm model/cost choice.                                                           | `npm run check:live-cost`; Ask smoke.              | Cloud/API cost approval.                       |
+| Agent Search                 | Staging/Prod | Location, data-store IDs, display names.                      | ADC/workload identity only.                              | Create/import only approved source corpora; keep imports bounded by budget guard.                   | `npm run corpus:plan -- --dry-run`; Ask smoke.     | Source, cost, and rollback gate.               |
+| Cloud Storage source buckets | Staging/Prod | Bucket names, prefixes, service-agent grants.                 | IAM/workload identity only.                              | Create buckets and upload approved source copies when reversible and budget-bounded.                | `npm run corpus:plan`; import dry-run.             | Source and cloud cost gate.                    |
+| Drive source folders         | Staging/Prod | Folder names, owners, access groups.                          | Workspace permissions, not repo secrets.                 | Client creates/shares source-of-truth folders.                                                      | Manual access check; source-sync test when scoped. | Client Workspace approval.                     |
+| Gmail KB Approval sender     | Prod         | Sender address, recipient list, label name, app base URL.     | Gmail auth/identity in Secret Manager or approved setup. | Provision `kb-automation@pmikcmetro.com`; approve recipients.                                       | Notification smoke after approval.                 | Gmail sender/recipient and send-only approval. |
+| Gmail Inbox 0                | Prod         | Label names, safe test model, management-page scope.          | Gmail credentials only through approved setup.           | Dan-approved mailbox scan, label/filter, and draft/reply model.                                     | Safe thread or supervised test.                    | Live Gmail read/modify/draft approval.         |
+| External systems             | Future       | Target system, action type, readiness state, owner, rollback. | Per-system approved credential storage.                  | Future approved spec, tests, audit fields, rollback/error handling.                                 | Deterministic API health checks.                   | Per target-system/action-type approval.        |
 
 ### External System Integration Registry
 
@@ -159,8 +161,8 @@ Before a handoff is considered simple enough for a new team:
   asks.
 - `docs/status.md` records the latest successful verification and remaining blockers.
 
-If any item is missing, a future agent should treat production/client-environment work
-as blocked. Continue only with planning, documentation, tests, dry-runs, regression
-fixes, and handoff work that improves readiness. If the migration-ready but
-client-blocked state has been reached, stop adding local product surface and route the
-next task to client unblock or cutover prep.
+If a required owner/client value is missing, a future agent should treat only the
+dependent step as blocked. Continue with product work, reversible API setup, migration
+prep, planning, documentation, tests, dry-runs, regression fixes, and handoff work that
+improves readiness. If Remote Away Mode is active, do not stop solely because the owner is
+remote; stop only for the hard gates in `docs/away-mode.md`.

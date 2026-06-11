@@ -14,8 +14,8 @@ import {
 export const BUDGET_CAP_USD = 10;
 
 // The reversible away-mode overlay lives in this doc. When its machine-readable marker is
-// ACTIVE, cost-bearing overrides are refused because the owner cannot approve spend while
-// away. See docs/away-mode.md.
+// ACTIVE, the guard keeps expensive or externally visible overrides blocked while still
+// allowing bounded migration/setup work under the $10 cap. See docs/away-mode.md.
 export const AWAY_MODE_DOC = "docs/away-mode.md";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -49,9 +49,9 @@ export function readBudgetGuardConfig(env = process.env, localEnv = readLocalEnv
 /**
  * Evaluate the cost posture. Pure: no filesystem or network access. The current safe
  * defaults (demo mode, or the sanctioned cheap-live path: Flash + single lease-renewals
- * Space + notifications off) pass with no flags. Unsafe live configurations require the
- * matching --allow-* flag, and while away-mode is active those overrides are refused
- * outright because the owner cannot approve spend.
+ * Space + notifications off) pass with no flags. Higher-risk live configurations require
+ * the matching --allow-* flag. While remote away mode is active, multi-Space migration
+ * can proceed with an explicit flag, but Pro and live notification sends stay blocked.
  */
 export function evaluateBudgetGuard(config, options = {}) {
   const errors = [];
@@ -60,20 +60,22 @@ export function evaluateBudgetGuard(config, options = {}) {
   const live = !config.askDemoMode;
   const awayModeActive = Boolean(options.awayModeActive);
 
-  if (awayModeActive) {
-    const refusedOverrides = [
-      [options.allowPro, "--allow-pro"],
-      [options.allowMultipleSpaces, "--allow-multiple-spaces"],
-      [options.allowNotifications, "--allow-notifications"],
-    ];
+  if (awayModeActive && options.allowPro) {
+    errors.push(
+      `Away mode is active: --allow-pro is refused. Use ${CHEAP_LIVE_MODEL}; ${PRO_MODEL} is not budget-bounded enough for unattended remote work under the $${cap} cap.`,
+    );
+  }
 
-    for (const [provided, flag] of refusedOverrides) {
-      if (provided) {
-        errors.push(
-          `Away mode is active: ${flag} is refused. Cost-bearing overrides need the owner's explicit approval, which cannot be given while away. Queue this for the on-return review (see ${AWAY_MODE_DOC}).`,
-        );
-      }
-    }
+  if (awayModeActive && options.allowNotifications) {
+    errors.push(
+      `Away mode is active: --allow-notifications is refused. Live notification sends are externally visible and require a separate send approval path (see ${AWAY_MODE_DOC}).`,
+    );
+  }
+
+  if (awayModeActive && options.allowMultipleSpaces) {
+    warnings.push(
+      `Away mode is active and --allow-multiple-spaces was provided. Continue only for bounded migration/setup work with approved sources, ${CHEAP_LIVE_MODEL}, notifications off, and spend tracking under the $${cap} cap.`,
+    );
   }
 
   if (live) {
@@ -101,7 +103,7 @@ export function evaluateBudgetGuard(config, options = {}) {
 
     if (awayModeActive) {
       warnings.push(
-        `Away mode is active and live mode is on (ASK_DEMO_MODE=false). Live Gemini/Vertex calls bill against the $${cap} cap. Prefer demo mode (ASK_DEMO_MODE=true) while the owner is away; only run already-approved live commands.`,
+        `Away mode is active and live mode is on (ASK_DEMO_MODE=false). Live Gemini/Vertex calls bill against the $${cap} cap; continue only while the work is bounded, reversible, and tracked in docs/loop-state.md.`,
       );
     }
   } else if (config.notificationsEnabled && !options.allowNotifications) {
@@ -166,10 +168,21 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     }
 
     if (result.ok) {
+      const activeOverrides = [
+        [options.allowPro, "--allow-pro"],
+        [options.allowMultipleSpaces, "--allow-multiple-spaces"],
+        [options.allowNotifications, "--allow-notifications"],
+      ]
+        .filter(([active]) => active)
+        .map(([, label]) => label);
+      const overrideSummary = activeOverrides.length
+        ? ` Active override(s): ${activeOverrides.join(", ")}.`
+        : " No cost-bearing override is active.";
+
       console.log(
         `Budget guard passed. Posture: ${result.posture}; away mode: ${
           awayModeActive ? "active" : "inactive"
-        }; cap: $${result.budgetCapUsd}. No cost-bearing override is active.`,
+        }; cap: $${result.budgetCapUsd}.${overrideSummary}`,
       );
     } else {
       console.error("Budget guard failed:");

@@ -12,8 +12,10 @@ temporary away-mode overlay (`docs/away-mode.md`) is active.
 - The $10 total cap is binding and **supersedes any higher per-service figure** mentioned
   in older preserved specs (for example a `$200/month` Gemini line in `docs/spec.md`).
   Those are legacy aspirational numbers, not approval to spend.
-- No silent spend. Any action that could create or increase billing requires explicit
-  user approval first, per the Approval Gates in `docs/autonomous-agent-runner.md`.
+- No unmanaged spend. Remote Away Mode grants standing approval for bounded setup and
+  migration work that stays under this cap, passes `npm run check:budget-guard`, and has a
+  dry-run or replayable plan. Anything unbounded, hard to estimate, or near the cap still
+  requires explicit user approval first.
 - The client-owned Google Cloud billing card is **not yet provisioned**, so today the
   practical spend ceiling is effectively $0 until the client unblocks billing. Treat all
   cost-bearing cloud actions as blocked until then.
@@ -39,21 +41,21 @@ demo mode (no live calls) → the sanctioned cheap-live path → anything billed
 
 ## Cost-Bearing Path Inventory
 
-Every path that can incur billing, and the gate that already protects it. None of these
-may run unattended without the noted approval while the loop is in its migration-ready,
-client-blocked state.
+Every path that can incur billing, and the gate that already protects it. In Remote Away
+Mode, bounded/reversible setup and migration may run unattended when the gate passes and
+the expected spend stays below the cap.
 
-| Path                               | Trigger                                     | Existing gate                                                                       |
-| ---------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Cloud Run deploy                   | `npm run deploy:demo` / `deploy`            | Refuses without `--budget-confirmed`; scale-to-zero; preflight via check-live-cost. |
-| Live Gemini answer/classify        | `ASK_DEMO_MODE=false` Ask path              | `npm run check:live-cost` enforces Flash + single Space; demo mode is default.      |
-| Live Ask / demo smoke              | `npm run smoke:ask-live`, `smoke:demo-live` | Run only against the cheap-live config; not for unattended use while away.          |
-| Vertex AI Search data store create | `npm run import:agent-search`               | `--dry-run` available; create only approved corpora.                                |
-| Agent Search document import       | `npm run import:agent-search`               | `--dry-run`; indexes client data, may bill.                                         |
-| Agent Search data store delete     | `npm run delete:agent-search-data-store`    | Refuses active stores; requires `--confirm-delete=<id>`.                            |
-| Cloud Storage source upload        | corpus plan / `gcloud storage cp`           | `npm run corpus:plan -- --dry-run` first.                                           |
-| Gmail approval notifications       | `npm run queue:notifications -- --write`    | Default `--dry-run`; `KB_APPROVAL_NOTIFICATIONS_ENABLED=false` by default.          |
-| Production cutover                 | `npm run preflight:production`              | Rejects demo-shaped config; deploy still needs explicit budget approval.            |
+| Path                               | Trigger                                     | Existing gate                                                                           |
+| ---------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Cloud Run deploy                   | `npm run deploy:demo` / `deploy`            | Refuses without `--budget-confirmed`; scale-to-zero; preflight via check-live-cost.     |
+| Live Gemini answer/classify        | `ASK_DEMO_MODE=false` Ask path              | `npm run check:live-cost` enforces Flash + single Space; demo mode is default.          |
+| Live Ask / demo smoke              | `npm run smoke:ask-live`, `smoke:demo-live` | Run only against the cheap-live config; bounded smokes are allowed in Remote Away Mode. |
+| Vertex AI Search data store create | `npm run import:agent-search`               | `--dry-run` available; create only approved corpora.                                    |
+| Agent Search document import       | `npm run import:agent-search`               | `--dry-run`; indexes client data, may bill.                                             |
+| Agent Search data store delete     | `npm run delete:agent-search-data-store`    | Refuses active stores; requires `--confirm-delete=<id>`.                                |
+| Cloud Storage source upload        | corpus plan / `gcloud storage cp`           | `npm run corpus:plan -- --dry-run` first.                                               |
+| Gmail approval notifications       | `npm run queue:notifications -- --write`    | Default `--dry-run`; `KB_APPROVAL_NOTIFICATIONS_ENABLED=false` by default.              |
+| Production cutover                 | `npm run preflight:production`              | Rejects demo-shaped config; deploy still needs explicit budget approval.                |
 
 ## The Budget Guard Preflight
 
@@ -68,8 +70,12 @@ It passes for the safe demo posture and for the sanctioned cheap-live path
 (Flash + single `lease-renewals` Space + notifications off). It fails when live mode is
 paired with the Pro model, extra Spaces, or enabled Gmail notifications unless the
 matching `--allow-pro` / `--allow-multiple-spaces` / `--allow-notifications` flag is
-passed after explicit approval. While away-mode is active (`docs/away-mode.md`), those
-override flags are **refused**, because the owner cannot approve spend while away.
+passed after explicit approval or standing Remote Away Mode rules. While away-mode is
+active (`docs/away-mode.md`), the guard:
+
+- allows `--allow-multiple-spaces` for bounded migration/setup and prints a warning;
+- refuses `--allow-pro`; and
+- refuses `--allow-notifications`.
 
 ## Approval And Escalation
 
@@ -77,15 +83,16 @@ override flags are **refused**, because the owner cannot approve spend while awa
   $10, stop and raise an approval request instead of proceeding.
 - An approval request must name the exact action, environment, expected cost or usage,
   data touched, and the rollback path (see `docs/autonomous-agent-runner.md`).
-- While the owner is away, do not raise per-item approval requests; queue them in the
-  On-Return Review Queue in `docs/loop-state.md` per `docs/away-mode.md`.
+- While Remote Away Mode is active, do not stop for synchronous review unless the action
+  hits a Hard Stop in `docs/away-mode.md`. Queue exact decisions in `docs/loop-state.md`
+  and continue with other non-blocked work.
 - If billing is later provisioned, create a project-scoped $10 budget alert before any
   deploy (see `docs/google-setup.md`), and record the billing account/owner in
   `docs/environment-handoff.md` (non-secret identifiers only).
 
 ## Related
 
-- `docs/away-mode.md` — reversible vacation overlay that tightens autonomy and points here.
+- `docs/away-mode.md` — reversible remote-autonomy overlay that points here.
 - `docs/autonomous-agent-runner.md` — Approval Gates, Cost Ceiling, and the loop rules.
 - `docs/environment-handoff.md` — billing gate and key/secret ownership.
 - `docs/google-setup.md` — the under-$10 live Ask and demo deploy setup notes.

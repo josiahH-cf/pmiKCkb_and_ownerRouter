@@ -1,10 +1,9 @@
-# Away Mode (Temporary Overlay)
+# Away Mode (Remote Autonomy Overlay)
 
-This is a **temporary, reversible overlay** on top of the normal governance in `AGENTS.md`
-and `docs/autonomous-agent-runner.md`. It tightens cost/cloud/external autonomy while the
-owner is on vacation and unreachable, then is removed to restore the fully open agentic
-development loop. It does **not** replace or weaken any existing safety rule; it only adds
-a more conservative posture for a defined window.
+This is a **temporary, reversible overlay** on top of the normal governance in
+`AGENTS.md` and `docs/autonomous-agent-runner.md`. It is no longer a local-only freeze.
+It exists so a future large model can keep doing meaningful work while the owner is
+remote, without creating an uncontrolled bill or breaking a live/client environment.
 
 <!-- The line below is machine-readable. scripts/check-budget-guard.mjs parses it. -->
 <!-- Set it to INACTIVE (see the Return Checklist) to lift the overlay. -->
@@ -14,140 +13,139 @@ AWAY_MODE_STATUS: ACTIVE
 ## Status
 
 - Status: **ACTIVE**
-- Activated: 2026-06-09
-- Expected return: ~2026-06-16 (owner away about one week)
-- Review-by: 2026-06-20 (do not auto-expand after this date; see Expiry Handling)
-- Budget cap during this window: **$10 total**, and effectively $0 of live cloud spend
-  because billing is not yet provisioned (see `docs/budget-and-cost-policy.md`).
+- Activated: 2026-06-09; converted to remote-autonomy posture on 2026-06-11.
+- Owner posture: remote/asynchronous, not a hard stop.
+- Budget cap during this window: **$10 total** unless the owner explicitly changes it in
+  writing. The guard constant is in `scripts/check-budget-guard.mjs`.
 
-## Why This Exists
+## Intent
 
-The owner is away for about a week with minimal availability to approve or supervise. The
-local agentic loop runs fully unattended (`.codex/config.toml` keeps
-`approval_policy = "never"` and `sandbox_mode = "danger-full-access"` — intentionally
-preserved so the development loop stays open). With no human in the approval path, the
-guardrail has to be the agent's own discipline plus the executable gates. Away mode makes
-that discipline explicit: keep doing safe local work, spend nothing, and queue anything
-that needs a human for the owner's return instead of pinging.
+Run unimpeded on useful engineering, migration, and setup work. Stop only when the next
+action is likely to:
 
-## Operating Posture While Away
+- create unmanaged or unbounded cost;
+- make a destructive, hard-to-rollback, or breaking change;
+- expose secrets, customer records, raw Gmail/customer content, ledgers, bank data, SSNs,
+  or full lease packets;
+- send external communication or autonomous Gmail/notification output; or
+- write to a system of record without an approved Action Registry entry and rollback plan.
 
-### Allowed unattended (unchanged from the normal safe loop)
+Do not use Away Mode as a reason to stop at docs-only work. If the task is reversible,
+bounded by the budget guard, and supported by active docs, execute it.
 
-- Read and inspect the repo.
-- Local code, docs, tests, lint, typecheck, build, and dry-run/preflight scripts.
-- Regression fixes and doc/status alignment within the active product lane.
-- Prepare a commit queue and commit/push to the current `work/` branch.
-- Update `docs/loop-state.md` and `docs/status.md`.
+## Standing Autonomy
 
-### Blocked while away — queue for return, do not attempt
+The unattended loop is authorized to do all of the following without waiting for the owner
+to be physically present:
 
-Everything already listed in the Approval Gates of `docs/autonomous-agent-runner.md`, and
-specifically:
+- build product code, tests, docs, scripts, UI, migration helpers, and runbooks;
+- commit, push, and fast-forward/merge branches when the worktree is clean and validation
+  is recorded;
+- run local tests, emulators, build, dry-runs, falsification, and browser smokes;
+- run non-destructive Google/Firebase/API setup commands when they are idempotent or
+  safely retryable and their identifiers are recorded in `docs/environment-handoff.md`;
+- enable APIs, create or reuse Firebase apps, deploy Firestore rules/indexes only after
+  rules tests pass and rollback is recorded, seed app-owned metadata, and set up
+  staging/demo infrastructure when the commands are reversible and cost-bounded;
+- perform migration/cutover prep through APIs, including source manifests, source bucket
+  and Agent Search planning, production preflights, scale-to-zero deploy planning, and
+  approved small live smokes;
+- use the sanctioned cheap-live path when needed: Flash model, budget guard passing,
+  scale-to-zero Cloud Run, notifications off, and source/import scope recorded; and
+- use `--allow-multiple-spaces` for bounded migration/setup when multiple Spaces are
+  necessary, sources are approved, and expected spend remains below the $10 cap.
 
-- Any cloud/API spend, deploy, live import, or indexing.
-- Setting `ASK_DEMO_MODE=false` to run live Gemini/Vertex commands, or any
-  `smoke:*-live` / `deploy:*` run, unless it was already explicitly approved before the
-  owner left.
-- The Pro model, extra Spaces, or enabling Gmail notifications (the budget guard refuses
-  the `--allow-*` overrides while away).
-- Gmail read/modify/draft/send, external-system writes, key creation/rotation/use.
-- Sending any client communication or external message.
-- Merging to `main` or any production/staging change.
+## Hard Stops
 
-When the next safe step would require any of the above, **do not raise a per-item approval
-request** (the owner cannot act on it). Instead add it to the On-Return Review Queue in
-`docs/loop-state.md` and continue with the next safe local slice, or stop cleanly if none
-remains.
+Stop and queue a remote-owner decision before any of these:
 
-### Minimal-visibility rule
+- billing-account changes, quota increases, cap increases, or any action expected to put
+  total spend near or above $10;
+- Pro model usage (`--allow-pro`) or any unmetered/unknown-cost model/API path;
+- live Gmail/approval notification sends (`--allow-notifications`), external email, or
+  client communication;
+- deleting, replacing, or overwriting production/staging resources without a tested rollback
+  path, including data stores, buckets, databases, domains, OAuth clients, IAM grants, or
+  service accounts;
+- schema/data migrations that cannot be rolled back or replayed safely;
+- raw client data import, raw Gmail access, or use of secrets not already available through
+  approved local/managed credential paths;
+- downloadable service-account key creation unless a named exception and storage/rotation
+  plan already exist; and
+- system-of-record writes to RentVine, LeadSimple, DotLoop, QuickBooks, Boom, operating
+  Sheets, banks, ledgers, client Drive folders, or Gmail unless the Action Registry says
+  the exact action is `Approved for Execution`, documented, `production_allowed`, and the
+  run has a preview plus rollback/correction plan.
 
-Batch everything that needs the owner into the On-Return Review Queue rather than emitting
-approval prompts or notifications during the window. A clean stop with a current
-`docs/loop-state.md` is a successful outcome.
+## Cost Discipline
 
-## Safe Backlog While Away
+Run `npm run check:budget-guard` before live mode, deploy, import, indexing, source upload,
+or notification work. The guard:
 
-While away mode is active, the unattended loop is authorized to execute the bounded
-backlog below without further approval. This is the work that lets the loop run unattended
-without stalling on the client-owned blockers (which cannot progress while the owner is
-away). It is consistent with the Migration-Readiness Stop Gate: it is quality and
-readiness work, **not new product surface**.
+- passes for demo mode;
+- passes for the cheap-live path;
+- allows `--allow-multiple-spaces` in Away Mode for bounded migration/setup and prints a
+  warning;
+- refuses `--allow-pro` in Away Mode; and
+- refuses `--allow-notifications` in Away Mode.
 
-Per-slice rules:
+If a command does not have a deterministic cost guard, prefer dry-run or planning output
+first. If the model cannot explain why the action stays below the cap, it must stop before
+running it.
 
-- Only quality/readiness work: regression fixes, test-coverage gaps, dry-run/preflight and
-  cutover-prep tooling, and non-secret docs/handoff hygiene. Do not add new product
-  features, runtime, or speculative surface.
-- No cost/cloud/external action: no live (`ASK_DEMO_MODE=false`) runs, deploys, imports,
-  Gmail, key use, external-system writes, or sends. Run `npm run check:budget-guard` first.
-- Verify proportional to the change (at least `npm run verify:falsification`; add
-  `lint`/`typecheck`/`test` for code; `test:firestore` for persistence — Java is available).
-- Commit and push only to the current `work/` branch. No PR, no merge to `main`.
-- Update `docs/loop-state.md` at each slice boundary; queue anything needing the owner.
+## Remote Owner Protocol
 
-Backlog (ranked, finite — work top-down, skip what needs a client/cost/external decision):
+Do not wait for synchronous review unless a Hard Stop applies. When a decision is needed:
 
-1. Script entrypoint-guard hardening — **done 2026-06-09** (`process.argv[1]` guard across
-   all `scripts/*.mjs|ts`).
-2. Test-coverage gaps on shipping behavior (KB Ask/citations, Approval Queue,
-   workflow-run/process-definition, source-state/permission/prompt) — add tests only where
-   a real, currently-uncovered behavior gap exists.
-3. Regression and simplification sweeps over the KB runtime — fix real bugs or dead code,
-   not cosmetic churn.
-4. Cutover/migration-readiness tooling, dry-run only — tighten `preflight:production`,
-   `corpus:plan` manifests/templates, deploy dry-run output, rollback notes, and acceptance
-   fixtures.
-5. Docs/runbook/handoff hygiene (non-secret) — keep `status.md`, this file, loop-state,
-   `client-checklist.md`, and `environment-handoff.md` current and discoverable.
+1. Record the exact action, cost exposure, environment, data touched, rollback path, and
+   consequence of waiting in `docs/loop-state.md`.
+2. Continue with other non-blocked work.
+3. If no other non-blocked work remains, stop cleanly with current verification.
 
-Exhaustion stop: when the backlog is cleared and verification (including `test:firestore`)
-is green with no real regression, **stop and wait for return**. Do not invent product
-surface to keep the loop busy. Record the stop in `docs/loop-state.md` and notify only if a
-decision is newly required.
+The owner being remote is not a reason to avoid useful setup. It is only a reason to keep
+decisions crisp and cheap.
 
-## Daily Self-Check
+## Run Loop
 
-While away mode is active, run `npm run check:budget-guard` before any borderline action
-and at least once per unattended session. It confirms the cost posture is safe and refuses
-cost-bearing overrides while the overlay is active.
+At each slice boundary:
+
+- update `docs/loop-state.md`;
+- update `docs/status.md` after meaningful work;
+- record non-secret environment identifiers in `docs/environment-handoff.md`;
+- run verification proportional to the change; and
+- keep going into the next readiness/migration/product slice unless a Hard Stop or quality
+  failure fires.
+
+`docs/loop-state.md` contains the current large-run queue. It is intentionally sized for a
+large-context model and may span setup automation, migration tooling, e2e hardening,
+non-executable Lease Renewal foundation, Gmail Inbox 0 foundation, and integration
+readiness. Future models should use that queue as standing authorization to keep working
+through multiple substantial batches.
 
 ## Expiry Handling
 
-If today is on or after the Review-by date and this file is still `ACTIVE`, **do not
-auto-expand autonomy**. The fuzzy "about a week" return means lapsing the window must stay
-conservative, not open up on its own. Instead:
+If the calendar window lapses and this file is still `ACTIVE`, do **not** revert to the
+old local-only posture. Keep this remote-autonomy posture active until the owner explicitly
+uses the Return Checklist.
 
-1. Record in `docs/loop-state.md` that the away-mode window has lapsed without an explicit
-   return.
-2. Keep the conservative posture (treat the overlay as still active for cost/cloud/external
-   actions).
-3. Wait for the owner to run the Return Checklist below. Restoring full openness is always
-   a deliberate human action, never automatic.
+## Return Checklist
 
-## Return Checklist (restore full openness)
-
-When the owner is back, lift the overlay in three steps. Each step is an additive removal,
-so the repo returns to its exact prior, fully open governance with no residue:
+To restore normal non-overlay governance:
 
 1. In this file, change `AWAY_MODE_STATUS: ACTIVE` to `AWAY_MODE_STATUS: INACTIVE`, and
-   set Status to **INACTIVE** (or delete this file entirely — the budget guard treats a
+   set Status to **INACTIVE** (or delete this file entirely; the budget guard treats a
    missing file as not-active).
-2. In `AGENTS.md`, delete the fenced "Temporary Operating Overlay — Away Mode" block near
-   the top.
-3. In `docs/loop-state.md`, revert the `Operating mode:` line in the Snapshot and clear the
-   On-Return Review Queue after the owner has reviewed it.
+2. In `AGENTS.md`, delete or update the temporary Away Mode block near the top.
+3. In `docs/loop-state.md`, update the `Operating mode:` line and clear resolved remote
+   decision queue items.
 
-After these three edits, the loop is "completely open" again: the unattended multi-slice
-loop, `.codex` openness, and all existing approval gates remain exactly as before. The
-durable budget policy (`docs/budget-and-cost-policy.md`), the `check:budget-guard` script,
-the CI guard step, and the `.gitignore` hardening intentionally **stay** — they are not
-part of this overlay and improve safety in open mode too.
+The durable budget policy, budget guard script, CI guard, and `.gitignore` hardening stay.
 
 ## What Is Intentionally Not Changed
 
-- `.codex/config.toml` (`approval_policy = "never"`, `danger-full-access`, network access)
-  is left as-is so the unattended development loop keeps working.
-- No existing approval gate, security rule, or product-lane boundary is relaxed.
-- No runtime app config (`lib/config/server.ts`) is changed; away mode is a process/governance
-  overlay plus a read-only guard, not a runtime feature flag.
+- `.codex/config.toml` remains open for unattended execution.
+- Security rules still block secrets and raw customer/Gmail data in git.
+- Human send authority is preserved.
+- System-of-record writes still require explicit Action Registry readiness.
+- Missing sources still produce visible uncertainty, not generic property-management
+  answers.

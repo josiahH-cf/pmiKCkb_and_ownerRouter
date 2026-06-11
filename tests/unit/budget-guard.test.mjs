@@ -88,7 +88,7 @@ describe("budget guard", () => {
     expect(result.warnings.join(" ")).toContain("KB_APPROVAL_NOTIFICATIONS_ENABLED=true");
   });
 
-  it("refuses cost-bearing override flags while away mode is active", () => {
+  it("refuses Pro override flags while away mode is active", () => {
     const result = evaluateBudgetGuard(
       { ...cheapLive, geminiAnswerModel: "gemini-2.5-pro" },
       { allowPro: true, awayModeActive: true },
@@ -97,6 +97,30 @@ describe("budget guard", () => {
     expect(result.ok).toBe(false);
     expect(result.errors.join(" ")).toContain("Away mode is active");
     expect(result.errors.join(" ")).toContain("--allow-pro");
+  });
+
+  it("allows explicit multi-Space migration posture while away mode is active", () => {
+    const result = evaluateBudgetGuard(
+      {
+        ...cheapLive,
+        liveSpaceIds: ["lease-renewals", "owner-onboarding"],
+      },
+      { allowMultipleSpaces: true, awayModeActive: true },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.warnings.join(" ")).toContain("--allow-multiple-spaces");
+    expect(result.warnings.join(" ")).toContain("bounded migration/setup work");
+  });
+
+  it("refuses live notification-send overrides while away mode is active", () => {
+    const result = evaluateBudgetGuard(
+      { ...cheapLive, notificationsEnabled: true },
+      { allowNotifications: true, awayModeActive: true },
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(" ")).toContain("--allow-notifications");
   });
 
   it("warns when away mode is active and live mode is on, without failing", () => {

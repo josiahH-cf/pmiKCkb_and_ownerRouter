@@ -6,9 +6,12 @@ This is the active production runner for large unattended feature cycles. Use it
 user says "let's plan the next feature run cycle" or asks for an agentic planning,
 build, verification, and handoff loop.
 
-The runner is documentation and process guidance only. It does not authorize cloud
-spend, billing changes, client-environment changes, live imports, Gmail access, key
-creation, deploys, sends, or external system writes.
+The runner is documentation and process guidance only. By default, it does not authorize
+cloud spend, billing changes, client-environment changes, live imports, Gmail access, key
+creation, deploys, sends, or external system writes. When `docs/away-mode.md` is ACTIVE,
+its Remote Away Mode standing autonomy can authorize bounded, reversible setup/migration
+work; cost, breaking/destructive changes, autonomous sends, secrets/raw data, and
+unapproved system-of-record writes remain hard stops.
 
 ## Entry Points
 
@@ -163,6 +166,13 @@ the direction and the choice:
 
 The agent must stop for explicit approval before any action outside those limits.
 
+When Remote Away Mode is active in `docs/away-mode.md`, this local-only limit is widened:
+the agent may also run idempotent, reversible migration/setup work through APIs when it is
+budget-guarded, documented, and does not hit a Hard Stop in that file. This includes
+preflights, API enablement, Firebase/GCP setup, app-owned metadata seeding, scale-to-zero
+deploy preparation, and small cheap-live smokes. Do not stop merely because the owner is
+remote.
+
 ## Approval Gates
 
 Require explicit approval for each exact action or tightly related action group that
@@ -192,6 +202,13 @@ required permissions and plan, readiness, preview, and rollback; an action is el
 execution approval only when its registry entry is `Approved for Execution`, `Documented`,
 and `production_allowed`.
 
+Remote Away Mode modifies these gates by granting standing approval for bounded setup and
+migration actions that pass `npm run check:budget-guard`, have a dry-run or replayable
+plan, record non-secret identifiers in `docs/environment-handoff.md`, and avoid the Hard
+Stops in `docs/away-mode.md`. It does not waive billing/cap increases, Pro model usage,
+autonomous sends, destructive changes, raw data/secrets exposure, or unapproved
+system-of-record writes.
+
 ## Cost Ceiling And Budget Policy
 
 The cloud budget is approximately **$10 total** and no spend happens without approval.
@@ -203,13 +220,15 @@ free-tier-first defaults, the inventory of every cost-bearing path and its gate,
   no live calls), then the sanctioned cheap-live path (Flash + single `lease-renewals`
   Space + scale-to-zero Cloud Run), then anything billed.
 - Run `npm run check:budget-guard` before any live, deploy, import, or notification command.
-  It refuses cost-bearing overrides while the away-mode overlay is active.
+  In Remote Away Mode it allows explicitly bounded multi-Space migration setup, but still
+  refuses Pro and notification-send overrides.
 - The $10 total cap supersedes higher per-service figures in older preserved specs. Treat
   it as a hard ceiling: if a step would approach it, stop and raise an approval request.
-- While billing is unprovisioned, all cost-bearing cloud actions stay blocked regardless of
-  the cap.
-- When the temporary overlay in `docs/away-mode.md` is active, do not raise per-item
-  approval requests; queue them in `docs/loop-state.md` for the owner's return.
+- While billing is unprovisioned, actions that require billing remain blocked; API setup
+  and dry-runs that do not require billing may still proceed.
+- When the temporary overlay in `docs/away-mode.md` is active, continue with non-blocked
+  remote work instead of stopping for synchronous review. Queue only Hard Stop decisions in
+  `docs/loop-state.md`.
 
 ## Secrets And Environments
 
@@ -262,7 +281,8 @@ continue, and verification after unblock.
 
 After the cycle packet is decision-complete, run one slice end to end:
 
-1. Build safe local changes.
+1. Build the selected safe changes, including bounded API/setup/migration work when
+   Remote Away Mode authorizes it.
 2. Add or update tests for behavior changes.
 3. Update durable docs future agents need.
 4. Track discovered blockers and human-side asks.
@@ -322,8 +342,8 @@ Run this phase for every slice:
    - TypeScript/runtime changes: add `npm run lint`, `npm run typecheck`, and `npm test`.
    - Firestore or persistence changes: add `npm run test:firestore` when Java is
      available.
-   - Production or live setup preparation: dry-run first and stop before any unapproved
-     live action.
+   - Production or live setup preparation: dry-run first; when Remote Away Mode is active,
+     proceed with bounded, reversible, budget-guarded setup and stop only for a Hard Stop.
    - End-of-cycle handoff: run `bash scripts/verify.sh` when relevant and practical.
 6. Repair clear in-scope issues immediately when the correct fix is supported by current
    context, then re-run the affected checks.
@@ -360,9 +380,10 @@ Keep going while slices stay safe, decision-complete, and readiness-improving. S
 hand back when any condition below fires. State which condition fired and the recommended
 next action in `docs/loop-state.md`.
 
-- Approval gate: the next safe step needs cloud/API cost, key creation or use, deploy,
-  live import, Gmail access, external communication, client-environment change, or an
-  external system write. Stop and raise an approval request.
+- Approval gate: the next step hits a Hard Stop in `docs/away-mode.md` or otherwise needs
+  unapproved/unbounded cloud/API cost, key creation or use, Gmail access, external
+  communication, destructive client-environment change, or an external system write. Stop
+  and raise or queue the exact approval request.
 - Migration readiness reached: local verification is green, cutover/preflight artifacts
   are current, client asks are clear, and the remaining blockers are client-owned. Stop
   adding local product surface and recommend client unblock or cutover prep.

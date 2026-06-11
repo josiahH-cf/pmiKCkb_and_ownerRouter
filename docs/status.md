@@ -4037,3 +4037,43 @@ Validation status:
 - Post-merge ref check confirmed `main`, `origin/main`,
   `work/yolo-20260609-015747`, and `origin/work/yolo-20260609-015747` all pointed at
   `b652073` before this doc-only state update.
+
+## Remote Away Mode Autonomy Widened
+
+- Date: 2026-06-11
+- Trigger: user clarified that future large-model runs should be able to do significant
+  work while the owner is remote, including migration/setup through APIs, and should be
+  restricted primarily by breaking-change risk and cost risk.
+- Replaced the old local-only Away Mode posture with Remote Away Mode in
+  `docs/away-mode.md`. Future agents are now authorized to keep running product,
+  migration, and API/setup work when it is reversible, non-breaking, budget-guarded, and
+  documented.
+- Hard stops remain: unmanaged or unbounded cost, cap increases, Pro model use,
+  autonomous sends/live notifications, destructive or hard-to-rollback changes, secrets
+  or raw client/customer/Gmail data exposure, and unapproved system-of-record writes.
+- Updated `AGENTS.md`, `docs/autonomous-agent-runner.md`,
+  `docs/budget-and-cost-policy.md`, `docs/ai-execution-workflow.md`,
+  `docs/implement.md`, `docs/environment-handoff.md`, and `docs/loop-state.md` so future
+  sessions do not stop merely because the owner is remote.
+- Updated `scripts/check-budget-guard.mjs`: Away Mode now allows
+  `--allow-multiple-spaces` for bounded migration/setup with a warning, while still
+  refusing `--allow-pro` and `--allow-notifications`.
+- Made the next large-run queue explicit in `docs/loop-state.md`, sized for a
+  large-context/long-running model: production-lift setup automation, cutover/migration
+  pipeline, app-owned environment migration, production e2e hardening, a preview-first KB
+  Admin migration console, non-executable Lease Renewal Agent foundation, non-live or
+  safe-thread Gmail Inbox 0 foundation, and integration readiness expansion.
+- No cloud setup, billing action, Gmail access, credential use, client-resource change,
+  deploy, source import, email send, or external-system write was performed.
+
+Validation status:
+
+- `npm run check:budget-guard`: passed; demo posture, Remote Away Mode active, $10 cap.
+- `npm test -- budget-guard`: passed with 15 focused tests.
+- `npm run format:check`: passed.
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm test`: passed with 282 tests.
+- `git diff --check`: passed.
+- `npm run verify:router-boundary`: passed.
+- `npm run verify:falsification`: passed across 259 committable files.

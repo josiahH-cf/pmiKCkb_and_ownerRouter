@@ -32,9 +32,10 @@ Default priority:
 
 ## While Waiting On Client Replies
 
-The current outbound client asks are tracked in `docs/client-checklist.md`. They block
-production migration, live imports, live Gmail work, external-system access, and Lease
-Renewal runtime execution, but they do not block safe local development.
+The current outbound client asks are tracked in `docs/client-checklist.md`. They still
+block unknown-cost work, raw client data handling, live Gmail work, external-system writes,
+and Lease Renewal runtime execution, but they do not block reversible product work,
+API-backed setup, or migration preparation when Remote Away Mode allows it.
 
 Safe local development is not unlimited. Before starting another local feature cycle,
 check whether the work still improves production readiness, migration/cutover prep,
@@ -48,6 +49,9 @@ Continue iterating on:
 
 - KB demo/runtime health, tests, preflights, dry-runs, Admin visibility, and source
   manifest templates.
+- Reversible GCP/Firebase/API setup and migration helpers when `docs/away-mode.md` is
+  ACTIVE, `npm run check:budget-guard` passes, and non-secret identifiers are recorded in
+  `docs/environment-handoff.md`.
 - Approval Queue and workflow-control primitives that do not require live integrations
   or client data.
 - Lease Renewal discovery artifacts, workflow-run/process-definition modeling,
@@ -68,10 +72,11 @@ and handoff evidence. Defer new workflow-control slices, Approval Queue expansio
 Lease Renewal runtime, Gmail runtime, or demo-only complexity unless the active docs
 show a direct cutover or quality reason.
 
-Stop before any Google Cloud billing/cost action, production setup, live source import,
-deploy, Gmail read/modify/draft/send, API-key use, client Drive write, or
-RentVine/LeadSimple/DotLoop/QuickBooks/Boom/Sheets write unless the user explicitly says
-the relevant Dan/team reply has unblocked that exact action.
+Stop before any unbounded Google Cloud cost, billing/quota change, destructive production
+change, raw source import, Gmail read/modify/draft/send, API-key creation/use without an
+approved storage path, client Drive write, or
+RentVine/LeadSimple/DotLoop/QuickBooks/Boom/Sheets write unless the active docs and
+`docs/away-mode.md` explicitly allow that exact bounded action.
 
 When running product-definition follow-up loops, group related questions into small
 batches. Include a recommended default answer for each question based on the active
