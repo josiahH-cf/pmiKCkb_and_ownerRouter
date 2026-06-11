@@ -18,6 +18,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:firestore": "node scripts/run-firestore-tests.mjs",
+    "test:e2e": "node scripts/run-e2e-tests.mjs",
+    "test:e2e:core": "node scripts/run-e2e-tests.mjs --no-firestore",
     "test:watch": "vitest",
     "verify": "bash scripts/verify.sh",
     "verify:router-boundary": "node scripts/check-router-boundary.mjs",

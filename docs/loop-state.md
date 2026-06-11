@@ -33,6 +33,17 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- Mocked-Auth E2E Flow Harness (2026-06-11, remote-run queue item #4): built the
+  browserless e2e harness (`npm run test:e2e` / `test:e2e:core`,
+  `scripts/run-e2e-tests.mjs`, `tests/e2e/`): a cookie-jar fetch client drives a real
+  `next dev` server with `LOCAL_DEMO_AUTH=true ASK_DEMO_MODE=true`, optionally inside the
+  Firestore emulator seeded from `scripts/demo-firestore.mjs`. 33 tests cover guard
+  redirects and role gating, Ask source states and citations, capture-to-placeholder,
+  Approval Queue flows (filters, high-risk confirmation, approve, bulk snooze, bulk
+  execute block), the full process-definition lifecycle to activation, spaces, and
+  graceful no-Firestore degradation. `POST /api/auth/demo` now accepts an optional
+  Editor/Approver/Admin role (cookie `local-demo:<Role>`), still demo-gated. See the
+  matching `docs/status.md` entry for validation detail.
 - Remote Away Mode Autonomy Widening (2026-06-11, user-directed): converted Away Mode
   from local-only vacation posture into a remote-autonomy overlay. Future agents may run
   significant product, migration, and API/setup work when it is reversible, non-breaking,

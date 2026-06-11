@@ -7,6 +7,7 @@ export default defineConfig({
       "**/dist/**",
       "**/node_modules/**",
       "tests/firestore/**/*.test.ts",
+      "tests/e2e/**",
     ],
     environment: "node",
     globals: true,
