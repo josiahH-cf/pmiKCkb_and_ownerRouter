@@ -233,11 +233,9 @@ review, then continue with safe local work or stop cleanly.
 
 ## Commit Queue Status
 
-- Pending commit queue: group this slice as "source corpus readiness dry-run hardening."
-  Include `scripts/source-corpus-manifest.mjs`, `tests/unit/live-cost-scripts.test.mjs`,
-  `docs/client-production-cutover.md`, `docs/demo-source-templates/README.md`,
-  `docs/implement.md`, `docs/status.md`, and this file. Do not commit, push, or merge
-  without an explicit request.
+- Clear: source corpus readiness dry-run hardening was committed as `b652073` and
+  fast-forwarded to `main` / `origin/main` on 2026-06-11 by explicit user request. No
+  pending commit queue remains.
 
 ## Security Note
 

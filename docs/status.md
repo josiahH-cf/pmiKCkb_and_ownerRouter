@@ -4021,3 +4021,19 @@ Stop condition:
   decision-free local work is selected. Continue only for a concrete regression,
   test/preflight gap, or docs/handoff inconsistency; otherwise wait for return/client
   unblock and resume cutover from `docs/client-checklist.md`.
+
+## Main Consolidation
+
+- Date: 2026-06-11
+- By explicit user request, fast-forwarded `main` from `a329069` to `b652073` and pushed
+  `origin/main` so the source-corpus readiness dry-run hardening slice is available from
+  the default branch for the next run.
+- Away Mode remains active for cost/cloud/Gmail/external actions; this entry records only
+  the repository consolidation.
+
+Validation status:
+
+- Pre-merge verification for `b652073` is recorded in the previous status entry.
+- Post-merge ref check confirmed `main`, `origin/main`,
+  `work/yolo-20260609-015747`, and `origin/work/yolo-20260609-015747` all pointed at
+  `b652073` before this doc-only state update.
