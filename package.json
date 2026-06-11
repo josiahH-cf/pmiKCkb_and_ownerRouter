@@ -40,6 +40,7 @@
     "delete:agent-search-data-store": "node scripts/delete-agent-search-data-store.mjs",
     "deploy": "node scripts/deploy-demo-cloud-run.mjs",
     "deploy:demo": "node scripts/deploy-demo-cloud-run.mjs",
+    "preflight:gcp": "node scripts/preflight-gcp-setup.mjs",
     "preflight:production": "node scripts/preflight-production-cutover.mjs",
     "import:agent-search": "node scripts/import-agent-search-documents.mjs",
     "smoke:ask-live": "node scripts/smoke-live-ask.mjs",

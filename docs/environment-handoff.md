@@ -77,6 +77,19 @@ regressions, but should not add new local product surface until a client answer,
 approved migration step, production smoke result, or accepted product decision creates a
 specific need.
 
+## GCP Setup Preflight
+
+`npm run preflight:gcp -- --project=<client-project-id>` prints the full converge plan
+(required APIs, Firebase setup commands, Firestore create/rules-deploy commands, budget
+posture) without credentials. With Application Default Credentials, add `--live` for a
+read-only check of enabled APIs, Firestore database mode, and the Firebase project, and
+`--json` for a machine-readable readiness report (`readiness.ok` / `blockers` /
+`warnings`). Record the non-secret report output here after each owner-side run.
+
+- 2026-06-11: plan mode verified locally (no credentials in the remote container); live
+  mode degrades to a structured credentials blocker as designed. No owner-side live run
+  recorded yet.
+
 ## Setup Inventory
 
 ### Non-Secret Tool-Access Snapshot

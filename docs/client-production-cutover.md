@@ -75,6 +75,21 @@ the active session or load them into the shell before running seed/deploy comman
 Keep `.env.production.local` as the reviewed preflight input if you want a separate
 handoff file.
 
+Print the full converge plan (API enablement, Firebase setup, Firestore create/deploy
+commands) and the budget posture without touching the project:
+
+```bash
+npm run preflight:gcp -- --project=<client-project-id>
+```
+
+With Application Default Credentials available, verify the live project state
+read-only (enabled APIs, Firestore database mode, Firebase project) before and after
+running setup commands:
+
+```bash
+npm run preflight:gcp -- --project=<client-project-id> --live --json
+```
+
 Enable required APIs in the client project:
 
 ```bash
