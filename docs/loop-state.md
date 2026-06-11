@@ -33,6 +33,15 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- Cutover Tooling Batch (2026-06-11, remote-run queue items #1-#3): `seed:spaces` is
+  now idempotent (`--dry-run`, existence prechecks, `--force` preserves `created_at`);
+  `npm run preflight:gcp` prints the credential-less GCP/Firebase/Firestore converge
+  plan with a doc-synced required-API list and adds `--live` read-only verification
+  when ADC exists; `npm run cutover:report` composes GCP plan, production env
+  preflight, budget posture, corpus readiness, deploy preview, an ordered rollback
+  plan, and the §7 smoke checklist into one machine-readable readiness report that the
+  runbook now requires before deploy. All dry-run/read-only; live API reads remain
+  owner-side because the remote container has no credentials. See `docs/status.md`.
 - Mocked-Auth E2E Flow Harness (2026-06-11, remote-run queue item #4): built the
   browserless e2e harness (`npm run test:e2e` / `test:e2e:core`,
   `scripts/run-e2e-tests.mjs`, `tests/e2e/`): a cookie-jar fetch client drives a real
@@ -118,6 +127,13 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-11 (e2e harness + cutover tooling batch, end of remote run):
+  `bash scripts/verify.sh` passed (format, lint, typecheck, 318 unit tests / 42 files,
+  router boundary, falsification across 276 committable files, build);
+  `npm run test:firestore` passed (23 rules tests); `npm run test:e2e` passed (31
+  tests, 2 degraded-mode tests correctly skipped with the emulator present);
+  `npm run test:e2e:core` passed earlier in the run (16 tests without the emulator);
+  `npm run check:budget-guard` passed (demo posture, away mode active, $10 cap).
 - 2026-06-11 (Remote Away Mode autonomy widening): `npm run check:budget-guard`,
   `npm test -- budget-guard` (15 tests), `npm run format:check`, `npm run lint`,
   `npm run typecheck`, `npm test` (282 tests), `git diff --check`,
@@ -159,6 +175,12 @@ continuation, and stop-and-reset rules.
 
 ## Last Falsification Result
 
+- 2026-06-11 (end of e2e + cutover tooling run): `npm run verify:falsification` passed
+  across 276 committable files. Self-review: all four slices are local
+  tests/tooling/docs; the only runtime change is the demo-gated role parameter on
+  `POST /api/auth/demo`, which stays behind `isLocalDemoAuthEnabled()` (off in
+  production and rejected by the production preflight). No secrets, no client data, no
+  cloud/API/Gmail action, no deploy/import/send, and no system-of-record write path.
 - 2026-06-11: `npm run verify:falsification` passed across 259 committable files after the
   Remote Away Mode autonomy widening. Self-review found the change widens execution
   posture only through docs and budget-guard logic; no secrets, no client data, no
@@ -195,6 +217,16 @@ surface:
 This queue is intentionally sized for a large-context, long-running model. Do not stop
 after one small patch if checks stay green and no hard gate fires. Work top-down, updating
 this file and `docs/status.md` at each slice boundary.
+
+Progress (2026-06-11 remote run): items 1-4 below now have their local/dry-run halves
+built and verified — `preflight:gcp` (item 1: plan mode complete; `--live` read-only
+verification ready but needs owner-side ADC), `cutover:report` (item 2: composed
+readiness report, rollback plan, smoke checklist), `seed:spaces` idempotency (item 3;
+remaining: rules/index deploy prechecks against a live project, owner-side), and the
+mocked-auth e2e harness (item 4: 33 flow tests; browser-pixel coverage optional).
+The remaining work in items 1-3 is owner-side live execution, which is
+credential-blocked from the remote container, so the next remote slice should come
+from items 5-8 or new regression/readiness needs.
 
 1. **Production-lift setup automation.** Build an idempotent setup orchestrator that
    checks/records non-secret GCP/Firebase state, validates billing/budget posture without

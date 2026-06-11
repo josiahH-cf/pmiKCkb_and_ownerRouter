@@ -4119,3 +4119,48 @@ Validation status:
 - `npm test`: passed with 288 tests (auth-session demo-role coverage added).
 - `npm run verify:falsification`: passed across 271 committable files.
 - `npm run verify:router-boundary`: passed.
+
+## Cutover Tooling Batch: seed idempotency, GCP preflight, cutover report (2026-06-11)
+
+Executed remote-run queue items 1-3 as local dry-run tooling in three slices under
+Remote Away Mode (no credentials exist in the remote container, so live API reads stay
+owner-side):
+
+- `seed:spaces` idempotency (queue item 3): restructured `scripts/seed-spaces.mjs` from
+  import-time side effects to the exported parse/build/seed pattern used by
+  `seed-launch-skeletons.mjs`. Reruns now skip existing space documents, `--force`
+  updates them while preserving the original `created_at` (previously reruns clobbered
+  it), and `--dry-run` prints the exact records. Runbook §3 documents the behavior and
+  rollback (delete the seeded `spaces/<id>` docs).
+- `npm run preflight:gcp` (queue item 1): credential-less plan mode prints the full
+  converge plan — the 18 required APIs (doc-sync-tested against the runbook §2 enable
+  command), Firebase setup commands, Firestore create/rules-deploy commands, and the
+  budget posture via the budget guard. `--live` adds read-only verification of enabled
+  APIs, Firestore database mode, and the Firebase project through
+  `google-auth-library` when Application Default Credentials exist, degrading every
+  section to a structured blocker otherwise. `--json` emits the
+  `{ok, blockers, warnings}` readiness report. Referenced from runbook §2 and
+  `docs/environment-handoff.md`.
+- `npm run cutover:report` (queue item 2): a single dry-run command composes the GCP
+  setup plan, production env preflight, budget posture, source-corpus readiness
+  (manifest optional; the template correctly reports placeholder/approval blockers),
+  the deploy command preview, an ordered five-step rollback plan (Cloud Run → Agent
+  Search data stores → staging uploads → seeded metadata → rules), and the runbook §7
+  production smoke checklist as structured data with a doc-sync test. Blockers
+  aggregate with section prefixes into one `readiness` object; the runbook now requires
+  `readiness.ok === true` before deploy and gained a Rollback section.
+- No cloud, Gmail, credential, deploy, import, send, client-resource, or
+  external-system action was performed. All new commands are dry-run/read-only.
+
+Validation status (end of run):
+
+- `bash scripts/verify.sh`: passed (format, lint, typecheck, 318 unit tests across 42
+  files, router boundary, falsification across 276 committable files, build).
+- `npm run test:firestore`: passed (23 rules tests).
+- `npm run test:e2e`: passed (31 tests, 2 degraded-mode tests correctly skipped with
+  the emulator present).
+- `npm run check:budget-guard`: passed (demo posture, away mode active, $10 cap).
+- Real dry-runs: `npm run preflight:gcp` (plan + live-degradation), `npm run
+seed:spaces -- --dry-run`, and `npm run cutover:report` against the production
+  manifest template (expected blockers printed for placeholders/unreviewed sources and
+  missing client env values).
