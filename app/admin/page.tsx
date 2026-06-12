@@ -80,6 +80,14 @@ export default async function AdminPage() {
           </p>
           <Link href="/admin/migration">Open migration console</Link>
         </article>
+        <article className="panel">
+          <h2>Gmail Inbox 0</h2>
+          <p className="muted">
+            Read-only management view: labels, rules, approved replies, and connection
+            status. Gmail runtime stays client-gated.
+          </p>
+          <Link href="/admin/gmail-inbox-zero">Open Gmail Inbox 0 management</Link>
+        </article>
         {hasMetrics ? (
           <>
             {observabilityNote ? (

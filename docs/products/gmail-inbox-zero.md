@@ -12,6 +12,12 @@ The local Owner Router source package is mapped in
 `C:\Users\josia\Documents\github-windows\pmi-kc-owner-router`, and treat the sibling
 package as historical source material only.
 
+Built 2026-06-12 (non-live foundation): the governed label/rule/reply domain models and
+triage/draft-text gates live in `lib/gmail-inbox-zero/` (pure, no Gmail API, no send
+capability), and the minimal Admin-only management page exists read-only at
+`/admin/gmail-inbox-zero` (honest not-connected status; no Gmail call). Gmail runtime
+remains client-gated per Safety Boundaries and Current Blockers below.
+
 ## Known Facts
 
 - The product stays Gmail-native for v1.

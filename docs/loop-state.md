@@ -33,6 +33,17 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- Gmail Inbox 0 Non-Live Foundation + Management Page v1 (2026-06-12, non-live half of
+  remote-run queue item #7): built `lib/gmail-inbox-zero/` — doc-locked label/phase/
+  status/hard-exclusion vocabulary, the pure `evaluateInboxTriage` gates (approved rules
+  only; auto-apply only for exact matches past Shadow; Shadow applies nothing),
+  `proposeRuleChangeFromFeedback` (corrections become Proposed changes needing Admin
+  approval), and `buildReplyDraft` (Approved templates only, always banner-prefixed,
+  Needs Verification placeholders, hard-excluded categories refused; text only, no send
+  capability) — plus the doc-mandated minimal Admin-only management page, read-only at
+  `/admin/gmail-inbox-zero` with an honest not-connected status. 12 unit + 4 e2e tests.
+  Deliberately skipped: legacy artifact mining (sibling repo absent), ingestion,
+  add-on card, back-labeling, live Gemini — all client-gated. See `docs/status.md`.
 - Lease Renewal Agent Non-Executable Foundation (2026-06-12, decision-free half of
   remote-run queue item #6): converted the confirmed product-doc facts into
   `lib/lease-renewal/` — shared vocabulary (fact-confidence states, the verified
@@ -165,6 +176,14 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-12 (Gmail Inbox 0 foundation slice, end of run): `npm run format:check`,
+  `npm run lint`, `npm run typecheck`, `npm test` (372 tests / 47 files),
+  `npm run verify:falsification` (303 committable files),
+  `npm run verify:router-boundary`, `npm run check:budget-guard` (demo posture, away
+  mode active, $10 cap), `npm run build` (warning-free), `npm run test:e2e:core`
+  (25 passed, 17 emulator-dependent skipped), `npm run test:e2e` (39 passed, 3
+  degraded-mode correctly skipped), and `npm run test:firestore` (23 rules tests) all
+  passed.
 - 2026-06-12 (lease renewal foundation slice, end of run): `npm run format:check`,
   `npm run lint`, `npm run typecheck`, `npm test` (360 tests / 46 files),
   `npm run verify:falsification` (297 committable files),
@@ -235,6 +254,14 @@ continuation, and stop-and-reset rules.
 
 ## Last Falsification Result
 
+- 2026-06-12 (Gmail Inbox 0 foundation slice): `npm run verify:falsification` passed
+  across 303 committable files. Self-review: all new logic is pure (no Gmail API
+  import, no fetch, no send method anywhere); the only runtime surface is the
+  Admin-gated read-only management page, which reads constants and server config only —
+  no Firestore collection, no mutation handler, no Gmail call. The router-boundary
+  guard still forbids Gmail runtime scope literals in `lib/`/`app/` and passes. No
+  secrets, no client data, no cloud/API/Gmail action, no deploy/import/send, and no
+  system-of-record write path.
 - 2026-06-12 (lease renewal foundation slice): `npm run verify:falsification` passed
   across 297 committable files. Self-review: the slice adds only pure vocabulary, a
   pure gate function, a template builder whose action references derive from the
@@ -319,11 +346,13 @@ production_allowed=false. Item 5 (KB Admin migration console): read-only
 Item 6 (Lease Renewal foundation, non-executable half): doc-grounded vocabulary,
 fact-confidence gates, the seed-derived process-definition template, the renewal source
 inventory template, and simulation-only acceptance tests; the runtime half stays
-client-blocked (signed-lease system, allowed reads, source folder, walkthrough). Item 7
-remains deferred: the Gmail access model and safe-thread protocol are client-blocked and
-the legacy Owner Router artifact repo is absent from the remote container. The next
-remote slice should come from new regression/readiness needs or the queued remote-owner
-decisions; the local/remote halves of items 1-6 and 8 are exhausted.
+client-blocked (signed-lease system, allowed reads, source folder, walkthrough). Item 7's non-live half
+is now also built (label/rule/draft models with governance gates and the read-only
+Admin management page v1); its live half (Gmail access model, mailbox scan, safe-thread
+protocol, legacy artifact mining) stays client-blocked. The remote-safe halves of all
+queue items (1-8) are now exhausted: the next remote slice must come from new
+regression/readiness needs, the queued remote-owner decisions, or client answers
+unblocking the live halves.
 
 1. **Production-lift setup automation.** Build an idempotent setup orchestrator that
    checks/records non-secret GCP/Firebase state, validates billing/budget posture without

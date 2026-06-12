@@ -4318,3 +4318,47 @@ Validation (slice boundary): recorded in the end-of-run entry below.
 - `npm run test:e2e:core`: passed (21 tests, 17 emulator-dependent skipped).
 - No cloud, Gmail, credential, deploy, import, send, client-resource, or
   external-system action was performed.
+
+## Gmail Inbox 0 Non-Live Foundation + Management Page v1 (2026-06-12)
+
+Executed the non-live half of remote-run queue item 7 under Remote Away Mode, staying
+inside the product doc's safety boundaries (no autonomous send, no Gmail draft creation,
+no Gmail read/modify runtime code):
+
+- Shared vocabulary (`lib/gmail-inbox-zero/constants.ts`): the doc-confirmed base and
+  target label sets (Waiting on Outside / Waiting on Team / Dan Decision / Draft Ready),
+  rollout phases (Shadow → Suggest → Drafts), rule/reply lifecycle statuses
+  (Proposed/Approved/Retired), and the default hard-exclusion categories (Owner money,
+  Legal/notices, Tenant disputes — label only, never draft), all test-locked.
+- Label-rule model and triage gates (`lib/gmail-inbox-zero/rules.ts`): pure
+  `evaluateInboxTriage` encoding the governance rules — only Admin-approved rules
+  participate, auto-labeling only for exact matches past the Shadow phase (Shadow
+  classifies and applies nothing), pattern rules stay suggestion-only — plus
+  `proposeRuleChangeFromFeedback`, which turns Dan's label corrections into Proposed
+  rule changes that require Admin approval (nothing self-modifies).
+- Draft-text gates (`lib/gmail-inbox-zero/drafts.ts`): pure `buildReplyDraft` that only
+  accepts Approved reply templates, always prepends the `Draft — Review before sending`
+  banner, marks missing facts with the `Needs Verification: <fact>` placeholder, and
+  refuses hard-excluded categories. Text composition only; no Gmail draft is created
+  and no send capability exists.
+- Management page v1 (`app/admin/gmail-inbox-zero/page.tsx`, linked from `/admin`): the
+  doc-mandated minimal Admin-only management page, read-only — health/status bar with an
+  honest "Not connected" Gmail status and Gemini posture, the label set, rollout phases,
+  rules/approved-replies/history sections with production-safe empty states. No Gmail
+  call, no new Firestore collection, no mutation surface. Editing/persistence waits for
+  the approval-queue integration spec.
+- Deliberately not built: legacy Owner Router artifact mining (the sibling repo is
+  absent from this container), any users.watch/history ingestion, the Workspace Add-on
+  card, back-labeling, and live Gemini evaluation — all client-gated.
+- Updated `docs/products/gmail-inbox-zero.md` Current State to note the built non-live
+  foundation and management page v1.
+- No cloud, Gmail, credential, deploy, import, send, client-resource, or external-system
+  action was performed.
+
+Validation: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`
+(372 tests / 47 files), `npm run verify:falsification` (303 committable files),
+`npm run verify:router-boundary`, `npm run check:budget-guard` (demo posture, away mode
+active, $10 cap), `npm run build` (warning-free, `/admin/gmail-inbox-zero` present),
+`npm run test:e2e:core` (25 passed, 17 emulator-dependent skipped), `npm run test:e2e`
+(39 passed, 3 degraded-mode correctly skipped), and `npm run test:firestore` (23 rules
+tests) all passed.
