@@ -4077,3 +4077,90 @@ Validation status:
 - `git diff --check`: passed.
 - `npm run verify:router-boundary`: passed.
 - `npm run verify:falsification`: passed across 259 committable files.
+
+## Mocked-Auth E2E Flow Harness (2026-06-11)
+
+Built the browserless end-to-end flow harness queued as remote-run item 4 (production
+hardening and e2e coverage), executed remotely under Remote Away Mode:
+
+- Added `npm run test:e2e` / `npm run test:e2e:core` driven by
+  `scripts/run-e2e-tests.mjs`: probes the Firestore emulator (Java + one-time jar) and
+  degrades to the Firestore-free core group with a warning when unavailable
+  (`--firestore` makes that fatal, `--no-firestore` skips the emulator).
+- `tests/e2e/global-setup.mjs` seeds the emulator via the existing
+  `scripts/demo-firestore.mjs#resetDemoRecords`, boots `next dev` on `localhost:4310`
+  with `LOCAL_DEMO_AUTH=true ASK_DEMO_MODE=true`, warms routes, and tears down the
+  process tree; `tests/e2e/helpers/client.mjs` is a cookie-jar fetch client with
+  `redirect: "manual"` so guard redirects are assertable.
+- Coverage (7 suites, 33 tests): sign-in guard redirects and role gating (Editor blocked
+  from `/admin` and manageAdmin APIs, Admin allowed), Ask Verified Source answer with
+  citations plus No Reliable Source Found and Zod 400 paths, spaces list/detail/
+  read-only/404, graceful degradation markers without Firestore, capture-to-placeholder,
+  Approval Queue list/filter/detail/high-risk confirmation/approve/bulk snooze/bulk
+  execute block, and the full process-definition lifecycle (create → submit → queue item
+  → simulation test run → approve → activate, including Editor 403 and premature-activate
+  409 paths).
+- Extended local demo auth so e2e can mint role-scoped sessions: `POST /api/auth/demo`
+  accepts an optional `{ "role": "Editor" | "Approver" | "Admin" }`; cookie value
+  `local-demo:<Role>` (plain `local-demo` stays Admin). Still gated by
+  `isLocalDemoAuthEnabled()` (off in production; production preflight rejects it).
+- `npm test` keeps excluding `tests/e2e/**`; e2e is not wired into `scripts/verify.sh`
+  to keep it fast. Rewrote `tests/e2e/README.md` for the new harness and added the
+  commands to `AGENTS.md`.
+- No cloud, Gmail, credential, deploy, import, send, client-resource, or external-system
+  action was performed.
+
+Validation status:
+
+- `npm run test:e2e`: passed (31 tests, 2 degraded-mode tests correctly skipped) with
+  the Firestore emulator.
+- `npm run test:e2e:core`: passed (16 tests including degraded-mode markers).
+- `npm run format:check`, `npm run lint`, `npm run typecheck`: passed.
+- `npm test`: passed with 288 tests (auth-session demo-role coverage added).
+- `npm run verify:falsification`: passed across 271 committable files.
+- `npm run verify:router-boundary`: passed.
+
+## Cutover Tooling Batch: seed idempotency, GCP preflight, cutover report (2026-06-11)
+
+Executed remote-run queue items 1-3 as local dry-run tooling in three slices under
+Remote Away Mode (no credentials exist in the remote container, so live API reads stay
+owner-side):
+
+- `seed:spaces` idempotency (queue item 3): restructured `scripts/seed-spaces.mjs` from
+  import-time side effects to the exported parse/build/seed pattern used by
+  `seed-launch-skeletons.mjs`. Reruns now skip existing space documents, `--force`
+  updates them while preserving the original `created_at` (previously reruns clobbered
+  it), and `--dry-run` prints the exact records. Runbook §3 documents the behavior and
+  rollback (delete the seeded `spaces/<id>` docs).
+- `npm run preflight:gcp` (queue item 1): credential-less plan mode prints the full
+  converge plan — the 18 required APIs (doc-sync-tested against the runbook §2 enable
+  command), Firebase setup commands, Firestore create/rules-deploy commands, and the
+  budget posture via the budget guard. `--live` adds read-only verification of enabled
+  APIs, Firestore database mode, and the Firebase project through
+  `google-auth-library` when Application Default Credentials exist, degrading every
+  section to a structured blocker otherwise. `--json` emits the
+  `{ok, blockers, warnings}` readiness report. Referenced from runbook §2 and
+  `docs/environment-handoff.md`.
+- `npm run cutover:report` (queue item 2): a single dry-run command composes the GCP
+  setup plan, production env preflight, budget posture, source-corpus readiness
+  (manifest optional; the template correctly reports placeholder/approval blockers),
+  the deploy command preview, an ordered five-step rollback plan (Cloud Run → Agent
+  Search data stores → staging uploads → seeded metadata → rules), and the runbook §7
+  production smoke checklist as structured data with a doc-sync test. Blockers
+  aggregate with section prefixes into one `readiness` object; the runbook now requires
+  `readiness.ok === true` before deploy and gained a Rollback section.
+- No cloud, Gmail, credential, deploy, import, send, client-resource, or
+  external-system action was performed. All new commands are dry-run/read-only.
+
+Validation status (end of run):
+
+- `bash scripts/verify.sh`: passed (format, lint, typecheck, 318 unit tests across 42
+  files, router boundary, falsification across 276 committable files, build).
+- `npm run test:firestore`: passed (23 rules tests).
+- `npm run test:e2e`: passed (31 tests, 2 degraded-mode tests correctly skipped with
+  the emulator present).
+- `npm run check:budget-guard`: passed (demo posture, away mode active, $10 cap).
+- Real dry-runs: `npm run preflight:gcp` (plan + live-degradation), `npm run
+seed:spaces -- --dry-run`, and `npm run cutover:report` against the production
+  manifest template (expected blockers printed for placeholders/unreviewed sources and
+  missing client env values).

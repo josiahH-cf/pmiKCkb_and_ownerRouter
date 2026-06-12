@@ -75,6 +75,21 @@ the active session or load them into the shell before running seed/deploy comman
 Keep `.env.production.local` as the reviewed preflight input if you want a separate
 handoff file.
 
+Print the full converge plan (API enablement, Firebase setup, Firestore create/deploy
+commands) and the budget posture without touching the project:
+
+```bash
+npm run preflight:gcp -- --project=<client-project-id>
+```
+
+With Application Default Credentials available, verify the live project state
+read-only (enabled APIs, Firestore database mode, Firebase project) before and after
+running setup commands:
+
+```bash
+npm run preflight:gcp -- --project=<client-project-id> --live --json
+```
+
 Enable required APIs in the client project:
 
 ```bash
@@ -103,9 +118,15 @@ Create Firestore Native mode, deploy rules/indexes, and seed non-secret KB recor
 ```bash
 gcloud firestore databases create --database='(default)' --location=us-central1 --type=firestore-native --project=<client-project-id> --quiet
 npm exec firebase -- deploy --only firestore:rules,firestore:indexes --project <client-project-id>
+npm run seed:spaces -- --dry-run
 npm run seed:spaces
 npm run seed:launch-skeletons -- --dry-run
 ```
+
+`seed:spaces` is idempotent: `--dry-run` prints the exact records without writing,
+reruns skip existing space documents, and `--force` updates existing documents while
+preserving their original `created_at`. Rollback for seeded spaces is deleting the
+listed `spaces/<space-id>` documents (they are app-owned metadata, not client data).
 
 Only omit `--dry-run` after confirming the active project and ADC target are the client
 project:
@@ -202,6 +223,15 @@ missing Firebase public config.
 
 ## 6. Deploy Cloud Run
 
+Before any deploy, generate the consolidated machine-readable cutover report and
+require `readiness.ok === true` (it composes the GCP setup plan, production env
+preflight, budget posture, corpus readiness, deploy command preview, rollback plan, and
+the §7 smoke checklist; blockers are prefixed with their failing section):
+
+```bash
+npm run cutover:report -- --manifest=temp/client-production-source-manifest.json --env-file=.env.production.local --json
+```
+
 Create or choose the runtime service account, then grant only the roles needed by the
 KB runtime:
 
@@ -253,6 +283,17 @@ Production smoke checklist:
   production just to test this path.
 - The app does not write to RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Sheets,
   Gmail inboxes, Drive folders, or Gmail Inbox 0/legacy Owner Router source artifacts.
+
+## Rollback
+
+`npm run cutover:report -- --json` emits the ordered rollback plan with concrete
+commands when a manifest is provided: (1) delete or re-route the Cloud Run service,
+(2) delete imported Agent Search data stores (the delete script refuses stores still
+mapped in `SPACE_VERTEX_DATA_STORE_IDS`), (3) remove uploaded `.txt` staging copies
+from Cloud Storage, (4) delete seeded app-owned Firestore metadata (`sources_meta`
+entries and `spaces/<id>` documents), and (5) redeploy the previous
+`firestore.rules`/`firestore.indexes.json` from git history if they changed. Original
+client sources are never modified by the pipeline, so rollback never touches them.
 
 ## Production Blockers
 

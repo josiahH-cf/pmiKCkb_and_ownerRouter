@@ -86,10 +86,13 @@ route new work through the three-product docs.
 - Lint: `npm run lint`
 - Typecheck: `npm run typecheck`
 - Test: `npm test`
+- E2E flow tests: `npm run test:e2e` (emulator) / `npm run test:e2e:core` (no emulator)
 - Falsification preflight: `npm run verify:falsification`
 - Reset demo data: `npm run demo:reset`
 - Demo operator: `npm run demo:operator`
 - Live cost preflight: `npm run check:live-cost`
+- GCP setup preflight: `npm run preflight:gcp -- --project=<id>` (`--live` for read-only state)
+- Cutover report: `npm run cutover:report -- --manifest=<path> --env-file=<path> --json`
 - Seed source metadata: `npm run seed:source-meta`
 - Live demo smoke: `npm run smoke:demo-live`
 - Live Ask smoke: `npm run smoke:ask-live`

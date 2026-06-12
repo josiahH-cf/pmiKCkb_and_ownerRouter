@@ -4,6 +4,9 @@ import {
   AUTH_ABSOLUTE_MAX_AGE_SECONDS,
   AuthError,
   authenticateIdToken,
+  localDemoSessionValue,
+  localDemoUser,
+  readLocalDemoSessionRole,
   requireCapability,
   requireRole,
   requireUser,
@@ -237,6 +240,58 @@ describe("local demo auth", () => {
 
     await expect(authenticateSessionCookie("local-demo")).rejects.toMatchObject({
       status: 401,
+    });
+  });
+
+  it("resolves no demo role when demo auth is disabled", () => {
+    process.env.LOCAL_DEMO_AUTH = "false";
+
+    expect(readLocalDemoSessionRole("local-demo")).toBeNull();
+    expect(readLocalDemoSessionRole("local-demo:Editor")).toBeNull();
+  });
+
+  it("keeps the plain local-demo cookie as an Admin session", () => {
+    process.env.LOCAL_DEMO_AUTH = "true";
+
+    expect(readLocalDemoSessionRole("local-demo")).toBe("Admin");
+  });
+
+  it("resolves role-scoped demo cookies", () => {
+    process.env.LOCAL_DEMO_AUTH = "true";
+
+    expect(readLocalDemoSessionRole("local-demo:Editor")).toBe("Editor");
+    expect(readLocalDemoSessionRole("local-demo:Approver")).toBe("Approver");
+    expect(readLocalDemoSessionRole("local-demo:Admin")).toBe("Admin");
+  });
+
+  it("rejects unknown demo roles and unrelated cookies", () => {
+    process.env.LOCAL_DEMO_AUTH = "true";
+
+    expect(readLocalDemoSessionRole("local-demo:Viewer")).toBeNull();
+    expect(readLocalDemoSessionRole("local-demo:")).toBeNull();
+    expect(readLocalDemoSessionRole("firebase-session")).toBeNull();
+  });
+
+  it("builds backward-compatible demo session cookie values", () => {
+    expect(localDemoSessionValue("Admin")).toBe("local-demo");
+    expect(localDemoSessionValue("Editor")).toBe("local-demo:Editor");
+    expect(localDemoSessionValue("Approver")).toBe("local-demo:Approver");
+  });
+
+  it("mints role-specific demo users with the allowed hosted domain", () => {
+    process.env.ALLOWED_HD = "pmikcmetro.com";
+
+    expect(localDemoUser()).toEqual({
+      uid: "local-demo-admin",
+      email: "local-demo@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Admin",
+    });
+    expect(localDemoUser("Editor")).toEqual({
+      uid: "local-demo-editor",
+      email: "local-demo-editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
     });
   });
 });

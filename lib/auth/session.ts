@@ -11,6 +11,7 @@ export const SESSION_COOKIE_MAX_AGE_SECONDS = 8 * 60 * 60;
 export const SESSION_COOKIE_MAX_AGE_MS = SESSION_COOKIE_MAX_AGE_SECONDS * 1000;
 export const AUTH_ABSOLUTE_MAX_AGE_SECONDS = 12 * 60 * 60;
 export const LOCAL_DEMO_SESSION_VALUE = "local-demo";
+export const LOCAL_DEMO_ROLES: readonly Role[] = ["Editor", "Approver", "Admin"];
 
 export interface AuthenticatedUser {
   uid: string;
@@ -107,8 +108,10 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
     return null;
   }
 
-  if (isLocalDemoSession(sessionCookie)) {
-    return localDemoUser();
+  const localDemoRole = readLocalDemoSessionRole(sessionCookie);
+
+  if (localDemoRole) {
+    return localDemoUser(localDemoRole);
   }
 
   try {
@@ -256,18 +259,38 @@ function getAllowedHostedDomain() {
   return readServerConfig().allowedHostedDomain;
 }
 
-function isLocalDemoSession(sessionCookie: string) {
-  return isLocalDemoAuthEnabled() && sessionCookie === LOCAL_DEMO_SESSION_VALUE;
+export function localDemoSessionValue(role: Role) {
+  return role === "Admin"
+    ? LOCAL_DEMO_SESSION_VALUE
+    : `${LOCAL_DEMO_SESSION_VALUE}:${role}`;
 }
 
-function localDemoUser(): AuthenticatedUser {
+export function readLocalDemoSessionRole(sessionCookie: string): Role | null {
+  if (!isLocalDemoAuthEnabled()) {
+    return null;
+  }
+
+  if (sessionCookie === LOCAL_DEMO_SESSION_VALUE) {
+    return "Admin";
+  }
+
+  if (!sessionCookie.startsWith(`${LOCAL_DEMO_SESSION_VALUE}:`)) {
+    return null;
+  }
+
+  const role = sessionCookie.slice(LOCAL_DEMO_SESSION_VALUE.length + 1);
+  return LOCAL_DEMO_ROLES.includes(role as Role) ? (role as Role) : null;
+}
+
+export function localDemoUser(role: Role = "Admin"): AuthenticatedUser {
   const hd = getAllowedHostedDomain();
+  const uid = `local-demo-${role.toLowerCase()}`;
 
   return {
-    uid: "local-demo-admin",
-    email: `local-demo@${hd}`,
+    uid,
+    email: role === "Admin" ? `local-demo@${hd}` : `${uid}@${hd}`,
     hd,
-    role: "Admin",
+    role,
   };
 }
 
