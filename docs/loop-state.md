@@ -33,6 +33,19 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- Lease Renewal Agent Non-Executable Foundation (2026-06-12, decision-free half of
+  remote-run queue item #6): converted the confirmed product-doc facts into
+  `lib/lease-renewal/` — shared vocabulary (fact-confidence states, the verified
+  eight-stage model, planned reads/outputs), the pure `evaluateRenewalFactGates`
+  confidence gates, and `buildLeaseRenewalProcessTemplate`, whose action references are
+  derived from the Action Registry seed so readiness/rollback cannot drift and the
+  Rentvine writeback stays a gated pending-future-automation step. Added the renewal
+  source inventory template
+  (`docs/source-corpus/lease-renewal-source-inventory.template.json`) and 11 acceptance
+  tests that drive the existing process-definition machinery simulation-only
+  (Draft → Testing → Pending Approval). No runtime trigger, page, API route, or
+  connector was added; the runtime half of item 6 stays client-blocked. See the
+  matching `docs/status.md` entry.
 - KB Admin Migration Console (2026-06-12, remote-run queue item #5): built the
   read-only, preview-first `/admin/migration` page (linked from `/admin`) that mirrors
   `npm run cutover:report` in-app: GCP converge plan, production env preflight,
@@ -152,6 +165,13 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-12 (lease renewal foundation slice, end of run): `npm run format:check`,
+  `npm run lint`, `npm run typecheck`, `npm test` (360 tests / 46 files),
+  `npm run verify:falsification` (297 committable files),
+  `npm run verify:router-boundary`, `npm run check:budget-guard` (demo posture, away
+  mode active, $10 cap), `npm run build` (warning-free), `npm run test:firestore`
+  (4 rules-test files), and `npm run test:e2e:core` (21 tests, 17 emulator-dependent
+  skipped) all passed.
 - 2026-06-12 (end of remote run, queue items 8 + 5): `bash scripts/verify.sh` passed
   (format, lint, typecheck, 349 unit tests / 45 files, router boundary, falsification
   across 292 committable files, warning-free build with `/admin/migration` present);
@@ -215,6 +235,13 @@ continuation, and stop-and-reset rules.
 
 ## Last Falsification Result
 
+- 2026-06-12 (lease renewal foundation slice): `npm run verify:falsification` passed
+  across 297 committable files. Self-review: the slice adds only pure vocabulary, a
+  pure gate function, a template builder whose action references derive from the
+  governed seed catalog, a JSON inventory template with TBD placeholders, and
+  simulation-only acceptance tests. No runtime trigger, page, API route, connector,
+  send, secret, client data, or external write path was added, honoring the product
+  doc's "Do Not Build Yet" boundary.
 - 2026-06-12 (end of remote run): `npm run verify:falsification` passed across 292
   committable files. Self-review of the Admin migration console slice: the page and its
   aggregation module are strictly read-only (no POST/PUT handlers, no client mutation
@@ -283,17 +310,20 @@ The remaining work in items 1-3 is owner-side live execution, which is
 credential-blocked from the remote container, so the next remote slice should come
 from items 5-8 or new regression/readiness needs.
 
-Progress (2026-06-12 remote run): items 8 and 5 are complete. Item 8 (integration
-readiness expansion): structured preview payload schemas, per-system health-check
-contracts, a 14-entry seed catalog, and mocked maintenance-chain connector tests, all
-metadata/mocked with every entry production_allowed=false. Item 5 (KB Admin migration
-console): read-only `/admin/migration` mirrors `cutover:report` in-app with owner-side
-blocker labeling. Items 6-7 remain deferred: their decision-free halves are thin and the
-governing facts (signed-lease system, allowed reads, Dan approval model, Gmail access
-model, safe-thread protocol) are client-blocked; the legacy Owner Router artifact repo is
-also absent from the remote container. The next remote slice should come from new
-regression/readiness needs or the queued remote-owner decisions; the queue's local/remote
-halves of items 1-5 and 8 are exhausted.
+Progress (2026-06-12 remote run): items 8 and 5 are complete, and item 6's decision-free
+half is built. Item 8 (integration readiness expansion): structured preview payload
+schemas, per-system health-check contracts, a 14-entry seed catalog, and mocked
+maintenance-chain connector tests, all metadata/mocked with every entry
+production_allowed=false. Item 5 (KB Admin migration console): read-only
+`/admin/migration` mirrors `cutover:report` in-app with owner-side blocker labeling.
+Item 6 (Lease Renewal foundation, non-executable half): doc-grounded vocabulary,
+fact-confidence gates, the seed-derived process-definition template, the renewal source
+inventory template, and simulation-only acceptance tests; the runtime half stays
+client-blocked (signed-lease system, allowed reads, source folder, walkthrough). Item 7
+remains deferred: the Gmail access model and safe-thread protocol are client-blocked and
+the legacy Owner Router artifact repo is absent from the remote container. The next
+remote slice should come from new regression/readiness needs or the queued remote-owner
+decisions; the local/remote halves of items 1-6 and 8 are exhausted.
 
 1. **Production-lift setup automation.** Build an idempotent setup orchestrator that
    checks/records non-secret GCP/Firebase state, validates billing/budget posture without

@@ -4265,3 +4265,56 @@ in the end-of-run entry below.
   production_allowed=false, no writes.
 - No cloud, Gmail, credential, deploy, import, send, client-resource, or
   external-system action was performed during this run.
+
+## Lease Renewal Agent Non-Executable Foundation (2026-06-12)
+
+Executed the decision-free half of remote-run queue item 6 under Remote Away Mode,
+staying strictly inside the product doc's "AI Can Do Now" list and its "Do Not Build
+Yet" boundary (no runtime trigger, queue, agent, or API integration; nothing
+executable):
+
+- Shared vocabulary (`lib/lease-renewal/constants.ts`): the doc-confirmed fact-confidence
+  states (Verified/Likely/Needs Review/Conflict), the verified eight-stage renewal model
+  (candidate detection → closeout), the initial planned reads, and the planned outputs,
+  locked by tests so they cannot drift from `docs/products/lease-renewal-agent.md`.
+- Fact-confidence gates (`lib/lease-renewal/facts.ts`): a pure, non-executable
+  `evaluateRenewalFactGates` encoding the doc's deterministic rules — only Verified and
+  approved facts flow into owner-facing drafts without a visible warning, Likely/Needs
+  Review facts route to review, Conflict facts block, and a missing-facts list is kept
+  against the planned read set.
+- Process-definition template (`lib/lease-renewal/process-template.ts`):
+  `buildLeaseRenewalProcessTemplate` converts the confirmed target workflow shape into
+  the v1 minimum process-definition fields (one step per verified stage, doc-grounded
+  trigger/outcome/success/stop/escalation conditions). Every action reference is derived
+  from the Action Registry seed catalog, so target systems, readiness, and rollback
+  notes cannot drift from governed metadata; the Rentvine renewal writeback stays a
+  Planned pending-future-automation step with its vendor-confirmation gap visible.
+- Source inventory template
+  (`docs/source-corpus/lease-renewal-source-inventory.template.json`): the renewal
+  document kinds named in the product doc's discovery list (signed lease/lease-term
+  record, tenant/property facts, rent/terms, timing/fee policy, tenant-notice and legal
+  language, owner communication templates, workflow notes) with TBD locations as
+  placeholders for the client walkthrough.
+- Acceptance scenarios (`tests/unit/lease-renewal-foundation.test.ts`, 11 tests): the
+  template parses and is created as Draft through the existing workflow machinery, a
+  simulation-only test run starts (is_test_run/simulation_only true, excluded from
+  production metrics) and completes, the definition submits into Pending Approval, and
+  the fact-confidence gates behave per the doc.
+- No cloud, Gmail, credential, deploy, import, send, client-resource, or external-system
+  action was performed. No new runtime surface: no page, API route, trigger, or
+  connector was added.
+
+Validation (slice boundary): recorded in the end-of-run entry below.
+
+## End-Of-Run Validation: lease renewal foundation slice (2026-06-12)
+
+- `npm run format:check`, `npm run lint`, `npm run typecheck`: passed.
+- `npm test`: 360 tests across 46 files, all passed.
+- `npm run verify:falsification`: passed across 297 committable files.
+- `npm run verify:router-boundary`: passed.
+- `npm run check:budget-guard`: passed (demo posture, away mode active, $10 cap).
+- `npm run build`: passed, warning-free.
+- `npm run test:firestore`: passed (4 rules-test files via the emulator).
+- `npm run test:e2e:core`: passed (21 tests, 17 emulator-dependent skipped).
+- No cloud, Gmail, credential, deploy, import, send, client-resource, or
+  external-system action was performed.

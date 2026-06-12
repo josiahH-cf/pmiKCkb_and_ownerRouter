@@ -1,0 +1,65 @@
+[
+  {
+    "document_kind": "Signed lease / lease-term record",
+    "description": "Authoritative renewal timing source: signed lease or lease-term record with lease dates.",
+    "expected_location": "<TBD-signed-lease-system>",
+    "owner": "<client-owner>",
+    "sensitivity": "High",
+    "approval_status": "Unreviewed",
+    "notes": "Storage system is a tracked client ask; High sensitivity material must not be imported for retrieval."
+  },
+  {
+    "document_kind": "Tenant and property facts",
+    "description": "Tenant contacts and property/owner context (Rentvine is read-authoritative).",
+    "expected_location": "Rentvine",
+    "owner": "<client-owner>",
+    "sensitivity": "Medium",
+    "approval_status": "Unreviewed",
+    "notes": "Read-only candidate discovery; no write path."
+  },
+  {
+    "document_kind": "Current rent and terms",
+    "description": "Current rent, charges, and lease terms for the renewal candidate.",
+    "expected_location": "Rentvine",
+    "owner": "<client-owner>",
+    "sensitivity": "Medium",
+    "approval_status": "Unreviewed",
+    "notes": ""
+  },
+  {
+    "document_kind": "Renewal timing and fee policy",
+    "description": "Sources defining renewal timing, fees, and exceptions.",
+    "expected_location": "<TBD-policy-source>",
+    "owner": "<client-owner>",
+    "sensitivity": "Low",
+    "approval_status": "Unreviewed",
+    "notes": "Named in product-doc discovery; needed before confident renewal policy output."
+  },
+  {
+    "document_kind": "Tenant-notice and legal language",
+    "description": "Notice language, legal constraints, and escalation rules for renewals.",
+    "expected_location": "<TBD-legal-source>",
+    "owner": "<client-owner>",
+    "sensitivity": "Medium",
+    "approval_status": "Unreviewed",
+    "notes": "Renewal work must not invent legal, fee, timing, owner-approval, or tenant-notice facts."
+  },
+  {
+    "document_kind": "Owner communication templates",
+    "description": "Approved owner renewal outreach drafts and templates.",
+    "expected_location": "<TBD-drive-source-folder>",
+    "owner": "<client-owner>",
+    "sensitivity": "Low",
+    "approval_status": "Unreviewed",
+    "notes": "Default first location is the PMI KC-accessible Drive source-of-truth folder."
+  },
+  {
+    "document_kind": "Workflow notes and walkthrough captures",
+    "description": "Recorded demo, client context, and team-provided renewal workflow notes.",
+    "expected_location": "<TBD-drive-source-folder>",
+    "owner": "<client-owner>",
+    "sensitivity": "Low",
+    "approval_status": "Unreviewed",
+    "notes": "Team-editable source-of-truth folder; curated through AI-proposed changes with Dan's review."
+  }
+]
