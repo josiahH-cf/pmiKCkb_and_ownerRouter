@@ -2,6 +2,7 @@ import type { Role } from "@/lib/auth/roles";
 import type {
   ACTION_EVENT_MODES,
   ACTION_EVIDENCE_STATUSES,
+  ACTION_PREVIEW_FIELD_TYPES,
   ACTION_TARGET_SYSTEMS,
 } from "@/lib/constants";
 import type { Citation } from "@/lib/schemas";
@@ -135,6 +136,18 @@ export type ExternalActionReadiness =
 export type ActionTargetSystem = (typeof ACTION_TARGET_SYSTEMS)[number];
 export type ActionEventMode = (typeof ACTION_EVENT_MODES)[number];
 export type ActionEvidenceStatus = (typeof ACTION_EVIDENCE_STATUSES)[number];
+export type ActionPreviewFieldType = (typeof ACTION_PREVIEW_FIELD_TYPES)[number];
+
+// One descriptor per field an execution preview must show before an action could ever be
+// approved. The machine-readable companion to `preview_schema_note`.
+export interface PreviewPayloadField {
+  name: string;
+  label: string;
+  type: ActionPreviewFieldType;
+  required: boolean;
+  source_system: ActionTargetSystem;
+  note?: string;
+}
 export type WorkflowRunTimelineEvent =
   | "started"
   | "status_changed"
@@ -183,6 +196,7 @@ export interface ActionRegistryRecord {
   required_plan?: string;
   event_ingestion_mode: ActionEventMode;
   preview_schema_note: string;
+  preview_payload_schema?: PreviewPayloadField[];
   test_notes?: string;
   rollback_note: string;
   connection_health_check_ref?: string;

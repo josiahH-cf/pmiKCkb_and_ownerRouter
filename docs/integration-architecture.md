@@ -118,10 +118,34 @@ This extends the existing workflow-control foundation rather than replacing it:
 | `required_plan`               | Optional vendor plan/tier (e.g. LeadSimple Operations)          |
 | `event_ingestion_mode`        | `action_event_mode` for resulting state changes                 |
 | `preview_schema_note`         | What an execution preview must show before running              |
+| `preview_payload_schema`      | Optional structured field descriptors for the execution preview |
 | `test_notes`                  | How the action is/will be tested                                |
 | `rollback_note`               | Rollback or correction path                                     |
 | `connection_health_check_ref` | Pointer to the deterministic health check for the system        |
 | `production_allowed`          | Whether execution is permitted in production (default `false`)  |
+
+`preview_payload_schema` is the machine-readable companion to `preview_schema_note`: a
+list of `{ name, label, type, required, source_system, note }` descriptors (types:
+string/number/boolean/date/enum/reference). `validatePreviewPayload`
+(`lib/integrations/preview-payload.ts`) enforces that a preview payload contains exactly
+the declared fields — required fields present, values typed, and no undeclared keys — so
+an execution preview can never silently carry more data than the approver saw. The
+maintenance-chain entries carry structured schemas today; Dotloop and Boom previews stay
+prose-only until their vendor-confirmation-required contracts are confirmed, and the
+undocumented Rentvine renewal writeback has none by design.
+
+### Connection health-check contracts
+
+Each registry entry's `connection_health_check_ref` points at a deterministic per-system
+contract in `lib/integrations/health-checks.ts` (`health.rentvine.api_key`,
+`health.leadsimple.rest_api`, `health.dotloop.oauth_app`, `health.quickbooks.oauth_app`,
+`health.boom.partner_api`, `health.google_sheets.api`, `health.gmail.workspace_api`).
+A contract is ordered metadata — config presence, auth validation, read-only endpoint
+probe, rate-limit read — describing what a health check must verify before an action
+could ever be considered for execution. `runHealthCheck` only works through an injected
+transport and has no default: the module performs no I/O, so production code cannot make
+a live call from here. Mocked transports exercise the contracts in tests
+(`tests/unit/health-checks.test.ts`, `tests/helpers/mock-connectors.ts`).
 
 ### Readiness lifecycle and the production gate
 
@@ -132,6 +156,19 @@ Approved for Execution` (or `Disabled` at any time).
 `evidence_status` is `Documented` with non-empty `documented_evidence`. This is enforced in
 the schema. Every seeded entry today is `production_allowed: false`, which keeps the
 registry inside the no-write safety boundary.
+
+### Catalog coverage (2026-06-12 expansion)
+
+The seed catalog (`lib/integrations/action-registry-seed.ts`) now holds 14 entries: the
+original 9 plus read-only `rentvine.lease.read` and `rentvine.work_order.read` (documented
+lease/work-order list/view used for renewal-candidate discovery and chain verification),
+`leadsimple.task.create` (orchestration task creation, vendor-confirmation-required), and
+the Gmail Inbox 0 pair `gmail.label.apply` / `gmail.draft.create` (per
+`docs/products/gmail-inbox-zero.md`: additive labels and unsent drafts only, no send
+capability in any scope; both stay `Planned` until the client approves the Gmail access
+model). Move-Out + Deposit Disposition actions were deliberately **not** added: the
+research backlog still marks their triggers, approvers, and target systems as TBD, so
+catalog entries would invent scope.
 
 ## Vendor-confirmation matrix
 

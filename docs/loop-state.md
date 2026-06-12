@@ -11,7 +11,7 @@ continuation, and stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-06-11
+- Last updated: 2026-06-12
 - Operating mode: REMOTE AWAY MODE active (see `docs/away-mode.md`) — owner may be
   remote, but future models should continue significant product, migration, and API/setup
   work when it is reversible, non-breaking, and budget-guarded under the ~$10 cap.
@@ -33,6 +33,19 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- Integration Readiness Expansion (2026-06-12, remote-run queue item #8): added
+  structured `preview_payload_schema` field descriptors to the Action Registry (schema,
+  types, record builder) with the pure validator `lib/integrations/preview-payload.ts`;
+  defined seven deterministic per-system health-check contracts in
+  `lib/integrations/health-checks.ts` whose `runHealthCheck` only works through an
+  injected transport (no live calls possible, test-locked); expanded the seed catalog
+  from 9 to 14 entries (`rentvine.lease.read`, `rentvine.work_order.read`,
+  `leadsimple.task.create`, `gmail.label.apply`, `gmail.draft.create` — Gmail pair stays
+  `Planned` pending the client-approved access model; Move-Out actions deliberately not
+  added because their scope is still TBD); wired `connection_health_check_ref` on every
+  entry; and built mocked connector tests for the maintenance work-order chain
+  (`tests/helpers/mock-connectors.ts`). Every entry remains `production_allowed: false`;
+  no external write path exists. See the matching `docs/status.md` entry.
 - Cutover Tooling Batch (2026-06-11, remote-run queue items #1-#3): `seed:spaces` is
   now idempotent (`--dry-run`, existence prechecks, `--force` preserves `created_at`);
   `npm run preflight:gcp` prints the credential-less GCP/Firebase/Firestore converge
@@ -127,6 +140,13 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-12 (integration readiness expansion, slice boundary): `npm run format:check`,
+  `npm run lint`, `npm run typecheck`, `npm test` (339 tests / 44 files),
+  `npm run test:firestore` (23 rules tests), `npm run verify:falsification` (281
+  committable files), `npm run verify:router-boundary`, `npm run check:budget-guard`
+  (demo posture, away mode active, $10 cap), and the seed dry-run
+  (`npx tsx scripts/seed-action-registry.ts --dry-run --json`: 14 entries, all
+  production_allowed=false, no writes) all passed.
 - 2026-06-11 (e2e harness + cutover tooling batch, end of remote run):
   `bash scripts/verify.sh` passed (format, lint, typecheck, 318 unit tests / 42 files,
   router boundary, falsification across 276 committable files, build);
@@ -175,6 +195,13 @@ continuation, and stop-and-reset rules.
 
 ## Last Falsification Result
 
+- 2026-06-12 (integration readiness expansion): `npm run verify:falsification` passed
+  across 281 committable files. Self-review: the slice is metadata, pure functions, and
+  mocked tests only; the one guard interaction found (router-boundary forbids Gmail
+  runtime scope literals in `lib/`) was resolved by rewording catalog metadata, not by
+  weakening the guard. No secrets, no client data, no cloud/API/Gmail action, no
+  deploy/import/send, and no system-of-record write path; every registry entry remains
+  production_allowed=false.
 - 2026-06-11 (end of e2e + cutover tooling run): `npm run verify:falsification` passed
   across 276 committable files. Self-review: all four slices are local
   tests/tooling/docs; the only runtime change is the demo-gated role parameter on
@@ -227,6 +254,15 @@ mocked-auth e2e harness (item 4: 33 flow tests; browser-pixel coverage optional)
 The remaining work in items 1-3 is owner-side live execution, which is
 credential-blocked from the remote container, so the next remote slice should come
 from items 5-8 or new regression/readiness needs.
+
+Progress (2026-06-12 remote run): item 8 (integration readiness expansion) is complete —
+structured preview payload schemas, per-system health-check contracts, a 14-entry seed
+catalog, and mocked maintenance-chain connector tests, all metadata/mocked with every
+entry production_allowed=false. Item 5 (KB Admin migration console) is the active slice
+of this run. Items 6-7 remain deferred: their decision-free halves are thin and the
+governing facts (signed-lease system, allowed reads, Dan approval model, Gmail access
+model, safe-thread protocol) are client-blocked; the legacy Owner Router artifact repo is
+also absent from the remote container.
 
 1. **Production-lift setup automation.** Build an idempotent setup orchestrator that
    checks/records non-secret GCP/Firebase state, validates billing/budget posture without

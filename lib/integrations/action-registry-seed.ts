@@ -2,14 +2,24 @@ import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
 
 /**
  * Verified Action Registry catalog. One entry per external action type from the integration
- * research (docs/research/integration-capability-2026-06.md) and the tool-role architecture
- * (docs/integration-architecture.md).
+ * research (docs/research/integration-capability-2026-06.md), the tool-role architecture
+ * (docs/integration-architecture.md), and the Gmail Inbox 0 connective architecture
+ * (docs/products/gmail-inbox-zero.md).
  *
  * Safety invariant: every entry is `production_allowed: false`. This catalog is metadata
  * only and authorizes no external write. Readiness and evidence reflect documented
  * capability today; an approved per-action spec is still required before any entry can be
  * marked production-eligible (and the schema only permits that for `Approved for Execution`
  * entries with `Documented` evidence).
+ *
+ * Each entry's `connection_health_check_ref` points at the matching per-system contract in
+ * lib/integrations/health-checks.ts. Maintenance-chain entries carry a structured
+ * `preview_payload_schema`; Dotloop and Boom previews stay prose-only until their
+ * vendor-confirmation-required contracts are confirmed.
+ *
+ * Deliberately absent: Move-Out + Deposit Disposition actions. The research backlog still
+ * marks their triggers, approvers, and target systems as TBD, so adding entries would
+ * invent scope.
  */
 export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
   {
@@ -26,8 +36,83 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     event_ingestion_mode: "Polling",
     preview_schema_note:
       "Show property/unit, vendor/trade, description, priority, and the resulting Rentvine work-order fields before creating.",
+    preview_payload_schema: [
+      {
+        name: "property_unit",
+        label: "Property / unit",
+        type: "reference",
+        required: true,
+        source_system: "Rentvine",
+      },
+      {
+        name: "vendor_trade",
+        label: "Vendor / trade",
+        type: "reference",
+        required: true,
+        source_system: "Rentvine",
+      },
+      {
+        name: "description",
+        label: "Work description",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "priority",
+        label: "Priority",
+        type: "enum",
+        required: true,
+        source_system: "KB Internal",
+        note: "Rentvine work-order priority vocabulary.",
+      },
+      {
+        name: "expected_status",
+        label: "Resulting work-order status",
+        type: "enum",
+        required: true,
+        source_system: "Rentvine",
+      },
+    ],
     rollback_note:
       "Cancel or close the created work order in Rentvine and record the reversal in the workflow run.",
+    connection_health_check_ref: "health.rentvine.api_key",
+    production_allowed: false,
+  },
+  {
+    key: "rentvine.work_order.read",
+    label: "Read Rentvine work orders",
+    target_system: "Rentvine",
+    expected_action:
+      "Read work-order state from Rentvine for read-only verification of the maintenance chain.",
+    product_lane: "PMI KC KB",
+    readiness: "Needs Connection",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Rentvine API documents work-order list/view; no webhooks exist, so state is read by polling or LeadSimple sync.",
+    required_permissions: ["Rentvine API key with work-order read role"],
+    event_ingestion_mode: "Polling",
+    preview_schema_note:
+      "Show the work-order id or list filter being read; read-only, nothing changes.",
+    preview_payload_schema: [
+      {
+        name: "work_order_id",
+        label: "Work-order id",
+        type: "reference",
+        required: false,
+        source_system: "Rentvine",
+        note: "Omit to read a filtered list instead of a single work order.",
+      },
+      {
+        name: "list_filter",
+        label: "List filter",
+        type: "string",
+        required: false,
+        source_system: "KB Internal",
+      },
+    ],
+    rollback_note: "Read-only; nothing to roll back.",
+    connection_health_check_ref: "health.rentvine.api_key",
     production_allowed: false,
   },
   {
@@ -44,7 +129,67 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     event_ingestion_mode: "LeadSimple Sync",
     preview_schema_note:
       "Show the work-order id, current status, and target status before updating.",
+    preview_payload_schema: [
+      {
+        name: "work_order_id",
+        label: "Work-order id",
+        type: "reference",
+        required: true,
+        source_system: "Rentvine",
+      },
+      {
+        name: "current_status",
+        label: "Current status",
+        type: "enum",
+        required: true,
+        source_system: "Rentvine",
+      },
+      {
+        name: "target_status",
+        label: "Target status",
+        type: "enum",
+        required: true,
+        source_system: "Rentvine",
+      },
+    ],
     rollback_note: "Restore the prior status value recorded in the workflow run.",
+    connection_health_check_ref: "health.rentvine.api_key",
+    production_allowed: false,
+  },
+  {
+    key: "rentvine.lease.read",
+    label: "Read Rentvine leases",
+    target_system: "Rentvine",
+    expected_action:
+      "Read lease, tenant-contact, and date facts from Rentvine to identify renewal candidates (read-only).",
+    product_lane: "Lease Renewal Agent",
+    readiness: "Needs Connection",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Rentvine API documents lease export/list/view, enough to identify renewal candidates; no renewal-write endpoint is documented.",
+    required_permissions: ["Rentvine API key with lease read role"],
+    event_ingestion_mode: "Polling",
+    preview_schema_note:
+      "Show the lease id or candidate filter (for example lease-end date range) being read; read-only, nothing changes.",
+    preview_payload_schema: [
+      {
+        name: "lease_id",
+        label: "Lease id",
+        type: "reference",
+        required: false,
+        source_system: "Rentvine",
+        note: "Omit to read a renewal-candidate list instead of a single lease.",
+      },
+      {
+        name: "lease_end_before",
+        label: "Lease end before",
+        type: "date",
+        required: false,
+        source_system: "KB Internal",
+      },
+    ],
+    rollback_note: "Read-only; nothing to roll back.",
+    connection_health_check_ref: "health.rentvine.api_key",
     production_allowed: false,
   },
   {
@@ -62,7 +207,51 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     event_ingestion_mode: "LeadSimple Sync",
     preview_schema_note:
       "Show the process id, current stage, and target stage before changing.",
+    preview_payload_schema: [
+      {
+        name: "process_id",
+        label: "Process id",
+        type: "reference",
+        required: true,
+        source_system: "LeadSimple",
+      },
+      {
+        name: "current_stage",
+        label: "Current stage",
+        type: "enum",
+        required: true,
+        source_system: "LeadSimple",
+      },
+      {
+        name: "target_stage",
+        label: "Target stage",
+        type: "enum",
+        required: true,
+        source_system: "LeadSimple",
+      },
+    ],
     rollback_note: "Set the stage back to the recorded prior value.",
+    connection_health_check_ref: "health.leadsimple.rest_api",
+    production_allowed: false,
+  },
+  {
+    key: "leadsimple.task.create",
+    label: "Create LeadSimple task",
+    target_system: "LeadSimple",
+    expected_action:
+      "Create an orchestration task or reminder inside a LeadSimple process.",
+    product_lane: "PMI KC KB",
+    readiness: "Needs Connection",
+    evidence_status: "Vendor-Confirmation-Required",
+    documented_evidence:
+      "LeadSimple is the verified workflow-orchestration layer (task sequencing, stages, reminders); its REST API can read and change account data, but the task-endpoint contract sits behind authentication and needs vendor confirmation.",
+    required_permissions: ["LeadSimple admin-enabled REST API key"],
+    required_plan: "LeadSimple Operations plan",
+    event_ingestion_mode: "LeadSimple Sync",
+    preview_schema_note:
+      "Show the process id, task title, assignee, and due date before creating the task.",
+    rollback_note: "Delete or close the created task in LeadSimple.",
+    connection_health_check_ref: "health.leadsimple.rest_api",
     production_allowed: false,
   },
   {
@@ -81,6 +270,7 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     preview_schema_note:
       "Show the template, property fields, and participant list before creating the loop.",
     rollback_note: "Archive or delete the created loop and remove added participants.",
+    connection_health_check_ref: "health.dotloop.oauth_app",
     production_allowed: false,
   },
   {
@@ -98,6 +288,7 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     preview_schema_note:
       "Show the loop, folder, file name, and document type before uploading.",
     rollback_note: "Delete the uploaded document from the loop folder.",
+    connection_health_check_ref: "health.dotloop.oauth_app",
     production_allowed: false,
   },
   {
@@ -115,7 +306,45 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     event_ingestion_mode: "Webhook",
     preview_schema_note:
       "Show vendor, amount, account, and the referenced Rentvine work-order number and property/unit before creating the draft.",
+    preview_payload_schema: [
+      {
+        name: "vendor",
+        label: "Vendor",
+        type: "reference",
+        required: true,
+        source_system: "QuickBooks",
+      },
+      {
+        name: "amount",
+        label: "Amount",
+        type: "number",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "account",
+        label: "Account",
+        type: "reference",
+        required: true,
+        source_system: "QuickBooks",
+      },
+      {
+        name: "rentvine_work_order_number",
+        label: "Rentvine work-order number",
+        type: "reference",
+        required: true,
+        source_system: "Rentvine",
+      },
+      {
+        name: "property_unit",
+        label: "Property / unit",
+        type: "reference",
+        required: true,
+        source_system: "Rentvine",
+      },
+    ],
     rollback_note: "Void or delete the draft bill before it is posted.",
+    connection_health_check_ref: "health.quickbooks.oauth_app",
     production_allowed: false,
   },
   {
@@ -134,6 +363,7 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     preview_schema_note:
       "Show resident identity, lease, and enrollment program before enrolling.",
     rollback_note: "Unenroll the resident through the Boom lifecycle API.",
+    connection_health_check_ref: "health.boom.partner_api",
     production_allowed: false,
   },
   {
@@ -150,8 +380,135 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     event_ingestion_mode: "Apps Script",
     preview_schema_note:
       "Show the target sheet, the row shape, and the values before appending.",
+    preview_payload_schema: [
+      {
+        name: "target_sheet",
+        label: "Target sheet",
+        type: "reference",
+        required: true,
+        source_system: "Google Sheets",
+        note: "Must be the approved exception/control sheet.",
+      },
+      {
+        name: "snapshot_kind",
+        label: "Snapshot kind",
+        type: "enum",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "row_values",
+        label: "Row values",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+        note: "Rendered row exactly as it will be appended.",
+      },
+    ],
     rollback_note:
       "Mark or remove the appended row; sheets stay an exception surface only.",
+    connection_health_check_ref: "health.google_sheets.api",
+    production_allowed: false,
+  },
+  {
+    key: "gmail.label.apply",
+    label: "Apply Gmail triage label",
+    target_system: "Gmail",
+    expected_action:
+      "Apply a visible triage state label (for example Waiting on Outside / Waiting on Team) to a thread in Dan's mailbox.",
+    product_lane: "Gmail Inbox 0",
+    readiness: "Planned",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Gmail API documents label management via gmail.labels alongside the read-only triage scope; labels are additive and carry no send capability. Runtime stays blocked until the client approves the Gmail access model (docs/products/gmail-inbox-zero.md).",
+    required_permissions: [
+      "Client-approved Gmail access model for Dan's mailbox",
+      "Gmail read-only and gmail.labels scopes only",
+    ],
+    event_ingestion_mode: "Webhook",
+    preview_schema_note:
+      "Show the thread, the suggested label, and the matching rule or reason before applying.",
+    preview_payload_schema: [
+      {
+        name: "thread_ref",
+        label: "Thread",
+        type: "reference",
+        required: true,
+        source_system: "Gmail",
+      },
+      {
+        name: "suggested_label",
+        label: "Suggested label",
+        type: "enum",
+        required: true,
+        source_system: "KB Internal",
+        note: "One of: Waiting on Outside, Waiting on Team, Dan Decision, Draft Ready.",
+      },
+      {
+        name: "reason",
+        label: "Rule match / reason",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+    ],
+    rollback_note: "Remove the applied label; labels are additive and reversible.",
+    connection_health_check_ref: "health.gmail.workspace_api",
+    production_allowed: false,
+  },
+  {
+    key: "gmail.draft.create",
+    label: "Create Gmail reply draft",
+    target_system: "Gmail",
+    expected_action:
+      "Create an unsent reply draft in a thread from an approved reply pattern; Dan presses Send manually.",
+    product_lane: "Gmail Inbox 0",
+    readiness: "Planned",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Gmail API documents draft creation via gmail.compose; code never calls send, preserving Dan's manual send authority. Runtime stays blocked until the safe test-thread protocol and draft spec are approved (docs/products/gmail-inbox-zero.md).",
+    required_permissions: [
+      "Client-approved Gmail access model for Dan's mailbox",
+      "gmail.compose scope (no send in code)",
+    ],
+    event_ingestion_mode: "Webhook",
+    preview_schema_note:
+      "Show the thread, the source reply template, and the full draft body before creating the unsent draft.",
+    preview_payload_schema: [
+      {
+        name: "thread_ref",
+        label: "Thread",
+        type: "reference",
+        required: true,
+        source_system: "Gmail",
+      },
+      {
+        name: "template_ref",
+        label: "Approved reply template",
+        type: "reference",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "draft_body",
+        label: "Draft body",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "draft_banner_present",
+        label: "Draft banner present",
+        type: "boolean",
+        required: true,
+        source_system: "KB Internal",
+        note: "Drafts carry the review-before-sending banner.",
+      },
+    ],
+    test_notes:
+      "Safe-thread protocol confirmation is a tracked client ask; until then drafts exist only in mocked tests.",
+    rollback_note: "Delete the unsent draft; nothing was sent.",
+    connection_health_check_ref: "health.gmail.workspace_api",
     production_allowed: false,
   },
   {
@@ -171,6 +528,7 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
       "Not executable: requires a confirmed endpoint and an approved per-action spec before a preview can be defined.",
     rollback_note:
       "Undefined until the endpoint is confirmed; renewal writeback stays non-executable.",
+    connection_health_check_ref: "health.rentvine.api_key",
     production_allowed: false,
   },
 ];

@@ -69,6 +69,7 @@ export function buildActionRegistryRecord(input: CreateActionRegistryInput) {
     required_plan: parsed.required_plan,
     event_ingestion_mode: parsed.event_ingestion_mode,
     preview_schema_note: parsed.preview_schema_note,
+    preview_payload_schema: parsed.preview_payload_schema,
     test_notes: parsed.test_notes,
     rollback_note: parsed.rollback_note,
     connection_health_check_ref: parsed.connection_health_check_ref,

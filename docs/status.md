@@ -4164,3 +4164,46 @@ Validation status (end of run):
 seed:spaces -- --dry-run`, and `npm run cutover:report` against the production
   manifest template (expected blockers printed for placeholders/unreviewed sources and
   missing client env values).
+
+## Integration Readiness Expansion: preview schemas, health checks, mocked connectors (2026-06-12)
+
+Executed remote-run queue item 8 under Remote Away Mode as metadata/mocked-only work (no
+external write path was added; every Action Registry entry remains
+`production_allowed: false`):
+
+- Structured preview payload schemas: added an optional `preview_payload_schema` field
+  (snake_case field descriptors with string/number/boolean/date/enum/reference types and
+  per-field source systems) to the Action Registry schema, types, and record builder, as
+  the machine-readable companion to `preview_schema_note`. The pure validator
+  `lib/integrations/preview-payload.ts` enforces that a preview payload contains exactly
+  the declared fields — required present, values typed, no undeclared keys.
+- Per-system health-check contracts: `lib/integrations/health-checks.ts` defines seven
+  deterministic contracts (Rentvine, LeadSimple, Dotloop, QuickBooks, Boom vendor-packet-
+  dependent, Google Sheets, Gmail) with ordered config/auth/probe/rate-limit steps.
+  `runHealthCheck` has no default transport and throws without an injected one, so the
+  module can never perform a live call; a test locks this in.
+- Catalog expansion 9 → 14 entries: wired `connection_health_check_ref` on all entries;
+  added structured preview schemas to the maintenance-chain entries; added doc-grounded
+  `rentvine.lease.read`, `rentvine.work_order.read` (read-only, Documented),
+  `leadsimple.task.create` (Vendor-Confirmation-Required, Operations plan), and the
+  Gmail Inbox 0 pair `gmail.label.apply` / `gmail.draft.create` (both `Planned` until
+  the client approves the Gmail access model; additive labels and unsent drafts only).
+  Added `"Gmail"` to `ACTION_TARGET_SYSTEMS`. Move-Out + Deposit Disposition actions
+  were deliberately not added (research backlog still marks triggers/approvers/systems
+  TBD). The Gmail metadata avoids the forbidden runtime scope literals so the router-
+  boundary guard still blocks real Gmail runtime code.
+- Mocked connector tests: `tests/helpers/mock-connectors.ts` simulates the documented
+  maintenance work-order chain (create → LeadSimple stages → status sync → QuickBooks
+  bill draft preserving the work-order number → Sheets audit row) entirely in memory,
+  validating every mock write against the matching entry's `preview_payload_schema`.
+- Docs: `docs/integration-architecture.md` gained the `preview_payload_schema` field row,
+  a Connection health-check contracts subsection, and a catalog-coverage note.
+- No cloud, Gmail, credential, deploy, import, send, client-resource, or external-system
+  action was performed.
+
+Validation (slice boundary): `npm run format:check`, `npm run lint`, `npm run typecheck`,
+`npm test` (339 tests, 44 files), `npm run test:firestore` (23 rules tests),
+`npm run verify:falsification` (281 committable files), `npm run verify:router-boundary`,
+`npm run check:budget-guard` (demo posture, away mode active, $10 cap), and
+`npx tsx scripts/seed-action-registry.ts --dry-run --json` (14 entries validated, all
+production_allowed=false, no writes) all passed.

@@ -30,7 +30,21 @@ export const ACTION_TARGET_SYSTEMS = [
   "QuickBooks",
   "Boom",
   "Google Sheets",
+  "Gmail",
   "KB Internal",
+] as const;
+
+// Field types for structured execution-preview payload schemas. Each Action Registry
+// entry may describe the exact fields a preview must show before an action could ever be
+// approved for execution; "reference" points at an existing external record (ids), and
+// "enum" constrains the value to a fixed list named in the field note.
+export const ACTION_PREVIEW_FIELD_TYPES = [
+  "string",
+  "number",
+  "boolean",
+  "date",
+  "enum",
+  "reference",
 ] as const;
 
 export const ACTION_EVENT_MODES = [

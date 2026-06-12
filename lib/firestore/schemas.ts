@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   ACTION_EVENT_MODES,
   ACTION_EVIDENCE_STATUSES,
+  ACTION_PREVIEW_FIELD_TYPES,
   ACTION_TARGET_SYSTEMS,
   SOURCE_STATES,
 } from "@/lib/constants";
@@ -279,6 +280,23 @@ const actionRegistryKeySchema = z
     "Expected a lowercase action key like rentvine.work_order.create.",
   );
 
+export const ActionPreviewFieldTypeSchema = z.enum(ACTION_PREVIEW_FIELD_TYPES);
+
+// One descriptor per field an execution preview must show. This is the machine-readable
+// companion to `preview_schema_note`: previews must show exactly these fields, so payload
+// keys outside the descriptor list are treated as validation errors.
+export const PreviewPayloadFieldSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9]+(?:_[a-z0-9]+)*$/, "Expected a snake_case field name."),
+  label: requiredTextSchema,
+  type: ActionPreviewFieldTypeSchema,
+  required: z.boolean().default(false),
+  source_system: ActionTargetSystemSchema,
+  note: optionalTextSchema,
+});
+
 // One record per external action type. `production_allowed` is the production execution
 // gate: it may be true only when the action is `Approved for Execution` with `Documented`
 // evidence, so an undocumented or vendor-confirmation-required capability can never be
@@ -297,6 +315,7 @@ export const CreateActionRegistryInputSchema = z
     required_plan: optionalTextSchema,
     event_ingestion_mode: ActionEventModeSchema.default("None"),
     preview_schema_note: requiredTextSchema,
+    preview_payload_schema: z.array(PreviewPayloadFieldSchema).optional(),
     test_notes: optionalTextSchema,
     rollback_note: requiredTextSchema,
     connection_health_check_ref: optionalTextSchema,
