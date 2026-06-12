@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { ApprovalQueueAdminPanel } from "@/components/admin/ApprovalQueueAdminPanel";
 import { requirePageRole } from "@/lib/auth/page-guards";
@@ -71,6 +72,14 @@ export default async function AdminPage() {
             </p>
           </article>
         </div>
+        <article className="panel">
+          <h2>Migration Readiness</h2>
+          <p className="muted">
+            Read-only cutover, environment, source-corpus, Action Registry, and
+            notification posture.
+          </p>
+          <Link href="/admin/migration">Open migration console</Link>
+        </article>
         {hasMetrics ? (
           <>
             {observabilityNote ? (

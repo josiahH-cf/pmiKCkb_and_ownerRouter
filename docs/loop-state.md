@@ -33,6 +33,18 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- KB Admin Migration Console (2026-06-12, remote-run queue item #5): built the
+  read-only, preview-first `/admin/migration` page (linked from `/admin`) that mirrors
+  `npm run cutover:report` in-app: GCP converge plan, production env preflight,
+  source-corpus template readiness, budget/away posture, Action Registry readiness with
+  a production_allowed governance assertion, notification posture, a section-prefixed
+  blockers rollup, and owner-side action labeling. `lib/admin/migration-readiness.ts`
+  reuses the `.mjs` script logic via sibling `.d.mts` declarations with explicit
+  `process.cwd()`-rooted arguments; the pure manifest validation/readiness functions
+  moved to `scripts/source-corpus-readiness.mjs` and `scripts/source-doc-id.mjs`
+  (re-exported by the CLI, tests unchanged) so the page bundle stays free of
+  firebase-admin and CLI file operations. 10 unit tests + 5 e2e tests; no client
+  mutation surface. See the matching `docs/status.md` entry.
 - Integration Readiness Expansion (2026-06-12, remote-run queue item #8): added
   structured `preview_payload_schema` field descriptors to the Action Registry (schema,
   types, record builder) with the pure validator `lib/integrations/preview-payload.ts`;
@@ -140,6 +152,14 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-12 (end of remote run, queue items 8 + 5): `bash scripts/verify.sh` passed
+  (format, lint, typecheck, 349 unit tests / 45 files, router boundary, falsification
+  across 292 committable files, warning-free build with `/admin/migration` present);
+  `npm run test:firestore` passed (23 rules tests); `npm run test:e2e:core` passed (21
+  tests, 17 emulator-dependent skipped); `npm run test:e2e` passed (35 tests, 3
+  degraded-mode correctly skipped with the emulator present);
+  `npm run check:budget-guard` passed (demo posture, away mode active, $10 cap); the
+  seed dry-run validated 14 entries, all production_allowed=false, no writes.
 - 2026-06-12 (integration readiness expansion, slice boundary): `npm run format:check`,
   `npm run lint`, `npm run typecheck`, `npm test` (339 tests / 44 files),
   `npm run test:firestore` (23 rules tests), `npm run verify:falsification` (281
@@ -195,6 +215,14 @@ continuation, and stop-and-reset rules.
 
 ## Last Falsification Result
 
+- 2026-06-12 (end of remote run): `npm run verify:falsification` passed across 292
+  committable files. Self-review of the Admin migration console slice: the page and its
+  aggregation module are strictly read-only (no POST/PUT handlers, no client mutation
+  surface, no cloud fetch — the GCP section stays plan-mode and never calls
+  `fetchLiveState`); the only runtime-adjacent refactor moved pure functions into
+  `scripts/source-corpus-readiness.mjs` / `scripts/source-doc-id.mjs` with the CLI
+  re-exporting them and its tests unchanged. No secrets, no client data, no
+  cloud/API/Gmail action, no deploy/import/send, and no system-of-record write path.
 - 2026-06-12 (integration readiness expansion): `npm run verify:falsification` passed
   across 281 committable files. Self-review: the slice is metadata, pure functions, and
   mocked tests only; the one guard interaction found (router-boundary forbids Gmail
@@ -255,14 +283,17 @@ The remaining work in items 1-3 is owner-side live execution, which is
 credential-blocked from the remote container, so the next remote slice should come
 from items 5-8 or new regression/readiness needs.
 
-Progress (2026-06-12 remote run): item 8 (integration readiness expansion) is complete —
-structured preview payload schemas, per-system health-check contracts, a 14-entry seed
-catalog, and mocked maintenance-chain connector tests, all metadata/mocked with every
-entry production_allowed=false. Item 5 (KB Admin migration console) is the active slice
-of this run. Items 6-7 remain deferred: their decision-free halves are thin and the
+Progress (2026-06-12 remote run): items 8 and 5 are complete. Item 8 (integration
+readiness expansion): structured preview payload schemas, per-system health-check
+contracts, a 14-entry seed catalog, and mocked maintenance-chain connector tests, all
+metadata/mocked with every entry production_allowed=false. Item 5 (KB Admin migration
+console): read-only `/admin/migration` mirrors `cutover:report` in-app with owner-side
+blocker labeling. Items 6-7 remain deferred: their decision-free halves are thin and the
 governing facts (signed-lease system, allowed reads, Dan approval model, Gmail access
 model, safe-thread protocol) are client-blocked; the legacy Owner Router artifact repo is
-also absent from the remote container.
+also absent from the remote container. The next remote slice should come from new
+regression/readiness needs or the queued remote-owner decisions; the queue's local/remote
+halves of items 1-5 and 8 are exhausted.
 
 1. **Production-lift setup automation.** Build an idempotent setup orchestrator that
    checks/records non-secret GCP/Firebase state, validates billing/budget posture without

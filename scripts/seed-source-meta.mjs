@@ -1,9 +1,9 @@
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { cloudStorageContentDocumentId } from "./source-doc-id.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const approvalStatuses = ["Unreviewed", "Transcript-derived", "Approved", "Deprecated"];
@@ -49,9 +49,7 @@ export function normalizeDriveFileId(value) {
   return normalizeSourceId(value);
 }
 
-export function cloudStorageContentDocumentId(gcsUri) {
-  return createHash("sha256").update(gcsUri).digest("hex").slice(0, 32);
-}
+export { cloudStorageContentDocumentId };
 
 export function buildSourceMetaRecord(input, now = new Date().toISOString()) {
   const driveFileId = normalizeSourceId(

@@ -232,6 +232,11 @@ the §7 smoke checklist; blockers are prefixed with their failing section):
 npm run cutover:report -- --manifest=temp/client-production-source-manifest.json --env-file=.env.production.local --json
 ```
 
+The Admin migration console at `/admin/migration` mirrors this report read-only in-app
+(environment, production env, corpus-template, budget, Action Registry, and notification
+posture with owner-side blocker labeling); the deploy gate above still requires the CLI
+report against the real manifest and env file.
+
 Create or choose the runtime service account, then grant only the roles needed by the
 KB runtime:
 

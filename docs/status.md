@@ -4207,3 +4207,61 @@ Validation (slice boundary): `npm run format:check`, `npm run lint`, `npm run ty
 `npm run check:budget-guard` (demo posture, away mode active, $10 cap), and
 `npx tsx scripts/seed-action-registry.ts --dry-run --json` (14 entries validated, all
 production_allowed=false, no writes) all passed.
+
+## KB Admin Migration Console (2026-06-12)
+
+Executed remote-run queue item 5 under Remote Away Mode: a read-only, preview-first
+Admin page at `/admin/migration` (linked from `/admin`) that mirrors
+`npm run cutover:report` in-app. No cloud call is made from the page; in dev/demo it
+honestly shows the production blockers that remain.
+
+- `lib/admin/migration-readiness.ts` composes the same pure readiness functions the
+  cutover tooling uses — GCP/Firebase/Firestore converge plan (plan mode only),
+  production env preflight against the current process env, source-corpus readiness from
+  the tracked production manifest template, budget/away-mode posture via the budget
+  guard, Action Registry readiness (counts by readiness/evidence, gated entries, and a
+  governance assertion that raises a blocker if any record is ever
+  `production_allowed=true`), and Approval Queue notification posture. Every section
+  degrades gracefully (per-section try/catch with a plain-English note); the Action
+  Registry section falls back to the static seed catalog without Firestore. Blockers
+  roll up with section prefixes, and `gcp:`/`env:`/`corpus:` blockers are labeled
+  "owner-side action required" because they need credentials, billing, real project ids,
+  or a reviewed manifest.
+- The TypeScript page reuses the `.mjs` script logic through hand-written sibling
+  `.d.mts` declarations (no config churn); every call passes explicit
+  `process.cwd()`-rooted arguments because the scripts' own defaults resolve paths from
+  `import.meta.url`, which mis-resolves after bundling.
+- Refactor for bundle safety: extracted the pure `cloudStorageContentDocumentId` into
+  `scripts/source-doc-id.mjs` and the pure manifest validation/readiness functions into
+  `scripts/source-corpus-readiness.mjs` (re-exported by `scripts/source-corpus-manifest.mjs`
+  so the CLI and its tests are unchanged). This keeps firebase-admin and the CLI's
+  dynamic file operations out of the page bundle; the production build is warning-free.
+- Tests: `tests/unit/migration-readiness.test.ts` (10 tests, including a real-deps smoke
+  test that locks the `.d.mts` declarations against drift) and
+  `tests/e2e/admin-migration.e2e.test.mjs` (guard redirects for signed-out/Editor, Admin
+  renders all panels with the production_allowed=false assertion line, /admin links to
+  the console, and the no-Firestore degraded mode shows the seed-catalog fallback note).
+- No cloud, Gmail, credential, deploy, import, send, client-resource, or external-system
+  action was performed.
+
+Validation (slice boundary): `npm run typecheck`, `npm run lint`, `npm run format:check`,
+`npm test` (349 tests, 45 files), `npm run build` (warning-free, `/admin/migration`
+present), `npm run test:e2e:core` (21 passed, 17 emulator-dependent skipped), and
+`npm run test:e2e` (35 passed, 3 degraded-mode correctly skipped with the emulator) all
+passed. Full `bash scripts/verify.sh` and `npm run test:firestore` results are recorded
+in the end-of-run entry below.
+
+## End-Of-Run Validation: queue items 8 + 5 (2026-06-12)
+
+- `bash scripts/verify.sh`: passed (format, lint, typecheck, 349 unit tests across 45
+  files, router boundary, falsification across 292 committable files, warning-free
+  build with `/admin/migration` present).
+- `npm run test:firestore`: passed (23 rules tests).
+- `npm run test:e2e:core`: passed (21 tests, 17 emulator-dependent skipped).
+- `npm run test:e2e`: passed (35 tests, 3 degraded-mode tests correctly skipped with
+  the emulator present).
+- `npm run check:budget-guard`: passed (demo posture, away mode active, $10 cap).
+- `npx tsx scripts/seed-action-registry.ts --dry-run --json`: 14 entries validated, all
+  production_allowed=false, no writes.
+- No cloud, Gmail, credential, deploy, import, send, client-resource, or
+  external-system action was performed during this run.
