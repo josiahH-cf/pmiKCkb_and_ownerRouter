@@ -12,10 +12,10 @@ temporary away-mode overlay (`docs/away-mode.md`) is active.
 - The $10 total cap is binding and **supersedes any higher per-service figure** mentioned
   in older preserved specs (for example a `$200/month` Gemini line in `docs/spec.md`).
   Those are legacy aspirational numbers, not approval to spend.
-- No unmanaged spend. Remote Away Mode grants standing approval for bounded setup and
-  migration work that stays under this cap, passes `npm run check:budget-guard`, and has a
-  dry-run or replayable plan. Anything unbounded, hard to estimate, or near the cap still
-  requires explicit user approval first.
+- No unmanaged spend. When active, Remote Away Mode grants standing approval for bounded
+  setup and migration work that stays under this cap, passes `npm run check:budget-guard`,
+  and has a dry-run or replayable plan. Anything unbounded, hard to estimate, or near the
+  cap still requires explicit user approval first.
 - The client-owned Google Cloud billing card is **not yet provisioned**, so today the
   practical spend ceiling is effectively $0 until the client unblocks billing. Treat all
   cost-bearing cloud actions as blocked until then.

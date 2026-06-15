@@ -4362,3 +4362,27 @@ active, $10 cap), `npm run build` (warning-free, `/admin/gmail-inbox-zero` prese
 `npm run test:e2e:core` (25 passed, 17 emulator-dependent skipped), `npm run test:e2e`
 (39 passed, 3 degraded-mode correctly skipped), and `npm run test:firestore` (23 rules
 tests) all passed.
+
+## Source Drop Zone Setup, Drive Metadata Check, And Away Mode Return (2026-06-15)
+
+- Reauthenticated local Google access as `josiah@pmikcmetro.com` with Drive access.
+- Created the Google Drive source drop zone `PMI KC - Source Drop Zone` and subfolders
+  for Lease Renewals, Maintenance Work Order Intake, Move-Out + Deposit Disposition,
+  Owner Onboarding, Gmail Inbox 0, unsure items, and old/reference-only material.
+- Shared the top folder with `dan@pmikcmetro.com` as an editor; subfolders inherit access.
+- Verified metadata-only visibility for the Drive home. Visible shared Sheets include
+  `Tenant Move In/Out/Renewal Checklist`, `24/25/26 Rents Received 2`, and
+  `2026 Invoices`; exact in-scope Sheets still need Dan/Josiah confirmation before any
+  app use.
+- Updated `docs/environment-handoff.md` with the non-secret folder and visible-sheet
+  pointers.
+- Marked Remote Away Mode inactive because the owner is back in active coordination.
+  Updated `AGENTS.md`, `docs/away-mode.md`, `docs/loop-state.md`, and
+  `docs/client-checklist.md` so future agents do not treat the exhausted remote-run
+  queue as standing approval for speculative live/setup work.
+- No sheet contents, raw client records, credentials, deploys, imports, sends, or
+  external-system writes were performed.
+
+Validation: `npm run format:check`, `npm run check:budget-guard` (demo posture, away mode
+inactive, $10 cap), `npm test -- budget-guard` (15 tests), `npm run verify:falsification`
+(303 committable files), and `git diff --check` all passed.

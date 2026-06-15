@@ -23,9 +23,11 @@ content, leases, ledgers, bank data, SSNs, or full source packets in this docume
 
 ## Non-Secret Source Artifact Registry
 
-| Artifact source                    | Path or location                                              | Product lane  | Status                          | Handoff note                                                                      |
-| ---------------------------------- | ------------------------------------------------------------- | ------------- | ------------------------------- | --------------------------------------------------------------------------------- |
-| Legacy Owner Router source package | `C:\Users\josia\Documents\github-windows\pmi-kc-owner-router` | Gmail Inbox 0 | Exists locally; no commits yet. | Source material only; map lives in `docs/legacy/owner-router-artifact-source.md`. |
+| Artifact source                    | Path or location                                                           | Product lane  | Status                          | Handoff note                                                                                                                                                                    |
+| ---------------------------------- | -------------------------------------------------------------------------- | ------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Legacy Owner Router source package | `C:\Users\josia\Documents\github-windows\pmi-kc-owner-router`              | Gmail Inbox 0 | Exists locally; no commits yet. | Source material only; map lives in `docs/legacy/owner-router-artifact-source.md`.                                                                                               |
+| PMI KC source drop zone            | <https://drive.google.com/drive/folders/1arXww32LaPcIbFx_oONshbR62imiC8kq> | All lanes     | Created and shared with Dan.    | Source folders for Lease Renewals, Maintenance, Move-Out, Owner Onboarding, Gmail Inbox 0, unsure, and reference material.                                                      |
+| Shared Google Sheets in Drive home | Google Drive home for `josiah@pmikcmetro.com`                              | All lanes     | Metadata visible only.          | Visible sheet names include `Tenant Move In/Out/Renewal Checklist`, `24/25/26 Rents Received 2`, and `2026 Invoices`; exact in-scope Sheets still need confirmation before use. |
 
 ## Environment Registry
 
@@ -38,23 +40,24 @@ content, leases, ledgers, bank data, SSNs, or full source packets in this docume
 
 ## Current Client-Side Setup Gates
 
-These gates come from the current outbound Dan/team communications. In Remote Away Mode,
-answered gates may unblock reversible API setup and migration prep when the budget guard
-passes and identifiers are recorded here. They are not approval for unbounded spend,
-autonomous sends, raw data handling, destructive changes, or system-of-record writes.
+These gates come from the current outbound Dan/team communications. Remote Away Mode is
+inactive as of 2026-06-15, so answered gates unblock normal owner-coordinated setup and
+migration prep when the budget guard passes and identifiers are recorded here. They are
+not approval for unbounded spend, autonomous sends, raw data handling, destructive
+changes, or system-of-record writes.
 
 The cost ceiling and free-tier-first defaults behind these gates are governed by
 `docs/budget-and-cost-policy.md` (~$10 total, no spend without approval). Validate the
 current cost posture with `npm run check:budget-guard`.
 
-| Gate                              | Owner      | Current status                                                                                                                          | Record only these non-secret details after unblock                            | Verification after unblock                                               |
-| --------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Google Cloud billing card         | Dan/PMI KC | Asked Dan to add a card; awaiting reply. Budget context is $10 and no spend without approval.                                           | Billing account/project names or IDs; budget/alert owner.                     | Billing is visible/enabled, then approved dry-run preflights.            |
-| Tool access spreadsheet           | Dan/team   | Partially returned: RentVine both/API; LeadSimple, DotLoop, Boom, and Sheets admin/location; QuickBooks blank; Sheets scope unresolved. | Tool names, access owner, login page/shared folder label, API availability.   | Classify each tool as read-only, write-capable, unsupported, or blocked. |
-| Lease Renewal walkthrough         | Dan/team   | Asked for a full renewal walkthrough around June 17-18, 2026.                                                                           | Recorded walkthrough location, source-note owner, and sanitized summary path. | Walkthrough notes captured without raw client records in git.            |
-| Signed lease / lease-date source  | Dan/team   | Blank answer requested; awaiting reply.                                                                                                 | System/folder/sheet name, owner, and whether dates can be read safely.        | First authoritative renewal trigger source recorded.                     |
-| Gmail helper safe-thread protocol | Dan        | Default sent: start with a few safe test threads first.                                                                                 | Approved test-thread model, exclusion rules, and rollback owner.              | Safe Gmail test protocol documented before live Gmail runtime.           |
-| Approval notification sender      | Dan/PMI KC | Default sent: `kb-automation@pmikcmetro.com`; awaiting exceptions.                                                                      | Sender address, recipient group, label name, support owner.                   | Send-only notification smoke only after explicit approval.               |
+| Gate                              | Owner      | Current status                                                                                                                                       | Record only these non-secret details after unblock                            | Verification after unblock                                               |
+| --------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Google Cloud billing card         | Dan/PMI KC | Google Cloud free-trial/billing/project guidance sent; awaiting completion and project details. Budget context is $10 and no spend without approval. | Billing account/project names or IDs; budget/alert owner.                     | Billing is visible/enabled, then approved dry-run preflights.            |
+| Tool access spreadsheet           | Dan/team   | Partially returned: RentVine both/API; LeadSimple, DotLoop, Boom, and Sheets admin/location; QuickBooks blank; Sheets scope unresolved.              | Tool names, access owner, login page/shared folder label, API availability.   | Classify each tool as read-only, write-capable, unsupported, or blocked. |
+| Lease Renewal walkthrough         | Dan/team   | Detailed recording checklist sent; awaiting recording or live walkthrough.                                                                           | Recorded walkthrough location, source-note owner, and sanitized summary path. | Walkthrough notes captured without raw client records in git.            |
+| Signed lease / lease-date source  | Dan/team   | Included in the walkthrough checklist; awaiting exact system/sheet/tab/column/screen/document.                                                       | System/folder/sheet name, owner, and whether dates can be read safely.        | First authoritative renewal trigger source recorded.                     |
+| Gmail helper safe-thread protocol | Dan        | Plain-English Gmail helper explanation sent; awaiting confirmation or alternate names/categories.                                                    | Approved test-thread model, exclusion rules, and rollback owner.              | Safe Gmail test protocol documented before live Gmail runtime.           |
+| Approval notification sender      | Dan/PMI KC | Default sent: `kb-automation@pmikcmetro.com`; awaiting exceptions.                                                                                   | Sender address, recipient group, label name, support owner.                   | Send-only notification smoke only after explicit approval.               |
 
 ## Migration-Ready But Client-Blocked State
 
@@ -97,14 +100,14 @@ read-only check of enabled APIs, Firestore database mode, and the Firebase proje
 Recorded from the ignored local tool-access spreadsheet on 2026-06-09. Do not copy
 spreadsheet notes or credentials into tracked files.
 
-| Tool          | Non-secret access answer | Remaining handoff gap                                      |
-| ------------- | ------------------------ | ---------------------------------------------------------- |
-| RentVine      | Both access/API location | Rotate exposed API credential before any future use.       |
-| LeadSimple    | Admin account            | Confirm Operations plan and endpoint coverage.             |
-| DotLoop       | Admin account            | Confirm signing/send lifecycle before runtime integration. |
-| QuickBooks    | Blank                    | Client still needs to provide access status/location.      |
-| Boom          | Admin account            | Vendor endpoint contract packet still required.            |
-| Google Sheets | Admin account            | Confirm exact in-scope sheets and owner.                   |
+| Tool          | Non-secret access answer                                                                                                                         | Remaining handoff gap                                      |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| RentVine      | Both access/API location                                                                                                                         | Rotate exposed API credential before any future use.       |
+| LeadSimple    | Admin account                                                                                                                                    | Confirm Operations plan and endpoint coverage.             |
+| DotLoop       | Admin account                                                                                                                                    | Confirm signing/send lifecycle before runtime integration. |
+| QuickBooks    | Blank                                                                                                                                            | Client still needs to provide access status/location.      |
+| Boom          | Admin account                                                                                                                                    | Vendor endpoint contract packet still required.            |
+| Google Sheets | Admin account; visible shared Sheets metadata includes `Tenant Move In/Out/Renewal Checklist`, `24/25/26 Rents Received 2`, and `2026 Invoices`. | Confirm exact in-scope sheets and owner before use.        |
 
 | Area                         | Environment  | Non-secret values to record                                   | Where real secrets live                                  | Manual setup or approval required                                                                   | Verification                                       | Approval gate                                  |
 | ---------------------------- | ------------ | ------------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------- |
@@ -115,7 +118,7 @@ spreadsheet notes or credentials into tracked files.
 | Vertex AI / Gemini           | Staging/Prod | Region, model names.                                          | ADC/workload identity only.                              | Enable API and confirm model/cost choice.                                                           | `npm run check:live-cost`; Ask smoke.              | Cloud/API cost approval.                       |
 | Agent Search                 | Staging/Prod | Location, data-store IDs, display names.                      | ADC/workload identity only.                              | Create/import only approved source corpora; keep imports bounded by budget guard.                   | `npm run corpus:plan -- --dry-run`; Ask smoke.     | Source, cost, and rollback gate.               |
 | Cloud Storage source buckets | Staging/Prod | Bucket names, prefixes, service-agent grants.                 | IAM/workload identity only.                              | Create buckets and upload approved source copies when reversible and budget-bounded.                | `npm run corpus:plan`; import dry-run.             | Source and cloud cost gate.                    |
-| Drive source folders         | Staging/Prod | Folder names, owners, access groups.                          | Workspace permissions, not repo secrets.                 | Client creates/shares source-of-truth folders.                                                      | Manual access check; source-sync test when scoped. | Client Workspace approval.                     |
+| Drive source folders         | Staging/Prod | Folder names, owners, access groups.                          | Workspace permissions, not repo secrets.                 | Source drop zone created/shared; client/team adds approved source material and confirms scope.      | Manual access check; source-sync test when scoped. | Client Workspace approval.                     |
 | Gmail KB Approval sender     | Prod         | Sender address, recipient list, label name, app base URL.     | Gmail auth/identity in Secret Manager or approved setup. | Provision `kb-automation@pmikcmetro.com`; approve recipients.                                       | Notification smoke after approval.                 | Gmail sender/recipient and send-only approval. |
 | Gmail Inbox 0                | Prod         | Label names, safe test model, management-page scope.          | Gmail credentials only through approved setup.           | Dan-approved mailbox scan, label/filter, and draft/reply model.                                     | Safe thread or supervised test.                    | Live Gmail read/modify/draft approval.         |
 | External systems             | Future       | Target system, action type, readiness state, owner, rollback. | Per-system approved credential storage.                  | Future approved spec, tests, audit fields, rollback/error handling.                                 | Deterministic API health checks.                   | Per target-system/action-type approval.        |
@@ -175,7 +178,6 @@ Before a handoff is considered simple enough for a new team:
 - `docs/status.md` records the latest successful verification and remaining blockers.
 
 If a required owner/client value is missing, a future agent should treat only the
-dependent step as blocked. Continue with product work, reversible API setup, migration
-prep, planning, documentation, tests, dry-runs, regression fixes, and handoff work that
-improves readiness. If Remote Away Mode is active, do not stop solely because the owner is
-remote; stop only for the hard gates in `docs/away-mode.md`.
+dependent step as blocked. Continue with planning, documentation, tests, dry-runs,
+regression fixes, and handoff work that improves readiness. Remote Away Mode is inactive;
+live/cloud/client actions need the normal approval path and budget guard.

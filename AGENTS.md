@@ -3,12 +3,12 @@
 This file routes future Codex sessions. Keep it under 150 lines; put durable detail in
 `docs/`.
 
-> 🟡 **Temporary Operating Overlay — Remote Away Mode (ACTIVE).** The owner may be
-> remote, but future models should keep doing significant work. Run product, migration,
-> and API/setup work when it is reversible, non-breaking, and budget-guarded. Hard stops
-> are unmanaged cost (cap ~$10), destructive/breaking changes, secrets/raw client data,
-> autonomous sends, and unapproved system-of-record writes. Full rules and the Return
-> Checklist live in `docs/away-mode.md`.
+> ⚪ **Temporary Operating Overlay — Remote Away Mode (INACTIVE as of 2026-06-15).**
+> Normal owner-present governance is back in effect. Keep doing readiness, docs,
+> verification, and client-unblock work, but do not treat the old remote queue as
+> standing approval for live/cloud/client actions. The durable ~$10 budget ceiling,
+> security rules, human-send authority, and system-of-record write gates still apply.
+> Details live in `docs/away-mode.md` and `docs/budget-and-cost-policy.md`.
 
 ## Purpose
 

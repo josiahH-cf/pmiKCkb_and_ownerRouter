@@ -11,15 +11,14 @@ continuation, and stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-06-12
-- Operating mode: REMOTE AWAY MODE active (see `docs/away-mode.md`) — owner may be
-  remote, but future models should continue significant product, migration, and API/setup
-  work when it is reversible, non-breaking, and budget-guarded under the ~$10 cap.
+- Last updated: 2026-06-15
+- Operating mode: Normal owner-present coordination. Remote Away Mode is inactive; see
+  `docs/away-mode.md`.
 - Active product lane: Cross-product migration/setup and product-readiness work
-- Loop status: Idle — remote-autonomy overlay has been widened. The next run may proceed
-  with bounded migration/setup/API work instead of stopping solely because the owner is
-  remote. Stop only for hard gates: unmanaged cost, destructive/breaking changes,
-  secrets/raw client data, autonomous sends, or unapproved system-of-record writes.
+- Loop status: Idle and client-response blocked. Source drop zone is created and Dan has
+  the current asks. Do not add speculative local product surface while waiting; resume
+  with budget/project setup, approved sources, source manifests, or Lease Renewal
+  walkthrough processing once Dan replies.
 - Recommend fresh context window: not required; safe to resume from this file
 
 ## Migration Readiness
@@ -33,6 +32,14 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- Source Drop Zone Setup + Away Mode Return (2026-06-15): reauthenticated Google as
+  `josiah@pmikcmetro.com`, created the Google Drive source drop zone
+  `PMI KC - Source Drop Zone` with product subfolders, shared it with
+  `dan@pmikcmetro.com`, verified metadata-only visibility for the shared Sheets in Drive
+  home, recorded the non-secret pointers in `docs/environment-handoff.md` and
+  `docs/status.md`, and set Remote Away Mode inactive now that the owner is back at the
+  desk. No sheet contents, raw client records, credentials, deploys, imports, sends, or
+  external-system writes were performed.
 - Gmail Inbox 0 Non-Live Foundation + Management Page v1 (2026-06-12, non-live half of
   remote-run queue item #7): built `lib/gmail-inbox-zero/` — doc-locked label/phase/
   status/hard-exclusion vocabulary, the pure `evaluateInboxTriage` gates (approved rules
@@ -310,16 +317,18 @@ continuation, and stop-and-reset rules.
 
 ## Next Safe Slice Candidates
 
-Remote Away Mode now allows substantial bounded work. The next run should choose the most
-readiness-improving slice from active docs, favoring migration/setup over speculative
-surface:
+Remote Away Mode is inactive and the remote-safe queue is exhausted. The next run should
+choose work only when it is tied to a fresh client answer, production setup, cutover
+readiness, or a concrete regression:
 
-1. Re-run context intake, then select a concrete production-lift or migration/setup slice.
-2. Use APIs where useful for reversible setup: Firebase/GCP preflight, API enablement,
-   Firestore rules/index preparation, source bucket/data-store planning, scale-to-zero
-   deploy prep, approved source import prep, and cheap-live smokes when budget-guarded.
-3. Continue product/runtime work when active product docs define scope and tests.
-4. Stop only for the hard gates in `docs/away-mode.md`.
+1. If Dan returns Google Cloud project/billing details, run read-only preflight/reporting
+   and record non-secret identifiers.
+2. If Dan/team fill the Drive folders, turn approved material into source manifests and
+   source-readiness checks; do not import/index until source and cost gates are cleared.
+3. If Dan records the Lease Renewal walkthrough, convert it into source notes, open
+   questions, acceptance scenarios, and a scoped implementation packet.
+4. If no new client answer has arrived, stay limited to regression fixes, docs hygiene,
+   verification, and handoff cleanup.
 
 ## Next Large Remote Run Queue
 
@@ -437,12 +446,11 @@ access, or unapproved system-of-record writes.
 
 ## On-Return Review Queue
 
-Remote Away Mode is active (`docs/away-mode.md`). Do not stop merely because the owner is
-remote. Accumulate only hard-stop decisions here, continue with non-blocked work, and keep
-cost/breaking-risk notes concrete.
+Remote Away Mode is inactive (`docs/away-mode.md`) because the owner is back in active
+coordination. Use this queue only for items that still need explicit owner/client input.
 
-- Away mode state: ACTIVE; activated 2026-06-09; converted to Remote Away Mode on
-  2026-06-11. Budget cap $10 unless explicitly changed.
+- Away mode state: INACTIVE as of 2026-06-15. Budget cap remains $10 unless explicitly
+  changed.
 - Existing client-owned asks remain tracked in `docs/client-checklist.md`; they block only
   dependent steps, not unrelated product/migration/setup work.
 - Bug-hunt sweep candidates (2026-06-09) — TRIAGED AND RESOLVED 2026-06-09 with owner
@@ -460,19 +468,16 @@ cost/breaking-risk notes concrete.
      (`lib/firestore/approval-queue.ts`)
   4. Test gap: covered by new tests in `workflow-foundation`, `ask-service`, and
      `approval-queue-notifications-v1`.
-- Remote decision queue: no new hard-stop decision queued by the Remote Away Mode
-  conversion. Work the Return Checklist in `docs/away-mode.md` only if you want to remove
-  the overlay.
+- Remote decision queue: cleared by the 2026-06-15 return update.
 
 ## Stop-Condition State
 
-- Fired: old local-only away-mode stop condition superseded on 2026-06-11 by explicit user
-  request. Future runs should not stop just because work involves APIs, migration, setup,
-  or client-environment prep. Stop only for the hard gates in `docs/away-mode.md`.
-- Recommended next action: start a new feature/migration run from `main`, choose the
-  highest-impact bounded setup/product slice, run `npm run check:budget-guard` before any
-  live/deploy/import/smoke action, and continue until a real hard stop or quality failure
-  fires.
+- Fired: migration-readiness stop gate. Local foundations are substantially complete, the
+  Drive source drop zone exists, and the remaining high-value work is blocked on Dan/client
+  replies, production setup, approved sources, or walkthrough content.
+- Recommended next action: after Dan replies, update `docs/client-checklist.md` and
+  `docs/environment-handoff.md`, then run the relevant dry-run/preflight/source-manifest
+  step. If no reply has arrived, do not start new speculative runtime surface.
 
 ## Commit Queue Status
 

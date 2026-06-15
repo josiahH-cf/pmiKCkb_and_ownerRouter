@@ -1,27 +1,37 @@
 # Away Mode (Remote Autonomy Overlay)
 
 This is a **temporary, reversible overlay** on top of the normal governance in
-`AGENTS.md` and `docs/autonomous-agent-runner.md`. It is no longer a local-only freeze.
-It exists so a future large model can keep doing meaningful work while the owner is
-remote, without creating an uncontrolled bill or breaking a live/client environment.
+`AGENTS.md` and `docs/autonomous-agent-runner.md`. It is currently **inactive**. Keep the
+file as a reference for the prior remote-autonomy posture and for any future explicit
+reactivation.
 
 <!-- The line below is machine-readable. scripts/check-budget-guard.mjs parses it. -->
 <!-- Set it to INACTIVE (see the Return Checklist) to lift the overlay. -->
 
-AWAY_MODE_STATUS: ACTIVE
+AWAY_MODE_STATUS: INACTIVE
 
 ## Status
 
-- Status: **ACTIVE**
+- Status: **INACTIVE**
 - Activated: 2026-06-09; converted to remote-autonomy posture on 2026-06-11.
-- Owner posture: remote/asynchronous, not a hard stop.
-- Budget cap during this window: **$10 total** unless the owner explicitly changes it in
-  writing. The guard constant is in `scripts/check-budget-guard.mjs`.
+- Deactivated: 2026-06-15; owner returned to active desk-side coordination.
+- Owner posture: available/asynchronous; use normal approval gates for live/cloud/client
+  actions.
+- Durable budget cap: **$10 total** unless the owner explicitly changes it in writing.
+  The guard constant is in `scripts/check-budget-guard.mjs`.
+
+## Current Effect
+
+This overlay grants no standing approval while inactive. Normal development may continue,
+especially client-unblock docs, verification, migration readiness, and regression fixes.
+Live Gmail access, external communications, client Drive writes beyond approved source
+folder setup, cost-bearing cloud steps, deploys, imports, and system-of-record writes still
+need the normal explicit approval path.
 
 ## Intent
 
-Run unimpeded on useful engineering, migration, and setup work. Stop only when the next
-action is likely to:
+When this overlay is explicitly active, run unimpeded on useful engineering, migration,
+and setup work. Stop only when the next action is likely to:
 
 - create unmanaged or unbounded cost;
 - make a destructive, hard-to-rollback, or breaking change;
@@ -30,8 +40,9 @@ action is likely to:
 - send external communication or autonomous Gmail/notification output; or
 - write to a system of record without an approved Action Registry entry and rollback plan.
 
-Do not use Away Mode as a reason to stop at docs-only work. If the task is reversible,
-bounded by the budget guard, and supported by active docs, execute it.
+Do not use inactive Away Mode as a reason to resurrect the remote queue. If the task is
+reversible, bounded by the budget guard, and supported by active docs, proceed under the
+normal governance path.
 
 ## Standing Autonomy
 
@@ -124,9 +135,9 @@ through multiple substantial batches.
 
 ## Expiry Handling
 
-If the calendar window lapses and this file is still `ACTIVE`, do **not** revert to the
-old local-only posture. Keep this remote-autonomy posture active until the owner explicitly
-uses the Return Checklist.
+If the owner explicitly reactivates this file later, do **not** revert to the old local-only
+posture. Use the remote-autonomy posture above until the owner uses the Return Checklist
+again.
 
 ## Return Checklist
 
@@ -138,6 +149,8 @@ To restore normal non-overlay governance:
 2. In `AGENTS.md`, delete or update the temporary Away Mode block near the top.
 3. In `docs/loop-state.md`, update the `Operating mode:` line and clear resolved remote
    decision queue items.
+
+Completed on 2026-06-15.
 
 The durable budget policy, budget guard script, CI guard, and `.gitignore` hardening stay.
 
