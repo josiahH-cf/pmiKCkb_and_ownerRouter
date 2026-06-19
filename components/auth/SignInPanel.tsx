@@ -3,9 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   GoogleAuthProvider,
-  getRedirectResult,
   onAuthStateChanged,
-  signInWithRedirect,
+  signInWithPopup,
   signOut,
   type User,
 } from "firebase/auth";
@@ -72,10 +71,9 @@ export function SignInPanel({
     }
 
     let isMounted = true;
-    let unsubscribe: (() => void) | null = null;
     const auth = getFirebaseClientAuth();
 
-    unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!isMounted) {
         return;
       }
@@ -88,33 +86,9 @@ export function SignInPanel({
       setStatus("idle");
     });
 
-    withTimeout(getRedirectResult(auth), 5000)
-      .then((result) => {
-        if (!isMounted) {
-          return;
-        }
-
-        if (result?.user) {
-          void finishSignIn(result.user);
-        }
-      })
-      .catch((error: unknown) => {
-        if (!isMounted) {
-          return;
-        }
-
-        if (error instanceof Error && error.message === REDIRECT_RESULT_TIMEOUT) {
-          setStatus((current) => (current === "checking" ? "idle" : current));
-          return;
-        }
-
-        setStatus("error");
-        setMessage(error instanceof Error ? error.message : "Google sign-in failed.");
-      });
-
     return () => {
       isMounted = false;
-      unsubscribe?.();
+      unsubscribe();
     };
   }, [finishSignIn, isConfigured]);
 
@@ -135,16 +109,23 @@ export function SignInPanel({
       setStatus("redirecting");
       setMessage(null);
       const auth = getFirebaseClientAuth();
-      window.setTimeout(() => {
-        setStatus((current) => (current === "redirecting" ? "idle" : current));
-        setMessage(
-          (current) =>
-            current ??
-            "Google sign-in did not open. Check the browser connection and try again.",
-        );
-      }, 10000);
-      await signInWithRedirect(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      await finishSignIn(result.user);
     } catch (error) {
+      const code =
+        typeof error === "object" && error !== null && "code" in error
+          ? String((error as { code?: unknown }).code)
+          : "";
+
+      if (
+        code === "auth/popup-closed-by-user" ||
+        code === "auth/cancelled-popup-request"
+      ) {
+        setStatus("idle");
+        setMessage(null);
+        return;
+      }
+
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Google sign-in failed.");
     }
@@ -237,19 +218,4 @@ function initialMessage(initialError: string | null | undefined, isConfigured: b
   }
 
   return null;
-}
-
-const REDIRECT_RESULT_TIMEOUT = "Firebase redirect result timed out.";
-
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(() => {
-      reject(new Error(REDIRECT_RESULT_TIMEOUT));
-    }, timeoutMs);
-
-    promise
-      .then(resolve)
-      .catch(reject)
-      .finally(() => window.clearTimeout(timeout));
-  });
 }

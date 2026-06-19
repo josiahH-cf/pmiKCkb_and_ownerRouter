@@ -250,6 +250,56 @@ describe("cheap live setup scripts", () => {
     );
   });
 
+  it("fails the deploy when an ambient NEXT_PUBLIC_FIREBASE value differs from .env.local", () => {
+    const command = buildDemoDeployCommand({
+      argv: ["--budget-confirmed", "--dry-run"],
+      env: {
+        ASK_DEMO_MODE: "false",
+        GCP_PROJECT_ID: "pmi-kc-kb-prod",
+        GEMINI_MODEL_ANSWER: CHEAP_LIVE_MODEL,
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: "stale-host-project",
+        SPACE_DRIVE_FOLDER_IDS: oneSpaceMap,
+        SPACE_VERTEX_DATA_STORE_IDS: oneSpaceMap,
+      },
+      localEnv: {
+        NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
+        NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmi-kc-kb-prod.firebaseapp.com",
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmi-kc-kb-prod",
+      },
+    });
+
+    expect(command.ok).toBe(false);
+    expect(
+      command.errors.some((error) =>
+        error.startsWith("NEXT_PUBLIC_FIREBASE_PROJECT_ID mismatch:"),
+      ),
+    ).toBe(true);
+  });
+
+  it("uses .env.local for NEXT_PUBLIC build config over ambient defaults", () => {
+    const command = buildDemoDeployCommand({
+      argv: ["--budget-confirmed", "--dry-run"],
+      env: {
+        ASK_DEMO_MODE: "false",
+        GCP_PROJECT_ID: "pmi-kc-kb-prod",
+        GEMINI_MODEL_ANSWER: CHEAP_LIVE_MODEL,
+        SPACE_DRIVE_FOLDER_IDS: oneSpaceMap,
+        SPACE_VERTEX_DATA_STORE_IDS: oneSpaceMap,
+      },
+      localEnv: {
+        NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
+        NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmi-kc-kb-prod.firebaseapp.com",
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmi-kc-kb-prod",
+      },
+    });
+
+    expect(command.ok).toBe(true);
+    const buildFlag = command.args.find((arg) => arg.startsWith("--set-build-env-vars"));
+    expect(buildFlag).toContain("NEXT_PUBLIC_FIREBASE_PROJECT_ID=pmi-kc-kb-prod");
+  });
+
   it("builds Agent Search data-store creation and import requests", () => {
     expect(
       buildCreateDataStoreRequest({

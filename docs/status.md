@@ -4554,3 +4554,28 @@ HTTP check). No repo code changed; no `npm` verification re-run this slice.
   `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`. Lesson for the cutover runbook: always add
   Cloud Run's canonical `status.url` host to Firebase authorized domains, not just the
   project-number URL.
+
+## Auth Hardening: signInWithPopup + Dedicated Runtime SA + Deploy Guard (2026-06-19)
+
+- Owner chose to harden the auth setup in place (keep the run.app URL). Three changes:
+  1. `components/auth/SignInPanel.tsx`: switched `signInWithRedirect` → `signInWithPopup`.
+     Popup auth is robust across browsers (incognito / strict third-party-cookie modes) when the
+     Firebase `authDomain` (`*.firebaseapp.com`) is a different origin than the app (`*.run.app`);
+     it handles popup-closed/cancelled gracefully and drops the redirect-result plumbing. (The
+     fully same-origin alternative — Firebase Hosting / a custom domain — was offered and
+     deferred.)
+  2. Dedicated least-privilege runtime service account
+     `pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com` with only `datastore.user`,
+     `discoveryengine.user`, `aiplatform.user`, `firebaseauth.admin`, and
+     `iam.serviceAccountTokenCreator` (self). Redeployed the service to run as it (revision
+     `pmi-kc-kb-demo-00003-dsr`) and removed those runtime/auth roles from the default compute SA
+     (which keeps only the build roles). The app no longer runs as the over-privileged default
+     compute identity.
+  3. `scripts/deploy-demo-cloud-run.mjs`: `.env.local` is now authoritative for the
+     `NEXT_PUBLIC_FIREBASE_*` build vars, and the deploy fails loudly when a stale ambient
+     `process.env` value disagrees (the exact failure mode that shipped the wrong project id).
+     Added unit tests in `tests/unit/live-cost-scripts.test.mjs`.
+- Verified: `npm run lint`, `npm run typecheck`, full unit suite (373/374 — the one failure is
+  the known `.env.local`-coupled `cutover-report` test), `npm run verify:falsification` (303
+  files); the deployed service runs as the dedicated SA and the canonical `/sign-in` returns 200.
+  Owner to re-test the popup sign-in (a popup window now opens instead of a full-page redirect).

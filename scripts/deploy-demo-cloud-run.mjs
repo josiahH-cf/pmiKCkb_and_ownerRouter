@@ -49,9 +49,12 @@ export function buildDemoDeployCommand({
   const searchLocation =
     args.searchLocation ?? readEnv("VERTEX_SEARCH_LOCATION") ?? DEFAULT_SEARCH_LOCATION;
   const service = args.service ?? DEFAULT_SERVICE;
+  const errors = [];
+  const publicBuildEnv = resolvePublicBuildEnv(localEnv, env, errors);
   const mergedEnv = {
     ...localEnv,
     ...env,
+    ...publicBuildEnv,
     ASK_DEMO_MODE: "false",
     GCP_PROJECT_ID: project,
     GEMINI_MODEL_ANSWER: CHEAP_LIVE_MODEL,
@@ -63,7 +66,7 @@ export function buildDemoDeployCommand({
   const liveCostResult = validateLiveCostConfig(liveCostConfig, {
     allowMultipleSpaces: args.allowMultipleSpaces,
   });
-  const errors = [...liveCostResult.errors];
+  errors.push(...liveCostResult.errors);
   const buildEnv = readRequiredBuildEnv(mergedEnv, errors);
   const runtimeEnv = readRuntimeEnv(mergedEnv, project, region, searchLocation);
   const commandArgs = [
@@ -133,13 +136,43 @@ export function formatGcloudMapFlag(flagName, values) {
   return `${flagName}=^${delimiter}^${entries.join(delimiter)}`;
 }
 
+const PUBLIC_BUILD_KEYS = [
+  "NEXT_PUBLIC_FIREBASE_API_KEY",
+  "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
+  "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
+  "NEXT_PUBLIC_FIREBASE_APP_ID",
+];
+
+// `.env.local` is authoritative for the NEXT_PUBLIC_* Firebase build config: these values are
+// inlined into the client bundle and identify the Firebase project. A stale ambient process.env
+// value must not silently override the project config file, so if both are present and disagree
+// we fail the deploy loudly instead of shipping a mismatched bundle.
+function resolvePublicBuildEnv(localEnv, env, errors) {
+  const resolved = {};
+
+  for (const key of PUBLIC_BUILD_KEYS) {
+    const local = readString(localEnv[key]);
+    const ambient = readString(env[key]);
+
+    if (local && ambient && local !== ambient) {
+      errors.push(
+        `${key} mismatch: .env.local has "${local}" but the process environment has "${ambient}". ` +
+          `Unset or fix the ambient ${key}; it would poison the client build.`,
+      );
+    }
+
+    const value = local ?? ambient;
+
+    if (value) {
+      resolved[key] = value;
+    }
+  }
+
+  return resolved;
+}
+
 function readRequiredBuildEnv(env, errors) {
-  const names = [
-    "NEXT_PUBLIC_FIREBASE_API_KEY",
-    "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
-    "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
-    "NEXT_PUBLIC_FIREBASE_APP_ID",
-  ];
+  const names = PUBLIC_BUILD_KEYS;
   const values = {};
 
   for (const name of names) {
