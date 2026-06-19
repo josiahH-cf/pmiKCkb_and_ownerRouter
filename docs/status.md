@@ -4497,3 +4497,15 @@ HTTP check). No repo code changed; no `npm` verification re-run this slice.
   host to Firebase authorized domains. Firestore rules/indexes not yet deployed (firebase CLI
   auth pending). Cutover _completion_ still source-blocked (approved client sources).
 - Spend stayed well under the $10 cap (tiny storage + a few Vertex/Gemini queries).
+- DEPLOYED to Cloud Run: owner enabled the Google sign-in provider; `npm run deploy:demo --
+--budget-confirmed --service-account=558870356522-compute@developer.gserviceaccount.com`
+  built + deployed `pmi-kc-kb-demo`. First build failed on missing build-SA roles, so the
+  compute SA was granted `cloudbuild.builds.builder`, `run.builder`, `storage.objectViewer`,
+  `artifactregistry.writer`, `logging.logWriter` (plus runtime `datastore.user`,
+  `discoveryengine.user`, `aiplatform.user`); redeploy succeeded. The org policy blocks
+  `allUsers`, so the service uses `--no-invoker-iam-check`. Added the Cloud Run host to Firebase
+  authorized domains via `firebase:setup-auth`. Deployed `/sign-in` returns 200 with
+  `allowedHostedDomain=pmikcmetro.com` and no cherrybridge references. Live URL:
+  `https://pmi-kc-kb-demo-558870356522.us-central1.run.app`. Authenticated Ask on the deployed
+  URL needs an interactive `pmikcmetro.com` sign-in; the local `smoke:ask-live` already proved
+  the live pipeline. Follow-up: deploy Firestore rules/indexes (needs `firebase login`).

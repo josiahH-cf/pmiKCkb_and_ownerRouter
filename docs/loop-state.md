@@ -28,11 +28,14 @@ continuation, and stop-and-reset rules.
   `kb-lease-renewals-txt` (3 sanitized demo docs imported), and a passing
   `npm run smoke:ask-live` (`Verified Source` answer, 2 citations). Local app live at
   `http://localhost:3000`.
-- Remaining for a shareable deployed demo: enable the Google sign-in provider in the Firebase
-  Console (owner toggle), then `npm run deploy:demo -- --budget-confirmed` and add the Cloud
-  Run host to Firebase authorized domains. Firestore rules/indexes not yet deployed (firebase
-  CLI auth pending). Cutover _completion_ still source-blocked (approved client sources). Spend
-  stayed well under the $10 cap. Packet:
+- DEPLOYED 2026-06-19: shareable Cloud Run demo live at
+  `https://pmi-kc-kb-demo-558870356522.us-central1.run.app` (sign-in locked to
+  `pmikcmetro.com`, Google provider enabled, `--no-invoker-iam-check` access model for the org
+  allUsers policy; runtime/build SA `558870356522-compute@developer.gserviceaccount.com`
+  granted datastore/discoveryengine/aiplatform + cloudbuild/run/storage/artifactregistry/logging
+  roles). Remaining follow-ups: deploy Firestore rules/indexes (needs `firebase login`); expand
+  the live corpus beyond the single `lease-renewals` space if desired. Cutover _completion_
+  still source-blocked (approved client sources). Spend stayed well under the $10 cap. Packet:
   `docs/temp/2026-06-19-gcp-billing-unblock-cutover-resume.md`.
 - Recommend fresh context window: not required; safe to resume from this file
 
