@@ -4429,3 +4429,27 @@ Validation: `npm run check:budget-guard` (demo posture, away mode inactive, $10 
 `npm run verify:falsification` (303 committable files) passed; `npm test` 370/372 passed with
 2 environment-coupled failures documented above. Docs-only slice; no full
 `bash scripts/verify.sh` run, and no cloud/billing/ADC/deploy/import/send/secret action.
+
+## Account/Org Discovery + Fresh-Project Decision (2026-06-19)
+
+- Authenticated gcloud + ADC as `josiah@pmikcmetro.com` (owner's PMI KC account). Discovery:
+  the existing demo stack — project `pmikckb-test`, Cloud Run, Firebase Auth, and the four
+  Agent Search data stores — is owned by and auth-locked to the **cherrybridge.ai**
+  account/org. The deployed sign-in page enforces `allowedHostedDomain=cherrybridge.ai`, so a
+  `pmikcmetro.com` account cannot use it, and `gcloud` denied all access to `pmikckb-test`
+  (`USER_PROJECT_DENIED`). `josiah@pmikcmetro.com` has the `pmikcmetro.com` org
+  (584930494337 — the same org as the PM's new billing) but zero accessible projects.
+- Decision (owner-approved): build a fresh GCP project under the `pmikcmetro.com` org funded
+  by the PM billing account `01A5A3-65CA5A-614D45`, per `docs/client-production-cutover.md`
+  (no demo artifacts copied). A live <$10 demo can run on the new project using the repo's
+  sanitized demo corpus in `docs/demo-source-templates/`, so the demo does not depend on the
+  client-source blocker. The owner is creating + billing-linking the project in the console;
+  the assistant then runs the gated setup (preflight → APIs → Firebase/Auth → Firestore →
+  seed → import → smoke → deploy), each cost step behind explicit `--budget-confirmed` approval.
+- No cloud mutation, project creation, billing change, deploy, import, send, or secret action
+  was taken by the assistant this slice; gcloud `billing/quota_project` was unset locally
+  (it had pointed at the now-inaccessible `pmikckb-test`).
+
+Validation: read-only diagnosis only (`gcloud auth login` / `application-default login`,
+`gcloud config list`, `gcloud projects list`, `gcloud organizations list`, and a deployed-URL
+HTTP check). No repo code changed; no `npm` verification re-run this slice.

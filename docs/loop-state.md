@@ -16,12 +16,21 @@ continuation, and stop-and-reset rules.
   `docs/away-mode.md`.
 - Active product lane: Cross-product migration/setup (PMI KC KB cutover) and the cheap-live
   demo surface
-- Loop status: Resuming. The #1 blocker (Google Cloud billing) is provisioned as of
-  2026-06-19 — billing account `01A5A3-65CA5A-614D45`, org `584930494337`, budget id
-  `82962d7e-b340-4253-8348-38caff16e88a`, created by the PM. This unblocks the
-  _infrastructure_ half of cutover; cutover _completion_ stays source-blocked. The next
-  steps are user-owned gates (gcloud/ADC auth, a PMI KC production project id, per-step spend
-  approval), so this slice stopped cleanly after recording the unblock. Packet:
+- Loop status: Resuming, now in fresh-project setup. Billing is provisioned (account
+  `01A5A3-65CA5A-614D45`, org `584930494337`, budget id
+  `82962d7e-b340-4253-8348-38caff16e88a`, PM-created). DISCOVERY 2026-06-19: the existing demo
+  stack (project `pmikckb-test`, Cloud Run, Firebase Auth, the four data stores) is owned by
+  and auth-locked to the **cherrybridge.ai** account/org — the deployed sign-in page enforces
+  `allowedHostedDomain=cherrybridge.ai` and `gcloud` denies all access to `pmikckb-test` for
+  the `pmikcmetro.com` account — so it is NOT reusable for the real product.
+  `josiah@pmikcmetro.com` holds the `pmikcmetro.com` org (584930494337, same as the new
+  billing) but had zero accessible projects. DECISION (owner-approved): build a fresh GCP
+  project under the `pmikcmetro.com` org funded by the PM billing, per
+  `docs/client-production-cutover.md` (no demo-artifact copy); a live <$10 demo can run on it
+  using the repo's sanitized demo corpus (`docs/demo-source-templates/`), so the demo does not
+  depend on the client-source blocker. The owner is creating + billing-linking the project in
+  the console; awaiting the project id, after which the assistant runs the gated setup
+  (preflight → APIs → Firebase/Auth → Firestore → seed → import → smoke → deploy). Packet:
   `docs/temp/2026-06-19-gcp-billing-unblock-cutover-resume.md`.
 - Recommend fresh context window: not required; safe to resume from this file
 
