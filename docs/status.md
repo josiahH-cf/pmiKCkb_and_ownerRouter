@@ -4536,3 +4536,21 @@ HTTP check). No repo code changed; no `npm` verification re-run this slice.
   (`firebaseauth.admin`, `iam.serviceAccountTokenCreator`). Separate follow-up: harden
   `scripts/deploy-demo-cloud-run.mjs` so a stale persisted `NEXT_PUBLIC_*` cannot silently
   override `.env.local` build config.
+
+## Deployed Auth Loop — Immediate Root Cause: Unauthorized Cloud Run Host (2026-06-19)
+
+- The loop persisted in incognito after the two fixes above. Cloud Run logs showed NO
+  `/api/auth/session` or `/ask` requests — only `favicon.ico` 404s from host
+  `pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`. Cloud Run's canonical `status.url` is that
+  hash-based host (the `pmi-kc-kb-demo-558870356522.us-central1.run.app` URL redirects to it),
+  and that host was NOT in Firebase Auth authorized domains — so Firebase blocked sign-in
+  (`auth/unauthorized-domain`) before the round-trip ever reached the server. Fixed by adding
+  the canonical host via `firebase:setup-auth`; authorized domains now include both
+  `pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app` and `pmi-kc-kb-demo-558870356522.us-central1.run.app`
+  (plus localhost / firebaseapp.com / web.app).
+- The two earlier fixes (correct `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, runtime SA
+  `firebaseauth.admin` + `iam.serviceAccountTokenCreator`) remain necessary — they would have
+  surfaced once sign-in completed. Canonical demo URL:
+  `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`. Lesson for the cutover runbook: always add
+  Cloud Run's canonical `status.url` host to Firebase authorized domains, not just the
+  project-number URL.
