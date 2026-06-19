@@ -32,6 +32,14 @@ continuation, and stop-and-reset rules.
   the console; awaiting the project id, after which the assistant runs the gated setup
   (preflight → APIs → Firebase/Auth → Firestore → seed → import → smoke → deploy). Packet:
   `docs/temp/2026-06-19-gcp-billing-unblock-cutover-resume.md`.
+- Project created 2026-06-19: `pmi-kc-kb-prod` (number `558870356522`) under the
+  `pmikcmetro.com` org by the assistant; set as the active gcloud project. BLOCKED:
+  `billingEnabled=false` — `josiah@pmikcmetro.com` lacks
+  `billing.resourceAssociations.create` on billing account `01A5A3-65CA5A-614D45`, so the PM
+  must link the project to billing (or grant `josiah@pmikcmetro.com` `roles/billing.user` on
+  that billing account) and add a $10 project-scoped budget alert. Then the assistant
+  continues the gated setup (APIs → Firebase/Auth → Firestore → seed → import demo corpus →
+  smoke → deploy).
 - Recommend fresh context window: not required; safe to resume from this file
 
 ## Migration Readiness

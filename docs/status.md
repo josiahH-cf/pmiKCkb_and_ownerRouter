@@ -4453,3 +4453,19 @@ Validation: `npm run check:budget-guard` (demo posture, away mode inactive, $10 
 Validation: read-only diagnosis only (`gcloud auth login` / `application-default login`,
 `gcloud config list`, `gcloud projects list`, `gcloud organizations list`, and a deployed-URL
 HTTP check). No repo code changed; no `npm` verification re-run this slice.
+
+## Fresh Project Created — Billing Link Pending (2026-06-19)
+
+- Owner asked the assistant to provision the new environment. Created GCP project
+  `pmi-kc-kb-prod` (number `558870356522`) under the `pmikcmetro.com` org
+  (`gcloud projects create ... --organization=584930494337`) and set it as the active gcloud
+  project. Project creation is reversible (deletable within 30 days).
+- Billing link is blocked: `gcloud billing projects link` returned `IAM_PERMISSION_DENIED`
+  (missing `billing.resourceAssociations.create` on `billingAccounts/01A5A3-65CA5A-614D45`);
+  `gcloud billing accounts list` shows 0 accounts for `josiah@pmikcmetro.com`. Project
+  `billingEnabled=false`. The PM must either link `pmi-kc-kb-prod` to billing
+  `01A5A3-65CA5A-614D45` in the console, or grant `josiah@pmikcmetro.com` `roles/billing.user`
+  on that billing account; either way also add a $10 project-scoped budget alert.
+- Until billing is enabled, the paid APIs (Cloud Run, Vertex AI, Discovery Engine), Firestore
+  creation, and deploy cannot proceed. The assistant stopped cleanly at this approval/permission
+  gate. No paid API enablement, Firestore, deploy, import, send, or secret action was taken.
