@@ -4509,3 +4509,30 @@ HTTP check). No repo code changed; no `npm` verification re-run this slice.
   `https://pmi-kc-kb-demo-558870356522.us-central1.run.app`. Authenticated Ask on the deployed
   URL needs an interactive `pmikcmetro.com` sign-in; the local `smoke:ask-live` already proved
   the live pipeline. Follow-up: deploy Firestore rules/indexes (needs `firebase login`).
+
+## Deployed Auth Loop Fixed (2026-06-19)
+
+- The first deployed revision looped sign-in (`/ask` bounced back to `/sign-in`). Two root
+  causes, both fixed:
+  1. Build-time project mismatch: a stale persisted USER env var
+     `NEXT_PUBLIC_FIREBASE_PROJECT_ID=pmikckb-test` (left by the old cherrybridge host setup)
+     overrode `.env.local` at build time, because `buildDemoDeployCommand` merges
+     `{ ...localEnv, ...process.env }` (process.env wins) and `NEXT_PUBLIC_*` is inlined into the
+     client bundle. The browser initialized Firebase with apiKey/authDomain for `pmi-kc-kb-prod`
+     but `projectId=pmikckb-test`. Fix: repointed the persisted var to `pmi-kc-kb-prod` and set it
+     in-process for the redeploy.
+  2. Runtime SA could not mint/verify session cookies: `lib/firebase/admin.ts` uses
+     `applicationDefault()` (the Cloud Run compute SA) for `createSessionCookie` and
+     `verifySessionCookie(token, true)`. With ADC (no key file) that needs
+     `iam.serviceAccountTokenCreator` (signBlob) plus Firebase Auth permission for the revocation
+     lookup. Granted the compute SA `roles/firebaseauth.admin` (project) and
+     `roles/iam.serviceAccountTokenCreator` (self).
+- Also set `APP_BASE_URL` to the deployed URL. Redeployed (revision `pmi-kc-kb-demo-00002-tvw`).
+  Verified the deployed env is now fully `pmi-kc-kb-prod`-consistent
+  (`NEXT_PUBLIC_FIREBASE_PROJECT_ID=pmi-kc-kb-prod`) and `/sign-in` returns 200 with no
+  `pmikckb-test` references. Final interactive sign-in confirmation is owner-side — use a fresh or
+  incognito browser session to drop any stale cookie/Firebase state from the broken revision.
+- Fix-forward: `docs/client-production-cutover.md` §6 now lists the required runtime SA roles
+  (`firebaseauth.admin`, `iam.serviceAccountTokenCreator`). Separate follow-up: harden
+  `scripts/deploy-demo-cloud-run.mjs` so a stale persisted `NEXT_PUBLIC_*` cannot silently
+  override `.env.local` build config.
