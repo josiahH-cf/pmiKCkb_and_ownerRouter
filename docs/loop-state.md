@@ -11,27 +11,55 @@ continuation, and stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-06-15
+- Last updated: 2026-06-19
 - Operating mode: Normal owner-present coordination. Remote Away Mode is inactive; see
   `docs/away-mode.md`.
-- Active product lane: Cross-product migration/setup and product-readiness work
-- Loop status: Idle and client-response blocked. Source drop zone is created and Dan has
-  the current asks. Do not add speculative local product surface while waiting; resume
-  with budget/project setup, approved sources, source manifests, or Lease Renewal
-  walkthrough processing once Dan replies.
+- Active product lane: Cross-product migration/setup (PMI KC KB cutover) and the cheap-live
+  demo surface
+- Loop status: Resuming. The #1 blocker (Google Cloud billing) is provisioned as of
+  2026-06-19 — billing account `01A5A3-65CA5A-614D45`, org `584930494337`, budget id
+  `82962d7e-b340-4253-8348-38caff16e88a`, created by the PM. This unblocks the
+  _infrastructure_ half of cutover; cutover _completion_ stays source-blocked. The next
+  steps are user-owned gates (gcloud/ADC auth, a PMI KC production project id, per-step spend
+  approval), so this slice stopped cleanly after recording the unblock. Packet:
+  `docs/temp/2026-06-19-gcp-billing-unblock-cutover-resume.md`.
 - Recommend fresh context window: not required; safe to resume from this file
 
 ## Migration Readiness
 
-- State: migration-ready but client-blocked
-- Evidence: `bash scripts/verify.sh` green on 2026-06-06 (229 unit tests, 20 Firestore
-  rules tests); cutover/preflight artifacts present (`npm run preflight:production`,
-  `docs/client-production-cutover.md`, source-corpus manifests)
-- Implication: per the Migration-Readiness Stop Gate, do not add new speculative local
-  product surface. Route to client unblock, cutover prep, docs, or regression hardening.
+- State: billing provisioned 2026-06-19; cutover _infrastructure_ unblocked; cutover
+  _completion_ still source-blocked
+- Billing: account `01A5A3-65CA5A-614D45` (org `584930494337`), budget id
+  `82962d7e-b340-4253-8348-38caff16e88a`, PM-created. Per `docs/budget-and-cost-policy.md`,
+  keep the durable ~$10 unattended-spend guard; the PM budget is the outer GCP-enforced
+  alert. Create a project-scoped $10 budget alert on the production project before any deploy.
+- Evidence: `bash scripts/verify.sh` green on 2026-06-06; re-verified 2026-06-19 on the owner
+  Windows host (budget-guard green; falsification green across 303 files; 370/372 unit tests
+  pass — 2 failures are environment-coupled, not regressions; see Last-Known-Green below).
+  Cutover/preflight artifacts present (`npm run preflight:production`,
+  `docs/client-production-cutover.md`, source-corpus manifests).
+- What billing unblocks: live preflight, API enablement, Firestore/Cloud Run setup, the
+  cheap-live demo. What it does NOT unblock: production cutover completion (needs approved
+  client sources) and every cost step (each needs explicit approval + budget guard).
+- Implication: do not add new speculative local product surface. Route to gated cutover
+  setup, the cheap-live demo, docs, or regression hardening.
 
 ## Last Completed Slice
 
+- GCP Billing Unblock — Cutover Resume + Verification Baseline (2026-06-19): recorded the
+  PM-provisioned billing account (`01A5A3-65CA5A-614D45`, org `584930494337`, budget id
+  `82962d7e-b340-4253-8348-38caff16e88a`) as non-secret identifiers in
+  `docs/environment-handoff.md`, flipping the #1 client blocker. Wrote the decision-complete
+  packet `docs/temp/2026-06-19-gcp-billing-unblock-cutover-resume.md` (production cutover
+  track; keep $10 guard with PM budget as the outer alert; today's demo = cheap-live Ask on
+  the existing `pmikckb-test` project). Ran the read-only verification baseline and
+  root-caused two unit-test failures as environment-coupled (not regressions): the
+  `cutover-report` blocker-prefix test reads the host's on-disk `.env.local`
+  (`GCP_PROJECT_ID=pmikckb-test`) via `readProductionPreflightEnv`, and the
+  `migration-readiness` real-deps test is a 5s cold-import timeout (passes at 30s); flagged a
+  follow-up to make both hermetic. No console/billing action, no spend, no ADC/live run, no
+  secrets, no system-of-record write. Next steps are user-owned gates (gcloud/ADC auth,
+  production project id, per-step spend approval). See the matching `docs/status.md` entry.
 - Source Drop Zone Setup + Away Mode Return (2026-06-15): reauthenticated Google as
   `josiah@pmikcmetro.com`, created the Google Drive source drop zone
   `PMI KC - Source Drop Zone` with product subfolders, shared it with
@@ -183,6 +211,20 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-19 (billing-unblock slice, owner Windows host): `npm run check:budget-guard` PASS
+  (demo posture, away mode inactive, $10 cap); `npm run verify:falsification` PASS (303
+  committable files); `npm test` 370/372 PASS. The 2 failures are environment-coupled, not
+  regressions (modules last changed 2026-06-12, the green era): (1)
+  `tests/unit/cutover-report.test.mjs > aggregates blockers across sections with prefixes` —
+  `readProductionPreflightEnv` reads the host's on-disk `.env.local` (`GCP_PROJECT_ID=pmikckb-test`),
+  so the expected `gcp:` "no project" blocker is absent; (2)
+  `tests/unit/migration-readiness.test.ts > computes real plan/preflight/corpus/budget` — 5s
+  default timeout on cold dynamic import of the real Google SDK modules (passes at
+  `--testTimeout=30000`; vitest reported ~56s aggregate import). `npm run host:check`: gcloud
+  SDK present but `pmikckb-test` not accessible → ADC reauth required before any live/demo run.
+  `npm run check:live-cost -- --allow-multiple-spaces` correctly gates (ambient
+  `ASK_DEMO_MODE=true`). No `bash scripts/verify.sh` full run this slice (docs-only changes).
+  Follow-up queued: make the two tests hermetic vs local `.env.local` and cold imports.
 - 2026-06-12 (Gmail Inbox 0 foundation slice, end of run): `npm run format:check`,
   `npm run lint`, `npm run typecheck`, `npm test` (372 tests / 47 files),
   `npm run verify:falsification` (303 committable files),
@@ -421,7 +463,11 @@ Queued remote-owner decisions:
 
 All client-owned (tracked in `docs/client-checklist.md` and `docs/research-backlog.md`):
 
-- Google Cloud billing card + explicit approval for any cost-bearing migration step.
+- ~~Google Cloud billing card~~ — PROVISIONED 2026-06-19 (account `01A5A3-65CA5A-614D45`,
+  org `584930494337`, budget id `82962d7e-b340-4253-8348-38caff16e88a`). Still open: gcloud/ADC
+  auth on the host (host:check shows `pmikckb-test` not accessible), a PMI KC production
+  project id (create/select + link billing + $10 budget alert), and explicit per-step approval
+  for each cost-bearing migration step (the $10 guard stays binding).
 - Lease Renewal walkthrough (target Wed Jun 17 2026, 9:30-10:15 AM; fallbacks Jun 17-18).
 - QuickBooks access status/location — blank in the returned tool-access spreadsheet.
 - Google Sheets exact in-scope sheet list and owner confirmation.
@@ -439,10 +485,18 @@ All client-owned (tracked in `docs/client-checklist.md` and `docs/research-backl
 
 ## Pending Approval Gates
 
-None active for bounded, reversible migration/setup work that passes the budget guard.
-Hard-stop actions still require explicit approval: billing/cap increases, Pro model usage,
-autonomous sends, destructive/breaking changes, raw client data/secrets, Gmail mailbox
-access, or unapproved system-of-record writes.
+Now that billing is provisioned, the following cost-bearing steps are queued behind explicit
+per-step approval (each must also pass `npm run check:budget-guard` and stay under the $10 cap):
+
+- Cheap-live Ask demo on `pmikckb-test` (<$10): `npm run smoke:ask-live` and optional
+  `npm run deploy:demo -- --budget-confirmed`.
+- Production infra setup on the PMI KC project: `gcloud services enable …`, Firestore create +
+  rules/index deploy, source import (`import:agent-search`), `deploy`, and the §7 production smoke.
+
+Hard-stop actions still require explicit approval and the assistant will not perform them:
+billing/cap increases or billing-console changes, Pro model usage, autonomous sends,
+destructive/breaking changes, raw client data/secrets, Gmail mailbox access, or unapproved
+system-of-record writes.
 
 ## On-Return Review Queue
 

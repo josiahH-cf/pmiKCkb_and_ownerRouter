@@ -4386,3 +4386,46 @@ tests) all passed.
 Validation: `npm run format:check`, `npm run check:budget-guard` (demo posture, away mode
 inactive, $10 cap), `npm test -- budget-guard` (15 tests), `npm run verify:falsification`
 (303 committable files), and `git diff --check` all passed.
+
+## GCP Billing Unblock — Cutover Resume + Verification Baseline (2026-06-19)
+
+- The PM provisioned Google Cloud billing: account `01A5A3-65CA5A-614D45`, org
+  `584930494337`, budget id `82962d7e-b340-4253-8348-38caff16e88a`. This flips the #1 client
+  blocker (Google Cloud billing card). Recorded the non-secret identifiers in
+  `docs/environment-handoff.md` and `docs/loop-state.md`. The assistant took no
+  console/billing action — that stays user-owned (Hard Stop).
+- Decisions (this session): migration targets a PMI KC-owned production project (cutover
+  track, no demo artifacts copied); keep the durable ~$10 unattended-spend guard with the PM
+  budget as the outer GCP-enforced alert; today's demo = cheap-live Ask (<$10) on the existing
+  `pmikckb-test` project. Decision-complete packet:
+  `docs/temp/2026-06-19-gcp-billing-unblock-cutover-resume.md`.
+- Billing unblocks the infrastructure half of cutover (live preflight, API enablement,
+  Firestore/Cloud Run setup, the cheap-live demo). It does NOT unblock cutover completion
+  (needs approved client sources) or any cost step (each needs explicit approval + budget
+  guard).
+- Read-only verification baseline on the owner Windows host: `npm run check:budget-guard`
+  PASS (demo posture, away mode inactive, $10 cap); `npm run verify:falsification` PASS (303
+  files); `npm test` 370/372 PASS. The two failures are environment-coupled, not regressions
+  (the modules last changed 2026-06-12, the green era):
+  - `tests/unit/cutover-report.test.mjs > aggregates blockers across sections with prefixes`:
+    `readProductionPreflightEnv` reads the host's on-disk `.env.local`
+    (`GCP_PROJECT_ID=pmikckb-test`), so a project resolves and the expected `gcp:` "no
+    project" blocker is absent. Confirmed the failure persists with shell env cleared because
+    the value comes from `.env.local` on disk.
+  - `tests/unit/migration-readiness.test.ts > computes real plan/preflight/corpus/budget`:
+    5s default timeout on cold dynamic import of the real Google SDK modules; passes at
+    `--testTimeout=30000` (~16s observed; vitest reported ~56s aggregate import).
+  - Flagged a follow-up to make both tests hermetic (skip on-disk `.env.local` in the unit
+    test; add an explicit timeout to the real-deps smoke).
+- `npm run host:check`: gcloud SDK present but `pmikckb-test` not accessible →
+  `gcloud auth login` + `gcloud auth application-default login` required before any live/demo
+  run. `npm run check:live-cost -- --allow-multiple-spaces` correctly gates (ambient
+  `ASK_DEMO_MODE=true`).
+- Remaining user-owned gates: gcloud/ADC auth; create/select + link a PMI KC production
+  project and a $10 budget alert on it; confirm the PM budget amount/thresholds; explicit
+  per-step spend approval for the cheap-live demo and each production cost step.
+
+Validation: `npm run check:budget-guard` (demo posture, away mode inactive, $10 cap) and
+`npm run verify:falsification` (303 committable files) passed; `npm test` 370/372 passed with
+2 environment-coupled failures documented above. Docs-only slice; no full
+`bash scripts/verify.sh` run, and no cloud/billing/ADC/deploy/import/send/secret action.
