@@ -16,36 +16,31 @@ continuation, and stop-and-reset rules.
   `docs/away-mode.md`.
 - Active product lane: Cross-product migration/setup (PMI KC KB cutover) and the cheap-live
   demo surface
-- Loop status: Resuming, now in fresh-project setup. Billing is provisioned (account
-  `01A5A3-65CA5A-614D45`, org `584930494337`, budget id
-  `82962d7e-b340-4253-8348-38caff16e88a`, PM-created). DISCOVERY 2026-06-19: the existing demo
-  stack (project `pmikckb-test`, Cloud Run, Firebase Auth, the four data stores) is owned by
-  and auth-locked to the **cherrybridge.ai** account/org — the deployed sign-in page enforces
-  `allowedHostedDomain=cherrybridge.ai` and `gcloud` denies all access to `pmikckb-test` for
-  the `pmikcmetro.com` account — so it is NOT reusable for the real product.
-  `josiah@pmikcmetro.com` holds the `pmikcmetro.com` org (584930494337, same as the new
-  billing) but had zero accessible projects. DECISION (owner-approved): build a fresh GCP
-  project under the `pmikcmetro.com` org funded by the PM billing, per
-  `docs/client-production-cutover.md` (no demo-artifact copy); a live <$10 demo can run on it
-  using the repo's sanitized demo corpus (`docs/demo-source-templates/`), so the demo does not
-  depend on the client-source blocker. The owner is creating + billing-linking the project in
-  the console; awaiting the project id, after which the assistant runs the gated setup
-  (preflight → APIs → Firebase/Auth → Firestore → seed → import → smoke → deploy). Packet:
+- Loop status: Cheap-live Ask demo WORKING on the new project as of 2026-06-19. Discovery
+  this cycle: the old demo stack (`pmikckb-test`) is owned by and auth-locked to the
+  **cherrybridge.ai** org (deployed sign-in enforces `allowedHostedDomain=cherrybridge.ai`)
+  and is not reusable, so a fresh project was built under the `pmikcmetro.com` org
+  (584930494337, same org as the PM billing `01A5A3-65CA5A-614D45`). Provisioned end-to-end by
+  the assistant: project `pmi-kc-kb-prod` (number `558870356522`), billing linked + project
+  scoped $10 budget alert (`…/budgets/15ddc8d6-…`), 19 APIs, Firestore Native (us-central1) +
+  12 seeded spaces, Firebase web app (`1:558870356522:web:c1b2473b886a6edd889953`), Cloud
+  Storage source bucket `pmi-kc-kb-prod-sources-558870356522`, Agent Search data store
+  `kb-lease-renewals-txt` (3 sanitized demo docs imported), and a passing
+  `npm run smoke:ask-live` (`Verified Source` answer, 2 citations). Local app live at
+  `http://localhost:3000`.
+- Remaining for a shareable deployed demo: enable the Google sign-in provider in the Firebase
+  Console (owner toggle), then `npm run deploy:demo -- --budget-confirmed` and add the Cloud
+  Run host to Firebase authorized domains. Firestore rules/indexes not yet deployed (firebase
+  CLI auth pending). Cutover _completion_ still source-blocked (approved client sources). Spend
+  stayed well under the $10 cap. Packet:
   `docs/temp/2026-06-19-gcp-billing-unblock-cutover-resume.md`.
-- Project created 2026-06-19: `pmi-kc-kb-prod` (number `558870356522`) under the
-  `pmikcmetro.com` org by the assistant; set as the active gcloud project. BLOCKED:
-  `billingEnabled=false` — `josiah@pmikcmetro.com` lacks
-  `billing.resourceAssociations.create` on billing account `01A5A3-65CA5A-614D45`, so the PM
-  must link the project to billing (or grant `josiah@pmikcmetro.com` `roles/billing.user` on
-  that billing account) and add a $10 project-scoped budget alert. Then the assistant
-  continues the gated setup (APIs → Firebase/Auth → Firestore → seed → import demo corpus →
-  smoke → deploy).
 - Recommend fresh context window: not required; safe to resume from this file
 
 ## Migration Readiness
 
-- State: billing provisioned 2026-06-19; cutover _infrastructure_ unblocked; cutover
-  _completion_ still source-blocked
+- State: fresh project `pmi-kc-kb-prod` provisioned + cheap-live Ask demo WORKING 2026-06-19;
+  shareable deployed demo pending the Google sign-in toggle; cutover _completion_ still
+  source-blocked
 - Billing: account `01A5A3-65CA5A-614D45` (org `584930494337`), budget id
   `82962d7e-b340-4253-8348-38caff16e88a`, PM-created. Per `docs/budget-and-cost-policy.md`,
   keep the durable ~$10 unattended-spend guard; the PM budget is the outer GCP-enforced

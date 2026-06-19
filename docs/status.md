@@ -4469,3 +4469,31 @@ HTTP check). No repo code changed; no `npm` verification re-run this slice.
 - Until billing is enabled, the paid APIs (Cloud Run, Vertex AI, Discovery Engine), Firestore
   creation, and deploy cannot proceed. The assistant stopped cleanly at this approval/permission
   gate. No paid API enablement, Firestore, deploy, import, send, or secret action was taken.
+
+## Fresh Project Fully Provisioned + Cheap-Live Ask Demo Working (2026-06-19)
+
+- PM granted `josiah@pmikcmetro.com` Billing Account User + Costs Manager on
+  `01A5A3-65CA5A-614D45`. The assistant then provisioned the new environment end-to-end and
+  got a live, cited Ask answer on `pmi-kc-kb-prod` (owner pre-approved the <$10 cheap-live spend):
+  - Linked billing (`billingEnabled=true`) and created a project-scoped $10 budget alert
+    (`billingAccounts/01A5A3-65CA5A-614D45/budgets/15ddc8d6-e96e-4696-9d3c-c09e23997206`).
+  - Enabled 19 APIs; set the ADC quota project; repointed the host's persisted GCP env vars
+    and `.env.local` from the old `pmikckb-test` to `pmi-kc-kb-prod` (old `.env.local` backed
+    up at `temp/.env.local.before-pmikcmetro-migration`).
+  - Created Firestore Native (us-central1) and seeded 12 spaces.
+  - Owner did the one-time Firebase console attach; `firebase:setup` created web app
+    `1:558870356522:web:c1b2473b886a6edd889953` and wrote the browser config into `.env.local`.
+  - Created Cloud Storage bucket `pmi-kc-kb-prod-sources-558870356522`, provisioned the
+    Discovery Engine service identity via the Service Usage REST API (the gcloud `beta`
+    component is broken on this host), granted it `objectViewer` on the bucket and
+    `storage.admin` on the project (the import stages an internal content bucket), uploaded 3
+    sanitized demo `.txt` sources, and imported them into Agent Search data store
+    `kb-lease-renewals-txt` (`successCount 3/3`). Seeded 3 `sources_meta` records.
+  - `npm run check:live-cost` passed (lease-renewals, gemini-2.5-flash); `npm run smoke:ask-live`
+    passed against a local `npm run dev` (ASK_DEMO_MODE=false, LOCAL_DEMO_AUTH=true) — returned
+    a `Verified Source` answer with 2 citations (`temp/live-ask-smoke/result.json`).
+- Remaining for a shareable deployed demo: enable the Google sign-in provider in the Firebase
+  Console (owner toggle), then `npm run deploy:demo -- --budget-confirmed` and add the Cloud Run
+  host to Firebase authorized domains. Firestore rules/indexes not yet deployed (firebase CLI
+  auth pending). Cutover _completion_ still source-blocked (approved client sources).
+- Spend stayed well under the $10 cap (tiny storage + a few Vertex/Gemini queries).
