@@ -164,4 +164,21 @@ describe("normalization invariants", () => {
     expect(parseSheetDate("not a date")).toBeNull();
     expect(parseSheetDate("13/45/2026")).toBeNull();
   });
+
+  it("rejects impossible calendar dates instead of fabricating a Verified ISO", () => {
+    // Day within 1..31 but impossible for the month, or a non-leap Feb 29.
+    for (const bad of [
+      "2/30/2024",
+      "4/31/2026",
+      "2/31/2026",
+      "2/29/2023",
+      "June 31, 2026",
+    ]) {
+      expect(parseSheetDate(bad), bad).toBeNull();
+    }
+    // The full normalizer therefore does NOT type these as a date.
+    expect(norm("2/30/2024").type).not.toBe("date");
+    // A real leap day still parses.
+    expect(parseSheetDate("2/29/2024")).toMatchObject({ iso: "2024-02-29" });
+  });
 });

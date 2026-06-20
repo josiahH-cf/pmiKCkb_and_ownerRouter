@@ -13,7 +13,12 @@
 // Pure and deterministic; no I/O, no credentials, no external system. The manifest carries only
 // counts/field-keys/statuses — never a cell value — so it is safe to log or persist.
 
-import { fingerprintTab, normalizeHeaderText } from "@/lib/lease-renewal/fingerprint";
+import {
+  carriesCredentialContent,
+  looksLikeCredentialHeaders,
+  REDACTED_CREDENTIAL,
+} from "@/lib/lease-renewal/credential-guard";
+import { fingerprintTab } from "@/lib/lease-renewal/fingerprint";
 import {
   RENEWAL_TAB_SCHEMAS,
   resolveHeaders,
@@ -57,6 +62,8 @@ export interface IngestManifest {
   tabsRecognized: number;
   tabsUnrecognized: number;
   credentialTabsExcluded: number;
+  /** §2.2(5) emit-scrubber hits: outgoing fields that carried credential content and were redacted. */
+  credentialScrubHits: number;
   dividerRowsDropped: number;
   unrecognizedRowCount: number;
   totalRecords: number;
@@ -69,11 +76,6 @@ export interface IngestResult {
   /** Metadata only — excluded tabs carry a label and reason, never any cell value. */
   excludedTabs: ExcludedTab[];
 }
-
-// Header tokens that mark a credential-bearing table even when fingerprinting fails. Two distinct
-// hits are required so legitimate tabs (which contain none) are never falsely excluded.
-const CREDENTIAL_HEADER_INDICATORS = ["password", "username", "platform", "pin", "wifi"];
-const CREDENTIAL_INDICATOR_THRESHOLD = 2;
 
 function isDividerRow(row: RawRow): boolean {
   return row.every((cell) => {
@@ -99,19 +101,10 @@ function dropDividers(grid: RawGrid): { cleaned: RawRow[]; dropped: number } {
   return { cleaned, dropped };
 }
 
-/** Credential guard: fingerprint says credential-bearing, or the header tokens show ≥2 indicators. */
+/** Credential guard: fingerprint says credential-bearing, or the header-ish text looks credential. */
 function isCredentialSuspect(grid: RawGrid, fingerprintCredential: boolean): boolean {
   if (fingerprintCredential) return true;
-  const tokens = new Set(
-    grid
-      .slice(0, 3)
-      .flat()
-      .flatMap((cell) => normalizeHeaderText(cell).split(" ")),
-  );
-  const hits = CREDENTIAL_HEADER_INDICATORS.filter((indicator) =>
-    tokens.has(indicator),
-  ).length;
-  return hits >= CREDENTIAL_INDICATOR_THRESHOLD;
+  return looksLikeCredentialHeaders(grid.slice(0, 3).flat().join(" "));
 }
 
 function nameHint(fieldKey: string): NormalizedType | undefined {
@@ -131,10 +124,33 @@ interface RecognizedGroup {
   rows: RawRow[]; // header row first, then data rows (incl. re-stitched fragments)
 }
 
+// §2.2(5) emit scrubber: a credential value that slipped past fingerprinting + the Stage-B header
+// scan (e.g. pasted into a deep data row of a recognized non-credential tab) is replaced with a
+// redaction marker before it can be emitted, never the original value.
+function scrubField(field: NormalizedValue): {
+  field: NormalizedValue;
+  scrubbed: boolean;
+} {
+  const candidate = `${field.raw} ${typeof field.value === "string" ? field.value : ""}`;
+  if (!carriesCredentialContent(candidate)) return { field, scrubbed: false };
+  return {
+    scrubbed: true,
+    field: {
+      raw: REDACTED_CREDENTIAL,
+      type: "text",
+      value: REDACTED_CREDENTIAL,
+      confidence: "Needs Review",
+      cell: field.cell,
+      notes: ["credential content detected and scrubbed at emit (design §2.2.5)"],
+    },
+  };
+}
+
 /**
  * Ingest the flattened export (an ordered list of sub-tables) into typed records plus a
  * counts-only manifest. Credential tabs are dropped at the boundary; fractured fragments are
- * re-stitched by width; misaligned rows mark their tab Blocked.
+ * re-stitched by width; misaligned rows mark their tab Blocked; any credential value that survived
+ * to the emit stage is scrubbed and its tab is Blocked.
  */
 export function ingestTables(tables: RawGrid[]): IngestResult {
   const recognizedGroups: RecognizedGroup[] = [];
@@ -142,6 +158,7 @@ export function ingestTables(tables: RawGrid[]): IngestResult {
   let dividerRowsDropped = 0;
   let unrecognizedRowCount = 0;
   let tabsUnrecognized = 0;
+  let credentialScrubHits = 0;
   let lastRecognized: RecognizedGroup | null = null;
 
   for (const table of tables) {
@@ -209,6 +226,7 @@ export function ingestTables(tables: RawGrid[]): IngestResult {
     let dataRowCount = 0;
     let raggedRows = 0;
     let tabRecordCount = 0;
+    let tabScrubHits = 0;
 
     dataRows.forEach((row, offset) => {
       if (isAllEmpty(row)) return;
@@ -221,11 +239,14 @@ export function ingestTables(tables: RawGrid[]): IngestResult {
       const sourceRowIndex = resolution.headerRowIndex! + 1 + offset;
       const fields: Record<string, NormalizedValue> = {};
       for (const [fieldKey, columnIndex] of Object.entries(resolution.resolvedFields)) {
-        fields[fieldKey] = normalizeCell(
+        const normalized = normalizeCell(
           padded[columnIndex] ?? "",
           { tab: group.tab, row: sourceRowIndex, column: fieldKey },
           nameHint(fieldKey),
         );
+        const scrub = scrubField(normalized);
+        if (scrub.scrubbed) tabScrubHits++;
+        fields[fieldKey] = scrub.field;
       }
       records.push({
         tab: group.tab,
@@ -236,6 +257,19 @@ export function ingestTables(tables: RawGrid[]): IngestResult {
       tabRecordCount++;
     });
 
+    credentialScrubHits += tabScrubHits;
+    const blockedReasons: string[] = [];
+    if (raggedRows > 0) {
+      blockedReasons.push(
+        `${raggedRows} row(s) had more columns than the header and could not be aligned`,
+      );
+    }
+    if (tabScrubHits > 0) {
+      blockedReasons.push(
+        `${tabScrubHits} field(s) carried credential content and were scrubbed at emit`,
+      );
+    }
+
     perTab.push({
       tab: group.tab,
       tabNumber: group.tabNumber,
@@ -243,12 +277,8 @@ export function ingestTables(tables: RawGrid[]): IngestResult {
       recordCount: tabRecordCount,
       murkyColumnCount: resolution.murkyColumns.length,
       mismatchCount: resolution.mismatches.length,
-      status: raggedRows > 0 ? "blocked" : "ok",
-      ...(raggedRows > 0
-        ? {
-            blockedReason: `${raggedRows} row(s) had more columns than the header and could not be aligned`,
-          }
-        : {}),
+      status: blockedReasons.length > 0 ? "blocked" : "ok",
+      ...(blockedReasons.length > 0 ? { blockedReason: blockedReasons.join("; ") } : {}),
     });
   }
 
@@ -256,6 +286,7 @@ export function ingestTables(tables: RawGrid[]): IngestResult {
     tabsRecognized: recognizedGroups.length,
     tabsUnrecognized,
     credentialTabsExcluded: excludedTabs.length,
+    credentialScrubHits,
     dividerRowsDropped,
     unrecognizedRowCount,
     totalRecords: records.length,

@@ -47,20 +47,33 @@ continuation, and stop-and-reset rules.
   still source-blocked (approved client sources). Spend stayed well under the $10 cap. Packet:
   `docs/temp/2026-06-19-gcp-billing-unblock-cutover-resume.md`.
 - Recommend fresh context window: not required; safe to resume from this file
-- **Phase-1 deterministic build run COMPLETE (2026-06-20, branch `work/lease-renewal-phase1`, not
-  pushed):** built ALL 14 zero-cost, deterministic Phase-1 lease-renewal units from
+- **Phase-1 deterministic build run COMPLETE + reviewed + MERGED to `main` (2026-06-20):** built ALL
+  14 zero-cost, deterministic Phase-1 lease-renewal units from
   [`products/lease-renewal-build-plan.md`](products/lease-renewal-build-plan.md) §3 as 12 verified
-  slices, each committed to the work branch. **Units delivered:** 12 (the three
+  slices on `work/lease-renewal-phase1`, then ran a 5-lens adversarial review (correctness /
+  governance / spec / tests / integration; each finding adversarially verified) and fast-forward
+  merged to `main` after fixing the findings. **Units delivered:** 12 (the three
   `google_sheets.renewal_checklist.{read,reconcile,writeback}` registry entries — seed catalog now
   **17 entries, all `production_allowed:false`**); 14 (`tests/fixtures/lease-renewal/` synthetic
   sanitized corpus + `lib/lease-renewal/sheet-types.ts`); 3 (`fingerprint.ts`); 4 (`headers.ts`);
-  5 (`normalized-value.ts` — `Conflict` never set at ingest); 1+2+7 (`ingest.ts` — credential
-  hard-exclusion + scrubber, divider-drop + re-stitch, counts-only `IngestManifest`); 6 (`join.ts`
+  5 (`normalized-value.ts` — `Conflict` never set at ingest; impossible calendar dates rejected);
+  1+2+7 (`ingest.ts` — credential hard-exclusion + the §2.2.5 emit scrubber via
+  `credential-guard.ts`, divider-drop + re-stitch, counts-only `IngestManifest`); 6 (`join.ts`
   — no auto-merge); 8 (`severity.ts`); 9 (`reconciliation.ts` + `field-reconciliation-rules.ts` —
   suggestion-only, OQ-PREC-1-gated, where `Conflict` IS set); 10 (`approval-queue-mapping.ts` —
   PII in-boundary); 11 (`writeback.ts` — mock/design-only re-anchor + CAS + read-after-write); 13
   (mocked Rentvine + Sheets health/read smokes). All pure functions / rule tables on synthetic
   fixtures; **no live calls, credentials, cost, deploy, or SoR write.**
+- **Post-review hardening (2026-06-20):** the review found 0 blockers / 2 majors (no governance
+  breach). Fixed before merge: (1) `parseSheetDate` now round-trips through a UTC date and rejects
+  impossible calendar dates (Feb 30 etc.) → `null`/Needs Review per §3, instead of fabricating a
+  `Verified` ISO on the High-severity `renewal_date` field; (2) the credential containment now
+  matches the spec — a shared `lib/lease-renewal/credential-guard.ts` aligns the Stage-B token set to
+  the authoritative §2.2 regex (adds `passcode/ssid/login/credential/access code`, strong-token
+  1-hit trip) AND adds the previously-missing §2.2(5) **emit scrubber** that redacts any credential
+  value reaching the emit stage (`credentialScrubHits` + tab Blocked). Plus three cheap nits
+  (currency regex unified, multi-dot divider guard in writeback, `blocked_reason` only on Blocked
+  severity).
 - **Stop condition:** clean stop — all §3 deterministic units are built and green. The remaining
   Phase-1 work is **client/owner-gated**, not buildable now: OQ-PREC-1 (Dan confirms §3.4 precedence
   to flip reconciliation suggestions from `Blocked`), OQ-SHEET-1/OQ-LEX-1/OQ-JOIN-1 (live-read
@@ -277,6 +290,13 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-20 (post-review hardening, pre-merge, owner Windows host): after fixing the 2 review
+  majors + 3 nits — `npx vitest run` **488/488 PASS across 60 files** (+10 tests: impossible-date
+  rejection, the §2.2.5 emit scrubber + drifted-credential-tab exclusion, the `blocked_reason`
+  consistency case, and a dedicated `credential-guard` suite); `npm run format:check`,
+  `npm run lint`, `npm run typecheck`, `npm run verify:falsification` (**344 committable files**),
+  `npm run check:budget-guard`, and `npm run build` (warning-free) all PASS. This is the green state
+  fast-forward merged to `main`.
 - 2026-06-20 (Phase-1 deterministic build run COMPLETE — 12 slices / 14 units, owner Windows
   host): full `verify.sh`-equivalent green run by step — `npx vitest run` **478/478 PASS across 59
   files** (+91 lease-renewal tests over the 387 baseline); `npm run format:check`,

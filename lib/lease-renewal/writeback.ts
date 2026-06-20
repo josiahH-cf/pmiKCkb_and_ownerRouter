@@ -90,10 +90,8 @@ export function buildWriteTarget(input: WriteTarget): WriteTarget {
       `Credential tab ${input.tab_number} is excluded from the cell map by construction`,
     );
   }
-  if (
-    /^-+$/.test(input.expected_prior_value.trim()) ||
-    input.expected_prior_value.trim() === "."
-  ) {
+  const priorValue = input.expected_prior_value.trim();
+  if (/^-+$/.test(priorValue) || /^\.+$/.test(priorValue)) {
     throw new Error("Divider/scaffold rows are non-writable");
   }
   return input;

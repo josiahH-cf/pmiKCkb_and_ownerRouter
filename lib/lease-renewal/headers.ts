@@ -244,7 +244,7 @@ export function coarseShape(rawValue: string): ColumnExpectedShape {
   const value = rawValue.trim();
   if (value === "") return "text";
   if (/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(value)) return "email";
-  if (/^\$\s?\d[\d,]*(\.\d{2})?$/.test(value)) return "currency";
+  if (/^\$\s?\d[\d,]*(\.\d+)?$/.test(value)) return "currency";
   if (/^(true|false)$/i.test(value)) return "boolean";
   if (/^(yes|no|n\/a|na|y)$/i.test(value)) return "yes_no";
   if (

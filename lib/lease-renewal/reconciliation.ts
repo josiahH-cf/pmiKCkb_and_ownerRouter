@@ -152,7 +152,10 @@ export function reconcileField(
     severity_rule: decision.rule,
     confidence_for_draft,
     raise_flag,
-    ...(noPrecedenceRule && isConflictLike
+    // Only attach the Blocked reason when the routed severity is actually Blocked — a High-class
+    // field with no precedence rule (rule 1 fires before rule 2) must not carry a contradictory
+    // "no precedence rule" message.
+    ...(noPrecedenceRule && isConflictLike && decision.severity === "Blocked"
       ? { blocked_reason: "no precedence rule" }
       : {}),
   };

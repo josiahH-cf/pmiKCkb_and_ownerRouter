@@ -108,13 +108,58 @@ describe("ingestTables", () => {
     expect(renewals.recordCount + 1).toBe(renewals.dataRowCount);
   });
 
-  it("keeps the manifest counts-only (no cell values / PII)", () => {
+  it("keeps the manifest counts-only — no actual data-row cell value appears", () => {
     const { manifest } = ingestTables([[...SYNTHETIC_RENEWALS_TAB.grid]]);
     const serialized = JSON.stringify(manifest);
 
-    expect(serialized).not.toContain("Jordan");
-    expect(serialized).not.toContain("1,250");
-    expect(serialized).not.toContain("@example.com");
+    // Assert against every distinctive data-row cell value the fixture actually contains,
+    // not three hand-picked literals.
+    const dataCells = SYNTHETIC_RENEWALS_TAB.grid
+      .slice(1)
+      .flat()
+      .map((cell) => cell.trim())
+      .filter((cell) => cell.length >= 4 && !/^(yes|n\/a)$/i.test(cell));
+    expect(dataCells.length).toBeGreaterThan(5);
+    for (const value of dataCells) {
+      expect(serialized, value).not.toContain(value);
+    }
+  });
+
+  it("scrubs a credential value that slips past the boundary into a recognized tab (§2.2.5)", () => {
+    // A credential value pasted into a deep data row (index 3, beyond the Stage-B 3-row header scan)
+    // of a recognized, non-credential tab. It must be redacted at emit, not emitted.
+    const leakRow = [...RENEWAL_ROW_3];
+    leakRow[7] = "Wifi Password leaked-secret";
+    const { records, manifest } = ingestTables([
+      [RENEWALS_HEADER, RENEWAL_ROW_1, RENEWAL_ROW_2, leakRow],
+    ]);
+
+    expect(manifest.credentialScrubHits).toBe(1);
+    const renewals = manifest.perTab[0];
+    expect(renewals.status).toBe("blocked");
+    expect(renewals.blockedReason).toMatch(/scrubbed at emit/);
+
+    // The row is still emitted, but the offending field is redacted — original value is gone.
+    const leaked = records.find(
+      (r) => r.fields.tenant_responded?.value === "[REDACTED-CREDENTIAL]",
+    );
+    expect(leaked).toBeDefined();
+    expect(JSON.stringify({ records, manifest })).not.toContain("leaked-secret");
+  });
+
+  it("excludes a drifted credential table via the spec token set even when fingerprinting fails", () => {
+    // Headers drift so the fingerprint is sub-threshold (UNRECOGNIZED), but the authoritative
+    // content guard still catches passcode / access code.
+    const result = ingestTables([
+      [
+        ["Platform", "Login", "Passcode", "Access Code"],
+        ["ttlock", "user-x", "PASSCODE-PLACEHOLDER", "CODE-PLACEHOLDER"],
+      ],
+    ]);
+
+    expect(result.records).toHaveLength(0);
+    expect(result.manifest.credentialTabsExcluded).toBe(1);
+    expect(JSON.stringify(result)).not.toContain("PLACEHOLDER");
   });
 
   it("preserves row-conservation on every non-blocked tab", () => {

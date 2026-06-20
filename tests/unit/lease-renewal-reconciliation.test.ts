@@ -98,6 +98,17 @@ describe("reconcileField — worked cases (§3.2)", () => {
     expect(result.suggested_winner).toBeNull();
     expect(result.raise_flag).toBe(true);
   });
+
+  it("a High-class field without a precedence rule stays High and carries no Blocked reason", () => {
+    // owner_charge_130 is financial (High, rule 1) but has no precedence-table entry. The High
+    // routing must win; it must not emit a contradictory 'no precedence rule' Blocked message.
+    const result = reconcileField("owner_charge_130", [
+      candidate("sheet_tab17", "yes"),
+      candidate("rentvine", "no"),
+    ]);
+    expect(result.severity).toBe("High");
+    expect(result.blocked_reason).toBeUndefined();
+  });
 });
 
 describe("reconciliation gating invariants", () => {

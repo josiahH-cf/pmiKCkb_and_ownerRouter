@@ -4633,3 +4633,31 @@ HTTP check). No repo code changed; no `npm` verification re-run this slice.
   client/owner-gated (OQ-PREC-1 precedence confirmation, OQ-SHEET-1/LEX-1/JOIN-1 live-read
   calibration, OQ-UI-1 the lease-renewal workflow-run review surface, and the cost-gated first live
   read). See `docs/loop-state.md` for the next-slice candidates.
+
+## Lease Renewal Phase-1 — Adversarial Review + Hardening + Merge to main (2026-06-20)
+
+- After the 12-slice build, ran a 5-lens adversarial review of `work/lease-renewal-phase1` (22
+  agents: correctness / governance / spec / tests / integration, each finding adversarially
+  verified, then a go/no-go synthesis). Verdict: 16 raised, 15 confirmed, **0 blockers, 2 majors**;
+  no governance/safety invariant breached (production_allowed:false, credential exclusion, no SoR
+  write, counts-only manifest, suggestion-only all intact).
+- Fixed the two majors before merge:
+  1. `lib/lease-renewal/normalized-value.ts` `parseSheetDate` now round-trips through `Date.UTC` and
+     rejects impossible calendar dates (Feb 30, Apr 31, non-leap Feb 29) → `null` / Needs Review per
+     design §3, instead of fabricating a `Verified` ISO that corrupted the High-severity
+     `renewal_date` reconciliation.
+  2. Credential containment aligned to spec §2.2: new shared `lib/lease-renewal/credential-guard.ts`
+     widens the Stage-B token set to the authoritative regex set (adds passcode/ssid/login/
+     credential/access code; strong-token 1-hit trip) AND adds the previously-missing §2.2(5)
+     **emit scrubber** that redacts any credential value reaching the emit stage and Blocks its tab
+     (`IngestManifest.credentialScrubHits`). This makes the build plan's "hard-exclusion + emit
+     scrubber" deliverable real.
+- Plus three low-risk nits: unified the `coarseShape`/`normalizeCell` currency regex, made the
+  writeback divider guard reject multi-dot scaffold values, and gated reconciliation `blocked_reason`
+  on an actually-Blocked severity (no contradictory "no precedence rule" on a High item). Added 10
+  tests (incl. a dedicated credential-guard suite; the secret-format test builds its token at runtime
+  so no literal secret sits in source).
+- Verification: `npx vitest run` 488/488 across 60 files; format/lint/typecheck/router-boundary/
+  falsification (344 files)/budget-guard/build all green. Fast-forward merged `work/lease-renewal-phase1`
+  into `main` and pushed to `origin/main`. No live call, credential, cost, deploy, import, send, or
+  system-of-record write.

@@ -75,6 +75,21 @@ function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }
 
+/**
+ * Reject impossible calendar dates (Feb 30, Apr 31, non-leap Feb 29). A month/day-range check alone
+ * is not enough — round-trip through a UTC date and require it to land on the same y/m/d, so a
+ * malformed value falls through to unparseable (null + Needs Review per design §3) instead of
+ * emitting a fabricated ISO date that would masquerade as a Verified fact downstream.
+ */
+function isRealCalendarDate(year: number, month: number, day: number): boolean {
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
 interface ParsedDate {
   iso: string;
   confidence: NormalizedConfidence;
@@ -92,7 +107,7 @@ export function parseSheetDate(value: string): ParsedDate | null {
     let year = Number(numeric[3]);
     const twoDigitYear = numeric[3].length === 2;
     if (twoDigitYear) year += 2000;
-    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+    if (isRealCalendarDate(year, month, day)) {
       return {
         iso: `${year}-${pad2(month)}-${pad2(day)}`,
         confidence: twoDigitYear ? "Likely" : "Verified",
@@ -118,7 +133,11 @@ export function parseSheetDate(value: string): ParsedDate | null {
   if (named) {
     const month = MONTHS[named[1].slice(0, 3)];
     if (month) {
+      const year = Number(named[3]);
       const day = named[2] ? Number(named[2]) : undefined;
+      if (day !== undefined && !isRealCalendarDate(year, month, day)) {
+        return null;
+      }
       const iso = day
         ? `${named[3]}-${pad2(month)}-${pad2(day)}`
         : `${named[3]}-${pad2(month)}`;
