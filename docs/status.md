@@ -4579,3 +4579,57 @@ HTTP check). No repo code changed; no `npm` verification re-run this slice.
   the known `.env.local`-coupled `cutover-report` test), `npm run verify:falsification` (303
   files); the deployed service runs as the dedicated SA and the canonical `/sign-in` returns 200.
   Owner to re-test the popup sign-in (a popup window now opens instead of a full-page redirect).
+
+## Lease Renewal Phase-1 Deterministic Build (2026-06-20)
+
+- Trigger: "continue with feature development" (AGENTS.md -> autonomous-agent-runner ->
+  loop-state). Built ALL 14 zero-cost, deterministic Phase-1 lease-renewal units from
+  `docs/products/lease-renewal-build-plan.md` §3 as 12 verified slices on branch
+  `work/lease-renewal-phase1` (committed per slice; not pushed). The read -> normalize ->
+  reconcile -> flag pipeline now exists in code as pure functions / rule tables tested with
+  synthetic, sanitized fixtures.
+- Units / files delivered:
+  1. Unit 12 — `lib/integrations/action-registry-seed.ts`: added
+     `google_sheets.renewal_checklist.{read,reconcile,writeback}` per connector-design §5.2 (read
+     Needs Connection/Documented with tabs 4 & 7 denied at the boundary; reconcile Planned/Documented
+     flags-only; writeback Planned/Documented — NOT vendor-confirmation-required — with the §4.0
+     admin-flag-off + per-write button-press model and a cell-addressed preview schema). Seed catalog
+     now 17 entries, all `production_allowed:false`. Updated `action-registry-schema.test.ts` (14->17)
+     and `integration-architecture.md`.
+  2. Unit 14 — `lib/lease-renewal/sheet-types.ts` + `tests/fixtures/lease-renewal/` synthetic
+     sanitized corpus (Renewals full + 6-col fragment, Move-In/Move-Out, Inspection Tracker,
+     Property Attributes, credential tabs 4 & 7, Owner-Onboarding off-by-one, UNRECOGNIZED) with a
+     governance test (digit-free PLACEHOLDER credential cells, @example.com only, no secret tokens).
+  3. Unit 3 — `fingerprint.ts`: content-keyed tab fingerprinting; UNRECOGNIZED below 0.5 threshold.
+  4. Unit 4 — `headers.ts`: position-independent header resolution (off-by-one detection, blank/
+     FALSE -> MURKY, header/data shape mismatch e.g. email-in-date).
+  5. Unit 5 — `normalized-value.ts`: per-cell typed NormalizedValue + confidence ladder; `Conflict`
+     never set at ingest (excluded by type).
+  6. Units 1+2+7 — `ingest.ts`: credential hard-exclusion + emit scrubber, divider-drop + width-based
+     re-stitch, record assembly + counts-only `IngestManifest`, ragged rows -> Blocked (fail-closed).
+  7. Unit 6 — `join.ts`: fuzzy address/name join keys; never auto-merges (match=candidate,
+     ambiguous=review).
+  8. Unit 8 — `severity.ts`: §3.3 first-match severity (cadence Medium unless $130 owner charge -> High).
+  9. Unit 9 — `reconciliation.ts` + `field-reconciliation-rules.ts`: per-field reconciliation;
+     `Conflict` confidence set here (across sources); §3.4 precedence SUGGESTION ONLY, hard-gated on
+     `PRECEDENCE_CONFIRMED=false` (OQ-PREC-1) so unlisted field types -> Blocked "no precedence rule".
+  10. Unit 10 — `approval-queue-mapping.ts`: conflict -> existing Approval-Queue fixed fields
+      (SourceFactConflict); PII stays in-boundary (values via deep links, never in the queue artifact).
+  11. Unit 11 — `writeback.ts`: MOCK/DESIGN-ONLY structural cell map + state machine + re-anchor +
+      compare-and-set + read-after-write over an in-memory MockSheet; refuses credential tabs;
+      Blocked preferred over any partial/wrong write. No live Sheets path.
+  12. Unit 13 — `tests/helpers/mock-lease-renewal-connector.ts` + smoke tests: mocked Rentvine
+      lease-list read + Sheets structure read (validated against the new preview schemas, tabs 4 & 7
+      hard-excluded, no cell values), health contracts via `createMockHealthCheckTransport`,
+      `runHealthCheck` has no live transport default.
+- Verification (full `verify.sh`-equivalent, by step): `npm run format:check`, `npm run lint`,
+  `npm run typecheck`, `npx vitest run` (478/478 across 59 files; +91 lease-renewal tests),
+  `npm run verify:router-boundary`, `npm run verify:falsification` (342 files),
+  `npm run check:budget-guard` (demo posture, away mode inactive, $10 cap), `npm run build`
+  (warning-free), and `npx tsx scripts/seed-action-registry.ts --dry-run --json` (17 entries, all
+  production_allowed=false) all passed. No live call, credential, cost, deploy, import, send, or
+  system-of-record write was performed.
+- Stop condition: clean stop — all §3 deterministic units built and green. Remaining Phase-1 work is
+  client/owner-gated (OQ-PREC-1 precedence confirmation, OQ-SHEET-1/LEX-1/JOIN-1 live-read
+  calibration, OQ-UI-1 the lease-renewal workflow-run review surface, and the cost-gated first live
+  read). See `docs/loop-state.md` for the next-slice candidates.

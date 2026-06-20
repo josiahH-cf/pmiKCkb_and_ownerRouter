@@ -47,21 +47,31 @@ continuation, and stop-and-reset rules.
   still source-blocked (approved client sources). Spend stayed well under the $10 cap. Packet:
   `docs/temp/2026-06-19-gcp-billing-unblock-cutover-resume.md`.
 - Recommend fresh context window: not required; safe to resume from this file
-- **Phase-1 deterministic build run (2026-06-20, in progress on branch `work/lease-renewal-phase1`):**
-  building the zero-cost Phase-1 lease-renewal units from
-  [`products/lease-renewal-build-plan.md`](products/lease-renewal-build-plan.md) §3 until a stop
-  condition fires; each verified slice is committed to the work branch (no push). **Done this run:**
-  unit 12 — the three `google_sheets.renewal_checklist.{read,reconcile,writeback}` Action Registry
-  entries (read = `Needs Connection`/`Documented`, tabs 4 & 7 denied at the connector boundary;
-  reconcile = `Planned`/`Documented`, flags-only, no event ingestion; writeback = `Planned`/`Documented`
-  — NOT vendor-confirmation-required — with the §4.0 admin-flag-off, per-write button-press model and a
-  cell-addressed preview schema). Seed catalog is now **17 entries, all `production_allowed:false`**.
-- **Next slice:** unit 14 (synthetic, sanitized fixture corpus under `tests/fixtures/lease-renewal/`)
-  then the read+normalize core — unit 3 (`fingerprint.ts`), unit 4 (`headers.ts`), unit 5
-  (`normalized-value.ts`), unit 6/ingest (`ingest.ts`) — per §3. Done-state, open-questions/blockers
-  register, and the two-track prod plan are in that doc (§2, §7, §8). Per owner decision 2026-06-20 the
-  existing RentVine credential is used as-is (NOT rotated; load from env/Secret Manager, keep out of
-  git). Use the canonical Cloud Run host for any auth work, not the project-number URL.
+- **Phase-1 deterministic build run COMPLETE (2026-06-20, branch `work/lease-renewal-phase1`, not
+  pushed):** built ALL 14 zero-cost, deterministic Phase-1 lease-renewal units from
+  [`products/lease-renewal-build-plan.md`](products/lease-renewal-build-plan.md) §3 as 12 verified
+  slices, each committed to the work branch. **Units delivered:** 12 (the three
+  `google_sheets.renewal_checklist.{read,reconcile,writeback}` registry entries — seed catalog now
+  **17 entries, all `production_allowed:false`**); 14 (`tests/fixtures/lease-renewal/` synthetic
+  sanitized corpus + `lib/lease-renewal/sheet-types.ts`); 3 (`fingerprint.ts`); 4 (`headers.ts`);
+  5 (`normalized-value.ts` — `Conflict` never set at ingest); 1+2+7 (`ingest.ts` — credential
+  hard-exclusion + scrubber, divider-drop + re-stitch, counts-only `IngestManifest`); 6 (`join.ts`
+  — no auto-merge); 8 (`severity.ts`); 9 (`reconciliation.ts` + `field-reconciliation-rules.ts` —
+  suggestion-only, OQ-PREC-1-gated, where `Conflict` IS set); 10 (`approval-queue-mapping.ts` —
+  PII in-boundary); 11 (`writeback.ts` — mock/design-only re-anchor + CAS + read-after-write); 13
+  (mocked Rentvine + Sheets health/read smokes). All pure functions / rule tables on synthetic
+  fixtures; **no live calls, credentials, cost, deploy, or SoR write.**
+- **Stop condition:** clean stop — all §3 deterministic units are built and green. The remaining
+  Phase-1 work is **client/owner-gated**, not buildable now: OQ-PREC-1 (Dan confirms §3.4 precedence
+  to flip reconciliation suggestions from `Blocked`), OQ-SHEET-1/OQ-LEX-1/OQ-JOIN-1 (live-read
+  calibration), OQ-UI-1 (the lease-renewal workflow-run/Approval-Queue review surface — an unbuilt
+  UI dependency for the Phase-1 accuracy milestone), and the cost-gated first live read.
+- **Next slice candidates:** (a) wire these modules into a read pipeline + the OQ-UI-1 workflow-run
+  page (new app surface — confirm scope first); (b) after Dan confirms OQ-PREC-1, set
+  `PRECEDENCE_CONFIRMED` and add the active-suggestion tests; (c) the cost-gated first live read
+  (approval-gated). Per owner decision 2026-06-20 the existing RentVine credential is used as-is
+  (NOT rotated; load from env/Secret Manager, keep out of git). Use the canonical Cloud Run host for
+  any auth work, not the project-number URL.
 
 ## Migration Readiness
 
@@ -267,13 +277,15 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
-- 2026-06-20 (Phase-1 build run, slice 1 / unit 12 — Action Registry renewal_checklist entries,
-  owner Windows host): `npx vitest run` **392/392 PASS across 48 files** (+5 new renewal-checklist
-  registry tests); `npm run typecheck`, `npm run lint`, `npm run verify:falsification` (318
-  committable files), and `npm run check:budget-guard` (demo posture, away mode inactive, $10 cap)
-  all PASS; `npx tsx scripts/seed-action-registry.ts --dry-run --json` validated **17 entries, all
-  production_allowed=false, no writes**. Full `bash scripts/verify.sh` deferred to a run/milestone
-  boundary.
+- 2026-06-20 (Phase-1 deterministic build run COMPLETE — 12 slices / 14 units, owner Windows
+  host): full `verify.sh`-equivalent green run by step — `npx vitest run` **478/478 PASS across 59
+  files** (+91 lease-renewal tests over the 387 baseline); `npm run format:check`,
+  `npm run lint`, `npm run typecheck`, `npm run verify:router-boundary`,
+  `npm run verify:falsification` (**342 committable files**), `npm run check:budget-guard` (demo
+  posture, away mode inactive, $10 cap), and `npm run build` (warning-free) all PASS;
+  `npx tsx scripts/seed-action-registry.ts --dry-run --json` validated **17 entries, all
+  production_allowed=false, no writes**. (`bash scripts/verify.sh` itself not run as one command —
+  it leads with `npm ci`; every step it chains except `npm ci` was run individually and passed.)
 - 2026-06-20 (hardening + recontextualization slice, owner Windows host): `npx vitest run`
   **387/387 PASS across 48 files** — both previously environment-coupled failures
   (`migration-readiness.test.ts`, `cutover-report.test.mjs`) are now hermetic and green. Full
@@ -371,6 +383,17 @@ continuation, and stop-and-reset rules.
 
 ## Last Falsification Result
 
+- 2026-06-20 (Phase-1 deterministic build run): `npm run verify:falsification` passed across **342
+  committable files**. Self-review of the 14-unit lease-renewal build: every module is a pure
+  function / rule table tested with synthetic, sanitized fixtures — no fetch, SDK, Gmail, or live
+  transport import anywhere; `runHealthCheck` and the lease-renewal read connector have NO live
+  transport default (mock-injected only). Credential tabs 4 & 7 are hard-excluded at ingest and the
+  emit scrubber keeps their cells out of records/manifest/queue artifacts; the `IngestManifest` and
+  the Approval-Queue mapper are counts-/links-only with no raw cell value (PII stays in-boundary).
+  Every Action Registry entry remains `production_allowed:false`; the write-back is mock/in-memory
+  only and stays `Planned` behind the §4.0 admin-flag-off + per-write button-press model. Synthetic
+  credential placeholders are digit-free PLACEHOLDER tokens, so the secret scanner stays clean. No
+  secrets, no client data, no cloud/API/Gmail action, no deploy/import/send, no SoR write.
 - 2026-06-12 (Gmail Inbox 0 foundation slice): `npm run verify:falsification` passed
   across 303 committable files. Self-review: all new logic is pure (no Gmail API
   import, no fetch, no send method anywhere); the only runtime surface is the
