@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { PmiWordmark } from "@/components/brand/PmiWordmark";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { getCurrentUser } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
@@ -26,9 +27,10 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
   return (
     <main className="auth-page">
+      <PmiWordmark variant="hero" />
       <section className="auth-panel">
-        <h1>{PRODUCT_NAME}</h1>
-        <p>Sign in to continue.</p>
+        <p className="auth-product-name">{PRODUCT_NAME}</p>
+        <h1>Sign in to continue.</h1>
         <SignInPanel
           allowedHostedDomain={config.allowedHostedDomain}
           initialError={initialError}

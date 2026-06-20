@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { PmiWordmark } from "@/components/brand/PmiWordmark";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { NotificationMenu } from "@/components/layout/NotificationMenu";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { PRODUCT_NAME } from "@/lib/constants";
 
 const navItems = [
   { href: "/ask", label: "Ask" },
@@ -18,8 +20,13 @@ export function AppShell({
   return (
     <div className="page">
       <header className="topbar">
-        <Link className="brand" href="/ask">
-          PMI KC KB
+        <Link
+          className="brand"
+          href="/ask"
+          aria-label={PRODUCT_NAME}
+          title={PRODUCT_NAME}
+        >
+          <PmiWordmark variant="inline" />
         </Link>
         <nav className="nav" aria-label="Primary">
           {navItems.map((item) => (

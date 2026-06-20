@@ -1,4 +1,11 @@
 export const PRODUCT_NAME = "PMI KC KB";
+
+// PMI brand lockup strings (source-constrained brand pack: docs/brand_pack/).
+// Exact visible wordmark + tagline — preserve lowercase spelling and trailing period.
+// These are observed brand facts; PRODUCT_NAME above remains the operational product name.
+export const PMI_WORDMARK = "pmi.";
+export const PMI_TAGLINE = "the property management people";
+
 export const LEASE_RENEWAL_AGENT_NAME = "Lease Renewal Agent";
 export const GMAIL_INBOX_ZERO_NAME = "Gmail Inbox 0";
 export const OWNER_ROUTER_NAME = "Owner Router";

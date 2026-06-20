@@ -1,19 +1,40 @@
 :root {
-  /* Primary - PMI navy */
-  --color-primary-900: #0e2a4a;
-  --color-primary-700: #1b3a5c;
-  --color-primary-500: #2c5282;
-  --color-primary-100: #e6eef7;
+  /* =====================================================================
+     PMI PROVISIONAL BRAND TOKENS  —  *** NOT OFFICIAL PMI VALUES ***
+     ---------------------------------------------------------------------
+     Brand pack identity = black / orange / white
+     (docs/brand_pack/PMI_app_brand_pack_llm_context.md).
+     Official PMI HEX / RGB / CMYK / PMS values are NOT specified in the
+     available source. The values below are ACCESSIBLE PRODUCT PLACEHOLDERS
+     chosen for WCAG contrast — they are NOT brand-accurate PMI colors and
+     must NOT be published or cited as official PMI colors.
+     RELEASE BLOCKER: replace every --pmi-* value with official PMI tokens
+     once obtained. This block is the ONLY place provisional brand hex lives;
+     everything below points back at it.
+     ===================================================================== */
+  --pmi-black: #141414; /* provisional — brand black field (hero/topbar) */
+  --pmi-white: #ffffff; /* provisional — brand white */
+  --pmi-orange: #c2410c; /* provisional — AA as text on white (~5.9:1) */
+  --pmi-orange-bright: #ea580c; /* provisional — on DARK / large / UI only (fails as normal text on white) */
+  --pmi-orange-100: #fdece2; /* provisional — pale orange accent surface */
 
-  /* Accent - PMI gold */
-  --color-accent-700: #a47b2a;
-  --color-accent-500: #c49b3e;
-  --color-accent-100: #f6ebd0;
+  /* Semantic aliases — components consume THESE. Navy/gold removed; the
+     names persist as a stable indirection layer over the provisional brand. */
+  --color-primary-900: var(--pmi-black);
+  --color-primary-700: #2b2b2b; /* near-black affordances (buttons/links) on white */
+  --color-primary-500: #4a4a4a; /* neutral mid for borders / selected-row edge */
+  --color-primary-100: #ededed; /* neutral pale for selected-row tint */
 
-  /* Source-state semantic colors */
+  --color-accent-700: var(--pmi-orange);
+  --color-accent-500: var(--pmi-orange);
+  --color-accent-100: var(--pmi-orange-100);
+
+  /* Source-state semantic colors — FUNCTIONAL status, independent of brand.
+     Green/amber/red kept for usability; the two that previously borrowed the
+     brand navy/gold now own independent hex so status never reads as brand. */
   --state-verified: #2f855a;
-  --state-partial: #c49b3e;
-  --state-placeholder: #2c5282;
+  --state-partial: #b7791f; /* decoupled from old gold accent → amber caution */
+  --state-placeholder: #4a4a4a; /* decoupled from old navy primary → neutral slate */
   --state-conflict: #b7791f;
   --state-no-source: #9b2c2c;
 
@@ -24,7 +45,8 @@
   --color-text: #1a202c;
   --color-text-muted: #4a5568;
 
-  /* Typography */
+  /* Typography — official PMI typeface NOT specified in the available source.
+     System stack retained as a labeled, non-brand usability fallback. */
   --font-sans:
     system-ui, -apple-system, "Segoe UI", roboto, "Helvetica Neue", arial, sans-serif;
   --font-heading: var(--font-sans);
@@ -42,6 +64,8 @@
 }
 
 .brand {
+  align-items: baseline;
+  display: inline-flex;
   font-size: 1.1rem;
   font-weight: 700;
 }
@@ -209,7 +233,7 @@
 
 .source-banner[data-state="Partial Source"] {
   border-left-color: var(--state-partial);
-  background: var(--color-accent-100);
+  background: #fff7e6; /* neutral pale amber — a status banner must not read as brand orange */
 }
 
 .source-banner[data-state="Bailey Placeholder"] {
@@ -225,6 +249,47 @@
 .source-banner[data-state="No Reliable Source Found"] {
   border-left-color: var(--state-no-source);
   background: #fff5f5;
+}
+
+/* PMI brand lockup — source-safe TYPOGRAPHIC treatment of the visible wordmark
+   `pmi.` + tagline `the property management people`. This is NOT the official
+   angular PMI logo mark: no official vector artwork was supplied and the brand
+   pack forbids tracing/redrawing it (asset gap / release blocker). */
+.pmi-lockup {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+}
+
+.pmi-wordmark {
+  color: inherit;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  text-transform: lowercase;
+}
+
+.pmi-lockup .pmi-wordmark {
+  color: var(--pmi-white);
+  font-size: clamp(2.4rem, 8vw, 3.25rem);
+}
+
+.pmi-wordmark--inline {
+  font-size: 1.25rem;
+}
+
+.pmi-dot {
+  color: var(--pmi-orange-bright);
+}
+
+.pmi-tagline {
+  color: var(--pmi-orange-bright);
+  font-size: 0.95rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: lowercase;
 }
 
 @media (max-width: 760px) {

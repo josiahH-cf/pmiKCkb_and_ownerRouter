@@ -28,8 +28,13 @@ button {
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-accent-500);
+  outline: 3px solid var(--color-accent-500); /* provisional orange — visible ring on light surfaces */
   outline-offset: 2px;
+}
+
+/* Brighter orange ring on the dark topbar for stronger contrast on black. */
+.topbar :focus-visible {
+  outline-color: var(--pmi-orange-bright);
 }
 
 .page {
@@ -487,7 +492,9 @@ button {
 
 .notification-badge {
   align-items: center;
-  background: var(--color-accent-500);
+  background: var(
+    --pmi-orange-bright
+  ); /* orange pops on the black topbar; dark text passes contrast */
   border-radius: 999px;
   color: var(--color-primary-900);
   display: inline-flex;
@@ -503,7 +510,7 @@ button {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  box-shadow: 0 18px 38px rgb(14 42 74 / 0.18);
+  box-shadow: 0 18px 38px rgb(20 20 20 / 0.18); /* neutral shadow (navy tint removed) */
   color: var(--color-text);
   display: grid;
   gap: 10px;
@@ -812,9 +819,15 @@ button {
   }
 }
 
+/* Sign-in is a PMI brand moment: a black field carrying the white pmi. lockup +
+   orange tagline above a neutral white sign-in card (brand pack: black/orange/white
+   for launch/sign-in/hero). Provisional brand colors — see styles/tokens.css. */
 .auth-page {
-  align-items: center;
+  align-content: center;
+  background: var(--pmi-black);
   display: grid;
+  gap: 28px;
+  justify-items: center;
   min-height: 100vh;
   padding: 24px;
 }
@@ -826,8 +839,19 @@ button {
   margin: 0 auto;
   max-width: 520px;
   padding: 28px;
+  width: 100%;
 }
 
 .auth-panel h1 {
   margin-top: 0;
+}
+
+/* Operational product name, demoted beneath the pmi. brand lockup. */
+.auth-product-name {
+  color: var(--color-text-muted);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 0 0 4px;
+  text-transform: uppercase;
 }
