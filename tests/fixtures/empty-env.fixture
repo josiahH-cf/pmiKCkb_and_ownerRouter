@@ -1,0 +1,5 @@
+# Hermetic env fixture for the cutover-report composition tests. It intentionally defines no
+# variables. Passing `--env-file=tests/fixtures/empty-env.fixture` makes
+# readProductionPreflightEnv (scripts/preflight-production-cutover.mjs) take its envFile branch
+# and read THIS file instead of the host's on-disk `.env.local`, so the tests assert against a
+# known-empty production config regardless of the developer's local environment.

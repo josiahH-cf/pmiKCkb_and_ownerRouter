@@ -76,10 +76,17 @@ describe("rollback plan", () => {
   });
 });
 
+// Point every composition case at an empty env fixture so readProductionPreflightEnv does not
+// read the host's on-disk `.env.local`. Otherwise a developer machine that carries a real
+// GCP_PROJECT_ID (e.g. pmi-kc-kb-prod) suppresses the expected "no target project id" gcp:
+// blocker and the first case fails only locally — the same env-coupling class as the
+// migration-readiness smoke test.
+const HERMETIC_ENV_FILE = "--env-file=tests/fixtures/empty-env.fixture";
+
 describe("cutover report composition", () => {
   it("aggregates blockers across sections with prefixes", () => {
     const report = buildCutoverReport({
-      argv: [],
+      argv: [HERMETIC_ENV_FILE],
       env: { ASK_DEMO_MODE: "true" },
       awayModeActive: true,
     });
@@ -103,6 +110,7 @@ describe("cutover report composition", () => {
   it("evaluates the production manifest template and reports corpus blockers", () => {
     const report = buildCutoverReport({
       argv: [
+        HERMETIC_ENV_FILE,
         "--manifest=docs/source-corpus/client-production-source-manifest.template.json",
         "--project=pmikc-kb-production",
         "--location=us",
@@ -122,7 +130,11 @@ describe("cutover report composition", () => {
 
   it("treats a missing manifest path as a warning, not a crash", () => {
     const report = buildCutoverReport({
-      argv: ["--manifest=temp/does-not-exist.json", "--project=pmikc-prod"],
+      argv: [
+        HERMETIC_ENV_FILE,
+        "--manifest=temp/does-not-exist.json",
+        "--project=pmikc-prod",
+      ],
       env: { ASK_DEMO_MODE: "true" },
       awayModeActive: true,
     });

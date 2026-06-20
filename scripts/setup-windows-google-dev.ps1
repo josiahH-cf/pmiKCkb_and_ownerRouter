@@ -1,6 +1,6 @@
 param(
-  [string]$ProjectId = "pmikckb-test",
-  [string]$ProjectName = "PMI KC KB Demo",
+  [string]$ProjectId = "pmi-kc-kb-prod",
+  [string]$ProjectName = "PMI KC KB",
   [switch]$EnableApis,
   [switch]$CheckOnly
 )

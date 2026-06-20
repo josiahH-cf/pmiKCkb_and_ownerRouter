@@ -10,7 +10,11 @@ import {
   validateLiveCostConfig,
 } from "./check-live-cost.mjs";
 
-const DEFAULT_PROJECT_ID = "pmikckb-test";
+// Live cheap-live target: the prod project `pmi-kc-kb-prod` running the Cloud Run service
+// historically named `pmi-kc-kb-demo` (https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app). The
+// legacy `pmikckb-test` demo project is retired; an explicit --project / GCP_PROJECT_ID still
+// overrides this default.
+const DEFAULT_PROJECT_ID = "pmi-kc-kb-prod";
 const DEFAULT_REGION = "us-central1";
 const DEFAULT_SERVICE = "pmi-kc-kb-demo";
 const DEFAULT_SEARCH_LOCATION = "us";

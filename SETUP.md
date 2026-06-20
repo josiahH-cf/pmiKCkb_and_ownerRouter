@@ -163,13 +163,16 @@ The high-level order is:
 Do not grant Gmail read, Gmail modify, Gmail compose, Drive write, or system-of-record
 write scopes.
 
-For the current `pmikckb-test` demo host, Firebase and Firestore setup can be repaired
-or completed with the demo aliases:
+The legacy `pmikckb-test` demo cloud host is **retired** (see
+[`docs/demo-lane-retirement.md`](docs/demo-lane-retirement.md)). For local-dev demo mode and
+Firebase/Firestore setup against the configured project (`GCP_PROJECT_ID` in `.env.local`), use the
+generic aliases (the `firebase:setup*-demo` aliases that hardcoded `--project=pmikckb-test` were
+removed):
 
 ```bash
 npm run host:setup
-npm run firebase:setup-demo
-npm run firebase:setup-auth-demo
+npm run firebase:setup
+npm run firebase:setup-auth
 npm run seed:spaces
 npm run seed:demo
 npm run seed:launch-skeletons -- --dry-run

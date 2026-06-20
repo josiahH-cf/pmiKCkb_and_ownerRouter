@@ -2,8 +2,8 @@
 
 Status: **Read-only design only.** No runtime build. No system-of-record (SoR) writes proposed
 as executable. The single new write surface — the Phase 2 approval-gated spreadsheet write-back
-— stays approval-gated, deterministic, structurally re-anchored, read-after-write verified, and
-`Blocked`-on-uncertainty. Tabs 4 (PadSplit WiFi) and 7 (Platform Logins) are hard-excluded at
+— stays **admin-enabled (off by default) and suggest-then-button-press** (§4.0), deterministic,
+structurally re-anchored, read-after-write verified, and `Blocked`-on-uncertainty. Tabs 4 (PadSplit WiFi) and 7 (Platform Logins) are hard-excluded at
 the connector boundary and are never read, fingerprinted, normalized, reconciled, flagged,
 logged, previewed, or written. The connector **augments** the team's spreadsheet; it does not
 replace it.
@@ -24,8 +24,9 @@ workflow-run page, "Do Not Build Yet") · [`../integration-architecture.md`](../
 ## 1. Goals & Constraints
 
 ### 1.1 Goals
+
 1. **Decompose → read → reconcile → flag (Phase 1)**, then **approval-gated write-back
-   (Phase 2)** (discovery-ref §A, §6.1) — each phase gated by *earned trust*, not calendar time.
+   (Phase 2)** (discovery-ref §A, §6.1) — each phase gated by _earned trust_, not calendar time.
 2. **Augment the team's source of truth.** The non-technical, remote Philippines team trusts
    the sheet as their working dashboard (discovery-ref §A). The connector adds flags and
    approval items the team can verify; it never silently mutates their surface and never forces
@@ -33,7 +34,7 @@ workflow-run page, "Do Not Build Yet") · [`../integration-architecture.md`](../
 3. **Be deterministic where correctness matters** (discovery-ref §6.1; agent.md "Deterministic
    checks, not model judgment alone"). Fingerprinting, header resolution, normalization,
    join-key derivation, reconciliation, severity, and the write-back cell map are rule-tables /
-   regex — testable with fixtures. A model may *suggest* a mapping or a winner as a surfaced
+   regex — testable with fixtures. A model may _suggest_ a mapping or a winner as a surfaced
    suggestion a human accepts; never an auto-bind, never an auto-resolution of a High/Blocked item.
 4. **Degrade to `Blocked`, never guess.** Any unfingerprintable tab, unmappable column,
    unparseable value, ambiguous join, missing precedence rule, or unverifiable write surfaces as
@@ -43,16 +44,21 @@ workflow-run page, "Do Not Build Yet") · [`../integration-architecture.md`](../
    §4 inherited-tenant deposit/lead-paint/LLC failure modes) that Dan reviews and finds correct.
 
 ### 1.2 Hard constraints
+
 - **Read-only design; no execution.** The connector, reconciliation engine, queue wiring, and
-  write-back are *specified, not implemented* (AGENTS.md; agent.md "Do Not Build Yet").
+  write-back are _specified, not implemented_ (AGENTS.md; agent.md "Do Not Build Yet").
 - **No SoR writes proposed as executable.** No writes to Rentvine, Dotloop, LeadSimple, Gmail,
   QuickBooks, Boom, or client Drive. "Fix in Rentvine" is a **non-executable flag** only.
 - **The spreadsheet write-back is itself inside the AGENTS.md "operating Sheets" no-write
   clause** (Security Rules list "operating Sheets" alongside Rentvine/QuickBooks/banks). The
   operational sheet IS the team's database of truth (discovery-ref §A), so the write-back is
   **gated behind a future approved per-action spec** — it is not "automatically permitted
-  because it isn't a classic SoR write." The registry `Planned` state + the Phase-1-trust
-  milestone enforce that gate.
+  because it isn't a classic SoR write." The gate is enforced by the registry `Planned` state
+  plus three runtime controls that never relax: an **admin-controlled feature flag** (off by
+  default), **admin-assigned per-console-user permissions**, and a **per-write human
+  button-press** (all §4.0). Demonstrated accuracy may inform _when an admin chooses to enable
+  the feature_, but it **never** converts a suggested write into an automatic one — there is no
+  trust level at which the connector writes without a human pressing approve.
 - **Credential tabs 4 & 7 hard-excluded by construction** — before any parsing, and re-scrubbed
   at emit. The reconciliation engine, queue, log, and write-back cell map are physically
   incapable of addressing them.
@@ -65,7 +71,7 @@ workflow-run page, "Do Not Build Yet") · [`../integration-architecture.md`](../
   client data **may be read and used as test/training input** and to drive read-only follow-up
   Rentvine/Dotloop queries — kept out of git, out of user-facing/model output without approval,
   inside the `pmikcmetro.com` boundary. We **train/test on** the data; we do not **emit/act on**
-  it autonomously. (PII display *inside the authenticated app* to an approver is allowed and
+  it autonomously. (PII display _inside the authenticated app_ to an approver is allowed and
   audited — see §6.1.)
 
 ---
@@ -78,6 +84,7 @@ carries the agent.md confidence vocabulary (`Verified`/`Likely`/`Needs Review`/`
 time), which is what makes a future correct write-back possible (§4).
 
 ### 2.1 Deterministic, fail-closed pipeline
+
 ```
 A. Acquire (read-only, pmikcmetro.com)        -> raw cell grid + cell coordinates (incl. row index)
 B. Credential-tab hard-exclusion (pre-parse)  -> redacted grid (tabs 4 & 7 never materialized)
@@ -89,25 +96,28 @@ G. Record assembly (per logical row)          -> RenewalRecordFact
 H. Fuzzy-join key derivation                  -> address/lease keys + candidates (NO merge)
 I. Deterministic ingest checks + manifest     -> IngestManifest (counts/provenance only)
 ```
+
 Each stage is **fail-closed**: a unit that cannot complete is marked and passed through as a
 typed problem, never silently dropped. Stage I asserts every input row is accounted for.
 
 ### 2.2 Stage B — Credential-tab hard-exclusion (before any parsing)
+
 Tabs 4 and 7 are plaintext-credential-bearing (map §1 top warning, §7). Because the export does
 not preserve tab identity, exclusion is **content-signature-driven**, not position-driven:
+
 1. **Position guard** — inferred tab indices are a hint, never the gate.
 2. **Content-signature guard (authoritative)** — quarantine + drop any block whose header/content
    matches credential markers (header tokens `/(password|passcode|wifi|ssid|pin|login|username|
-   credential|access\s*code)/i`; a credential-shape value such as a `WiFi`/`SSID` label adjacent
-   to a high-entropy non-dictionary token; or known platform names *co-located with a
-   password/PIN column*).
+credential|access\s*code)/i`; a credential-shape value such as a `WiFi`/`SSID` label adjacent
+   to a high-entropy non-dictionary token; or known platform names _co-located with a
+   password/PIN column_).
 3. **Quarantine record** — manifest gets `{ excluded_block_id, reason: "credential-tab",
-   signature_hits, row_count }`: **counts only, zero values, zero header strings echoed.**
+signature_hits, row_count }`: **counts only, zero values, zero header strings echoed.**
 4. **Over-redaction visibility (review fix #1).** Because the signature guard can false-positive
    on legitimate operational tabs (e.g. Tab 6 Vendor/Platform Contacts holds platform URLs; Tab 1
    references "Portal Chat"), the manifest's credential-exclusion census is **surfaced for a
    one-time human confirmation per workbook structure** — so a wrongly-quarantined real block is
-   *visible*, not silently counted as "excluded."
+   _visible_, not silently counted as "excluded."
 5. **Emit-time tripwire (honest scope, review fix #2).** A final scrubber re-runs the credential
    regexes over outgoing fields and forces `REDACTED` + a hard error on any hit. This is a
    **label/marker tripwire**: a detached high-entropy password value has no regex signature, so
@@ -116,6 +126,7 @@ not preserve tab identity, exclusion is **content-signature-driven**, not positi
    these credentials to a password manager / Secret Manager.
 
 ### 2.3 Stage C — Table fracturing → logical-tab segmentation
+
 Table position ≠ logical tab (map §1, §7). Split at fully-blank rows, column-count changes, and
 pure divider-glyph rows. **Recognize-and-drop-but-count** scaffolding: `.`/`-----` month-separator
 rows (map §3); `a`/`z`/`zzz` sort scaffolding and Tab 15. **Re-stitch** consecutive blocks that
@@ -123,6 +134,7 @@ fingerprint to the same logical tab (Stage D) with subset/superset columns, reas
 fractured tab before record assembly.
 
 ### 2.4 Stage D — Content-keyed tab fingerprinting
+
 Identify each block by a content signature, not header text or position (map §8). Fingerprint =
 weighted match of: (1) **header-token signature** (multiset of normalized tokens — strong, not
 trusted alone); (2) **anchor-phrase signature** (near-unique verbatim headers, e.g. Renewals
@@ -136,6 +148,7 @@ flagged `Needs Review`, never force-mapped. The condensed 6-col working Renewals
 fingerprint to **Tab 3** via column-shape + anchors.
 
 ### 2.5 Stage E — Header resolution (position-independent, headers not trusted)
+
 Central rule (map §7–8): do not trust headers. Defended pathologies: Move-In `Move in date`
 header **holds emails**; `f` header holds **timestamps**; Inspection Tracker has a **literal
 `FALSE` header**; Property Attributes has a **blank header** + a header-less `TRUE/FALSE` flag;
@@ -147,7 +160,9 @@ mostly-email column → `tenant_email` regardless of its "Move in date" header);
 `[MURKY]` passthrough, surfaced never guessed.
 
 ### 2.6 Stage F — Per-cell typed normalization
+
 Each cell becomes:
+
 ```
 NormalizedValue {
   raw: string                  // verbatim (kept for read-after-write parity)
@@ -158,12 +173,13 @@ NormalizedValue {
   source: { tab_id, logical_row, sheet_row_index, column_field, sheet_cell_ref }  // structural coord
 }
 ```
+
 Normalizer specs (deterministic, documented fallbacks): **dates** (ordered explicit-format
 attempts over the map's mixed formats; `MM/YYYY` → `month_only` flag, which matters for the
 discovery-ref §1 "by the 15th / ≥30 days" cadence math; unparseable → `null` + `Needs Review`;
 never locale-guessed); **currency** (strip `$`/commas; `Market Value` is manually entered — no
 extra trust); **tristate** yes/no/na (`yes,n/a` → `addressed` + `combined_yes_na` flag per map
-§3); **boolean** `TRUE/FALSE` (a `FALSE` *header* is a leaked default, not data); **enum status /
+§3); **boolean** `TRUE/FALSE` (a `FALSE` _header_ is a leaked default, not data); **enum status /
 state-in-free-text** (controlled-vocabulary extractor for `working`/`Needs Renewed`/`not
 renewing`/`Dont renew`/`decided to move out`/`eviction`/`sent to Leah`/…; `"yes <date>"` split
 into `{status,date}`; `multi_event_cell` flagged); **embedded assignee** (lift "ESTELLE WORKING
@@ -174,6 +190,7 @@ fallback-parse or resolved-`[MURKY]` → `Likely`; unparsed/mismatch/ambiguous/u
 Review`. **`Conflict` is never set at ingest** — only by reconciliation (§3).
 
 ### 2.7 Stage G/H — Record assembly & the fuzzy-join problem
+
 No stable ID across the 5+ property tabs (key = address as inconsistent free text) or the lease
 lifecycle (key = tenant/lease name, inconsistent formats); Property Attributes duplicates address
 across `Property` vs `Unit` (map §5). **Derive candidates; never auto-merge** (auto-merge would
@@ -185,6 +202,7 @@ the two candidate rows recorded as run evidence so an approver can verify. Cross
 — ingest assigns no winner.
 
 ### 2.8 `RenewalRecordFact` + `IngestManifest`
+
 Fact carries fields, `join_keys`, derived (not merged) `join_candidates`, `record_confidence`,
 and `pii_fields`. Stage I emits the **`IngestManifest` (counts + provenance only, no client
 values)**: row conservation (every raw row mapped/flagged/dropped-as-divider/excluded-as-credential
@@ -200,12 +218,14 @@ columns map directly to queue items; ingest only reads/types them.
 Runs once per renewal run, keyed to the **KB-owned workflow-run page** (agent.md).
 
 ### 3.1 Inputs & join
+
 Reconcile spreadsheet facts (Tabs 1, 2, 3, 5, 6, 8–18 — **never 4 or 7**) against **Rentvine**
 (read-authoritative SoR), Rentvine **building-level** fields (discovery-ref §1 step 14), and the
 **Google Form** intake. Join on the §2.7 keys; below threshold → `Blocked` "ambiguous match",
 human disambiguates, never auto-resolved.
 
 ### 3.2 Per-field reconciliation (deterministic)
+
 Each reconcilable field → one `FieldReconciliation` { `field_key`, `candidates[]`
 (`source_system`, `location_ref` deep link, `raw`, `normalized`, `read_timestamp`),
 `agreement` (agree/conflict/single-source/missing), `suggested_winner` (§3.4 — suggestion only),
@@ -214,23 +234,25 @@ gating field) raise a flag + queue item; `agree`/benign cases flow to the agent.
 path (re-check only affected facts).
 
 Worked cases:
+
 - **Case A — inspection cadence (Tab 17 vs Tab 18 vs Rentvine building level).** Normalize cadence
   to `{per_year, raw}`; unparseable → `unparsed`, raw shown, never a guessed number. Classified
-  **operational/internal → Medium** (review fix #7: inspection *scheduling* cadence is internal
+  **operational/internal → Medium** (review fix #7: inspection _scheduling_ cadence is internal
   state; it does **not** carry tenant-notice/renewal-timing weight, so it does not trip the §3.3
   timing→High rule). If it implicates the missed-inspection $130 **owner charge** (financial,
   Tab 17) it escalates to High.
 - **Case B — lawn-care responsibility (Owner/Tenant/HOA).** A legal/contractual lease term →
   **High → Admin (Dan/secondary approver) required.** The "enter corrected value" path is
-  essential: the sheet may say Tenant, Rentvine say HOA, and *neither* be right (HOA dissolved /
+  essential: the sheet may say Tenant, Rentvine say HOA, and _neither_ be right (HOA dissolved /
   owner reassumed).
 
 Same machinery covers address string, current rent (Rentvine vs Tab 3), and renewal/lease-end
-date (**Rentvine lease-end vs Tab 3 `Renewal Date`** — note: Tab 17 `Lease Start` is a *start*
+date (**Rentvine lease-end vs Tab 3 `Renewal Date`** — note: Tab 17 `Lease Start` is a _start_
 date and is **not** a lease-end/renewal-date source (review fix #11); it may only corroborate a
 start date), and utilities responsibility.
 
 ### 3.3 Severity → approval-queue routing (agent.md risk vocabulary; first-match-wins)
+
 1. Field is legal / financial / **tenant-notice-or-renewal timing** / owner-or-tenant-facing OR
    feeds an external write → **High** (Admin required even when another user proposes the
    resolution). Examples: lawn-care term, current rent, market value, renewal/lease-end date,
@@ -247,21 +269,23 @@ links attach via source links / previews / `Activity` (no custom fields). Real v
 stay inside the authenticated app (§6.1).
 
 ### 3.4 Source-precedence default table (SUGGESTION ONLY — discovery-ref §8 Q4; never auto-applied for High/Blocked)
-| Field type | Default precedence (high → low) | Auto-apply? |
-|---|---|---|
-| Lease dates / renewal timing | Rentvine lease record > spreadsheet Tab 3 `Renewal Date` | No (timing = High) |
-| Current rent | Rentvine > Tab 3 `Current Rent` | No (financial = High) |
-| Market value | PMI Free Rental Analysis number > Zillow range (manual + approval) | No (pricing = High) |
-| Property attributes — operational (inspection cadence, locks, appliances, carpet) | Rentvine building level > Tab 17 > Tab 18 | No (Medium → review) |
-| Lease-contract terms (lawn/snow/trash + utilities, deposit type/amount, LLC entity) | Active lease doc / Rentvine building level > spreadsheet | No (legal = High) |
-| Owner renewal decision | Owner email-of-record > spreadsheet Tab 3 | No (owner-facing = High) |
-| Tenant intake (occupancy, contacts) | Google Form (latest) > spreadsheet | Review (Medium) |
-| Address string (canonicalization) | Rentvine canonical address > spreadsheet strings | No (join-critical) |
-| Status / workflow flags (yes/no/na, TRUE/FALSE) | Spreadsheet (it *is* the status surface) > inferred | Yes if Low after review |
+
+| Field type                                                                          | Default precedence (high → low)                                    | Auto-apply?              |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------ |
+| Lease dates / renewal timing                                                        | Rentvine lease record > spreadsheet Tab 3 `Renewal Date`           | No (timing = High)       |
+| Current rent                                                                        | Rentvine > Tab 3 `Current Rent`                                    | No (financial = High)    |
+| Market value                                                                        | PMI Free Rental Analysis number > Zillow range (manual + approval) | No (pricing = High)      |
+| Property attributes — operational (inspection cadence, locks, appliances, carpet)   | Rentvine building level > Tab 17 > Tab 18                          | No (Medium → review)     |
+| Lease-contract terms (lawn/snow/trash + utilities, deposit type/amount, LLC entity) | Active lease doc / Rentvine building level > spreadsheet           | No (legal = High)        |
+| Owner renewal decision                                                              | Owner email-of-record > spreadsheet Tab 3                          | No (owner-facing = High) |
+| Tenant intake (occupancy, contacts)                                                 | Google Form (latest) > spreadsheet                                 | Review (Medium)          |
+| Address string (canonicalization)                                                   | Rentvine canonical address > spreadsheet strings                   | No (join-critical)       |
+| Status / workflow flags (yes/no/na, TRUE/FALSE)                                     | Spreadsheet (it _is_ the status surface) > inferred                | Yes if Low after review  |
 
 **Unlisted field type → `Blocked` "no precedence rule"** → human decision; never guess.
 
 ### 3.5 The resolution loop (refined from discovery-ref §6.1)
+
 1. **Flag (no writes):** one queue item per run/field (duplicates merge into one open item with
    history). Shows each value, its source, a **deep verification link**, severity, and the
    suggested winner with rationale (Dan's "where the team got it + how to verify it, in one
@@ -269,17 +293,17 @@ stay inside the authenticated app (§6.1).
 2. **Resolve — three paths (review fix #9):**
    - **pick a source**, or
    - **enter a corrected value** (pure A/B is insufficient — sometimes neither is right), or
-   - **"flag is incorrect / the sheet is already right"** — closes the item, logs *why the
-     deterministic rule misfired* (e.g. HOA dissolved so Rentvine's "HOA" is stale), and feeds the
+   - **"flag is incorrect / the sheet is already right"** — closes the item, logs _why the
+     deterministic rule misfired_ (e.g. HOA dissolved so Rentvine's "HOA" is stale), and feeds the
      **false-positive rate** into the Phase-1 accuracy milestone (§5.3). This path is essential
      for the non-technical remote team: forcing "enter a corrected value equal to the existing
      value" when the connector is wrong erodes trust faster than a miss.
-   A required plain-English reason is captured. High → Admin approver; users cannot approve their
-   own proposed change unless Admin acting as approver. AI may *suggest* but cannot approve,
-   close, execute, or override permission checks.
+     A required plain-English reason is captured. High → Admin approver; users cannot approve their
+     own proposed change unless Admin acting as approver. AI may _suggest_ but cannot approve,
+     close, execute, or override permission checks.
 3. **Log (append-only, before any write):** decision → per-item `Activity` (who/why/source-or-
    value/prior values/timestamp/state transition; corrections add entries, never edit). A
-   *proposed source correction* is generated — a suggested, approval-gated spreadsheet write (the
+   _proposed source correction_ is generated — a suggested, approval-gated spreadsheet write (the
    exact §4 cell) and/or a non-executable "fix in Rentvine" flag.
 4. **Correct-at-source:** the agreed value is queued for §4 write-back **performed by/after a
    human approval action visible in the sheet** (the `awaiting approval → approved` status the
@@ -289,12 +313,30 @@ stay inside the authenticated app (§6.1).
 
 ---
 
-## 4. Approval-Gated Write-Back (Phase 2 — only after Phase 1 is trusted)
+## 4. Approval-Gated Write-Back (Phase 2 — admin-enabled feature; always suggest-then-approve)
 
 The **first new write surface**; writes only the agreed value from a resolved conflict (or an
 approved status update) back to the originating sheet cell. Writes nothing to Rentvine/Dotloop/Gmail.
 
+### 4.0 Admin-configurable, suggest-only, never autonomous (owner decision 2026-06-20)
+
+Write-back is an **admin-controlled feature**, not a capability that "earns" its way on:
+
+- **Feature flag, off by default.** An Admin explicitly enables sheet write-back for the workspace
+  and can disable it at any time, which immediately returns the connector to flag-only Phase 1.
+- **Permission scoped to console users.** The users who may _suggest_ a write and the users who may
+  _approve_ one are **assigned by an Admin** from the set of authenticated console users
+  (`pmikcmetro.com` sign-ins; AGENTS.md Identity Rules). High-severity writes require an Admin
+  approver; a user can never approve their own suggestion (§3.5). AI may suggest, never approve.
+- **Suggest, then button-press — permanently.** The connector only ever produces a _suggested_
+  write (the §4.1 cell + value + rationale). Performing it requires an explicit human approval
+  action — a button press by an authorized approver — for **every** write, with no batch
+  auto-apply and no "trusted enough to skip approval" state. Demonstrated Phase-1 accuracy (§5.3)
+  is the evidence an Admin uses to decide whether to _turn the feature on_; it never removes the
+  per-write button-press.
+
 ### 4.1 Structural cell map (safety core; review fixes #5/#6)
+
 ```
 WriteTarget {
   tab_fingerprint; tab_name(inferred);
@@ -303,32 +345,36 @@ WriteTarget {
   expected_prior_value;      // a SECONDARY compare-and-set check, NOT the row identity
 }
 ```
+
 - **Tab** by §2.4 content fingerprint, not position.
 - **Row identity is the structural `sheet_row_index` captured at read** (re-resolved + re-validated
   immediately before write), **not** `expected_prior_value`. Many gate columns are low-cardinality
   (`yes`/blank/`TRUE`/`FALSE`), so two fuzzy-matched rows can share a prior value — relying on
-  value-uniqueness for *location* would target the wrong row. `expected_prior_value` is only a
+  value-uniqueness for _location_ would target the wrong row. `expected_prior_value` is only a
   compare-and-set guard on top of the structural locator.
 - Anything other than an **exact unique** match on fingerprint + structural row + column → `Blocked`,
   never a guessed write. Tabs 4 & 7 are absent from the cell map by construction. Divider/scaffold
   rows are non-writable.
 
 ### 4.2 Approval state machine
+
 ```
 Proposed -> Awaiting Approval -> Approved -> Writing -> Verifying -> Written
                  |                                          |
                  +-> Returned for Revision (reason)         +-> Blocked (verify/row-shift mismatch)
                  +-> Blocked (uncertainty / unmapped / ambiguous)
 ```
+
 `Awaiting Approval` until the required approver (Admin for High) approves. **Preview before write**
 shows `tab_name`, `a1_cell`, `expected_prior_value`, `new_value`, resolution reason, deep link —
-constrained to *exactly* the declared fields via the integration-arch preview validator. One-action
+constrained to _exactly_ the declared fields via the integration-arch preview validator. One-action
 **Approve** flips the originating queue item to unblocked, kicks it back to the team member, then
 proceeds to `Writing`.
 
 ### 4.3 Re-anchor + read-after-write (the accuracy mechanism — and its honest limit, review fix #6)
+
 1. **Re-resolve the structural row anchor immediately before write** (the sheet is
-   *constantly edited* — discovery-ref §A — so rows can shift via insert/delete between approval
+   _constantly edited_ — discovery-ref §A — so rows can shift via insert/delete between approval
    and write). If the row anchor no longer resolves uniquely, or a neighboring-cell change alters
    the row's meaning → `Blocked` "row changed since approval"; create a fresh queue item linked to
    prior history (never silent reopen).
@@ -337,6 +383,7 @@ proceeds to `Writing`.
 3. **Write** the single cell deterministically.
 4. **Read-after-write:** re-read; assert `== new_value` → `Written`; mismatch → `Blocked`
    failed-automation, preserve attempted payload/error/target/timestamp; never blind-retry.
+
 - **Atomicity:** one cell per target; no multi-cell batch that could partially apply. `Blocked` is
   always preferred over a partial/wrong write.
 - **Honest scope:** this is a strong compare-and-set with structural re-anchoring, not an absolute
@@ -345,6 +392,7 @@ proceeds to `Writing`.
   away.
 
 ### 4.4 Rollback
+
 Every target carries a rollback note before approval. Sheets has no universal revert, so rollback =
 re-write the stored `expected_prior_value` through the same verified path (correction-style
 rollback). The original is preserved in append-only `Activity`.
@@ -354,6 +402,7 @@ rollback). The original is preserved in append-only `Activity`.
 ## 5. Architecture Fit & Phasing
 
 ### 5.1 Where the connector sits
+
 Not a new system of record — a **read source + reconciliation feeder** into surfaces the product
 already owns. The **KB owns the single workflow-run page per renewal run**; sheet facts render
 there as imported facts with `source`/`timestamp`/`confidence`. No competing dashboard — the sheet
@@ -363,13 +412,14 @@ discovery-ref §A adoption constraint). In the integration-arch tool-role map, *
 the Action Registry as **read-only** entries, not in any write chain.
 
 ### 5.2 Action Registry entries (metadata catalog only; registry executes nothing)
+
 All start `production_allowed: false`.
 
-| `key` | `expected_action` | `evidence_status` | `readiness` (start) | Notes |
-|---|---|---|---|---|
-| `google_sheets.renewal_checklist.read` | Read mapped tabs/columns (excl. 4 & 7) | `Documented` (Sheets read API + semantic map) | `Needs Connection` | The read connector. |
-| `google_sheets.renewal_checklist.reconcile` | Deterministic field-reconciliation across sheet + Rentvine + form/building level | `Documented` (rules derive from map + §6.1) | `Planned` → `Ready for Test` | Produces flags, not writes. |
-| `google_sheets.renewal_checklist.writeback` | Approval-gated, re-anchored + read-after-write single-cell write | **`Documented`** (Sheets write API is documented) | **`Planned`** (Phase 2 only) | The one new write surface. **Gated by `readiness: Planned` + the Phase-1-trust milestone + an approved per-action spec**, NOT by `Vendor-Confirmation-Required` (review fix #12: there is no vendor to confirm Sheets writes; mis-coding it `Vendor-Confirmation-Required` would permanently block the `Documented`-requiring production gate). |
+| `key`                                       | `expected_action`                                                                | `evidence_status`                                 | `readiness` (start)          | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `google_sheets.renewal_checklist.read`      | Read mapped tabs/columns (excl. 4 & 7)                                           | `Documented` (Sheets read API + semantic map)     | `Needs Connection`           | The read connector.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `google_sheets.renewal_checklist.reconcile` | Deterministic field-reconciliation across sheet + Rentvine + form/building level | `Documented` (rules derive from map + §6.1)       | `Planned` → `Ready for Test` | Produces flags, not writes.                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `google_sheets.renewal_checklist.writeback` | Approval-gated, re-anchored + read-after-write single-cell write                 | **`Documented`** (Sheets write API is documented) | **`Planned`** (Phase 2 only) | The one new write surface. **Gated by `readiness: Planned` + an approved per-action spec + the §4.0 controls (admin feature flag off by default, admin-assigned console-user permissions, per-write human button-press).** No accuracy/trust level auto-enables a write. NOT `Vendor-Confirmation-Required` (review fix #12: there is no vendor to confirm Sheets writes; mis-coding it would permanently block the `Documented`-requiring production gate). |
 
 Production gate inherited unchanged: `production_allowed = true` only when `readiness = Approved for
 Execution` **and** `evidence_status = Documented` with non-empty `documented_evidence`. Two
@@ -380,31 +430,38 @@ for write-back: `{ tab, row_key, column, before_value, after_value, source_of_va
 verification_link }`.
 
 ### 5.3 Phasing with trust milestones (trust gates each phase, not calendar time)
+
 - **Phase 0 — Decompose & map (DONE):** the semantic map exists (prerequisite, discovery-ref §6.2).
 - **Phase 1 — Read + reconcile + flag (NO WRITES):** read + reconcile reach `Ready for Test`;
-  write-back stays `Planned`. **Exit milestone (gates write-back):** the connector demonstrably
-  **catches what the team missed** with flags Dan reviews and finds **accurate** over a real
-  sample, **zero false all-clear** on the discovery-ref §4 inherited-tenant failure modes, and an
-  acceptably-low **false-positive rate** (fed by the §3.5 "flag is wrong" path).
-- **Phase 2 — Approval-gated write-back (only after Phase 1 trusted):** still
-  `production_allowed: false` until the full gate clears — requires an approved per-action spec, a
-  before/after preview, a rollback note, ≥1 successful test run, and per-run human approval on top
-  of action-type approval. **Exit milestone:** a sustained record of correct, re-anchored,
-  read-after-write-verified writes with no wrong writes.
+  write-back stays `Planned`. **Exit milestone (the evidence an Admin uses to decide whether to
+  enable write-back suggestions — not an auto-unlock):** the connector demonstrably **catches what
+  the team missed** with flags Dan reviews and finds **accurate** over a real sample, **zero false
+  all-clear** on the discovery-ref §4 inherited-tenant failure modes, and an acceptably-low
+  **false-positive rate** (fed by the §3.5 "flag is wrong" path).
+- **Phase 2 — Approval-gated write-back (admin-enabled; always suggest-then-approve):** still
+  `production_allowed: false` until the full gate clears — requires an approved per-action spec, an
+  Admin explicitly enabling the §4.0 feature flag, a before/after preview, a rollback note, ≥1
+  successful test run, and a **per-write human button-press** on top of action-type approval.
+  Earned accuracy never converts a suggestion into an autonomous write. **Exit milestone:** a
+  sustained record of correct, re-anchored, read-after-write-verified writes with no wrong writes.
 - **Phase 3 — Eventual backing DB (NOT now):** real DB + automatic Rentvine pull + team manages via
   the app — only after 1–2 are stable. **Replacing the sheet is the last milestone, never the first.**
 
 ### 5.4 What NOT to build yet
+
 No executable SoR writes; "fix in Rentvine" is a flag only. No autonomous send (owner/tenant emails
 are drafts). No spreadsheet write in Phase 1. No reading/echoing tabs 4 & 7. No competing dashboard.
 No auto-applied High/Blocked reconciliation (precedence is a suggestion; §3.4 defaults are
-themselves `[OPEN]`). No write without structural re-anchor + read-after-write.
+themselves `[OPEN]`). No write without structural re-anchor + read-after-write. **No write executed
+without a per-write human button-press** — write-back is permanently suggest-only and admin-enabled
+(§4.0); no accuracy/trust threshold removes the approver or auto-applies a suggested write.
 
 ---
 
 ## 6. Governance & Adoption
 
 ### 6.1 Data governance (AGENTS.md, applied 2026-06-20; discovery-ref §5)
+
 - **May:** read the sheet (excl. 4 & 7) and use its vetted data to **build and validate the
   deterministic rules**; drive **read-only** follow-up Rentvine/Dotloop queries.
 - **May NOT:** emit that data into git, user-facing output, or model output **without human
@@ -415,13 +472,14 @@ themselves `[OPEN]`). No write without structural re-anchor + read-after-write.
   conflict card) **to an authenticated approver is allowed and audited** — otherwise the
   disambiguation UX (§3.5) would contradict the rule.
 - **`Activity` audit export (review fix #8):** the append-only `Activity` log may store real values
-  *inside the boundary*, but **audit export must redact/withhold `[PII]` fields or require
+  _inside the boundary_, but **audit export must redact/withhold `[PII]` fields or require
   approval** — closing the one sanctioned feature (agent.md "reasonable export") that could
   otherwise emit PII.
 - Boundary stays inside `pmikcmetro.com` via the `josiah@pmikcmetro.com` Drive connector (never the
   personal account; identities do not cascade). Only sanitized/synthetic artifacts in git.
 
 ### 6.2 Adoption (non-technical, remote Philippines team — trust is the whole game)
+
 1. A wrong write destroys the source of truth → Phase-1 no-writes; Phase-2 structural re-anchor +
    read-after-write + approval + `Blocked`-on-uncertainty.
 2. A buggy/replacing dashboard gets abandoned → augment-first; the sheet stays the team's surface.
@@ -434,6 +492,7 @@ themselves `[OPEN]`). No write without structural re-anchor + read-after-write.
    and writes the `awaiting → approved` status they already read.
 
 ### 6.3 Test corpus (governance-clean)
+
 Fixtures reproduce each documented pathology (mixed dates, `yes,n/a`, `FALSE` header,
 email-in-date-column, off-by-one Owner-Onboarding header, divider rows, two-tab cadence, lawn-care
 conflict, low-cardinality duplicate prior values for the §4.1 row-identity test). Real client values
@@ -443,13 +502,17 @@ synthetic/sanitized.**
 ---
 
 ## 7. Open Questions / Decisions Needed
+
 1. **Confirm the §3.4 source-precedence defaults** with Dan (discovery-ref §8 Q4) — shipped as
    suggestions pending confirmation.
 2. **Secondary approver(s) + admin-unavailable rule** (discovery-ref §8 Q3).
 3. **Rentvine renewal/field-write capability** stays vendor-confirmation-required; "fix in
    Rentvine" remains a non-executable flag.
-4. **Phase-1-trusted threshold** — explicit Dan-visible accept criteria (accurate-flag record, zero
-   false all-clear, acceptable false-positive rate) authorizing Phase 2.
+4. **Write-back enablement criteria (admin decision, not an auto-unlock)** — the explicit
+   Dan-visible accuracy record (accurate-flag history, zero false all-clear, acceptable
+   false-positive rate) an **Admin** uses to decide whether to switch on the §4.0 write-back
+   feature. Enabling it never removes the per-write button-press; confirm who holds the admin
+   toggle and the per-console-user suggest/approve permission assignments.
 5. **Canonical address/name normalization rules** to lift fuzzy-join confidence.
 6. **Staff lexicon** for embedded-assignee extraction (partially known: Leah, observed names).
 7. **Current approved owner/tenant/build-out templates** (~2026-06-23) — out of scope for the
@@ -458,6 +521,7 @@ synthetic/sanitized.**
 ---
 
 ## Adversarial review — corrections applied
+
 This spec is the synthesis of three design lenses after an adversarial review (verdict: **sound —
 needs fixes, no gate violations**). Fixes folded in: #1 over-redaction census; #2 honest emit-tripwire
 scope; #3 PII display-vs-emit carve-out; #4 "operating Sheets" gate framing (§1.2); #5/#6 structural

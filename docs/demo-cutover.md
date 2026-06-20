@@ -4,16 +4,24 @@
 > cutover model. Cross-product cutover across KB, Lease Renewal Agent, and Gmail Inbox 0
 > lives in `docs/integration-cutover-plan.md`.
 
+> **Demo cloud lane retired (2026-06-20).** The `demo` environment below — the builder's
+> `cherrybridge.ai` Workspace / `pmikckb-test` GCP project — is **legacy and being retired**; see
+> [`demo-lane-retirement.md`](demo-lane-retirement.md). The live cheap-live KB now runs on the
+> production project **`pmi-kc-kb-prod`** (org `pmikcmetro.com`) with `ASK_DEMO_MODE=false`.
+> Local-dev demo mode (mocks/emulators, `LOCAL_DEMO_AUTH`) is **kept** and fenced from prod by the
+> `NODE_ENV` guard. Read this doc as the cutover _model_; the builder-Workspace demo environment
+> itself is no longer used.
+
 This repo is built demo-first. The demo environment should prove the PMI KC KB in the
 builder's Google Workspace before the app is reconfigured for PMI KC Metro.
 
 ## Environments
 
-| Environment         | Purpose                                                      | Hosted domain                  | Data ownership             |
-| ------------------- | ------------------------------------------------------------ | ------------------------------ | -------------------------- |
-| `local`             | Development with mocks and emulators                         | `ALLOWED_HD` from `.env.local` | Developer machine          |
-| `demo`              | Working pilot in the builder's Google Enterprise environment | Builder Workspace domain       | Builder GCP/Firebase/Drive |
-| `client-production` | Purchased/client deployment                                  | `pmikcmetro.com`               | PMI KC GCP/Firebase/Drive  |
+| Environment         | Purpose                                                                              | Hosted domain                         | Data ownership             |
+| ------------------- | ------------------------------------------------------------------------------------ | ------------------------------------- | -------------------------- |
+| `local`             | Development with mocks and emulators                                                 | `ALLOWED_HD` from `.env.local`        | Developer machine          |
+| `demo` (RETIRED)    | Legacy builder/`pmikckb-test` pilot — retired 2026-06-20 (`demo-lane-retirement.md`) | Builder Workspace (`cherrybridge.ai`) | Builder GCP/Firebase/Drive |
+| `client-production` | Purchased/client deployment                                                          | `pmikcmetro.com`                      | PMI KC GCP/Firebase/Drive  |
 
 Do not treat demo data as production data. The production environment is recreated from
 configuration and approved seed templates, then filled with client-owned source

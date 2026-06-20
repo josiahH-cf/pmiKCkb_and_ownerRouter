@@ -11,6 +11,13 @@ Use it before older demo docs or preserved specs.
 | Lease Renewal Agent | `lease-renewal-agent.md` | Separate product track; discovery required before runtime work               |
 | Gmail Inbox 0       | `gmail-inbox-zero.md`    | Dan-email-first Gmail workflow, successor to Owner Router/Dan's AI Assistant |
 
+### Lease Renewal lane — sub-docs
+
+- [`lease-renewal-discovery-reference.md`](lease-renewal-discovery-reference.md) — sanitized renewal process reference (end-to-end).
+- [`move-in-move-out-process.md`](move-in-move-out-process.md) — tenant move-in / move-out lifecycles + how they connect.
+- [`lease-renewal-connector-design.md`](lease-renewal-connector-design.md) — read-only sheet connector + conflict reconciliation + admin-enabled, suggest-then-button-press write-back (§4.0).
+- [`lease-renewal-spreadsheet-map.md`](lease-renewal-spreadsheet-map.md) — semantic map of the operational tracking sheet (credential tabs 4 & 7 hard-excluded).
+
 ## Rules
 
 - Treat these docs as the current client-purchased direction.

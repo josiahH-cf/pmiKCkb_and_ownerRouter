@@ -99,9 +99,9 @@ tracking spreadsheet (§A). Observed end-to-end flow:
 5. **Tenant outreach.** Renewal template: lease end date, intent-to-stay-or-leave ask,
    possible charges, and a Google form (@00:34:40).
 6. **Multi-channel rule.** _Every_ tenant communication goes through **all** channels — Gmail
-   + Rentvine portal **chat** (email + in-portal) + Rentvine **messages** (SMS) — so it lands
-   even if a channel is missed or a staffer is out; replies route to the team + admin
-   (@00:36:56, @00:37:51).
+   - Rentvine portal **chat** (email + in-portal) + Rentvine **messages** (SMS) — so it lands
+     even if a channel is missed or a staffer is out; replies route to the team + admin
+     (@00:36:56, @00:37:51).
 7. **Branch.** Moving out → move row to the move-out sheet. Renewing → renewal prep
    (@00:35:47, @00:41:09).
 8. **Renewal prep / data gathering.** Confirm deposit posture — cash vs **deposit-replacement
@@ -179,23 +179,23 @@ For a lease due for renewal in **~2 months** (ends on the last day of a month):
   insurance, leasing fee, processing fee as **"see Rentvine/system" placeholders**, never
   hard-coded amounts **(JH 2026-06-20)**.
 - **[TENTATIVE → pending] Current approved templates** (owner / tenant / build-out) — Josiah
-  is obtaining them **~Tue 2026-06-23**; treat current transcript wording as outdated until
-  then **(JH 2026-06-20)**.
+  is obtaining them **~Tue 2026-06-23** and will drop them into a PMI KC Drive source folder when
+  ready; treat current transcript wording as outdated until then **(JH 2026-06-20)**.
 
 ## 3. Verified Links, APIs, Systems, and Dependencies
 
-| System | Role (observed/confirmed) | Notes / status |
-| --- | --- | --- |
-| **Renewal tracking spreadsheet** (Google Sheets) | **Operational source of truth / cross-team dashboard** (§A) | Read connector + approval-gated stable write-back are the design center; link not committed; connector access blocked (account mismatch). |
-| **Rentvine** | System of record; lease dates, rent, messaging, renewal/rent-increase write, building/unit/portfolio levels | Read-authoritative; **renewal-writeback undocumented/gated**. Renewal-timing source. |
-| **Dotloop** | Document package + e-signature; **home of executed signed leases** | Signature-state lifecycle TBD. |
-| **PMI KC website Free Rental Analysis tool** | Authoritative market-value **number** on the sheet | Corporate-controlled; **was down**; **fallback = Zillow + manual verification + approval** (JH). |
-| **Zillow "price my rental"** | Comp **range** + active-listing map | Free, public; supporting + fallback context. |
-| **Gmail templates** | Owner / tenant / build-out hand-off; fields manually filled **from the spreadsheet** | Outdated; current versions arriving ~Tue 2026-06-23. Auto-draft from sheet data is the target (§6). |
-| **Rhino / The Guarantors** | Deposit-replacement coverage; team-activated via apply link | Annual renewals on some coverage; Rhino largely phased out. |
-| **Second Nature** | Third-party renters-insurance addendum | Current insurance program on renewals. |
-| **Pet-registration third party** | Pet + service-animal verification | Conditional addendum. |
-| **Google form** | Tenant intake (occupancy, contacts) | Feeds lease fields. |
+| System                                           | Role (observed/confirmed)                                                                                   | Notes / status                                                                                                                            |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Renewal tracking spreadsheet** (Google Sheets) | **Operational source of truth / cross-team dashboard** (§A)                                                 | Read connector + approval-gated stable write-back are the design center; link not committed; connector access blocked (account mismatch). |
+| **Rentvine**                                     | System of record; lease dates, rent, messaging, renewal/rent-increase write, building/unit/portfolio levels | Read-authoritative; **renewal-writeback undocumented/gated**. Renewal-timing source.                                                      |
+| **Dotloop**                                      | Document package + e-signature; **home of executed signed leases**                                          | Signature-state lifecycle TBD.                                                                                                            |
+| **PMI KC website Free Rental Analysis tool**     | Authoritative market-value **number** on the sheet                                                          | Corporate-controlled; **was down**; **fallback = Zillow + manual verification + approval** (JH).                                          |
+| **Zillow "price my rental"**                     | Comp **range** + active-listing map                                                                         | Free, public; supporting + fallback context.                                                                                              |
+| **Gmail templates**                              | Owner / tenant / build-out hand-off; fields manually filled **from the spreadsheet**                        | Outdated; current versions arriving ~Tue 2026-06-23. Auto-draft from sheet data is the target (§6).                                       |
+| **Rhino / The Guarantors**                       | Deposit-replacement coverage; team-activated via apply link                                                 | Annual renewals on some coverage; Rhino largely phased out.                                                                               |
+| **Second Nature**                                | Third-party renters-insurance addendum                                                                      | Current insurance program on renewals.                                                                                                    |
+| **Pet-registration third party**                 | Pet + service-animal verification                                                                           | Conditional addendum.                                                                                                                     |
+| **Google form**                                  | Tenant intake (occupancy, contacts)                                                                         | Feeds lease fields.                                                                                                                       |
 
 No credentials/endpoints/API behaviors asserted beyond what's supported. Rentvine
 renewal-writeback remains **[OPEN]** / vendor-confirmation-required.
@@ -273,6 +273,7 @@ existing conflict model (block on conflict; human picks source or enters a value
 logged; corrected value spawns a source/process update).
 
 **Phase 1 — read + reconcile + flag (no writes):**
+
 - The connector reads Rentvine + the spreadsheet (+ forms/building level) and runs
   **deterministic field-reconciliation checks** per renewal run.
 - A documented **source-precedence default** (e.g. building-level Rentvine > spreadsheet for
@@ -292,9 +293,10 @@ logged; corrected value spawns a source/process update).
   spreadsheet write and/or a "fix in Rentvine" flag).
 
 **Phase 2 — approval-gated write-back (after Phase 1 is trusted):**
+
 - On resolution, write the agreed value to the **exact** spreadsheet cell with the
   `awaiting approval` → `approved` status, deterministically verified. This is the moment the
-  app starts *correcting the source* and closing the recurrence loop.
+  app starts _correcting the source_ and closing the recurrence loop.
 
 **Why this is the best fit:** it augments the spreadsheet rather than replacing it (preserves
 trust/adoption); it is deterministic where correctness matters (matches the 100%-write
@@ -319,9 +321,11 @@ hard-exclude.
 Templates today are filled **manually from the spreadsheet** — ideal for automation.
 Interim win: **draft** owner/tenant/build-out emails from sheet (+ Rentvine) data for human
 verification. End state: a Gmail connector where the team runs a `/command` with the client
-+ process and gets the completed draft back for approval. Preserves human send authority.
+
+- process and gets the completed draft back for approval. Preserves human send authority.
 
 ### 6.4 Other proposed opportunities
+
 - **Off-cycle end-date detector** so mid-month lease ends aren't missed.
 - **Document-set recommender** encoding the if-then rules as a reviewable checklist.
 - **Deposit-replacement renewal tracker** flagging annual-renewal coverage before it lapses.
@@ -362,6 +366,7 @@ verification. End state: a Gmail connector where the team runs a `/command` with
 (admin function); cadence; placement (`docs/products/`); governance amendment (applied).
 
 **Still open:**
+
 1. **Connector design from the map** — build the content-keyed tab/column schema and the §6.1
    reconciliation rules from [`lease-renewal-spreadsheet-map.md`](lease-renewal-spreadsheet-map.md)
    (the access blocker is resolved; map is built).

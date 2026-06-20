@@ -5,7 +5,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
-export const OVERSIZE_LIMIT_BYTES = 300 * 1024;
+// Loosened 2026-06-20 from 300 KB to 5 MB: legitimate brand/design reference assets (e.g. the
+// brand pack PDF, ~680 KB) are pertinent and should commit cleanly. The guard still catches
+// genuinely oversized accidental commits (datasets, videos, vendored binaries).
+export const OVERSIZE_LIMIT_BYTES = 5 * 1024 * 1024;
 
 // Files that may legitimately exceed the size limit or that produce secret-scan noise
 // without being human-authored secret carriers.

@@ -9,6 +9,10 @@ Use `docs/demo-readiness.md` as the demo done checklist. Passing this walkthroug
 not the same as client-production cutover. Current product routing lives in
 `docs/north-star.md` and `docs/products/`.
 
+> **Note (2026-06-20):** the legacy hosted demo cloud lane (`pmikckb-test` / builder Workspace) is
+> retired — see [`demo-lane-retirement.md`](demo-lane-retirement.md). Run this walkthrough against
+> local demo mode (`npm run dev`) or the live cheap-live KB on `pmi-kc-kb-prod`.
+
 ## What To Say
 
 Use this framing at the start:
@@ -439,8 +443,8 @@ npm run smoke:demo-live
   account with
   `npm run firebase:set-role -- --email=<josiah-pmi-kc-account@pmikcmetro.com> --role=Admin`,
   then sign out and sign back in.
-- Firestore/API errors: run `npm run host:check`, then `npm run firebase:setup-auth-demo`
-  and `npm run firebase:setup-demo` only if setup state has drifted.
+- Firestore/API errors: run `npm run host:check`, then `npm run firebase:setup-auth`
+  and `npm run firebase:setup` (against the configured project) only if setup state has drifted.
 - Full code confidence: run `npm run verify` and `npm run test:firestore`.
 
 ## Demo Readiness Notes

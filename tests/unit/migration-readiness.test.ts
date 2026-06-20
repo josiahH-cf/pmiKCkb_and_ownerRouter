@@ -260,14 +260,27 @@ describe("buildMigrationReadinessReport", () => {
   });
 
   it("computes real plan/preflight/corpus/budget sections with the default deps", async () => {
-    // Smoke test against the real .mjs modules to catch declaration drift. Firestore is
-    // not available in unit tests, so the registry falls back to the seed catalog and
-    // notifications degrade with a note.
-    const report = await buildMigrationReadinessReport({
-      actor: admin,
-      config,
-      env: { ASK_DEMO_MODE: "true" } as unknown as NodeJS.ProcessEnv,
-    });
+    // Smoke test against the real .mjs modules (gcp/env/corpus/budget) to catch declaration
+    // drift. The Firestore-backed reads are forced unavailable so the registry
+    // deterministically falls back to the seed catalog and notifications degrade with a
+    // note. Without this, a developer machine carrying Application Default Credentials lets
+    // the real listActionRegistry reach an empty prod `action_registry` collection (0 docs,
+    // returned without throwing), which silently defeats the seed-fallback assertion below.
+    const firestoreUnavailable = async () => {
+      throw new Error("Firestore is not available in this smoke test.");
+    };
+    const report = await buildMigrationReadinessReport(
+      {
+        actor: admin,
+        config,
+        env: { ASK_DEMO_MODE: "true" } as unknown as NodeJS.ProcessEnv,
+      },
+      {
+        listActionRegistry: firestoreUnavailable,
+        readApprovalQueueNotificationHealth: firestoreUnavailable,
+        listApprovalQueueEmailSettings: firestoreUnavailable,
+      },
+    );
 
     expect(report.gcp.available).toBe(true);
     expect(report.production_env.available).toBe(true);

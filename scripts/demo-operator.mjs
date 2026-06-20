@@ -12,7 +12,7 @@ import { spawn } from "node:child_process";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const defaultBaseUrl = "http://localhost:3000";
-const defaultHostedBaseUrl = "https://pmi-kc-kb-demo-800237451321.us-central1.run.app";
+const defaultHostedBaseUrl = "https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app";
 const operatorDir = join(root, "temp", "demo-operator");
 const pidFile = join(operatorDir, "dev-server.json");
 const devLogFile = join(operatorDir, "dev-server.log");

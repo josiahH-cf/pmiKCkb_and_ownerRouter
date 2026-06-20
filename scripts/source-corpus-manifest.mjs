@@ -16,7 +16,7 @@ const defaultManifest = join(
   "source-corpus",
   "demo-live-source-manifest.json",
 );
-const DEFAULT_PROJECT = "pmikckb-test";
+const DEFAULT_PROJECT = "pmi-kc-kb-prod";
 const DEFAULT_LOCATION = "us";
 
 export function parseCorpusArgs(argv = process.argv.slice(2)) {

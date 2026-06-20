@@ -11,6 +11,25 @@ Owner action items are at the end.
 > silently. See also [`environment-handoff.md`](environment-handoff.md) and
 > [`client-production-cutover.md`](client-production-cutover.md).
 
+## 0. Current State (2026-06-20)
+
+| Surface                    | State                                                                                                                                                                        | Remaining                                                                                  |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| (a) Claude Drive connector | ✅ `pmikcmetro.com` — renewal sheet readable                                                                                                                                 | Revoke the old personal grant at `myaccount.google.com/permissions` (Google-side)          |
+| (b) Human gcloud / ADC     | ✅ `josiah@pmikcmetro.com` active on `pmi-kc-kb-prod`; ADC present + pmikcmetro; **legacy `cherrybridge.ai` gcloud credential REVOKED 2026-06-20** (only pmikcmetro remains) | Confirm `billing/quota_project`; overwrite stale registry vars via `host:setup`            |
+| (c) Runtime SA             | ✅ `pmi-kc-kb-runtime@…` attached, no keys                                                                                                                                   | Pin role inventory in handoff; add `storage.objectViewer`; Secret-Manager `kb-automation@` |
+| (d) Firebase end-user auth | ✅ pmikcmetro-locked; **`NODE_ENV=production` demo-flag footgun fix landed** in `deploy-demo-cloud-run.mjs`                                                                  | Add a runtime startup demo-flag assertion (§5.3)                                           |
+| (e) Firebase CLI           | ⛔ not logged in                                                                                                                                                             | `firebase login` as pmikcmetro → deploy `firestore:rules`/`:indexes`                       |
+| (f) Cloud Build SA         | ❓ unaudited                                                                                                                                                                 | Identify + record the `--source=.` build SA                                                |
+
+**Legacy demo cloud lane** (`pmikckb-test` project / `pmi-kc-kb-demo` service, in the
+`cherrybridge.ai` org) is **retired**. Repo pointers to the dead project were neutralized
+2026-06-20 (deploy/setup/source-corpus default project ids, the `firebase:setup-*demo` npm
+scripts, demo-operator's old project-number URL); the live cheap-live KB runs on `pmi-kc-kb-prod`
+and is unaffected. The GCP project was **deleted 2026-06-20** (`DELETE_REQUESTED`, recoverable
+~30 days) via a one-time ephemeral `cherrybridge.ai` auth — see
+[`demo-lane-retirement.md`](demo-lane-retirement.md).
+
 ## 1. Goals & the Single-Identity Principle
 
 **Owner mandate:** every auth surface uses a `pmikcmetro.com` Google identity; the personal
@@ -37,14 +56,14 @@ places and do **not** cascade. The most dangerous misconception is that
 
 ## 2. Target Auth Mechanism — Per Surface (Six Distinct Identity Systems)
 
-| # | Identity system | Authenticates | Configured at | Changing it affects |
-|---|---|---|---|---|
-| (a) | **Claude MCP Drive/Workspace connector** | *Claude*, reading Drive/Sheets for you | claude.ai → Settings → Connectors (OAuth) | Only what Claude can read in Drive. Nothing else. |
-| (b) | **Human gcloud user / ADC** | *You*, at a terminal/scripts | `gcloud auth login` / `application-default login`; ADC at `%APPDATA%/gcloud/...json` | Local CLI, deploys, seed scripts, `preflight:gcp`. |
-| (c) | **App runtime service account** | *The deployed Cloud Run app* | `--service-account=` on `gcloud run deploy` | Prod reads of Firestore, Discovery Engine, Storage, Gmail-send. |
-| (d) | **Firebase end-user auth** | *Your end users* signing into the web app | Firebase Google OAuth + `ALLOWED_HD`, validated at `/api/auth/session` | Who may log into the web UI. |
-| (e) | **Firebase CLI auth** | *You*, deploying Firestore rules/indexes | `npm exec firebase login` | `firebase deploy --only firestore:rules`/`:indexes`. Currently **blocking** per handoff. |
-| (f) | **Cloud Build / buildpack identity** | *The buildpack build* on `gcloud run deploy --source=.` | Cloud Build default/per-project build SA | Whether source builds; which registry/image it writes. |
+| #   | Identity system                          | Authenticates                                           | Configured at                                                                        | Changing it affects                                                                      |
+| --- | ---------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| (a) | **Claude MCP Drive/Workspace connector** | _Claude_, reading Drive/Sheets for you                  | claude.ai → Settings → Connectors (OAuth)                                            | Only what Claude can read in Drive. Nothing else.                                        |
+| (b) | **Human gcloud user / ADC**              | _You_, at a terminal/scripts                            | `gcloud auth login` / `application-default login`; ADC at `%APPDATA%/gcloud/...json` | Local CLI, deploys, seed scripts, `preflight:gcp`.                                       |
+| (c) | **App runtime service account**          | _The deployed Cloud Run app_                            | `--service-account=` on `gcloud run deploy`                                          | Prod reads of Firestore, Discovery Engine, Storage, Gmail-send.                          |
+| (d) | **Firebase end-user auth**               | _Your end users_ signing into the web app               | Firebase Google OAuth + `ALLOWED_HD`, validated at `/api/auth/session`               | Who may log into the web UI.                                                             |
+| (e) | **Firebase CLI auth**                    | _You_, deploying Firestore rules/indexes                | `npm exec firebase login`                                                            | `firebase deploy --only firestore:rules`/`:indexes`. Currently **blocking** per handoff. |
+| (f) | **Cloud Build / buildpack identity**     | _The buildpack build_ on `gcloud run deploy --source=.` | Cloud Build default/per-project build SA                                             | Whether source builds; which registry/image it writes.                                   |
 
 > **Load-bearing rule for every agent and human: these systems share no token, no consent
 > grant, and no config file.** gcloud auth (b) is separate from the Claude connector (a);
@@ -52,6 +71,7 @@ places and do **not** cascade. The most dangerous misconception is that
 > verified independently.
 
 ### (a) Claude's MCP Drive/Workspace connector — the primary blocker (NOW RESOLVED)
+
 - **Was:** OAuth'd to personal `josiah.abernathy@gmail.com`; could not see `pmikcmetro.com`
   domain files (renewal sheet lookup returned "not found").
 - **Now:** reconnected to `josiah@pmikcmetro.com` (2026-06-20) — the renewal sheet
@@ -61,9 +81,11 @@ places and do **not** cascade. The most dangerous misconception is that
   `myaccount.google.com/permissions` (disconnecting in Claude does not revoke Google's side).
 
 ### (b) Human gcloud user / ADC
+
 - **Today:** `gcloud auth login` active as `josiah@pmikcmetro.com` (org-correct), project
-  `pmi-kc-kb-prod` — verified this session. Legacy `cherrybridge.ai` account also credentialed
-  locally. **ADC is present and resolves to `josiah@pmikcmetro.com`** (verified via
+  `pmi-kc-kb-prod` — verified this session. The legacy `cherrybridge.ai` account was also
+  credentialed locally but has been **revoked (2026-06-20)**; only `josiah@pmikcmetro.com`
+  remains. **ADC is present and resolves to `josiah@pmikcmetro.com`** (verified via
   `npm run preflight:identity`). An earlier "missing" reading was a wrong-path check — on
   Windows ADC lives under `%APPDATA%\gcloud`, not `~/.config/gcloud`.
 - **Target:** `gcloud auth application-default login` as `josiah@pmikcmetro.com`;
@@ -74,6 +96,7 @@ places and do **not** cascade. The most dangerous misconception is that
   Windows registry, so stale `cherrybridge`/`pmikckb-test` values must be overwritten.
 
 ### (c) App runtime service account
+
 - **Today:** `pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com`, attached to Cloud Run
   (no keys): `datastore.user`, `discoveryengine.user`, `aiplatform.user`, `firebaseauth.admin`,
   `iam.serviceAccountTokenCreator` (self). Local dev uses human ADC via `applicationDefault()`.
@@ -87,20 +110,22 @@ places and do **not** cascade. The most dangerous misconception is that
   (`--impersonate-service-account`) over raw human ADC for prod-equivalent local dev.
 
 ### (d) Firebase end-user auth (already at target)
+
 - Firebase Google OAuth `signInWithPopup` with `hd` set before popup; `/api/auth/session`
   validates `email_verified===true`, `hd===ALLOWED_HD`, `sign_in_provider=google.com`,
   `auth_time` freshness; httpOnly/`secure`(prod)/`sameSite=lax`/8h session cookie verified with
   revocation check. Keep `LOCAL_DEMO_AUTH=false` and `ASK_DEMO_MODE=false` in production.
-- **Latent footgun (precision fix):** the demo-mode lockout is held up by the
-  `LOCAL_DEMO_AUTH=false` override, **not** by `NODE_ENV`. `lib/config/server.ts:113` computes
-  `localDemoAuth = LOCAL_DEMO_AUTH && NODE_ENV !== "production"`, but
-  `scripts/deploy-demo-cloud-run.mjs` `readRuntimeEnv` (lines 195-222) sets the demo flags false
-  yet **never sets `NODE_ENV`**. A future/manual deploy that drops the override would silently
-  re-enable demo auth against prod Firebase. Fix in §5.3 (set `NODE_ENV=production` explicitly +
-  runtime startup assertion).
+- **Demo-mode footgun (NODE_ENV fix LANDED 2026-06-20):** `lib/config/server.ts:113` computes
+  `localDemoAuth = LOCAL_DEMO_AUTH && NODE_ENV !== "production"`. `scripts/deploy-demo-cloud-run.mjs`
+  `readRuntimeEnv` now sets **`NODE_ENV: "production"` explicitly** (alongside `ASK_DEMO_MODE`/
+  `LOCAL_DEMO_AUTH` false), so the prod demo-auth lockout no longer depends solely on the
+  `LOCAL_DEMO_AUTH=false` override surviving every deploy. Remaining hardening: a **runtime startup
+  assertion** that fails fast if a demo flag is truthy while `NODE_ENV==="production"` (§5.3).
 
 ### 2.1 App-side Drive access — decide before any direct app Drive read
-Distinct from connector (a) (which is *Claude's* surface). For the app (c) reading Drive:
+
+Distinct from connector (a) (which is _Claude's_ surface). For the app (c) reading Drive:
+
 - **OAuth user consent** (connector / `kb-automation@`): per-account token; can't read domain
   files it isn't shared into. Right for the connector and Gmail-send, not a general solution.
 - **Domain-Wide Delegation:** broad (reads every user's Drive) — contradicts least-privilege;
@@ -116,13 +141,14 @@ reads Drive directly, make this decision explicitly.
 
 **(a) Claude connector — DONE 2026-06-20.** Reconnected as `josiah@pmikcmetro.com`; sheet
 readable. Remaining: revoke old personal grant at `myaccount.google.com/permissions`; this doc
-+ the discovery reference now record the connector identity as pmikcmetro.
+
+- the discovery reference now record the connector identity as pmikcmetro.
 
 **(b) Human gcloud/ADC:** `gcloud auth application-default login` as `josiah@pmikcmetro.com`
 (ADC already present + pmikcmetro, verified via `npm run preflight:identity`); set project +
 `billing/quota_project` to `pmi-kc-kb-prod`; overwrite
-stale registry env vars via `npm run host:setup`; `npm run host:check`; **then** revoke the
-`cherrybridge.ai` account locally.
+stale registry env vars via `npm run host:setup`; `npm run host:check`. The `cherrybridge.ai`
+gcloud credential is **revoked locally (done 2026-06-20)**, after ADC was confirmed under pmikcmetro.
 
 **(c) Runtime SA & ingestion:** confirm/trim `pmi-kc-kb-runtime@` roles to the least-privilege
 list and **document bindings** in `environment-handoff.md`. Build the missing **Drive → Cloud
@@ -153,6 +179,7 @@ on `josiah@pmikcmetro.com`; record in a "Credential Delegation" section of `envi
 
 The sheet is now readable via the reconnected connector (option i, done). For reference, the
 three options, each touching a **different** identity system:
+
 - **(i) Reconnect Claude's Drive connector to pmikcmetro — system (a). DONE / RECOMMENDED.**
   Durable target; no personal account; lets Claude read Drive directly.
 - **(ii) Share the sheet to the personal account — Drive ACL only. DISCOURAGED.** Puts a
@@ -242,12 +269,13 @@ stop:** the $10 budget alert is a warning, not a cap — treat unexpected spend 
 
 1. **Revoke the old Claude grant** from the personal account at `myaccount.google.com/permissions`
    (connector already reconnected to pmikcmetro — done).
-2. **Confirm ADC + clean up:** ADC is already present + pmikcmetro (verified via
-   `npm run preflight:identity`); set project + quota project to `pmi-kc-kb-prod`, run
-   `npm run host:setup` / `host:check`, then `gcloud auth revoke` the `cherrybridge.ai` account.
-3. **Close the demo-mode footgun:** set `NODE_ENV=production` in `deploy-demo-cloud-run.mjs`
-   `readRuntimeEnv` + add a runtime demo-flag startup assertion. *(Code change — I can do this on
-   your go-ahead; it touches deploy behavior.)*
+2. **Confirm ADC + finish cleanup:** ADC is present + pmikcmetro (verified via
+   `npm run preflight:identity`); set project + quota project to `pmi-kc-kb-prod` and run
+   `npm run host:setup` / `host:check`. The `cherrybridge.ai` gcloud credential is already
+   **revoked (2026-06-20)**.
+3. **Demo-mode footgun — NODE_ENV part DONE:** `readRuntimeEnv` now sets `NODE_ENV=production`
+   explicitly. Remaining: add a runtime demo-flag startup assertion (fail fast if a demo flag is
+   truthy while `NODE_ENV==="production"`).
 4. **Log in the Firebase CLI** as pmikcmetro and deploy `firestore:rules`/`firestore:indexes`
    (pending blocker).
 5. **Move the spreadsheet's plaintext credentials** out of the shared sheet into a password

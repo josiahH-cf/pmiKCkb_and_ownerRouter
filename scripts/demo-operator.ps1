@@ -2,7 +2,7 @@ param(
   [ValidateSet("TestRun", "Showtime", "Teardown")]
   [string]$Mode = "TestRun",
   [string]$BaseUrl = "http://localhost:3000",
-  [string]$HostedBaseUrl = "https://pmi-kc-kb-demo-800237451321.us-central1.run.app",
+  [string]$HostedBaseUrl = "https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app",
   [int]$TimeoutMs = 90000,
   [switch]$SkipInstall,
   [switch]$UseExistingServer,

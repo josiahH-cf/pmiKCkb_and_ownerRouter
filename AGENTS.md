@@ -24,35 +24,38 @@ route new work through the three-product docs.
 
 ## Route Table
 
-| Need                              | Read                                                              |
-| --------------------------------- | ----------------------------------------------------------------- |
-| North star and product direction  | `docs/north-star.md`                                              |
-| Product lane routing              | `docs/products/README.md`, then the relevant product doc          |
-| Phase plan and acceptance gates   | `docs/plan.md`                                                    |
-| Integration and cutover           | `docs/integration-cutover-plan.md`                                |
-| Verified integration architecture | `docs/integration-architecture.md`                                |
-| Integration capability research   | `docs/research/integration-capability-2026-06.md`                 |
-| Environment and key handoff       | `docs/environment-handoff.md`                                     |
-| Product definition gaps           | `docs/product-definition-gap-plan.md`                             |
-| How to work next                  | `docs/implement.md`                                               |
-| Autonomous feature-cycle runner   | `docs/autonomous-agent-runner.md`                                 |
-| Plan, run, or continue the loop   | `docs/loop-state.md`, then `docs/autonomous-agent-runner.md`      |
-| Cost ceiling and budget policy    | `docs/budget-and-cost-policy.md`                                  |
-| Vacation / away-mode overlay      | `docs/away-mode.md`                                               |
-| Local-dev stop/cutover gate       | `docs/autonomous-agent-runner.md`, `docs/implement.md`            |
-| Current status and blockers       | `docs/status.md`                                                  |
-| Loop resume state and next slice  | `docs/loop-state.md`                                              |
-| Client asks                       | `docs/client-checklist.md`                                        |
-| Client unblock and parallel work  | `docs/status.md`, `docs/client-checklist.md`, `docs/implement.md` |
-| Engineering checklist             | `docs/engineering-checklist.md`                                   |
-| AI execution workflow             | `docs/ai-execution-workflow.md`                                   |
-| Research backlog                  | `docs/research-backlog.md`                                        |
-| Security and conventions          | `docs/engineering.md`                                             |
-| Original preserved specs          | `docs/specs/`                                                     |
-| KB technical spec                 | `docs/spec.md`                                                    |
-| Legacy Owner Router split         | `docs/legacy/owner-router-separate-repo.md`                       |
-| Owner Router artifact source      | `docs/legacy/owner-router-artifact-source.md`                     |
-| Google setup details              | `docs/google-setup.md`, `SETUP.md`                                |
+| Need                                | Read                                                                                                |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------- |
+| North star and product direction    | `docs/north-star.md`                                                                                |
+| Product lane routing                | `docs/products/README.md`, then the relevant product doc                                            |
+| Renewal / move-in / move-out flow   | `docs/products/lease-renewal-discovery-reference.md`, `docs/products/move-in-move-out-process.md`   |
+| Renewal sheet connector + conflicts | `docs/products/lease-renewal-connector-design.md`, `docs/products/lease-renewal-spreadsheet-map.md` |
+| Demo lane retirement                | `docs/demo-lane-retirement.md`                                                                      |
+| Phase plan and acceptance gates     | `docs/plan.md`                                                                                      |
+| Integration and cutover             | `docs/integration-cutover-plan.md`                                                                  |
+| Verified integration architecture   | `docs/integration-architecture.md`                                                                  |
+| Integration capability research     | `docs/research/integration-capability-2026-06.md`                                                   |
+| Environment and key handoff         | `docs/environment-handoff.md`                                                                       |
+| Product definition gaps             | `docs/product-definition-gap-plan.md`                                                               |
+| How to work next                    | `docs/implement.md`                                                                                 |
+| Autonomous feature-cycle runner     | `docs/autonomous-agent-runner.md`                                                                   |
+| Plan, run, or continue the loop     | `docs/loop-state.md`, then `docs/autonomous-agent-runner.md`                                        |
+| Cost ceiling and budget policy      | `docs/budget-and-cost-policy.md`                                                                    |
+| Vacation / away-mode overlay        | `docs/away-mode.md`                                                                                 |
+| Local-dev stop/cutover gate         | `docs/autonomous-agent-runner.md`, `docs/implement.md`                                              |
+| Current status and blockers         | `docs/status.md`                                                                                    |
+| Loop resume state and next slice    | `docs/loop-state.md`                                                                                |
+| Client asks                         | `docs/client-checklist.md`                                                                          |
+| Client unblock and parallel work    | `docs/status.md`, `docs/client-checklist.md`, `docs/implement.md`                                   |
+| Engineering checklist               | `docs/engineering-checklist.md`                                                                     |
+| AI execution workflow               | `docs/ai-execution-workflow.md`                                                                     |
+| Research backlog                    | `docs/research-backlog.md`                                                                          |
+| Security and conventions            | `docs/engineering.md`                                                                               |
+| Original preserved specs            | `docs/specs/`                                                                                       |
+| KB technical spec                   | `docs/spec.md`                                                                                      |
+| Legacy Owner Router split           | `docs/legacy/owner-router-separate-repo.md`                                                         |
+| Owner Router artifact source        | `docs/legacy/owner-router-artifact-source.md`                                                       |
+| Google setup details                | `docs/google-setup.md`, `SETUP.md`                                                                  |
 
 ## Project Map
 
@@ -142,7 +145,10 @@ route new work through the three-product docs.
   `pmikcmetro.com` (human/connector/firebase-CLI) or a `pmi-kc-kb-prod` service identity
   (runtime/build). `gcloud auth` does NOT change the Claude connector, and vice-versa.
 - No `cherrybridge.ai` / `pmikckb-test` (legacy demo) in any production path. No downloadable
-  key files — ADC (local human) and attached service account (runtime) only.
+  key files — ADC (local human) and attached service account (runtime) only. The legacy demo
+  cloud lane is being retired (repo pointers neutralized 2026-06-20; GCP teardown is owner-side) —
+  see `docs/demo-lane-retirement.md`. Local-dev demo mode is kept but fenced from prod by the
+  `NODE_ENV` guard.
 - "Blocked on access" is raised as an explicit blocker, never worked around with a personal
   account or a demo-mode fallback.
 - Full strategy, per-surface mechanisms, and migration plan:

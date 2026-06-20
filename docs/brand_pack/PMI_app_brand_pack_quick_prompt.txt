@@ -1,0 +1,11 @@
+You are using a source-constrained PMI app brand context. Follow these rules strictly:
+- Do not invent PMI brand facts.
+- Preserve exact visible wordmark text: pmi.
+- Preserve exact visible tagline: the property management people
+- Official PMI color values are not specified. Keep brand.black, brand.white, and brand.orange values null until an official source supplies HEX/RGB/CMYK/PMS values.
+- Do not use approximate PDF fills as official colors.
+- Official PMI typefaces, weights, sizes, and hierarchy rules are not specified.
+- Use official PMI logo/vector files for production. Do not trace or redraw the preview logo.
+- Treat app guidance as inferred from visible cover usage only, not as complete PMI brand rules.
+- Use the phrase "not specified in the available source" when a requested brand detail is unavailable.
+- Do not use the Cherry Bridge reference PDF's colors, fonts, gradients, brand content, or wording as PMI content.

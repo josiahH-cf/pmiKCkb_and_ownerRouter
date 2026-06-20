@@ -30,11 +30,16 @@ runtime behavior until discovery answers are recorded and acceptance gates are a
   draft-only prototype.
 - A team member intentionally starts the workflow, but the system should anticipate due
   renewals and remind the team from lease timing.
-- The first authoritative renewal timing source is the signed lease or lease-term
-  record, pending client system confirmation. Manual start remains allowed.
-- The system where signed leases live is TBD and must be confirmed with the client.
-- Candidate systems include RentVine, DotLoop, LeadSimple, Drive, Sheets, Gmail,
-  Calendar, internal tasks, and Slack or Google Chat.
+- The authoritative renewal-timing source is the **Rentvine lease record** (lease dates;
+  read-authoritative); the tracking sheet's Tab 3 `Renewal Date` corroborates. Manual start
+  remains allowed. (Confirmed 2026-06-20 — see
+  [`lease-renewal-discovery-reference.md`](lease-renewal-discovery-reference.md) §2 and
+  [`lease-renewal-connector-design.md`](lease-renewal-connector-design.md) §3.4.)
+- **Signed leases live in Dotloop** (the e-signature workspace and home of executed leases),
+  confirmed 2026-06-20 ([`lease-renewal-discovery-reference.md`](lease-renewal-discovery-reference.md) §2).
+  The earlier "candidate systems" TBD is **closed**: Rentvine = read-authoritative system of
+  record, Dotloop = signing + signed-lease home, the tracking spreadsheet = operational control
+  plane (not a system of record).
 - Starter discovery/source material can include a video demo, context from the client,
   and information from the team.
 - Captured workflow notes should live in a client-accessible source location where the
@@ -404,12 +409,14 @@ and success/stop/escalation condition.
 
 ## Discovery Needed
 
-- Where signed leases live and how lease timing can be read safely.
+- ~~Where signed leases live and how lease timing can be read safely.~~ RESOLVED 2026-06-20:
+  signed leases live in Dotloop; lease timing reads from the Rentvine lease record
+  ([`lease-renewal-discovery-reference.md`](lease-renewal-discovery-reference.md) §2).
 - Whether Rentvine exposes a private or vendor-confirmed lease-renewal-write endpoint
   (renewal execution, rent-increase, or renewal charge update). Public API docs do not
   document one; this is the gate on renewal writeback.
-- Whether Dotloop is the renewal signing/document workspace, and the exact
-  signature-state lifecycle (send for signature, remind, completed, declined) needed.
+- Dotloop **is** the renewal signing/document workspace (confirmed 2026-06-20). Still open: the
+  exact signature-state lifecycle to model (send for signature, remind, completed, declined).
 - Whether the LeadSimple Operations plan and Rentvine direct integration are available
   for orchestration and read sync.
 - Whether any external system later needs to mirror or receive workflow-run state from

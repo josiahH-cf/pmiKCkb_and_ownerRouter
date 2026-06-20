@@ -11,7 +11,16 @@ continuation, and stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-06-19
+- Last updated: 2026-06-20
+- 2026-06-20 cycle (hardening + recontextualization): revoked the legacy `cherrybridge.ai`
+  gcloud credential (only `josiah@pmikcmetro.com` remains); retired the demo _cloud_ lane —
+  neutralized all dead `pmikckb-test` repo pointers AND **deleted the `pmikckb-test` GCP project**
+  (DELETE_REQUESTED, ~30-day recoverable) via a one-time ephemeral cherrybridge auth
+  (`docs/demo-lane-retirement.md`); fixed BOTH environment-coupled unit tests
+  (`migration-readiness`, `cutover-report`) to be hermetic — **386/386 unit tests now pass**;
+  reworked the lease-renewal connector write-back to an **admin-enabled, suggest-then-button-press**
+  model (no trust auto-write — `docs/products/lease-renewal-connector-design.md` §4.0); and ran a
+  doc recontextualization pass (identity/migration, renewal/move-in/move-out, cross-doc ambiguities).
 - Operating mode: Normal owner-present coordination. Remote Away Mode is inactive; see
   `docs/away-mode.md`.
 - Active product lane: Cross-product migration/setup (PMI KC KB cutover) and the cheap-live
@@ -49,8 +58,9 @@ continuation, and stop-and-reset rules.
   keep the durable ~$10 unattended-spend guard; the PM budget is the outer GCP-enforced
   alert. Create a project-scoped $10 budget alert on the production project before any deploy.
 - Evidence: `bash scripts/verify.sh` green on 2026-06-06; re-verified 2026-06-19 on the owner
-  Windows host (budget-guard green; falsification green across 303 files; 370/372 unit tests
-  pass — 2 failures are environment-coupled, not regressions; see Last-Known-Green below).
+  Windows host (budget-guard green; falsification green across 303 files). As of 2026-06-20,
+  **386/386 unit tests pass** — the two prior environment-coupled failures (`migration-readiness`,
+  `cutover-report`) are now fixed hermetically (see Last-Known-Green below).
   Cutover/preflight artifacts present (`npm run preflight:production`,
   `docs/client-production-cutover.md`, source-corpus manifests).
 - What billing unblocks: live preflight, API enablement, Firestore/Cloud Run setup, the
@@ -61,6 +71,22 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- Hardening + Recontextualization (2026-06-20, owner-directed): (1) Revoked the legacy
+  `cherrybridge.ai` gcloud credential (only `josiah@pmikcmetro.com` remains; no active repo
+  reference depends on it). (2) Retired the demo _cloud_ lane on the repo side — neutralized the
+  dead `pmikckb-test` default project ids in `deploy-demo-cloud-run.mjs`,
+  `source-corpus-manifest.mjs`, and `setup-windows-google-dev.ps1`; repointed `demo-operator` off
+  the dead project-number URL; removed the `firebase:setup-*demo` npm scripts; **kept** local-dev
+  demo mode, the demo source templates, and the preflight guardrails that reject the dead project.
+  The `pmikckb-test` GCP project was then **deleted this session** via a one-time ephemeral
+  cherrybridge auth (DELETE_REQUESTED, ~30-day recoverable; `docs/demo-lane-retirement.md`). (3) Fixed
+  both environment-coupled unit tests to be hermetic (`migration-readiness` no longer depends on
+  ambient ADC reaching an empty prod Firestore; `cutover-report` reads an empty env fixture, not
+  the host `.env.local`) — **386/386 unit tests pass**. (4) Reworked the lease-renewal connector
+  write-back to an admin-enabled, console-user-scoped, suggest-then-button-press model with no
+  trust-based auto-write (`lease-renewal-connector-design.md` §4.0). (5) Documentation
+  recontextualization: identity/migration current-state, a new `move-in-move-out-process.md`, and
+  cross-doc ambiguity fixes. No system-of-record write, no deploy, no spend.
 - GCP Billing Unblock — Cutover Resume + Verification Baseline (2026-06-19): recorded the
   PM-provisioned billing account (`01A5A3-65CA5A-614D45`, org `584930494337`, budget id
   `82962d7e-b340-4253-8348-38caff16e88a`) as non-secret identifiers in
@@ -226,6 +252,11 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-20 (hardening + recontextualization slice, owner Windows host): `npx vitest run`
+  **386/386 PASS across 48 files** — both previously environment-coupled failures
+  (`migration-readiness.test.ts`, `cutover-report.test.mjs`) are now hermetic and green. Full
+  `bash scripts/verify.sh` not re-run this slice (changes were tests + scripts + docs); run it
+  before any deploy.
 - 2026-06-19 (billing-unblock slice, owner Windows host): `npm run check:budget-guard` PASS
   (demo posture, away mode inactive, $10 cap); `npm run verify:falsification` PASS (303
   committable files); `npm test` 370/372 PASS. The 2 failures are environment-coupled, not
@@ -488,7 +519,10 @@ All client-owned (tracked in `docs/client-checklist.md` and `docs/research-backl
 - Google Sheets exact in-scope sheet list and owner confirmation.
 - RentVine credential rotation — a credential appeared in ignored spreadsheet notes and
   must be rotated/stored outside the repo before future use.
-- Signed lease / lease-end-date source location.
+- ~~Signed lease / lease-end-date source location.~~ RESOLVED: signed leases live in **Dotloop**
+  (e-signature home); lease-end / renewal timing reads from the **Rentvine lease record** (Tab 3
+  `Renewal Date` corroborates). See `docs/products/lease-renewal-discovery-reference.md` §2 and
+  `docs/products/lease-renewal-connector-design.md` §3.4.
 - Rentvine lease-renewal-write endpoint confirmation — undocumented in the public API;
   vendor confirmation required before any renewal writeback (see
   `docs/integration-architecture.md`).

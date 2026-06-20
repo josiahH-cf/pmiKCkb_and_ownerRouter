@@ -5,6 +5,13 @@ Cloud Storage / Drive source locations, Agent Search / Vertex AI Search, Cloud R
 and Gmail send-only behavior. Keep secrets out of git and store real values in
 `.env.local` or Secret Manager.
 
+> **Demo cloud lane retired (2026-06-20).** The legacy `pmikckb-test` demo project (in the
+> `cherrybridge.ai` org) is being retired — see [`demo-lane-retirement.md`](demo-lane-retirement.md).
+> The live cheap-live KB runs on `pmi-kc-kb-prod` (`pmikcmetro.com`). The `firebase:setup-demo` /
+> `firebase:setup-auth-demo` aliases (which hardcoded `--project=pmikckb-test`) were removed; use
+> the generic `npm run firebase:setup` / `npm run firebase:setup-auth` with an explicit
+> `--project=<id>`. Sections below that name `pmikckb-test` are historical demo-setup context.
+
 ## Local Prerequisites
 
 Required:
@@ -50,7 +57,7 @@ After the host check passes, future agents can try to attach Firebase and regist
 demo web app with:
 
 ```bash
-npm run firebase:setup-demo
+npm run firebase:setup
 ```
 
 This command uses the Firebase Management REST API, creates/reuses the Firebase Web
@@ -77,7 +84,7 @@ demo edits.
 Live Google sign-in is a separate Auth gate for the demo project:
 
 ```bash
-npm run firebase:setup-auth-demo
+npm run firebase:setup-auth
 ```
 
 This command initializes Firebase Auth / Identity Platform, adds local/demo authorized
@@ -115,7 +122,7 @@ Current demo-host state:
 - Firebase Auth / Identity Platform is initialized.
 - Authorized domains are set for `localhost`, `127.0.0.1`,
   `pmikckb-test.firebaseapp.com`, and `pmikckb-test.web.app`.
-- Google sign-in provider setup is verified by `npm run firebase:setup-auth-demo`.
+- Google sign-in provider setup is verified by `npm run firebase:setup-auth`.
 - Future auth and automation tests should use Josiah's PMI KC `pmikcmetro.com` account
   once provisioned, with Firebase custom claim `role=Admin`.
 - If the persistent browser profile expires or Google asks for fresh verification, use
@@ -165,7 +172,7 @@ Manual console fallback:
    `pmikckb-test.firebaseapp.com`, and `pmikckb-test.web.app`.
 5. Set `ALLOWED_HD` to the demo Workspace domain.
 6. Tell the agent when billing/Auth are active so it can rerun
-   `npm run firebase:setup-auth-demo` and smoke real sign-in.
+   `npm run firebase:setup-auth` and smoke real sign-in.
 
 Official references:
 
@@ -533,7 +540,7 @@ For this demo project, Cloud Run source deploy required:
 - disabling the Cloud Run invoker IAM check on `pmi-kc-kb-demo`, because the
   organization policy rejected an `allUsers` invoker binding;
 - adding both Cloud Run hosts to Firebase Auth authorized domains with
-  `npm run firebase:setup-auth-demo -- --authorized-domain=<host>`.
+  `npm run firebase:setup-auth -- --authorized-domain=<host>`.
 
 If `--allow-unauthenticated` fails because org policy blocks `allUsers`, redeploy with
 `npm run deploy:demo -- --budget-confirmed --allow-multiple-spaces --skip-allow-unauthenticated --service-account=<service-account-email>`,

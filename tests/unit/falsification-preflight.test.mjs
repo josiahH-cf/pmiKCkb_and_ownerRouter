@@ -42,11 +42,19 @@ describe("findSecretMatches", () => {
 
 describe("isOversized", () => {
   it("flags files above the limit", () => {
-    expect(isOversized(400 * 1024, "docs/example.md")).toBe(true);
+    expect(isOversized(6 * 1024 * 1024, "docs/example.md")).toBe(true);
   });
 
   it("keeps files at or below the limit", () => {
     expect(isOversized(100, "docs/example.md")).toBe(false);
+  });
+
+  it("allows large brand/design assets under the loosened limit", () => {
+    // The limit was loosened so legitimate brand/design assets (e.g. the brand pack PDF,
+    // ~680 KB) commit cleanly; only genuinely huge files trip the guard now.
+    expect(isOversized(1024 * 1024, "docs/brand_pack/PMI_app_brand_pack.pdf")).toBe(
+      false,
+    );
   });
 
   it("allowlists the npm lockfile by basename", () => {

@@ -1,0 +1,307 @@
+{
+  "schema_name": "source_constrained_brand_pack",
+  "schema_version": "1.0.0",
+  "document_title": "PMI App Brand Pack - LLM Context Format",
+  "brand": {
+    "company_name": {
+      "value": "Property Management Inc.",
+      "status": "confirmed_from_page_shell",
+      "notes": "Publisher shown in the available Flipsnack page shell."
+    },
+    "brand_short_name": {
+      "value": "PMI",
+      "status": "confirmed_from_publication_title"
+    },
+    "visible_wordmark_text": {
+      "value": "pmi.",
+      "status": "observed_on_visible_cover_preview",
+      "case_and_punctuation_rule": "Preserve lowercase spelling and trailing period when referencing the visible wordmark."
+    },
+    "visible_tagline": {
+      "value": "the property management people",
+      "status": "observed_on_visible_cover_preview",
+      "case_and_punctuation_rule": "Preserve lowercase wording exactly as observed."
+    },
+    "publication": {
+      "title": "PMI Brand Style Guide - 071525",
+      "publisher_shown": "Property Management Inc.",
+      "published_date_shown": "October 11, 2024",
+      "visible_cover_label": "Brand Book / Style Guide",
+      "source_url": "https://www.flipsnack.com/C67D66CC5A8/pmi-brand-style-guide-v1-0/full-view.html",
+      "status": "confirmed_from_available_page_shell_and_visible_cover_preview"
+    }
+  },
+  "source_policy": {
+    "hard_rule": "Use only information directly supported by the available PMI source. Do not invent PMI brand facts.",
+    "status_values": [
+      "confirmed_from_page_shell",
+      "confirmed_from_publication_title",
+      "observed_on_visible_cover_preview",
+      "inferred_from_visible_usage_only",
+      "not_specified_in_available_source"
+    ],
+    "unknown_value_rule": "When a value is unknown, keep it null and describe it as not specified in the available source. Do not fill gaps from memory, unrelated PMI sites, or the reference PDF.",
+    "reference_pdf_rule": "The attached Cherry Bridge reference PDF influenced presentation structure only. Do not use its brand names, colors, fonts, gradients, or wording as PMI content."
+  },
+  "logo_system": {
+    "visible_elements": [
+      {
+        "name": "orange_angular_icon",
+        "status": "observed_on_visible_cover_preview",
+        "production_rule": "Use official PMI vector artwork for release assets. Do not trace or redraw the preview."
+      },
+      {
+        "name": "lowercase_wordmark",
+        "text": "pmi.",
+        "status": "observed_on_visible_cover_preview",
+        "production_rule": "Preserve exact visible text styling when describing the wordmark; use official artwork in production."
+      },
+      {
+        "name": "tagline",
+        "text": "the property management people",
+        "status": "observed_on_visible_cover_preview",
+        "production_rule": "Preserve exact wording."
+      }
+    ],
+    "not_specified": [
+      "clearspace",
+      "minimum_size",
+      "alternate_lockups",
+      "one_color_rules",
+      "logo_file_formats",
+      "co-branding_rules"
+    ],
+    "app_implications": [
+      "Keep a high-contrast lockup zone for visible brand moments.",
+      "Do not redraw the preview logo for release assets.",
+      "Avoid color or value substitutions until official tokens are obtained."
+    ],
+    "production_rule": "This LLM context pack is a source-constrained design handoff scaffold, not a substitute for official logo files or full PMI brand-guide rules."
+  },
+  "color_system": {
+    "official_color_values_available": false,
+    "global_warning": "Exact PMI HEX, RGB, CMYK, PMS, and contrast values were not available. Do not create production design tokens from observed preview colors or PDF approximation fills.",
+    "roles": [
+      {
+        "token_name": "brand.black",
+        "display_name": "Cover black",
+        "observed_role": "primary cover/background",
+        "status": "observed_on_visible_cover_preview",
+        "official_hex": null,
+        "official_rgb": null,
+        "official_cmyk": null,
+        "official_pms": null,
+        "contrast_validated": false,
+        "do_not_estimate": true,
+        "notes": "Observed as black cover field; exact official value not specified."
+      },
+      {
+        "token_name": "brand.white",
+        "display_name": "Logo white",
+        "observed_role": "pmi. wordmark on black cover",
+        "status": "observed_on_visible_cover_preview",
+        "official_hex": null,
+        "official_rgb": null,
+        "official_cmyk": null,
+        "official_pms": null,
+        "contrast_validated": false,
+        "do_not_estimate": true,
+        "notes": "Observed as white wordmark; exact official value not specified."
+      },
+      {
+        "token_name": "brand.orange",
+        "display_name": "PMI orange",
+        "observed_role": "icon, tagline, accent rules",
+        "status": "observed_on_visible_cover_preview",
+        "official_hex": null,
+        "official_rgb": null,
+        "official_cmyk": null,
+        "official_pms": null,
+        "contrast_validated": false,
+        "do_not_estimate": true,
+        "notes": "Observed as orange angular icon/tagline/accent; exact official value not specified."
+      }
+    ],
+    "prototype_approximations": {
+      "were_used_visually_in_pdf": true,
+      "values_in_this_llm_pack": null,
+      "reason_values_omitted": "Omitted to prevent an outside model from treating presentation approximations as official PMI color specifications.",
+      "allowed_use": "conversation-only mockups with explicit non-production labeling",
+      "production_use_allowed": false
+    },
+    "gradients": {
+      "status": "not_specified_in_available_source",
+      "official_gradient_values": [],
+      "rule": "Do not infer PMI gradients from the reference PDF or from approximate cover colors."
+    },
+    "app_usage_guidance": [
+      {
+        "topic": "High-contrast brand moments",
+        "status": "inferred_from_visible_usage_only",
+        "guidance": "Use the black/orange/white identity for launch, sign-in, hero, and brand transition screens only when values are official or explicitly labeled as prototype approximations. Keep body UI quieter than the cover moment."
+      },
+      {
+        "topic": "Orange as active signal",
+        "status": "inferred_from_visible_usage_only",
+        "guidance": "Orange appears as icon/tagline/accent. It may be used for key actions only after official contrast values are validated."
+      },
+      {
+        "topic": "Neutral app surfaces",
+        "status": "source_safe_app_implication",
+        "guidance": "Use plain white or neutral surfaces for long tasks, forms, and tables. Avoid heavy black backgrounds for dense operational workflows."
+      }
+    ]
+  },
+  "typography": {
+    "official_typefaces_available": false,
+    "status": "not_specified_in_available_source",
+    "official_fonts": [],
+    "official_weights": [],
+    "official_sizes": [],
+    "official_hierarchy_rules": [],
+    "guidance": [
+      "Do not infer the complete typography system from the cover image.",
+      "Use official PMI typefaces when obtained.",
+      "Until official fonts are obtained, keep any working app prototype typography explicitly labeled as non-brand fallback."
+    ],
+    "fallback_example_is_brand_fact": false,
+    "fallback_note": "Any fallback font shown in the visual PDF was a usability placeholder, not a PMI typeface specification."
+  },
+  "graphic_language": {
+    "supported_observations": [
+      "Angular orange symbol",
+      "Black field",
+      "White lowercase wordmark",
+      "Thin cover rules"
+    ],
+    "status": "observed_on_visible_cover_preview",
+    "not_specified": [
+      "icon_set",
+      "illustration_style",
+      "pattern_library",
+      "motion_behavior",
+      "full_graphic_motif_rules"
+    ],
+    "app_use": [
+      "Use the angular brand motif only as a restrained accent or transition, and only when official assets are available.",
+      "Do not over-pattern operational screens.",
+      "Use official files for icons and marks when available.",
+      "Do not trace the preview for release assets."
+    ]
+  },
+  "imagery": {
+    "status": "not_specified_in_available_source",
+    "available_rules": [],
+    "not_available": [
+      "photography_rules",
+      "image_treatments",
+      "subject_matter_guidance"
+    ],
+    "rule": "Do not infer image style from unrelated PMI sources."
+  },
+  "tone_of_voice": {
+    "status": "not_specified_in_available_source_except_visible_tagline",
+    "visible_tagline": "the property management people",
+    "available_rules": [],
+    "not_available": [
+      "copywriting_principles",
+      "messaging_hierarchy",
+      "voice_and_tone_adjectives"
+    ]
+  },
+  "accessibility": {
+    "status": "not_specified_in_available_source",
+    "available_rules": [],
+    "not_available": [
+      "contrast_ratios",
+      "alt_text_rules",
+      "ui_state_guidance",
+      "accessible_color_pairings"
+    ],
+    "app_implication": "Build the app with accessible product defaults now; replace visual placeholders only when official PMI typography, palette, imagery, and accessibility requirements are obtained.",
+    "contrast_validation_required_before_release": true
+  },
+  "app_components": {
+    "status": "source_safe_guidance_inferred_from_visible_usage_only",
+    "guidance": [
+      {
+        "component": "splash_launch",
+        "rule": "Use the visible black/orange/white identity as a brand moment, with official assets and official color values before release."
+      },
+      {
+        "component": "top_navigation",
+        "rule": "Keep compact. Avoid unverified logo variants or redrawn marks."
+      },
+      {
+        "component": "primary_actions",
+        "rule": "Orange may act as the brand accent only after contrast is validated and official color values are obtained."
+      },
+      {
+        "component": "forms_tables",
+        "rule": "Use neutral surfaces and clear typography. Official fonts are not specified in the available source."
+      },
+      {
+        "component": "design_tokens",
+        "rule": "Create placeholder tokens only; leave values null until official specs are obtained."
+      }
+    ]
+  },
+  "do_dont": {
+    "do": [
+      "Use the exact visible name styling pmi. when referencing the visible wordmark.",
+      "Preserve the tagline wording: the property management people.",
+      "Treat orange, black, and white as observed visual roles only until exact specs are obtained.",
+      "Use official logo artwork for production app assets.",
+      "Keep unavailable brand specs clearly marked in design tickets."
+    ],
+    "dont": [
+      "Do not publish approximate fills as PMI HEX/RGB/CMYK/PMS values.",
+      "Do not invent typefaces, spacing, clearspace, gradients, icons, or imagery rules.",
+      "Do not redraw the preview logo for app release builds.",
+      "Do not mix this visible identity with unrelated or legacy marks without source support.",
+      "Do not overuse the dark cover treatment for dense functional screens."
+    ]
+  },
+  "handoff_checklist": {
+    "usable_now": [
+      "Publication identity: PMI Brand Style Guide - 071525 / Property Management Inc.",
+      "Visible cover lockup reference: pmi. + tagline + orange angular mark."
+    ],
+    "use_with_caution": [
+      "App mockups may use approximated black/orange/white fills for conversation only. Label them as non-production."
+    ],
+    "needed_before_release": [
+      "Official logo files and usage rules.",
+      "Official color specifications and accessibility-confirmed UI tokens.",
+      "Official typefaces, iconography, imagery, and motion/graphic rules."
+    ]
+  },
+  "anti_hallucination_contract_for_models": {
+    "must_not_do": [
+      "Do not assign HEX, RGB, CMYK, PMS, or gradient values to PMI colors unless supplied by a later official source.",
+      "Do not name PMI typefaces, font sizes, or hierarchy rules unless supplied by a later official source.",
+      "Do not use the Cherry Bridge reference PDF's colors, gradients, typography, or wording as PMI content.",
+      "Do not treat the visual PDF's approximation fills as official PMI colors.",
+      "Do not invent logo clearspace, minimum size, one-color usage, icon style, photography style, tone rules, or accessibility rules."
+    ],
+    "must_do": [
+      "Use null for unknown structured values.",
+      "Use the phrase 'not specified in the available source' for unavailable PMI details.",
+      "Separate observed facts from app implications.",
+      "Mark app implications as inferred from visible usage only when they are not direct PMI rules.",
+      "Require official source verification before production implementation."
+    ]
+  },
+  "source_notes": {
+    "pmi_source_material_used": [
+      "Flipsnack publication page shell: title, publisher, publication date.",
+      "Visible cover preview: orange angular icon, lowercase pmi. wordmark, orange tagline, black cover field, Brand Book / Style Guide label.",
+      "Public full-view page extraction: cookie/banner shell only; no reliable interior page text, official color values, or typeface rules were exposed in the available extraction workflow."
+    ],
+    "reference_pdf_usage": [
+      "Attached Cherry Bridge guide used only as visual structure benchmark: section titles, spacing, swatches, callouts, footers, and page numbers.",
+      "No reference brand names, palette values, fonts, gradients, or wording were used as PMI content."
+    ],
+    "final_status": "Source-constrained brand pack; not a substitute for complete official PMI brand guide files."
+  }
+}
