@@ -288,6 +288,20 @@ export const SYNTHETIC_CREDENTIAL_TAB_7: SyntheticTabFixture = {
   ],
 };
 
+// Tab 11 — Owner Onboarding subset with the off-by-one artifact (map §7): row 0 is a stray data
+// row, the real header is on row 1. Header resolution must detect the header row, not assume row 0.
+export const SYNTHETIC_OWNER_ONBOARDING_OFFBYONE_TAB: SyntheticTabFixture = {
+  tabNumber: 11,
+  label: "Owner Onboarding (off-by-one header)",
+  credentialBearing: false,
+  headerRow: 1,
+  grid: [
+    ["100 Birchwood Ln", "Maple Holdings LLC", "yes", "yes"],
+    ["Property", "Owner", "PMA sent?", "PMA signed?"],
+    ["2200 Elmgrove", "Elmgrove Trust", "yes", "no"],
+  ],
+};
+
 // A grid whose header signature matches no known renewal tab — fingerprinting must return
 // UNRECOGNIZED rather than guessing.
 export const SYNTHETIC_UNRECOGNIZED_TAB: SyntheticTabFixture = {
@@ -312,6 +326,7 @@ export const SYNTHETIC_TAB_FIXTURES: readonly SyntheticTabFixture[] = [
   SYNTHETIC_PROPERTY_ATTRIBUTES_TAB,
   SYNTHETIC_CREDENTIAL_TAB_4,
   SYNTHETIC_CREDENTIAL_TAB_7,
+  SYNTHETIC_OWNER_ONBOARDING_OFFBYONE_TAB,
   SYNTHETIC_UNRECOGNIZED_TAB,
 ];
 
