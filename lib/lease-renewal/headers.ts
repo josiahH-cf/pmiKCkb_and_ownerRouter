@@ -90,6 +90,13 @@ export const RENEWAL_TAB_SCHEMAS: Record<string, readonly ColumnSchemaField[]> =
     { key: "esign_complete", headerPhrases: ["have all documents been signed electronically"], expectedShape: "yes_no" },
     { key: "certified_funds_received", headerPhrases: ["have we received certified funds"], expectedShape: "yes_no" },
   ],
+  "Move-Out Checklist": [
+    { key: "tenant_name", headerPhrases: ["name"], expectedShape: "text" },
+    { key: "scheduled_move_out_date", headerPhrases: ["scheduled move out date"], expectedShape: "date" },
+    { key: "notice_given", headerPhrases: ["have they put in their notice"], expectedShape: "text" },
+    { key: "deposit_disposition_sent", headerPhrases: ["deposit disposition sent"], expectedShape: "yes_no" },
+    { key: "everything_finalized", headerPhrases: ["everything finalized"], expectedShape: "yes_no" },
+  ],
   "Inspection Tracker": [
     { key: "address", headerPhrases: ["address"], expectedShape: "text" },
     { key: "lease_start", headerPhrases: ["lease start"], expectedShape: "date" },
