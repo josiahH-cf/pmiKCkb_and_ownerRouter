@@ -243,6 +243,9 @@ KB runtime:
 - `roles/datastore.user`
 - `roles/discoveryengine.user`
 - `roles/aiplatform.user`
+- `roles/firebaseauth.admin` (Identity Platform session-cookie create + revocation lookup)
+- `roles/iam.serviceAccountTokenCreator` on the runtime SA itself (sign session cookies via ADC
+  `signBlob`; required when the runtime SA has no downloadable key)
 - Gmail send-only authority for `kb-automation@pmikcmetro.com`
 
 Deploy with production flags:

@@ -4386,3 +4386,196 @@ tests) all passed.
 Validation: `npm run format:check`, `npm run check:budget-guard` (demo posture, away mode
 inactive, $10 cap), `npm test -- budget-guard` (15 tests), `npm run verify:falsification`
 (303 committable files), and `git diff --check` all passed.
+
+## GCP Billing Unblock — Cutover Resume + Verification Baseline (2026-06-19)
+
+- The PM provisioned Google Cloud billing: account `01A5A3-65CA5A-614D45`, org
+  `584930494337`, budget id `82962d7e-b340-4253-8348-38caff16e88a`. This flips the #1 client
+  blocker (Google Cloud billing card). Recorded the non-secret identifiers in
+  `docs/environment-handoff.md` and `docs/loop-state.md`. The assistant took no
+  console/billing action — that stays user-owned (Hard Stop).
+- Decisions (this session): migration targets a PMI KC-owned production project (cutover
+  track, no demo artifacts copied); keep the durable ~$10 unattended-spend guard with the PM
+  budget as the outer GCP-enforced alert; today's demo = cheap-live Ask (<$10) on the existing
+  `pmikckb-test` project. Decision-complete packet:
+  `docs/temp/2026-06-19-gcp-billing-unblock-cutover-resume.md`.
+- Billing unblocks the infrastructure half of cutover (live preflight, API enablement,
+  Firestore/Cloud Run setup, the cheap-live demo). It does NOT unblock cutover completion
+  (needs approved client sources) or any cost step (each needs explicit approval + budget
+  guard).
+- Read-only verification baseline on the owner Windows host: `npm run check:budget-guard`
+  PASS (demo posture, away mode inactive, $10 cap); `npm run verify:falsification` PASS (303
+  files); `npm test` 370/372 PASS. The two failures are environment-coupled, not regressions
+  (the modules last changed 2026-06-12, the green era):
+  - `tests/unit/cutover-report.test.mjs > aggregates blockers across sections with prefixes`:
+    `readProductionPreflightEnv` reads the host's on-disk `.env.local`
+    (`GCP_PROJECT_ID=pmikckb-test`), so a project resolves and the expected `gcp:` "no
+    project" blocker is absent. Confirmed the failure persists with shell env cleared because
+    the value comes from `.env.local` on disk.
+  - `tests/unit/migration-readiness.test.ts > computes real plan/preflight/corpus/budget`:
+    5s default timeout on cold dynamic import of the real Google SDK modules; passes at
+    `--testTimeout=30000` (~16s observed; vitest reported ~56s aggregate import).
+  - Flagged a follow-up to make both tests hermetic (skip on-disk `.env.local` in the unit
+    test; add an explicit timeout to the real-deps smoke).
+- `npm run host:check`: gcloud SDK present but `pmikckb-test` not accessible →
+  `gcloud auth login` + `gcloud auth application-default login` required before any live/demo
+  run. `npm run check:live-cost -- --allow-multiple-spaces` correctly gates (ambient
+  `ASK_DEMO_MODE=true`).
+- Remaining user-owned gates: gcloud/ADC auth; create/select + link a PMI KC production
+  project and a $10 budget alert on it; confirm the PM budget amount/thresholds; explicit
+  per-step spend approval for the cheap-live demo and each production cost step.
+
+Validation: `npm run check:budget-guard` (demo posture, away mode inactive, $10 cap) and
+`npm run verify:falsification` (303 committable files) passed; `npm test` 370/372 passed with
+2 environment-coupled failures documented above. Docs-only slice; no full
+`bash scripts/verify.sh` run, and no cloud/billing/ADC/deploy/import/send/secret action.
+
+## Account/Org Discovery + Fresh-Project Decision (2026-06-19)
+
+- Authenticated gcloud + ADC as `josiah@pmikcmetro.com` (owner's PMI KC account). Discovery:
+  the existing demo stack — project `pmikckb-test`, Cloud Run, Firebase Auth, and the four
+  Agent Search data stores — is owned by and auth-locked to the **cherrybridge.ai**
+  account/org. The deployed sign-in page enforces `allowedHostedDomain=cherrybridge.ai`, so a
+  `pmikcmetro.com` account cannot use it, and `gcloud` denied all access to `pmikckb-test`
+  (`USER_PROJECT_DENIED`). `josiah@pmikcmetro.com` has the `pmikcmetro.com` org
+  (584930494337 — the same org as the PM's new billing) but zero accessible projects.
+- Decision (owner-approved): build a fresh GCP project under the `pmikcmetro.com` org funded
+  by the PM billing account `01A5A3-65CA5A-614D45`, per `docs/client-production-cutover.md`
+  (no demo artifacts copied). A live <$10 demo can run on the new project using the repo's
+  sanitized demo corpus in `docs/demo-source-templates/`, so the demo does not depend on the
+  client-source blocker. The owner is creating + billing-linking the project in the console;
+  the assistant then runs the gated setup (preflight → APIs → Firebase/Auth → Firestore →
+  seed → import → smoke → deploy), each cost step behind explicit `--budget-confirmed` approval.
+- No cloud mutation, project creation, billing change, deploy, import, send, or secret action
+  was taken by the assistant this slice; gcloud `billing/quota_project` was unset locally
+  (it had pointed at the now-inaccessible `pmikckb-test`).
+
+Validation: read-only diagnosis only (`gcloud auth login` / `application-default login`,
+`gcloud config list`, `gcloud projects list`, `gcloud organizations list`, and a deployed-URL
+HTTP check). No repo code changed; no `npm` verification re-run this slice.
+
+## Fresh Project Created — Billing Link Pending (2026-06-19)
+
+- Owner asked the assistant to provision the new environment. Created GCP project
+  `pmi-kc-kb-prod` (number `558870356522`) under the `pmikcmetro.com` org
+  (`gcloud projects create ... --organization=584930494337`) and set it as the active gcloud
+  project. Project creation is reversible (deletable within 30 days).
+- Billing link is blocked: `gcloud billing projects link` returned `IAM_PERMISSION_DENIED`
+  (missing `billing.resourceAssociations.create` on `billingAccounts/01A5A3-65CA5A-614D45`);
+  `gcloud billing accounts list` shows 0 accounts for `josiah@pmikcmetro.com`. Project
+  `billingEnabled=false`. The PM must either link `pmi-kc-kb-prod` to billing
+  `01A5A3-65CA5A-614D45` in the console, or grant `josiah@pmikcmetro.com` `roles/billing.user`
+  on that billing account; either way also add a $10 project-scoped budget alert.
+- Until billing is enabled, the paid APIs (Cloud Run, Vertex AI, Discovery Engine), Firestore
+  creation, and deploy cannot proceed. The assistant stopped cleanly at this approval/permission
+  gate. No paid API enablement, Firestore, deploy, import, send, or secret action was taken.
+
+## Fresh Project Fully Provisioned + Cheap-Live Ask Demo Working (2026-06-19)
+
+- PM granted `josiah@pmikcmetro.com` Billing Account User + Costs Manager on
+  `01A5A3-65CA5A-614D45`. The assistant then provisioned the new environment end-to-end and
+  got a live, cited Ask answer on `pmi-kc-kb-prod` (owner pre-approved the <$10 cheap-live spend):
+  - Linked billing (`billingEnabled=true`) and created a project-scoped $10 budget alert
+    (`billingAccounts/01A5A3-65CA5A-614D45/budgets/15ddc8d6-e96e-4696-9d3c-c09e23997206`).
+  - Enabled 19 APIs; set the ADC quota project; repointed the host's persisted GCP env vars
+    and `.env.local` from the old `pmikckb-test` to `pmi-kc-kb-prod` (old `.env.local` backed
+    up at `temp/.env.local.before-pmikcmetro-migration`).
+  - Created Firestore Native (us-central1) and seeded 12 spaces.
+  - Owner did the one-time Firebase console attach; `firebase:setup` created web app
+    `1:558870356522:web:c1b2473b886a6edd889953` and wrote the browser config into `.env.local`.
+  - Created Cloud Storage bucket `pmi-kc-kb-prod-sources-558870356522`, provisioned the
+    Discovery Engine service identity via the Service Usage REST API (the gcloud `beta`
+    component is broken on this host), granted it `objectViewer` on the bucket and
+    `storage.admin` on the project (the import stages an internal content bucket), uploaded 3
+    sanitized demo `.txt` sources, and imported them into Agent Search data store
+    `kb-lease-renewals-txt` (`successCount 3/3`). Seeded 3 `sources_meta` records.
+  - `npm run check:live-cost` passed (lease-renewals, gemini-2.5-flash); `npm run smoke:ask-live`
+    passed against a local `npm run dev` (ASK_DEMO_MODE=false, LOCAL_DEMO_AUTH=true) — returned
+    a `Verified Source` answer with 2 citations (`temp/live-ask-smoke/result.json`).
+- Remaining for a shareable deployed demo: enable the Google sign-in provider in the Firebase
+  Console (owner toggle), then `npm run deploy:demo -- --budget-confirmed` and add the Cloud Run
+  host to Firebase authorized domains. Firestore rules/indexes not yet deployed (firebase CLI
+  auth pending). Cutover _completion_ still source-blocked (approved client sources).
+- Spend stayed well under the $10 cap (tiny storage + a few Vertex/Gemini queries).
+- DEPLOYED to Cloud Run: owner enabled the Google sign-in provider; `npm run deploy:demo --
+--budget-confirmed --service-account=558870356522-compute@developer.gserviceaccount.com`
+  built + deployed `pmi-kc-kb-demo`. First build failed on missing build-SA roles, so the
+  compute SA was granted `cloudbuild.builds.builder`, `run.builder`, `storage.objectViewer`,
+  `artifactregistry.writer`, `logging.logWriter` (plus runtime `datastore.user`,
+  `discoveryengine.user`, `aiplatform.user`); redeploy succeeded. The org policy blocks
+  `allUsers`, so the service uses `--no-invoker-iam-check`. Added the Cloud Run host to Firebase
+  authorized domains via `firebase:setup-auth`. Deployed `/sign-in` returns 200 with
+  `allowedHostedDomain=pmikcmetro.com` and no cherrybridge references. Live URL:
+  `https://pmi-kc-kb-demo-558870356522.us-central1.run.app`. Authenticated Ask on the deployed
+  URL needs an interactive `pmikcmetro.com` sign-in; the local `smoke:ask-live` already proved
+  the live pipeline. Follow-up: deploy Firestore rules/indexes (needs `firebase login`).
+
+## Deployed Auth Loop Fixed (2026-06-19)
+
+- The first deployed revision looped sign-in (`/ask` bounced back to `/sign-in`). Two root
+  causes, both fixed:
+  1. Build-time project mismatch: a stale persisted USER env var
+     `NEXT_PUBLIC_FIREBASE_PROJECT_ID=pmikckb-test` (left by the old cherrybridge host setup)
+     overrode `.env.local` at build time, because `buildDemoDeployCommand` merges
+     `{ ...localEnv, ...process.env }` (process.env wins) and `NEXT_PUBLIC_*` is inlined into the
+     client bundle. The browser initialized Firebase with apiKey/authDomain for `pmi-kc-kb-prod`
+     but `projectId=pmikckb-test`. Fix: repointed the persisted var to `pmi-kc-kb-prod` and set it
+     in-process for the redeploy.
+  2. Runtime SA could not mint/verify session cookies: `lib/firebase/admin.ts` uses
+     `applicationDefault()` (the Cloud Run compute SA) for `createSessionCookie` and
+     `verifySessionCookie(token, true)`. With ADC (no key file) that needs
+     `iam.serviceAccountTokenCreator` (signBlob) plus Firebase Auth permission for the revocation
+     lookup. Granted the compute SA `roles/firebaseauth.admin` (project) and
+     `roles/iam.serviceAccountTokenCreator` (self).
+- Also set `APP_BASE_URL` to the deployed URL. Redeployed (revision `pmi-kc-kb-demo-00002-tvw`).
+  Verified the deployed env is now fully `pmi-kc-kb-prod`-consistent
+  (`NEXT_PUBLIC_FIREBASE_PROJECT_ID=pmi-kc-kb-prod`) and `/sign-in` returns 200 with no
+  `pmikckb-test` references. Final interactive sign-in confirmation is owner-side — use a fresh or
+  incognito browser session to drop any stale cookie/Firebase state from the broken revision.
+- Fix-forward: `docs/client-production-cutover.md` §6 now lists the required runtime SA roles
+  (`firebaseauth.admin`, `iam.serviceAccountTokenCreator`). Separate follow-up: harden
+  `scripts/deploy-demo-cloud-run.mjs` so a stale persisted `NEXT_PUBLIC_*` cannot silently
+  override `.env.local` build config.
+
+## Deployed Auth Loop — Immediate Root Cause: Unauthorized Cloud Run Host (2026-06-19)
+
+- The loop persisted in incognito after the two fixes above. Cloud Run logs showed NO
+  `/api/auth/session` or `/ask` requests — only `favicon.ico` 404s from host
+  `pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`. Cloud Run's canonical `status.url` is that
+  hash-based host (the `pmi-kc-kb-demo-558870356522.us-central1.run.app` URL redirects to it),
+  and that host was NOT in Firebase Auth authorized domains — so Firebase blocked sign-in
+  (`auth/unauthorized-domain`) before the round-trip ever reached the server. Fixed by adding
+  the canonical host via `firebase:setup-auth`; authorized domains now include both
+  `pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app` and `pmi-kc-kb-demo-558870356522.us-central1.run.app`
+  (plus localhost / firebaseapp.com / web.app).
+- The two earlier fixes (correct `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, runtime SA
+  `firebaseauth.admin` + `iam.serviceAccountTokenCreator`) remain necessary — they would have
+  surfaced once sign-in completed. Canonical demo URL:
+  `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`. Lesson for the cutover runbook: always add
+  Cloud Run's canonical `status.url` host to Firebase authorized domains, not just the
+  project-number URL.
+
+## Auth Hardening: signInWithPopup + Dedicated Runtime SA + Deploy Guard (2026-06-19)
+
+- Owner chose to harden the auth setup in place (keep the run.app URL). Three changes:
+  1. `components/auth/SignInPanel.tsx`: switched `signInWithRedirect` → `signInWithPopup`.
+     Popup auth is robust across browsers (incognito / strict third-party-cookie modes) when the
+     Firebase `authDomain` (`*.firebaseapp.com`) is a different origin than the app (`*.run.app`);
+     it handles popup-closed/cancelled gracefully and drops the redirect-result plumbing. (The
+     fully same-origin alternative — Firebase Hosting / a custom domain — was offered and
+     deferred.)
+  2. Dedicated least-privilege runtime service account
+     `pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com` with only `datastore.user`,
+     `discoveryengine.user`, `aiplatform.user`, `firebaseauth.admin`, and
+     `iam.serviceAccountTokenCreator` (self). Redeployed the service to run as it (revision
+     `pmi-kc-kb-demo-00003-dsr`) and removed those runtime/auth roles from the default compute SA
+     (which keeps only the build roles). The app no longer runs as the over-privileged default
+     compute identity.
+  3. `scripts/deploy-demo-cloud-run.mjs`: `.env.local` is now authoritative for the
+     `NEXT_PUBLIC_FIREBASE_*` build vars, and the deploy fails loudly when a stale ambient
+     `process.env` value disagrees (the exact failure mode that shipped the wrong project id).
+     Added unit tests in `tests/unit/live-cost-scripts.test.mjs`.
+- Verified: `npm run lint`, `npm run typecheck`, full unit suite (373/374 — the one failure is
+  the known `.env.local`-coupled `cutover-report` test), `npm run verify:falsification` (303
+  files); the deployed service runs as the dedicated SA and the canonical `/sign-in` returns 200.
+  Owner to re-test the popup sign-in (a popup window now opens instead of a full-page redirect).

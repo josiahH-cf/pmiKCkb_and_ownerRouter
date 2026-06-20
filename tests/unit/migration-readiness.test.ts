@@ -280,7 +280,9 @@ describe("buildMigrationReadinessReport", () => {
     expect(report.action_registry.production_allowed_keys).toEqual([]);
     expect(report.rollup.ok).toBe(false);
     expect(report.owner_actions.length).toBeGreaterThan(0);
-  });
+    // Cold-importing the real .mjs module graph (firebase-admin, google libs) can exceed the
+    // 5s default on slow/CI runners; allow this real-deps smoke test a generous timeout.
+  }, 30_000);
 });
 
 describe("classifyOwnerActions", () => {
