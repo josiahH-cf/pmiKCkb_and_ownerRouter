@@ -21,9 +21,21 @@ export interface PrecedenceRule {
 export const PRECEDENCE_CONFIRMED = false;
 
 export const PRECEDENCE_TABLE: Record<string, PrecedenceRule> = {
-  lease_dates_renewal_timing: { fieldType: "lease_dates_renewal_timing", order: ["rentvine", "sheet_tab3"], autoApply: "no" },
-  current_rent: { fieldType: "current_rent", order: ["rentvine", "sheet_tab3"], autoApply: "no" },
-  market_value: { fieldType: "market_value", order: ["pmi_rental_analysis", "zillow"], autoApply: "no" },
+  lease_dates_renewal_timing: {
+    fieldType: "lease_dates_renewal_timing",
+    order: ["rentvine", "sheet_tab3"],
+    autoApply: "no",
+  },
+  current_rent: {
+    fieldType: "current_rent",
+    order: ["rentvine", "sheet_tab3"],
+    autoApply: "no",
+  },
+  market_value: {
+    fieldType: "market_value",
+    order: ["pmi_rental_analysis", "zillow"],
+    autoApply: "no",
+  },
   property_attributes_operational: {
     fieldType: "property_attributes_operational",
     order: ["rentvine_building", "sheet_tab17", "sheet_tab18"],
@@ -34,10 +46,26 @@ export const PRECEDENCE_TABLE: Record<string, PrecedenceRule> = {
     order: ["active_lease_doc", "rentvine_building", "spreadsheet"],
     autoApply: "no",
   },
-  owner_renewal_decision: { fieldType: "owner_renewal_decision", order: ["owner_email", "sheet_tab3"], autoApply: "no" },
-  tenant_intake: { fieldType: "tenant_intake", order: ["google_form", "spreadsheet"], autoApply: "no" },
-  address_canonicalization: { fieldType: "address_canonicalization", order: ["rentvine", "spreadsheet"], autoApply: "no" },
-  status_workflow_flags: { fieldType: "status_workflow_flags", order: ["spreadsheet", "inferred"], autoApply: "low_after_review" },
+  owner_renewal_decision: {
+    fieldType: "owner_renewal_decision",
+    order: ["owner_email", "sheet_tab3"],
+    autoApply: "no",
+  },
+  tenant_intake: {
+    fieldType: "tenant_intake",
+    order: ["google_form", "spreadsheet"],
+    autoApply: "no",
+  },
+  address_canonicalization: {
+    fieldType: "address_canonicalization",
+    order: ["rentvine", "spreadsheet"],
+    autoApply: "no",
+  },
+  status_workflow_flags: {
+    fieldType: "status_workflow_flags",
+    order: ["spreadsheet", "inferred"],
+    autoApply: "low_after_review",
+  },
 };
 
 export const FIELD_TYPE_OF_FIELD: Record<string, string> = {

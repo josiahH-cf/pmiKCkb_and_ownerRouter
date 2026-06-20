@@ -59,62 +59,170 @@ const MAX_HEADER_SCAN_ROWS = 6;
 // Per-tab column schemas (subset of the map §2 columns most relevant to Phase-1 automation).
 export const RENEWAL_TAB_SCHEMAS: Record<string, readonly ColumnSchemaField[]> = {
   Renewals: [
-    { key: "owner_pricing_confirmed", headerPhrases: ["have we confirmed pricing with the owner"], expectedShape: "yes_no" },
-    { key: "renewal_letter_sent", headerPhrases: ["have we sent the renewal letter"], expectedShape: "text" },
-    { key: "tenant_name", headerPhrases: ["what is the lease tenant name"], expectedShape: "text" },
+    {
+      key: "owner_pricing_confirmed",
+      headerPhrases: ["have we confirmed pricing with the owner"],
+      expectedShape: "yes_no",
+    },
+    {
+      key: "renewal_letter_sent",
+      headerPhrases: ["have we sent the renewal letter"],
+      expectedShape: "text",
+    },
+    {
+      key: "tenant_name",
+      headerPhrases: ["what is the lease tenant name"],
+      expectedShape: "text",
+    },
     { key: "renewal_date", headerPhrases: ["renewal date"], expectedShape: "date" },
     { key: "current_rent", headerPhrases: ["current rent"], expectedShape: "currency" },
     { key: "market_value", headerPhrases: ["market value"], expectedShape: "currency" },
-    { key: "renewal_completed", headerPhrases: ["is this renewal completed"], expectedShape: "text" },
-    { key: "tenant_responded", headerPhrases: ["have they responded if they are renewing or not"], expectedShape: "text" },
-    { key: "info_form_sent", headerPhrases: ["have we sent the google form to gather info"], expectedShape: "yes_no" },
-    { key: "form_returned", headerPhrases: ["have they filled out the form"], expectedShape: "yes_no" },
-    { key: "lease_docs_sent", headerPhrases: ["have the lease docs been sent out"], expectedShape: "text" },
-    { key: "rhino_renewed", headerPhrases: ["if they have a rhino policy is it renewed"], expectedShape: "text" },
-    { key: "pet_registered", headerPhrases: ["have they registered their pet if needed"], expectedShape: "text" },
-    { key: "esign_complete", headerPhrases: ["have all documents been signed electronically"], expectedShape: "yes_no" },
-    { key: "additional_insured_verified", headerPhrases: ["have we verified that we are added as additional insured"], expectedShape: "text" },
     {
-      key: "recurring_charge_added",
-      headerPhrases: ["have we added the 11 95 charge to their ledger starting on the renewal date"],
+      key: "renewal_completed",
+      headerPhrases: ["is this renewal completed"],
+      expectedShape: "text",
+    },
+    {
+      key: "tenant_responded",
+      headerPhrases: ["have they responded if they are renewing or not"],
+      expectedShape: "text",
+    },
+    {
+      key: "info_form_sent",
+      headerPhrases: ["have we sent the google form to gather info"],
       expectedShape: "yes_no",
     },
-    { key: "added_to_inspection_sheet", headerPhrases: ["have we added them to the inspection sheet if needed"], expectedShape: "yes_no" },
-    { key: "air_filter_setup", headerPhrases: ["did we set up their air filter delivery"], expectedShape: "text" },
-    { key: "utility_proof", headerPhrases: ["did we get proof that utilities are set up if need be"], expectedShape: "text" },
+    {
+      key: "form_returned",
+      headerPhrases: ["have they filled out the form"],
+      expectedShape: "yes_no",
+    },
+    {
+      key: "lease_docs_sent",
+      headerPhrases: ["have the lease docs been sent out"],
+      expectedShape: "text",
+    },
+    {
+      key: "rhino_renewed",
+      headerPhrases: ["if they have a rhino policy is it renewed"],
+      expectedShape: "text",
+    },
+    {
+      key: "pet_registered",
+      headerPhrases: ["have they registered their pet if needed"],
+      expectedShape: "text",
+    },
+    {
+      key: "esign_complete",
+      headerPhrases: ["have all documents been signed electronically"],
+      expectedShape: "yes_no",
+    },
+    {
+      key: "additional_insured_verified",
+      headerPhrases: ["have we verified that we are added as additional insured"],
+      expectedShape: "text",
+    },
+    {
+      key: "recurring_charge_added",
+      headerPhrases: [
+        "have we added the 11 95 charge to their ledger starting on the renewal date",
+      ],
+      expectedShape: "yes_no",
+    },
+    {
+      key: "added_to_inspection_sheet",
+      headerPhrases: ["have we added them to the inspection sheet if needed"],
+      expectedShape: "yes_no",
+    },
+    {
+      key: "air_filter_setup",
+      headerPhrases: ["did we set up their air filter delivery"],
+      expectedShape: "text",
+    },
+    {
+      key: "utility_proof",
+      headerPhrases: ["did we get proof that utilities are set up if need be"],
+      expectedShape: "text",
+    },
   ],
   "Move-In Checklist": [
     { key: "move_in_date", headerPhrases: ["move in date"], expectedShape: "date" },
-    { key: "tenant_name", headerPhrases: ["what is the lease tenant name"], expectedShape: "text" },
-    { key: "processing_fee_collected", headerPhrases: ["have we collected the processing fee"], expectedShape: "yes_no" },
-    { key: "esign_complete", headerPhrases: ["have all documents been signed electronically"], expectedShape: "yes_no" },
-    { key: "certified_funds_received", headerPhrases: ["have we received certified funds"], expectedShape: "yes_no" },
+    {
+      key: "tenant_name",
+      headerPhrases: ["what is the lease tenant name"],
+      expectedShape: "text",
+    },
+    {
+      key: "processing_fee_collected",
+      headerPhrases: ["have we collected the processing fee"],
+      expectedShape: "yes_no",
+    },
+    {
+      key: "esign_complete",
+      headerPhrases: ["have all documents been signed electronically"],
+      expectedShape: "yes_no",
+    },
+    {
+      key: "certified_funds_received",
+      headerPhrases: ["have we received certified funds"],
+      expectedShape: "yes_no",
+    },
   ],
   "Move-Out Checklist": [
     { key: "tenant_name", headerPhrases: ["name"], expectedShape: "text" },
-    { key: "scheduled_move_out_date", headerPhrases: ["scheduled move out date"], expectedShape: "date" },
-    { key: "notice_given", headerPhrases: ["have they put in their notice"], expectedShape: "text" },
-    { key: "deposit_disposition_sent", headerPhrases: ["deposit disposition sent"], expectedShape: "yes_no" },
-    { key: "everything_finalized", headerPhrases: ["everything finalized"], expectedShape: "yes_no" },
+    {
+      key: "scheduled_move_out_date",
+      headerPhrases: ["scheduled move out date"],
+      expectedShape: "date",
+    },
+    {
+      key: "notice_given",
+      headerPhrases: ["have they put in their notice"],
+      expectedShape: "text",
+    },
+    {
+      key: "deposit_disposition_sent",
+      headerPhrases: ["deposit disposition sent"],
+      expectedShape: "yes_no",
+    },
+    {
+      key: "everything_finalized",
+      headerPhrases: ["everything finalized"],
+      expectedShape: "yes_no",
+    },
   ],
   "Inspection Tracker": [
     { key: "address", headerPhrases: ["address"], expectedShape: "text" },
     { key: "lease_start", headerPhrases: ["lease start"], expectedShape: "date" },
     { key: "inspections_cadence", headerPhrases: ["inspections"], expectedShape: "text" },
-    { key: "inspections_2024", headerPhrases: ["2024 inspections"], expectedShape: "boolean" },
+    {
+      key: "inspections_2024",
+      headerPhrases: ["2024 inspections"],
+      expectedShape: "boolean",
+    },
     { key: "last_inspection", headerPhrases: ["last inspection"], expectedShape: "date" },
     { key: "next_inspection", headerPhrases: ["next inspection"], expectedShape: "date" },
     {
       key: "owner_charge_130",
-      headerPhrases: ["130 charge to owner for missed inspection added to the invoice sheet"],
+      headerPhrases: [
+        "130 charge to owner for missed inspection added to the invoice sheet",
+      ],
       expectedShape: "yes_no",
     },
   ],
   "Property Attributes": [
     { key: "property", headerPhrases: ["property"], expectedShape: "text" },
     { key: "unit", headerPhrases: ["unit"], expectedShape: "text" },
-    { key: "smart_locks", headerPhrases: ["updated to kwickset smart locks"], expectedShape: "yes_no" },
-    { key: "utilities_needed", headerPhrases: ["utilities needed"], expectedShape: "text" },
+    {
+      key: "smart_locks",
+      headerPhrases: ["updated to kwickset smart locks"],
+      expectedShape: "yes_no",
+    },
+    {
+      key: "utilities_needed",
+      headerPhrases: ["utilities needed"],
+      expectedShape: "text",
+    },
     { key: "lawn_care", headerPhrases: ["lawn care"], expectedShape: "text" },
     { key: "inspections_cadence", headerPhrases: ["inspections"], expectedShape: "text" },
     { key: "appliances", headerPhrases: ["appliances provided"], expectedShape: "text" },
@@ -172,7 +280,10 @@ function detectHeaderRow(
   return bestCount > 0 ? bestRow : null;
 }
 
-function mostFrequentShape(values: string[]): { shape: ColumnExpectedShape; count: number } {
+function mostFrequentShape(values: string[]): {
+  shape: ColumnExpectedShape;
+  count: number;
+} {
   const tally = new Map<ColumnExpectedShape, number>();
   for (const value of values) {
     const shape = coarseShape(value);

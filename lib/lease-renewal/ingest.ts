@@ -108,7 +108,9 @@ function isCredentialSuspect(grid: RawGrid, fingerprintCredential: boolean): boo
       .flat()
       .flatMap((cell) => normalizeHeaderText(cell).split(" ")),
   );
-  const hits = CREDENTIAL_HEADER_INDICATORS.filter((indicator) => tokens.has(indicator)).length;
+  const hits = CREDENTIAL_HEADER_INDICATORS.filter((indicator) =>
+    tokens.has(indicator),
+  ).length;
   return hits >= CREDENTIAL_INDICATOR_THRESHOLD;
 }
 
@@ -151,7 +153,8 @@ export function ingestTables(tables: RawGrid[]): IngestResult {
 
     if (isCredentialSuspect(cleaned, fingerprint.credentialBearing)) {
       excludedTabs.push({
-        tab: fingerprint.tab === "UNRECOGNIZED" ? "suspected-credential" : fingerprint.tab,
+        tab:
+          fingerprint.tab === "UNRECOGNIZED" ? "suspected-credential" : fingerprint.tab,
         tabNumber: fingerprint.tabNumber,
         reason: "credential-bearing tab hard-excluded at the connector boundary",
       });

@@ -31,14 +31,18 @@ describe("lease-renewal synthetic fixtures — governance", () => {
         .filter(({ label }) => /password|pin/i.test(label))
         .map(({ index }) => index);
 
-      expect(secretColumns.length, `${fixture.label} has secret columns`).toBeGreaterThan(0);
+      expect(secretColumns.length, `${fixture.label} has secret columns`).toBeGreaterThan(
+        0,
+      );
 
       for (const row of fixture.grid.slice(1)) {
         for (const col of secretColumns) {
           const value = row[col] ?? "";
           if (value === "") continue;
           expect(value, `${fixture.label} secret cell`).toContain("PLACEHOLDER");
-          expect(value, `${fixture.label} secret cell has no digits`).not.toMatch(/[0-9]/);
+          expect(value, `${fixture.label} secret cell has no digits`).not.toMatch(
+            /[0-9]/,
+          );
         }
       }
     }
@@ -64,7 +68,10 @@ describe("lease-renewal synthetic fixtures — governance", () => {
   it("provides a non-empty grid for every fixture", () => {
     for (const fixture of SYNTHETIC_TAB_FIXTURES) {
       expect(fixture.grid.length, fixture.label).toBeGreaterThan(0);
-      expect(fixture.grid.every((row) => row.length > 0), fixture.label).toBe(true);
+      expect(
+        fixture.grid.every((row) => row.length > 0),
+        fixture.label,
+      ).toBe(true);
     }
   });
 });

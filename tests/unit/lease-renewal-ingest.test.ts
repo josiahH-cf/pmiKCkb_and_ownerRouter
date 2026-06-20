@@ -31,8 +31,14 @@ describe("ingestTables", () => {
       status: "ok",
     });
     // Records carry typed, normalized fields.
-    expect(records[0].fields.renewal_date).toMatchObject({ type: "date", value: "2026-08-31" });
-    expect(records[0].fields.current_rent).toMatchObject({ type: "currency", value: 1250 });
+    expect(records[0].fields.renewal_date).toMatchObject({
+      type: "date",
+      value: "2026-08-31",
+    });
+    expect(records[0].fields.current_rent).toMatchObject({
+      type: "currency",
+      value: 1250,
+    });
   });
 
   it("re-stitches a headerless fractured fragment onto the preceding tab by width", () => {

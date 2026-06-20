@@ -14,7 +14,11 @@ function norm(raw: string, hint?: Parameters<typeof normalizeCell>[2]) {
 
 describe("normalizeCell — one fixture per type class", () => {
   it("classifies empty cells", () => {
-    expect(norm("")).toMatchObject({ type: "empty", value: null, confidence: "Verified" });
+    expect(norm("")).toMatchObject({
+      type: "empty",
+      value: null,
+      confidence: "Verified",
+    });
     expect(norm("   ")).toMatchObject({ type: "empty", value: null });
   });
 
@@ -27,33 +31,77 @@ describe("normalizeCell — one fixture per type class", () => {
   });
 
   it("classifies booleans", () => {
-    expect(norm("TRUE")).toMatchObject({ type: "boolean", value: true, confidence: "Verified" });
+    expect(norm("TRUE")).toMatchObject({
+      type: "boolean",
+      value: true,
+      confidence: "Verified",
+    });
     expect(norm("FALSE")).toMatchObject({ type: "boolean", value: false });
   });
 
   it("classifies currency", () => {
-    expect(norm("$1,250")).toMatchObject({ type: "currency", value: 1250, confidence: "Verified" });
+    expect(norm("$1,250")).toMatchObject({
+      type: "currency",
+      value: 1250,
+      confidence: "Verified",
+    });
     expect(norm("$1,400.00")).toMatchObject({ type: "currency", value: 1400 });
   });
 
   it("classifies yes / no / n-a with the right confidence", () => {
     for (const yes of ["yes", "Yes", "YES", "y"]) {
-      expect(norm(yes)).toMatchObject({ type: "yes_no", value: true, confidence: "Verified" });
+      expect(norm(yes)).toMatchObject({
+        type: "yes_no",
+        value: true,
+        confidence: "Verified",
+      });
     }
-    expect(norm("no")).toMatchObject({ type: "yes_no", value: false, confidence: "Verified" });
-    expect(norm("N/A")).toMatchObject({ type: "yes_no", value: null, confidence: "Likely" });
+    expect(norm("no")).toMatchObject({
+      type: "yes_no",
+      value: false,
+      confidence: "Verified",
+    });
+    expect(norm("N/A")).toMatchObject({
+      type: "yes_no",
+      value: null,
+      confidence: "Likely",
+    });
   });
 
   it("classifies the mixed date formats in one column", () => {
-    expect(norm("8/31/2026")).toMatchObject({ type: "date", value: "2026-08-31", confidence: "Verified" });
-    expect(norm("8/31/26")).toMatchObject({ type: "date", value: "2026-08-31", confidence: "Likely" });
-    expect(norm("09-30-2026")).toMatchObject({ type: "date", value: "2026-09-30", confidence: "Verified" });
-    expect(norm("01/2026")).toMatchObject({ type: "date", value: "2026-01", confidence: "Likely" });
-    expect(norm("September 15, 2023")).toMatchObject({ type: "date", value: "2023-09-15", confidence: "Likely" });
+    expect(norm("8/31/2026")).toMatchObject({
+      type: "date",
+      value: "2026-08-31",
+      confidence: "Verified",
+    });
+    expect(norm("8/31/26")).toMatchObject({
+      type: "date",
+      value: "2026-08-31",
+      confidence: "Likely",
+    });
+    expect(norm("09-30-2026")).toMatchObject({
+      type: "date",
+      value: "2026-09-30",
+      confidence: "Verified",
+    });
+    expect(norm("01/2026")).toMatchObject({
+      type: "date",
+      value: "2026-01",
+      confidence: "Likely",
+    });
+    expect(norm("September 15, 2023")).toMatchObject({
+      type: "date",
+      value: "2023-09-15",
+      confidence: "Likely",
+    });
   });
 
   it("classifies known free-text status tokens", () => {
-    expect(norm("Dont renew")).toMatchObject({ type: "status", value: "dont renew", confidence: "Likely" });
+    expect(norm("Dont renew")).toMatchObject({
+      type: "status",
+      value: "dont renew",
+      confidence: "Likely",
+    });
     expect(norm("not renewing")).toMatchObject({ type: "status", value: "not renewing" });
   });
 
@@ -63,12 +111,23 @@ describe("normalizeCell — one fixture per type class", () => {
     expect(dated.notes[0]).toContain("8/1/2026");
 
     const murky = norm("yes, working");
-    expect(murky).toMatchObject({ type: "yes_no", value: true, confidence: "Needs Review" });
+    expect(murky).toMatchObject({
+      type: "yes_no",
+      value: true,
+      confidence: "Needs Review",
+    });
   });
 
   it("types names only with the name hint, and flags buried state otherwise", () => {
-    expect(norm("RIVERS, CASEY", "name")).toMatchObject({ type: "name", value: "RIVERS, CASEY", confidence: "Likely" });
-    expect(norm("ESTELLE WORKING ON")).toMatchObject({ type: "text", confidence: "Needs Review" });
+    expect(norm("RIVERS, CASEY", "name")).toMatchObject({
+      type: "name",
+      value: "RIVERS, CASEY",
+      confidence: "Likely",
+    });
+    expect(norm("ESTELLE WORKING ON")).toMatchObject({
+      type: "text",
+      confidence: "Needs Review",
+    });
   });
 });
 
@@ -78,7 +137,18 @@ describe("normalization invariants", () => {
     expect(ladder).toEqual(["Verified", "Likely", "Needs Review"]);
     expect(ladder).not.toContain("Conflict");
 
-    const samples = ["", "yes", "no", "n/a", "$5", "TRUE", "8/31/26", "Dont renew", "ESTELLE WORKING ON", "x@y.com"];
+    const samples = [
+      "",
+      "yes",
+      "no",
+      "n/a",
+      "$5",
+      "TRUE",
+      "8/31/26",
+      "Dont renew",
+      "ESTELLE WORKING ON",
+      "x@y.com",
+    ];
     for (const sample of samples) {
       expect(ladder).toContain(norm(sample).confidence);
     }

@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  deriveAddressKey,
-  deriveNameKey,
-  proposeJoin,
-} from "@/lib/lease-renewal/join";
+import { deriveAddressKey, deriveNameKey, proposeJoin } from "@/lib/lease-renewal/join";
 
 describe("address join keys", () => {
   it("collapses street-suffix and unit variants to one key", () => {

@@ -28,9 +28,16 @@ export type WriteBackEvent =
   | "confirm"
   | "resubmit";
 
-const TRANSITIONS: Record<WriteBackState, Partial<Record<WriteBackEvent, WriteBackState>>> = {
+const TRANSITIONS: Record<
+  WriteBackState,
+  Partial<Record<WriteBackEvent, WriteBackState>>
+> = {
   Proposed: { submit: "Awaiting Approval", block: "Blocked" },
-  "Awaiting Approval": { approve: "Approved", return: "Returned for Revision", block: "Blocked" },
+  "Awaiting Approval": {
+    approve: "Approved",
+    return: "Returned for Revision",
+    block: "Blocked",
+  },
   Approved: { beginWrite: "Writing", block: "Blocked" },
   Writing: { verify: "Verifying", block: "Blocked" },
   Verifying: { confirm: "Written", block: "Blocked" },
@@ -40,7 +47,10 @@ const TRANSITIONS: Record<WriteBackState, Partial<Record<WriteBackEvent, WriteBa
 };
 
 /** Strict state-machine transition. Throws on an undefined transition (a programming error). */
-export function transitionWriteBack(state: WriteBackState, event: WriteBackEvent): WriteBackState {
+export function transitionWriteBack(
+  state: WriteBackState,
+  event: WriteBackEvent,
+): WriteBackState {
   const next = TRANSITIONS[state][event];
   if (!next) {
     throw new Error(`Invalid write-back transition: ${state} -(${event})-> ?`);
@@ -76,9 +86,14 @@ const CREDENTIAL_TAB_NUMBERS = new Set([4, 7]);
 /** Build a write target, refusing credential tabs (4 & 7) and divider/scaffold rows by construction. */
 export function buildWriteTarget(input: WriteTarget): WriteTarget {
   if (input.tab_number !== null && CREDENTIAL_TAB_NUMBERS.has(input.tab_number)) {
-    throw new Error(`Credential tab ${input.tab_number} is excluded from the cell map by construction`);
+    throw new Error(
+      `Credential tab ${input.tab_number} is excluded from the cell map by construction`,
+    );
   }
-  if (/^-+$/.test(input.expected_prior_value.trim()) || input.expected_prior_value.trim() === ".") {
+  if (
+    /^-+$/.test(input.expected_prior_value.trim()) ||
+    input.expected_prior_value.trim() === "."
+  ) {
     throw new Error("Divider/scaffold rows are non-writable");
   }
   return input;
@@ -136,7 +151,10 @@ export class MockSheet {
  * re-anchor by structural signature, compare-and-set on the prior value, write one cell, then
  * read-after-write. Any uncertainty returns Blocked (never a guessed or partial write).
  */
-export function executeApprovedWriteBack(sheet: MockSheet, target: WriteTarget): WriteBackResult {
+export function executeApprovedWriteBack(
+  sheet: MockSheet,
+  target: WriteTarget,
+): WriteBackResult {
   const blocked = (reason: string): WriteBackResult => ({
     state: "Blocked",
     reason,

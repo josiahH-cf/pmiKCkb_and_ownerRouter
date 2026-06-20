@@ -18,14 +18,20 @@ describe("reconcileField — worked cases (§3.2)", () => {
     expect(result.severity).toBe("Medium");
     expect(result.confidence_for_draft).toBe("Conflict");
     expect(result.raise_flag).toBe(true);
-    expect(result.suggested_winner).toEqual({ source: "rentvine_building", value: "1 per year" });
+    expect(result.suggested_winner).toEqual({
+      source: "rentvine_building",
+      value: "1 per year",
+    });
     expect(result.auto_apply_allowed).toBe(false);
   });
 
   it("Case A escalation: cadence implicating the $130 owner charge becomes High", () => {
     const result = reconcileField(
       "inspections_cadence",
-      [candidate("sheet_tab17", "1 per year"), candidate("rentvine_building", "2 per year")],
+      [
+        candidate("sheet_tab17", "1 per year"),
+        candidate("rentvine_building", "2 per year"),
+      ],
       { implicatesOwnerCharge: true },
     );
     expect(result.severity).toBe("High");
@@ -39,7 +45,10 @@ describe("reconcileField — worked cases (§3.2)", () => {
 
     expect(result.agreement).toBe("conflict");
     expect(result.severity).toBe("High");
-    expect(result.suggested_winner).toEqual({ source: "rentvine_building", value: "HOA" });
+    expect(result.suggested_winner).toEqual({
+      source: "rentvine_building",
+      value: "HOA",
+    });
     expect(result.raise_flag).toBe(true);
   });
 
@@ -95,9 +104,18 @@ describe("reconciliation gating invariants", () => {
   it("is suggestion-only and never auto-applies until OQ-PREC-1 confirms the precedence table", () => {
     expect(PRECEDENCE_CONFIRMED).toBe(false);
     const results = [
-      reconcileField("lawn_care", [candidate("spreadsheet", "Tenant"), candidate("rentvine_building", "HOA")]),
-      reconcileField("esign_complete", [candidate("spreadsheet", "yes"), candidate("inferred", "no")]),
-      reconcileField("inspections_cadence", [candidate("sheet_tab17", "1 per year"), candidate("sheet_tab18", "2 per year")]),
+      reconcileField("lawn_care", [
+        candidate("spreadsheet", "Tenant"),
+        candidate("rentvine_building", "HOA"),
+      ]),
+      reconcileField("esign_complete", [
+        candidate("spreadsheet", "yes"),
+        candidate("inferred", "no"),
+      ]),
+      reconcileField("inspections_cadence", [
+        candidate("sheet_tab17", "1 per year"),
+        candidate("sheet_tab18", "2 per year"),
+      ]),
     ];
     for (const result of results) {
       expect(result.suggestion_only).toBe(true);

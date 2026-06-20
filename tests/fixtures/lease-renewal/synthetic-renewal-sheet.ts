@@ -130,7 +130,14 @@ export const SYNTHETIC_RENEWALS_6COL_FRAGMENT: SyntheticTabFixture = {
   grid: [
     ["-----", "-----", "-----", "-----", "-----", "-----"],
     ["Jordan Maple", "8/31/2026", "$1,250", "$1,400", "yes", "renewing"],
-    ["Casey Rivers", "8/31/26", "$1,300", "$1,350", "Needs Renewed", "ESTELLE WORKING ON"],
+    [
+      "Casey Rivers",
+      "8/31/26",
+      "$1,300",
+      "$1,350",
+      "Needs Renewed",
+      "ESTELLE WORKING ON",
+    ],
     [".", ".", ".", ".", ".", "."],
     ["-----", "-----", "-----", "-----", "-----", "-----"],
     ["Pat Solstice", "09-30-2026", "$1,500", "$1,500", "not renewing", "Dont renew"],
@@ -202,7 +209,16 @@ export const SYNTHETIC_INSPECTION_TRACKER_TAB: SyntheticTabFixture = {
       "Next inspection",
       "$130 charge to owner for missed inspection added to the invoice sheet?",
     ],
-    ["100 Birchwood Ln", "3/1/2024", "1/2 per year", "TRUE", "FALSE", "01/2025", "07/2025", "yes"],
+    [
+      "100 Birchwood Ln",
+      "3/1/2024",
+      "1/2 per year",
+      "TRUE",
+      "FALSE",
+      "01/2025",
+      "07/2025",
+      "yes",
+    ],
     [
       "2200 Elmgrove Apt 4",
       "September 15, 2023",
@@ -247,7 +263,17 @@ export const SYNTHETIC_PROPERTY_ATTRIBUTES_TAB: SyntheticTabFixture = {
       "TRUE",
       "quiet unit",
     ],
-    ["2200 Elmgrove", "4", "no", "KC Water by owner", "Tenant", "2 per year", "Fridge", "FALSE", ""],
+    [
+      "2200 Elmgrove",
+      "4",
+      "no",
+      "KC Water by owner",
+      "Tenant",
+      "2 per year",
+      "Fridge",
+      "FALSE",
+      "",
+    ],
   ],
 };
 
@@ -260,7 +286,13 @@ export const SYNTHETIC_CREDENTIAL_TAB_4: SyntheticTabFixture = {
   headerRow: 0,
   grid: [
     ["House", "WiFi Name", "WiFi Password", "Garage Spot", "OG Member?"],
-    ["Birchwood House", "BIRCHWOOD-GUEST-NET", "WIFI-PASS-PLACEHOLDER-ALPHA", "G-one", "yes"],
+    [
+      "Birchwood House",
+      "BIRCHWOOD-GUEST-NET",
+      "WIFI-PASS-PLACEHOLDER-ALPHA",
+      "G-one",
+      "yes",
+    ],
     ["Elmgrove House", "ELMGROVE-GUEST-NET", "WIFI-PASS-PLACEHOLDER-BETA", "G-two", "no"],
   ],
 };

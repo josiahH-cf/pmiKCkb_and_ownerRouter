@@ -17,16 +17,25 @@ describe("severity routing (§3.3 first-match-wins)", () => {
   it("routes parseable inspection cadence to Medium, but to High when it implicates the $130 owner charge", () => {
     expect(severityForField("inspections_cadence").severity).toBe("Medium"); // Case A
     expect(
-      severityForField("inspections_cadence", {}, { implicatesOwnerCharge: true }).severity,
+      severityForField("inspections_cadence", {}, { implicatesOwnerCharge: true })
+        .severity,
     ).toBe("High");
     expect(severityForField("owner_charge_130").severity).toBe("High");
   });
 
   it("routes any data-quality blocker to Blocked (rule 2)", () => {
-    expect(severityForField("inspections_cadence", { hasUnparsedCandidate: true }).severity).toBe("Blocked");
-    expect(severityForField("inspections_cadence", { noPrecedenceRule: true }).severity).toBe("Blocked");
-    expect(severityForField("address", { joinBelowThreshold: true }).severity).toBe("Blocked");
-    expect(severityForField("inspections_cadence", { columnUnmapped: true }).severity).toBe("Blocked");
+    expect(
+      severityForField("inspections_cadence", { hasUnparsedCandidate: true }).severity,
+    ).toBe("Blocked");
+    expect(
+      severityForField("inspections_cadence", { noPrecedenceRule: true }).severity,
+    ).toBe("Blocked");
+    expect(severityForField("address", { joinBelowThreshold: true }).severity).toBe(
+      "Blocked",
+    );
+    expect(
+      severityForField("inspections_cadence", { columnUnmapped: true }).severity,
+    ).toBe("Blocked");
   });
 
   it("routes internal-state fields to Medium and cosmetic to Low", () => {

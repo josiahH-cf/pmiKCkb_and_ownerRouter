@@ -76,7 +76,10 @@ export function classifyField(fieldKey: string, context: FieldContext = {}): Fie
 }
 
 /** Route a severity from a field class plus data-quality flags, first-match-wins. */
-export function routeSeverity(fieldClass: FieldClass, flags: SeverityFlags = {}): SeverityDecision {
+export function routeSeverity(
+  fieldClass: FieldClass,
+  flags: SeverityFlags = {},
+): SeverityDecision {
   if (HIGH_FIELD_CLASSES.has(fieldClass) || flags.feedsExternalWrite) {
     return {
       severity: "High",
@@ -104,7 +107,11 @@ export function routeSeverity(fieldClass: FieldClass, flags: SeverityFlags = {})
   }
 
   if (fieldClass === "operational" || fieldClass === "tenant_intake") {
-    return { severity: "Medium", rule: 3, reason: "affects internal/workflow state only" };
+    return {
+      severity: "Medium",
+      rule: 3,
+      reason: "affects internal/workflow state only",
+    };
   }
 
   return { severity: "Low", rule: 4, reason: "cosmetic / normalization" };

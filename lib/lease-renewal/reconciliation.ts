@@ -13,7 +13,11 @@ import {
   suggestWinnerSource,
 } from "@/lib/lease-renewal/field-reconciliation-rules";
 import type { NormalizedConfidence } from "@/lib/lease-renewal/normalized-value";
-import { severityForField, type FieldContext, type Severity } from "@/lib/lease-renewal/severity";
+import {
+  severityForField,
+  type FieldContext,
+  type Severity,
+} from "@/lib/lease-renewal/severity";
 
 export type Agreement = "agree" | "conflict" | "single_source" | "missing";
 export type DraftConfidence = NormalizedConfidence | "Conflict";
@@ -96,10 +100,13 @@ export function reconcileField(
 
   const winnerSource =
     rule && (agreement === "conflict" || agreement === "single_source")
-      ? suggestWinnerSource(rule, present.map((candidate) => candidate.source))
+      ? suggestWinnerSource(
+          rule,
+          present.map((candidate) => candidate.source),
+        )
       : null;
   const winnerCandidate = winnerSource
-    ? present.find((candidate) => candidate.source === winnerSource) ?? null
+    ? (present.find((candidate) => candidate.source === winnerSource) ?? null)
     : null;
 
   // Severity only matters for flag-worthy states; benign agree/single-source still compute it but
@@ -122,7 +129,8 @@ export function reconcileField(
 
   const raise_flag =
     agreement === "conflict" ||
-    (agreement === "missing" && (decision.severity === "High" || decision.severity === "Blocked"));
+    (agreement === "missing" &&
+      (decision.severity === "High" || decision.severity === "Blocked"));
 
   // Auto-apply is gated on OQ-PREC-1 AND a Low severity AND a low_after_review policy. Until
   // PRECEDENCE_CONFIRMED flips, this is always false — every resolution needs a human.
@@ -144,6 +152,8 @@ export function reconcileField(
     severity_rule: decision.rule,
     confidence_for_draft,
     raise_flag,
-    ...(noPrecedenceRule && isConflictLike ? { blocked_reason: "no precedence rule" } : {}),
+    ...(noPrecedenceRule && isConflictLike
+      ? { blocked_reason: "no precedence rule" }
+      : {}),
   };
 }

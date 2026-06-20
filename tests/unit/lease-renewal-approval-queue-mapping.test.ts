@@ -29,7 +29,9 @@ describe("mapReconciliationToQueueItem", () => {
       affected_system_action: "google_sheets.renewal_checklist.reconcile",
       source_trigger_key: "lease_renewal:reconcile:run-123:lawn_care",
     });
-    expect(mapping!.queueItem.direct_link).toBe("/workflow-runs/run-123/reconciliation/lawn_care");
+    expect(mapping!.queueItem.direct_link).toBe(
+      "/workflow-runs/run-123/reconciliation/lawn_care",
+    );
     expect(mapping!.sourceLinks).toHaveLength(2);
   });
 

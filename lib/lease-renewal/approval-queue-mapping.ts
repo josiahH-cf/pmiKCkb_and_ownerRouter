@@ -67,7 +67,9 @@ export function mapReconciliationToQueueItem(
 
   const { runId } = context;
   const label = context.fieldLabel ?? humanizeKey(reconciliation.field_key);
-  const sourceLabels = reconciliation.candidates.map((candidate) => candidate.source_system);
+  const sourceLabels = reconciliation.candidates.map(
+    (candidate) => candidate.source_system,
+  );
   const evidenceLink = `/workflow-runs/${runId}/reconciliation/${reconciliation.field_key}`;
 
   let actionNeeded: string;
@@ -94,10 +96,12 @@ export function mapReconciliationToQueueItem(
     direct_link: evidenceLink,
   };
 
-  const sourceLinks: ProcessDefinitionSourceLink[] = reconciliation.candidates.map((candidate) => ({
-    label: candidate.source_system,
-    url: candidate.location_ref ?? `${evidenceLink}#${candidate.source}`,
-  }));
+  const sourceLinks: ProcessDefinitionSourceLink[] = reconciliation.candidates.map(
+    (candidate) => ({
+      label: candidate.source_system,
+      url: candidate.location_ref ?? `${evidenceLink}#${candidate.source}`,
+    }),
+  );
 
   return { queueItem, sourceLinks };
 }

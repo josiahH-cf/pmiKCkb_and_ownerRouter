@@ -57,8 +57,18 @@ const STATUS_TOKENS = new Set([
 ]);
 
 const MONTHS: Record<string, number> = {
-  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
-  jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  may: 5,
+  jun: 6,
+  jul: 7,
+  aug: 8,
+  sep: 9,
+  oct: 10,
+  nov: 11,
+  dec: 12,
 };
 
 function pad2(n: number): string {
@@ -151,7 +161,13 @@ export function normalizeCell(
 
   if (/^\$\s?\d[\d,]*(\.\d+)?$/.test(trimmed)) {
     const amount = Number(trimmed.replace(/[$,\s]/g, ""));
-    return { ...base, type: "currency", value: amount, confidence: "Verified", notes: [] };
+    return {
+      ...base,
+      type: "currency",
+      value: amount,
+      confidence: "Verified",
+      notes: [],
+    };
   }
 
   if (/^(yes|y)$/i.test(trimmed)) {
@@ -172,7 +188,13 @@ export function normalizeCell(
 
   const fullDate = parseSheetDate(trimmed);
   if (fullDate) {
-    return { ...base, type: "date", value: fullDate.iso, confidence: fullDate.confidence, notes: [] };
+    return {
+      ...base,
+      type: "date",
+      value: fullDate.iso,
+      confidence: fullDate.confidence,
+      notes: [],
+    };
   }
 
   // "yes <date>" / "yes, pending" — a yes/no answer with workflow state appended in free text.
@@ -206,7 +228,8 @@ export function normalizeCell(
 
   // Non-empty but unparseable: surface as text. Buried-state free text (e.g. "ESTELLE WORKING ON")
   // is low-confidence so reconciliation/severity can route it for review.
-  const looksLikeBuriedState = /[a-z].*\s.*[a-z]/i.test(trimmed) && !/^[A-Za-z]+$/.test(trimmed);
+  const looksLikeBuriedState =
+    /[a-z].*\s.*[a-z]/i.test(trimmed) && !/^[A-Za-z]+$/.test(trimmed);
   return {
     ...base,
     type: "text",

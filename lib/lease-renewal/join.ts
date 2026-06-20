@@ -105,9 +105,14 @@ export function joinScore(a: JoinKey, b: JoinKey): number {
   return intersection / union;
 }
 
-function classify(score: number): { status: JoinStatus; recommendation: JoinProposal["recommendation"] } {
-  if (score >= JOIN_MATCH_THRESHOLD) return { status: "match", recommendation: "use_as_candidate" };
-  if (score >= JOIN_AMBIGUOUS_THRESHOLD) return { status: "ambiguous", recommendation: "send_to_review" };
+function classify(score: number): {
+  status: JoinStatus;
+  recommendation: JoinProposal["recommendation"];
+} {
+  if (score >= JOIN_MATCH_THRESHOLD)
+    return { status: "match", recommendation: "use_as_candidate" };
+  if (score >= JOIN_AMBIGUOUS_THRESHOLD)
+    return { status: "ambiguous", recommendation: "send_to_review" };
   return { status: "no_match", recommendation: "reject" };
 }
 
@@ -116,7 +121,11 @@ function classify(score: number): { status: JoinStatus; recommendation: JoinProp
  * autoMerge: false — a "match" is a candidate for a human to accept, an "ambiguous" routes to
  * review, and a "no_match" is rejected.
  */
-export function proposeJoin(leftRaw: string, rightRaw: string, kind: JoinKind): JoinProposal {
+export function proposeJoin(
+  leftRaw: string,
+  rightRaw: string,
+  kind: JoinKind,
+): JoinProposal {
   const left = deriveJoinKey(leftRaw, kind);
   const right = deriveJoinKey(rightRaw, kind);
   const score = joinScore(left, right);

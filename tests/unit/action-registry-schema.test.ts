@@ -310,6 +310,8 @@ describe("Lease-renewal checklist registry entries", () => {
       // verification_link omitted
     });
     expect(missing.ok).toBe(false);
-    expect(missing.errors).toContain('Missing required preview field "verification_link".');
+    expect(missing.errors).toContain(
+      'Missing required preview field "verification_link".',
+    );
   });
 });

@@ -46,7 +46,9 @@ describe("write-back state machine (§4.2)", () => {
   });
 
   it("supports Returned for Revision and Blocked branches", () => {
-    expect(transitionWriteBack("Awaiting Approval", "return")).toBe("Returned for Revision");
+    expect(transitionWriteBack("Awaiting Approval", "return")).toBe(
+      "Returned for Revision",
+    );
     expect(transitionWriteBack("Verifying", "block")).toBe("Blocked");
   });
 
@@ -80,7 +82,11 @@ describe("re-anchor + read-after-write (§4.3)", () => {
 
   it("re-anchors correctly after a row shift (insert above)", () => {
     const sheet = sheetWithTwoYesRows();
-    sheet.insertRow(0, { lease_id: "unit-1000", tenant_name: "New Row", renewal_completed: "no" });
+    sheet.insertRow(0, {
+      lease_id: "unit-1000",
+      tenant_name: "New Row",
+      renewal_completed: "no",
+    });
     // Jordan Maple is now at index 2, but the signature still re-resolves it.
     const result = executeApprovedWriteBack(sheet, target());
 

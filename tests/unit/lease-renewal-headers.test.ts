@@ -15,7 +15,10 @@ import {
 
 describe("resolveHeaders", () => {
   it("resolves the full Renewals header at row 0 with no MURKY or mismatch", () => {
-    const result = resolveHeaders(SYNTHETIC_RENEWALS_TAB.grid, RENEWAL_TAB_SCHEMAS.Renewals);
+    const result = resolveHeaders(
+      SYNTHETIC_RENEWALS_TAB.grid,
+      RENEWAL_TAB_SCHEMAS.Renewals,
+    );
 
     expect(result.headerRowIndex).toBe(0);
     expect(result.preHeaderRowCount).toBe(0);
