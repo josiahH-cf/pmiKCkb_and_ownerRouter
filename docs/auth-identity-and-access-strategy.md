@@ -63,7 +63,9 @@ places and do **not** cascade. The most dangerous misconception is that
 ### (b) Human gcloud user / ADC
 - **Today:** `gcloud auth login` active as `josiah@pmikcmetro.com` (org-correct), project
   `pmi-kc-kb-prod` — verified this session. Legacy `cherrybridge.ai` account also credentialed
-  locally. **ADC is currently MISSING** (no `application_default_credentials.json`).
+  locally. **ADC is present and resolves to `josiah@pmikcmetro.com`** (verified via
+  `npm run preflight:identity`). An earlier "missing" reading was a wrong-path check — on
+  Windows ADC lives under `%APPDATA%\gcloud`, not `~/.config/gcloud`.
 - **Target:** `gcloud auth application-default login` as `josiah@pmikcmetro.com`;
   `gcloud config set project pmi-kc-kb-prod`; `gcloud config set billing/quota_project pmi-kc-kb-prod`;
   no JSON keys. Revoke the `cherrybridge.ai` account locally **only after** ADC is minted under
@@ -117,7 +119,8 @@ readable. Remaining: revoke old personal grant at `myaccount.google.com/permissi
 + the discovery reference now record the connector identity as pmikcmetro.
 
 **(b) Human gcloud/ADC:** `gcloud auth application-default login` as `josiah@pmikcmetro.com`
-(ADC currently missing); set project + `billing/quota_project` to `pmi-kc-kb-prod`; overwrite
+(ADC already present + pmikcmetro, verified via `npm run preflight:identity`); set project +
+`billing/quota_project` to `pmi-kc-kb-prod`; overwrite
 stale registry env vars via `npm run host:setup`; `npm run host:check`; **then** revoke the
 `cherrybridge.ai` account locally.
 
@@ -169,7 +172,7 @@ three options, each touching a **different** identity system:
 
 ## 5. Enforcement / Guardrails — so "blocked on access" never recurs silently
 
-1. **`npm run preflight:identity` (proposed, new, live-probing):** asserts
+1. **`npm run preflight:identity` (implemented — `scripts/preflight-identity.mjs`, live-probing):** asserts
    `gcloud config get-value account` is `*@pmikcmetro.com`; asserts the **resolved ADC
    principal** (the email the ADC token resolves to, not just the quota project) is
    `*@pmikcmetro.com`; asserts `GOOGLE_APPLICATION_CREDENTIALS` unset; prints, for all **six**
@@ -239,9 +242,9 @@ stop:** the $10 budget alert is a warning, not a cap — treat unexpected spend 
 
 1. **Revoke the old Claude grant** from the personal account at `myaccount.google.com/permissions`
    (connector already reconnected to pmikcmetro — done).
-2. **Mint ADC as pmikcmetro:** `gcloud auth application-default login` (ADC is currently missing),
-   set project + quota project to `pmi-kc-kb-prod`, `npm run host:setup` / `host:check`, then
-   `gcloud auth revoke` the `cherrybridge.ai` account.
+2. **Confirm ADC + clean up:** ADC is already present + pmikcmetro (verified via
+   `npm run preflight:identity`); set project + quota project to `pmi-kc-kb-prod`, run
+   `npm run host:setup` / `host:check`, then `gcloud auth revoke` the `cherrybridge.ai` account.
 3. **Close the demo-mode footgun:** set `NODE_ENV=production` in `deploy-demo-cloud-run.mjs`
    `readRuntimeEnv` + add a runtime demo-flag startup assertion. *(Code change — I can do this on
    your go-ahead; it touches deploy behavior.)*
