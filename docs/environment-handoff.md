@@ -106,14 +106,14 @@ read-only check of enabled APIs, Firestore database mode, and the Firebase proje
 Recorded from the ignored local tool-access spreadsheet on 2026-06-09. Do not copy
 spreadsheet notes or credentials into tracked files.
 
-| Tool          | Non-secret access answer                                                                                                                         | Remaining handoff gap                                      |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| RentVine      | Both access/API location                                                                                                                         | Rotate exposed API credential before any future use.       |
-| LeadSimple    | Admin account                                                                                                                                    | Confirm Operations plan and endpoint coverage.             |
-| DotLoop       | Admin account                                                                                                                                    | Confirm signing/send lifecycle before runtime integration. |
-| QuickBooks    | Blank                                                                                                                                            | Client still needs to provide access status/location.      |
-| Boom          | Admin account                                                                                                                                    | Vendor endpoint contract packet still required.            |
-| Google Sheets | Admin account; visible shared Sheets metadata includes `Tenant Move In/Out/Renewal Checklist`, `24/25/26 Rents Received 2`, and `2026 Invoices`. | Confirm exact in-scope sheets and owner before use.        |
+| Tool          | Non-secret access answer                                                                                                                         | Remaining handoff gap                                                                                        |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| RentVine      | Both access/API location                                                                                                                         | Credential used as-is (owner decision 2026-06-20; not rotated) — load from env/Secret Manager, never commit. |
+| LeadSimple    | Admin account                                                                                                                                    | Confirm Operations plan and endpoint coverage.                                                               |
+| DotLoop       | Admin account                                                                                                                                    | Confirm signing/send lifecycle before runtime integration.                                                   |
+| QuickBooks    | Blank                                                                                                                                            | Client still needs to provide access status/location.                                                        |
+| Boom          | Admin account                                                                                                                                    | Vendor endpoint contract packet still required.                                                              |
+| Google Sheets | Admin account; visible shared Sheets metadata includes `Tenant Move In/Out/Renewal Checklist`, `24/25/26 Rents Received 2`, and `2026 Invoices`. | Confirm exact in-scope sheets and owner before use.                                                          |
 
 | Area                         | Environment  | Non-secret values to record                                   | Where real secrets live                                  | Manual setup or approval required                                                                   | Verification                                       | Approval gate                                  |
 | ---------------------------- | ------------ | ------------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------- |
@@ -135,14 +135,14 @@ Per-vendor handoff detail for the future integrations, aligned with the verified
 `docs/integration-architecture.md`. None are provisioned; all writes stay gated. Action
 types are catalogued in the `action_registry` collection (`production_allowed: false`).
 
-| System        | Role                          | Event mode                | Plan/tier note                                                | Credential owner (future)          |
-| ------------- | ----------------------------- | ------------------------- | ------------------------------------------------------------- | ---------------------------------- |
-| Rentvine      | Operational system of record  | Polling / LeadSimple sync | Account API key + roles; rotate exposed credential before use | PMI KC; key rotation required      |
-| LeadSimple    | Workflow orchestration        | LeadSimple sync           | Operations plan for Rentvine sync                             | PMI KC admin-enabled REST key      |
-| Dotloop       | Document-package layer        | Webhook                   | OAuth2 approved app program                                   | PMI KC approved app registration   |
-| QuickBooks    | Accounting (downstream)       | Webhook                   | Online Accounting API; blank in returned tool-access sheet    | PMI KC; access status still needed |
-| Boom          | Resident services (auxiliary) | Webhook (vendor-packet)   | Endpoint contract request-only                                | PMI KC; vendor packet required     |
-| Google Sheets | Exception / control plane     | Apps Script triggers      | Admin account/location returned; exact sheets still TBD       | PMI KC Workspace owner             |
+| System        | Role                          | Event mode                | Plan/tier note                                                                          | Credential owner (future)            |
+| ------------- | ----------------------------- | ------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------ |
+| Rentvine      | Operational system of record  | Polling / LeadSimple sync | Account API key + roles; credential used as-is (owner decision 2026-06-20, not rotated) | PMI KC; load from env/Secret Manager |
+| LeadSimple    | Workflow orchestration        | LeadSimple sync           | Operations plan for Rentvine sync                                                       | PMI KC admin-enabled REST key        |
+| Dotloop       | Document-package layer        | Webhook                   | OAuth2 approved app program                                                             | PMI KC approved app registration     |
+| QuickBooks    | Accounting (downstream)       | Webhook                   | Online Accounting API; blank in returned tool-access sheet                              | PMI KC; access status still needed   |
+| Boom          | Resident services (auxiliary) | Webhook (vendor-packet)   | Endpoint contract request-only                                                          | PMI KC; vendor packet required       |
+| Google Sheets | Exception / control plane     | Apps Script triggers      | Admin account/location returned; exact sheets still TBD                                 | PMI KC Workspace owner               |
 
 ## Key And Secret Ownership
 

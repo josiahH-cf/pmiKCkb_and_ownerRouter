@@ -111,11 +111,12 @@ Notes (review corrections):
 2. **Client/vendor answers (no cost, in parallel):** Dan confirms §3.4 precedence (OQ-PREC-1),
    in-scope sheet IDs/tabs + §7 interpretations (OQ-SHEET-1), staff lexicon (OQ-LEX-1), address
    canonicalization (OQ-JOIN-1). These flip reconciliation from `Blocked` to active suggestions.
-3. **First live read — HARD PRECONDITION: rotate the exposed RentVine credential first
-   (OQ-SEC-1).** No live Rentvine call (even a free read) may run until the leaked key is rotated
-   and stored outside the repo. Then a single read-only Rentvine lease-list (candidate filter,
-   ~free) and a single read of the approved sheet via the `pmikcmetro.com` connector (free Sheets
-   quota) validate fingerprinting/normalization against real structure, tabs 4 & 7 excluded.
+3. **First live read (uses the existing RentVine credential — owner decision 2026-06-20: use it, do
+   NOT rotate; OQ-SEC-1 resolved).** The credential must still be loaded from `.env.local` / Secret
+   Manager and never committed, echoed, or written to a tracked doc (AGENTS.md no-secrets rule). A
+   single read-only Rentvine lease-list (candidate filter, ~free) and a single read of the approved
+   sheet via the `pmikcmetro.com` connector (free Sheets quota) validate
+   fingerprinting/normalization against real structure, tabs 4 & 7 excluded.
 4. **Phase-1 accuracy milestone (no write):** run reconciliation over a real sample on the
    workflow-run page; Dan reviews via the Approval Queue (see §6 — that surface may itself be an
    unbuilt dependency). This is the Admin's evidence to consider Phase 2, not an auto-unlock.
@@ -193,8 +194,10 @@ reconciliation finalization, live reads, write-back, or prod completion.
 
 - **OQ-PROD-3** — Provide host ADC (`firebase login` / `gcloud auth`) so Firestore rules/indexes
   deploy + live preflight run. _Blocks:_ rules/indexes deploy + live readiness.
-- **OQ-SEC-1** — **Rotate the exposed RentVine API key/secret** and store it outside the repo.
-  _Blocks (hard):_ **any live Rentvine connector work** — no live read until this clears.
+- **OQ-SEC-1 — RESOLVED (owner decision 2026-06-20):** the existing RentVine API key/secret is
+  **used as-is, NOT rotated** — no longer a blocker. Still required: load it from `.env.local` /
+  Secret Manager and keep it out of git, tracked docs, and model output (AGENTS.md no-secrets rule).
+  The credential remains the one shared in the local tool-access sheet.
 
 ### Vendor
 

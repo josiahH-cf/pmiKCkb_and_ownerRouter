@@ -26,9 +26,9 @@ content, leases, or tool secrets into this repo when answers arrive.
 
 ## Josiah-Owned Follow-Ups
 
-| Item                         | Action                                                                                                                                                                | Needed for                          | Status                                                                                                 |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| RentVine credential rotation | Handle rotation/storage follow-up for the RentVine API key/secret that appeared in ignored local spreadsheet notes. Do not ask Dan again in the current source email. | Future RentVine integration safety. | Josiah-owned follow-up; do not record replacement secret values in git, email drafts, or tracked docs. |
+| Item                         | Action                                                                                                                                                                           | Needed for                          | Status                                                                                                 |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| RentVine credential rotation | RESOLVED (owner decision 2026-06-20): the RentVine API key/secret that appeared in ignored local spreadsheet notes is used as-is, NOT rotated. No client action; do not ask Dan. | Future RentVine integration safety. | Josiah-owned follow-up; do not record replacement secret values in git, email drafts, or tracked docs. |
 
 ## Decisions To Confirm
 
@@ -118,8 +118,8 @@ content, leases, or tool secrets into this repo when answers arrive.
   cycles.
 - Lease Renewal Agent runtime scope is waiting on the full walkthrough, signed
   lease/date source location, QuickBooks access status, Google Sheets scope, and future
-  approval of read/write permissions. RentVine credential rotation is a separate
-  Josiah-owned integration-safety follow-up.
+  approval of read/write permissions. The RentVine credential is used as-is (owner
+  decision 2026-06-20; not rotated; loaded from env/Secret Manager, kept out of git).
 - Gmail Inbox 0 live Gmail setup is waiting on Dan approval of the safe test-thread
   model and later Gmail access/scope decisions.
 - Any request involving raw customer records, ledgers, bank data, SSNs, full lease

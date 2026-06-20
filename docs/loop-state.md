@@ -52,8 +52,9 @@ continuation, and stop-and-reset rules.
   §3 (start with the Action Registry `renewal_checklist.{read,reconcile,writeback}` entries, then the
   `lib/lease-renewal/` ingest/normalize/fingerprint/headers/join/severity/reconciliation/queue-mapping
   modules with synthetic fixtures). Done-state, open-questions/blockers register, and the two-track
-  prod plan are in that doc (§2, §7, §8). No live Rentvine call until the leaked credential is
-  rotated (OQ-SEC-1); use the canonical Cloud Run host for any auth work, not the project-number URL.
+  prod plan are in that doc (§2, §7, §8). Per owner decision 2026-06-20 the existing RentVine
+  credential is used as-is (NOT rotated; load from env/Secret Manager, keep out of git). Use the
+  canonical Cloud Run host for any auth work, not the project-number URL.
 
 ## Migration Readiness
 
@@ -524,8 +525,9 @@ All client-owned (tracked in `docs/client-checklist.md` and `docs/research-backl
 - Lease Renewal walkthrough (target Wed Jun 17 2026, 9:30-10:15 AM; fallbacks Jun 17-18).
 - QuickBooks access status/location — blank in the returned tool-access spreadsheet.
 - Google Sheets exact in-scope sheet list and owner confirmation.
-- RentVine credential rotation — a credential appeared in ignored spreadsheet notes and
-  must be rotated/stored outside the repo before future use.
+- ~~RentVine credential rotation~~ — RESOLVED (owner decision 2026-06-20): the existing RentVine
+  credential is **used as-is, not rotated**. Still keep it out of git and load it only from
+  env/Secret Manager (no-secrets rule).
 - ~~Signed lease / lease-end-date source location.~~ RESOLVED: signed leases live in **Dotloop**
   (e-signature home); lease-end / renewal timing reads from the **Rentvine lease record** (Tab 3
   `Renewal Date` corroborates). See `docs/products/lease-renewal-discovery-reference.md` §2 and
@@ -599,9 +601,10 @@ coordination. Use this queue only for items that still need explicit owner/clien
 
 `docs/client_docs/` is gitignored and must never be committed (it holds client
 spreadsheets, rent ledgers, invoices, and tool-access records). The returned tool-access
-spreadsheet currently contains live RentVine API credentials in a notes cell; those must
-be rotated by the client and stored outside the repo. Record only non-secret references
-(tool name, access type, owner, location label) in tracked docs.
+spreadsheet currently contains live RentVine API credentials in a notes cell. Per owner decision
+2026-06-20 these are **used as-is, not rotated**; they must still be loaded only from env/Secret
+Manager and never committed. Record only non-secret references (tool name, access type, owner,
+location label) in tracked docs.
 
 ## Resume Here
 
@@ -613,7 +616,8 @@ be rotated by the client and stored outside the repo. Record only non-secret ref
    [`products/lease-renewal-build-plan.md`](products/lease-renewal-build-plan.md) and build the next
    zero-cost, deterministic Phase-1 unit from §3 (it carries the done-state, buildable units,
    open-questions/blockers register, and the two-track prod plan). Keep every Action Registry entry
-   `production_allowed:false`; no live Rentvine call until OQ-SEC-1 (credential rotation).
+   `production_allowed:false`. The existing RentVine credential is used as-is (owner decision
+   2026-06-20, OQ-SEC-1 resolved — not rotated); load it from env/Secret Manager, never commit it.
 4. Honor the stop gate: prefer client unblock / cutover / docs / regression work over new
    local product surface while blockers are client-owned.
 5. Update this file at each slice boundary.
