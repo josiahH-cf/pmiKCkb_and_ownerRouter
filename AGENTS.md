@@ -101,6 +101,7 @@ route new work through the three-product docs.
 - Live Ask smoke: `npm run smoke:ask-live`
 - Queue notifications dry-run: `npm run queue:notifications -- --dry-run --date=YYYY-MM-DD`
 - Demo deploy: `npm run deploy:demo`
+- Deployed endpoint: https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app (Cloud Run `pmi-kc-kb-demo` on `pmi-kc-kb-prod`). Verify app/UI changes against this endpoint via `npm run smoke:ask-live -- --base-url=<endpoint>`; a local dev server is a preview only, not the deployed reality.
 - Build: `npm run build`
 - Full verification: `bash scripts/verify.sh`
 

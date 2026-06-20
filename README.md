@@ -47,7 +47,22 @@ Firebase setup gate in `SETUP.md`; do not add secrets to git.
 npm run dev
 ```
 
-Open the local URL shown by Next.js.
+Open the local URL shown by Next.js. Local dev is a **preview only** — a change is not
+live until it is deployed. The deployed reality is the Cloud Run endpoint below, not localhost.
+
+## Production Endpoint
+
+Deployed to Cloud Run (project `pmi-kc-kb-prod`, service `pmi-kc-kb-demo`):
+
+- **Endpoint:** https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app
+- **Deploy (gated):** `npm run deploy -- --budget-confirmed` — needs `gcloud auth login` + ADC.
+  Each run triggers one Cloud Build, so batch changes; the service is scale-to-zero, so idle
+  hosting cost ≈ $0.
+- **Verify the deployed app:** `npm run smoke:auth-live` / `npm run smoke:ask-live -- --base-url=https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`
+  (the smoke scripts default to localhost — always pass `--base-url`).
+
+See `docs/environment-handoff.md` for the full environment registry. `npm run preflight:production`
+is the stricter full client-domain cutover gate, distinct from this cheap-live redeploy.
 
 ## Tests And Verification
 
