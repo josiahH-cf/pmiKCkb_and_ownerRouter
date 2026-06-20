@@ -17,7 +17,7 @@ continuation, and stop-and-reset rules.
   neutralized all dead `pmikckb-test` repo pointers AND **deleted the `pmikckb-test` GCP project**
   (DELETE_REQUESTED, ~30-day recoverable) via a one-time ephemeral cherrybridge auth
   (`docs/demo-lane-retirement.md`); fixed BOTH environment-coupled unit tests
-  (`migration-readiness`, `cutover-report`) to be hermetic — **386/386 unit tests now pass**;
+  (`migration-readiness`, `cutover-report`) to be hermetic — **387/387 unit tests now pass**;
   reworked the lease-renewal connector write-back to an **admin-enabled, suggest-then-button-press**
   model (no trust auto-write — `docs/products/lease-renewal-connector-design.md` §4.0); and ran a
   doc recontextualization pass (identity/migration, renewal/move-in/move-out, cross-doc ambiguities).
@@ -47,6 +47,13 @@ continuation, and stop-and-reset rules.
   still source-blocked (approved client sources). Spend stayed well under the $10 cap. Packet:
   `docs/temp/2026-06-19-gcp-billing-unblock-cutover-resume.md`.
 - Recommend fresh context window: not required; safe to resume from this file
+- **Next slice — "continue with feature development":** build the next zero-cost, deterministic
+  Phase-1 lease-renewal unit per [`products/lease-renewal-build-plan.md`](products/lease-renewal-build-plan.md)
+  §3 (start with the Action Registry `renewal_checklist.{read,reconcile,writeback}` entries, then the
+  `lib/lease-renewal/` ingest/normalize/fingerprint/headers/join/severity/reconciliation/queue-mapping
+  modules with synthetic fixtures). Done-state, open-questions/blockers register, and the two-track
+  prod plan are in that doc (§2, §7, §8). No live Rentvine call until the leaked credential is
+  rotated (OQ-SEC-1); use the canonical Cloud Run host for any auth work, not the project-number URL.
 
 ## Migration Readiness
 
@@ -59,7 +66,7 @@ continuation, and stop-and-reset rules.
   alert. Create a project-scoped $10 budget alert on the production project before any deploy.
 - Evidence: `bash scripts/verify.sh` green on 2026-06-06; re-verified 2026-06-19 on the owner
   Windows host (budget-guard green; falsification green across 303 files). As of 2026-06-20,
-  **386/386 unit tests pass** — the two prior environment-coupled failures (`migration-readiness`,
+  **387/387 unit tests pass** — the two prior environment-coupled failures (`migration-readiness`,
   `cutover-report`) are now fixed hermetically (see Last-Known-Green below).
   Cutover/preflight artifacts present (`npm run preflight:production`,
   `docs/client-production-cutover.md`, source-corpus manifests).
@@ -82,7 +89,7 @@ continuation, and stop-and-reset rules.
   cherrybridge auth (DELETE_REQUESTED, ~30-day recoverable; `docs/demo-lane-retirement.md`). (3) Fixed
   both environment-coupled unit tests to be hermetic (`migration-readiness` no longer depends on
   ambient ADC reaching an empty prod Firestore; `cutover-report` reads an empty env fixture, not
-  the host `.env.local`) — **386/386 unit tests pass**. (4) Reworked the lease-renewal connector
+  the host `.env.local`) — **387/387 unit tests pass**. (4) Reworked the lease-renewal connector
   write-back to an admin-enabled, console-user-scoped, suggest-then-button-press model with no
   trust-based auto-write (`lease-renewal-connector-design.md` §4.0). (5) Documentation
   recontextualization: identity/migration current-state, a new `move-in-move-out-process.md`, and
@@ -253,7 +260,7 @@ continuation, and stop-and-reset rules.
 ## Last-Known-Green Verification
 
 - 2026-06-20 (hardening + recontextualization slice, owner Windows host): `npx vitest run`
-  **386/386 PASS across 48 files** — both previously environment-coupled failures
+  **387/387 PASS across 48 files** — both previously environment-coupled failures
   (`migration-readiness.test.ts`, `cutover-report.test.mjs`) are now hermetic and green. Full
   `bash scripts/verify.sh` not re-run this slice (changes were tests + scripts + docs); run it
   before any deploy.
@@ -602,6 +609,11 @@ be rotated by the client and stored outside the repo. Record only non-secret ref
    entry.
 2. If the trigger is "plan the next feature cycle", produce a decision-complete packet
    and stop. If the trigger authorizes running the loop, proceed unattended.
-3. Honor the stop gate: prefer client unblock / cutover / docs / regression work over new
+3. If the trigger is **"continue with feature development"**, open
+   [`products/lease-renewal-build-plan.md`](products/lease-renewal-build-plan.md) and build the next
+   zero-cost, deterministic Phase-1 unit from §3 (it carries the done-state, buildable units,
+   open-questions/blockers register, and the two-track prod plan). Keep every Action Registry entry
+   `production_allowed:false`; no live Rentvine call until OQ-SEC-1 (credential rotation).
+4. Honor the stop gate: prefer client unblock / cutover / docs / regression work over new
    local product surface while blockers are client-owned.
-4. Update this file at each slice boundary.
+5. Update this file at each slice boundary.

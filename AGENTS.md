@@ -28,6 +28,7 @@ route new work through the three-product docs.
 | ----------------------------------- | --------------------------------------------------------------------------------------------------- |
 | North star and product direction    | `docs/north-star.md`                                                                                |
 | Product lane routing                | `docs/products/README.md`, then the relevant product doc                                            |
+| Continue feature development        | `docs/products/lease-renewal-build-plan.md`                                                         |
 | Renewal / move-in / move-out flow   | `docs/products/lease-renewal-discovery-reference.md`, `docs/products/move-in-move-out-process.md`   |
 | Renewal sheet connector + conflicts | `docs/products/lease-renewal-connector-design.md`, `docs/products/lease-renewal-spreadsheet-map.md` |
 | Demo lane retirement                | `docs/demo-lane-retirement.md`                                                                      |

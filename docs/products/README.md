@@ -13,6 +13,7 @@ Use it before older demo docs or preserved specs.
 
 ### Lease Renewal lane — sub-docs
 
+- [`lease-renewal-build-plan.md`](lease-renewal-build-plan.md) — **build-ready roadmap / "continue with feature development" entry point**: done-state, the zero-cost Phase-1 units, the open-questions & blockers register, and the two-track prod-cutover plan.
 - [`lease-renewal-discovery-reference.md`](lease-renewal-discovery-reference.md) — sanitized renewal process reference (end-to-end).
 - [`move-in-move-out-process.md`](move-in-move-out-process.md) — tenant move-in / move-out lifecycles + how they connect.
 - [`lease-renewal-connector-design.md`](lease-renewal-connector-design.md) — read-only sheet connector + conflict reconciliation + admin-enabled, suggest-then-button-press write-back (§4.0).
