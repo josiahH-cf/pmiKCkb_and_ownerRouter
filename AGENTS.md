@@ -118,11 +118,35 @@ route new work through the three-product docs.
 
 - No secrets, tokens, customer data, raw screening records, ledgers, bank data, SSNs,
   full lease packets, or live Gmail thread content in git.
+- Real client data (e.g. the renewal tracking spreadsheet) MAY be read and used as
+  test/training input to improve deterministic rules and models, and for read-only
+  follow-up queries — provided it stays out of git, stays out of user-facing or model
+  outputs without human approval, and access stays within the authenticated
+  `pmikcmetro.com` boundary. Training/testing on real data is permitted; emitting it or
+  acting on it autonomously is not. The no-customer-data-in-git rule and human-send
+  authority above remain in force, and approval-gated write-back (e.g. to the spreadsheet)
+  still requires a per-action spec.
 - Use `.env.example` for names only.
 - Preserve human send authority; no autonomous send.
 - Do not add system-of-record write paths to RentVine, LeadSimple, DotLoop, QuickBooks,
   Boom, operating Sheets, banks, or client Drive folders without a future approved spec.
 - Missing sources produce visible uncertainty, not generic property-management answers.
+
+## Identity Rules
+
+- This project always uses a `pmikcmetro.com` Google identity. The personal
+  `josiah.abernathy@gmail.com` account must never appear in any auth path.
+- Six identity systems are separate and do NOT cascade: (a) Claude's MCP Drive/Workspace
+  connector, (b) local gcloud/ADC, (c) the Cloud Run runtime service account, (d) Firebase
+  end-user auth, (e) the Firebase CLI login, (f) the Cloud Build/buildpack identity. All must be
+  `pmikcmetro.com` (human/connector/firebase-CLI) or a `pmi-kc-kb-prod` service identity
+  (runtime/build). `gcloud auth` does NOT change the Claude connector, and vice-versa.
+- No `cherrybridge.ai` / `pmikckb-test` (legacy demo) in any production path. No downloadable
+  key files — ADC (local human) and attached service account (runtime) only.
+- "Blocked on access" is raised as an explicit blocker, never worked around with a personal
+  account or a demo-mode fallback.
+- Full strategy, per-surface mechanisms, and migration plan:
+  `docs/auth-identity-and-access-strategy.md`.
 
 ## Documentation Rules
 

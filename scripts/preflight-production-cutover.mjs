@@ -9,6 +9,7 @@ const DEMO_VALUE_PATTERNS = [
   "pmi-kc-kb-demo",
   "lease-renewals-686407",
   "800237451321",
+  "cherrybridge.ai",
 ];
 const PLACEHOLDER_VALUE_PATTERN = /<[^>]+>|\b(change-me|changeme|replace-me|todo)\b/i;
 const REQUIRED_FIREBASE_PUBLIC = [
@@ -125,6 +126,11 @@ export function validateProductionCutoverConfig(env) {
   assertNoPlaceholderString(
     "CLOUD_RUN_SERVICE_ACCOUNT",
     readString(env.CLOUD_RUN_SERVICE_ACCOUNT),
+    errors,
+  );
+  assertRuntimeServiceAccount(
+    readString(env.CLOUD_RUN_SERVICE_ACCOUNT),
+    gcpProjectId,
     errors,
   );
   assertConfiguredMaps(sourceTargets, dataStores, errors);
@@ -275,6 +281,34 @@ function assertPmikcmetroEmailList(name, value, errors) {
       errors.push(`${name} must use only pmikcmetro.com email addresses.`);
       return;
     }
+  }
+}
+
+// The Cloud Run runtime identity must be a service account on the production project, never a
+// personal/Workspace user account (the single-identity rule) or a cross-project / demo SA. The
+// project's default compute SA (...@developer.gserviceaccount.com) is allowed as a fallback.
+function assertRuntimeServiceAccount(value, gcpProjectId, errors) {
+  if (!value) {
+    return;
+  }
+
+  if (/@developer\.gserviceaccount\.com$/i.test(value)) {
+    return;
+  }
+
+  const match = /@([a-z0-9-]+)\.iam\.gserviceaccount\.com$/i.exec(value);
+
+  if (!match) {
+    errors.push(
+      "CLOUD_RUN_SERVICE_ACCOUNT must be a GCP service account, not a user account.",
+    );
+    return;
+  }
+
+  if (gcpProjectId && match[1] !== gcpProjectId) {
+    errors.push(
+      `CLOUD_RUN_SERVICE_ACCOUNT must belong to ${gcpProjectId}; got project ${match[1]}.`,
+    );
   }
 }
 

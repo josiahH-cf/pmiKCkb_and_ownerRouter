@@ -147,6 +147,8 @@ describe("cheap live setup scripts", () => {
     expect(command.args.join(" ")).toContain("ASK_DEMO_MODE=false");
     expect(command.args.join(" ")).toContain(`GEMINI_MODEL_ANSWER=${CHEAP_LIVE_MODEL}`);
     expect(command.args.join(" ")).toContain("VERTEX_SEARCH_LOCATION=us");
+    expect(command.args.join(" ")).toContain("LOCAL_DEMO_AUTH=false");
+    expect(command.args.join(" ")).toContain("NODE_ENV=production");
   });
 
   it("allows an explicit gcloud binary override for deploy commands", () => {
@@ -602,6 +604,86 @@ describe("cheap live setup scripts", () => {
 
     expect(result.ok).toBe(true);
     expect(result.errors).toEqual([]);
+  });
+
+  it("rejects legacy cherrybridge.ai references in production config", () => {
+    const result = validateProductionCutoverConfig({
+      ALLOWED_HD: "pmikcmetro.com",
+      APP_BASE_URL: "https://kb.cherrybridge.ai",
+      ASK_DEMO_MODE: "false",
+      FIREBASE_PROJECT_ID: "pmikc-kb-production",
+      GCP_PROJECT_ID: "pmikc-kb-production",
+      LOCAL_DEMO_AUTH: "false",
+      NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
+      NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmikc-kb-production.firebaseapp.com",
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmikc-kb-production",
+      KB_APPROVAL_NOTIFICATIONS_ENABLED: "true",
+      KB_APPROVAL_RECIPIENTS: "dan@pmikcmetro.com",
+      KB_APPROVAL_SENDER: "kb-automation@pmikcmetro.com",
+      SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
+        "lease-renewals": "gs://pmikc-kb-production-sources/lease-renewals/",
+      }),
+      SPACE_VERTEX_DATA_STORE_IDS: JSON.stringify({
+        "lease-renewals": "kb-lease-renewals-txt",
+      }),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContain(
+      "APP_BASE_URL must not reference demo resource https://kb.cherrybridge.ai.",
+    );
+  });
+
+  it("rejects a non-service-account or cross-project runtime identity", () => {
+    const base = {
+      ALLOWED_HD: "pmikcmetro.com",
+      APP_BASE_URL: "https://kb.pmikcmetro.example",
+      ASK_DEMO_MODE: "false",
+      FIREBASE_PROJECT_ID: "pmikc-kb-production",
+      GCP_PROJECT_ID: "pmikc-kb-production",
+      LOCAL_DEMO_AUTH: "false",
+      NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
+      NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmikc-kb-production.firebaseapp.com",
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmikc-kb-production",
+      KB_APPROVAL_NOTIFICATIONS_ENABLED: "true",
+      KB_APPROVAL_RECIPIENTS: "dan@pmikcmetro.com",
+      KB_APPROVAL_SENDER: "kb-automation@pmikcmetro.com",
+      SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
+        "lease-renewals": "gs://pmikc-kb-production-sources/lease-renewals/",
+      }),
+      SPACE_VERTEX_DATA_STORE_IDS: JSON.stringify({
+        "lease-renewals": "kb-lease-renewals-txt",
+      }),
+    };
+
+    const userAccount = validateProductionCutoverConfig({
+      ...base,
+      CLOUD_RUN_SERVICE_ACCOUNT: "josiah.abernathy@gmail.com",
+    });
+    expect(userAccount.ok).toBe(false);
+    expect(userAccount.errors).toContain(
+      "CLOUD_RUN_SERVICE_ACCOUNT must be a GCP service account, not a user account.",
+    );
+
+    const crossProject = validateProductionCutoverConfig({
+      ...base,
+      CLOUD_RUN_SERVICE_ACCOUNT:
+        "pmi-kc-kb-runtime@other-project.iam.gserviceaccount.com",
+    });
+    expect(crossProject.ok).toBe(false);
+    expect(crossProject.errors).toContain(
+      "CLOUD_RUN_SERVICE_ACCOUNT must belong to pmikc-kb-production; got project other-project.",
+    );
+
+    const validSa = validateProductionCutoverConfig({
+      ...base,
+      CLOUD_RUN_SERVICE_ACCOUNT:
+        "pmi-kc-kb-runtime@pmikc-kb-production.iam.gserviceaccount.com",
+    });
+    expect(validSa.ok).toBe(true);
+    expect(validSa.errors).toEqual([]);
   });
 
   it("requires enabled pmikcmetro.com approval notifications for production", () => {

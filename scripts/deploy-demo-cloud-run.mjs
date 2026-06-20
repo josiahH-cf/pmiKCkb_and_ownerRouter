@@ -211,6 +211,9 @@ function readRuntimeEnv(env, project, region, searchLocation) {
     KB_APPROVAL_RECIPIENTS: withDefault("KB_APPROVAL_RECIPIENTS", ""),
     KB_APPROVAL_SENDER: withDefault("KB_APPROVAL_SENDER", ""),
     LOCAL_DEMO_AUTH: "false",
+    // Defense in depth: pin NODE_ENV so the production demo-auth lockout does not rely on
+    // `next start` setting it. lib/config/server.ts gates localDemoAuth on NODE_ENV !== "production".
+    NODE_ENV: "production",
     NEXT_PUBLIC_FIREBASE_API_KEY: readString(env.NEXT_PUBLIC_FIREBASE_API_KEY),
     NEXT_PUBLIC_FIREBASE_APP_ID: readString(env.NEXT_PUBLIC_FIREBASE_APP_ID),
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: readString(env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN),
