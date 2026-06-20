@@ -263,6 +263,9 @@ renewal-writeback remains **[OPEN]** / vendor-confirmation-required.
 
 ### 6.1 Data-conflict resolution — recommended design (critical issue)
 
+> Full, review-hardened design (ingest, reconciliation, approval-gated write-back, phasing):
+> [`lease-renewal-connector-design.md`](lease-renewal-connector-design.md).
+
 Goal: when the same fact disagrees across sources (the lawn-care HOA-vs-tenant case),
 resolve it once, safely, and **fix it at the source** so it stops recurring — without
 asking the non-technical team to trust an opaque dashboard. Builds on the product doc's
