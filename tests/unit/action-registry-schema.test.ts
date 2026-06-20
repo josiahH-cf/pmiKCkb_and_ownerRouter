@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CreateActionRegistryInputSchema } from "@/lib/firestore/schemas";
 import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
+import { validatePreviewPayload } from "@/lib/integrations/preview-payload";
 
 const baseInput = {
   key: "rentvine.work_order.create",
@@ -155,8 +156,8 @@ describe("Action Registry seed catalog", () => {
     expect(writeback?.production_allowed).toBe(false);
   });
 
-  it("contains the expanded 14-entry catalog", () => {
-    expect(ACTION_REGISTRY_SEED).toHaveLength(14);
+  it("contains the expanded 17-entry catalog", () => {
+    expect(ACTION_REGISTRY_SEED).toHaveLength(17);
     expect(ACTION_REGISTRY_SEED.map((entry) => entry.key)).toEqual(
       expect.arrayContaining([
         "rentvine.lease.read",
@@ -164,6 +165,9 @@ describe("Action Registry seed catalog", () => {
         "leadsimple.task.create",
         "gmail.label.apply",
         "gmail.draft.create",
+        "google_sheets.renewal_checklist.read",
+        "google_sheets.renewal_checklist.reconcile",
+        "google_sheets.renewal_checklist.writeback",
       ]),
     );
   });
@@ -209,5 +213,103 @@ describe("Action Registry seed catalog", () => {
     for (const entry of ACTION_REGISTRY_SEED) {
       expect(entry.connection_health_check_ref, entry.key).toMatch(/^health\./);
     }
+  });
+});
+
+describe("Lease-renewal checklist registry entries", () => {
+  const renewalEntries = ACTION_REGISTRY_SEED.filter((entry) =>
+    entry.key.startsWith("google_sheets.renewal_checklist."),
+  );
+
+  // Parse so schema defaults (required_permissions: [], preview field required: false)
+  // are applied — the raw seed input leaves those optional.
+  function entry(key: string) {
+    const found = ACTION_REGISTRY_SEED.find((candidate) => candidate.key === key);
+    if (!found) throw new Error(`Missing seed entry ${key}`);
+    return CreateActionRegistryInputSchema.parse(found);
+  }
+
+  it("seeds exactly read, reconcile, and writeback on the renewal-checklist sheet", () => {
+    expect(renewalEntries.map((e) => e.key).sort()).toEqual([
+      "google_sheets.renewal_checklist.read",
+      "google_sheets.renewal_checklist.reconcile",
+      "google_sheets.renewal_checklist.writeback",
+    ]);
+
+    for (const e of renewalEntries) {
+      expect(e.target_system, e.key).toBe("Google Sheets");
+      expect(e.product_lane, e.key).toBe("Lease Renewal Agent");
+      expect(e.production_allowed, e.key).toBe(false);
+      expect(e.connection_health_check_ref, e.key).toBe("health.google_sheets.api");
+      expect(() => CreateActionRegistryInputSchema.parse(e)).not.toThrow();
+    }
+  });
+
+  it("scopes the read connector to mapped tabs and denies tabs 4 & 7 at the boundary", () => {
+    const read = entry("google_sheets.renewal_checklist.read");
+
+    expect(read.readiness).toBe("Needs Connection");
+    expect(read.evidence_status).toBe("Documented");
+    expect(read.required_permissions.join(" ")).toMatch(/tabs 4 & 7/);
+  });
+
+  it("keeps reconcile a flags-only step with no event ingestion", () => {
+    const reconcile = entry("google_sheets.renewal_checklist.reconcile");
+
+    expect(reconcile.readiness).toBe("Planned");
+    expect(reconcile.event_ingestion_mode).toBe("None");
+    expect(reconcile.preview_payload_schema).toBeUndefined();
+    expect(reconcile.expected_action).toMatch(/flags only/i);
+  });
+
+  it("models writeback as Documented + Planned (not vendor-confirmation-required)", () => {
+    const writeback = entry("google_sheets.renewal_checklist.writeback");
+
+    // Review fix #12: mis-coding this Vendor-Confirmation-Required would permanently block
+    // the Documented-requiring production gate; Sheets writes have no vendor to confirm.
+    expect(writeback.evidence_status).toBe("Documented");
+    expect(writeback.readiness).toBe("Planned");
+    expect(writeback.production_allowed).toBe(false);
+    expect(writeback.required_permissions.join(" ")).toMatch(
+      /feature flag \(off by default\)/i,
+    );
+  });
+
+  it("gives writeback a cell-addressed preview schema that validatePreviewPayload accepts", () => {
+    const writeback = entry("google_sheets.renewal_checklist.writeback");
+    const fields = writeback.preview_payload_schema ?? [];
+
+    expect(fields.map((f) => f.name)).toEqual([
+      "tab",
+      "row_key",
+      "column",
+      "before_value",
+      "after_value",
+      "source_of_value",
+      "verification_link",
+    ]);
+
+    const ok = validatePreviewPayload(fields, {
+      tab: "Renewals",
+      row_key: "unit-1042::lease-2026-08",
+      column: "Renewal Date",
+      before_value: "2026-08-31",
+      after_value: "2026-09-30",
+      source_of_value: "Rentvine lease record",
+      verification_link: "https://kb.example/runs/abc123",
+    });
+    expect(ok).toEqual({ ok: true, errors: [] });
+
+    const missing = validatePreviewPayload(fields, {
+      tab: "Renewals",
+      row_key: "unit-1042::lease-2026-08",
+      column: "Renewal Date",
+      before_value: "2026-08-31",
+      after_value: "2026-09-30",
+      source_of_value: "Rentvine lease record",
+      // verification_link omitted
+    });
+    expect(missing.ok).toBe(false);
+    expect(missing.errors).toContain('Missing required preview field "verification_link".');
   });
 });

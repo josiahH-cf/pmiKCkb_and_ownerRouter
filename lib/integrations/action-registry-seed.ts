@@ -411,6 +411,149 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     production_allowed: false,
   },
   {
+    key: "google_sheets.renewal_checklist.read",
+    label: "Read the renewal-checklist sheet",
+    target_system: "Google Sheets",
+    expected_action:
+      "Read the mapped renewal tabs/columns from the team's lease-renewal checklist sheet (read-only).",
+    product_lane: "Lease Renewal Agent",
+    readiness: "Needs Connection",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Google Sheets API documents value reads (spreadsheets.values.get/batchGet) and tab/grid metadata; the renewal semantic map (docs/products/lease-renewal-spreadsheet-map.md) defines the in-scope tabs and columns. Read-only; the credential/sensitive tabs 4 & 7 are excluded at the connector boundary.",
+    required_permissions: [
+      "Google Sheets API read access to the approved renewal-checklist sheet",
+      "Tab scope limited to the mapped renewal tabs; tabs 4 & 7 are denied at the connector boundary (hard-exclusion, not a runtime toggle)",
+    ],
+    event_ingestion_mode: "Polling",
+    preview_schema_note:
+      "Show the target sheet and the in-scope tab/column set being read (tabs 4 & 7 excluded); read-only, nothing changes.",
+    preview_payload_schema: [
+      {
+        name: "target_sheet",
+        label: "Target sheet",
+        type: "reference",
+        required: true,
+        source_system: "Google Sheets",
+        note: "Must be the approved renewal-checklist sheet.",
+      },
+      {
+        name: "tab_scope",
+        label: "Tab scope",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+        note: "Mapped renewal tabs only; tabs 4 & 7 are excluded at the connector boundary.",
+      },
+    ],
+    rollback_note: "Read-only; nothing to roll back.",
+    connection_health_check_ref: "health.google_sheets.api",
+    production_allowed: false,
+  },
+  {
+    key: "google_sheets.renewal_checklist.reconcile",
+    label: "Reconcile renewal-checklist fields",
+    target_system: "Google Sheets",
+    expected_action:
+      "Deterministically reconcile each renewal field across the sheet, Rentvine (read-authoritative), building-level facts, and the Google Form, emitting flags only.",
+    product_lane: "Lease Renewal Agent",
+    readiness: "Planned",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Reconciliation rules derive from the semantic map and the connector design §3.2/§6.1; the step compares sheet values against Rentvine (read-authoritative), building-level facts, and the Google Form and routes severity. It produces flags, never a write.",
+    required_permissions: [
+      "Read access to the renewal-checklist sheet (via the read connector)",
+      "Rentvine API key with lease read role (read-authoritative reconciliation input)",
+    ],
+    event_ingestion_mode: "None",
+    preview_schema_note:
+      "Show the field being reconciled, the compared source values (sheet / Rentvine / form / building), and the resulting flag + severity; produces flags, never a write.",
+    rollback_note: "Produces flags only; nothing to roll back.",
+    connection_health_check_ref: "health.google_sheets.api",
+    production_allowed: false,
+  },
+  {
+    key: "google_sheets.renewal_checklist.writeback",
+    label: "Write a reconciled value back to the renewal-checklist sheet",
+    target_system: "Google Sheets",
+    expected_action:
+      "Write a single agreed, reconciled value back to its originating sheet cell via the re-anchored cell map with read-after-write verification.",
+    product_lane: "Lease Renewal Agent",
+    readiness: "Planned",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Google Sheets API documents single-cell value writes (spreadsheets.values.update) and read-after-write reads; the §4.1-4.3 write-back model re-anchors the row, compare-and-sets, reads after write, and stays single-cell. Documented (there is no vendor to confirm Sheets writes); execution stays gated behind the §4.0 admin feature flag and an approved per-action spec.",
+    required_permissions: [
+      "Google Sheets API write access to the approved renewal-checklist sheet",
+      "Admin-enabled write-back feature flag (off by default) + per-console-user suggest/approve permission (§4.0)",
+    ],
+    event_ingestion_mode: "Manual",
+    preview_schema_note:
+      "Show the addressed cell (tab, row_key, column), the before/after values, the source that authorized the value, and the verification link before any write; one human button-press per write.",
+    preview_payload_schema: [
+      {
+        name: "tab",
+        label: "Tab",
+        type: "reference",
+        required: true,
+        source_system: "Google Sheets",
+      },
+      {
+        name: "row_key",
+        label: "Re-anchored row key",
+        type: "reference",
+        required: true,
+        source_system: "Google Sheets",
+        note: "Content-anchored row identity, re-resolved at write time (not a raw row index).",
+      },
+      {
+        name: "column",
+        label: "Column",
+        type: "reference",
+        required: true,
+        source_system: "Google Sheets",
+      },
+      {
+        name: "before_value",
+        label: "Before value",
+        type: "string",
+        required: true,
+        source_system: "Google Sheets",
+        note: "The compare-and-set expected_prior_value read from the cell.",
+      },
+      {
+        name: "after_value",
+        label: "After value",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+        note: "The agreed reconciled value to write.",
+      },
+      {
+        name: "source_of_value",
+        label: "Source of value",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+        note: "Which reconciliation source authorized the resolved value.",
+      },
+      {
+        name: "verification_link",
+        label: "Verification link",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+        note: "Deep link to the workflow-run / reconciliation evidence for the write.",
+      },
+    ],
+    test_notes:
+      "Phase-2 only and off by default; until an Admin enables the feature flag and assigns per-console-user permissions, write-back exists only in mocked/in-memory-sheet tests (lib/lease-renewal/writeback.ts).",
+    rollback_note:
+      "Correction-style rollback: re-write the stored expected_prior_value through the same verified path. Sheets has no universal revert; the original is preserved in the append-only Activity log.",
+    connection_health_check_ref: "health.google_sheets.api",
+    production_allowed: false,
+  },
+  {
     key: "gmail.label.apply",
     label: "Apply Gmail triage label",
     target_system: "Gmail",

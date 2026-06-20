@@ -47,14 +47,21 @@ continuation, and stop-and-reset rules.
   still source-blocked (approved client sources). Spend stayed well under the $10 cap. Packet:
   `docs/temp/2026-06-19-gcp-billing-unblock-cutover-resume.md`.
 - Recommend fresh context window: not required; safe to resume from this file
-- **Next slice — "continue with feature development":** build the next zero-cost, deterministic
-  Phase-1 lease-renewal unit per [`products/lease-renewal-build-plan.md`](products/lease-renewal-build-plan.md)
-  §3 (start with the Action Registry `renewal_checklist.{read,reconcile,writeback}` entries, then the
-  `lib/lease-renewal/` ingest/normalize/fingerprint/headers/join/severity/reconciliation/queue-mapping
-  modules with synthetic fixtures). Done-state, open-questions/blockers register, and the two-track
-  prod plan are in that doc (§2, §7, §8). Per owner decision 2026-06-20 the existing RentVine
-  credential is used as-is (NOT rotated; load from env/Secret Manager, keep out of git). Use the
-  canonical Cloud Run host for any auth work, not the project-number URL.
+- **Phase-1 deterministic build run (2026-06-20, in progress on branch `work/lease-renewal-phase1`):**
+  building the zero-cost Phase-1 lease-renewal units from
+  [`products/lease-renewal-build-plan.md`](products/lease-renewal-build-plan.md) §3 until a stop
+  condition fires; each verified slice is committed to the work branch (no push). **Done this run:**
+  unit 12 — the three `google_sheets.renewal_checklist.{read,reconcile,writeback}` Action Registry
+  entries (read = `Needs Connection`/`Documented`, tabs 4 & 7 denied at the connector boundary;
+  reconcile = `Planned`/`Documented`, flags-only, no event ingestion; writeback = `Planned`/`Documented`
+  — NOT vendor-confirmation-required — with the §4.0 admin-flag-off, per-write button-press model and a
+  cell-addressed preview schema). Seed catalog is now **17 entries, all `production_allowed:false`**.
+- **Next slice:** unit 14 (synthetic, sanitized fixture corpus under `tests/fixtures/lease-renewal/`)
+  then the read+normalize core — unit 3 (`fingerprint.ts`), unit 4 (`headers.ts`), unit 5
+  (`normalized-value.ts`), unit 6/ingest (`ingest.ts`) — per §3. Done-state, open-questions/blockers
+  register, and the two-track prod plan are in that doc (§2, §7, §8). Per owner decision 2026-06-20 the
+  existing RentVine credential is used as-is (NOT rotated; load from env/Secret Manager, keep out of
+  git). Use the canonical Cloud Run host for any auth work, not the project-number URL.
 
 ## Migration Readiness
 
@@ -260,6 +267,13 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-20 (Phase-1 build run, slice 1 / unit 12 — Action Registry renewal_checklist entries,
+  owner Windows host): `npx vitest run` **392/392 PASS across 48 files** (+5 new renewal-checklist
+  registry tests); `npm run typecheck`, `npm run lint`, `npm run verify:falsification` (318
+  committable files), and `npm run check:budget-guard` (demo posture, away mode inactive, $10 cap)
+  all PASS; `npx tsx scripts/seed-action-registry.ts --dry-run --json` validated **17 entries, all
+  production_allowed=false, no writes**. Full `bash scripts/verify.sh` deferred to a run/milestone
+  boundary.
 - 2026-06-20 (hardening + recontextualization slice, owner Windows host): `npx vitest run`
   **387/387 PASS across 48 files** — both previously environment-coupled failures
   (`migration-readiness.test.ts`, `cutover-report.test.mjs`) are now hermetic and green. Full

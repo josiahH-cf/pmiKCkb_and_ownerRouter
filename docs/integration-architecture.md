@@ -159,14 +159,19 @@ registry inside the no-write safety boundary.
 
 ### Catalog coverage (2026-06-12 expansion)
 
-The seed catalog (`lib/integrations/action-registry-seed.ts`) now holds 14 entries: the
+The seed catalog (`lib/integrations/action-registry-seed.ts`) now holds 17 entries: the
 original 9 plus read-only `rentvine.lease.read` and `rentvine.work_order.read` (documented
 lease/work-order list/view used for renewal-candidate discovery and chain verification),
-`leadsimple.task.create` (orchestration task creation, vendor-confirmation-required), and
-the Gmail Inbox 0 pair `gmail.label.apply` / `gmail.draft.create` (per
+`leadsimple.task.create` (orchestration task creation, vendor-confirmation-required), the
+Gmail Inbox 0 pair `gmail.label.apply` / `gmail.draft.create` (per
 `docs/products/gmail-inbox-zero.md`: additive labels and unsent drafts only, no send
 capability in any scope; both stay `Planned` until the client approves the Gmail access
-model). Move-Out + Deposit Disposition actions were deliberately **not** added: the
+model), and the lease-renewal connector trio `google_sheets.renewal_checklist.{read,
+reconcile,writeback}` (per `docs/products/lease-renewal-connector-design.md` §5.2: read the
+mapped tabs with tabs 4 & 7 denied at the connector boundary; reconcile fields into flags,
+never writes; and the one approval-gated single-cell write-back, `Documented` + `Planned`,
+gated behind the §4.0 admin feature flag — off by default — and an approved per-action spec).
+Move-Out + Deposit Disposition actions were deliberately **not** added: the
 research backlog still marks their triggers, approvers, and target systems as TBD, so
 catalog entries would invent scope.
 
