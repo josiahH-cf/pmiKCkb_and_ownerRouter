@@ -1,0 +1,15 @@
+{
+  "name": "budget-guardrail",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.mjs",
+  "description": "Cloud Function (2nd gen) that disables the project's billing when a Cloud Billing budget notification reports cost has reached the cap. Standalone package — its deps are installed only at deploy time and are NOT part of the main app.",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@google-cloud/billing": "^4.1.0",
+    "@google-cloud/functions-framework": "^3.4.0"
+  }
+}

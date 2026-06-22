@@ -4702,3 +4702,32 @@ HTTP check). No repo code changed; no `npm` verification re-run this slice.
   emulator / bare `vitest` (pre-existing ENOENT) — used `emulators:exec` + `npx vitest` instead.
 - No live call, credential, cost, deploy, import, send, or system-of-record write was performed.
   Action Registry untouched (all entries remain `production_allowed:false`).
+
+## Budget Kill Switch + e2e-runner CI fix (2026-06-22)
+
+- The lease-renewal feature above was **fast-forward merged to `main` (`9efa5c3`) and pushed** on
+  owner go-ahead. That push's CI then failed at `format:check` because `scripts/run-e2e-tests.mjs`
+  (the Windows e2e-runner fix) was not Prettier-clean — fixed in this slice, which greens CI.
+- Trigger: owner asked to (a) draft + configure the Pub/Sub budget kill switch and "ensure it
+  works", (b) fix the stale budget doc, (c) tear down the local dev/emulator. Context: a GCP budget
+  **alert only notifies — it does not stop spend**, so there was no true hard cap.
+- Built `infra/budget-guardrail/` — a Cloud Function (2nd gen) that disables the project's billing
+  when a Cloud Billing budget notification reports cost ≥ cap. `decide.mjs` is pure (decode the
+  Pub/Sub notification + cap decision; uses the smaller of the env cap and the budget amount);
+  `handler.mjs` injects the billing client so the whole path is testable; `index.mjs` is the
+  functions-framework entrypoint; `package.json` carries deploy-time-only deps not in the main app.
+  The `.mjs` under `infra/` is not typechecked by `tsc` and not bundled into Next.
+- "Ensure it works": `tests/unit/budget-killswitch.test.mjs` (11 tests) exercises decode → decide →
+  disable against the exact Cloud Billing payload with a mock billing client — proving the disable
+  fires with `billingAccountName: ""` over cap, no-ops below it, and no-ops when already disabled,
+  with zero live calls.
+- Provisioning stays owner-side and gated (budgets, function deploy, billing-admin IAM, and tripping
+  the disable are billing-console + cost-bearing + destructive Hard Stops). `npm run killswitch:plan`
+  (`scripts/setup-budget-killswitch.mjs`) is PRINT-ONLY: it emits the exact gcloud commands (topic,
+  SA + `roles/billing.admin`, function deploy, project-scoped budget wired to the topic, and a SAFE
+  no-op wiring test) with real non-secret identifiers; it executes nothing. New
+  `docs/budget-killswitch.md` documents the four-layer model + re-enable procedure; corrected the
+  stale "billing not provisioned" claim in `docs/budget-and-cost-policy.md`.
+- Verification: `format:check` (clean repo-wide), `lint`, `typecheck`, `npm test` **515/515 across
+  64 files**, `check:budget-guard`, `verify:falsification` (366 files) all green; `killswitch:plan`
+  renders. No live call, credential, cost, deploy, import, send, or system-of-record write.

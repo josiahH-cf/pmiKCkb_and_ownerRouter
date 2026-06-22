@@ -25,8 +25,17 @@ continuation, and stop-and-reset rules.
   GOVERNANCE held: the resolve loop writes only KB-owned Firestore; a pick/corrected resolution
   **QUEUES** a proposed write-back (`production_allowed:false`) — **no sheet/SoR write executes**;
   High/Blocked resolutions require an Admin; OQ-PREC-1 still gates suggested winners. Deep links
-  repointed `/workflow-runs/...` → `/lease-renewal/runs/...`. Built on
-  `work/lease-renewal-phase1-pipeline-ui` (not yet merged).
+  repointed `/workflow-runs/...` → `/lease-renewal/runs/...`. **Merged to `main` 2026-06-22**
+  (`9efa5c3`).
+- 2026-06-22 cycle (budget kill switch + e2e-runner CI fix): added the hard-cap budget kill switch
+  (`infra/budget-guardrail/` — budget → Pub/Sub → Cloud Function that disables the project's billing
+  at the $10 cap; pure decode/decide + dependency-injected handler; 11 tests prove the disable path
+  with a mock billing client, no live call), a PRINT-ONLY provisioning runbook
+  (`npm run killswitch:plan` / `scripts/setup-budget-killswitch.mjs`), `docs/budget-killswitch.md`,
+  and corrected the stale "billing not provisioned" claim in `docs/budget-and-cost-policy.md`. Also
+  fixed `scripts/run-e2e-tests.mjs` to spawn firebase/vitest via PowerShell on Windows — the prior
+  push (`9efa5c3`) failed CI on a Prettier format check; this slice greens it. **GCP arming of the
+  kill switch stays owner-side (billing-console Hard Stop) — code + tested logic + runbook only.**
 - 2026-06-20 cycle (hardening + recontextualization): revoked the legacy `cherrybridge.ai`
   gcloud credential (only `josiah@pmikcmetro.com` remains); retired the demo _cloud_ lane —
   neutralized all dead `pmikckb-test` repo pointers AND **deleted the `pmikckb-test` GCP project**
@@ -128,6 +137,19 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- Budget kill switch + e2e-runner CI fix (2026-06-22, owner-directed "configure the pub/sub kill
+  switch and ensure it works"). New `infra/budget-guardrail/`: `decide.mjs` (pure decode of the
+  Cloud Billing budget Pub/Sub notification + cap decision — uses the SMALLER of the env cap and the
+  budget amount), `handler.mjs` (DI billing client; disables billing by clearing `billingAccountName`
+  only when over cap AND billing still enabled), `index.mjs` (functions-framework entrypoint),
+  `package.json` (its own deps, installed only at deploy time), README. `tests/unit/budget-killswitch.test.mjs`
+  (11 tests) proves decode → decide → disable against the real payload with a mock billing client.
+  PRINT-ONLY runbook `scripts/setup-budget-killswitch.mjs` (`npm run killswitch:plan`) emits the
+  exact gcloud commands (topic, SA + billing-admin IAM, function deploy, project-scoped budget wired
+  to the topic, a safe no-op wiring test) — it executes nothing. Docs: `docs/budget-killswitch.md`
+  - corrected the stale billing-not-provisioned claim in `docs/budget-and-cost-policy.md`. Also
+    Prettier-fixed `scripts/run-e2e-tests.mjs` (greens the CI that `9efa5c3` failed). No live call,
+    no credentials, no cost, no deploy; GCP arming stays owner-side (billing-console Hard Stop).
 - Lease Renewal Phase-1 read pipeline + review surface (2026-06-22, OQ-UI-1 / candidate (a),
   owner-directed). New, all on `work/lease-renewal-phase1-pipeline-ui`: (1) `pipeline.ts`
   `runRenewalPipeline` — a PURE orchestrator composing the existing ingest / fingerprint / header /
@@ -145,7 +167,7 @@ continuation, and stop-and-reset rules.
   to resolve). A pick/corrected resolution QUEUES a proposed write-back (`production_allowed:false`);
   **no sheet/SoR write executes**. Repointed the queue-mapping deep link to `/lease-renewal/runs/...`.
   16 new unit tests + 3 new Firestore rules tests + a 5-case e2e file. No live call, no credentials,
-  no cost, no deploy. Not yet merged to `main`.
+  no cost, no deploy. Merged to `main` 2026-06-22 (`9efa5c3`).
 - Hardening + Recontextualization (2026-06-20, owner-directed): (1) Revoked the legacy
   `cherrybridge.ai` gcloud credential (only `josiah@pmikcmetro.com` remains; no active repo
   reference depends on it). (2) Retired the demo _cloud_ lane on the repo side — neutralized the
@@ -327,6 +349,13 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-22 (budget kill switch + e2e-runner CI fix, owner Windows host): `npm run format:check`
+  (clean repo-wide, incl. the previously-unformatted `scripts/run-e2e-tests.mjs` that failed CI on
+  `9efa5c3`), `npm run lint`, `npm run typecheck`, `npm test` (**515/515 across 64 files**, +11 the
+  budget kill-switch suite), `npm run check:budget-guard` (demo, $10 cap), and
+  `npm run verify:falsification` (**366 committable files**) all PASS. `npm run killswitch:plan`
+  renders the provisioning runbook with the real identifiers. The kill-switch `.mjs` lives under
+  `infra/` (not typechecked by `tsc`, not bundled into the app) and its deps are deploy-time only.
 - 2026-06-22 (lease-renewal Phase-1 read pipeline + review surface, owner Windows host):
   `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm test`
   (**504/504 PASS across 63 files**, +16: pipeline / simulation / resolution-plan / updated

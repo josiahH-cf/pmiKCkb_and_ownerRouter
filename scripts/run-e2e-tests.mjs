@@ -137,11 +137,10 @@ export function probeEmulator(env) {
   const result =
     process.platform === "win32"
       ? runWindows(emulatorExecCommandString(EMULATOR_PROBE_COMMAND), env, "pipe")
-      : spawnSync(
-          "firebase",
-          buildEmulatorExecArgs(EMULATOR_PROBE_COMMAND),
-          { env, stdio: "pipe" },
-        );
+      : spawnSync("firebase", buildEmulatorExecArgs(EMULATOR_PROBE_COMMAND), {
+          env,
+          stdio: "pipe",
+        });
 
   return !result.error && (result.status ?? 1) === 0;
 }

@@ -34,6 +34,7 @@
     "queue:notifications": "tsx scripts/run-approval-queue-notifications.ts",
     "check:live-cost": "node scripts/check-live-cost.mjs",
     "check:budget-guard": "node scripts/check-budget-guard.mjs",
+    "killswitch:plan": "node scripts/setup-budget-killswitch.mjs",
     "corpus:plan": "node scripts/source-corpus-manifest.mjs",
     "cutover:report": "node scripts/build-cutover-report.mjs",
     "delete:agent-search-data-store": "node scripts/delete-agent-search-data-store.mjs",

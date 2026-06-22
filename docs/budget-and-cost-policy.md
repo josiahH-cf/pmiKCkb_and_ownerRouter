@@ -16,9 +16,13 @@ temporary away-mode overlay (`docs/away-mode.md`) is active.
   setup and migration work that stays under this cap, passes `npm run check:budget-guard`,
   and has a dry-run or replayable plan. Anything unbounded, hard to estimate, or near the
   cap still requires explicit user approval first.
-- The client-owned Google Cloud billing card is **not yet provisioned**, so today the
-  practical spend ceiling is effectively $0 until the client unblocks billing. Treat all
-  cost-bearing cloud actions as blocked until then.
+- Billing is **provisioned** (since 2026-06-19): billing account `01A5A3-65CA5A-614D45`,
+  PM-created account-level budget id `82962d7e-b340-4253-8348-38caff16e88a`. A GCP budget alert is
+  **notify-only — it does not stop spend.** The hard stop is the kill switch
+  (`docs/budget-killswitch.md`, `infra/budget-guardrail/`): budget → Pub/Sub → Cloud Function that
+  disables the project's billing at the cap. **Still pending before any prod deploy:** a
+  _project-scoped_ $10 budget alert on `pmi-kc-kb-prod` and the kill switch armed (owner-side —
+  `npm run killswitch:plan`). Every cost-bearing step still needs explicit per-step approval.
 
 The constant `BUDGET_CAP_USD = 10` lives in `scripts/check-budget-guard.mjs`. Keep this
 doc and that constant in sync. The optional `AUTONOMOUS_BUDGET_CAP_USD` env var can lower
@@ -92,6 +96,7 @@ active (`docs/away-mode.md`), the guard:
 
 ## Related
 
+- `docs/budget-killswitch.md` — the hard-cap kill switch (budget → Pub/Sub → disable billing).
 - `docs/away-mode.md` — reversible remote-autonomy overlay that points here.
 - `docs/autonomous-agent-runner.md` — Approval Gates, Cost Ceiling, and the loop rules.
 - `docs/environment-handoff.md` — billing gate and key/secret ownership.
