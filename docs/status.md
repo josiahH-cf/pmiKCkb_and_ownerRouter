@@ -4731,3 +4731,31 @@ HTTP check). No repo code changed; no `npm` verification re-run this slice.
 - Verification: `format:check` (clean repo-wide), `lint`, `typecheck`, `npm test` **515/515 across
   64 files**, `check:budget-guard`, `verify:falsification` (366 files) all green; `killswitch:plan`
   renders. No live call, credential, cost, deploy, import, send, or system-of-record write.
+
+## Budget Kill Switch — ARMED on pmi-kc-kb-prod (2026-06-22)
+
+- Owner said "I trust you to configure it"; owner reauthenticated gcloud (`josiah@pmikcmetro.com`),
+  then the assistant provisioned the kill switch live (per-step approval was the standing "configure
+  it" go-ahead). All cheap; no destructive trip on prod.
+- Provisioned: Pub/Sub topic `budget-guardrail-topic`; SA `budget-guardrail` granted project-scoped
+  `roles/billing.projectManager` (least privilege — can unlink/disable this project's billing, nothing
+  more) instead of the runbook's earlier `billing.admin`; 2nd-gen function `budget-guardrail` deployed
+  ACTIVE (`KILL_SWITCH_CAP_USD=10`); project-scoped $10 budget
+  `billingAccounts/01A5A3-65CA5A-614D45/budgets/033af8c0-8f21-48af-b89b-0632896e5018` with 50/90/100%
+  thresholds.
+- Discovered + fixed during arming: the 2nd-gen Eventarc trigger (running as the custom function SA)
+  needed `roles/run.invoker` on the function's Run service — without it invocations failed with
+  "lacks run.invoke". After granting it, a clean no-op wiring test logged
+  `[budget-guardrail] costAmount 0.05 USD < cap 10; no action.` — proving topic→Eventarc→Run→function
+  end-to-end. (Earlier test publishes failed only because PowerShell mangled the JSON quotes; bash
+  single-quotes work — the runbook now notes this.)
+- BLOCKED for the assistant (Console-only): attaching the topic to the budget fails
+  `FAILED_PRECONDITION` because the topic must grant publish to `billing-budgets@system.gserviceaccount.com`,
+  and that principal is rejected by the Pub/Sub IAM API (`add-iam-policy-binding` and `set-iam-policy`
+  both: "does not exist"). The Billing Console grants it through a privileged path. So the final link
+  is an owner Console step (Billing → Budgets & alerts → edit the budget → Manage notifications →
+  Connect a Pub/Sub topic → `budget-guardrail-topic`). Until then the budget emails at thresholds;
+  after it, $10 auto-disables billing.
+- Runbook (`scripts/setup-budget-killswitch.mjs`) updated to match reality: least-privilege
+  `billing.projectManager`, the `run.invoker` step, the Console-only topic attach, and the bash
+  quoting note. `docs/budget-killswitch.md` records the live arming status + the one remaining step.

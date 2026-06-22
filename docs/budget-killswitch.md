@@ -5,6 +5,21 @@ spend. This adds the standard programmatic kill switch so spend actually stops a
 
 See `docs/budget-and-cost-policy.md` for the full policy and the layered model.
 
+## Status (armed 2026-06-22 on `pmi-kc-kb-prod`)
+
+LIVE and verified: topic `budget-guardrail-topic`; SA `budget-guardrail` with project-scoped
+`roles/billing.projectManager` + `roles/run.invoker` on the function's Run service; the 2nd-gen
+function `budget-guardrail` (ACTIVE, `KILL_SWITCH_CAP_USD=10`); and a project-scoped $10 budget
+(`billingAccounts/01A5A3-65CA5A-614D45/budgets/033af8c0-8f21-48af-b89b-0632896e5018`) with 50/90/100%
+thresholds. A no-op wiring test (publish → `…no action.` in the logs) confirmed the
+topic→Eventarc→Run→function path end-to-end.
+
+**One step remains (Console-only):** attach the topic to the budget so threshold notifications publish
+to it. The budgets publisher `billing-budgets@system.gserviceaccount.com` is rejected by the IAM API,
+so the link must be made in the Cloud Console (Billing → Budgets & alerts → edit the budget → Manage
+notifications → Connect a Pub/Sub topic → `budget-guardrail-topic`), which auto-grants the publisher
+role. Until then the budget still emails at thresholds; after it, $10 auto-disables billing.
+
 ## The four layers (only the last truly stops spend)
 
 1. **Structural near-zero cost** — Cloud Run `--min-instances=0` (scale-to-zero), `--max-instances=1`,

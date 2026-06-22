@@ -12,6 +12,18 @@ continuation, and stop-and-reset rules.
 ## Snapshot
 
 - Last updated: 2026-06-22
+- 2026-06-22 (budget kill switch ARMED on `pmi-kc-kb-prod`, owner-directed + owner reauth): provisioned
+  live — topic `budget-guardrail-topic`; SA `budget-guardrail` with project `roles/billing.projectManager`
+  - `roles/run.invoker` on the function's Run service; the 2nd-gen function `budget-guardrail` (ACTIVE,
+    `KILL_SWITCH_CAP_USD=10`); and a project-scoped $10 budget
+    (`billingAccounts/01A5A3-65CA5A-614D45/budgets/033af8c0-8f21-48af-b89b-0632896e5018`, 50/90/100%
+    thresholds). No-op wiring test passed (function logged `…no action.`). **ONE Console-only step
+    remains:** attach the topic to the budget (Billing → Budgets & alerts → edit → Manage notifications →
+    Connect a Pub/Sub topic → `budget-guardrail-topic`) — the budgets publisher
+    `billing-budgets@system.gserviceaccount.com` is rejected by the IAM API, so it can't be wired via
+    gcloud/CLI. Until then the budget emails at thresholds; after it, $10 auto-disables billing. Note: the
+    function needed `run.invoker` for its custom SA (Eventarc 2nd-gen), now granted. See
+    `docs/budget-killswitch.md`.
 - 2026-06-22 cycle (lease-renewal Phase-1 read pipeline + review surface — OQ-UI-1, candidate (a),
   owner-directed "plan and implement the next phase"): wired the already-merged deterministic
   Phase-1 modules into a pure orchestrator `lib/lease-renewal/pipeline.ts` (`runRenewalPipeline`:

@@ -78,18 +78,36 @@ export function buildRunbook(c) {
       ],
     },
     {
-      title: `4. Create the $${c.capUsd} budget, scoped to this project, wired to the topic`,
+      title:
+        "3b. Allow the Eventarc trigger (it runs as the function SA) to invoke the Run service",
       commands: [
-        `gcloud billing budgets create --billing-account=${c.billingAccount} --display-name="${c.project} $${c.capUsd} kill switch" --filter-projects="projects/${c.projectNumber}" --budget-amount=${c.capUsd}USD --threshold-rule=percent=0.5 --threshold-rule=percent=0.9 --threshold-rule=percent=1.0 --all-updates-rule-pubsub-topic="${c.topicPath}"`,
-        "# Flag name varies by gcloud version; if it errors, confirm with: gcloud billing budgets create --help",
+        `gcloud run services add-iam-policy-binding budget-guardrail --region=${c.region} --project=${c.project} --member="serviceAccount:${c.serviceAccountEmail}" --role="roles/run.invoker"`,
+        "# Needed because the function uses a custom SA; without it the trigger fails with 'lacks run.invoke'.",
+      ],
+    },
+    {
+      title: `4. Create the $${c.capUsd} project-scoped budget (the CLI cannot attach the topic — see 4b)`,
+      commands: [
+        `gcloud billing budgets create --billing-account=${c.billingAccount} --display-name="${c.project} $${c.capUsd} kill switch" --filter-projects="projects/${c.projectNumber}" --budget-amount=${c.capUsd}USD --threshold-rule=percent=0.5 --threshold-rule=percent=0.9 --threshold-rule=percent=1.0`,
       ],
     },
     {
       title:
-        "5. SAFE wiring test (no-op against prod) — publish a low-cost notification; the function should log 'no action'",
+        "4b. Attach the topic to the budget in the CLOUD CONSOLE (this auto-grants the publisher role)",
       commands: [
+        "# The budgets publisher SA (billing-budgets@system.gserviceaccount.com) is rejected by the IAM",
+        "# API, so the budget->topic link MUST be made in the Console: Billing > Budgets & alerts > edit",
+        "# the budget > Manage notifications > Connect a Pub/Sub topic > select the topic > Save.",
+        `# Topic to select: ${c.topicPath}`,
+      ],
+    },
+    {
+      title:
+        "5. SAFE wiring test (no-op against prod) — publish a low-cost notification; the function logs 'no action'",
+      commands: [
+        "# Run from bash/sh — PowerShell mangles the inner JSON quotes.",
         `gcloud pubsub topics publish ${c.topic} --project=${c.project} --message='{"costAmount":0.01,"budgetAmount":${c.capUsd},"currencyCode":"USD","budgetDisplayName":"wiring-test"}'`,
-        `gcloud functions logs read budget-guardrail --gen2 --region=${c.region} --project=${c.project} --limit=20`,
+        `gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="budget-guardrail" AND textPayload:"budget-guardrail]"' --project=${c.project} --freshness=5m --limit=5 --format="value(timestamp,textPayload)"`,
       ],
     },
   ];
