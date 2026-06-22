@@ -37,9 +37,9 @@ billing is already disabled — with zero live calls.
 
 ## Provisioning (owner-side, gated)
 
-Creating the budget, deploying the function, and granting it billing-admin IAM are
-billing-console + cost-bearing actions (a governance Hard Stop). Generate the exact, ready-to-run
-commands with:
+Creating the budget, deploying the function, and granting it billing IAM (Project Billing Manager,
+project-scoped — least privilege) are billing-console + cost-bearing actions (a governance Hard
+Stop). Generate the exact, ready-to-run commands with:
 
 ```
 npm run killswitch:plan          # prints the runbook with this project's identifiers

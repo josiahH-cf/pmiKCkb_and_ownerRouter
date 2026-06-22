@@ -34,8 +34,9 @@ Cloud Billing budget (billing account 01A5A3-65CA5A-614D45, scoped to pmi-kc-kb-
 
 ## Provisioning (owner-side, gated)
 
-Creating the budget, deploying the function, and granting billing-admin IAM are billing-console +
-cost-bearing Hard-Stop actions. Generate the exact commands:
+Creating the budget, deploying the function, and granting the SA billing IAM (Project Billing
+Manager — project-scoped, least privilege) are billing-console + cost-bearing Hard-Stop actions.
+Generate the exact commands:
 
 ```
 npm run killswitch:plan

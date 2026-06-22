@@ -62,11 +62,12 @@ export function buildRunbook(c) {
     },
     {
       title:
-        "2. Create the function's service account and grant it billing control (POWERFUL — it can disable billing)",
+        "2. Create the function's service account and grant the least-privilege role that can disable billing",
       commands: [
         `gcloud iam service-accounts create ${c.serviceAccount} --display-name="Budget kill switch" --project=${c.project}`,
-        `gcloud billing accounts add-iam-policy-binding ${c.billingAccount} --member="serviceAccount:${c.serviceAccountEmail}" --role="roles/billing.admin"`,
-        "# Least-privilege alternative: a custom role with billing.projectBillingInfo.update + billing.resourceAssociations.* instead of roles/billing.admin.",
+        `gcloud projects add-iam-policy-binding ${c.project} --member="serviceAccount:${c.serviceAccountEmail}" --role="roles/billing.projectManager"`,
+        "# Project Billing Manager is project-scoped and can UNLINK this project's billing (i.e. disable it).",
+        "# It does NOT grant billing-account-wide admin. Re-linking a billing account (recovery) stays a human action.",
       ],
     },
     {
