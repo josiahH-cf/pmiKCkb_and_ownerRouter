@@ -11,7 +11,22 @@ continuation, and stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-06-20
+- Last updated: 2026-06-22
+- 2026-06-22 cycle (lease-renewal Phase-1 read pipeline + review surface — OQ-UI-1, candidate (a),
+  owner-directed "plan and implement the next phase"): wired the already-merged deterministic
+  Phase-1 modules into a pure orchestrator `lib/lease-renewal/pipeline.ts` (`runRenewalPipeline`:
+  ingest → join MATCH-ONLY → reconcile → severity → queue-item draft, `production_allowed:false`),
+  a fixture-fed `lib/lease-renewal/simulation.ts` + `sample-sheet.ts` (synthetic; the app stays
+  source-blocked), a new top-level **`/lease-renewal/runs`** review section (index + `[runId]`
+  detail, severity-grouped flags, counts-only manifest + excluded-tab census), and the §3.5
+  **resolve loop** (pick-a-source / enter-corrected-value / flag-is-wrong, required reason, Activity)
+  on a NEW KB-owned Firestore layer `lease_renewal_resolutions` + `lease_renewal_resolution_activity`
+  (server-write-only rules; `lib/firestore/lease-renewal-resolutions.ts` + `POST /api/lease-renewal/resolve`).
+  GOVERNANCE held: the resolve loop writes only KB-owned Firestore; a pick/corrected resolution
+  **QUEUES** a proposed write-back (`production_allowed:false`) — **no sheet/SoR write executes**;
+  High/Blocked resolutions require an Admin; OQ-PREC-1 still gates suggested winners. Deep links
+  repointed `/workflow-runs/...` → `/lease-renewal/runs/...`. Built on
+  `work/lease-renewal-phase1-pipeline-ui` (not yet merged).
 - 2026-06-20 cycle (hardening + recontextualization): revoked the legacy `cherrybridge.ai`
   gcloud credential (only `josiah@pmikcmetro.com` remains); retired the demo _cloud_ lane —
   neutralized all dead `pmikckb-test` repo pointers AND **deleted the `pmikckb-test` GCP project**
@@ -80,11 +95,15 @@ continuation, and stop-and-reset rules.
   calibration), OQ-UI-1 (the lease-renewal workflow-run/Approval-Queue review surface — an unbuilt
   UI dependency for the Phase-1 accuracy milestone), and the cost-gated first live read.
 - **Next slice candidates:** (a) wire these modules into a read pipeline + the OQ-UI-1 workflow-run
-  page (new app surface — confirm scope first); (b) after Dan confirms OQ-PREC-1, set
-  `PRECEDENCE_CONFIRMED` and add the active-suggestion tests; (c) the cost-gated first live read
-  (approval-gated). Per owner decision 2026-06-20 the existing RentVine credential is used as-is
-  (NOT rotated; load from env/Secret Manager, keep out of git). Use the canonical Cloud Run host for
-  any auth work, not the project-number URL.
+  page — **DONE 2026-06-22** (pipeline + `/lease-renewal/runs` review surface + §3.5 resolve loop,
+  simulation-only). Remaining: (b) after Dan confirms OQ-PREC-1, set `PRECEDENCE_CONFIRMED` and add
+  the active-suggestion tests (today unlisted-field conflicts render `Blocked "no precedence rule"`);
+  (c) the cost-gated first live read (approval-gated) — replaces the synthetic
+  `lib/lease-renewal/sample-sheet.ts` feed with a real read; (d) recurring read cadence (OQ-LS-1);
+  (e) Phase-2 write-back enablement (admin flag off by default) — the resolve loop already queues
+  the proposed write-back. Per owner decision 2026-06-20 the existing RentVine credential is used
+  as-is (NOT rotated; load from env/Secret Manager, keep out of git). Use the canonical Cloud Run
+  host for any auth work, not the project-number URL.
 
 ## Migration Readiness
 
@@ -109,6 +128,24 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- Lease Renewal Phase-1 read pipeline + review surface (2026-06-22, OQ-UI-1 / candidate (a),
+  owner-directed). New, all on `work/lease-renewal-phase1-pipeline-ui`: (1) `pipeline.ts`
+  `runRenewalPipeline` — a PURE orchestrator composing the existing ingest / fingerprint / header /
+  normalize / join (match-only) / reconcile / severity / approval-queue-mapping units into one run
+  (`RenewalRunResult`, flags grouped by severity, counts-only manifest, `production_allowed:false`);
+  (2) `simulation.ts` + `sample-sheet.ts` — a deterministic fixture-fed simulation run (synthetic;
+  tabs 4 & 7 exercised so the credential census is real); (3) the `/lease-renewal/runs` section
+  (index + `[runId]` detail, `requirePageCapability("read")`, AppShell nav entry) rendering the run
+  summary, excluded-tab census, and severity-grouped flags with candidate values / deep links /
+  suggested-winner-or-Blocked; (4) the §3.5 resolve loop — `lib/firestore/lease-renewal-resolutions.ts`
+  (pure `planLeaseRenewalResolution` + Firestore wrappers), `lease_renewal_resolutions` +
+  `lease_renewal_resolution_activity` collections (server-write-only `firestore.rules`),
+  `POST /api/lease-renewal/resolve`, and the interactive client controls (pick-a-source /
+  corrected-value / flag-is-wrong, required reason, High/Blocked → Admin, no self-... ; Approver/Admin
+  to resolve). A pick/corrected resolution QUEUES a proposed write-back (`production_allowed:false`);
+  **no sheet/SoR write executes**. Repointed the queue-mapping deep link to `/lease-renewal/runs/...`.
+  16 new unit tests + 3 new Firestore rules tests + a 5-case e2e file. No live call, no credentials,
+  no cost, no deploy. Not yet merged to `main`.
 - Hardening + Recontextualization (2026-06-20, owner-directed): (1) Revoked the legacy
   `cherrybridge.ai` gcloud credential (only `josiah@pmikcmetro.com` remains; no active repo
   reference depends on it). (2) Retired the demo _cloud_ lane on the repo side — neutralized the
@@ -290,6 +327,22 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-22 (lease-renewal Phase-1 read pipeline + review surface, owner Windows host):
+  `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm test`
+  (**504/504 PASS across 63 files**, +16: pipeline / simulation / resolution-plan / updated
+  approval-queue-mapping), `npm run test:firestore` (**26/26 across 5 files**, +3 for the new
+  `lease_renewal_resolutions` rules), `npm run verify:falsification` (**357 committable files**),
+  `npm run verify:router-boundary`, `npm run check:budget-guard` (demo posture, away mode inactive,
+  $10 cap), and `npm run build` (warning-free; new routes `/lease-renewal/runs`,
+  `/lease-renewal/runs/[runId]`, `/api/lease-renewal/resolve`) all PASS. The lease-renewal e2e
+  (`tests/e2e/lease-renewal-runs.e2e.test.mjs`) passed **5/5** under the Firestore emulator (auth-guard
+  redirect, index/detail render with severity pill + "Simulation-only" + no "PLACEHOLDER", no-reason
+  400, Approver-on-High 403, and the Admin pick-source resolve round-trip persisting a queued
+  `production_allowed:false` write-back + Activity). NOTE (Windows harness): `npm run test:e2e`
+  cannot spawn the bundled emulator / bare `vitest` on this host (pre-existing ENOENT) — run the
+  e2e via `npx firebase emulators:exec --only firestore "npx vitest run --config vitest.e2e.config.ts <file>"`,
+  or `npx vitest run --config vitest.e2e.config.ts <file>` for the no-emulator subset (the write
+  round-trip self-skips without `FIRESTORE_EMULATOR_HOST`).
 - 2026-06-20 (post-review hardening, pre-merge, owner Windows host): after fixing the 2 review
   majors + 3 nits — `npx vitest run` **488/488 PASS across 60 files** (+10 tests: impossible-date
   rejection, the §2.2.5 emit scrubber + drifted-credential-tab exclusion, the `blocked_reason`

@@ -855,3 +855,62 @@ button {
   margin: 0 0 4px;
   text-transform: uppercase;
 }
+
+/* Lease Renewal Phase-1 review surface (simulation-only). */
+.lr-run {
+  display: grid;
+  gap: 16px;
+}
+
+.section-subtitle {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin: 0 0 6px;
+}
+
+.lr-excluded {
+  margin-top: 12px;
+}
+
+.lr-flag-card {
+  border-top: 1px solid var(--color-border);
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.lr-flag-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lr-candidates {
+  margin: 8px 0;
+  padding-left: 18px;
+}
+
+.lr-resolution {
+  background: #edf7f1;
+  border: 1px solid var(--state-verified);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.lr-resolve-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  max-width: 460px;
+}
+
+.lr-resolve-form label {
+  display: grid;
+  font-weight: 700;
+  gap: 4px;
+}
+
+.lr-error {
+  color: var(--state-no-source);
+  font-weight: 700;
+}

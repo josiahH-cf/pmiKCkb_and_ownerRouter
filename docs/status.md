@@ -4661,3 +4661,44 @@ HTTP check). No repo code changed; no `npm` verification re-run this slice.
   falsification (344 files)/budget-guard/build all green. Fast-forward merged `work/lease-renewal-phase1`
   into `main` and pushed to `origin/main`. No live call, credential, cost, deploy, import, send, or
   system-of-record write.
+
+## Lease Renewal Phase-1 — Read Pipeline + Review Surface + Resolve Loop (2026-06-22)
+
+- Trigger: owner "let's plan and implement the next phase of development." Planned + confirmed scope
+  via AskUserQuestion (owner chose the fuller scope: pipeline + review surface **+ the §3.5
+  interactive resolve loop with persistence**, under a new top-level "Lease Renewal" nav section).
+  This is candidate (a) / OQ-UI-1 — the one buildable, readiness-improving slice that was still open
+  after the Phase-1 deterministic build; everything else (OQ-PREC-1, live read) stays client/owner-gated.
+- Built on `work/lease-renewal-phase1-pipeline-ui` (not yet merged):
+  - **Read pipeline (`lib/lease-renewal/pipeline.ts`).** Pure `runRenewalPipeline(input): RenewalRunResult`
+    composing the merged Phase-1 units: `ingestTables` → per-record/per-field candidate assembly with
+    the fuzzy join applied **match-only** (ambiguous/no_match never merged) → `reconcileField` →
+    `mapReconciliationToQueueItem`. Output groups flags by severity (High/Blocked/Medium/Low), carries
+    the counts-only `IngestManifest` + excluded-tab census, and a literal `production_allowed:false`.
+    `DEFAULT_FIELD_SPECS` is illustrative pending OQ-LEX-1/JOIN-1/PREC-1.
+  - **Simulation (`lib/lease-renewal/simulation.ts` + `sample-sheet.ts`).** Deterministic run computed
+    in-memory from a governance-clean SYNTHETIC sample (credential tabs 4 & 7 included so exclusion is
+    exercised; fixed timestamps; no `Date.now()`). The app stays source-blocked — no live read.
+  - **Review surface (`/lease-renewal/runs` + `[runId]`).** Server components guarded by
+    `requirePageCapability("read")`; client renders the run summary (manifest counts + excluded-tab
+    census, labels only), severity-grouped flag cards (candidate values + sources + confidence + deep
+    links + suggested-winner-or-`Blocked "no precedence rule"`), a "Simulation-only" banner, and the
+    resolve controls. One nav entry added to `AppShell`. Reused existing global CSS + one small `.lr-*`
+    block.
+  - **§3.5 resolve loop (KB-owned persistence).** New `lib/firestore/lease-renewal-resolutions.ts`
+    (pure `planLeaseRenewalResolution` + Firestore wrappers), collections `lease_renewal_resolutions`
+    and `lease_renewal_resolution_activity` (server-write-only `firestore.rules`), and
+    `POST /api/lease-renewal/resolve`. Three paths: pick-a-source / enter-corrected-value /
+    flag-is-wrong; required plain-English reason; append-only Activity; High/Blocked → Admin; Approver/
+    Admin to resolve. A pick/corrected resolution **QUEUES** a proposed write-back
+    (`production_allowed:false`) — **no sheet/SoR write executes** (Phase-2 stays the only thing that
+    could). Repointed the queue-mapping deep link `/workflow-runs/...` → `/lease-renewal/runs/...`.
+- Verification (owner Windows host): `typecheck`, `lint`, `format:check`, `npm test` **504/504 across
+  63 files** (+16), `test:firestore` **26/26 across 5 files** (+3 new resolution rules),
+  `verify:falsification` (357 files), `verify:router-boundary`, `check:budget-guard` (demo, $10 cap),
+  `build` (warning-free; new routes present), and the lease-renewal e2e **5/5** under the Firestore
+  emulator (`firebase emulators:exec`), incl. the Admin pick-source resolve round-trip persisting a
+  queued write-back + Activity. Windows harness note: `npm run test:e2e` can't spawn the bundled
+  emulator / bare `vitest` (pre-existing ENOENT) — used `emulators:exec` + `npx vitest` instead.
+- No live call, credential, cost, deploy, import, send, or system-of-record write was performed.
+  Action Registry untouched (all entries remain `production_allowed:false`).

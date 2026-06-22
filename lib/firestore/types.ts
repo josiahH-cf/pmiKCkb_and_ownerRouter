@@ -504,3 +504,54 @@ export interface WorkflowRunTimelineRecord {
   new_status?: WorkflowRunStatus;
   created_at: string;
 }
+
+// Lease Renewal Phase-1 resolution layer (connector design §3.5). One record per resolved
+// reconciliation flag, keyed by its stable source_trigger_key. The flags themselves are recomputed
+// deterministically from the run; only the human resolution + its append-only Activity persist.
+// This layer NEVER executes a sheet/system-of-record write: a "pick a source" / "enter a corrected
+// value" resolution only QUEUES a proposed write-back for the future Phase-2 approval-gated surface.
+export type LeaseRenewalResolutionStatus = "Open" | "Resolved" | "Dismissed";
+export type LeaseRenewalResolutionKind =
+  | "pick_source"
+  | "corrected_value"
+  | "flag_incorrect";
+
+// A proposed sheet write-back: QUEUED only. Phase 2 (admin-enabled, per-write button-press) is the
+// only thing that may ever execute it; this layer always leaves `production_allowed: false`.
+export interface LeaseRenewalProposedWriteback {
+  field_key: string;
+  value: string;
+  source_of_value: string;
+  status: "Queued";
+  production_allowed: false;
+}
+
+export interface LeaseRenewalResolutionRecord {
+  id: string;
+  source_trigger_key: string;
+  run_id: string;
+  field_key: string;
+  field_label: string;
+  severity: QueueRiskLevel;
+  status: LeaseRenewalResolutionStatus;
+  resolution_kind?: LeaseRenewalResolutionKind;
+  chosen_source?: string;
+  corrected_value?: string;
+  reason?: string;
+  resolved_by_uid?: string;
+  proposed_writeback?: LeaseRenewalProposedWriteback;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeaseRenewalResolutionActivityRecord {
+  id: string;
+  source_trigger_key: string;
+  run_id: string;
+  actor_uid: string;
+  action: LeaseRenewalResolutionKind | "reopened";
+  previous_status?: LeaseRenewalResolutionStatus;
+  new_status: LeaseRenewalResolutionStatus;
+  reason: string;
+  created_at: string;
+}

@@ -240,6 +240,19 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Lease Renewal Phase-1 resolutions and their append-only Activity are written server-side
+    // through the Admin SDK boundary only. Clients may read but never write directly, so the
+    // suggest-then-approve resolution loop and the no-execute write-back gate cannot be bypassed.
+    match /lease_renewal_resolutions/{resolutionId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
+    match /lease_renewal_resolution_activity/{activityId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

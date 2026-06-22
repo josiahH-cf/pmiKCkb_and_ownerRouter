@@ -70,7 +70,7 @@ export function mapReconciliationToQueueItem(
   const sourceLabels = reconciliation.candidates.map(
     (candidate) => candidate.source_system,
   );
-  const evidenceLink = `/workflow-runs/${runId}/reconciliation/${reconciliation.field_key}`;
+  const evidenceLink = `/lease-renewal/runs/${runId}/reconciliation/${reconciliation.field_key}`;
 
   let actionNeeded: string;
   if (reconciliation.agreement === "missing") {

@@ -30,7 +30,7 @@ describe("mapReconciliationToQueueItem", () => {
       source_trigger_key: "lease_renewal:reconcile:run-123:lawn_care",
     });
     expect(mapping!.queueItem.direct_link).toBe(
-      "/workflow-runs/run-123/reconciliation/lawn_care",
+      "/lease-renewal/runs/run-123/reconciliation/lawn_care",
     );
     expect(mapping!.sourceLinks).toHaveLength(2);
   });
@@ -78,6 +78,6 @@ describe("mapReconciliationToQueueItem", () => {
     expect(serialized).not.toContain("RIVERS");
     expect(serialized).not.toContain("Casey");
     // The deep link is present so the value is reachable inside the authenticated app.
-    expect(mapping.queueItem.direct_link).toContain("/workflow-runs/run-123/");
+    expect(mapping.queueItem.direct_link).toContain("/lease-renewal/runs/run-123/");
   });
 });
