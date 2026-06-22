@@ -1,11 +1,13 @@
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 export const E2E_PROJECT_ID = "pmi-kc-kb-e2e";
 export const E2E_FIREBASE_CONFIG = "firebase.e2e.json";
 
 const TEST_COMMAND = "vitest run --config vitest.e2e.config.ts";
-const EMULATOR_PROBE_COMMAND = 'node -e "process.exit(0)"';
+// A quote-free no-op: emulators:exec starts the emulator first, so any inner command that exits 0
+// proves the emulator came up. Avoiding inner quotes keeps the Windows PowerShell wrapper robust.
+const EMULATOR_PROBE_COMMAND = "node --version";
 
 export function parseE2eArgs(argv) {
   const flags = new Set(argv);
@@ -34,9 +36,79 @@ export function buildEmulatorExecArgs(command = TEST_COMMAND) {
   ];
 }
 
+// firebase emulators:exec needs its inner command as ONE argument, so the inner command stays
+// single-quoted. Used only for the Windows PowerShell path.
+function emulatorExecCommandString(command = TEST_COMMAND) {
+  return (
+    `firebase emulators:exec --only firestore --project ${E2E_PROJECT_ID} ` +
+    `--config ${E2E_FIREBASE_CONFIG} '${command}'`
+  );
+}
+
+function readWindowsEnvironment(name, scope) {
+  try {
+    return execFileSync(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        `[Environment]::GetEnvironmentVariable('${name}', '${scope}')`,
+      ],
+      { encoding: "utf8" },
+    ).trim();
+  } catch {
+    return "";
+  }
+}
+
+// Windows resolves the firebase/vitest CLI shims (and Java for the emulator) only through a
+// fully-populated PATH, so merge Machine/User PATH + JAVA_HOME before shelling out. Mirrors
+// scripts/run-firestore-tests.mjs. A bare spawnSync("vitest"|"firebase") ENOENTs on Windows.
+function windowsEnv(baseEnv) {
+  const env = { ...baseEnv };
+  const machinePath = readWindowsEnvironment("Path", "Machine");
+  const userPath = readWindowsEnvironment("Path", "User");
+  const javaHome =
+    readWindowsEnvironment("JAVA_HOME", "User") ||
+    readWindowsEnvironment("JAVA_HOME", "Machine") ||
+    env.JAVA_HOME;
+  const pathKey = Object.keys(env).find((key) => key.toLowerCase() === "path") ?? "Path";
+  const pathParts = [env[pathKey], machinePath, userPath];
+
+  if (javaHome) {
+    env.JAVA_HOME = javaHome;
+    pathParts.unshift(`${javaHome}\\bin`);
+  }
+
+  env[pathKey] = pathParts.filter(Boolean).join(";");
+  return env;
+}
+
+function runWindows(commandString, env, stdio) {
+  return spawnSync(
+    "powershell.exe",
+    [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-Command",
+      `${commandString}; exit $LASTEXITCODE`,
+    ],
+    { env: windowsEnv(env), stdio },
+  );
+}
+
 function runVitestDirectly(env) {
-  const [command, ...args] = TEST_COMMAND.split(" ");
-  const result = spawnSync(command, args, { env, stdio: "inherit" });
+  let result;
+
+  if (process.platform === "win32") {
+    result = runWindows(TEST_COMMAND, env, "inherit");
+  } else {
+    const [command, ...args] = TEST_COMMAND.split(" ");
+    result = spawnSync(command, args, { env, stdio: "inherit" });
+  }
 
   if (result.error) {
     throw result.error;
@@ -46,10 +118,10 @@ function runVitestDirectly(env) {
 }
 
 function runWithEmulator(env) {
-  const result = spawnSync("firebase", buildEmulatorExecArgs(), {
-    env,
-    stdio: "inherit",
-  });
+  const result =
+    process.platform === "win32"
+      ? runWindows(emulatorExecCommandString(), env, "inherit")
+      : spawnSync("firebase", buildEmulatorExecArgs(), { env, stdio: "inherit" });
 
   if (result.error) {
     throw result.error;
@@ -62,10 +134,14 @@ function runWithEmulator(env) {
 // before committing, so an unavailable emulator degrades to the core group while
 // real test failures inside the emulator run still propagate.
 export function probeEmulator(env) {
-  const result = spawnSync("firebase", buildEmulatorExecArgs(EMULATOR_PROBE_COMMAND), {
-    env,
-    stdio: "pipe",
-  });
+  const result =
+    process.platform === "win32"
+      ? runWindows(emulatorExecCommandString(EMULATOR_PROBE_COMMAND), env, "pipe")
+      : spawnSync(
+          "firebase",
+          buildEmulatorExecArgs(EMULATOR_PROBE_COMMAND),
+          { env, stdio: "pipe" },
+        );
 
   return !result.error && (result.status ?? 1) === 0;
 }
