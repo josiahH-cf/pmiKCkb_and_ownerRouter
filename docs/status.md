@@ -4779,3 +4779,50 @@ HTTP check). No repo code changed; no `npm` verification re-run this slice.
   `notificationsRule.pubsubTopic = projects/pmi-kc-kb-prod/topics/budget-guardrail-topic` with
   50/90/100% thresholds. Full chain live: $10 budget → topic → function → disables billing.
 - Docs/runbook corrected with the real SA name + the DRS-relax-during-Console-connect procedure.
+
+## Production Cutover-Readiness Hardening — Dry-Run Rehearsal (2026-06-23)
+
+- Closed the `docs/plan.md` P5 validation gate "Dry-runs exist for imports, setup scripts,
+  seeders, and preflights" with a zero-cost, fixture-driven rehearsal of the demo→production
+  cutover-readiness chain. No GCP, no deploy, no real sources, no spend against the $10 cap.
+- Added `npm run cutover:dry-run` (`scripts/cutover-dry-run.mjs`): runs the real
+  `buildCutoverReport` over two synthetic golden fixtures
+  (`tests/fixtures/cutover/golden-production.env.fixture` and the matching
+  `golden-production-source-manifest.json`, all obvious `sample-kb-fixture-*` placeholders) and
+  asserts every gate is green except the one documented residual. Exits non-zero on any
+  unexpected blocker.
+- Added `tests/unit/cutover-readiness-golden.test.mjs` (17 tests): the golden config greens the
+  manifest/env/GCP/deploy gates; negative fixtures prove each rejection (unapproved source,
+  bucket/data-store placeholders, High sensitivity, demo project id, `ASK_DEMO_MODE=true`,
+  non-https base URL, missing Firebase key, notifications off, wrong `ALLOWED_HD`, non-pmikcmetro
+  recipient).
+- FINDING (surfaced, not changed): the report's aggregate `readiness.ok` can never be `true` for
+  a compliant production env — production preflight requires
+  `KB_APPROVAL_NOTIFICATIONS_ENABLED=true`, but the budget guard inside the report refuses the live
+  Gmail send without `--allow-notifications` (a flag `cutover:report` does not expose). So the
+  report always carries exactly one expected `gcp:` notification-send blocker. Documented in
+  `docs/client-production-cutover.md` §1b and §6; no tooling behavior changed. Open question for
+  the owner: should `cutover:report` accept an approval flag so a fully-approved cutover can reach
+  `readiness.ok === true`?
+- Verification (owner Windows host, 2026-06-23): `npm run cutover:dry-run` green;
+  `tests/unit/cutover-readiness-golden.test.mjs` 17/17. Full suite + format/lint/typecheck +
+  `verify:falsification` rerun before commit (see `docs/loop-state.md` Last-Known-Green).
+
+## Sync-and-Readiness Triple (2026-06-23)
+
+- Context: the cutover `readiness.ok`-never-true finding surfaced a broader "we feel out of sync"
+  concern — the assistant reasons from the recorded map (repo/docs) while the owner holds the live
+  territory (GCP/Firebase/Drive/email/RentVine). Owner asked for three free, local fixes, done in
+  order "3, then 2, then 1."
+- (3) Living plan: every `docs/plan.md` cross-product phase now carries a `Status:` line; `AGENTS.md`
+  Documentation Rules + Definition of Done now require updating the plan's Status in the same slice;
+  `tests/unit/plan-status-sync.test.mjs` enforces it. Fixes the "plan went stale during build" gap.
+- (2) Reality check: `npm run reality:check` reconciles the recorded map against live GCP using the
+  existing FREE metadata reads, prints in-sync/drift/unverified, and honestly lists what it does not
+  yet auto-check (Cloud Run, billing, datastore counts, Auth roster, Drive, Gmail). Free, read-only,
+  degrades without ADC.
+- (1) RentVine read-connection readiness: env-var template + `npm run preflight:rentvine` (no calls,
+  no secret printing) + `docs/products/rentvine-connection-setup.md` owner checklist. The live read
+  is BLOCKED only on RentVine's API doc (base URL, auth scheme, endpoints, lease response shape);
+  RentVine reads do not bill the GCP cap. Writeback stays gated (undocumented endpoint).
+- Verification: 545/545 tests; format/lint/typecheck/falsification (376 files) green.

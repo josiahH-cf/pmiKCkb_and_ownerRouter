@@ -11,7 +11,27 @@ continuation, and stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-06-22
+- Last updated: 2026-06-23
+- 2026-06-23 (sync-and-readiness triple, owner-directed "Do 3, then 2, then 1" after the
+  cutover-readiness finding surfaced an out-of-sync concern): added a living-plan status field +
+  enforcing test, a FREE `npm run reality:check` map-vs-territory reconcile, and a RentVine
+  connection-readiness scaffold (`npm run preflight:rentvine` + plain-language setup checklist). The
+  RentVine live read is blocked only on RentVine's API doc. Also saved a durable tone-preference
+  memory (simple, human-readable explanations). See Last Completed Slice.
+- 2026-06-23 (production cutover-readiness hardening — dry-run rehearsal, owner-directed "plan the
+  next phase of development" → KB production cutover): added `npm run cutover:dry-run`
+  (`scripts/cutover-dry-run.mjs`) + two synthetic golden fixtures (`tests/fixtures/cutover/`) + 17
+  tests (`tests/unit/cutover-readiness-golden.test.mjs`) that drive the real `buildCutoverReport`
+  over a healthy config and assert every gate green except one documented residual — plus negative
+  fixtures for each rejection. Zero cloud cost, no deploy, no sources. Closes the `docs/plan.md` P5
+  dry-run gate ("Dry-runs exist for imports, setup scripts, seeders, and preflights"). FINDING
+  (surfaced, not changed): the report's aggregate `readiness.ok` can never be `true` for a compliant
+  production env — production preflight requires `KB_APPROVAL_NOTIFICATIONS_ENABLED=true`, but the
+  in-report budget guard refuses the live Gmail send without `--allow-notifications` (a flag
+  `cutover:report` does not expose), so the report always carries exactly one expected `gcp:`
+  notification-send blocker. Documented in `docs/client-production-cutover.md` §1b/§6; no tooling
+  behavior changed. **Open question for the owner:** should `cutover:report` accept an approval flag
+  so a fully-approved cutover can reach `readiness.ok === true`?
 - 2026-06-23 (budget kill switch FULLY ARMED on `pmi-kc-kb-prod`): the hard $10 cap is live
   end-to-end. Chain: project-scoped $10 budget
   (`billingAccounts/01A5A3-65CA5A-614D45/budgets/033af8c0-8f21-48af-b89b-0632896e5018`, 50/90/100%
@@ -150,6 +170,39 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- Sync-and-readiness triple (2026-06-23, owner-directed "Do 3, then 2, then 1"). Three small, free,
+  local slices answering an out-of-sync concern:
+  - (3) Living plan: every `docs/plan.md` cross-product phase now carries a `Status:` line
+    (`done`/`in progress`/`blocked`/`not started`; P0 done, P7 blocked, the rest in progress with
+    one-line context). `AGENTS.md` Documentation Rules + Definition of Done now require updating the
+    plan's Status in the same slice. `tests/unit/plan-status-sync.test.mjs` enforces a valid Status
+    on every phase, contiguous from P0.
+  - (2) Reality check: `npm run reality:check` (`scripts/reality-check.mjs`) reconciles the recorded
+    map against live GCP using the existing FREE metadata reads (enabled APIs, Firestore database,
+    Firebase project), prints an `in-sync`/`drift`/`partial`/`unverified` verdict, degrades to
+    `unverified` (exit 0) without ADC, never writes, and explicitly lists the dimensions it does NOT
+    yet auto-check (Cloud Run, billing/spend, datastore doc counts, Auth roster, Drive, Gmail) so
+    coverage is honest. Pure `summarizeReality` unit-tested (5 cases) with synthetic live state.
+  - (1) RentVine read-connection readiness: `.env.example` documents `RENTVINE_API_BASE_URL`/`KEY`/
+    `SECRET`; `npm run preflight:rentvine` (`scripts/preflight-rentvine.mjs`) reports config presence
+    (never prints secrets, never calls RentVine) plus the API-doc unknowns code can't resolve;
+    `docs/products/rentvine-connection-setup.md` is the owner checklist. The real read client is the
+    deferred next step — BLOCKED on RentVine's API doc (base URL, auth scheme, endpoint paths, lease
+    response shape). RentVine reads do not bill the $10 GCP cap.
+- Production cutover-readiness hardening — dry-run rehearsal (2026-06-23, owner-directed "plan the
+  next phase of development", lane chosen: KB production cutover). New `scripts/cutover-dry-run.mjs`
+  (`npm run cutover:dry-run`) runs the SAME `buildCutoverReport` as `cutover:report`, fed two
+  synthetic, non-secret golden fixtures (`tests/fixtures/cutover/golden-production.env.fixture` +
+  `golden-production-source-manifest.json`, all `sample-kb-fixture-*` placeholders), and asserts the
+  four component gates (production env, source corpus, deploy preview, GCP infra) are green with
+  only the one expected notification-send residual; it exits non-zero on any other blocker. New
+  `tests/unit/cutover-readiness-golden.test.mjs` (17 tests): golden config greens every gate;
+  negative fixtures prove each rejection (unapproved source, bucket/data-store placeholders, High
+  sensitivity, demo project id, `ASK_DEMO_MODE=true`, non-https URL, missing Firebase key,
+  notifications off, wrong `ALLOWED_HD`, non-pmikcmetro recipient). Purely additive — no change to
+  any rejection-rule script. Docs: `docs/client-production-cutover.md` §1b (rehearsal) + §6
+  (residual note); `docs/status.md`. Zero cost, no deploy, no sources, fully reversible. Closes the
+  `docs/plan.md` P5 dry-run gate. Surfaced the `readiness.ok`-never-true finding (see Snapshot).
 - Budget kill switch + e2e-runner CI fix (2026-06-22, owner-directed "configure the pub/sub kill
   switch and ensure it works"). New `infra/budget-guardrail/`: `decide.mjs` (pure decode of the
   Cloud Billing budget Pub/Sub notification + cap decision — uses the SMALLER of the env cap and the
@@ -362,6 +415,22 @@ continuation, and stop-and-reset rules.
 
 ## Last-Known-Green Verification
 
+- 2026-06-23 (sync-and-readiness triple, owner Windows host): `npm run format:check`,
+  `npm run lint`, `npm run typecheck`, `npm test` (**545/545 across 68 files**, +13: plan-status 3,
+  reality-check 5, preflight-rentvine 5), and `npm run verify:falsification` (**376 committable
+  files**) all PASS. `npm run reality:check` (free; "not-checked" without `--live`) and
+  `npm run preflight:rentvine` (reports missing env + the API-doc unknowns) behave as designed. New
+  files plus small edits to `docs/plan.md`/`AGENTS.md`/`.env.example`/`package.json` — no change to
+  existing rejection-rule scripts.
+- 2026-06-23 (production cutover-readiness hardening — dry-run rehearsal, owner Windows host):
+  `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`
+  (**532/532 across 65 files**, +17 the new `cutover-readiness-golden` suite),
+  `npm run cutover:dry-run` (green — four gates ok, 3 upload/3 import/3 seed corpus plan),
+  `npm run verify:falsification` (**370 committable files**, +4 new), `npm run verify:router-boundary`,
+  and `git diff --check` all PASS. Working tree limited to the new
+  `scripts/cutover-dry-run.mjs`, `tests/fixtures/cutover/*`, `tests/unit/cutover-readiness-golden.test.mjs`,
+  one `package.json` script line, and doc updates (`client-production-cutover.md`, `status.md`, this
+  file) — no edits to any rejection-rule script.
 - 2026-06-22 (budget kill switch + e2e-runner CI fix, owner Windows host): `npm run format:check`
   (clean repo-wide, incl. the previously-unformatted `scripts/run-e2e-tests.mjs` that failed CI on
   `9efa5c3`), `npm run lint`, `npm run typecheck`, `npm test` (**515/515 across 64 files**, +11 the
@@ -577,6 +646,16 @@ readiness, or a concrete regression:
    questions, acceptance scenarios, and a scoped implementation packet.
 4. If no new client answer has arrived, stay limited to regression fixes, docs hygiene,
    verification, and handoff cleanup.
+
+The `docs/plan.md` P5 dry-run gate is now closed (`npm run cutover:dry-run`). The remaining
+cutover steps are sequenced behind client-owned work: §2 (real client GCP/Firebase project +
+billing) and §4 (approved PMI KC source files + sensitivity classification) are client-blocked;
+§3/§5/§6/§7 only run once those land. The one decision available without client input is the
+owner's call on the `readiness.ok`-never-true finding above — whether `cutover:report` should
+accept an approval flag (e.g. `--allow-notifications`) so a fully-approved cutover reaches
+`readiness.ok === true`, or whether operators should keep reading past the one expected
+notification-send blocker. If the owner picks the former, that is a small, well-scoped follow-up
+slice (forward the flag through `buildCutoverReport` → `buildGcpSetupPlan`/`evaluateBudgetGuard`).
 
 ## Next Large Remote Run Queue
 
