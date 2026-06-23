@@ -160,7 +160,10 @@ route new work through the three-product docs.
 
 - Update `docs/loop-state.md` at the start of a cycle and at each slice boundary.
 - Update `docs/status.md` after meaningful work.
-- Update `docs/plan.md` only when phases, milestones, or acceptance criteria change.
+- Update `docs/plan.md` in the same slice whenever a phase's `Status:`
+  (`done`/`in progress`/`blocked`/`not started`), milestones, or acceptance criteria change —
+  not only `docs/loop-state.md`/`docs/status.md`. A `blocked` phase names what it waits on;
+  `tests/unit/plan-status-sync.test.mjs` enforces a valid Status on every phase.
 - Update `docs/implement.md` when the operating workflow changes.
 - Update `docs/products/*.md` when product scope changes.
 - Preserve all original specs in `docs/specs/`.
@@ -172,6 +175,8 @@ route new work through the three-product docs.
 - Code compiles, lint passes, tests pass, and `bash scripts/verify.sh` passes when
   relevant and available.
 - Docs reflect the change and future agents know the next step.
+- `docs/plan.md` phase `Status:` lines reflect current reality when the slice moved a phase
+  forward or hit a blocker.
 - Blockers are concrete client asks or research questions.
 - No product requirement is invented beyond confirmed sources and approved direction.
 

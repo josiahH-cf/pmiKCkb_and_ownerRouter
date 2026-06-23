@@ -48,7 +48,15 @@ directly satisfies a migration, acceptance, or approved quality gate.
 
 ## Cross-Product Phases
 
+Each phase carries a `Status:` line — `done`, `in progress`, `blocked`, or `not started`,
+kept current as work lands (a `blocked` phase names what it waits on). The Status line is the
+at-a-glance answer to "where are we"; `docs/status.md` holds the narrative history and
+`docs/loop-state.md` the active resume pointer. `tests/unit/plan-status-sync.test.mjs` enforces
+that every phase keeps a valid Status.
+
 ### P0 - Governance Realignment
+
+Status: done
 
 Acceptance criteria:
 
@@ -66,6 +74,8 @@ git diff --check
 
 ### P1 - Discovery And Source Inventory
 
+Status: in progress — owners named; some concrete asks in `docs/client-checklist.md` still open.
+
 Acceptance criteria:
 
 - Product owners and acceptance reviewers are named.
@@ -80,6 +90,9 @@ npm run format:check
 ```
 
 ### P2 - Access And Account Setup
+
+Status: in progress — GCP/Firebase project + billing confirmed (`pmi-kc-kb-prod`); Drive source
+ownership, Gmail Inbox 0 authority, and approved sources still pending.
 
 Acceptance criteria:
 
@@ -97,6 +110,9 @@ npm run preflight:production -- --env-file=.env.production.local
 ```
 
 ### P3 - Integration Capability Verification
+
+Status: in progress — integration classification complete in `docs/integration-architecture.md`;
+verification against client-owned/staging resources pending.
 
 Acceptance criteria:
 
@@ -117,6 +133,9 @@ npm run test:firestore
 ```
 
 ### P4 - Product V1 Scope Lock
+
+Status: in progress — KB automation/Approval-Queue model locked and built; Lease Renewal v1 scope
+still has open client confirmations (OQ-PREC-1 precedence, in-scope sheets, walkthrough).
 
 Acceptance criteria:
 
@@ -169,6 +188,9 @@ npm run format:check
 
 ### P5 - Build And Migration Preparation
 
+Status: in progress — dry-runs for imports/setup/seeders/preflights exist (`npm run cutover:dry-run`);
+KB production source manifests await approved client sources.
+
 Acceptance criteria:
 
 - KB production source manifests are prepared from approved PMI KC sources.
@@ -188,6 +210,9 @@ npm run seed:launch-skeletons -- --dry-run
 ```
 
 ### P6 - Testing, Training, And Acceptance
+
+Status: in progress — automated test coverage is broad; production smoke, acceptance scenarios, and
+operator training are pending runtime/cutover.
 
 Acceptance criteria:
 
@@ -278,6 +303,9 @@ bash scripts/verify.sh
 
 ### P7 - Production Cutover And Monitoring
 
+Status: blocked — needs client-owned production resources and named go-live/rollback/monitoring
+owners.
+
 Acceptance criteria:
 
 - Go-live owner, support window, rollback owner, and monitoring owner are named.
@@ -316,7 +344,10 @@ Key gates:
 ### Lease Renewal Agent
 
 Current state: first backend automation target, but integration/source discovery remains
-required.
+required. RentVine read-connection readiness scaffold + plain-language setup checklist now exist
+(`npm run preflight:rentvine`, `docs/products/rentvine-connection-setup.md`); the live read is
+blocked only on RentVine's API doc (base URL, auth scheme, endpoint paths, lease response shape).
+RentVine reads do not bill the GCP cap.
 
 Key gates:
 
