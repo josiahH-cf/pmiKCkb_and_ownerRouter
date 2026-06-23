@@ -95,9 +95,13 @@ export function buildRunbook(c) {
       title:
         "4b. Attach the topic to the budget in the CLOUD CONSOLE (this auto-grants the publisher role)",
       commands: [
-        "# The budgets publisher SA (billing-budgets@system.gserviceaccount.com) is rejected by the IAM",
-        "# API, so the budget->topic link MUST be made in the Console: Billing > Budgets & alerts > edit",
-        "# the budget > Manage notifications > Connect a Pub/Sub topic > select the topic > Save.",
+        "# The budgets publisher SA is billing-budget-alert@system.gserviceaccount.com (NOT",
+        "# billing-budgets@...). It cannot be bound via gcloud/IAM ('does not exist') — only the Console",
+        "# budget->topic connect grants it. Path: Billing > Budgets & alerts > edit the budget > Manage",
+        "# notifications > Connect a Pub/Sub topic > switch to THIS project > select the topic > Save.",
+        "# If the org enforces domain restricted sharing (iam.allowedPolicyMemberDomains), the connect",
+        "# fails until an org-policy admin temporarily relaxes it on this project (allowAll), connects,",
+        "# then re-locks. Needs roles/orgpolicy.policyAdmin.",
         `# Topic to select: ${c.topicPath}`,
       ],
     },

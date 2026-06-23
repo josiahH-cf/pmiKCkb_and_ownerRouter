@@ -5,20 +5,31 @@ spend. This adds the standard programmatic kill switch so spend actually stops a
 
 See `docs/budget-and-cost-policy.md` for the full policy and the layered model.
 
-## Status (armed 2026-06-22 on `pmi-kc-kb-prod`)
+## Status — FULLY ARMED (2026-06-23, `pmi-kc-kb-prod`)
 
-LIVE and verified: topic `budget-guardrail-topic`; SA `budget-guardrail` with project-scoped
-`roles/billing.projectManager` + `roles/run.invoker` on the function's Run service; the 2nd-gen
-function `budget-guardrail` (ACTIVE, `KILL_SWITCH_CAP_USD=10`); and a project-scoped $10 budget
-(`billingAccounts/01A5A3-65CA5A-614D45/budgets/033af8c0-8f21-48af-b89b-0632896e5018`) with 50/90/100%
-thresholds. A no-op wiring test (publish → `…no action.` in the logs) confirmed the
-topic→Eventarc→Run→function path end-to-end.
+The hard $10 cap is live end-to-end:
 
-**One step remains (Console-only):** attach the topic to the budget so threshold notifications publish
-to it. The budgets publisher `billing-budgets@system.gserviceaccount.com` is rejected by the IAM API,
-so the link must be made in the Cloud Console (Billing → Budgets & alerts → edit the budget → Manage
-notifications → Connect a Pub/Sub topic → `budget-guardrail-topic`), which auto-grants the publisher
-role. Until then the budget still emails at thresholds; after it, $10 auto-disables billing.
+- Project-scoped $10 budget
+  (`billingAccounts/01A5A3-65CA5A-614D45/budgets/033af8c0-8f21-48af-b89b-0632896e5018`, 50/90/100%
+  thresholds) → publishes to topic `budget-guardrail-topic`.
+- Topic grants `roles/pubsub.publisher` to the budgets publisher **`billing-budget-alert@system.gserviceaccount.com`**
+  (granted via the Console "Connect a Pub/Sub topic" flow).
+- 2nd-gen function `budget-guardrail` (ACTIVE, `KILL_SWITCH_CAP_USD=10`; SA has project-scoped
+  `roles/billing.projectManager` + `roles/run.invoker`) decodes the notification and disables billing
+  at the cap.
+- A no-op wiring test (`…no action.` in the logs) confirmed topic→Eventarc→Run→function; the disable
+  logic is unit-tested (`tests/unit/budget-killswitch.test.mjs`).
+
+**How the last link was wired (gotchas for next time):**
+
+- The budgets publisher SA is **`billing-budget-alert@system.gserviceaccount.com`** (not
+  `billing-budgets@…`). It cannot be bound via `gcloud`/IAM API ("does not exist") — only the Cloud
+  Console's budget→topic connect grants it internally.
+- This org enforces **domain restricted sharing** (`iam.allowedPolicyMemberDomains` = customer
+  `C030vgv56`), which blocks granting that out-of-domain Google SA. The connect therefore required
+  temporarily relaxing the constraint on **just this project** (`allowAll`), doing the Console
+  connect, then re-locking (verified back to `C030vgv56`). Requires org-level
+  `roles/orgpolicy.policyAdmin`.
 
 ## The four layers (only the last truly stops spend)
 

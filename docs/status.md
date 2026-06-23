@@ -4759,3 +4759,23 @@ HTTP check). No repo code changed; no `npm` verification re-run this slice.
 - Runbook (`scripts/setup-budget-killswitch.mjs`) updated to match reality: least-privilege
   `billing.projectManager`, the `run.invoker` step, the Console-only topic attach, and the bash
   quoting note. `docs/budget-killswitch.md` records the live arming status + the one remaining step.
+
+## Budget Kill Switch — FULLY ARMED (2026-06-23)
+
+- Dan granted `josiah@pmikcmetro.com` org-level `roles/orgpolicy.policyAdmin` +
+  `roles/resourcemanager.organizationAdmin` (requested by email). Confirmed by reading the org-node
+  policy (previously PERMISSION_DENIED).
+- Root cause of the earlier block was twofold: (1) the org enforces **domain restricted sharing**
+  (`iam.allowedPolicyMemberDomains` = customer `C030vgv56`), and (2) the real budgets publisher SA is
+  **`billing-budget-alert@system.gserviceaccount.com`** — NOT the `billing-budgets@…` name in the
+  public docs (which is why every CLI grant returned "does not exist", even with DRS relaxed). That SA
+  can only be bound by the Console's budget→topic connect; `gcloud`/IAM can't bind it.
+- Completion: temporarily relaxed DRS on **just `pmi-kc-kb-prod`** (project override `allowAll`), the
+  owner ran the Console "Connect a Pub/Sub topic" flow (which granted the publisher SA internally),
+  then re-locked DRS (verified effective policy back to `allowedValues: C030vgv56`). The relaxation was
+  applied + reverted via a `finally` each attempt so the org never stayed open unattended.
+- Verified: topic `budget-guardrail-topic` now grants `roles/pubsub.publisher` to
+  `billing-budget-alert@system.gserviceaccount.com`; budget `…/033af8c0-…` shows
+  `notificationsRule.pubsubTopic = projects/pmi-kc-kb-prod/topics/budget-guardrail-topic` with
+  50/90/100% thresholds. Full chain live: $10 budget → topic → function → disables billing.
+- Docs/runbook corrected with the real SA name + the DRS-relax-during-Console-connect procedure.
