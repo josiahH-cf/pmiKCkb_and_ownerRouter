@@ -1,0 +1,224 @@
+import { describe, expect, it } from "vitest";
+import { buildCutoverReport } from "../../scripts/build-cutover-report.mjs";
+import { buildDemoDeployCommand } from "../../scripts/deploy-demo-cloud-run.mjs";
+import { buildGcpSetupPlan } from "../../scripts/preflight-gcp-setup.mjs";
+import {
+  readProductionPreflightEnv,
+  validateProductionCutoverConfig,
+} from "../../scripts/preflight-production-cutover.mjs";
+import { buildSourceCorpusReadiness } from "../../scripts/source-corpus-readiness.mjs";
+import { readSourceManifest } from "../../scripts/source-corpus-manifest.mjs";
+import {
+  EXPECTED_RESIDUAL_BLOCKER,
+  runCutoverDryRun,
+} from "../../scripts/cutover-dry-run.mjs";
+
+// Relative to the repo root (vitest CWD). Every call passes env:{} + this env file so the
+// host's on-disk `.env.local` never leaks into the result and the verdicts stay hermetic.
+const GOLDEN_ENV = "tests/fixtures/cutover/golden-production.env.fixture";
+const GOLDEN_MANIFEST = "tests/fixtures/cutover/golden-production-source-manifest.json";
+
+const goldenEnv = () => readProductionPreflightEnv({ env: {}, envFile: GOLDEN_ENV });
+
+describe("golden production fixtures pass every cutover gate", () => {
+  it("source corpus manifest is import-ready", () => {
+    const readiness = buildSourceCorpusReadiness(readSourceManifest(GOLDEN_MANIFEST));
+
+    expect(readiness.ok).toBe(true);
+    expect(readiness.blockers).toEqual([]);
+    expect(readiness.counts.entries).toBe(3);
+  });
+
+  it("production env preflight passes with no errors", () => {
+    const result = validateProductionCutoverConfig(goldenEnv());
+
+    expect(result.ok).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  it("deploy command preview is clean", () => {
+    const deploy = buildDemoDeployCommand({
+      argv: ["--allow-multiple-spaces", "--project=sample-kb-fixture-prod"],
+      env: goldenEnv(),
+      localEnv: {},
+    });
+
+    expect(deploy.ok).toBe(true);
+    expect(deploy.errors).toEqual([]);
+    expect([deploy.command, ...deploy.args].join(" ")).toContain("run deploy");
+  });
+
+  it("GCP infra plan is ready except the documented notification-send approval", () => {
+    const plan = buildGcpSetupPlan({
+      projectId: "sample-kb-fixture-prod",
+      env: goldenEnv(),
+      awayModeActive: false,
+      rulesFileExists: true,
+      definedIndexCount: 1,
+    });
+
+    expect(plan.firestore.rules_file_exists).toBe(true);
+    expect(plan.firestore.defined_index_count).toBe(1);
+    // The only GCP-plan blocker is the budget guard refusing the live notification send; every
+    // structural setup item (project, rules, indexes) is clean.
+    expect(plan.blockers).toHaveLength(1);
+    expect(plan.blockers[0]).toContain("KB approval Gmail notifications are enabled");
+  });
+});
+
+describe("cutover report on golden fixtures", () => {
+  const report = () =>
+    buildCutoverReport({
+      argv: [
+        `--env-file=${GOLDEN_ENV}`,
+        `--manifest=${GOLDEN_MANIFEST}`,
+        "--project=sample-kb-fixture-prod",
+        "--location=us",
+      ],
+      env: {},
+      awayModeActive: false,
+    });
+
+  it("greens every section except the one expected residual blocker", () => {
+    const r = report();
+
+    expect(r.production_env.ok).toBe(true);
+    expect(r.corpus.evaluated).toBe(true);
+    expect(r.corpus.readiness.ok).toBe(true);
+    expect(r.deploy.ok).toBe(true);
+    expect(r.corpus.upload_commands.length).toBe(3);
+    // Locks the load-bearing interaction: a production-valid env requires notifications enabled,
+    // so the report's ONLY residual blocker is the approval-gated live send. If a future change
+    // leaks another blocker (or resolves this one without an approval path), this fails loudly.
+    expect(r.readiness.blockers).toEqual([EXPECTED_RESIDUAL_BLOCKER]);
+    expect(r.readiness.ok).toBe(false);
+  });
+});
+
+describe("cutover dry-run rehearsal", () => {
+  it("passes on the golden fixtures with no unexpected blockers", () => {
+    const result = runCutoverDryRun();
+
+    expect(result.ok).toBe(true);
+    expect(result.residualBlockers).toEqual([]);
+    expect(result.gates).toEqual({
+      productionEnv: true,
+      corpus: true,
+      deploy: true,
+      onlyExpectedResidual: true,
+    });
+  });
+});
+
+describe("production env preflight rejects broken configs", () => {
+  const withEnv = (overrides) =>
+    validateProductionCutoverConfig({ ...goldenEnv(), ...overrides });
+  const hasError = (result, needle) =>
+    result.errors.some((error) => error.includes(needle));
+
+  it("rejects ASK_DEMO_MODE=true", () => {
+    expect(
+      hasError(withEnv({ ASK_DEMO_MODE: "true" }), "ASK_DEMO_MODE must be false"),
+    ).toBe(true);
+  });
+
+  it("rejects a non-https APP_BASE_URL", () => {
+    expect(
+      hasError(
+        withEnv({ APP_BASE_URL: "http://kb.sample-kb-fixture.example" }),
+        "APP_BASE_URL must be an https URL",
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a demo project id", () => {
+    expect(
+      hasError(
+        withEnv({ GCP_PROJECT_ID: "pmikckb-test" }),
+        "must not point at demo project",
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a missing Firebase api key", () => {
+    expect(
+      hasError(
+        withEnv({ NEXT_PUBLIC_FIREBASE_API_KEY: "" }),
+        "NEXT_PUBLIC_FIREBASE_API_KEY must be set",
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects notifications disabled", () => {
+    expect(
+      hasError(
+        withEnv({ KB_APPROVAL_NOTIFICATIONS_ENABLED: "false" }),
+        "KB_APPROVAL_NOTIFICATIONS_ENABLED must be true",
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a non-pmikcmetro approval recipient", () => {
+    expect(
+      hasError(
+        withEnv({ KB_APPROVAL_RECIPIENTS: "ops@gmail.com" }),
+        "must use only pmikcmetro.com email addresses",
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a wrong allowed hosted domain", () => {
+    expect(
+      hasError(
+        withEnv({ ALLOWED_HD: "example.com" }),
+        "ALLOWED_HD must be pmikcmetro.com",
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("source corpus readiness rejects broken manifests", () => {
+  const withEntry0 = (overrides) => {
+    const entries = readSourceManifest(GOLDEN_MANIFEST);
+    entries[0] = { ...entries[0], ...overrides };
+    return buildSourceCorpusReadiness(entries);
+  };
+  const hasBlocker = (readiness, needle) =>
+    readiness.blockers.some((blocker) => blocker.includes(needle));
+
+  it("rejects an unapproved entry", () => {
+    expect(
+      hasBlocker(
+        withEntry0({ approval_status: "Unreviewed" }),
+        "production import requires Approved",
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects an unreplaced bucket placeholder", () => {
+    expect(
+      hasBlocker(
+        withEntry0({ gcs_uri: "gs://<client-source-bucket>/x.txt" }),
+        "must be replaced with a real production value",
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a placeholder data store id", () => {
+    expect(
+      hasBlocker(
+        withEntry0({ data_store_id: "<data-store-id>" }),
+        "must be replaced with a real production value",
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a High sensitivity source", () => {
+    expect(
+      hasBlocker(
+        withEntry0({ sensitivity: "High" }),
+        "High sensitivity and must not be imported",
+      ),
+    ).toBe(true);
+  });
+});

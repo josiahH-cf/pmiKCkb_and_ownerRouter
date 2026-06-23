@@ -1,0 +1,26 @@
+[
+  {
+    "space_id": "lease-renewals",
+    "source_path": "tests/fixtures/cutover/sources/lease-renewals-sop.md",
+    "gcs_uri": "gs://sample-kb-fixture-bucket/lease-renewals/lease-renewals-sop.txt",
+    "data_store_id": "kb-lease-renewals-fixture-txt",
+    "approval_status": "Approved",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "owner-onboarding",
+    "source_path": "tests/fixtures/cutover/sources/owner-onboarding-overview.md",
+    "gcs_uri": "gs://sample-kb-fixture-bucket/owner-onboarding/owner-onboarding-overview.txt",
+    "data_store_id": "kb-owner-onboarding-fixture-txt",
+    "approval_status": "Approved",
+    "sensitivity": "Low"
+  },
+  {
+    "space_id": "move-in",
+    "source_path": "tests/fixtures/cutover/sources/move-in-checklist.md",
+    "gcs_uri": "gs://sample-kb-fixture-bucket/move-in/move-in-checklist.txt",
+    "data_store_id": "kb-move-in-fixture-txt",
+    "approval_status": "Approved",
+    "sensitivity": "Low"
+  }
+]

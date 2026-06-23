@@ -40,6 +40,44 @@ If `host:check` fails on Windows, repair local Google tooling with:
 npm run host:setup -- -ProjectId <client-project-id>
 ```
 
+## 1b. Dry-Run Readiness Rehearsal (No Cloud Cost)
+
+Before the client environment exists, rehearse the whole cutover-readiness chain against
+synthetic golden fixtures:
+
+```bash
+npm run cutover:dry-run            # human-readable gate summary
+npm run cutover:dry-run -- --json  # machine-readable result
+```
+
+This runs the same `buildCutoverReport` that `npm run cutover:report` runs, but feeds it the
+fake `tests/fixtures/cutover/golden-production.env.fixture` and
+`tests/fixtures/cutover/golden-production-source-manifest.json` (every value is an obvious
+`sample-kb-fixture-*` placeholder). It is pure computation: no `gcloud`, no Application Default
+Credentials, no network, and no spend against the $10 cap. A green run prints:
+
+```text
+  [ok] production env preflight
+  [ok] source corpus readiness
+  [ok] deploy command preview
+  [ok] GCP infra ready (only the approval-gated notification send remains)
+  corpus plan: 3 upload / 3 import / 3 seed commands
+```
+
+Expected residual (read this before §6): the aggregate `cutover:report` `readiness.ok` stays
+`false` by design even on a perfect config. A production-valid env requires
+`KB_APPROVAL_NOTIFICATIONS_ENABLED=true`, but the budget guard inside the report evaluates
+without `--allow-notifications`, so it emits exactly one blocker —
+`gcp: KB approval Gmail notifications are enabled (...)`. Live Gmail sends are externally visible
+and stay approval-gated. The dry-run treats that single blocker as the documented, expected
+residual and confirms every OTHER gate is green; it fails loudly if any additional blocker
+appears. Do not "fix" it by routing `--allow-notifications` through the report — clearing it is a
+real send approval, not a dry-run step.
+
+When the real client values arrive, point `cutover:report` at the live `--env-file` and
+`--manifest` (see §5/§6) and confirm the same shape: every section green with the lone
+notification-send blocker as the only residual.
+
 ## 2. Create The Client Google Environment
 
 Create or select the PMI KC-owned GCP/Firebase project, then set local env values in an
@@ -223,10 +261,14 @@ missing Firebase public config.
 
 ## 6. Deploy Cloud Run
 
-Before any deploy, generate the consolidated machine-readable cutover report and
-require `readiness.ok === true` (it composes the GCP setup plan, production env
-preflight, budget posture, corpus readiness, deploy command preview, rollback plan, and
-the §7 smoke checklist; blockers are prefixed with their failing section):
+Before any deploy, generate the consolidated machine-readable cutover report and confirm
+every section is green with only the expected notification-send residual described in §1b
+(it composes the GCP setup plan, production env preflight, budget posture, corpus
+readiness, deploy command preview, rollback plan, and the §7 smoke checklist; blockers are
+prefixed with their failing section). For a compliant production env
+(`KB_APPROVAL_NOTIFICATIONS_ENABLED=true`) the budget guard holds back the approval-gated
+Gmail send, so that one `gcp:` blocker is expected; the live send is approved separately and
+is not a deploy blocker:
 
 ```bash
 npm run cutover:report -- --manifest=temp/client-production-source-manifest.json --env-file=.env.production.local --json
