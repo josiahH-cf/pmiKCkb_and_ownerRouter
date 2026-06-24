@@ -24,6 +24,11 @@ import {
 import { proposeJoin, type JoinKind } from "@/lib/lease-renewal/join";
 import type { NormalizedConfidence } from "@/lib/lease-renewal/normalized-value";
 import {
+  rentsAgree,
+  toRentAmount,
+  type RentAgreementOptions,
+} from "@/lib/lease-renewal/rent";
+import {
   reconcileField,
   type FieldReconciliation,
   type ReconCandidate,
@@ -51,6 +56,12 @@ export interface NonSheetCandidate {
   joinKind: JoinKind;
   /** Raw join value (address or tenant/lease name) used to match a sheet record. */
   joinValue: string;
+  /**
+   * Optional exact join id (e.g. the RentVine lease id "lease:123"). When both a record and a
+   * candidate carry the same `joinId`, that is a definitive match — it bypasses the fuzzy name/address
+   * join entirely (design §1.1.4; the sheet hyperlinks each row back to its RentVine dashboard).
+   */
+  joinId?: string;
   /** Read timestamp captured at read time — accepted as INPUT, never Date.now(). */
   read_timestamp?: string;
   /** Deep link to the external evidence for this candidate. */
@@ -81,6 +92,14 @@ export interface RenewalRunInput {
   nonSheetCandidates: NonSheetCandidate[];
   /** Defaults to DEFAULT_FIELD_SPECS. */
   fieldSpecs?: readonly ReconcilableFieldSpec[];
+  /**
+   * Exact RentVine join id per sheet record, keyed by `sourceRowIndex` (from the row's hyperlink —
+   * see lease-renewal/rentvine-link). When present, it matches a candidate's `joinId` definitively,
+   * bypassing the fuzzy name/address join. Optional — omit to use the fuzzy join only.
+   */
+  recordJoinIds?: Record<number, string>;
+  /** Add-on accounting for the base-rent reconciliation (defaults to the known RBP + insurance). */
+  rentReconciliation?: RentAgreementOptions;
 }
 
 export interface RecordRef {
@@ -214,34 +233,81 @@ export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
         location_ref: `${evidenceLink}#${spec.sheetSource}`,
       };
 
+      const recordId = input.recordJoinIds?.[record.sourceRowIndex];
       const joinRaw = record.fields[spec.joinFieldKey]?.raw ?? "";
       const matched: ReconCandidate[] = [];
-      if (joinRaw.trim() !== "") {
-        for (const candidate of nonSheetCandidates) {
-          if (candidate.joinKind !== spec.joinKind) continue;
-          const candidateField = candidate.fields[spec.fieldKey];
-          if (candidateField === undefined) continue;
-          // The fuzzy join never auto-merges: only an above-threshold "match" becomes a candidate;
-          // "ambiguous" and "no_match" are left out (the record stays single-source / unmerged).
-          if (proposeJoin(joinRaw, candidate.joinValue, spec.joinKind).status !== "match")
-            continue;
-          matched.push({
-            source: candidate.source,
-            source_system: candidate.source_system,
-            value: candidateField.value,
-            raw: candidateField.raw,
-            confidence: candidateField.confidence,
-            read_timestamp: candidate.read_timestamp,
-            location_ref: candidate.location_ref ?? `${evidenceLink}#${candidate.source}`,
-          });
+      for (const candidate of nonSheetCandidates) {
+        const candidateField = candidate.fields[spec.fieldKey];
+        if (candidateField === undefined) continue;
+        // A joined source that carries no value for this field contributes nothing — don't count it
+        // as a match, so the §2.1 worklist suppression and §2.3 downgrade key on values actually
+        // contributed (reconcileField drops empty candidates anyway). Mirrors reconciliation's hasValue.
+        if (candidateField.value === null || String(candidateField.value).trim() === "") {
+          continue;
         }
+        // An exact RentVine-id match is definitive (bypasses the fuzzy join). Otherwise fall back to
+        // the fuzzy name/address join, which never auto-merges: only an above-threshold "match"
+        // becomes a candidate; "ambiguous"/"no_match" leave the record single-source / unmerged.
+        const idMatch =
+          recordId !== undefined &&
+          candidate.joinId !== undefined &&
+          candidate.joinId === recordId;
+        const fuzzyMatch =
+          !idMatch &&
+          candidate.joinKind === spec.joinKind &&
+          joinRaw.trim() !== "" &&
+          proposeJoin(joinRaw, candidate.joinValue, spec.joinKind).status === "match";
+        if (!idMatch && !fuzzyMatch) continue;
+        matched.push({
+          source: candidate.source,
+          source_system: candidate.source_system,
+          value: candidateField.value,
+          raw: candidateField.raw,
+          confidence: candidateField.confidence,
+          read_timestamp: candidate.read_timestamp,
+          location_ref: candidate.location_ref ?? `${evidenceLink}#${candidate.source}`,
+        });
       }
 
-      const reconciliation = reconcileField(
+      let reconciliation = reconcileField(
         spec.fieldKey,
         [sheetCandidate, ...matched],
         spec.context ?? {},
       );
+
+      // §2.1: a blank sheet cell with NO authoritative (non-sheet) match joined is just un-started
+      // worklist — the tracker is a live worklog, not a defect list — so it does not raise a flag.
+      if (reconciliation.agreement === "missing" && matched.length === 0) {
+        reconciliation = { ...reconciliation, raise_flag: false };
+      }
+
+      // §2.3: a current_rent "conflict" is suppressed ONLY when EVERY joined authoritative amount is
+      // the same base rent as the sheet once the known add-ons (RBP + insurance) are accounted for.
+      // RentVine's rent is the base and the sheet may fold the add-ons IN, so suppression is
+      // one-directional (sheet >= the authoritative amount); a sheet figure BELOW the base, or any
+      // single joined amount whose gap is not add-on-explained, keeps the flag. Downgrade only.
+      if (
+        reconciliation.raise_flag &&
+        reconciliation.agreement === "conflict" &&
+        spec.fieldKey === "current_rent"
+      ) {
+        const sheetAmount = toRentAmount(sheetCandidate.value);
+        const matchedAmounts = matched
+          .map((candidate) => toRentAmount(candidate.value))
+          .filter((amount): amount is number => amount !== null);
+        if (
+          sheetAmount !== null &&
+          matchedAmounts.length > 0 &&
+          matchedAmounts.every(
+            (amount) =>
+              sheetAmount >= amount &&
+              rentsAgree(sheetAmount, amount, input.rentReconciliation),
+          )
+        ) {
+          reconciliation = { ...reconciliation, raise_flag: false };
+        }
+      }
+
       const queueMapping = mapReconciliationToQueueItem(reconciliation, {
         runId,
         fieldLabel,

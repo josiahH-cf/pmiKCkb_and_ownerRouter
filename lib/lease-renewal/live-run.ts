@@ -18,6 +18,13 @@ import {
   type RentVineLeaseFieldMap,
 } from "@/lib/integrations/rentvine/lease-mapper";
 import {
+  classifyRenewalCohort,
+  selectActionableLeases,
+  type CohortConfig,
+  type DateWindow,
+  type RenewalCohort,
+} from "@/lib/lease-renewal/cohort";
+import {
   runRenewalPipeline,
   type NonSheetCandidate,
   type RenewalRunResult,
@@ -41,6 +48,14 @@ export interface LiveRenewalRunOptions {
   fieldMap?: RentVineLeaseFieldMap;
   /** Optional Rentvine export query params (e.g. a lease-end window). */
   listParams?: Record<string, string | number>;
+  /**
+   * When set, classify the live leases into the active renewal cohort and reconcile ONLY the
+   * `actionable` leases (ending in a window on a month boundary, no skip signal). Mirrors Dan's
+   * manual end-date filter; the skip/review buckets are returned for visibility, never auto-worked.
+   * Omit to map every lease (the prior behavior).
+   */
+  cohortWindows?: DateWindow[];
+  cohortConfig?: Partial<CohortConfig>;
   /** Sheet grids; defaults to the synthetic sample until the live Sheet read (OQ-SHEET-1) lands. */
   tables?: RawGrid[];
   /**
@@ -54,6 +69,8 @@ export interface LiveRenewalRunResult {
   run: RenewalRunResult;
   liveRentvineCandidates: number;
   skippedLeases: number;
+  /** Present only when `cohortWindows` was supplied — the actionable/skip/review breakdown. */
+  cohort?: RenewalCohort;
 }
 
 /**
@@ -65,7 +82,18 @@ export async function runLiveRenewalReview(
 ): Promise<LiveRenewalRunResult> {
   const rows = await options.rentvineClient.listLeasesExport(options.listParams);
   const views = leaseViewsFromExport(rows);
-  const mapping = mapLeasesToNonSheetCandidates(views, {
+
+  let viewsToMap = views;
+  let cohort: RenewalCohort | undefined;
+  if (options.cohortWindows) {
+    cohort = classifyRenewalCohort(views, {
+      windows: options.cohortWindows,
+      config: options.cohortConfig,
+    });
+    viewsToMap = selectActionableLeases(views, cohort);
+  }
+
+  const mapping = mapLeasesToNonSheetCandidates(viewsToMap, {
     readTimestamp: options.readTimestamp,
     fieldMap: options.fieldMap,
   });
@@ -84,6 +112,7 @@ export async function runLiveRenewalReview(
     run,
     liveRentvineCandidates: mapping.candidates.length,
     skippedLeases: mapping.skipped,
+    ...(cohort ? { cohort } : {}),
   };
 }
 

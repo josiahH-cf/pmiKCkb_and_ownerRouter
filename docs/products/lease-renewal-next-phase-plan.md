@@ -5,6 +5,16 @@ realignment of the in-flight calibration work). This is the new "continue with f
 entry point for the Lease Renewal lane: a fresh session reads [`../loop-state.md`](../loop-state.md)
 → this file → the design docs, then builds the next zero-cost slice below.
 
+> ✅ **Slices A–E BUILT + tested (2026-06-24), $0, read-only / draft-only.** All five §3 slices landed
+> as pure, deterministic, unit-tested modules (full suite **638 green**; +20 new tests):
+> `cohort.ts`, `rentvine-link.ts`, `rent.ts`, `owner-draft.ts`, `tenant-draft.ts`,
+> `renewal-readiness.ts`, plus additive edits to `pipeline.ts` (the missing-flag suppression + the
+> RentVine-id join + the base-rent downgrade), `lease-mapper.ts` (`joinId`), `live-run.ts` (optional
+> cohort filter), and the Sheets hyperlink layer (`sheet-to-grids.ts` + `read-client.ts`). Every
+> entry stays `production_allowed:false`; no SoR write, no send. **Remaining LIVE wiring (next):**
+> populate `recordJoinIds` from the sheet's FORMULA hyperlink read end-to-end, and surface the
+> cohort/drafts/readiness on the `/lease-renewal/runs` review page.
+
 It supersedes the open "calibrate the 397 flags / email Dan five questions" task. That task asked Dan
 to hand-tune the reconciliation engine; the discovery transcript already answers four of those five
 questions and Dan answered the fifth in detail on the 2026-06-19 show-and-tell. The §2 decisions below

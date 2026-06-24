@@ -165,6 +165,30 @@ export class GoogleSheetsApiReader implements SheetsValuesReader {
     }
     return (await response.json()) as SheetsBatchGetResponse;
   }
+
+  /**
+   * Read the same ranges with `valueRenderOption=FORMULA` (read-only) so cells that hyperlink back to
+   * RentVine surface as `=HYPERLINK("url","text")`. Pair with `valuesToGridWithLinks` to recover the
+   * per-row RentVine join id. Not part of the injected `SheetsValuesReader` interface (live-only).
+   */
+  async batchGetFormulas(
+    spreadsheetId: string,
+    ranges: string[],
+  ): Promise<SheetsBatchGetResponse> {
+    const token = await this.authToken();
+    const query = [
+      ...ranges.map((range) => `ranges=${encodeURIComponent(range)}`),
+      "valueRenderOption=FORMULA",
+    ].join("&");
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values:batchGet?${query}`,
+      { headers: { Authorization: token } },
+    );
+    if (!response.ok) {
+      throw new Error(`Sheets formula read failed (HTTP ${response.status}).`);
+    }
+    return (await response.json()) as SheetsBatchGetResponse;
+  }
 }
 
 export interface ReadRenewalSheetOptions {

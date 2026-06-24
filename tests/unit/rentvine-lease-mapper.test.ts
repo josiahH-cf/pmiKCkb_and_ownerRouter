@@ -30,6 +30,8 @@ describe("mapLeasesToNonSheetCandidates", () => {
       source_system: RENTVINE_SOURCE_SYSTEM,
       joinKind: "name",
       joinValue: "Jordan Maple",
+      // Exact RentVine-id join key (from leaseID) — matches a sheet row's hyperlink id.
+      joinId: "lease:7",
       read_timestamp: READ_TS,
       fields: {
         renewal_date: { value: "2026-08-31", raw: "2026-08-31", confidence: "Verified" },

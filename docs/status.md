@@ -4954,3 +4954,41 @@ HTTP check). No repo code changed; no `npm` verification re-run this slice.
   Every Action Registry entry stays `production_allowed:false`. Verification (docs-only change):
   `npm run format:check`, `npm run verify:falsification`, and `npm test` green before commit. Committed
   - merged to `main` and pushed for the next session to build from fresh context.
+
+## Lease-Renewal Next-Phase Build — Slices A–E (2026-06-24, cont.)
+
+- Owner-directed "build and plan the next session; plan the whole set of changes, then execute." Built
+  all five §3 slices of `docs/products/lease-renewal-next-phase-plan.md` as pure, deterministic,
+  unit-tested modules. **Read-only / draft-only, $0, no SoR write, no autonomous send; every Action
+  Registry entry stays `production_allowed:false`.**
+- **Slice A — cohort detection** (`lib/lease-renewal/cohort.ts`): `classifyRenewalCohort(leases, {windows,
+config?})` mirrors Dan's manual end-date filter — actionable (month-end inside a window, no skip
+  signal) vs skip (month-to-month / owner-authorized / program, via a configurable signal map) vs review
+  (no_end_date / off_cycle_date) vs out_of_window. Conservative: unknown → review, never silently
+  actioned or dropped. Wired as an optional `cohortWindows` filter in `live-run.ts` (`selectActionableLeases`).
+- **Slice B — collapse the 397-flag noise + stronger join.** `pipeline.ts`: (i) a `missing` reconciliation
+  with NO joined non-sheet candidate no longer raises a flag (a blank tracker cell is un-started worklist,
+  not a defect); (ii) an exact RentVine-id join (`recordJoinIds` keyed by `sourceRowIndex` + candidate
+  `joinId`) matches definitively, bypassing the fuzzy name join; (iii) a `current_rent` conflict whose gap
+  equals a subset-sum of the known add-ons (RBP $28 + insurance $11.95, `rent.ts:rentsAgree`) is downgraded
+  (RentVine rent is base; the sheet may fold add-ons in). Supporting: `rentvine-link.ts` (parse lease/unit
+  id from a URL or `=HYPERLINK`), `sheet-to-grids.ts` (`parseHyperlinkFormula`/`valuesToGridWithLinks`),
+  read-only `read-client.ts:batchGetFormulas`, and `lease-mapper.ts` populating `joinId="lease:"+leaseID`.
+- **Slice C — owner email draft** (`owner-draft.ts`): `buildOwnerRenewalDraft` composes the owner renewal
+  email with source-tagged facts; a missing market input renders a visible `Needs Verification:` marker
+  (never an invented number) and is listed in `missingInputs`. `production_allowed`/`send_allowed` literal
+  `false`.
+- **Slice D — tenant offer draft** (`tenant-draft.ts`): `buildTenantOfferDraft` renders ONE offer for all
+  three channels Dan requires — email + portal chat + text (the text is a short nudge). No send.
+- **Slice E — must-never-miss checklist** (`renewal-readiness.ts`): `evaluateRenewalReadiness` deterministic
+  rule table (inherited→full set, pre-1978→lead paint, Independence/KC addendum, deposit-type, pet deposit,
+  LLC suffix, prorated rent). CRITICAL invariant: an unknown input returns `needs_input` (Blocked), never a
+  false all-clear.
+- Verification: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test` (**638/638 across
+  82 files**, +20 new), `npm run verify:falsification` (**407 committable files**) all PASS. An adversarial
+  5-dimension review workflow (correctness / governance-PII / type-coherence / test-adequacy / spec-fidelity,
+  each finding independently verified) ran over the change-set. No live call, no deploy, no SoR write, no
+  secret/tenant PII in any tracked file.
+- NEXT (live wiring): pass per-row `recordJoinIds` from the sheet's FORMULA hyperlink read into
+  `runFullyLiveRenewalReview`; feed `cohortWindows`; surface the cohort/drafts/readiness on
+  `/lease-renewal/runs` (OQ-UI-1); re-run `smoke:renewal-review` to confirm the live flag volume drops.

@@ -191,6 +191,10 @@ export function mapLeasesToNonSheetCandidates(
     const tenant = resolveTenant(lease, fieldMap.tenantName);
     const dateHit = firstPresentKey(lease, fieldMap.renewalDate);
     const rentHit = firstPresentKey(lease, fieldMap.currentRent);
+    const leaseIdHit = firstPresentKey(lease, ["leaseID", "leaseId", "id"]);
+    // Canonical join id ("lease:123") — byte-identical to rentvineJoinIdFromCell so a sheet row's
+    // hyperlink id and this candidate's id match exactly (lease-renewal/rentvine-link).
+    const joinId = leaseIdHit ? `lease:${String(leaseIdHit.value)}` : undefined;
     const renewalIso = dateHit ? toIsoDate(dateHit.value) : null;
     const rentNumber = rentHit ? toRentNumber(rentHit.value) : null;
 
@@ -225,6 +229,7 @@ export function mapLeasesToNonSheetCandidates(
       joinKind: "name",
       joinValue: tenant.value,
       read_timestamp: options.readTimestamp,
+      ...(joinId ? { joinId } : {}),
       fields,
     });
   }

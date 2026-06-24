@@ -46,3 +46,47 @@ export function batchGetToGrids(
 export function batchGetToTables(response: SheetsBatchGetResponse): RawGrid[] {
   return batchGetToGrids(response).map((entry) => entry.grid);
 }
+
+// --- Hyperlink layer (Phase-1 read-only) ---------------------------------------------------------
+// Read with valueRenderOption=FORMULA so a cell that hyperlinks back to RentVine surfaces as
+// `=HYPERLINK("url","text")`. The display grid keeps the text; a parallel link grid keeps the url, so
+// the pipeline can join a row to a lease by the RentVine ID inside the url (see lease-renewal/rentvine-link).
+
+/** Parse a `=HYPERLINK("url"[,"text"])` formula cell into its url + display text, else null. */
+export function parseHyperlinkFormula(
+  cell: string,
+): { url: string; text: string } | null {
+  const match = cell
+    .trim()
+    .match(/^=HYPERLINK\(\s*"((?:[^"\\]|\\.)*)"\s*(?:,\s*"((?:[^"\\]|\\.)*)")?\s*\)$/i);
+  if (!match) return null;
+  return { url: match[1], text: match[2] ?? match[1] };
+}
+
+export interface GridWithLinks {
+  /** Display text per cell (HYPERLINK text when present), matching the values-mode grid shape. */
+  grid: RawGrid;
+  /** The url per cell when the cell is a HYPERLINK formula, else null. Same shape as `grid`. */
+  links: (string | null)[][];
+}
+
+/** Coerce a FORMULA-rendered values matrix into a display grid plus a parallel hyperlink-url grid. */
+export function valuesToGridWithLinks(values: unknown[][] | undefined): GridWithLinks {
+  if (!values) return { grid: [], links: [] };
+  const grid: string[][] = [];
+  const links: (string | null)[][] = [];
+  for (const row of values) {
+    const cells = Array.isArray(row) ? row : [];
+    const gridRow: string[] = [];
+    const linkRow: (string | null)[] = [];
+    for (const cell of cells) {
+      const text = coerceCell(cell);
+      const hyperlink = parseHyperlinkFormula(text);
+      gridRow.push(hyperlink ? hyperlink.text : text);
+      linkRow.push(hyperlink ? hyperlink.url : null);
+    }
+    grid.push(gridRow);
+    links.push(linkRow);
+  }
+  return { grid, links };
+}
