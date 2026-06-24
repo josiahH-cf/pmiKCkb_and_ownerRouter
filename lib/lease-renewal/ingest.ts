@@ -36,6 +36,12 @@ export interface IngestRecord {
   tabNumber: number | null;
   /** Row index within the (divider-stripped, re-stitched) tab grid; header is row 0. */
   sourceRowIndex: number;
+  /**
+   * Exact join id carried from the row's RentVine hyperlink (e.g. "lease:123"), when `tableJoinIds`
+   * was supplied. Travels with the row through divider-drop + re-stitch so the pipeline can join by
+   * id without re-deriving the row coordinate. Absent when no link was provided for the row.
+   */
+  joinId?: string;
   fields: Record<string, NormalizedValue>;
 }
 
@@ -88,17 +94,22 @@ function isAllEmpty(row: RawRow): boolean {
   return row.every((cell) => cell.trim() === "");
 }
 
-function dropDividers(grid: RawGrid): { cleaned: RawRow[]; dropped: number } {
+function dropDividers(
+  grid: RawGrid,
+  linkRows: readonly (string | null)[],
+): { cleaned: RawRow[]; cleanedLinks: (string | null)[]; dropped: number } {
   const cleaned: RawRow[] = [];
+  const cleanedLinks: (string | null)[] = [];
   let dropped = 0;
-  for (const row of grid) {
+  grid.forEach((row, index) => {
     if (isDividerRow(row)) {
       dropped++;
     } else {
       cleaned.push(row);
+      cleanedLinks.push(linkRows[index] ?? null);
     }
-  }
-  return { cleaned, dropped };
+  });
+  return { cleaned, cleanedLinks, dropped };
 }
 
 /** Credential guard: fingerprint says credential-bearing, or the header-ish text looks credential. */
@@ -122,6 +133,7 @@ interface RecognizedGroup {
   tabNumber: number | null;
   width: number;
   rows: RawRow[]; // header row first, then data rows (incl. re-stitched fragments)
+  links: (string | null)[]; // parallel to `rows`: the RentVine join id per row (or null)
 }
 
 // §2.2(5) emit scrubber: a credential value that slipped past fingerprinting + the Stage-B header
@@ -152,7 +164,15 @@ function scrubField(field: NormalizedValue): {
  * re-stitched by width; misaligned rows mark their tab Blocked; any credential value that survived
  * to the emit stage is scrubbed and its tab is Blocked.
  */
-export function ingestTables(tables: RawGrid[]): IngestResult {
+export function ingestTables(
+  tables: RawGrid[],
+  /**
+   * Optional per-row RentVine join id, parallel to `tables` (`tableJoinIds[t][r]` for table `t`,
+   * original row `r`). Carried through divider-drop + re-stitch and attached to each record's
+   * `joinId`. Omit to ingest without ids (the prior behavior).
+   */
+  tableJoinIds?: readonly (readonly (string | null)[])[],
+): IngestResult {
   const recognizedGroups: RecognizedGroup[] = [];
   const excludedTabs: ExcludedTab[] = [];
   let dividerRowsDropped = 0;
@@ -161,8 +181,10 @@ export function ingestTables(tables: RawGrid[]): IngestResult {
   let credentialScrubHits = 0;
   let lastRecognized: RecognizedGroup | null = null;
 
-  for (const table of tables) {
-    const { cleaned, dropped } = dropDividers(table);
+  for (let tableIndex = 0; tableIndex < tables.length; tableIndex++) {
+    const table = tables[tableIndex];
+    const linkRows = tableJoinIds?.[tableIndex] ?? [];
+    const { cleaned, cleanedLinks, dropped } = dropDividers(table, linkRows);
     dividerRowsDropped += dropped;
     if (cleaned.length === 0) continue;
 
@@ -185,6 +207,7 @@ export function ingestTables(tables: RawGrid[]): IngestResult {
         tabNumber: fingerprint.tabNumber,
         width: cleaned[0].length,
         rows: [...cleaned],
+        links: [...cleanedLinks],
       };
       recognizedGroups.push(group);
       lastRecognized = group;
@@ -194,6 +217,7 @@ export function ingestTables(tables: RawGrid[]): IngestResult {
     // Unrecognized fragment: re-stitch onto the preceding recognized tab only when widths match.
     if (lastRecognized && cleaned[0].length === lastRecognized.width) {
       lastRecognized.rows.push(...cleaned);
+      lastRecognized.links.push(...cleanedLinks);
     } else {
       tabsUnrecognized++;
       unrecognizedRowCount += cleaned.length;
@@ -223,6 +247,7 @@ export function ingestTables(tables: RawGrid[]): IngestResult {
 
     const headerRow = group.rows[resolution.headerRowIndex];
     const dataRows = group.rows.slice(resolution.headerRowIndex + 1);
+    const dataLinks = group.links.slice(resolution.headerRowIndex + 1);
     let dataRowCount = 0;
     let raggedRows = 0;
     let tabRecordCount = 0;
@@ -248,10 +273,12 @@ export function ingestTables(tables: RawGrid[]): IngestResult {
         if (scrub.scrubbed) tabScrubHits++;
         fields[fieldKey] = scrub.field;
       }
+      const joinId = dataLinks[offset] ?? undefined;
       records.push({
         tab: group.tab,
         tabNumber: group.tabNumber,
         sourceRowIndex,
+        ...(joinId ? { joinId } : {}),
         fields,
       });
       tabRecordCount++;

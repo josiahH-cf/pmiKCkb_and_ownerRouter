@@ -38,6 +38,7 @@ import {
   readRenewalSheetGrids,
   type SheetsValuesReader,
 } from "@/lib/google-sheets/read-client";
+import { readRenewalSheetGridsWithLinks } from "@/lib/lease-renewal/sheet-links";
 
 export interface LiveRenewalRunOptions {
   /** Only the read-only export read is used — a fake satisfies this in tests. */
@@ -58,6 +59,8 @@ export interface LiveRenewalRunOptions {
   cohortConfig?: Partial<CohortConfig>;
   /** Sheet grids; defaults to the synthetic sample until the live Sheet read (OQ-SHEET-1) lands. */
   tables?: RawGrid[];
+  /** Per-row RentVine join id parallel to `tables` (from the hyperlink layer); enables the id-join. */
+  tableJoinIds?: readonly (readonly (string | null)[])[];
   /**
    * Non-sheet candidates other than the live Rentvine read (building-level / Google Form). Defaults
    * to the synthetic set with the `source: "rentvine"` entries removed (those come from the live read).
@@ -106,6 +109,7 @@ export async function runLiveRenewalReview(
     runId: options.runId,
     tables: options.tables ?? SAMPLE_RENEWAL_TABLES,
     nonSheetCandidates: [...mapping.candidates, ...others],
+    tableJoinIds: options.tableJoinIds,
   });
 
   return {
@@ -118,13 +122,18 @@ export async function runLiveRenewalReview(
 
 export interface FullyLiveRenewalRunOptions extends Omit<
   LiveRenewalRunOptions,
-  "tables"
+  "tables" | "tableJoinIds"
 > {
   /** Read-only Sheets reader (injected; a fake satisfies this in tests). */
   sheetsReader: SheetsValuesReader;
   spreadsheetId: string;
   /** In-scope tab titles; omit to read every tab (credential tabs excluded downstream by ingest). */
   tabTitles?: string[];
+  /**
+   * Read the hyperlink layer (one extra FORMULA read) so each sheet row joins its RentVine lease by
+   * id (the exact join), not just by fuzzy name. Requires a reader with `batchGetFormulas`.
+   */
+  linkJoin?: boolean;
 }
 
 export interface FullyLiveRenewalRunResult extends LiveRenewalRunResult {
@@ -140,11 +149,28 @@ export interface FullyLiveRenewalRunResult extends LiveRenewalRunResult {
 export async function runFullyLiveRenewalReview(
   options: FullyLiveRenewalRunOptions,
 ): Promise<FullyLiveRenewalRunResult> {
-  const sheet = await readRenewalSheetGrids({
-    reader: options.sheetsReader,
-    spreadsheetId: options.spreadsheetId,
-    tabTitles: options.tabTitles,
-  });
+  // With linkJoin, one FORMULA read recovers both the display grids and each row's RentVine id;
+  // otherwise a plain values read (no id-join). Both are read-only.
+  let tables: RawGrid[];
+  let tableJoinIds: (string | null)[][] | undefined;
+  if (options.linkJoin) {
+    const read = await readRenewalSheetGridsWithLinks({
+      reader: options.sheetsReader,
+      spreadsheetId: options.spreadsheetId,
+      tabTitles: options.tabTitles,
+    });
+    tables = read.tables;
+    tableJoinIds = read.tableJoinIds;
+  } else {
+    const sheet = await readRenewalSheetGrids({
+      reader: options.sheetsReader,
+      spreadsheetId: options.spreadsheetId,
+      tabTitles: options.tabTitles,
+    });
+    tables = sheet.tables;
+    tableJoinIds = undefined;
+  }
+
   const result = await runLiveRenewalReview({
     rentvineClient: options.rentvineClient,
     runId: options.runId,
@@ -152,7 +178,11 @@ export async function runFullyLiveRenewalReview(
     fieldMap: options.fieldMap,
     listParams: options.listParams,
     otherCandidates: options.otherCandidates,
-    tables: sheet.tables,
+    // Forward the cohort filter so a fully-live run reconciles only the actionable batch.
+    cohortWindows: options.cohortWindows,
+    cohortConfig: options.cohortConfig,
+    tables,
+    tableJoinIds,
   });
-  return { ...result, sheetTabsRead: sheet.tables.length };
+  return { ...result, sheetTabsRead: tables.length };
 }

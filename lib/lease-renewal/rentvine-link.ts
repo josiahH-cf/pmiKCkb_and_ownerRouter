@@ -57,3 +57,33 @@ export function rentvineJoinIdFromCell(cell: string): string | null {
   const url = hyperlinkUrl(cell) ?? cell;
   return rentvineRefId(parseRentvineRef(url));
 }
+
+/**
+ * The first RentVine join id found on a sheet row. Prefers an explicit hyperlink url (from the
+ * FORMULA read's link layer), then scans the displayed cell text for a bare RentVine url. Null when
+ * the row carries no RentVine link.
+ */
+export function rentvineJoinIdForRow(
+  cells: readonly string[],
+  linkUrls: readonly (string | null)[],
+): string | null {
+  for (const url of linkUrls) {
+    if (url) {
+      const id = rentvineRefId(parseRentvineRef(url));
+      if (id) return id;
+    }
+  }
+  for (const cell of cells) {
+    const id = rentvineJoinIdFromCell(cell);
+    if (id) return id;
+  }
+  return null;
+}
+
+/** Per-row RentVine join ids for a display grid + its parallel hyperlink-url grid. */
+export function rentvineJoinIdsForGrid(
+  grid: readonly (readonly string[])[],
+  links: readonly (readonly (string | null)[])[],
+): (string | null)[] {
+  return grid.map((row, index) => rentvineJoinIdForRow(row, links[index] ?? []));
+}

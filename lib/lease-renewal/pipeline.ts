@@ -96,8 +96,14 @@ export interface RenewalRunInput {
    * Exact RentVine join id per sheet record, keyed by `sourceRowIndex` (from the row's hyperlink —
    * see lease-renewal/rentvine-link). When present, it matches a candidate's `joinId` definitively,
    * bypassing the fuzzy name/address join. Optional — omit to use the fuzzy join only.
+   *
+   * Prefer `tableJoinIds` for the live path: it travels with the row through ingest's divider-drop +
+   * re-stitch (which `sourceRowIndex` does not survive cleanly). `record.joinId` (set from
+   * `tableJoinIds`) takes precedence over this map when both are present.
    */
   recordJoinIds?: Record<number, string>;
+  /** Per-row RentVine join id parallel to `tables`, passed straight to ingest (sets `record.joinId`). */
+  tableJoinIds?: readonly (readonly (string | null)[])[];
   /** Add-on accounting for the base-rent reconciliation (defaults to the known RBP + insurance). */
   rentReconciliation?: RentAgreementOptions;
 }
@@ -211,7 +217,7 @@ function reconciliationEvidenceLink(runId: string, fieldKey: string): string {
 export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
   const { runId, tables, nonSheetCandidates } = input;
   const fieldSpecs = input.fieldSpecs ?? DEFAULT_FIELD_SPECS;
-  const { records, manifest, excludedTabs } = ingestTables(tables);
+  const { records, manifest, excludedTabs } = ingestTables(tables, input.tableJoinIds);
 
   const outcomes: ReconciledFieldOutcome[] = [];
 
@@ -233,7 +239,9 @@ export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
         location_ref: `${evidenceLink}#${spec.sheetSource}`,
       };
 
-      const recordId = input.recordJoinIds?.[record.sourceRowIndex];
+      // Prefer the id carried on the record (from tableJoinIds, survives ingest's re-stitch); fall
+      // back to the sourceRowIndex map.
+      const recordId = record.joinId ?? input.recordJoinIds?.[record.sourceRowIndex];
       const joinRaw = record.fields[spec.joinFieldKey]?.raw ?? "";
       const matched: ReconCandidate[] = [];
       for (const candidate of nonSheetCandidates) {

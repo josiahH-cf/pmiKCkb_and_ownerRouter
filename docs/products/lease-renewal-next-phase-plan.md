@@ -11,9 +11,16 @@ entry point for the Lease Renewal lane: a fresh session reads [`../loop-state.md
 > `renewal-readiness.ts`, plus additive edits to `pipeline.ts` (the missing-flag suppression + the
 > RentVine-id join + the base-rent downgrade), `lease-mapper.ts` (`joinId`), `live-run.ts` (optional
 > cohort filter), and the Sheets hyperlink layer (`sheet-to-grids.ts` + `read-client.ts`). Every
-> entry stays `production_allowed:false`; no SoR write, no send. **Remaining LIVE wiring (next):**
-> populate `recordJoinIds` from the sheet's FORMULA hyperlink read end-to-end, and surface the
-> cohort/drafts/readiness on the `/lease-renewal/runs` review page.
+> entry stays `production_allowed:false`; no SoR write, no send.
+>
+> ✅ **Live wiring landed too (2026-06-24, slice F):** the sheet's FORMULA hyperlink layer now flows
+> end-to-end — `ingest.ts` threads a per-row RentVine id (`tableJoinIds` → `record.joinId`) through
+> divider-drop + re-stitch; `sheet-links.ts` turns a FORMULA read into `tables` + `tableJoinIds`;
+> `runFullyLiveRenewalReview({ linkJoin: true, cohortWindows })` reads the link layer, runs the exact
+> id-join on real rows, and forwards the cohort filter. **Remaining (owner-gated / next):** run the
+> real `--live` review (needs ADC) to confirm the live flag volume drops, expose a `--link-join` /
+> `--cohort` flag on `smoke:renewal-review`, and surface the cohort / drafts / readiness on the
+> `/lease-renewal/runs` page (OQ-UI-1).
 
 It supersedes the open "calibrate the 397 flags / email Dan five questions" task. That task asked Dan
 to hand-tune the reconciliation engine; the discovery transcript already answers four of those five

@@ -4992,3 +4992,31 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
 - NEXT (live wiring): pass per-row `recordJoinIds` from the sheet's FORMULA hyperlink read into
   `runFullyLiveRenewalReview`; feed `cohortWindows`; surface the cohort/drafts/readiness on
   `/lease-renewal/runs` (OQ-UI-1); re-run `smoke:renewal-review` to confirm the live flag volume drops.
+
+## Lease-Renewal Live Wiring — Slice F (2026-06-24, cont.)
+
+- Owner-directed "keep going" after slices A–E. Wired the sheet hyperlink layer end-to-end so Slice B's
+  RentVine-id join runs on real rows. Read-only / $0; no SoR write, no send; `production_allowed:false`.
+- **Threading (`lib/lease-renewal/ingest.ts`):** `ingestTables(tables, tableJoinIds?)` now accepts an
+  optional per-row RentVine id array parallel to `tables`. The id travels WITH its row through
+  divider-drop + re-stitch (a focused adversarial review traced the link↔row alignment across every
+  transform — divider rows, re-stitched fragments, all-empty/ragged skips — and found no off-by-one)
+  and lands on `IngestRecord.joinId`.
+- **Pipeline (`pipeline.ts`):** `RenewalRunInput.tableJoinIds` is passed to ingest; the matching loop
+  prefers `record.joinId` over the `recordJoinIds[sourceRowIndex]` map (the former survives ingest's
+  re-stitch cleanly).
+- **Live read (`lib/lease-renewal/sheet-links.ts`, new):** `formulaResponseToTablesWithJoinIds` turns a
+  FORMULA `values:batchGet` response into `tables` + `tableJoinIds` (via `valuesToGridWithLinks` +
+  `rentvine-link.ts:rentvineJoinIdsForGrid`); `readRenewalSheetGridsWithLinks` does the one read-only
+  FORMULA read. `read-client.ts` adds `batchGetFormulas` to the `SheetsValuesReader` interface (the
+  live `GoogleSheetsApiReader` already implements it).
+- **Composition (`live-run.ts`):** `runFullyLiveRenewalReview({ linkJoin: true, cohortWindows })` reads
+  the link layer, runs the exact id-join on real rows, AND now forwards `cohortWindows`/`cohortConfig`
+  (previously dropped — a fully-live run can finally filter to the actionable batch).
+- Verification: `format:check`, `lint`, `typecheck`, `npm test` (**654/654 across 83 files**, +9 the new
+  `lease-renewal-link-join` suite), `verify:falsification` (**409 committable files**) all PASS. Plus a
+  focused single-agent adversarial review of the ingest threading (no defects). No live call this slice
+  (the real `--live` run is owner-gated on ADC).
+- NEXT (owner-gated / UI): run the real `--live` fully-live review to confirm the live flag volume
+  drops; add `--link-join` / `--cohort` flags to `scripts/smoke-renewal-review.ts`; surface the cohort /
+  drafts / readiness on `/lease-renewal/runs` (OQ-UI-1).

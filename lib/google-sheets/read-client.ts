@@ -21,6 +21,15 @@ const CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 export interface SheetsValuesReader {
   listTabTitles(spreadsheetId: string): Promise<string[]>;
   batchGet(spreadsheetId: string, ranges: string[]): Promise<SheetsBatchGetResponse>;
+  /**
+   * Optional read-only FORMULA read (valueRenderOption=FORMULA) so hyperlink cells surface as
+   * `=HYPERLINK("url","text")`. Required only for the RentVine-id link join; GoogleSheetsApiReader
+   * implements it.
+   */
+  batchGetFormulas?(
+    spreadsheetId: string,
+    ranges: string[],
+  ): Promise<SheetsBatchGetResponse>;
 }
 
 /**

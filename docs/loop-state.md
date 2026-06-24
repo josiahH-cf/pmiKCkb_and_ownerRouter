@@ -12,6 +12,21 @@ continuation, and stop-and-reset rules.
 ## Snapshot
 
 - Last updated: 2026-06-24
+- 2026-06-24 (lease-renewal LIVE WIRING — owner-directed "keep going" after slices A–E): wired the
+  sheet hyperlink layer end-to-end so Slice B's RentVine-id join runs on real rows, all read-only / $0.
+  `ingest.ts` now accepts an optional `tableJoinIds` (parallel to `tables`) and threads a per-row
+  RentVine id through divider-drop + re-stitch onto `record.joinId`; `pipeline.ts` prefers
+  `record.joinId` over the `recordJoinIds` map and passes `tableJoinIds` to ingest;
+  `lib/lease-renewal/sheet-links.ts` (new) turns a FORMULA `values:batchGet` response into `tables` +
+  `tableJoinIds` (via `valuesToGridWithLinks` + `rentvineJoinIdsForGrid`); `read-client.ts` exposes the
+  read-only `batchGetFormulas` on the reader interface; `runFullyLiveRenewalReview({ linkJoin: true,
+cohortWindows })` reads the link layer, runs the exact id-join, AND now forwards the cohort filter
+  (previously dropped). Verification: typecheck, lint, `npm test` (**654/654 across 83 files**, +9),
+  `verify:falsification` (**409 files**), format all PASS; a focused adversarial review traced the
+  link↔row alignment through every ingest transform and found no off-by-one. No SoR write, no send,
+  `production_allowed:false` throughout. **NEXT (owner-gated / UI):** run the real `--live` review to
+  confirm the live flag volume drops; add `--link-join` / `--cohort` flags to `smoke:renewal-review`;
+  surface the cohort / drafts / readiness on `/lease-renewal/runs` (OQ-UI-1).
 - 2026-06-24 (lease-renewal next-phase BUILD — owner-directed "build and plan the next session; plan
   the whole set of changes, then execute"): built all five §3 slices of
   [`products/lease-renewal-next-phase-plan.md`](products/lease-renewal-next-phase-plan.md) as pure,
@@ -208,15 +223,15 @@ continuation, and stop-and-reset rules.
   to flip reconciliation suggestions from `Blocked`), OQ-SHEET-1/OQ-LEX-1/OQ-JOIN-1 (live-read
   calibration), OQ-UI-1 (the lease-renewal workflow-run/Approval-Queue review surface — an unbuilt
   UI dependency for the Phase-1 accuracy milestone), and the cost-gated first live read.
-- **Next slice candidates:** Slices A→E of
+- **Next slice candidates:** Slices A→E **and the live wiring (slice F)** of
   [`products/lease-renewal-next-phase-plan.md`](products/lease-renewal-next-phase-plan.md) are **BUILT +
-  tested 2026-06-24** (pure modules, $0). The **active next cycle is the LIVE wiring**: (i) read the
-  sheet's hyperlink layer (`read-client.ts batchGetFormulas` + `valuesToGridWithLinks` exist) and pass
-  per-row `recordJoinIds` into `runFullyLiveRenewalReview` so the RentVine-id join runs on real data;
-  (ii) feed `cohortWindows` for the active month-end batch; (iii) surface the cohort summary, the
-  owner/tenant drafts, and the readiness checklist on the `/lease-renewal/runs` review page (OQ-UI-1);
-  (iv) re-run `smoke:renewal-review` to confirm the live flag volume drops from ~397 to a small set.
-  Older candidates, still valid: (a) wire these modules into a read pipeline + the OQ-UI-1 workflow-run
+  tested 2026-06-24** (pure modules + the FORMULA-link join through ingest, $0). The **active next
+  cycle is owner-gated execution + the UI**: (i) run the real `--live` fully-live review (needs ADC) to
+  confirm the flag volume drops from ~397 to a small set; (ii) add `--link-join` / `--cohort` flags to
+  `scripts/smoke-renewal-review.ts` so the live proof exercises the id-join + cohort filter; (iii)
+  surface the cohort summary, the owner/tenant drafts, and the readiness checklist on the
+  `/lease-renewal/runs` review page (OQ-UI-1, the one unbuilt UI dependency). Older candidates, still
+  valid: (a) wire these modules into a read pipeline + the OQ-UI-1 workflow-run
   page — **DONE 2026-06-22** (pipeline + `/lease-renewal/runs` review surface + §3.5 resolve loop,
   simulation-only). Remaining: (b) after Dan confirms OQ-PREC-1, set `PRECEDENCE_CONFIRMED` and add
   the active-suggestion tests (today unlisted-field conflicts render `Blocked "no precedence rule"`);
