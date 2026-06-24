@@ -11,7 +11,40 @@ continuation, and stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-06-23
+- Last updated: 2026-06-24
+- 2026-06-24 (RentVine live read — owner just obtained API access; owner-directed "consolidate +
+  prove RentVine + replace the synthetic feed with live reads"): the lease-renewal review now runs on
+  REAL RentVine leases. Moved the saved credential into `.env.local` (gitignored; never echoed) →
+  `npm run preflight:rentvine` green. Built a read-only RentVine client (HTTP Basic
+  `base64(key:secret)`, identity-guarded to the `pmikcmetro` tenant), a lease→`NonSheetCandidate`
+  mapper, a real `health.rentvine.api_key` probe, the `npm run smoke:rentvine-read -- --live` proof,
+  and the `lib/lease-renewal/live-run.ts` wiring. **PROVEN LIVE:** one read-only
+  `GET /api/manager/leases/export` returned **25 real leases → 25 mapped candidates** (auth HTTP 200,
+  no rate-limit headers); the four `RENTVINE_DOC_UNKNOWNS` are resolved (auth + endpoints from working
+  code; field names + rate posture from the live call). Finding: the plain `/leases` list omits tenant
+  names + rent, so the live read uses `/leases/export` (tenant ← `lease.tenants[].name`, renewal_date
+  ← `lease.endDate`, current_rent ← `unit.rent`). **Live Google Sheet read also WORKS now** (read-only,
+  `npm run smoke:sheet-read -- --live`): **26 tabs total, 25 read, credential tab "Passwords/contacts"
+  auto-skipped**, counts-only/redacted (no cell values). The real renewal tab is **"Lease Renewal"**
+  (519×31). AUTH JOURNEY (managed domain is hostile to programmatic Sheets): the user OAuth Sheets
+  scope is blocked ("app blocked"); admin-trusting the gcloud client didn't help; a service account
+  shared on the sheet still 403'd ("caller does not have permission" — the domain blocks the external
+  SA from opening the file). RESOLUTION: **domain-wide delegation** — the reader (`lib/google-sheets/read-client.ts`)
+  signs a JWT via the SA (keyless, `iamcredentials.signJwt`) and reads AS `josiah@pmikcmetro.com`
+  (env `SHEETS_IMPERSONATE_SA` + `SHEETS_DWD_SUBJECT`). GCP set up: SA `lease-renewal-reader@pmi-kc-kb-prod`,
+  Token Creator granted, Sheets + IAM Credentials APIs enabled, and the SA client id `104374162913177846911`
+  authorized for `spreadsheets.readonly` in Admin → Domain-wide delegation. RentVine reads are free (no
+  GCP budget). Every Action Registry entry stays `production_allowed:false`; no SoR write. **584/584
+  tests across 74 files.** Committed on branch `feat/lease-renewal-live-reads` (`cabc281`). **End-to-end
+  real review CONFIRMED RUNNING** (throwaway run): the real "Lease Renewal" tab fingerprints + header-
+  resolves correctly (its headers match the synthetic `SAMPLE_RENEWALS` exactly), ingesting **390 real
+  records**, reconciled against the **25 live RentVine leases** → **397 flags (321 High, 76 Blocked)**,
+  `production_allowed:false`, counts-only. NEXT (calibration, owner/Dan-gated): the 397-flag volume is
+  mostly the "missing High-severity field → flag" rule firing on the tracker's many blank / "not
+  renewing" rows — tune the reconciliation/severity rules so flags are accurate with a low false-positive
+  rate (the Phase-1 accuracy milestone; OQ-PREC-1 precedence + which blanks should/shouldn't flag), and
+  calibrate the non-renewal tabs ("Periodic Ins Trkr 25", "Unit Details") to the real names. See Last
+  Completed Slice.
 - 2026-06-23 (sync-and-readiness triple, owner-directed "Do 3, then 2, then 1" after the
   cutover-readiness finding surfaced an out-of-sync concern): added a living-plan status field +
   enforcing test, a FREE `npm run reality:check` map-vs-territory reconcile, and a RentVine
@@ -140,8 +173,12 @@ continuation, and stop-and-reset rules.
   page — **DONE 2026-06-22** (pipeline + `/lease-renewal/runs` review surface + §3.5 resolve loop,
   simulation-only). Remaining: (b) after Dan confirms OQ-PREC-1, set `PRECEDENCE_CONFIRMED` and add
   the active-suggestion tests (today unlisted-field conflicts render `Blocked "no precedence rule"`);
-  (c) the cost-gated first live read (approval-gated) — replaces the synthetic
-  `lib/lease-renewal/sample-sheet.ts` feed with a real read; (d) recurring read cadence (OQ-LS-1);
+  (c) the cost-gated first live read — **RentVine half DONE 2026-06-24** (live `/leases/export` → 25
+  candidates, wired via `lib/lease-renewal/live-run.ts`, $0; replaces the synthetic `source:"rentvine"`
+  feed); the live Google Sheet half is BUILT + WIRED (ADC reader + adapter + health probe +
+  `smoke:sheet-read` + combined `runFullyLiveRenewalReview`), sheet id received — BLOCKED only on ADC
+  reauth + Sheets scope (the gcloud ADC login command; OQ-SHEET-1 narrowed); (d) recurring read
+  cadence (OQ-LS-1);
   (e) Phase-2 write-back enablement (admin flag off by default) — the resolve loop already queues
   the proposed write-back. Per owner decision 2026-06-20 the existing RentVine credential is used
   as-is (NOT rotated; load from env/Secret Manager, keep out of git). Use the canonical Cloud Run
@@ -170,6 +207,52 @@ continuation, and stop-and-reset rules.
 
 ## Last Completed Slice
 
+- RentVine live read + Sheets read scaffolding (2026-06-24, owner-directed after the owner obtained
+  RentVine API access). Replaced the synthetic `source:"rentvine"` feed with a proven live read.
+  - **Credentials:** moved the saved key/secret from `secrets/rentvine-api-credentials.local.md` into
+    `.env.local` (both gitignored; values never printed/committed) via an inline parser that reports
+    only field labels + success. `npm run preflight:rentvine` now `env_configured: true`.
+  - **RentVine client (`lib/integrations/rentvine/client.ts`):** read-only GETs only; HTTP Basic
+    `Authorization: Basic base64("{key}:{secret}")`; base URL host validated to the `pmikcmetro`
+    tenant family (identity guard); injected `RentVineHttpTransport` (tests use a fake; `createFetchTransport`
+    is the live default); `RentVineAuthError`(401, no secret in message)/`RentVineRateLimitError`(429,
+    parsed Retry-After); `listLeases`, `getLease`, `listLeasesExport`, non-throwing `probeLeases`.
+  - **Mapper (`lib/integrations/rentvine/lease-mapper.ts`):** pure lease→`NonSheetCandidate` with a
+    configurable field map; `leaseViewsFromExport` lifts `unit.rent`→`currrentRent` and keeps
+    `lease.tenants[]`; emits the byte-identical `"Rentvine (read-authoritative)"` source_system;
+    skips+counts unmappable leases (never silently drops).
+  - **Health probe (`health-probe.ts`):** real `health.rentvine.api_key` transport (4 steps) over the
+    existing `runHealthCheck` seam; one memoized probe call; PII/token-free details.
+  - **Proof (`scripts/smoke-rentvine-read.ts`, `npm run smoke:rentvine-read [-- --live]`):** default
+    dry; `--live` makes ONE read-only `GET /leases/export`. **Live result: 25 real leases → 25 mapped
+    candidates, 0 skipped; auth HTTP 200; no rate-limit headers.** Output is shape-only/redacted (field
+    NAMES + which key resolved each target; tenant→initials+length, rent→type); artifact under
+    gitignored `temp/`.
+  - **Wiring (`lib/lease-renewal/live-run.ts`):** `runLiveRenewalReview` reads the live export, maps to
+    candidates, keeps the synthetic building-level/Google-Form candidates, and feeds
+    `runRenewalPipeline` with `tables` injectable (synthetic until the live Sheet read lands). Result
+    stays `production_allowed:false`, counts-only manifest, no writes. NOT wired into the SSR run page.
+  - **Live Sheet read (built + wired):** `lib/google-sheets/{read-client,sheet-to-grids,health-probe}.ts`
+    (read-only ADC reader, `spreadsheets.readonly` scope, injected `SheetsValuesReader`; pure
+    values→`RawGrid[]`; `health.google_sheets.api` probe), `scripts/smoke-sheet-read.ts`
+    (`npm run smoke:sheet-read`; counts-only/redacted; skips credential-marker tabs), and the combined
+    `lib/lease-renewal/live-run.ts:runFullyLiveRenewalReview` (live sheet `tables` + live Rentvine
+    candidates → pipeline). **Sheet id received** (`RENEWAL_SHEET_ID` in `.env.local`, gitignored). The
+    `--live` attempt reached auth and surfaced the exact blocker: ADC is in a reauth-required state
+    (`invalid_rapt`) and lacks the Sheets scope. **Unblock:** owner runs `gcloud auth
+application-default login --scopes=openid,https://www.googleapis.com/auth/spreadsheets.readonly,https://www.googleapis.com/auth/cloud-platform`
+    as `josiah@pmikcmetro.com`, then `npm run smoke:sheet-read -- --live`. In-scope tabs
+    (1,2,3,5,6,8–18; never 4/7) + header interpretations are already documented; tabs 4/7 stay
+    hard-excluded by ingest Stage B.
+  - **Four `RENTVINE_DOC_UNKNOWNS` resolved:** auth = HTTP Basic; endpoints = `/api/manager/leases`,
+    `/leases/{id}`, `/leases/export`; response field names confirmed live (tenant ← `lease.tenants[].name`,
+    renewal_date ← `lease.endDate`, current_rent ← `unit.rent`); rate posture = 429+Retry-After, no
+    headers observed on the probe. Plain `/leases` lacks tenant names + rent → the live read uses
+    `/leases/export`.
+  - **Verification:** `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`
+    (**584/584 across 74 files**, +39), `npm run verify:falsification` (**391 committable files**) all
+    PASS. RentVine reads are free; no deploy, no SoR write, no secret in any tracked file; every Action
+    Registry entry stays `production_allowed:false`.
 - Sync-and-readiness triple (2026-06-23, owner-directed "Do 3, then 2, then 1"). Three small, free,
   local slices answering an out-of-sync concern:
   - (3) Living plan: every `docs/plan.md` cross-product phase now carries a `Status:` line
