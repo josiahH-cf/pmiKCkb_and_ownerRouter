@@ -5,6 +5,13 @@ falsify workflow; the review's corrections are folded in). This is the "continue
 development" entry point: the next loop reads [`../loop-state.md`](../loop-state.md) → this file →
 the design docs, then builds the next zero-cost Phase-1 unit.
 
+> ▶ **The §3 deterministic Phase-1 units are BUILT + merged, and both live reads are proven
+> (2026-06-24).** The active next cycle is **[`lease-renewal-next-phase-plan.md`](lease-renewal-next-phase-plan.md)**
+> — live calibration (feed the engine the right shape so the 397-flag noise collapses) plus the first
+> draft outputs Dan asked for (owner email, tenant offer, must-never-miss checklist), all read-only /
+> draft-only / $0. Read that file next; this file remains the design reference for the engine those
+> slices build on.
+
 Grounds in (read for detail): [`lease-renewal-connector-design.md`](lease-renewal-connector-design.md)
 · [`lease-renewal-agent.md`](lease-renewal-agent.md) · [`lease-renewal-spreadsheet-map.md`](lease-renewal-spreadsheet-map.md)
 · [`lease-renewal-discovery-reference.md`](lease-renewal-discovery-reference.md) ·

@@ -12,6 +12,24 @@ continuation, and stop-and-reset rules.
 ## Snapshot
 
 - Last updated: 2026-06-24
+- 2026-06-24 (lease-renewal next-phase REALIGNMENT — owner-directed "read the product doc + the
+  show-and-tell transcript, check the email is in scope, then plan the next phase that anticipates and
+  solves client problems instead of asking open-ended questions"): authored
+  [`products/lease-renewal-next-phase-plan.md`](products/lease-renewal-next-phase-plan.md) and pointed
+  the build-plan route at it. **Finding:** the in-flight "calibrate the 397 flags / email Dan five
+  questions" task was misaligned — the gitignored 2026-06-19 transcript already answers four of the five
+  questions, and Dan answered the fifth (the must-never-miss failure modes) in detail on the call. The
+  new plan folds those answers in (§2 "decisions already resolved") so the next cycle does NOT re-ask
+  them, then builds five zero-cost, read-only/draft-only slices: **A** cohort detection +
+  skip-classification (mirror Dan's manual end-date filter), **B** join on the embedded RentVine
+  hyperlink ID + auto-fill blanks from RentVine (collapses the 397-flag noise — blanks are normal
+  worklist state, not defects; base-rent-to-base-rent excluding RBP/insurance), **C** owner
+  renewal-email draft (the #1 ask; source-tagged, `Needs Verification` on missing market input, no send),
+  **D** tenant offer draft rendered for all three channels (email + portal + text — Dan's hard rule),
+  **E** the must-never-miss readiness checklist (inherited→full set, pre-1978→lead paint, city addendum,
+  deposit-type, pet deposit, LLC suffix, prorated rent; `needs_input` never a false all-clear). Only
+  three residual Dan items remain, framed as confirmations-with-defaults (§4). No code built this slice —
+  plan packet + doc wiring only; committed for a fresh-context build next session.
 - 2026-06-24 (RentVine live read — owner just obtained API access; owner-directed "consolidate +
   prove RentVine + replace the synthetic feed with live reads"): the lease-renewal review now runs on
   REAL RentVine leases. Moved the saved credential into `.env.local` (gitignored; never echoed) →
@@ -169,20 +187,24 @@ continuation, and stop-and-reset rules.
   to flip reconciliation suggestions from `Blocked`), OQ-SHEET-1/OQ-LEX-1/OQ-JOIN-1 (live-read
   calibration), OQ-UI-1 (the lease-renewal workflow-run/Approval-Queue review surface — an unbuilt
   UI dependency for the Phase-1 accuracy milestone), and the cost-gated first live read.
-- **Next slice candidates:** (a) wire these modules into a read pipeline + the OQ-UI-1 workflow-run
-  page — **DONE 2026-06-22** (pipeline + `/lease-renewal/runs` review surface + §3.5 resolve loop,
-  simulation-only). Remaining: (b) after Dan confirms OQ-PREC-1, set `PRECEDENCE_CONFIRMED` and add
-  the active-suggestion tests (today unlisted-field conflicts render `Blocked "no precedence rule"`);
-  (c) the cost-gated first live read — **RentVine half DONE 2026-06-24** (live `/leases/export` → 25
-  candidates, wired via `lib/lease-renewal/live-run.ts`, $0; replaces the synthetic `source:"rentvine"`
-  feed); the live Google Sheet half is BUILT + WIRED (ADC reader + adapter + health probe +
-  `smoke:sheet-read` + combined `runFullyLiveRenewalReview`), sheet id received — BLOCKED only on ADC
-  reauth + Sheets scope (the gcloud ADC login command; OQ-SHEET-1 narrowed); (d) recurring read
-  cadence (OQ-LS-1);
-  (e) Phase-2 write-back enablement (admin flag off by default) — the resolve loop already queues
-  the proposed write-back. Per owner decision 2026-06-20 the existing RentVine credential is used
-  as-is (NOT rotated; load from env/Secret Manager, keep out of git). Use the canonical Cloud Run
-  host for any auth work, not the project-number URL.
+- **Next slice candidates:** the **active next cycle is
+  [`products/lease-renewal-next-phase-plan.md`](products/lease-renewal-next-phase-plan.md)** Slices A→E
+  (live calibration + first draft outputs, all read-only/draft-only/$0). Start at A→B (cohort detection
+  - join-on-RentVine-ID + auto-fill — this alone collapses the 397-flag noise), then C (owner email).
+    Older candidates, still valid: (a) wire these modules into a read pipeline + the OQ-UI-1 workflow-run
+    page — **DONE 2026-06-22** (pipeline + `/lease-renewal/runs` review surface + §3.5 resolve loop,
+    simulation-only). Remaining: (b) after Dan confirms OQ-PREC-1, set `PRECEDENCE_CONFIRMED` and add
+    the active-suggestion tests (today unlisted-field conflicts render `Blocked "no precedence rule"`);
+    (c) the cost-gated first live read — **RentVine half DONE 2026-06-24** (live `/leases/export` → 25
+    candidates, wired via `lib/lease-renewal/live-run.ts`, $0; replaces the synthetic `source:"rentvine"`
+    feed); the live Google Sheet half is BUILT + WIRED (ADC reader + adapter + health probe +
+    `smoke:sheet-read` + combined `runFullyLiveRenewalReview`), sheet id received — BLOCKED only on ADC
+    reauth + Sheets scope (the gcloud ADC login command; OQ-SHEET-1 narrowed); (d) recurring read
+    cadence (OQ-LS-1);
+    (e) Phase-2 write-back enablement (admin flag off by default) — the resolve loop already queues
+    the proposed write-back. Per owner decision 2026-06-20 the existing RentVine credential is used
+    as-is (NOT rotated; load from env/Secret Manager, keep out of git). Use the canonical Cloud Run
+    host for any auth work, not the project-number URL.
 
 ## Migration Readiness
 

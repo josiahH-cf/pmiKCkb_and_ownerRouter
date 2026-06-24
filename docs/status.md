@@ -4926,3 +4926,31 @@ HTTP check). No repo code changed; no `npm` verification re-run this slice.
   "Unit Details", etc.) to the real structure (OQ-SHEET-1 / OQ-LEX-1 / OQ-JOIN-1).
 - Verification: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`
   (**584/584 across 74 files**), `npm run verify:falsification` (**391 committable files**) all PASS.
+
+## Lease-Renewal Next-Phase Realignment — Plan Packet (2026-06-24, cont.)
+
+- Owner-directed: read [`products/lease-renewal-agent.md`](products/lease-renewal-agent.md) and the
+  gitignored 2026-06-19 show-and-tell transcript, check whether the in-flight "calibrate the 397 flags /
+  email Dan five questions" task is in scope, and — if not — plan the next phase to **anticipate and
+  solve client problems instead of asking open-ended questions**.
+- Finding (realignment): the task was misaligned. The transcript already answers four of the five email
+  questions, and Dan answered the fifth (the must-never-miss document/field failure modes) in detail on
+  the call. The "calibrate the engine with Dan" framing also skipped the priority Dan + Jon set on the
+  call: start with the lowest-complexity, highest-value automations — market value + drafting the
+  owner/tenant emails — with human approval, then layer the if-then document logic over time.
+- Deliverable: authored [`products/lease-renewal-next-phase-plan.md`](products/lease-renewal-next-phase-plan.md)
+  — a self-contained packet for a fresh-context build. §2 folds in the resolved decisions (blanks =
+  worklist state not defects; RentVine authoritative on rent+dates, precedence already encoded;
+  base-rent-to-base-rent excluding RBP/insurance; `tenant_responded` is workflow state; join on the
+  sheet's embedded RentVine hyperlink ID; "leave it the same" = keep current rent; two market-value
+  sources; multi-channel send rule; the enumerated must-never-miss list) so the next cycle does NOT
+  re-ask them. §3 lays out five zero-cost, read-only/draft-only slices A–E (cohort detection +
+  skip-classification; join-on-ID + auto-fill to collapse the 397-flag noise; owner-email draft;
+  tenant offer draft × email/portal/text; must-never-miss readiness checklist). §4 leaves only three
+  residual Dan items as confirmations-with-defaults. Pointed the build-plan route + `loop-state.md` at
+  the new file.
+- Governance: docs only — no code, no live call, no deploy, no SoR write, no secret/tenant PII in any
+  tracked file (the transcript is gitignored; cited by timestamp, failure modes described generically).
+  Every Action Registry entry stays `production_allowed:false`. Verification (docs-only change):
+  `npm run format:check`, `npm run verify:falsification`, and `npm test` green before commit. Committed
+  - merged to `main` and pushed for the next session to build from fresh context.
