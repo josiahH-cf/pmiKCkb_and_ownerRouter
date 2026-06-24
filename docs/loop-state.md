@@ -35,9 +35,16 @@ continuation, and stop-and-reset rules.
   Token Creator granted, Sheets + IAM Credentials APIs enabled, and the SA client id `104374162913177846911`
   authorized for `spreadsheets.readonly` in Admin → Domain-wide delegation. RentVine reads are free (no
   GCP budget). Every Action Registry entry stays `production_allowed:false`; no SoR write. **584/584
-  tests across 74 files.** NEXT: calibrate the deterministic units (fingerprint/header/reconciliation)
-  to the REAL sheet structure for a meaningful end-to-end review (OQ-SHEET-1/OQ-LEX-1/OQ-JOIN-1). See
-  Last Completed Slice.
+  tests across 74 files.** Committed on branch `feat/lease-renewal-live-reads` (`cabc281`). **End-to-end
+  real review CONFIRMED RUNNING** (throwaway run): the real "Lease Renewal" tab fingerprints + header-
+  resolves correctly (its headers match the synthetic `SAMPLE_RENEWALS` exactly), ingesting **390 real
+  records**, reconciled against the **25 live RentVine leases** → **397 flags (321 High, 76 Blocked)**,
+  `production_allowed:false`, counts-only. NEXT (calibration, owner/Dan-gated): the 397-flag volume is
+  mostly the "missing High-severity field → flag" rule firing on the tracker's many blank / "not
+  renewing" rows — tune the reconciliation/severity rules so flags are accurate with a low false-positive
+  rate (the Phase-1 accuracy milestone; OQ-PREC-1 precedence + which blanks should/shouldn't flag), and
+  calibrate the non-renewal tabs ("Periodic Ins Trkr 25", "Unit Details") to the real names. See Last
+  Completed Slice.
 - 2026-06-23 (sync-and-readiness triple, owner-directed "Do 3, then 2, then 1" after the
   cutover-readiness finding surfaced an out-of-sync concern): added a living-plan status field +
   enforcing test, a FREE `npm run reality:check` map-vs-territory reconcile, and a RentVine

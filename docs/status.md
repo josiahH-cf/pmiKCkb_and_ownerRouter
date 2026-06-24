@@ -4914,8 +4914,15 @@ HTTP check). No repo code changed; no `npm` verification re-run this slice.
   Viewer would suffice; the reader only ever requests the read-only scope, so no write is possible.
 - Governance: reads only; no deploy, no SoR write; credential tab never read; no secret/PII in any tracked
   file or output. Every Action Registry entry stays `production_allowed:false`.
-- NEXT: calibrate the deterministic units (content fingerprinting, header resolution, reconciliation field
-  specs) to the real "Lease Renewal" tab structure so the full review runs meaningfully end-to-end
-  (OQ-SHEET-1 / OQ-LEX-1 / OQ-JOIN-1).
+- END-TO-END REAL REVIEW CONFIRMED (throwaway run, then removed): a one-off `runFullyLiveRenewalReview`
+  over the real "Lease Renewal" tab + live RentVine export ingested **390 real records** (the real
+  headers match `SAMPLE_RENEWALS` exactly, so fingerprint + header resolution worked unchanged),
+  reconciled against **25 live RentVine leases** → **397 flags (321 High, 76 Blocked)**,
+  `production_allowed:false`, counts-only output (no PII). Confirms the pipeline runs on real data.
+- NEXT (calibration, owner/Dan-gated): the high flag volume is mostly the "missing High-severity field →
+  flag" rule firing on the tracker's many blank / "not renewing" rows. Tune reconciliation/severity so
+  flags are accurate with a low false-positive rate (Phase-1 accuracy milestone; OQ-PREC-1 precedence +
+  which blanks should/shouldn't flag), and calibrate the non-renewal tabs ("Periodic Ins Trkr 25",
+  "Unit Details", etc.) to the real structure (OQ-SHEET-1 / OQ-LEX-1 / OQ-JOIN-1).
 - Verification: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`
   (**584/584 across 74 files**), `npm run verify:falsification` (**391 committable files**) all PASS.
