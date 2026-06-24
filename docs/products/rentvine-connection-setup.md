@@ -3,6 +3,52 @@
 This is the plain-language checklist for turning the lease-renewal flow from "running on
 synthetic sample data" into "reading your real leases from RentVine."
 
+## Status: RentVine reads are LIVE (2026-06-24)
+
+The RentVine half is **done and proven**. The credential moved into `.env.local`,
+`npm run preflight:rentvine` is green, and `npm run smoke:rentvine-read -- --live` made one
+read-only call that returned **25 real leases**. All four unknowns below are resolved:
+
+- **Auth scheme:** HTTP Basic — `Authorization: Basic base64("{API_KEY}:{API_SECRET}")`,
+  `Content-Type: application/json`.
+- **Lease-read endpoint:** base `https://pmikcmetro.rentvine.com/api/manager`; `GET /leases`,
+  `GET /leases/{id}`, and `GET /leases/export` (the export joins tenants/property/unit/balances).
+- **Lease response shape → pipeline mapping:** the plain `/leases` list omits tenant names and rent,
+  so the live read uses `/leases/export`: tenant ← `lease.tenants[].name`, renewal_date ←
+  `lease.endDate`, current_rent ← `unit.rent`. The mapper turns each lease into the same
+  `NonSheetCandidate` the pipeline already reconciles (`source: "rentvine"`).
+- **Rate limits:** `429` + `Retry-After`; no rate-limit headers were present on the probe response
+  (posture recorded; the client handles 429 if it ever appears).
+
+Code: `lib/integrations/rentvine/{client,lease-mapper,health-probe}.ts`,
+`scripts/smoke-rentvine-read.ts`, `lib/lease-renewal/live-run.ts`. Reads remain free and read-only;
+RentVine renewal **write-back stays parked** (OQ-RV-1, undocumented endpoint).
+
+**Live Google Sheet read — WORKING (2026-06-24).** `npm run smoke:sheet-read -- --live` reads the real
+renewal sheet read-only: **26 tabs total, 25 read, the credential tab "Passwords/contacts" auto-skipped**,
+counts-only output (tab titles + per-tab dimensions, never a cell value). The real renewal tab is
+**"Lease Renewal"** (519×31).
+
+Getting there took working around a managed-domain that blocks programmatic Sheets access three ways:
+the user OAuth Sheets scope is "app blocked"; admin-trusting the gcloud client didn't lift it; and a
+service account shared on the sheet still got 403 "caller does not have permission" (the domain blocks
+the external `*.iam.gserviceaccount.com` account from opening the file even when shared). The fix is
+**domain-wide delegation**: the reader reads **as the internal `josiah@pmikcmetro.com` user** via a
+keyless signed JWT (`iamcredentials.signJwt`), so no external account ever touches the file and no key
+file is stored.
+
+Config (`lib/google-sheets/read-client.ts`): `SHEETS_IMPERSONATE_SA` = `lease-renewal-reader@pmi-kc-kb-prod.iam.gserviceaccount.com`,
+`SHEETS_DWD_SUBJECT` = `josiah@pmikcmetro.com`. One-time setup: SA + Token Creator on it,
+`sheets.googleapis.com` + `iamcredentials.googleapis.com` enabled, and the SA client id
+`104374162913177846911` authorized for `spreadsheets.readonly` in Admin console → Domain-wide delegation.
+
+NEXT: the deterministic units (fingerprint / header resolution / reconciliation) were calibrated to the
+synthetic structure; the real sheet's tab names differ, so a full end-to-end review needs calibration to
+the live "Lease Renewal" tab (OQ-SHEET-1 / OQ-LEX-1 / OQ-JOIN-1). The credential tab is excluded by both
+the title filter and ingest Stage B's content-signature guard.
+
+The original checklist below is retained for reference.
+
 ## The short version
 
 - **Reading from RentVine is free.** RentVine is your own account, not a Google service, so reads
