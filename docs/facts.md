@@ -35,6 +35,8 @@ non-failing staleness warning), or `—`.
 | Q-IA-RENEWALS       | Renewals will fold under a Processes dropdown with sub-tabs and process creation will be admin-gated (chosen this cycle; not yet built).                                                                                      | Open       | S6 build; preserve the `/lease-renewal` route                      | —           | —          | —          |
 | Q-ASK-RESCOPE       | Ask will drop Audience/Channel/Space/Urgency and become process-aware plus able to compose emails (chosen this cycle; not yet built).                                                                                         | Open       | S5 build                                                           | —           | —          | —          |
 
+| F-VOICE | Client-facing copy follows `docs/voice-and-audience.md`; the S2 Connection Center pass removed internal jargon, the dead next-release control, and the not-live verification over-claim. | Verified | `docs/voice-and-audience.md`; `docs/feature-suites/voice-copy.md` | 2026-06-25 | — | 2026-12-31 |
+
 ## Supersede Log
 
 When new direction lands, delete the superseded rule from the active doc (do not append next to it),
@@ -45,6 +47,11 @@ rule still reads as active.
 | superseded-id            | replaced-by-id | date       | where-old-text-lived      | marker                           | why                                                                                              |
 | ------------------------ | -------------- | ---------- | ------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------ |
 | LEGACY-OWNER-EMAIL-FIRST | F-GMAIL-LANE   | 2026-06-25 | `docs/products/README.md` | Owner-email-first Gmail workflow | Gmail Inbox 0 starts from Dan's whole mailbox, not owner-email-only; the old framing is retired. |
+
+| COPY-RV-SOT | F-VOICE | 2026-06-25 | `lib/connections/connector-catalog.ts` | read-authoritative source of truth | RentVine "powers" dropped internal jargon for plain operator copy (S2). |
+| COPY-NEXT-RELEASE | F-VOICE | 2026-06-25 | `components/connections/ConnectorCard.tsx` | Available in the next release. | Deleted the dead disabled control that advertised an unbuilt feature (S2). |
+| COPY-VERIFY-CONNECT | F-VOICE | 2026-06-25 | `lib/connections/connection-status.ts` | All details provided — PMI will verify and connect. | Ready-to-verify detail rewritten to "Ready to connect."; verification is not live yet (S2). |
+| COPY-SUBTITLE-VERIFY | F-VOICE | 2026-06-25 | `components/connections/ConnectionCenter.tsx` | PMI handles the credentials and verification for you. | Connections subtitle dropped the not-live verification promise (S2). |
 
 ## Open Questions
 

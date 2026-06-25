@@ -14,6 +14,11 @@ stop-and-reset rules.
 ## Snapshot
 
 - Last updated: 2026-06-25
+- 2026-06-25 (S2 Voice & Copy — Connection Center copy pass): rewrote internal jargon, deleted the
+  dead "next release" control, and removed the not-live verification over-claim across the
+  Connections surface (`connector-catalog`/`ConnectorCard`/`connection-status` + the page subtitle);
+  added a lexicon guard test and the `F-VOICE` fact with Supersede Log rows. No SoR write; no
+  env/model change; budget guard untouched.
 - 2026-06-25 (governance recalibration + feature-suite scaffolding — owner-directed): stood up the
   solidified-context spine `docs/facts.md` (Fact Ledger + Supersede Log + Open Questions), the
   `npm run verify:context-freshness` gate (`scripts/check-context-freshness.mjs` +
@@ -38,13 +43,13 @@ stop-and-reset rules.
 
 Per the approved golden next-step set (`docs/meta-prompts/golden-next.md`), in order:
 
-1. Land the governance spine + gate (this cycle) and keep it green in CI.
-2. Voice & Copy pass — read-only string fixes grounded in `docs/voice-and-audience.md`
-   (`docs/feature-suites/voice-copy.md`); deletes future-promise / over-claim copy.
-3. Local-model provider seam + live-data harness (`docs/feature-suites/local-model.md`) — free, fences
-   from prod, de-risks later model work.
-4. Lease-renewal discovery only (golden data + column meanings + process truth) — no build until the
-   team validates (`docs/feature-suites/lease-renewal.md`).
+1. Done — governance spine + gate; keep it green in CI.
+2. Done (2026-06-25) — Voice & Copy pass on the Connection Center surface
+   (`docs/feature-suites/voice-copy.md`); `F-VOICE` recorded.
+3. **Next** — Local-model provider seam + live-data harness (`docs/feature-suites/local-model.md`) —
+   free, fences from prod, de-risks later model work.
+4. Then — Lease-renewal discovery only (golden data + column meanings + process truth) — no build
+   until the team validates (`docs/feature-suites/lease-renewal.md`).
 
 Hold maintenance intake (`docs/feature-suites/maintenance-intake.md`) and the cross-product glue
 (`docs/feature-suites/cross-product.md`) until S3's facts and the storage/write-back choices are

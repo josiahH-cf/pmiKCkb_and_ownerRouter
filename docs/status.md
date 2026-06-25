@@ -5049,3 +5049,35 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   files), `verify:context-freshness`, `check:budget-guard`, and `npm run build` all PASS. No app/lib/
   components/auth code touched, so connections, the `pmikcmetro.com` identity path, and admin gating are
   unaffected.
+
+## S2 Voice & Copy — Connection Center Copy Pass (2026-06-25)
+
+- S2 from the golden next-step set (`docs/meta-prompts/golden-next.md`) and
+  `docs/feature-suites/voice-copy.md`: bring the Connection Center (`/connections`) copy to the voice
+  standard in `docs/voice-and-audience.md`. Owner-confirmed scope this session: the three enumerated
+  strings plus the page subtitle; the future-framed "Set up" wizard copy (honestly bounded by the
+  "Read-only preview" chip) is left for the Phase-2b "unify once verification is real" pass.
+- **Changed (all on the Connections surface):**
+  - `lib/connections/connector-catalog.ts` — RentVine `powers` dropped the internal phrase → "Leases,
+    tenants, and rent."
+  - `components/connections/ConnectorCard.tsx` — deleted the dead disabled "Connect" control + the
+    "Available in the next release." note; removed the now-unused `Button` import.
+  - `lib/connections/connection-status.ts` — Ready-to-verify `detail` rewritten to "Ready to
+    connect." (label "Ready to verify" kept as connection vocabulary).
+  - `components/connections/ConnectionCenter.tsx` — page subtitle dropped the not-live verification
+    promise → "PMI handles the setup for you."
+- **Tests:** updated `connection-center-component.test.tsx` (negative assertion for the removed
+  control; the "Set up RentVine" wizard still renders) and `connection-status.test.ts` (locks the new
+  "Ready to connect." detail); added a lexicon guard (no "source of truth" in any connector `powers`).
+- **Context:** added `F-VOICE` (Verified) to `docs/facts.md` with four Supersede Log rows
+  (`COPY-RV-SOT`, `COPY-NEXT-RELEASE`, `COPY-VERIFY-CONNECT`, `COPY-SUBTITLE-VERIFY`, each
+  replaced-by `F-VOICE`); updated `docs/loop-state.md`. `docs/voice-and-audience.md` was already in
+  the `AGENTS.md` Route Table.
+- **Gates:** no SoR write, no autonomous send, no env/model change → the $10 budget guard and every
+  Action Registry `production_allowed:false` entry are untouched; `pmikcmetro.com` identity only.
+- Verification: `format:check`, `lint`, `typecheck`, `npm test` (**697/697 across 90 files**, +2 the
+  new connector-copy guard), `verify:router-boundary`, `verify:falsification` (**461 committable
+  files**), `verify:context-freshness`, `check:budget-guard`, and `npm run build` all PASS. Falsified
+  by sweep: the removed strings survive in no runtime `.ts/.tsx/.css` — only the component test's
+  negative assertion references one. `/connections` is Admin-gated, so the component test (renders the
+  real `ConnectionCenter`) is the authoritative render proof rather than a browser preview.
