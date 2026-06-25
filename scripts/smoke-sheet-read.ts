@@ -64,7 +64,25 @@ function parseSheetId(value: string): string {
   return match ? match[1] : value;
 }
 
+/** True when keyless domain-wide delegation is configured (SA mints the Sheets token itself). */
+function isUsingDwd(): boolean {
+  const env = loadEnvLocal();
+  const get = (name: string): string => (process.env[name] ?? env[name] ?? "").trim();
+  return Boolean(get("SHEETS_IMPERSONATE_SA") && get("SHEETS_DWD_SUBJECT"));
+}
+
 function adcRemediation(): string {
+  // With DWD, the SA mints the Sheets-readonly token; ADC only needs the default cloud-platform
+  // scope to call iamcredentials.signJwt. Requesting the Sheets scope on the gcloud client is a
+  // RESTRICTED scope the managed pmikcmetro.com domain blocks ("This app is blocked").
+  if (isUsingDwd()) {
+    return [
+      "The Sheets read uses keyless domain-wide delegation, so ADC only needs the default cloud-platform scope.",
+      "Re-auth once as josiah@pmikcmetro.com (free, no spend) — do NOT add the Sheets scope, the managed domain blocks it:",
+      "  gcloud auth application-default login",
+      "then re-run: npm run smoke:sheet-read -- --live",
+    ].join("\n");
+  }
   return [
     "The Sheets read needs Application Default Credentials with the read-only Sheets scope.",
     "Run this once as josiah@pmikcmetro.com (free, no spend):",
