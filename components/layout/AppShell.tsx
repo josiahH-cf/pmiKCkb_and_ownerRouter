@@ -35,6 +35,9 @@ export function AppShell({
               {item.label}
             </Link>
           ))}
+          {can(user.role, "manageAdmin") ? (
+            <Link href="/connections">Connections</Link>
+          ) : null}
           {can(user.role, "manageAdmin") ? <Link href="/admin">Admin</Link> : null}
           <NotificationMenu />
           <span className="user-role">{user.role}</span>
