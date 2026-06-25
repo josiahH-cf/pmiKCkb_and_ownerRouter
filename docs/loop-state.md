@@ -14,6 +14,11 @@ stop-and-reset rules.
 ## Snapshot
 
 - Last updated: 2026-06-25
+- 2026-06-25 (S9 Local-model provider seam): added `lib/llm/model-provider.ts` (narrow `ModelProvider`
+  with Gemini + local OpenAI-compatible adapters), a `MODEL_PROVIDER`/`LOCAL_MODEL_*` config switch
+  fenced from prod, budget-guard awareness of the free local path, and `npm run smoke:ask-local`
+  (zero-spend: local generation + injected grounding fixture). Flipped `F-LOCALMODEL-GAP` →
+  `F-LOCALMODEL-SEAM`. No SoR write; no cloud spend added; budget guard green.
 - 2026-06-25 (S2 Voice & Copy — Connection Center copy pass): rewrote internal jargon, deleted the
   dead "next release" control, and removed the not-live verification over-claim across the
   Connections surface (`connector-catalog`/`ConnectorCard`/`connection-status` + the page subtitle);
@@ -46,9 +51,9 @@ Per the approved golden next-step set (`docs/meta-prompts/golden-next.md`), in o
 1. Done — governance spine + gate; keep it green in CI.
 2. Done (2026-06-25) — Voice & Copy pass on the Connection Center surface
    (`docs/feature-suites/voice-copy.md`); `F-VOICE` recorded.
-3. **Next** — Local-model provider seam + live-data harness (`docs/feature-suites/local-model.md`) —
-   free, fences from prod, de-risks later model work.
-4. Then — Lease-renewal discovery only (golden data + column meanings + process truth) — no build
+3. Done (2026-06-25) — Local-model provider seam + live-data harness
+   (`docs/feature-suites/local-model.md`); `F-LOCALMODEL-SEAM` recorded.
+4. **Next** — Lease-renewal discovery only (golden data + column meanings + process truth) — no build
    until the team validates (`docs/feature-suites/lease-renewal.md`).
 
 Hold maintenance intake (`docs/feature-suites/maintenance-intake.md`) and the cross-product glue

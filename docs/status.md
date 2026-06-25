@@ -5081,3 +5081,46 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   by sweep: the removed strings survive in no runtime `.ts/.tsx/.css` — only the component test's
   negative assertion references one. `/connections` is Admin-gated, so the component test (renders the
   real `ConnectionCenter`) is the authoritative render proof rather than a browser preview.
+
+## S9 Local-Model Provider Seam + Live-Data Harness (2026-06-25)
+
+- S9 from the golden next-step set (`docs/meta-prompts/golden-next.md`) and
+  `docs/feature-suites/local-model.md`: a thin model-provider seam so a free local model can stand in
+  for Gemini via the same Ask answer path, fenced from prod, enabling zero-cloud-spend live-data
+  testing. Closes `F-LOCALMODEL-GAP`.
+- **Built:**
+  - `lib/llm/model-provider.ts` (new): narrow `ModelProvider { generateText }` with
+    `GoogleGenAiModelProvider` (wraps `GoogleGenAI(...).models`) and `LocalModelProvider`
+    (OpenAI-compatible `POST {baseUrl}/v1/chat/completions` via an injected fetch transport that
+    mirrors RentVine's `createFetchTransport`), plus `createModelFetchTransport` and a
+    `createModelProvider` factory. `AnswerGenerationSetupError` moved here (re-exported by
+    `lib/llm/answer.ts`) so `/api/ask` still maps provider setup failures to 503.
+  - `lib/llm/answer.ts`: `GoogleGenAiAnswerGenerator` now delegates to a `ModelProvider`
+    (`options.provider`, or `options.models` for back-compat, else `createModelProvider(config)`).
+  - `lib/config/server.ts`: `MODEL_PROVIDER` (enum, default `gemini`), `LOCAL_MODEL_BASE_URL`,
+    `LOCAL_MODEL_NAME`; `modelProvider` is forced to `gemini` when `NODE_ENV=production` (mirrors
+    `localDemoAuth`).
+  - `scripts/check-budget-guard.mjs`: `MODEL_PROVIDER=local` is a free generative path (skips the
+    Gemini model-name error) but every other check (single-Space, notifications, away-mode) stands; a
+    warning notes Vertex retrieval + Gmail still bill.
+  - `scripts/smoke-local-ask.ts` (`npm run smoke:ask-local`, opt-in/manual): runs the Ask path through
+    `LocalModelProvider` + an injected grounding fixture (built-in synthetic, or `--fixture=`) at zero
+    cloud spend; DRY by default, `--live` calls the local endpoint, skips cleanly when none is set.
+    Output is shape-only. Not in `scripts/verify.sh` (CI has no local model).
+- **Tests:** new `tests/unit/model-provider.test.ts` (provider selection, prod-fence, local request/
+  response mapping via a fake transport, Gemini mapping, setup errors); extended `budget-guard` (local
+  path green; gemini+Pro and local+extra-Spaces still fail) and `server-config` (defaults + prod-fence).
+  `tests/unit/llm-answer.test.ts` stays green unedited via the `options.models` back-compat path.
+- **Context:** replaced `F-LOCALMODEL-GAP` with `F-LOCALMODEL-SEAM` (Verified) in `docs/facts.md` +
+  a Supersede Log row; merged the S2 orphan `F-VOICE`/`COPY-*` rows back into their tables;
+  updated `docs/feature-suites/local-model.md` and `docs/loop-state.md`.
+- **Gates:** no SoR write; no autonomous send; no cloud spend added (local path is free, demo stays
+  default, prod stays Gemini); $10 cap and every Action Registry `production_allowed:false` entry
+  untouched; `pmikcmetro.com` / localhost-in-boundary identity only.
+- Verification: `format:check`, `lint`, `typecheck`, `npm test` (**710/710 across 91 files**, +13 the
+  new model-provider / budget-guard / server-config cases), `verify:router-boundary`,
+  `verify:falsification` (**464 committable files**), `verify:context-freshness`, `check:budget-guard`,
+  and `npm run build` all PASS. Falsified end-to-end: the budget-guard script passes for
+  `MODEL_PROVIDER=local` + Pro (free path, warning emitted) yet still fails for `gemini` + Pro; the
+  `F-LOCALMODEL-GAP` marker is absent from the 7 governance docs; DRY + no-endpoint `smoke:ask-local`
+  exercised (clean skip).
