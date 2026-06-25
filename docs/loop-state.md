@@ -14,6 +14,10 @@ stop-and-reset rules.
 ## Snapshot
 
 - Last updated: 2026-06-25
+- 2026-06-25 (S3 discovery prep — solo, no build): assembled the turnkey
+  `docs/products/lease-renewal-discovery-packet.md` (per-column validation template, golden-data
+  archetypes, acceptance-criteria checklist, RentVine↔sheet mapping, per-gate + write-back decisions);
+  registered it in the `AGENTS.md` route table. The actual validation + golden data stay team-gated.
 - 2026-06-25 (S9 Local-model provider seam): added `lib/llm/model-provider.ts` (narrow `ModelProvider`
   with Gemini + local OpenAI-compatible adapters), a `MODEL_PROVIDER`/`LOCAL_MODEL_*` config switch
   fenced from prod, budget-guard awareness of the free local path, and `npm run smoke:ask-local`
@@ -53,8 +57,9 @@ Per the approved golden next-step set (`docs/meta-prompts/golden-next.md`), in o
    (`docs/feature-suites/voice-copy.md`); `F-VOICE` recorded.
 3. Done (2026-06-25) — Local-model provider seam + live-data harness
    (`docs/feature-suites/local-model.md`); `F-LOCALMODEL-SEAM` recorded.
-4. **Next** — Lease-renewal discovery only (golden data + column meanings + process truth) — no build
-   until the team validates (`docs/feature-suites/lease-renewal.md`).
+4. **Next (team-gated)** — Lease-renewal discovery. Turnkey validation packet is ready
+   (`docs/products/lease-renewal-discovery-packet.md`); no build until the team validates process,
+   columns, and the golden data set (`docs/feature-suites/lease-renewal.md`).
 
 Hold maintenance intake (`docs/feature-suites/maintenance-intake.md`) and the cross-product glue
 (`docs/feature-suites/cross-product.md`) until S3's facts and the storage/write-back choices are

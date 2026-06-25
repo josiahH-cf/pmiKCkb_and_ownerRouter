@@ -5124,3 +5124,24 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   `MODEL_PROVIDER=local` + Pro (free path, warning emitted) yet still fails for `gemini` + Pro; the
   `F-LOCALMODEL-GAP` marker is absent from the 7 governance docs; DRY + no-endpoint `smoke:ask-local`
   exercised (clean skip).
+
+## S3 Lease-Renewal Discovery Prep (2026-06-25)
+
+- The solo-doable part of S3 (`docs/feature-suites/lease-renewal.md`) while the build stays team-gated:
+  turn the existing discovery material into one turnkey, team-fillable validation packet so the team's
+  validation round is plug-and-play. No build, no golden data committed, no SoR write.
+- **Added** `docs/products/lease-renewal-discovery-packet.md`: consolidated open decisions
+  (confirm-with-default, citing `lease-renewal-build-plan.md` §7 / `research-backlog.md`); a per-column
+  validation template for the "Lease Renewal" tab (canonical keys from `lib/lease-renewal/headers.ts`);
+  golden-data archetypes to assemble in-boundary (simple / inherited-tenant / conflict / missing-fact /
+  edge "the math"); an acceptance-criteria failure-mode checklist; a RentVine↔sheet field-mapping
+  confirmation table (pre-filled from `lib/integrations/rentvine/lease-mapper.ts`); a per-approval-gate
+  spec; and the `Q-WRITEBACK-METHOD` A/B/C decision. Pre-filled cells are cited from existing docs/code;
+  team-answer cells are blank — nothing invented.
+- **Registered** the packet in the `AGENTS.md` route table ("Renewal discovery validation (team)").
+  `docs/loop-state.md` marks slice 4 next + team-gated.
+- Data governance (`A-DATA-GOV`): the packet routes real golden records to `docs/client_docs/`
+  (gitignored) and itself holds only definitions/templates/expected outcomes — no real values.
+- Verification: `format:check`, `lint`, `typecheck`, `npm test`, `verify:router-boundary`,
+  `verify:falsification`, `verify:context-freshness`, `check:budget-guard` re-run green (docs-only slice;
+  no runtime change, so `build` unaffected).
