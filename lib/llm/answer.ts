@@ -1,4 +1,3 @@
-import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 import type { ServerConfig } from "@/lib/config/server";
 import { DRAFT_BANNER, SOURCE_STATES } from "@/lib/constants";
@@ -9,6 +8,16 @@ import {
   buildGroundedAnswerSystemPrompt,
   buildGroundedAnswerUserPrompt,
 } from "@/lib/llm/prompt";
+import {
+  createModelProvider,
+  GoogleGenAiModelProvider,
+  type GenAiModelsClient,
+  type ModelProvider,
+} from "@/lib/llm/model-provider";
+
+// Setup errors live with the provider seam; re-exported so app/api/ask/route.ts can keep
+// importing AnswerGenerationSetupError from here and map it to a 503.
+export { AnswerGenerationSetupError } from "@/lib/llm/model-provider";
 
 const GeneratedAnswerSchema = z
   .object({
@@ -66,13 +75,6 @@ export interface AnswerGenerator {
   generateAnswer(request: AnswerGenerationRequest): Promise<GeneratedAnswer>;
 }
 
-export class AnswerGenerationSetupError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "AnswerGenerationSetupError";
-  }
-}
-
 export class GeminiAnswerGenerationError extends Error {
   constructor(message: string) {
     super(message);
@@ -80,44 +82,34 @@ export class GeminiAnswerGenerationError extends Error {
   }
 }
 
-type GenAiModelsClient = Pick<GoogleGenAI["models"], "generateContent">;
-
 export class GoogleGenAiAnswerGenerator implements AnswerGenerator {
-  private readonly models: GenAiModelsClient;
+  private readonly provider: ModelProvider;
 
   constructor(
     private readonly config: ServerConfig,
-    options: { models?: GenAiModelsClient } = {},
+    options: { models?: GenAiModelsClient; provider?: ModelProvider } = {},
   ) {
-    this.models =
-      options.models ??
-      new GoogleGenAI({
-        apiVersion: "v1",
-        location: config.vertexAiLocation,
-        project: requiredProjectId(config),
-        vertexai: true,
-      }).models;
+    this.provider =
+      options.provider ??
+      (options.models
+        ? new GoogleGenAiModelProvider(config, { models: options.models })
+        : createModelProvider(config));
   }
 
   async generateAnswer(request: AnswerGenerationRequest) {
     let lastError: unknown;
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      const response = await this.models.generateContent({
-        config: {
-          responseJsonSchema: ANSWER_RESPONSE_JSON_SCHEMA,
-          responseMimeType: "application/json",
-          systemInstruction: buildGroundedAnswerSystemPrompt(),
-          temperature: 0.2,
-        },
-        contents: buildGroundedAnswerUserPrompt(request, {
-          retry: attempt > 0,
-        }),
+      const { text } = await this.provider.generateText({
         model: this.config.geminiAnswerModel,
+        systemInstruction: buildGroundedAnswerSystemPrompt(),
+        userContent: buildGroundedAnswerUserPrompt(request, { retry: attempt > 0 }),
+        temperature: 0.2,
+        responseJsonSchema: ANSWER_RESPONSE_JSON_SCHEMA,
       });
 
       try {
-        return parseGeneratedAnswerText(response.text ?? "");
+        return parseGeneratedAnswerText(text);
       } catch (error) {
         lastError = error;
       }
@@ -153,14 +145,6 @@ export function ensureDraftBanner(draft: string, draftEnabled: boolean) {
   const body = trimmed.slice(DRAFT_BANNER.length).trim();
 
   return body ? `${DRAFT_BANNER}\n\n${body}` : DRAFT_BANNER;
-}
-
-function requiredProjectId(config: Pick<ServerConfig, "gcpProjectId">) {
-  if (!config.gcpProjectId) {
-    throw new AnswerGenerationSetupError("Missing GCP_PROJECT_ID for Gemini.");
-  }
-
-  return config.gcpProjectId;
 }
 
 function stripJsonFence(text: string) {

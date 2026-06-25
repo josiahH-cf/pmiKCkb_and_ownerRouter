@@ -1,7 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { readRequiredGoogleConfig, readServerConfig } from "@/lib/config/server";
 
 describe("server config", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("reads defaults for local demo mode", () => {
     expect(readServerConfig({}).allowedHostedDomain).toBe("pmikcmetro.com");
     expect(readServerConfig({}).askDemoMode).toBe(true);
@@ -11,6 +15,21 @@ describe("server config", () => {
     expect(readServerConfig({}).vertexSearchLocation).toBe("us");
     expect(readServerConfig({}).kbApprovalNotificationsEnabled).toBe(false);
     expect(readServerConfig({}).kbApprovalRecipients).toEqual([]);
+  });
+
+  it("defaults to the Gemini model provider", () => {
+    expect(readServerConfig({}).modelProvider).toBe("gemini");
+    expect(readServerConfig({}).localModelName).toBe("local-model");
+    expect(readServerConfig({}).localModelBaseUrl).toBeUndefined();
+  });
+
+  it("selects the local provider outside production", () => {
+    expect(readServerConfig({ MODEL_PROVIDER: "local" }).modelProvider).toBe("local");
+  });
+
+  it("forces the Gemini provider in production (local is dev/test-only)", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    expect(readServerConfig({ MODEL_PROVIDER: "local" }).modelProvider).toBe("gemini");
   });
 
   it("parses Space ID maps", () => {

@@ -263,6 +263,9 @@ function config(overrides: Partial<ServerConfig> = {}): ServerConfig {
     kbApprovalRecipients: [],
     kbApprovalSender: undefined,
     localDemoAuth: false,
+    localModelBaseUrl: undefined,
+    localModelName: "local-model",
+    modelProvider: "gemini",
     spaceDriveFolderIds: {
       "lease-renewals": "folder-1",
     },
