@@ -82,6 +82,8 @@ Acceptance criteria:
 - Client answers the concrete asks in `docs/client-checklist.md`.
 - `docs/research-backlog.md` is updated with answered, open, and blocked items.
 - Each product lane distinguishes confirmed facts from assumptions.
+- Confirmed facts, labeled assumptions, and open questions are tracked in `docs/facts.md` and gated
+  by `npm run verify:context-freshness`.
 
 Validation:
 

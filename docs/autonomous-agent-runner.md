@@ -25,29 +25,37 @@ unapproved system-of-record writes remain hard stops.
 
 ## Context Intake
 
-This is the canonical context-intake order for the loop. `docs/implement.md` and
-`docs/ai-execution-workflow.md` point here instead of repeating a divergent list.
+Read context in tiers, not as one long list. `docs/implement.md` and
+`docs/ai-execution-workflow.md` point here instead of repeating a divergent list. Mandatory
+every-session reading is Tier 0 + Tier 1; everything else is reached on demand through the
+`AGENTS.md` Route Table.
 
-Before choosing work, read:
+**Tier 0 — solidified spine (always, first):**
 
-1. `docs/loop-state.md` first, to resume without rediscovering prior context.
-2. `AGENTS.md`
-3. `docs/north-star.md`
-4. `docs/products/README.md` and the relevant product lane doc
-5. `docs/plan.md`
-6. `docs/implement.md`
-7. `docs/ai-execution-workflow.md`
-8. the latest entries in `docs/status.md`
-9. `docs/client-checklist.md`
-10. `docs/research-backlog.md`
-11. `docs/engineering.md` and `docs/engineering-checklist.md`
-12. `docs/environment-handoff.md` when setup, keys, environments, manual tests, or
-    handoff are relevant
-13. `docs/legacy/owner-router-artifact-source.md` only when Gmail Inbox 0 artifact
-    migration, naming, prompt, label, template, or demo-safe scenario work is in scope
+1. `docs/facts.md` — verified facts, labeled assumptions, open questions, and the supersede log.
+2. `docs/loop-state.md` — the short resume pointer for the current slice and active blockers.
 
-`docs/loop-state.md` is the single-read resume artifact. If it conflicts with the latest
-`docs/status.md` entry, trust `docs/status.md` and correct `docs/loop-state.md`.
+**Tier 1 — direction and plan (any feature work):**
+
+3. `AGENTS.md` — the router.
+4. `docs/north-star.md` — direction and decision rules.
+5. `docs/products/README.md` and the one active product-lane doc.
+6. `docs/plan.md` — phase status and acceptance gates.
+
+**Tier 2 — on demand via the Route Table (read only what the task needs):**
+
+- `docs/implement.md` / `docs/ai-execution-workflow.md` when the operating workflow is in question.
+- the latest entries in `docs/status.md` for the history behind a fact.
+- `docs/client-checklist.md` and `docs/research-backlog.md` when choosing client-unblock work.
+- `docs/engineering.md` and `docs/engineering-checklist.md` when writing code.
+- `docs/environment-handoff.md` when setup, keys, environments, manual tests, or handoff are
+  relevant.
+- `docs/legacy/owner-router-artifact-source.md` only when Gmail Inbox 0 artifact migration, naming,
+  prompt, label, template, or demo-safe scenario work is in scope.
+
+`docs/facts.md` and `docs/loop-state.md` are the Tier-0 spine. If `docs/loop-state.md` conflicts with
+the latest `docs/status.md` entry, trust `docs/status.md` and correct `docs/loop-state.md`. Run
+`npm run verify:context-freshness` to confirm the spine is current before acting on it.
 
 Check the git worktree before edits and preserve user changes. Use `docs/specs/`,
 `docs/legacy/`, and old demo docs only as historical source material unless an active
@@ -338,7 +346,8 @@ Run this phase for every slice:
    as hard blockers.
 5. Run checks proportional to the change:
    - Documentation-only: `npm run format:check`, `git diff --check`,
-     `npm run verify:router-boundary`, and `npm run verify:falsification`.
+     `npm run verify:router-boundary`, `npm run verify:falsification`, and
+     `npm run verify:context-freshness`.
    - TypeScript/runtime changes: add `npm run lint`, `npm run typecheck`, and `npm test`.
    - Firestore or persistence changes: add `npm run test:firestore` when Java is
      available.

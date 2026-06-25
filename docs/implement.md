@@ -2,17 +2,16 @@
 
 ## Start Here
 
-1. Read `docs/loop-state.md` first to resume the loop without rediscovering context.
-2. Read `AGENTS.md`.
-3. Read `docs/north-star.md`.
-4. Read the relevant file in `docs/products/`.
-5. Read `docs/product-definition-gap-plan.md` when scope, product shape, or follow-up
-   questions are part of the task.
-6. Read the latest entries in `docs/status.md`.
-7. Check the git worktree and preserve user changes.
+Read the Tier-0 spine first, then Tier 1; reach everything else on demand via the `AGENTS.md` Route
+Table. `docs/autonomous-agent-runner.md` holds the full tiered context-intake order — this list is the
+lighter task-triage entry point and does not repeat a divergent order.
 
-For a full feature cycle, `docs/autonomous-agent-runner.md` holds the canonical
-context-intake order; this list is the lighter task-triage entry point.
+1. `docs/facts.md`, then `docs/loop-state.md` (Tier 0 — solidified facts and the resume pointer).
+2. `AGENTS.md`, `docs/north-star.md`, the one active `docs/products/` lane doc, and `docs/plan.md`
+   (Tier 1).
+3. On demand: the latest `docs/status.md` entries, `docs/product-definition-gap-plan.md` when scope,
+   product shape, or follow-up questions are part of the task, and the rest of the Route Table.
+4. Check the git worktree and preserve user changes.
 
 Do not start from older KB-only or separate Owner Router assumptions. Those are legacy
 unless an active product doc preserves a specific safety rule.

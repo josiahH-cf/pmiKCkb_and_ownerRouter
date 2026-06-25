@@ -5020,3 +5020,32 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
 - NEXT (owner-gated / UI): run the real `--live` fully-live review to confirm the live flag volume
   drops; add `--link-join` / `--cohort` flags to `scripts/smoke-renewal-review.ts`; surface the cohort /
   drafts / readiness on `/lease-renewal/runs` (OQ-UI-1).
+
+## Governance Recalibration + Feature-Suite Scaffolding (2026-06-25)
+
+- Owner-directed: convert the discussed backlog into executable specs + the governance machinery that
+  keeps the project coherent, governance FIRST, without building features. No product feature built;
+  no SoR write; every Action Registry entry stays `production_allowed:false`.
+- **Root cause fixed.** Routing was already centralized, but the "single-read" `docs/loop-state.md` had
+  grown to ~999 lines overlapping `docs/status.md` (~5022) — the real generator of poisoned/stale
+  context. Fix: a solidified-context spine + a freshness gate + delete-on-supersede + truncation.
+- **Built (governance):** `docs/facts.md` (Fact Ledger + Supersede Log + Open Questions, with the
+  undefined term "ABC" recorded as `Q-ABC-1`); `scripts/check-context-freshness.mjs` +
+  `tests/unit/facts-ledger.test.mjs` + the `verify:context-freshness` task, wired into `scripts/verify.sh`
+  and pinned by `scripts/check-router-boundary.mjs`; re-tiered `## Context Intake` in
+  `docs/autonomous-agent-runner.md` (Tier 0 spine / Tier 1 plan / Tier 2 on-demand), with
+  `docs/implement.md` + `docs/ai-execution-workflow.md` pointing at it; truncated `docs/loop-state.md`
+  to a 108-line pointer (changelog history retained here in `docs/status.md`).
+- **Built (specs):** `docs/voice-and-audience.md`, nine `docs/feature-suites/*.md`, and three
+  `docs/meta-prompts/*.md` (governance-first scaffold, golden next-step set, re-scaffold/cleanup).
+- **Owner decisions captured as open questions:** Renewals fold under a Processes dropdown
+  (`Q-IA-RENEWALS`); Ask drops Audience/Channel/Space/Urgency and gains process-awareness + compose
+  (`Q-ASK-RESCOPE`); renewal write-back method and "the math" (`Q-WRITEBACK-METHOD`) and maintenance
+  image storage (`Q-MAINT-STORAGE`) stay undecided — options presented, conservative defaults
+  recommended, decision deferred. Lease-renewal stays discovery-gated until the team validates process,
+  columns, and golden data.
+- Verification: `format:check`, `lint` (0 warnings), `typecheck`, `npm test` (**695/695 across 90
+  files**, incl. the new facts-ledger gate test), `verify:router-boundary`, `verify:falsification` (461
+  files), `verify:context-freshness`, `check:budget-guard`, and `npm run build` all PASS. No app/lib/
+  components/auth code touched, so connections, the `pmikcmetro.com` identity path, and admin gating are
+  unaffected.

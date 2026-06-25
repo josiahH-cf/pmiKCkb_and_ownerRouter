@@ -14,6 +14,7 @@ const requiredFiles = [
   "docs/specs/spec-4-implementation-meta-implementation-spec.md",
   "docs/autonomous-agent-runner.md",
   "docs/autonomous-feature-cycle-packet-template.md",
+  "docs/facts.md",
   "docs/loop-state.md",
   "docs/temp/README.md",
   "docs/legacy/owner-router-artifact-source.md",
@@ -84,6 +85,7 @@ if (productReadme.includes("Owner-email-first Gmail workflow")) {
 const agentsDoc = assertIncludes("AGENTS.md", [
   "docs/autonomous-agent-runner.md",
   "docs/environment-handoff.md",
+  "docs/facts.md",
   "docs/legacy/owner-router-artifact-source.md",
   "docs/temp/",
   "CLAUDE.md",

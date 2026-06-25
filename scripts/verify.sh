@@ -39,4 +39,5 @@ fi
 "$NPM_CMD" test
 "$NPM_CMD" run verify:router-boundary
 "$NPM_CMD" run verify:falsification
+"$NPM_CMD" run verify:context-freshness
 "$NPM_CMD" run build

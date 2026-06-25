@@ -4,15 +4,16 @@ This workflow keeps daily AI sessions aligned with the three purchased products.
 
 ## Start Of Session
 
-1. Read `docs/loop-state.md` first to resume the loop without rediscovering context.
-2. Read `AGENTS.md`.
-3. Read `docs/north-star.md`.
-4. Read the relevant product lane in `docs/products/`.
-5. Read `docs/status.md` from the latest entry backward.
-6. Check the git worktree before edits and preserve user changes.
+Read in tiers; `docs/autonomous-agent-runner.md` holds the full tiered context-intake order for
+feature cycles, and this section does not repeat a divergent one.
 
-`docs/autonomous-agent-runner.md` holds the canonical full context-intake order for
-feature cycles.
+1. Tier 0: `docs/facts.md` (solidified facts, assumptions, open questions), then `docs/loop-state.md`
+   (resume pointer).
+2. Tier 1: `AGENTS.md`, `docs/north-star.md`, the relevant product lane in `docs/products/`, and
+   `docs/plan.md`.
+3. On demand: `docs/status.md` from the latest entry backward for history, and the rest of the
+   `AGENTS.md` Route Table.
+4. Check the git worktree before edits and preserve user changes.
 
 ## Autonomous Feature Run Cycle
 

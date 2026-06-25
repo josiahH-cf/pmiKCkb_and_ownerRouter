@@ -26,6 +26,10 @@ route new work through the three-product docs.
 
 | Need                                | Read                                                                                                |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Solidified facts vs assumptions     | `docs/facts.md` (Tier-0 spine; read with `docs/loop-state.md` before acting)                        |
+| Feature-suite specs (backlog)       | `docs/feature-suites/`                                                                              |
+| Governance meta-prompts             | `docs/meta-prompts/`                                                                                |
+| Audience profile and copy voice     | `docs/voice-and-audience.md`                                                                        |
 | North star and product direction    | `docs/north-star.md`                                                                                |
 | Product lane routing                | `docs/products/README.md`, then the relevant product doc                                            |
 | Continue feature development        | `docs/products/lease-renewal-build-plan.md`                                                         |
@@ -63,6 +67,12 @@ route new work through the three-product docs.
 - `app/`: current PMI KC KB Next.js App Router pages and API routes.
 - `components/`: KB UI components.
 - `lib/`: KB auth, source-state, retrieval, prompt, Firestore, and citation boundaries.
+- `docs/facts.md`: Tier-0 solidified-context spine — verified facts, labeled assumptions, open
+  questions, and the supersede log. Gated by `npm run verify:context-freshness`.
+- `docs/feature-suites/`: executable specs for the discussed backlog (one file per suite).
+- `docs/meta-prompts/`: governance-first scaffold, golden next-step set, and the re-scaffold/cleanup
+  meta-prompt.
+- `docs/voice-and-audience.md`: audience profile and client-facing copy voice rules.
 - `docs/products/`: active product-lane docs for KB, Lease Renewal Agent, and Gmail
   Inbox 0.
 - `docs/integration-architecture.md`: verified tool-role map, event model, build order,
@@ -158,6 +168,13 @@ route new work through the three-product docs.
 
 ## Documentation Rules
 
+- Read `docs/facts.md` and `docs/loop-state.md` first (Tier 0). When a fact is verified, an
+  assumption is confirmed, or a question is resolved, update `docs/facts.md` with evidence and an ISO
+  date. `npm run verify:context-freshness` enforces this and keeps `docs/loop-state.md` a short pointer.
+- Delete-on-supersede: when new direction replaces an old gate, path, copy string, or requirement,
+  delete the old text from the active doc (do not append next to it) and record it in the
+  `docs/facts.md` Supersede Log with a unique marker. The freshness gate fails if a superseded rule
+  still reads as active.
 - Update `docs/loop-state.md` at the start of a cycle and at each slice boundary.
 - Update `docs/status.md` after meaningful work.
 - Update `docs/plan.md` in the same slice whenever a phase's `Status:`
