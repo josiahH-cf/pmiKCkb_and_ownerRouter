@@ -988,6 +988,19 @@ button {
   padding: 4px 10px;
 }
 
+/* Live tone — a leading status dot so live data is unmistakable next to sample data. */
+.ui-mode-chip[data-tone="live"] {
+  color: var(--color-text);
+}
+
+.ui-mode-chip[data-tone="live"]::before {
+  background: var(--status-connected);
+  border-radius: var(--radius-pill);
+  content: "";
+  height: 8px;
+  width: 8px;
+}
+
 /* Status dot — connector / health indicator */
 .ui-status-dot {
   border-radius: var(--radius-pill);

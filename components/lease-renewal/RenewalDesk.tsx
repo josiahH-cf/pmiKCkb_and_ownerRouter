@@ -23,13 +23,25 @@ import {
   type RenewalDeskView,
 } from "@/lib/lease-renewal/sample-desk";
 
-export function RenewalDesk({ view }: Readonly<{ view: RenewalDeskView }>) {
+export function RenewalDesk({
+  view,
+  liveReviewHref,
+}: Readonly<{ view: RenewalDeskView; liveReviewHref?: string }>) {
   const { summary } = view.cohort;
 
   return (
     <div className="ui-stack">
       <PageHeader
-        actions={<ModeChip>Sample data</ModeChip>}
+        actions={
+          <>
+            <ModeChip>Sample data</ModeChip>
+            {liveReviewHref ? (
+              <Link className="text-link" href={liveReviewHref}>
+                View live review →
+              </Link>
+            ) : null}
+          </>
+        }
         subtitle={`${summary.total} leases in your current renewal window`}
         title="Renewals"
       />
