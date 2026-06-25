@@ -1,0 +1,134 @@
+// The Renewal Desk — the lease-renewal landing surface. Shows the operator their renewal workload by
+// disposition (actionable / needs review / skipped / out of window) and walks each actionable lease
+// toward the per-lease workspace. Server component (no client state; collapsibles are native <details>).
+//
+// One component of a multi-process app — it composes the shared components/ui primitives and demotes
+// the plumbing (raw run, classification counts) into a quiet "Data diagnostics" disclosure.
+
+import Link from "next/link";
+
+import {
+  Card,
+  Disclosure,
+  EmptyState,
+  Metric,
+  ModeChip,
+  PageHeader,
+  StatusPill,
+  Stepper,
+} from "@/components/ui";
+import {
+  RENEWAL_STEPS,
+  type DeskLeaseSummary,
+  type RenewalDeskView,
+} from "@/lib/lease-renewal/sample-desk";
+
+export function RenewalDesk({ view }: Readonly<{ view: RenewalDeskView }>) {
+  const { summary } = view.cohort;
+
+  return (
+    <div className="ui-stack">
+      <PageHeader
+        actions={<ModeChip>Sample data</ModeChip>}
+        subtitle={`${summary.total} leases in your current renewal window`}
+        title="Renewals"
+      />
+
+      <div className="ui-metric-grid">
+        <Metric label="Actionable" value={summary.actionable} />
+        <Metric label="Needs review" value={summary.needsReview} />
+        <Metric label="Skipped" value={summary.skipped} />
+        <Metric label="Out of window" value={summary.outOfWindow} />
+      </div>
+
+      <section aria-label="Actionable renewals" className="ui-stack">
+        <h2 className="section-subtitle">Your queue</h2>
+        {view.actionable.length === 0 ? (
+          <EmptyState
+            description="No actionable renewals in this window."
+            title="Nothing to work right now"
+          />
+        ) : (
+          view.actionable.map((lease) => (
+            <ActionableLeaseCard key={lease.id} lease={lease} />
+          ))
+        )}
+      </section>
+
+      <CollapsedGroup
+        leases={view.review}
+        note="Off-cycle or missing end dates — confirm before working."
+        title="Needs review"
+      />
+      <CollapsedGroup
+        leases={view.skipped}
+        note="Set aside automatically. Open the lease to override."
+        title="Skipped"
+      />
+      <CollapsedGroup
+        leases={view.outOfWindow}
+        note="Ends outside the current renewal batch."
+        title="Out of window"
+      />
+
+      <Disclosure summary="Data diagnostics">
+        <p className="muted">
+          Sample data — no live read performed. {summary.total} leases classified.
+        </p>
+        <p>
+          <Link className="text-link" href="/lease-renewal/runs">
+            View the raw reconciliation run
+          </Link>
+        </p>
+      </Disclosure>
+    </div>
+  );
+}
+
+function ActionableLeaseCard({ lease }: Readonly<{ lease: DeskLeaseSummary }>) {
+  return (
+    <Card>
+      <div className="ui-stack">
+        <div className="ui-spread">
+          <strong>{lease.addressLabel}</strong>
+          {lease.openConflicts > 0 ? (
+            <StatusPill value="Action Required">
+              {lease.openConflicts} source conflict{lease.openConflicts === 1 ? "" : "s"}
+            </StatusPill>
+          ) : lease.endDateIso ? (
+            <span className="muted">Ends {lease.endDateIso}</span>
+          ) : null}
+        </div>
+        <Stepper currentIndex={lease.stageIndex} steps={RENEWAL_STEPS} />
+        <div className="ui-spread">
+          <span className="muted">Next: {lease.nextAction}</span>
+          <Link className="secondary-button" href={`/lease-renewal/lease/${lease.id}`}>
+            Open
+          </Link>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function CollapsedGroup({
+  title,
+  leases,
+  note,
+}: Readonly<{ title: string; leases: DeskLeaseSummary[]; note: string }>) {
+  if (leases.length === 0) return null;
+
+  return (
+    <Disclosure summary={`${title} (${leases.length})`}>
+      <p className="muted">{note}</p>
+      <ul className="ui-rows">
+        {leases.map((lease) => (
+          <li className="ui-spread" key={lease.id}>
+            <span>{lease.addressLabel}</span>
+            <span className="ui-tag">{lease.reasonLabel}</span>
+          </li>
+        ))}
+      </ul>
+    </Disclosure>
+  );
+}

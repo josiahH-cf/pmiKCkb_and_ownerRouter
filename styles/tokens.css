@@ -50,6 +50,24 @@
   --font-sans:
     system-ui, -apple-system, "Segoe UI", roboto, "Helvetica Neue", arial, sans-serif;
   --font-heading: var(--font-sans);
+
+  /* Connection / connector status — semantic, reuses the FUNCTIONAL state colors so a
+     connector's health reads in the same green/amber/red language as the rest of the app.
+     Part of the swappable brand layer: change the source token, every connector dot follows. */
+  --status-connected: var(--state-verified); /* live + verified */
+  --status-action: var(--state-partial); /* needs attention / action required */
+  --status-none: var(--color-text-muted); /* not connected / idle */
+
+  /* Shared UI tokens consumed by components/ui/* primitives (new surfaces only; existing
+     bespoke classes keep their literals). Centralized so radius/shadow stay consistent. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-pill: 999px;
+  --shadow-floating: 0 18px 38px rgb(20 20 20 / 0.18);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
 }
 
 .topbar {

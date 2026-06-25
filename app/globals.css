@@ -914,3 +914,314 @@ button {
   color: var(--state-no-source);
   font-weight: 700;
 }
+
+/* =====================================================================
+   UI PRIMITIVES — Phase 0 foundation (consumed by components/ui/*)
+   Token-driven classes for the redesigned client-facing surfaces. Existing
+   bespoke classes are untouched; new surfaces COMPOSE these primitives.
+   ===================================================================== */
+
+/* Layout helpers */
+.ui-stack {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.ui-stack-tight {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.ui-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+/* Page header — title + optional subtitle, with right-aligned actions */
+.ui-page-header {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.ui-page-header h1 {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.ui-page-subtitle {
+  color: var(--color-text-muted);
+  margin: 6px 0 0;
+}
+
+/* Mode chip — the demoted environment marker (e.g. "Sample data"), quiet by
+   design. Replaces the full-width simulation banner. */
+.ui-mode-chip {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-size: 0.8rem;
+  font-weight: 700;
+  gap: 6px;
+  padding: 4px 10px;
+}
+
+/* Status dot — connector / health indicator */
+.ui-status-dot {
+  border-radius: var(--radius-pill);
+  display: inline-block;
+  height: 10px;
+  width: 10px;
+}
+
+.ui-status-dot[data-status="connected"] {
+  background: var(--status-connected);
+}
+
+.ui-status-dot[data-status="action"] {
+  background: var(--status-action);
+}
+
+.ui-status-dot[data-status="none"] {
+  background: var(--status-none);
+}
+
+.ui-status-label {
+  align-items: center;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 8px;
+}
+
+/* Source tag — the trust chip: which system a fact came from + confidence */
+.ui-source-tag {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 700;
+  gap: 6px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+.ui-source-tag[data-confidence="Verified"] {
+  border-color: var(--state-verified);
+}
+
+.ui-source-tag[data-confidence="Needs Verification"] {
+  background: #fff7e6;
+  border-color: var(--state-partial);
+  color: var(--color-text);
+}
+
+/* Stepper — the per-lease renewal workflow */
+.ui-stepper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ui-step {
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  display: flex;
+  flex: 1 1 160px;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.ui-step[data-state="current"] {
+  border-color: var(--color-accent-500);
+  color: var(--color-text);
+}
+
+.ui-step[data-state="done"] {
+  border-color: var(--state-verified);
+}
+
+.ui-step-index {
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
+.ui-step[data-state="current"] .ui-step-index {
+  background: var(--color-accent-100);
+  border-color: var(--color-accent-500);
+}
+
+.ui-step[data-state="done"] .ui-step-index {
+  background: #edf7f1;
+  border-color: var(--state-verified);
+  color: var(--state-verified);
+}
+
+.ui-step-label {
+  font-weight: 700;
+}
+
+.ui-step-meta {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+
+/* Tabs */
+.ui-tablist {
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ui-tab {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted);
+  font-weight: 700;
+  min-height: 40px;
+  padding: 8px 12px;
+}
+
+.ui-tab[aria-selected="true"] {
+  border-bottom-color: var(--color-accent-500);
+  color: var(--color-text);
+}
+
+.ui-tabpanel {
+  padding-top: var(--space-4);
+}
+
+/* Empty state */
+.ui-empty {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 28px 20px;
+  text-align: center;
+}
+
+.ui-empty strong {
+  color: var(--color-text);
+}
+
+/* Disclosure — quiet collapsible for demoted diagnostics */
+.ui-disclosure {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.ui-disclosure > summary {
+  color: var(--color-primary-700);
+  cursor: pointer;
+  font-weight: 700;
+  list-style: none;
+  padding: 12px 16px;
+}
+
+.ui-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ui-disclosure[open] > summary {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ui-disclosure-body {
+  padding: 16px;
+}
+
+/* Spread row — label left, control/chip right (lease card heads/feet, fact rows) */
+.ui-spread {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  justify-content: space-between;
+}
+
+/* Neutral tag chip (cohort reason, generic label) */
+.ui-tag {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  white-space: nowrap;
+}
+
+.ui-rows {
+  display: grid;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Metric cards — summary numbers (counts) on a quiet surface */
+.ui-metric-grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.ui-metric {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.ui-metric-label {
+  color: var(--color-text-muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.ui-metric-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 4px 0 0;
+}
+
+@media (max-width: 760px) {
+  .ui-page-header {
+    flex-direction: column;
+  }
+
+  .ui-step {
+    flex-basis: 100%;
+  }
+}

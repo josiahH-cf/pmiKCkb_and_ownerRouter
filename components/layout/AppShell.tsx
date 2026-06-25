@@ -11,7 +11,7 @@ const navItems = [
   { href: "/spaces", label: "Spaces" },
   { href: "/processes", label: "Processes" },
   { href: "/approval-queue", label: "Approval Queue" },
-  { href: "/lease-renewal/runs", label: "Lease Renewal" },
+  { href: "/lease-renewal", label: "Renewals" },
 ];
 
 export function AppShell({
