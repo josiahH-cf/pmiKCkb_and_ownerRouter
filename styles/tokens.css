@@ -17,6 +17,10 @@
   --pmi-orange: #c2410c; /* provisional — AA as text on white (~5.9:1) */
   --pmi-orange-bright: #ea580c; /* provisional — on DARK / large / UI only (fails as normal text on white) */
   --pmi-orange-100: #fdece2; /* provisional — pale orange accent surface */
+  /* Dark-surface orange (tagline / dot / topbar accents), aliased so it can be tuned independently
+     when official values land. NEVER use --pmi-orange-bright as on-white text/icon (3.56:1 fails
+     AA); use --color-accent-500 (--pmi-orange, ~5.18:1) for any on-white orange text or fill. */
+  --pmi-orange-on-dark: var(--pmi-orange-bright);
 
   /* Semantic aliases — components consume THESE. Navy/gold removed; the
      names persist as a stable indirection layer over the provisional brand. */
@@ -96,8 +100,12 @@
 }
 
 .nav a {
+  align-items: center;
   color: #ffffff;
+  display: inline-flex;
   font-size: 0.95rem;
+  min-height: 44px;
+  padding: 0 var(--space-1);
 }
 
 .nav-button {
@@ -105,7 +113,7 @@
   border: 1px solid rgb(255 255 255 / 0.7);
   border-radius: 8px;
   color: #ffffff;
-  min-height: 36px;
+  min-height: 44px;
   padding: 6px 12px;
 }
 
@@ -189,6 +197,21 @@
   opacity: 0.72;
 }
 
+/* The single contrast-validated orange key action (sign-in brand moment; later the live Connect).
+   Keyed to --color-accent-500 = --pmi-orange (~5.18–5.9:1 on white); NEVER --pmi-orange-bright.
+   Disabled state still falls back to the muted .primary-button:disabled rule (higher specificity). */
+.primary-button--accent {
+  background: var(--color-accent-500);
+  border-color: var(--color-accent-500);
+  color: var(--pmi-white);
+}
+
+.primary-button--accent:hover,
+.primary-button--accent:active {
+  background: var(--color-primary-700);
+  border-color: var(--color-primary-700);
+}
+
 .auth-actions {
   display: grid;
   gap: 12px;
@@ -223,6 +246,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
+  overflow-wrap: anywhere;
   overflow-x: auto;
   padding: 12px;
   white-space: pre-wrap;
@@ -298,11 +322,11 @@
 }
 
 .pmi-dot {
-  color: var(--pmi-orange-bright);
+  color: var(--pmi-orange-on-dark);
 }
 
 .pmi-tagline {
-  color: var(--pmi-orange-bright);
+  color: var(--pmi-orange-on-dark);
   font-size: 0.95rem;
   font-weight: 650;
   letter-spacing: 0.04em;

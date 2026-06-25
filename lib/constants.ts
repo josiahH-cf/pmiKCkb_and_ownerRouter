@@ -5,6 +5,8 @@ export const PRODUCT_NAME = "PMI KC KB";
 // These are observed brand facts; PRODUCT_NAME above remains the operational product name.
 export const PMI_WORDMARK = "pmi.";
 export const PMI_TAGLINE = "the property management people";
+// Confirmed brand fact (docs/brand_pack/): the publisher/company name. Text-only; no asset involved.
+export const PMI_COMPANY = "Property Management Inc.";
 
 export const LEASE_RENEWAL_AGENT_NAME = "Lease Renewal Agent";
 export const GMAIL_INBOX_ZERO_NAME = "Gmail Inbox 0";

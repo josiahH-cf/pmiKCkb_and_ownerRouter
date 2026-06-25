@@ -101,6 +101,7 @@ export function RenewalWorkspace({
           <div className="ui-stack">
             <p className="muted">{DRAFT_BANNER} · not sent</p>
             <Tabs
+              ariaLabel="Tenant offer channel"
               tabs={[
                 {
                   id: "email",

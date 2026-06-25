@@ -90,7 +90,7 @@ function ActionableLeaseCard({ lease }: Readonly<{ lease: DeskLeaseSummary }>) {
     <Card>
       <div className="ui-stack">
         <div className="ui-spread">
-          <strong>{lease.addressLabel}</strong>
+          <h3 className="ui-card-title">{lease.addressLabel}</h3>
           {lease.openConflicts > 0 ? (
             <StatusPill value="Action Required">
               {lease.openConflicts} source conflict{lease.openConflicts === 1 ? "" : "s"}

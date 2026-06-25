@@ -153,7 +153,7 @@ export function SignInPanel({
   return (
     <div className="auth-actions">
       <button
-        className="primary-button"
+        className="primary-button primary-button--accent"
         disabled={isBusy}
         onClick={handleSignIn}
         type="button"

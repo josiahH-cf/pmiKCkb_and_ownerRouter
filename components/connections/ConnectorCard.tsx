@@ -48,8 +48,12 @@ export function ConnectorCard({ item }: Readonly<{ item: ConnectorView }>) {
               </div>
             ) : null}
             <div className="ui-row">
-              <Button disabled>{connectLabel}</Button>
-              <span className="muted">Available in the next release.</span>
+              <Button aria-describedby={`connect-note-${def.id}`} disabled>
+                {connectLabel}
+              </Button>
+              <span className="muted" id={`connect-note-${def.id}`}>
+                Available in the next release.
+              </span>
             </div>
           </div>
         </Disclosure>

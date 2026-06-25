@@ -130,6 +130,31 @@ describe("Tabs", () => {
       "true",
     );
   });
+
+  it("names the tablist and supports roving tabindex + arrow-key navigation", async () => {
+    const user = userEvent.setup();
+    render(
+      <Tabs
+        ariaLabel="Channel"
+        tabs={[
+          { id: "email", label: "Email", content: <p>Email body</p> },
+          { id: "portal", label: "Portal", content: <p>Portal body</p> },
+          { id: "text", label: "Text", content: <p>Text body</p> },
+        ]}
+      />,
+    );
+    expect(screen.getByRole("tablist", { name: "Channel" })).toBeInTheDocument();
+    const email = screen.getByRole("tab", { name: "Email" });
+    const text = screen.getByRole("tab", { name: "Text" });
+    expect(email).toHaveAttribute("tabindex", "0");
+    expect(text).toHaveAttribute("tabindex", "-1");
+
+    email.focus();
+    await user.keyboard("{ArrowLeft}"); // wraps from the first tab to the last
+    expect(screen.getByText("Text body")).toBeInTheDocument();
+    expect(text).toHaveAttribute("tabindex", "0");
+    expect(text).toHaveFocus();
+  });
 });
 
 describe("EmptyState, Disclosure, PageHeader, ModeChip", () => {

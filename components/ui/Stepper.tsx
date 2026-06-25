@@ -33,6 +33,13 @@ export function Stepper({
               {state === "done" ? "✓" : index + 1}
             </span>
             <span>
+              <span className="sr-only">
+                {state === "done"
+                  ? "Completed: "
+                  : state === "current"
+                    ? "Current step: "
+                    : "Upcoming: "}
+              </span>
               <span className="ui-step-label">{step.label}</span>
               {step.meta ? <span className="ui-step-meta muted">{step.meta}</span> : null}
             </span>

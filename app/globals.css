@@ -27,9 +27,22 @@ button {
   cursor: pointer;
 }
 
+/* Respect reduced-motion: gate every transition/animation (the .ui-disclosure caret is the first). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 :focus-visible {
   outline: 3px solid var(--color-accent-500); /* provisional orange — visible ring on light surfaces */
   outline-offset: 2px;
+  box-shadow: 0 0 0 1px var(--color-bg); /* contrasting halo so the ring stays visible on/near accents */
 }
 
 /* Brighter orange ring on the dark topbar for stronger contrast on black. */
@@ -187,7 +200,7 @@ button {
 
 .compact-button {
   margin-top: 8px;
-  min-height: 34px;
+  min-height: 40px;
   padding: 6px 10px;
 }
 
@@ -395,8 +408,8 @@ button {
 .queue-pill[data-value="Ready for Approval"],
 .queue-pill[data-value="Medium"],
 .queue-pill[data-value="Needs Attention"] {
-  background: var(--color-accent-100);
-  border-color: var(--color-accent-500);
+  background: #fff7e6; /* amber status — kept distinct from the brand orange accent */
+  border-color: var(--state-partial);
 }
 
 .queue-pill[data-value="Low"],
@@ -486,7 +499,7 @@ button {
   display: inline-flex;
   font-weight: 700;
   gap: 8px;
-  min-height: 36px;
+  min-height: 44px;
   padding: 6px 10px;
 }
 
@@ -1093,6 +1106,16 @@ button {
 }
 
 /* Tabs */
+.ui-tabs {
+  min-width: 0;
+}
+
+.ui-card-title {
+  font-size: 1rem;
+  font-weight: 800;
+  margin: 0;
+}
+
 .ui-tablist {
   border-bottom: 1px solid var(--color-border);
   display: flex;
@@ -1106,8 +1129,8 @@ button {
   border-bottom: 2px solid transparent;
   color: var(--color-text-muted);
   font-weight: 700;
-  min-height: 40px;
-  padding: 8px 12px;
+  min-height: 44px;
+  padding: 10px 12px;
 }
 
 .ui-tab[aria-selected="true"] {
@@ -1146,7 +1169,25 @@ button {
   cursor: pointer;
   font-weight: 700;
   list-style: none;
-  padding: 12px 16px;
+  padding: 12px 36px 12px 16px;
+  position: relative;
+}
+
+.ui-disclosure > summary::after {
+  border-bottom: 2px solid var(--color-primary-700);
+  border-right: 2px solid var(--color-primary-700);
+  content: "";
+  height: 7px;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-65%) rotate(45deg);
+  transition: transform 150ms ease;
+  width: 7px;
+}
+
+.ui-disclosure[open] > summary::after {
+  transform: translateY(-35%) rotate(225deg);
 }
 
 .ui-disclosure > summary::-webkit-details-marker {
@@ -1223,5 +1264,100 @@ button {
 
   .ui-step {
     flex-basis: 100%;
+  }
+}
+
+/* ---- Responsive tiers (additive; nothing changes at desktop widths) ---- */
+
+/* Tier T — laptop / tablet */
+@media (max-width: 1024px) {
+  .nav {
+    gap: var(--space-2) var(--space-3);
+  }
+}
+
+/* Tablet two-up stepper — follows the 760px .ui-step rule above so it wins for 481–760px. */
+@media (max-width: 760px) and (min-width: 481px) {
+  .ui-step {
+    flex-basis: calc(50% - var(--space-2));
+  }
+}
+
+/* Tier P — phones */
+@media (max-width: 560px) {
+  .content {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  .grid.two {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    padding: var(--space-4);
+  }
+
+  .topbar {
+    gap: var(--space-3);
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  .nav {
+    gap: var(--space-2);
+    width: 100%;
+  }
+
+  .ui-step {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .ui-tablist {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .ui-tab {
+    padding: 10px var(--space-2);
+    white-space: nowrap;
+  }
+
+  .ui-spread {
+    align-items: flex-start;
+  }
+
+  .draft-box {
+    padding: var(--space-2);
+  }
+}
+
+/* Tier XS — small phones */
+@media (max-width: 400px) {
+  .content {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+
+  .section-title,
+  .ui-page-header h1 {
+    font-size: 1.4rem;
+  }
+
+  .auth-page {
+    padding: var(--space-4);
+  }
+
+  .ui-metric-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+
+  .ui-metric {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .ui-metric-value {
+    font-size: 1.35rem;
   }
 }

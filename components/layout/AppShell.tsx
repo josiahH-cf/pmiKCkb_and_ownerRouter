@@ -4,7 +4,7 @@ import { SignOutButton } from "@/components/auth/SignOutButton";
 import { NotificationMenu } from "@/components/layout/NotificationMenu";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import { PRODUCT_NAME } from "@/lib/constants";
+import { PMI_WORDMARK, PRODUCT_NAME } from "@/lib/constants";
 
 const navItems = [
   { href: "/ask", label: "Ask" },
@@ -24,8 +24,8 @@ export function AppShell({
         <Link
           className="brand"
           href="/ask"
-          aria-label={PRODUCT_NAME}
-          title={PRODUCT_NAME}
+          aria-label={`${PMI_WORDMARK} · ${PRODUCT_NAME}`}
+          title={`${PMI_WORDMARK} · ${PRODUCT_NAME}`}
         >
           <PmiWordmark variant="inline" />
         </Link>
