@@ -21,7 +21,7 @@ export const CONNECTORS: readonly ConnectorDef[] = [
   {
     id: "rentvine",
     name: "RentVine",
-    powers: "Leases, tenants, and rent — the read-authoritative source of truth.",
+    powers: "Leases, tenants, and rent.",
     method: "api_key",
     healthCheckRef: "health.rentvine.api_key",
     requiredConfig: ["RENTVINE_API_BASE_URL", "RENTVINE_API_KEY", "RENTVINE_API_SECRET"],

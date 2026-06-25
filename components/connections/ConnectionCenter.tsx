@@ -11,7 +11,7 @@ export function ConnectionCenter({ view }: Readonly<{ view: ConnectionCenterView
     <div className="ui-stack">
       <PageHeader
         actions={<ModeChip>Read-only preview</ModeChip>}
-        subtitle="Connect the systems that power your workflows. PMI handles the credentials and verification for you."
+        subtitle="Connect the systems that power your workflows. PMI handles the setup for you."
         title="Connections"
       />
 

@@ -30,10 +30,9 @@ describe("ConnectionCenter", () => {
     expect(screen.getByText("Ready to verify")).toBeInTheDocument();
     expect(screen.getAllByText("Not connected").length).toBeGreaterThan(0);
 
-    // The guided wizard surfaces what PMI verifies and an app-managed connect CTA.
-    expect(screen.getAllByText("Available in the next release.").length).toBeGreaterThan(
-      0,
-    );
+    // The guided "Set up" wizard still renders; the dead future-promise control is gone.
+    expect(screen.getByText("Set up RentVine")).toBeInTheDocument();
+    expect(screen.queryByText("Available in the next release.")).not.toBeInTheDocument();
 
     // No env var name (or secret value) ever appears in the UI.
     expect(document.body.textContent).not.toContain("RENTVINE_API_KEY");
