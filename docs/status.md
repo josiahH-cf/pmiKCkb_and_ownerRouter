@@ -5145,3 +5145,31 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
 - Verification: `format:check`, `lint`, `typecheck`, `npm test`, `verify:router-boundary`,
   `verify:falsification`, `verify:context-freshness`, `check:budget-guard` re-run green (docs-only slice;
   no runtime change, so `build` unaffected).
+
+## Client Beta Deploy — New UI Live for Dan to Preview (2026-06-26)
+
+- Owner-directed: push the current front end so Dan can log in and preview the beta, gated explicitly on
+  the app using real Google auth for the `pmikcmetro.com` domain. Verified true before deploying: the
+  `deploy:demo` path ships `LOCAL_DEMO_AUTH=false`, `ASK_DEMO_MODE=false`, `NODE_ENV=production`, and
+  `ALLOWED_HD=pmikcmetro.com`, and `lib/config/server.ts` fences demo-auth off in production.
+- Pre-deploy gates (all green): `npm run check:budget-guard` (demo posture, $10 cap, no override), a local
+  `npm run build` (clean), and `gcloud` identity `josiah@pmikcmetro.com` on `pmi-kc-kb-prod`.
+- Deployed via `npm run deploy:demo -- --budget-confirmed` (a one-time interactive `gcloud auth login`
+  was needed first; the prior token had expired). Cloud Build + Cloud Run succeeded: revision
+  `pmi-kc-kb-demo-00005-dxx` serving 100% of traffic. Service URLs:
+  `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app` (canonical, Firebase-authorized — give Dan this one)
+  and `https://pmi-kc-kb-demo-558870356522.us-central1.run.app`. The deploy's "Setting IAM policy failed"
+  warning was harmless: the prior `allUsers`→`run.invoker` binding carried over; both URLs return 200 and
+  serve the real sign-in page (verified `allowedHostedDomain=pmikcmetro.com`, `localDemoEnabled=false`).
+- Access model: a new `pmikcmetro.com` user with no role claim defaults to `Editor`
+  (`lib/auth/session.ts:readFirebaseRole`), so Dan can sign in and see the Renewal Desk + main app with no
+  pre-provisioning. To grant Connections/Admin, run `npm run firebase:set-role -- --email=dan@pmikcmetro.com
+--role=Admin` AFTER his first sign-in (the script does `getUserByEmail`, so the account must exist).
+- Scope/governance: the deployed front end is the new UI (Renewal Desk, Connection Center, PMI brand) from
+  `feat/s2-voice-copy` @ `16626f1`. The live renewal review stays owner-gated, so Dan's preview shows
+  sample desk data, not live client data. No SoR write, no autonomous send, reads only; every Action
+  Registry entry stays `production_allowed:false`; `$10` cap intact; `pmikcmetro.com` identity only.
+- Tooling added this session (not a product slice): the weekly client status routine is now the
+  `/friday-update` command (`.claude/commands/friday-update.md`) plus a Friday ~6am scheduled task
+  (`friday-client-status-update`). It drafts the client email from the week's commits + `status.md` /
+  `loop-state.md` / `client-checklist.md` in operator voice; Josiah reviews and sends (no autonomous send).

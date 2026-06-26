@@ -13,7 +13,14 @@ stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-06-25
+- Last updated: 2026-06-26
+- 2026-06-26 (Client beta deploy — owner-directed): pushed the current front end (new Renewal Desk /
+  Connection Center / PMI brand UI from `feat/s2-voice-copy`) to the `pmi-kc-kb-demo` Cloud Run service on
+  `pmi-kc-kb-prod` so Dan can log in and preview. Real Google auth, locked to `pmikcmetro.com`, demo-auth
+  OFF; both service URLs return 200 + the real sign-in page (give Dan
+  `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`). New `pmikcmetro.com` users default to `Editor`, so no
+  pre-provisioning. Budget guard green, $10 cap intact; live renewal review stays owner-gated (preview shows
+  sample data). Weekly client-status routine added as the `/friday-update` command + a Friday 6am task.
 - 2026-06-25 (S3 discovery prep — solo, no build): assembled the turnkey
   `docs/products/lease-renewal-discovery-packet.md` (per-column validation template, golden-data
   archetypes, acceptance-criteria checklist, RentVine↔sheet mapping, per-gate + write-back decisions);
