@@ -5049,3 +5049,127 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   files), `verify:context-freshness`, `check:budget-guard`, and `npm run build` all PASS. No app/lib/
   components/auth code touched, so connections, the `pmikcmetro.com` identity path, and admin gating are
   unaffected.
+
+## S2 Voice & Copy — Connection Center Copy Pass (2026-06-25)
+
+- S2 from the golden next-step set (`docs/meta-prompts/golden-next.md`) and
+  `docs/feature-suites/voice-copy.md`: bring the Connection Center (`/connections`) copy to the voice
+  standard in `docs/voice-and-audience.md`. Owner-confirmed scope this session: the three enumerated
+  strings plus the page subtitle; the future-framed "Set up" wizard copy (honestly bounded by the
+  "Read-only preview" chip) is left for the Phase-2b "unify once verification is real" pass.
+- **Changed (all on the Connections surface):**
+  - `lib/connections/connector-catalog.ts` — RentVine `powers` dropped the internal phrase → "Leases,
+    tenants, and rent."
+  - `components/connections/ConnectorCard.tsx` — deleted the dead disabled "Connect" control + the
+    "Available in the next release." note; removed the now-unused `Button` import.
+  - `lib/connections/connection-status.ts` — Ready-to-verify `detail` rewritten to "Ready to
+    connect." (label "Ready to verify" kept as connection vocabulary).
+  - `components/connections/ConnectionCenter.tsx` — page subtitle dropped the not-live verification
+    promise → "PMI handles the setup for you."
+- **Tests:** updated `connection-center-component.test.tsx` (negative assertion for the removed
+  control; the "Set up RentVine" wizard still renders) and `connection-status.test.ts` (locks the new
+  "Ready to connect." detail); added a lexicon guard (no "source of truth" in any connector `powers`).
+- **Context:** added `F-VOICE` (Verified) to `docs/facts.md` with four Supersede Log rows
+  (`COPY-RV-SOT`, `COPY-NEXT-RELEASE`, `COPY-VERIFY-CONNECT`, `COPY-SUBTITLE-VERIFY`, each
+  replaced-by `F-VOICE`); updated `docs/loop-state.md`. `docs/voice-and-audience.md` was already in
+  the `AGENTS.md` Route Table.
+- **Gates:** no SoR write, no autonomous send, no env/model change → the $10 budget guard and every
+  Action Registry `production_allowed:false` entry are untouched; `pmikcmetro.com` identity only.
+- Verification: `format:check`, `lint`, `typecheck`, `npm test` (**697/697 across 90 files**, +2 the
+  new connector-copy guard), `verify:router-boundary`, `verify:falsification` (**461 committable
+  files**), `verify:context-freshness`, `check:budget-guard`, and `npm run build` all PASS. Falsified
+  by sweep: the removed strings survive in no runtime `.ts/.tsx/.css` — only the component test's
+  negative assertion references one. `/connections` is Admin-gated, so the component test (renders the
+  real `ConnectionCenter`) is the authoritative render proof rather than a browser preview.
+
+## S9 Local-Model Provider Seam + Live-Data Harness (2026-06-25)
+
+- S9 from the golden next-step set (`docs/meta-prompts/golden-next.md`) and
+  `docs/feature-suites/local-model.md`: a thin model-provider seam so a free local model can stand in
+  for Gemini via the same Ask answer path, fenced from prod, enabling zero-cloud-spend live-data
+  testing. Closes `F-LOCALMODEL-GAP`.
+- **Built:**
+  - `lib/llm/model-provider.ts` (new): narrow `ModelProvider { generateText }` with
+    `GoogleGenAiModelProvider` (wraps `GoogleGenAI(...).models`) and `LocalModelProvider`
+    (OpenAI-compatible `POST {baseUrl}/v1/chat/completions` via an injected fetch transport that
+    mirrors RentVine's `createFetchTransport`), plus `createModelFetchTransport` and a
+    `createModelProvider` factory. `AnswerGenerationSetupError` moved here (re-exported by
+    `lib/llm/answer.ts`) so `/api/ask` still maps provider setup failures to 503.
+  - `lib/llm/answer.ts`: `GoogleGenAiAnswerGenerator` now delegates to a `ModelProvider`
+    (`options.provider`, or `options.models` for back-compat, else `createModelProvider(config)`).
+  - `lib/config/server.ts`: `MODEL_PROVIDER` (enum, default `gemini`), `LOCAL_MODEL_BASE_URL`,
+    `LOCAL_MODEL_NAME`; `modelProvider` is forced to `gemini` when `NODE_ENV=production` (mirrors
+    `localDemoAuth`).
+  - `scripts/check-budget-guard.mjs`: `MODEL_PROVIDER=local` is a free generative path (skips the
+    Gemini model-name error) but every other check (single-Space, notifications, away-mode) stands; a
+    warning notes Vertex retrieval + Gmail still bill.
+  - `scripts/smoke-local-ask.ts` (`npm run smoke:ask-local`, opt-in/manual): runs the Ask path through
+    `LocalModelProvider` + an injected grounding fixture (built-in synthetic, or `--fixture=`) at zero
+    cloud spend; DRY by default, `--live` calls the local endpoint, skips cleanly when none is set.
+    Output is shape-only. Not in `scripts/verify.sh` (CI has no local model).
+- **Tests:** new `tests/unit/model-provider.test.ts` (provider selection, prod-fence, local request/
+  response mapping via a fake transport, Gemini mapping, setup errors); extended `budget-guard` (local
+  path green; gemini+Pro and local+extra-Spaces still fail) and `server-config` (defaults + prod-fence).
+  `tests/unit/llm-answer.test.ts` stays green unedited via the `options.models` back-compat path.
+- **Context:** replaced `F-LOCALMODEL-GAP` with `F-LOCALMODEL-SEAM` (Verified) in `docs/facts.md` +
+  a Supersede Log row; merged the S2 orphan `F-VOICE`/`COPY-*` rows back into their tables;
+  updated `docs/feature-suites/local-model.md` and `docs/loop-state.md`.
+- **Gates:** no SoR write; no autonomous send; no cloud spend added (local path is free, demo stays
+  default, prod stays Gemini); $10 cap and every Action Registry `production_allowed:false` entry
+  untouched; `pmikcmetro.com` / localhost-in-boundary identity only.
+- Verification: `format:check`, `lint`, `typecheck`, `npm test` (**710/710 across 91 files**, +13 the
+  new model-provider / budget-guard / server-config cases), `verify:router-boundary`,
+  `verify:falsification` (**464 committable files**), `verify:context-freshness`, `check:budget-guard`,
+  and `npm run build` all PASS. Falsified end-to-end: the budget-guard script passes for
+  `MODEL_PROVIDER=local` + Pro (free path, warning emitted) yet still fails for `gemini` + Pro; the
+  `F-LOCALMODEL-GAP` marker is absent from the 7 governance docs; DRY + no-endpoint `smoke:ask-local`
+  exercised (clean skip).
+
+## S3 Lease-Renewal Discovery Prep (2026-06-25)
+
+- The solo-doable part of S3 (`docs/feature-suites/lease-renewal.md`) while the build stays team-gated:
+  turn the existing discovery material into one turnkey, team-fillable validation packet so the team's
+  validation round is plug-and-play. No build, no golden data committed, no SoR write.
+- **Added** `docs/products/lease-renewal-discovery-packet.md`: consolidated open decisions
+  (confirm-with-default, citing `lease-renewal-build-plan.md` §7 / `research-backlog.md`); a per-column
+  validation template for the "Lease Renewal" tab (canonical keys from `lib/lease-renewal/headers.ts`);
+  golden-data archetypes to assemble in-boundary (simple / inherited-tenant / conflict / missing-fact /
+  edge "the math"); an acceptance-criteria failure-mode checklist; a RentVine↔sheet field-mapping
+  confirmation table (pre-filled from `lib/integrations/rentvine/lease-mapper.ts`); a per-approval-gate
+  spec; and the `Q-WRITEBACK-METHOD` A/B/C decision. Pre-filled cells are cited from existing docs/code;
+  team-answer cells are blank — nothing invented.
+- **Registered** the packet in the `AGENTS.md` route table ("Renewal discovery validation (team)").
+  `docs/loop-state.md` marks slice 4 next + team-gated.
+- Data governance (`A-DATA-GOV`): the packet routes real golden records to `docs/client_docs/`
+  (gitignored) and itself holds only definitions/templates/expected outcomes — no real values.
+- Verification: `format:check`, `lint`, `typecheck`, `npm test`, `verify:router-boundary`,
+  `verify:falsification`, `verify:context-freshness`, `check:budget-guard` re-run green (docs-only slice;
+  no runtime change, so `build` unaffected).
+
+## Client Beta Deploy — New UI Live for Dan to Preview (2026-06-26)
+
+- Owner-directed: push the current front end so Dan can log in and preview the beta, gated explicitly on
+  the app using real Google auth for the `pmikcmetro.com` domain. Verified true before deploying: the
+  `deploy:demo` path ships `LOCAL_DEMO_AUTH=false`, `ASK_DEMO_MODE=false`, `NODE_ENV=production`, and
+  `ALLOWED_HD=pmikcmetro.com`, and `lib/config/server.ts` fences demo-auth off in production.
+- Pre-deploy gates (all green): `npm run check:budget-guard` (demo posture, $10 cap, no override), a local
+  `npm run build` (clean), and `gcloud` identity `josiah@pmikcmetro.com` on `pmi-kc-kb-prod`.
+- Deployed via `npm run deploy:demo -- --budget-confirmed` (a one-time interactive `gcloud auth login`
+  was needed first; the prior token had expired). Cloud Build + Cloud Run succeeded: revision
+  `pmi-kc-kb-demo-00005-dxx` serving 100% of traffic. Service URLs:
+  `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app` (canonical, Firebase-authorized — give Dan this one)
+  and `https://pmi-kc-kb-demo-558870356522.us-central1.run.app`. The deploy's "Setting IAM policy failed"
+  warning was harmless: the prior `allUsers`→`run.invoker` binding carried over; both URLs return 200 and
+  serve the real sign-in page (verified `allowedHostedDomain=pmikcmetro.com`, `localDemoEnabled=false`).
+- Access model: a new `pmikcmetro.com` user with no role claim defaults to `Editor`
+  (`lib/auth/session.ts:readFirebaseRole`), so Dan can sign in and see the Renewal Desk + main app with no
+  pre-provisioning. To grant Connections/Admin, run `npm run firebase:set-role -- --email=dan@pmikcmetro.com
+--role=Admin` AFTER his first sign-in (the script does `getUserByEmail`, so the account must exist).
+- Scope/governance: the deployed front end is the new UI (Renewal Desk, Connection Center, PMI brand) from
+  `feat/s2-voice-copy` @ `16626f1`. The live renewal review stays owner-gated, so Dan's preview shows
+  sample desk data, not live client data. No SoR write, no autonomous send, reads only; every Action
+  Registry entry stays `production_allowed:false`; `$10` cap intact; `pmikcmetro.com` identity only.
+- Tooling added this session (not a product slice): the weekly client status routine is now the
+  `/friday-update` command (`.claude/commands/friday-update.md`) plus a Friday ~6am scheduled task
+  (`friday-client-status-update`). It drafts the client email from the week's commits + `status.md` /
+  `loop-state.md` / `client-checklist.md` in operator voice; Josiah reviews and sends (no autonomous send).

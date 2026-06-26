@@ -46,6 +46,7 @@
     "preflight:identity": "node scripts/preflight-identity.mjs",
     "preflight:production": "node scripts/preflight-production-cutover.mjs",
     "preflight:rentvine": "node scripts/preflight-rentvine.mjs",
+    "smoke:ask-local": "tsx scripts/smoke-local-ask.ts",
     "smoke:rentvine-read": "tsx scripts/smoke-rentvine-read.ts",
     "smoke:sheet-read": "tsx scripts/smoke-sheet-read.ts",
     "smoke:renewal-review": "tsx scripts/smoke-renewal-review.ts",

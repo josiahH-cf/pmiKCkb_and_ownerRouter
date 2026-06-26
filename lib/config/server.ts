@@ -79,6 +79,9 @@ const EnvSchema = z.object({
     .toLowerCase()
     .default("false")
     .transform((value) => value === "true" || value === "1"),
+  LOCAL_MODEL_BASE_URL: OptionalStringSchema,
+  LOCAL_MODEL_NAME: z.string().trim().min(1).default("local-model"),
+  MODEL_PROVIDER: z.enum(["gemini", "local"]).default("gemini"),
   NEXT_PUBLIC_FIREBASE_API_KEY: OptionalStringSchema,
   NEXT_PUBLIC_FIREBASE_APP_ID: OptionalStringSchema,
   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: OptionalStringSchema,
@@ -111,6 +114,11 @@ export function readServerConfig(env: Environment = process.env) {
     kbApprovalRecipients: parsed.KB_APPROVAL_RECIPIENTS,
     kbApprovalSender: parsed.KB_APPROVAL_SENDER,
     localDemoAuth: parsed.LOCAL_DEMO_AUTH && process.env.NODE_ENV !== "production",
+    localModelBaseUrl: parsed.LOCAL_MODEL_BASE_URL,
+    localModelName: parsed.LOCAL_MODEL_NAME,
+    // The local provider is dev/test-only; force Gemini in production (mirrors localDemoAuth).
+    modelProvider:
+      process.env.NODE_ENV === "production" ? "gemini" : parsed.MODEL_PROVIDER,
     spaceDriveFolderIds: parsed.SPACE_DRIVE_FOLDER_IDS,
     spaceVertexDataStoreIds: parsed.SPACE_VERTEX_DATA_STORE_IDS,
     vertexAiLocation: parsed.VERTEX_AI_LOCATION,

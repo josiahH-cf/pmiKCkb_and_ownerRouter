@@ -13,7 +13,28 @@ stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-06-25
+- Last updated: 2026-06-26
+- 2026-06-26 (Client beta deploy — owner-directed): pushed the current front end (new Renewal Desk /
+  Connection Center / PMI brand UI from `feat/s2-voice-copy`) to the `pmi-kc-kb-demo` Cloud Run service on
+  `pmi-kc-kb-prod` so Dan can log in and preview. Real Google auth, locked to `pmikcmetro.com`, demo-auth
+  OFF; both service URLs return 200 + the real sign-in page (give Dan
+  `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`). New `pmikcmetro.com` users default to `Editor`, so no
+  pre-provisioning. Budget guard green, $10 cap intact; live renewal review stays owner-gated (preview shows
+  sample data). Weekly client-status routine added as the `/friday-update` command + a Friday 6am task.
+- 2026-06-25 (S3 discovery prep — solo, no build): assembled the turnkey
+  `docs/products/lease-renewal-discovery-packet.md` (per-column validation template, golden-data
+  archetypes, acceptance-criteria checklist, RentVine↔sheet mapping, per-gate + write-back decisions);
+  registered it in the `AGENTS.md` route table. The actual validation + golden data stay team-gated.
+- 2026-06-25 (S9 Local-model provider seam): added `lib/llm/model-provider.ts` (narrow `ModelProvider`
+  with Gemini + local OpenAI-compatible adapters), a `MODEL_PROVIDER`/`LOCAL_MODEL_*` config switch
+  fenced from prod, budget-guard awareness of the free local path, and `npm run smoke:ask-local`
+  (zero-spend: local generation + injected grounding fixture). Flipped `F-LOCALMODEL-GAP` →
+  `F-LOCALMODEL-SEAM`. No SoR write; no cloud spend added; budget guard green.
+- 2026-06-25 (S2 Voice & Copy — Connection Center copy pass): rewrote internal jargon, deleted the
+  dead "next release" control, and removed the not-live verification over-claim across the
+  Connections surface (`connector-catalog`/`ConnectorCard`/`connection-status` + the page subtitle);
+  added a lexicon guard test and the `F-VOICE` fact with Supersede Log rows. No SoR write; no
+  env/model change; budget guard untouched.
 - 2026-06-25 (governance recalibration + feature-suite scaffolding — owner-directed): stood up the
   solidified-context spine `docs/facts.md` (Fact Ledger + Supersede Log + Open Questions), the
   `npm run verify:context-freshness` gate (`scripts/check-context-freshness.mjs` +
@@ -38,13 +59,14 @@ stop-and-reset rules.
 
 Per the approved golden next-step set (`docs/meta-prompts/golden-next.md`), in order:
 
-1. Land the governance spine + gate (this cycle) and keep it green in CI.
-2. Voice & Copy pass — read-only string fixes grounded in `docs/voice-and-audience.md`
-   (`docs/feature-suites/voice-copy.md`); deletes future-promise / over-claim copy.
-3. Local-model provider seam + live-data harness (`docs/feature-suites/local-model.md`) — free, fences
-   from prod, de-risks later model work.
-4. Lease-renewal discovery only (golden data + column meanings + process truth) — no build until the
-   team validates (`docs/feature-suites/lease-renewal.md`).
+1. Done — governance spine + gate; keep it green in CI.
+2. Done (2026-06-25) — Voice & Copy pass on the Connection Center surface
+   (`docs/feature-suites/voice-copy.md`); `F-VOICE` recorded.
+3. Done (2026-06-25) — Local-model provider seam + live-data harness
+   (`docs/feature-suites/local-model.md`); `F-LOCALMODEL-SEAM` recorded.
+4. **Next (team-gated)** — Lease-renewal discovery. Turnkey validation packet is ready
+   (`docs/products/lease-renewal-discovery-packet.md`); no build until the team validates process,
+   columns, and the golden data set (`docs/feature-suites/lease-renewal.md`).
 
 Hold maintenance intake (`docs/feature-suites/maintenance-intake.md`) and the cross-product glue
 (`docs/feature-suites/cross-product.md`) until S3's facts and the storage/write-back choices are

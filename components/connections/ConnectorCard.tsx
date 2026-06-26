@@ -2,7 +2,7 @@
 // "Set up" wizard. App-managed: the wizard explains that PMI stores credentials and runs the
 // verification (no .env edits, no CLI). Server component; never renders a secret or an env var name.
 
-import { Button, Card, Disclosure, StatusDot } from "@/components/ui";
+import { Card, Disclosure, StatusDot } from "@/components/ui";
 import {
   connectorConnectLabel,
   connectorMethodBadge,
@@ -47,14 +47,6 @@ export function ConnectorCard({ item }: Readonly<{ item: ConnectorView }>) {
                 </ul>
               </div>
             ) : null}
-            <div className="ui-row">
-              <Button aria-describedby={`connect-note-${def.id}`} disabled>
-                {connectLabel}
-              </Button>
-              <span className="muted" id={`connect-note-${def.id}`}>
-                Available in the next release.
-              </span>
-            </div>
           </div>
         </Disclosure>
       </div>

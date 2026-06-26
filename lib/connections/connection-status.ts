@@ -78,7 +78,7 @@ export function classifyConnector(
     ...base,
     state: "action",
     label: "Ready to verify",
-    detail: "All details provided — PMI will verify and connect.",
+    detail: "Ready to connect.",
   };
 }
 

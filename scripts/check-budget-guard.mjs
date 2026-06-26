@@ -36,6 +36,9 @@ export function readBudgetGuardConfig(env = process.env, localEnv = readLocalEnv
     // Unset answer model defaults to the expensive Pro model, mirroring check-live-cost.mjs
     // so the guard is conservative when the model is not pinned.
     geminiAnswerModel: readString(readEnv("GEMINI_MODEL_ANSWER")) ?? PRO_MODEL,
+    // "local" routes generation to a free local model (lib/llm/model-provider.ts); the Gemini
+    // model-name check does not apply. Anything else (incl. unset) is treated as Gemini.
+    modelProvider: readString(readEnv("MODEL_PROVIDER")) ?? "gemini",
     liveSpaceIds: configuredKeys(
       readJsonMap(
         readEnv("SPACE_VERTEX_DATA_STORE_IDS") ?? "{}",
@@ -58,6 +61,7 @@ export function evaluateBudgetGuard(config, options = {}) {
   const warnings = [];
   const cap = config.budgetCapUsd ?? BUDGET_CAP_USD;
   const live = !config.askDemoMode;
+  const localGenerative = config.modelProvider === "local";
   const awayModeActive = Boolean(options.awayModeActive);
 
   if (awayModeActive && options.allowPro) {
@@ -79,7 +83,11 @@ export function evaluateBudgetGuard(config, options = {}) {
   }
 
   if (live) {
-    if (config.geminiAnswerModel !== CHEAP_LIVE_MODEL && !options.allowPro) {
+    if (localGenerative) {
+      warnings.push(
+        `Generation is routed to a free local model (MODEL_PROVIDER=local), so the Gemini model check is skipped. Vertex AI Search retrieval and Gmail sends still bill against the $${cap} cap — inject a grounding fixture for zero-spend live-data tests.`,
+      );
+    } else if (config.geminiAnswerModel !== CHEAP_LIVE_MODEL && !options.allowPro) {
       errors.push(
         `Live mode is on (ASK_DEMO_MODE=false) with GEMINI_MODEL_ANSWER=${config.geminiAnswerModel}. Use ${CHEAP_LIVE_MODEL}, or pass --allow-pro only after explicit budget approval; ${PRO_MODEL} bills more against the $${cap} cap.`,
       );

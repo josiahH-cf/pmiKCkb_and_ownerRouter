@@ -34,6 +34,8 @@ describe("classifyConnector", () => {
     });
     expect(status.state).toBe("action");
     expect(status.label).toBe("Ready to verify");
+    // Detail stays plain and present-true — no not-yet-live verification promise.
+    expect(status.detail).toBe("Ready to connect.");
     expect(status.configuredCount).toBe(3);
   });
 
@@ -53,6 +55,20 @@ describe("classifyConnector", () => {
 
   it("is Connected once verified", () => {
     expect(classifyConnector(rentvine, {}, true).state).toBe("connected");
+  });
+});
+
+describe("connector copy voice", () => {
+  // Lexicon guard (docs/voice-and-audience.md): no internal jargon in client-facing copy, so
+  // later suites inherit the standard. F-VOICE in docs/facts.md records this pass.
+  it("keeps internal jargon out of every connector's powers line", () => {
+    for (const def of CONNECTORS) {
+      expect(def.powers).not.toMatch(/source of truth/i);
+    }
+  });
+
+  it("describes RentVine in plain operator terms", () => {
+    expect(rentvine.powers).toBe("Leases, tenants, and rent.");
   });
 });
 

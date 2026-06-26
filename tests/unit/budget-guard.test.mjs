@@ -64,6 +64,38 @@ describe("budget guard", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("skips the Gemini model check when generation is routed to a local model", () => {
+    const result = evaluateBudgetGuard({
+      ...cheapLive,
+      modelProvider: "local",
+      geminiAnswerModel: "gemini-2.5-pro",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.warnings.join(" ")).toContain("MODEL_PROVIDER=local");
+    expect(result.warnings.join(" ")).toContain("retrieval");
+  });
+
+  it("still enforces the single-Space limit under the local provider", () => {
+    const result = evaluateBudgetGuard({
+      ...cheapLive,
+      modelProvider: "local",
+      liveSpaceIds: ["lease-renewals", "owner-onboarding"],
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(" ")).toContain("--allow-multiple-spaces");
+  });
+
+  it("defaults MODEL_PROVIDER to gemini and reads local from the environment", () => {
+    expect(readBudgetGuardConfig({ ASK_DEMO_MODE: "false" }, {}).modelProvider).toBe(
+      "gemini",
+    );
+    expect(readBudgetGuardConfig({ MODEL_PROVIDER: "local" }, {}).modelProvider).toBe(
+      "local",
+    );
+  });
+
   it("rejects extra live Spaces without --allow-multiple-spaces", () => {
     const result = evaluateBudgetGuard({
       ...cheapLive,
