@@ -73,8 +73,33 @@ export interface SeedResult {
   action: "created" | "updated" | "skipped";
 }
 
-/** Idempotent writer. Existing + !force -> skip. force -> update, preserving the original created_at.
- *  ISO timestamps come from `now` (injectable for deterministic tests). */
+/** Generic idempotent writer for ANY Draft process-definition record. Refuses executable references,
+ *  then: existing + !force -> skip; force -> update preserving the original created_at; else create. ISO
+ *  timestamps come from `now` (injectable for deterministic tests). Reused by every process seed. */
+export async function seedProcessDefinition(options: {
+  db: SeedFirestore;
+  record: SeedableDefinition;
+  force?: boolean;
+  now: string;
+}): Promise<SeedResult> {
+  assertNoExecutableReferences(options.record);
+
+  const ref = options.db.collection(PROCESS_DEFINITIONS_COLLECTION).doc(options.record.id);
+  const snapshot = await ref.get();
+  if (snapshot.exists && !options.force) {
+    return { id: options.record.id, action: "skipped" };
+  }
+
+  const existing = snapshot.data();
+  const createdAt =
+    snapshot.exists && typeof existing?.created_at === "string"
+      ? (existing.created_at as string)
+      : options.now;
+  await ref.set({ ...options.record, created_at: createdAt, updated_at: options.now });
+  return { id: options.record.id, action: snapshot.exists ? "updated" : "created" };
+}
+
+/** Idempotent writer for the Lease Renewal definition (builds the record, then the generic writer). */
 export async function seedLeaseRenewalDefinition(options: {
   db: SeedFirestore;
   ownerUid: string;
@@ -88,19 +113,10 @@ export async function seedLeaseRenewalDefinition(options: {
     approverUid: options.approverUid,
     sourceLinks: options.sourceLinks,
   });
-  assertNoExecutableReferences(record);
-
-  const ref = options.db.collection(PROCESS_DEFINITIONS_COLLECTION).doc(record.id);
-  const snapshot = await ref.get();
-  if (snapshot.exists && !options.force) {
-    return { id: record.id, action: "skipped" };
-  }
-
-  const existing = snapshot.data();
-  const createdAt =
-    snapshot.exists && typeof existing?.created_at === "string"
-      ? (existing.created_at as string)
-      : options.now;
-  await ref.set({ ...record, created_at: createdAt, updated_at: options.now });
-  return { id: record.id, action: snapshot.exists ? "updated" : "created" };
+  return seedProcessDefinition({
+    db: options.db,
+    record,
+    force: options.force,
+    now: options.now,
+  });
 }

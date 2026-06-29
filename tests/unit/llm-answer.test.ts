@@ -160,6 +160,8 @@ function config(overrides: Partial<ServerConfig> = {}): ServerConfig {
     modelProvider: "gemini",
     speechLanguageCode: "en-US",
     speechProvider: "stub",
+    maintenanceImageFolderId: "",
+    imageStore: "stub",
     spaceDriveFolderIds: {
       "lease-renewals": "folder-1",
     },
