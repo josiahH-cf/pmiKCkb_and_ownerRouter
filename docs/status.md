@@ -5427,3 +5427,23 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
     transport), non-2xx error, empty results. Updated four full-config test fixtures for the new fields.
 - 776/776 tests; typecheck + lint clean; falsification (499 files) + context-freshness pass. No SoR write;
   no cloud spend (stub in dev); production_allowed:false throughout.
+
+## Slice 5c: Maintenance capture desk (/maintenance) (2026-06-29)
+
+- Shipped the dedicated capture UI the owner chose (`F-MAINT-CAPTURE-UI`):
+  - `app/maintenance/page.tsx` — edit-gated page (capture is editor work).
+  - `components/maintenance/MaintenanceCapture.tsx` — typed issue + tap-to-record voice (browser
+    MediaRecorder → base64 → `/api/maintenance/transcribe` → transcript appended) + unit + priority;
+    "Build work-order draft" runs the pure `buildWorkOrderDraft` and shows a live preview (summary,
+    description, priority, unit, blockers) marked "Simulation only — the RentVine create is gated".
+    Gracefully degrades when the browser lacks MediaRecorder.
+  - `lib/spaces.ts` — `spaceHref` opens the Maintenance space at `/maintenance` (mirrors lease-renewals),
+    so it's reachable from the Spaces dropdown.
+  - Tests: `maintenance-capture.test.tsx` (3 — renders, clean draft, blockers); updated the home-launcher
+    test for the new href. 779/779 total.
+- Browser-verified on the dev server: `/maintenance` renders the capture form (Issue, Record voice, Unit,
+  Priority, Build) with no console errors; the edit-gate correctly redirects an unauthenticated request to
+  sign-in. (Re-auth'd local demo mode to view it; the dev session had expired.)
+- Verification: typecheck + lint clean; falsification (502 files) + context-freshness pass. No SoR write;
+  no cloud spend (STT stub in dev); production_allowed:false throughout.
+- Remaining maintenance sub-slices: Drive image-store adapter (photo storage); process-definition seed.

@@ -39,7 +39,7 @@ describe("OperationsConsoleHome", () => {
     });
     expect(links).toContainEqual({
       name: "Maintenance Work Order Intake",
-      href: "/spaces/maintenance-work-order-intake",
+      href: "/maintenance",
     });
   });
 });

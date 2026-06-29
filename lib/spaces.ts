@@ -45,8 +45,11 @@ export const launchSpaces: readonly LaunchSpace[] = [
   },
 ] as const;
 
-/** Where a launch space opens. Lease Renewals has a built operator desk; every other space opens its
- *  space detail. Centralized so the home launcher and the Spaces directory stay consistent. */
+/** Where a launch space opens. Lease Renewals and Maintenance Work Order Intake have built operator
+ *  desks; every other space opens its space detail. Centralized so the home launcher and the Spaces
+ *  directory stay consistent. */
 export function spaceHref(space: Pick<LaunchSpace, "id">): string {
-  return space.id === "lease-renewals" ? "/lease-renewal" : `/spaces/${space.id}`;
+  if (space.id === "lease-renewals") return "/lease-renewal";
+  if (space.id === "maintenance-work-order-intake") return "/maintenance";
+  return `/spaces/${space.id}`;
 }
