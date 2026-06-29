@@ -13,9 +13,6 @@ function baseRequest(
   return {
     ask: {
       question: "How do renewals work?",
-      audience: "Unknown",
-      channel: "Other",
-      urgency: "Normal",
       draft_enabled: true,
     },
     grounding: {

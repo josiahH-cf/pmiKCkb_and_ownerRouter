@@ -84,11 +84,8 @@ describe("Gemini answer contract", () => {
     await expect(
       generator.generateAnswer({
         ask: {
-          audience: "Owner",
-          channel: "Gmail",
           draft_enabled: true,
           question: "What is the renewal workflow?",
-          urgency: "Normal",
         },
         grounding: {
           citations: [

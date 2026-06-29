@@ -10,12 +10,9 @@ describe("Ask log writer", () => {
     await writer.write({
       groundingSourceIds: ["source-1"],
       request: {
-        audience: "Owner",
-        channel: "Gmail",
         draft_enabled: true,
         question: "What is the renewal process?",
         space: "lease-renewals",
-        urgency: "Normal",
       },
       response: {
         answer: "Use the approved renewal SOP.",

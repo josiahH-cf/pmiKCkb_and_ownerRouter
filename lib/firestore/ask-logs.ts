@@ -29,8 +29,6 @@ export class FirestoreAskLogWriter implements AskLogWriter {
       created_at: FieldValue;
     } = {
       answer: input.response.answer,
-      audience: input.request.audience,
-      channel: input.request.channel,
       citations: input.response.citations,
       draft: input.response.draft,
       escalation_owner: input.response.escalation_owner,
@@ -39,7 +37,6 @@ export class FirestoreAskLogWriter implements AskLogWriter {
       question: input.request.question,
       space_id: input.request.space,
       source_state: input.response.source_state,
-      urgency: input.request.urgency,
       user_uid: input.user.uid,
       created_at: FieldValue.serverTimestamp(),
     };

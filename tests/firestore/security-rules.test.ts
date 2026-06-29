@@ -144,15 +144,12 @@ describe("Firestore security rules", () => {
     await assertFails(
       setDoc(doc(db, "ask_logs/log-1"), {
         answer: "Forged answer.",
-        audience: "Owner",
-        channel: "Gmail",
         citations: [],
         draft: "",
         grounding_source_ids: [],
         id: "log-1",
         question: "Can a client write Ask logs?",
         source_state: "Verified Source",
-        urgency: "Normal",
         user_uid: "editor-uid",
       }),
     );

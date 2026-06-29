@@ -41,11 +41,8 @@ describe("KB eval seed set", () => {
       const response = await answerQuestion(
         evalUser,
         {
-          audience: "Unknown",
-          channel: "Other",
           draft_enabled: true,
           question: evalCase.question,
-          urgency: "Normal",
         },
         {
           answerGenerator: evalAnswerGenerator,

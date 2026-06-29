@@ -4,9 +4,6 @@ import { setAuthResolverForTest } from "@/lib/auth/session";
 
 const validBody = {
   question: "What is the renewal process?",
-  audience: "Owner",
-  channel: "Gmail",
-  urgency: "Normal",
   draft_enabled: true,
 };
 const originalAskDemoMode = process.env.ASK_DEMO_MODE;

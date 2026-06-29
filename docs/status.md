@@ -5334,3 +5334,16 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   history left as-is (append-only). Recorded `F-PROD-CLOUD-MODEL`; saved a memory on the prod-plane policy.
 - Verification: typecheck + lint clean; full `npm test` + verify gates re-run on the branch (see merge
   entry). No SoR write; no cloud spend; production_allowed:false throughout.
+
+## Slice 2: AskRequest schema cleanup (2026-06-29)
+
+- Completed the action-console rescope on the backend: removed the now-vestigial audience/channel/urgency
+  from the AskRequest path entirely (they had been sent as constant defaults since R4a).
+  - `lib/schemas.ts` (AskRequestSchema), `lib/llm/prompt.ts` (prompt payload),
+    `components/ask/AskForm.tsx` (request body), `lib/firestore/ask-logs.ts` (ask-log writer), and
+    `lib/firestore/types.ts` (`AskLogRecord`) no longer carry the three fields.
+  - Updated the fixtures that referenced them (ask-route, ask-service, ask-log, ask-prompt, eval,
+    llm-answer, smoke-local-ask, firestore security-rules). Left every UNRELATED same-named concept alone
+    (approval-queue `audience_group`, SOP/template `audience`/`channel`).
+- Verification: 744/744 tests, typecheck + lint clean, falsification (486 files) + context-freshness pass.
+  No SoR write; no cloud spend.

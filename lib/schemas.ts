@@ -9,9 +9,6 @@ const CaptureSourceStates = [
 
 export const AskRequestSchema = z.object({
   question: z.string().trim().min(3),
-  audience: z.string().trim().default("Unknown"),
-  channel: z.string().trim().default("Other"),
-  urgency: z.string().trim().default("Normal"),
   draft_enabled: z.boolean().default(true),
   space: z.string().trim().optional(),
   // The process the question is asked in (action console). Optional; resolved server-side to context.
