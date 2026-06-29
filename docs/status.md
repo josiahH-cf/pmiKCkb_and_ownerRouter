@@ -5365,3 +5365,25 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   `ask-form.test.tsx` (+ the suggest-and-apply flow). 757/757 total.
 - Verification: typecheck + lint clean; falsification (491 files) + context-freshness pass; browser-checked
   `/ask` renders 200 with no console errors. No SoR write; no cloud spend; the model path is gated + manual.
+
+## Slice 4: R3 reconciliation math tuned to owner ground truth (2026-06-29)
+
+- Owner labeled the captured flags (renewal_date conflicts = false positives / "don't reconcile"; rent
+  conflicts = real High) and set precedence. Diagnosis: the RentVine lease-mapper mislabeled RentVine's
+  authoritative LEASE-END date as `renewal_date`, then reconciled it against the sheet's "Renewal Date"
+  column — which is the team's renewal WORKLOG/target, a different field. That mismatch produced the 15
+  false-positive renewal_date conflicts (the bulk of the noise).
+- Surgical fix (`F-RENEWAL-DATE-SEMANTICS`): `lib/integrations/rentvine/lease-mapper.ts` now emits the
+  lease-end as `lease_end_date` (no reconciliation spec) instead of `renewal_date`. The sheet's renewal_date
+  becomes single-source (worklog) → no false conflict. DEFAULT_FIELD_SPECS and the synthetic golden suite
+  are UNTOUCHED (they use hardcoded sample candidates, not the live mapper); only the live-mapper output
+  tests changed (`rentvine-lease-mapper`, `rentvine-live-run`, `rentvine-export`).
+- Precedence recorded (`F-RECON-PRECEDENCE`): RentVine authoritative for lease facts; sheet for worklog;
+  conflicts route to a human, never auto-picked. `Q-PREC-1` narrowed to just Dan's per-case manual override.
+- Real-data validation: an ADC-fresh live re-capture went from 17 → **2** candidate flags (both real
+  current_rent High, **0** renewal_date noise) across 25 live leases / 1,173 outcomes. Labeled the 2 as
+  accept → verified golden set (gitignored, in-boundary); the harness gate passes on it (0 false positives).
+- The committed regression guarantee is the live-mapper tests (esp. "live mapper feeds runRenewalPipeline →
+  only current_rent High"); the captured verified set is local-only (gitignored real data).
+- Verification: 757/757 tests, typecheck + lint clean, context-freshness + falsification pass. No SoR write;
+  no cloud spend (the re-capture is a read-only RentVine + Sheet read); production_allowed:false throughout.
