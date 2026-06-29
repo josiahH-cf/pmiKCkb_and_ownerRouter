@@ -14,46 +14,23 @@ stop-and-reset rules.
 ## Snapshot
 
 - Last updated: 2026-06-29
-- 2026-06-29 (Recalibration + R1 Operations Console spine — owner-directed): locked the north star to a
-  multi-process **operations console** (lease-renewal = process #1, not the app); `/ask` → an "action
-  console"; Spaces is the front-door dropdown; golden-data-first dev. Shipped R1 (platform spine + IA):
-  the home (`/`) is a launcher (Console entry + Spaces dropdown, renewals nested → `/lease-renewal`,
-  route preserved), nav drops the flat "Renewals" tab, "Ask"→"Console". Reused the existing
-  process-generic spine; no new backend; routes/role-gates preserved. Also merged the local-model
-  schema-constrained structured-output fix to `main`, then shipped R2 (golden-data harness + read-only
-  live capture, `F-GOLDEN-HARNESS`) and merged R1+R2 to `main`. Budget guard untouched; no SoR write.
-- 2026-06-26 (Client beta deploy — owner-directed): pushed the current front end (new Renewal Desk /
-  Connection Center / PMI brand UI from `feat/s2-voice-copy`) to the `pmi-kc-kb-demo` Cloud Run service on
-  `pmi-kc-kb-prod` so Dan can log in and preview. Real Google auth, locked to `pmikcmetro.com`, demo-auth
-  OFF; both service URLs return 200 + the real sign-in page (give Dan
-  `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`). New `pmikcmetro.com` users default to `Editor`, so no
-  pre-provisioning. Budget guard green, $10 cap intact; live renewal review stays owner-gated (preview shows
-  sample data). Weekly client-status routine added as the `/friday-update` command + a Friday 6am task.
-- 2026-06-25 (S3 discovery prep — solo, no build): assembled the turnkey
-  `docs/products/lease-renewal-discovery-packet.md` (per-column validation template, golden-data
-  archetypes, acceptance-criteria checklist, RentVine↔sheet mapping, per-gate + write-back decisions);
-  registered it in the `AGENTS.md` route table. The actual validation + golden data stay team-gated.
-- 2026-06-25 (S9 Local-model provider seam): added `lib/llm/model-provider.ts` (narrow `ModelProvider`
-  with Gemini + local OpenAI-compatible adapters), a `MODEL_PROVIDER`/`LOCAL_MODEL_*` config switch
-  fenced from prod, budget-guard awareness of the free local path, and `npm run smoke:ask-local`
-  (zero-spend: local generation + injected grounding fixture). Flipped `F-LOCALMODEL-GAP` →
-  `F-LOCALMODEL-SEAM`. No SoR write; no cloud spend added; budget guard green.
-- 2026-06-25 (S2 Voice & Copy — Connection Center copy pass): rewrote internal jargon, deleted the
-  dead "next release" control, and removed the not-live verification over-claim across the
-  Connections surface (`connector-catalog`/`ConnectorCard`/`connection-status` + the page subtitle);
-  added a lexicon guard test and the `F-VOICE` fact with Supersede Log rows. No SoR write; no
-  env/model change; budget guard untouched.
-- 2026-06-25 (governance recalibration + feature-suite scaffolding — owner-directed): stood up the
-  `docs/facts.md` spine + `verify:context-freshness` gate, re-tiered context intake, truncated this
-  file, and persisted feature-suite specs + meta-prompts. No product feature built. Full detail in
-  `docs/status.md`.
-- Prior active product context (2026-06-24): the lease-renewal review runs on REAL RentVine leases
-  (25 live) and the live "Lease Renewal" sheet read works via domain-wide delegation; the read/draft
-  pipeline is wired read-only, `production_allowed:false` throughout. The open calibration work is
-  tuning the reconciliation/severity rules so flags are accurate at a low false-positive rate — now
-  gated behind the team-validated golden data set (see `docs/feature-suites/lease-renewal.md`).
-- Operating mode: Normal owner-present coordination. Remote Away Mode is INACTIVE
-  (`docs/away-mode.md`). Budget cap remains a hard $10.
+- Where we are (2026-06-29 owner-present build cycle): the multi-process operations console is the north
+  star (lease-renewal = process #1). Shipped + merged to `main` this cycle: R1 spine+IA
+  (`F-OPS-CONSOLE-IA`), R2 golden harness (`F-GOLDEN-HARNESS`) + labeling round-trip (`F-GOLDEN-LABELING`),
+  R3 reconciliation math tuned to owner ground truth (`F-RENEWAL-DATE-SEMANTICS`, `F-RECON-PRECEDENCE`;
+  live re-capture 17->2 flags), R4 action console (`F-ACTION-CONSOLE`) + hybrid intent-detection
+  (`F-INTENT-DETECT`) + the audience/channel/urgency schema trim, "Bailey Placeholder"->"Open Placeholder"
+  (`F-OPEN-PLACEHOLDER`), and the full Maintenance Work Order Intake (`F-MAINT-INTAKE`, `F-STT-SEAM`,
+  `F-MAINT-CAPTURE-UI`, `F-MAINT-PHOTO`, `F-MAINT-SEED`, `F-DRIVE-DWD`). Maintenance photo capture -> team
+  Shared Drive sync is LIVE + round-trip-verified (keyless DWD as josiah@pmikcmetro.com, least-privilege
+  drive.file). ~802 tests; all gates green on every merge.
+- Production-plane fence verified (`F-PROD-CLOUD-MODEL`): prod forces Gemini + Drive; the local model,
+  demo auth, and the STT/image stubs are dev/test-only (NODE_ENV-fenced), never a prod dependency.
+- Earlier context (full history in `docs/status.md`): client beta deployed on the `pmi-kc-kb-demo` Cloud
+  Run service (`pmi-kc-kb-prod`); real Google auth locked to `pmikcmetro.com`; live RentVine (25 leases) +
+  Sheet (DWD) reads work; `production_allowed:false` throughout.
+- Operating mode: Normal owner-present coordination. Remote Away Mode INACTIVE (`docs/away-mode.md`); hard
+  $10 budget cap.
 
 ## Next Safe Slice Candidates
 
@@ -73,9 +50,11 @@ Recalibrated roadmap (owner-directed 2026-06-29 — a multi-process operations c
    process makes the answer process-aware (server-resolved context) and lets an editor start a SAFE
    simulation run. Schema trim + hybrid intent-detection (`F-INTENT-DETECT`) DONE. Follow-up: richer compose.
 
-5. Maintenance Work Order Intake — BUILT (2026-06-29), all gated: foundation (`F-MAINT-INTAKE`), STT seam
-   (`F-STT-SEAM`), `/maintenance` capture desk (`F-MAINT-CAPTURE-UI`), Drive photo store (`F-MAINT-PHOTO`),
-   seedable Draft (`F-MAINT-SEED`). Remaining: prod Drive folder id; live seed + RentVine create (owner/vendor-gated).
+5. Maintenance Work Order Intake — BUILT + Drive sync LIVE (2026-06-29), all gated: foundation
+   (`F-MAINT-INTAKE`), STT seam (`F-STT-SEAM`), `/maintenance` capture desk (`F-MAINT-CAPTURE-UI`), photo
+   store in a team Shared Drive (`F-MAINT-PHOTO`/`F-DRIVE-DWD`, round-trip-verified), seedable Draft
+   (`F-MAINT-SEED`). Remaining: SPACE_DRIVE_FOLDER_IDS in the prod Cloud Run env at deploy; live process
+   seed + RentVine work-order create (owner/vendor-gated).
 
 ## Active Blockers And Exact Client Asks
 
