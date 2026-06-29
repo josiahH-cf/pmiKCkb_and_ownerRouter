@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { SourceStateBanner } from "@/components/source-state-banner/SourceStateBanner";
+import { detectProcess } from "@/lib/processes/intent";
 import { launchSpaces } from "@/lib/spaces";
 import type { AskResponse } from "@/lib/schemas";
 
@@ -43,6 +44,7 @@ export function AskForm({
   const [statusMessage, setStatusMessage] = useState("");
   const [captureStatus, setCaptureStatus] = useState("");
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isDetecting, setIsDetecting] = useState(false);
 
   const showProcessPicker = canStartSimulation && processes.length > 0;
   const willSimulate = showProcessPicker && processId !== "";
@@ -53,6 +55,10 @@ export function AskForm({
       value: process.id,
     })),
   ];
+  // Intent-detection: when no process is picked yet, the deterministic matcher suggests one for free
+  // as the user types; the model-backed "Detect with AI" fallback runs only on explicit click.
+  const showDetectArea = showProcessPicker && processId === "" && question.trim().length >= 6;
+  const suggestion = showDetectArea ? detectProcess(question, processes) : null;
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -132,6 +138,30 @@ export function AskForm({
     setIsCapturing(false);
   }
 
+  async function detectWithAi() {
+    setIsDetecting(true);
+    setStatusMessage("");
+
+    const response = await fetch("/api/processes/classify", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ question }),
+    });
+
+    if (response.ok) {
+      const payload = (await response.json()) as { processId: string | null };
+      if (payload.processId) {
+        setProcessId(payload.processId);
+      } else {
+        setStatusMessage("No matching process found for this question.");
+      }
+    } else {
+      setStatusMessage(await readErrorMessage(response, "Could not detect a process."));
+    }
+
+    setIsDetecting(false);
+  }
+
   const canCapture = result ? capturableStates.has(result.source_state) : false;
   const submitLabel = isPending
     ? "Working"
@@ -164,6 +194,32 @@ export function AskForm({
               value={processId}
             />
           </div>
+        ) : null}
+
+        {showDetectArea ? (
+          suggestion ? (
+            <p className="muted">
+              Looks like <strong>{suggestion.name}</strong>.{" "}
+              <button
+                className="secondary-button"
+                onClick={() => setProcessId(suggestion.processId)}
+                type="button"
+              >
+                Use {suggestion.name}
+              </button>
+            </p>
+          ) : (
+            <p className="muted">
+              <button
+                className="secondary-button"
+                disabled={isDetecting}
+                onClick={detectWithAi}
+                type="button"
+              >
+                {isDetecting ? "Detecting…" : "Detect process with AI"}
+              </button>
+            </p>
+          )
         ) : null}
 
         {willSimulate ? (
