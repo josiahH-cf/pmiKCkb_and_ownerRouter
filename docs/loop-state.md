@@ -13,7 +13,15 @@ stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-06-26
+- Last updated: 2026-06-29
+- 2026-06-29 (Recalibration + R1 Operations Console spine — owner-directed): locked the north star to a
+  multi-process **operations console** (lease-renewal = process #1, not the app); `/ask` → an "action
+  console"; Spaces is the front-door dropdown; golden-data-first dev. Shipped R1 (platform spine + IA):
+  the home (`/`) is a launcher (Console entry + Spaces dropdown, renewals nested → `/lease-renewal`,
+  route preserved), nav drops the flat "Renewals" tab, "Ask"→"Console". Reused the existing
+  process-generic spine; no new backend; routes/role-gates preserved. Also merged the local-model
+  schema-constrained structured-output fix to `main`. `F-OPS-CONSOLE-IA` recorded; budget guard
+  untouched; no SoR write.
 - 2026-06-26 (Client beta deploy — owner-directed): pushed the current front end (new Renewal Desk /
   Connection Center / PMI brand UI from `feat/s2-voice-copy`) to the `pmi-kc-kb-demo` Cloud Run service on
   `pmi-kc-kb-prod` so Dan can log in and preview. Real Google auth, locked to `pmikcmetro.com`, demo-auth
@@ -36,17 +44,9 @@ stop-and-reset rules.
   added a lexicon guard test and the `F-VOICE` fact with Supersede Log rows. No SoR write; no
   env/model change; budget guard untouched.
 - 2026-06-25 (governance recalibration + feature-suite scaffolding — owner-directed): stood up the
-  solidified-context spine `docs/facts.md` (Fact Ledger + Supersede Log + Open Questions), the
-  `npm run verify:context-freshness` gate (`scripts/check-context-freshness.mjs` +
-  `tests/unit/facts-ledger.test.mjs`), re-tiered the context intake (Tier 0 = facts + this file;
-  Tier 1 = `AGENTS.md`, `docs/north-star.md`, the one active lane doc, `docs/plan.md`; Tier 2 =
-  on-demand via the Route Table), and **truncated this file** (the ~700-line changelog tail moved to
-  `docs/status.md`). Persisted feature-suite specs under `docs/feature-suites/` and three governance
-  meta-prompts under `docs/meta-prompts/`. No product feature was built; no SoR write; every Action
-  Registry entry stays `production_allowed:false`. Owner decisions captured as Open questions in
-  `docs/facts.md`: Renewals fold under a Processes dropdown (`Q-IA-RENEWALS`); Ask drops its four
-  selects and gains process-awareness + compose (`Q-ASK-RESCOPE`); renewal write-back method and
-  maintenance image storage stay undecided (`Q-WRITEBACK-METHOD`, `Q-MAINT-STORAGE`).
+  `docs/facts.md` spine + `verify:context-freshness` gate, re-tiered context intake, truncated this
+  file, and persisted feature-suite specs + meta-prompts. No product feature built. Full detail in
+  `docs/status.md`.
 - Prior active product context (2026-06-24): the lease-renewal review runs on REAL RentVine leases
   (25 live) and the live "Lease Renewal" sheet read works via domain-wide delegation; the read/draft
   pipeline is wired read-only, `production_allowed:false` throughout. The open calibration work is
@@ -57,19 +57,21 @@ stop-and-reset rules.
 
 ## Next Safe Slice Candidates
 
-Per the approved golden next-step set (`docs/meta-prompts/golden-next.md`), in order:
+Recalibrated roadmap (owner-directed 2026-06-29 — a multi-process operations console):
 
-1. Done — governance spine + gate; keep it green in CI.
-2. Done (2026-06-25) — Voice & Copy pass on the Connection Center surface
-   (`docs/feature-suites/voice-copy.md`); `F-VOICE` recorded.
-3. Done (2026-06-25) — Local-model provider seam + live-data harness
-   (`docs/feature-suites/local-model.md`); `F-LOCALMODEL-SEAM` recorded.
-4. **Next (team-gated)** — Lease-renewal discovery. Turnkey validation packet is ready
-   (`docs/products/lease-renewal-discovery-packet.md`); no build until the team validates process,
-   columns, and the golden data set (`docs/feature-suites/lease-renewal.md`).
+1. Done (2026-06-29) — R1 platform spine + IA (`F-OPS-CONSOLE-IA`): operations-console home, Spaces
+   front-door dropdown, renewals nested, "Ask"→"Console".
+2. **Next — R2 golden-data harness:** the zero-cost test backbone (live RentVine reads + Sheet copies →
+   labeled right/wrong/edge sets, in-boundary/gitignored; local-model verification); becomes the
+   acceptance gate for every workflow (ties `docs/feature-suites/tdd.md`).
+3. R3 — Lease Renewal as a real Space/Process: promote off the standalone demo via the existing process
+   template; bootstrap the reconciliation "math" against R2's golden set (team confirms column meanings
+   only) — the discovery packet (`docs/products/lease-renewal-discovery-packet.md`) feeds this.
+4. R4 — Action console (answer + run): make the Console process-aware, drop the four Ask selects, and
+   launch a grounded workflow end-to-end at zero spend (`Q-ASK-RESCOPE`).
 
-Hold maintenance intake (`docs/feature-suites/maintenance-intake.md`) and the cross-product glue
-(`docs/feature-suites/cross-product.md`) until S3's facts and the storage/write-back choices are
+Hold maintenance intake (`docs/feature-suites/maintenance-intake.md`) and cross-product glue
+(`docs/feature-suites/cross-product.md`) until R3's facts and the storage/write-back choices are
 owner-approved.
 
 ## Active Blockers And Exact Client Asks

@@ -1,5 +1,11 @@
 # S6 — UI / IA re-architecture (Renewals under a Processes dropdown)
 
+> **Status: built + reframed (R1, 2026-06-29 — `F-OPS-CONSOLE-IA`).** Shipped as a multi-process
+> operations-console home: Renewals nests under the **Spaces** front-door dropdown (not a Processes
+> dropdown), the home (`/`) is a launcher, and "Ask" is renamed "Console". The `/lease-renewal` route is
+> preserved. Admin-gating process creation is deferred. The spec below is kept for history; where it says
+> "Processes dropdown," read "Spaces dropdown."
+
 **Goal.** Resolve the IA open questions into one coherent navigation: fold **Renewals** under a
 **Processes** dropdown with sub-tabs, gate process _creation_ to admins, and tidy the Spaces tiles —
 without breaking working routes.

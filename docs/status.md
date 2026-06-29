@@ -5173,3 +5173,30 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   `/friday-update` command (`.claude/commands/friday-update.md`) plus a Friday ~6am scheduled task
   (`friday-client-status-update`). It drafts the client email from the week's commits + `status.md` /
   `loop-state.md` / `client-checklist.md` in operator voice; Josiah reviews and sends (no autonomous send).
+
+## R1 — Operations Console Spine + IA (2026-06-29)
+
+- Owner-directed recalibration: the product north star is a multi-process **operations console** —
+  lease-renewal is process #1, not the app. Four decisions locked: build a process-generic spine; `/ask`
+  becomes an "action console" (answer + run workflows); Spaces is the front-door dropdown on the home;
+  golden-data-first development.
+- Clean slate: committed the local-model schema-constrained structured-output fix (`response_format
+  json_schema` in `lib/llm/model-provider.ts` + empty-`escalation_owner` coercion in `lib/llm/answer.ts`),
+  merged `feat/s2-voice-copy` into `main`, pushed it, removed the stale branch, and cut
+  `feat/platform-spine-ia`.
+- Shipped R1 (platform spine + IA): the home (`/`) is now an operations-console launcher — a Console
+  entry plus a Spaces dropdown (12 processes; Lease Renewals first → `/lease-renewal`, others → space
+  detail) — instead of redirecting to `/ask`. Nav drops the flat "Renewals" tab, renames "Ask" →
+  "Console", and the brand + post-sign-in redirect land on the home launcher. Spaces tile copy
+  de-jargoned. New `components/home/OperationsConsoleHome.tsx`; added `spaceHref()` to `lib/spaces.ts`.
+- Reused the existing process-generic spine (`ProcessDefinitionRecord`/`WorkflowRunRecord`,
+  `app/processes/*`, the Action Registry, role-gating) — no new backend; all routes and role gates
+  preserved.
+- Context: flipped `Q-IA-RENEWALS` → `F-OPS-CONSOLE-IA` (Verified) in `docs/facts.md` with a Supersede
+  Log row (the earlier Processes-dropdown framing retired); updated `Q-ASK-RESCOPE` to point at R4;
+  updated `docs/loop-state.md` (recalibrated roadmap: R2 golden-data harness next).
+- Verification: `typecheck` + `lint` clean; `npm test` **713/713** (92 files, +2 the new
+  operations-console-home test); `verify:falsification` (468 files) + `verify:context-freshness` pass;
+  browser-checked via local demo auth (home launcher, nav without "Renewals", Spaces dropdown of 12
+  processes, sign-in → `/`, `/lease-renewal` still 200, `/ask` heading now "Console"). No SoR write; no
+  cloud spend; budget guard untouched.
