@@ -5347,3 +5347,21 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
     (approval-queue `audience_group`, SOP/template `audience`/`channel`).
 - Verification: 744/744 tests, typecheck + lint clean, falsification (486 files) + context-freshness pass.
   No SoR write; no cloud spend.
+
+## Slice 3: hybrid process intent-detection (2026-06-29)
+
+- The action console now infers the process from the question (`F-INTENT-DETECT`), prod-plane correct:
+  - `lib/processes/intent.ts` — pure, deterministic `detectProcess` (name tokens + domain aliases,
+    stopword-filtered). Free + instant; runs client-side as the user types. Suggests a process via a
+    "Use <name>" chip that sets the picker.
+  - `lib/processes/classify.ts` + `app/api/processes/classify/route.ts` — model-backed fallback through
+    the ModelProvider SEAM (Gemini in prod via `geminiClassifyModel`, local stand-in in dev). Edit-gated,
+    invoked ONLY on an explicit "Detect process with AI" click (the deterministic pass handles the common
+    case for free, so the cost path never fires automatically). Returns only a real listed id, never an
+    invented one.
+  - `components/ask/AskForm.tsx` — the suggestion chip + the AI-detect fallback button; manual picker
+    stays as override.
+- Tests: `process-intent.test.ts` (6), `process-classify.test.ts` (6, stubbed provider — offline/free),
+  `ask-form.test.tsx` (+ the suggest-and-apply flow). 757/757 total.
+- Verification: typecheck + lint clean; falsification (491 files) + context-freshness pass; browser-checked
+  `/ask` renders 200 with no console errors. No SoR write; no cloud spend; the model path is gated + manual.

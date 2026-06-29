@@ -115,6 +115,23 @@ describe("AskForm (action console)", () => {
     // The answer is process-aware: the /api/ask body carries the selected process id.
     expect(askBody(fetchMock).process_id).toBe("lease-renewal");
   });
+
+  it("suggests a process via deterministic intent-detection and applies it on click", async () => {
+    const user = userEvent.setup();
+    render(
+      <AskForm
+        canStartSimulation
+        processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
+      />,
+    );
+
+    await user.type(screen.getByLabelText("Question"), "When is the lease up for renewal?");
+    await user.click(await screen.findByRole("button", { name: "Use Lease Renewal" }));
+
+    expect(
+      screen.getByRole("button", { name: "Get answer + start simulation" }),
+    ).toBeInTheDocument();
+  });
 });
 
 /** Parse the JSON body of the /api/ask call (not /api/ask/capture). */

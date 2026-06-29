@@ -71,7 +71,7 @@ Recalibrated roadmap (owner-directed 2026-06-29 — a multi-process operations c
    → `golden:apply-labels` → tune the math vs. ground truth; (b) the live Firestore seed is OWNER-GATED.
 4. Done (2026-06-29) — R4 action console (`F-ACTION-CONSOLE`): the four Ask selects are retired; picking a
    process makes the answer process-aware (server-resolved context) and lets an editor start a SAFE
-   simulation run. The audience/channel/urgency schema trim is DONE. Follow-ups: intent-detect + compose.
+   simulation run. Schema trim + hybrid intent-detection (`F-INTENT-DETECT`) DONE. Follow-up: richer compose.
 
 Hold maintenance intake (`docs/feature-suites/maintenance-intake.md`) and cross-product glue
 (`docs/feature-suites/cross-product.md`) until R3's facts and the storage/write-back choices are

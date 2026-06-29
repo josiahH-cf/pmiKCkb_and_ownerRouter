@@ -45,6 +45,8 @@ non-failing staleness warning), or `—`.
 
 | F-OPEN-PLACEHOLDER | The source-state formerly labeled "Bailey Placeholder" is renamed to the plain-language "Open Placeholder" (a relevant SOP/source exists but its value is an open, unapproved placeholder). Resolves Q-BAILEY. | Verified | `lib/source-state.ts`; `lib/constants.ts`; `components/source-state-banner/SourceStateBanner.tsx` | 2026-06-29 | — | 2026-12-31 |
 
+| F-INTENT-DETECT | The action console infers the process from the question via a hybrid: a free deterministic name/alias matcher (`detectProcess`, client-side, prod-safe) suggests a process as the user types; a model-backed fallback (`classifyProcessWithModel` via the ModelProvider seam — Gemini prod / local dev) runs only on explicit click; the manual picker stays as override. Edit-gated; the model path is the only cost and never fires automatically. | Verified | `lib/processes/intent.ts`; `lib/processes/classify.ts`; `app/api/processes/classify/route.ts`; `components/ask/AskForm.tsx` | 2026-06-29 | — | 2026-12-31 |
+
 ## Supersede Log
 
 When new direction lands, delete the superseded rule from the active doc (do not append next to it),
