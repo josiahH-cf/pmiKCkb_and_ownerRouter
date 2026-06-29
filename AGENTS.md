@@ -106,6 +106,7 @@ route new work through the three-product docs.
 - Reset demo data: `npm run demo:reset`
 - Demo operator: `npm run demo:operator`
 - Live cost preflight: `npm run check:live-cost`
+- ADC freshness preflight: `npm run preflight:adc` — run FIRST (new session / planning) before any live Google read (Sheets/Firestore/Vertex); if it reports a stale token, reauth scope-free (`gcloud auth application-default login`) before building. See loop-state Resume Here.
 - GCP setup preflight: `npm run preflight:gcp -- --project=<id>` (`--live` for read-only state)
 - Cutover report: `npm run cutover:report -- --manifest=<path> --env-file=<path> --json`
 - Seed source metadata: `npm run seed:source-meta`

@@ -125,9 +125,12 @@ only from env/Secret Manager, never committed. Record only non-secret references
 
 1. Read `docs/facts.md`, then this file, then `docs/autonomous-agent-runner.md` and the latest
    `docs/status.md` entry.
-2. If the trigger is "plan the next feature cycle", produce a decision-complete packet and stop. If
+2. **ADC preflight — before any live Google read:** if the plan touches a live Sheets/Firestore/Vertex
+   read, run `npm run preflight:adc`; if it fails, the owner must reauth (`gcloud auth application-default
+   login`, josiah@pmikcmetro.com, NO --scopes) BEFORE building — a stale ADC token stalls the run mid-step.
+3. If the trigger is "plan the next feature cycle", produce a decision-complete packet and stop. If
    the trigger authorizes running the loop, proceed unattended.
-3. Pick the next slice from **Next Safe Slice Candidates** above; for lease-renewal, stay in discovery
+4. Pick the next slice from **Next Safe Slice Candidates** above; for lease-renewal, stay in discovery
    until the team validates the process, column meanings, and golden data.
-4. Keep every Action Registry entry `production_allowed:false`; honor the stop gate and the $10 cap.
-5. Update `docs/facts.md` and this file at each slice boundary; run `npm run verify:context-freshness`.
+5. Keep every Action Registry entry `production_allowed:false`; honor the stop gate and the $10 cap.
+6. Update `docs/facts.md` and this file at each slice boundary; run `npm run verify:context-freshness`.
