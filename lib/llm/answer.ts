@@ -24,7 +24,12 @@ const GeneratedAnswerSchema = z
     answer: z.string().trim().min(1),
     citations: z.array(CitationSchema),
     draft: z.string(),
-    escalation_owner: z.string().trim().min(1).optional(),
+    // Optional, but schema-constrained local models (and occasionally Gemini) emit it as an empty
+    // string rather than omitting it; treat "" as absent so a blank optional never fails validation.
+    escalation_owner: z.preprocess(
+      (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+      z.string().trim().min(1).optional(),
+    ),
     handling_steps: z.array(z.string().trim().min(1)),
     source_state: z.enum(SOURCE_STATES),
   })

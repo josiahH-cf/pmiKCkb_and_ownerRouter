@@ -138,6 +138,22 @@ export class LocalModelProvider implements ModelProvider {
   }
 
   async generateText(request: ModelTextRequest): Promise<ModelTextResponse> {
+    // Modern local servers (Ollama >= 0.5, LM Studio, vLLM) support OpenAI-style schema-constrained
+    // structured output — the local equivalent of Gemini's responseJsonSchema. When a schema is
+    // supplied, constrain decoding to it so the model emits the exact shape (objects, enums, types)
+    // instead of plausible-but-wrong JSON; fall back to loose JSON mode when no schema is given.
+    // Either way parseGeneratedAnswerText (fence strip) + the 2-attempt retry in answer.ts stay as a net.
+    const responseFormat = request.responseJsonSchema
+      ? {
+          type: "json_schema",
+          json_schema: {
+            name: "structured_output",
+            strict: true,
+            schema: request.responseJsonSchema,
+          },
+        }
+      : { type: "json_object" };
+
     const response = await this.transport.send({
       method: "POST",
       url: this.endpoint,
@@ -149,9 +165,7 @@ export class LocalModelProvider implements ModelProvider {
           { role: "user", content: request.userContent },
         ],
         temperature: request.temperature,
-        // Local servers do not honor Gemini's responseJsonSchema; ask for loose JSON mode and
-        // lean on parseGeneratedAnswerText (fence strip) + the 2-attempt retry in answer.ts.
-        response_format: { type: "json_object" },
+        response_format: responseFormat,
       }),
     });
 
