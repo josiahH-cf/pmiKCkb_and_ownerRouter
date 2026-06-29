@@ -24,6 +24,13 @@ export async function POST(request: Request) {
     return authErrorResponse(error);
   }
 
+  // Reject an oversized body via Content-Length BEFORE buffering it into memory (the Zod cap below only
+  // applies after json() has read the whole body). 64KB headroom for the JSON wrapper.
+  const declaredLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_IMAGE_BASE64 + 65_536) {
+    return NextResponse.json({ error: "Photo payload too large." }, { status: 413 });
+  }
+
   const payload = await request.json().catch(() => null);
   const parsed = PhotoRequestSchema.safeParse(payload);
   if (!parsed.success) {

@@ -42,7 +42,8 @@ export interface ImageHttpRequest {
   method: "POST";
   url: string;
   headers: Record<string, string>;
-  body: string;
+  /** String for text bodies; Uint8Array for binary uploads (the Drive media part is raw bytes). */
+  body: string | Uint8Array;
 }
 export interface ImageHttpResponse {
   status: number;
@@ -61,7 +62,7 @@ function createImageFetchTransport(timeoutMs = 30_000): ImageHttpTransport {
         const response = await fetch(request.url, {
           method: request.method,
           headers: request.headers,
-          body: request.body,
+          body: request.body as RequestInit["body"],
           signal: controller.signal,
         });
         const text = await response.text();
@@ -108,15 +109,21 @@ export class DriveMaintenanceImageStore implements MaintenanceImageStore {
     }
     const token = await this.getAccessToken();
     const metadata = { name: image.filename, parents: [this.folderId] };
-    const body =
+    // Drive's multipart upload treats the media part as RAW bytes — it does NOT decode
+    // Content-Transfer-Encoding. So the media part must be the decoded image bytes, not a base64 string;
+    // build the body as a Buffer (utf8 metadata + raw media + closing boundary).
+    const head =
       `--${MULTIPART_BOUNDARY}\r\n` +
       "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
       `${JSON.stringify(metadata)}\r\n` +
       `--${MULTIPART_BOUNDARY}\r\n` +
-      `Content-Type: ${image.mimeType}\r\n` +
-      "Content-Transfer-Encoding: base64\r\n\r\n" +
-      `${image.base64}\r\n` +
-      `--${MULTIPART_BOUNDARY}--`;
+      `Content-Type: ${image.mimeType}\r\n\r\n`;
+    const tail = `\r\n--${MULTIPART_BOUNDARY}--`;
+    const body = Buffer.concat([
+      Buffer.from(head, "utf8"),
+      Buffer.from(image.base64, "base64"),
+      Buffer.from(tail, "utf8"),
+    ]);
 
     const response = await this.transport.send({
       method: "POST",
@@ -132,7 +139,12 @@ export class DriveMaintenanceImageStore implements MaintenanceImageStore {
       throw new ImageStoreSetupError(`Drive upload returned HTTP ${response.status}.`);
     }
 
-    const payload = (await response.json()) as DriveFileResponse;
+    let payload: DriveFileResponse;
+    try {
+      payload = (await response.json()) as DriveFileResponse;
+    } catch {
+      throw new ImageStoreSetupError("Drive upload returned a non-JSON response.");
+    }
     if (!payload.id) {
       throw new ImageStoreSetupError("Drive upload returned no file id.");
     }

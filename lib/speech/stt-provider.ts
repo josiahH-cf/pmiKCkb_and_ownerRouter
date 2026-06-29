@@ -136,7 +136,12 @@ export class GoogleSpeechToTextProvider implements SpeechToTextProvider {
       throw new SpeechSetupError(`Speech-to-Text returned HTTP ${response.status}.`);
     }
 
-    const payload = (await response.json()) as RecognizeResponse;
+    let payload: RecognizeResponse;
+    try {
+      payload = (await response.json()) as RecognizeResponse;
+    } catch {
+      throw new SpeechSetupError("Speech-to-Text returned a non-JSON response.");
+    }
     const transcript = (payload.results ?? [])
       .map((result) => result.alternatives?.[0]?.transcript ?? "")
       .join(" ")

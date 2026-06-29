@@ -63,20 +63,24 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
       return;
     }
     setStatus("");
-    const stream = await media.getUserMedia({ audio: true });
-    const recorder = new MediaRecorder(stream);
-    const chunks: Blob[] = [];
-    recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) chunks.push(event.data);
-    };
-    recorder.onstop = async () => {
-      stream.getTracks().forEach((track) => track.stop());
-      setIsRecording(false);
-      await transcribe(new Blob(chunks, { type: recorder.mimeType || "audio/webm" }));
-    };
-    recorder.start();
-    recorderRef.current = recorder;
-    setIsRecording(true);
+    try {
+      const stream = await media.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunks.push(event.data);
+      };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        setIsRecording(false);
+        await transcribe(new Blob(chunks, { type: recorder.mimeType || "audio/webm" }));
+      };
+      recorder.start();
+      recorderRef.current = recorder;
+      setIsRecording(true);
+    } catch {
+      setStatus("Microphone unavailable or permission denied — type the note instead.");
+    }
   }
 
   async function handlePhoto(file: File) {

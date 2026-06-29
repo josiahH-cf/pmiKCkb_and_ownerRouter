@@ -61,8 +61,15 @@ describe("DriveMaintenanceImageStore", () => {
 
     expect(result).toEqual({ ref: "drive:file123", url: "https://drive/x" });
     expect(t.last?.headers.authorization).toBe("Bearer tok");
-    expect(t.last?.body).toContain("folder9");
-    expect(t.last?.body).toContain("AAAA");
+    // The body is a binary Buffer: metadata (folder + mime) as text, the media part as DECODED bytes —
+    // not the base64 text, and no Content-Transfer-Encoding header (Drive stores the media part raw).
+    const body = Buffer.from(t.last?.body as Uint8Array);
+    const bodyText = body.toString("latin1");
+    expect(bodyText).toContain("folder9");
+    expect(bodyText).toContain("image/jpeg");
+    expect(bodyText).not.toContain("AAAA");
+    expect(bodyText).not.toContain("Content-Transfer-Encoding");
+    expect(body.includes(Buffer.from("AAAA", "base64"))).toBe(true);
   });
 
   it("throws when no Drive folder is configured", async () => {
@@ -76,6 +83,23 @@ describe("DriveMaintenanceImageStore", () => {
   it("throws on a non-2xx response", async () => {
     const store = new DriveMaintenanceImageStore("f", {
       transport: transport(500, {}),
+      getAccessToken: async () => "t",
+    });
+    await expect(store.put(IMAGE)).rejects.toBeInstanceOf(ImageStoreSetupError);
+  });
+
+  it("throws ImageStoreSetupError on a 2xx with a non-JSON body", async () => {
+    const store = new DriveMaintenanceImageStore("f", {
+      transport: {
+        async send() {
+          return {
+            status: 200,
+            json: async () => {
+              throw new SyntaxError("not json");
+            },
+          };
+        },
+      },
       getAccessToken: async () => "t",
     });
     await expect(store.put(IMAGE)).rejects.toBeInstanceOf(ImageStoreSetupError);
