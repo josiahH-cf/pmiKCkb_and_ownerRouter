@@ -64,11 +64,11 @@ Recalibrated roadmap (owner-directed 2026-06-29 — a multi-process operations c
 2. Done (2026-06-29) — R2 golden-data harness + live capture (`F-GOLDEN-HARNESS`): pure evaluator +
    false-positive metric, synthetic gate, and a read-only `npm run golden:capture` writing gitignored
    golden drafts for team labeling.
-3. R3 — Lease Renewal as a real Space/Process. WIRING HALF DONE (2026-06-29, `F-RENEWAL-PROCESS-SEED`):
-   `npm run seed:process-definitions` builds a Draft definition at id `lease-renewal`; the /processes
-   catalog surfaces it and the Desk links to it (dry-run verified; live seed + activation deferred).
-   **MATH HALF still gated** on `golden:capture --live` (needs `gcloud auth application-default login`)
-   + team-verified column meanings + labels.
+3. R3 — Lease Renewal as a real Space/Process. WIRING + LABELING TOOLING DONE (2026-06-29,
+   `F-RENEWAL-PROCESS-SEED` + `F-GOLDEN-LABELING`): the Draft seeds at id `lease-renewal`; the golden
+   draft is captured and `golden:worksheet`/`golden:apply-labels` turn it into a team-verified set the
+   harness gates on. REMAINING: (a) team reviews `golden-data/worksheets/r3-bootstrap.worksheet.json`
+   → `golden:apply-labels` → tune the math vs. ground truth; (b) the live Firestore seed is OWNER-GATED.
 4. R4 — Action console (answer + run): make the Console process-aware, drop the four Ask selects, and
    launch a grounded workflow end-to-end at zero spend (`Q-ASK-RESCOPE`).
 

@@ -107,6 +107,8 @@ route new work through the three-product docs.
 - Demo operator: `npm run demo:operator`
 - Live cost preflight: `npm run check:live-cost`
 - ADC freshness preflight: `npm run preflight:adc` — run FIRST (new session / planning) before any live Google read (Sheets/Firestore/Vertex); if it reports a stale token, reauth scope-free (`gcloud auth application-default login`) before building. See loop-state Resume Here.
+- Golden-data capture (read-only, in-boundary): `npm run golden:capture -- --live` — writes a gitignored draft (counts-only stdout)
+- Golden-data labeling: `npm run golden:worksheet` (build a reviewer worksheet from a draft) → team reviews → `npm run golden:apply-labels -- --worksheet <path>` (write the `labelsVerified:true` set the harness gates on). In-boundary only; never invent labels.
 - GCP setup preflight: `npm run preflight:gcp -- --project=<id>` (`--live` for read-only state)
 - Cutover report: `npm run cutover:report -- --manifest=<path> --env-file=<path> --json`
 - Seed source metadata: `npm run seed:source-meta`
