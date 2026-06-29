@@ -64,10 +64,11 @@ Recalibrated roadmap (owner-directed 2026-06-29 — a multi-process operations c
 2. Done (2026-06-29) — R2 golden-data harness + live capture (`F-GOLDEN-HARNESS`): pure evaluator +
    false-positive metric, synthetic gate, and a read-only `npm run golden:capture` writing gitignored
    golden drafts for team labeling.
-3. **Next (gated) — R3 Lease Renewal as a real Space/Process:** promote off the standalone demo via the
-   existing process template; bootstrap the reconciliation "math" against captured golden data. Gated on
-   `golden:capture --live` (needs a `gcloud auth application-default login` reauth) + the team verifying
-   column meanings + labels. The wiring half (renewal → Process on the spine) can build now.
+3. R3 — Lease Renewal as a real Space/Process. WIRING HALF DONE (2026-06-29, `F-RENEWAL-PROCESS-SEED`):
+   `npm run seed:process-definitions` builds a Draft definition at id `lease-renewal`; the /processes
+   catalog surfaces it and the Desk links to it (dry-run verified; live seed + activation deferred).
+   **MATH HALF still gated** on `golden:capture --live` (needs `gcloud auth application-default login`)
+   + team-verified column meanings + labels.
 4. R4 — Action console (answer + run): make the Console process-aware, drop the four Ask selects, and
    launch a grounded workflow end-to-end at zero spend (`Q-ASK-RESCOPE`).
 

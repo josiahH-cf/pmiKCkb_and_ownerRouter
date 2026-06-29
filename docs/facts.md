@@ -38,6 +38,8 @@ non-failing staleness warning), or `—`.
 
 | F-GOLDEN-HARNESS    | A golden-data harness runs the reconciliation pipeline against ground-truth-labeled scenarios and measures the false-positive flag rate; a read-only live-capture tool writes gitignored, in-boundary golden drafts for team labeling; the gate enforces synthetic + human-verified captured sets. | Verified   | `lib/lease-renewal/golden/harness.ts`; `scripts/capture-golden-data.ts`; `tests/unit/lease-renewal-golden-harness.test.ts` | 2026-06-29  | —          | 2026-12-31 |
 
+| F-RENEWAL-PROCESS-SEED | Lease Renewal is seedable as a real Draft process definition at the fixed id 'lease-renewal' (buildLeaseRenewalDefinitionRecord + idempotent `npm run seed:process-definitions`), so the existing /processes catalog surfaces it and the Renewal Desk links to it. Draft + non-executable (no action reference 'Approved for Execution'); activation runs the existing lifecycle later; not yet applied to prod Firestore (dry-run verified). | Verified | `lib/lease-renewal/process-definition-seed.ts`; `scripts/seed-process-definitions.ts`; `components/lease-renewal/RenewalDesk.tsx` | 2026-06-29  | —          | 2026-12-31 |
+
 ## Supersede Log
 
 When new direction lands, delete the superseded rule from the active doc (do not append next to it),
