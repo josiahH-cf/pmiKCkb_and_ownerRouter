@@ -34,7 +34,7 @@ describe("auth guards", () => {
 
     const ask = await client.getHtml("/ask");
     expect(ask.response.status).toBe(200);
-    expect(ask.html).toContain("Ask");
+    expect(ask.html).toContain("Console");
 
     const admin = await client.getHtml("/admin");
     expect(admin.response.status).toBe(200);
@@ -74,6 +74,6 @@ describe("auth guards", () => {
     const response = await client.get("/sign-in");
 
     expect(response.status).toBe(307);
-    expect(locationPath(response)).toBe("/ask");
+    expect(locationPath(response)).toBe("/");
   });
 });

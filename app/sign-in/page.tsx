@@ -18,7 +18,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   const user = await getSignedInUser();
 
   if (user) {
-    redirect("/ask");
+    redirect("/");
   }
 
   const params = await searchParams;

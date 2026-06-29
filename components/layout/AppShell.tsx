@@ -7,11 +7,10 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { PMI_WORDMARK, PRODUCT_NAME } from "@/lib/constants";
 
 const navItems = [
-  { href: "/ask", label: "Ask" },
+  { href: "/ask", label: "Console" },
   { href: "/spaces", label: "Spaces" },
   { href: "/processes", label: "Processes" },
   { href: "/approval-queue", label: "Approval Queue" },
-  { href: "/lease-renewal", label: "Renewals" },
 ];
 
 export function AppShell({
@@ -23,7 +22,7 @@ export function AppShell({
       <header className="topbar">
         <Link
           className="brand"
-          href="/ask"
+          href="/"
           aria-label={`${PMI_WORDMARK} · ${PRODUCT_NAME}`}
           title={`${PMI_WORDMARK} · ${PRODUCT_NAME}`}
         >
