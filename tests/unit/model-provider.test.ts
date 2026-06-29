@@ -79,6 +79,29 @@ describe("LocalModelProvider", () => {
     expect(body.response_format).toEqual({ type: "json_object" });
   });
 
+  it("constrains decoding to the schema when a response schema is provided", async () => {
+    const { transport, calls } = recordingTransport();
+    const provider = new LocalModelProvider(
+      "http://localhost:1234",
+      "llama-local",
+      transport,
+    );
+    const schema = { type: "object", properties: { answer: { type: "string" } } };
+
+    await provider.generateText({
+      model: "ignored-by-local",
+      systemInstruction: "SYS",
+      userContent: "USER",
+      responseJsonSchema: schema,
+    });
+
+    const body = JSON.parse(calls[0].body);
+    expect(body.response_format).toEqual({
+      type: "json_schema",
+      json_schema: { name: "structured_output", strict: true, schema },
+    });
+  });
+
   it("rejects an empty base URL as a setup error", () => {
     const { transport } = recordingTransport();
     expect(() => new LocalModelProvider("", "m", transport)).toThrow(
