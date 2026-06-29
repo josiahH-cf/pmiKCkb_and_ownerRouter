@@ -5237,3 +5237,31 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
 - Verification: typecheck + lint (0 warnings) clean; npm test 723/723 (95 files); seed dry-run builds
   the Draft (8 steps, 6 non-executable references); verify:falsification (479 files) +
   verify:context-freshness pass. No SoR write; no cloud spend; production_allowed:false throughout.
+
+## R3 Math Half — Golden-data labeling round-trip (2026-06-29)
+
+- Built the keystone that unblocks R3's "math" half WITHOUT inventing ground truth: a labeling
+  round-trip that turns the live-captured draft into a team-verified golden set the harness already gates
+  on. Ground truth is the team's accept/reject/severity review — never the agent's guess.
+  - `lib/lease-renewal/golden/labeling.ts` — pure `buildWorksheet` (re-runs the deterministic pipeline to
+    surface each candidate flag's full reconciliation context: competing values, sources, timestamps,
+    suggested winner, severity) + `applyDecisions` (produces a `labelsVerified:true` set). `applyDecisions`
+    refuses an incomplete review (any PENDING decision, any unconfirmed field meaning) and a worksheet that
+    no longer matches the draft's pipeline flags — so no verified labels come from a half-filled sheet.
+  - `scripts/golden-labeling.ts` (`npm run golden:worksheet` / `golden:apply-labels`, tsx) — thin CLI;
+    reads/writes only under the gitignored, in-boundary `/golden-data/` tree; stdout is counts-only (no
+    cell values), mirroring `golden:capture`.
+  - `tests/unit/golden-labeling.test.ts` — 8 tests on the committable synthetic sample (no real data):
+    worksheet-per-flag, the incomplete-review refusals, and accept/reject/severity round-trips, including
+    that a rejection becomes a failing harness gate that drives the math tuning.
+  - Exported `ExpectedFlagSchema` + `CapturedScenarioSchema` from `lib/lease-renewal/golden/load.ts` for
+    reuse (no schema drift).
+- Ran `golden:worksheet` on the real captured draft (`r3-bootstrap.json`): 17 candidate flags across 2
+  fields under review; worksheet written to `golden-data/worksheets/` (gitignored). Did NOT run `apply` on
+  real data — that is the team's review step; applying accept-all would be inventing labels.
+- Recorded `F-GOLDEN-LABELING` in docs/facts.md.
+- Verification: typecheck + lint (0 warnings) clean; the new suite is 8/8; full `npm test` + verify gates
+  re-run on the branch (see merge entry). No SoR write; no cloud spend; production_allowed:false throughout.
+- Remaining R3: (a) the team reviews the worksheet → `golden:apply-labels` → the harness gate tunes the
+  reconciliation math against ground truth (Q-PREC-1 / Q-WRITEBACK-METHOD inform it); (b) the live
+  Firestore seed of the Draft definition stays OWNER-GATED (prod-facing — the client previews that project).

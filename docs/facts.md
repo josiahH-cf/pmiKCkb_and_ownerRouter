@@ -40,6 +40,8 @@ non-failing staleness warning), or `—`.
 
 | F-RENEWAL-PROCESS-SEED | Lease Renewal is seedable as a real Draft process definition at the fixed id 'lease-renewal' (buildLeaseRenewalDefinitionRecord + idempotent `npm run seed:process-definitions`), so the existing /processes catalog surfaces it and the Renewal Desk links to it. Draft + non-executable (no action reference 'Approved for Execution'); activation runs the existing lifecycle later; not yet applied to prod Firestore (dry-run verified). | Verified | `lib/lease-renewal/process-definition-seed.ts`; `scripts/seed-process-definitions.ts`; `components/lease-renewal/RenewalDesk.tsx` | 2026-06-29  | —          | 2026-12-31 |
 
+| F-GOLDEN-LABELING | A labeling round-trip converts a live-captured golden draft into a team-VERIFIED set without inventing ground truth: `golden:worksheet` re-runs the pipeline to surface each candidate flag's reconciliation context; the team records accept/reject/severity decisions; `golden:apply-labels` writes a `labelsVerified:true` set the harness gate enforces. apply refuses an incomplete review or a worksheet stale vs. the draft's pipeline flags; both tools read/write only the gitignored in-boundary /golden-data/ tree with counts-only stdout. | Verified | `lib/lease-renewal/golden/labeling.ts`; `scripts/golden-labeling.ts`; `tests/unit/golden-labeling.test.ts` | 2026-06-29  | —          | 2026-12-31 |
+
 ## Supersede Log
 
 When new direction lands, delete the superseded rule from the active doc (do not append next to it),

@@ -12,14 +12,14 @@ import type { GoldenScenario } from "@/lib/lease-renewal/golden/harness";
 
 export const DEFAULT_CAPTURED_DIR = "golden-data/captured";
 
-const ExpectedFlagSchema = z.object({
+export const ExpectedFlagSchema = z.object({
   tab: z.string(),
   sourceRowIndex: z.number(),
   fieldKey: z.string(),
   severity: z.enum(["High", "Blocked", "Medium", "Low"]),
 });
 
-const CapturedScenarioSchema = z.object({
+export const CapturedScenarioSchema = z.object({
   name: z.string().min(1),
   category: z.enum(["correct", "wrong", "edge"]),
   description: z.string(),
