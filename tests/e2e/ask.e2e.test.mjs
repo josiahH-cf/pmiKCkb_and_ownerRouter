@@ -53,6 +53,6 @@ describe("ask flow (demo mode)", () => {
     const { response, html } = await client.getHtml("/ask");
 
     expect(response.status).toBe(200);
-    expect(html).toContain("Ask");
+    expect(html).toContain("Console");
   });
 });

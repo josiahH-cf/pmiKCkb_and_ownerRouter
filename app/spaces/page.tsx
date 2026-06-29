@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { requirePageCapability } from "@/lib/auth/page-guards";
-import { launchSpaces } from "@/lib/spaces";
+import { launchSpaces, spaceHref } from "@/lib/spaces";
 
 export default async function SpacesPage() {
   const user = await requirePageCapability("read");
@@ -16,11 +16,11 @@ export default async function SpacesPage() {
               <h2>{space.name}</h2>
               <p className="muted">{space.processCategory}</p>
               {space.readOnly ? (
-                <p>Read-only source space</p>
+                <p className="muted">Reference space (read-only)</p>
               ) : (
-                <p>KB-owned process space</p>
+                <p className="muted">Process space</p>
               )}
-              <Link className="text-link" href={`/spaces/${space.id}`}>
+              <Link className="text-link" href={spaceHref(space)}>
                 Open Space
               </Link>
             </article>

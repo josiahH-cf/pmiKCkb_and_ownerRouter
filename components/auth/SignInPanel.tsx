@@ -57,7 +57,7 @@ export function SignInPanel({
         return;
       }
 
-      window.location.assign("/ask");
+      window.location.assign("/");
     } catch (error) {
       isCompletingSession.current = false;
       setStatus("error");
@@ -144,7 +144,7 @@ export function SignInPanel({
       return;
     }
 
-    window.location.assign("/ask");
+    window.location.assign("/");
   };
 
   const isBusy =

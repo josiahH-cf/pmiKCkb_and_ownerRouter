@@ -33,8 +33,8 @@ non-failing staleness warning), or `—`.
 | Q-WRITEBACK-METHOD  | The lease-renewal two-way-sync write-back method and "the math" are undecided (append-only proposal column vs cell-anchored compare-and-set vs RentVine-first).                                                               | Open       | S3 discovery + owner decision                                      | —           | —          | —          |
 | Q-MAINT-STORAGE     | Maintenance photo/screenshot storage is undecided (Drive in-boundary vs GCS vs RentVine file API).                                                                                                                            | Open       | S4 discovery + owner decision                                      | —           | —          | —          |
 | Q-BAILEY            | The "Bailey Placeholder" source-state label's meaning is unconfirmed; rewrite to plain language once confirmed.                                                                                                               | Open       | owner to confirm                                                   | —           | —          | —          |
-| Q-IA-RENEWALS       | Renewals will fold under a Processes dropdown with sub-tabs and process creation will be admin-gated (chosen this cycle; not yet built).                                                                                      | Open       | S6 build; preserve the `/lease-renewal` route                      | —           | —          | —          |
-| Q-ASK-RESCOPE       | Ask will drop Audience/Channel/Space/Urgency and become process-aware plus able to compose emails (chosen this cycle; not yet built).                                                                                         | Open       | S5 build                                                           | —           | —          | —          |
+| F-OPS-CONSOLE-IA    | The app is a multi-process operations console: the home (`/`) is a launcher (a Console entry + a Spaces dropdown); Renewals nests under the Spaces dropdown (→ `/lease-renewal`, route preserved) and the "Ask" surface is renamed "Console". Built on the existing process-generic spine; admin-gating process creation is deferred. | Verified   | `app/page.tsx`; `components/home/OperationsConsoleHome.tsx`; `components/layout/AppShell.tsx`; `lib/spaces.ts` | 2026-06-29  | —          | 2026-12-31 |
+| Q-ASK-RESCOPE       | The "Ask" surface was renamed "Console" (R1); the rescope — drop Audience/Channel/Space/Urgency, become process-aware, and compose/launch workflows — is the R4 action-console slice (not yet built).                          | Open       | R4 action console                                                  | —           | —          | —          |
 
 ## Supersede Log
 
@@ -51,6 +51,7 @@ rule still reads as active.
 | COPY-NEXT-RELEASE        | F-VOICE           | 2026-06-25 | `components/connections/ConnectorCard.tsx`    | Available in the next release.                        | Deleted the dead disabled control that advertised an unbuilt feature (S2).                                                                         |
 | COPY-VERIFY-CONNECT      | F-VOICE           | 2026-06-25 | `lib/connections/connection-status.ts`        | All details provided — PMI will verify and connect.   | Ready-to-verify detail rewritten to "Ready to connect."; verification is not live yet (S2).                                                        |
 | COPY-SUBTITLE-VERIFY     | F-VOICE           | 2026-06-25 | `components/connections/ConnectionCenter.tsx` | PMI handles the credentials and verification for you. | Connections subtitle dropped the not-live verification promise (S2).                                                                               |
+| Q-IA-RENEWALS            | F-OPS-CONSOLE-IA  | 2026-06-29 | `docs/facts.md`                               | fold under a Processes dropdown                        | Shipped as the operations-console home with Renewals under the Spaces dropdown (R1); the earlier Processes-dropdown framing is retired.            |
 
 ## Open Questions
 
@@ -63,5 +64,4 @@ live in `docs/research-backlog.md` and `docs/status.md`; resolve a question by f
 - **Q-WRITEBACK-METHOD** — choose the renewal write-back method and "the math" after the golden data set.
 - **Q-MAINT-STORAGE** — choose maintenance image storage.
 - **Q-BAILEY** — confirm the "Bailey Placeholder" meaning, then rewrite the user-facing label.
-- **Q-IA-RENEWALS** — build the Processes dropdown with Renewals as a sub-tab; admin-gate creation.
-- **Q-ASK-RESCOPE** — remove the four Ask selects; add process-awareness and email compose.
+- **Q-ASK-RESCOPE** — the "Ask"→"Console" rename shipped (R1); the rescope (drop the four selects, process-awareness, compose/launch) is the R4 action-console slice.
