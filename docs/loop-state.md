@@ -20,8 +20,8 @@ stop-and-reset rules.
   the home (`/`) is a launcher (Console entry + Spaces dropdown, renewals nested → `/lease-renewal`,
   route preserved), nav drops the flat "Renewals" tab, "Ask"→"Console". Reused the existing
   process-generic spine; no new backend; routes/role-gates preserved. Also merged the local-model
-  schema-constrained structured-output fix to `main`. `F-OPS-CONSOLE-IA` recorded; budget guard
-  untouched; no SoR write.
+  schema-constrained structured-output fix to `main`, then shipped R2 (golden-data harness + read-only
+  live capture, `F-GOLDEN-HARNESS`) and merged R1+R2 to `main`. Budget guard untouched; no SoR write.
 - 2026-06-26 (Client beta deploy — owner-directed): pushed the current front end (new Renewal Desk /
   Connection Center / PMI brand UI from `feat/s2-voice-copy`) to the `pmi-kc-kb-demo` Cloud Run service on
   `pmi-kc-kb-prod` so Dan can log in and preview. Real Google auth, locked to `pmikcmetro.com`, demo-auth
@@ -61,12 +61,13 @@ Recalibrated roadmap (owner-directed 2026-06-29 — a multi-process operations c
 
 1. Done (2026-06-29) — R1 platform spine + IA (`F-OPS-CONSOLE-IA`): operations-console home, Spaces
    front-door dropdown, renewals nested, "Ask"→"Console".
-2. **Next — R2 golden-data harness:** the zero-cost test backbone (live RentVine reads + Sheet copies →
-   labeled right/wrong/edge sets, in-boundary/gitignored; local-model verification); becomes the
-   acceptance gate for every workflow (ties `docs/feature-suites/tdd.md`).
-3. R3 — Lease Renewal as a real Space/Process: promote off the standalone demo via the existing process
-   template; bootstrap the reconciliation "math" against R2's golden set (team confirms column meanings
-   only) — the discovery packet (`docs/products/lease-renewal-discovery-packet.md`) feeds this.
+2. Done (2026-06-29) — R2 golden-data harness + live capture (`F-GOLDEN-HARNESS`): pure evaluator +
+   false-positive metric, synthetic gate, and a read-only `npm run golden:capture` writing gitignored
+   golden drafts for team labeling.
+3. **Next (gated) — R3 Lease Renewal as a real Space/Process:** promote off the standalone demo via the
+   existing process template; bootstrap the reconciliation "math" against captured golden data. Gated on
+   `golden:capture --live` (needs a `gcloud auth application-default login` reauth) + the team verifying
+   column meanings + labels. The wiring half (renewal → Process on the spine) can build now.
 4. R4 — Action console (answer + run): make the Console process-aware, drop the four Ask selects, and
    launch a grounded workflow end-to-end at zero spend (`Q-ASK-RESCOPE`).
 

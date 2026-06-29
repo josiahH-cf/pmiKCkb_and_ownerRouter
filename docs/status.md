@@ -5200,3 +5200,18 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   browser-checked via local demo auth (home launcher, nav without "Renewals", Spaces dropdown of 12
   processes, sign-in → `/`, `/lease-renewal` still 200, `/ask` heading now "Console"). No SoR write; no
   cloud spend; budget guard untouched.
+
+## R2 Complete + R1/R2 Merged to main (2026-06-29)
+
+- R2 finished: live golden-data capture (`scripts/capture-golden-data.ts`, `npm run golden:capture`) +
+  verified-set loader (`lib/lease-renewal/golden/load.ts`); the harness gate now evaluates synthetic +
+  human-verified captured sets. Recorded `F-GOLDEN-HARNESS` in `docs/facts.md`.
+- Merged both slices to `main` and pushed: R1 (operations-console spine + IA, PR #13) and R2
+  (golden-data harness + live capture, PR #14). Merge commits 78f55ce (R1) + 0ec9c61 (R2).
+- Combined-main verification: typecheck + lint clean; `npm test` 720/720 (94 files);
+  `verify:falsification` (476 files) + `verify:context-freshness` pass. No broken tests on the merge.
+- R3 attempt: ran `golden:capture --live`; the tool read RentVine and reached the live Sheet read, then
+  hit the known ADC reauth gotcha (`invalid_rapt`) — `gcloud auth application-default login` (scope-free,
+  as josiah@pmikcmetro.com) refreshes it. No partial artifact written. R3's math stays gated on captured
+  + team-labeled golden data.
+- No SoR write; no cloud spend; budget guard untouched; every Action Registry entry production_allowed:false.

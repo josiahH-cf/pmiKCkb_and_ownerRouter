@@ -36,6 +36,8 @@ non-failing staleness warning), or `—`.
 | F-OPS-CONSOLE-IA    | The app is a multi-process operations console: the home (`/`) is a launcher (a Console entry + a Spaces dropdown); Renewals nests under the Spaces dropdown (→ `/lease-renewal`, route preserved) and the "Ask" surface is renamed "Console". Built on the existing process-generic spine; admin-gating process creation is deferred. | Verified   | `app/page.tsx`; `components/home/OperationsConsoleHome.tsx`; `components/layout/AppShell.tsx`; `lib/spaces.ts` | 2026-06-29  | —          | 2026-12-31 |
 | Q-ASK-RESCOPE       | The "Ask" surface was renamed "Console" (R1); the rescope — drop Audience/Channel/Space/Urgency, become process-aware, and compose/launch workflows — is the R4 action-console slice (not yet built).                          | Open       | R4 action console                                                  | —           | —          | —          |
 
+| F-GOLDEN-HARNESS    | A golden-data harness runs the reconciliation pipeline against ground-truth-labeled scenarios and measures the false-positive flag rate; a read-only live-capture tool writes gitignored, in-boundary golden drafts for team labeling; the gate enforces synthetic + human-verified captured sets. | Verified   | `lib/lease-renewal/golden/harness.ts`; `scripts/capture-golden-data.ts`; `tests/unit/lease-renewal-golden-harness.test.ts` | 2026-06-29  | —          | 2026-12-31 |
+
 ## Supersede Log
 
 When new direction lands, delete the superseded rule from the active doc (do not append next to it),
