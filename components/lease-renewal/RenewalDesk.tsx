@@ -92,6 +92,11 @@ export function RenewalDesk({
             View the raw reconciliation run
           </Link>
         </p>
+        <p>
+          <Link className="text-link" href="/processes/lease-renewal">
+            View process definition
+          </Link>
+        </p>
       </Disclosure>
     </div>
   );

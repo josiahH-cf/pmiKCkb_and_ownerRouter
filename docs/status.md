@@ -5215,3 +5215,25 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   as josiah@pmikcmetro.com) refreshes it. No partial artifact written. R3's math stays gated on captured
   + team-labeled golden data.
 - No SoR write; no cloud spend; budget guard untouched; every Action Registry entry production_allowed:false.
+
+## R3 Wiring Half — Lease Renewal as a real Draft Process (2026-06-29)
+
+- Built the R3 "wiring" half on the existing process-generic spine (the "math" half stays gated on
+  captured + team-labeled golden data). Lease Renewal is now seedable as a real Draft process
+  definition at the fixed id `lease-renewal`:
+  - `lib/lease-renewal/process-definition-seed.ts` — a pure builder (buildLeaseRenewalDefinitionRecord)
+    reusing the spine's exported normalizeDefinitionFields (no id/step drift) + an idempotent writer
+    (seedLeaseRenewalDefinition: create / skip / force-update preserving created_at; ISO timestamps).
+  - `scripts/seed-process-definitions.ts` (`npm run seed:process-definitions`, tsx) — mirrors
+    seed-action-registry; --dry-run/--force; refuses any 'Approved for Execution' reference.
+  - `components/lease-renewal/RenewalDesk.tsx` — one additive link ("View process definition" ->
+    /processes/lease-renewal) in the Data diagnostics disclosure; no 'Open' link change.
+  - Exported `normalizeDefinitionFields` from `lib/firestore/workflows.ts` for reuse.
+- Additive + reversible (delete one doc + one link). Draft only: every action reference non-executable
+  (writeback stays gated); activation runs the existing Draft -> Testing -> Pending Approval -> Active
+  lifecycle later. /processes/lease-renewal degrades to "unavailable" until the live seed is applied
+  (dry-run only this slice; the live Firestore write is deferred/deliberate).
+- Recorded `F-RENEWAL-PROCESS-SEED` in docs/facts.md.
+- Verification: typecheck + lint (0 warnings) clean; npm test 723/723 (95 files); seed dry-run builds
+  the Draft (8 steps, 6 non-executable references); verify:falsification (479 files) +
+  verify:context-freshness pass. No SoR write; no cloud spend; production_allowed:false throughout.

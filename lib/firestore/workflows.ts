@@ -543,7 +543,7 @@ function assertDefinitionEditable(definition: ProcessDefinitionRecord) {
   }
 }
 
-function normalizeDefinitionFields(input: ParsedCreateProcessDefinitionInput) {
+export function normalizeDefinitionFields(input: ParsedCreateProcessDefinitionInput) {
   return {
     ...input,
     action_references: normalizeActionReferences(input.action_references),
