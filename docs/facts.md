@@ -55,6 +55,8 @@ non-failing staleness warning), or `—`.
 
 | F-STT-SEAM | Maintenance voice capture uses a speech-to-text seam (`createSpeechToTextProvider`): a free dev/test stub stands in for Google Cloud Speech-to-Text (v1 speech:recognize REST), selected by config and fenced from prod (`SPEECH_PROVIDER` forced to google when NODE_ENV=production, mirroring the model provider). `/api/maintenance/transcribe` is edit-gated and caps audio size (~8MB base64) to bound STT cost. | Verified | `lib/speech/stt-provider.ts`; `app/api/maintenance/transcribe/route.ts`; `lib/config/server.ts` | 2026-06-29 | — | 2026-12-31 |
 
+| F-MAINT-CAPTURE-UI | Maintenance capture has a dedicated edit-gated desk at `/maintenance` (reachable from the Spaces dropdown via spaceHref): typed issue + tap-to-record voice (MediaRecorder -> the transcribe API -> transcript) + unit + priority, producing a live work-order DRAFT preview via buildWorkOrderDraft. Simulation-only — the RentVine create stays gated. | Verified | `app/maintenance/page.tsx`; `components/maintenance/MaintenanceCapture.tsx`; `lib/spaces.ts` | 2026-06-29 | — | 2026-12-31 |
+
 ## Supersede Log
 
 When new direction lands, delete the superseded rule from the active doc (do not append next to it),
