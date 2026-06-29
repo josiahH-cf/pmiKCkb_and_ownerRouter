@@ -5522,3 +5522,21 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   then `maintenance:ensure-folder --live` creates the folder, set its id in SPACE_DRIVE_FOLDER_IDS, and
   (IMAGE_STORE=drive, auto in prod) photo sync goes live. Recorded in F-DRIVE-DWD / F-MAINT-PHOTO / Q-MAINT-STORAGE.
 - No SoR write; no cloud spend; the Drive write stays gated (production_allowed:false).
+
+## Drive DWD auth: adversarial review + hardening (2026-06-29)
+
+- Ran a focused multi-agent adversarial review of the new keyless DWD Drive auth (4 finders →
+  adversarial verify): 17 raw findings → 3 confirmed (2 distinct real issues). Fixed both:
+  - **Query escaping:** the Drive v3 folder lookup escaped only `'`, not `\` (and in the wrong order) —
+    a query-injection/correctness seam (latent today: the only caller passes a constant folder name, but
+    `findFolder` is a public reusable method). Added `escapeDriveQueryValue` (backslash FIRST, then quote)
+    and applied it to both the name and parentId clauses.
+  - **Multipart boundary:** the upload used a STATIC boundary that could appear in raw image bytes and be
+    parsed as a premature delimiter (RFC 2046), silently corrupting an upload. Now a per-upload
+    high-entropy boundary (`maint-image-<uuid>`).
+  - Tests: `escapeDriveQueryValue` (quote / backslash / trailing-backslash ordering) + a `findFolder`
+    injection test + a per-upload-unique-boundary test. 801/801.
+- The review CONFIRMED the rest is sound: the DWD mint matches the proven Sheets pattern; it acts only as
+  the pmikcmetro.com subject (never personal, keyless); no token/JWT/SA-id/client-data leaks into
+  errors/logs/stdout; and the Drive write stays gated.
+- Verification: typecheck + lint clean; falsification (510 files) + context-freshness pass.
