@@ -20,6 +20,7 @@ describe("MaintenanceCapture", () => {
     expect(screen.getByLabelText("Issue")).toBeInTheDocument();
     expect(screen.getByLabelText("Unit / location")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Record voice" })).toBeInTheDocument();
+    expect(screen.getByText("Add / take photo")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Build work-order draft" })).toBeInTheDocument();
   });
 

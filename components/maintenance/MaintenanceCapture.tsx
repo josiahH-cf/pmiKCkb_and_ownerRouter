@@ -156,21 +156,26 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
           </p>
         ) : null}
 
-        <label htmlFor="mx-photo">Photo</label>
-        <input
-          accept="image/*"
-          id="mx-photo"
-          name="mx-photo"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) void handlePhoto(file);
-          }}
-          type="file"
-        />
+        {/* A styled label triggers the hidden file input; `capture` opens the camera on mobile. */}
+        <div className="field-row">
+          <label className="secondary-button" htmlFor="mx-photo">
+            {isUploading ? "Uploading photo…" : "Add / take photo"}
+          </label>
+          <input
+            accept="image/*"
+            capture="environment"
+            hidden
+            id="mx-photo"
+            name="mx-photo"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) void handlePhoto(file);
+            }}
+            type="file"
+          />
+        </div>
         {photoRefs.length > 0 ? (
           <p className="muted">{photoRefs.length} photo(s) attached.</p>
-        ) : isUploading ? (
-          <p className="muted">Uploading photo…</p>
         ) : null}
 
         <label htmlFor="mx-unit">Unit / location</label>
