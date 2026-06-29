@@ -53,6 +53,8 @@ non-failing staleness warning), or `—`.
 
 | F-MAINT-INTAKE | Maintenance Work Order Intake has an intake foundation: a pure work-order DRAFT builder (`buildWorkOrderDraft`: capture -> summary/description/priority/unit/photos + blockers, with emergency-keyword priority inference) and a Draft process-definition template (`buildMaintenanceProcessTemplate`) referencing the gated RentVine work-order actions. `readyForExecution` is always false; the RentVine create stays production_allowed:false. Photo storage = Google Drive in-boundary (owner 2026-06-29). | Verified | `lib/maintenance/work-order-draft.ts`; `lib/maintenance/process-template.ts`; `lib/maintenance/constants.ts` | 2026-06-29 | — | 2026-12-31 |
 
+| F-STT-SEAM | Maintenance voice capture uses a speech-to-text seam (`createSpeechToTextProvider`): a free dev/test stub stands in for Google Cloud Speech-to-Text (v1 speech:recognize REST), selected by config and fenced from prod (`SPEECH_PROVIDER` forced to google when NODE_ENV=production, mirroring the model provider). `/api/maintenance/transcribe` is edit-gated and caps audio size (~8MB base64) to bound STT cost. | Verified | `lib/speech/stt-provider.ts`; `app/api/maintenance/transcribe/route.ts`; `lib/config/server.ts` | 2026-06-29 | — | 2026-12-31 |
+
 ## Supersede Log
 
 When new direction lands, delete the superseded rule from the active doc (do not append next to it),
