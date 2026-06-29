@@ -86,6 +86,28 @@ describe("GoogleDriveClient.ensureFolder", () => {
   });
 });
 
+describe("GoogleDriveClient Shared Drive support", () => {
+  it("scopes find + create to a Shared Drive (supportsAllDrives + corpora/driveId)", async () => {
+    const f = fakeFetch([
+      () => ({ files: [] }), // find -> none
+      () => ({ id: "sub1", name: "Photos" }), // create
+    ]);
+    const client = new GoogleDriveClient({ getToken: TOKEN, fetchImpl: f.fn });
+
+    const result = await client.ensureFolder("Photos", { driveId: "sd1" });
+    expect(result).toEqual({ folder: { id: "sub1", name: "Photos" }, created: true });
+
+    // find targets the Shared Drive
+    expect(f.calls[0].url).toContain("supportsAllDrives=true");
+    expect(f.calls[0].url).toContain("includeItemsFromAllDrives=true");
+    expect(f.calls[0].url).toContain("corpora=drive");
+    expect(f.calls[0].url).toContain("driveId=sd1");
+    // create lands at the Shared Drive root + supports all drives
+    expect(f.calls[1].url).toContain("supportsAllDrives=true");
+    expect(JSON.parse(String(f.calls[1].init?.body)).parents).toEqual(["sd1"]);
+  });
+});
+
 describe("mintDriveDwdToken (via the client default) setup guard", () => {
   it("throws DriveSetupError when no SA/subject is configured", async () => {
     const savedSa = process.env.SHEETS_IMPERSONATE_SA;

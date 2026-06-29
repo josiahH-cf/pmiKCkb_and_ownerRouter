@@ -5558,3 +5558,18 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
 - Net: Q-MAINT-STORAGE resolved; F-DRIVE-DWD / F-MAINT-PHOTO are now LIVE. Remaining for prod: set
   SPACE_DRIVE_FOLDER_IDS in the Cloud Run env at deploy (prod forces IMAGE_STORE=drive). Folder ids stay in
   env (gitignored), never committed. Drive write stays gated (production_allowed:false in the Action Registry).
+
+## Maintenance Drive: Shared Drive support (2026-06-29)
+
+- Owner prefers a team-owned Shared Drive over the subject's My Drive. Added Shared Drive support to the
+  Drive client: `findFolder`/`createFolder`/`ensureFolder` take a `DriveLocation { parentId?, driveId? }`
+  and set `supportsAllDrives` + `includeItemsFromAllDrives` (and `corpora=drive&driveId` when targeting a
+  Shared Drive); the image-store upload and the ensure-folder script (`--shared-drive <id>`) thread it
+  through. `drive.file` stays sufficient (the app creates/manages its own folder + files in a Shared Drive
+  the subject manages — no broader scope; creating the Shared Drive ITSELF would need full `drive`, avoided).
+- Tests: a Shared-Drive `ensureFolder` test (supportsAllDrives + corpora/driveId + parents) + a
+  supportsAllDrives assertion on the upload. 802/802.
+- PENDING owner step: create a Shared Drive **as josiah@pmikcmetro.com** (the DWD subject, so the app can
+  write to it) and give me the Shared Drive id. Then I run `maintenance:ensure-folder --live --shared-drive
+  <id>` to create the photo subfolder there, rewire SPACE_DRIVE_FOLDER_IDS, delete the interim My Drive
+  folder, and round-trip-verify. Verification: typecheck + lint clean; falsification (510) + context-freshness pass.

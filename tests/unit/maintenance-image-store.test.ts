@@ -61,6 +61,7 @@ describe("DriveMaintenanceImageStore", () => {
 
     expect(result).toEqual({ ref: "drive:file123", url: "https://drive/x" });
     expect(t.last?.headers.authorization).toBe("Bearer tok");
+    expect(t.last?.url).toContain("supportsAllDrives=true"); // lands in a Shared Drive folder
     // The body is a binary Buffer: metadata (folder + mime) as text, the media part as DECODED bytes —
     // not the base64 text, and no Content-Transfer-Encoding header (Drive stores the media part raw).
     const body = Buffer.from(t.last?.body as Uint8Array);

@@ -2,8 +2,9 @@
 // (a pmikcmetro.com user) via KEYLESS domain-wide delegation — never the personal account, no key file.
 // Prints the folder id to put in SPACE_DRIVE_FOLDER_IDS["maintenance-work-order-intake"]. Idempotent.
 //
-//   npm run maintenance:ensure-folder                # dry: prints what it would do
-//   npm run maintenance:ensure-folder -- --live      # find-or-create the folder, print its id
+//   npm run maintenance:ensure-folder                                  # dry: prints what it would do
+//   npm run maintenance:ensure-folder -- --live                        # create in the subject's My Drive
+//   npm run maintenance:ensure-folder -- --live --shared-drive <id>    # create in a team Shared Drive
 //
 // Prereq for --live: the Drive scope must be authorized for SHEETS_IMPERSONATE_SA in Admin console →
 // Security → API controls → Domain-wide delegation (the Sheets scope is already authorized; Drive is a
@@ -35,13 +36,24 @@ function loadEnvLocal(): void {
   }
 }
 
+function readArg(name: string): string | undefined {
+  const eq = process.argv.find((a) => a.startsWith(`${name}=`));
+  if (eq) return eq.slice(name.length + 1);
+  const idx = process.argv.indexOf(name);
+  return idx !== -1 ? process.argv[idx + 1] : undefined;
+}
+
 async function main(): Promise<void> {
   loadEnvLocal();
   const live = process.argv.includes("--live");
+  // Target a team-owned Shared Drive when --shared-drive <id> is given; else the subject's My Drive.
+  const sharedDriveId = readArg("--shared-drive");
+  const location = sharedDriveId ? { driveId: sharedDriveId } : {};
+  const where = sharedDriveId ? `Shared Drive ${sharedDriveId}` : "the subject's My Drive";
 
   if (!live) {
     console.log(
-      `[dry-run] Would find-or-create the Drive folder "${FOLDER_NAME}" as the DWD subject ` +
+      `[dry-run] Would find-or-create the Drive folder "${FOLDER_NAME}" in ${where} as the DWD subject ` +
         "(SHEETS_DWD_SUBJECT) via keyless domain-wide delegation, then print its id for " +
         "SPACE_DRIVE_FOLDER_IDS['maintenance-work-order-intake']. Pass --live to create it.",
     );
@@ -59,8 +71,8 @@ async function main(): Promise<void> {
   }
 
   const client = new GoogleDriveClient();
-  const { folder, created } = await client.ensureFolder(FOLDER_NAME);
-  console.log(`${created ? "Created" : "Found existing"} Drive folder: ${folder.id}`);
+  const { folder, created } = await client.ensureFolder(FOLDER_NAME, location);
+  console.log(`${created ? "Created" : "Found existing"} Drive folder in ${where}: ${folder.id}`);
   console.log(
     `Set SPACE_DRIVE_FOLDER_IDS to include {"maintenance-work-order-intake":"${folder.id}"} (and IMAGE_STORE=drive to upload live).`,
   );
