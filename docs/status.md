@@ -5484,3 +5484,15 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   - **LOW:** a 2xx non-JSON upstream response now maps to the typed 503 (was an unhandled 500) in both seams.
   - **LOW:** `toggleRecording` wraps `getUserMedia` in try/catch (mic-denied feedback).
 - Verification: 792/792 tests (+4), typecheck + lint clean, falsification (507 files) + context-freshness pass.
+
+## Maintenance capture: photo button UX + Drive-auth gap surfaced (2026-06-29)
+
+- Owner flagged that the photo control wasn't discoverable. Replaced the bare `<input type="file">` with a
+  styled "Add / take photo" button (label triggers a hidden input) + `capture="environment"` for mobile
+  camera access. Browser-verified the button renders, input hidden, capture set.
+- Surfaced an honest gap while answering "how does the photo sync to Drive?": in dev the image store is the
+  free STUB (no real upload — by design); the prod Drive adapter exists but authenticates via plain ADC +
+  drive.file scope, which the managed `pmikcmetro.com` domain almost certainly blocks (same reason the
+  Sheets reader uses keyless domain-wide delegation). So Drive sync is NOT live yet — recorded in
+  F-MAINT-PHOTO + Q-MAINT-STORAGE. Remaining: switch the Drive adapter to DWD + set the folder id.
+- Verification: typecheck + lint clean; capture test updated for the photo button; context-freshness pass.
