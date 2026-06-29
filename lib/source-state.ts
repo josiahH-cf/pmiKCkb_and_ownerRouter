@@ -20,7 +20,7 @@ export function classifyGrounding(signal: GroundingSignal): SourceState {
   }
 
   if (signal.hasOpenPlaceholder) {
-    return "Bailey Placeholder";
+    return "Open Placeholder";
   }
 
   if (signal.supportingDocumentCount <= 0 || (signal.confidence ?? 1) < threshold) {

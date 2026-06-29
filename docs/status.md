@@ -5312,3 +5312,25 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   only when a process is selected. Browser-checked: `/ask` still 200, no four selects, no console errors.
 - Verification: typecheck + lint clean; affected suites 22/22; full `npm test` + verify gates re-run on the
   branch (see merge entry). production_allowed:false throughout.
+
+## Discovery Q&A cycle + Slice 1: governance + "Open Placeholder" rename (2026-06-29)
+
+- Owner-driven discovery Q&A (3 rounds, confirm-with-default) locked the decisions for the next builds:
+  intent-detection = hybrid (deterministic + cloud-seam fallback + keep picker); Maintenance intake =
+  fuller flow, Drive in-boundary storage (`Q-MAINT-STORAGE`→Drive), voice/STT in v1 via Google Cloud STT
+  (cloud prod, dev stub via a seam); schema cleanup = remove audience/channel/urgency; R3 = label with
+  owner + precedence (`Q-PREC-1`: RentVine authoritative for lease facts, sheet for worklog, conflicts →
+  human); ambiguous values: "Bailey Placeholder"→"Open Placeholder" (`Q-BAILEY`), "ABC" stays open
+  (`Q-ABC-1`). R3 flag labels: sheet's "Renewal Date" is a DIFFERENT field from RentVine's lease date →
+  the 15 renewal_date conflicts are false positives (don't reconcile); the 2 current_rent conflicts are
+  real High flags.
+- **Critical correction recorded as `F-PROD-CLOUD-MODEL`:** the app is built for the PRODUCTION (cloud)
+  plane — `lib/config/server.ts` forces `modelProvider:"gemini"` + disables `localDemoAuth` when
+  `NODE_ENV==="production"`. The local model + demo auth are dev/test-only stand-ins, never a prod
+  dependency. (Owner flagged the "are we building a local app?" risk; verified the fence holds.)
+- Slice 1 build: renamed the source-state label "Bailey Placeholder" → "Open Placeholder" (plain language)
+  across code/tests/styles (21 occurrences) + active docs; resolved `Q-BAILEY` → `F-OPEN-PLACEHOLDER` with
+  a Supersede Log row. Left "Bailey" the team member untouched (only the state label changed); status.md
+  history left as-is (append-only). Recorded `F-PROD-CLOUD-MODEL`; saved a memory on the prod-plane policy.
+- Verification: typecheck + lint clean; full `npm test` + verify gates re-run on the branch (see merge
+  entry). No SoR write; no cloud spend; production_allowed:false throughout.

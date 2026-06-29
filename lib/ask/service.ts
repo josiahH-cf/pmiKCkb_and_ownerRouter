@@ -96,7 +96,7 @@ export async function answerQuestion(
     return response;
   }
 
-  if (sourceState === "Bailey Placeholder" || sourceState === "Conflict Found") {
+  if (sourceState === "Open Placeholder" || sourceState === "Conflict Found") {
     const response = reviewOnlyResponse(request, sourceState, grounding.citations);
     await writeAskLog(askLogWriter, user, request, response, grounding.sourceIds);
     return response;
@@ -234,7 +234,7 @@ function normalizeKnownEscalationOwner(escalationOwner: string) {
 
 function reviewOnlyResponse(
   request: AskRequest,
-  sourceState: "Bailey Placeholder" | "Conflict Found",
+  sourceState: "Open Placeholder" | "Conflict Found",
   citations: AskResponse["citations"],
 ): AskResponse {
   if (sourceState === "Conflict Found") {

@@ -93,7 +93,7 @@ All client-owned (tracked in `docs/client-checklist.md` and `docs/research-backl
   live connector work.
 - Gmail Inbox 0 safe test-thread protocol confirmation.
 - Approval sender (`kb-automation@pmikcmetro.com`) and launch approver defaults (Dan + Josiah).
-- Owner to define the term "ABC" (`Q-ABC-1`) and confirm "Bailey Placeholder" meaning (`Q-BAILEY`).
+- Owner to define the term "ABC" (`Q-ABC-1`).
 
 Resolved and kept as facts: RentVine credential used as-is, not rotated (load from env/Secret
 Manager); signed leases live in Dotloop, lease-end reads from the RentVine lease record.

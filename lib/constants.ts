@@ -22,7 +22,7 @@ export const UNVERIFIED_PLACEHOLDER = "Needs Verification: <fact>";
 export const SOURCE_STATES = [
   "Verified Source",
   "Partial Source",
-  "Bailey Placeholder",
+  "Open Placeholder",
   "Conflict Found",
   "No Reliable Source Found",
 ] as const;

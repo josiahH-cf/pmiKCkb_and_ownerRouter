@@ -11,7 +11,7 @@ describe("source-state classification", () => {
   it("detects placeholders before treating a source as partial", () => {
     expect(
       classifyGrounding({ supportingDocumentCount: 2, hasOpenPlaceholder: true }),
-    ).toBe("Bailey Placeholder");
+    ).toBe("Open Placeholder");
   });
 
   it("detects conflicts before verified source responses", () => {

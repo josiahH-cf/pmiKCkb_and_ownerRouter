@@ -3,7 +3,7 @@ import type { SourceState } from "@/lib/source-state";
 const labels: Record<SourceState, string> = {
   "Verified Source": "Verified Source",
   "Partial Source": "Partial Source",
-  "Bailey Placeholder": "Bailey Placeholder",
+  "Open Placeholder": "Open Placeholder",
   "Conflict Found": "Conflict Found",
   "No Reliable Source Found": "No Reliable Source Found",
 };

@@ -223,7 +223,7 @@ function seedSop(db: Firestore) {
     created_at: "2026-05-27T00:00:00.000Z",
     owner_uid: "owner-uid",
     sensitivity: "Low",
-    source_state_hint: "Bailey Placeholder",
+    source_state_hint: "Open Placeholder",
     space_id: "lease-renewals",
     status: "Draft",
     title: "Lease Renewals",

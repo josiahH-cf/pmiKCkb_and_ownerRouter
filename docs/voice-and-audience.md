@@ -15,7 +15,7 @@ workflows, with models used where they measurably help.
 - **Primary — PMI KC operators / property managers (e.g. Dan, Josiah, team).** Operationally expert,
   not engineers. Time-poor, working a queue. They want fewer clicks, trustworthy status, and to never
   wonder "is this real or a placeholder?" They do **not** want internal vocabulary ("source of truth,"
-  "Bailey Placeholder," "production_allowed," "Phase-2a").
+  "production_allowed," "Phase-2a").
 - **Secondary — the owner/admin.** Manages connections, governance, and approvals. Tolerates a little
   more detail, but still wants plain language and a real kill switch over alerts.
 - **Tertiary (NOT app users) — tenants / owners / vendors.** They never log in; they only _receive_
@@ -38,9 +38,9 @@ workflows, with models used where they measurably help.
 | read-authoritative source of truth                  | leases, tenants, and rent                                                |
 | Available in the next release.                      | (remove the control; show nothing)                                       |
 | All details provided — PMI will verify and connect. | Ready to connect                                                         |
-| Bailey Placeholder                                  | Draft, unverified _(confirm the term with the owner first — `Q-BAILEY`)_ |
+| Bailey Placeholder                                  | Open Placeholder _(renamed; `Q-BAILEY` resolved)_                        |
 | KB-owned process space                              | Process space                                                            |
 | Read-only source space                              | Source space                                                             |
 | simulation-only / production_allowed                | Test run / not live                                                      |
 
-See `docs/facts.md` (`Q-BAILEY`) before renaming the "Bailey Placeholder" source state.
+The "Bailey Placeholder" source state is renamed to "Open Placeholder" (`Q-BAILEY` resolved; see `docs/facts.md` `F-OPEN-PLACEHOLDER`).

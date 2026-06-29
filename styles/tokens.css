@@ -278,7 +278,7 @@
   background: #fff7e6; /* neutral pale amber — a status banner must not read as brand orange */
 }
 
-.source-banner[data-state="Bailey Placeholder"] {
+.source-banner[data-state="Open Placeholder"] {
   border-left-color: var(--state-placeholder);
   background: var(--color-primary-100);
 }

@@ -13,14 +13,14 @@ Concrete verdicts from recon:
   **rewrite/delete**: it promises a verification step that isn't live. Say "Ready to connect" or nothing.
 - `components/connections/ConnectorCard.tsx` "Available in the next release." → **delete** the dead
   disabled control; don't advertise unbuilt features in the UI.
-- `SourceStateBanner` "Bailey Placeholder" → **rewrite** to plain language after confirming the term
-  (`Q-BAILEY` in `docs/facts.md`).
+- `SourceStateBanner` "Bailey Placeholder" → **renamed** to the plain-language "Open Placeholder"
+  (`Q-BAILEY` resolved; `F-OPEN-PLACEHOLDER` in `docs/facts.md`).
 - Connection vocabulary ("Needs attention," "Ready to verify," "Not connected") → **keep**, unify to a
   3-state plain set once verification is real.
 
 **Open questions & assumptions.**
 
-- _Open:_ meaning of "Bailey" / "Bailey Placeholder" — confirm before renaming (`Q-BAILEY`).
+- _Resolved:_ the "Bailey Placeholder" source state is renamed to "Open Placeholder" (`Q-BAILEY`).
 - _Assumption:_ clients never see internal route/phase labels; verify none leak into tenant/owner drafts.
 
 **Cross-product impacts.** Touches Connections, Ask (S5), Spaces/Processes (S6), and every drafted email

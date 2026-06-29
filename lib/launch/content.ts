@@ -200,7 +200,7 @@ function buildSkeletonSeed(definition: (typeof skeletonDefinitions)[number]) {
         id: `launch-${definition.id}-sop`,
         owner_uid: defaultOwnerUid,
         sensitivity: "Low" as const,
-        source_state_hint: "Bailey Placeholder" as const,
+        source_state_hint: "Open Placeholder" as const,
         space_id: definition.id,
         status: "Placeholder" as const,
         title: `${definition.name} Placeholder SOP`,

@@ -3,7 +3,7 @@ import { SOURCE_STATES } from "@/lib/constants";
 
 const CaptureSourceStates = [
   "Partial Source",
-  "Bailey Placeholder",
+  "Open Placeholder",
   "No Reliable Source Found",
 ] as const;
 

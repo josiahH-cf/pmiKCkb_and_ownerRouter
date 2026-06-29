@@ -395,7 +395,7 @@ describe("Ask service", () => {
       }),
     ).resolves.toMatchObject({
       draft: "",
-      source_state: "Bailey Placeholder",
+      source_state: "Open Placeholder",
     });
 
     await expect(

@@ -110,13 +110,13 @@
   {
     "id": "eval-019",
     "question": "What did Bailey say about the undocumented inspection exception?",
-    "expected_source_state": "Bailey Placeholder",
+    "expected_source_state": "Open Placeholder",
     "category": "Placeholder"
   },
   {
     "id": "eval-020",
     "question": "How do we handle a placeholder in the renewal SOP?",
-    "expected_source_state": "Bailey Placeholder",
+    "expected_source_state": "Open Placeholder",
     "category": "Placeholder"
   },
   {
