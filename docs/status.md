@@ -5569,7 +5569,12 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   the subject manages — no broader scope; creating the Shared Drive ITSELF would need full `drive`, avoided).
 - Tests: a Shared-Drive `ensureFolder` test (supportsAllDrives + corpora/driveId + parents) + a
   supportsAllDrives assertion on the upload. 802/802.
-- PENDING owner step: create a Shared Drive **as josiah@pmikcmetro.com** (the DWD subject, so the app can
-  write to it) and give me the Shared Drive id. Then I run `maintenance:ensure-folder --live --shared-drive
-  <id>` to create the photo subfolder there, rewire SPACE_DRIVE_FOLDER_IDS, delete the interim My Drive
-  folder, and round-trip-verify. Verification: typecheck + lint clean; falsification (510) + context-freshness pass.
+- DONE: the owner created the team Shared Drive (as josiah@pmikcmetro.com); `maintenance:ensure-folder
+  --live --shared-drive <id>` created the "Maintenance Work Order Intake — Photos" subfolder inside it;
+  rewired SPACE_DRIVE_FOLDER_IDS to that subfolder (gitignored); round-trip verified (uploaded a test image
+  into the Shared Drive → got a webViewLink → deleted it, HTTP 204); and deleted the interim My Drive folder
+  (204). Maintenance photos now sync to the team-owned Shared Drive. Drive folder/Shared-Drive ids stay in
+  env (gitignored), never committed.
+- Remaining for prod only: set SPACE_DRIVE_FOLDER_IDS (with the Shared Drive subfolder id) in the Cloud Run
+  env at deploy (prod already forces IMAGE_STORE=drive). Verification: typecheck + lint clean; falsification
+  (510) + context-freshness pass.
