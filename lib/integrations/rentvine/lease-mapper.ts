@@ -207,7 +207,12 @@ export function mapLeasesToNonSheetCandidates(
 
     const fields: Record<string, NonSheetFieldValue> = {};
     if (renewalIso !== null && dateHit) {
-      fields.renewal_date = {
+      // RentVine's lease-end date is emitted as `lease_end_date`, NOT `renewal_date`. Owner decision
+      // (2026-06-29, F-RENEWAL-DATE-SEMANTICS): the sheet's "Renewal Date" column is the team's renewal
+      // worklog/target — a DIFFERENT field from RentVine's authoritative lease-end. Reconciling them as
+      // one field produced false "conflict" flags (the renewal_date noise). `lease_end_date` has no
+      // reconciliation spec, so the lease-end stays available as a fact without flagging the sheet.
+      fields.lease_end_date = {
         value: renewalIso,
         raw: String(dateHit.value),
         confidence: "Verified",

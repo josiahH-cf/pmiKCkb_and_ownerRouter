@@ -64,7 +64,7 @@ describe("listLeasesExport + leaseViewsFromExport", () => {
 
     expect(result.skipped).toBe(0);
     expect(result.candidates[0].joinValue).toBe("Jordan Maple");
-    expect(result.candidates[0].fields.renewal_date.value).toBe("2026-08-31");
+    expect(result.candidates[0].fields.lease_end_date.value).toBe("2026-08-31");
     expect(result.candidates[0].fields.current_rent.value).toBe(1250);
     expect(result.resolvedKeys.tenantName).toBe("tenants[0].name");
     expect(result.resolvedKeys.currentRent).toBe("currentRent");

@@ -34,7 +34,7 @@ describe("mapLeasesToNonSheetCandidates", () => {
       joinId: "lease:7",
       read_timestamp: READ_TS,
       fields: {
-        renewal_date: { value: "2026-08-31", raw: "2026-08-31", confidence: "Verified" },
+        lease_end_date: { value: "2026-08-31", raw: "2026-08-31", confidence: "Verified" },
         current_rent: { value: 1250, raw: "1250", confidence: "Verified" },
       },
     });
@@ -51,7 +51,7 @@ describe("mapLeasesToNonSheetCandidates", () => {
     const result = mapLeasesToNonSheetCandidates(leases, { readTimestamp: READ_TS });
 
     expect(result.candidates[0].joinValue).toBe("Casey Rivers");
-    expect(result.candidates[0].fields.renewal_date.value).toBe("2026-08-31");
+    expect(result.candidates[0].fields.lease_end_date.value).toBe("2026-08-31");
     expect(result.candidates[0].fields.current_rent.value).toBe(1300);
     expect(result.resolvedKeys).toEqual({
       tenantName: "primaryTenantName",
@@ -101,7 +101,7 @@ describe("mapLeasesToNonSheetCandidates", () => {
       fieldMap: { tenantName: ["who"], renewalDate: ["through"], currentRent: ["price"] },
     });
     expect(result.candidates[0].joinValue).toBe("Jordan Maple");
-    expect(result.candidates[0].fields.renewal_date.value).toBe("2026-08-31");
+    expect(result.candidates[0].fields.lease_end_date.value).toBe("2026-08-31");
     expect(result.candidates[0].fields.current_rent.value).toBe(1250);
   });
 });
@@ -126,11 +126,12 @@ describe("live mapper feeds runRenewalPipeline unchanged", () => {
 
     expect(result.production_allowed).toBe(false);
 
-    // Exactly Casey's two High conflicts (timing + financial). That the High count is 2 — not more —
-    // proves Jordan's agreeing fields raised no flag, the same outcome as the synthetic run.
+    // Casey's RENT conflict is High; the lease-end date no longer conflicts with the sheet's "Renewal
+    // Date" worklog column (F-RENEWAL-DATE-SEMANTICS — RentVine's lease-end maps to lease_end_date, which
+    // has no reconciliation spec, so it never flags the sheet's renewal worklog). Jordan agrees → no flag.
     const highFieldKeys = result.bySeverity.High.map(
       (outcome) => outcome.fieldKey,
     ).sort();
-    expect(highFieldKeys).toEqual(["current_rent", "renewal_date"]);
+    expect(highFieldKeys).toEqual(["current_rent"]);
   });
 });

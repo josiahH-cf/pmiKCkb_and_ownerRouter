@@ -64,11 +64,11 @@ Recalibrated roadmap (owner-directed 2026-06-29 — a multi-process operations c
 2. Done (2026-06-29) — R2 golden-data harness + live capture (`F-GOLDEN-HARNESS`): pure evaluator +
    false-positive metric, synthetic gate, and a read-only `npm run golden:capture` writing gitignored
    golden drafts for team labeling.
-3. R3 — Lease Renewal as a real Space/Process. WIRING + LABELING TOOLING DONE (2026-06-29,
-   `F-RENEWAL-PROCESS-SEED` + `F-GOLDEN-LABELING`): the Draft seeds at id `lease-renewal`; the golden
-   draft is captured and `golden:worksheet`/`golden:apply-labels` turn it into a team-verified set the
-   harness gates on. REMAINING: (a) team reviews `golden-data/worksheets/r3-bootstrap.worksheet.json`
-   → `golden:apply-labels` → tune the math vs. ground truth; (b) the live Firestore seed is OWNER-GATED.
+3. R3 — Lease Renewal as a real Space/Process. WIRING + LABELING + MATH DONE (2026-06-29): seed Draft at
+   id `lease-renewal`; the math is tuned to owner ground truth — the sheet's "Renewal Date" is worklog,
+   not RentVine's lease-end (`F-RENEWAL-DATE-SEMANTICS`), precedence set (`F-RECON-PRECEDENCE`); a live
+   re-capture dropped 17→2 candidate flags (only real rent conflicts). REMAINING: the live Firestore seed
+   is OWNER-GATED; Dan's per-case manual precedence override still open (`Q-PREC-1`).
 4. Done (2026-06-29) — R4 action console (`F-ACTION-CONSOLE`): the four Ask selects are retired; picking a
    process makes the answer process-aware (server-resolved context) and lets an editor start a SAFE
    simulation run. Schema trim + hybrid intent-detection (`F-INTENT-DETECT`) DONE. Follow-up: richer compose.

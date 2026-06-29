@@ -50,10 +50,12 @@ describe("runLiveRenewalReview", () => {
       readTimestamp: READ_TS,
     });
 
-    // Live Casey conflict -> High on renewal_date + current_rent (the live Rentvine read).
+    // Live Casey conflict -> High on current_rent (the live Rentvine read). The lease-end date no longer
+    // conflicts with the sheet's "Renewal Date" worklog column (F-RENEWAL-DATE-SEMANTICS: RentVine's
+    // lease-end is mapped to lease_end_date, which has no reconciliation spec).
     const highKeys = run.bySeverity.High.map((outcome) => outcome.fieldKey);
-    expect(highKeys).toContain("renewal_date");
     expect(highKeys).toContain("current_rent");
+    expect(highKeys).not.toContain("renewal_date");
 
     // The synthetic building-level (lawn_care High) and Google-Form (tenant_responded Blocked)
     // candidates survive — proving only the source:"rentvine" entries were swapped.
