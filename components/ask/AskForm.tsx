@@ -62,17 +62,11 @@ export function AskForm({
     setStatusMessage("");
     setCaptureStatus("");
 
-    // The four Ask metadata selects (audience/channel/space/urgency) were retired with the action
-    // console (R4); the answer path still accepts them, so send neutral defaults until the schema is
-    // trimmed.
     const response = await fetch("/api/ask", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         question,
-        audience: "Unknown",
-        channel: "Other",
-        urgency: "Normal",
         draft_enabled: true,
         // A selected process makes the answer process-aware (resolved + applied server-side).
         ...(processId ? { process_id: processId } : {}),

@@ -25,11 +25,8 @@ const user: AuthenticatedUser = {
 };
 
 const request: AskRequest = {
-  audience: "Owner",
-  channel: "Gmail",
   draft_enabled: true,
   question: "What is the renewal process?",
-  urgency: "Normal",
 };
 
 const liveConfig: ServerConfig = {
@@ -77,11 +74,8 @@ describe("Ask service", () => {
       answerQuestion(
         user,
         {
-          audience: "Owner",
-          channel: "Gmail",
           draft_enabled: true,
           question: "What is the lease renewal workflow?",
-          urgency: "Normal",
         },
         { config: demoConfig },
       ),
@@ -115,12 +109,9 @@ describe("Ask service", () => {
         answerQuestion(
           user,
           {
-            audience: "Owner",
-            channel: "Gmail",
             draft_enabled: true,
             question: testCase.question,
             space: testCase.space,
-            urgency: "Normal",
           },
           { config: demoConfig },
         ),
@@ -136,11 +127,8 @@ describe("Ask service", () => {
       answerQuestion(
         user,
         {
-          audience: "Owner",
-          channel: "Gmail",
           draft_enabled: true,
           question: "What exact fee do we charge for an unusual lease break?",
-          urgency: "Normal",
         },
         { config: demoConfig },
       ),
@@ -161,11 +149,8 @@ describe("Ask service", () => {
       answerQuestion(
         user,
         {
-          audience: "Owner",
-          channel: "Gmail",
           draft_enabled: true,
           question: "What is the lease renewal workflow?",
-          urgency: "Normal",
         },
         {
           config: { ...liveConfig, askDemoMode: true },

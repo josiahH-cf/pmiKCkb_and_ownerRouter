@@ -145,12 +145,9 @@ async function main(): Promise<void> {
     role: "Admin",
   };
   const request: AskRequest = {
-    audience: "Owner",
-    channel: "Gmail",
     draft_enabled: true,
     question,
     space: "lease-renewals",
-    urgency: "Normal",
   };
 
   let response;

@@ -300,9 +300,6 @@ export interface AskLogRecord {
   user_uid: string;
   space_id?: string;
   question: string;
-  audience: string;
-  channel: string;
-  urgency: string;
   grounding_source_ids: string[];
   answer: string;
   source_state: SourceState;

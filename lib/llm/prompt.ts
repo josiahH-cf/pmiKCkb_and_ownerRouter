@@ -25,8 +25,6 @@ export function buildGroundedAnswerUserPrompt(
   options: { retry?: boolean } = {},
 ) {
   const payload = {
-    audience: request.ask.audience,
-    channel: request.ask.channel,
     draft_enabled: request.ask.draft_enabled,
     ...(request.process ? { process: request.process } : {}),
     question: request.ask.question,
@@ -39,7 +37,6 @@ export function buildGroundedAnswerUserPrompt(
       title: source.citation.title,
       url: source.citation.url,
     })),
-    urgency: request.ask.urgency,
   };
 
   return [
