@@ -1,0 +1,9 @@
+{
+  "name": "verified-sample",
+  "category": "edge",
+  "description": "A human-verified captured golden set (synthetic placeholder used only by the loader test).",
+  "labelsVerified": true,
+  "capturedAt": "2026-06-29T00:00:00.000Z",
+  "input": { "runId": "fixture-verified", "tables": [], "nonSheetCandidates": [] },
+  "expectedFlags": []
+}

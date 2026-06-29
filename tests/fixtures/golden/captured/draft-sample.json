@@ -1,0 +1,11 @@
+{
+  "name": "draft-sample",
+  "category": "wrong",
+  "description": "An unverified draft (labelsVerified:false) — the loader must skip it so unlabeled captures never gate the build.",
+  "labelsVerified": false,
+  "capturedAt": "2026-06-29T00:00:00.000Z",
+  "input": { "runId": "fixture-draft", "tables": [], "nonSheetCandidates": [] },
+  "expectedFlags": [
+    { "tab": "Renewals", "sourceRowIndex": 1, "fieldKey": "renewal_date", "severity": "High" }
+  ]
+}
