@@ -26,6 +26,9 @@ docs/context_and_calls/
 # Client-provided source material: spreadsheets, ledgers, invoices, tool-access
 # records, and any secrets they contain must stay local and never be committed.
 docs/client_docs/
+# Captured golden-data sets derived from live client reads (RentVine/Sheet). In-boundary
+# test fixtures that hold real data — never committed (see lib/lease-renewal/golden/).
+/golden-data/
 # Local-only secrets (API keys, tokens) kept on this machine but never committed.
 secrets/
 

@@ -27,6 +27,7 @@ import {
 import {
   runRenewalPipeline,
   type NonSheetCandidate,
+  type RenewalRunInput,
   type RenewalRunResult,
 } from "@/lib/lease-renewal/pipeline";
 import {
@@ -70,6 +71,9 @@ export interface LiveRenewalRunOptions {
 
 export interface LiveRenewalRunResult {
   run: RenewalRunResult;
+  /** The exact input passed to the pipeline (real data on a live run); lets the golden-capture tool
+   *  serialize a labeled scenario without re-deriving the read. Counts-only callers ignore it. */
+  pipelineInput: RenewalRunInput;
   liveRentvineCandidates: number;
   skippedLeases: number;
   /** Present only when `cohortWindows` was supplied — the actionable/skip/review breakdown. */
@@ -105,15 +109,17 @@ export async function runLiveRenewalReview(
     (candidate) => candidate.source !== RENTVINE_SOURCE,
   );
 
-  const run = runRenewalPipeline({
+  const pipelineInput: RenewalRunInput = {
     runId: options.runId,
     tables: options.tables ?? SAMPLE_RENEWAL_TABLES,
     nonSheetCandidates: [...mapping.candidates, ...others],
     tableJoinIds: options.tableJoinIds,
-  });
+  };
+  const run = runRenewalPipeline(pipelineInput);
 
   return {
     run,
+    pipelineInput,
     liveRentvineCandidates: mapping.candidates.length,
     skippedLeases: mapping.skipped,
     ...(cohort ? { cohort } : {}),
