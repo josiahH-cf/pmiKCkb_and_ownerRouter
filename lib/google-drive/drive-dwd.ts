@@ -37,6 +37,13 @@ export interface DriveFile {
   webViewLink?: string;
 }
 
+/** Where to create/search a folder. `driveId` targets a Shared Drive (team-owned); `parentId` defaults
+ *  to it (the Shared Drive root) when omitted. With no `driveId`, operations run in the subject's My Drive. */
+export interface DriveLocation {
+  parentId?: string;
+  driveId?: string;
+}
+
 /**
  * Mint a keyless DWD access token scoped to Drive, acting AS the subject user. The SA signs a JWT (via
  * iamcredentials.signJwt — the caller holds Token Creator on the SA), exchanged for a user-scoped token.
@@ -118,15 +125,21 @@ export class GoogleDriveClient {
     return `Bearer ${await this.getToken()}`;
   }
 
-  /** Find an app-created folder by exact name (optionally within a parent), or null. */
-  async findFolder(name: string, parentId?: string): Promise<DriveFile | null> {
+  /** Find an app-created folder by exact name (optionally within a parent / Shared Drive), or null. */
+  async findFolder(name: string, location: DriveLocation = {}): Promise<DriveFile | null> {
+    const parent = location.parentId ?? location.driveId;
     const clauses = [
       `name = '${escapeDriveQueryValue(name)}'`,
       `mimeType = '${DRIVE_FOLDER_MIME}'`,
       "trashed = false",
-      ...(parentId ? [`'${escapeDriveQueryValue(parentId)}' in parents`] : []),
+      ...(parent ? [`'${escapeDriveQueryValue(parent)}' in parents`] : []),
     ];
-    const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(clauses.join(" and "))}&fields=files(id,name,webViewLink)&pageSize=1`;
+    let url =
+      `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(clauses.join(" and "))}` +
+      "&fields=files(id,name,webViewLink)&pageSize=1&supportsAllDrives=true&includeItemsFromAllDrives=true";
+    if (location.driveId) {
+      url += `&corpora=drive&driveId=${encodeURIComponent(location.driveId)}`;
+    }
     const response = await this.fetchImpl(url, { headers: { authorization: await this.authHeader() } });
     if (!response.ok) {
       throw new DriveSetupError(`Drive folder lookup failed (HTTP ${response.status}).`);
@@ -135,9 +148,10 @@ export class GoogleDriveClient {
     return body.files && body.files.length > 0 ? body.files[0] : null;
   }
 
-  async createFolder(name: string, parentId?: string): Promise<DriveFile> {
+  async createFolder(name: string, location: DriveLocation = {}): Promise<DriveFile> {
+    const parent = location.parentId ?? location.driveId;
     const response = await this.fetchImpl(
-      "https://www.googleapis.com/drive/v3/files?fields=id,name,webViewLink",
+      "https://www.googleapis.com/drive/v3/files?fields=id,name,webViewLink&supportsAllDrives=true",
       {
         method: "POST",
         headers: {
@@ -147,7 +161,7 @@ export class GoogleDriveClient {
         body: JSON.stringify({
           name,
           mimeType: DRIVE_FOLDER_MIME,
-          ...(parentId ? { parents: [parentId] } : {}),
+          ...(parent ? { parents: [parent] } : {}),
         }),
       },
     );
@@ -157,15 +171,15 @@ export class GoogleDriveClient {
     return (await response.json()) as DriveFile;
   }
 
-  /** Idempotent: return the existing folder or create it. */
+  /** Idempotent: return the existing folder or create it (within the given Shared Drive / parent). */
   async ensureFolder(
     name: string,
-    parentId?: string,
+    location: DriveLocation = {},
   ): Promise<{ folder: DriveFile; created: boolean }> {
-    const existing = await this.findFolder(name, parentId);
+    const existing = await this.findFolder(name, location);
     if (existing) {
       return { folder: existing, created: false };
     }
-    return { folder: await this.createFolder(name, parentId), created: true };
+    return { folder: await this.createFolder(name, location), created: true };
   }
 }

@@ -124,7 +124,7 @@ export class DriveMaintenanceImageStore implements MaintenanceImageStore {
 
     const response = await this.transport.send({
       method: "POST",
-      url: "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink",
+      url: "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink&supportsAllDrives=true",
       headers: {
         authorization: `Bearer ${token}`,
         "content-type": `multipart/related; boundary=${boundary}`,
