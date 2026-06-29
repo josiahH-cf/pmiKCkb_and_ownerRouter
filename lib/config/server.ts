@@ -86,6 +86,10 @@ const EnvSchema = z.object({
   NEXT_PUBLIC_FIREBASE_APP_ID: OptionalStringSchema,
   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: OptionalStringSchema,
   NEXT_PUBLIC_FIREBASE_PROJECT_ID: OptionalStringSchema,
+  // Speech-to-text for maintenance voice capture. "stub" is the free dev/test stand-in; prod is forced
+  // to "google" (Google Cloud Speech-to-Text) below, mirroring MODEL_PROVIDER.
+  SPEECH_PROVIDER: z.enum(["google", "stub"]).default("stub"),
+  SPEECH_LANGUAGE_CODE: z.string().trim().min(2).default("en-US"),
   SPACE_DRIVE_FOLDER_IDS: JsonMapSchema,
   SPACE_VERTEX_DATA_STORE_IDS: JsonMapSchema,
   VERTEX_AI_LOCATION: z.string().trim().min(1).default("us-central1"),
@@ -119,6 +123,10 @@ export function readServerConfig(env: Environment = process.env) {
     // The local provider is dev/test-only; force Gemini in production (mirrors localDemoAuth).
     modelProvider:
       process.env.NODE_ENV === "production" ? "gemini" : parsed.MODEL_PROVIDER,
+    // The stub STT is dev/test-only (free); force Google Cloud Speech-to-Text in production.
+    speechProvider:
+      process.env.NODE_ENV === "production" ? "google" : parsed.SPEECH_PROVIDER,
+    speechLanguageCode: parsed.SPEECH_LANGUAGE_CODE,
     spaceDriveFolderIds: parsed.SPACE_DRIVE_FOLDER_IDS,
     spaceVertexDataStoreIds: parsed.SPACE_VERTEX_DATA_STORE_IDS,
     vertexAiLocation: parsed.VERTEX_AI_LOCATION,

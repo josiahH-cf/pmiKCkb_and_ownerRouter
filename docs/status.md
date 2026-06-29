@@ -5410,3 +5410,20 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   image-store adapter; the capture UI (photo + voice + note). RentVine work-order create stays gated.
 - Verification: typecheck + lint clean; falsification (496 files) + context-freshness pass. No SoR write;
   no cloud spend; production_allowed:false throughout.
+
+## Slice 5b: Maintenance speech-to-text seam (2026-06-29)
+
+- Built the voice backend for maintenance capture (owner: voice/STT in v1), prod-plane correct
+  (`F-STT-SEAM`):
+  - `lib/speech/stt-provider.ts` — a `SpeechToTextProvider` seam mirroring the ModelProvider: a free
+    `StubSpeechToTextProvider` (canned transcript, zero-spend) and a `GoogleSpeechToTextProvider` calling
+    Google Cloud Speech-to-Text's v1 `speech:recognize` REST endpoint via google-auth-library (no new SDK
+    dep; injectable transport + token getter for tests). `createSpeechToTextProvider` selects by config.
+  - `lib/config/server.ts` — `SPEECH_PROVIDER` (default stub) + `SPEECH_LANGUAGE_CODE`; prod forces
+    `google` (NODE_ENV fence), so dev is free and prod uses the cloud path.
+  - `app/api/maintenance/transcribe/route.ts` — edit-gated; caps audio at ~8MB base64 to bound STT cost
+    (owner budget safety); returns the transcript. Stub path is zero-spend in dev.
+  - Tests: `stt-provider.test.ts` (6) — stub, provider selection, Google adapter parsing (injected
+    transport), non-2xx error, empty results. Updated four full-config test fixtures for the new fields.
+- 776/776 tests; typecheck + lint clean; falsification (499 files) + context-freshness pass. No SoR write;
+  no cloud spend (stub in dev); production_allowed:false throughout.

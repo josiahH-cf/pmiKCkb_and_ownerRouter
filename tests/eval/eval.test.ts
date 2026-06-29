@@ -89,6 +89,8 @@ const liveConfig: ServerConfig = {
   localModelBaseUrl: undefined,
   localModelName: "local-model",
   modelProvider: "gemini",
+  speechLanguageCode: "en-US",
+  speechProvider: "stub",
   spaceDriveFolderIds: {
     "lease-renewals": "folder-1",
   },

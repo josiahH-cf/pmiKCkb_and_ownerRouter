@@ -73,10 +73,10 @@ Recalibrated roadmap (owner-directed 2026-06-29 — a multi-process operations c
    process makes the answer process-aware (server-resolved context) and lets an editor start a SAFE
    simulation run. Schema trim + hybrid intent-detection (`F-INTENT-DETECT`) DONE. Follow-up: richer compose.
 
-5. Maintenance Work Order Intake — FOUNDATION done (2026-06-29, `F-MAINT-INTAKE`): pure work-order draft
-   builder + Draft process template, RentVine create gated; storage = Drive in-boundary. Remaining
-   sub-slices (owner to confirm capture UX): process seed, STT seam (Google Cloud STT, dev stub),
-   Drive image-store adapter, capture UI. Cross-product glue (`docs/feature-suites/cross-product.md`) later.
+5. Maintenance Work Order Intake — IN PROGRESS (2026-06-29): foundation (`F-MAINT-INTAKE`: draft builder +
+   Draft template, gated) + STT seam (`F-STT-SEAM`: Google Cloud STT / dev stub + transcribe API) done.
+   Capture UX confirmed: dedicated `/maintenance` route, record-in-browser. Remaining sub-slices: capture
+   UI, Drive image-store adapter, process seed. Cross-product glue (`docs/feature-suites/cross-product.md`) later.
 
 ## Active Blockers And Exact Client Asks
 
