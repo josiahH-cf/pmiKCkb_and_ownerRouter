@@ -10,7 +10,7 @@ RentVine); produces a structured work-order draft; routes a confirmation/notice 
 owner-email folder; and learns from corrections. The Action Registry already seeds
 `rentvine.work_order.create/read/update_status` as `production_allowed:false` — execution stays gated.
 
-**Image/screenshot storage — UNDECIDED (`Q-MAINT-STORAGE`; options, no lock):**
+**Image/screenshot storage — DECIDED: Google Drive in-boundary (owner 2026-06-29; `Q-MAINT-STORAGE`, `F-MAINT-INTAKE`). The Drive adapter wiring is a pending sub-slice. Options considered:**
 
 - **A — Google Drive folder inside the `pmikcmetro.com` boundary** (reuse the Drive connector,
   consistent identity, no new vendor). _(Conservative recommendation.)_
