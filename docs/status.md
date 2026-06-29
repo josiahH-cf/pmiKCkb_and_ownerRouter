@@ -5265,3 +5265,28 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
 - Remaining R3: (a) the team reviews the worksheet → `golden:apply-labels` → the harness gate tunes the
   reconciliation math against ground truth (Q-PREC-1 / Q-WRITEBACK-METHOD inform it); (b) the live
   Firestore seed of the Draft definition stays OWNER-GATED (prod-facing — the client previews that project).
+
+## R4a — Action Console (process-aware, simulation launch) (2026-06-29)
+
+- Rescoped the Console (`/ask`) from a metadata-heavy "Ask" box into the action console (resolves
+  Q-ASK-RESCOPE → `F-ACTION-CONSOLE`):
+  - `components/ask/AskForm.tsx` — retired the four Ask selects (Audience/Channel/Space/Urgency). The
+    answer path still accepts them, so the client sends neutral defaults until the schema is trimmed (a
+    noted follow-up — additive, no backend break). Added a role-gated process picker: an editor who picks
+    a process gets "Get answer + start simulation"; on submit it fetches the grounded answer, then POSTs
+    the existing `/api/process-definitions/[id]/test-runs` route to start a SIMULATION-ONLY run, and shows
+    a "Process simulation started" card linking to /processes. No new API route (reused the spine).
+  - `app/ask/page.tsx` — server-fetches `listProcessDefinitions` (editors only; try/catch → empty) and
+    passes processes + `canStartSimulation` to the form; reframed the subtitle to the action-console voice.
+  - `tests/unit/ask-form.test.tsx` — 3 component tests: the rescope (no four selects, picker hidden for
+    read-only), ask-without-process (no test-run call), and the editor launch flow (answer + test-run +
+    simulation card).
+- Zero-spend + safe: the launch path adds no cloud spend (simulation_only run, no SoR write, no send) and
+  the answer runs free on the local provider in dev. production_allowed:false throughout.
+- Browser-verified on the dev server: `/ask` renders the reframed Console with the question box and NO
+  four selects, no console errors; picker is correctly hidden locally (no definitions seeded). Launch flow
+  is covered by the component test (authoritative for the role gate + the two fetches).
+- Verification: typecheck + lint (0 warnings) clean; new suite 3/3; full `npm test` + verify gates re-run
+  on the branch (see merge entry). Recorded `F-ACTION-CONSOLE` + the Q-ASK-RESCOPE supersede in facts.md.
+- Follow-ups (smaller): trim audience/channel/urgency from the AskRequest schema + prompt; make the answer
+  itself process-aware (ground in the picked process); intent-detection so the process is inferred from text.

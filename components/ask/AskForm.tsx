@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { SourceStateBanner } from "@/components/source-state-banner/SourceStateBanner";
 import { launchSpaces } from "@/lib/spaces";
@@ -7,27 +8,17 @@ import type { AskResponse } from "@/lib/schemas";
 
 type SelectOption = { label: string; value: string };
 
-const audienceOptions = toOptions([
-  "Unknown",
-  "Tenant",
-  "Owner",
-  "Applicant",
-  "Vendor",
-  "Internal",
-]);
-const channelOptions = [
-  "Other",
-  "RentVine",
-  "Gmail",
-  "LeadSimple",
-  "Internal Note",
-  "Phone Script",
-].map((option) => ({ label: option, value: option }));
-const urgencyOptions = toOptions(["Normal", "Low", "High"]);
-const spaceOptions: SelectOption[] = [
-  { label: "All Spaces", value: "" },
-  ...launchSpaces.map((space) => ({ label: space.name, value: space.id })),
-];
+/** A process the Console can start a simulation for (from the spine's definitions). */
+export type ProcessOption = { id: string; name: string; status: string };
+
+/** Minimal shape of the workflow run the test-run API returns. */
+type SimulationRunSummary = {
+  id: string;
+  process_name: string;
+  status: string;
+  next_action: string;
+};
+
 const writableSpaceOptions = launchSpaces
   .filter((space) => !space.readOnly)
   .map((space) => ({ label: space.name, value: space.id }));
@@ -37,43 +28,81 @@ const capturableStates = new Set([
   "No Reliable Source Found",
 ]);
 
-export function AskForm() {
+export function AskForm({
+  canStartSimulation = false,
+  processes = [],
+}: Readonly<{ canStartSimulation?: boolean; processes?: ProcessOption[] }>) {
   const [question, setQuestion] = useState("");
-  const [audience, setAudience] = useState("Unknown");
-  const [channel, setChannel] = useState("Other");
-  const [space, setSpace] = useState("");
+  const [processId, setProcessId] = useState("");
   const [captureSpace, setCaptureSpace] = useState(
     writableSpaceOptions[0]?.value ?? "lease-renewals",
   );
-  const [urgency, setUrgency] = useState("Normal");
   const [result, setResult] = useState<AskResponse | null>(null);
+  const [simulationRun, setSimulationRun] = useState<SimulationRunSummary | null>(null);
   const [isPending, setIsPending] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
   const [captureStatus, setCaptureStatus] = useState("");
   const [isCapturing, setIsCapturing] = useState(false);
+
+  const showProcessPicker = canStartSimulation && processes.length > 0;
+  const willSimulate = showProcessPicker && processId !== "";
+  const processOptions: SelectOption[] = [
+    { label: "Just ask (no process)", value: "" },
+    ...processes.map((process) => ({
+      label: `${process.name} (${process.status})`,
+      value: process.id,
+    })),
+  ];
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsPending(true);
     setResult(null);
+    setSimulationRun(null);
+    setStatusMessage("");
     setCaptureStatus("");
 
+    // The four Ask metadata selects (audience/channel/space/urgency) were retired with the action
+    // console (R4); the answer path still accepts them, so send neutral defaults until the schema is
+    // trimmed.
     const response = await fetch("/api/ask", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         question,
-        audience,
-        channel,
-        urgency,
+        audience: "Unknown",
+        channel: "Other",
+        urgency: "Normal",
         draft_enabled: true,
-        space: space || undefined,
       }),
     });
 
-    if (response.ok) {
-      setResult((await response.json()) as AskResponse);
-    } else {
-      setCaptureStatus(await readErrorMessage(response));
+    if (!response.ok) {
+      setStatusMessage(await readErrorMessage(response, "Ask request failed."));
+      setIsPending(false);
+      return;
+    }
+
+    setResult((await response.json()) as AskResponse);
+
+    if (willSimulate) {
+      const runResponse = await fetch(
+        `/api/process-definitions/${encodeURIComponent(processId)}/test-runs`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            note: `Started from the Console. Question: ${question}`.slice(0, 280),
+          }),
+        },
+      );
+
+      if (runResponse.ok) {
+        const payload = (await runResponse.json()) as { run: SimulationRunSummary };
+        setSimulationRun(payload.run);
+      } else {
+        setStatusMessage(await readErrorMessage(runResponse, "Simulation could not be started."));
+      }
     }
 
     setIsPending(false);
@@ -101,13 +130,18 @@ export function AskForm() {
     if (response.ok) {
       setCaptureStatus("Capture task created.");
     } else {
-      setCaptureStatus(await readErrorMessage(response));
+      setCaptureStatus(await readErrorMessage(response, "Capture failed."));
     }
 
     setIsCapturing(false);
   }
 
   const canCapture = result ? capturableStates.has(result.source_state) : false;
+  const submitLabel = isPending
+    ? "Working"
+    : willSimulate
+      ? "Get answer + start simulation"
+      : "Get answer";
 
   return (
     <div className="ask-grid">
@@ -124,39 +158,27 @@ export function AskForm() {
           value={question}
         />
 
-        <div className="field-row">
-          <SelectField
-            id="ask-audience"
-            label="Audience"
-            onChange={setAudience}
-            options={audienceOptions}
-            value={audience}
-          />
-          <SelectField
-            id="ask-channel"
-            label="Channel"
-            onChange={setChannel}
-            options={channelOptions}
-            value={channel}
-          />
-          <SelectField
-            id="ask-space"
-            label="Space"
-            onChange={setSpace}
-            options={spaceOptions}
-            value={space}
-          />
-          <SelectField
-            id="ask-urgency"
-            label="Urgency"
-            onChange={setUrgency}
-            options={urgencyOptions}
-            value={urgency}
-          />
-        </div>
+        {showProcessPicker ? (
+          <div className="field-row">
+            <SelectField
+              id="ask-process"
+              label="Process"
+              onChange={setProcessId}
+              options={processOptions}
+              value={processId}
+            />
+          </div>
+        ) : null}
+
+        {willSimulate ? (
+          <p className="muted">
+            Starting this process runs a simulation only — no system-of-record write, no message
+            sent.
+          </p>
+        ) : null}
 
         <button className="primary-button" disabled={isPending} type="submit">
-          {isPending ? "Checking" : "Get Answer"}
+          {submitLabel}
         </button>
       </form>
 
@@ -201,6 +223,18 @@ export function AskForm() {
                 Escalation owner: <strong>{result.escalation_owner}</strong>
               </p>
             ) : null}
+            {simulationRun ? (
+              <div className="capture-panel">
+                <h3>Process simulation started</h3>
+                <p>
+                  <strong>{simulationRun.process_name}</strong> — {simulationRun.status}
+                </p>
+                {simulationRun.next_action ? (
+                  <p className="muted">Next: {simulationRun.next_action}</p>
+                ) : null}
+                <Link href="/processes">View in Processes</Link>
+              </div>
+            ) : null}
             {canCapture ? (
               <div className="capture-panel">
                 <h3>Capture Task</h3>
@@ -226,6 +260,7 @@ export function AskForm() {
         ) : (
           <p className="muted">Results appear here.</p>
         )}
+        {statusMessage ? <p className="muted">{statusMessage}</p> : null}
       </aside>
     </div>
   );
@@ -258,14 +293,8 @@ function SelectField({
   );
 }
 
-function toOptions(options: string[]): SelectOption[] {
-  return options.map((option) => ({ label: option, value: option }));
-}
-
-async function readErrorMessage(response: Response) {
+async function readErrorMessage(response: Response, fallback: string) {
   const payload = (await response.json().catch(() => ({}))) as { error?: unknown };
 
-  return typeof payload.error === "string" && payload.error.trim()
-    ? payload.error
-    : "Ask request failed.";
+  return typeof payload.error === "string" && payload.error.trim() ? payload.error : fallback;
 }
