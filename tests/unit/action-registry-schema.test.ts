@@ -156,8 +156,8 @@ describe("Action Registry seed catalog", () => {
     expect(writeback?.production_allowed).toBe(false);
   });
 
-  it("contains the expanded 17-entry catalog", () => {
-    expect(ACTION_REGISTRY_SEED).toHaveLength(17);
+  it("contains the expanded 18-entry catalog", () => {
+    expect(ACTION_REGISTRY_SEED).toHaveLength(18);
     expect(ACTION_REGISTRY_SEED.map((entry) => entry.key)).toEqual(
       expect.arrayContaining([
         "rentvine.lease.read",
@@ -168,6 +168,7 @@ describe("Action Registry seed catalog", () => {
         "google_sheets.renewal_checklist.read",
         "google_sheets.renewal_checklist.reconcile",
         "google_sheets.renewal_checklist.writeback",
+        "google_drive.maintenance_photo.store",
       ]),
     );
   });

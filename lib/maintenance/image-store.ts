@@ -1,10 +1,11 @@
 // Maintenance photo storage seam (S4). Owner decision: Google Drive in-boundary (Q-MAINT-STORAGE).
 // Mirrors the ModelProvider / STT seams: a free dev/test STUB stands in for a Drive adapter, selected by
 // config and fenced from prod. The Drive adapter uploads to an in-boundary folder via the Drive v3
-// multipart REST upload (google-auth-library token; no new SDK dep; injectable transport + token getter).
+// multipart REST upload, authenticated as a pmikcmetro.com user via KEYLESS domain-wide delegation
+// (lib/google-drive/drive-dwd.ts) — the same posture as the Sheets reader, NEVER the personal account.
 // Stores return a reference (Drive file id / link), never the binary — callers keep only the ref.
 
-import { GoogleAuth } from "google-auth-library";
+import { mintDriveDwdToken } from "@/lib/google-drive/drive-dwd";
 
 export interface MaintenanceImage {
   filename: string;
@@ -92,13 +93,7 @@ export class DriveMaintenanceImageStore implements MaintenanceImageStore {
   ) {
     this.transport = options.transport ?? createImageFetchTransport();
     this.getAccessToken =
-      options.getAccessToken ??
-      (async () => {
-        const auth = new GoogleAuth({ scopes: ["https://www.googleapis.com/auth/drive.file"] });
-        const token = await auth.getAccessToken();
-        if (!token) throw new ImageStoreSetupError("Could not obtain a Google access token for Drive.");
-        return token;
-      });
+      options.getAccessToken ?? (() => mintDriveDwdToken());
   }
 
   async put(image: MaintenanceImage): Promise<StoredImage> {

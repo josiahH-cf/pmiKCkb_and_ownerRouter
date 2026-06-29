@@ -48,6 +48,7 @@
     "preflight:production": "node scripts/preflight-production-cutover.mjs",
     "preflight:rentvine": "node scripts/preflight-rentvine.mjs",
     "golden:capture": "tsx scripts/capture-golden-data.ts",
+    "maintenance:ensure-folder": "tsx scripts/ensure-maintenance-drive-folder.ts",
     "golden:worksheet": "tsx scripts/golden-labeling.ts worksheet",
     "golden:apply-labels": "tsx scripts/golden-labeling.ts apply",
     "smoke:ask-local": "tsx scripts/smoke-local-ask.ts",

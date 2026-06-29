@@ -39,6 +39,7 @@ export const ACTION_TARGET_SYSTEMS = [
   "QuickBooks",
   "Boom",
   "Google Sheets",
+  "Google Drive",
   "Gmail",
   "KB Internal",
 ] as const;
