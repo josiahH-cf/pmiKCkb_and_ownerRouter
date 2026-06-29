@@ -5540,3 +5540,21 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   the pmikcmetro.com subject (never personal, keyless); no token/JWT/SA-id/client-data leaks into
   errors/logs/stdout; and the Drive write stays gated.
 - Verification: typecheck + lint clean; falsification (510 files) + context-freshness pass.
+
+## Maintenance Drive sync — LIVE + verified (2026-06-29)
+
+- Owner authorized the Drive scope (`drive.file`) for the DWD service account
+  (`lease-renewal-reader@pmi-kc-kb-prod`, subject `josiah@pmikcmetro.com`) in the Workspace Admin console.
+- The first live attempt then returned 403 "Drive API not used/disabled" → enabled the Google Drive API
+  on `pmi-kc-kb-prod` via the Service Usage API with owner ADC (free; not GCP-billed; doesn't touch the $10
+  cap; owner-approved "do so if no cost"). Project number 558870356522.
+- `maintenance:ensure-folder --live` then **created** the "Maintenance Work Order Intake — Photos" folder
+  in josiah@pmikcmetro.com's Drive (in-boundary, owned by the subject). Merged its id into
+  SPACE_DRIVE_FOLDER_IDS in `.env.local` (gitignored; alongside lease-renewals) and set IMAGE_STORE=drive
+  for dev.
+- **Round-trip verified against live Drive:** a temp 1×1 PNG uploaded (returned a `drive:<id>` ref + a
+  webViewLink), then deleted (HTTP 204). This exercised the real keyless-DWD auth + the binary multipart
+  upload (the review fix) end to end. No client data; the test file was cleaned up.
+- Net: Q-MAINT-STORAGE resolved; F-DRIVE-DWD / F-MAINT-PHOTO are now LIVE. Remaining for prod: set
+  SPACE_DRIVE_FOLDER_IDS in the Cloud Run env at deploy (prod forces IMAGE_STORE=drive). Folder ids stay in
+  env (gitignored), never committed. Drive write stays gated (production_allowed:false in the Action Registry).
