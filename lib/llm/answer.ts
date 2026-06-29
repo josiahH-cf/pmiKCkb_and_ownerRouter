@@ -70,10 +70,19 @@ export const ANSWER_RESPONSE_JSON_SCHEMA = {
 
 export type GeneratedAnswer = z.infer<typeof GeneratedAnswerSchema>;
 
+/** Compact context for the process the Console question was asked in. A model HINT only — the service
+ *  resolves it server-side from the trusted definition id; it is never a citable source. */
+export interface AnswerProcessContext {
+  name: string;
+  outcome: string;
+  steps: string[];
+}
+
 export interface AnswerGenerationRequest {
   ask: AskRequest;
   grounding: GroundedSearchResult;
   sourceState: SourceState;
+  process?: AnswerProcessContext;
 }
 
 export interface AnswerGenerator {

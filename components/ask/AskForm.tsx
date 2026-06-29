@@ -74,6 +74,8 @@ export function AskForm({
         channel: "Other",
         urgency: "Normal",
         draft_enabled: true,
+        // A selected process makes the answer process-aware (resolved + applied server-side).
+        ...(processId ? { process_id: processId } : {}),
       }),
     });
 

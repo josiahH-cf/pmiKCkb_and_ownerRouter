@@ -5290,3 +5290,25 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   on the branch (see merge entry). Recorded `F-ACTION-CONSOLE` + the Q-ASK-RESCOPE supersede in facts.md.
 - Follow-ups (smaller): trim audience/channel/urgency from the AskRequest schema + prompt; make the answer
   itself process-aware (ground in the picked process); intent-detection so the process is inferred from text.
+
+## R4b — Process-aware answer (2026-06-29)
+
+- Deepened the action console: a selected process now shapes the ANSWER, not just the simulation launch
+  (extends `F-ACTION-CONSOLE`).
+  - `lib/schemas.ts` — AskRequest gains optional `process_id` (additive; defaults untouched).
+  - `lib/ask/service.ts` — when `process_id` is set, a guarded, INJECTABLE `processProvider` (default: a
+    read of the trusted definition via `getProcessDefinition`) resolves it to compact context
+    {name, outcome, first ≤8 step titles} and passes it to the generator. Never fatal: a missing/unreadable
+    definition yields no context. The client never supplies the context (no prompt injection).
+  - `lib/llm/answer.ts` — `AnswerGenerationRequest` gains optional `process` (`AnswerProcessContext`).
+  - `lib/llm/prompt.ts` — the user payload includes the `process` hint only when present; a new system-prompt
+    line tells the model to tailor the answer to it but NEVER cite it as a source (citation discipline intact).
+  - `components/ask/AskForm.tsx` — sends `process_id` whenever a process is selected (answer-aware, not only
+    on simulate).
+  - Tests: `ask-prompt.test.ts` (hint present/absent + the no-cite instruction), `ask-service.test.ts`
+    (+2: resolves & passes context with the right id; omits + never resolves without `process_id`),
+    `ask-form.test.tsx` (+ asserts the /api/ask body carries `process_id`).
+- Additive + zero-spend: no removals, citations/grounding/source-state logic untouched; the extra read runs
+  only when a process is selected. Browser-checked: `/ask` still 200, no four selects, no console errors.
+- Verification: typecheck + lint clean; affected suites 22/22; full `npm test` + verify gates re-run on the
+  branch (see merge entry). production_allowed:false throughout.
