@@ -5,6 +5,7 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { AskLogWriter } from "@/lib/firestore/ask-logs";
 import {
   GeminiAnswerGenerationError,
+  type AnswerGenerationRequest,
   type AnswerGenerator,
   type GeneratedAnswer,
 } from "@/lib/llm/answer";
@@ -427,7 +428,78 @@ describe("Ask service", () => {
       }),
     ).rejects.toBeInstanceOf(RetrievalSetupError);
   });
+
+  it("resolves and passes process context to the generator when process_id is set", async () => {
+    const { captured, generator } = capturingAnswerGenerator();
+    let resolvedId: string | undefined;
+
+    await answerQuestion(
+      user,
+      { ...request, process_id: "lease-renewal" },
+      {
+        answerGenerator: generator,
+        askLogWriter: noopAskLogWriter,
+        config: liveConfig,
+        retrievalClient: retrievalClient(grounding(["drive-file-1"])),
+        processProvider: async (id) => {
+          resolvedId = id;
+          return {
+            name: "Lease Renewal",
+            outcome: "Prepare a renewal package",
+            steps: ["Owner decision", "Tenant intake"],
+          };
+        },
+      },
+    );
+
+    expect(resolvedId).toBe("lease-renewal");
+    expect(captured.request?.process).toEqual({
+      name: "Lease Renewal",
+      outcome: "Prepare a renewal package",
+      steps: ["Owner decision", "Tenant intake"],
+    });
+  });
+
+  it("omits process context (and never resolves) when no process_id is provided", async () => {
+    const { captured, generator } = capturingAnswerGenerator();
+
+    await answerQuestion(user, request, {
+      answerGenerator: generator,
+      askLogWriter: noopAskLogWriter,
+      config: liveConfig,
+      retrievalClient: retrievalClient(grounding(["drive-file-1"])),
+      processProvider: async () => {
+        throw new Error("processProvider must not be called without process_id");
+      },
+    });
+
+    expect(captured.request?.process).toBeUndefined();
+  });
 });
+
+function capturingAnswerGenerator() {
+  const captured: { request?: AnswerGenerationRequest } = {};
+  const generator: AnswerGenerator = {
+    async generateAnswer(generationRequest) {
+      captured.request = generationRequest;
+      return {
+        answer: "Generated grounded answer.",
+        citations: [
+          {
+            source_id: "drive-file-1",
+            title: "Lease Renewals SOP",
+            url: "https://drive.google.com/file/d/drive-file-1/view",
+          },
+        ],
+        draft: `${DRAFT_BANNER}\n\nUse the approved renewal language.`,
+        escalation_owner: undefined,
+        handling_steps: ["Use only cited renewal sources."],
+        source_state: "Verified Source",
+      };
+    },
+  };
+  return { captured, generator };
+}
 
 const noopAskLogWriter: AskLogWriter = {
   async write() {},

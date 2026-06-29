@@ -9,11 +9,13 @@ import {
 } from "@/lib/demo/data";
 import type { AskLogWriter } from "@/lib/firestore/ask-logs";
 import { FirestoreAskLogWriter } from "@/lib/firestore/ask-logs";
+import { getProcessDefinition } from "@/lib/firestore/workflows";
 import {
   ensureDraftBanner,
   GeminiAnswerGenerationError,
   GoogleGenAiAnswerGenerator,
   type AnswerGenerator,
+  type AnswerProcessContext,
   type GeneratedAnswer,
 } from "@/lib/llm/answer";
 import type { RetrievalClient } from "@/lib/retrieval/vertex-search";
@@ -27,6 +29,27 @@ export interface AskServiceOptions {
   askLogWriter?: AskLogWriter;
   config?: ServerConfig;
   retrievalClient?: RetrievalClient;
+  /** Resolves a process id to model-hint context. Injectable for tests; defaults to a guarded read of
+   *  the process definition. Returns null when the id is absent/unreadable (an enhancement, never fatal). */
+  processProvider?: (processId: string) => Promise<AnswerProcessContext | null>;
+}
+
+/** Default process-context resolver: a guarded read of the trusted definition. Never throws — process
+ *  context is a model hint, so a missing/unreadable definition just yields no context. */
+async function resolveProcessContext(
+  user: AuthenticatedUser,
+  processId: string,
+): Promise<AnswerProcessContext | null> {
+  try {
+    const definition = await getProcessDefinition(user, processId);
+    return {
+      name: definition.name,
+      outcome: definition.short_outcome,
+      steps: definition.steps.slice(0, 8).map((step) => step.title),
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function answerQuestion(
@@ -82,11 +105,18 @@ export async function answerQuestion(
   const answerGenerator =
     options.answerGenerator ?? new GoogleGenAiAnswerGenerator(config);
 
+  const process = request.process_id
+    ? ((await (options.processProvider ?? ((id) => resolveProcessContext(user, id)))(
+        request.process_id,
+      )) ?? undefined)
+    : undefined;
+
   try {
     const generated = await answerGenerator.generateAnswer({
       ask: request,
       grounding,
       sourceState,
+      process,
     });
     const response = finalizeGeneratedAnswer(request, sourceState, grounding, generated);
 

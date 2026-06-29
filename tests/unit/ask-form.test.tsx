@@ -82,6 +82,7 @@ describe("AskForm (action console)", () => {
     expect(calledUrls.some((url) => url.includes("/api/ask"))).toBe(true);
     expect(calledUrls.some((url) => url.includes("/test-runs"))).toBe(false);
     expect(screen.queryByText("Process simulation started")).toBeNull();
+    expect(askBody(fetchMock).process_id).toBeUndefined();
   });
 
   it("launches a simulation when an editor selects a process", async () => {
@@ -110,5 +111,17 @@ describe("AskForm (action console)", () => {
         calledUrls.some((url) => url.includes("/api/process-definitions/lease-renewal/test-runs")),
       ).toBe(true);
     });
+
+    // The answer is process-aware: the /api/ask body carries the selected process id.
+    expect(askBody(fetchMock).process_id).toBe("lease-renewal");
   });
 });
+
+/** Parse the JSON body of the /api/ask call (not /api/ask/capture). */
+function askBody(mock: ReturnType<typeof vi.fn>): Record<string, unknown> {
+  const call = mock.mock.calls.find(
+    (entry) =>
+      String(entry[0]).includes("/api/ask") && !String(entry[0]).includes("/api/ask/capture"),
+  );
+  return JSON.parse(String((call?.[1] as RequestInit)?.body ?? "{}"));
+}

@@ -14,6 +14,8 @@ export const AskRequestSchema = z.object({
   urgency: z.string().trim().default("Normal"),
   draft_enabled: z.boolean().default(true),
   space: z.string().trim().optional(),
+  // The process the question is asked in (action console). Optional; resolved server-side to context.
+  process_id: z.string().trim().optional(),
 });
 
 export const CitationSchema = z.object({

@@ -13,6 +13,7 @@ export function buildGroundedAnswerSystemPrompt() {
     "If escalation_owner is needed, use only Process owner or Approver; do not invent role titles.",
     `Any unsupported factual placeholder must use the exact phrase "${UNVERIFIED_PLACEHOLDER}" — only in draft, never in answer.`,
     "Citations must refer only to source IDs present in the grounding metadata.",
+    "If a process context is provided, tailor the answer and handling_steps to that process; it is context only — never cite it as a source.",
     "If citations are absent, return No Reliable Source Found.",
     "Return one strict JSON object with answer, handling_steps, source_state, citations, draft, and optional escalation_owner.",
     "Do not include markdown fences, prose before JSON, or extra keys.",
@@ -27,6 +28,7 @@ export function buildGroundedAnswerUserPrompt(
     audience: request.ask.audience,
     channel: request.ask.channel,
     draft_enabled: request.ask.draft_enabled,
+    ...(request.process ? { process: request.process } : {}),
     question: request.ask.question,
     server_source_state: request.sourceState,
     sources: request.grounding.sources.map((source) => ({

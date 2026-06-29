@@ -69,9 +69,9 @@ Recalibrated roadmap (owner-directed 2026-06-29 — a multi-process operations c
    draft is captured and `golden:worksheet`/`golden:apply-labels` turn it into a team-verified set the
    harness gates on. REMAINING: (a) team reviews `golden-data/worksheets/r3-bootstrap.worksheet.json`
    → `golden:apply-labels` → tune the math vs. ground truth; (b) the live Firestore seed is OWNER-GATED.
-4. Done (2026-06-29) — R4a action console (`F-ACTION-CONSOLE`): the four Ask selects are retired; the
-   Console is process-aware — an editor picks a process to start a SAFE simulation run beside the grounded
-   answer. Follow-ups: trim audience/channel/urgency from the answer schema; richer compose/intent-detect.
+4. Done (2026-06-29) — R4 action console (`F-ACTION-CONSOLE`): the four Ask selects are retired; picking a
+   process makes the answer process-aware (server-resolved context) and lets an editor start a SAFE
+   simulation run. Follow-ups: trim audience/channel/urgency from the schema; intent-detect + compose.
 
 Hold maintenance intake (`docs/feature-suites/maintenance-intake.md`) and cross-product glue
 (`docs/feature-suites/cross-product.md`) until R3's facts and the storage/write-back choices are
