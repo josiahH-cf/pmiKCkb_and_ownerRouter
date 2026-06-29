@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { DriveSetupError, GoogleDriveClient } from "@/lib/google-drive/drive-dwd";
+import {
+  DriveSetupError,
+  GoogleDriveClient,
+  escapeDriveQueryValue,
+} from "@/lib/google-drive/drive-dwd";
 
 // Keyless DWD Drive client (in-boundary, acts AS the pmikcmetro.com subject). The live token mint is
 // not unit-tested (live-only, like the Sheets mint); these exercise the folder find/create/ensure logic
@@ -21,7 +25,29 @@ function fakeFetch(handlers: Array<(url: string, init?: RequestInit) => unknown>
 
 const TOKEN = async () => "tok";
 
+describe("escapeDriveQueryValue", () => {
+  it("escapes single quotes", () => {
+    expect(escapeDriveQueryValue("O'Brien")).toBe("O\\'Brien");
+  });
+
+  it("escapes backslashes (doubling them)", () => {
+    expect(escapeDriveQueryValue("a\\b")).toBe("a\\\\b");
+  });
+
+  it("escapes a trailing backslash FIRST so it cannot escape the closing quote", () => {
+    // "Photos\" -> "Photos\\" (the backslash is neutralized, not left to break out of the literal)
+    expect(escapeDriveQueryValue("Photos\\")).toBe("Photos\\\\");
+  });
+});
+
 describe("GoogleDriveClient.findFolder", () => {
+  it("escapes special characters in the folder name (no query injection)", async () => {
+    const f = fakeFetch([() => ({ files: [] })]);
+    const client = new GoogleDriveClient({ getToken: TOKEN, fetchImpl: f.fn });
+    await client.findFolder("Bad\\Name");
+    expect(decodeURIComponent(f.calls[0].url)).toContain("name = 'Bad\\\\Name'");
+  });
+
   it("returns the first matching folder or null", async () => {
     const found = fakeFetch([() => ({ files: [{ id: "f1", name: "Photos" }] })]);
     const client = new GoogleDriveClient({ getToken: TOKEN, fetchImpl: found.fn });

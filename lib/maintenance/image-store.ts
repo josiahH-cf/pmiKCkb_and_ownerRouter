@@ -5,6 +5,8 @@
 // (lib/google-drive/drive-dwd.ts) — the same posture as the Sheets reader, NEVER the personal account.
 // Stores return a reference (Drive file id / link), never the binary — callers keep only the ref.
 
+import { randomUUID } from "node:crypto";
+
 import { mintDriveDwdToken } from "@/lib/google-drive/drive-dwd";
 
 export interface MaintenanceImage {
@@ -80,9 +82,7 @@ interface DriveFileResponse {
   webViewLink?: string;
 }
 
-const MULTIPART_BOUNDARY = "maint-image-boundary";
-
-/** Uploads to an in-boundary Drive folder via the v3 multipart upload (base64 media). */
+/** Uploads to an in-boundary Drive folder via the v3 multipart upload (decoded binary media). */
 export class DriveMaintenanceImageStore implements MaintenanceImageStore {
   private readonly transport: ImageHttpTransport;
   private readonly getAccessToken: () => Promise<string>;
@@ -104,16 +104,18 @@ export class DriveMaintenanceImageStore implements MaintenanceImageStore {
     }
     const token = await this.getAccessToken();
     const metadata = { name: image.filename, parents: [this.folderId] };
-    // Drive's multipart upload treats the media part as RAW bytes — it does NOT decode
-    // Content-Transfer-Encoding. So the media part must be the decoded image bytes, not a base64 string;
-    // build the body as a Buffer (utf8 metadata + raw media + closing boundary).
+    // Per-upload high-entropy boundary: a static boundary could appear inside arbitrary image bytes and
+    // be parsed as a premature delimiter (RFC 2046), silently corrupting the upload. Drive's multipart
+    // upload treats the media part as RAW bytes (no Content-Transfer-Encoding decoding), so build the body
+    // as a Buffer (utf8 metadata + raw media + closing boundary).
+    const boundary = `maint-image-${randomUUID()}`;
     const head =
-      `--${MULTIPART_BOUNDARY}\r\n` +
+      `--${boundary}\r\n` +
       "Content-Type: application/json; charset=UTF-8\r\n\r\n" +
       `${JSON.stringify(metadata)}\r\n` +
-      `--${MULTIPART_BOUNDARY}\r\n` +
+      `--${boundary}\r\n` +
       `Content-Type: ${image.mimeType}\r\n\r\n`;
-    const tail = `\r\n--${MULTIPART_BOUNDARY}--`;
+    const tail = `\r\n--${boundary}--`;
     const body = Buffer.concat([
       Buffer.from(head, "utf8"),
       Buffer.from(image.base64, "base64"),
@@ -125,7 +127,7 @@ export class DriveMaintenanceImageStore implements MaintenanceImageStore {
       url: "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink",
       headers: {
         authorization: `Bearer ${token}`,
-        "content-type": `multipart/related; boundary=${MULTIPART_BOUNDARY}`,
+        "content-type": `multipart/related; boundary=${boundary}`,
       },
       body,
     });

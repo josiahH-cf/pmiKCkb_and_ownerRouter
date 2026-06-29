@@ -21,6 +21,16 @@ export class DriveSetupError extends Error {
   }
 }
 
+/**
+ * Escape a value for a Drive v3 query string literal. Drive's `q` grammar permits exactly two escapes
+ * inside a single-quoted literal — `\\` and `\'` — and the backslash MUST be escaped first, or a value
+ * ending in a backslash (or containing a quote) breaks out of the literal. Hardened for any future
+ * dynamic name/parent, not just today's constant folder name.
+ */
+export function escapeDriveQueryValue(value: string): string {
+  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
 export interface DriveFile {
   id: string;
   name?: string;
@@ -111,10 +121,10 @@ export class GoogleDriveClient {
   /** Find an app-created folder by exact name (optionally within a parent), or null. */
   async findFolder(name: string, parentId?: string): Promise<DriveFile | null> {
     const clauses = [
-      `name = '${name.replace(/'/g, "\\'")}'`,
+      `name = '${escapeDriveQueryValue(name)}'`,
       `mimeType = '${DRIVE_FOLDER_MIME}'`,
       "trashed = false",
-      ...(parentId ? [`'${parentId}' in parents`] : []),
+      ...(parentId ? [`'${escapeDriveQueryValue(parentId)}' in parents`] : []),
     ];
     const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(clauses.join(" and "))}&fields=files(id,name,webViewLink)&pageSize=1`;
     const response = await this.fetchImpl(url, { headers: { authorization: await this.authHeader() } });

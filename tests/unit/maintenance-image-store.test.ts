@@ -72,6 +72,26 @@ describe("DriveMaintenanceImageStore", () => {
     expect(body.includes(Buffer.from("AAAA", "base64"))).toBe(true);
   });
 
+  it("uses a unique per-upload multipart boundary that delimits the body", async () => {
+    const t1 = transport(200, { id: "a" });
+    const t2 = transport(200, { id: "b" });
+    await new DriveMaintenanceImageStore("f", { transport: t1, getAccessToken: async () => "t" }).put(
+      IMAGE,
+    );
+    await new DriveMaintenanceImageStore("f", { transport: t2, getAccessToken: async () => "t" }).put(
+      IMAGE,
+    );
+
+    const boundaryOf = (req?: { headers: Record<string, string> }) =>
+      /boundary=(\S+)/.exec(req?.headers["content-type"] ?? "")?.[1];
+    const b1 = boundaryOf(t1.last);
+    const b2 = boundaryOf(t2.last);
+
+    expect(b1).toMatch(/^maint-image-/);
+    expect(b1).not.toBe(b2); // per-upload, not a static boundary
+    expect(Buffer.from(t1.last?.body as Uint8Array).toString("latin1")).toContain(`--${b1}`);
+  });
+
   it("throws when no Drive folder is configured", async () => {
     const store = new DriveMaintenanceImageStore(undefined, {
       transport: transport(200, {}),
