@@ -90,6 +90,9 @@ const EnvSchema = z.object({
   // to "google" (Google Cloud Speech-to-Text) below, mirroring MODEL_PROVIDER.
   SPEECH_PROVIDER: z.enum(["google", "stub"]).default("stub"),
   SPEECH_LANGUAGE_CODE: z.string().trim().min(2).default("en-US"),
+  // Maintenance photo storage. "stub" is the free dev/test stand-in; prod is forced to "drive"
+  // (Google Drive in-boundary) below. The target folder comes from SPACE_DRIVE_FOLDER_IDS.
+  IMAGE_STORE: z.enum(["drive", "stub"]).default("stub"),
   SPACE_DRIVE_FOLDER_IDS: JsonMapSchema,
   SPACE_VERTEX_DATA_STORE_IDS: JsonMapSchema,
   VERTEX_AI_LOCATION: z.string().trim().min(1).default("us-central1"),
@@ -127,6 +130,11 @@ export function readServerConfig(env: Environment = process.env) {
     speechProvider:
       process.env.NODE_ENV === "production" ? "google" : parsed.SPEECH_PROVIDER,
     speechLanguageCode: parsed.SPEECH_LANGUAGE_CODE,
+    // The stub image store is dev/test-only (free); force Google Drive in-boundary in production. The
+    // folder comes from SPACE_DRIVE_FOLDER_IDS; absent → "" (the Drive store treats falsy as "no folder").
+    imageStore: process.env.NODE_ENV === "production" ? "drive" : parsed.IMAGE_STORE,
+    maintenanceImageFolderId:
+      parsed.SPACE_DRIVE_FOLDER_IDS["maintenance-work-order-intake"] ?? "",
     spaceDriveFolderIds: parsed.SPACE_DRIVE_FOLDER_IDS,
     spaceVertexDataStoreIds: parsed.SPACE_VERTEX_DATA_STORE_IDS,
     vertexAiLocation: parsed.VERTEX_AI_LOCATION,

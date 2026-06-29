@@ -26,6 +26,8 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
   const [draft, setDraft] = useState<WorkOrderDraft | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [photoRefs, setPhotoRefs] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const [status, setStatus] = useState("");
   const recorderRef = useRef<MediaRecorder | null>(null);
 
@@ -61,20 +63,45 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
       return;
     }
     setStatus("");
-    const stream = await media.getUserMedia({ audio: true });
-    const recorder = new MediaRecorder(stream);
-    const chunks: Blob[] = [];
-    recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) chunks.push(event.data);
-    };
-    recorder.onstop = async () => {
-      stream.getTracks().forEach((track) => track.stop());
-      setIsRecording(false);
-      await transcribe(new Blob(chunks, { type: recorder.mimeType || "audio/webm" }));
-    };
-    recorder.start();
-    recorderRef.current = recorder;
-    setIsRecording(true);
+    try {
+      const stream = await media.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunks.push(event.data);
+      };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        setIsRecording(false);
+        await transcribe(new Blob(chunks, { type: recorder.mimeType || "audio/webm" }));
+      };
+      recorder.start();
+      recorderRef.current = recorder;
+      setIsRecording(true);
+    } catch {
+      setStatus("Microphone unavailable or permission denied — type the note instead.");
+    }
+  }
+
+  async function handlePhoto(file: File) {
+    setIsUploading(true);
+    setStatus("");
+    try {
+      const base64 = await blobToBase64(file);
+      const response = await fetch("/api/maintenance/photo", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ filename: file.name, mimeType: file.type || "image/jpeg", base64 }),
+      });
+      if (response.ok) {
+        const stored = (await response.json()) as { ref: string };
+        setPhotoRefs((prev) => [...prev, stored.ref]);
+      } else {
+        setStatus("Could not upload the photo.");
+      }
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   function buildDraft() {
@@ -86,6 +113,7 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
         unit: unitLabel.trim()
           ? { unitId: unitLabel.trim(), label: unitLabel.trim(), confidence: "Verified" }
           : null,
+        photoRefs: photoRefs.length > 0 ? photoRefs : undefined,
         priority: priority ? (priority as WorkOrderDraft["priority"]) : undefined,
         capturedAt: new Date().toISOString(),
       }),
@@ -126,6 +154,23 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
           <p className="muted">
             <strong>Transcript:</strong> {transcript}
           </p>
+        ) : null}
+
+        <label htmlFor="mx-photo">Photo</label>
+        <input
+          accept="image/*"
+          id="mx-photo"
+          name="mx-photo"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) void handlePhoto(file);
+          }}
+          type="file"
+        />
+        {photoRefs.length > 0 ? (
+          <p className="muted">{photoRefs.length} photo(s) attached.</p>
+        ) : isUploading ? (
+          <p className="muted">Uploading photo…</p>
         ) : null}
 
         <label htmlFor="mx-unit">Unit / location</label>
@@ -173,6 +218,9 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
             </p>
             <p>
               <strong>Unit:</strong> {draft.unit ? draft.unit.label : <em>unmatched</em>}
+            </p>
+            <p>
+              <strong>Photos:</strong> {draft.photoRefs.length}
             </p>
             {draft.blockers.length > 0 ? (
               <>

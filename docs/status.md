@@ -5447,3 +5447,40 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
 - Verification: typecheck + lint clean; falsification (502 files) + context-freshness pass. No SoR write;
   no cloud spend (STT stub in dev); production_allowed:false throughout.
 - Remaining maintenance sub-slices: Drive image-store adapter (photo storage); process-definition seed.
+
+## Slice 5d + 5e: Maintenance photo storage + process seed (2026-06-29)
+
+- 5d — photo storage (`F-MAINT-PHOTO`): `lib/maintenance/image-store.ts` — a `MaintenanceImageStore` seam
+  mirroring the STT/model seams; free `StubMaintenanceImageStore` (dev) + `DriveMaintenanceImageStore`
+  (Drive v3 multipart upload via google-auth-library, injectable transport + token). `createMaintenanceImageStore`
+  selects by config (`IMAGE_STORE`, prod forced to drive; folder from `SPACE_DRIVE_FOLDER_IDS`).
+  `app/api/maintenance/photo/route.ts` edit-gated + ~10MB cap; the capture desk gained a photo input that
+  uploads → ref → into the draft. Stores return `drive:<id>`, never the binary.
+- 5e — process seed (`F-MAINT-SEED`): extracted a shared generic idempotent writer `seedProcessDefinition`
+  (refuses executable references) in `lib/lease-renewal/process-definition-seed.ts`; lease-renewal + the new
+  `lib/maintenance/process-definition-seed.ts` both use it. `seed:process-definitions` now seeds BOTH Drafts
+  (dry-run verified: Lease Renewal 8 steps/6 refs + Maintenance 7 steps/3 refs, none 'Approved for Execution').
+  Live write owner-gated.
+- Tests: `maintenance-image-store` (7), `maintenance-process-definition-seed` (2); updated four full-config
+  fixtures for IMAGE_STORE. 788/788 total.
+- Maintenance is now BUILT end-to-end (gated): capture (voice + photo + note + unit) → work-order draft →
+  seedable Draft process. No SoR write, no sends; `production_allowed:false` throughout. Remaining: prod
+  Drive folder id; live seed (owner-gated); the RentVine work-order create (vendor-confirmed + per-action spec).
+- Verification: typecheck + lint clean; falsification (507 files) + context-freshness pass.
+
+## Maintenance adversarial review + hardening (2026-06-29)
+
+- Ran a multi-agent adversarial review (ultracode) over the maintenance feature before merge: 4 dimension
+  finders (gating/safety, security/data-gov, correctness, seam-fencing) → each finding adversarially
+  verified. 13 raw findings → 6 confirmed (1 a positive "error paths don't leak audio/PII" confirmation).
+- Fixed the 5 actionable findings:
+  - **HIGH:** `DriveMaintenanceImageStore` sent base64 TEXT as the multipart media part with
+    `Content-Transfer-Encoding: base64`, which Drive does NOT decode — every real upload would be stored
+    corrupted. Now builds a binary Buffer body (decoded bytes) and drops the header; the test asserts the
+    body carries decoded bytes (not base64 text). Caught only because the review distrusted the green test.
+  - **MEDIUM:** the transcribe/photo routes buffered the whole body before the Zod size cap → added a
+    Content-Length 413 guard before `json()` (bounds memory for authenticated editors).
+  - **MEDIUM:** added prod-fence regression tests (NODE_ENV=production forces STT=google, image=drive).
+  - **LOW:** a 2xx non-JSON upstream response now maps to the typed 503 (was an unhandled 500) in both seams.
+  - **LOW:** `toggleRecording` wraps `getUserMedia` in try/catch (mic-denied feedback).
+- Verification: 792/792 tests (+4), typecheck + lint clean, falsification (507 files) + context-freshness pass.

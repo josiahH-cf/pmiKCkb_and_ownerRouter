@@ -32,6 +32,17 @@ describe("server config", () => {
     expect(readServerConfig({ MODEL_PROVIDER: "local" }).modelProvider).toBe("gemini");
   });
 
+  it("defaults the STT + image-store providers to the free dev/test stubs", () => {
+    expect(readServerConfig({}).speechProvider).toBe("stub");
+    expect(readServerConfig({}).imageStore).toBe("stub");
+  });
+
+  it("forces Google Cloud STT + Drive image store in production (stubs are dev/test-only)", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    expect(readServerConfig({ SPEECH_PROVIDER: "stub" }).speechProvider).toBe("google");
+    expect(readServerConfig({ IMAGE_STORE: "stub" }).imageStore).toBe("drive");
+  });
+
   it("parses Space ID maps", () => {
     const config = readServerConfig({
       SPACE_DRIVE_FOLDER_IDS: '{"lease-renewals":"folder-1"}',

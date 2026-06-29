@@ -16,7 +16,13 @@ import {
   buildLeaseRenewalDefinitionRecord,
   seedLeaseRenewalDefinition,
   type SeedFirestore,
+  type SeedResult,
+  type SeedableDefinition,
 } from "../lib/lease-renewal/process-definition-seed";
+import {
+  buildMaintenanceDefinitionRecord,
+  seedMaintenanceDefinition,
+} from "../lib/maintenance/process-definition-seed";
 
 export interface SeedProcessDefinitionsOptions {
   help: boolean;
@@ -25,7 +31,7 @@ export interface SeedProcessDefinitionsOptions {
   json: boolean;
 }
 
-const HELP = `Seed the Lease Renewal process definition (a non-executable Draft).
+const HELP = `Seed the process definitions (Lease Renewal + Maintenance Work Order Intake) as non-executable Drafts.
 
 Usage: tsx scripts/seed-process-definitions.ts [--dry-run] [--force] [--json]
 
@@ -65,32 +71,50 @@ export async function main(argv = process.argv.slice(2)) {
 
   // Free-text uids (no validation in the spine); placeholders are safe for a Draft. Provide real
   // owner/approver uids via env before the activation lifecycle is run.
-  const ownerUid = process.env.PROCESS_OWNER_UID || "lease-renewal-owner-PLACEHOLDER";
-  const approverUid = process.env.PROCESS_APPROVER_UID || "lease-renewal-approver-PLACEHOLDER";
+  const ownerUid = process.env.PROCESS_OWNER_UID || "process-owner-PLACEHOLDER";
+  const approverUid = process.env.PROCESS_APPROVER_UID || "process-approver-PLACEHOLDER";
 
-  // No source_links on the seeded Draft: activation (out of scope) requires the team to attach the
-  // real approved source(s), so a Draft with none is valid and honest about not being activation-ready.
-  const record = buildLeaseRenewalDefinitionRecord({ ownerUid, approverUid });
-  assertNoExecutableReferences(record);
+  // No source_links on the seeded Drafts: activation (out of scope) requires the team to attach the real
+  // approved source(s), so a Draft with none is valid and honest about not being activation-ready.
+  const definitions: Array<{
+    name: string;
+    record: SeedableDefinition;
+    seed: (db: SeedFirestore, now: string) => Promise<SeedResult>;
+  }> = [
+    {
+      name: "Lease Renewal",
+      record: buildLeaseRenewalDefinitionRecord({ ownerUid, approverUid }),
+      seed: (db, now) =>
+        seedLeaseRenewalDefinition({ db, ownerUid, approverUid, force: options.force, now }),
+    },
+    {
+      name: "Maintenance Work Order Intake",
+      record: buildMaintenanceDefinitionRecord({ ownerUid, approverUid }),
+      seed: (db, now) =>
+        seedMaintenanceDefinition({ db, ownerUid, approverUid, force: options.force, now }),
+    },
+  ];
+
+  for (const definition of definitions) {
+    assertNoExecutableReferences(definition.record);
+  }
 
   if (options.dryRun) {
-    if (options.json) console.log(JSON.stringify(record, null, 2));
-    console.log(
-      `[dry-run] built Lease Renewal Draft at process_definitions/${record.id}: ${record.steps.length} steps, ${record.action_references.length} action references, status ${record.status}; none 'Approved for Execution'. No writes.`,
-    );
+    for (const definition of definitions) {
+      if (options.json) console.log(JSON.stringify(definition.record, null, 2));
+      console.log(
+        `[dry-run] built ${definition.name} Draft at process_definitions/${definition.record.id}: ${definition.record.steps.length} steps, ${definition.record.action_references.length} action references, status ${definition.record.status}; none 'Approved for Execution'. No writes.`,
+      );
+    }
     return;
   }
 
   const db = getLiveFirestore();
   const now = new Date().toISOString();
-  const result = await seedLeaseRenewalDefinition({
-    db,
-    ownerUid,
-    approverUid,
-    force: options.force,
-    now,
-  });
-  console.log(`process_definitions/${result.id}: ${result.action}`);
+  for (const definition of definitions) {
+    const result = await definition.seed(db, now);
+    console.log(`process_definitions/${result.id}: ${result.action}`);
+  }
 }
 
 function getLiveFirestore(): SeedFirestore {

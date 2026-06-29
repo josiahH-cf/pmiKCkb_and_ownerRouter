@@ -74,6 +74,25 @@ describe("GoogleSpeechToTextProvider", () => {
     ).rejects.toBeInstanceOf(SpeechSetupError);
   });
 
+  it("throws SpeechSetupError on a 2xx with a non-JSON body", async () => {
+    const provider = new GoogleSpeechToTextProvider({
+      transport: {
+        async send() {
+          return {
+            status: 200,
+            json: async () => {
+              throw new SyntaxError("not json");
+            },
+          };
+        },
+      },
+      getAccessToken: async () => "tok",
+    });
+    await expect(
+      provider.transcribe({ audioBase64: "AAAA", mimeType: "audio/webm" }),
+    ).rejects.toBeInstanceOf(SpeechSetupError);
+  });
+
   it("returns an empty transcript when there are no results", async () => {
     const provider = new GoogleSpeechToTextProvider({
       transport: transport(200, {}),
