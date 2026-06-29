@@ -751,7 +751,7 @@ describe("cheap live setup scripts", () => {
     expect(records.find((record) => record.id === "launch-move-in-sop")).toMatchObject({
       collection: "sops",
       data: {
-        source_state_hint: "Bailey Placeholder",
+        source_state_hint: "Open Placeholder",
         status: "Placeholder",
       },
     });

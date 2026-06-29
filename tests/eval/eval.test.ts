@@ -136,7 +136,7 @@ function retrievalFor(expectedSourceState: string): RetrievalClient {
         return grounding(["source-a", "source-b"], { hasConflict: true });
       }
 
-      if (expectedSourceState === "Bailey Placeholder") {
+      if (expectedSourceState === "Open Placeholder") {
         return grounding(["source-a"], { hasOpenPlaceholder: true });
       }
 

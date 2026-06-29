@@ -16,7 +16,7 @@ describe("Firestore editable schemas", () => {
 
     expect(parsed).toMatchObject({
       sensitivity: "Low",
-      source_state_hint: "Bailey Placeholder",
+      source_state_hint: "Open Placeholder",
       status: "Draft",
     });
   });

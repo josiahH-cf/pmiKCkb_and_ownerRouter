@@ -271,7 +271,7 @@ These rules are **shared verbatim** with the Owner Router. Same labels, same voc
 |---|---|---|
 | **Verified Source** | An Approved SOP, Approved template, or two or more concurring Approved sources cover the answer. | Answer fully; cite each source; produce a draft if applicable. |
 | **Partial Source** | Source evidence exists but is incomplete. | Answer only what is supported; list missing pieces; offer to create a placeholder. |
-| **Bailey Placeholder** | A relevant SOP exists with an open placeholder covering the asked question. | Refuse to answer the gap; surface the placeholder; offer one-click capture task. |
+| **Open Placeholder** | A relevant SOP exists with an open placeholder covering the asked question. | Refuse to answer the gap; surface the placeholder; offer one-click capture task. |
 | **Conflict Found** | Two or more retrieved sources disagree on a material fact. | Show both, cite both, do not pick a winner; route to the appropriate Approver. |
 | **No Reliable Source Found** | No usable source returned by retrieval. | Decline to answer; offer one-click capture task; suggest escalation owner. |
 
@@ -324,7 +324,7 @@ Vertex AI Search's grounding API returns citation metadata identifying which ind
 
 Capture happens in two ways:
 
-- **Quick capture from Ask:** When the result is `No Reliable Source Found` or `Bailey Placeholder`, the "Send capture task to [owner]" button opens a one-screen form pre-filled with the original question. The owner fills the short answer, links to relevant Drive docs/sheets/Fathom recordings, picks the Space, and saves. The system creates or updates the SOP in that Space.
+- **Quick capture from Ask:** When the result is `No Reliable Source Found` or `Open Placeholder`, the "Send capture task to [owner]" button opens a one-screen form pre-filled with the original question. The owner fills the short answer, links to relevant Drive docs/sheets/Fathom recordings, picks the Space, and saves. The system creates or updates the SOP in that Space.
 - **Direct Space edit:** A user with Editor or higher role opens a Space, clicks the SOP, edits inline. Autosaves every 1.5s.
 
 The target capture budget is "under 5 minutes per item."

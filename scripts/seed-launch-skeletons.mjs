@@ -101,7 +101,7 @@ export function buildLaunchSkeletonRecords(now = new Date().toISOString()) {
         id: `launch-${definition.id}-sop`,
         owner_uid: defaultOwnerUid,
         sensitivity: "Low",
-        source_state_hint: "Bailey Placeholder",
+        source_state_hint: "Open Placeholder",
         space_id: definition.id,
         status: "Placeholder",
         title: `${definition.name} Placeholder SOP`,

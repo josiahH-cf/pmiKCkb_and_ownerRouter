@@ -24,7 +24,7 @@ const writableSpaceOptions = launchSpaces
   .map((space) => ({ label: space.name, value: space.id }));
 const capturableStates = new Set([
   "Partial Source",
-  "Bailey Placeholder",
+  "Open Placeholder",
   "No Reliable Source Found",
 ]);
 

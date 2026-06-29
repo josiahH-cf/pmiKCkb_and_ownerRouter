@@ -82,7 +82,7 @@ export const CreateSopInputSchema = z.object({
   owner_uid: requiredTextSchema,
   backup_owner_uid: optionalTextSchema,
   status: SopStatusSchema.default("Draft"),
-  source_state_hint: SourceStateSchema.default("Bailey Placeholder"),
+  source_state_hint: SourceStateSchema.default("Open Placeholder"),
   sensitivity: SensitivitySchema.default("Low"),
   body_md: requiredTextSchema,
   last_reviewed_at: timestampStringSchema.optional(),
