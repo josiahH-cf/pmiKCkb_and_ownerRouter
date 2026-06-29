@@ -5496,3 +5496,29 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   Sheets reader uses keyless domain-wide delegation). So Drive sync is NOT live yet — recorded in
   F-MAINT-PHOTO + Q-MAINT-STORAGE. Remaining: switch the Drive adapter to DWD + set the folder id.
 - Verification: typecheck + lint clean; capture test updated for the photo button; context-freshness pass.
+
+## Maintenance Drive access: keyless DWD client + in-boundary folder + access governance (2026-06-29)
+
+- Owner: create the folder in-boundary using the account the user auths with, and define the access
+  workflow. Built the correct path (`F-DRIVE-DWD`):
+  - `lib/google-drive/drive-dwd.ts` — `GoogleDriveClient` + `mintDriveDwdToken`: keyless domain-wide
+    delegation acting AS the pmikcmetro.com DWD subject (SHEETS_DWD_SUBJECT), never the personal account,
+    no key file — mirrors the Sheets reader. find/create/ensure folder; live mint is live-only, the rest is
+    unit-tested with an injected token + fetch.
+  - Switched `DriveMaintenanceImageStore` auth from plain ADC to the DWD token (closes the auth gap the
+    earlier review surfaced).
+  - `scripts/ensure-maintenance-drive-folder.ts` (`npm run maintenance:ensure-folder`) — find-or-creates
+    the "Maintenance Work Order Intake — Photos" folder as the subject user, prints the id for
+    SPACE_DRIVE_FOLDER_IDS. Dry-run + live.
+  - Access governance ("access workflow"): added the gated `google_drive.maintenance_photo.store` Action
+    Registry entry (production_allowed:false, readiness Needs Permission) + "Google Drive" to
+    ACTION_TARGET_SYSTEMS. The Drive write is now a governed action, not a silent write.
+  - Tests: `drive-dwd.test.ts` (find/create/ensure + setup guard); action-registry test validates the new
+    entry. Full suite green.
+- **Folder NOT created — one irreducible admin step.** A live `maintenance:ensure-folder --live` attempt
+  returned `unauthorized_client`: the Drive scope is not authorized for the DWD service account in the
+  Workspace Admin console (the Sheets scope is; Drive is separate). A Workspace admin must authorize the
+  Drive scope (Admin console → Security → API controls → Domain-wide delegation) for the SA's client id;
+  then `maintenance:ensure-folder --live` creates the folder, set its id in SPACE_DRIVE_FOLDER_IDS, and
+  (IMAGE_STORE=drive, auto in prod) photo sync goes live. Recorded in F-DRIVE-DWD / F-MAINT-PHOTO / Q-MAINT-STORAGE.
+- No SoR write; no cloud spend; the Drive write stays gated (production_allowed:false).

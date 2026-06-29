@@ -674,4 +674,50 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     connection_health_check_ref: "health.rentvine.api_key",
     production_allowed: false,
   },
+  {
+    key: "google_drive.maintenance_photo.store",
+    label: "Store maintenance photo in Drive",
+    target_system: "Google Drive",
+    expected_action:
+      "Upload a captured maintenance photo to the in-boundary Drive folder, acting as the pmikcmetro.com DWD subject.",
+    product_lane: "PMI KC KB",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Google Drive v3 multipart upload is documented; access is keyless domain-wide delegation acting AS a pmikcmetro.com user (mirrors the Sheets reader). Requires the Drive scope authorized for the DWD service account in Admin console -> Domain-wide delegation, plus the maintenance folder id in SPACE_DRIVE_FOLDER_IDS.",
+    required_permissions: [
+      "Drive scope authorized for the DWD service account (Admin console -> Domain-wide delegation)",
+      "Maintenance Drive folder id in SPACE_DRIVE_FOLDER_IDS",
+    ],
+    event_ingestion_mode: "None",
+    preview_schema_note:
+      "Show the file name, MIME type, and target in-boundary Drive folder before uploading; nothing tenant/owner-facing is sent.",
+    preview_payload_schema: [
+      {
+        name: "filename",
+        label: "File name",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "mime_type",
+        label: "MIME type",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "folder_id",
+        label: "Target Drive folder",
+        type: "reference",
+        required: true,
+        source_system: "Google Drive",
+      },
+    ],
+    rollback_note:
+      "Trash the uploaded file in Drive and remove its reference from the work-order draft.",
+    connection_health_check_ref: "health.google_drive.dwd",
+    production_allowed: false,
+  },
 ];

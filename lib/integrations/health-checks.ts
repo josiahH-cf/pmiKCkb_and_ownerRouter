@@ -231,6 +231,35 @@ export const HEALTH_CHECK_CONTRACTS: readonly HealthCheckContract[] = [
       },
     ],
   },
+  {
+    id: "health.google_drive.dwd",
+    system: "Google Drive",
+    label: "Google Drive domain-wide-delegation health",
+    steps: [
+      {
+        id: "google_drive.config",
+        kind: "config_presence",
+        description: "The DWD service account, subject, and maintenance folder id are configured.",
+        expected_evidence:
+          "SHEETS_IMPERSONATE_SA + SHEETS_DWD_SUBJECT present; SPACE_DRIVE_FOLDER_IDS includes the maintenance folder.",
+      },
+      {
+        id: "google_drive.auth",
+        kind: "auth_validation",
+        description:
+          "Keyless DWD mints a Drive-scoped token acting AS the pmikcmetro.com subject.",
+        expected_evidence:
+          "Expected to fail until the Drive scope is authorized for the SA in Admin console → Domain-wide delegation (live attempt returned unauthorized_client).",
+      },
+      {
+        id: "google_drive.probe",
+        kind: "endpoint_probe",
+        description: "A files.list probe answers as the subject user.",
+        expected_evidence:
+          "Successful Drive v3 files.list response; the app touches only files it creates (drive.file).",
+      },
+    ],
+  },
 ];
 
 export function getHealthCheckContract(id: string): HealthCheckContract | undefined {
