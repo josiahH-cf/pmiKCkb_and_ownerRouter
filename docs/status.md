@@ -5387,3 +5387,26 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   only current_rent High"); the captured verified set is local-only (gitignored real data).
 - Verification: 757/757 tests, typecheck + lint clean, context-freshness + falsification pass. No SoR write;
   no cloud spend (the re-capture is a read-only RentVine + Sheet read); production_allowed:false throughout.
+
+## Slice 5a: Maintenance Work Order Intake — foundation (2026-06-29)
+
+- Started the Maintenance Work Order Intake build (owner chose the fuller flow). Shipped the intake
+  FOUNDATION (`F-MAINT-INTAKE`), all gated/simulation-only on the proven lease-renewal pattern:
+  - `lib/maintenance/work-order-draft.ts` — the pure domain core: `buildWorkOrderDraft(capture)` turns a
+    field capture (reporter, unit match, typed note and/or voice transcript, photos, priority) into a
+    structured work-order DRAFT with summary/description/priority/unit/photos + `blockers` (missing
+    description, unmatched/low-confidence unit) and emergency-keyword priority inference. `readyForExecution`
+    is always false — the RentVine create stays gated. No I/O (STT/Drive/matching resolved by seams, passed in).
+  - `lib/maintenance/process-template.ts` — `buildMaintenanceProcessTemplate`: a schema-valid Draft
+    definition over the maintenance stage model, referencing the gated `rentvine.work_order.*` actions
+    (none 'Approved for Execution').
+  - `lib/maintenance/constants.ts` — stage model, priorities, emergency keywords, planned reads/outputs.
+  - Tests: `maintenance-work-order-draft` (10), `maintenance-process-template` (3). 770/770 total.
+- Storage decision recorded: Google Drive in-boundary (`Q-MAINT-STORAGE` narrowed to "adapter wiring pending").
+- The maintenance Space + the gated `rentvine.work_order.*` Action Registry entries already existed; this
+  adds the intake definition + draft logic on top.
+- Remaining maintenance sub-slices (owner to confirm capture UX first): process-definition seed wiring;
+  the speech-to-text seam (Google Cloud STT in prod, dev stub — mirrors the model provider); the Drive
+  image-store adapter; the capture UI (photo + voice + note). RentVine work-order create stays gated.
+- Verification: typecheck + lint clean; falsification (496 files) + context-freshness pass. No SoR write;
+  no cloud spend; production_allowed:false throughout.
