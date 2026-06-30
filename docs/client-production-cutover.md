@@ -100,6 +100,7 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=<client-project-id>
 NEXT_PUBLIC_FIREBASE_APP_ID=<from-client-firebase-web-app>
 SPACE_DRIVE_FOLDER_IDS={}
 SPACE_VERTEX_DATA_STORE_IDS={}
+MAINTENANCE_PHOTO_DRIVE_FOLDER_ID=<maintenance-photo-drive-folder-id>
 APP_BASE_URL=<deployed-production-url>
 KB_APPROVAL_NOTIFICATIONS_ENABLED=true
 KB_APPROVAL_SENDER=<kb-automation@pmikcmetro.com>
@@ -243,10 +244,19 @@ After source prefixes and data stores exist, update the production env file:
 ```dotenv
 SPACE_DRIVE_FOLDER_IDS={"lease-renewals":"gs://<client-source-bucket>/lease-renewals/"}
 SPACE_VERTEX_DATA_STORE_IDS={"lease-renewals":"kb-lease-renewals-txt"}
+MAINTENANCE_PHOTO_DRIVE_FOLDER_ID=<maintenance-photo-drive-folder-id>
 ```
 
 Use one map entry per approved production Space. Leave unapproved Spaces as launch
 skeletons until source material exists.
+
+`MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` is separate from the KB-source maps above: it is the
+in-boundary Drive folder the maintenance photo store uploads into (a write target, not an
+indexed corpus), created by `npm run maintenance:ensure-folder -- --live [--shared-drive <id>]`.
+Production forces the Drive image store, so this must be a real Drive folder id (never a
+`gs://` prefix). The deploy forwards it to Cloud Run; do not co-locate it in
+`SPACE_DRIVE_FOLDER_IDS` (that map cross-links 1:1 with a Vertex data store, which a
+photo-only folder does not need).
 
 Run the production preflight:
 
@@ -256,8 +266,8 @@ npm run preflight:production -- --env-file=.env.production.local
 
 The preflight must pass before deploy. It rejects demo project IDs, demo buckets,
 unreplaced placeholders, non-HTTPS or local `APP_BASE_URL`, `ASK_DEMO_MODE=true`,
-`LOCAL_DEMO_AUTH=true`, missing source/data-store maps, missing `APP_BASE_URL`, and
-missing Firebase public config.
+`LOCAL_DEMO_AUTH=true`, missing source/data-store maps, missing `APP_BASE_URL`, missing
+Firebase public config, and a missing or `gs://`-typed maintenance photo Drive folder.
 
 ## 6. Deploy Cloud Run
 

@@ -1,6 +1,7 @@
 // Find-or-create the in-boundary Maintenance Work Order Intake photo folder, owned by the DWD subject
 // (a pmikcmetro.com user) via KEYLESS domain-wide delegation — never the personal account, no key file.
-// Prints the folder id to put in SPACE_DRIVE_FOLDER_IDS["maintenance-work-order-intake"]. Idempotent.
+// Prints the folder id to put in MAINTENANCE_PHOTO_DRIVE_FOLDER_ID (preferred; the dedicated photo var).
+// Idempotent.
 //
 //   npm run maintenance:ensure-folder                                  # dry: prints what it would do
 //   npm run maintenance:ensure-folder -- --live                        # create in the subject's My Drive
@@ -55,7 +56,7 @@ async function main(): Promise<void> {
     console.log(
       `[dry-run] Would find-or-create the Drive folder "${FOLDER_NAME}" in ${where} as the DWD subject ` +
         "(SHEETS_DWD_SUBJECT) via keyless domain-wide delegation, then print its id for " +
-        "SPACE_DRIVE_FOLDER_IDS['maintenance-work-order-intake']. Pass --live to create it.",
+        "MAINTENANCE_PHOTO_DRIVE_FOLDER_ID. Pass --live to create it.",
     );
     return;
   }
@@ -74,7 +75,8 @@ async function main(): Promise<void> {
   const { folder, created } = await client.ensureFolder(FOLDER_NAME, location);
   console.log(`${created ? "Created" : "Found existing"} Drive folder in ${where}: ${folder.id}`);
   console.log(
-    `Set SPACE_DRIVE_FOLDER_IDS to include {"maintenance-work-order-intake":"${folder.id}"} (and IMAGE_STORE=drive to upload live).`,
+    `Set MAINTENANCE_PHOTO_DRIVE_FOLDER_ID="${folder.id}" (and, in dev, IMAGE_STORE=drive to upload live; ` +
+      "prod forces it). Production deploy forwards this var; the cutover preflight requires it.",
   );
 }
 

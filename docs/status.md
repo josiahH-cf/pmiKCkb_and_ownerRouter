@@ -5578,3 +5578,36 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
 - Remaining for prod only: set SPACE_DRIVE_FOLDER_IDS (with the Shared Drive subfolder id) in the Cloud Run
   env at deploy (prod already forces IMAGE_STORE=drive). Verification: typecheck + lint clean; falsification
   (510) + context-freshness pass.
+
+## Cutover preflight: maintenance photo Drive folder guard + config decouple (2026-06-29)
+
+- Cutover-readiness slice (Migration-Readiness Stop Gate allows: removes a cutover/verification blocker +
+  fixes a latent prod bug; local, zero-spend, no new product surface). Closed a real gap: prod forces
+  `IMAGE_STORE=drive`, but nothing required the maintenance photo Drive folder, so a deploy could ship with
+  every field-photo upload silently 503-ing. The golden production fixture proved it — it configured only
+  `lease-renewals` and still passed the preflight.
+- Root finding: `SPACE_DRIVE_FOLDER_IDS` is intentionally overloaded (`.env.example`: "Drive folder IDs or
+  Cloud Storage source prefixes") and cross-links 1:1 with a Vertex data store, so one Space key cannot hold
+  both a `gs://` KB-source prefix AND a Drive photo folder. Decoupled the photo folder into its own var
+  rather than overloading the key further.
+- Changes:
+  - `lib/config/server.ts` — new `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID`; `maintenanceImageFolderId` resolves it
+    first, then the legacy `SPACE_DRIVE_FOLDER_IDS["maintenance-work-order-intake"]` (back-compat).
+  - `scripts/preflight-production-cutover.mjs` — `assertMaintenancePhotoFolder` requires a resolved photo
+    folder (rejects missing, `gs://`, placeholder, and demo values), resolved exactly as the runtime does.
+  - `scripts/deploy-demo-cloud-run.mjs` — `readRuntimeEnv` now forwards `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID`
+    to Cloud Run (without this, the preferred var would pass the preflight but never reach the runtime).
+  - `lib/maintenance/image-store.ts` + `scripts/ensure-maintenance-drive-folder.ts` — messages name the new
+    var. `tests/fixtures/cutover/golden-production.env.fixture` sets it (kept out of the KB-source map so the
+    cross-link stays clean).
+  - Tests: server-config resolution (prefer dedicated var → legacy fallback → empty); cutover-golden
+    negatives (missing, `gs://`) + a back-compat legacy-fallback acceptance; two existing passing prod
+    configs in `live-cost-scripts.test.mjs` updated for the new required field.
+  - Docs: `.env.example`, `docs/client-production-cutover.md` (§2/§5 + preflight description),
+    `docs/google-setup.md` (clarified the demo `gs://` maps are KB-source, not the photo folder),
+    `docs/environment-handoff.md` (Cloud Run row), `docs/facts.md` (F-MAINT-PHOTO + Q-MAINT-STORAGE),
+    `docs/research-backlog.md` + `docs/facts.md` (new `Q-MAINT-PHOTO-INDEX`: keep tenant photos out of any
+    indexed source folder — flagged, not solved).
+- No SoR write; no cloud spend; `production_allowed:false` throughout. End state: a deploy that forces the
+  Drive image store with no maintenance photo folder configured now fails the preflight loudly instead of
+  silently shipping a broken photo path.

@@ -53,6 +53,23 @@ describe("server config", () => {
     expect(config.spaceVertexDataStoreIds["lease-renewals"]).toBe("data-store-1");
   });
 
+  it("resolves the maintenance photo folder, preferring the dedicated var over the legacy map key", () => {
+    expect(
+      readServerConfig({
+        MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: "dedicated-folder",
+        SPACE_DRIVE_FOLDER_IDS: '{"maintenance-work-order-intake":"legacy-folder"}',
+      }).maintenanceImageFolderId,
+    ).toBe("dedicated-folder");
+
+    expect(
+      readServerConfig({
+        SPACE_DRIVE_FOLDER_IDS: '{"maintenance-work-order-intake":"legacy-folder"}',
+      }).maintenanceImageFolderId,
+    ).toBe("legacy-folder");
+
+    expect(readServerConfig({}).maintenanceImageFolderId).toBe("");
+  });
+
   it("rejects invalid JSON maps", () => {
     expect(() =>
       readServerConfig({
