@@ -1,5 +1,11 @@
 # Lease Renewal — Build Plan & Next-Iteration Guidance
 
+> ⚠️ **Predates the R1–R5 operations-console cycle (2026-06-29) and the 2026-06-30 recalibration.** The
+> test counts and "where we are" notes below are STALE (this file/its sibling cite 387 / 638 tests; the
+> repo is at 806). The authoritative spine is `docs/facts.md` + `docs/loop-state.md`; the current process
+> decisions are in `docs/products/v1-process-qa.md`. Use this file as the lease-renewal ENGINE design
+> reference, not the current status.
+
 Status: **Active build plan** (authored 2026-06-20 by a multi-agent map → synthesize → adversarial
 falsify workflow; the review's corrections are folded in). This is the "continue with feature
 development" entry point: the next loop reads [`../loop-state.md`](../loop-state.md) → this file →

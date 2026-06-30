@@ -15,6 +15,12 @@ The end state is a coordinated operating system for PMI KC Metro: source-backed 
 approved backend workflow automation, repeatable renewal handoffs, and a visible Gmail
 queue that keeps humans in control of approvals, sends, and system-of-record actions.
 
+The operator-facing shape (recalibrated 2026-06-30, owner-directed — `A-IA-V2`): the **Console is the
+front door**, each **Space carries its process** (Processes is not a separate tab), and every Space has
+real "teeth" — built for a non-technical, process-oriented operator (simple, elegant, workflow-first,
+less reading). Detail: `docs/feature-suites/ui-ia.md` and the V1 process Q&A
+(`docs/products/v1-process-qa.md`).
+
 ## Decision Rules
 
 - Current product routing lives in `AGENTS.md`, this file, `docs/products/`, and

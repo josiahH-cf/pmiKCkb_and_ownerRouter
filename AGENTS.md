@@ -35,6 +35,7 @@ route new work through the three-product docs.
 | Continue feature development        | `docs/products/lease-renewal-build-plan.md`                                                         |
 | Renewal / move-in / move-out flow   | `docs/products/lease-renewal-discovery-reference.md`, `docs/products/move-in-move-out-process.md`   |
 | Renewal sheet connector + conflicts | `docs/products/lease-renewal-connector-design.md`, `docs/products/lease-renewal-spreadsheet-map.md` |
+| V1 process Q&A and owner decisions  | `docs/products/v1-process-qa.md`                                                                    |
 | Renewal discovery validation (team) | `docs/products/lease-renewal-discovery-packet.md`                                                   |
 | Demo lane retirement                | `docs/demo-lane-retirement.md`                                                                      |
 | Phase plan and acceptance gates     | `docs/plan.md`                                                                                      |

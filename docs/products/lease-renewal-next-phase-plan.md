@@ -1,5 +1,11 @@
 # Lease Renewal — Next Phase: Live Calibration + First Draft Outputs
 
+> ⚠️ **Predates the R1–R5 operations-console cycle (2026-06-29) and the 2026-06-30 recalibration.** Its
+> test counts / "where we are" are STALE (cites 638; the repo is at 806). The authoritative spine is
+> `docs/facts.md` + `docs/loop-state.md`; current process decisions are in `docs/products/v1-process-qa.md`
+> and the recalibrated roadmap is in `docs/loop-state.md` Next Safe Slice Candidates. Use this for the
+> lease-renewal lane DESIGN, not the current status.
+
 Status: **Active build plan for the next cycle** (authored 2026-06-24 after a transcript-grounded
 realignment of the in-flight calibration work). This is the new "continue with feature development"
 entry point for the Lease Renewal lane: a fresh session reads [`../loop-state.md`](../loop-state.md)
