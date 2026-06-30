@@ -54,6 +54,7 @@ plan only after it is answered or explicitly accepted as an assumption.
 
 | Question                                                                        | Current status                                                                        |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| V1 process definitions + IA recalibration (outstanding owner decisions) | Tracked in `docs/products/v1-process-qa.md`: lease-renewal write-back method / review surface, move-in & move-out V1 definitions, Maintenance photo-index + tab placement, slash-command surface. Answer to unblock the per-Space build. |
 | Which approved production sources feed each Space?                              | Lease starter set named; files still needed                                           |
 | Which sources are high sensitivity and excluded from retrieval?                 | Blocked on client review                                                              |
 | Should the maintenance Space have an indexed KB source corpus separate from its photo upload folder? | Open (Q-MAINT-PHOTO-INDEX). Maintenance photos now upload to a dedicated `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` (a write target), decoupled from `SPACE_DRIVE_FOLDER_IDS` (the KB-source map). Confirm whether maintenance needs indexed SOPs at all, and ensure tenant-uploaded photos are NEVER co-located in an indexed source folder. |

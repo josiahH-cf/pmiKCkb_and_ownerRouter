@@ -1,48 +1,53 @@
-# S6 — UI / IA re-architecture (Renewals under a Processes dropdown)
+# S6 — UI / IA architecture (recalibrated 2026-06-30)
 
-> **Status: built + reframed (R1, 2026-06-29 — `F-OPS-CONSOLE-IA`).** Shipped as a multi-process
-> operations-console home: Renewals nests under the **Spaces** front-door dropdown (not a Processes
-> dropdown), the home (`/`) is a launcher, and "Ask" is renamed "Console". The `/lease-renewal` route is
-> preserved. Admin-gating process creation is deferred. The spec below is kept for history; where it says
-> "Processes dropdown," read "Spaces dropdown."
+> **History.** R1 (2026-06-29, `F-OPS-CONSOLE-IA`) shipped a launcher home + a Spaces front-door
+> dropdown + Renewals nested + "Ask"→"Console". The operator note (2026-06-30) recalibrates the
+> target IA below. `F-OPS-CONSOLE-IA` still describes the CURRENT built state; this spec is the
+> target the loop builds toward (it will supersede `F-OPS-CONSOLE-IA` when shipped). The earlier
+> R1 spec text is in git history. See `docs/temp/recalibration-plan.md` and the operator note.
 
-**Goal.** Resolve the IA open questions into one coherent navigation: fold **Renewals** under a
-**Processes** dropdown with sub-tabs, gate process _creation_ to admins, and tidy the Spaces tiles —
-without breaking working routes.
+**Goal.** Make the app feel like a mature, workflow-first operations console for a non-technical,
+process-oriented operator: the **Console is the front door**, **Spaces carry their processes**
+(Processes stops being a separate tab), every Space card is fully clickable, and Maintenance lives
+in the sub-tabs. Less reading, more workflow.
 
 **What it is / how it functions.**
 
-- **Processes becomes the hub.** In `components/layout/AppShell.tsx`, replace the top-level "Renewals"
-  entry with a **Processes** dropdown whose sub-tabs include the process catalog and the live processes
-  (Renewals first, at `/lease-renewal`, kept as a route). Renewals stops being a sibling tab.
-- **Admin-gate creation.** Keep _viewing_ Processes open (current `read` capability), but restrict
-  _creating_ process definitions to Admin (today it's editor+) — default toward restricting team-wide
-  process creation.
-- **Spaces tiles.** The per-tile "Open Space" link already exists (`app/spaces/page.tsx`) — keep it
-  (explicit affordance beats whole-tile click). Re-question the "KB-owned process space" label: it's
-  internal phrasing → rewrite via the S2 lexicon ("Process space" / "Source space").
+- **Console = home/landing.** Hitting `/` (PMI) lands on the Console, not a launcher of cards. The
+  current `OperationsConsoleHome` launcher is replaced; Spaces are reached from a nav dropdown / sub-tabs.
+  (The Console's new app-state-aware brain is `console-app-state.md` / S10.)
+- **Spaces ⊇ Processes.** The standalone **Processes** nav tab is retired and each process definition
+  is surfaced **alongside its Space** (a Space and its process live together, via a dropdown / set of
+  sub-tabs). KEEP the process-definition ENGINE (definitions, lifecycle, simulation runs, the seeders) —
+  only the separate nav/IA is removed. `/processes` content folds under Spaces.
+- **Spaces reflect the REAL spaces + processes.** Replace the generic tile grid with cards that mirror
+  the actual spaces and their process state (has-a-process / needs-a-process / connections-needed). The
+  **whole card is clickable** (not just an "Open Space" link).
+- **Maintenance into sub-tabs.** Fold the Maintenance entry into the sub-tabs (likely under Admin; its
+  own tab only if needed). `/maintenance` route preserved.
+- **Plain-language copy.** Finish the S2 lexicon migration on Space surfaces (drop "KB-owned process" etc.).
 
 **Open questions & assumptions.**
 
-- _Assumption:_ Renewals-as-sub-tab is the chosen IA (a change from today's top-level tab) —
-  `Q-IA-RENEWALS` in `docs/facts.md`.
-- _Open:_ does any deep link or smoke test assume `/lease-renewal` is top-level? Preserve the route even
-  as the nav entry moves under Processes (don't break working URLs or `smoke:*`).
-- _Open:_ admin-gating creation — confirm the exact role boundary (Admin only vs Admin + designated
-  editor).
+- _Assumption (owner-directed 2026-06-30, `A-IA-V2`):_ Console-as-home + Spaces⊇Processes + clickable
+  cards + Maintenance-in-sub-tabs is the chosen IA.
+- _Open:_ Maintenance under Admin vs its own tab — confirm. Slash-command discoverability approach
+  (visible buttons vs command menu) — see S10. Per-Space "teeth" depth — see `space-teeth.md` / S11.
+- _Open:_ preserve every working route (`/lease-renewal`, `/maintenance`, deep links, `smoke:*`) as nav moves.
 
-**Cross-product impacts.** Touches nav (AppShell), Processes pages, lease-renewal routing, and Spaces
-copy. Must not regress role checks or the Connection/Admin gating already in place.
+**Cross-product impacts.** Touches `app/page.tsx`, `components/home/*`, `components/layout/AppShell.tsx`,
+`app/spaces/*`, `app/processes/*`, `lib/spaces.ts`. Must not regress role gates (Connections/Admin),
+the edit-gate on `/maintenance`, or the simulation-only posture. Pairs with S10 (Console brain) and
+S11 (per-Space teeth).
 
 **Ordered prompt sequence.**
 
-1. _Discovery:_ map every nav entry, route, role gate, and any test asserting the current IA.
-2. _Understanding:_ design the Processes dropdown + sub-tab structure; place Renewals first; keep routes.
-3. _Build:_ update `AppShell.tsx` nav to the dropdown; move Renewals under it; preserve `/lease-renewal`.
-4. _Build:_ change process-definition creation gate from editor to Admin; keep view open.
-5. _Build:_ apply S2 copy fixes to Spaces tile labels.
-6. _Context update:_ update IA facts in `docs/facts.md`; adjust nav/role tests (S8); verify smoke routes
-   intact.
+1. _Discovery:_ map every nav entry, route, role gate, and test asserting the current IA.
+2. _Understanding:_ design the Console-as-home shell + the Spaces-with-sub-tabs structure (process beside Space).
+3. _Build:_ Console becomes `/`; retire the launcher; preserve routes.
+4. _Build:_ retire the Processes nav tab; surface each process under its Space; fold Maintenance into sub-tabs.
+5. _Build:_ real, fully-clickable Space cards reflecting process/connection state; finish S2 copy.
+6. _Context update:_ supersede `F-OPS-CONSOLE-IA` in `docs/facts.md` (Supersede Log marker); update nav/role tests.
 
-**Deletion/merge recommendation.** KEEP. No deletion of routes (preserve URLs). The Ask-field deletion
-lives in S5. Re-question, don't delete, the Spaces "Open Space" pattern (keep the explicit link).
+**Deletion/merge recommendation.** MERGE Processes into Spaces (retire the tab + `/processes` nav, keep
+the engine + routes). REPLACE the launcher home with the Console. Preserve all URLs and `smoke:*`.

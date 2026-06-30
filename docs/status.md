@@ -5611,3 +5611,30 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
 - No SoR write; no cloud spend; `production_allowed:false` throughout. End state: a deploy that forces the
   Drive image store with no maintenance photo folder configured now fails the preflight loudly instead of
   silently shipping a broken photo path.
+
+## Recalibration: UI/UX + process governance (2026-06-30)
+
+- Operator stream-of-consciousness note (Obsidian capture "PMI KC App Governance and Roadmap") drove a
+  governance + roadmap recalibration. Direction: the **Console is the front door** (home/landing, and
+  app-state-aware — answers approvals / connections-to-set-up / spaces-without-a-process / configure-X);
+  **Spaces ⊇ Processes** (retire the Processes tab, keep the process-definition engine, surface each process
+  beside its Space via sub-tabs); **fully-clickable real Space cards**; **Maintenance into sub-tabs**;
+  **STT + visible slash-commands in the Console**; every **Space gets real "teeth"**; **production end state
+  always**. Sequencing: **Q&A first** (teeth before scaffolding).
+- Ran a 5-reader Phase-1 Q&A research workflow (lease renewal, move-in, move-out, maintenance + a
+  data-intactness sweep) → consolidated into `docs/products/v1-process-qa.md` (per-process outstanding
+  questions with confirm-with-defaults + owner + the data-intactness check). Move-in and move-out are
+  Space scaffolds only (no desks); their V1 definitions are owner-gated by the Q&A. Lease-renewal Phase-1
+  is built/live-proven; the write-back method (`Q-WRITEBACK-METHOD`) + review surface (`OQ-UI-1`) stay open.
+- Governance/roadmap written (no app code; teeth-before-scaffolding): `A-IA-V2` added to `docs/facts.md`;
+  `docs/feature-suites/ui-ia.md` rewritten (S6 recalibrated) + new S10 `console-app-state.md`, S11
+  `space-teeth.md`, S12 `dev-prod-parity.md`; `docs/loop-state.md` Next Safe Slice Candidates re-aimed
+  (Q&A → dev↔prod parity → IA rework → Console brain → per-Space teeth → renewal Phase-2);
+  `docs/north-star.md`, `AGENTS.md` route table, `docs/feature-suites/README.md`, `docs/research-backlog.md`
+  updated. Disposable packet: `docs/temp/recalibration-plan.md`.
+- Surfaced parity gap (now S12): the deploy + cutover preflight don't carry the live-connection env
+  (RentVine via Secret Manager, Sheet/DWD identity); the running Cloud Run service predates this cycle —
+  a redeploy is owner/budget-gated. Flagged doc-freshness drift: `lease-renewal-build-plan.md` +
+  `lease-renewal-next-phase-plan.md` predate R1–R5 and carry stale test counts (387/638 vs 806) — banners
+  added; `facts.md` + `loop-state.md` are authoritative.
+- No SoR write; no cloud spend; `production_allowed:false` throughout; identity stays `pmikcmetro.com`.

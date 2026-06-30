@@ -13,7 +13,7 @@ stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-06-29
+- Last updated: 2026-06-30
 - Where we are (2026-06-29 owner-present build cycle): the multi-process operations console is the north
   star (lease-renewal = process #1). Shipped + merged to `main` this cycle: R1 spine+IA
   (`F-OPS-CONSOLE-IA`), R2 golden harness (`F-GOLDEN-HARNESS`) + labeling round-trip (`F-GOLDEN-LABELING`),
@@ -32,31 +32,37 @@ stop-and-reset rules.
   Sheet (DWD) reads work; `production_allowed:false` throughout.
 - Operating mode: Normal owner-present coordination. Remote Away Mode INACTIVE (`docs/away-mode.md`); hard
   $10 budget cap.
+- Recalibration 2026-06-30 (operator note): UI/UX + process-governance re-aim — Console-as-home, Spaces ⊇
+  Processes, per-Space "teeth", dev↔prod parity; Q&A-first (`A-IA-V2`). See Next Safe Slice Candidates +
+  `docs/products/v1-process-qa.md` + `docs/temp/recalibration-plan.md`.
 
 ## Next Safe Slice Candidates
 
-Recalibrated roadmap (owner-directed 2026-06-29 — a multi-process operations console):
+Recalibrated 2026-06-30 (operator note → `docs/temp/recalibration-plan.md`; specs:
+`docs/feature-suites/{ui-ia,console-app-state,space-teeth,dev-prod-parity}.md`; Q&A:
+`docs/products/v1-process-qa.md`). R1–R5 (spine+IA, golden harness, renewal math, action console, full
+Maintenance) are DONE + merged (history in the Snapshot + `docs/status.md`). **Q&A FIRST: do not scaffold
+the move-in/move-out UI before the V1 process answers land** (the note's RISK; teeth before scaffolding).
 
-1. Done (2026-06-29) — R1 platform spine + IA (`F-OPS-CONSOLE-IA`): operations-console home, Spaces
-   front-door dropdown, renewals nested, "Ask"→"Console".
-2. Done (2026-06-29) — R2 golden-data harness + live capture (`F-GOLDEN-HARNESS`): pure evaluator +
-   false-positive metric, synthetic gate, and a read-only `npm run golden:capture` writing gitignored
-   golden drafts for team labeling.
-3. R3 — Lease Renewal as a real Space/Process. WIRING + LABELING + MATH DONE (2026-06-29): seed Draft at
-   id `lease-renewal`; the math is tuned to owner ground truth — the sheet's "Renewal Date" is worklog,
-   not RentVine's lease-end (`F-RENEWAL-DATE-SEMANTICS`), precedence set (`F-RECON-PRECEDENCE`); a live
-   re-capture dropped 17→2 candidate flags (only real rent conflicts). REMAINING: the live Firestore seed
-   is OWNER-GATED; Dan's per-case manual precedence override still open (`Q-PREC-1`).
-4. Done (2026-06-29) — R4 action console (`F-ACTION-CONSOLE`): the four Ask selects are retired; picking a
-   process makes the answer process-aware (server-resolved context) and lets an editor start a SAFE
-   simulation run. Schema trim + hybrid intent-detection (`F-INTENT-DETECT`) DONE. Follow-up: richer compose.
+0. Owner Q&A — BLOCKING for the process desks. Answer the V1 questions (lease renewal, move-in, move-out,
+   maintenance) in `docs/products/v1-process-qa.md`; record answers as facts (flip the `Q-` rows in
+   `docs/facts.md`; `OQ-*` items live in the lease-renewal discovery docs).
+1. Dev↔prod parity (`dev-prod-parity.md`, S12) — forward + require the live-connection env (RentVine via
+   Secret Manager, Sheet/DWD identity) in the deploy + cutover preflight; then an owner-gated,
+   budget-guarded redeploy of current `main` (the live service predates this cycle). Readiness; no new surface.
+2. IA rework (`ui-ia.md`, S6 recalibrated, `A-IA-V2`) — Console-as-home; Spaces ⊇ Processes (retire the
+   Processes tab, KEEP the engine, process beside its Space, sub-tabs); fully-clickable real Space cards;
+   Maintenance into sub-tabs. Preserve every route + `smoke:*`; supersede `F-OPS-CONSOLE-IA` when shipped.
+3. Console app-state brain (`console-app-state.md`, S10) — Console answers approvals / connections-to-set-up
+   / spaces-without-a-process / configure-X (read-only, advisory, deep-linked) + STT-in-Console + visible
+   slash-command buttons. Extends `F-ACTION-CONSOLE` / `F-STT-SEAM`.
+4. Per-Space teeth (`space-teeth.md`, S11) — a reusable per-Space desk; build the Move-In + Move-Out V1 desks
+   AFTER their Q&A answers land (operator-first, read/draft/suggest only).
+5. Lease-renewal Phase-2 (gated) — write-back method (`Q-WRITEBACK-METHOD`) + the renewal review surface
+   (`OQ-UI-1`) once the owner decides; RentVine renewal write stays vendor-gated (`OQ-RV-1`).
 
-5. Maintenance Work Order Intake — BUILT + Drive sync LIVE (2026-06-29), all gated: foundation
-   (`F-MAINT-INTAKE`), STT seam (`F-STT-SEAM`), `/maintenance` capture desk (`F-MAINT-CAPTURE-UI`), photo
-   store in a team Shared Drive (`F-MAINT-PHOTO`/`F-DRIVE-DWD`, round-trip-verified), seedable Draft
-   (`F-MAINT-SEED`). Photo folder decoupled into MAINTENANCE_PHOTO_DRIVE_FOLDER_ID — the deploy forwards it
-   and the cutover preflight now requires it. Remaining: set MAINTENANCE_PHOTO_DRIVE_FOLDER_ID in the prod
-   Cloud Run env at deploy; live process seed + RentVine work-order create (owner/vendor-gated).
+Carried owner/vendor-gated: prod `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` + live process seed; RentVine
+work-order create.
 
 ## Active Blockers And Exact Client Asks
 
@@ -93,9 +99,10 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 - Fired earlier: migration-readiness stop gate — local foundations are substantially complete and the
   remaining high-value work is blocked on client replies, production setup, approved sources, or
   walkthrough content.
-- This cycle is governance/spec scaffolding (no new runtime surface), which is readiness-improving and
-  decision-complete. Prefer client unblock / cutover / docs / regression work over new local product
-  surface while blockers are client-owned.
+- Current cycle (2026-06-30): a governance/roadmap RECALIBRATION (operator note) — no new runtime surface.
+  The V1 process Q&A (`docs/products/v1-process-qa.md`) is owner-gated and BLOCKS the move-in/move-out build
+  (teeth-before-scaffolding). Dev↔prod parity + the IA rework are buildable now; the per-Space process desks
+  wait on the Q&A answers. Prefer client/owner unblock + parity + readiness work.
 
 ## Security Note
 
