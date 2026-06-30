@@ -559,6 +559,11 @@ SPACE_DRIVE_FOLDER_IDS={"lease-renewals":"gs://<bucket-name>/lease-renewals/","m
 SPACE_VERTEX_DATA_STORE_IDS={"lease-renewals":"kb-lease-renewals-txt","maintenance-work-order-intake":"kb-maintenance-work-order-intake-txt","move-out-deposit-disposition":"kb-move-out-deposit-disposition-txt","owner-onboarding":"kb-owner-onboarding-txt"}
 ```
 
+The `SPACE_DRIVE_FOLDER_IDS` values above are KB-source corpus locations (Cloud Storage prefixes).
+They are NOT the maintenance photo upload folder — that is a separate Drive folder id set via
+`MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` (see `.env.example` and the cutover runbook). Do not put a `gs://`
+prefix in `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID`; the Drive upload needs a real Drive folder id.
+
 Create/import additional data stores with `npm run import:agent-search -- --create-data-store`
 only after uploading approved `.txt` sources and confirming the budget guardrail.
 

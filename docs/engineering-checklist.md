@@ -31,7 +31,9 @@ npm test
   changes it.
 - Build approved production source manifests from client-provided sources.
 - Import sources to Agent Search and seed `sources_meta`.
-- Configure `SPACE_DRIVE_FOLDER_IDS`, `SPACE_VERTEX_DATA_STORE_IDS`, and `APP_BASE_URL`.
+- Configure `SPACE_DRIVE_FOLDER_IDS`, `SPACE_VERTEX_DATA_STORE_IDS`, `APP_BASE_URL`, and
+  `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` (the maintenance photo Drive folder — prod forces the Drive
+  image store, so the preflight requires it; see `docs/client-production-cutover.md`).
 - Run `npm run preflight:production -- --env-file=.env.production.local`.
 - Deploy with `ASK_DEMO_MODE=false` and `LOCAL_DEMO_AUTH=false`.
 - Assign Firebase roles from a trusted Admin SDK context.

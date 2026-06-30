@@ -224,6 +224,12 @@ function readRuntimeEnv(env, project, region, searchLocation) {
     NEXT_PUBLIC_FIREBASE_PROJECT_ID: readString(env.NEXT_PUBLIC_FIREBASE_PROJECT_ID),
     SPACE_DRIVE_FOLDER_IDS: readString(env.SPACE_DRIVE_FOLDER_IDS) ?? "{}",
     SPACE_VERTEX_DATA_STORE_IDS: readString(env.SPACE_VERTEX_DATA_STORE_IDS) ?? "{}",
+    // Forward the maintenance photo Drive folder so the prod-forced Drive image store has a target.
+    // Empty when unset → the runtime falls back to SPACE_DRIVE_FOLDER_IDS["maintenance-work-order-intake"].
+    MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: withDefault(
+      "MAINTENANCE_PHOTO_DRIVE_FOLDER_ID",
+      "",
+    ),
     VERTEX_AI_LOCATION: region,
     VERTEX_SEARCH_LOCATION: searchLocation,
   };

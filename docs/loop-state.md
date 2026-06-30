@@ -23,7 +23,8 @@ stop-and-reset rules.
   (`F-OPEN-PLACEHOLDER`), and the full Maintenance Work Order Intake (`F-MAINT-INTAKE`, `F-STT-SEAM`,
   `F-MAINT-CAPTURE-UI`, `F-MAINT-PHOTO`, `F-MAINT-SEED`, `F-DRIVE-DWD`). Maintenance photo capture -> team
   Shared Drive sync is LIVE + round-trip-verified (keyless DWD as josiah@pmikcmetro.com, least-privilege
-  drive.file). ~802 tests; all gates green on every merge.
+  drive.file). The cutover preflight now guards the maintenance photo Drive folder (decoupled into
+  MAINTENANCE_PHOTO_DRIVE_FOLDER_ID; the deploy forwards it). 806 tests; all gates green on every merge.
 - Production-plane fence verified (`F-PROD-CLOUD-MODEL`): prod forces Gemini + Drive; the local model,
   demo auth, and the STT/image stubs are dev/test-only (NODE_ENV-fenced), never a prod dependency.
 - Earlier context (full history in `docs/status.md`): client beta deployed on the `pmi-kc-kb-demo` Cloud
@@ -53,8 +54,9 @@ Recalibrated roadmap (owner-directed 2026-06-29 — a multi-process operations c
 5. Maintenance Work Order Intake — BUILT + Drive sync LIVE (2026-06-29), all gated: foundation
    (`F-MAINT-INTAKE`), STT seam (`F-STT-SEAM`), `/maintenance` capture desk (`F-MAINT-CAPTURE-UI`), photo
    store in a team Shared Drive (`F-MAINT-PHOTO`/`F-DRIVE-DWD`, round-trip-verified), seedable Draft
-   (`F-MAINT-SEED`). Remaining: SPACE_DRIVE_FOLDER_IDS in the prod Cloud Run env at deploy; live process
-   seed + RentVine work-order create (owner/vendor-gated).
+   (`F-MAINT-SEED`). Photo folder decoupled into MAINTENANCE_PHOTO_DRIVE_FOLDER_ID — the deploy forwards it
+   and the cutover preflight now requires it. Remaining: set MAINTENANCE_PHOTO_DRIVE_FOLDER_ID in the prod
+   Cloud Run env at deploy; live process seed + RentVine work-order create (owner/vendor-gated).
 
 ## Active Blockers And Exact Client Asks
 

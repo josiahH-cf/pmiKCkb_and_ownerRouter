@@ -594,6 +594,7 @@ describe("cheap live setup scripts", () => {
       KB_APPROVAL_NOTIFICATIONS_ENABLED: "true",
       KB_APPROVAL_RECIPIENTS: "dan@pmikcmetro.com,josiah-pmi-kc-account@pmikcmetro.com",
       KB_APPROVAL_SENDER: "kb-automation@pmikcmetro.com",
+      MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: "drive-folder-maintenance-photos",
       SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
         "lease-renewals": "gs://pmikc-kb-production-sources/lease-renewals/",
       }),
@@ -640,6 +641,7 @@ describe("cheap live setup scripts", () => {
       ALLOWED_HD: "pmikcmetro.com",
       APP_BASE_URL: "https://kb.pmikcmetro.example",
       ASK_DEMO_MODE: "false",
+      MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: "drive-folder-maintenance-photos",
       FIREBASE_PROJECT_ID: "pmikc-kb-production",
       GCP_PROJECT_ID: "pmikc-kb-production",
       LOCAL_DEMO_AUTH: "false",

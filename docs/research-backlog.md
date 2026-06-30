@@ -56,6 +56,7 @@ plan only after it is answered or explicitly accepted as an assumption.
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | Which approved production sources feed each Space?                              | Lease starter set named; files still needed                                           |
 | Which sources are high sensitivity and excluded from retrieval?                 | Blocked on client review                                                              |
+| Should the maintenance Space have an indexed KB source corpus separate from its photo upload folder? | Open (Q-MAINT-PHOTO-INDEX). Maintenance photos now upload to a dedicated `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` (a write target), decoupled from `SPACE_DRIVE_FOLDER_IDS` (the KB-source map). Confirm whether maintenance needs indexed SOPs at all, and ensure tenant-uploaded photos are NEVER co-located in an indexed source folder. |
 | What should escalation mean when KB approval notifications fail for Dan/Josiah? | In-app alert, one email retry, then Dan/Josiah Admin escalation                       |
 | What production domain should be authorized in Firebase Auth?                   | Needs deployment decision after Google Cloud billing/client project path is unblocked |
 | Who receives User roles later?                                                  | Deferred until delegation                                                             |

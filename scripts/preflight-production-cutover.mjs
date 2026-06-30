@@ -12,6 +12,9 @@ const DEMO_VALUE_PATTERNS = [
   "cherrybridge.ai",
 ];
 const PLACEHOLDER_VALUE_PATTERN = /<[^>]+>|\b(change-me|changeme|replace-me|todo)\b/i;
+// The maintenance Space id (lib/spaces.ts / lib/maintenance/process-definition-seed.ts). Its photo store
+// reads SPACE_DRIVE_FOLDER_IDS[this] as a legacy fallback when MAINTENANCE_PHOTO_DRIVE_FOLDER_ID is unset.
+const MAINTENANCE_SPACE_ID = "maintenance-work-order-intake";
 const REQUIRED_FIREBASE_PUBLIC = [
   "NEXT_PUBLIC_FIREBASE_API_KEY",
   "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
@@ -134,6 +137,14 @@ export function validateProductionCutoverConfig(env) {
     errors,
   );
   assertConfiguredMaps(sourceTargets, dataStores, errors);
+  // Production forces IMAGE_STORE=drive (lib/config/server.ts), so the maintenance photo store needs a
+  // real in-boundary Drive folder to upload INTO, resolved exactly as the runtime does: the dedicated
+  // var first, then the legacy SPACE_DRIVE_FOLDER_IDS key.
+  assertMaintenancePhotoFolder(
+    readString(env.MAINTENANCE_PHOTO_DRIVE_FOLDER_ID) ??
+      readString(sourceTargets[MAINTENANCE_SPACE_ID]),
+    errors,
+  );
   assertNoDemoValues("SPACE_DRIVE_FOLDER_IDS", sourceTargets, errors);
   assertNoDemoValues("SPACE_VERTEX_DATA_STORE_IDS", dataStores, errors);
   assertNoPlaceholderValues("SPACE_DRIVE_FOLDER_IDS", sourceTargets, errors);
@@ -219,6 +230,29 @@ function assertConfiguredMaps(sourceTargets, dataStores, errors) {
       errors.push(`Missing production source target for Space "${spaceId}".`);
     }
   }
+}
+
+// Production forces the Drive image store, so a maintenance photo Drive folder is mandatory or every
+// field-photo upload 503s at runtime. The value must be a Drive folder id, never a gs:// corpus prefix
+// (the Drive v3 upload cannot use a Cloud Storage URI as a parent), nor a placeholder/demo value.
+function assertMaintenancePhotoFolder(folderId, errors) {
+  if (!folderId) {
+    errors.push(
+      "Production forces IMAGE_STORE=drive, so a maintenance photo Drive folder is required. Set " +
+        'MAINTENANCE_PHOTO_DRIVE_FOLDER_ID (or the legacy SPACE_DRIVE_FOLDER_IDS["maintenance-work-order-intake"]) ' +
+        "to the in-boundary Drive folder id from `npm run maintenance:ensure-folder`.",
+    );
+    return;
+  }
+
+  if (/^gs:\/\//i.test(folderId)) {
+    errors.push(
+      "MAINTENANCE_PHOTO_DRIVE_FOLDER_ID must be a Google Drive folder id, not a Cloud Storage (gs://) URI.",
+    );
+  }
+
+  assertNoPlaceholderString("MAINTENANCE_PHOTO_DRIVE_FOLDER_ID", folderId, errors);
+  assertNoDemoString("MAINTENANCE_PHOTO_DRIVE_FOLDER_ID", folderId, errors);
 }
 
 function requireMatchingProjectIds(

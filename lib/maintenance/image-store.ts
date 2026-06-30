@@ -99,7 +99,8 @@ export class DriveMaintenanceImageStore implements MaintenanceImageStore {
   async put(image: MaintenanceImage): Promise<StoredImage> {
     if (!this.folderId) {
       throw new ImageStoreSetupError(
-        "No Drive folder configured for maintenance images (SPACE_DRIVE_FOLDER_IDS['maintenance-work-order-intake']).",
+        "No Drive folder configured for maintenance images. Set MAINTENANCE_PHOTO_DRIVE_FOLDER_ID (or the " +
+          "legacy SPACE_DRIVE_FOLDER_IDS['maintenance-work-order-intake']) to the in-boundary Drive folder id.",
       );
     }
     const token = await this.getAccessToken();

@@ -175,6 +175,41 @@ describe("production env preflight rejects broken configs", () => {
       ),
     ).toBe(true);
   });
+
+  it("rejects a missing maintenance photo Drive folder (prod forces the Drive image store)", () => {
+    // Clearing the dedicated var with no legacy SPACE_DRIVE_FOLDER_IDS fallback leaves the photo store
+    // with nowhere to upload, which would 503 every field-photo upload in production.
+    expect(
+      hasError(
+        withEnv({ MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: "" }),
+        "a maintenance photo Drive folder is required",
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a gs:// Cloud Storage URI for the maintenance photo folder", () => {
+    expect(
+      hasError(
+        withEnv({ MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: "gs://bucket/maintenance/" }),
+        "must be a Google Drive folder id, not a Cloud Storage (gs://) URI",
+      ),
+    ).toBe(true);
+  });
+
+  it("accepts the legacy SPACE_DRIVE_FOLDER_IDS fallback for the maintenance photo folder", () => {
+    // Back-compat: a folder in the legacy map key still satisfies the requirement. Co-locating it in the
+    // KB-source map also requires its Vertex data store (the cross-link), so configure both here.
+    const result = withEnv({
+      MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: "",
+      SPACE_DRIVE_FOLDER_IDS:
+        '{"lease-renewals":"fixture-drive-folder-lease-renewals","maintenance-work-order-intake":"legacy-maint-folder"}',
+      SPACE_VERTEX_DATA_STORE_IDS:
+        '{"lease-renewals":"kb-lease-renewals-fixture-txt","maintenance-work-order-intake":"kb-maintenance-fixture-txt"}',
+    });
+
+    expect(hasError(result, "a maintenance photo Drive folder is required")).toBe(false);
+    expect(result.ok).toBe(true);
+  });
 });
 
 describe("source corpus readiness rejects broken manifests", () => {

@@ -91,8 +91,14 @@ const EnvSchema = z.object({
   SPEECH_PROVIDER: z.enum(["google", "stub"]).default("stub"),
   SPEECH_LANGUAGE_CODE: z.string().trim().min(2).default("en-US"),
   // Maintenance photo storage. "stub" is the free dev/test stand-in; prod is forced to "drive"
-  // (Google Drive in-boundary) below. The target folder comes from SPACE_DRIVE_FOLDER_IDS.
+  // (Google Drive in-boundary) below.
   IMAGE_STORE: z.enum(["drive", "stub"]).default("stub"),
+  // Drive folder the maintenance photo store uploads INTO (a write target — a real Drive folder id,
+  // NOT a gs:// corpus prefix). Kept separate from SPACE_DRIVE_FOLDER_IDS, which is the per-Space
+  // KB-source location cross-linked 1:1 with a Vertex data store; one Space key cannot hold both a
+  // KB-source prefix and a photo folder. Falls back to the legacy
+  // SPACE_DRIVE_FOLDER_IDS["maintenance-work-order-intake"] for back-compat.
+  MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: OptionalStringSchema,
   SPACE_DRIVE_FOLDER_IDS: JsonMapSchema,
   SPACE_VERTEX_DATA_STORE_IDS: JsonMapSchema,
   VERTEX_AI_LOCATION: z.string().trim().min(1).default("us-central1"),
@@ -130,11 +136,14 @@ export function readServerConfig(env: Environment = process.env) {
     speechProvider:
       process.env.NODE_ENV === "production" ? "google" : parsed.SPEECH_PROVIDER,
     speechLanguageCode: parsed.SPEECH_LANGUAGE_CODE,
-    // The stub image store is dev/test-only (free); force Google Drive in-boundary in production. The
-    // folder comes from SPACE_DRIVE_FOLDER_IDS; absent → "" (the Drive store treats falsy as "no folder").
+    // The stub image store is dev/test-only (free); force Google Drive in-boundary in production.
     imageStore: process.env.NODE_ENV === "production" ? "drive" : parsed.IMAGE_STORE,
+    // Prefer the dedicated photo-folder var; fall back to the legacy SPACE_DRIVE_FOLDER_IDS key.
+    // Absent → "" (the Drive store treats falsy as "no folder configured" and fails closed).
     maintenanceImageFolderId:
-      parsed.SPACE_DRIVE_FOLDER_IDS["maintenance-work-order-intake"] ?? "",
+      parsed.MAINTENANCE_PHOTO_DRIVE_FOLDER_ID ??
+      parsed.SPACE_DRIVE_FOLDER_IDS["maintenance-work-order-intake"] ??
+      "",
     spaceDriveFolderIds: parsed.SPACE_DRIVE_FOLDER_IDS,
     spaceVertexDataStoreIds: parsed.SPACE_VERTEX_DATA_STORE_IDS,
     vertexAiLocation: parsed.VERTEX_AI_LOCATION,
