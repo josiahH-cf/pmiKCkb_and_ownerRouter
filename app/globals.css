@@ -174,6 +174,84 @@ button {
   white-space: nowrap;
 }
 
+/* A fully-clickable Space card (A-IA-V2): the whole panel is the link, so reset anchor styling and
+   give it a clear hover affordance. The state pill sits left-aligned under the category. */
+.space-card {
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-decoration: none;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.space-card:hover {
+  border-color: var(--color-primary-700);
+  box-shadow: 0 1px 6px rgb(0 0 0 / 8%);
+}
+
+.space-card h2 {
+  margin: 0;
+}
+
+.space-card .review-pill {
+  align-self: flex-start;
+}
+
+/* Per-Space sub-tabs (Spaces ⊇ Processes): Overview | Process beside a Space. */
+.subtabs {
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.subtab {
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-muted, var(--color-text));
+  display: inline-block;
+  font-weight: 650;
+  margin-bottom: -1px;
+  padding: 8px 12px;
+  text-decoration: none;
+}
+
+.subtab.active {
+  border-bottom-color: var(--color-primary-700);
+  color: var(--color-primary-700);
+}
+
+/* Console app-state affordances (S10): visible command buttons + the advisory result panel. */
+.console-commands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.field-label-row {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.app-state-panel {
+  margin-bottom: 16px;
+}
+
+.app-state-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.app-state-list li {
+  border-top: 1px solid var(--color-border);
+  padding: 8px 0;
+}
+
 .compact-record {
   border-top: 1px solid var(--color-border);
   padding: 12px 0;

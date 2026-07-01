@@ -1,13 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { SourceStateBanner } from "@/components/source-state-banner/SourceStateBanner";
 import { detectProcess } from "@/lib/processes/intent";
 import { launchSpaces } from "@/lib/spaces";
 import type { AskResponse } from "@/lib/schemas";
+// Type-only import (erased at build) so the server-only app-state module never enters the client bundle.
+import type { AppStateQuery, AppStateResult } from "@/lib/ask/app-state-context";
 
 type SelectOption = { label: string; value: string };
+
+// Visible slash-command affordances (S10): map each button to a read-only app-state query. The query
+// ids mirror APP_STATE_QUERIES in lib/ask/app-state-context.ts (kept client-safe here, no server import).
+const APP_STATE_COMMANDS: ReadonlyArray<{ query: AppStateQuery; label: string }> = [
+  { query: "approvals", label: "My approvals" },
+  { query: "connections", label: "Connections to set up" },
+  { query: "coverage", label: "Space coverage" },
+];
+
+async function blobToBase64(blob: Blob): Promise<string> {
+  const buffer = await blob.arrayBuffer();
+  let binary = "";
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
 
 /** A process the Console can start a simulation for (from the spine's definitions). */
 export type ProcessOption = { id: string; name: string; status: string };
@@ -45,6 +63,11 @@ export function AskForm({
   const [captureStatus, setCaptureStatus] = useState("");
   const [isCapturing, setIsCapturing] = useState(false);
   const [isDetecting, setIsDetecting] = useState(false);
+  const [appState, setAppState] = useState<AppStateResult | null>(null);
+  const [appStateLoading, setAppStateLoading] = useState<AppStateQuery | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const recorderRef = useRef<MediaRecorder | null>(null);
 
   const showProcessPicker = canStartSimulation && processes.length > 0;
   const willSimulate = showProcessPicker && processId !== "";
@@ -57,7 +80,8 @@ export function AskForm({
   ];
   // Intent-detection: when no process is picked yet, the deterministic matcher suggests one for free
   // as the user types; the model-backed "Detect with AI" fallback runs only on explicit click.
-  const showDetectArea = showProcessPicker && processId === "" && question.trim().length >= 6;
+  const showDetectArea =
+    showProcessPicker && processId === "" && question.trim().length >= 6;
   const suggestion = showDetectArea ? detectProcess(question, processes) : null;
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -103,7 +127,9 @@ export function AskForm({
         const payload = (await runResponse.json()) as { run: SimulationRunSummary };
         setSimulationRun(payload.run);
       } else {
-        setStatusMessage(await readErrorMessage(runResponse, "Simulation could not be started."));
+        setStatusMessage(
+          await readErrorMessage(runResponse, "Simulation could not be started."),
+        );
       }
     }
 
@@ -162,6 +188,82 @@ export function AskForm({
     setIsDetecting(false);
   }
 
+  async function loadAppState(query: AppStateQuery) {
+    setAppStateLoading(query);
+    setStatusMessage("");
+    try {
+      const response = await fetch(`/api/ask/app-state?query=${query}`);
+      if (response.ok) {
+        setAppState((await response.json()) as AppStateResult);
+      } else {
+        setStatusMessage(await readErrorMessage(response, "Could not load app state."));
+      }
+    } finally {
+      setAppStateLoading(null);
+    }
+  }
+
+  async function transcribeAudio(blob: Blob) {
+    setIsTranscribing(true);
+    try {
+      const audioBase64 = await blobToBase64(blob);
+      const response = await fetch("/api/ask/transcribe", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ audioBase64, mimeType: blob.type || "audio/webm" }),
+      });
+      if (response.ok) {
+        const payload = (await response.json()) as { transcript: string };
+        setQuestion((prev) =>
+          [prev, payload.transcript].filter(Boolean).join(" ").trim(),
+        );
+      } else {
+        setStatusMessage(
+          await readErrorMessage(response, "Could not transcribe the recording."),
+        );
+      }
+    } finally {
+      setIsTranscribing(false);
+    }
+  }
+
+  async function toggleRecording() {
+    if (isRecording) {
+      recorderRef.current?.stop();
+      return;
+    }
+    const media = typeof navigator !== "undefined" ? navigator.mediaDevices : undefined;
+    if (!media?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setStatusMessage(
+        "Voice input isn't available in this browser — type your question instead.",
+      );
+      return;
+    }
+    setStatusMessage("");
+    try {
+      const stream = await media.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunks.push(event.data);
+      };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        setIsRecording(false);
+        await transcribeAudio(
+          new Blob(chunks, { type: recorder.mimeType || "audio/webm" }),
+        );
+      };
+      recorder.start();
+      recorderRef.current = recorder;
+      setIsRecording(true);
+    } catch {
+      setStatusMessage(
+        "Microphone unavailable or permission denied — type your question instead.",
+      );
+    }
+  }
+
   const canCapture = result ? capturableStates.has(result.source_state) : false;
   const submitLabel = isPending
     ? "Working"
@@ -170,150 +272,216 @@ export function AskForm({
       : "Get answer";
 
   return (
-    <div className="ask-grid">
-      <form className="ask-form panel" onSubmit={submit}>
-        <label htmlFor="question">Question</label>
-        <textarea
-          id="question"
-          minLength={3}
-          name="question"
-          onChange={(event) => setQuestion(event.target.value)}
-          placeholder="What do you need to know?"
-          required
-          rows={7}
-          value={question}
-        />
+    <div className="ask-console">
+      <div className="console-commands" role="group" aria-label="Console commands">
+        {APP_STATE_COMMANDS.map((command) => (
+          <button
+            className="secondary-button"
+            disabled={appStateLoading !== null}
+            key={command.query}
+            onClick={() => loadAppState(command.query)}
+            type="button"
+          >
+            {appStateLoading === command.query ? "Loading…" : command.label}
+          </button>
+        ))}
+      </div>
 
-        {showProcessPicker ? (
-          <div className="field-row">
-            <SelectField
-              id="ask-process"
-              label="Process"
-              onChange={setProcessId}
-              options={processOptions}
-              value={processId}
-            />
+      {appState ? (
+        <AppStatePanel result={appState} onDismiss={() => setAppState(null)} />
+      ) : null}
+
+      <div className="ask-grid">
+        <form className="ask-form panel" onSubmit={submit}>
+          <div className="field-label-row">
+            <label htmlFor="question">Question</label>
+            <button
+              aria-pressed={isRecording}
+              className="secondary-button"
+              disabled={isTranscribing}
+              onClick={toggleRecording}
+              type="button"
+            >
+              {isRecording
+                ? "Stop recording"
+                : isTranscribing
+                  ? "Transcribing…"
+                  : "Dictate"}
+            </button>
           </div>
-        ) : null}
+          <textarea
+            id="question"
+            minLength={3}
+            name="question"
+            onChange={(event) => setQuestion(event.target.value)}
+            placeholder="What do you need to know?"
+            required
+            rows={7}
+            value={question}
+          />
 
-        {showDetectArea ? (
-          suggestion ? (
-            <p className="muted">
-              Looks like <strong>{suggestion.name}</strong>.{" "}
-              <button
-                className="secondary-button"
-                onClick={() => setProcessId(suggestion.processId)}
-                type="button"
-              >
-                Use {suggestion.name}
-              </button>
-            </p>
-          ) : (
-            <p className="muted">
-              <button
-                className="secondary-button"
-                disabled={isDetecting}
-                onClick={detectWithAi}
-                type="button"
-              >
-                {isDetecting ? "Detecting…" : "Detect process with AI"}
-              </button>
-            </p>
-          )
-        ) : null}
+          {showProcessPicker ? (
+            <div className="field-row">
+              <SelectField
+                id="ask-process"
+                label="Process"
+                onChange={setProcessId}
+                options={processOptions}
+                value={processId}
+              />
+            </div>
+          ) : null}
 
-        {willSimulate ? (
-          <p className="muted">
-            Starting this process runs a simulation only — no system-of-record write, no message
-            sent.
-          </p>
-        ) : null}
-
-        <button className="primary-button" disabled={isPending} type="submit">
-          {submitLabel}
-        </button>
-      </form>
-
-      <aside className="panel result-panel" aria-live="polite">
-        {result ? (
-          <>
-            <SourceStateBanner state={result.source_state} />
-            <h2>Answer</h2>
-            <p>{result.answer}</p>
-            {result.handling_steps.length > 0 ? (
-              <>
-                <h3>Handling Steps</h3>
-                <ol>
-                  {result.handling_steps.map((step) => (
-                    <li key={step}>{step}</li>
-                  ))}
-                </ol>
-              </>
-            ) : null}
-            {result.citations.length > 0 ? (
-              <>
-                <h3>Sources</h3>
-                <ul className="source-list">
-                  {result.citations.map((citation) => (
-                    <li key={citation.source_id}>
-                      <a href={citation.url} rel="noreferrer" target="_blank">
-                        {citation.title}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : null}
-            {result.draft ? (
-              <>
-                <h3>Draft</h3>
-                <pre className="draft-box">{result.draft}</pre>
-              </>
-            ) : null}
-            {result.escalation_owner ? (
-              <p>
-                Escalation owner: <strong>{result.escalation_owner}</strong>
-              </p>
-            ) : null}
-            {simulationRun ? (
-              <div className="capture-panel">
-                <h3>Process simulation started</h3>
-                <p>
-                  <strong>{simulationRun.process_name}</strong> — {simulationRun.status}
-                </p>
-                {simulationRun.next_action ? (
-                  <p className="muted">Next: {simulationRun.next_action}</p>
-                ) : null}
-                <Link href="/processes">View in Processes</Link>
-              </div>
-            ) : null}
-            {canCapture ? (
-              <div className="capture-panel">
-                <h3>Capture Task</h3>
-                <SelectField
-                  id="ask-capture-space"
-                  label="Space"
-                  onChange={setCaptureSpace}
-                  options={writableSpaceOptions}
-                  value={captureSpace}
-                />
+          {showDetectArea ? (
+            suggestion ? (
+              <p className="muted">
+                Looks like <strong>{suggestion.name}</strong>.{" "}
                 <button
                   className="secondary-button"
-                  disabled={isCapturing}
-                  onClick={captureTask}
+                  onClick={() => setProcessId(suggestion.processId)}
                   type="button"
                 >
-                  {isCapturing ? "Creating" : "Create Capture Task"}
+                  Use {suggestion.name}
                 </button>
-              </div>
-            ) : null}
-            {captureStatus ? <p className="muted">{captureStatus}</p> : null}
-          </>
-        ) : (
-          <p className="muted">Results appear here.</p>
-        )}
-        {statusMessage ? <p className="muted">{statusMessage}</p> : null}
-      </aside>
+              </p>
+            ) : (
+              <p className="muted">
+                <button
+                  className="secondary-button"
+                  disabled={isDetecting}
+                  onClick={detectWithAi}
+                  type="button"
+                >
+                  {isDetecting ? "Detecting…" : "Detect process with AI"}
+                </button>
+              </p>
+            )
+          ) : null}
+
+          {willSimulate ? (
+            <p className="muted">
+              Starting this process runs a simulation only — no system-of-record write, no
+              message sent.
+            </p>
+          ) : null}
+
+          <button className="primary-button" disabled={isPending} type="submit">
+            {submitLabel}
+          </button>
+        </form>
+
+        <aside className="panel result-panel" aria-live="polite">
+          {result ? (
+            <>
+              <SourceStateBanner state={result.source_state} />
+              <h2>Answer</h2>
+              <p>{result.answer}</p>
+              {result.handling_steps.length > 0 ? (
+                <>
+                  <h3>Handling Steps</h3>
+                  <ol>
+                    {result.handling_steps.map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ol>
+                </>
+              ) : null}
+              {result.citations.length > 0 ? (
+                <>
+                  <h3>Sources</h3>
+                  <ul className="source-list">
+                    {result.citations.map((citation) => (
+                      <li key={citation.source_id}>
+                        <a href={citation.url} rel="noreferrer" target="_blank">
+                          {citation.title}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+              {result.draft ? (
+                <>
+                  <h3>Draft</h3>
+                  <pre className="draft-box">{result.draft}</pre>
+                </>
+              ) : null}
+              {result.escalation_owner ? (
+                <p>
+                  Escalation owner: <strong>{result.escalation_owner}</strong>
+                </p>
+              ) : null}
+              {simulationRun ? (
+                <div className="capture-panel">
+                  <h3>Process simulation started</h3>
+                  <p>
+                    <strong>{simulationRun.process_name}</strong> — {simulationRun.status}
+                  </p>
+                  {simulationRun.next_action ? (
+                    <p className="muted">Next: {simulationRun.next_action}</p>
+                  ) : null}
+                  <Link href="/processes">View in Processes</Link>
+                </div>
+              ) : null}
+              {canCapture ? (
+                <div className="capture-panel">
+                  <h3>Capture Task</h3>
+                  <SelectField
+                    id="ask-capture-space"
+                    label="Space"
+                    onChange={setCaptureSpace}
+                    options={writableSpaceOptions}
+                    value={captureSpace}
+                  />
+                  <button
+                    className="secondary-button"
+                    disabled={isCapturing}
+                    onClick={captureTask}
+                    type="button"
+                  >
+                    {isCapturing ? "Creating" : "Create Capture Task"}
+                  </button>
+                </div>
+              ) : null}
+              {captureStatus ? <p className="muted">{captureStatus}</p> : null}
+            </>
+          ) : (
+            <p className="muted">Results appear here.</p>
+          )}
+          {statusMessage ? <p className="muted">{statusMessage}</p> : null}
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+// Read-only, advisory app-state result (S10): reports state + deep links, never executes. The engine
+// surfaces (Approval Queue, Connections, Spaces) remain the only place actions happen.
+function AppStatePanel({
+  result,
+  onDismiss,
+}: Readonly<{ result: AppStateResult; onDismiss: () => void }>) {
+  return (
+    <div className="panel app-state-panel" aria-live="polite">
+      <div className="section-heading-row">
+        <div>
+          <h2>{result.title}</h2>
+          <p className="muted">{result.summary}</p>
+        </div>
+        <button className="secondary-button" onClick={onDismiss} type="button">
+          Dismiss
+        </button>
+      </div>
+      {result.items.length > 0 ? (
+        <ul className="app-state-list">
+          {result.items.map((item) => (
+            <li key={`${item.href}::${item.label}`}>
+              <Link href={item.href}>{item.label}</Link>
+              {item.detail ? <span className="muted"> — {item.detail}</span> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }
@@ -348,5 +516,7 @@ function SelectField({
 async function readErrorMessage(response: Response, fallback: string) {
   const payload = (await response.json().catch(() => ({}))) as { error?: unknown };
 
-  return typeof payload.error === "string" && payload.error.trim() ? payload.error : fallback;
+  return typeof payload.error === "string" && payload.error.trim()
+    ? payload.error
+    : fallback;
 }

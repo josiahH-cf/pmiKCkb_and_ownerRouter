@@ -100,7 +100,9 @@ describe("AskForm (action console)", () => {
       screen.getByRole("button", { name: "Get answer + start simulation" }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Get answer + start simulation" }));
+    await user.click(
+      screen.getByRole("button", { name: "Get answer + start simulation" }),
+    );
 
     expect(await screen.findByText("Process simulation started")).toBeInTheDocument();
     expect(screen.getByText("Lease Renewal")).toBeInTheDocument();
@@ -108,7 +110,9 @@ describe("AskForm (action console)", () => {
     await waitFor(() => {
       const calledUrls = fetchMock.mock.calls.map((call) => String(call[0]));
       expect(
-        calledUrls.some((url) => url.includes("/api/process-definitions/lease-renewal/test-runs")),
+        calledUrls.some((url) =>
+          url.includes("/api/process-definitions/lease-renewal/test-runs"),
+        ),
       ).toBe(true);
     });
 
@@ -125,12 +129,62 @@ describe("AskForm (action console)", () => {
       />,
     );
 
-    await user.type(screen.getByLabelText("Question"), "When is the lease up for renewal?");
+    await user.type(
+      screen.getByLabelText("Question"),
+      "When is the lease up for renewal?",
+    );
     await user.click(await screen.findByRole("button", { name: "Use Lease Renewal" }));
 
     expect(
       screen.getByRole("button", { name: "Get answer + start simulation" }),
     ).toBeInTheDocument();
+  });
+
+  it("shows the visible Console command buttons and the Dictate control (S10)", () => {
+    render(<AskForm />);
+
+    expect(screen.getByRole("button", { name: "My approvals" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Connections to set up" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Space coverage" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dictate" })).toBeInTheDocument();
+  });
+
+  it("loads app-state via a command button and shows an advisory, deep-linked panel", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input).includes("/api/ask/app-state")) {
+          return jsonResponse({
+            query: "approvals",
+            title: "Your approvals",
+            summary: "1 item ready for your approval.",
+            items: [
+              {
+                label: "Approve renewal package",
+                detail: "Risk: Medium",
+                href: "/approval-queue#a",
+              },
+            ],
+          });
+        }
+        return jsonResponse({}, false);
+      }),
+    );
+
+    render(<AskForm />);
+    await user.click(screen.getByRole("button", { name: "My approvals" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Your approvals" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("1 item ready for your approval.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Approve renewal package" })).toHaveAttribute(
+      "href",
+      "/approval-queue#a",
+    );
   });
 });
 
@@ -138,7 +192,8 @@ describe("AskForm (action console)", () => {
 function askBody(mock: ReturnType<typeof vi.fn>): Record<string, unknown> {
   const call = mock.mock.calls.find(
     (entry) =>
-      String(entry[0]).includes("/api/ask") && !String(entry[0]).includes("/api/ask/capture"),
+      String(entry[0]).includes("/api/ask") &&
+      !String(entry[0]).includes("/api/ask/capture"),
   );
   return JSON.parse(String((call?.[1] as RequestInit)?.body ?? "{}"));
 }

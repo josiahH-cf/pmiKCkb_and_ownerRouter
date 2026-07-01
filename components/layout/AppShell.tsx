@@ -6,10 +6,12 @@ import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { PMI_WORDMARK, PRODUCT_NAME } from "@/lib/constants";
 
+// Processes is no longer a standalone nav tab (A-IA-V2): each process is surfaced alongside its Space
+// (Spaces ⊇ Processes). The /processes routes + the process-definition engine are preserved and still
+// deep-linked (e.g. from the Renewal Desk and each Space's Process sub-tab).
 const navItems = [
   { href: "/ask", label: "Console" },
   { href: "/spaces", label: "Spaces" },
-  { href: "/processes", label: "Processes" },
   { href: "/approval-queue", label: "Approval Queue" },
 ];
 

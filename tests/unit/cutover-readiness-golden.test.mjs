@@ -45,7 +45,16 @@ describe("golden production fixtures pass every cutover gate", () => {
 
     expect(deploy.ok).toBe(true);
     expect(deploy.errors).toEqual([]);
-    expect([deploy.command, ...deploy.args].join(" ")).toContain("run deploy");
+    const command = [deploy.command, ...deploy.args].join(" ");
+    expect(command).toContain("run deploy");
+    // Dev↔prod parity: the non-secret live-connection identifiers are forwarded as env vars, and the
+    // RentVine credentials are wired via Secret Manager (--set-secrets), never inlined as env values.
+    expect(command).toContain("RENTVINE_API_BASE_URL=https://pmikcmetro.rentvine.com");
+    expect(command).toContain("SHEETS_DWD_SUBJECT=kb-reader@pmikcmetro.com");
+    const secretsFlag = deploy.args.find((arg) => arg.startsWith("--set-secrets"));
+    expect(secretsFlag).toBeDefined();
+    expect(secretsFlag).toContain("RENTVINE_API_KEY=RENTVINE_API_KEY:latest");
+    expect(secretsFlag).toContain("RENTVINE_API_SECRET=RENTVINE_API_SECRET:latest");
   });
 
   it("GCP infra plan is ready except the documented notification-send approval", () => {
@@ -209,6 +218,59 @@ describe("production env preflight rejects broken configs", () => {
 
     expect(hasError(result, "a maintenance photo Drive folder is required")).toBe(false);
     expect(result.ok).toBe(true);
+  });
+
+  it("rejects a missing RentVine tenant base URL (dev↔prod parity)", () => {
+    expect(
+      hasError(
+        withEnv({ RENTVINE_API_BASE_URL: "" }),
+        "RENTVINE_API_BASE_URL must be set",
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a RentVine base URL for the wrong tenant account", () => {
+    expect(
+      hasError(
+        withEnv({
+          RENTVINE_API_BASE_URL: "https://someoneelse.rentvine.com/api/manager",
+        }),
+        'is not the expected "pmikcmetro"',
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a non-RentVine host for the RentVine base URL", () => {
+    expect(
+      hasError(
+        withEnv({ RENTVINE_API_BASE_URL: "https://pmikcmetro.example.com/api" }),
+        "must be a RentVine tenant host",
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a missing renewal sheet id", () => {
+    expect(
+      hasError(withEnv({ RENEWAL_SHEET_ID: "" }), "RENEWAL_SHEET_ID must be set"),
+    ).toBe(true);
+  });
+
+  it("rejects a non-service-account Sheets DWD impersonation identity", () => {
+    expect(
+      hasError(
+        withEnv({ SHEETS_IMPERSONATE_SA: "kb-reader@pmikcmetro.com" }),
+        "SHEETS_IMPERSONATE_SA must be a GCP service account",
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects a non-pmikcmetro Sheets DWD subject (identity rule)", () => {
+    expect(
+      hasError(
+        withEnv({ SHEETS_DWD_SUBJECT: "reader@gmail.com" }),
+        "SHEETS_DWD_SUBJECT must use only pmikcmetro.com email addresses",
+      ),
+    ).toBe(true);
   });
 });
 
