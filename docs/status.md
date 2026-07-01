@@ -5823,3 +5823,28 @@ json_schema` in `lib/llm/model-provider.ts` + empty-`escalation_owner` coercion 
   append-only + no-overwrite copy; sub-tab: 4 value-free "Proposal ready" badges, no value leak, no console errors).
   Executing the write stays gated (SoR spec); the cell-anchored compare-and-set model (method (b), `writeback.ts`) is
   the graduate-later path. NEXT: a proposal approval + queue path (still no execution).
+
+## 2026-07-01 — Maintenance unit matcher (M-4) + attempted redeploy
+
+- ATTEMPTED the owner-authorized Secret Manager + S12 redeploy myself. Preflights GREEN: gcloud identity is
+  `josiah@pmikcmetro.com` on `pmi-kc-kb-prod`, RentVine secrets present in `.env.local`, budget guard passed ($10 cap).
+  BLOCKED on a hard gate: the gcloud CLI token needs interactive reauth (`Reauthentication failed. cannot prompt during
+non-interactive execution.`) — `credentials.db` last modified 2026-06-26, so the CLI login hasn't refreshed. Diagnosed
+  the likely cause (owner ran `gcloud auth application-default login` (ADC) rather than `gcloud auth login` (CLI identity),
+  which is what `gcloud run deploy` uses). Not worked around (identity rule). Redeploy waits on the owner's `gcloud auth login`.
+- Per the Working Order, pivoted to unblocked work and used a background design workflow (4 parallel surface-mappers →
+  a decision-complete plan) to design the maintenance slice, verifying every cited symbol against real code before building.
+- SHIPPED: the read-only location→unit matcher (`F-MAINT-UNIT-MATCHER`, M-4 — built FIRST, before any work-order create).
+  `matchLocationToUnit` composes the verified lease-renewal join spine (`deriveAddressKey` + `joinScore` + the two join
+  thresholds) and emits the already-fixed `MaintenanceUnitMatch` contract, so `buildWorkOrderDraft` is UNCHANGED (its
+  unmatched + Needs-Review blockers fire off the match confidence). Tiers: structured unit id verbatim → Verified (unique);
+  else fuzzy address capped at Likely (unique ≥0.85), Needs Review (ambiguous/tied/[0.4,0.85)), null (<0.4).
+  `deriveUnitCandidatesFromExport` lifts read-only candidates from RentVine export rows defensively (alternate keys;
+  missing address → `Needs Verification:` label, never invented; live unit shape UNVERIFIED pending `smoke:rentvine-read`).
+  Deviations from the design (with rationale): kept the extractor in the maintenance module (no edit to the renewal
+  lease-mapper — lower coupling/regression risk); a conservative dependency-free exact-id tier instead of importing
+  renewal `rentvine-link` (the cited path was wrong AND free-text won't carry a link). New `lib/maintenance/unit-matcher.ts`
+  - `tests/unit/maintenance-unit-matcher.test.ts` (15 cases: exact-id, fuzzy-cap, tie→review, mid-range, no-match,
+    determinism, never-auto-merge, extractor + `buildWorkOrderDraft` wiring). 857 tests green; typecheck/lint/falsification/
+    context-freshness clean. Live /api + UI wiring deferred until the unit shape is confirmed. NEXT: the M-5 owner-notice
+    DRAFT + vendor-assignment SUGGESTION (both non-executable, `production_allowed:false`).
