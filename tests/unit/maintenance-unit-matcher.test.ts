@@ -74,39 +74,56 @@ describe("matchLocationToUnit", () => {
 });
 
 describe("deriveUnitCandidatesFromExport (confirmed live shape 2026-07-01)", () => {
-  it("lifts the flat unit id + captures the property id, address stays Needs Verification", () => {
-    // Confirmed: unitID + propertyID are FLAT lease fields; the lease carries NO address.
+  it("lifts the unit id + composes the street label from the unit append", () => {
+    // Confirmed: the `unit` append carries unitID + streetNumber/streetName/address2.
     const { candidates, skipped } = deriveUnitCandidatesFromExport([
-      { unitID: "456", propertyID: "99" },
+      {
+        unit: {
+          unitID: "456",
+          streetNumber: "123",
+          streetName: "Main Street",
+          address2: "Unit 2",
+          propertyID: "99",
+        },
+      },
     ]);
     expect(candidates).toEqual([
-      { unitId: "unit:456", label: UNIT_ADDRESS_UNVERIFIED, propertyId: "99" },
+      { unitId: "unit:456", label: "123 Main Street Unit 2", propertyId: "99" },
     ]);
     expect(skipped).toBe(0);
   });
 
-  it("reads a unit id nested under row.lease", () => {
-    const { candidates } = deriveUnitCandidatesFromExport([
-      { lease: { unitID: "789" }, unit: { rent: 1500 } },
-    ]);
+  it("falls back to Needs Verification when the unit append has no address", () => {
+    const { candidates } = deriveUnitCandidatesFromExport([{ unit: { unitID: "789" } }]);
     expect(candidates).toEqual([{ unitId: "unit:789", label: UNIT_ADDRESS_UNVERIFIED }]);
+  });
+
+  it("uses the lease FK for the id when the unit append lacks one", () => {
+    const { candidates } = deriveUnitCandidatesFromExport([
+      { lease: { unitID: "789" }, unit: { streetNumber: "1", streetName: "A Street" } },
+    ]);
+    expect(candidates).toEqual([{ unitId: "unit:789", label: "1 A Street" }]);
   });
 
   it("skips (and counts) a row with no resolvable unit id", () => {
     const { candidates, skipped } = deriveUnitCandidatesFromExport([
-      { propertyID: "99" },
+      { property: { propertyID: "99" } },
       {},
     ]);
     expect(candidates).toEqual([]);
     expect(skipped).toBe(2);
   });
 
-  it("de-duplicates repeated unit ids", () => {
+  it("de-duplicates repeated unit ids and matches a live-shaped candidate", () => {
     const { candidates } = deriveUnitCandidatesFromExport([
-      { unitID: "456", propertyID: "99" },
-      { unitID: "456", propertyID: "99" },
+      { unit: { unitID: "456", streetNumber: "123", streetName: "Main Street" } },
+      { unit: { unitID: "456", streetNumber: "123", streetName: "Main Street" } },
     ]);
     expect(candidates).toHaveLength(1);
+    // End-to-end: a reporter's free text matches the composed live label.
+    const match = matchLocationToUnit("123 Main St", candidates).match;
+    expect(match?.unitId).toBe("unit:456");
+    expect(match?.confidence).toBe("Likely");
   });
 });
 

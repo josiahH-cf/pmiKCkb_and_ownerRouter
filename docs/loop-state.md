@@ -114,8 +114,8 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 - Owner-present cycle 2026-07-01: Working Order added to governance (`F-WORKING-ORDER`). SHIPPED: renewal review
   sub-tab (`F-RENEWAL-REVIEW-SUBTAB`), write-back PROPOSAL generator (`F-WRITEBACK-PROPOSAL`), maintenance unit matcher
   (`F-MAINT-UNIT-MATCHER`, M-4) + owner-notice DRAFT + vendor-assignment SUGGESTION (`F-MAINT-NOTICE-VENDOR`, M-5); 866 tests.
-  Live RentVine read CONFIRMED the unit shape (unitID/propertyID flat, NO lease address). NEXT: a `/properties` read +
-  propertyID→address join, then wire the 3 maintenance stages into the capture UI. BLOCKED: S12 redeploy needs `gcloud auth login`.
+  Live RentVine read CONFIRMED the unit APPEND carries the address (streetNumber/streetName/address2) — matcher is
+  LIVE-READY. NEXT: the `/api/maintenance/match-unit` route + wire the 3 maintenance stages into the capture UI. BLOCKED (owner, structural): S12 redeploy — org reauth blocks the agent's non-interactive gcloud; owner runs the deploy runbook interactively.
 
 ## Security Note
 

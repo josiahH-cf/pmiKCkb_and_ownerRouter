@@ -5867,3 +5867,18 @@ non-interactive execution.`) — `credentials.db` last modified 2026-06-26, so t
   NOT a separate slice — approving a proposal already flows through the resolve flow (accept the suggestion), execution
   gated on the SoR spec. BLOCKED (owner): the S12 redeploy still needs `gcloud auth login` — `credentials.db` unchanged
   since 2026-06-26, so the CLI login has not landed (likely `gcloud auth application-default login` was run instead).
+- gcloud ROOT CAUSE diagnosed 2026-07-01 (`[[gcloud-reauth-blocks-agent-shell]]`): the pmikcmetro.com org enforces
+  Google REAUTHENTICATION for sensitive ops; the agent's gcloud runs NON-interactively (no TTY), so ALL sensitive
+  gcloud calls fail `Reauthentication failed. cannot prompt during non-interactive execution` — even `auth
+print-access-token` — no matter how many `gcloud auth login`s. STRUCTURAL: the agent can never run cost-bearing
+  gcloud on this org. FIX: the owner runs the Secret Manager + `deploy:demo --budget-confirmed` runbook in their OWN
+  interactive terminal (where reauth can prompt); the agent verifies over HTTP via `smoke:ask-live` (no gcloud).
+  Recorded as memory + `AGENTS.md`-adjacent governance. RentVine reads are unaffected (not Google).
+- Re-confirmed the RentVine unit shape (extended `smoke:rentvine-read` to dump the export APPEND keys, shape-only):
+  each export row has `unit` + `property` appends, and the `unit` append carries `unitID` AND the address
+  (`streetNumber`/`streetName`/`address2`/city/postalCode). This CORRECTS the earlier "needs a /properties read"
+  conclusion (that was over-corrected off the first smoke, which only showed the flattened lease fields). Rewrote
+  `deriveUnitCandidatesFromExport` to lift `unit:<id>` + compose the street label from the unit append (no /properties
+  call); a unit with no address → `Needs Verification:`, never invented. The matcher's live candidate SOURCE now works
+  — `F-MAINT-UNIT-MATCHER` is LIVE-READY. 16 matcher tests (incl. an end-to-end live-shaped match). NEXT: the
+  `/api/maintenance/match-unit` route + capture-UI wiring for the three maintenance stages.
