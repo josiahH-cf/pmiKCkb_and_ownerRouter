@@ -5902,3 +5902,9 @@ print-access-token` — no matter how many `gcloud auth login`s. STRUCTURAL: the
   (matcher + notice + vendor all wired). NEXT: move-in/move-out desks (need the Dan/legal Q&A); S12 redeploy (owner).
   Noted keyword-taxonomy looseness (substring hits, e.g. "washer" inside "dishwasher") — the team validates the
   starter trade keywords before any auto-routing.
+- Added a session-start auth script (`F-SESSION-AUTH`): `npm run auth:session` (`scripts/session-auth.ps1`,
+  owner-run, interactive) refreshes the gcloud CLI login + ADC ONLY when stale and confirms the RentVine env, so a
+  new session never stalls on stale auth. Wired into governance: `AGENTS.md` Commands + Working Order, loop-state
+  Resume Here step 2, and the gcloud-reauth memory. The agent still can't reauth (interactive-only); it checks with
+  the read-only `preflight:adc` and asks the owner to run `auth:session` on failure. PS syntax-checked; freshness/
+  falsification/lint green (not executed here — it's the owner's interactive script).

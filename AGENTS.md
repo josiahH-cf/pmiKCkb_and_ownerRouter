@@ -107,7 +107,8 @@ route new work through the three-product docs.
 - Reset demo data: `npm run demo:reset`
 - Demo operator: `npm run demo:operator`
 - Live cost preflight: `npm run check:live-cost`
-- ADC freshness preflight: `npm run preflight:adc` — run FIRST (new session / planning) before any live Google read (Sheets/Firestore/Vertex); if it reports a stale token, reauth scope-free (`gcloud auth application-default login`) before building. See loop-state Resume Here.
+- Session auth preflight (OWNER, interactive): `npm run auth:session` — run at the START of each new session, before the agent touches a live read. Refreshes the gcloud CLI login + ADC only when stale, then confirms the RentVine env. The AGENT cannot do this (org reauth is interactive-only); the agent only CHECKS with `preflight:adc` and asks the owner to run `auth:session` if it fails.
+- ADC freshness preflight: `npm run preflight:adc` — the read-only check the agent runs FIRST (new session / planning) before any live Google read (Sheets/Firestore/Vertex); if it reports a stale token, the owner reauths via `npm run auth:session` (or scope-free `gcloud auth application-default login`) before building. See loop-state Resume Here.
 - Golden-data capture (read-only, in-boundary): `npm run golden:capture -- --live` — writes a gitignored draft (counts-only stdout)
 - Maintenance Drive folder (in-boundary, keyless DWD as a pmikcmetro.com user): `npm run maintenance:ensure-folder -- --live [--shared-drive <id>]` — find-or-creates the photo folder (in a team Shared Drive when `--shared-drive` is given, else the subject's My Drive) + prints the id for SPACE_DRIVE_FOLDER_IDS. The Drive scope is authorized + the Drive API enabled (2026-06-29). Uploads use supportsAllDrives, so Shared Drives work.
 - Golden-data labeling: `npm run golden:worksheet` (build a reviewer worksheet from a draft) → team reviews → `npm run golden:apply-labels -- --worksheet <path>` (write the `labelsVerified:true` set the harness gates on). In-boundary only; never invent labels.
@@ -147,6 +148,13 @@ answer ourselves.
   unattended model work stays unblocked. Clear the human bottlenecks while the human is
   here; batch the autonomous build behind them. Do not stall an easy manual unblock to keep
   coding.
+- **Session-start auth (the owner runs `npm run auth:session`).** On this managed org, Google
+  reauth is interactive-only, so the agent's non-interactive shell can never refresh a stale
+  gcloud login or ADC — it silently stalls a live read mid-run. The owner runs `auth:session`
+  once at the start of each session to refresh them when stale. The agent's job: check with
+  `npm run preflight:adc` before any live Google read, and if it fails, ask the owner to run
+  `auth:session` rather than trying to work around it. See `F-SESSION-AUTH` +
+  [[gcloud-reauth-blocks-agent-shell]].
 - **Self-answer before you ask.** Before routing any question to the client, exhaust what the
   repo and the developer already know: mine the transcript, `docs/` (especially the discovery
   and reference docs), and code first. The developer holds substantial context — ask the
