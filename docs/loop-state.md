@@ -65,12 +65,12 @@ the move-in/move-out UI before the V1 process answers land** (the note's RISK; t
    buttons + Console STT (`/api/ask/transcribe`); advisory + deep-linked, never executes.
 4. Per-Space teeth (`space-teeth.md`, S11) — a reusable per-Space desk; build the Move-In + Move-Out V1 desks
    AFTER their Q&A answers land (operator-first, read/draft/suggest only).
-5. Lease-renewal Phase-2 — review sub-tab SHIPPED 2026-07-01 (`F-RENEWAL-REVIEW-SUBTAB`, `OQ-UI-1`: value-free
-   Renewals tab in the Approval Queue, grouped by run, deep-links to the resolve flow; approve = admin-tier per
-   `OQ-APPR-1`). NEXT BUILDABLE: the append-only write-back PROPOSAL generator (`Q-WRITEBACK-METHOD`) —
-   value-bearing, shown at the run evidence, needs-approval/queue-only; then link the sub-tab to it. STILL
-   GATED: executing the Sheet write needs an approved per-action spec (SoR write); the RentVine renewal write
-   stays vendor-gated (`OQ-RV-1`); drafts use the transcript scaffold (`OQ-TMPL-1`).
+5. Lease-renewal Phase-2 — review sub-tab + append-only write-back PROPOSAL both SHIPPED 2026-07-01
+   (`F-RENEWAL-REVIEW-SUBTAB`, `F-WRITEBACK-PROPOSAL`): value-free Renewals tab (grouped by run, deep-links to the
+   resolve flow, "Proposal ready" badge; approve = admin-tier per `OQ-APPR-1`) + the value-bearing proposal at the
+   run evidence (append to a new column, needs-approval, not executed). NEXT: a proposal approval + queue path (still
+   no execution). STILL GATED: executing the Sheet write needs an approved per-action spec (SoR write); the RentVine
+   renewal write stays vendor-gated (`OQ-RV-1`); drafts use the transcript scaffold (`OQ-TMPL-1`).
 
 Carried owner/vendor-gated: prod `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` + live process seed; RentVine
 work-order create.
@@ -112,10 +112,10 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 - Fired 2026-06-30 (this build cycle, after S12→S6→S10): "no safe slice remains" + an approval gate. All three
   unblocked slices shipped (parity, IA rework, Console app-state brain); merged to `main` via PR #19.
 - Owner-present cycle 2026-07-01: Working Order added to governance (`F-WORKING-ORDER`: front-load human-gated
-  work; self-answer before client). Renewal review sub-tab SHIPPED (`F-RENEWAL-REVIEW-SUBTAB`, OQ-UI-1 + OQ-APPR-1;
-  835 tests, browser-verified). Q&A self-answer pass recorded 12 items (`v1-process-qa.md`). Secret Manager runbook
-  delivered (owner action pending → unblocks the S12 redeploy). NEXT: the append-only write-back PROPOSAL generator
-  (Q-WRITEBACK-METHOD). Still gated: Sheet-write SoR spec; move-in/move-out (Dan/legal); S12 redeploy (owner/budget).
+  work; self-answer before client). SHIPPED: the renewal review sub-tab (`F-RENEWAL-REVIEW-SUBTAB`, OQ-UI-1 + OQ-APPR-1)
+  and the append-only write-back PROPOSAL generator (`F-WRITEBACK-PROPOSAL`, Q-WRITEBACK-METHOD); 842 tests,
+  browser-verified. Q&A self-answer pass recorded 12 items (`v1-process-qa.md`). Secret Manager runbook delivered
+  (owner action pending → S12 redeploy). NEXT: proposal approval/queue path. Gated: Sheet-write SoR spec; move-in/move-out; S12 redeploy.
 
 ## Security Note
 

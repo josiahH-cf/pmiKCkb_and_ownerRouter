@@ -49,6 +49,9 @@ export function RenewalReviewPanel({ board }: Readonly<{ board?: RenewalReviewBo
                   <span className="queue-pill" data-value={flag.severity}>
                     {flag.severity}
                   </span>
+                  {flag.proposalReady ? (
+                    <span className="ui-tag">Proposal ready</span>
+                  ) : null}
                   {flag.resolved ? <span className="ui-tag">Resolved</span> : null}
                 </span>
               </li>

@@ -34,6 +34,22 @@ function makeFlag(
       },
     ],
     resolution: overrides.resolution ?? null,
+    writeback:
+      overrides.writeback ??
+      ({
+        fieldKey,
+        fieldLabel: fieldKey,
+        method: "append_only_column",
+        proposedColumnHeader: `KB Proposed — ${fieldKey}`,
+        proposedValue: SECRET,
+        sourceSystem: "RentVine",
+        rationale: `Append "${SECRET}" from RentVine ...`,
+        status: "Proposed",
+        requiresApproval: true,
+        autoApplyAllowed: false,
+        suggestionOnly: true,
+        valueReady: true,
+      } as RenewalFlagView["writeback"]),
   };
 }
 
@@ -143,19 +159,60 @@ describe("buildRenewalReviewBoard", () => {
     ]);
 
     const serialized = JSON.stringify(board);
+    // SECRET is the candidate value AND the proposal's proposedValue/rationale — none may leak.
     expect(serialized).not.toContain(SECRET);
     expect(serialized).not.toContain("suggestedWinner");
     expect(serialized).not.toContain("candidates");
-    // The flag row carries only the safe, PII-free shape.
+    expect(serialized).not.toContain("proposedValue");
+    expect(serialized).not.toContain("rationale");
+    // The flag row carries only the safe, PII-free shape (the proposal collapses to a boolean).
     expect(Object.keys(board.runs[0].flags[0]).sort()).toEqual([
       "actionNeeded",
       "agreement",
       "fieldKey",
       "fieldLabel",
       "href",
+      "proposalReady",
       "resolved",
       "severity",
     ]);
+  });
+
+  it("carries the value-free proposal-ready flag from the write-back proposal", () => {
+    const board = buildRenewalReviewBoard([
+      makeView("run-a", "Run A", [
+        {
+          severity: "High",
+          flags: [
+            makeFlag("current_rent", "High"),
+            makeFlag("owner_charge_130", "Blocked", {
+              writeback: {
+                fieldKey: "owner_charge_130",
+                fieldLabel: "owner_charge_130",
+                method: "append_only_column",
+                proposedColumnHeader: "KB Proposed — owner_charge_130",
+                proposedValue: null,
+                sourceSystem: null,
+                rationale: "No append-only proposal: no precedence winner.",
+                status: "Blocked",
+                requiresApproval: true,
+                autoApplyAllowed: false,
+                suggestionOnly: true,
+                valueReady: false,
+              },
+            }),
+          ],
+        },
+      ]),
+    ]);
+
+    const flags = board.runs[0].flags;
+    expect(flags.find((flag) => flag.fieldKey === "current_rent")?.proposalReady).toBe(
+      true,
+    );
+    expect(
+      flags.find((flag) => flag.fieldKey === "owner_charge_130")?.proposalReady,
+    ).toBe(false);
   });
 
   it("returns an empty board for no runs", () => {

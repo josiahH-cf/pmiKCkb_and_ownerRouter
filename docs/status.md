@@ -5812,3 +5812,14 @@ json_schema` in `lib/llm/model-provider.ts` + empty-`escalation_owner` coercion 
 - NEXT: the append-only write-back PROPOSAL generator (`Q-WRITEBACK-METHOD`) — value-bearing, at the run evidence,
   needs-approval/queue-only — then link the sub-tab to it. Genuinely-Dan/vendor/legal remainder: MO-4 ledger location,
   MO-5 dollar threshold, the statutory deposit deadline (MO-2), RentVine renewal + work-order write endpoints.
+- SHIPPED (same day): the append-only write-back PROPOSAL generator (`F-WRITEBACK-PROPOSAL`, Q-WRITEBACK-METHOD (a)).
+  `buildWritebackProposal` turns a flag-raising reconciliation into a value-bearing proposal — the value to append to
+  a NEW "KB Proposed — {field}" column from the suggested-winner source — or a value-LESS "Needs input" proposal for a
+  blocked/missing/no-winner field (a value is never invented). Surfaced read-only at the run evidence
+  (`LeaseRenewalRunClient`) with binding guardrails (suggestion only; needs approval; append-only, never overwrites;
+  not executed) and as a value-free "Proposal ready" badge on the sub-tab. New `lib/lease-renewal/writeback-proposal.ts`;
+  wired through `run-view.ts` (per-flag `writeback`) + the sub-tab's value-free `proposalReady`. 842 tests green;
+  typecheck/lint/falsification clean; browser-verified (run page: 4 proposal-ready + 1 needs-input cards with the
+  append-only + no-overwrite copy; sub-tab: 4 value-free "Proposal ready" badges, no value leak, no console errors).
+  Executing the write stays gated (SoR spec); the cell-anchored compare-and-set model (method (b), `writeback.ts`) is
+  the graduate-later path. NEXT: a proposal approval + queue path (still no execution).

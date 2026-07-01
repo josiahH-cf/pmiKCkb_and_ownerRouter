@@ -23,6 +23,7 @@ const board: RenewalReviewBoard = {
           agreement: "conflict",
           actionNeeded: "Reconcile current rent across 2 sources.",
           resolved: false,
+          proposalReady: true,
           href: "/lease-renewal/runs/sim-renewal-001",
         },
       ],
@@ -43,6 +44,8 @@ describe("RenewalReviewPanel", () => {
 
     expect(screen.getByText("Sample renewal run")).toBeInTheDocument();
     expect(screen.getByText("Current rent")).toBeInTheDocument();
+    // The value-free "Proposal ready" badge surfaces that an append-only proposal has a value.
+    expect(screen.getByText("Proposal ready")).toBeInTheDocument();
     const reviewLink = screen.getByRole("link", { name: /Review & resolve/ });
     expect(reviewLink).toHaveAttribute("href", "/lease-renewal/runs/sim-renewal-001");
   });
