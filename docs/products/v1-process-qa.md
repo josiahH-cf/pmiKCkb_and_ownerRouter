@@ -52,9 +52,11 @@ invented values; identity stays `pmikcmetro.com`.
 
 1. **Trigger + owner.** _Default:_ manual start by a team member when a tenant is approved/onboarding;
    owner = Dan, default approver = Dan + Dan-settable secondary. Auto-detect from RentVine is later.
-   _Owner: owner._
+   _Owner: owner._ — **✅ ANSWERED 2026-07-01: confirmed the default (manual start; Dan owns; auto-detect later).**
 2. **Which steps are hard gates vs checklist flags.** _Default:_ hard gates = (a) e-signature complete
    (Dotloop) and (b) certified funds received; everything else is a tracked checklist flag. _Owner: owner._
+   — **✅ ANSWERED 2026-07-01 (overrides the default): NO hard blocking gates in V1 — EVERY move-in step is a
+   tracked checklist flag; the operator judges readiness. (Revisit hard gates after V1 usage.)**
 3. **Welcome comms channels.** _Default:_ email + RentVine Portal Chat (what Tab 1 records); SMS only if
    you confirm. Drafts only; human sends. _Owner: client._
 4. **Smart-lock / key provisioning workflow.** _**No safe default — the only source is in the excluded
@@ -70,18 +72,26 @@ invented values; identity stays `pmikcmetro.com`.
    suggest-to-sheet; no app-executable RentVine/Dotloop/Gmail write. _Owner: client._
 8. **Reconcile + golden data for move-in?** _Default:_ V1 = read + checklist surface, content-keyed (never
    trust Tab 1 headers — "Move in date" holds emails); a move-in golden set comes only after Tab 1 column
-   meanings are team-validated. _Owner: owner/design._
+   meanings are team-validated. _Owner: owner/design._ — **✅ ANSWERED 2026-07-01: confirmed the default
+   (read + checklist only for V1; content-keyed; golden set only after Tab 1 columns are team-validated).**
 
 ## Move-Out + Deposit Disposition (Space scaffold + demo seed; no desk)
 
 1. **Trigger.** _Default:_ Renewals→Move-Out "decided to move out" handoff + a manual "Start move-out"
-   button; eviction/abandonment branches flagged for separate handling. _Owner: client._
+   button; eviction/abandonment branches flagged for separate handling. _Owner: client._ — **✅ ANSWERED
+   2026-07-01 (narrows the default): a manual "Start move-out" button ONLY for V1 — no automatic
+   Renewals→Move-Out handoff yet (add later). Eviction/abandonment still branch for separate handling.**
 2. **Deposit-disposition deadline rule (clock-start + statutory window).** _**No safe default — legal,
    owner.**_ Surface a `Needs Verification:` placeholder; never hard-code a statutory deadline or generate
    legal deposit language. _Owner: client._
 3. **Deposit AMOUNT computation/itemization.** _Default:_ V1 = human-entered/owner-approved (no app math);
    the app assembles the evidence packet (inspection, vendor bids, RentVine ledger refs, lock-change/4265
-   charges) and tracks the "disposition sent" gate. _Owner: client._
+   charges) and tracks the "disposition sent" gate. _Owner: client._ — **✅ ANSWERED 2026-07-01 (overrides
+   the default): the app DOES compute a SUGGESTED deposit deduction from the operator-entered evidence
+   (inspection charges, vendor bids, ledger refs, lock-change/4265). GUARDRAILS (binding): the number is a
+   clearly-labeled SUGGESTION, never final; it requires owner approval before use; the app shows the evidence
+   + the arithmetic transparently; it NEVER posts to a ledger/bank/QuickBooks (no SoR write) and NEVER invents
+   statutory deposit language or the deadline (Q2 stays a legal-gated `Needs Verification:` placeholder).**
 4. **QuickBooks dependency for deposit accounting.** _**No safe default — QB access is a standing
    blocker.**_ Default posture: QB read-only-at-most, out of scope for V1 writes; deposit ledger postings
    are manual. Confirm where the deposit ledger of record sits. _Owner: client._
@@ -113,9 +123,14 @@ invented values; identity stays `pmikcmetro.com`.
 4. **Emergency-keyword list + location→unit matcher validation.** _Default:_ auto-priority stays a
    human-overridable suggestion; the team reviews the keyword list once; build the read-only RentVine
    unit matcher before enabling the create (so unit confidence is real, not user-typed). _Owner: owner._
+   — **✅ ANSWERED 2026-07-01: confirmed the default (human-overridable priority suggestion; build the read-only
+   RentVine unit matcher BEFORE enabling any work-order create).**
 5. **Owner-notice + Vendor-assignment stages in V1 scope?** _Default:_ V1 = human-reviewed work-order draft
    (photos in Drive); Owner notice + Vendor assignment stay non-executable planned stages, clearly marked
-   "planned, not built." _Owner: owner._
+   "planned, not built." _Owner: owner._ — **✅ ANSWERED 2026-07-01 (overrides the default): BUILD both stages
+   in V1 as draft/suggest surfaces — an owner-notice DRAFT and a vendor-assignment SUGGESTION. Governance floor
+   still binds: both stay non-executable (no autonomous send, no system-of-record write); the RentVine
+   work-order create + any owner send remain human-approved/gated.**
 
 ---
 
