@@ -37,6 +37,13 @@ export interface RenewalReviewRun {
   highSeverityOpen: number;
   /** Unresolved Blocked-severity flags (a held/failed automation). */
   blockedOpen: number;
+  /**
+   * Queued write-back proposals awaiting an Admin's approval (value-free count; the values stay on the
+   * run page). These are the write-back authorizations that need a decision.
+   */
+  proposalsAwaitingApproval: number;
+  /** Queued write-back proposals an Admin has approved (ready to write; not executed). */
+  proposalsApproved: number;
 }
 
 export interface RenewalReviewBoard {
@@ -73,9 +80,8 @@ function toReviewFlag(flag: RenewalFlagView, href: string): RenewalReviewFlag {
 function toReviewRun(view: RenewalRunView): RenewalReviewRun {
   const href = renewalRunHref(view.runId);
   // `groups` are already ordered by SEVERITY_ORDER; flatten preserving that order.
-  const flags = view.groups.flatMap((group) =>
-    group.flags.map((flag) => toReviewFlag(flag, href)),
-  );
+  const sourceFlags = view.groups.flatMap((group) => group.flags);
+  const flags = sourceFlags.map((flag) => toReviewFlag(flag, href));
   const openFlags = flags.filter((flag) => !flag.resolved);
 
   return {
@@ -89,6 +95,13 @@ function toReviewRun(view: RenewalRunView): RenewalReviewRun {
       (flag) => flag.severity === "High" || flag.severity === "Blocked",
     ).length,
     blockedOpen: openFlags.filter((flag) => flag.severity === "Blocked").length,
+    // Value-free rollups of the write-back approval overlay (never the proposed values themselves).
+    proposalsAwaitingApproval: sourceFlags.filter(
+      (flag) => flag.writebackApproval?.state === "Awaiting Approval",
+    ).length,
+    proposalsApproved: sourceFlags.filter(
+      (flag) => flag.writebackApproval?.state === "Approved",
+    ).length,
   };
 }
 

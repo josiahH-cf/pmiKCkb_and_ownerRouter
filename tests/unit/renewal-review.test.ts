@@ -50,6 +50,8 @@ function makeFlag(
         suggestionOnly: true,
         valueReady: true,
       } as RenewalFlagView["writeback"]),
+    writebackApproval:
+      overrides.writebackApproval === undefined ? null : overrides.writebackApproval,
   };
 }
 
@@ -176,6 +178,20 @@ describe("buildRenewalReviewBoard", () => {
       "resolved",
       "severity",
     ]);
+    // Defense-in-depth: pin the run-level shape too, so a future value-bearing run field is caught
+    // structurally (the write-back approval overlay only ever collapses to integer counts here).
+    expect(Object.keys(board.runs[0]).sort()).toEqual([
+      "blockedOpen",
+      "flags",
+      "highSeverityOpen",
+      "href",
+      "label",
+      "openFlags",
+      "proposalsApproved",
+      "proposalsAwaitingApproval",
+      "runId",
+      "totalFlags",
+    ]);
   });
 
   it("carries the value-free proposal-ready flag from the write-back proposal", () => {
@@ -213,6 +229,73 @@ describe("buildRenewalReviewBoard", () => {
     expect(
       flags.find((flag) => flag.fieldKey === "owner_charge_130")?.proposalReady,
     ).toBe(false);
+  });
+
+  it("rolls up value-free write-back approval counts per run", () => {
+    const board = buildRenewalReviewBoard([
+      makeView("run-a", "Run A", [
+        {
+          severity: "High",
+          flags: [
+            makeFlag("current_rent", "High", {
+              writebackApproval: {
+                queued: true,
+                state: "Awaiting Approval",
+                stale: false,
+              },
+            }),
+            makeFlag("renewal_date", "High", {
+              writebackApproval: {
+                queued: true,
+                state: "Approved",
+                stale: false,
+                decidedByUid: "admin-dan",
+                reason: "RentVine is authoritative.",
+              },
+            }),
+            makeFlag("lease_start", "Medium", {
+              writebackApproval: {
+                queued: true,
+                state: "Returned for Revision",
+                stale: false,
+              },
+            }),
+            makeFlag("address", "Low"), // no queued proposal → not counted
+          ],
+        },
+      ]),
+    ]);
+
+    const run = board.runs[0];
+    expect(run.proposalsAwaitingApproval).toBe(1);
+    expect(run.proposalsApproved).toBe(1);
+  });
+
+  it("keeps write-back approval detail (decider, reason) out of the value-free board", () => {
+    const board = buildRenewalReviewBoard([
+      makeView("run-a", "Run A", [
+        {
+          severity: "High",
+          flags: [
+            makeFlag("current_rent", "High", {
+              writebackApproval: {
+                queued: true,
+                state: "Approved",
+                stale: false,
+                decidedByUid: "admin-secret-uid",
+                reason: "SENSITIVE_REASON_9000",
+              },
+            }),
+          ],
+        },
+      ]),
+    ]);
+
+    const serialized = JSON.stringify(board);
+    expect(serialized).not.toContain("admin-secret-uid");
+    expect(serialized).not.toContain("SENSITIVE_REASON_9000");
+    expect(serialized).not.toContain("writebackApproval");
+    expect(board.runs[0].proposalsApproved).toBe(1);
   });
 
   it("returns an empty board for no runs", () => {

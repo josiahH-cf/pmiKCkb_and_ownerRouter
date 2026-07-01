@@ -3,6 +3,7 @@ import { LeaseRenewalRunClient } from "@/components/lease-renewal/LeaseRenewalRu
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { can } from "@/lib/auth/roles";
 import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
+import { listWritebackApprovalsForRun } from "@/lib/firestore/lease-renewal-writeback-approvals";
 import { buildRenewalRunView } from "@/lib/lease-renewal/run-view";
 import { getSimulationRun, listSimulationRuns } from "@/lib/lease-renewal/simulation";
 
@@ -31,17 +32,19 @@ export default async function LeaseRenewalRunPage({ params }: LeaseRenewalRunPag
   const label =
     listSimulationRuns().find((entry) => entry.runId === runId)?.label ?? runId;
 
-  // The flags are recomputed deterministically; only persisted resolutions need Firestore. Degrade
-  // to "no saved resolutions" if Firestore is unavailable (e.g. no local ADC).
+  // The flags are recomputed deterministically; only persisted resolutions + write-back approvals need
+  // Firestore. Degrade to "no saved resolutions" if Firestore is unavailable (e.g. no local ADC).
   let resolutions: Awaited<ReturnType<typeof listResolutionsForRun>> = [];
+  let approvals: Awaited<ReturnType<typeof listWritebackApprovalsForRun>> = [];
   let resolutionsError = false;
   try {
     resolutions = await listResolutionsForRun(user, runId);
+    approvals = await listWritebackApprovalsForRun(user, runId);
   } catch {
     resolutionsError = true;
   }
 
-  const view = buildRenewalRunView(run, resolutions, label);
+  const view = buildRenewalRunView(run, resolutions, label, approvals);
 
   return (
     <AppShell user={user}>

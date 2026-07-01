@@ -253,6 +253,19 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Lease Renewal Phase-2 write-back approvals and their append-only Activity are written server-side
+    // through the Admin SDK boundary only (Admin capability enforced there). Clients may read but never
+    // write directly, so the admin-gated approval and the no-execute write-back gate cannot be bypassed.
+    match /lease_renewal_writeback_approvals/{approvalId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
+    match /lease_renewal_writeback_approval_activity/{activityId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

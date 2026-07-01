@@ -13,6 +13,15 @@ export function RenewalReviewPanel({ board }: Readonly<{ board?: RenewalReviewBo
     );
   }
 
+  const proposalsAwaitingApproval = board.runs.reduce(
+    (count, run) => count + run.proposalsAwaitingApproval,
+    0,
+  );
+  const proposalsApproved = board.runs.reduce(
+    (count, run) => count + run.proposalsApproved,
+    0,
+  );
+
   return (
     <div className="ui-stack renewal-review" aria-label="Renewal review">
       <p className="muted">
@@ -21,6 +30,16 @@ export function RenewalReviewPanel({ board }: Readonly<{ board?: RenewalReviewBo
         {board.totalRuns === 1 ? "" : "s"}. Resolve each on its run page — the app never
         writes to the sheet without your approval.
       </p>
+      {proposalsAwaitingApproval > 0 || proposalsApproved > 0 ? (
+        <p className="muted">
+          {proposalsAwaitingApproval} write-back proposal
+          {proposalsAwaitingApproval === 1 ? "" : "s"} awaiting your approval
+          {proposalsApproved > 0
+            ? ` · ${proposalsApproved} approved (ready to write, not executed)`
+            : ""}
+          .
+        </p>
+      ) : null}
 
       {board.runs.map((run) => (
         <article className="panel ui-stack" key={run.runId}>
@@ -31,6 +50,10 @@ export function RenewalReviewPanel({ board }: Readonly<{ board?: RenewalReviewBo
                 {run.openFlags} open / {run.totalFlags} total
                 {run.highSeverityOpen > 0 ? ` · ${run.highSeverityOpen} need Admin` : ""}
                 {run.blockedOpen > 0 ? ` · ${run.blockedOpen} blocked` : ""}
+                {run.proposalsAwaitingApproval > 0
+                  ? ` · ${run.proposalsAwaitingApproval} awaiting approval`
+                  : ""}
+                {run.proposalsApproved > 0 ? ` · ${run.proposalsApproved} approved` : ""}
               </p>
             </div>
             <Link className="secondary-button" href={run.href}>
