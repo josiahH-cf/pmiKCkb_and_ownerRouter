@@ -7,18 +7,35 @@
 # agent's non-interactive shell can never satisfy it, so a stale gcloud CLI login (cost-bearing gcloud)
 # or stale ADC (live Sheets/Firestore/Vertex reads) silently fails mid-run - the recurring stall. This
 # refreshes the CLI login + ADC ONLY when they are actually stale, then confirms the RentVine env.
-# Idempotent + safe. ASCII-only + Windows PowerShell 5.1 compatible. See docs/facts.md (F-SESSION-AUTH).
+#
+# IMPORTANT gcloud interaction rules (learned the hard way):
+#   - CHECK commands run with CLOUDSDK_CORE_DISABLE_PROMPTS=1 so a stale token FAILS FAST (never hangs
+#     or errors on "cannot prompt"); their stderr is discarded.
+#   - REAUTH commands (auth login / application-default login) run with NO redirect and prompts ENABLED
+#     so gcloud sees the console and OPENS THE BROWSER. Redirecting their stderr makes gcloud think it
+#     is non-interactive and refuse to prompt.
+# ASCII-only + Windows PowerShell 5.1 compatible. See docs/facts.md (F-SESSION-AUTH).
 
-$ErrorActionPreference = "Stop"
+# Native gcloud writes to stderr on non-zero exit; do NOT let that terminate the script (we branch on
+# $LASTEXITCODE ourselves).
+$ErrorActionPreference = "Continue"
 $Account = "josiah@pmikcmetro.com"
-$Project = "pmi-kc-kb-prod"
 $ready = $true
 
 function Show-Ok   { param($m) Write-Host "OK   $m" -ForegroundColor Green }
 function Show-Warn { param($m) Write-Host "..   $m" -ForegroundColor Yellow }
 function Show-Bad  { param($m) Write-Host "XX   $m" -ForegroundColor Red }
 
-Write-Host "== Session auth preflight ($Account / $Project) ==" -ForegroundColor Cyan
+function Test-CliToken {
+  # True when the gcloud CLI token is valid. Prompts disabled -> a stale token fails fast, no prompt.
+  $env:CLOUDSDK_CORE_DISABLE_PROMPTS = "1"
+  gcloud auth print-access-token 1>$null 2>$null
+  $okCode = $LASTEXITCODE
+  Remove-Item Env:\CLOUDSDK_CORE_DISABLE_PROMPTS -ErrorAction SilentlyContinue
+  return ($okCode -eq 0)
+}
+
+Write-Host "== Session auth preflight ($Account) ==" -ForegroundColor Cyan
 
 # 1. gcloud present.
 if (-not (Get-Command gcloud -ErrorAction SilentlyContinue)) {
@@ -26,46 +43,37 @@ if (-not (Get-Command gcloud -ErrorAction SilentlyContinue)) {
   exit 1
 }
 
-# 2. Identity: must be a pmikcmetro.com account, never a personal one.
+# 2. Identity (local read, no token needed) - must be a pmikcmetro.com account, never a personal one.
 $active = (gcloud config get-value account 2>$null)
-if ($active -notlike "*@pmikcmetro.com") {
-  Show-Warn "active account is '$active' - selecting $Account"
-  gcloud config set account $Account 2>$null
-  $active = (gcloud config get-value account 2>$null)
-}
-gcloud config set project $Project 2>$null | Out-Null
-if ($active -eq $Account) {
-  Show-Ok "identity is $Account"
+if ($active -like "*@pmikcmetro.com") {
+  Show-Ok "identity is $active"
 } else {
-  Show-Warn "identity is '$active' (the login below will fix it)"
+  Show-Warn "active account is '$active' - the login below will set it to $Account"
 }
 
-# 3. gcloud CLI token - satisfies reauth for cost-bearing gcloud (deploy/secrets). A stale RAPT makes
-#    print-access-token fail; refresh interactively only then.
-gcloud auth print-access-token > $null 2>&1
-if ($LASTEXITCODE -ne 0) {
-  Show-Warn "gcloud CLI reauth needed - launching 'gcloud auth login' (finish the browser flow as $Account)"
-  gcloud auth login $Account
-  gcloud auth print-access-token > $null 2>&1
-  if ($LASTEXITCODE -ne 0) {
-    Show-Bad "gcloud CLI login did not take - re-run and complete the browser flow."
-    $ready = $false
-  } else {
-    Show-Ok "gcloud CLI token refreshed."
-  }
-} else {
+# 3. gcloud CLI token (for cost-bearing gcloud: deploy/secrets). Reauth interactively only if stale.
+if (Test-CliToken) {
   Show-Ok "gcloud CLI token is valid."
+} else {
+  Show-Warn "gcloud CLI reauth needed - a browser will open; sign in as $Account and finish the flow."
+  gcloud auth login $Account
+  if (Test-CliToken) {
+    Show-Ok "gcloud CLI token refreshed."
+  } else {
+    Show-Bad "gcloud CLI login did not take - re-run 'npm run auth:session' and complete the browser flow."
+    $ready = $false
+  }
 }
 
-# 4. ADC freshness - the recurring stall for live Sheets/Firestore/Vertex reads. preflight:adc is the
-#    read-only check; reauth interactively only if it fails.
+# 4. ADC freshness (the recurring stall for live Sheets/Firestore/Vertex reads). preflight:adc is a
+#    read-only node check; reauth interactively only if it fails.
 node scripts/preflight-adc.mjs
 if ($LASTEXITCODE -ne 0) {
-  Show-Warn "ADC reauth needed - launching 'gcloud auth application-default login' (sign in as $Account, NO --scopes)"
+  Show-Warn "ADC reauth needed - a browser will open; sign in as $Account (do NOT pass --scopes)."
   gcloud auth application-default login
   node scripts/preflight-adc.mjs
   if ($LASTEXITCODE -ne 0) {
-    Show-Bad "ADC still stale - re-run and complete the browser flow as $Account."
+    Show-Bad "ADC still stale - re-run 'npm run auth:session' and complete the browser flow as $Account."
     $ready = $false
   }
 }
