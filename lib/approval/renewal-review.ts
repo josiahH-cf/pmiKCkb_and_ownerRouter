@@ -19,6 +19,8 @@ export interface RenewalReviewFlag {
   /** PII-free action text (mirrors the queue item's action_needed) — never a raw value. */
   actionNeeded: string;
   resolved: boolean;
+  /** True when an append-only write-back proposal has a value ready to approve (value-free boolean). */
+  proposalReady: boolean;
   /** Deep link to the authenticated resolve surface where the real values live. */
   href: string;
 }
@@ -54,7 +56,8 @@ function isResolved(flag: RenewalFlagView): boolean {
 }
 
 function toReviewFlag(flag: RenewalFlagView, href: string): RenewalReviewFlag {
-  // Deliberately omits `candidates` and `suggestedWinner` (value-bearing) — they stay behind `href`.
+  // Deliberately omits `candidates`, `suggestedWinner`, and the proposal's value/rationale
+  // (value-bearing) — they stay behind `href`. Only the value-FREE readiness boolean crosses over.
   return {
     fieldKey: flag.fieldKey,
     fieldLabel: flag.fieldLabel,
@@ -62,6 +65,7 @@ function toReviewFlag(flag: RenewalFlagView, href: string): RenewalReviewFlag {
     agreement: flag.agreement,
     actionNeeded: flag.actionNeeded,
     resolved: isResolved(flag),
+    proposalReady: flag.writeback?.valueReady ?? false,
     href,
   };
 }

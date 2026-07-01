@@ -8,6 +8,10 @@ import type {
 } from "@/lib/lease-renewal/pipeline";
 import { SEVERITY_ORDER } from "@/lib/lease-renewal/pipeline";
 import type { Severity } from "@/lib/lease-renewal/severity";
+import {
+  buildWritebackProposal,
+  type WritebackProposal,
+} from "@/lib/lease-renewal/writeback-proposal";
 import type { LeaseRenewalResolutionRecord } from "@/lib/firestore/types";
 
 export interface RenewalCandidateView {
@@ -39,6 +43,8 @@ export interface RenewalFlagView {
   blockedReason?: string;
   candidates: RenewalCandidateView[];
   resolution: ResolutionView | null;
+  /** Append-only write-back proposal (Q-WRITEBACK-METHOD) — value-bearing; null when not proposable. */
+  writeback: WritebackProposal | null;
 }
 
 export interface RenewalSeverityGroup {
@@ -115,6 +121,7 @@ function toFlagView(
       locationRef: candidate.location_ref,
     })),
     resolution: toResolutionView(resolutionsByKey.get(queueItem.source_trigger_key)),
+    writeback: buildWritebackProposal(reconciliation, { fieldLabel: outcome.fieldLabel }),
   };
 }
 

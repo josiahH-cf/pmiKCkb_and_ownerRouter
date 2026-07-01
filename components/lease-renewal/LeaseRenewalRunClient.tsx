@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-view";
+import type { WritebackProposal } from "@/lib/lease-renewal/writeback-proposal";
 
 type ResolveKind = "pick_source" | "corrected_value" | "flag_incorrect";
 
@@ -122,6 +123,40 @@ function SummaryField({ label, value }: { label: string; value: number }) {
   );
 }
 
+// Read-only append-only write-back proposal (Q-WRITEBACK-METHOD). Value-bearing — shown only inside the
+// authenticated run evidence. It never executes: approving is out of scope until an approved per-action
+// spec, and the write is append-only (a new column), never an overwrite.
+function WritebackProposalCard({ proposal }: { proposal: WritebackProposal }) {
+  const ready = proposal.status === "Proposed";
+  return (
+    <div className="lr-writeback" aria-label="Append-only write-back proposal">
+      <p className="lr-writeback-head">
+        <span
+          className="queue-pill"
+          data-value={ready ? "Ready for Approval" : "Needs Attention"}
+        >
+          {ready ? "Proposal ready" : "Needs input"}
+        </span>{" "}
+        <strong>Append-only sheet write-back</strong>
+      </p>
+      {proposal.proposedValue !== null ? (
+        <p>
+          Would append <strong>{proposal.proposedValue}</strong> from{" "}
+          <strong>{proposal.sourceSystem}</strong> to a new{" "}
+          <strong>{proposal.proposedColumnHeader}</strong> column.
+        </p>
+      ) : (
+        <p className="muted">{proposal.rationale}</p>
+      )}
+      <p className="muted">
+        Suggestion only — needs approval; appended to a new column, never overwrites an
+        existing cell; not executed here (writing to the operating Sheet needs an approved
+        action spec).
+      </p>
+    </div>
+  );
+}
+
 function FlagCard({
   flag,
   runId,
@@ -228,6 +263,8 @@ function FlagCard({
       ) : flag.blockedReason ? (
         <p className="muted">Blocked: {flag.blockedReason} — needs a human decision.</p>
       ) : null}
+
+      {flag.writeback ? <WritebackProposalCard proposal={flag.writeback} /> : null}
 
       {flag.resolution ? (
         <p className="lr-resolution">
