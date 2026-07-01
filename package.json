@@ -42,6 +42,7 @@
     "delete:agent-search-data-store": "node scripts/delete-agent-search-data-store.mjs",
     "deploy": "node scripts/deploy-demo-cloud-run.mjs",
     "deploy:demo": "node scripts/deploy-demo-cloud-run.mjs",
+    "auth:session": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/session-auth.ps1",
     "preflight:adc": "node scripts/preflight-adc.mjs",
     "preflight:gcp": "node scripts/preflight-gcp-setup.mjs",
     "preflight:identity": "node scripts/preflight-identity.mjs",

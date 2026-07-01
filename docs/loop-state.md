@@ -128,9 +128,9 @@ only from env/Secret Manager, never committed. Record only non-secret references
 
 1. Read `docs/facts.md`, then this file, then `docs/autonomous-agent-runner.md` and the latest
    `docs/status.md` entry.
-2. **ADC preflight — before any live Google read:** if the plan touches a live Sheets/Firestore/Vertex
-   read, run `npm run preflight:adc`; if it fails, the owner must reauth (`gcloud auth application-default
-login`, josiah@pmikcmetro.com, NO --scopes) BEFORE building — a stale ADC token stalls the run mid-step.
+2. **Auth first (org reauth is interactive-only):** the OWNER runs `npm run auth:session` at session start to
+   refresh the gcloud CLI login + ADC when stale. Before any live Sheets/Firestore/Vertex read the agent runs the
+   read-only `npm run preflight:adc`; if it fails, ask the owner to run `auth:session` (`F-SESSION-AUTH`) — a stale token stalls mid-step.
 3. If the trigger is "plan the next feature cycle", produce a decision-complete packet and stop. If
    the trigger authorizes running the loop, proceed unattended.
 4. Pick the next slice from **Next Safe Slice Candidates** above; for lease-renewal, stay in discovery
