@@ -126,7 +126,13 @@ function SummaryField({ label, value }: { label: string; value: number }) {
 // Read-only append-only write-back proposal (Q-WRITEBACK-METHOD). Value-bearing — shown only inside the
 // authenticated run evidence. It never executes: approving is out of scope until an approved per-action
 // spec, and the write is append-only (a new column), never an overwrite.
-function WritebackProposalCard({ proposal }: { proposal: WritebackProposal }) {
+function WritebackProposalCard({
+  proposal,
+  canResolve,
+}: {
+  proposal: WritebackProposal;
+  canResolve: boolean;
+}) {
   const ready = proposal.status === "Proposed";
   return (
     <div className="lr-writeback" aria-label="Append-only write-back proposal">
@@ -153,6 +159,22 @@ function WritebackProposalCard({ proposal }: { proposal: WritebackProposal }) {
         existing cell; not executed here (writing to the operating Sheet needs an approved
         action spec).
       </p>
+      {ready && proposal.sourceSystem ? (
+        <p className="muted">
+          {canResolve ? (
+            <>
+              To approve: resolve the flag below — choose{" "}
+              <strong>Pick a source → {proposal.sourceSystem}</strong>. That records the
+              accepted proposal; the Sheet write itself stays gated.
+            </>
+          ) : (
+            <>
+              An approver accepts this by resolving the flag below (pick source →{" "}
+              {proposal.sourceSystem}).
+            </>
+          )}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -264,7 +286,9 @@ function FlagCard({
         <p className="muted">Blocked: {flag.blockedReason} — needs a human decision.</p>
       ) : null}
 
-      {flag.writeback ? <WritebackProposalCard proposal={flag.writeback} /> : null}
+      {flag.writeback ? (
+        <WritebackProposalCard proposal={flag.writeback} canResolve={canResolveThis} />
+      ) : null}
 
       {flag.resolution ? (
         <p className="lr-resolution">

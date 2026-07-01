@@ -8,6 +8,14 @@ import {
   type WorkOrderDraft,
 } from "@/lib/maintenance/work-order-draft";
 import type { ScoredUnitCandidate } from "@/lib/maintenance/unit-matcher";
+import {
+  buildOwnerNoticeDraft,
+  type OwnerNoticeDraft,
+} from "@/lib/maintenance/owner-notice-draft";
+import {
+  suggestVendorAssignment,
+  type VendorAssignmentSuggestion,
+} from "@/lib/maintenance/vendor-assignment";
 import { MAINTENANCE_PRIORITIES } from "@/lib/maintenance/constants";
 
 // Maintenance capture desk (S4): a field worker reports an issue — typed note + tap-to-record voice
@@ -32,6 +40,9 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
   const [isMatching, setIsMatching] = useState(false);
   const [priority, setPriority] = useState("");
   const [draft, setDraft] = useState<WorkOrderDraft | null>(null);
+  const [ownerNotice, setOwnerNotice] = useState<OwnerNoticeDraft | null>(null);
+  const [vendorSuggestion, setVendorSuggestion] =
+    useState<VendorAssignmentSuggestion | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [photoRefs, setPhotoRefs] = useState<string[]>([]);
@@ -173,18 +184,20 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
   }
 
   function buildDraft() {
-    setDraft(
-      buildWorkOrderDraft({
-        reporterUid,
-        typedNote: typedNote.trim() || undefined,
-        voiceTranscript: transcript.trim() || undefined,
-        // The unit is the matcher's result (real confidence), never the raw typed text.
-        unit: unitMatch,
-        photoRefs: photoRefs.length > 0 ? photoRefs : undefined,
-        priority: priority ? (priority as WorkOrderDraft["priority"]) : undefined,
-        capturedAt: new Date().toISOString(),
-      }),
-    );
+    const workOrder = buildWorkOrderDraft({
+      reporterUid,
+      typedNote: typedNote.trim() || undefined,
+      voiceTranscript: transcript.trim() || undefined,
+      // The unit is the matcher's result (real confidence), never the raw typed text.
+      unit: unitMatch,
+      photoRefs: photoRefs.length > 0 ? photoRefs : undefined,
+      priority: priority ? (priority as WorkOrderDraft["priority"]) : undefined,
+      capturedAt: new Date().toISOString(),
+    });
+    setDraft(workOrder);
+    // Non-executable next stages (M-5): an owner-notice DRAFT + a vendor-assignment SUGGESTION.
+    setOwnerNotice(buildOwnerNoticeDraft({ workOrder }));
+    setVendorSuggestion(suggestVendorAssignment(workOrder.description));
   }
 
   return (
@@ -357,6 +370,38 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
             ) : (
               <p className="muted">No blockers — ready for human review.</p>
             )}
+
+            {ownerNotice ? (
+              <section aria-label="Owner notice draft">
+                <h3>Owner notice — draft</h3>
+                <p className="muted">Draft only — no send; a human reviews and sends.</p>
+                <p>
+                  <strong>{ownerNotice.subject}</strong>
+                </p>
+                <p style={{ whiteSpace: "pre-line" }}>{ownerNotice.body}</p>
+                {ownerNotice.missingInputs.length > 0 ? (
+                  <p className="muted">
+                    Needs before sending: {ownerNotice.missingInputs.join(", ")}.
+                  </p>
+                ) : null}
+              </section>
+            ) : null}
+
+            {vendorSuggestion ? (
+              <section aria-label="Vendor assignment suggestion">
+                <h3>Vendor assignment — suggestion</h3>
+                <p className="muted">
+                  Suggestion only — not assigned; no system-of-record write.
+                </p>
+                <p>
+                  <strong>Trade:</strong> {vendorSuggestion.trade}
+                </p>
+                <p>
+                  <strong>Vendor:</strong> {vendorSuggestion.vendorRoster}
+                </p>
+                <p className="muted">{vendorSuggestion.rationale}</p>
+              </section>
+            ) : null}
           </>
         ) : (
           <p className="muted">The work-order draft appears here.</p>
