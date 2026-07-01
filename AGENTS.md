@@ -148,13 +148,21 @@ answer ourselves.
   unattended model work stays unblocked. Clear the human bottlenecks while the human is
   here; batch the autonomous build behind them. Do not stall an easy manual unblock to keep
   coding.
-- **Session-start auth (the owner runs `npm run auth:session`).** On this managed org, Google
-  reauth is interactive-only, so the agent's non-interactive shell can never refresh a stale
-  gcloud login or ADC — it silently stalls a live read mid-run. The owner runs `auth:session`
-  once at the start of each session to refresh them when stale. The agent's job: check with
-  `npm run preflight:adc` before any live Google read, and if it fails, ask the owner to run
-  `auth:session` rather than trying to work around it. See `F-SESSION-AUTH` +
+- **Session-start auth — ANTICIPATE it, do not wait for a stall.** On this managed org, Google
+  reauth is interactive-only, so the agent's non-interactive shell can never refresh a stale gcloud
+  login or ADC — it silently stalls a live read mid-run. So, PROACTIVELY: at the start of any session
+  whose work will touch a live Google read (Sheets/Firestore/Vertex) or gcloud, the agent runs the
+  read-only `npm run preflight:adc` itself FIRST; and before any cost-bearing gcloud. If it is stale
+  (or before continuing into work that needs it), the agent STOPS and hands the owner the exact
+  command to run in their own terminal — spelled in full, with the `npm run` prefix (the bare
+  `auth:session` / `run auth:session` fails in PowerShell):
+
+      npm run auth:session
+
+  The owner runs it (interactive; it refreshes CLI login + ADC only when stale). The agent never
+  works around a stale token with a personal account. See `F-SESSION-AUTH` +
   [[gcloud-reauth-blocks-agent-shell]].
+
 - **Self-answer before you ask.** Before routing any question to the client, exhaust what the
   repo and the developer already know: mine the transcript, `docs/` (especially the discovery
   and reference docs), and code first. The developer holds substantial context — ask the
