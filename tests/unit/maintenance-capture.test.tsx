@@ -3,7 +3,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MaintenanceCapture } from "@/components/maintenance/MaintenanceCapture";
 
@@ -12,6 +12,7 @@ import { MaintenanceCapture } from "@/components/maintenance/MaintenanceCapture"
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
 });
 
 describe("MaintenanceCapture", () => {
@@ -21,19 +22,51 @@ describe("MaintenanceCapture", () => {
     expect(screen.getByLabelText("Unit / location")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Record voice" })).toBeInTheDocument();
     expect(screen.getByText("Add / take photo")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Build work-order draft" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Build work-order draft" }),
+    ).toBeInTheDocument();
   });
 
-  it("builds a clean draft from a typed issue + unit, marked simulation-only", async () => {
+  it("builds a clean draft after matching the unit, marked simulation-only", async () => {
     const user = userEvent.setup();
+    // The unit now comes from the matcher (real confidence), not the typed text — mock the route.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({
+          match: {
+            unitId: "unit:456",
+            label: "123 Main Street Unit 2",
+            confidence: "Likely",
+          },
+          candidates: [
+            {
+              unitId: "unit:456",
+              label: "123 Main Street Unit 2",
+              score: 1,
+              confidence: "Likely",
+            },
+          ],
+          autoMerge: false,
+        }),
+      ),
+    );
+
     render(<MaintenanceCapture reporterUid="u" />);
 
     await user.type(screen.getByLabelText("Issue"), "Dishwasher won't drain");
     await user.type(screen.getByLabelText("Unit / location"), "123 Main #2");
+    await user.click(screen.getByRole("button", { name: "Find unit" }));
+    expect(await screen.findByText(/Matched:/)).toBeInTheDocument();
+
     await user.click(screen.getByRole("button", { name: "Build work-order draft" }));
 
-    expect(await screen.findByRole("heading", { name: "Work-order draft" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Dishwasher won't drain" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Work-order draft" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Dishwasher won't drain" }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Simulation only/)).toBeInTheDocument();
     expect(screen.getByText(/No blockers/)).toBeInTheDocument();
   });

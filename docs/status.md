@@ -5882,3 +5882,12 @@ print-access-token` — no matter how many `gcloud auth login`s. STRUCTURAL: the
   call); a unit with no address → `Needs Verification:`, never invented. The matcher's live candidate SOURCE now works
   — `F-MAINT-UNIT-MATCHER` is LIVE-READY. 16 matcher tests (incl. an end-to-end live-shaped match). NEXT: the
   `/api/maintenance/match-unit` route + capture-UI wiring for the three maintenance stages.
+- SHIPPED (same cycle): the live match-unit wiring (`F-MAINT-MATCH-UNIT-LIVE`, M-4 complete). New edit-gated
+  `/api/maintenance/match-unit` route → `loadLiveUnitCandidates` (one read-only `/leases/export` via a new
+  RentVine-only `buildLiveRentVineConfig`, degrading to a status category) → `matchLocationToUnit`. `MaintenanceCapture`
+  gained a "Find unit" button + a confirm/override candidate dropdown; the draft's unit is now the matcher's result
+  (real confidence), never the typed text (old synth retired → unmatched location fires the "Match the location to a
+  unit." blocker; updated the capture test accordingly). Read-only, `autoMerge:false`, no write. 878 tests green;
+  typecheck/lint/falsification/context-freshness clean; BROWSER-VERIFIED LIVE (edit-gated 200, 25 real units derived,
+  a real address round-trips to the correct unit at Likely, no console errors, no client address emitted). NEXT:
+  surface the owner-notice DRAFT + vendor-assignment SUGGESTION in the capture desk (both already built + tested).
