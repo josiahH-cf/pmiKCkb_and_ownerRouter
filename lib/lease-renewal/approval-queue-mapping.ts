@@ -38,7 +38,12 @@ export interface QueueMappingContext {
   fieldLabel?: string;
 }
 
-const RECONCILE_ACTION = "google_sheets.renewal_checklist.reconcile";
+/**
+ * Canonical `affected_system_action` stamped on every renewal-reconciliation queue item. Exported as
+ * the single source of truth so the Approval Queue's renewal review sub-tab can identify these items
+ * without re-hardcoding the string.
+ */
+export const RENEWAL_RECONCILE_ACTION = "google_sheets.renewal_checklist.reconcile";
 
 function audienceFor(severity: QueueRiskLevel): QueueAudienceGroup {
   switch (severity) {
@@ -92,7 +97,7 @@ export function mapReconciliationToQueueItem(
     audience_group: audienceFor(reconciliation.severity),
     process_run_ref: { id: runId, label: `Lease renewal run ${runId}` },
     action_needed: actionNeeded,
-    affected_system_action: RECONCILE_ACTION,
+    affected_system_action: RENEWAL_RECONCILE_ACTION,
     direct_link: evidenceLink,
   };
 

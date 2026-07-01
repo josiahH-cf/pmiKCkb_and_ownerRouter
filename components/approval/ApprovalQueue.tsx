@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import { queueActionAvailability } from "@/lib/approval/queue";
+import type { RenewalReviewBoard } from "@/lib/approval/renewal-review";
 import type { Role } from "@/lib/auth/roles";
 import type {
   ApprovalQueueActivityRecord,
@@ -30,6 +31,9 @@ import {
   QueueListPanel,
   QueueUnavailableState,
 } from "./ApprovalQueuePanels";
+import { RenewalReviewPanel } from "./RenewalReviewPanel";
+
+type QueueView = "all" | "renewals";
 
 export function ApprovalQueue({
   currentUser,
@@ -37,13 +41,16 @@ export function ApprovalQueue({
   initialError,
   initialItems,
   initialSelectedItemId,
+  renewalBoard,
 }: Readonly<{
   currentUser: { role: Role; uid: string };
   initialActivity: ApprovalQueueActivityRecord[];
   initialError?: string;
   initialItems: ApprovalQueueItemRecord[];
   initialSelectedItemId?: string;
+  renewalBoard?: RenewalReviewBoard;
 }>) {
+  const [view, setView] = useState<QueueView>("all");
   const firstInitialItem =
     initialItems.find((item) => item.id === initialSelectedItemId) ?? initialItems.at(0);
   const [items, setItems] = useState(initialItems);
@@ -445,81 +452,116 @@ export function ApprovalQueue({
     }
   }
 
+  const renewalOpenFlags = renewalBoard?.totalOpenFlags ?? 0;
+
   return (
     <div className="approval-queue-shell">
-      <QueueFilterBar
-        filters={filters}
-        isLoadingList={isLoadingList}
-        onApply={applyFilters}
-        onReset={() => void resetFilters()}
-        setFilters={setFilters}
-      />
+      <div className="ui-tablist" role="tablist" aria-label="Approval queue views">
+        <button
+          aria-selected={view === "all"}
+          className="ui-tab"
+          onClick={() => setView("all")}
+          role="tab"
+          type="button"
+        >
+          All items
+        </button>
+        <button
+          aria-selected={view === "renewals"}
+          className="ui-tab"
+          onClick={() => setView("renewals")}
+          role="tab"
+          type="button"
+        >
+          Renewals{renewalOpenFlags > 0 ? ` (${renewalOpenFlags})` : ""}
+        </button>
+      </div>
 
-      <p className="muted queue-status-message">{message}</p>
-
-      {listError ? (
-        <QueueUnavailableState listError={listError} />
-      ) : items.length === 0 ? (
-        <QueueEmptyState filters={filters} />
+      {view === "renewals" ? (
+        <RenewalReviewPanel board={renewalBoard} />
       ) : (
-        <>
-          <QueueBulkPanel
-            allVisibleSelected={allVisibleSelected}
-            bulkAction={bulkAction}
-            bulkAssigneeUid={bulkAssigneeUid}
-            bulkPreview={bulkPreview}
-            bulkReason={bulkReason}
-            bulkRequiredApproverUid={bulkRequiredApproverUid}
-            bulkResult={bulkResult}
-            bulkSnoozeUntil={bulkSnoozeUntil}
-            busyAction={busyAction}
-            onClearSelection={() => {
-              setSelectedBulkIds(new Set());
-              setBulkResult(null);
-            }}
-            onSubmitBulkAction={() => void submitBulkAction()}
-            onToggleAllVisible={toggleAllVisible}
-            selectedBulkItems={selectedBulkItems}
-            setBulkAction={setBulkAction}
-            setBulkAssigneeUid={setBulkAssigneeUid}
-            setBulkReason={setBulkReason}
-            setBulkRequiredApproverUid={setBulkRequiredApproverUid}
-            setBulkSnoozeUntil={setBulkSnoozeUntil}
-          />
-
-          <div className="approval-queue-layout">
-            <QueueListPanel
-              items={items}
-              onSelectItem={selectItem}
-              onToggleBulkItem={toggleBulkItem}
-              selectedBulkIds={selectedBulkIds}
-              selectedItemId={selectedItemId}
-            />
-            <QueueDetailPanel
-              actionAvailability={actionAvailability}
-              actionMode={actionMode}
-              assigneeUid={assigneeUid}
-              busyAction={busyAction}
-              loadingDetailId={loadingDetailId}
-              onApprove={() => void transitionSelectedItem({ action: "approve" })}
-              onCancelAction={() => setActionMode(null)}
-              onStartAction={startAction}
-              onSubmitAssign={submitAssign}
-              onSubmitReasonedAction={submitReasonedAction}
-              onSubmitSnooze={submitSnooze}
-              reason={reason}
-              requiredApproverUid={requiredApproverUid}
-              selectedActivity={selectedActivity}
-              selectedItem={selectedItem}
-              setAssigneeUid={setAssigneeUid}
-              setReason={setReason}
-              setRequiredApproverUid={setRequiredApproverUid}
-              setSnoozeUntil={setSnoozeUntil}
-              snoozeUntil={snoozeUntil}
-            />
-          </div>
-        </>
+        renderAllItemsView()
       )}
     </div>
   );
+
+  function renderAllItemsView() {
+    return (
+      <>
+        <QueueFilterBar
+          filters={filters}
+          isLoadingList={isLoadingList}
+          onApply={applyFilters}
+          onReset={() => void resetFilters()}
+          setFilters={setFilters}
+        />
+
+        <p className="muted queue-status-message">{message}</p>
+
+        {listError ? (
+          <QueueUnavailableState listError={listError} />
+        ) : items.length === 0 ? (
+          <QueueEmptyState filters={filters} />
+        ) : (
+          <>
+            <QueueBulkPanel
+              allVisibleSelected={allVisibleSelected}
+              bulkAction={bulkAction}
+              bulkAssigneeUid={bulkAssigneeUid}
+              bulkPreview={bulkPreview}
+              bulkReason={bulkReason}
+              bulkRequiredApproverUid={bulkRequiredApproverUid}
+              bulkResult={bulkResult}
+              bulkSnoozeUntil={bulkSnoozeUntil}
+              busyAction={busyAction}
+              onClearSelection={() => {
+                setSelectedBulkIds(new Set());
+                setBulkResult(null);
+              }}
+              onSubmitBulkAction={() => void submitBulkAction()}
+              onToggleAllVisible={toggleAllVisible}
+              selectedBulkItems={selectedBulkItems}
+              setBulkAction={setBulkAction}
+              setBulkAssigneeUid={setBulkAssigneeUid}
+              setBulkReason={setBulkReason}
+              setBulkRequiredApproverUid={setBulkRequiredApproverUid}
+              setBulkSnoozeUntil={setBulkSnoozeUntil}
+            />
+
+            <div className="approval-queue-layout">
+              <QueueListPanel
+                items={items}
+                onSelectItem={selectItem}
+                onToggleBulkItem={toggleBulkItem}
+                selectedBulkIds={selectedBulkIds}
+                selectedItemId={selectedItemId}
+              />
+              <QueueDetailPanel
+                actionAvailability={actionAvailability}
+                actionMode={actionMode}
+                assigneeUid={assigneeUid}
+                busyAction={busyAction}
+                loadingDetailId={loadingDetailId}
+                onApprove={() => void transitionSelectedItem({ action: "approve" })}
+                onCancelAction={() => setActionMode(null)}
+                onStartAction={startAction}
+                onSubmitAssign={submitAssign}
+                onSubmitReasonedAction={submitReasonedAction}
+                onSubmitSnooze={submitSnooze}
+                reason={reason}
+                requiredApproverUid={requiredApproverUid}
+                selectedActivity={selectedActivity}
+                selectedItem={selectedItem}
+                setAssigneeUid={setAssigneeUid}
+                setReason={setReason}
+                setRequiredApproverUid={setRequiredApproverUid}
+                setSnoozeUntil={setSnoozeUntil}
+                snoozeUntil={snoozeUntil}
+              />
+            </div>
+          </>
+        )}
+      </>
+    );
+  }
 }

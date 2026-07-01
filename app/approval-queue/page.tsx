@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { ApprovalQueue } from "@/components/approval/ApprovalQueue";
+import type { RenewalReviewBoard } from "@/lib/approval/renewal-review";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import {
   listApprovalQueue,
@@ -9,6 +10,7 @@ import type {
   ApprovalQueueActivityRecord,
   ApprovalQueueItemRecord,
 } from "@/lib/firestore/types";
+import { loadRenewalReviewBoard } from "@/lib/lease-renewal/renewal-review-board";
 
 export default async function ApprovalQueuePage({
   searchParams,
@@ -34,6 +36,15 @@ export default async function ApprovalQueuePage({
       "Approval Queue is unavailable. Refresh Google credentials or check Firestore setup.";
   }
 
+  // The renewal review sub-tab (OQ-UI-1) is deterministic + degrades on its own; keep it independent
+  // of the general queue's Firestore health so one failing does not blank the other.
+  let renewalBoard: RenewalReviewBoard | undefined;
+  try {
+    renewalBoard = await loadRenewalReviewBoard(user);
+  } catch {
+    renewalBoard = undefined;
+  }
+
   return (
     <AppShell user={user}>
       <section className="content">
@@ -44,6 +55,7 @@ export default async function ApprovalQueuePage({
           initialError={initialError}
           initialItems={items}
           initialSelectedItemId={initialSelectedItemId}
+          renewalBoard={renewalBoard}
         />
       </section>
     </AppShell>
