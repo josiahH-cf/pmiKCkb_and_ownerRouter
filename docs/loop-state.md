@@ -112,10 +112,10 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 - Fired 2026-06-30 (this build cycle, after S12→S6→S10): "no safe slice remains" + an approval gate. All three
   unblocked slices shipped (parity, IA rework, Console app-state brain); merged to `main` via PR #19.
 - Owner-present cycle 2026-07-01: Working Order added (`F-WORKING-ORDER`). SHIPPED: renewal review sub-tab
-  (`F-RENEWAL-REVIEW-SUBTAB`), write-back PROPOSAL generator (`F-WRITEBACK-PROPOSAL`), maintenance unit matcher
-  (`F-MAINT-UNIT-MATCHER`, M-4) WIRED to the capture desk (`F-MAINT-MATCH-UNIT-LIVE`, `/api/maintenance/match-unit` + live
-  RentVine, browser-verified), and owner-notice DRAFT + vendor-assignment SUGGESTION (`F-MAINT-NOTICE-VENDOR`, M-5); 878
-  tests. NEXT: surface notice+vendor in the desk. BLOCKED (owner, structural): S12 redeploy — org reauth; owner runs the runbook interactively.
+  (`F-RENEWAL-REVIEW-SUBTAB`), write-back PROPOSAL generator (`F-WRITEBACK-PROPOSAL`, card links to its approval path),
+  maintenance unit matcher (`F-MAINT-UNIT-MATCHER`, M-4) WIRED to the capture desk (`F-MAINT-MATCH-UNIT-LIVE`,
+  browser-verified live), owner-notice DRAFT + vendor-assignment SUGGESTION (`F-MAINT-NOTICE-VENDOR`, M-5) SURFACED in the
+  desk; 878 tests. Maintenance V1 UI COMPLETE. NEXT: move-in/move-out desks (Dan/legal Q&A). BLOCKED (owner): S12 redeploy — org reauth; owner runs the runbook.
 
 ## Security Note
 

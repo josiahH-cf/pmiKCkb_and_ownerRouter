@@ -5891,3 +5891,14 @@ print-access-token` — no matter how many `gcloud auth login`s. STRUCTURAL: the
   typecheck/lint/falsification/context-freshness clean; BROWSER-VERIFIED LIVE (edit-gated 200, 25 real units derived,
   a real address round-trips to the correct unit at Likely, no console errors, no client address emitted). NEXT:
   surface the owner-notice DRAFT + vendor-assignment SUGGESTION in the capture desk (both already built + tested).
+- SHIPPED (same cycle): surfaced the M-5 stages in the capture desk + connected the write-back proposal to its
+  approval path. `MaintenanceCapture` now renders the owner-notice DRAFT (subject/body/`Needs before sending`) + the
+  vendor-assignment SUGGESTION (trade + rationale + the Needs-Verification vendor) inline when the draft is built,
+  each labeled non-executable (client-side compose via the pure `buildOwnerNoticeDraft` + `suggestVendorAssignment`).
+  The renewal write-back proposal card now points the reviewer to its approval path (approving = resolve the flag →
+  pick the suggested source; the Sheet write stays gated). Updated `F-MAINT-NOTICE-VENDOR` + `F-WRITEBACK-PROPOSAL`.
+  878 tests green; typecheck/lint/falsification/context-freshness clean; browser-verified (desk renders both stages,
+  no console errors; run page shows the approve pointer on all 4 ready proposals). Maintenance V1 UI is COMPLETE
+  (matcher + notice + vendor all wired). NEXT: move-in/move-out desks (need the Dan/legal Q&A); S12 redeploy (owner).
+  Noted keyword-taxonomy looseness (substring hits, e.g. "washer" inside "dishwasher") — the team validates the
+  starter trade keywords before any auto-routing.

@@ -69,6 +69,20 @@ describe("MaintenanceCapture", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/Simulation only/)).toBeInTheDocument();
     expect(screen.getByText(/No blockers/)).toBeInTheDocument();
+
+    // The non-executable M-5 stages surface alongside the draft.
+    expect(
+      screen.getByRole("heading", { name: "Owner notice — draft" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Draft only — no send/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Vendor assignment — suggestion" }),
+    ).toBeInTheDocument();
+    // "Dishwasher won't drain" → Appliance wins (dishwasher + washer = 2 hits > drain = 1);
+    // the specific vendor always stays Needs-Verification (no roster).
+    expect(screen.getByText("Trade:")).toBeInTheDocument();
+    expect(screen.getAllByText(/Appliance/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/client vendor roster/)).toBeInTheDocument();
   });
 
   it("surfaces blockers when the issue and unit are missing", async () => {
