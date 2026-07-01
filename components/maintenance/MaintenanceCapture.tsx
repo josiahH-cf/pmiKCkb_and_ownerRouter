@@ -2,7 +2,12 @@
 
 import { useRef, useState } from "react";
 
-import { buildWorkOrderDraft, type WorkOrderDraft } from "@/lib/maintenance/work-order-draft";
+import {
+  buildWorkOrderDraft,
+  type MaintenanceUnitMatch,
+  type WorkOrderDraft,
+} from "@/lib/maintenance/work-order-draft";
+import type { ScoredUnitCandidate } from "@/lib/maintenance/unit-matcher";
 import { MAINTENANCE_PRIORITIES } from "@/lib/maintenance/constants";
 
 // Maintenance capture desk (S4): a field worker reports an issue — typed note + tap-to-record voice
@@ -22,6 +27,9 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
   const [typedNote, setTypedNote] = useState("");
   const [transcript, setTranscript] = useState("");
   const [unitLabel, setUnitLabel] = useState("");
+  const [unitMatch, setUnitMatch] = useState<MaintenanceUnitMatch | null>(null);
+  const [unitCandidates, setUnitCandidates] = useState<ScoredUnitCandidate[]>([]);
+  const [isMatching, setIsMatching] = useState(false);
   const [priority, setPriority] = useState("");
   const [draft, setDraft] = useState<WorkOrderDraft | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -43,7 +51,9 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
       });
       if (response.ok) {
         const payload = (await response.json()) as { transcript: string };
-        setTranscript((prev) => [prev, payload.transcript].filter(Boolean).join(" ").trim());
+        setTranscript((prev) =>
+          [prev, payload.transcript].filter(Boolean).join(" ").trim(),
+        );
       } else {
         setStatus("Could not transcribe the recording.");
       }
@@ -59,7 +69,9 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
     }
     const media = typeof navigator !== "undefined" ? navigator.mediaDevices : undefined;
     if (!media?.getUserMedia || typeof MediaRecorder === "undefined") {
-      setStatus("Voice recording isn't available in this browser — type the note instead.");
+      setStatus(
+        "Voice recording isn't available in this browser — type the note instead.",
+      );
       return;
     }
     setStatus("");
@@ -91,7 +103,11 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
       const response = await fetch("/api/maintenance/photo", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ filename: file.name, mimeType: file.type || "image/jpeg", base64 }),
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type || "image/jpeg",
+          base64,
+        }),
       });
       if (response.ok) {
         const stored = (await response.json()) as { ref: string };
@@ -104,15 +120,66 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
     }
   }
 
+  async function findUnit() {
+    const location = unitLabel.trim();
+    if (!location) {
+      setStatus("Enter a unit or location to look up.");
+      return;
+    }
+    setIsMatching(true);
+    setStatus("");
+    try {
+      const response = await fetch("/api/maintenance/match-unit", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ location }),
+      });
+      if (response.ok) {
+        const payload = (await response.json()) as {
+          match: MaintenanceUnitMatch | null;
+          candidates: ScoredUnitCandidate[];
+        };
+        setUnitMatch(payload.match);
+        setUnitCandidates(payload.candidates);
+        if (!payload.match) {
+          setStatus("No unit matched — pick from the candidates or refine the location.");
+        }
+      } else {
+        setUnitMatch(null);
+        setUnitCandidates([]);
+        setStatus("Unit lookup is unavailable (RentVine not connected).");
+      }
+    } catch {
+      setStatus("Could not reach the unit matcher.");
+    } finally {
+      setIsMatching(false);
+    }
+  }
+
+  // Confirm/override the suggested unit with any scored candidate (or clear it back to unmatched).
+  function selectCandidate(unitId: string) {
+    if (!unitId) {
+      setUnitMatch(null);
+      return;
+    }
+    const candidate = unitCandidates.find((entry) => entry.unitId === unitId);
+    if (candidate) {
+      setUnitMatch({
+        unitId: candidate.unitId,
+        label: candidate.label,
+        confidence: candidate.confidence,
+      });
+    }
+  }
+
   function buildDraft() {
     setDraft(
       buildWorkOrderDraft({
         reporterUid,
         typedNote: typedNote.trim() || undefined,
         voiceTranscript: transcript.trim() || undefined,
-        unit: unitLabel.trim()
-          ? { unitId: unitLabel.trim(), label: unitLabel.trim(), confidence: "Verified" }
-          : null,
+        // The unit is the matcher's result (real confidence), never the raw typed text.
+        unit: unitMatch,
         photoRefs: photoRefs.length > 0 ? photoRefs : undefined,
         priority: priority ? (priority as WorkOrderDraft["priority"]) : undefined,
         capturedAt: new Date().toISOString(),
@@ -146,7 +213,11 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
             onClick={toggleRecording}
             type="button"
           >
-            {isRecording ? "Stop recording" : isTranscribing ? "Transcribing…" : "Record voice"}
+            {isRecording
+              ? "Stop recording"
+              : isTranscribing
+                ? "Transcribing…"
+                : "Record voice"}
           </button>
         </div>
 
@@ -179,13 +250,59 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
         ) : null}
 
         <label htmlFor="mx-unit">Unit / location</label>
-        <input
-          id="mx-unit"
-          name="mx-unit"
-          onChange={(event) => setUnitLabel(event.target.value)}
-          placeholder="e.g. 123 Main St #2"
-          value={unitLabel}
-        />
+        <div className="field-row">
+          <input
+            id="mx-unit"
+            name="mx-unit"
+            onChange={(event) => setUnitLabel(event.target.value)}
+            placeholder="e.g. 123 Main St #2"
+            value={unitLabel}
+          />
+          <button
+            className="secondary-button"
+            disabled={isMatching}
+            onClick={findUnit}
+            type="button"
+          >
+            {isMatching ? "Finding…" : "Find unit"}
+          </button>
+        </div>
+
+        {unitMatch ? (
+          <p className="muted">
+            Matched: <strong>{unitMatch.label}</strong>{" "}
+            <span
+              className="queue-pill"
+              data-value={
+                unitMatch.confidence === "Verified"
+                  ? "Approved"
+                  : unitMatch.confidence === "Likely"
+                    ? "Ready for Approval"
+                    : "Needs Attention"
+              }
+            >
+              {unitMatch.confidence}
+            </span>
+          </p>
+        ) : null}
+
+        {unitCandidates.length > 0 ? (
+          <label className="select-field" htmlFor="mx-unit-candidate">
+            Confirm / override unit
+            <select
+              id="mx-unit-candidate"
+              onChange={(event) => selectCandidate(event.target.value)}
+              value={unitMatch?.unitId ?? ""}
+            >
+              <option value="">None (unmatched)</option>
+              {unitCandidates.map((candidate) => (
+                <option key={candidate.unitId} value={candidate.unitId}>
+                  {candidate.label} ({candidate.confidence})
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
         <label className="select-field" htmlFor="mx-priority">
           Priority
@@ -214,7 +331,8 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
           <>
             <h2>Work-order draft</h2>
             <p className="muted">
-              Simulation only — the RentVine work-order create is gated; a human reviews and approves.
+              Simulation only — the RentVine work-order create is gated; a human reviews
+              and approves.
             </p>
             <h3>{draft.summary}</h3>
             <p>{draft.description || <em>No description captured.</em>}</p>

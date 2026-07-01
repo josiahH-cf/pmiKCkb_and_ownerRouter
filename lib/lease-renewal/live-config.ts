@@ -26,7 +26,40 @@ export type LiveRenewalConfig =
     }
   | { ok: false; reason: "not_configured" | "account_mismatch" };
 
+export type LiveRentVineConfig =
+  | { ok: true; rentvineClient: RentVineClient }
+  | { ok: false; reason: "not_configured" | "account_mismatch" };
+
 type EnvLike = Record<string, string | undefined>;
+
+/**
+ * Build ONLY the live RentVine client (no Sheets). For read paths that need RentVine but not the
+ * renewal sheet — e.g. the maintenance location→unit matcher. Same account safety (pmikcmetro only);
+ * no I/O on construction. `not_configured` when any RentVine value is absent.
+ */
+export function buildLiveRentVineConfig(env: EnvLike = process.env): LiveRentVineConfig {
+  const baseUrl = env.RENTVINE_API_BASE_URL?.trim();
+  const apiKey = env.RENTVINE_API_KEY?.trim();
+  const apiSecret = env.RENTVINE_API_SECRET?.trim();
+
+  if (!baseUrl || !apiKey || !apiSecret) {
+    return { ok: false, reason: "not_configured" };
+  }
+
+  try {
+    assertRentVineAccount(baseUrl, EXPECTED_ACCOUNT);
+  } catch {
+    return { ok: false, reason: "account_mismatch" };
+  }
+
+  return {
+    ok: true,
+    rentvineClient: new RentVineClient(
+      { baseUrl, apiKey, apiSecret },
+      createFetchTransport(),
+    ),
+  };
+}
 
 /**
  * Build the live-review clients from an env map (defaults to process.env). No I/O — pure construction.
