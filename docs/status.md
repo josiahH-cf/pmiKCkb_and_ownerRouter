@@ -5987,6 +5987,15 @@ print-access-token` — no matter how many `gcloud auth login`s. STRUCTURAL: the
   "Live data", 25 real RentVine leases, the 2 real current-rent conflicts, `production_allowed:false`. RentVine was
   never the problem (the `auth_error` was the Sheet DWD). Verified read-only end-to-end: RentVine (Secret Manager) +
   Sheet (DWD) + reconciliation + Admin auth, no write. Updated `F-DEVPROD-PARITY` + the cutover doc IAM/role list.
+- 2026-07-01 — WRITE-BACK GOVERNANCE verified LIVE in prod (closes the "prove governance live" step). On the deployed
+  service, an Admin (real `pmikcmetro.com` sign-in, `role:Admin` custom claim) resolved a real Current-rent/High
+  conflict → queued the append-only proposal → the `WritebackApprovalControl` rendered → Approve flipped it to
+  **"Approved — ready to write (not executed)"** and the run-page **Decision history** audit trail (`F-WRITEBACK-APPROVAL`
+  Slice B) showed the decision with decider uid + reason + ISO timestamp — value-bearing, run-page-only, non-executing
+  (`production_allowed`/`executed` false; no SoR write). Owner-confirmed by screenshot. Both this cycle's shipped slices
+  (`F-WRITEBACK-APPROVAL` audit trail + `F-WRITEBACK-QUEUE`) are now proven live, not just in the unit/falsification
+  suites. (Left one sim-run resolution+approval+activity record in prod Firestore from the walkthrough — synthetic run,
+  non-executing; clear with a targeted delete or `demo:reset` if desired.)
 - 2026-07-01 — S12 redeploy END-TO-END verified: owner ran `smoke:auth-live` (interactive sign-in, persisted session),
   then the agent ran `smoke:ask-live --browser-session --base-url=<deployed>` headlessly. PASS: HTTP 200, authenticated
   as the real `pmikcmetro.com` user, `source_state: "Verified Source"`, a grounded answer with 2 citations + draft +
