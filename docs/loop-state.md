@@ -33,9 +33,9 @@ stop-and-reset rules.
   F-OPS-CONSOLE-IA: Console-as-home, Processes nav retired/engine kept, real clickable Space cards, Process
   sub-tab), S10 Console app-state brain (`F-CONSOLE-APP-STATE`: read-only approvals/connections/coverage +
   command buttons + Console STT). Loop then STOPPED — no unblocked safe slice remains (see Stop-Condition State).
-- 2026-07-01 build cycle (this loop run): SHIPPED the lease-renewal write-back proposal APPROVAL control plane
-  (`F-WRITEBACK-APPROVAL`) — Admin-only audited approve/return/revoke over the QUEUED proposals; non-executing by
-  construction. 898 tests, all gates green. Loop then STOPPED — no unblocked safe slice remains.
+- 2026-07-01 build cycle (this loop run): SHIPPED the write-back proposal APPROVAL control plane (`F-WRITEBACK-APPROVAL`,
+  Admin-only audited approve/return/revoke; non-executing) + two read-only, non-executing follow-ons: the cross-run
+  value-free "Write-back queue" tab (`F-WRITEBACK-QUEUE`) + the run-page approval AUDIT TRAIL. 913 tests, gates green.
 
 ## Next Safe Slice Candidates
 
@@ -66,7 +66,7 @@ the move-in/move-out UI before the V1 process answers land** (the note's RISK; t
    audited approve/return/revoke over the QUEUED proposals; non-executing by construction; value-free awaiting/approved
    counts on the review sub-tab (detail in `docs/facts.md` + `docs/status.md`). NEXT (all gated/blocked): the gated
    Sheet write execution needs an approved per-action spec (`F-WRITE-GATE`); RentVine renewal write vendor-gated
-   (`OQ-RV-1`); the cross-run "ready-to-write" queue + run-page audit-trail follow-ons are scaffolded in `docs/meta-prompts/writeback-approval-followons.md`.
+   (`OQ-RV-1`); the cross-run "ready-to-write" queue (`F-WRITEBACK-QUEUE`) + run-page audit-trail follow-ons are SHIPPED.
 
 Carried owner/vendor-gated: prod `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` + live process seed; RentVine
 work-order create.
@@ -113,9 +113,9 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
   browser-verified live), owner-notice DRAFT + vendor-assignment SUGGESTION (`F-MAINT-NOTICE-VENDOR`, M-5) SURFACED in the
   desk; 878 tests. Maintenance V1 UI COMPLETE.
 - Owner-present cycle 2026-07-01 (this loop run): SHIPPED the write-back proposal APPROVAL control plane
-  (`F-WRITEBACK-APPROVAL`, candidate 5's "proposal approval + queue path"); 898 tests, all gates green. Loop then
-  STOPPED — "no unblocked safe slice remains": the gated write execution needs an approved per-action SoR spec, the
-  S12 redeploy needs owner reauth, and the move-in/move-out desks need the Dan/legal Q&A.
+  (`F-WRITEBACK-APPROVAL`) + its two read-only, non-executing follow-ons — the cross-run value-free "Write-back queue"
+  tab (`F-WRITEBACK-QUEUE`) + the run-page approval AUDIT TRAIL; 913 tests, all gates green. Loop then STOPPED — "no
+  unblocked safe slice remains": gated write execution needs an SoR per-action spec; S12 redeploy needs owner reauth.
 
 ## Security Note
 

@@ -1,10 +1,12 @@
-// Server gather for the Approval Queue's renewal review sub-tab (OQ-UI-1). Assembles the value-free
-// review board from the deterministic simulation runs, layering in persisted resolutions so the board
-// can show what still needs a human. Flags are computed deterministically (no Firestore needed), so a
-// resolutions read failure degrades to "nothing resolved yet" rather than hiding the review entirely.
+// Server gather for the Approval Queue's renewal surfaces (OQ-UI-1). Assembles the per-run renewal
+// views from the deterministic simulation runs, layering in persisted resolutions + write-back
+// approvals so the value-free review board AND the cross-run write-back queue can both be projected
+// from ONE gather (buildRenewalReviewBoard / buildWritebackApprovalQueue, applied by the page). Flags
+// are computed deterministically (no Firestore needed), so a resolutions read failure degrades to
+// "nothing resolved yet" rather than hiding the review entirely.
 //
-// Read-only: no writes, `production_allowed: false` upstream. The board only routes Dan to the built
-// resolve surface; it never resolves, approves, or writes anything itself.
+// Read-only: no writes, `production_allowed: false` upstream. It only routes Dan to the built resolve
+// surface; it never resolves, approves, or writes anything itself.
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
@@ -13,23 +15,22 @@ import type {
   LeaseRenewalResolutionRecord,
   LeaseRenewalWritebackApprovalRecord,
 } from "@/lib/firestore/types";
-import {
-  buildRenewalReviewBoard,
-  type RenewalReviewBoard,
-} from "@/lib/approval/renewal-review";
-import { buildRenewalRunView } from "@/lib/lease-renewal/run-view";
+import { buildRenewalRunView, type RenewalRunView } from "@/lib/lease-renewal/run-view";
 import { getSimulationRun, listSimulationRuns } from "@/lib/lease-renewal/simulation";
 
 /**
- * Load the renewal review board for the current user. Never throws: reconciliation flags are
- * deterministic, so only the per-run resolution overlay can fail, and it degrades to an empty
- * resolution set. Returns an empty board when no runs exist.
+ * Assemble the per-run renewal views (flags + resolution + write-back approval overlay) for the
+ * current user. Never throws: reconciliation flags are deterministic, so only the per-run resolution
+ * overlay can fail, and it degrades to an empty resolution/approval set. This is the single Firestore
+ * gather that both the value-free review board AND the cross-run write-back queue project from — build
+ * them from one call so neither surface adds a duplicate read. Does NOT load approval Activity, so the
+ * views (and everything projected from them) stay free of the decision history (run-page only).
  */
-export async function loadRenewalReviewBoard(
+export async function loadRenewalRunViews(
   user: AuthenticatedUser,
-): Promise<RenewalReviewBoard> {
+): Promise<RenewalRunView[]> {
   const summaries = listSimulationRuns();
-  const views = [];
+  const views: RenewalRunView[] = [];
 
   for (const summary of summaries) {
     const run = getSimulationRun(summary.runId);
@@ -50,5 +51,5 @@ export async function loadRenewalReviewBoard(
     views.push(buildRenewalRunView(run, resolutions, summary.label, approvals));
   }
 
-  return buildRenewalReviewBoard(views);
+  return views;
 }

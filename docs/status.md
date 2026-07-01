@@ -5928,3 +5928,28 @@ print-access-token` — no matter how many `gcloud auth login`s. STRUCTURAL: the
   lint/typecheck/test/falsification/context-freshness all green. NEXT: move-in/move-out desks (Dan/legal Q&A). Loop
   STOPPED — no unblocked safe slice remains (gated write execution needs an approved SoR per-action spec; S12 redeploy
   needs owner reauth; the process desks need Q&A).
+- 2026-07-01 (same loop run) — SHIPPED two read-only, non-executing follow-ons on top of the write-back approval
+  control plane (`docs/meta-prompts/writeback-approval-followons.md`), each readiness-hardening (operator visibility +
+  auditability of a governance control) and passing the Migration-Readiness Stop Gate:
+  - SLICE A — cross-run "Write-back queue" tab (`F-WRITEBACK-QUEUE`). A third value-free tab in the Approval Queue
+    (beside "All items" + "Renewals") consolidates every QUEUED write-back proposal ACROSS ALL RUNS and groups it by
+    APPROVAL STATE (Awaiting approval / Approved — ready to write, not executed / Returned), each row deep-linking to its
+    run page. New pure projection `buildWritebackApprovalQueue(views)` reuses the SAME `RenewalRunView[]` the review
+    board assembles — I extracted `loadRenewalRunViews` so the page builds BOTH the review board AND the queue from ONE
+    Firestore gather (no new/duplicate reads, no N+1). Rows copy ONLY value-free fields (fieldKey, fieldLabel, severity,
+    runId, runLabel, state, href); the proposed value / decision reason / decider stay behind the deep link. Read +
+    deep-link only — NO approve/return affordance (acting stays on the run page's Admin control, OQ-UI-1 posture). Tests:
+    value-free invariant (pins the EXACT row key set; asserts value/reason/decider/activity never serialize) + grouping/
+    counts + ordering + a component render/tab test.
+  - SLICE B — run-page approval AUDIT TRAIL (extends `F-WRITEBACK-APPROVAL`). New `listWritebackApprovalActivityForRun`
+    does ONE run-scoped `where(run_id)` query, grouped by `source_trigger_key` (NOT N per-flag reads); the grouped
+    activity threads through `buildRenewalRunView` (new optional param) onto the flag overlay's optional `activity[]`
+    (oldest→newest). `LeaseRenewalRunClient` renders a compact timeline (approve/return/revoke — who, when, why) under the
+    existing approval control; the run page server loads it in the existing resolutions/approvals try/catch, degrading to
+    an empty map. Value-bearing display is RUN-PAGE-ONLY (design §6.1); the value-free board/queue never carry it —
+    `loadRenewalRunViews` doesn't load activity, and a test proves the board drops the overlay even when a run view
+    carries it. Tests: service grouping (fake Firestore) + run-view overlay carries the grouped activity + board-no-leak.
+  Both slices execute NOTHING, add NO vendor action, touch NO move-in/move-out, and change `production_allowed` nowhere
+  (grepped the paths). Verification: 913 tests pass (+15); lint / typecheck / verify:falsification / verify:router-
+  boundary / verify:context-freshness all green; prettier --check clean on the touched files (formatted only my own
+  LF files — no mass reformat). Commit queue prepared (one group per slice); not committed/pushed/merged (awaiting ask).

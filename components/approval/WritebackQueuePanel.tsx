@@ -1,0 +1,71 @@
+import Link from "next/link";
+import type {
+  WritebackApprovalQueue,
+  WritebackApprovalQueueGroup,
+} from "@/lib/approval/writeback-approval-queue";
+import type { WritebackApprovalState } from "@/lib/lease-renewal/writeback-approval";
+
+// Read-only cross-run write-back queue body (F-WRITEBACK-QUEUE). Every QUEUED write-back proposal,
+// grouped by approval state, deep-linking to its run page. Value-free: no proposed value, reason, or
+// decider — those live behind the run-page link. There is NO approve/return affordance here; acting
+// stays on the run page (the Admin control), mirroring the renewal review sub-tab's read/triage posture.
+const STATE_HEADING: Record<WritebackApprovalState, string> = {
+  "Awaiting Approval": "Awaiting approval",
+  Approved: "Approved — ready to write (not executed)",
+  "Returned for Revision": "Returned",
+};
+
+export function WritebackQueuePanel({
+  queue,
+}: Readonly<{ queue?: WritebackApprovalQueue }>) {
+  if (!queue || queue.counts.total === 0) {
+    return (
+      <section className="panel" aria-label="Write-back queue">
+        <p className="muted">No write-back proposals are queued right now.</p>
+      </section>
+    );
+  }
+
+  return (
+    <div className="ui-stack writeback-queue" aria-label="Write-back queue">
+      <p className="muted">
+        {queue.counts.total} queued write-back proposal
+        {queue.counts.total === 1 ? "" : "s"} across all runs —{" "}
+        {queue.counts.awaitingApproval} awaiting approval · {queue.counts.approved}{" "}
+        approved (ready to write, not executed) · {queue.counts.returned} returned.
+        Approve or return each on its run page — nothing is written to the sheet here.
+      </p>
+
+      {queue.groups.map((group) => (
+        <QueueStateGroup group={group} key={group.state} />
+      ))}
+    </div>
+  );
+}
+
+function QueueStateGroup({ group }: Readonly<{ group: WritebackApprovalQueueGroup }>) {
+  return (
+    <article className="panel ui-stack">
+      <h3 className="ui-card-title">
+        {STATE_HEADING[group.state]} ({group.rows.length})
+      </h3>
+      {group.rows.length === 0 ? (
+        <p className="muted">None.</p>
+      ) : (
+        <ul className="ui-rows">
+          {group.rows.map((row) => (
+            <li className="ui-spread" key={`${row.runId}:${row.fieldKey}`}>
+              <Link className="text-link" href={row.href}>
+                <strong>{row.fieldLabel}</strong>
+                <span className="muted"> — {row.runLabel}</span>
+              </Link>
+              <span className="queue-pill" data-value={row.severity}>
+                {row.severity}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </article>
+  );
+}

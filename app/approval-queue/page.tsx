@@ -1,6 +1,13 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { ApprovalQueue } from "@/components/approval/ApprovalQueue";
-import type { RenewalReviewBoard } from "@/lib/approval/renewal-review";
+import {
+  buildRenewalReviewBoard,
+  type RenewalReviewBoard,
+} from "@/lib/approval/renewal-review";
+import {
+  buildWritebackApprovalQueue,
+  type WritebackApprovalQueue,
+} from "@/lib/approval/writeback-approval-queue";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import {
   listApprovalQueue,
@@ -10,7 +17,7 @@ import type {
   ApprovalQueueActivityRecord,
   ApprovalQueueItemRecord,
 } from "@/lib/firestore/types";
-import { loadRenewalReviewBoard } from "@/lib/lease-renewal/renewal-review-board";
+import { loadRenewalRunViews } from "@/lib/lease-renewal/renewal-review-board";
 
 export default async function ApprovalQueuePage({
   searchParams,
@@ -36,13 +43,18 @@ export default async function ApprovalQueuePage({
       "Approval Queue is unavailable. Refresh Google credentials or check Firestore setup.";
   }
 
-  // The renewal review sub-tab (OQ-UI-1) is deterministic + degrades on its own; keep it independent
-  // of the general queue's Firestore health so one failing does not blank the other.
+  // The renewal review sub-tab (OQ-UI-1) + the cross-run write-back queue (F-WRITEBACK-QUEUE) are
+  // deterministic + degrade on their own; keep them independent of the general queue's Firestore health
+  // so one failing does not blank the others. Both project from ONE run-views gather — no extra reads.
   let renewalBoard: RenewalReviewBoard | undefined;
+  let writebackQueue: WritebackApprovalQueue | undefined;
   try {
-    renewalBoard = await loadRenewalReviewBoard(user);
+    const renewalViews = await loadRenewalRunViews(user);
+    renewalBoard = buildRenewalReviewBoard(renewalViews);
+    writebackQueue = buildWritebackApprovalQueue(renewalViews);
   } catch {
     renewalBoard = undefined;
+    writebackQueue = undefined;
   }
 
   return (
@@ -56,6 +68,7 @@ export default async function ApprovalQueuePage({
           initialItems={items}
           initialSelectedItemId={initialSelectedItemId}
           renewalBoard={renewalBoard}
+          writebackQueue={writebackQueue}
         />
       </section>
     </AppShell>

@@ -3,6 +3,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { queueActionAvailability } from "@/lib/approval/queue";
 import type { RenewalReviewBoard } from "@/lib/approval/renewal-review";
+import type { WritebackApprovalQueue } from "@/lib/approval/writeback-approval-queue";
 import type { Role } from "@/lib/auth/roles";
 import type {
   ApprovalQueueActivityRecord,
@@ -32,8 +33,9 @@ import {
   QueueUnavailableState,
 } from "./ApprovalQueuePanels";
 import { RenewalReviewPanel } from "./RenewalReviewPanel";
+import { WritebackQueuePanel } from "./WritebackQueuePanel";
 
-type QueueView = "all" | "renewals";
+type QueueView = "all" | "renewals" | "writeback";
 
 export function ApprovalQueue({
   currentUser,
@@ -42,6 +44,7 @@ export function ApprovalQueue({
   initialItems,
   initialSelectedItemId,
   renewalBoard,
+  writebackQueue,
 }: Readonly<{
   currentUser: { role: Role; uid: string };
   initialActivity: ApprovalQueueActivityRecord[];
@@ -49,6 +52,7 @@ export function ApprovalQueue({
   initialItems: ApprovalQueueItemRecord[];
   initialSelectedItemId?: string;
   renewalBoard?: RenewalReviewBoard;
+  writebackQueue?: WritebackApprovalQueue;
 }>) {
   const [view, setView] = useState<QueueView>("all");
   const firstInitialItem =
@@ -453,6 +457,7 @@ export function ApprovalQueue({
   }
 
   const renewalOpenFlags = renewalBoard?.totalOpenFlags ?? 0;
+  const writebackAwaiting = writebackQueue?.counts.awaitingApproval ?? 0;
 
   return (
     <div className="approval-queue-shell">
@@ -475,10 +480,21 @@ export function ApprovalQueue({
         >
           Renewals{renewalOpenFlags > 0 ? ` (${renewalOpenFlags})` : ""}
         </button>
+        <button
+          aria-selected={view === "writeback"}
+          className="ui-tab"
+          onClick={() => setView("writeback")}
+          role="tab"
+          type="button"
+        >
+          Write-back queue{writebackAwaiting > 0 ? ` (${writebackAwaiting})` : ""}
+        </button>
       </div>
 
       {view === "renewals" ? (
         <RenewalReviewPanel board={renewalBoard} />
+      ) : view === "writeback" ? (
+        <WritebackQueuePanel queue={writebackQueue} />
       ) : (
         renderAllItemsView()
       )}
