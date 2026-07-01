@@ -48,10 +48,10 @@ the move-in/move-out UI before the V1 process answers land** (the note's RISK; t
 0. Owner Q&A — BLOCKING for the process desks. Answer the V1 questions (lease renewal, move-in, move-out,
    maintenance) in `docs/products/v1-process-qa.md`; record answers as facts (flip the `Q-` rows in
    `docs/facts.md`; `OQ-*` items live in the lease-renewal discovery docs).
-1. Dev↔prod parity (`dev-prod-parity.md`, S12) — DONE 2026-06-30 (`F-DEVPROD-PARITY`); REDEPLOYED 2026-07-01: current
-   `main` (incl. the write-back follow-ons) is live on `pmi-kc-kb-demo`, RentVine key/secret wired via Secret Manager;
-   the prod demo-auth fence is HTTP-verified (unauth `/`→sign-in 307; demo cookie `/api/ask`→401). REMAINING: the
-   owner's signed-in check that the live renewal review pulls real Sheet + RentVine data against the deployed endpoint.
+1. Dev↔prod parity (`dev-prod-parity.md`, S12) — DONE 2026-06-30 (`F-DEVPROD-PARITY`); REDEPLOYED + FULLY VERIFIED
+   2026-07-01: current `main` live on `pmi-kc-kb-demo`; prod demo-auth fence HTTP-verified (401/307) AND the live
+   renewal review pulls the real 25 RentVine leases + Sheet DWD against the DEPLOYED endpoint (2 real conflicts,
+   production_allowed:false). Surfaced+fixed 2 prod-setup gaps: operator Admin claim + runtime-SA tokenCreator on reader SA (cutover doc).
 2. IA rework (`ui-ia.md`, S6, `A-IA-V2`) — DONE 2026-06-30 (`F-IA-CONSOLE-HOME`, supersedes F-OPS-CONSOLE-IA):
    Console-as-home (`/`+`/ask`), Processes nav retired (engine+routes kept), fully-clickable Space cards with
    real state, per-Space Process sub-tab, "Process space" copy. Routes + `smoke:*` preserved. Maintenance stays

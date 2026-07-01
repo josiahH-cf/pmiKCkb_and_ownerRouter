@@ -5968,6 +5968,25 @@ print-access-token` — no matter how many `gcloud auth login`s. STRUCTURAL: the
   prod fence: `GET /`→307 to sign-in (app up, title renders, no auth loop); demo-cookie `POST /api/ask`→401
   "Authentication is required." (proves `LOCAL_DEMO_AUTH=false` in prod). REMAINING: owner's signed-in check that the
   live renewal review pulls real Sheet + RentVine data against the deployed endpoint (the live-connection data path).
+- 2026-07-01 — LIVE RENEWAL REVIEW verified against the DEPLOYED service (the live-connection data path); closes the
+  F-DEVPROD-PARITY gap fully. Getting there surfaced + fixed THREE undocumented prod-setup gaps (all now in
+  `docs/client-production-cutover.md`), each caught only by testing prod (they all "work locally"):
+  1. RentVine Secret Manager secrets had to be CREATED, then the runtime SA granted `secretmanager.secretAccessor`
+     on them (a deploy-time "permission denied on secret" actually means the secret is missing/inaccessible; the
+     `add-iam-policy-binding` 404 confirmed missing). Owner created them (PowerShell, no-trailing-newline temp file)
+     + granted access; redeploy then succeeded.
+  2. Operator Admin role: the authenticated user was `Editor` in prod (no `role` custom claim → `readFirebaseRole`
+     defaults to Editor), so the Admin-gated live review + write-back approval DECISIONS were unreachable. Fixed via
+     `firebase:set-role --email=josiah@pmikcmetro.com --role=Admin` (pmi-kc-kb-prod); claims only refresh on a fresh
+     sign-in, so a stale session kept showing Editor until re-auth.
+  3. Sheet DWD IAM: the deployed live read failed `auth_error` while both RentVine + Sheet read fine locally. Root
+     cause: the keyless DWD Sheet read has the CALLER `signJwt` as the reader SA (`lease-renewal-reader@`), and the
+     caller in prod is the runtime SA `pmi-kc-kb-runtime@` — which lacked `iam.serviceAccountTokenCreator` on the
+     reader SA (locally the human ADC already had it). Owner granted it; no redeploy needed.
+  RESULT (agent HTTP + headless Playwright with the owner's Admin session): `/lease-renewal/live` returns LIVE_OK —
+  "Live data", 25 real RentVine leases, the 2 real current-rent conflicts, `production_allowed:false`. RentVine was
+  never the problem (the `auth_error` was the Sheet DWD). Verified read-only end-to-end: RentVine (Secret Manager) +
+  Sheet (DWD) + reconciliation + Admin auth, no write. Updated `F-DEVPROD-PARITY` + the cutover doc IAM/role list.
 - 2026-07-01 — S12 redeploy END-TO-END verified: owner ran `smoke:auth-live` (interactive sign-in, persisted session),
   then the agent ran `smoke:ask-live --browser-session --base-url=<deployed>` headlessly. PASS: HTTP 200, authenticated
   as the real `pmikcmetro.com` user, `source_state: "Verified Source"`, a grounded answer with 2 citations + draft +

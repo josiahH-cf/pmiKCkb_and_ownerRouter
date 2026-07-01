@@ -331,7 +331,19 @@ KB runtime:
   `signBlob`; required when the runtime SA has no downloadable key)
 - `roles/secretmanager.secretAccessor` on the `RENTVINE_API_KEY` + `RENTVINE_API_SECRET` secrets
   (the deploy wires them via `--set-secrets`; see the live-connection config in §5)
+- `roles/iam.serviceAccountTokenCreator` on the DWD **reader** SA (`SHEETS_IMPERSONATE_SA`, e.g.
+  `lease-renewal-reader@<project>.iam.gserviceaccount.com`) — REQUIRED for the live renewal review's keyless
+  Sheet read: the runtime SA impersonates the reader SA via `iamcredentials.signJwt`. This is a SEPARATE grant
+  from the self-`signBlob` binding above and from `secretAccessor`; without it the deployed live review fails
+  with `auth_error` even though RentVine + the env are correct (verified live 2026-07-01 — a local reader works
+  because the human ADC already holds Token Creator on the reader SA; the runtime SA needs the same in prod):
+  `gcloud iam service-accounts add-iam-policy-binding <SHEETS_IMPERSONATE_SA> --member="serviceAccount:<runtime-sa>" --role="roles/iam.serviceAccountTokenCreator" --project=<project>`
 - Gmail send-only authority for `kb-automation@pmikcmetro.com`
+- Grant each launch operator the **Admin** role AFTER their first sign-in: `npm run firebase:set-role --
+  --email=<user@pmikcmetro.com> --role=Admin` (targets `FIREBASE_PROJECT_ID`/`GCP_PROJECT_ID`). A Firebase user
+  with no `role` custom claim defaults to **Editor** (`lib/auth/session.ts` `readFirebaseRole`), so Admin-gated
+  surfaces (the live renewal review, the write-back approval decisions) redirect to home until the claim is set.
+  Custom claims only refresh on a fresh sign-in, so the operator must sign out + back in after the grant.
 
 Deploy with production flags:
 
