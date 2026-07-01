@@ -112,10 +112,10 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 - Fired 2026-06-30 (this build cycle, after S12→S6→S10): "no safe slice remains" + an approval gate. All three
   unblocked slices shipped (parity, IA rework, Console app-state brain); merged to `main` via PR #19.
 - Owner-present cycle 2026-07-01: Working Order added to governance (`F-WORKING-ORDER`: front-load human-gated
-  work; self-answer before client). SHIPPED: renewal review sub-tab (`F-RENEWAL-REVIEW-SUBTAB`), append-only write-back
-  PROPOSAL generator (`F-WRITEBACK-PROPOSAL`), and the read-only maintenance unit matcher (`F-MAINT-UNIT-MATCHER`, M-4);
-  857 tests, browser-verified. Q&A self-answer pass recorded 12 items. NEXT: maintenance owner-notice DRAFT + vendor-assignment
-  SUGGESTION (M-5). BLOCKED: S12 redeploy needs interactive `gcloud auth login` (CLI token expired; owner action). Gated: Sheet-write SoR spec; move-in/move-out.
+  work; self-answer before client). SHIPPED: renewal review sub-tab (`F-RENEWAL-REVIEW-SUBTAB`), write-back PROPOSAL
+  generator (`F-WRITEBACK-PROPOSAL`), maintenance unit matcher (`F-MAINT-UNIT-MATCHER`, M-4), and owner-notice DRAFT +
+  vendor-assignment SUGGESTION (`F-MAINT-NOTICE-VENDOR`, M-5); 866 tests. Q&A self-answer recorded 12 items. NEXT: wire the
+  maintenance draft/suggest stages into the capture UI (after the live RentVine unit shape is confirmed). BLOCKED: S12 redeploy needs `gcloud auth login`.
 
 ## Security Note
 

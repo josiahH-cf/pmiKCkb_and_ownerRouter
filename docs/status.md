@@ -5848,3 +5848,13 @@ non-interactive execution.`) — `credentials.db` last modified 2026-06-26, so t
     determinism, never-auto-merge, extractor + `buildWorkOrderDraft` wiring). 857 tests green; typecheck/lint/falsification/
     context-freshness clean. Live /api + UI wiring deferred until the unit shape is confirmed. NEXT: the M-5 owner-notice
     DRAFT + vendor-assignment SUGGESTION (both non-executable, `production_allowed:false`).
+- SHIPPED (same cycle): the M-5 owner-notice DRAFT + vendor-assignment SUGGESTION stages (`F-MAINT-NOTICE-VENDOR`).
+  `buildOwnerNoticeDraft` composes a source-tagged owner notice from a `WorkOrderDraft` in the renewal owner-draft shape
+  (reuses `DraftFact`; literal-false `production_allowed` + `send_allowed`; a missing owner name / unmatched unit render
+  `Needs Verification:` markers, never invented). `suggestVendorAssignment` deterministically infers the vendor TRADE from
+  the issue text (`MAINTENANCE_TRADE_KEYWORDS`, most-hits-wins, ties by `MAINTENANCE_TRADES` order, "General" fallback) —
+  the SPECIFIC vendor is NEVER named (no roster; `Needs Verification: client vendor roster`). New
+  `lib/maintenance/owner-notice-draft.ts` + `lib/maintenance/vendor-assignment.ts`; `constants.ts` gains the trade taxonomy;
+  `tests/unit/maintenance-notice-vendor.test.ts` (9 cases). 866 tests green; typecheck/lint/falsification/context-freshness
+  clean. Both non-executable; the RentVine create + any owner send stay gated. NEXT: wire the three maintenance stages
+  (matcher + notice + vendor) into the capture UI once the live RentVine unit shape is confirmed (`smoke:rentvine-read`).
