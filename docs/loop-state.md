@@ -29,7 +29,7 @@ stop-and-reset rules.
   Processes, per-Space "teeth", dev↔prod parity; Q&A-first (`A-IA-V2`). See Next Safe Slice Candidates +
   `docs/products/v1-process-qa.md` + `docs/temp/recalibration-plan.md`.
 - 2026-06-30 build cycle (this loop run, S12→S6→S10): ALL THREE SHIPPED — S12 dev↔prod parity
-  (`F-DEVPROD-PARITY`; redeploy QUEUED owner/budget-gated), S6 IA rework (`F-IA-CONSOLE-HOME`, supersedes
+  (`F-DEVPROD-PARITY`; REDEPLOYED 2026-07-01, prod demo-auth fence HTTP-verified), S6 IA rework (`F-IA-CONSOLE-HOME`, supersedes
   F-OPS-CONSOLE-IA: Console-as-home, Processes nav retired/engine kept, real clickable Space cards, Process
   sub-tab), S10 Console app-state brain (`F-CONSOLE-APP-STATE`: read-only approvals/connections/coverage +
   command buttons + Console STT). Loop then STOPPED — no unblocked safe slice remains (see Stop-Condition State).
@@ -48,10 +48,10 @@ the move-in/move-out UI before the V1 process answers land** (the note's RISK; t
 0. Owner Q&A — BLOCKING for the process desks. Answer the V1 questions (lease renewal, move-in, move-out,
    maintenance) in `docs/products/v1-process-qa.md`; record answers as facts (flip the `Q-` rows in
    `docs/facts.md`; `OQ-*` items live in the lease-renewal discovery docs).
-1. Dev↔prod parity (`dev-prod-parity.md`, S12) — DONE 2026-06-30 (`F-DEVPROD-PARITY`): the deploy forwards the
-   four live-connection non-secrets + delivers the RentVine key/secret via Secret Manager; the cutover preflight
-   requires them. REMAINING (queued, owner/budget-gated): the redeploy of current `main` (live service predates
-   this cycle) + `npm run smoke:ask-live --base-url=<endpoint>` parity check.
+1. Dev↔prod parity (`dev-prod-parity.md`, S12) — DONE 2026-06-30 (`F-DEVPROD-PARITY`); REDEPLOYED 2026-07-01: current
+   `main` (incl. the write-back follow-ons) is live on `pmi-kc-kb-demo`, RentVine key/secret wired via Secret Manager;
+   the prod demo-auth fence is HTTP-verified (unauth `/`→sign-in 307; demo cookie `/api/ask`→401). REMAINING: the
+   owner's signed-in check that the live renewal review pulls real Sheet + RentVine data against the deployed endpoint.
 2. IA rework (`ui-ia.md`, S6, `A-IA-V2`) — DONE 2026-06-30 (`F-IA-CONSOLE-HOME`, supersedes F-OPS-CONSOLE-IA):
    Console-as-home (`/`+`/ask`), Processes nav retired (engine+routes kept), fully-clickable Space cards with
    real state, per-Space Process sub-tab, "Process space" copy. Routes + `smoke:*` preserved. Maintenance stays
@@ -113,9 +113,9 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
   browser-verified live), owner-notice DRAFT + vendor-assignment SUGGESTION (`F-MAINT-NOTICE-VENDOR`, M-5) SURFACED in the
   desk; 878 tests. Maintenance V1 UI COMPLETE.
 - Owner-present cycle 2026-07-01 (this loop run): SHIPPED the write-back proposal APPROVAL control plane
-  (`F-WRITEBACK-APPROVAL`) + its two read-only, non-executing follow-ons — the cross-run value-free "Write-back queue"
-  tab (`F-WRITEBACK-QUEUE`) + the run-page approval AUDIT TRAIL; 913 tests, all gates green. Loop then STOPPED — "no
-  unblocked safe slice remains": gated write execution needs an SoR per-action spec; S12 redeploy needs owner reauth.
+  (`F-WRITEBACK-APPROVAL`) + two read-only non-executing follow-ons — the cross-run "Write-back queue" tab
+  (`F-WRITEBACK-QUEUE`) + the run-page approval AUDIT TRAIL; 913 tests green. S12 REDEPLOY DONE 2026-07-01 (`main` live
+  on `pmi-kc-kb-demo`, RentVine via Secret Manager, prod fence HTTP-verified 401/307). Remaining: gated SoR write spec.
 
 ## Security Note
 

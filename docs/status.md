@@ -5953,3 +5953,24 @@ print-access-token` — no matter how many `gcloud auth login`s. STRUCTURAL: the
   (grepped the paths). Verification: 913 tests pass (+15); lint / typecheck / verify:falsification / verify:router-
   boundary / verify:context-freshness all green; prettier --check clean on the touched files (formatted only my own
   LF files — no mass reformat). Commit queue prepared (one group per slice); not committed/pushed/merged (awaiting ask).
+- 2026-07-01 — SHIPPED both slices to `main` (owner-approved push): commits `74027d8` (Slice B audit trail) + `dec3dfb`
+  (Slice A queue tab), branched to `feat/writeback-approval-followons`, fast-forwarded `main`, pushed. Then ran an
+  adversarial falsification workflow (5 lenses: value-leak, executing-FSM/SoR-write, admin-gate, N+1, doc-drift) —
+  all invariants held; repaired 2 nits (removed the now-dead `loadRenewalReviewBoard` so the single-gather is
+  structural; hardened the queue test to pin the value-free key set on every row).
+- 2026-07-01 — S12 REDEPLOY DONE (closes the F-DEVPROD-PARITY "verify against prod, not localhost" gap). Owner ran the
+  redeploy runbook (`docs/temp/redeploy-parity-runbook.md`): agent pre-validated the deploy (dry-run + budget-guard
+  green) and fixed a config blocker — the maintenance photo folder was inside `SPACE_DRIVE_FOLDER_IDS` (2 entries →
+  broke the cheap-live single-Space guard), moved to `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` per `F-MAINT-PHOTO` (backup
+  `.env.local.bak`). Deploy blocker chain cleared: RentVine Secret Manager secrets had to be CREATED (a "permission
+  denied" at deploy = missing secret; `add-iam-policy-binding` 404 confirmed) then granted `secretAccessor` on the
+  runtime SA `pmi-kc-kb-runtime@`. Redeploy of current `main` succeeded on `pmi-kc-kb-demo`. Agent HTTP-verified the
+  prod fence: `GET /`→307 to sign-in (app up, title renders, no auth loop); demo-cookie `POST /api/ask`→401
+  "Authentication is required." (proves `LOCAL_DEMO_AUTH=false` in prod). REMAINING: owner's signed-in check that the
+  live renewal review pulls real Sheet + RentVine data against the deployed endpoint (the live-connection data path).
+- 2026-07-01 — S12 redeploy END-TO-END verified: owner ran `smoke:auth-live` (interactive sign-in, persisted session),
+  then the agent ran `smoke:ask-live --browser-session --base-url=<deployed>` headlessly. PASS: HTTP 200, authenticated
+  as the real `pmikcmetro.com` user, `source_state: "Verified Source"`, a grounded answer with 2 citations + draft +
+  handling steps. Proves the deployed stack works end-to-end (Firebase auth → Cloud Run → Gemini Flash → Agent Search
+  grounding), not just localhost. Still owner-eyeball-only: the live RENEWAL REVIEW (RentVine + Sheet DWD) against the
+  deployed endpoint — a different path from the Ask/Agent-Search corpus this smoke exercised.
