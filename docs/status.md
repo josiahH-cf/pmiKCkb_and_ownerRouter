@@ -5858,3 +5858,12 @@ non-interactive execution.`) — `credentials.db` last modified 2026-06-26, so t
   `tests/unit/maintenance-notice-vendor.test.ts` (9 cases). 866 tests green; typecheck/lint/falsification/context-freshness
   clean. Both non-executable; the RentVine create + any owner send stay gated. NEXT: wire the three maintenance stages
   (matcher + notice + vendor) into the capture UI once the live RentVine unit shape is confirmed (`smoke:rentvine-read`).
+- Ran `smoke:rentvine-read -- --live` (owner-authorized; read-only, free, in-boundary; 25 leases, health OK). FINDING:
+  the lease export carries `unitID` + `propertyID` as FLAT fields and NO unit address — addresses live on the PROPERTY
+  (propertyID), and the RentVine client exposes only lease reads (no /properties). So the matcher's live candidate source
+  needs a `/properties` read + a propertyID→address join before it can fuzzy-match live units. Corrected the now-disproven
+  `deriveUnitCandidatesFromExport` to the CONFIRMED shape (flat `unitID`, captures `propertyId`, address stays
+  `Needs Verification:` pending the join) + updated `F-MAINT-UNIT-MATCHER`; 866 tests green. The proposal approval path is
+  NOT a separate slice — approving a proposal already flows through the resolve flow (accept the suggestion), execution
+  gated on the SoR spec. BLOCKED (owner): the S12 redeploy still needs `gcloud auth login` — `credentials.db` unchanged
+  since 2026-06-26, so the CLI login has not landed (likely `gcloud auth application-default login` was run instead).

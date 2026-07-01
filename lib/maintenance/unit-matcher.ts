@@ -28,6 +28,8 @@ import type {
 export interface UnitCandidate {
   unitId: string;
   label: string;
+  /** The RentVine property this unit belongs to; the address is joined from a property read (not the lease). */
+  propertyId?: string;
 }
 
 export interface ScoredUnitCandidate {
@@ -129,19 +131,13 @@ function pickMatch(
   return null;
 }
 
-// Alternate source-key lists for the RentVine export unit sub-object. The live unit shape is UNVERIFIED
-// (only exercised by a synthetic fixture today), so — like the lease field map — this reads
-// first-present-key-wins and, when the address is absent, emits a Needs-Verification label rather than a
-// fabricated one. Confirm the live keys with `npm run smoke:rentvine-read -- --live` before trusting labels.
+// Source-key lists for the RentVine lease-export row. CONFIRMED live 2026-07-01
+// (`npm run smoke:rentvine-read -- --live`): the lease export carries `unitID` + `propertyID` as FLAT
+// lease fields and NO unit address — addresses live on the PROPERTY (via propertyID), not the lease. So
+// this reads the flat ids first-present-key-wins and captures propertyId for the pending property-address
+// join; until that join lands the label is a `Needs Verification:` marker, never a fabricated address.
 export const UNIT_ID_KEYS = ["unitID", "unitId", "id"] as const;
-export const UNIT_ADDRESS_KEYS = [
-  "streetName",
-  "address",
-  "address1",
-  "addressLine1",
-  "street",
-  "name",
-] as const;
+export const PROPERTY_ID_KEYS = ["propertyID", "propertyId"] as const;
 
 function firstPresentString(
   obj: Record<string, unknown>,
@@ -156,9 +152,11 @@ function firstPresentString(
 }
 
 /**
- * Derive read-only unit candidates from RentVine /leases/export rows (each carries a `unit` sub-object).
- * Rows with no resolvable unit id are skipped + counted (a unit with no id cannot be assigned). A unit
- * with no resolvable address gets a `Needs Verification:` label — never an invented address. Pure.
+ * Derive read-only unit candidates from RentVine /leases/export rows. CONFIRMED live 2026-07-01: the
+ * unit id + property id are FLAT lease fields and the lease carries no address, so this lifts
+ * `unit:<unitID>` and captures `propertyId` for the pending property-address join; the label stays a
+ * `Needs Verification:` marker until that join supplies the real address (never an invented one). Rows
+ * with no resolvable unit id are skipped + counted (a unit with no id cannot be assigned). Pure.
  */
 export function deriveUnitCandidatesFromExport(
   rows: readonly Record<string, unknown>[],
@@ -171,11 +169,11 @@ export function deriveUnitCandidatesFromExport(
   let skipped = 0;
 
   for (const row of rows) {
-    const unit = (row.unit && typeof row.unit === "object" ? row.unit : {}) as Record<
-      string,
-      unknown
-    >;
-    const rawId = firstPresentString(unit, UNIT_ID_KEYS);
+    // Export rows may nest the lease under `row.lease`; mirror leaseViewsFromExport's flattening.
+    const lease = (
+      row.lease && typeof row.lease === "object" ? row.lease : row
+    ) as Record<string, unknown>;
+    const rawId = firstPresentString(lease, UNIT_ID_KEYS);
     if (!rawId) {
       skipped += 1;
       continue;
@@ -185,8 +183,12 @@ export function deriveUnitCandidatesFromExport(
     if (seen.has(unitId)) continue;
     seen.add(unitId);
 
-    const address = firstPresentString(unit, UNIT_ADDRESS_KEYS);
-    candidates.push({ unitId, label: address ?? UNIT_ADDRESS_UNVERIFIED });
+    const propertyId = firstPresentString(lease, PROPERTY_ID_KEYS);
+    candidates.push({
+      unitId,
+      label: UNIT_ADDRESS_UNVERIFIED,
+      ...(propertyId ? { propertyId } : {}),
+    });
   }
 
   return { candidates, skipped };

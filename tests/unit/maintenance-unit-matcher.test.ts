@@ -73,23 +73,28 @@ describe("matchLocationToUnit", () => {
   });
 });
 
-describe("deriveUnitCandidatesFromExport", () => {
-  it("lifts a unit id + address into a candidate", () => {
+describe("deriveUnitCandidatesFromExport (confirmed live shape 2026-07-01)", () => {
+  it("lifts the flat unit id + captures the property id, address stays Needs Verification", () => {
+    // Confirmed: unitID + propertyID are FLAT lease fields; the lease carries NO address.
     const { candidates, skipped } = deriveUnitCandidatesFromExport([
-      { unit: { unitID: "456", streetName: "100 Birchwood Lane" } },
+      { unitID: "456", propertyID: "99" },
     ]);
-    expect(candidates).toEqual([{ unitId: "unit:456", label: "100 Birchwood Lane" }]);
+    expect(candidates).toEqual([
+      { unitId: "unit:456", label: UNIT_ADDRESS_UNVERIFIED, propertyId: "99" },
+    ]);
     expect(skipped).toBe(0);
   });
 
-  it("marks a unit with no resolvable address as Needs Verification, never invented", () => {
-    const { candidates } = deriveUnitCandidatesFromExport([{ unit: { unitID: "789" } }]);
+  it("reads a unit id nested under row.lease", () => {
+    const { candidates } = deriveUnitCandidatesFromExport([
+      { lease: { unitID: "789" }, unit: { rent: 1500 } },
+    ]);
     expect(candidates).toEqual([{ unitId: "unit:789", label: UNIT_ADDRESS_UNVERIFIED }]);
   });
 
-  it("skips (and counts) a unit row with no resolvable id", () => {
+  it("skips (and counts) a row with no resolvable unit id", () => {
     const { candidates, skipped } = deriveUnitCandidatesFromExport([
-      { unit: { streetName: "100 Birchwood Lane" } },
+      { propertyID: "99" },
       {},
     ]);
     expect(candidates).toEqual([]);
@@ -98,8 +103,8 @@ describe("deriveUnitCandidatesFromExport", () => {
 
   it("de-duplicates repeated unit ids", () => {
     const { candidates } = deriveUnitCandidatesFromExport([
-      { unit: { unitID: "456", streetName: "100 Birchwood Lane" } },
-      { unit: { unitID: "456", streetName: "100 Birchwood Lane" } },
+      { unitID: "456", propertyID: "99" },
+      { unitID: "456", propertyID: "99" },
     ]);
     expect(candidates).toHaveLength(1);
   });

@@ -111,11 +111,11 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
   client replies, production setup, and approved sources.
 - Fired 2026-06-30 (this build cycle, after S12→S6→S10): "no safe slice remains" + an approval gate. All three
   unblocked slices shipped (parity, IA rework, Console app-state brain); merged to `main` via PR #19.
-- Owner-present cycle 2026-07-01: Working Order added to governance (`F-WORKING-ORDER`: front-load human-gated
-  work; self-answer before client). SHIPPED: renewal review sub-tab (`F-RENEWAL-REVIEW-SUBTAB`), write-back PROPOSAL
-  generator (`F-WRITEBACK-PROPOSAL`), maintenance unit matcher (`F-MAINT-UNIT-MATCHER`, M-4), and owner-notice DRAFT +
-  vendor-assignment SUGGESTION (`F-MAINT-NOTICE-VENDOR`, M-5); 866 tests. Q&A self-answer recorded 12 items. NEXT: wire the
-  maintenance draft/suggest stages into the capture UI (after the live RentVine unit shape is confirmed). BLOCKED: S12 redeploy needs `gcloud auth login`.
+- Owner-present cycle 2026-07-01: Working Order added to governance (`F-WORKING-ORDER`). SHIPPED: renewal review
+  sub-tab (`F-RENEWAL-REVIEW-SUBTAB`), write-back PROPOSAL generator (`F-WRITEBACK-PROPOSAL`), maintenance unit matcher
+  (`F-MAINT-UNIT-MATCHER`, M-4) + owner-notice DRAFT + vendor-assignment SUGGESTION (`F-MAINT-NOTICE-VENDOR`, M-5); 866 tests.
+  Live RentVine read CONFIRMED the unit shape (unitID/propertyID flat, NO lease address). NEXT: a `/properties` read +
+  propertyID→address join, then wire the 3 maintenance stages into the capture UI. BLOCKED: S12 redeploy needs `gcloud auth login`.
 
 ## Security Note
 
