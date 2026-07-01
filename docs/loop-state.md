@@ -66,7 +66,7 @@ the move-in/move-out UI before the V1 process answers land** (the note's RISK; t
    audited approve/return/revoke over the QUEUED proposals; non-executing by construction; value-free awaiting/approved
    counts on the review sub-tab (detail in `docs/facts.md` + `docs/status.md`). NEXT (all gated/blocked): the gated
    Sheet write execution needs an approved per-action spec (`F-WRITE-GATE`); RentVine renewal write vendor-gated
-   (`OQ-RV-1`); a cross-run "ready-to-write" queue + approval audit-trail surface is an optional follow-on.
+   (`OQ-RV-1`); the cross-run "ready-to-write" queue + run-page audit-trail follow-ons are scaffolded in `docs/meta-prompts/writeback-approval-followons.md`.
 
 Carried owner/vendor-gated: prod `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` + live process seed; RentVine
 work-order create.
