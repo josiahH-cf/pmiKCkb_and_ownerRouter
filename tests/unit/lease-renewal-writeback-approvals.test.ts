@@ -12,6 +12,7 @@ import {
   decideWritebackApproval,
   getWritebackApproval,
   listWritebackApprovalActivity,
+  listWritebackApprovalActivityForRun,
   listWritebackApprovalsForRun,
 } from "@/lib/firestore/lease-renewal-writeback-approvals";
 import type { LeaseRenewalResolutionRecord } from "@/lib/firestore/types";
@@ -206,5 +207,92 @@ describe("decideWritebackApproval", () => {
     expect(approvals).toHaveLength(1);
     expect(approvals[0].source_trigger_key).toBe(KEY);
     expect(approvals[0].production_allowed).toBe(false);
+  });
+});
+
+const KEY2 = "lease_renewal:reconcile:run-1:renewal_date";
+
+function seedResolutionForKey(
+  key: string,
+  fieldKey: string,
+): LeaseRenewalResolutionRecord {
+  const docId = resolutionDocId(key);
+  const record: LeaseRenewalResolutionRecord = {
+    id: docId,
+    source_trigger_key: key,
+    run_id: RUN_ID,
+    field_key: fieldKey,
+    field_label: fieldKey,
+    severity: "High",
+    status: "Resolved",
+    resolution_kind: "pick_source",
+    chosen_source: "rentvine",
+    reason: "RentVine is authoritative.",
+    resolved_by_uid: "approver-1",
+    proposed_writeback: {
+      field_key: fieldKey,
+      value: "1500",
+      source_of_value: "rentvine",
+      status: "Queued",
+      production_allowed: false,
+    },
+    created_at: "2026-07-01T00:00:00.000Z",
+    updated_at: "2026-07-01T00:00:00.000Z",
+  };
+  db.seed(
+    `${LEASE_RENEWAL_COLLECTIONS.resolutions}/${docId}`,
+    record as unknown as Record<string, unknown>,
+  );
+  return record;
+}
+
+describe("listWritebackApprovalActivityForRun", () => {
+  it("requires read and returns an empty map when nothing has been decided", async () => {
+    const byKey = await listWritebackApprovalActivityForRun(admin, RUN_ID, fs());
+    expect(byKey.size).toBe(0);
+  });
+
+  it("groups the whole run's Activity by source_trigger_key in ONE query, newest last", async () => {
+    seedResolution(db); // KEY: current_rent
+    seedResolutionForKey(KEY2, "renewal_date");
+
+    // KEY gets two decisions (approve → revoke); KEY2 gets one.
+    await decide(admin, "approve", "RentVine authoritative.");
+    await decide(admin, "return", "Owner changed their mind.");
+    await decideWritebackApproval(
+      admin,
+      {
+        run_id: RUN_ID,
+        source_trigger_key: KEY2,
+        decision: "approve",
+        reason: "Confirmed the renewal date.",
+      },
+      fs(),
+    );
+
+    const byKey = await listWritebackApprovalActivityForRun(admin, RUN_ID, fs());
+
+    expect([...byKey.keys()].sort()).toEqual([KEY, KEY2].sort());
+    const keyTrail = byKey.get(KEY)!;
+    expect(keyTrail).toHaveLength(2);
+    // Oldest → newest: the approve is recorded before the revoke.
+    expect(keyTrail[0]).toMatchObject({ action: "approve", new_state: "Approved" });
+    expect(keyTrail[1]).toMatchObject({
+      action: "return",
+      previous_state: "Approved",
+      new_state: "Returned for Revision",
+    });
+    expect(keyTrail.every((entry) => entry.run_id === RUN_ID)).toBe(true);
+
+    const key2Trail = byKey.get(KEY2)!;
+    expect(key2Trail).toHaveLength(1);
+    expect(key2Trail[0]).toMatchObject({ action: "approve", new_state: "Approved" });
+  });
+
+  it("does not surface another run's Activity", async () => {
+    seedResolution(db);
+    await decide(admin, "approve");
+    const otherRun = await listWritebackApprovalActivityForRun(admin, "run-other", fs());
+    expect(otherRun.size).toBe(0);
   });
 });

@@ -202,6 +202,41 @@ export async function listWritebackApprovalActivity(
     .sort((left, right) => left.created_at.localeCompare(right.created_at));
 }
 
+/**
+ * Load the append-only approval Activity for a WHOLE run in ONE query, grouped by the flag's
+ * source_trigger_key (never N per-flag reads). Each flag's trail is sorted oldest→newest (newest
+ * last) so the run page can render a chronological history under its approval control. Read-only.
+ */
+export async function listWritebackApprovalActivityForRun(
+  actor: AuthenticatedUser,
+  runId: string,
+  db: Firestore = getAdminFirestore(),
+): Promise<Map<string, LeaseRenewalWritebackApprovalActivityRecord[]>> {
+  assertCan(actor, "read");
+  const snapshot = await db
+    .collection(LEASE_RENEWAL_WRITEBACK_COLLECTIONS.approvalActivity)
+    .where("run_id", "==", runId)
+    .get();
+
+  const byKey = new Map<string, LeaseRenewalWritebackApprovalActivityRecord[]>();
+  for (const doc of snapshot.docs) {
+    const record = readRecord<LeaseRenewalWritebackApprovalActivityRecord>(
+      doc.id,
+      doc.data(),
+    );
+    const trail = byKey.get(record.source_trigger_key);
+    if (trail) {
+      trail.push(record);
+    } else {
+      byKey.set(record.source_trigger_key, [record]);
+    }
+  }
+  for (const trail of byKey.values()) {
+    trail.sort((left, right) => left.created_at.localeCompare(right.created_at));
+  }
+  return byKey;
+}
+
 function approvalRef(db: Firestore, docId: string) {
   return db.collection(LEASE_RENEWAL_WRITEBACK_COLLECTIONS.approvals).doc(docId);
 }

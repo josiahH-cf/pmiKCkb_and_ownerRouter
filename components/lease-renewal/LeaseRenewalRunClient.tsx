@@ -6,11 +6,19 @@ import { useRouter } from "next/navigation";
 import type {
   RenewalFlagView,
   RenewalRunView,
+  RenewalWritebackApprovalActivityView,
   RenewalWritebackApprovalView,
 } from "@/lib/lease-renewal/run-view";
 import type { WritebackProposal } from "@/lib/lease-renewal/writeback-proposal";
 
 type ResolveKind = "pick_source" | "corrected_value" | "flag_incorrect";
+
+// "return" reads as a Revoke once a proposal is Approved, but the append-only Activity records the raw
+// decision verb; label both approve/return consistently in the human-facing trail.
+const DECISION_LABEL: Record<RenewalWritebackApprovalActivityView["action"], string> = {
+  approve: "Approved",
+  return: "Returned / revoked",
+};
 
 interface LeaseRenewalRunClientProps {
   view: RenewalRunView;
@@ -297,6 +305,34 @@ function WritebackApprovalControl({
       ) : (
         <p className="muted">An Admin approves the queued write-back proposal.</p>
       )}
+
+      <WritebackApprovalTimeline activity={approval.activity} />
+    </div>
+  );
+}
+
+// Read-only append-only audit trail of the approve / return / revoke decisions on this queued
+// proposal — who, when, and why — under the approval control. Completes the auditability of the
+// governance control; it records nothing and executes nothing. Oldest → newest (newest last).
+function WritebackApprovalTimeline({
+  activity,
+}: {
+  activity?: RenewalWritebackApprovalActivityView[];
+}) {
+  if (!activity || activity.length === 0) {
+    return null;
+  }
+  return (
+    <div className="lr-writeback-activity" aria-label="Write-back approval history">
+      <p className="muted">Decision history</p>
+      <ol className="lr-writeback-trail">
+        {activity.map((entry, index) => (
+          <li key={`${entry.createdAt}-${index}`}>
+            <strong>{DECISION_LABEL[entry.action]}</strong> by {entry.decidedByUid} —{" "}
+            {entry.reason} <span className="muted">({entry.createdAt})</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

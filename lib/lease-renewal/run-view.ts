@@ -15,6 +15,7 @@ import {
 import type { WritebackApprovalState } from "@/lib/lease-renewal/writeback-approval";
 import type {
   LeaseRenewalResolutionRecord,
+  LeaseRenewalWritebackApprovalActivityRecord,
   LeaseRenewalWritebackApprovalRecord,
 } from "@/lib/firestore/types";
 
@@ -36,9 +37,21 @@ export interface ResolutionView {
 }
 
 /**
+ * One append-only approval decision, projected for the run-page audit trail. Value-bearing (decider +
+ * reason) — allowed only on the authenticated run page (design §6.1), never on the value-free board.
+ */
+export interface RenewalWritebackApprovalActivityView {
+  action: LeaseRenewalWritebackApprovalActivityRecord["action"];
+  decidedByUid: string;
+  reason: string;
+  createdAt: string;
+}
+
+/**
  * Approval overlay for a resolved flag's QUEUED write-back proposal (Phase-2 control plane). Present
- * only when a human resolution has queued a proposal to write; null otherwise. Value-free: it carries
- * the approval state, decider, and reason — never the proposed value (that stays in `writeback`).
+ * only when a human resolution has queued a proposal to write; null otherwise. Value-free with respect
+ * to the PROPOSED value: it carries the approval state, decider, and reason — never the proposed value
+ * (that stays in `writeback`).
  */
 export interface RenewalWritebackApprovalView {
   /** A human-resolved proposal is queued to write (resolution.proposed_writeback.status "Queued"). */
@@ -49,6 +62,11 @@ export interface RenewalWritebackApprovalView {
   reason?: string;
   /** An approval exists but its snapshot no longer matches the queued value — re-approval needed. */
   stale: boolean;
+  /**
+   * Full append-only decision history for this flag, oldest→newest (newest last). Present only when a
+   * decision has been recorded; run-page-only (value-bearing), never projected onto the board.
+   */
+  activity?: RenewalWritebackApprovalActivityView[];
 }
 
 export interface RenewalFlagView {
@@ -122,29 +140,45 @@ function toResolutionView(
 function toWritebackApprovalView(
   resolution: LeaseRenewalResolutionRecord | undefined,
   approval: LeaseRenewalWritebackApprovalRecord | undefined,
+  activityRecords: readonly LeaseRenewalWritebackApprovalActivityRecord[] = [],
 ): RenewalWritebackApprovalView | null {
   const proposal = resolution?.proposed_writeback;
   if (!proposal || proposal.status !== "Queued") return null;
+
+  // Full ordered decision history (newest last). Present regardless of staleness so the trail never
+  // hides a revoked/superseded decision; empty until a decision is recorded.
+  const activity: RenewalWritebackApprovalActivityView[] = activityRecords.map(
+    (record) => ({
+      action: record.action,
+      decidedByUid: record.actor_uid,
+      reason: record.reason,
+      createdAt: record.created_at,
+    }),
+  );
+  const withActivity = <T extends RenewalWritebackApprovalView>(view: T): T =>
+    activity.length > 0 ? { ...view, activity } : view;
+
   if (!approval) {
-    return { queued: true, state: "Awaiting Approval", stale: false };
+    return withActivity({ queued: true, state: "Awaiting Approval", stale: false });
   }
   const stale =
     approval.proposed_value !== proposal.value ||
     approval.source_of_value !== proposal.source_of_value;
   const state: WritebackApprovalState = stale ? "Awaiting Approval" : approval.state;
-  return {
+  return withActivity({
     queued: true,
     state,
     decidedByUid: approval.decided_by_uid,
     reason: approval.reason,
     stale,
-  };
+  });
 }
 
 function toFlagView(
   outcome: ReconciledFieldOutcome,
   resolutionsByKey: Map<string, LeaseRenewalResolutionRecord>,
   approvalsByKey: Map<string, LeaseRenewalWritebackApprovalRecord>,
+  activityByKey: ReadonlyMap<string, LeaseRenewalWritebackApprovalActivityRecord[]>,
 ): RenewalFlagView | null {
   const queueItem = outcome.queueMapping?.queueItem;
   if (!queueItem) return null;
@@ -177,16 +211,26 @@ function toFlagView(
     writebackApproval: toWritebackApprovalView(
       resolution,
       approvalsByKey.get(queueItem.source_trigger_key),
+      activityByKey.get(queueItem.source_trigger_key) ?? [],
     ),
   };
 }
 
-/** Build the review view from a run, its persisted resolutions, and write-back approvals (pure). */
+/**
+ * Build the review view from a run, its persisted resolutions, and write-back approvals (pure). The
+ * optional `activityByKey` (grouped by source_trigger_key) layers the append-only approval decision
+ * history onto each queued flag's overlay for the RUN PAGE only — the value-free board/queue callers
+ * omit it, so the decision reasons never reach a queue-adjacent surface.
+ */
 export function buildRenewalRunView(
   run: RenewalRunResult,
   resolutions: LeaseRenewalResolutionRecord[],
   label: string,
   approvals: LeaseRenewalWritebackApprovalRecord[] = [],
+  activityByKey: ReadonlyMap<
+    string,
+    LeaseRenewalWritebackApprovalActivityRecord[]
+  > = new Map(),
 ): RenewalRunView {
   const resolutionsByKey = new Map(
     resolutions.map((record) => [record.source_trigger_key, record]),
@@ -198,7 +242,9 @@ export function buildRenewalRunView(
   const groups: RenewalSeverityGroup[] = [];
   for (const severity of SEVERITY_ORDER) {
     const flags = run.bySeverity[severity]
-      .map((outcome) => toFlagView(outcome, resolutionsByKey, approvalsByKey))
+      .map((outcome) =>
+        toFlagView(outcome, resolutionsByKey, approvalsByKey, activityByKey),
+      )
       .filter((flag): flag is RenewalFlagView => flag !== null);
     if (flags.length > 0) groups.push({ severity, flags });
   }
