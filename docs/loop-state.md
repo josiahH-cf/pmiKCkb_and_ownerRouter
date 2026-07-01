@@ -13,7 +13,7 @@ stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-06-30
+- Last updated: 2026-07-01
 - Where we are (2026-06-29 owner-present build cycle): the multi-process operations console is the north
   star (lease-renewal = process #1). Shipped + merged to `main` this cycle: R1 spine+IA
   (`F-OPS-CONSOLE-IA`), R2 golden harness (`F-GOLDEN-HARNESS`) + labeling round-trip (`F-GOLDEN-LABELING`),
@@ -65,8 +65,12 @@ the move-in/move-out UI before the V1 process answers land** (the note's RISK; t
    buttons + Console STT (`/api/ask/transcribe`); advisory + deep-linked, never executes.
 4. Per-Space teeth (`space-teeth.md`, S11) — a reusable per-Space desk; build the Move-In + Move-Out V1 desks
    AFTER their Q&A answers land (operator-first, read/draft/suggest only).
-5. Lease-renewal Phase-2 (gated) — write-back method (`Q-WRITEBACK-METHOD`) + the renewal review surface
-   (`OQ-UI-1`) once the owner decides; RentVine renewal write stays vendor-gated (`OQ-RV-1`).
+5. Lease-renewal Phase-2 — NOW PARTLY UNBLOCKED (owner Q&A 2026-07-01): write-back = append-only proposal
+   column (`Q-WRITEBACK-METHOD`), review surface = a renewal SUB-TAB inside the Approval Queue (`OQ-UI-1`),
+   manual precedence override via the resolve flow (`Q-PREC-1`). BUILDABLE now: the renewal review sub-tab +
+   generating the append-only write-back PROPOSAL for human approval (read/draft/suggest/queue only). STILL
+   GATED: executing the write to the operating Sheet needs an approved per-action spec (SoR write); the
+   RentVine renewal write stays vendor-gated (`OQ-RV-1`).
 
 Carried owner/vendor-gated: prod `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` + live process seed; RentVine
 work-order create.
@@ -103,15 +107,15 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 
 ## Stop-Condition State
 
-- Fired earlier: migration-readiness stop gate — local foundations are substantially complete and the
-  remaining high-value work is blocked on client replies, production setup, approved sources, or
-  walkthrough content.
+- Fired earlier: migration-readiness stop gate — local foundations complete; high-value work blocked on
+  client replies, production setup, and approved sources.
 - Fired 2026-06-30 (this build cycle, after S12→S6→S10): "no safe slice remains" + an approval gate. All three
-  unblocked slices shipped (parity, IA rework, Console app-state brain). The remaining candidates are all
-  gated: per-Space desks (S11) + lease-renewal Phase-2 wait on the owner V1 Q&A
-  (`docs/products/v1-process-qa.md`) / `Q-WRITEBACK-METHOD` decision / `OQ-RV-1` RentVine vendor endpoint; the
-  S12 redeploy waits on owner/budget approval. Migration-ready but owner/client-blocked. Recommended next:
-  answer the V1 Q&A, then S11 per-Space teeth; or approve the S12 redeploy.
+  unblocked slices shipped (parity, IA rework, Console app-state brain); merged to `main` via PR #19.
+- Owner Q&A 2026-07-01: the lease-renewal + maintenance decisions landed (Q-WRITEBACK-METHOD, Q-PREC-1,
+  Q-MAINT-PHOTO-INDEX, OQ-UI-1 → facts flipped). This UNBLOCKS a renewal Phase-2 slice — the review sub-tab in
+  the Approval Queue + the append-only write-back PROPOSAL (executing the Sheet write still needs an approved
+  action spec). Still gated: the move-in/move-out desks (S11) wait on their Dan/client Q&A; the S12 redeploy on
+  owner/budget approval. Recommended next: the renewal review sub-tab; route move-in/move-out Q&A to Dan; or the redeploy.
 
 ## Security Note
 

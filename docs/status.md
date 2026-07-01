@@ -5737,3 +5737,25 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
 - Migration-ready but owner/client-blocked. Commit queue prepared (grouped by slice); nothing pushed/merged/deployed.
 - Recommended next: answer the V1 process Q&A → S11 per-Space teeth; or approve the S12 redeploy (create the RentVine
   Secret Manager secrets + grant the runtime SA first).
+
+## Build cycle merged + owner V1 Q&A (partial) answered (2026-07-01)
+
+- The S12→S6→S10 build cycle was committed on `feat/console-ia-parity-appstate` and merged to `main` via
+  PR #19 (owner-approved). Working tree clean; local `main` synced.
+- Owner answered the four pivotal, owner-decidable V1 Q&A questions (the rest are Dan/PMI-operational or
+  vendor-gated). Recorded as decisions in `docs/facts.md` (Q- rows flipped Verified) + annotated in
+  `docs/products/v1-process-qa.md`:
+  - **Q-WRITEBACK-METHOD → append-only proposal column** — write proposals to a NEW append-only column,
+    never mutate existing cells; graduate to cell-anchored compare-and-set after Phase-1 accuracy is proven;
+    RentVine-first deferred (OQ-RV-1).
+  - **OQ-UI-1 → a renewal SUB-TAB inside the Approval Queue** — same space + the built approve/return/assign
+    machinery, organized as its own logical view for Dan (not a standalone run page, not un-grouped into the
+    general queue). Mirrors the Spaces⊇Processes sub-tab pattern.
+  - **Q-PREC-1 → yes, manual per-case precedence override via the resolve flow** — Admin-approved for
+    High-severity, plain-English reason mandatory + logged, no self-approval, never auto-applied.
+  - **Q-MAINT-PHOTO-INDEX → binding rule** — tenant photos never enter an indexed corpus; SOPs index from a
+    separate approved low-sensitivity source only.
+- Unblocks a renewal Phase-2 slice: the review sub-tab in the Approval Queue + generating the append-only
+  write-back PROPOSAL for human approval (read/draft/suggest/queue only). Executing the write to the operating
+  Sheet still needs an approved per-action spec (SoR write) + its Action Registry entry flipped; move-in/move-out
+  desks (S11) still wait on their Dan/client Q&A.

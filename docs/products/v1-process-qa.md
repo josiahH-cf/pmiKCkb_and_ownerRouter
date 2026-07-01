@@ -24,11 +24,11 @@ invented values; identity stays `pmikcmetro.com`.
 1. **Q-PREC-1 — per-case manual precedence override?** _Default:_ YES, via the existing resolve flow
    (pick source / enter corrected value / "sheet is already right"); High-severity overrides need an
    Admin approver; a plain-English reason is mandatory + logged; no self-approval; never auto-applied.
-   _Owner: client._
+   _Owner: client._ — **✅ ANSWERED 2026-07-01: confirmed the default (yes, via the resolve flow). Recorded as Q-PREC-1 Verified in `docs/facts.md`.**
 2. **Q-WRITEBACK-METHOD — write-back method + "the math"?** (a) append-only proposal column,
    (b) cell-anchored compare-and-set, (c) RentVine-first. _**No safe default — owner must decide.**_
    Recommendation: start with (a) to earn trust at zero risk to existing cells, graduate to (b) once
-   Phase-1 flag accuracy is proven. _Owner: owner._
+   Phase-1 flag accuracy is proven. _Owner: owner._ — **✅ ANSWERED 2026-07-01: (a) append-only proposal column first; graduate to (b) after Phase-1 accuracy is proven; (c) deferred (OQ-RV-1). Recorded as Q-WRITEBACK-METHOD Verified in `docs/facts.md`.**
 3. **OQ-SHEET-1 — in-scope tabs/columns + credential-tab boundary.** _Default:_ reconcile only the
    "Lease Renewal" tab for V1; Tabs 4 (PadSplit WiFi) & 7 (Platform Logins) permanently excluded; all
    other tabs read-only context until their columns are team-validated. _Owner: client._
@@ -43,7 +43,7 @@ invented values; identity stays `pmikcmetro.com`.
    _Owner: client (deliver files)._
 7. **OQ-UI-1 — renewal review surface: extend the Approval Queue, or build a renewal run page?**
    _**No safe default — product call.**_ This is the gate where Dan reviews Phase-1 accuracy. _Owner:
-   owner/design._
+   owner/design._ — **✅ ANSWERED 2026-07-01: a dedicated renewal SUB-TAB *inside* the Approval Queue — same space + the built approve/return/assign machinery, but its own logically-organized view for Dan (mirrors the Spaces⊇Processes sub-tab pattern). Not a standalone run page, and not un-organized into the general queue.**
 8. **OQ-RV-1 — RentVine renewal/field-write endpoint.** _**No safe default — vendor-gated.**_ V1 ends at
    "approved renewal package + non-executable RentVine flag"; the RentVine entry stays a human step.
    _Owner: vendor._
@@ -103,7 +103,7 @@ invented values; identity stays `pmikcmetro.com`.
 
 1. **Q-MAINT-PHOTO-INDEX — keep tenant photos out of any indexed corpus.** _Default:_ YES, binding rule —
    photos go to a write-only Drive folder with NO Vertex data store; SOPs index from a SEPARATE approved
-   low-sensitivity source only. _Owner: owner/design._
+   low-sensitivity source only. _Owner: owner/design._ — **✅ ANSWERED 2026-07-01: confirmed as a binding rule. Recorded as Q-MAINT-PHOTO-INDEX Verified in `docs/facts.md`.**
 2. **Production `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID`.** _Default:_ set it in the Cloud Run env to the
    already-created in-boundary Shared Drive folder id; deploy forwards it, preflight requires it.
    _Owner: owner._
