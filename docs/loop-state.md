@@ -14,17 +14,10 @@ stop-and-reset rules.
 ## Snapshot
 
 - Last updated: 2026-07-01
-- Where we are (2026-06-29 owner-present build cycle): the multi-process operations console is the north
-  star (lease-renewal = process #1). Shipped + merged to `main` this cycle: R1 spine+IA
-  (`F-OPS-CONSOLE-IA`), R2 golden harness (`F-GOLDEN-HARNESS`) + labeling round-trip (`F-GOLDEN-LABELING`),
-  R3 reconciliation math tuned to owner ground truth (`F-RENEWAL-DATE-SEMANTICS`, `F-RECON-PRECEDENCE`;
-  live re-capture 17->2 flags), R4 action console (`F-ACTION-CONSOLE`) + hybrid intent-detection
-  (`F-INTENT-DETECT`) + the audience/channel/urgency schema trim, "Bailey Placeholder"->"Open Placeholder"
-  (`F-OPEN-PLACEHOLDER`), and the full Maintenance Work Order Intake (`F-MAINT-INTAKE`, `F-STT-SEAM`,
-  `F-MAINT-CAPTURE-UI`, `F-MAINT-PHOTO`, `F-MAINT-SEED`, `F-DRIVE-DWD`). Maintenance photo capture -> team
-  Shared Drive sync is LIVE + round-trip-verified (keyless DWD as josiah@pmikcmetro.com, least-privilege
-  drive.file). The cutover preflight now guards the maintenance photo Drive folder (decoupled into
-  MAINTENANCE_PHOTO_DRIVE_FOLDER_ID; the deploy forwards it). 806 tests; all gates green on every merge.
+- Where we are: the multi-process operations console is the north star (lease-renewal = process #1). The
+  2026-06-29 cycle shipped + merged R1–R5 (spine+IA, golden harness+labeling, renewal math, action console +
+  intent-detect, and the full Maintenance Work Order Intake incl. live Drive photo sync). Full detail is in
+  `docs/status.md` + `docs/facts.md` (`F-*` rows). All gates green on every merge.
 - Production-plane fence verified (`F-PROD-CLOUD-MODEL`): prod forces Gemini + Drive; the local model,
   demo auth, and the STT/image stubs are dev/test-only (NODE_ENV-fenced), never a prod dependency.
 - Earlier context (full history in `docs/status.md`): client beta deployed on the `pmi-kc-kb-demo` Cloud
@@ -40,6 +33,9 @@ stop-and-reset rules.
   F-OPS-CONSOLE-IA: Console-as-home, Processes nav retired/engine kept, real clickable Space cards, Process
   sub-tab), S10 Console app-state brain (`F-CONSOLE-APP-STATE`: read-only approvals/connections/coverage +
   command buttons + Console STT). Loop then STOPPED — no unblocked safe slice remains (see Stop-Condition State).
+- 2026-07-01 build cycle (this loop run): SHIPPED the lease-renewal write-back proposal APPROVAL control plane
+  (`F-WRITEBACK-APPROVAL`) — Admin-only audited approve/return/revoke over the QUEUED proposals; non-executing by
+  construction. 898 tests, all gates green. Loop then STOPPED — no unblocked safe slice remains.
 
 ## Next Safe Slice Candidates
 
@@ -65,12 +61,12 @@ the move-in/move-out UI before the V1 process answers land** (the note's RISK; t
    buttons + Console STT (`/api/ask/transcribe`); advisory + deep-linked, never executes.
 4. Per-Space teeth (`space-teeth.md`, S11) — a reusable per-Space desk; build the Move-In + Move-Out V1 desks
    AFTER their Q&A answers land (operator-first, read/draft/suggest only).
-5. Lease-renewal Phase-2 — review sub-tab + append-only write-back PROPOSAL both SHIPPED 2026-07-01
-   (`F-RENEWAL-REVIEW-SUBTAB`, `F-WRITEBACK-PROPOSAL`): value-free Renewals tab (grouped by run, deep-links to the
-   resolve flow, "Proposal ready" badge; approve = admin-tier per `OQ-APPR-1`) + the value-bearing proposal at the
-   run evidence (append to a new column, needs-approval, not executed). NEXT: a proposal approval + queue path (still
-   no execution). STILL GATED: executing the Sheet write needs an approved per-action spec (SoR write); the RentVine
-   renewal write stays vendor-gated (`OQ-RV-1`); drafts use the transcript scaffold (`OQ-TMPL-1`).
+5. Lease-renewal Phase-2 — review sub-tab + append-only write-back PROPOSAL + the proposal APPROVAL control plane are
+   all SHIPPED (`F-RENEWAL-REVIEW-SUBTAB`, `F-WRITEBACK-PROPOSAL`, `F-WRITEBACK-APPROVAL` 2026-07-01): an Admin-only
+   audited approve/return/revoke over the QUEUED proposals; non-executing by construction; value-free awaiting/approved
+   counts on the review sub-tab (detail in `docs/facts.md` + `docs/status.md`). NEXT (all gated/blocked): the gated
+   Sheet write execution needs an approved per-action spec (`F-WRITE-GATE`); RentVine renewal write vendor-gated
+   (`OQ-RV-1`); a cross-run "ready-to-write" queue + approval audit-trail surface is an optional follow-on.
 
 Carried owner/vendor-gated: prod `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` + live process seed; RentVine
 work-order create.
@@ -115,7 +111,11 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
   (`F-RENEWAL-REVIEW-SUBTAB`), write-back PROPOSAL generator (`F-WRITEBACK-PROPOSAL`, card links to its approval path),
   maintenance unit matcher (`F-MAINT-UNIT-MATCHER`, M-4) WIRED to the capture desk (`F-MAINT-MATCH-UNIT-LIVE`,
   browser-verified live), owner-notice DRAFT + vendor-assignment SUGGESTION (`F-MAINT-NOTICE-VENDOR`, M-5) SURFACED in the
-  desk; 878 tests. Maintenance V1 UI COMPLETE. NEXT: move-in/move-out desks (Dan/legal Q&A). BLOCKED (owner): S12 redeploy — org reauth; owner runs the runbook.
+  desk; 878 tests. Maintenance V1 UI COMPLETE.
+- Owner-present cycle 2026-07-01 (this loop run): SHIPPED the write-back proposal APPROVAL control plane
+  (`F-WRITEBACK-APPROVAL`, candidate 5's "proposal approval + queue path"); 898 tests, all gates green. Loop then
+  STOPPED — "no unblocked safe slice remains": the gated write execution needs an approved per-action SoR spec, the
+  S12 redeploy needs owner reauth, and the move-in/move-out desks need the Dan/legal Q&A.
 
 ## Security Note
 

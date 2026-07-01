@@ -12,7 +12,11 @@ import {
   buildWritebackProposal,
   type WritebackProposal,
 } from "@/lib/lease-renewal/writeback-proposal";
-import type { LeaseRenewalResolutionRecord } from "@/lib/firestore/types";
+import type { WritebackApprovalState } from "@/lib/lease-renewal/writeback-approval";
+import type {
+  LeaseRenewalResolutionRecord,
+  LeaseRenewalWritebackApprovalRecord,
+} from "@/lib/firestore/types";
 
 export interface RenewalCandidateView {
   source: string;
@@ -31,6 +35,22 @@ export interface ResolutionView {
   resolvedByUid?: string;
 }
 
+/**
+ * Approval overlay for a resolved flag's QUEUED write-back proposal (Phase-2 control plane). Present
+ * only when a human resolution has queued a proposal to write; null otherwise. Value-free: it carries
+ * the approval state, decider, and reason — never the proposed value (that stays in `writeback`).
+ */
+export interface RenewalWritebackApprovalView {
+  /** A human-resolved proposal is queued to write (resolution.proposed_writeback.status "Queued"). */
+  queued: true;
+  /** Effective state; "Awaiting Approval" when queued but not yet (freshly) decided, or stale. */
+  state: WritebackApprovalState;
+  decidedByUid?: string;
+  reason?: string;
+  /** An approval exists but its snapshot no longer matches the queued value — re-approval needed. */
+  stale: boolean;
+}
+
 export interface RenewalFlagView {
   sourceTriggerKey: string;
   fieldKey: string;
@@ -45,6 +65,8 @@ export interface RenewalFlagView {
   resolution: ResolutionView | null;
   /** Append-only write-back proposal (Q-WRITEBACK-METHOD) — value-bearing; null when not proposable. */
   writeback: WritebackProposal | null;
+  /** Approval state of the QUEUED proposal (Phase-2 control plane); null when nothing is queued. */
+  writebackApproval: RenewalWritebackApprovalView | null;
 }
 
 export interface RenewalSeverityGroup {
@@ -91,13 +113,43 @@ function toResolutionView(
   };
 }
 
+/**
+ * Compute the approval overlay for a resolved flag's queued proposal. Null unless a human resolution
+ * has queued a proposal to write. A prior approval whose snapshot no longer matches the current queued
+ * value is reported as stale + "Awaiting Approval" (needs re-approval), never as authorizing the new
+ * value. Value-free: never surfaces the proposed value itself.
+ */
+function toWritebackApprovalView(
+  resolution: LeaseRenewalResolutionRecord | undefined,
+  approval: LeaseRenewalWritebackApprovalRecord | undefined,
+): RenewalWritebackApprovalView | null {
+  const proposal = resolution?.proposed_writeback;
+  if (!proposal || proposal.status !== "Queued") return null;
+  if (!approval) {
+    return { queued: true, state: "Awaiting Approval", stale: false };
+  }
+  const stale =
+    approval.proposed_value !== proposal.value ||
+    approval.source_of_value !== proposal.source_of_value;
+  const state: WritebackApprovalState = stale ? "Awaiting Approval" : approval.state;
+  return {
+    queued: true,
+    state,
+    decidedByUid: approval.decided_by_uid,
+    reason: approval.reason,
+    stale,
+  };
+}
+
 function toFlagView(
   outcome: ReconciledFieldOutcome,
   resolutionsByKey: Map<string, LeaseRenewalResolutionRecord>,
+  approvalsByKey: Map<string, LeaseRenewalWritebackApprovalRecord>,
 ): RenewalFlagView | null {
   const queueItem = outcome.queueMapping?.queueItem;
   if (!queueItem) return null;
   const reconciliation = outcome.reconciliation;
+  const resolution = resolutionsByKey.get(queueItem.source_trigger_key);
   return {
     sourceTriggerKey: queueItem.source_trigger_key,
     fieldKey: outcome.fieldKey,
@@ -120,25 +172,33 @@ function toFlagView(
       confidence: candidate.confidence,
       locationRef: candidate.location_ref,
     })),
-    resolution: toResolutionView(resolutionsByKey.get(queueItem.source_trigger_key)),
+    resolution: toResolutionView(resolution),
     writeback: buildWritebackProposal(reconciliation, { fieldLabel: outcome.fieldLabel }),
+    writebackApproval: toWritebackApprovalView(
+      resolution,
+      approvalsByKey.get(queueItem.source_trigger_key),
+    ),
   };
 }
 
-/** Build the review view from a run and its persisted resolutions (pure). */
+/** Build the review view from a run, its persisted resolutions, and write-back approvals (pure). */
 export function buildRenewalRunView(
   run: RenewalRunResult,
   resolutions: LeaseRenewalResolutionRecord[],
   label: string,
+  approvals: LeaseRenewalWritebackApprovalRecord[] = [],
 ): RenewalRunView {
   const resolutionsByKey = new Map(
     resolutions.map((record) => [record.source_trigger_key, record]),
+  );
+  const approvalsByKey = new Map(
+    approvals.map((record) => [record.source_trigger_key, record]),
   );
 
   const groups: RenewalSeverityGroup[] = [];
   for (const severity of SEVERITY_ORDER) {
     const flags = run.bySeverity[severity]
-      .map((outcome) => toFlagView(outcome, resolutionsByKey))
+      .map((outcome) => toFlagView(outcome, resolutionsByKey, approvalsByKey))
       .filter((flag): flag is RenewalFlagView => flag !== null);
     if (flags.length > 0) groups.push({ severity, flags });
   }

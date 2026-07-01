@@ -552,3 +552,45 @@ export interface LeaseRenewalResolutionActivityRecord {
   reason: string;
   created_at: string;
 }
+
+// Lease Renewal Phase-2 write-back APPROVAL layer (Q-WRITEBACK-METHOD control plane). One record per
+// decided proposal, keyed by its source_trigger_key. A resolution QUEUES a proposed write-back; an
+// Admin then Approves (authorizes the future, gated write) or Returns it here. This layer NEVER
+// executes a sheet/system-of-record write: `production_allowed` and `executed` are always false and the
+// state can only be one of the audited FSM's non-executing states.
+export type LeaseRenewalWritebackApprovalState = "Approved" | "Returned for Revision";
+export type LeaseRenewalWritebackApprovalDecision = "approve" | "return";
+
+export interface LeaseRenewalWritebackApprovalRecord {
+  id: string;
+  source_trigger_key: string;
+  run_id: string;
+  field_key: string;
+  field_label: string;
+  severity: QueueRiskLevel;
+  state: LeaseRenewalWritebackApprovalState;
+  // Snapshot of the queued proposal this decision was made against, so a later re-resolution that
+  // changes the proposed value marks this approval stale (needs re-approval) instead of silently
+  // authorizing a different value.
+  proposed_value: string;
+  source_of_value: string;
+  reason: string;
+  decided_by_uid: string;
+  // Hard invariants — this layer never executes. Both are always false.
+  production_allowed: false;
+  executed: false;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeaseRenewalWritebackApprovalActivityRecord {
+  id: string;
+  source_trigger_key: string;
+  run_id: string;
+  actor_uid: string;
+  action: LeaseRenewalWritebackApprovalDecision;
+  previous_state?: LeaseRenewalWritebackApprovalState;
+  new_state: LeaseRenewalWritebackApprovalState;
+  reason: string;
+  created_at: string;
+}

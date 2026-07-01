@@ -5908,3 +5908,23 @@ print-access-token` — no matter how many `gcloud auth login`s. STRUCTURAL: the
   Resume Here step 2, and the gcloud-reauth memory. The agent still can't reauth (interactive-only); it checks with
   the read-only `preflight:adc` and asks the owner to run `auth:session` on failure. PS syntax-checked; freshness/
   falsification/lint green (not executed here — it's the owner's interactive script).
+- 2026-07-01 (build loop) — SHIPPED the lease-renewal write-back proposal APPROVAL control plane
+  (`F-WRITEBACK-APPROVAL`, candidate 5's "proposal approval + queue path"). A resolution already QUEUES an append-only
+  proposed write-back (`production_allowed:false`); this adds the deferred "admin-enabled, per-write" half: an ADMIN
+  explicitly Approves (authorizes the future, gated write → "ready to write"), Returns, or Revokes that queued proposal
+  via `decideWritebackApproval` — Admin-only (OQ-APPR-1), mandatory plain-English reason, idempotent by
+  source_trigger_key, append-only Activity, and a stale-on-re-resolution guard (a changed queued value invalidates a
+  prior approval rather than silently authorizing a different value). The reachable states are a compile-checked
+  non-executing subset of the audited write-back FSM (`writeback.ts` via `Extract<WriteBackState,…>`; Writing/Verifying/
+  Written unreachable). NOTHING executes: every record carries `production_allowed:false` + `executed:false`, and no
+  Sheets/SoR call exists in the path — the write stays gated behind an approved per-action spec (`F-WRITE-GATE`). New
+  files: `lib/lease-renewal/writeback-approval.ts` (pure planner), `lib/firestore/lease-renewal-writeback-approvals.ts`
+  (Admin-gated service + append-only Activity), `app/api/lease-renewal/writeback-approvals/route.ts`. Wired: the
+  run-view flag now carries a value-free approval overlay; the run-evidence card renders an Admin approve/return/revoke
+  control; the renewal review sub-tab rolls up value-free awaiting/approved COUNTS (the `F-RENEWAL-REVIEW-SUBTAB`
+  value-free invariant preserved by a test asserting the approval decider/reason never leak into the board); two new
+  client-read-only Firestore collections added to `firestore.rules`. 898 tests (20 new: planner 7, service 10, board 2,
+  panel 1); the approval decision is transactional (read+validate+write in one txn — race-safe double-approve guard);
+  lint/typecheck/test/falsification/context-freshness all green. NEXT: move-in/move-out desks (Dan/legal Q&A). Loop
+  STOPPED — no unblocked safe slice remains (gated write execution needs an approved SoR per-action spec; S12 redeploy
+  needs owner reauth; the process desks need Q&A).

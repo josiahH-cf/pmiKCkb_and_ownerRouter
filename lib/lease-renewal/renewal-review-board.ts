@@ -8,7 +8,11 @@
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
-import type { LeaseRenewalResolutionRecord } from "@/lib/firestore/types";
+import { listWritebackApprovalsForRun } from "@/lib/firestore/lease-renewal-writeback-approvals";
+import type {
+  LeaseRenewalResolutionRecord,
+  LeaseRenewalWritebackApprovalRecord,
+} from "@/lib/firestore/types";
 import {
   buildRenewalReviewBoard,
   type RenewalReviewBoard,
@@ -32,14 +36,18 @@ export async function loadRenewalReviewBoard(
     if (!run) continue;
 
     let resolutions: LeaseRenewalResolutionRecord[] = [];
+    let approvals: LeaseRenewalWritebackApprovalRecord[] = [];
     try {
       resolutions = await listResolutionsForRun(user, summary.runId);
+      approvals = await listWritebackApprovalsForRun(user, summary.runId);
     } catch {
-      // ADC/Firestore unavailable — the flags still render; resolution state degrades to "open".
+      // ADC/Firestore unavailable — the flags still render; resolution + approval state degrade
+      // to "open / awaiting".
       resolutions = [];
+      approvals = [];
     }
 
-    views.push(buildRenewalRunView(run, resolutions, summary.label));
+    views.push(buildRenewalRunView(run, resolutions, summary.label, approvals));
   }
 
   return buildRenewalReviewBoard(views);

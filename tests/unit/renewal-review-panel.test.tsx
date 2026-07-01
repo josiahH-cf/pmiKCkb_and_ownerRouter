@@ -31,6 +31,8 @@ const board: RenewalReviewBoard = {
       openFlags: 1,
       highSeverityOpen: 1,
       blockedOpen: 0,
+      proposalsAwaitingApproval: 0,
+      proposalsApproved: 0,
     },
   ],
   totalRuns: 1,
@@ -53,6 +55,30 @@ describe("RenewalReviewPanel", () => {
   it("shows an empty state when there is nothing to review", () => {
     render(<RenewalReviewPanel />);
     expect(screen.getByText(/No renewals are awaiting review/)).toBeInTheDocument();
+  });
+
+  it("surfaces value-free write-back approval counts without leaking values", () => {
+    const withApprovals: RenewalReviewBoard = {
+      ...board,
+      runs: [
+        {
+          ...board.runs[0],
+          proposalsAwaitingApproval: 2,
+          proposalsApproved: 1,
+        },
+      ],
+    };
+
+    render(<RenewalReviewPanel board={withApprovals} />);
+
+    expect(
+      screen.getByText(/2 write-back proposals awaiting your approval/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/1 approved \(ready to write, not executed\)/),
+    ).toBeInTheDocument();
+    // Per-run rollup also shows the counts.
+    expect(screen.getByText(/2 awaiting approval/)).toBeInTheDocument();
   });
 });
 

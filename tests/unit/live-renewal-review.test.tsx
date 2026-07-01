@@ -64,6 +64,7 @@ const SAMPLE_VIEW: RenewalRunView = {
           ],
           resolution: null,
           writeback: null,
+          writebackApproval: null,
         },
       ],
     },
