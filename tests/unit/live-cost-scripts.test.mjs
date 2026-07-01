@@ -149,6 +149,9 @@ describe("cheap live setup scripts", () => {
     expect(command.args.join(" ")).toContain("VERTEX_SEARCH_LOCATION=us");
     expect(command.args.join(" ")).toContain("LOCAL_DEMO_AUTH=false");
     expect(command.args.join(" ")).toContain("NODE_ENV=production");
+    // With no RentVine base URL configured, the deploy does not wire the Secret Manager secrets, so
+    // the demo-only deploy path is unchanged (the live-connection secrets are opt-in via RentVine config).
+    expect(command.args.some((arg) => arg.startsWith("--set-secrets"))).toBe(false);
   });
 
   it("allows an explicit gcloud binary override for deploy commands", () => {
@@ -595,6 +598,11 @@ describe("cheap live setup scripts", () => {
       KB_APPROVAL_RECIPIENTS: "dan@pmikcmetro.com,josiah-pmi-kc-account@pmikcmetro.com",
       KB_APPROVAL_SENDER: "kb-automation@pmikcmetro.com",
       MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: "drive-folder-maintenance-photos",
+      RENTVINE_API_BASE_URL: "https://pmikcmetro.rentvine.com/api/manager",
+      RENEWAL_SHEET_ID: "prod-renewal-sheet-id",
+      SHEETS_IMPERSONATE_SA:
+        "kb-sheets-reader@pmikc-kb-production.iam.gserviceaccount.com",
+      SHEETS_DWD_SUBJECT: "kb-reader@pmikcmetro.com",
       SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
         "lease-renewals": "gs://pmikc-kb-production-sources/lease-renewals/",
       }),
@@ -652,6 +660,11 @@ describe("cheap live setup scripts", () => {
       KB_APPROVAL_NOTIFICATIONS_ENABLED: "true",
       KB_APPROVAL_RECIPIENTS: "dan@pmikcmetro.com",
       KB_APPROVAL_SENDER: "kb-automation@pmikcmetro.com",
+      RENTVINE_API_BASE_URL: "https://pmikcmetro.rentvine.com/api/manager",
+      RENEWAL_SHEET_ID: "prod-renewal-sheet-id",
+      SHEETS_IMPERSONATE_SA:
+        "kb-sheets-reader@pmikc-kb-production.iam.gserviceaccount.com",
+      SHEETS_DWD_SUBJECT: "kb-reader@pmikcmetro.com",
       SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
         "lease-renewals": "gs://pmikc-kb-production-sources/lease-renewals/",
       }),

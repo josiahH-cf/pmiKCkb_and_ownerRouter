@@ -145,6 +145,17 @@ export function validateProductionCutoverConfig(env) {
       readString(sourceTargets[MAINTENANCE_SPACE_ID]),
     errors,
   );
+  // Dev↔prod parity (S12): the deployed service must carry the same live connections as local, so a
+  // green cutover guarantees prod connects instead of silently degrading to "not connected".
+  assertLiveConnectionConfig(
+    {
+      rentvineBaseUrl: readString(env.RENTVINE_API_BASE_URL),
+      renewalSheetId: readString(env.RENEWAL_SHEET_ID),
+      sheetsImpersonateSa: readString(env.SHEETS_IMPERSONATE_SA),
+      sheetsDwdSubject: readString(env.SHEETS_DWD_SUBJECT),
+    },
+    errors,
+  );
   assertNoDemoValues("SPACE_DRIVE_FOLDER_IDS", sourceTargets, errors);
   assertNoDemoValues("SPACE_VERTEX_DATA_STORE_IDS", dataStores, errors);
   assertNoPlaceholderValues("SPACE_DRIVE_FOLDER_IDS", sourceTargets, errors);
@@ -253,6 +264,75 @@ function assertMaintenancePhotoFolder(folderId, errors) {
 
   assertNoPlaceholderString("MAINTENANCE_PHOTO_DRIVE_FOLDER_ID", folderId, errors);
   assertNoDemoString("MAINTENANCE_PHOTO_DRIVE_FOLDER_ID", folderId, errors);
+}
+
+// The RentVine tenant host shape + the single-account identity guard, mirrored from the runtime
+// client (lib/integrations/rentvine/client.ts). A GCP service account for the keyless Sheets DWD read.
+const RENTVINE_HOST_RE = /^[a-z0-9-]+\.rentvine\.com$/i;
+const EXPECTED_RENTVINE_ACCOUNT = "pmikcmetro";
+const SHEETS_SA_RE = /@(?:[a-z0-9-]+\.iam|developer)\.gserviceaccount\.com$/i;
+
+// Dev↔prod parity (S12): validate the NON-SECRET anchors of the live connections. The RentVine
+// api key/secret are delivered via Secret Manager (--set-secrets in the deploy), never as plaintext
+// cutover env, so they are intentionally NOT checked here — only the tenant base URL, the renewal
+// sheet id, and the DWD service account + the pmikcmetro.com subject it impersonates.
+function assertLiveConnectionConfig(
+  { rentvineBaseUrl, renewalSheetId, sheetsImpersonateSa, sheetsDwdSubject },
+  errors,
+) {
+  requireValue(rentvineBaseUrl, "RENTVINE_API_BASE_URL", errors);
+  assertRentVineTenant(rentvineBaseUrl, errors);
+  assertNoPlaceholderString("RENTVINE_API_BASE_URL", rentvineBaseUrl, errors);
+  assertNoDemoString("RENTVINE_API_BASE_URL", rentvineBaseUrl, errors);
+
+  requireValue(renewalSheetId, "RENEWAL_SHEET_ID", errors);
+  assertNoPlaceholderString("RENEWAL_SHEET_ID", renewalSheetId, errors);
+  assertNoDemoString("RENEWAL_SHEET_ID", renewalSheetId, errors);
+
+  requireValue(sheetsImpersonateSa, "SHEETS_IMPERSONATE_SA", errors);
+  assertNoPlaceholderString("SHEETS_IMPERSONATE_SA", sheetsImpersonateSa, errors);
+  if (sheetsImpersonateSa && !SHEETS_SA_RE.test(sheetsImpersonateSa)) {
+    errors.push(
+      "SHEETS_IMPERSONATE_SA must be a GCP service account (…iam.gserviceaccount.com) for the keyless Sheets domain-wide delegation read.",
+    );
+  }
+
+  requireValue(sheetsDwdSubject, "SHEETS_DWD_SUBJECT", errors);
+  assertNoPlaceholderString("SHEETS_DWD_SUBJECT", sheetsDwdSubject, errors);
+  // The SA impersonates a pmikcmetro.com user (the single-identity rule); never the personal account.
+  assertPmikcmetroEmailList("SHEETS_DWD_SUBJECT", sheetsDwdSubject, errors);
+}
+
+function assertRentVineTenant(baseUrl, errors) {
+  if (!baseUrl) {
+    return;
+  }
+
+  let url;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    errors.push("RENTVINE_API_BASE_URL must be a valid URL.");
+    return;
+  }
+
+  if (url.protocol !== "https:") {
+    errors.push("RENTVINE_API_BASE_URL must be an https URL.");
+  }
+
+  if (!RENTVINE_HOST_RE.test(url.host)) {
+    errors.push(
+      `RENTVINE_API_BASE_URL must be a RentVine tenant host (…rentvine.com); got ${url.host}.`,
+    );
+    return;
+  }
+
+  const account = url.host.split(".")[0].toLowerCase();
+  if (account !== EXPECTED_RENTVINE_ACCOUNT) {
+    errors.push(
+      `RENTVINE_API_BASE_URL account "${account}" is not the expected "${EXPECTED_RENTVINE_ACCOUNT}".`,
+    );
+  }
 }
 
 function requireMatchingProjectIds(

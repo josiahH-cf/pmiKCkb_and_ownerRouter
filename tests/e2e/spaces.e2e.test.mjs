@@ -20,12 +20,26 @@ describe("spaces (launch content)", () => {
     }
   });
 
-  it("serves a KB-owned space detail page", async () => {
+  it("serves a process-space detail page with the plain-language label", async () => {
     const { response, html } = await client.getHtml("/spaces/lease-renewals");
 
     expect(response.status).toBe(200);
     expect(html).toContain("Lease Renewals");
-    expect(html).toContain("KB-owned process");
+    // A-IA-V2 lexicon: "KB-owned process" → "Process space".
+    expect(html).toContain("Process space");
+    // Spaces ⊇ Processes: a Space that carries a process shows the Process sub-tab.
+    expect(html).toContain("Process");
+  });
+
+  it("surfaces the process beside a Space via the Process sub-tab", async () => {
+    const { response, html } = await client.getHtml(
+      "/spaces/lease-renewals?tab=process",
+    );
+
+    expect(response.status).toBe(200);
+    // The read-only summary deep-links to the full process engine (route preserved).
+    expect(html).toContain("View full process");
+    expect(html).toContain("/processes/lease-renewal");
   });
 
   it("marks the Owner Email space as read-only", async () => {

@@ -35,6 +35,11 @@ stop-and-reset rules.
 - Recalibration 2026-06-30 (operator note): UI/UX + process-governance re-aim — Console-as-home, Spaces ⊇
   Processes, per-Space "teeth", dev↔prod parity; Q&A-first (`A-IA-V2`). See Next Safe Slice Candidates +
   `docs/products/v1-process-qa.md` + `docs/temp/recalibration-plan.md`.
+- 2026-06-30 build cycle (this loop run, S12→S6→S10): ALL THREE SHIPPED — S12 dev↔prod parity
+  (`F-DEVPROD-PARITY`; redeploy QUEUED owner/budget-gated), S6 IA rework (`F-IA-CONSOLE-HOME`, supersedes
+  F-OPS-CONSOLE-IA: Console-as-home, Processes nav retired/engine kept, real clickable Space cards, Process
+  sub-tab), S10 Console app-state brain (`F-CONSOLE-APP-STATE`: read-only approvals/connections/coverage +
+  command buttons + Console STT). Loop then STOPPED — no unblocked safe slice remains (see Stop-Condition State).
 
 ## Next Safe Slice Candidates
 
@@ -47,15 +52,17 @@ the move-in/move-out UI before the V1 process answers land** (the note's RISK; t
 0. Owner Q&A — BLOCKING for the process desks. Answer the V1 questions (lease renewal, move-in, move-out,
    maintenance) in `docs/products/v1-process-qa.md`; record answers as facts (flip the `Q-` rows in
    `docs/facts.md`; `OQ-*` items live in the lease-renewal discovery docs).
-1. Dev↔prod parity (`dev-prod-parity.md`, S12) — forward + require the live-connection env (RentVine via
-   Secret Manager, Sheet/DWD identity) in the deploy + cutover preflight; then an owner-gated,
-   budget-guarded redeploy of current `main` (the live service predates this cycle). Readiness; no new surface.
-2. IA rework (`ui-ia.md`, S6 recalibrated, `A-IA-V2`) — Console-as-home; Spaces ⊇ Processes (retire the
-   Processes tab, KEEP the engine, process beside its Space, sub-tabs); fully-clickable real Space cards;
-   Maintenance into sub-tabs. Preserve every route + `smoke:*`; supersede `F-OPS-CONSOLE-IA` when shipped.
-3. Console app-state brain (`console-app-state.md`, S10) — Console answers approvals / connections-to-set-up
-   / spaces-without-a-process / configure-X (read-only, advisory, deep-linked) + STT-in-Console + visible
-   slash-command buttons. Extends `F-ACTION-CONSOLE` / `F-STT-SEAM`.
+1. Dev↔prod parity (`dev-prod-parity.md`, S12) — DONE 2026-06-30 (`F-DEVPROD-PARITY`): the deploy forwards the
+   four live-connection non-secrets + delivers the RentVine key/secret via Secret Manager; the cutover preflight
+   requires them. REMAINING (queued, owner/budget-gated): the redeploy of current `main` (live service predates
+   this cycle) + `npm run smoke:ask-live --base-url=<endpoint>` parity check.
+2. IA rework (`ui-ia.md`, S6, `A-IA-V2`) — DONE 2026-06-30 (`F-IA-CONSOLE-HOME`, supersedes F-OPS-CONSOLE-IA):
+   Console-as-home (`/`+`/ask`), Processes nav retired (engine+routes kept), fully-clickable Space cards with
+   real state, per-Space Process sub-tab, "Process space" copy. Routes + `smoke:*` preserved. Maintenance stays
+   its own edit-gated Space (folding it under Admin would regress Editor access).
+3. Console app-state brain (`console-app-state.md`, S10) — DONE 2026-06-30 (`F-CONSOLE-APP-STATE`): read-only
+   app-state provider (approvals / connection gaps / Space coverage) via `/api/ask/app-state` + visible command
+   buttons + Console STT (`/api/ask/transcribe`); advisory + deep-linked, never executes.
 4. Per-Space teeth (`space-teeth.md`, S11) — a reusable per-Space desk; build the Move-In + Move-Out V1 desks
    AFTER their Q&A answers land (operator-first, read/draft/suggest only).
 5. Lease-renewal Phase-2 (gated) — write-back method (`Q-WRITEBACK-METHOD`) + the renewal review surface
@@ -99,10 +106,12 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 - Fired earlier: migration-readiness stop gate — local foundations are substantially complete and the
   remaining high-value work is blocked on client replies, production setup, approved sources, or
   walkthrough content.
-- Current cycle (2026-06-30): a governance/roadmap RECALIBRATION (operator note) — no new runtime surface.
-  The V1 process Q&A (`docs/products/v1-process-qa.md`) is owner-gated and BLOCKS the move-in/move-out build
-  (teeth-before-scaffolding). Dev↔prod parity + the IA rework are buildable now; the per-Space process desks
-  wait on the Q&A answers. Prefer client/owner unblock + parity + readiness work.
+- Fired 2026-06-30 (this build cycle, after S12→S6→S10): "no safe slice remains" + an approval gate. All three
+  unblocked slices shipped (parity, IA rework, Console app-state brain). The remaining candidates are all
+  gated: per-Space desks (S11) + lease-renewal Phase-2 wait on the owner V1 Q&A
+  (`docs/products/v1-process-qa.md`) / `Q-WRITEBACK-METHOD` decision / `OQ-RV-1` RentVine vendor endpoint; the
+  S12 redeploy waits on owner/budget approval. Migration-ready but owner/client-blocked. Recommended next:
+  answer the V1 Q&A, then S11 per-Space teeth; or approve the S12 redeploy.
 
 ## Security Note
 

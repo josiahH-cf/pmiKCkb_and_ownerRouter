@@ -8,7 +8,7 @@ const port = Number(process.env.E2E_PORT ?? 4310);
 // The sign-in page redirects 127.0.0.1 hosts to localhost, so use localhost.
 const baseUrl = `http://localhost:${port}`;
 const READINESS_TIMEOUT_MS = 120_000;
-const WARMUP_PATHS = ["/ask", "/approval-queue", "/processes", "/spaces", "/admin"];
+const WARMUP_PATHS = ["/", "/ask", "/approval-queue", "/processes", "/spaces", "/admin"];
 
 export default async function setup({ provide }) {
   if (process.env.FIRESTORE_EMULATOR_HOST) {

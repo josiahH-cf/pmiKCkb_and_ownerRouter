@@ -3,10 +3,21 @@ export interface LaunchSpace {
   name: string;
   processCategory: string;
   readOnly?: boolean;
+  /**
+   * The process-definition id this Space carries (Spaces ⊇ Processes). Set only for Spaces whose
+   * process is seeded (the fixed process-definition seeder ids). Surfaced beside the Space via the
+   * Process sub-tab; drives the "process ready / needs a process" card state.
+   */
+  processDefinitionId?: string;
 }
 
 export const launchSpaces: readonly LaunchSpace[] = [
-  { id: "lease-renewals", name: "Lease Renewals", processCategory: "Renewals" },
+  {
+    id: "lease-renewals",
+    name: "Lease Renewals",
+    processCategory: "Renewals",
+    processDefinitionId: "lease-renewal",
+  },
   {
     id: "owner-renewal-outreach",
     name: "Owner Renewal Outreach + Comp Lookup",
@@ -21,6 +32,7 @@ export const launchSpaces: readonly LaunchSpace[] = [
     id: "maintenance-work-order-intake",
     name: "Maintenance Work Order Intake",
     processCategory: "Maintenance",
+    processDefinitionId: "maintenance-work-order-intake",
   },
   {
     id: "vendor-assignment-handoff",

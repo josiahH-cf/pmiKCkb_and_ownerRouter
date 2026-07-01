@@ -258,6 +258,35 @@ Production forces the Drive image store, so this must be a real Drive folder id 
 `SPACE_DRIVE_FOLDER_IDS` (that map cross-links 1:1 with a Vertex data store, which a
 photo-only folder does not need).
 
+### Live-connection config (dev↔prod parity)
+
+The deployed service must reach the same live connections as local — the RentVine read and
+the renewal-sheet read via keyless domain-wide delegation — so a green cutover guarantees prod
+connects instead of silently degrading to "not connected". Set the non-secret anchors in the
+production env file:
+
+```dotenv
+RENTVINE_API_BASE_URL=https://pmikcmetro.rentvine.com/api/manager
+RENEWAL_SHEET_ID=<renewal-sheet-id>
+SHEETS_IMPERSONATE_SA=<reader>@<client-project-id>.iam.gserviceaccount.com
+SHEETS_DWD_SUBJECT=<reader>@pmikcmetro.com
+```
+
+The RentVine **api key and secret are delivered via Secret Manager**, never as plaintext env.
+Before the redeploy, create the two secrets and grant the runtime service account access:
+
+```bash
+printf %s "$RENTVINE_API_KEY"    | gcloud secrets create RENTVINE_API_KEY    --data-file=- --project=<client-project-id>
+printf %s "$RENTVINE_API_SECRET" | gcloud secrets create RENTVINE_API_SECRET --data-file=- --project=<client-project-id>
+gcloud secrets add-iam-policy-binding RENTVINE_API_KEY    --member="serviceAccount:<runtime-service-account-email>" --role="roles/secretmanager.secretAccessor" --project=<client-project-id>
+gcloud secrets add-iam-policy-binding RENTVINE_API_SECRET --member="serviceAccount:<runtime-service-account-email>" --role="roles/secretmanager.secretAccessor" --project=<client-project-id>
+```
+
+The deploy wires them via `--set-secrets` automatically when `RENTVINE_API_BASE_URL` is set.
+The Secret Manager secret id defaults to the env var name; override with `RENTVINE_API_KEY_SECRET_ID`
+/ `RENTVINE_API_SECRET_SECRET_ID` (and `*_SECRET_VERSION`, default `latest`) if the secrets are
+named differently. To deploy without RentVine, leave `RENTVINE_API_BASE_URL` unset.
+
 Run the production preflight:
 
 ```bash
@@ -267,7 +296,9 @@ npm run preflight:production -- --env-file=.env.production.local
 The preflight must pass before deploy. It rejects demo project IDs, demo buckets,
 unreplaced placeholders, non-HTTPS or local `APP_BASE_URL`, `ASK_DEMO_MODE=true`,
 `LOCAL_DEMO_AUTH=true`, missing source/data-store maps, missing `APP_BASE_URL`, missing
-Firebase public config, and a missing or `gs://`-typed maintenance photo Drive folder.
+Firebase public config, a missing or `gs://`-typed maintenance photo Drive folder, and — for
+dev↔prod parity — a missing/wrong-tenant `RENTVINE_API_BASE_URL`, missing `RENEWAL_SHEET_ID`,
+a non-service-account `SHEETS_IMPERSONATE_SA`, or a non-`pmikcmetro.com` `SHEETS_DWD_SUBJECT`.
 
 ## 6. Deploy Cloud Run
 
@@ -298,6 +329,8 @@ KB runtime:
 - `roles/firebaseauth.admin` (Identity Platform session-cookie create + revocation lookup)
 - `roles/iam.serviceAccountTokenCreator` on the runtime SA itself (sign session cookies via ADC
   `signBlob`; required when the runtime SA has no downloadable key)
+- `roles/secretmanager.secretAccessor` on the `RENTVINE_API_KEY` + `RENTVINE_API_SECRET` secrets
+  (the deploy wires them via `--set-secrets`; see the live-connection config in §5)
 - Gmail send-only authority for `kb-automation@pmikcmetro.com`
 
 Deploy with production flags:

@@ -5638,3 +5638,102 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   `lease-renewal-next-phase-plan.md` predate R1–R5 and carry stale test counts (387/638 vs 806) — banners
   added; `facts.md` + `loop-state.md` are authoritative.
 - No SoR write; no cloud spend; `production_allowed:false` throughout; identity stays `pmikcmetro.com`.
+
+## S12 — dev↔prod parity for live connections (2026-06-30, build cycle slice 1)
+
+- First slice of the S12→S6→S10 build loop (owner authorized "run the loop / build the next feature").
+  Closed the parity gap so the deployed service carries the same live connections as local — a green
+  cutover now guarantees prod connects instead of silently degrading to "not connected" (`F-DEVPROD-PARITY`).
+- `scripts/deploy-demo-cloud-run.mjs`: `readRuntimeEnv` now forwards the four NON-SECRET live-connection
+  identifiers (`RENTVINE_API_BASE_URL`, `RENEWAL_SHEET_ID`, `SHEETS_IMPERSONATE_SA`, `SHEETS_DWD_SUBJECT`);
+  new `readRuntimeSecrets` delivers `RENTVINE_API_KEY`/`RENTVINE_API_SECRET` via Secret Manager
+  (`--set-secrets`), never inlined into the service's plaintext env. Wired only when the RentVine base URL
+  is present (secret id overridable via `*_SECRET_ID`, version via `*_SECRET_VERSION`), so the demo-only
+  deploy path (no RentVine) is unchanged.
+- `scripts/preflight-production-cutover.mjs`: new `assertLiveConnectionConfig` requires the four
+  non-secrets, mirroring `assertMaintenancePhotoFolder`. RentVine tenant guard mirrors the runtime client
+  (`^[a-z0-9-]+\.rentvine\.com$`, account must be `pmikcmetro`, https); the Sheets impersonator must be a
+  GCP service account; the DWD subject must be `pmikcmetro.com` (the identity rule). The RentVine key/secret
+  are NOT checked here by design — they are Secret-Manager-delivered, not plaintext cutover env.
+- Golden fixture + tests: `golden-production.env.fixture` gains the four anchors; strengthened the deploy
+  preview test (asserts the env-var forwarding + the `--set-secrets` wiring); added six negatives
+  (missing/wrong-tenant/non-RentVine base URL, missing sheet id, non-SA impersonator, non-pmikcmetro
+  subject) + a "no secrets when RentVine unconfigured" guard; updated the two ok:true prod-config tests.
+- Docs: `.env.example` (Secret Manager override note), `docs/client-production-cutover.md` (§5 live-connection
+  config + Secret Manager create/grant commands, §6 `secretmanager.secretAccessor` role, preflight rejection
+  list), `docs/environment-handoff.md` (Cloud Run row), `docs/facts.md` (`F-DEVPROD-PARITY`), `docs/loop-state.md`.
+- Behavior-change heads-up for the owner: a `deploy:demo` from a machine whose `.env.local` has RentVine
+  configured now wires `--set-secrets`, so the (owner/budget-gated) redeploy requires the two Secret Manager
+  secrets to exist first + the runtime SA granted `secretmanager.secretAccessor`. To deploy without RentVine,
+  unset `RENTVINE_API_BASE_URL`.
+- Verification: 812/812 tests (+6), lint + typecheck clean, `verify:falsification` (514 files) +
+  `verify:context-freshness` pass. `format:check` has PRE-EXISTING drift (44 files flagged at HEAD on the
+  Windows/CRLF checkout, incl. untouched files); my code files are prettier-clean (EOL-agnostic) and markdown
+  additions match the repo's established style — not mass-reformatting to avoid a 44-file unrelated diff.
+- QUEUED (Stop-and-Reset approval gate, NOT done autonomously): the owner/budget-gated redeploy of current
+  `main` (`npm run check:budget-guard` + `--budget-confirmed`, under the $10 cap) + create the RentVine Secret
+  Manager secrets + grant the runtime SA + `npm run smoke:ask-live -- --base-url=<endpoint>` parity check.
+- No SoR write; no cloud spend; `production_allowed:false` throughout; identity stays `pmikcmetro.com`.
+
+## S6 — UI/IA rework: Console-as-home + Spaces ⊇ Processes (2026-06-30, build cycle slice 2)
+
+- Second slice of the build loop. Recalibrated the IA to A-IA-V2 (`F-IA-CONSOLE-HOME`, supersedes
+  `F-OPS-CONSOLE-IA`). Shipped as two sub-commits to de-risk the smoke-sensitive part.
+- **S6a — Console-as-home + retire Processes nav.** Extracted `components/console/ConsoleView.tsx` (the shared
+  Console body, an async server component) and render it from BOTH `app/page.tsx` (home `/`) and `app/ask/page.tsx`
+  (kept a real 200 page — `/ask` is asserted by smoke:ask-live/auth-live, so NOT redirected). Deleted the
+  `OperationsConsoleHome` launcher + its unit test. Removed the "Processes" nav entry from `AppShell` — the
+  `/processes` routes + the process-definition engine are preserved (they're deep-linked from the Renewal Desk and
+  each Space's Process sub-tab; `degraded.e2e`/`process-definitions.e2e` still cover them). Added
+  `console-view.test.tsx` + a home e2e (`/` → 200 + "Console"); added `/` to the e2e warmup.
+- **S6b — real Space cards + per-Space Process sub-tab + copy.** Added `processDefinitionId` to `LaunchSpace`
+  (lease-renewals→lease-renewal, maintenance→maintenance-work-order-intake). New pure `lib/space-card-state.ts`
+  (`computeSpaceCardState` + a conservative space→connector map) → `/spaces` cards are now fully clickable
+  (`<Link class="panel space-card">`) with a real state badge (connections-needed > needs-a-process > process-ready;
+  read-only Spaces = reference). New read-only `ProcessSummaryPanel` + `?tab=` sub-tabs on `/spaces/[spaceId]`
+  (Overview default keeps the existing SOP editor so smoke:demo-live is unchanged; Process tab surfaces the
+  definition + recent simulation runs and deep-links to `/processes/{id}` — advisory, never executes). Copy:
+  "KB-owned process" → "Process space" (voice lexicon). Added `space-card-state.test.ts`; updated `spaces.e2e`.
+- **Decision recorded:** Maintenance stays its OWN edit-gated Space (`/maintenance` route + `requirePageCapability("edit")`
+  untouched), NOT folded under the Admin nav — Admin nav is `manageAdmin`-gated, so moving it there would regress
+  Editor access. Resolves the `ui-ia.md` "Admin vs own tab" open question.
+- Verification: 818/818 unit tests (+6 net: +space-card-state, +console-view, −launcher test), typecheck + lint clean,
+  `verify:falsification` (517 files) + `verify:context-freshness` pass. E2e core: 31 passed / 18 skipped (skips need
+  the Firestore emulator); `ask.e2e` (home) + `spaces.e2e` (sub-tab + copy) ran in core and passed. Browser-verified
+  on `npm run dev`: `/` renders the Console (old launcher gone, no Processes nav), `/spaces` shows 12 clickable cards
+  with real badges, the Process sub-tab links to the engine, and the overview keeps the SOP editor.
+- No SoR write; no cloud spend; `production_allowed:false` throughout; identity stays `pmikcmetro.com`.
+
+## S10 — Console as the app-state-aware front door (2026-06-30, build cycle slice 3)
+
+- Third + final slice of the build loop. Made the Console answer the operator's OWN app-state — read-only,
+  advisory, deep-linked, never executing (`F-CONSOLE-APP-STATE`, extends `F-ACTION-CONSOLE`).
+- **App-state provider** (`lib/ask/app-state-context.ts`, read-only + non-fatal, modeled on `resolveProcessContext`):
+  approvals (`listApprovalQueue` filtered by `canViewApprovalQueueItem`), connection setup gaps (unconfigured or
+  partial connectors via `buildConnectionView` — excludes fully-configured "ready to verify" so the list stays
+  actionable), and Space process+connection coverage (reuses the S6 `computeSpaceCardState`, so the Console and the
+  `/spaces` badges agree). Every resolver degrades to an empty result on a Firestore error, never throws.
+- **Read-only API** `GET /api/ask/app-state?query=approvals|connections|coverage` (read-gated; 400 on unknown query).
+- **Visible command buttons** in the Console (`AskForm`): "My approvals", "Connections to set up", "Space coverage"
+  → fetch the query and render an advisory panel (summary + deep-linked items + Dismiss). No execute path — the panel
+  links to the gated surfaces (Approval Queue, Connections, the Space) where actions actually happen.
+- **Console STT** `POST /api/ask/transcribe` (edit-gated, ~8MB Content-Length cap, prod-fenced `createSpeechToTextProvider`)
+  — a verbatim mirror of the maintenance transcribe route; a "Dictate" button reuses the MediaRecorder→base64 flow to
+  fill the question box. Design note: the app-state answers are DETERMINISTIC (state lookup), NOT injected into the
+  grounded-answer prompt — app-state questions have no KB grounding, so a deterministic panel is both accurate and
+  anti-hallucination-safe (this refines the plan's "inject as non-citation context" toward the spec's read-only/deep-linked intent).
+- Client-bundle safety: `AskForm` imports the app-state module TYPE-ONLY (erased) + a local command list, so the
+  server-only provider never enters the client bundle.
+- Verification: 824/824 unit tests (+6: app-state-context ×4, ask-form ×2 new S10 cases), typecheck + lint clean,
+  `verify:falsification` (521 files) + `verify:context-freshness` pass, e2e core green. The two thin API routes
+  (validate+delegate; verbatim STT mirror) rely on the tested provider + the already-verified maintenance seam.
+- No SoR write; no cloud spend; `production_allowed:false` throughout; identity stays `pmikcmetro.com`.
+
+## Build loop complete — clean stop (2026-06-30)
+
+- The S12→S6→S10 loop shipped all three unblocked Next-Safe-Slice candidates. Stop-and-Reset fired: "no safe slice
+  remains" — the per-Space desks (S11) + lease-renewal Phase-2 are gated on the owner V1 Q&A / `Q-WRITEBACK-METHOD`
+  decision / `OQ-RV-1` RentVine vendor endpoint; the S12 redeploy of `main` is a queued owner/budget approval.
+- Migration-ready but owner/client-blocked. Commit queue prepared (grouped by slice); nothing pushed/merged/deployed.
+- Recommended next: answer the V1 process Q&A → S11 per-Space teeth; or approve the S12 redeploy (create the RentVine
+  Secret Manager secrets + grant the runtime SA first).

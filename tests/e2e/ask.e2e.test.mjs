@@ -55,4 +55,13 @@ describe("ask flow (demo mode)", () => {
     expect(response.status).toBe(200);
     expect(html).toContain("Console");
   });
+
+  it("serves the Console at the home route (Console-as-home)", async () => {
+    // A-IA-V2: the home route `/` is now the Console (the launcher was retired). Both `/` and `/ask`
+    // render the same ConsoleView.
+    const { response, html } = await client.getHtml("/");
+
+    expect(response.status).toBe(200);
+    expect(html).toContain("Console");
+  });
 });

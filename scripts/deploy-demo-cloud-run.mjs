@@ -73,6 +73,7 @@ export function buildDemoDeployCommand({
   errors.push(...liveCostResult.errors);
   const buildEnv = readRequiredBuildEnv(mergedEnv, errors);
   const runtimeEnv = readRuntimeEnv(mergedEnv, project, region, searchLocation);
+  const runtimeSecrets = readRuntimeSecrets(mergedEnv);
   const commandArgs = [
     "run",
     "deploy",
@@ -89,6 +90,9 @@ export function buildDemoDeployCommand({
     "--quiet",
     formatGcloudMapFlag("--set-build-env-vars", buildEnv),
     formatGcloudMapFlag("--set-env-vars", runtimeEnv),
+    ...(Object.keys(runtimeSecrets).length > 0
+      ? [formatGcloudMapFlag("--set-secrets", runtimeSecrets)]
+      : []),
   ];
   const serviceAccount =
     args.serviceAccount ?? readEnv("CLOUD_RUN_SERVICE_ACCOUNT") ?? undefined;
@@ -230,9 +234,44 @@ function readRuntimeEnv(env, project, region, searchLocation) {
       "MAINTENANCE_PHOTO_DRIVE_FOLDER_ID",
       "",
     ),
+    // Dev↔prod parity (S12): forward the live-connection identifiers so the deployed service reaches
+    // RentVine (read) + the renewal sheet (keyless domain-wide delegation) exactly as local does.
+    // These are NON-SECRET identifiers; the RentVine key/secret are delivered separately via Secret
+    // Manager (readRuntimeSecrets → --set-secrets), never inlined here. Empty when unset → the live
+    // review degrades to a clear "not connected" panel instead of throwing.
+    RENTVINE_API_BASE_URL: withDefault("RENTVINE_API_BASE_URL", ""),
+    RENEWAL_SHEET_ID: withDefault("RENEWAL_SHEET_ID", ""),
+    SHEETS_IMPERSONATE_SA: withDefault("SHEETS_IMPERSONATE_SA", ""),
+    SHEETS_DWD_SUBJECT: withDefault("SHEETS_DWD_SUBJECT", ""),
     VERTEX_AI_LOCATION: region,
     VERTEX_SEARCH_LOCATION: searchLocation,
   };
+}
+
+// RentVine credentials reach Cloud Run via Secret Manager (--set-secrets), never inlined into the
+// service's plaintext env config (the no-secrets rule). Wired only when RentVine is configured for
+// this deploy — its non-secret base URL is present — so the demo-only deploy path is unchanged. The
+// Secret Manager secret id defaults to the env var name and is overridable per-secret via
+// <NAME>_SECRET_ID; the version via <NAME>_SECRET_VERSION (default "latest"). Before a redeploy the
+// owner must create these secrets and grant the Cloud Run runtime SA
+// roles/secretmanager.secretAccessor (see docs/client-production-cutover.md). To deploy without
+// RentVine, leave RENTVINE_API_BASE_URL unset in the deploy env.
+const RENTVINE_RUNTIME_SECRETS = ["RENTVINE_API_KEY", "RENTVINE_API_SECRET"];
+
+function readRuntimeSecrets(env) {
+  const bindings = {};
+
+  if (!readString(env.RENTVINE_API_BASE_URL)) {
+    return bindings;
+  }
+
+  for (const name of RENTVINE_RUNTIME_SECRETS) {
+    const secretId = readString(env[`${name}_SECRET_ID`]) ?? name;
+    const version = readString(env[`${name}_SECRET_VERSION`]) ?? "latest";
+    bindings[name] = `${secretId}:${version}`;
+  }
+
+  return bindings;
 }
 
 function pickDelimiter(values) {
