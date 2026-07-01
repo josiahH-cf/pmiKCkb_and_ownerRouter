@@ -65,12 +65,12 @@ the move-in/move-out UI before the V1 process answers land** (the note's RISK; t
    buttons + Console STT (`/api/ask/transcribe`); advisory + deep-linked, never executes.
 4. Per-Space teeth (`space-teeth.md`, S11) — a reusable per-Space desk; build the Move-In + Move-Out V1 desks
    AFTER their Q&A answers land (operator-first, read/draft/suggest only).
-5. Lease-renewal Phase-2 — NOW PARTLY UNBLOCKED (owner Q&A 2026-07-01): write-back = append-only proposal
-   column (`Q-WRITEBACK-METHOD`), review surface = a renewal SUB-TAB inside the Approval Queue (`OQ-UI-1`),
-   manual precedence override via the resolve flow (`Q-PREC-1`). BUILDABLE now: the renewal review sub-tab +
-   generating the append-only write-back PROPOSAL for human approval (read/draft/suggest/queue only). STILL
-   GATED: executing the write to the operating Sheet needs an approved per-action spec (SoR write); the
-   RentVine renewal write stays vendor-gated (`OQ-RV-1`).
+5. Lease-renewal Phase-2 — review sub-tab SHIPPED 2026-07-01 (`F-RENEWAL-REVIEW-SUBTAB`, `OQ-UI-1`: value-free
+   Renewals tab in the Approval Queue, grouped by run, deep-links to the resolve flow; approve = admin-tier per
+   `OQ-APPR-1`). NEXT BUILDABLE: the append-only write-back PROPOSAL generator (`Q-WRITEBACK-METHOD`) —
+   value-bearing, shown at the run evidence, needs-approval/queue-only; then link the sub-tab to it. STILL
+   GATED: executing the Sheet write needs an approved per-action spec (SoR write); the RentVine renewal write
+   stays vendor-gated (`OQ-RV-1`); drafts use the transcript scaffold (`OQ-TMPL-1`).
 
 Carried owner/vendor-gated: prod `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` + live process seed; RentVine
 work-order create.
@@ -111,11 +111,11 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
   client replies, production setup, and approved sources.
 - Fired 2026-06-30 (this build cycle, after S12→S6→S10): "no safe slice remains" + an approval gate. All three
   unblocked slices shipped (parity, IA rework, Console app-state brain); merged to `main` via PR #19.
-- Owner Q&A 2026-07-01: the lease-renewal + maintenance decisions landed (Q-WRITEBACK-METHOD, Q-PREC-1,
-  Q-MAINT-PHOTO-INDEX, OQ-UI-1 → facts flipped). This UNBLOCKS a renewal Phase-2 slice — the review sub-tab in
-  the Approval Queue + the append-only write-back PROPOSAL (executing the Sheet write still needs an approved
-  action spec). Still gated: the move-in/move-out desks (S11) wait on their Dan/client Q&A; the S12 redeploy on
-  owner/budget approval. Recommended next: the renewal review sub-tab; route move-in/move-out Q&A to Dan; or the redeploy.
+- Owner-present cycle 2026-07-01: Working Order added to governance (`F-WORKING-ORDER`: front-load human-gated
+  work; self-answer before client). Renewal review sub-tab SHIPPED (`F-RENEWAL-REVIEW-SUBTAB`, OQ-UI-1 + OQ-APPR-1;
+  835 tests, browser-verified). Q&A self-answer pass recorded 12 items (`v1-process-qa.md`). Secret Manager runbook
+  delivered (owner action pending → unblocks the S12 redeploy). NEXT: the append-only write-back PROPOSAL generator
+  (Q-WRITEBACK-METHOD). Still gated: Sheet-write SoR spec; move-in/move-out (Dan/legal); S12 redeploy (owner/budget).
 
 ## Security Note
 
@@ -130,7 +130,7 @@ only from env/Secret Manager, never committed. Record only non-secret references
    `docs/status.md` entry.
 2. **ADC preflight — before any live Google read:** if the plan touches a live Sheets/Firestore/Vertex
    read, run `npm run preflight:adc`; if it fails, the owner must reauth (`gcloud auth application-default
-   login`, josiah@pmikcmetro.com, NO --scopes) BEFORE building — a stale ADC token stalls the run mid-step.
+login`, josiah@pmikcmetro.com, NO --scopes) BEFORE building — a stale ADC token stalls the run mid-step.
 3. If the trigger is "plan the next feature cycle", produce a decision-complete packet and stop. If
    the trigger authorizes running the loop, proceed unattended.
 4. Pick the next slice from **Next Safe Slice Candidates** above; for lease-renewal, stay in discovery

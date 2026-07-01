@@ -135,6 +135,27 @@ route new work through the three-product docs.
 - Do not build Lease Renewal Agent or Gmail Inbox 0 runtime behavior until their
   product docs define scope, permissions, and acceptance gates.
 
+## Working Order
+
+How a session sequences and sources its work. Owner-present time is the scarce resource;
+spend it on what only a human can clear, and never hand the client a question we could
+answer ourselves.
+
+- **Front-load the human-gated, unblocking work.** At the start of an owner-present session
+  (typically earlier in the day) do the manual steps first — secrets/Secret Manager,
+  provisioning, credential and answer capture, approvals, reauth — so the downstream
+  unattended model work stays unblocked. Clear the human bottlenecks while the human is
+  here; batch the autonomous build behind them. Do not stall an easy manual unblock to keep
+  coding.
+- **Self-answer before you ask.** Before routing any question to the client, exhaust what the
+  repo and the developer already know: mine the transcript, `docs/` (especially the discovery
+  and reference docs), and code first. The developer holds substantial context — ask the
+  developer before the client. Present what you resolved as confirm-with-default; reserve
+  actual client/vendor/legal contact for the irreducible decisions only (client-operational
+  reality, vendor endpoints, statutory/legal rules). This is the
+  `anticipate-solve-not-ask-open-questions` discipline: a drafted client note is the last
+  resort, not the first move.
+
 ## Security Rules
 
 - No secrets, tokens, customer data, raw screening records, ledgers, bank data, SSNs,

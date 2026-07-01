@@ -5181,7 +5181,7 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   becomes an "action console" (answer + run workflows); Spaces is the front-door dropdown on the home;
   golden-data-first development.
 - Clean slate: committed the local-model schema-constrained structured-output fix (`response_format
-  json_schema` in `lib/llm/model-provider.ts` + empty-`escalation_owner` coercion in `lib/llm/answer.ts`),
+json_schema` in `lib/llm/model-provider.ts` + empty-`escalation_owner` coercion in `lib/llm/answer.ts`),
   merged `feat/s2-voice-copy` into `main`, pushed it, removed the stale branch, and cut
   `feat/platform-spine-ia`.
 - Shipped R1 (platform spine + IA): the home (`/`) is now an operations-console launcher — a Console
@@ -5213,7 +5213,7 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
 - R3 attempt: ran `golden:capture --live`; the tool read RentVine and reached the live Sheet read, then
   hit the known ADC reauth gotcha (`invalid_rapt`) — `gcloud auth application-default login` (scope-free,
   as josiah@pmikcmetro.com) refreshes it. No partial artifact written. R3's math stays gated on captured
-  + team-labeled golden data.
+  - team-labeled golden data.
 - No SoR write; no cloud spend; budget guard untouched; every Action Registry entry production_allowed:false.
 
 ## R3 Wiring Half — Lease Renewal as a real Draft Process (2026-06-29)
@@ -5570,7 +5570,7 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
 - Tests: a Shared-Drive `ensureFolder` test (supportsAllDrives + corpora/driveId + parents) + a
   supportsAllDrives assertion on the upload. 802/802.
 - DONE: the owner created the team Shared Drive (as josiah@pmikcmetro.com); `maintenance:ensure-folder
-  --live --shared-drive <id>` created the "Maintenance Work Order Intake — Photos" subfolder inside it;
+--live --shared-drive <id>` created the "Maintenance Work Order Intake — Photos" subfolder inside it;
   rewired SPACE_DRIVE_FOLDER_IDS to that subfolder (gitignored); round-trip verified (uploaded a test image
   into the Shared Drive → got a webViewLink → deleted it, HTTP 204); and deleted the interim My Drive folder
   (204). Maintenance photos now sync to the team-owned Shared Drive. Drive folder/Shared-Drive ids stay in
@@ -5787,3 +5787,28 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   vendor/legal-gated (RentVine renewal + work-order write endpoints, the statutory deposit deadline, QuickBooks
   ledger-of-record). Next: draft the client-owned Q&A as a confirm-with-default note to Dan, or start building
   one of the unblocked slices (renewal review sub-tab; maintenance owner-notice/vendor-assignment + unit matcher).
+
+## 2026-07-01 — Working Order directive + renewal review sub-tab (owner-present)
+
+- Owner set a durable WORKING ORDER (now `AGENTS.md` → "Working Order"; `F-WORKING-ORDER`): (1) front-load the
+  human-gated, unblocking work when the owner is present (secrets, provisioning, answers, approvals) so unattended
+  model work stays unblocked; (2) self-answer before asking the client — repo/docs/code → developer → only the
+  irreducible remainder to client/vendor/legal, as confirm-with-default. Recorded as memory + governance.
+- Secret Manager runbook delivered (owner action pending): create `RENTVINE_API_KEY` + `RENTVINE_API_SECRET` in
+  Secret Manager on `pmi-kc-kb-prod`, grant the Cloud Run runtime SA `roles/secretmanager.secretAccessor`, verify.
+  This unblocks the S12 redeploy (still a separate owner/budget-gated cost step; creating the secrets is ~free).
+- Self-answer pass over the open V1 Q&A (`docs/products/v1-process-qa.md`): 8 items self-resolved from the repo
+  (OQ-SHEET-1, Q4, MI-3, MI-6, MI-7, MO-2, MO-8, M-2) and 4 routed to the developer (OQ-APPR-1, OQ-TMPL-1, MO-4,
+  MO-5). Owner answers: OQ-APPR-1 = simple user/admin model, approving is an admin-tier function (Dan+Josiah=Admin,
+  the existing Editor/Approver/Admin model; nuanced per-scope delegation deferred); OQ-TMPL-1 = transcript scaffold
+  now; MO-4 = deposit ledger location unknown → Needs-Verification (Dan); MO-5 = threshold Dan-owned → Needs-Verification.
+- SHIPPED: the renewal review sub-tab (`F-RENEWAL-REVIEW-SUBTAB`, OQ-UI-1). A value-free "Renewals" tab beside
+  "All items" in the Approval Queue groups the deterministic reconciliation flags by run (`buildRenewalReviewBoard`
+  over the run views), most-attention-first, deep-linking each to the built resolve surface (`/lease-renewal/runs/{id}`)
+  where the values + resolution live. Read/triage only; approve = admin-tier (`queueActionAvailability`). New:
+  `lib/approval/renewal-review.ts`, `lib/lease-renewal/renewal-review-board.ts`, `components/approval/RenewalReviewPanel.tsx`;
+  edited `ApprovalQueue.tsx` (tab switcher) + `app/approval-queue/page.tsx`. 835 tests green; typecheck/lint/falsification
+  clean; browser-verified (Renewals (5), 5 severity-ordered flags, working deep link, no console errors, no value leak).
+- NEXT: the append-only write-back PROPOSAL generator (`Q-WRITEBACK-METHOD`) — value-bearing, at the run evidence,
+  needs-approval/queue-only — then link the sub-tab to it. Genuinely-Dan/vendor/legal remainder: MO-4 ledger location,
+  MO-5 dollar threshold, the statutory deposit deadline (MO-2), RentVine renewal + work-order write endpoints.
