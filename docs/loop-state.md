@@ -112,10 +112,10 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 - Fired 2026-06-30 (this build cycle, after S12→S6→S10): "no safe slice remains" + an approval gate. All three
   unblocked slices shipped (parity, IA rework, Console app-state brain); merged to `main` via PR #19.
 - Owner-present cycle 2026-07-01: Working Order added to governance (`F-WORKING-ORDER`: front-load human-gated
-  work; self-answer before client). SHIPPED: the renewal review sub-tab (`F-RENEWAL-REVIEW-SUBTAB`, OQ-UI-1 + OQ-APPR-1)
-  and the append-only write-back PROPOSAL generator (`F-WRITEBACK-PROPOSAL`, Q-WRITEBACK-METHOD); 842 tests,
-  browser-verified. Q&A self-answer pass recorded 12 items (`v1-process-qa.md`). Secret Manager runbook delivered
-  (owner action pending → S12 redeploy). NEXT: proposal approval/queue path. Gated: Sheet-write SoR spec; move-in/move-out; S12 redeploy.
+  work; self-answer before client). SHIPPED: renewal review sub-tab (`F-RENEWAL-REVIEW-SUBTAB`), append-only write-back
+  PROPOSAL generator (`F-WRITEBACK-PROPOSAL`), and the read-only maintenance unit matcher (`F-MAINT-UNIT-MATCHER`, M-4);
+  857 tests, browser-verified. Q&A self-answer pass recorded 12 items. NEXT: maintenance owner-notice DRAFT + vendor-assignment
+  SUGGESTION (M-5). BLOCKED: S12 redeploy needs interactive `gcloud auth login` (CLI token expired; owner action). Gated: Sheet-write SoR spec; move-in/move-out.
 
 ## Security Note
 
