@@ -145,15 +145,27 @@ async function main(): Promise<void> {
   );
 
   // The live read uses /leases/export: tenant names live on lease.tenants[].name and rent on
-  // unit.rent — both absent from the plain /leases list (confirmed live).
+  // unit.rent — both absent from the plain /leases list (confirmed live). Each export row also carries
+  // `property` + `unit` appends; we sample their KEY NAMES (shape-only) to locate the unit address.
   let leases: RawLease[] = [];
+  let rawRows: Record<string, unknown>[] = [];
   let readError: string | null = null;
   try {
-    leases = leaseViewsFromExport(await client.listLeasesExport({ limit }));
+    rawRows = await client.listLeasesExport({ limit });
+    leases = leaseViewsFromExport(rawRows);
   } catch (error) {
     readError =
       error instanceof Error ? `${error.name}: ${error.message}` : String(error);
   }
+
+  const appendKeys = (value: unknown): string[] =>
+    value && typeof value === "object" && !Array.isArray(value)
+      ? Object.keys(value as Record<string, unknown>).sort()
+      : [];
+  const rawSample = rawRows[0];
+  const exportRowKeys = rawSample ? Object.keys(rawSample).sort() : [];
+  const propertyAppendKeys = appendKeys(rawSample?.property);
+  const unitAppendKeys = appendKeys(rawSample?.unit);
 
   const mapping = mapLeasesToNonSheetCandidates(leases, {
     readTimestamp: new Date().toISOString(),
@@ -176,6 +188,9 @@ async function main(): Promise<void> {
     readError,
     leaseCount: leases.length,
     sampleLeaseFieldNames,
+    exportRowKeys,
+    propertyAppendKeys,
+    unitAppendKeys,
     resolvedKeys: mapping.resolvedKeys,
     mappedCandidates: mapping.candidates.length,
     skippedLeases: mapping.skipped,
@@ -201,6 +216,11 @@ async function main(): Promise<void> {
   console.log(`Leases returned: ${leases.length}`);
   if (sampleLeaseFieldNames.length) {
     console.log(`Sample lease field names: ${sampleLeaseFieldNames.join(", ")}`);
+  }
+  if (exportRowKeys.length) {
+    console.log(`Export row appends: ${exportRowKeys.join(", ")}`);
+    console.log(`  property.* keys: ${propertyAppendKeys.join(", ") || "(none)"}`);
+    console.log(`  unit.* keys: ${unitAppendKeys.join(", ") || "(none)"}`);
   }
   console.log(`Resolved keys: ${JSON.stringify(mapping.resolvedKeys)}`);
   console.log(

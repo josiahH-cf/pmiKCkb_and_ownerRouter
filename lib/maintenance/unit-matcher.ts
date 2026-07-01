@@ -28,7 +28,7 @@ import type {
 export interface UnitCandidate {
   unitId: string;
   label: string;
-  /** The RentVine property this unit belongs to; the address is joined from a property read (not the lease). */
+  /** The RentVine property this unit belongs to (reference only; the address is on the unit append). */
   propertyId?: string;
 }
 
@@ -131,13 +131,31 @@ function pickMatch(
   return null;
 }
 
-// Source-key lists for the RentVine lease-export row. CONFIRMED live 2026-07-01
-// (`npm run smoke:rentvine-read -- --live`): the lease export carries `unitID` + `propertyID` as FLAT
-// lease fields and NO unit address — addresses live on the PROPERTY (via propertyID), not the lease. So
-// this reads the flat ids first-present-key-wins and captures propertyId for the pending property-address
-// join; until that join lands the label is a `Needs Verification:` marker, never a fabricated address.
+// Source-key lists + address composition for the RentVine lease-export row. CONFIRMED live 2026-07-01
+// (`npm run smoke:rentvine-read -- --live`): each export row carries `unit` + `property` appends, and the
+// `unit` append holds `unitID` AND the address (`streetNumber` + `streetName` + `address2`, plus
+// city/postalCode). So the candidate address comes from the SAME export read — no separate /properties
+// call. We build the matchable street label (what a field reporter types) from the unit append; when it
+// is absent the label is a `Needs Verification:` marker, never a fabricated address.
 export const UNIT_ID_KEYS = ["unitID", "unitId", "id"] as const;
 export const PROPERTY_ID_KEYS = ["propertyID", "propertyId"] as const;
+
+/** Compose the matchable street label from the RentVine unit append (streetNumber + streetName + address2). */
+function composeUnitAddress(unit: Record<string, unknown>): string | null {
+  const streetLine = [
+    firstPresentString(unit, ["streetNumber"]),
+    firstPresentString(unit, ["streetName"]),
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(" ");
+  const designator = firstPresentString(unit, ["address2"]);
+  const composed = [streetLine, designator]
+    .filter((part) => Boolean(part))
+    .join(" ")
+    .trim();
+  if (composed) return composed;
+  return firstPresentString(unit, ["address", "address1", "addressLine1"]);
+}
 
 function firstPresentString(
   obj: Record<string, unknown>,
@@ -153,9 +171,9 @@ function firstPresentString(
 
 /**
  * Derive read-only unit candidates from RentVine /leases/export rows. CONFIRMED live 2026-07-01: the
- * unit id + property id are FLAT lease fields and the lease carries no address, so this lifts
- * `unit:<unitID>` and captures `propertyId` for the pending property-address join; the label stays a
- * `Needs Verification:` marker until that join supplies the real address (never an invented one). Rows
+ * `unit` append carries `unitID` + the street address, so this lifts `unit:<unitID>` and composes the
+ * matchable street label from that append (falling back to the lease FK for the id, and to a
+ * `Needs Verification:` label — never a fabricated address — when the unit append has no address). Rows
  * with no resolvable unit id are skipped + counted (a unit with no id cannot be assigned). Pure.
  */
 export function deriveUnitCandidatesFromExport(
@@ -169,11 +187,16 @@ export function deriveUnitCandidatesFromExport(
   let skipped = 0;
 
   for (const row of rows) {
-    // Export rows may nest the lease under `row.lease`; mirror leaseViewsFromExport's flattening.
+    // Each export row carries `unit` + `property` appends; the lease FK is the id fallback.
+    const unit = (row.unit && typeof row.unit === "object" ? row.unit : {}) as Record<
+      string,
+      unknown
+    >;
     const lease = (
       row.lease && typeof row.lease === "object" ? row.lease : row
     ) as Record<string, unknown>;
-    const rawId = firstPresentString(lease, UNIT_ID_KEYS);
+    const rawId =
+      firstPresentString(unit, UNIT_ID_KEYS) ?? firstPresentString(lease, UNIT_ID_KEYS);
     if (!rawId) {
       skipped += 1;
       continue;
@@ -183,10 +206,16 @@ export function deriveUnitCandidatesFromExport(
     if (seen.has(unitId)) continue;
     seen.add(unitId);
 
-    const propertyId = firstPresentString(lease, PROPERTY_ID_KEYS);
+    const property = (
+      row.property && typeof row.property === "object" ? row.property : {}
+    ) as Record<string, unknown>;
+    const propertyId =
+      firstPresentString(unit, PROPERTY_ID_KEYS) ??
+      firstPresentString(lease, PROPERTY_ID_KEYS) ??
+      firstPresentString(property, PROPERTY_ID_KEYS);
     candidates.push({
       unitId,
-      label: UNIT_ADDRESS_UNVERIFIED,
+      label: composeUnitAddress(unit) ?? UNIT_ADDRESS_UNVERIFIED,
       ...(propertyId ? { propertyId } : {}),
     });
   }
