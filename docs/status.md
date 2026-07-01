@@ -5759,3 +5759,31 @@ config?})` mirrors Dan's manual end-date filter — actionable (month-end inside
   write-back PROPOSAL for human approval (read/draft/suggest/queue only). Executing the write to the operating
   Sheet still needs an approved per-action spec (SoR write) + its Action Registry entry flipped; move-in/move-out
   desks (S11) still wait on their Dan/client Q&A.
+- Second Q&A batch (move-in skeleton + maintenance scope), annotated in `docs/products/v1-process-qa.md`:
+  - **MI-1 → manual start; Dan owns** (default) — a team member starts move-in when a tenant is approved;
+    owner = Dan, approver = Dan + a settable secondary; RentVine auto-detect is later.
+  - **MI-2 → EVERY step is a checklist flag** (overrides the default) — no hard blocking gates in V1 move-in;
+    the operator judges readiness. Revisit hard gates (e-sign / certified funds) after V1 usage.
+  - **M-4 → human-overridable priority suggestion + build the read-only RentVine unit matcher FIRST** (default)
+    — before enabling any work-order create, so unit confidence is real, not user-typed.
+  - **M-5 → BUILD owner-notice + vendor-assignment in V1** (overrides the default) as draft/suggest surfaces
+    (an owner-notice DRAFT + a vendor-assignment SUGGESTION). Governance floor still binds — both stay
+    non-executable (no autonomous send, no SoR write); the RentVine create + any owner send remain gated.
+- Buildable now from this batch: the maintenance owner-notice DRAFT + vendor-assignment SUGGESTION stages + the
+  read-only RentVine unit matcher (all non-executable). The move-in desk (S11) still needs the CLIENT move-in
+  answers (welcome-comms channels, fees/deposit posture, key provisioning, inspection SLA) from Dan.
+- Third Q&A batch (move-in data posture + move-out skeleton), annotated in `docs/products/v1-process-qa.md`:
+  - **MI-8 → read + checklist only for V1** (default) — content-keyed (never trust Tab 1 headers); a move-in
+    golden set comes only after Tab 1 column meanings are team-validated.
+  - **MO-1 → manual "Start move-out" button ONLY** (narrows the default) — no automatic Renewals→Move-Out
+    handoff yet (add later); eviction/abandonment still branch separately.
+  - **MO-3 → app computes a SUGGESTED deposit deduction** (overrides the "no app math" default) from the
+    operator-entered evidence. BINDING GUARDRAILS: clearly-labeled suggestion, never final; owner approval
+    required; evidence + arithmetic shown transparently; NEVER posts to a ledger/bank/QuickBooks (no SoR write)
+    and NEVER invents statutory deposit language or the deadline (MO-2 stays a legal-gated Needs-Verification
+    placeholder). This is a NEW deposit-math surface to build carefully under those guardrails.
+- Q&A owner-decidable set is now exhausted. Everything still open is Dan/PMI-operational (welcome/move-out
+  channels, approver rosters, dollar thresholds, key provisioning, inspection SLA, templates, in-scope tabs) or
+  vendor/legal-gated (RentVine renewal + work-order write endpoints, the statutory deposit deadline, QuickBooks
+  ledger-of-record). Next: draft the client-owned Q&A as a confirm-with-default note to Dan, or start building
+  one of the unblocked slices (renewal review sub-tab; maintenance owner-notice/vendor-assignment + unit matcher).
