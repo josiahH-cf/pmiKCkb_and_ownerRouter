@@ -28,14 +28,17 @@ stop-and-reset rules.
 - Recalibration 2026-06-30 (operator note): UI/UX + process-governance re-aim — Console-as-home, Spaces ⊇
   Processes, per-Space "teeth", dev↔prod parity; Q&A-first (`A-IA-V2`). See Next Safe Slice Candidates +
   `docs/products/v1-process-qa.md` + `docs/temp/recalibration-plan.md`.
-- 2026-06-30 build cycle (this loop run, S12→S6→S10): ALL THREE SHIPPED — S12 dev↔prod parity
-  (`F-DEVPROD-PARITY`; REDEPLOYED 2026-07-01, prod demo-auth fence HTTP-verified), S6 IA rework (`F-IA-CONSOLE-HOME`, supersedes
-  F-OPS-CONSOLE-IA: Console-as-home, Processes nav retired/engine kept, real clickable Space cards, Process
-  sub-tab), S10 Console app-state brain (`F-CONSOLE-APP-STATE`: read-only approvals/connections/coverage +
-  command buttons + Console STT). Loop then STOPPED — no unblocked safe slice remains (see Stop-Condition State).
-- 2026-07-01 build cycle (this loop run): SHIPPED the write-back proposal APPROVAL control plane (`F-WRITEBACK-APPROVAL`,
-  Admin-only audited approve/return/revoke; non-executing) + two read-only, non-executing follow-ons: the cross-run
-  value-free "Write-back queue" tab (`F-WRITEBACK-QUEUE`) + the run-page approval AUDIT TRAIL. 913 tests, gates green.
+- 2026-06-30 cycle (S12→S6→S10): dev↔prod parity (`F-DEVPROD-PARITY`), IA rework (`F-IA-CONSOLE-HOME`), Console
+  app-state brain (`F-CONSOLE-APP-STATE`) — all shipped + merged (detail in `docs/status.md`).
+- 2026-07-01 cycle (this loop run): SHIPPED the write-back proposal APPROVAL control plane (`F-WRITEBACK-APPROVAL`) +
+  two read-only follow-ons — the "Write-back queue" tab (`F-WRITEBACK-QUEUE`) + run-page approval AUDIT TRAIL; 913
+  tests. ALL THREE PROVEN LIVE in prod (Admin resolve→approve→audit trail; live review pulls real 25 leases + Sheet).
+- **RESUME — next / waiting-on (2026-07-01):** the agent is NOT blocked on code. HUMAN-TRACK next steps: (1) SEND the
+  client note `docs/temp/client-unblock-note-draft.md` (6 confirm-with-default asks) → await Dan's reply; (2) team
+  golden-labeling review `docs/temp/golden-labeling-packet.md` (+ its worksheet) → `npm run golden:apply-labels`; (3)
+  set Dan's prod Admin claim (`firebase:set-role --email=<dan> --role=Admin`, then Dan re-signs-in). Next UNBLOCKED
+  BUILD: Move-In/Move-Out V1 desks (candidate 4 `space-teeth`; V1 Q&A self-resolved). GATED: Sheet write EXECUTION
+  needs golden ground-truth + an approved per-action spec (`F-WRITE-GATE`).
 
 ## Next Safe Slice Candidates
 
@@ -61,12 +64,9 @@ the move-in/move-out UI before the V1 process answers land** (the note's RISK; t
    buttons + Console STT (`/api/ask/transcribe`); advisory + deep-linked, never executes.
 4. Per-Space teeth (`space-teeth.md`, S11) — a reusable per-Space desk; build the Move-In + Move-Out V1 desks
    AFTER their Q&A answers land (operator-first, read/draft/suggest only).
-5. Lease-renewal Phase-2 — review sub-tab + append-only write-back PROPOSAL + the proposal APPROVAL control plane are
-   all SHIPPED (`F-RENEWAL-REVIEW-SUBTAB`, `F-WRITEBACK-PROPOSAL`, `F-WRITEBACK-APPROVAL` 2026-07-01): an Admin-only
-   audited approve/return/revoke over the QUEUED proposals; non-executing by construction; value-free awaiting/approved
-   counts on the review sub-tab (detail in `docs/facts.md` + `docs/status.md`). NEXT (all gated/blocked): the gated
-   Sheet write execution needs an approved per-action spec (`F-WRITE-GATE`); RentVine renewal write vendor-gated
-   (`OQ-RV-1`); the cross-run "ready-to-write" queue (`F-WRITEBACK-QUEUE`) + run-page audit-trail follow-ons are SHIPPED.
+5. Lease-renewal Phase-2 — ALL SHIPPED + prod-verified: review sub-tab (`F-RENEWAL-REVIEW-SUBTAB`), write-back
+   PROPOSAL (`F-WRITEBACK-PROPOSAL`), APPROVAL control plane + queue + audit trail (`F-WRITEBACK-APPROVAL`,
+   `F-WRITEBACK-QUEUE`). GATED next: Sheet write EXECUTION (`F-WRITE-GATE` + golden ground-truth); RentVine write (`OQ-RV-1`).
 
 Carried owner/vendor-gated: prod `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` + live process seed; RentVine
 work-order create.
@@ -78,7 +78,7 @@ All client-owned (tracked in `docs/client-checklist.md` and `docs/research-backl
 - A PMI KC production project id (create/select + link billing + $10 budget alert) and explicit
   per-step approval for each cost-bearing migration step; the $10 guard stays binding. (Billing card
   PROVISIONED 2026-06-19.)
-- Lease Renewal walkthrough recording → source notes, open questions, acceptance scenarios.
+- Lease Renewal acceptance scenarios (the walkthrough was HELD 2026-06-19; source notes captured; signed-lease/lease-end RESOLVED).
 - Google Sheets exact in-scope sheet list and owner confirmation.
 - QuickBooks access status/location (blank in the returned tool-access spreadsheet).
 - RentVine lease-renewal-write endpoint confirmation — undocumented in the public API; vendor
@@ -103,10 +103,8 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 
 ## Stop-Condition State
 
-- Fired earlier: migration-readiness stop gate — local foundations complete; high-value work blocked on
-  client replies, production setup, and approved sources.
-- Fired 2026-06-30 (this build cycle, after S12→S6→S10): "no safe slice remains" + an approval gate. All three
-  unblocked slices shipped (parity, IA rework, Console app-state brain); merged to `main` via PR #19.
+- Fired earlier + 2026-06-30: migration-readiness / "no safe slice" stops — foundations + the S12→S6→S10 slices
+  shipped + merged; high-value work blocked on client replies, prod setup, approved sources (`docs/status.md`).
 - Owner-present cycle 2026-07-01: Working Order added (`F-WORKING-ORDER`). SHIPPED: renewal review sub-tab
   (`F-RENEWAL-REVIEW-SUBTAB`), write-back PROPOSAL generator (`F-WRITEBACK-PROPOSAL`, card links to its approval path),
   maintenance unit matcher (`F-MAINT-UNIT-MATCHER`, M-4) WIRED to the capture desk (`F-MAINT-MATCH-UNIT-LIVE`,
