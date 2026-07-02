@@ -302,8 +302,7 @@ export async function startWorkflowTestRun(
       newStatus: "In Progress",
       runId,
       summary:
-        parsed.note ??
-        `Started simulation-only test run for process definition "${definition.name}".`,
+        parsed.note ?? `Started a test run for process definition "${definition.name}".`,
     });
 
     if (definition.status === "Draft") {
@@ -383,10 +382,7 @@ export async function updateWorkflowRunOutcome(
     const current = readRequiredWorkflowRun(snapshot.id, snapshot.data());
 
     if (!current.is_test_run || !current.simulation_only) {
-      throw new EditableLayerError(
-        "Only simulation-only test runs can be updated in this workflow foundation.",
-        409,
-      );
+      throw new EditableLayerError("Only test runs can be updated here.", 409);
     }
 
     if (isTerminalRunStatus(current.status)) {
@@ -414,9 +410,7 @@ export async function updateWorkflowRunOutcome(
       runId,
       summary:
         parsed.notes ??
-        (parsed.action === "complete_test"
-          ? "Simulation-only test run completed."
-          : "Simulation-only test run failed."),
+        (parsed.action === "complete_test" ? "Test run completed." : "Test run failed."),
     });
 
     if (parsed.action === "complete_test") {
@@ -517,7 +511,7 @@ function assertReadyToActivate(
 
   if (!definition.last_successful_test_run_id && !overrideReason?.trim()) {
     throw new EditableLayerError(
-      "Activate requires a successful simulation test run or an Admin override reason.",
+      "Activate requires a successful test run or an Admin override reason.",
       409,
     );
   }

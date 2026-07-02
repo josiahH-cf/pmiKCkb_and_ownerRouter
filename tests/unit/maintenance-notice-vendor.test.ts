@@ -77,7 +77,7 @@ describe("buildOwnerNoticeDraft", () => {
     expect(notice.production_allowed).toBe(false);
     expect(notice.send_allowed).toBe(false);
     expect(notice.missingInputs).toEqual([]);
-    expect(notice.subject).toBe("Maintenance request — 123 Main St #2");
+    expect(notice.subject).toBe("Maintenance request for 123 Main St #2");
     expect(notice.body).toContain("Hello Jane Owner,");
     expect(notice.body).toContain("123 Main St #2");
     expect(notice.body).toContain("water leak under the sink");

@@ -31,6 +31,20 @@ workflows, with models used where they measurably help.
 - Errors and empty states are plain and actionable, never raw or technical.
 - Drafts that may be sent externally keep the human-review boundary (`Draft — Review before sending`).
 
+### Voice rules v2 (S13, 2026-07-02 — `F-VOICE-2`)
+
+These three durable rules were added after the pre-customer copy pass and are enforced by
+`npm run verify:copy-voice` (`scripts/check-copy-voice.mjs`), so the fixes cannot silently regress:
+
+- **No em dashes in user-facing copy.** Use a period, comma, or parentheses instead. The only
+  allowed em dash is the verbatim `DRAFT_BANNER` ("Draft — Review before sending"); numeric ranges
+  use an en dash ("$1,500–$1,700"), which is fine.
+- **The app calls itself "the app."** In body copy the product refers to itself as "the app"; the
+  product name appears only in the header lockup. Never say a person or vendor does the work for the
+  user ("PMI handles the setup for you") when the app does it.
+- **Every description says what the thing does, in one concrete present-tense sentence.** No abstract
+  value-prop phrases ("the exception and control plane"). Say what it reads, writes, or checks.
+
 ## Do / don't lexicon
 
 | Don't say (internal)                                | Say (operator)                                    |
@@ -42,5 +56,9 @@ workflows, with models used where they measurably help.
 | KB-owned process space                              | Process space                                     |
 | Read-only source space                              | Source space                                      |
 | simulation-only / production_allowed                | Test run / not live                               |
+| simulation / start a simulation                     | test run / start a test run                       |
+| the exception and control plane                     | (say what it reads/writes/checks)                 |
+| PMI handles the setup for you                       | the app stores the credentials and checks it      |
+| Rentvine (read-authoritative)                       | RentVine _(display seam; internal id unchanged)_  |
 
 The "Bailey Placeholder" source state is renamed to "Open Placeholder" (`Q-BAILEY` resolved; see `docs/facts.md` `F-OPEN-PLACEHOLDER`).

@@ -124,7 +124,7 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
       ? `Based on the analysis, a renewal around ${formatUsd(market.specificNumber)} looks reasonable.`
       : `[${NEEDS_VERIFICATION}: specific market number from the rental-analysis tool]`;
 
-  const subject = `Renewal coming up — ${input.addressLabel}`;
+  const subject = `Renewal coming up for ${input.addressLabel}`;
   const body = [
     `Hello,`,
     ``,

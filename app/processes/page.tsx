@@ -23,7 +23,7 @@ export default async function ProcessesPage() {
     recentRuns = await listWorkflowRuns(user, { limit: 6, simulationOnly: true });
   } catch {
     initialRunsError =
-      "Recent simulation runs are unavailable. Refresh Google credentials or check Firestore setup.";
+      "Recent test runs are unavailable. Refresh Google credentials or check Firestore setup.";
   }
 
   return (

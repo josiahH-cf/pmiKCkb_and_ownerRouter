@@ -48,14 +48,14 @@ export function ProcessSummaryPanel({
         ))}
       </ol>
 
-      <h3>Recent simulation runs</h3>
+      <h3>Recent test runs</h3>
       {runs.length === 0 ? (
-        <p className="muted">No simulation runs yet.</p>
+        <p className="muted">No test runs yet.</p>
       ) : (
         <ul className="compact-list">
           {runs.map((run) => (
             <li key={run.id}>
-              {run.status} — {run.next_action}
+              {run.status}: {run.next_action}
             </li>
           ))}
         </ul>

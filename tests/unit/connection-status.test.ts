@@ -63,7 +63,9 @@ describe("connector copy voice", () => {
   // later suites inherit the standard. F-VOICE in docs/facts.md records this pass.
   it("keeps internal jargon out of every connector's powers line", () => {
     for (const def of CONNECTORS) {
-      expect(def.powers).not.toMatch(/source of truth/i);
+      expect(def.powers).not.toMatch(/source of truth|control plane|PMI handles/i);
+      // The app calls itself "the app" and writes without em dashes (voice rules v2).
+      expect(def.powers).not.toMatch(/—/);
     }
   });
 

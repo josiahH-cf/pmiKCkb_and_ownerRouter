@@ -29,7 +29,8 @@ export const CONNECTORS: readonly ConnectorDef[] = [
   {
     id: "google_sheets",
     name: "Google Sheets",
-    powers: "Your renewal tracking sheet — the exception and control plane.",
+    powers:
+      "Your renewal tracking sheet. The app reads it and flags anything that doesn't match RentVine.",
     method: "google",
     healthCheckRef: "health.google_sheets.api",
     requiredConfig: ["RENEWAL_SHEET_ID"],
@@ -37,7 +38,7 @@ export const CONNECTORS: readonly ConnectorDef[] = [
   {
     id: "google_drive",
     name: "Google Drive",
-    powers: "Approved templates and the knowledge-base document corpus.",
+    powers: "Approved templates and the documents the app cites in answers.",
     method: "google",
     requiredConfig: ["SPACE_DRIVE_FOLDER_IDS"],
   },

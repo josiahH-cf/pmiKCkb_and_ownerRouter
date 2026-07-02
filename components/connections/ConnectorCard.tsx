@@ -1,5 +1,5 @@
 // One connector card for the Connection Center — name, what it powers, live status, and a guided
-// "Set up" wizard. App-managed: the wizard explains that PMI stores credentials and runs the
+// "Set up" wizard. App-managed: the wizard explains that the app stores credentials and runs the
 // verification (no .env edits, no CLI). Server component; never renders a secret or an env var name.
 
 import { Card, Disclosure, StatusDot } from "@/components/ui";
@@ -33,13 +33,13 @@ export function ConnectorCard({ item }: Readonly<{ item: ConnectorView }>) {
         <Disclosure summary={`Set up ${def.name}`}>
           <div className="ui-stack">
             <p>
-              <strong>How you&rsquo;ll connect:</strong> {connectLabel}. PMI stores your
-              credentials securely and verifies the connection for you — no files to edit,
-              no tests to run.
+              <strong>How you&rsquo;ll connect:</strong> {connectLabel}. The app stores
+              your credentials securely and checks the connection. No files to edit, no
+              tests to run.
             </p>
             {contract ? (
               <div>
-                <p className="muted">What PMI verifies:</p>
+                <p className="muted">What the app checks:</p>
                 <ul className="compact-list">
                   {contract.steps.map((step) => (
                     <li key={step.id}>{step.description}</li>

@@ -67,7 +67,7 @@ describe("MaintenanceCapture", () => {
     expect(
       screen.getByRole("heading", { name: "Dishwasher won't drain" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Simulation only/)).toBeInTheDocument();
+    expect(screen.getByText(/Test run only/)).toBeInTheDocument();
     expect(screen.getByText(/No blockers/)).toBeInTheDocument();
 
     // The non-executable M-5 stages surface alongside the draft.

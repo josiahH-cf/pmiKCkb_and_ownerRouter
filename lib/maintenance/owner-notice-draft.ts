@@ -45,7 +45,7 @@ export function buildOwnerNoticeDraft(input: OwnerNoticeInput): OwnerNoticeDraft
   const propertyResolved = !isUnverified(rawProperty);
   const property = propertyResolved
     ? (rawProperty as string)
-    : `[${NEEDS_VERIFICATION}: property/unit — match the location to a unit]`;
+    : `[${NEEDS_VERIFICATION}: property/unit, match the location to a unit]`;
   if (!propertyResolved) missingInputs.push("property/unit (unmatched location)");
   facts.push({
     key: "property",
@@ -95,7 +95,7 @@ export function buildOwnerNoticeDraft(input: OwnerNoticeInput): OwnerNoticeDraft
       ? `${workOrder.photoRefs.length} photo(s) are on file.`
       : "No photos are on file yet.";
 
-  const subject = `Maintenance request — ${property}`;
+  const subject = `Maintenance request for ${property}`;
   const body = [
     `Hello ${ownerName},`,
     ``,

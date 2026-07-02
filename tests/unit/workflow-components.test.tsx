@@ -121,14 +121,14 @@ describe("workflow components", () => {
       />,
     );
 
-    expect(screen.getByText(/Simulation-only test run/)).toBeInTheDocument();
+    expect(screen.getByText(/Test run only/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /execute/i })).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Notes"), "All simulated steps passed.");
     await user.click(screen.getByRole("button", { name: "Complete Test" }));
 
     await waitFor(() =>
-      expect(screen.getByText("Simulation test run completed.")).toBeInTheDocument(),
+      expect(screen.getByText("Test run completed.")).toBeInTheDocument(),
     );
     expect(screen.getAllByText("All simulated steps passed.")).toHaveLength(2);
   });
@@ -143,13 +143,13 @@ describe("workflow components", () => {
       />,
     );
 
-    expect(screen.getByText("Recent Simulation Runs")).toBeInTheDocument();
+    expect(screen.getByText("Recent test runs")).toBeInTheDocument();
     expect(
       screen
         .getAllByRole("link", { name: "Lease Renewal Test Process" })
         .some((link) => link.getAttribute("href") === "/workflow-runs/run-2"),
     ).toBe(true);
-    expect(screen.getByText("Simulation")).toBeInTheDocument();
+    expect(screen.getByText("Test run")).toBeInTheDocument();
     expect(
       screen.getByText("Test run. No production metrics or external actions."),
     ).toBeInTheDocument();
@@ -163,16 +163,12 @@ describe("workflow components", () => {
         currentUserUid="editor-1"
         initialDefinitions={[]}
         initialRecentRuns={[]}
-        initialRunsError="Recent simulation runs are unavailable."
+        initialRunsError="Recent test runs are unavailable."
       />,
     );
 
-    expect(
-      screen.getByText("Recent simulation runs are unavailable."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("No simulation-only workflow runs exist yet."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Recent test runs are unavailable.")).toBeInTheDocument();
+    expect(screen.getByText("No test runs yet.")).toBeInTheDocument();
   });
 });
 

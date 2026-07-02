@@ -56,7 +56,7 @@ export function ProcessDefinitionDetailClient({
       return "Needs at least one source link.";
     }
     if (!hasSuccessfulTest) {
-      return "Needs a successful simulation test run or Admin override reason.";
+      return "Needs a successful test run or Admin override reason.";
     }
     return "Ready for Admin activation after queue approval.";
   }, [definition.pending_queue_item_id, hasSourceLink, hasSuccessfulTest]);
@@ -131,7 +131,7 @@ export function ProcessDefinitionDetailClient({
       return;
     }
 
-    await runMutation("Starting simulation-only test run.", async () => {
+    await runMutation("Starting a test run.", async () => {
       const { run } = await fetchWorkflow<{ run: WorkflowRunRecord }>(
         `/api/process-definitions/${definition.id}/test-runs`,
         {
@@ -349,10 +349,9 @@ export function ProcessDefinitionDetailClient({
         </section>
 
         <section className="panel">
-          <h2>Simulation Test Run</h2>
+          <h2>Test run</h2>
           <p className="muted">
-            Test runs created here are simulation-only and excluded from production
-            metrics.
+            Test runs created here are not live and excluded from production metrics.
           </p>
           <label>
             Due date

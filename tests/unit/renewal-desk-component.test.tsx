@@ -57,11 +57,11 @@ describe("RenewalWorkspace", () => {
       screen.getByRole("heading", { name: "Owner decision", level: 2 }),
     ).toBeInTheDocument();
 
-    // The owner email is a draft, source-tagged, never offering a send.
+    // The owner email is a draft, source-tagged, never offering a send. The source tag renders the
+    // clean display label ("RentVine"), not the internal "Rentvine (read-authoritative)" id (S13 A5).
     expect(screen.getAllByText(/Review before sending/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Rentvine \(read-authoritative\)/).length).toBeGreaterThan(
-      0,
-    );
+    expect(screen.getAllByText(/RentVine/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/read-authoritative/)).toBeNull();
 
     // Tenant offer: email is shown first; switching to the text channel reveals the short nudge.
     expect(screen.getByText(/we'll get the documents out/)).toBeInTheDocument();

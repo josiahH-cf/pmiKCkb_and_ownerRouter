@@ -14,6 +14,7 @@ import {
   PageHeader,
   StatusPill,
 } from "@/components/ui";
+import { displaySourceLabel } from "@/lib/lease-renewal/source-display";
 import type { LiveReviewMeta } from "@/lib/lease-renewal/live-review";
 import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-view";
 
@@ -102,7 +103,8 @@ function LiveFlagCard({ flag }: Readonly<{ flag: RenewalFlagView }>) {
       <ul className="lr-candidates">
         {flag.candidates.map((candidate, index) => (
           <li key={`${candidate.source}-${index}`}>
-            <strong>{candidate.sourceSystem}:</strong> {candidate.value}
+            <strong>{displaySourceLabel(candidate.sourceSystem)}:</strong>{" "}
+            {candidate.value}
             {candidate.confidence ? (
               <span className="muted"> ({candidate.confidence})</span>
             ) : null}{" "}
@@ -113,8 +115,9 @@ function LiveFlagCard({ flag }: Readonly<{ flag: RenewalFlagView }>) {
 
       {flag.suggestedWinner ? (
         <p className="muted">
-          Suggested source: <strong>{flag.suggestedWinner.source}</strong> (
-          {flag.suggestedWinner.value}) — suggestion only, needs human approval.
+          Suggested source:{" "}
+          <strong>{displaySourceLabel(flag.suggestedWinner.source)}</strong> (
+          {flag.suggestedWinner.value}). Suggestion only, needs human approval.
         </p>
       ) : flag.blockedReason ? (
         <p className="muted">Blocked: {flag.blockedReason} — needs a human decision.</p>

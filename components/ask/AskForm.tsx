@@ -128,7 +128,7 @@ export function AskForm({
         setSimulationRun(payload.run);
       } else {
         setStatusMessage(
-          await readErrorMessage(runResponse, "Simulation could not be started."),
+          await readErrorMessage(runResponse, "Test run could not be started."),
         );
       }
     }
@@ -268,7 +268,7 @@ export function AskForm({
   const submitLabel = isPending
     ? "Working"
     : willSimulate
-      ? "Get answer + start simulation"
+      ? "Get answer + start a test run"
       : "Get answer";
 
   return (
@@ -360,8 +360,8 @@ export function AskForm({
 
           {willSimulate ? (
             <p className="muted">
-              Starting this process runs a simulation only — no system-of-record write, no
-              message sent.
+              Starting this process runs a test only. Nothing is sent, and nothing is
+              written to a system of record.
             </p>
           ) : null}
 
@@ -413,9 +413,9 @@ export function AskForm({
               ) : null}
               {simulationRun ? (
                 <div className="capture-panel">
-                  <h3>Process simulation started</h3>
+                  <h3>Test run started</h3>
                   <p>
-                    <strong>{simulationRun.process_name}</strong> — {simulationRun.status}
+                    <strong>{simulationRun.process_name}</strong>: {simulationRun.status}
                   </p>
                   {simulationRun.next_action ? (
                     <p className="muted">Next: {simulationRun.next_action}</p>

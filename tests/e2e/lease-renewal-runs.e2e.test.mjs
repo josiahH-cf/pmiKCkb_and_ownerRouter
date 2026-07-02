@@ -27,7 +27,7 @@ describe("lease renewal review surface", () => {
 
     const detail = await client.getHtml(RUN_DETAIL);
     expect(detail.response.status).toBe(200);
-    expect(detail.html).toContain("Simulation-only");
+    expect(detail.html).toContain("Test run only");
     expect(detail.html).toContain("High");
     // No credential placeholder from the excluded tabs may reach the rendered page.
     expect(detail.html).not.toContain("PLACEHOLDER");

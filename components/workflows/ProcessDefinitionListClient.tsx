@@ -26,8 +26,7 @@ export function ProcessDefinitionListClient({
   const [message, setMessage] = useState(
     initialError ?? "Workflow process definitions are ready.",
   );
-  const recentRunsMessage =
-    initialRunsError ?? "Recent simulation-only workflow runs are ready.";
+  const recentRunsMessage = initialRunsError ?? "Recent test runs are ready.";
   const [isBusy, setIsBusy] = useState(false);
   const [form, setForm] = useState({
     default_approver_uid: currentUserUid,
@@ -132,12 +131,12 @@ export function ProcessDefinitionListClient({
         <section className="panel workflow-run-index">
           <div className="panel-heading">
             <div>
-              <h2>Recent Simulation Runs</h2>
+              <h2>Recent test runs</h2>
               <p className="muted">{recentRunsMessage}</p>
             </div>
           </div>
           {recentRuns.length === 0 ? (
-            <p className="muted">No simulation-only workflow runs exist yet.</p>
+            <p className="muted">No test runs yet.</p>
           ) : (
             <div className="workflow-record-list">
               {recentRuns.map((run) => (
@@ -155,7 +154,7 @@ export function ProcessDefinitionListClient({
                       <span className="queue-pill" data-value={run.status}>
                         {run.status}
                       </span>
-                      <span className="review-pill">Simulation</span>
+                      <span className="review-pill">Test run</span>
                     </div>
                   </div>
                   <p className="muted">

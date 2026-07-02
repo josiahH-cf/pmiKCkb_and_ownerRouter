@@ -344,7 +344,7 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
           <>
             <h2>Work-order draft</h2>
             <p className="muted">
-              Simulation only — the RentVine work-order create is gated; a human reviews
+              Test run only. The RentVine work-order create is gated, so a human reviews
               and approves.
             </p>
             <h3>{draft.summary}</h3>

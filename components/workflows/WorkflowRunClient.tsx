@@ -30,11 +30,7 @@ export function WorkflowRunClient({
     }
 
     setIsBusy(true);
-    setMessage(
-      action === "complete_test"
-        ? "Completing simulation test run."
-        : "Failing simulation test run.",
-    );
+    setMessage(action === "complete_test" ? "Completing test run." : "Failing test run.");
 
     try {
       const result = await fetchWorkflow<{
@@ -48,11 +44,7 @@ export function WorkflowRunClient({
       setRun(result.run);
       setTimeline(result.timeline);
       setNotes("");
-      setMessage(
-        action === "complete_test"
-          ? "Simulation test run completed."
-          : "Simulation test run failed.",
-      );
+      setMessage(action === "complete_test" ? "Test run completed." : "Test run failed.");
     } catch (error) {
       setMessage(readErrorMessage(error));
     } finally {
@@ -65,8 +57,8 @@ export function WorkflowRunClient({
       <section className="panel">
         {run.is_test_run ? (
           <div className="workflow-test-banner">
-            Simulation-only test run. No external write, send, Gmail action, or live
-            system update is available from this run.
+            Test run only. No external write, send, Gmail action, or live system update
+            happens from this run.
           </div>
         ) : null}
         <div className="panel-heading">
@@ -96,7 +88,7 @@ export function WorkflowRunClient({
             <strong>{run.production_metrics_included ? "Included" : "Excluded"}</strong>
           </div>
           <div className="queue-detail-field">
-            <span>Simulation</span>
+            <span>Test run</span>
             <strong>{run.simulation_only ? "Yes" : "No"}</strong>
           </div>
           <div className="queue-detail-field">

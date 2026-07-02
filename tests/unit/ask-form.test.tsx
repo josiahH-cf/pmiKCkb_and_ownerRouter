@@ -81,7 +81,7 @@ describe("AskForm (action console)", () => {
     const calledUrls = fetchMock.mock.calls.map((call) => String(call[0]));
     expect(calledUrls.some((url) => url.includes("/api/ask"))).toBe(true);
     expect(calledUrls.some((url) => url.includes("/test-runs"))).toBe(false);
-    expect(screen.queryByText("Process simulation started")).toBeNull();
+    expect(screen.queryByText("Test run started")).toBeNull();
     expect(askBody(fetchMock).process_id).toBeUndefined();
   });
 
@@ -97,14 +97,14 @@ describe("AskForm (action console)", () => {
     await user.type(screen.getByLabelText("Question"), "Start a renewal");
     await user.selectOptions(screen.getByLabelText("Process"), "lease-renewal");
     expect(
-      screen.getByRole("button", { name: "Get answer + start simulation" }),
+      screen.getByRole("button", { name: "Get answer + start a test run" }),
     ).toBeInTheDocument();
 
     await user.click(
-      screen.getByRole("button", { name: "Get answer + start simulation" }),
+      screen.getByRole("button", { name: "Get answer + start a test run" }),
     );
 
-    expect(await screen.findByText("Process simulation started")).toBeInTheDocument();
+    expect(await screen.findByText("Test run started")).toBeInTheDocument();
     expect(screen.getByText("Lease Renewal")).toBeInTheDocument();
 
     await waitFor(() => {
@@ -136,7 +136,7 @@ describe("AskForm (action console)", () => {
     await user.click(await screen.findByRole("button", { name: "Use Lease Renewal" }));
 
     expect(
-      screen.getByRole("button", { name: "Get answer + start simulation" }),
+      screen.getByRole("button", { name: "Get answer + start a test run" }),
     ).toBeInTheDocument();
   });
 

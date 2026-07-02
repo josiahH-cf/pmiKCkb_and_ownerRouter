@@ -37,5 +37,14 @@ describe("ConnectionCenter", () => {
     // No env var name (or secret value) ever appears in the UI.
     expect(document.body.textContent).not.toContain("RENTVINE_API_KEY");
     expect(document.body.textContent).not.toContain("RENTVINE_API_BASE_URL");
+
+    // Voice rules v2: plain operator English. The app calls itself "the app"; no internal
+    // jargon anywhere on the surface (locks the 2026-07-02 operator-quoted strings out).
+    expect(document.body.textContent).not.toMatch(/control plane/i);
+    expect(document.body.textContent).not.toMatch(/PMI handles/i);
+    expect(document.body.textContent).not.toMatch(/PMI stores/i);
+    expect(document.body.textContent).toContain(
+      "Connect the systems the app reads from.",
+    );
   });
 });

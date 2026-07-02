@@ -10,6 +10,7 @@ import type {
   RenewalWritebackApprovalView,
 } from "@/lib/lease-renewal/run-view";
 import type { WritebackProposal } from "@/lib/lease-renewal/writeback-proposal";
+import { displaySourceLabel } from "@/lib/lease-renewal/source-display";
 
 type ResolveKind = "pick_source" | "corrected_value" | "flag_incorrect";
 
@@ -42,8 +43,8 @@ export function LeaseRenewalRunClient({
   return (
     <div className="lr-run">
       <p className="workflow-test-banner">
-        Simulation-only — synthetic sample data. This run performs no live read, no write,
-        and no system-of-record update.
+        Test run only, on sample data. This run performs no live read, no write, and no
+        system-of-record update.
       </p>
 
       <section className="panel" aria-label="Run summary">
@@ -160,7 +161,7 @@ function WritebackProposalCard({
       {proposal.proposedValue !== null ? (
         <p>
           Would append <strong>{proposal.proposedValue}</strong> from{" "}
-          <strong>{proposal.sourceSystem}</strong> to a new{" "}
+          <strong>{displaySourceLabel(proposal.sourceSystem)}</strong> to a new{" "}
           <strong>{proposal.proposedColumnHeader}</strong> column.
         </p>
       ) : (
@@ -426,7 +427,8 @@ function FlagCard({
       <ul className="lr-candidates">
         {flag.candidates.map((candidate, index) => (
           <li key={`${candidate.source}-${index}`}>
-            <strong>{candidate.sourceSystem}:</strong> {candidate.value}
+            <strong>{displaySourceLabel(candidate.sourceSystem)}:</strong>{" "}
+            {candidate.value}
             {candidate.confidence ? (
               <span className="muted"> ({candidate.confidence})</span>
             ) : null}{" "}
@@ -437,11 +439,12 @@ function FlagCard({
 
       {flag.suggestedWinner ? (
         <p className="muted">
-          Suggested source: <strong>{flag.suggestedWinner.source}</strong> (suggestion
-          only — needs human approval).
+          Suggested source:{" "}
+          <strong>{displaySourceLabel(flag.suggestedWinner.source)}</strong> (
+          {flag.suggestedWinner.value}). Suggestion only, needs human approval.
         </p>
       ) : flag.blockedReason ? (
-        <p className="muted">Blocked: {flag.blockedReason} — needs a human decision.</p>
+        <p className="muted">Blocked: {flag.blockedReason}. Needs a human decision.</p>
       ) : null}
 
       {flag.writeback ? (
@@ -464,11 +467,13 @@ function FlagCard({
         <p className="lr-resolution">
           <strong>{flag.resolution.status}</strong>
           {flag.resolution.kind ? ` via ${KIND_LABEL[flag.resolution.kind]}` : null}
-          {flag.resolution.chosenSource ? ` → ${flag.resolution.chosenSource}` : null}
+          {flag.resolution.chosenSource
+            ? ` → ${displaySourceLabel(flag.resolution.chosenSource)}`
+            : null}
           {flag.resolution.correctedValue
             ? ` → "${flag.resolution.correctedValue}"`
             : null}
-          {flag.resolution.reason ? ` — ${flag.resolution.reason}` : null}
+          {flag.resolution.reason ? `: ${flag.resolution.reason}` : null}
         </p>
       ) : null}
 
@@ -498,7 +503,7 @@ function FlagCard({
                 >
                   {flag.candidates.map((candidate, index) => (
                     <option key={`${candidate.source}-${index}`} value={candidate.source}>
-                      {candidate.sourceSystem} ({candidate.value})
+                      {displaySourceLabel(candidate.sourceSystem)} ({candidate.value})
                     </option>
                   ))}
                 </select>

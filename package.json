@@ -25,6 +25,7 @@
     "verify:router-boundary": "node scripts/check-router-boundary.mjs",
     "verify:falsification": "node scripts/check-falsification-preflight.mjs",
     "verify:context-freshness": "node scripts/check-context-freshness.mjs",
+    "verify:copy-voice": "node scripts/check-copy-voice.mjs",
     "host:setup": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/setup-windows-google-dev.ps1 -EnableApis",
     "host:check": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/setup-windows-google-dev.ps1 -CheckOnly",
     "firebase:setup": "node scripts/setup-firebase-demo.mjs",

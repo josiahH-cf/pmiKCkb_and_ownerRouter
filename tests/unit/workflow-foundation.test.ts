@@ -101,7 +101,7 @@ describe("workflow foundation repository", () => {
     );
 
     await expect(activateProcessDefinition(admin, definition.id, {}, db)).rejects.toThrow(
-      /successful simulation test run/,
+      /successful test run/,
     );
 
     const testRun = await startWorkflowTestRun(
@@ -345,7 +345,7 @@ describe("workflow foundation repository", () => {
         { action: "complete_test", notes: "Should not work." },
         db,
       ),
-    ).rejects.toThrow(/simulation-only test runs/);
+    ).rejects.toThrow(/test runs can be updated/);
   });
 
   it("lists workflow runs for a definition", async () => {

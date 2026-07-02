@@ -31,8 +31,8 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
     <section className="content">
       <h1 className="section-title">Console</h1>
       <p className="muted">
-        Ask a grounded question, or start a process to run a safe simulation — answers
-        cite approved sources, and a simulation never touches a system of record.
+        Ask a grounded question, or start a process as a test run. Answers cite approved
+        sources, and a test run never touches a system of record.
       </p>
       <AskForm canStartSimulation={canStartSimulation} processes={processes} />
     </section>

@@ -95,7 +95,7 @@ export function buildTenantOfferDraft(input: TenantOfferInput): TenantOfferDraft
   ].join("\n");
 
   const textBody = [
-    `Hi ${input.tenantNameLabel} — your lease ends ${input.leaseEndDateIso}. Renewal rent would be ${offered}.`,
+    `Hi ${input.tenantNameLabel}, your lease ends ${input.leaseEndDateIso}. Renewal rent would be ${offered}.`,
     `Please reply to let us know if you plan to stay or leave. We've also emailed and messaged you the details.`,
   ].join(" ");
 
@@ -104,7 +104,7 @@ export function buildTenantOfferDraft(input: TenantOfferInput): TenantOfferDraft
     channels: {
       email: {
         channel: "email",
-        subject: `Your lease renewal — ends ${input.leaseEndDateIso}`,
+        subject: `Your lease renewal, ending ${input.leaseEndDateIso}`,
         body: fullBody,
       },
       portal_chat: { channel: "portal_chat", body: fullBody },
