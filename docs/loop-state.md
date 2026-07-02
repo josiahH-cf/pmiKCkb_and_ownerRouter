@@ -32,9 +32,12 @@ stop-and-reset rules.
   notice rules per-tenant/property CONFIGURABLE — `F-PRECUST-CYCLE`). Tracked spec: S13
   `docs/feature-suites/pre-customer-refinement.md`; mapping packet: `docs/temp/pre-customer-refinement-plan.md`.
   IN PROGRESS on branch `s13-wave1-precustomer` (local, NOT pushed): slice A DONE + adversarially verified
-  (copy v2 + `verify:copy-voice` gate + RentVine display seam, `F-VOICE-2`, commit 72bb7a7). NEXT: slice B
-  (unified value-free "Needs your decision" inbox + bulk-on-run-page + `.lr-approve-form` CSS + Space/Console
-  "N waiting" interlock) → C deep-link 404 + counts → D connections truth → Wave 2 desks → Wave 3. TIER-0 OWNER STEPS
+  (copy v2 + `verify:copy-voice` gate + RentVine display seam, `F-VOICE-2`, 72bb7a7); B3 DONE (`.lr-approve-form`
+  reason-box CSS, 5ffffba). NEXT: B1 unified value-free "Needs your decision" inbox (pure projection over the
+  3 gathers the approval-queue page already does — items + renewalBoard + writebackQueue; extend the value-free
+  sentinel tests, add no Firestore reads) → B2 bulk approve/return on the run page → B4 collapse terminal items
+  to counts → B5 Space-card + Console "N waiting" interlock → C deep-link 404 + counts → D connections truth →
+  Wave 2 desks → Wave 3. TIER-0 OWNER STEPS
   (front-load, none block Wave 1): (1) `npm run auth:session`; (2) LIVE seed — set `PROCESS_OWNER_UID` +
   `PROCESS_APPROVER_UID` env FIRST (silent placeholder fallback), then `npm run seed:process-definitions`;
   (3) Dan's prod Admin claim; (4) `gcloud services enable speech.googleapis.com --project=pmi-kc-kb-prod`;
