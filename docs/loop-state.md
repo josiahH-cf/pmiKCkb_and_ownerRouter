@@ -31,18 +31,16 @@ stop-and-reset rules.
 - **RESUME — next / waiting-on (2026-07-02):** ALL 12 pre-customer refinement decisions LOCKED (owner 2026-07-02;
   notice rules per-tenant/property CONFIGURABLE — `F-PRECUST-CYCLE`). Tracked spec: S13
   `docs/feature-suites/pre-customer-refinement.md`; mapping packet: `docs/temp/pre-customer-refinement-plan.md`.
-  IN PROGRESS on branch `s13-wave1-precustomer` (A/B3/B1 merged to `main` + pushed; B2 onward local on the
-  branch): slice A DONE (copy v2 + `verify:copy-voice` gate + RentVine display seam, `F-VOICE-2`, 72bb7a7);
-  B3 DONE (5ffffba); B1 DONE (0c1e770); B2 DONE (bulk approve/return ON the run page — multi-select + ONE
-  shared mandatory reason, Admin-only, per-item Activity row + per-item failure reporting, value-free tabs
-  untouched, c07a8dd); B4 DONE (86e9c1a); B5 DONE (shared needs-decision gather → Console answer + Space
-  card "N waiting on you", b4c903a — SLICE B COMPLETE); C DONE (6b96b92; 957 tests): C1 reconcile
-  direct_links un-404ed via redirect route + ?flag= highlight/scroll, C2 per-connector anchors + item
-  hrefs, C3 Console live counts + "start with" deep link (one definitions read shared), C4
-  source_trigger_key dedupe so one decision = one row/count everywhere. NEXT: D connections truth
-  (D1 wire live probes → verifiedIds → D2 requiredConfig truth Sheets/Drive → D3 Dotloop+LeadSimple
-  env seams → D4 Gmail sender card → D5 Admin verify button + read-only non-Admin → D6 stale
-  health-contract Drive note) → Wave 2 desks → Wave 3. TIER-0 OWNER STEPS
+  IN PROGRESS on branch `s13-wave1-precustomer` (A/B3/B1 merged to `main` + pushed; B2 onward local on
+  the branch — per-slice commits + detail in `git log` + `docs/status.md`). DONE: A (copy v2 + gate,
+  `F-VOICE-2`), B COMPLETE (B3 css; B1 unified inbox; B2 bulk approve/return on the run page; B4
+  decided items collapse to counts; B5 shared needs-decision gather → Console answer + Space-card
+  "N waiting on you"), C COMPLETE (C1 reconcile direct_links un-404ed via redirect + ?flag= highlight;
+  C2 per-connector anchors + item hrefs; C3 Console live counts + "start with" deep link; C4
+  source_trigger_key dedupe = one decision, one count everywhere) — 957 tests, all gates green at
+  6b96b92. NEXT: D connections truth (D1 wire live probes → verifiedIds → D2 requiredConfig truth
+  Sheets/Drive → D3 Dotloop+LeadSimple env seams → D4 Gmail sender card → D5 Admin verify button +
+  read-only non-Admin → D6 stale health-contract Drive note) → Wave 2 desks → Wave 3. TIER-0 OWNER STEPS
   (front-load, none block Wave 1): (1) `npm run auth:session`; (2) LIVE seed — set `PROCESS_OWNER_UID` +
   `PROCESS_APPROVER_UID` env FIRST (silent placeholder fallback), then `npm run seed:process-definitions`;
   (3) Dan's prod Admin claim; (4) `gcloud services enable speech.googleapis.com --project=pmi-kc-kb-prod`;
