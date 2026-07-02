@@ -31,16 +31,16 @@ stop-and-reset rules.
 - **RESUME — next / waiting-on (2026-07-02):** ALL 12 pre-customer refinement decisions LOCKED (owner 2026-07-02;
   notice rules per-tenant/property CONFIGURABLE — `F-PRECUST-CYCLE`). Tracked spec: S13
   `docs/feature-suites/pre-customer-refinement.md`; mapping packet: `docs/temp/pre-customer-refinement-plan.md`.
-  **WAVE 1 COMPLETE** on branch `s13-wave1-precustomer` (A/B3/B1 on `main`; B2→D local, commits
-  c07a8dd..ca3c9bf; `F-PRECUST-WAVE1`; full narrative in `docs/status.md`): A copy v2 + gate; B unified
-  inbox, bulk-on-run-page, counts-collapse, shared needs-decision gather ("N waiting on you" everywhere);
-  C deep links land on the thing (redirect + ?flag= highlight, anchors, Console live counts + start-with
-  link, source_trigger_key dedupe); D connections truth (probes → verifiedIds w/ 10-min cache, DWD
-  requiredConfig, Dotloop/LeadSimple/Gmail-sender seams, read-only non-Admin + Admin verify, stale Drive
-  note fixed). 970 tests; all gates + `bash scripts/verify.sh` green. STOP fired: context reset at the
-  wave boundary. NEXT (fresh session): Wave 2 — E1 Move-In/Move-Out Draft seeds honoring
-  `docs/products/v1-process-qa.md` VERBATIM → E2 desks → E3/E4 definitions → E5 owner-run live seed →
-  Wave 3 (F rule engine, G Dictate, H learning loop). Owner may push/PR the branch. TIER-0 OWNER STEPS
+  **WAVE 1 MERGED** to `main` 2026-07-02 (PR #35, CI green, ff-merge f402d22; `F-PRECUST-WAVE1`;
+  narrative in `docs/status.md`); 970 tests, all gates green. **WAVE 2 PLANNED, NOT BUILT** (2026-07-02
+  "plan" trigger — packet only): decision-complete packet `docs/temp/wave2-space-teeth-plan.md` +
+  executable meta-prompt `docs/meta-prompts/space-teeth-wave2.md`, grounded in a fresh research pass
+  over `v1-process-qa.md` + `move-in-move-out-process.md` + every file Wave 2 reuses. Order: E1
+  Move-In(10)/Move-Out(11) Draft seeds → E2a-f reusable desk shell + persisted per-step checklist
+  (new `WorkflowRunStepCheckRecord`, mirrors `lease-renewal-resolutions.ts`) + both V1 desks' domain
+  cores → E3 Tenant Notice+Dotloop (reuses `buildTenantOfferDraft`) → E4 Owner Outreach (reuses
+  `buildOwnerRenewalDraft`) → E5 owner-run seed. E1-E4 unattended-authorized; E5 owner-run. Both new
+  docs UNCOMMITTED (plan-only turn). NEXT: "run the loop" builds E1→E4 from the meta-prompt. TIER-0
   (front-load, none block Wave 1): (1) `npm run auth:session`; (2) LIVE seed — set `PROCESS_OWNER_UID` +
   `PROCESS_APPROVER_UID` env FIRST (silent placeholder fallback), then `npm run seed:process-definitions`;
   (3) Dan's prod Admin claim; (4) `gcloud services enable speech.googleapis.com --project=pmi-kc-kb-prod`;
