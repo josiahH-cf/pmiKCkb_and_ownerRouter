@@ -36,9 +36,8 @@ export function AppShell({
               {item.label}
             </Link>
           ))}
-          {can(user.role, "manageAdmin") ? (
-            <Link href="/connections">Connections</Link>
-          ) : null}
+          {/* Every role sees connection status read-only (S13 D5); Admins manage from the same page. */}
+          <Link href="/connections">Connections</Link>
           {can(user.role, "manageAdmin") ? <Link href="/admin">Admin</Link> : null}
           <NotificationMenu />
           <span className="user-role">{user.role}</span>
