@@ -200,6 +200,13 @@ button {
   align-self: flex-start;
 }
 
+/* Value-free "N waiting on you" interlock pill (S13 B5) — attention-colored so real work reads as
+   work at a glance, distinct from the neutral state pill. Matches the high-attention queue pills. */
+.space-card-waiting {
+  background: #fff5f5;
+  border-color: var(--state-no-source);
+}
+
 /* Per-Space sub-tabs (Spaces ⊇ Processes): Overview | Process beside a Space. */
 .subtabs {
   border-bottom: 1px solid var(--color-border);

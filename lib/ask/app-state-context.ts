@@ -4,11 +4,10 @@
 // approvals, sends, or writes (those stay in their own gated surfaces). Every resolver is non-fatal:
 // a Firestore hiccup yields an empty result, never a thrown error.
 
-import { canViewApprovalQueueItem } from "@/lib/approval/queue";
+import { gatherNeedsDecisionInbox } from "@/lib/approval/needs-decision-gather";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { buildConnectionView } from "@/lib/connections/connection-status";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
-import { listApprovalQueue } from "@/lib/firestore/approval-queue";
 import { listProcessDefinitions } from "@/lib/firestore/workflows";
 import { computeSpaceCardState } from "@/lib/space-card-state";
 import { launchSpaces, spaceHref } from "@/lib/spaces";
@@ -33,33 +32,29 @@ function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }
 
-/** "What are my approvals?" — queue items ready for approval that this user may see. */
+/**
+ * "What are my approvals?" — the SAME merged, value-free "Needs your decision" picture the Approval
+ * Queue's default inbox shows (S13 B5): open renewal flags + write-backs awaiting approval + queue
+ * items this user may see, deduped and attention-ordered. One gather per request; before B5 this read
+ * only the near-empty queue collection and answered "Nothing" while renewal work waited.
+ */
 export async function resolveApprovalsState(
   user: AuthenticatedUser,
 ): Promise<AppStateResult> {
-  let items: AppStateItem[] = [];
-  try {
-    const queue = await listApprovalQueue(user, {
-      filters: { status: "Ready for Approval" },
-    });
-    items = queue
-      .filter((item) => canViewApprovalQueueItem(user, item))
-      .map((item) => ({
-        label: item.action_needed,
-        detail: `Risk: ${item.risk}`,
-        href: item.direct_link || "/approval-queue",
-      }));
-  } catch {
-    items = [];
-  }
+  const inbox = await gatherNeedsDecisionInbox(user);
+  const items: AppStateItem[] = inbox.rows.map((row) => ({
+    label: row.label,
+    detail: row.detail,
+    href: row.href,
+  }));
 
   return {
     query: "approvals",
-    title: "Your approvals",
+    title: "Needs your decision",
     summary:
       items.length === 0
-        ? "Nothing is waiting for your approval right now."
-        : `${plural(items.length, "item")} ready for your approval.`,
+        ? "Nothing needs your decision right now."
+        : `${plural(items.length, "thing")} waiting on you.`,
     items,
   };
 }
