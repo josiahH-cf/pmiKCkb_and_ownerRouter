@@ -45,12 +45,7 @@ export function VerifyConnectionButton({
 
   return (
     <div className="ui-stack-tight">
-      <button
-        className="secondary-button"
-        disabled={busy}
-        onClick={verify}
-        type="button"
-      >
+      <button className="secondary-button" disabled={busy} onClick={verify} type="button">
         {busy ? "Checking…" : "Verify connection"}
       </button>
       {message ? <p className="muted">{message}</p> : null}

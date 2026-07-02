@@ -31,16 +31,18 @@ stop-and-reset rules.
 - **RESUME — next / waiting-on (2026-07-02):** ALL 12 pre-customer refinement decisions LOCKED (owner 2026-07-02;
   notice rules per-tenant/property CONFIGURABLE — `F-PRECUST-CYCLE`). Tracked spec: S13
   `docs/feature-suites/pre-customer-refinement.md`; mapping packet: `docs/temp/pre-customer-refinement-plan.md`.
-  IN PROGRESS on branch `s13-wave1-precustomer` (A/B3/B1 merged to `main` + pushed; B2 onward local on
-  the branch — per-slice commits + detail in `git log` + `docs/status.md`). DONE: A (copy v2 + gate,
-  `F-VOICE-2`), B COMPLETE (B3 css; B1 unified inbox; B2 bulk approve/return on the run page; B4
-  decided items collapse to counts; B5 shared needs-decision gather → Console answer + Space-card
-  "N waiting on you"), C COMPLETE (C1 reconcile direct_links un-404ed via redirect + ?flag= highlight;
-  C2 per-connector anchors + item hrefs; C3 Console live counts + "start with" deep link; C4
-  source_trigger_key dedupe = one decision, one count everywhere) — 957 tests, all gates green at
-  6b96b92. NEXT: D connections truth (D1 wire live probes → verifiedIds → D2 requiredConfig truth
-  Sheets/Drive → D3 Dotloop+LeadSimple env seams → D4 Gmail sender card → D5 Admin verify button +
-  read-only non-Admin → D6 stale health-contract Drive note) → Wave 2 desks → Wave 3. TIER-0 OWNER STEPS
+  **WAVE 1 COMPLETE** on branch `s13-wave1-precustomer` (A/B3/B1 merged to `main` + pushed; B2→D local
+  on the branch, commits c07a8dd..ca3c9bf + boundary docs; `F-PRECUST-WAVE1`, detail in `docs/status.md`).
+  A copy v2 + gate; B unified inbox + bulk-on-run-page + counts-collapse + the shared needs-decision
+  gather ("N waiting on you" on Space card + Console); C deep links land on the thing (redirect + ?flag=
+  highlight, anchors, Console live counts + start-with link, source_trigger_key dedupe); D connections
+  truth (live probes → verifiedIds w/ 10-min cache, DWD requiredConfig, Dotloop/LeadSimple/Gmail-sender
+  seams, read-only non-Admin + Admin verify button, stale Drive note fixed). 970 tests; every slice
+  passed lint/typecheck/suite/copy-voice/falsification; `bash scripts/verify.sh` green at wave end.
+  STOP fired: context reset at the wave boundary. NEXT (fresh session): Wave 2 — E1 Move-In/Move-Out
+  Draft definition seeds honoring `docs/products/v1-process-qa.md` VERBATIM → E2 reusable per-Space
+  desk + the two V1 desks → E3 tenant-notice + E4 owner-outreach definitions → E5 owner-run live seed
+  → Wave 3 (F rule engine first, then G Dictate, H learning loop). Owner may also push/PR the branch. TIER-0 OWNER STEPS
   (front-load, none block Wave 1): (1) `npm run auth:session`; (2) LIVE seed — set `PROCESS_OWNER_UID` +
   `PROCESS_APPROVER_UID` env FIRST (silent placeholder fallback), then `npm run seed:process-definitions`;
   (3) Dan's prod Admin claim; (4) `gcloud services enable speech.googleapis.com --project=pmi-kc-kb-prod`;
