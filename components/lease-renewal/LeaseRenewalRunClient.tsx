@@ -40,12 +40,54 @@ export function LeaseRenewalRunClient({
   isAdmin,
   resolutionsError,
 }: LeaseRenewalRunClientProps) {
+  // Bulk decisions (S13 B2) live HERE on the run page, where the proposed values are visible —
+  // never on the value-free queue tabs. Selection is keyed by sourceTriggerKey and derived against
+  // the current view on every render, so a flag that stops being queued silently drops out.
+  const eligibleFlags = view.groups.flatMap((group) =>
+    group.flags.filter((flag) => flag.writebackApproval !== null),
+  );
+  const bulkEnabled = isAdmin && eligibleFlags.length >= 2;
+  const [selectedKeys, setSelectedKeys] = useState<ReadonlySet<string>>(new Set());
+  const selectedEligible = eligibleFlags.filter((flag) =>
+    selectedKeys.has(flag.sourceTriggerKey),
+  );
+
+  function toggleSelected(key: string) {
+    setSelectedKeys((previous) => {
+      const next = new Set(previous);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
   return (
     <div className="lr-run">
       <p className="workflow-test-banner">
         Test run only, on sample data. This run performs no live read, no write, and no
         system-of-record update.
       </p>
+
+      {bulkEnabled ? (
+        <WritebackBulkDecisionBar
+          eligible={eligibleFlags.map((flag) => ({
+            key: flag.sourceTriggerKey,
+            label: flag.fieldLabel,
+          }))}
+          onClearSelection={() => setSelectedKeys(new Set())}
+          onSelectAll={() =>
+            setSelectedKeys(new Set(eligibleFlags.map((flag) => flag.sourceTriggerKey)))
+          }
+          runId={view.runId}
+          selected={selectedEligible.map((flag) => ({
+            key: flag.sourceTriggerKey,
+            label: flag.fieldLabel,
+          }))}
+        />
+      ) : null}
 
       <section className="panel" aria-label="Run summary">
         <h2 className="section-subtitle">{view.label}</h2>
@@ -113,6 +155,14 @@ export function LeaseRenewalRunClient({
             </h2>
             {group.flags.map((flag) => (
               <FlagCard
+                bulk={
+                  bulkEnabled && flag.writebackApproval
+                    ? {
+                        selected: selectedKeys.has(flag.sourceTriggerKey),
+                        onToggle: () => toggleSelected(flag.sourceTriggerKey),
+                      }
+                    : null
+                }
                 canResolve={canResolve}
                 flag={flag}
                 isAdmin={isAdmin}
@@ -133,6 +183,163 @@ function SummaryField({ label, value }: { label: string; value: number }) {
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
+  );
+}
+
+interface BulkItemOutcome {
+  label: string;
+  ok: boolean;
+  message: string;
+}
+
+// Admin-only bulk decision bar (S13 B2): approve or return SEVERAL queued write-back proposals with
+// ONE shared mandatory reason. Lives only on the run page, where the proposed values are visible.
+// The server loops the existing per-proposal transaction, so each item still gets its own decision
+// record + Activity row (stamped with the shared reason) and per-item failures never block the rest.
+function WritebackBulkDecisionBar({
+  runId,
+  eligible,
+  selected,
+  onSelectAll,
+  onClearSelection,
+}: {
+  runId: string;
+  eligible: { key: string; label: string }[];
+  selected: { key: string; label: string }[];
+  onSelectAll: () => void;
+  onClearSelection: () => void;
+}) {
+  const router = useRouter();
+  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState<null | "approve" | "return">(null);
+  const [error, setError] = useState<string | null>(null);
+  const [outcomes, setOutcomes] = useState<BulkItemOutcome[] | null>(null);
+
+  async function decideSelected(decision: "approve" | "return") {
+    setError(null);
+    if (selected.length === 0) {
+      setError("Tick at least one queued write-back below.");
+      return;
+    }
+    if (!reason.trim()) {
+      setError("A plain-English reason is required. It is saved on every selected item.");
+      return;
+    }
+    setSubmitting(decision);
+    const labelByKey = new Map(selected.map((item) => [item.key, item.label]));
+    try {
+      const response = await fetch("/api/lease-renewal/writeback-approvals/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          run_id: runId,
+          source_trigger_keys: selected.map((item) => item.key),
+          decision,
+          reason: reason.trim(),
+        }),
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setError(body?.error ?? "Could not record the bulk decision.");
+        return;
+      }
+      const body = (await response.json()) as {
+        results: {
+          source_trigger_key: string;
+          ok: boolean;
+          state?: string;
+          error?: string;
+        }[];
+      };
+      setOutcomes(
+        body.results.map((result) => ({
+          label: labelByKey.get(result.source_trigger_key) ?? result.source_trigger_key,
+          ok: result.ok,
+          message: result.ok
+            ? result.state === "Approved"
+              ? "Approved (nothing written)"
+              : "Returned for revision"
+            : (result.error ?? "This decision could not be recorded."),
+        })),
+      );
+      setReason("");
+      onClearSelection();
+      router.refresh();
+    } catch {
+      setError("Could not reach the approval endpoint.");
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
+  return (
+    <section className="panel lr-bulk-bar" aria-label="Bulk write-back decision">
+      <h2 className="section-subtitle">Decide several write-backs at once</h2>
+      <p className="muted">
+        {selected.length} of {eligible.length} queued write-backs selected. Tick the boxes
+        on the flags below, then approve or return them together with one shared reason.
+        Each item keeps its own decision record and history entry.
+      </p>
+      <div className="lr-approve-actions">
+        <button className="secondary-button" onClick={onSelectAll} type="button">
+          Select all queued
+        </button>
+        <button className="secondary-button" onClick={onClearSelection} type="button">
+          Clear selection
+        </button>
+      </div>
+      <div className="lr-approve-form">
+        <label>
+          Reason (required, saved on every selected item)
+          <textarea
+            onChange={(event) => setReason(event.target.value)}
+            rows={2}
+            value={reason}
+          />
+        </label>
+        {error ? <p className="lr-error">{error}</p> : null}
+        <div className="lr-approve-actions">
+          <button
+            disabled={submitting !== null}
+            onClick={() => decideSelected("approve")}
+            type="button"
+          >
+            {submitting === "approve" ? "Saving…" : "Approve selected"}
+          </button>
+          <button
+            className="secondary-button"
+            disabled={submitting !== null}
+            onClick={() => decideSelected("return")}
+            type="button"
+          >
+            {submitting === "return" ? "Saving…" : "Return selected"}
+          </button>
+        </div>
+        <p className="muted">
+          Approving records your authorization for the future append-only Sheet write.
+          Nothing is written to the Sheet here.
+        </p>
+      </div>
+      {outcomes ? (
+        <div className="lr-bulk-results" aria-label="Bulk decision results">
+          <p className="muted">Results</p>
+          <ul>
+            {outcomes.map((outcome, index) => (
+              <li key={`${outcome.label}-${index}`}>
+                <strong>{outcome.label}:</strong>{" "}
+                {outcome.ok ? (
+                  outcome.message
+                ) : (
+                  <span className="lr-error">{outcome.message}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -343,11 +550,14 @@ function FlagCard({
   runId,
   canResolve,
   isAdmin,
+  bulk,
 }: {
   flag: RenewalFlagView;
   runId: string;
   canResolve: boolean;
   isAdmin: boolean;
+  /** Multi-select hook for the run-page bulk decision bar (Admin + queued proposal only). */
+  bulk: { selected: boolean; onToggle: () => void } | null;
 }) {
   const router = useRouter();
   const requiresAdmin = flag.severity === "High" || flag.severity === "Blocked";
@@ -452,6 +662,13 @@ function FlagCard({
           proposal={flag.writeback}
           queued={flag.writebackApproval !== null}
         />
+      ) : null}
+
+      {bulk ? (
+        <label className="lr-bulk-select">
+          <input checked={bulk.selected} onChange={bulk.onToggle} type="checkbox" />
+          Include in the bulk decision above
+        </label>
       ) : null}
 
       {flag.writebackApproval ? (

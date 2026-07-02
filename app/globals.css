@@ -1033,6 +1033,30 @@ button {
   font-weight: 700;
 }
 
+/* Bulk write-back decision bar + per-flag multi-select (S13 B2, run page only). */
+.lr-bulk-bar {
+  display: grid;
+  gap: 10px;
+}
+
+.lr-bulk-select {
+  align-items: center;
+  display: flex;
+  font-weight: 700;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.lr-bulk-select input[type="checkbox"] {
+  height: 18px;
+  width: 18px;
+}
+
+.lr-bulk-results ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
+}
+
 /* =====================================================================
    UI PRIMITIVES — Phase 0 foundation (consumed by components/ui/*)
    Token-driven classes for the redesigned client-facing surfaces. Existing
