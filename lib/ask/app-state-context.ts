@@ -4,11 +4,10 @@
 // approvals, sends, or writes (those stay in their own gated surfaces). Every resolver is non-fatal:
 // a Firestore hiccup yields an empty result, never a thrown error.
 
-import { canViewApprovalQueueItem } from "@/lib/approval/queue";
+import { gatherNeedsDecisionInbox } from "@/lib/approval/needs-decision-gather";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { buildConnectionView } from "@/lib/connections/connection-status";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
-import { listApprovalQueue } from "@/lib/firestore/approval-queue";
 import { listProcessDefinitions } from "@/lib/firestore/workflows";
 import { computeSpaceCardState } from "@/lib/space-card-state";
 import { launchSpaces, spaceHref } from "@/lib/spaces";
@@ -33,33 +32,29 @@ function plural(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }
 
-/** "What are my approvals?" — queue items ready for approval that this user may see. */
+/**
+ * "What are my approvals?" — the SAME merged, value-free "Needs your decision" picture the Approval
+ * Queue's default inbox shows (S13 B5): open renewal flags + write-backs awaiting approval + queue
+ * items this user may see, deduped and attention-ordered. One gather per request; before B5 this read
+ * only the near-empty queue collection and answered "Nothing" while renewal work waited.
+ */
 export async function resolveApprovalsState(
   user: AuthenticatedUser,
 ): Promise<AppStateResult> {
-  let items: AppStateItem[] = [];
-  try {
-    const queue = await listApprovalQueue(user, {
-      filters: { status: "Ready for Approval" },
-    });
-    items = queue
-      .filter((item) => canViewApprovalQueueItem(user, item))
-      .map((item) => ({
-        label: item.action_needed,
-        detail: `Risk: ${item.risk}`,
-        href: item.direct_link || "/approval-queue",
-      }));
-  } catch {
-    items = [];
-  }
+  const inbox = await gatherNeedsDecisionInbox(user);
+  const items: AppStateItem[] = inbox.rows.map((row) => ({
+    label: row.label,
+    detail: row.detail,
+    href: row.href,
+  }));
 
   return {
     query: "approvals",
-    title: "Your approvals",
+    title: "Needs your decision",
     summary:
       items.length === 0
-        ? "Nothing is waiting for your approval right now."
-        : `${plural(items.length, "item")} ready for your approval.`,
+        ? "Nothing needs your decision right now."
+        : `${plural(items.length, "thing")} waiting on you.`,
     items,
   };
 }
@@ -84,24 +79,30 @@ export function resolveConnectionsState(
       gaps.length === 0
         ? "Every connector is configured."
         : `${plural(gaps.length, "connector")} still ${gaps.length === 1 ? "needs" : "need"} setup.`,
+    // Each gap deep-links to its own connector card via the per-connector anchor (S13 C2).
     items: gaps.map((item) => ({
       label: item.def.name,
       detail: item.status.detail,
-      href: "/connections",
+      href: `/connections#connector-${item.def.id}`,
     })),
   };
 }
 
-/** "Which Spaces don't have a process (or connections) yet?" — reuses the S6 card-state logic. */
+/** "Which Spaces don't have a process (or connections) yet?" — reuses the S6 card-state logic.
+ *  A caller that already fetched the process definitions passes their ids to avoid a second read
+ *  in the same request (the Console does — C3). */
 export async function resolveCoverageState(
   user: AuthenticatedUser,
+  knownDefinitionIds?: ReadonlySet<string>,
 ): Promise<AppStateResult> {
-  let definitionIds = new Set<string>();
-  try {
-    const definitions = await listProcessDefinitions(user);
-    definitionIds = new Set(definitions.map((definition) => definition.id));
-  } catch {
-    definitionIds = new Set();
+  let definitionIds: ReadonlySet<string> = knownDefinitionIds ?? new Set<string>();
+  if (!knownDefinitionIds) {
+    try {
+      const definitions = await listProcessDefinitions(user);
+      definitionIds = new Set(definitions.map((definition) => definition.id));
+    } catch {
+      definitionIds = new Set();
+    }
   }
   const presence = readConnectorPresence();
 

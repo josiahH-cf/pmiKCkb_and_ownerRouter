@@ -250,7 +250,7 @@ export const HEALTH_CHECK_CONTRACTS: readonly HealthCheckContract[] = [
         description:
           "Keyless DWD mints a Drive-scoped token acting AS the pmikcmetro.com subject.",
         expected_evidence:
-          "Expected to fail until the Drive scope is authorized for the SA in Admin console → Domain-wide delegation (live attempt returned unauthorized_client).",
+          "Drive-scoped DWD token minted as the subject (scope authorized + live-verified 2026-06-29, F-DRIVE-DWD).",
       },
       {
         id: "google_drive.probe",

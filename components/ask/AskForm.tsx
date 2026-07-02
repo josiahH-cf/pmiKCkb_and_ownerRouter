@@ -47,10 +47,21 @@ const capturableStates = new Set([
   "No Reliable Source Found",
 ]);
 
+/** The Console's one-line "start here" pointer (S13 C3): the most urgent waiting decision. */
+export type ConsoleNextAction = { count: number; label: string; href: string };
+
 export function AskForm({
   canStartSimulation = false,
   processes = [],
-}: Readonly<{ canStartSimulation?: boolean; processes?: ProcessOption[] }>) {
+  commandCounts = {},
+  nextAction = null,
+}: Readonly<{
+  canStartSimulation?: boolean;
+  processes?: ProcessOption[];
+  /** Live, value-free counts for the command buttons (server-gathered, non-fatal). */
+  commandCounts?: Partial<Record<AppStateQuery, number>>;
+  nextAction?: ConsoleNextAction | null;
+}>) {
   const [question, setQuestion] = useState("");
   const [processId, setProcessId] = useState("");
   const [captureSpace, setCaptureSpace] = useState(
@@ -273,18 +284,35 @@ export function AskForm({
 
   return (
     <div className="ask-console">
+      {nextAction ? (
+        // The next right action (S13 C3): one line, one primary deep link, straight to the most
+        // urgent waiting decision. Advisory only; the decision itself happens on the linked page.
+        <p className="console-next-action">
+          {nextAction.count} {nextAction.count === 1 ? "thing needs" : "things need"} your
+          decision. Start with{" "}
+          <Link className="text-link" href={nextAction.href}>
+            {nextAction.label}
+          </Link>
+          .
+        </p>
+      ) : null}
+
       <div className="console-commands" role="group" aria-label="Console commands">
-        {APP_STATE_COMMANDS.map((command) => (
-          <button
-            className="secondary-button"
-            disabled={appStateLoading !== null}
-            key={command.query}
-            onClick={() => loadAppState(command.query)}
-            type="button"
-          >
-            {appStateLoading === command.query ? "Loading…" : command.label}
-          </button>
-        ))}
+        {APP_STATE_COMMANDS.map((command) => {
+          const count = commandCounts[command.query] ?? 0;
+          const label = count > 0 ? `${command.label} (${count})` : command.label;
+          return (
+            <button
+              className="secondary-button"
+              disabled={appStateLoading !== null}
+              key={command.query}
+              onClick={() => loadAppState(command.query)}
+              type="button"
+            >
+              {appStateLoading === command.query ? "Loading…" : label}
+            </button>
+          );
+        })}
       </div>
 
       {appState ? (

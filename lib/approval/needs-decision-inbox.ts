@@ -59,12 +59,26 @@ function severityRank(severity: Severity): number {
 }
 
 // When the same field appears as both an open flag and a queued write-back, the write-back (the more
-// specific, decision-ready item) wins. queue_item ids are globally unique so they never collide.
+// specific, decision-ready item) wins. A PERSISTED reconcile queue item shares its target too (see
+// queueItemTargetKey), so one underlying decision is always one row and one count (C4).
 const KIND_RANK: Record<NeedsDecisionKind, number> = {
   writeback: 0,
   renewal_flag: 1,
   queue_item: 2,
 };
+
+// Reconciliation queue items are stamped source_trigger_key = "lease_renewal:reconcile:{runId}:
+// {fieldKey}" (approval-queue-mapping). Deduping them by that key against the flag/write-back rows
+// (whose target is "{runId}:{fieldKey}") keeps the merged number honest: the same field conflict
+// never counts twice just because a queue item was persisted for it (S13 C4).
+const RECONCILE_TRIGGER_PREFIX = "lease_renewal:reconcile:";
+
+function queueItemTargetKey(item: ApprovalQueueItemRecord): string {
+  if (item.source_trigger_key?.startsWith(RECONCILE_TRIGGER_PREFIX)) {
+    return item.source_trigger_key.slice(RECONCILE_TRIGGER_PREFIX.length);
+  }
+  return `queue_item:${item.id}`;
+}
 
 /**
  * Merge the three value-free feeds into one attention-ordered inbox (pure, deterministic). Rows are
@@ -113,10 +127,10 @@ export function buildNeedsDecisionInbox(
     }
   }
 
-  // 3. Live approval-queue items that need a decision now.
+  // 3. Live approval-queue items that need a decision now (reconcile items dedupe by target — C4).
   for (const item of queueItems) {
     if (!queueItemNeedsDecision(item.status)) continue;
-    consider(`queue_item:${item.id}`, {
+    consider(queueItemTargetKey(item), {
       kind: "queue_item",
       key: `queue_item:${item.id}`,
       label: item.action_needed,

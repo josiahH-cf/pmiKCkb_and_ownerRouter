@@ -3,11 +3,14 @@ import { SPACE_CARD_STATE_LABEL, computeSpaceCardState } from "@/lib/space-card-
 import type { LaunchSpace } from "@/lib/spaces";
 
 // Presence covering RentVine + the renewal sheet + Drive so mapped Spaces are "connected".
+// The DWD pair is part of the Sheets/Drive truth since S13 D2 (the runtime reads via DWD).
 const ALL_PRESENT: Record<string, boolean> = {
   RENTVINE_API_BASE_URL: true,
   RENTVINE_API_KEY: true,
   RENTVINE_API_SECRET: true,
   RENEWAL_SHEET_ID: true,
+  SHEETS_IMPERSONATE_SA: true,
+  SHEETS_DWD_SUBJECT: true,
   SPACE_DRIVE_FOLDER_IDS: true,
 };
 const NONE_PRESENT: Record<string, boolean> = {};

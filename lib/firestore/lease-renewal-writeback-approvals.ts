@@ -46,6 +46,34 @@ export type DecideWritebackApprovalInput = z.input<
   typeof DecideWritebackApprovalInputSchema
 >;
 
+// Bulk decisions share ONE mandatory reason across every selected proposal (S13 decision 2); the
+// upper bound only guards against a runaway request — a run's queued proposals stay far below it.
+export const DecideWritebackApprovalsBulkInputSchema = z.object({
+  run_id: z.string().min(1),
+  source_trigger_keys: z.array(z.string().min(1)).min(1).max(200),
+  decision: z.enum(["approve", "return"]),
+  reason: z.string().trim().min(1, "A plain-English reason is required."),
+});
+export type DecideWritebackApprovalsBulkInput = z.input<
+  typeof DecideWritebackApprovalsBulkInputSchema
+>;
+
+/** Outcome of one proposal inside a bulk decision. Exactly one of `state`/`error` is present. */
+export interface WritebackApprovalBulkItemResult {
+  source_trigger_key: string;
+  ok: boolean;
+  /** The decided state when `ok` (mirrors the single-decision readback). */
+  state?: LeaseRenewalWritebackApprovalRecord["state"];
+  /** Plain-English failure for this one item when not `ok`; the others still proceed. */
+  error?: string;
+}
+
+export interface WritebackApprovalBulkResult {
+  results: WritebackApprovalBulkItemResult[];
+  decided_count: number;
+  failed_count: number;
+}
+
 /**
  * Approve or return a queued write-back proposal (§4.0 admin-gated control plane). Requires the
  * Admin capability. Reads the resolution to confirm a QUEUED proposal exists, validates the
@@ -157,6 +185,58 @@ export async function decideWritebackApproval(
     throw new EditableLayerError("Approval could not be read back after write.", 404);
   }
   return readback;
+}
+
+/**
+ * Decide MANY queued proposals in one request with ONE shared mandatory reason (S13 B2). Runs the
+ * existing single-proposal transaction per key, so every invariant holds unchanged per item: the
+ * Admin gate, resolve-before-approve, the transition table, the stale-snapshot rule, and one
+ * append-only Activity row per decision (each stamped with the shared reason + this decider). Items
+ * are decided sequentially and independently: one item's failure (already approved, missing
+ * resolution, wrong run) is reported for that item only and never blocks the rest. Never executes a
+ * system-of-record write.
+ */
+export async function decideWritebackApprovalsBulk(
+  actor: AuthenticatedUser,
+  input: DecideWritebackApprovalsBulkInput,
+  db: Firestore = getAdminFirestore(),
+): Promise<WritebackApprovalBulkResult> {
+  // Fail fast for non-Admins before touching any item (the per-item call re-asserts this).
+  assertCan(actor, "manageAdmin");
+  const parsed = DecideWritebackApprovalsBulkInputSchema.parse(input);
+
+  // Dedupe while preserving order so a doubled key cannot record two Activity rows for one decision.
+  const keys = [...new Set(parsed.source_trigger_keys)];
+
+  const results: WritebackApprovalBulkItemResult[] = [];
+  for (const key of keys) {
+    try {
+      const approval = await decideWritebackApproval(
+        actor,
+        {
+          run_id: parsed.run_id,
+          source_trigger_key: key,
+          decision: parsed.decision,
+          reason: parsed.reason,
+        },
+        db,
+      );
+      results.push({ source_trigger_key: key, ok: true, state: approval.state });
+    } catch (error) {
+      const message =
+        error instanceof EditableLayerError
+          ? error.message
+          : "This decision could not be recorded.";
+      results.push({ source_trigger_key: key, ok: false, error: message });
+    }
+  }
+
+  const decided = results.filter((result) => result.ok).length;
+  return {
+    results,
+    decided_count: decided,
+    failed_count: results.length - decided,
+  };
 }
 
 export async function getWritebackApproval(

@@ -43,29 +43,53 @@ export function WritebackQueuePanel({
   );
 }
 
+// Decided states are background, not work: they collapse to a counts-only summary by default (S13
+// B4 — the queue asks only for what it needs) and expand on demand. "Awaiting approval" stays open.
+const DECIDED_STATES: ReadonlySet<WritebackApprovalState> = new Set([
+  "Approved",
+  "Returned for Revision",
+]);
+
 function QueueStateGroup({ group }: Readonly<{ group: WritebackApprovalQueueGroup }>) {
+  const rows =
+    group.rows.length === 0 ? (
+      <p className="muted">None.</p>
+    ) : (
+      <ul className="ui-rows">
+        {group.rows.map((row) => (
+          <li className="ui-spread" key={`${row.runId}:${row.fieldKey}`}>
+            <Link className="text-link" href={row.href}>
+              <strong>{row.fieldLabel}</strong>
+              <span className="muted"> — {row.runLabel}</span>
+            </Link>
+            <span className="queue-pill" data-value={row.severity}>
+              {row.severity}
+            </span>
+          </li>
+        ))}
+      </ul>
+    );
+
+  if (DECIDED_STATES.has(group.state) && group.rows.length > 0) {
+    return (
+      <details className="panel ui-collapse">
+        <summary>
+          <h3 className="ui-card-title">
+            {STATE_HEADING[group.state]} ({group.rows.length})
+          </h3>
+          <span className="muted"> Already decided. Open to view.</span>
+        </summary>
+        {rows}
+      </details>
+    );
+  }
+
   return (
     <article className="panel ui-stack">
       <h3 className="ui-card-title">
         {STATE_HEADING[group.state]} ({group.rows.length})
       </h3>
-      {group.rows.length === 0 ? (
-        <p className="muted">None.</p>
-      ) : (
-        <ul className="ui-rows">
-          {group.rows.map((row) => (
-            <li className="ui-spread" key={`${row.runId}:${row.fieldKey}`}>
-              <Link className="text-link" href={row.href}>
-                <strong>{row.fieldLabel}</strong>
-                <span className="muted"> — {row.runLabel}</span>
-              </Link>
-              <span className="queue-pill" data-value={row.severity}>
-                {row.severity}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      {rows}
     </article>
   );
 }

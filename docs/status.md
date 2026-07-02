@@ -6062,3 +6062,27 @@ print-access-token` — no matter how many `gcloud auth login`s. STRUCTURAL: the
   enforcing on pushes; the "format drift is just local Windows CRLF" belief is FALSIFIED (the failures reproduce
   in CI's clean LF checkout). Restored via a dedicated style-only commit: `npx prettier --write` scoped to
   exactly the pre-existing failing files, diffs reviewed for markdown mangling, full test suite run before push.
+- 2026-07-02 — S13 WAVE 1 COMPLETE (loop run, branch `s13-wave1-precustomer`, commits c07a8dd..ca3c9bf): built and
+  verified slices B2/B4/B5 + C1–C4 + D1–D6 on top of the earlier A/B3/B1. B: bulk approve/return landed ON the run
+  page (multi-select + ONE shared mandatory reason per decision 2 — Admin-only, the bulk endpoint loops the
+  existing per-proposal transaction so every invariant holds per item, per-item Activity row + per-item failure
+  reporting, NO approve affordance added to value-free tabs); decided/resolved items now default-collapse to
+  counts-only details sections on the write-back queue + renewal review (B4); and a shared needs-decision gather
+  (`lib/approval/needs-decision-gather.ts`) now feeds the Console approvals answer AND a "N waiting on you" pill on
+  the lease-renewal Space card, so no surface answers "Nothing" while the queue holds work (B5). C: the persisted
+  reconcile deep links (`/runs/{id}/reconciliation/{fieldKey}`) that 404ed now redirect to the run page with
+  ?flag= highlight/scroll (C1); app-state items deep-link per item/per connector anchor (C2); the Console shows
+  live counts on its three command buttons + a one-line "N things need your decision. Start with …" link (C3);
+  and reconcile queue items dedupe against their flag/write-back rows by source_trigger_key — one decision, one
+  row, one count everywhere (C4). D: the two BUILT live probes (RentVine, Sheets) now feed `verifiedIds` through
+  `runHealthCheck` with a ~10-minute in-process cache (decision 6) so working connectors show "Connected" (D1);
+  Sheets/Drive requiredConfig tells the DWD truth (D2); Dotloop + LeadSimple env seams named (D3); the send-only
+  Gmail notifier got an honest "notifications sender" card (D4); /connections is read-gated — non-Admins see
+  read-only status, Admins keep the wizard + a fresh "Verify connection" button behind an Admin-only route (D5);
+  the stale Drive-DWD "unauthorized_client" note corrected to F-DRIVE-DWD truth (D6). Gates on every slice: lint,
+  typecheck, full suite (913 → 970 tests), verify:copy-voice, verify:falsification, prettier on touched files;
+  value-free sentinels extended, never weakened. Fact row F-PRECUST-WAVE1. STOP fired: context reset at the
+  Wave-1→Wave-2 boundary; next slice is E1 (Move-In/Move-Out Draft definition seeds — honor the Q&A answers
+  VERBATIM from `docs/products/v1-process-qa.md`) in a fresh session. Residual: bulk-bar UX not browser-walked
+  (run page is auth+Firestore-gated locally; jsdom interaction tests cover it) — include in the end-of-cycle
+  deployed-endpoint walkthrough; Tier-0 owner steps still pending and none block Wave 2.

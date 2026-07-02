@@ -33,14 +33,22 @@ export const CONNECTORS: readonly ConnectorDef[] = [
       "Your renewal tracking sheet. The app reads it and flags anything that doesn't match RentVine.",
     method: "google",
     healthCheckRef: "health.google_sheets.api",
-    requiredConfig: ["RENEWAL_SHEET_ID"],
+    // Truth (S13 D2): the runtime reads the sheet via keyless domain-wide delegation, so it needs
+    // the DWD pair too (buildLiveRenewalConfig requires all three).
+    requiredConfig: ["RENEWAL_SHEET_ID", "SHEETS_IMPERSONATE_SA", "SHEETS_DWD_SUBJECT"],
   },
   {
     id: "google_drive",
     name: "Google Drive",
     powers: "Approved templates and the documents the app cites in answers.",
     method: "google",
-    requiredConfig: ["SPACE_DRIVE_FOLDER_IDS"],
+    healthCheckRef: "health.google_drive.dwd",
+    // Truth (S13 D2): Drive uploads run through the same DWD identity as Sheets.
+    requiredConfig: [
+      "SPACE_DRIVE_FOLDER_IDS",
+      "SHEETS_IMPERSONATE_SA",
+      "SHEETS_DWD_SUBJECT",
+    ],
   },
   {
     id: "dotloop",
@@ -48,7 +56,9 @@ export const CONNECTORS: readonly ConnectorDef[] = [
     powers: "Lease document build-out and e-signature.",
     method: "oauth",
     healthCheckRef: "health.dotloop.oauth_app",
-    requiredConfig: [],
+    // Config seam (S13 D3): where the already-held OAuth app credentials land. Presence only;
+    // no Dotloop client code exists yet, so status stays honest ("details provided, not verified").
+    requiredConfig: ["DOTLOOP_OAUTH_CLIENT_ID", "DOTLOOP_OAUTH_CLIENT_SECRET"],
   },
   {
     id: "leadsimple",
@@ -56,7 +66,18 @@ export const CONNECTORS: readonly ConnectorDef[] = [
     powers: "The renewal pipeline stages and follow-up tasks.",
     method: "api_key",
     healthCheckRef: "health.leadsimple.rest_api",
-    requiredConfig: [],
+    // Config seam (S13 D3): where the team's existing API key lands. Presence only.
+    requiredConfig: ["LEADSIMPLE_API_KEY"],
+  },
+  {
+    id: "gmail_sender",
+    name: "Gmail (notifications sender)",
+    powers:
+      "Sends the approval notification emails the app queues. The app never reads any inbox.",
+    method: "google",
+    // The send-only notifier that already works (S13 D4). Inbox access is a separate, unapproved
+    // access model and is NOT represented by this card.
+    requiredConfig: ["KB_APPROVAL_SENDER", "KB_APPROVAL_RECIPIENTS"],
   },
   {
     id: "quickbooks",

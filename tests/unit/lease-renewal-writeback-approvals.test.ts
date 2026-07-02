@@ -10,6 +10,7 @@ import {
 } from "@/lib/firestore/lease-renewal-resolutions";
 import {
   decideWritebackApproval,
+  decideWritebackApprovalsBulk,
   getWritebackApproval,
   listWritebackApprovalActivity,
   listWritebackApprovalActivityForRun,
@@ -245,6 +246,128 @@ function seedResolutionForKey(
   );
   return record;
 }
+
+describe("decideWritebackApprovalsBulk", () => {
+  function bulk(
+    actor: AuthenticatedUser,
+    keys: string[],
+    decision: "approve" | "return" = "approve",
+    reason = "Shared bulk reason.",
+  ) {
+    return decideWritebackApprovalsBulk(
+      actor,
+      { run_id: RUN_ID, source_trigger_keys: keys, decision, reason },
+      fs(),
+    );
+  }
+
+  it("approves several queued proposals with ONE shared reason, one Activity row each", async () => {
+    seedResolution(db); // KEY: current_rent
+    seedResolutionForKey(KEY2, "renewal_date");
+
+    const outcome = await bulk(admin, [KEY, KEY2], "approve", "Verified both values.");
+
+    expect(outcome.decided_count).toBe(2);
+    expect(outcome.failed_count).toBe(0);
+    expect(outcome.results).toEqual([
+      { source_trigger_key: KEY, ok: true, state: "Approved" },
+      { source_trigger_key: KEY2, ok: true, state: "Approved" },
+    ]);
+
+    // The shared reason + decider + no-execute invariants land on EVERY record.
+    for (const key of [KEY, KEY2]) {
+      const approval = await getWritebackApproval(admin, key, fs());
+      expect(approval).toMatchObject({
+        state: "Approved",
+        reason: "Verified both values.",
+        decided_by_uid: "admin-1",
+        production_allowed: false,
+        executed: false,
+      });
+      const activity = await listWritebackApprovalActivity(admin, key, fs());
+      expect(activity).toHaveLength(1);
+      expect(activity[0]).toMatchObject({
+        action: "approve",
+        reason: "Verified both values.",
+        actor_uid: "admin-1",
+      });
+    }
+  });
+
+  it("is Admin-only and fails fast before recording anything", async () => {
+    seedResolution(db);
+    seedResolutionForKey(KEY2, "renewal_date");
+    await expect(bulk(approver, [KEY, KEY2])).rejects.toThrow(EditableLayerError);
+    expect(await getWritebackApproval(admin, KEY, fs())).toBeNull();
+    expect(await getWritebackApproval(admin, KEY2, fs())).toBeNull();
+  });
+
+  it("reports a per-item failure without blocking the other items", async () => {
+    seedResolution(db); // Only KEY has a queued proposal; KEY2 has no resolution at all.
+
+    const outcome = await bulk(admin, [KEY, KEY2]);
+
+    expect(outcome.decided_count).toBe(1);
+    expect(outcome.failed_count).toBe(1);
+    expect(outcome.results[0]).toEqual({
+      source_trigger_key: KEY,
+      ok: true,
+      state: "Approved",
+    });
+    expect(outcome.results[1].ok).toBe(false);
+    expect(outcome.results[1].error).toMatch(/Resolve it/);
+    expect(await getWritebackApproval(admin, KEY, fs())).not.toBeNull();
+  });
+
+  it("reports an illegal transition (double-approve) per item, deciding the rest", async () => {
+    seedResolution(db);
+    seedResolutionForKey(KEY2, "renewal_date");
+    await decide(admin, "approve", "Already approved earlier."); // KEY is now Approved.
+
+    const outcome = await bulk(admin, [KEY, KEY2]);
+
+    expect(outcome.decided_count).toBe(1);
+    expect(outcome.failed_count).toBe(1);
+    expect(outcome.results[0].ok).toBe(false);
+    expect(outcome.results[0].error).toMatch(/Cannot approve/);
+    expect(outcome.results[1]).toEqual({
+      source_trigger_key: KEY2,
+      ok: true,
+      state: "Approved",
+    });
+  });
+
+  it("dedupes a repeated key so one decision never records two Activity rows", async () => {
+    seedResolution(db);
+
+    const outcome = await bulk(admin, [KEY, KEY]);
+
+    expect(outcome.results).toHaveLength(1);
+    expect(outcome.decided_count).toBe(1);
+    const activity = await listWritebackApprovalActivity(admin, KEY, fs());
+    expect(activity).toHaveLength(1);
+  });
+
+  it("requires a non-empty shared reason", async () => {
+    seedResolution(db);
+    await expect(bulk(admin, [KEY], "approve", "   ")).rejects.toThrow();
+    expect(await getWritebackApproval(admin, KEY, fs())).toBeNull();
+  });
+
+  it("bulk-returns queued proposals (return leg)", async () => {
+    seedResolution(db);
+    seedResolutionForKey(KEY2, "renewal_date");
+
+    const outcome = await bulk(admin, [KEY, KEY2], "return", "Both need a re-check.");
+
+    expect(outcome.decided_count).toBe(2);
+    for (const key of [KEY, KEY2]) {
+      const approval = await getWritebackApproval(admin, key, fs());
+      expect(approval?.state).toBe("Returned for Revision");
+      expect(approval?.reason).toBe("Both need a re-check.");
+    }
+  });
+});
 
 describe("listWritebackApprovalActivityForRun", () => {
   it("requires read and returns an empty map when nothing has been decided", async () => {

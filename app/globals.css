@@ -200,6 +200,13 @@ button {
   align-self: flex-start;
 }
 
+/* Value-free "N waiting on you" interlock pill (S13 B5) — attention-colored so real work reads as
+   work at a glance, distinct from the neutral state pill. Matches the high-attention queue pills. */
+.space-card-waiting {
+  background: #fff5f5;
+  border-color: var(--state-no-source);
+}
+
 /* Per-Space sub-tabs (Spaces ⊇ Processes): Overview | Process beside a Space. */
 .subtabs {
   border-bottom: 1px solid var(--color-border);
@@ -229,6 +236,16 @@ button {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 16px;
+}
+
+/* One-line "start here" pointer above the commands (S13 C3). */
+.console-next-action {
+  background: #fff7e6;
+  border: 1px solid var(--state-partial);
+  border-radius: 6px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  padding: 8px 12px;
 }
 
 .field-label-row {
@@ -1031,6 +1048,52 @@ button {
 .lr-error {
   color: var(--state-no-source);
   font-weight: 700;
+}
+
+/* Bulk write-back decision bar + per-flag multi-select (S13 B2, run page only). */
+.lr-bulk-bar {
+  display: grid;
+  gap: 10px;
+}
+
+.lr-bulk-select {
+  align-items: center;
+  display: flex;
+  font-weight: 700;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.lr-bulk-select input[type="checkbox"] {
+  height: 18px;
+  width: 18px;
+}
+
+.lr-bulk-results ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
+}
+
+/* Deep-linked flag card (S13 C1): the ?flag= target is outlined so the eye lands on the card whose
+   resolve control the link promised. */
+.lr-flag-highlight {
+  background: #fff7e6;
+  border-radius: 6px;
+  outline: 2px solid var(--state-partial);
+  outline-offset: 2px;
+}
+
+/* Counts-only collapsed sections for decided/background items (S13 B4). */
+.ui-collapse summary {
+  cursor: pointer;
+}
+
+.ui-collapse summary .ui-card-title {
+  display: inline;
+}
+
+.ui-collapse[open] summary {
+  margin-bottom: 8px;
 }
 
 /* =====================================================================

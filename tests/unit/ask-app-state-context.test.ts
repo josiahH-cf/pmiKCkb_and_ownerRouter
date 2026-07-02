@@ -1,17 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-// Mock only the I/O-backed deps; the pure classifiers (canViewApprovalQueueItem, buildConnectionView,
-// computeSpaceCardState) run for real so the provider's real wiring is exercised. vi.hoisted lets the
-// hoisted vi.mock factories reference these without a TDZ error.
-const { listApprovalQueue, listProcessDefinitions, readConnectorPresence } = vi.hoisted(
-  () => ({
-    listApprovalQueue: vi.fn(),
+// Mock only the I/O-backed deps; the pure classifiers (buildConnectionView, computeSpaceCardState)
+// run for real so the provider's real wiring is exercised. The needs-decision gather is I/O-backed
+// and has its own wiring test (needs-decision-gather.test.ts), so it is mocked here. vi.hoisted lets
+// the hoisted vi.mock factories reference these without a TDZ error.
+const { gatherNeedsDecisionInbox, listProcessDefinitions, readConnectorPresence } =
+  vi.hoisted(() => ({
+    gatherNeedsDecisionInbox: vi.fn(),
     listProcessDefinitions: vi.fn(),
     readConnectorPresence: vi.fn(),
-  }),
-);
+  }));
 
-vi.mock("@/lib/firestore/approval-queue", () => ({ listApprovalQueue }));
+vi.mock("@/lib/approval/needs-decision-gather", () => ({ gatherNeedsDecisionInbox }));
 vi.mock("@/lib/firestore/workflows", () => ({ listProcessDefinitions }));
 vi.mock("@/lib/connections/connector-presence", () => ({ readConnectorPresence }));
 
@@ -33,42 +33,52 @@ afterEach(() => {
 });
 
 describe("resolveApprovalsState", () => {
-  it("returns only queue items the user may see, with deep links", async () => {
-    listApprovalQueue.mockResolvedValue([
-      {
-        action_needed: "Approve renewal package",
-        risk: "Medium",
-        direct_link: "/approval-queue#a",
-        assignee_uid: "u1",
-        required_approver_uid: "someone-else",
-      },
-      {
-        action_needed: "Not yours",
-        risk: "Low",
-        direct_link: "/approval-queue#b",
-        assignee_uid: "u2",
-        required_approver_uid: "u3",
-      },
-    ]);
+  it("answers with the merged 'Needs your decision' inbox, value-free with deep links (B5)", async () => {
+    gatherNeedsDecisionInbox.mockResolvedValue({
+      rows: [
+        {
+          kind: "writeback",
+          key: "writeback:run-1:current_rent",
+          label: "Current rent",
+          detail: "Run 1 · awaiting write-back approval",
+          severity: "High",
+          href: "/lease-renewal/runs/run-1",
+        },
+        {
+          kind: "queue_item",
+          key: "queue_item:q1",
+          label: "Approve renewal package",
+          detail: "Run 1",
+          severity: "Medium",
+          href: "/approval-queue#a",
+        },
+      ],
+      counts: { total: 2, renewalFlags: 0, writebacksAwaiting: 1, queueItems: 1 },
+    });
 
     const result = await resolveApprovalsState(editor as never);
 
     expect(result.query).toBe("approvals");
-    expect(result.items).toHaveLength(1);
+    expect(result.title).toBe("Needs your decision");
+    expect(result.items).toHaveLength(2);
     expect(result.items[0]).toMatchObject({
-      label: "Approve renewal package",
-      href: "/approval-queue#a",
+      label: "Current rent",
+      detail: "Run 1 · awaiting write-back approval",
+      href: "/lease-renewal/runs/run-1",
     });
-    expect(result.summary).toContain("1 item");
+    expect(result.summary).toBe("2 things waiting on you.");
   });
 
-  it("is non-fatal when the queue read throws", async () => {
-    listApprovalQueue.mockRejectedValue(new Error("firestore down"));
+  it("says nothing waits only when the merged inbox is empty", async () => {
+    gatherNeedsDecisionInbox.mockResolvedValue({
+      rows: [],
+      counts: { total: 0, renewalFlags: 0, writebacksAwaiting: 0, queueItems: 0 },
+    });
 
     const result = await resolveApprovalsState(editor as never);
 
     expect(result.items).toEqual([]);
-    expect(result.summary).toMatch(/Nothing is waiting/);
+    expect(result.summary).toBe("Nothing needs your decision right now.");
   });
 });
 
@@ -89,7 +99,10 @@ describe("resolveConnectionsState", () => {
 
     expect(labels).not.toContain("RentVine");
     expect(labels).toContain("Google Sheets");
-    expect(result.items.every((item) => item.href === "/connections")).toBe(true);
+    // Each gap deep-links to its own connector card (C2), not just the page.
+    expect(
+      result.items.every((item) => /^\/connections#connector-[a-z_]+$/.test(item.href)),
+    ).toBe(true);
   });
 });
 
