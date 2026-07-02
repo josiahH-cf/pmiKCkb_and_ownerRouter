@@ -31,8 +31,10 @@ stop-and-reset rules.
 - **RESUME — next / waiting-on (2026-07-02):** ALL 12 pre-customer refinement decisions LOCKED (owner 2026-07-02;
   notice rules per-tenant/property CONFIGURABLE — `F-PRECUST-CYCLE`). Tracked spec: S13
   `docs/feature-suites/pre-customer-refinement.md`; mapping packet: `docs/temp/pre-customer-refinement-plan.md`.
-  NEXT: RUN THE LOOP on S13 Wave 1 (copy v2 + gate, unified approval inbox, deep-link 404 fix + Console counts,
-  connections truth) → Wave 2 Move-In/Move-Out desks → Wave 3 notices/Dictate/learning loop. TIER-0 OWNER STEPS
+  IN PROGRESS on branch `s13-wave1-precustomer` (local, NOT pushed): slice A DONE + adversarially verified
+  (copy v2 + `verify:copy-voice` gate + RentVine display seam, `F-VOICE-2`, commit 72bb7a7). NEXT: slice B
+  (unified value-free "Needs your decision" inbox + bulk-on-run-page + `.lr-approve-form` CSS + Space/Console
+  "N waiting" interlock) → C deep-link 404 + counts → D connections truth → Wave 2 desks → Wave 3. TIER-0 OWNER STEPS
   (front-load, none block Wave 1): (1) `npm run auth:session`; (2) LIVE seed — set `PROCESS_OWNER_UID` +
   `PROCESS_APPROVER_UID` env FIRST (silent placeholder fallback), then `npm run seed:process-definitions`;
   (3) Dan's prod Admin claim; (4) `gcloud services enable speech.googleapis.com --project=pmi-kc-kb-prod`;
