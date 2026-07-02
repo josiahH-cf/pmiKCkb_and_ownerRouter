@@ -238,6 +238,16 @@ button {
   margin-bottom: 16px;
 }
 
+/* One-line "start here" pointer above the commands (S13 C3). */
+.console-next-action {
+  background: #fff7e6;
+  border: 1px solid var(--state-partial);
+  border-radius: 6px;
+  font-weight: 600;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+}
+
 .field-label-row {
   align-items: center;
   display: flex;
@@ -1062,6 +1072,15 @@ button {
 .lr-bulk-results ul {
   margin: 4px 0 0;
   padding-left: 20px;
+}
+
+/* Deep-linked flag card (S13 C1): the ?flag= target is outlined so the eye lands on the card whose
+   resolve control the link promised. */
+.lr-flag-highlight {
+  background: #fff7e6;
+  border-radius: 6px;
+  outline: 2px solid var(--state-partial);
+  outline-offset: 2px;
 }
 
 /* Counts-only collapsed sections for decided/background items (S13 B4). */

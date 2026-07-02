@@ -241,6 +241,36 @@ describe("buildNeedsDecisionInbox", () => {
     expect(inbox.rows[0].kind).toBe("writeback");
   });
 
+  it("de-dupes a persisted reconcile queue item against its flag row by source_trigger_key (C4)", () => {
+    const views = [
+      makeView("run-a", "Run A", [
+        { severity: "High", flags: [makeFlag("current_rent", "High")] },
+      ]),
+    ];
+    const inbox = buildNeedsDecisionInbox(
+      [
+        // Persisted reconcile item for the SAME field conflict — must fold into the flag's row.
+        queueItem({
+          id: "q-reconcile",
+          source_trigger_key: "lease_renewal:reconcile:run-a:current_rent",
+        }),
+        // An unrelated queue item still counts on its own.
+        queueItem({ id: "q-other" }),
+      ],
+      buildRenewalReviewBoard(views),
+      buildWritebackApprovalQueue(views),
+    );
+
+    expect(inbox.counts).toEqual({
+      total: 2,
+      renewalFlags: 1,
+      writebacksAwaiting: 0,
+      queueItems: 1,
+    });
+    // One underlying decision = one row: the reconcile queue item never renders beside its flag.
+    expect(inbox.rows.find((row) => row.label === "Approve q-reconcile")).toBeUndefined();
+  });
+
   it("shows only queue items that still need a decision (Ready, Blocked, Failed)", () => {
     const inbox = buildNeedsDecisionInbox(
       [

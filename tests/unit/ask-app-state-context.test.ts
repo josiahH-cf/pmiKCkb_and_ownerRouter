@@ -99,7 +99,10 @@ describe("resolveConnectionsState", () => {
 
     expect(labels).not.toContain("RentVine");
     expect(labels).toContain("Google Sheets");
-    expect(result.items.every((item) => item.href === "/connections")).toBe(true);
+    // Each gap deep-links to its own connector card (C2), not just the page.
+    expect(
+      result.items.every((item) => /^\/connections#connector-[a-z_]+$/.test(item.href)),
+    ).toBe(true);
   });
 });
 

@@ -18,38 +18,42 @@ export function ConnectorCard({ item }: Readonly<{ item: ConnectorView }>) {
   const connectLabel = connectorConnectLabel(def);
 
   return (
-    <Card>
-      <div className="ui-stack">
-        <div className="ui-spread">
-          <strong>{def.name}</strong>
-          <StatusDot label={status.label} status={status.state} />
-        </div>
-        <p className="muted">{def.powers}</p>
-        <div className="ui-row">
-          <span className="ui-tag">{connectorMethodBadge(def.method)}</span>
-          <span className="muted">{status.detail}</span>
-        </div>
-
-        <Disclosure summary={`Set up ${def.name}`}>
-          <div className="ui-stack">
-            <p>
-              <strong>How you&rsquo;ll connect:</strong> {connectLabel}. The app stores
-              your credentials securely and checks the connection. No files to edit, no
-              tests to run.
-            </p>
-            {contract ? (
-              <div>
-                <p className="muted">What the app checks:</p>
-                <ul className="compact-list">
-                  {contract.steps.map((step) => (
-                    <li key={step.id}>{step.description}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
+    // The wrapper carries a stable per-connector anchor so app-state deep links land on this exact
+    // card (S13 C2): /connections#connector-{id}.
+    <div id={`connector-${def.id}`}>
+      <Card>
+        <div className="ui-stack">
+          <div className="ui-spread">
+            <strong>{def.name}</strong>
+            <StatusDot label={status.label} status={status.state} />
           </div>
-        </Disclosure>
-      </div>
-    </Card>
+          <p className="muted">{def.powers}</p>
+          <div className="ui-row">
+            <span className="ui-tag">{connectorMethodBadge(def.method)}</span>
+            <span className="muted">{status.detail}</span>
+          </div>
+
+          <Disclosure summary={`Set up ${def.name}`}>
+            <div className="ui-stack">
+              <p>
+                <strong>How you&rsquo;ll connect:</strong> {connectLabel}. The app stores
+                your credentials securely and checks the connection. No files to edit, no
+                tests to run.
+              </p>
+              {contract ? (
+                <div>
+                  <p className="muted">What the app checks:</p>
+                  <ul className="compact-list">
+                    {contract.steps.map((step) => (
+                      <li key={step.id}>{step.description}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          </Disclosure>
+        </div>
+      </Card>
+    </div>
   );
 }

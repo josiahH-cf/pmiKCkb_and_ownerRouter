@@ -12,11 +12,18 @@ import { getSimulationRun, listSimulationRuns } from "@/lib/lease-renewal/simula
 
 interface LeaseRenewalRunPageProps {
   params: Promise<{ runId: string }>;
+  searchParams?: Promise<{ flag?: string }>;
 }
 
-export default async function LeaseRenewalRunPage({ params }: LeaseRenewalRunPageProps) {
+export default async function LeaseRenewalRunPage({
+  params,
+  searchParams,
+}: LeaseRenewalRunPageProps) {
   const user = await requirePageCapability("read");
   const { runId } = await params;
+  // A ?flag= deep link (from the reconcile redirect route or a queue row) scrolls to and highlights
+  // that flag's card so the resolve control lands in view (S13 C1).
+  const highlightFieldKey = (await searchParams)?.flag?.trim() || null;
   const run = getSimulationRun(runId);
 
   if (!run) {
@@ -59,6 +66,7 @@ export default async function LeaseRenewalRunPage({ params }: LeaseRenewalRunPag
         <h1 className="section-title">Lease Renewal Run</h1>
         <LeaseRenewalRunClient
           canResolve={can(user.role, "approve")}
+          highlightFieldKey={highlightFieldKey}
           isAdmin={can(user.role, "manageAdmin")}
           resolutionsError={resolutionsError}
           view={view}

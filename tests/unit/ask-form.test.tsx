@@ -54,6 +54,43 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe("AskForm next-right-action strip + command counts (C3)", () => {
+  it("shows live counts on the command buttons and the one-line start-here link", () => {
+    render(
+      <AskForm
+        canStartSimulation={false}
+        commandCounts={{ approvals: 6, connections: 2, coverage: 0 }}
+        nextAction={{
+          count: 6,
+          label: "Current rent",
+          href: "/lease-renewal/runs/run-1",
+        }}
+        processes={[]}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "My approvals (6)" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Connections to set up (2)" }),
+    ).toBeInTheDocument();
+    // Zero counts stay quiet — no "(0)" noise.
+    expect(screen.getByRole("button", { name: "Space coverage" })).toBeInTheDocument();
+
+    expect(screen.getByText(/6 things need your decision/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Current rent" })).toHaveAttribute(
+      "href",
+      "/lease-renewal/runs/run-1",
+    );
+  });
+
+  it("renders no strip and plain buttons when nothing waits", () => {
+    render(<AskForm canStartSimulation={false} processes={[]} />);
+
+    expect(screen.queryByText(/need your decision/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "My approvals" })).toBeInTheDocument();
+  });
+});
+
 describe("AskForm (action console)", () => {
   it("drops the four Ask metadata selects and shows no process picker for read-only users", () => {
     render(<AskForm canStartSimulation={false} processes={[]} />);

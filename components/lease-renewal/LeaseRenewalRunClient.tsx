@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type {
@@ -26,6 +26,8 @@ interface LeaseRenewalRunClientProps {
   canResolve: boolean;
   isAdmin: boolean;
   resolutionsError: boolean;
+  /** Field key from a ?flag= deep link: that flag's card is highlighted and scrolled into view. */
+  highlightFieldKey?: string | null;
 }
 
 const KIND_LABEL: Record<ResolveKind, string> = {
@@ -39,6 +41,7 @@ export function LeaseRenewalRunClient({
   canResolve,
   isAdmin,
   resolutionsError,
+  highlightFieldKey = null,
 }: LeaseRenewalRunClientProps) {
   // Bulk decisions (S13 B2) live HERE on the run page, where the proposed values are visible —
   // never on the value-free queue tabs. Selection is keyed by sourceTriggerKey and derived against
@@ -165,6 +168,7 @@ export function LeaseRenewalRunClient({
                 }
                 canResolve={canResolve}
                 flag={flag}
+                highlighted={flag.fieldKey === highlightFieldKey}
                 isAdmin={isAdmin}
                 key={flag.sourceTriggerKey}
                 runId={view.runId}
@@ -551,6 +555,7 @@ function FlagCard({
   canResolve,
   isAdmin,
   bulk,
+  highlighted,
 }: {
   flag: RenewalFlagView;
   runId: string;
@@ -558,10 +563,19 @@ function FlagCard({
   isAdmin: boolean;
   /** Multi-select hook for the run-page bulk decision bar (Admin + queued proposal only). */
   bulk: { selected: boolean; onToggle: () => void } | null;
+  /** True when a ?flag= deep link targets this card: highlight it and scroll it into view (C1). */
+  highlighted: boolean;
 }) {
   const router = useRouter();
   const requiresAdmin = flag.severity === "High" || flag.severity === "Blocked";
   const canResolveThis = canResolve && (!requiresAdmin || isAdmin);
+
+  const cardRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (highlighted) {
+      cardRef.current?.scrollIntoView({ block: "center" });
+    }
+  }, [highlighted]);
 
   const [kind, setKind] = useState<ResolveKind>(
     flag.candidates.length > 0 ? "pick_source" : "corrected_value",
@@ -623,7 +637,11 @@ function FlagCard({
   }
 
   return (
-    <article className="lr-flag-card">
+    <article
+      className={highlighted ? "lr-flag-card lr-flag-highlight" : "lr-flag-card"}
+      id={`flag-${flag.fieldKey}`}
+      ref={cardRef}
+    >
       <header className="lr-flag-head">
         <strong>{flag.fieldLabel}</strong>
         <span className="queue-pill" data-value={flag.severity}>

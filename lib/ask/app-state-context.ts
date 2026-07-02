@@ -79,24 +79,30 @@ export function resolveConnectionsState(
       gaps.length === 0
         ? "Every connector is configured."
         : `${plural(gaps.length, "connector")} still ${gaps.length === 1 ? "needs" : "need"} setup.`,
+    // Each gap deep-links to its own connector card via the per-connector anchor (S13 C2).
     items: gaps.map((item) => ({
       label: item.def.name,
       detail: item.status.detail,
-      href: "/connections",
+      href: `/connections#connector-${item.def.id}`,
     })),
   };
 }
 
-/** "Which Spaces don't have a process (or connections) yet?" — reuses the S6 card-state logic. */
+/** "Which Spaces don't have a process (or connections) yet?" — reuses the S6 card-state logic.
+ *  A caller that already fetched the process definitions passes their ids to avoid a second read
+ *  in the same request (the Console does — C3). */
 export async function resolveCoverageState(
   user: AuthenticatedUser,
+  knownDefinitionIds?: ReadonlySet<string>,
 ): Promise<AppStateResult> {
-  let definitionIds = new Set<string>();
-  try {
-    const definitions = await listProcessDefinitions(user);
-    definitionIds = new Set(definitions.map((definition) => definition.id));
-  } catch {
-    definitionIds = new Set();
+  let definitionIds: ReadonlySet<string> = knownDefinitionIds ?? new Set<string>();
+  if (!knownDefinitionIds) {
+    try {
+      const definitions = await listProcessDefinitions(user);
+      definitionIds = new Set(definitions.map((definition) => definition.id));
+    } catch {
+      definitionIds = new Set();
+    }
   }
   const presence = readConnectorPresence();
 
