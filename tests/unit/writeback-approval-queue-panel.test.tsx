@@ -83,6 +83,25 @@ describe("WritebackQueuePanel", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
+  it("collapses decided groups to counts-only by default, keeping awaiting-approval open (B4)", () => {
+    const { container } = render(<WritebackQueuePanel queue={queue} />);
+
+    // The Approved group renders as a closed <details>: the count is the summary; the rows wait
+    // behind it. Awaiting approval is NOT collapsible — it is the work.
+    const collapsed = container.querySelectorAll("details.ui-collapse");
+    expect(collapsed).toHaveLength(1); // Approved has rows; Returned is empty (plain "None.").
+    expect(collapsed[0]).not.toHaveAttribute("open");
+    expect(collapsed[0]).toHaveTextContent(
+      "Approved — ready to write (not executed) (1)",
+    );
+    expect(collapsed[0]).toHaveTextContent("Already decided. Open to view.");
+    expect(collapsed[0]).toHaveTextContent("Renewal date");
+
+    // The awaiting-approval rows stay outside any <details>.
+    const awaitingLink = screen.getByRole("link", { name: /Current rent/ });
+    expect(awaitingLink.closest("details")).toBeNull();
+  });
+
   it("shows an empty state when nothing is queued", () => {
     render(<WritebackQueuePanel />);
     expect(

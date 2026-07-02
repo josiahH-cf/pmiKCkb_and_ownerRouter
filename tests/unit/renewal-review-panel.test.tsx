@@ -57,6 +57,67 @@ describe("RenewalReviewPanel", () => {
     expect(screen.getByText(/No renewals are awaiting review/)).toBeInTheDocument();
   });
 
+  it("collapses resolved flags to a counts-only section by default (B4)", () => {
+    const withResolved: RenewalReviewBoard = {
+      ...board,
+      runs: [
+        {
+          ...board.runs[0],
+          flags: [
+            ...board.runs[0].flags,
+            {
+              fieldKey: "renewal_date",
+              fieldLabel: "Renewal date",
+              severity: "Medium",
+              agreement: "conflict",
+              actionNeeded: "Reconcile renewal date across 2 sources.",
+              resolved: true,
+              proposalReady: false,
+              href: "/lease-renewal/runs/sim-renewal-001",
+            },
+          ],
+          totalFlags: 2,
+        },
+      ],
+      totalFlags: 2,
+    };
+
+    const { container } = render(<RenewalReviewPanel board={withResolved} />);
+
+    // The open flag stays in the main list, outside any <details>.
+    expect(
+      screen.getByRole("link", { name: /Current rent/ }).closest("details"),
+    ).toBeNull();
+
+    // The resolved flag collapses behind a counts-only summary, closed by default.
+    const collapsed = container.querySelector("details.ui-collapse");
+    expect(collapsed).not.toBeNull();
+    expect(collapsed).not.toHaveAttribute("open");
+    expect(collapsed).toHaveTextContent("1 resolved");
+    expect(collapsed).toHaveTextContent("Already done. Open to view.");
+    expect(collapsed).toHaveTextContent("Renewal date");
+  });
+
+  it("says when a run has nothing left to decide (all flags resolved)", () => {
+    const allResolved: RenewalReviewBoard = {
+      ...board,
+      runs: [
+        {
+          ...board.runs[0],
+          flags: [{ ...board.runs[0].flags[0], resolved: true }],
+          openFlags: 0,
+          highSeverityOpen: 0,
+        },
+      ],
+      totalOpenFlags: 0,
+    };
+
+    render(<RenewalReviewPanel board={allResolved} />);
+
+    expect(screen.getByText("Nothing in this run needs a decision.")).toBeInTheDocument();
+    expect(screen.getByText("1 resolved")).toBeInTheDocument();
+  });
+
   it("surfaces value-free write-back approval counts without leaking values", () => {
     const withApprovals: RenewalReviewBoard = {
       ...board,

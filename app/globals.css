@@ -1057,6 +1057,19 @@ button {
   padding-left: 20px;
 }
 
+/* Counts-only collapsed sections for decided/background items (S13 B4). */
+.ui-collapse summary {
+  cursor: pointer;
+}
+
+.ui-collapse summary .ui-card-title {
+  display: inline;
+}
+
+.ui-collapse[open] summary {
+  margin-bottom: 8px;
+}
+
 /* =====================================================================
    UI PRIMITIVES — Phase 0 foundation (consumed by components/ui/*)
    Token-driven classes for the redesigned client-facing surfaces. Existing
