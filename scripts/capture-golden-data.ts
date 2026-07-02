@@ -120,8 +120,7 @@ async function main(): Promise<void> {
   const draft = {
     name,
     category: "wrong" as const,
-    description:
-      `Live-captured golden DRAFT from RentVine account ${rentVineAccountCode(baseUrl)} + sheet tab(s) [${tabs.join(", ")}]. expectedFlags are the pipeline's current output as CANDIDATE labels and are NOT verified — review each against ground truth with the team, then set labelsVerified:true. The harness only gates on verified sets.`,
+    description: `Live-captured golden DRAFT from RentVine account ${rentVineAccountCode(baseUrl)} + sheet tab(s) [${tabs.join(", ")}]. expectedFlags are the pipeline's current output as CANDIDATE labels and are NOT verified — review each against ground truth with the team, then set labelsVerified:true. The harness only gates on verified sets.`,
     labelsVerified: false,
     capturedAt: new Date().toISOString(),
     input: pipelineInput,

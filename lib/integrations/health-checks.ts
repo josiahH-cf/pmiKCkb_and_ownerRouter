@@ -239,7 +239,8 @@ export const HEALTH_CHECK_CONTRACTS: readonly HealthCheckContract[] = [
       {
         id: "google_drive.config",
         kind: "config_presence",
-        description: "The DWD service account, subject, and maintenance folder id are configured.",
+        description:
+          "The DWD service account, subject, and maintenance folder id are configured.",
         expected_evidence:
           "SHEETS_IMPERSONATE_SA + SHEETS_DWD_SUBJECT present; SPACE_DRIVE_FOLDER_IDS includes the maintenance folder.",
       },

@@ -21,7 +21,10 @@ export interface LeaseRenewalDefinitionOptions {
 }
 
 /** A process-definition record minus the timestamps the writer stamps. */
-export type SeedableDefinition = Omit<ProcessDefinitionRecord, "created_at" | "updated_at">;
+export type SeedableDefinition = Omit<
+  ProcessDefinitionRecord,
+  "created_at" | "updated_at"
+>;
 
 /** Pure builder: the Lease Renewal definition as a Draft record at the fixed id, steps + action
  *  references normalized exactly as createProcessDefinition does. No timestamps, no Firestore. */
@@ -84,7 +87,9 @@ export async function seedProcessDefinition(options: {
 }): Promise<SeedResult> {
   assertNoExecutableReferences(options.record);
 
-  const ref = options.db.collection(PROCESS_DEFINITIONS_COLLECTION).doc(options.record.id);
+  const ref = options.db
+    .collection(PROCESS_DEFINITIONS_COLLECTION)
+    .doc(options.record.id);
   const snapshot = await ref.get();
   if (snapshot.exists && !options.force) {
     return { id: options.record.id, action: "skipped" };

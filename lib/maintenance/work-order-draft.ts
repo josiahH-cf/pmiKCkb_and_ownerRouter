@@ -65,7 +65,11 @@ export function inferPriority(description: string): MaintenancePriority {
 }
 
 function summarize(description: string): string {
-  const firstLine = description.split("\n").map((line) => line.trim()).find(Boolean) ?? "";
+  const firstLine =
+    description
+      .split("\n")
+      .map((line) => line.trim())
+      .find(Boolean) ?? "";
   if (!firstLine) {
     return "Maintenance request";
   }
@@ -79,7 +83,8 @@ function summarize(description: string): string {
  */
 export function buildWorkOrderDraft(capture: MaintenanceCapture): WorkOrderDraft {
   const description = combineDescription(capture);
-  const priority = capture.priority ?? (description ? inferPriority(description) : "Normal");
+  const priority =
+    capture.priority ?? (description ? inferPriority(description) : "Normal");
   const photoRefs = capture.photoRefs ?? [];
 
   const blockers: string[] = [];
@@ -96,7 +101,9 @@ export function buildWorkOrderDraft(capture: MaintenanceCapture): WorkOrderDraft
     summary: summarize(description),
     description,
     priority,
-    unit: capture.unit ? { unitId: capture.unit.unitId, label: capture.unit.label } : null,
+    unit: capture.unit
+      ? { unitId: capture.unit.unitId, label: capture.unit.label }
+      : null,
     photoRefs,
     reporter: {
       uid: capture.reporterUid,

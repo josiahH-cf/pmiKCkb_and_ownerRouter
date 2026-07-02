@@ -11,9 +11,9 @@ export default async function MaintenancePage() {
       <section className="content">
         <h1 className="section-title">Maintenance Work Order Intake</h1>
         <p className="muted">
-          Capture a maintenance issue — type or record the problem and the unit — and get a
-          work-order draft for review. Nothing is sent or written; the RentVine work order is created
-          only after a human approves.
+          Capture a maintenance issue — type or record the problem and the unit — and get
+          a work-order draft for review. Nothing is sent or written; the RentVine work
+          order is created only after a human approves.
         </p>
         <MaintenanceCapture reporterUid={user.uid} />
       </section>

@@ -28,7 +28,8 @@ const STAGE_DESCRIPTIONS: Record<(typeof MAINTENANCE_STAGES)[number], string> = 
   "Vendor assignment": "Optional vendor/trade handoff preview against approved sources.",
   "System-of-record update":
     "Create the work order in RentVine. Pending future automation: non-executable until the endpoint has an approved per-action spec, tests, and rollback.",
-  Closeout: "Close the run with the approved package history, backlinks, and audit detail preserved.",
+  Closeout:
+    "Close the run with the approved package history, backlinks, and audit detail preserved.",
 };
 
 export interface MaintenanceTemplateOptions {
@@ -44,7 +45,8 @@ export function buildMaintenanceProcessTemplate(
     name: "Maintenance Work Order Intake",
     short_outcome:
       "Turn a field maintenance report (photo + voice/typed note) into a reviewed, source-backed work-order draft; a human approves before any RentVine write.",
-    trigger: "Manual start by a field worker or team member capturing a maintenance issue.",
+    trigger:
+      "Manual start by a field worker or team member capturing a maintenance issue.",
     owner_uid: options.ownerUid,
     default_approver_uid: options.approverUid,
     source_links: options.sourceLinks ?? [],

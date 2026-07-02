@@ -7,7 +7,11 @@ import { buildWorkOrderDraft, inferPriority } from "@/lib/maintenance/work-order
 
 const CAP_TS = "2026-06-29T00:00:00.000Z";
 const base = { reporterUid: "field-1", reporterName: "Sam", capturedAt: CAP_TS };
-const verifiedUnit = { unitId: "u1", label: "123 Main #2", confidence: "Verified" as const };
+const verifiedUnit = {
+  unitId: "u1",
+  label: "123 Main #2",
+  confidence: "Verified" as const,
+};
 
 describe("buildWorkOrderDraft", () => {
   it("assembles a draft from a complete capture, gated for execution", () => {
@@ -48,7 +52,11 @@ describe("buildWorkOrderDraft", () => {
   });
 
   it("defaults to Normal priority with no keywords and no explicit priority", () => {
-    const draft = buildWorkOrderDraft({ ...base, typedNote: "cabinet door is loose", unit: verifiedUnit });
+    const draft = buildWorkOrderDraft({
+      ...base,
+      typedNote: "cabinet door is loose",
+      unit: verifiedUnit,
+    });
     expect(draft.priority).toBe("Normal");
   });
 
@@ -68,7 +76,11 @@ describe("buildWorkOrderDraft", () => {
   });
 
   it("blocks on an unmatched unit", () => {
-    const draft = buildWorkOrderDraft({ ...base, typedNote: "broken window", unit: null });
+    const draft = buildWorkOrderDraft({
+      ...base,
+      typedNote: "broken window",
+      unit: null,
+    });
     expect(draft.blockers).toContain("Match the location to a unit.");
   });
 

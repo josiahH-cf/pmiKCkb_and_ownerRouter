@@ -53,7 +53,9 @@ describe("GoogleDriveClient.findFolder", () => {
     const client = new GoogleDriveClient({ getToken: TOKEN, fetchImpl: found.fn });
     expect(await client.findFolder("Photos")).toEqual({ id: "f1", name: "Photos" });
     expect(found.calls[0].url).toContain("drive/v3/files");
-    expect(found.calls[0].url).toContain(encodeURIComponent("mimeType = 'application/vnd.google-apps.folder'"));
+    expect(found.calls[0].url).toContain(
+      encodeURIComponent("mimeType = 'application/vnd.google-apps.folder'"),
+    );
 
     const empty = fakeFetch([() => ({ files: [] })]);
     const client2 = new GoogleDriveClient({ getToken: TOKEN, fetchImpl: empty.fn });
@@ -115,7 +117,9 @@ describe("mintDriveDwdToken (via the client default) setup guard", () => {
     delete process.env.SHEETS_IMPERSONATE_SA;
     delete process.env.SHEETS_DWD_SUBJECT;
     try {
-      const client = new GoogleDriveClient({ fetchImpl: fakeFetch([() => ({ files: [] })]).fn });
+      const client = new GoogleDriveClient({
+        fetchImpl: fakeFetch([() => ({ files: [] })]).fn,
+      });
       await expect(client.findFolder("Photos")).rejects.toBeInstanceOf(DriveSetupError);
     } finally {
       if (savedSa !== undefined) process.env.SHEETS_IMPERSONATE_SA = savedSa;

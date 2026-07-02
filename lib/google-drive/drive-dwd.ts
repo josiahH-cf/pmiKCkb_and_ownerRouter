@@ -62,7 +62,9 @@ export async function mintDriveDwdToken(
     );
   }
 
-  const sourceClient = await new GoogleAuth({ scopes: [CLOUD_PLATFORM_SCOPE] }).getClient();
+  const sourceClient = await new GoogleAuth({
+    scopes: [CLOUD_PLATFORM_SCOPE],
+  }).getClient();
   const now = Math.floor(Date.now() / 1000);
   const payload = JSON.stringify({
     iss: saEmail,
@@ -117,7 +119,10 @@ export class GoogleDriveClient {
     this.getToken =
       options.getToken ??
       (() =>
-        mintDriveDwdToken({ serviceAccount: options.serviceAccount, subject: options.subject }));
+        mintDriveDwdToken({
+          serviceAccount: options.serviceAccount,
+          subject: options.subject,
+        }));
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
 
@@ -126,7 +131,10 @@ export class GoogleDriveClient {
   }
 
   /** Find an app-created folder by exact name (optionally within a parent / Shared Drive), or null. */
-  async findFolder(name: string, location: DriveLocation = {}): Promise<DriveFile | null> {
+  async findFolder(
+    name: string,
+    location: DriveLocation = {},
+  ): Promise<DriveFile | null> {
     const parent = location.parentId ?? location.driveId;
     const clauses = [
       `name = '${escapeDriveQueryValue(name)}'`,
@@ -140,7 +148,9 @@ export class GoogleDriveClient {
     if (location.driveId) {
       url += `&corpora=drive&driveId=${encodeURIComponent(location.driveId)}`;
     }
-    const response = await this.fetchImpl(url, { headers: { authorization: await this.authHeader() } });
+    const response = await this.fetchImpl(url, {
+      headers: { authorization: await this.authHeader() },
+    });
     if (!response.ok) {
       throw new DriveSetupError(`Drive folder lookup failed (HTTP ${response.status}).`);
     }

@@ -32,9 +32,7 @@ describe("spaces (launch content)", () => {
   });
 
   it("surfaces the process beside a Space via the Process sub-tab", async () => {
-    const { response, html } = await client.getHtml(
-      "/spaces/lease-renewals?tab=process",
-    );
+    const { response, html } = await client.getHtml("/spaces/lease-renewals?tab=process");
 
     expect(response.status).toBe(200);
     // The read-only summary deep-links to the full process engine (route preserved).

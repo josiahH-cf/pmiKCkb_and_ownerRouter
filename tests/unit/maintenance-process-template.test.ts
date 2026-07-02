@@ -8,7 +8,10 @@ import { buildMaintenanceProcessTemplate } from "@/lib/maintenance/process-templ
 // non-executable (gated) — mirrors the lease-renewal template guards.
 
 describe("buildMaintenanceProcessTemplate", () => {
-  const template = buildMaintenanceProcessTemplate({ ownerUid: "owner", approverUid: "approver" });
+  const template = buildMaintenanceProcessTemplate({
+    ownerUid: "owner",
+    approverUid: "approver",
+  });
 
   it("builds a schema-valid process-definition input", () => {
     expect(() => CreateProcessDefinitionInputSchema.parse(template)).not.toThrow();

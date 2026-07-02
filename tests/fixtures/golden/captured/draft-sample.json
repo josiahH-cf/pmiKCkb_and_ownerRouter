@@ -6,6 +6,11 @@
   "capturedAt": "2026-06-29T00:00:00.000Z",
   "input": { "runId": "fixture-draft", "tables": [], "nonSheetCandidates": [] },
   "expectedFlags": [
-    { "tab": "Renewals", "sourceRowIndex": 1, "fieldKey": "renewal_date", "severity": "High" }
+    {
+      "tab": "Renewals",
+      "sourceRowIndex": 1,
+      "fieldKey": "renewal_date",
+      "severity": "High"
+    }
   ]
 }

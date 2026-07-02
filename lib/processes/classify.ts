@@ -45,7 +45,10 @@ export async function classifyProcessWithModel(options: {
   }
 
   const list = options.processes
-    .map((p) => `- id: ${p.id} | name: ${p.name}${p.outcome ? ` | outcome: ${p.outcome}` : ""}`)
+    .map(
+      (p) =>
+        `- id: ${p.id} | name: ${p.name}${p.outcome ? ` | outcome: ${p.outcome}` : ""}`,
+    )
     .join("\n");
   const userContent = `Processes:\n${list}\n\nUser request: ${options.question}\n\nReturn the best-matching process id or null.`;
 

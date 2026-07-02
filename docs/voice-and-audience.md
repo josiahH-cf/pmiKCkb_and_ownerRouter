@@ -33,14 +33,14 @@ workflows, with models used where they measurably help.
 
 ## Do / don't lexicon
 
-| Don't say (internal)                                | Say (operator)                                                           |
-| --------------------------------------------------- | ------------------------------------------------------------------------ |
-| read-authoritative source of truth                  | leases, tenants, and rent                                                |
-| Available in the next release.                      | (remove the control; show nothing)                                       |
-| All details provided — PMI will verify and connect. | Ready to connect                                                         |
-| Bailey Placeholder                                  | Open Placeholder _(renamed; `Q-BAILEY` resolved)_                        |
-| KB-owned process space                              | Process space                                                            |
-| Read-only source space                              | Source space                                                             |
-| simulation-only / production_allowed                | Test run / not live                                                      |
+| Don't say (internal)                                | Say (operator)                                    |
+| --------------------------------------------------- | ------------------------------------------------- |
+| read-authoritative source of truth                  | leases, tenants, and rent                         |
+| Available in the next release.                      | (remove the control; show nothing)                |
+| All details provided — PMI will verify and connect. | Ready to connect                                  |
+| Bailey Placeholder                                  | Open Placeholder _(renamed; `Q-BAILEY` resolved)_ |
+| KB-owned process space                              | Process space                                     |
+| Read-only source space                              | Source space                                      |
+| simulation-only / production_allowed                | Test run / not live                               |
 
 The "Bailey Placeholder" source state is renamed to "Open Placeholder" (`Q-BAILEY` resolved; see `docs/facts.md` `F-OPEN-PLACEHOLDER`).

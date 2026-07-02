@@ -69,12 +69,18 @@ function worksheetMode(): void {
 function applyMode(): void {
   const worksheetPath = resolve(readArg("--worksheet") ?? "");
   if (!worksheetPath || worksheetPath === resolve("")) {
-    console.error("golden:apply-labels needs --worksheet <path to the reviewed worksheet JSON>.");
+    console.error(
+      "golden:apply-labels needs --worksheet <path to the reviewed worksheet JSON>.",
+    );
     process.exitCode = 1;
     return;
   }
-  const worksheet = GoldenWorksheetSchema.parse(JSON.parse(readFileSync(worksheetPath, "utf8")));
-  const inPath = resolve(readArg("--in") ?? join("golden-data/captured", `${worksheet.capturedName}.json`));
+  const worksheet = GoldenWorksheetSchema.parse(
+    JSON.parse(readFileSync(worksheetPath, "utf8")),
+  );
+  const inPath = resolve(
+    readArg("--in") ?? join("golden-data/captured", `${worksheet.capturedName}.json`),
+  );
   const draft = readDraft(inPath);
 
   const verified = applyDecisions(draft, worksheet);

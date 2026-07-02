@@ -3,7 +3,10 @@ import { z } from "zod";
 
 import { authErrorResponse, requireCapability } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
-import { ImageStoreSetupError, createMaintenanceImageStore } from "@/lib/maintenance/image-store";
+import {
+  ImageStoreSetupError,
+  createMaintenanceImageStore,
+} from "@/lib/maintenance/image-store";
 
 // ~10 MB base64 cap (~7.5 MB image) bounds payload size + storage. Field photos are small.
 const MAX_IMAGE_BASE64 = 10_000_000;
@@ -44,7 +47,10 @@ export async function POST(request: Request) {
     return NextResponse.json(stored);
   } catch (error) {
     if (error instanceof ImageStoreSetupError) {
-      return NextResponse.json({ error: error.message, error_type: error.name }, { status: 503 });
+      return NextResponse.json(
+        { error: error.message, error_type: error.name },
+        { status: 503 },
+      );
     }
     throw error;
   }

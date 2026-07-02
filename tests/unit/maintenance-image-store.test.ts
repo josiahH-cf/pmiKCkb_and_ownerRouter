@@ -14,7 +14,10 @@ import {
 // Maintenance photo-storage seam (S4). The free stub stands in for Google Drive (in-boundary), selected
 // by config + fenced from prod. The Drive adapter is tested with an injected transport (offline/free).
 
-function transport(status: number, body: unknown): ImageHttpTransport & { last?: ImageHttpRequest } {
+function transport(
+  status: number,
+  body: unknown,
+): ImageHttpTransport & { last?: ImageHttpRequest } {
   const t: ImageHttpTransport & { last?: ImageHttpRequest } = {
     async send(request: ImageHttpRequest): Promise<ImageHttpResponse> {
       t.last = request;
@@ -76,12 +79,14 @@ describe("DriveMaintenanceImageStore", () => {
   it("uses a unique per-upload multipart boundary that delimits the body", async () => {
     const t1 = transport(200, { id: "a" });
     const t2 = transport(200, { id: "b" });
-    await new DriveMaintenanceImageStore("f", { transport: t1, getAccessToken: async () => "t" }).put(
-      IMAGE,
-    );
-    await new DriveMaintenanceImageStore("f", { transport: t2, getAccessToken: async () => "t" }).put(
-      IMAGE,
-    );
+    await new DriveMaintenanceImageStore("f", {
+      transport: t1,
+      getAccessToken: async () => "t",
+    }).put(IMAGE);
+    await new DriveMaintenanceImageStore("f", {
+      transport: t2,
+      getAccessToken: async () => "t",
+    }).put(IMAGE);
 
     const boundaryOf = (req?: { headers: Record<string, string> }) =>
       /boundary=(\S+)/.exec(req?.headers["content-type"] ?? "")?.[1];
@@ -90,7 +95,9 @@ describe("DriveMaintenanceImageStore", () => {
 
     expect(b1).toMatch(/^maint-image-/);
     expect(b1).not.toBe(b2); // per-upload, not a static boundary
-    expect(Buffer.from(t1.last?.body as Uint8Array).toString("latin1")).toContain(`--${b1}`);
+    expect(Buffer.from(t1.last?.body as Uint8Array).toString("latin1")).toContain(
+      `--${b1}`,
+    );
   });
 
   it("throws when no Drive folder is configured", async () => {

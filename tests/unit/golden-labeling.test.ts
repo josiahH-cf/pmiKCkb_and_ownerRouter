@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { evaluateGoldenScenarios, type GoldenScenario } from "@/lib/lease-renewal/golden/harness";
+import {
+  evaluateGoldenScenarios,
+  type GoldenScenario,
+} from "@/lib/lease-renewal/golden/harness";
 import {
   SEVERITIES,
   applyDecisions,
@@ -16,7 +19,9 @@ import { GOLDEN_SCENARIOS } from "@/lib/lease-renewal/golden/scenarios";
 // produce verified labels (anti-slop); and accept/reject/severity decisions round-trip into a verified set
 // the harness gate enforces — including making a rejection a failing gate that drives the math tuning.
 
-const sample = GOLDEN_SCENARIOS.find((scenario) => scenario.name === "comprehensive-sample");
+const sample = GOLDEN_SCENARIOS.find(
+  (scenario) => scenario.name === "comprehensive-sample",
+);
 if (!sample) throw new Error("comprehensive-sample golden scenario missing");
 
 function makeDraft(): CapturedDraft {
@@ -107,7 +112,9 @@ describe("golden-data labeling round-trip", () => {
 
     // Reject entry 0; correct entry 1 to a severity different from its candidate.
     worksheet.entries[0].decision = "reject";
-    const corrected = SEVERITIES.find((sev) => sev !== worksheet.entries[1].candidateSeverity);
+    const corrected = SEVERITIES.find(
+      (sev) => sev !== worksheet.entries[1].candidateSeverity,
+    );
     if (!corrected) throw new Error("no alternative severity");
     worksheet.entries[1].decision = corrected;
 

@@ -89,11 +89,13 @@ export class DriveMaintenanceImageStore implements MaintenanceImageStore {
 
   constructor(
     private readonly folderId: string | undefined,
-    options: { transport?: ImageHttpTransport; getAccessToken?: () => Promise<string> } = {},
+    options: {
+      transport?: ImageHttpTransport;
+      getAccessToken?: () => Promise<string>;
+    } = {},
   ) {
     this.transport = options.transport ?? createImageFetchTransport();
-    this.getAccessToken =
-      options.getAccessToken ?? (() => mintDriveDwdToken());
+    this.getAccessToken = options.getAccessToken ?? (() => mintDriveDwdToken());
   }
 
   async put(image: MaintenanceImage): Promise<StoredImage> {
@@ -146,14 +148,20 @@ export class DriveMaintenanceImageStore implements MaintenanceImageStore {
     if (!payload.id) {
       throw new ImageStoreSetupError("Drive upload returned no file id.");
     }
-    return { ref: `drive:${payload.id}`, ...(payload.webViewLink ? { url: payload.webViewLink } : {}) };
+    return {
+      ref: `drive:${payload.id}`,
+      ...(payload.webViewLink ? { url: payload.webViewLink } : {}),
+    };
   }
 }
 
 /** Build the configured store. Stub is selected unless prod resolved the Drive provider. */
 export function createMaintenanceImageStore(
   config: { imageStore: "drive" | "stub"; maintenanceImageFolderId?: string },
-  options: { transport?: ImageHttpTransport; getAccessToken?: () => Promise<string> } = {},
+  options: {
+    transport?: ImageHttpTransport;
+    getAccessToken?: () => Promise<string>;
+  } = {},
 ): MaintenanceImageStore {
   if (config.imageStore === "stub") {
     return new StubMaintenanceImageStore();

@@ -33,11 +33,17 @@ export async function POST(request: Request) {
     const definitions = await listProcessDefinitions(user);
     const provider = createModelProvider(config);
     const model =
-      config.modelProvider === "local" ? config.localModelName : config.geminiClassifyModel;
+      config.modelProvider === "local"
+        ? config.localModelName
+        : config.geminiClassifyModel;
 
     const processId = await classifyProcessWithModel({
       question: parsed.data.question,
-      processes: definitions.map((d) => ({ id: d.id, name: d.name, outcome: d.short_outcome })),
+      processes: definitions.map((d) => ({
+        id: d.id,
+        name: d.name,
+        outcome: d.short_outcome,
+      })),
       provider,
       model,
     });
@@ -46,7 +52,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ processId: match?.id ?? null, name: match?.name ?? null });
   } catch (error) {
     if (error instanceof AnswerGenerationSetupError) {
-      return NextResponse.json({ error: error.message, error_type: error.name }, { status: 503 });
+      return NextResponse.json(
+        { error: error.message, error_type: error.name },
+        { status: 503 },
+      );
     }
     throw error;
   }

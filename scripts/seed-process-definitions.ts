@@ -85,13 +85,25 @@ export async function main(argv = process.argv.slice(2)) {
       name: "Lease Renewal",
       record: buildLeaseRenewalDefinitionRecord({ ownerUid, approverUid }),
       seed: (db, now) =>
-        seedLeaseRenewalDefinition({ db, ownerUid, approverUid, force: options.force, now }),
+        seedLeaseRenewalDefinition({
+          db,
+          ownerUid,
+          approverUid,
+          force: options.force,
+          now,
+        }),
     },
     {
       name: "Maintenance Work Order Intake",
       record: buildMaintenanceDefinitionRecord({ ownerUid, approverUid }),
       seed: (db, now) =>
-        seedMaintenanceDefinition({ db, ownerUid, approverUid, force: options.force, now }),
+        seedMaintenanceDefinition({
+          db,
+          ownerUid,
+          approverUid,
+          force: options.force,
+          now,
+        }),
     },
   ];
 

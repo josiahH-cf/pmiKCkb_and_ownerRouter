@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { AnswerGenerationRequest } from "@/lib/llm/answer";
-import { buildGroundedAnswerSystemPrompt, buildGroundedAnswerUserPrompt } from "@/lib/llm/prompt";
+import {
+  buildGroundedAnswerSystemPrompt,
+  buildGroundedAnswerUserPrompt,
+} from "@/lib/llm/prompt";
 
 // The action console makes the answer process-aware (R4b): when a process is selected the server resolves
 // its context and feeds it to the prompt as a HINT — never as a citable source. These guard that the hint

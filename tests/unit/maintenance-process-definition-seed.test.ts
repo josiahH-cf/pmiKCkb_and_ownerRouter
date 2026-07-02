@@ -52,11 +52,19 @@ describe("seedMaintenanceDefinition", () => {
   it("creates, skips on re-run, and force-updates while preserving created_at", async () => {
     const { db, store, key } = fakeFirestore();
 
-    const first = await seedMaintenanceDefinition({ db, ...OPTS, now: "2026-06-29T00:00:00.000Z" });
+    const first = await seedMaintenanceDefinition({
+      db,
+      ...OPTS,
+      now: "2026-06-29T00:00:00.000Z",
+    });
     expect(first.action).toBe("created");
     expect(store.get(key)?.created_at).toBe("2026-06-29T00:00:00.000Z");
 
-    const second = await seedMaintenanceDefinition({ db, ...OPTS, now: "2026-07-01T00:00:00.000Z" });
+    const second = await seedMaintenanceDefinition({
+      db,
+      ...OPTS,
+      now: "2026-07-01T00:00:00.000Z",
+    });
     expect(second.action).toBe("skipped");
 
     const forced = await seedMaintenanceDefinition({

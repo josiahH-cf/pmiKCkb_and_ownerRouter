@@ -34,7 +34,11 @@ describe("mapLeasesToNonSheetCandidates", () => {
       joinId: "lease:7",
       read_timestamp: READ_TS,
       fields: {
-        lease_end_date: { value: "2026-08-31", raw: "2026-08-31", confidence: "Verified" },
+        lease_end_date: {
+          value: "2026-08-31",
+          raw: "2026-08-31",
+          confidence: "Verified",
+        },
         current_rent: { value: 1250, raw: "1250", confidence: "Verified" },
       },
     });

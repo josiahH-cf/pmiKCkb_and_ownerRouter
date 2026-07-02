@@ -12,9 +12,9 @@ const PROCESSES = [
 
 describe("detectProcess", () => {
   it("matches a lease-renewal question via alias", () => {
-    expect(detectProcess("When is the Johnson lease up for renewal?", PROCESSES)?.processId).toBe(
-      "lease-renewal",
-    );
+    expect(
+      detectProcess("When is the Johnson lease up for renewal?", PROCESSES)?.processId,
+    ).toBe("lease-renewal");
   });
 
   it("matches a maintenance question via aliases (broken / work order)", () => {

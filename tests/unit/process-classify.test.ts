@@ -12,7 +12,11 @@ const PROCS = [
 ];
 
 function provider(text: string): ModelProvider {
-  return { async generateText() { return { text }; } };
+  return {
+    async generateText() {
+      return { text };
+    },
+  };
 }
 
 describe("classifyProcessWithModel", () => {
@@ -71,7 +75,12 @@ describe("classifyProcessWithModel", () => {
     const id = await classifyProcessWithModel({
       question: "x",
       processes: [],
-      provider: { async generateText() { called = true; return { text: '{"process_id":"lease-renewal"}' }; } },
+      provider: {
+        async generateText() {
+          called = true;
+          return { text: '{"process_id":"lease-renewal"}' };
+        },
+      },
       model: "m",
     });
     expect(id).toBeNull();

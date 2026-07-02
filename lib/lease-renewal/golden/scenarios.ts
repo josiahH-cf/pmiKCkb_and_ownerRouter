@@ -41,7 +41,12 @@ export const GOLDEN_SCENARIOS: readonly GoldenScenario[] = [
     expectedFlags: [
       { tab: "Renewals", sourceRowIndex: 2, fieldKey: "renewal_date", severity: "High" },
       { tab: "Renewals", sourceRowIndex: 2, fieldKey: "current_rent", severity: "High" },
-      { tab: "Renewals", sourceRowIndex: 1, fieldKey: "tenant_responded", severity: "Blocked" },
+      {
+        tab: "Renewals",
+        sourceRowIndex: 1,
+        fieldKey: "tenant_responded",
+        severity: "Blocked",
+      },
       {
         tab: "Inspection Tracker",
         sourceRowIndex: 1,
@@ -92,12 +97,14 @@ export const GOLDEN_SCENARIOS: readonly GoldenScenario[] = [
   {
     name: "agreement-raises-nothing",
     category: "correct",
-    description:
-      "A sheet value the authoritative source agrees with must raise no flag.",
+    description: "A sheet value the authoritative source agrees with must raise no flag.",
     input: {
       runId: "golden-agree",
       tables: [
-        [RENEWALS_HEADER, renewalsRow("Taylor Birch", { [COL_RENEWAL_DATE]: "10/31/2026" })],
+        [
+          RENEWALS_HEADER,
+          renewalsRow("Taylor Birch", { [COL_RENEWAL_DATE]: "10/31/2026" }),
+        ],
       ],
       nonSheetCandidates: [
         {

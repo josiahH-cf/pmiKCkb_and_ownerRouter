@@ -32,7 +32,9 @@ export class SpeechSetupError extends Error {
 
 /** Free dev/test stand-in — returns a canned transcript, no network, no spend. */
 export class StubSpeechToTextProvider implements SpeechToTextProvider {
-  constructor(private readonly canned = "[dev STT stub] transcript unavailable in this environment.") {}
+  constructor(
+    private readonly canned = "[dev STT stub] transcript unavailable in this environment.",
+  ) {}
 
   async transcribe(): Promise<TranscriptionResult> {
     return { transcript: this.canned };
@@ -109,7 +111,9 @@ export class GoogleSpeechToTextProvider implements SpeechToTextProvider {
         });
         const token = await auth.getAccessToken();
         if (!token) {
-          throw new SpeechSetupError("Could not obtain a Google access token for Speech-to-Text.");
+          throw new SpeechSetupError(
+            "Could not obtain a Google access token for Speech-to-Text.",
+          );
         }
         return token;
       });
@@ -153,7 +157,10 @@ export class GoogleSpeechToTextProvider implements SpeechToTextProvider {
 /** Build the configured provider. Stub is selected only when config resolved it (prod is fenced to google). */
 export function createSpeechToTextProvider(
   config: { speechProvider: "google" | "stub"; speechLanguageCode: string },
-  options: { transport?: SpeechHttpTransport; getAccessToken?: () => Promise<string> } = {},
+  options: {
+    transport?: SpeechHttpTransport;
+    getAccessToken?: () => Promise<string>;
+  } = {},
 ): SpeechToTextProvider {
   if (config.speechProvider === "stub") {
     return new StubSpeechToTextProvider();

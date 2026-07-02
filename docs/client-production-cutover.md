@@ -340,7 +340,7 @@ KB runtime:
   `gcloud iam service-accounts add-iam-policy-binding <SHEETS_IMPERSONATE_SA> --member="serviceAccount:<runtime-sa>" --role="roles/iam.serviceAccountTokenCreator" --project=<project>`
 - Gmail send-only authority for `kb-automation@pmikcmetro.com`
 - Grant each launch operator the **Admin** role AFTER their first sign-in: `npm run firebase:set-role --
-  --email=<user@pmikcmetro.com> --role=Admin` (targets `FIREBASE_PROJECT_ID`/`GCP_PROJECT_ID`). A Firebase user
+--email=<user@pmikcmetro.com> --role=Admin` (targets `FIREBASE_PROJECT_ID`/`GCP_PROJECT_ID`). A Firebase user
   with no `role` custom claim defaults to **Editor** (`lib/auth/session.ts` `readFirebaseRole`), so Admin-gated
   surfaces (the live renewal review, the write-back approval decisions) redirect to home until the claim is set.
   Custom claims only refresh on a fresh sign-in, so the operator must sign out + back in after the grant.

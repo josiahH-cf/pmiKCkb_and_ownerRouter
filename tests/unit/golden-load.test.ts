@@ -14,9 +14,9 @@ describe("loadVerifiedCapturedScenarios", () => {
   });
 
   it("returns [] when the captured dir is absent (CI / fresh checkout)", () => {
-    expect(
-      loadVerifiedCapturedScenarios("tests/fixtures/golden/does-not-exist"),
-    ).toEqual([]);
+    expect(loadVerifiedCapturedScenarios("tests/fixtures/golden/does-not-exist")).toEqual(
+      [],
+    );
   });
 
   it("produces harness-ready scenarios that evaluate cleanly", () => {

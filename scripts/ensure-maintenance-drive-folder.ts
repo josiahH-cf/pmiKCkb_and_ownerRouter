@@ -29,7 +29,10 @@ function loadEnvLocal(): void {
       if (eq === -1) continue;
       const key = trimmed.slice(0, eq).trim();
       if (process.env[key] === undefined) {
-        process.env[key] = trimmed.slice(eq + 1).trim().replace(/^"|"$/g, "");
+        process.env[key] = trimmed
+          .slice(eq + 1)
+          .trim()
+          .replace(/^"|"$/g, "");
       }
     }
   } catch {
@@ -50,7 +53,9 @@ async function main(): Promise<void> {
   // Target a team-owned Shared Drive when --shared-drive <id> is given; else the subject's My Drive.
   const sharedDriveId = readArg("--shared-drive");
   const location = sharedDriveId ? { driveId: sharedDriveId } : {};
-  const where = sharedDriveId ? `Shared Drive ${sharedDriveId}` : "the subject's My Drive";
+  const where = sharedDriveId
+    ? `Shared Drive ${sharedDriveId}`
+    : "the subject's My Drive";
 
   if (!live) {
     console.log(
@@ -73,7 +78,9 @@ async function main(): Promise<void> {
 
   const client = new GoogleDriveClient();
   const { folder, created } = await client.ensureFolder(FOLDER_NAME, location);
-  console.log(`${created ? "Created" : "Found existing"} Drive folder in ${where}: ${folder.id}`);
+  console.log(
+    `${created ? "Created" : "Found existing"} Drive folder in ${where}: ${folder.id}`,
+  );
   console.log(
     `Set MAINTENANCE_PHOTO_DRIVE_FOLDER_ID="${folder.id}" (and, in dev, IMAGE_STORE=drive to upload live; ` +
       "prod forces it). Production deploy forwards this var; the cutover preflight requires it.",
@@ -82,7 +89,11 @@ async function main(): Promise<void> {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   void main().catch((error) => {
-    console.error(error instanceof DriveSetupError || error instanceof Error ? error.message : String(error));
+    console.error(
+      error instanceof DriveSetupError || error instanceof Error
+        ? error.message
+        : String(error),
+    );
     process.exitCode = 1;
   });
 }

@@ -15,7 +15,12 @@ import {
 } from "@/lib/lease-renewal/pipeline";
 import type { Severity } from "@/lib/lease-renewal/severity";
 
-export const SEVERITIES = ["High", "Blocked", "Medium", "Low"] as const satisfies readonly Severity[];
+export const SEVERITIES = [
+  "High",
+  "Blocked",
+  "Medium",
+  "Low",
+] as const satisfies readonly Severity[];
 
 /** Per-candidate decision the team records on the worksheet. "PENDING" until reviewed; "accept" keeps the
  *  candidate severity; "reject" drops the flag (it must become a NON-flag — i.e. the math must stop raising
@@ -48,7 +53,9 @@ const WorksheetEntrySchema = z.object({
   fieldLabel: z.string(),
   candidateSeverity: z.enum(SEVERITIES),
   agreement: z.string(),
-  suggestedWinner: z.object({ source: z.string(), value: CandidateValueSchema }).nullable(),
+  suggestedWinner: z
+    .object({ source: z.string(), value: CandidateValueSchema })
+    .nullable(),
   confidenceForDraft: z.string(),
   blockedReason: z.string().optional(),
   candidates: z.array(WorksheetCandidateSchema),
@@ -210,7 +217,10 @@ export function summarizeDecisions(worksheet: GoldenWorksheet): DecisionSummary 
  *  incomplete review (anti-slop: no verified labels from a half-filled sheet) and a worksheet that does
  *  not match the draft's current pipeline flags (stale/mismatched — regenerate). Ground truth is the
  *  team's decisions only. */
-export function applyDecisions(draft: CapturedDraft, worksheet: GoldenWorksheet): VerifiedGoldenSet {
+export function applyDecisions(
+  draft: CapturedDraft,
+  worksheet: GoldenWorksheet,
+): VerifiedGoldenSet {
   if (worksheet.capturedName !== draft.name) {
     throw new Error(
       `Worksheet is for "${worksheet.capturedName}" but the draft is "${draft.name}" — pass the matching pair.`,
@@ -227,7 +237,9 @@ export function applyDecisions(draft: CapturedDraft, worksheet: GoldenWorksheet)
       `${pending.length} entr${pending.length === 1 ? "y is" : "ies are"} still PENDING — decide every flag before applying.`,
     );
   }
-  const unconfirmed = worksheet.fieldsUnderReview.filter((field) => !field.meaningConfirmed);
+  const unconfirmed = worksheet.fieldsUnderReview.filter(
+    (field) => !field.meaningConfirmed,
+  );
   if (unconfirmed.length > 0) {
     throw new Error(
       `${unconfirmed.length} field meaning(s) unconfirmed (${unconfirmed

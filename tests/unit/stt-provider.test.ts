@@ -14,7 +14,10 @@ import {
 // STT seam (S4 maintenance voice capture): the free stub stands in for Google Cloud STT, selected by
 // config + fenced from prod. The Google adapter is tested with an injected transport (offline/free).
 
-function transport(status: number, body: unknown): SpeechHttpTransport & { last?: SpeechHttpRequest } {
+function transport(
+  status: number,
+  body: unknown,
+): SpeechHttpTransport & { last?: SpeechHttpRequest } {
   const t: SpeechHttpTransport & { last?: SpeechHttpRequest } = {
     async send(request: SpeechHttpRequest): Promise<SpeechHttpResponse> {
       t.last = request;
@@ -27,14 +30,20 @@ function transport(status: number, body: unknown): SpeechHttpTransport & { last?
 describe("StubSpeechToTextProvider", () => {
   it("returns a canned transcript with no network", async () => {
     const provider: SpeechToTextProvider = new StubSpeechToTextProvider("hello");
-    const result = await provider.transcribe({ audioBase64: "x", mimeType: "audio/webm" });
+    const result = await provider.transcribe({
+      audioBase64: "x",
+      mimeType: "audio/webm",
+    });
     expect(result.transcript).toBe("hello");
   });
 });
 
 describe("createSpeechToTextProvider", () => {
   it("returns the stub when configured", () => {
-    const provider = createSpeechToTextProvider({ speechProvider: "stub", speechLanguageCode: "en-US" });
+    const provider = createSpeechToTextProvider({
+      speechProvider: "stub",
+      speechLanguageCode: "en-US",
+    });
     expect(provider).toBeInstanceOf(StubSpeechToTextProvider);
   });
 
@@ -55,9 +64,15 @@ describe("GoogleSpeechToTextProvider", () => {
         { alternatives: [{ transcript: "is leaking" }] },
       ],
     });
-    const provider = new GoogleSpeechToTextProvider({ transport: t, getAccessToken: async () => "tok" });
+    const provider = new GoogleSpeechToTextProvider({
+      transport: t,
+      getAccessToken: async () => "tok",
+    });
 
-    const result = await provider.transcribe({ audioBase64: "AAAA", mimeType: "audio/webm" });
+    const result = await provider.transcribe({
+      audioBase64: "AAAA",
+      mimeType: "audio/webm",
+    });
 
     expect(result.transcript).toBe("the sink is leaking");
     expect(t.last?.headers.authorization).toBe("Bearer tok");
@@ -98,7 +113,10 @@ describe("GoogleSpeechToTextProvider", () => {
       transport: transport(200, {}),
       getAccessToken: async () => "tok",
     });
-    const result = await provider.transcribe({ audioBase64: "AAAA", mimeType: "audio/mp4" });
+    const result = await provider.transcribe({
+      audioBase64: "AAAA",
+      mimeType: "audio/mp4",
+    });
     expect(result.transcript).toBe("");
   });
 });
