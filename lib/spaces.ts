@@ -22,11 +22,13 @@ export const launchSpaces: readonly LaunchSpace[] = [
     id: "owner-renewal-outreach",
     name: "Owner Renewal Outreach + Comp Lookup",
     processCategory: "Renewals",
+    processDefinitionId: "owner-renewal-outreach",
   },
   {
     id: "tenant-renewal-notice",
     name: "Tenant Renewal Notice + DotLoop Follow-Up",
     processCategory: "Renewals",
+    processDefinitionId: "tenant-renewal-notice",
   },
   {
     id: "maintenance-work-order-intake",
@@ -42,11 +44,17 @@ export const launchSpaces: readonly LaunchSpace[] = [
   { id: "daily-inbox-triage", name: "Daily Inbox Triage", processCategory: "Inbox" },
   { id: "fathom-training", name: "Fathom Training", processCategory: "Training" },
   { id: "escalation-rules", name: "Escalation Rules", processCategory: "Escalation" },
-  { id: "move-in", name: "Move-In", processCategory: "Move-In" },
+  {
+    id: "move-in",
+    name: "Move-In",
+    processCategory: "Move-In",
+    processDefinitionId: "move-in",
+  },
   {
     id: "move-out-deposit-disposition",
     name: "Move-Out + Deposit Disposition",
     processCategory: "Move-Out",
+    processDefinitionId: "move-out-deposit-disposition",
   },
   { id: "owner-onboarding", name: "Owner Onboarding", processCategory: "Onboarding" },
   {
