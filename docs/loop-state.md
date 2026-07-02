@@ -32,14 +32,13 @@ stop-and-reset rules.
   notice rules per-tenant/property CONFIGURABLE — `F-PRECUST-CYCLE`). Tracked spec: S13
   `docs/feature-suites/pre-customer-refinement.md`; mapping packet: `docs/temp/pre-customer-refinement-plan.md`.
   **WAVE 1 MERGED** to `main` 2026-07-02 (PR #35, CI green, ff-merge f402d22; `F-PRECUST-WAVE1`;
-  narrative in `docs/status.md`); 970 tests, all gates green. **WAVE 2 E1-E4 BUILT + verified** (2026-07-02, branch
-  `s13-wave2-space-teeth`, NOT merged; 1022 tests, all gates green; `F-MOVEIN-1`/`F-MOVEOUT-1`/`F-SPACE-DESK-1`):
-  E1 Move-In(10)/Move-Out(11) Draft seeds; E2 reusable `SpaceDesk` + persisted per-step checklist
-  (`workflow_run_step_checks`, edit-gated, mirrors `lease-renewal-resolutions.ts`) wired via `app/spaces/[spaceId]`,
-  plus a Move-In welcome draft and a Move-Out SUGGESTED-deduction evidence packet (integer-cents, owner-approval-gated);
-  E3 Tenant Notice+Dotloop (reuses `buildTenantOfferDraft` + new `buildDotloopFollowUpDraft`); E4 Owner Outreach
-  (reuses `buildOwnerRenewalDraft`). All Draft/non-executable, no SoR write, no send; commit queue prepared per
-  sub-slice, NOT committed. NEXT: E5 owner-run LIVE seed (Tier-0 step 2) applies the 4 new Draft defs to prod. TIER-0
+  narrative in `docs/status.md`); 970 tests, all gates green. **WAVE 2 E1-E4 MERGED** to `main` 2026-07-02 (PR #36,
+  merge 314c59b, CI green; 1022 tests; `F-MOVEIN-1`/`F-MOVEOUT-1`/`F-SPACE-DESK-1`): E1 Move-In(10)/Move-Out(11)
+  Draft seeds; E2 reusable `SpaceDesk` + persisted per-step checklist (`workflow_run_step_checks`, edit-gated); E3
+  Tenant Notice+Dotloop; E4 Owner Outreach (reuse the built composers). All Draft/non-executable, no SoR write, no
+  send; browser-walked on the Firestore emulator (start-run + step-check persist across reload). NEXT: **WAVE 3**
+  (F notice rule engine → G Dictate → H learning loop, per the S13 spec's ordered sequence) is the next build; the
+  owner-run E5 LIVE seed (Tier-0 step 2) applies the 4 new Draft defs to prod when the owner runs it. TIER-0
   (front-load, none block Wave 1): (1) `npm run auth:session`; (2) LIVE seed — set `PROCESS_OWNER_UID` +
   `PROCESS_APPROVER_UID` env FIRST (silent placeholder fallback), then `npm run seed:process-definitions`;
   (3) Dan's prod Admin claim; (4) `gcloud services enable speech.googleapis.com --project=pmi-kc-kb-prod`;
