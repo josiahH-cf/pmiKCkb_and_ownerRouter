@@ -988,6 +988,7 @@ button {
   padding: 8px 10px;
 }
 
+.lr-approve-form,
 .lr-resolve-form {
   display: grid;
   gap: 8px;
@@ -995,10 +996,36 @@ button {
   max-width: 460px;
 }
 
+.lr-approve-form label,
 .lr-resolve-form label {
   display: grid;
   font-weight: 700;
   gap: 4px;
+}
+
+/* The write-back reason / corrected-value textareas were unstyled, so they rendered at the
+   browser-default ~20-column width. Make them fill the form and stay comfortable on a phone (S13 B3). */
+.lr-approve-form textarea,
+.lr-resolve-form textarea {
+  box-sizing: border-box;
+  font: inherit;
+  min-height: 86px;
+  padding: 8px 10px;
+  resize: vertical;
+  width: 100%;
+}
+
+.lr-approve-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .lr-approve-form,
+  .lr-resolve-form {
+    max-width: 100%;
+  }
 }
 
 .lr-error {
