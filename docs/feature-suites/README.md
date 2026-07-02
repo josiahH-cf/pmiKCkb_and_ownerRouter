@@ -18,17 +18,18 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 > the Processes tab, keep the engine), per-Space "teeth", dev↔prod parity. New suites S10–S12; S6 rewritten.
 > Q&A-first — `docs/products/v1-process-qa.md`.
 
-| Suite                                 | File                                        | Status                            |
-| ------------------------------------- | ------------------------------------------- | --------------------------------- |
-| S1 Governance recalibration & routing | `docs/feature-suites/governance.md`         | Built this cycle (spine + gate)   |
-| S2 Voice & Copy                       | `docs/feature-suites/voice-copy.md`         | Built (S2)                        |
-| S3 Lease-renewal maturation           | `docs/feature-suites/lease-renewal.md`      | Spec — discovery-gated            |
-| S4 Maintenance work-order intake      | `docs/feature-suites/maintenance-intake.md` | Spec                              |
-| S5 Ask portal rescope                 | `docs/feature-suites/ask-rescope.md`        | Spec — folded into R4             |
-| S6 UI / IA re-architecture            | `docs/feature-suites/ui-ia.md`              | Recalibrated 2026-06-30 (A-IA-V2) |
-| S7 Cross-product integration          | `docs/feature-suites/cross-product.md`      | Spec                              |
-| S8 TDD that mirrors behavior          | `docs/feature-suites/tdd.md`                | Spec (cross-cutting)              |
-| S9 Local-model live-data testing      | `docs/feature-suites/local-model.md`        | Built (S9, cross-cutting)         |
-| S10 Console app-state front door      | `docs/feature-suites/console-app-state.md`  | Spec — recalibration (2026-06-30) |
-| S11 Per-Space "teeth"                 | `docs/feature-suites/space-teeth.md`        | Spec — recalibration (Q&A-gated)  |
-| S12 Dev↔prod parity                   | `docs/feature-suites/dev-prod-parity.md`    | Spec — recalibration              |
+| Suite                                 | File                                             | Status                                   |
+| ------------------------------------- | ------------------------------------------------ | ---------------------------------------- |
+| S1 Governance recalibration & routing | `docs/feature-suites/governance.md`              | Built this cycle (spine + gate)          |
+| S2 Voice & Copy                       | `docs/feature-suites/voice-copy.md`              | Built (S2)                               |
+| S3 Lease-renewal maturation           | `docs/feature-suites/lease-renewal.md`           | Spec — discovery-gated                   |
+| S4 Maintenance work-order intake      | `docs/feature-suites/maintenance-intake.md`      | Spec                                     |
+| S5 Ask portal rescope                 | `docs/feature-suites/ask-rescope.md`             | Spec — folded into R4                    |
+| S6 UI / IA re-architecture            | `docs/feature-suites/ui-ia.md`                   | Built (F-IA-CONSOLE-HOME)                |
+| S7 Cross-product integration          | `docs/feature-suites/cross-product.md`           | Spec                                     |
+| S8 TDD that mirrors behavior          | `docs/feature-suites/tdd.md`                     | Spec (cross-cutting)                     |
+| S9 Local-model live-data testing      | `docs/feature-suites/local-model.md`             | Built (S9, cross-cutting)                |
+| S10 Console app-state front door      | `docs/feature-suites/console-app-state.md`       | Built (F-CONSOLE-APP-STATE)              |
+| S11 Per-Space "teeth"                 | `docs/feature-suites/space-teeth.md`             | Spec — Q&A answered, runs via S13        |
+| S12 Dev↔prod parity                   | `docs/feature-suites/dev-prod-parity.md`         | Built + live-verified (F-DEVPROD-PARITY) |
+| S13 Pre-customer refinement           | `docs/feature-suites/pre-customer-refinement.md` | Spec — decided 2026-07-02, ready to run  |

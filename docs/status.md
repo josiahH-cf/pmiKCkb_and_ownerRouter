@@ -5949,10 +5949,10 @@ print-access-token` — no matter how many `gcloud auth login`s. STRUCTURAL: the
     an empty map. Value-bearing display is RUN-PAGE-ONLY (design §6.1); the value-free board/queue never carry it —
     `loadRenewalRunViews` doesn't load activity, and a test proves the board drops the overlay even when a run view
     carries it. Tests: service grouping (fake Firestore) + run-view overlay carries the grouped activity + board-no-leak.
-  Both slices execute NOTHING, add NO vendor action, touch NO move-in/move-out, and change `production_allowed` nowhere
-  (grepped the paths). Verification: 913 tests pass (+15); lint / typecheck / verify:falsification / verify:router-
-  boundary / verify:context-freshness all green; prettier --check clean on the touched files (formatted only my own
-  LF files — no mass reformat). Commit queue prepared (one group per slice); not committed/pushed/merged (awaiting ask).
+    Both slices execute NOTHING, add NO vendor action, touch NO move-in/move-out, and change `production_allowed` nowhere
+    (grepped the paths). Verification: 913 tests pass (+15); lint / typecheck / verify:falsification / verify:router-
+    boundary / verify:context-freshness all green; prettier --check clean on the touched files (formatted only my own
+    LF files — no mass reformat). Commit queue prepared (one group per slice); not committed/pushed/merged (awaiting ask).
 - 2026-07-01 — SHIPPED both slices to `main` (owner-approved push): commits `74027d8` (Slice B audit trail) + `dec3dfb`
   (Slice A queue tab), branched to `feat/writeback-approval-followons`, fast-forwarded `main`, pushed. Then ran an
   adversarial falsification workflow (5 lenses: value-leak, executing-FSM/SoR-write, admin-gate, N+1, doc-drift) —
@@ -5974,7 +5974,7 @@ print-access-token` — no matter how many `gcloud auth login`s. STRUCTURAL: the
   1. RentVine Secret Manager secrets had to be CREATED, then the runtime SA granted `secretmanager.secretAccessor`
      on them (a deploy-time "permission denied on secret" actually means the secret is missing/inaccessible; the
      `add-iam-policy-binding` 404 confirmed missing). Owner created them (PowerShell, no-trailing-newline temp file)
-     + granted access; redeploy then succeeded.
+     - granted access; redeploy then succeeded.
   2. Operator Admin role: the authenticated user was `Editor` in prod (no `role` custom claim → `readFirebaseRole`
      defaults to Editor), so the Admin-gated live review + write-back approval DECISIONS were unreachable. Fixed via
      `firebase:set-role --email=josiah@pmikcmetro.com --role=Admin` (pmi-kc-kb-prod); claims only refresh on a fresh
@@ -5983,10 +5983,10 @@ print-access-token` — no matter how many `gcloud auth login`s. STRUCTURAL: the
      cause: the keyless DWD Sheet read has the CALLER `signJwt` as the reader SA (`lease-renewal-reader@`), and the
      caller in prod is the runtime SA `pmi-kc-kb-runtime@` — which lacked `iam.serviceAccountTokenCreator` on the
      reader SA (locally the human ADC already had it). Owner granted it; no redeploy needed.
-  RESULT (agent HTTP + headless Playwright with the owner's Admin session): `/lease-renewal/live` returns LIVE_OK —
-  "Live data", 25 real RentVine leases, the 2 real current-rent conflicts, `production_allowed:false`. RentVine was
-  never the problem (the `auth_error` was the Sheet DWD). Verified read-only end-to-end: RentVine (Secret Manager) +
-  Sheet (DWD) + reconciliation + Admin auth, no write. Updated `F-DEVPROD-PARITY` + the cutover doc IAM/role list.
+     RESULT (agent HTTP + headless Playwright with the owner's Admin session): `/lease-renewal/live` returns LIVE_OK —
+     "Live data", 25 real RentVine leases, the 2 real current-rent conflicts, `production_allowed:false`. RentVine was
+     never the problem (the `auth_error` was the Sheet DWD). Verified read-only end-to-end: RentVine (Secret Manager) +
+     Sheet (DWD) + reconciliation + Admin auth, no write. Updated `F-DEVPROD-PARITY` + the cutover doc IAM/role list.
 - 2026-07-01 — WRITE-BACK GOVERNANCE verified LIVE in prod (closes the "prove governance live" step). On the deployed
   service, an Admin (real `pmikcmetro.com` sign-in, `role:Admin` custom claim) resolved a real Current-rent/High
   conflict → queued the append-only proposal → the `WritebackApprovalControl` rendered → Approve flipped it to
@@ -6002,3 +6002,63 @@ print-access-token` — no matter how many `gcloud auth login`s. STRUCTURAL: the
   handling steps. Proves the deployed stack works end-to-end (Firebase auth → Cloud Run → Gemini Flash → Agent Search
   grounding), not just localhost. Still owner-eyeball-only: the live RENEWAL REVIEW (RentVine + Sheet DWD) against the
   deployed endpoint — a different path from the Ask/Agent-Search corpus this smoke exercised.
+- 2026-07-02 — PLANNING ONLY (no build): captured the operator's 2026-07-02 "Pre-Customer Refinement" note and
+  produced the decision-complete cycle packet `docs/temp/pre-customer-refinement-plan.md` (nine-area repo mapping
+  with file:line evidence). The note's complaints are mostly literal defects at HEAD: both quoted copy strings are
+  live (`lib/connections/connector-catalog.ts:32` "exception and control plane";
+  `components/connections/ConnectionCenter.tsx:14` "PMI handles the setup for you" — which IS the S2 rewrite);
+  ~290 em dashes with the voice doc's own "simulation → Test run" lexicon rule never applied; the default approval
+  tab AND the Console's "My approvals" answer both read the near-empty `approval_queue_items` collection while
+  renewal flags/write-backs wait on other tabs (the "queue says nothing waiting" complaint, verbatim);
+  `.lr-approve-form` has zero CSS anywhere so the write-back "reason required" box renders ~20 columns wide
+  (the small-screen complaint); renewal reconcile `direct_link`s point at a route that does not exist
+  (`/lease-renewal/runs/{id}/reconciliation/{fieldKey}` → 404); the built lease-renewal + maintenance process
+  definitions were never live-seeded so even the two real processes badge "Needs a process"; prod Dictate is
+  unverified with `speech.googleapis.com` absent from every enable list (prod forces the Google provider — no stub
+  fallback); the Connection Center's "Connected" state (`verifiedIds`) is wired to nothing so live-verified
+  connectors max out at "Ready to verify"; Dotloop/LeadSimple have `requiredConfig: []` (no seam for existing
+  credentials) and Gmail is absent from the catalog; decisions persist with mandatory reasons but nothing reads
+  them back for learning. Packet sequence: TIER-0 owner steps (live seed w/ real uids, Dan prod Admin claim,
+  Speech API enable, send the unblock note) → Wave 1 (copy pass v2 + repo copy gate, unified "Needs your decision"
+  inbox + bulk write-back decisions on the run page + textarea CSS fix, deep-link 404 fix + Console counts +
+  honest approvals number, connections truth incl. live-probe "Connected") → Wave 2 (move-in/move-out Draft
+  definition seeds from the process doc + reusable per-Space desks, tenant-notice + owner-outreach definitions) →
+  Wave 3 (pure notice-need detector with mid-month + 10-day rules as flagged configurable defaults, Dictate
+  hardening + `smoke:transcribe-live`, decision metrics + enumerated reason codes + decisions-to-golden
+  distillation + value-free rule-tuning PRs). Twelve confirm-with-default owner decisions are tabled in the
+  packet; hard gates unchanged (no autonomous send, no SoR write execution, no Cloud Scheduler, no client data on
+  GitHub). Stale-doc finds folded into packet slice D6: the Drive-DWD "unauthorized_client" note in
+  `lib/integrations/health-checks.ts` contradicts F-DRIVE-DWD (Drive is live-verified); feature-suites README status column
+  lags facts.md (S10/S12); `docs/feature-suites/space-teeth.md` still carries the hard-gates line the Q&A
+  overrode. Loop-state RESUME repointed at the packet. Plan trigger honored: packet + loop-state only, no build.
+- 2026-07-02 — DECISIONS LOCKED + S13 PROMOTED (owner-present): the owner answered ALL 12 pre-customer-refinement
+  confirm-with-default decisions YES, with ONE amendment — renewal-notice timing rules (mid-month deadline, warning
+  lead days, 10-day follow-up) must be CONFIGURABLE per tenant/lease and per property (most-specific-wins over
+  global defaults; pure resolver; defaults flagged Needs Verification until Dan confirms values), never global
+  constants. Promoted the durable direction out of the gitignored packet into tracked docs: NEW suite spec
+  `docs/feature-suites/pre-customer-refinement.md` (S13 — decisions, waves, the notice rule-engine requirement,
+  ordered prompt sequence), README row added, `F-PRECUST-CYCLE` fact recorded. Doc-drift fixes in the same pass:
+  `docs/feature-suites/space-teeth.md` no longer claims move-in hard gates (owner Q2 override; supersede-log row
+  SPACETEETH-HARD-GATES) its move-out bullet now matches the recorded
+  answers (manual Start-move-out only — the Renewals handoff is deferred per Q1; the app computes a SUGGESTED
+  deposit deduction per the Q3 override), and its Q&A gate reads ANSWERED/runs-via-S13; feature-suites README status column
+  now matches facts.md (S6/S10/S12 built). Loop-state RESUME repointed: next = RUN THE LOOP on S13 Wave 1 (fresh
+  context window). No product code changed; hard gates unchanged.
+- 2026-07-02 — ADVERSARIAL CHECK + CI RESTORED (pre-push): three skeptic agents (governance, gate-mechanics,
+  factual-accuracy) attacked the decision-lock diff before push. Confirmed + fixed: (1) the space-teeth Move-Out
+  bullet still encoded two pre-override defaults (Renewals-handoff trigger; "no app math" deposits) — rewritten to
+  the recorded Q1/Q3 answers (manual "Start move-out" ONLY; the app computes a SUGGESTED deposit deduction with
+  binding guardrails), and the suite/loop-state now warn that several Q&A answers OVERRIDE printed defaults;
+  (2) loop-state candidates 0/4 still advertised the retired "Owner Q&A — BLOCKING" gate a fresh loop would obey —
+  rewritten to ANSWERED/runs-via-S13, and history bullets compressed to restore headroom under the 140-line cap;
+  (3) the seed instruction would silently write PLACEHOLDER owner/approver uids (script env fallback) — S13 +
+  loop-state now require PROCESS_OWNER_UID/PROCESS_APPROVER_UID env first; (4) per-property notice-rule values
+  were wrongly described as already covered by the unblock note — added to the draft note as ask 7
+  (confirm-with-default: global defaults until Dan supplies exceptions); (5) S13's slice ids (A1–H4) are now
+  spelled out in the tracked suite so a clean checkout can execute without the gitignored packet; (6) prettier
+  source fixes in the new/edited docs (bare `lr-*` glob would have been emphasis-mangled by a blind --write).
+  SEPARATE structural finding: CI on main has been RED for the last 5 runs, dying at `format:check` (39 files)
+  BEFORE lint/typecheck/test — so no CI gate (incl. context-freshness inside `npm test`) has actually been
+  enforcing on pushes; the "format drift is just local Windows CRLF" belief is FALSIFIED (the failures reproduce
+  in CI's clean LF checkout). Restored via a dedicated style-only commit: `npx prettier --write` scoped to
+  exactly the pre-existing failing files, diffs reviewed for markdown mangling, full test suite run before push.
