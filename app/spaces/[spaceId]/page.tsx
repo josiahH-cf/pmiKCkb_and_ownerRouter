@@ -1,18 +1,43 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
+import { EvidencePacketCard } from "@/components/desk/EvidencePacketCard";
+import { SpaceDesk } from "@/components/desk/SpaceDesk";
+import { WelcomeDraftCard } from "@/components/desk/WelcomeDraftCard";
 import { ProcessSummaryPanel } from "@/components/spaces/ProcessSummaryPanel";
 import { SpaceDetailClient } from "@/components/spaces/SpaceDetailClient";
 import { can } from "@/lib/auth/roles";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { readServerConfig } from "@/lib/config/server";
+import { CONNECTORS, type ConnectorDef } from "@/lib/connections/connector-catalog";
+import { readConnectorPresence } from "@/lib/connections/connector-presence";
 import { getProcessDefinition, listWorkflowRuns } from "@/lib/firestore/workflows";
-import type { ProcessDefinitionRecord, WorkflowRunRecord } from "@/lib/firestore/types";
+import { listStepChecksForRun } from "@/lib/firestore/workflow-run-step-checks";
+import type {
+  ProcessDefinitionRecord,
+  WorkflowRunRecord,
+  WorkflowRunStepCheckRecord,
+} from "@/lib/firestore/types";
 import {
   launchEditableSeedsBySpaceId,
   ownerEmailReadOnlySources,
 } from "@/lib/launch/content";
+import { buildWelcomeDraft } from "@/lib/move-in/welcome-draft";
+import { buildEvidencePacket } from "@/lib/move-out/evidence-packet";
+import { SPACE_CONNECTOR_IDS } from "@/lib/space-card-state";
 import { launchSpaces } from "@/lib/spaces";
+
+/** The domain-specific desk Card for a Space (Move-In welcome / Move-Out evidence packet), if any. */
+function buildDomainSlot(spaceId: string): ReactNode {
+  if (spaceId === "move-in") {
+    return <WelcomeDraftCard draft={buildWelcomeDraft({})} />;
+  }
+  if (spaceId === "move-out-deposit-disposition") {
+    return <EvidencePacketCard packet={buildEvidencePacket({ lines: [] })} />;
+  }
+  return null;
+}
 
 interface SpaceDetailPageProps {
   params: Promise<{ spaceId: string }>;
@@ -42,20 +67,53 @@ export default async function SpaceDetailPage({
 
   let processDefinition: ProcessDefinitionRecord | null = null;
   let processRuns: WorkflowRunRecord[] = [];
-  if (activeTab === "process" && space.processDefinitionId) {
+  let latestRun: WorkflowRunRecord | null = null;
+  let deskStepChecks: WorkflowRunStepCheckRecord[] = [];
+  let deskPresence: Record<string, boolean> = {};
+  let deskConnectors: ConnectorDef[] = [];
+
+  if (hasProcess && space.processDefinitionId) {
+    const definitionId = space.processDefinitionId;
     try {
-      processDefinition = await getProcessDefinition(user, space.processDefinitionId);
+      processDefinition = await getProcessDefinition(user, definitionId);
     } catch {
       processDefinition = null;
     }
-    try {
-      processRuns = await listWorkflowRuns(user, {
-        definitionId: space.processDefinitionId,
-        simulationOnly: true,
-        limit: 5,
-      });
-    } catch {
-      processRuns = [];
+
+    if (activeTab === "process") {
+      try {
+        processRuns = await listWorkflowRuns(user, {
+          definitionId,
+          simulationOnly: true,
+          limit: 5,
+        });
+      } catch {
+        processRuns = [];
+      }
+    } else {
+      // Overview desk: connector presence + the latest run and its step checks (bounded reads).
+      deskPresence = readConnectorPresence();
+      const connectorIds = SPACE_CONNECTOR_IDS[space.id] ?? [];
+      deskConnectors = CONNECTORS.filter((connector) =>
+        connectorIds.includes(connector.id),
+      );
+      try {
+        const runs = await listWorkflowRuns(user, {
+          definitionId,
+          simulationOnly: true,
+          limit: 1,
+        });
+        latestRun = runs[0] ?? null;
+      } catch {
+        latestRun = null;
+      }
+      if (latestRun) {
+        try {
+          deskStepChecks = await listStepChecksForRun(user, latestRun.id);
+        } catch {
+          deskStepChecks = [];
+        }
+      }
     }
   }
 
@@ -113,6 +171,20 @@ export default async function SpaceDetailPage({
               ))}
             </ul>
           </div>
+        ) : hasProcess && space.processDefinitionId ? (
+          <SpaceDesk
+            canEdit={can(user.role, "edit")}
+            connectors={deskConnectors}
+            definition={processDefinition}
+            definitionId={space.processDefinitionId}
+            domainSlot={buildDomainSlot(space.id)}
+            presence={deskPresence}
+            processCategory={space.processCategory}
+            run={latestRun}
+            spaceId={space.id}
+            spaceName={space.name}
+            stepChecks={deskStepChecks}
+          />
         ) : editableSeed ? (
           <SpaceDetailClient
             canApprove={can(user.role, "approve")}
