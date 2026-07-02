@@ -35,10 +35,12 @@ stop-and-reset rules.
   branch): slice A DONE (copy v2 + `verify:copy-voice` gate + RentVine display seam, `F-VOICE-2`, 72bb7a7);
   B3 DONE (5ffffba); B1 DONE (0c1e770); B2 DONE (bulk approve/return ON the run page — multi-select + ONE
   shared mandatory reason, Admin-only, per-item Activity row + per-item failure reporting, value-free tabs
-  untouched, c07a8dd); B4 DONE (decided/resolved items default-collapse to counts-only details sections on
-  the write-back queue + renewal review, 86e9c1a; 948 tests). NEXT: B5 Space-card + Console "N waiting"
-  interlock (fixes `resolveApprovalsState` answering "Nothing" while work waits) → C deep-link
-  404 + counts → D connections truth → Wave 2 desks → Wave 3. TIER-0 OWNER STEPS
+  untouched, c07a8dd); B4 DONE (decided items collapse to counts-only sections, 86e9c1a); B5 DONE (shared
+  needs-decision gather: Console approvals answer = the merged inbox, lease-renewal Space card shows
+  "N waiting on you", b4c903a; 950 tests — SLICE B COMPLETE). NEXT: C deep links (C1 un-404 reconcile
+  direct_links via redirect route + highlight → C2 item hrefs + severity order in app-state → C3 Console
+  next-action strip w/ live counts → C4 one honest deduped approvals number) → D connections truth →
+  Wave 2 desks → Wave 3. TIER-0 OWNER STEPS
   (front-load, none block Wave 1): (1) `npm run auth:session`; (2) LIVE seed — set `PROCESS_OWNER_UID` +
   `PROCESS_APPROVER_UID` env FIRST (silent placeholder fallback), then `npm run seed:process-definitions`;
   (3) Dan's prod Admin claim; (4) `gcloud services enable speech.googleapis.com --project=pmi-kc-kb-prod`;
