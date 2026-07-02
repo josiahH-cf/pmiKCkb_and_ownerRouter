@@ -31,13 +31,13 @@ stop-and-reset rules.
 - **RESUME — next / waiting-on (2026-07-02):** ALL 12 pre-customer refinement decisions LOCKED (owner 2026-07-02;
   notice rules per-tenant/property CONFIGURABLE — `F-PRECUST-CYCLE`). Tracked spec: S13
   `docs/feature-suites/pre-customer-refinement.md`; mapping packet: `docs/temp/pre-customer-refinement-plan.md`.
-  IN PROGRESS on branch `s13-wave1-precustomer` (local, NOT pushed): slice A DONE (copy v2 + `verify:copy-voice`
-  gate + RentVine display seam, `F-VOICE-2`, 72bb7a7); B3 DONE (`.lr-approve-form` CSS, 5ffffba); B1 DONE
-  (unified value-free "Needs your decision" default inbox, 0c1e770). All three adversarially verified (fan-out
-  workflow + fixes). NEXT: B2 bulk approve/return on the run page (multi-select + one shared mandatory reason,
-  Admin-only, per-item Activity row; NO approve affordance on value-free tabs) → B4 collapse terminal items to
-  counts → B5 Space-card + Console "N waiting" interlock (fixes `resolveApprovalsState` answering "Nothing" while
-  work waits) → C deep-link 404 + counts → D connections truth → Wave 2 desks → Wave 3. TIER-0 OWNER STEPS
+  IN PROGRESS on branch `s13-wave1-precustomer` (A/B3/B1 merged to `main` + pushed; B2 onward local on the
+  branch): slice A DONE (copy v2 + `verify:copy-voice` gate + RentVine display seam, `F-VOICE-2`, 72bb7a7);
+  B3 DONE (5ffffba); B1 DONE (0c1e770); B2 DONE (bulk approve/return ON the run page — multi-select + ONE
+  shared mandatory reason, Admin-only, per-item Activity row + per-item failure reporting, value-free tabs
+  untouched, c07a8dd; 945 tests). NEXT: B4 collapse terminal items to counts → B5 Space-card + Console
+  "N waiting" interlock (fixes `resolveApprovalsState` answering "Nothing" while work waits) → C deep-link
+  404 + counts → D connections truth → Wave 2 desks → Wave 3. TIER-0 OWNER STEPS
   (front-load, none block Wave 1): (1) `npm run auth:session`; (2) LIVE seed — set `PROCESS_OWNER_UID` +
   `PROCESS_APPROVER_UID` env FIRST (silent placeholder fallback), then `npm run seed:process-definitions`;
   (3) Dan's prod Admin claim; (4) `gcloud services enable speech.googleapis.com --project=pmi-kc-kb-prod`;
