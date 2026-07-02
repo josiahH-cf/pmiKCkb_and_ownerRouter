@@ -35,12 +35,14 @@ stop-and-reset rules.
   branch): slice A DONE (copy v2 + `verify:copy-voice` gate + RentVine display seam, `F-VOICE-2`, 72bb7a7);
   B3 DONE (5ffffba); B1 DONE (0c1e770); B2 DONE (bulk approve/return ON the run page — multi-select + ONE
   shared mandatory reason, Admin-only, per-item Activity row + per-item failure reporting, value-free tabs
-  untouched, c07a8dd); B4 DONE (decided items collapse to counts-only sections, 86e9c1a); B5 DONE (shared
-  needs-decision gather: Console approvals answer = the merged inbox, lease-renewal Space card shows
-  "N waiting on you", b4c903a; 950 tests — SLICE B COMPLETE). NEXT: C deep links (C1 un-404 reconcile
-  direct_links via redirect route + highlight → C2 item hrefs + severity order in app-state → C3 Console
-  next-action strip w/ live counts → C4 one honest deduped approvals number) → D connections truth →
-  Wave 2 desks → Wave 3. TIER-0 OWNER STEPS
+  untouched, c07a8dd); B4 DONE (86e9c1a); B5 DONE (shared needs-decision gather → Console answer + Space
+  card "N waiting on you", b4c903a — SLICE B COMPLETE); C DONE (6b96b92; 957 tests): C1 reconcile
+  direct_links un-404ed via redirect route + ?flag= highlight/scroll, C2 per-connector anchors + item
+  hrefs, C3 Console live counts + "start with" deep link (one definitions read shared), C4
+  source_trigger_key dedupe so one decision = one row/count everywhere. NEXT: D connections truth
+  (D1 wire live probes → verifiedIds → D2 requiredConfig truth Sheets/Drive → D3 Dotloop+LeadSimple
+  env seams → D4 Gmail sender card → D5 Admin verify button + read-only non-Admin → D6 stale
+  health-contract Drive note) → Wave 2 desks → Wave 3. TIER-0 OWNER STEPS
   (front-load, none block Wave 1): (1) `npm run auth:session`; (2) LIVE seed — set `PROCESS_OWNER_UID` +
   `PROCESS_APPROVER_UID` env FIRST (silent placeholder fallback), then `npm run seed:process-definitions`;
   (3) Dan's prod Admin claim; (4) `gcloud services enable speech.googleapis.com --project=pmi-kc-kb-prod`;
