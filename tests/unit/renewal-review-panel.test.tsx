@@ -90,16 +90,21 @@ describe("ApprovalQueue renewal sub-tab", () => {
     renewalBoard: board,
   };
 
-  it("defaults to the All items view and offers a Renewals tab with the open count", () => {
+  it("defaults to the unified 'Needs your decision' inbox and offers a Renewals tab with the open count", () => {
     render(<ApprovalQueue {...baseProps} />);
 
-    expect(screen.getByRole("tab", { name: "All items" })).toHaveAttribute(
+    // B1: the default landing is the merged inbox, not "All items".
+    expect(screen.getByRole("tab", { name: /Needs your decision/ })).toHaveAttribute(
       "aria-selected",
       "true",
     );
     expect(screen.getByRole("tab", { name: "Renewals (1)" })).toBeInTheDocument();
-    // The renewal board is not rendered until its tab is selected.
-    expect(screen.queryByText("Sample renewal run")).not.toBeInTheDocument();
+    // The open renewal flag surfaces on the default inbox as a value-free deep-link row, so a real
+    // backlog no longer hides behind a near-empty tab.
+    expect(screen.getByRole("link", { name: /Current rent/ })).toHaveAttribute(
+      "href",
+      "/lease-renewal/runs/sim-renewal-001",
+    );
   });
 
   it("shows the renewal review board after switching to the Renewals tab", () => {

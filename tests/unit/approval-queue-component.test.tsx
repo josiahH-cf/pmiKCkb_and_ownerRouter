@@ -16,8 +16,81 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("ApprovalQueue default inbox (B1)", () => {
+  it("lands on the value-free 'Needs your decision' inbox by default", () => {
+    renderQueue({
+      items: [
+        queueItem({
+          id: "item-1",
+          action_needed: "Approve the renewal package",
+          direct_link: "/runs/run-9",
+          risk: "High",
+        }),
+      ],
+    });
+
+    // The unified inbox is the default tab.
+    expect(screen.getByRole("tab", { name: /Needs your decision/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    // The open queue item shows as a value-free deep-link row, not the bulk detail panel.
+    expect(
+      screen.getByRole("link", { name: /Approve the renewal package/ }),
+    ).toHaveAttribute("href", "/runs/run-9");
+    // No approve/bulk affordance on this triage surface.
+    expect(screen.queryByLabelText("Select visible")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Apply Bulk" })).toBeNull();
+  });
+
+  it("hides queue items that no longer need a decision", () => {
+    renderQueue({
+      items: [
+        queueItem({ id: "done", action_needed: "Already approved", status: "Approved" }),
+      ],
+    });
+
+    expect(
+      screen.getByText("Nothing needs your decision right now."),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the inbox stable when the All items list is filtered to a subset", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).startsWith("/api/approval-queue")) {
+        return jsonResponse({ items: [] }); // a filter that matches nothing
+      }
+      throw new Error(`Unexpected fetch: ${String(input)}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderQueue({
+      items: [
+        queueItem({ id: "a", status: "Ready for Approval" }),
+        queueItem({ id: "b", status: "Blocked", source_trigger_key: "trigger-b" }),
+      ],
+    });
+
+    // The badge reflects the full open backlog on landing.
+    expect(
+      screen.getByRole("tab", { name: /Needs your decision \(2\)/ }),
+    ).toBeInTheDocument();
+
+    // Filtering the All items list to an empty subset must NOT shrink the inbox or its badge: the
+    // triage inbox is built from the immutable full set, not the filtered list (B1 regression fix).
+    await user.click(screen.getByRole("tab", { name: /All items/ }));
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    expect(
+      screen.getByRole("tab", { name: /Needs your decision \(2\)/ }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("ApprovalQueue bulk UI", () => {
-  it("opens with the requested queue item selected", () => {
+  it("opens a deep-linked item on the All items view with it selected", () => {
     renderQueue({
       initialSelectedItemId: "item-2",
       items: [
@@ -26,6 +99,12 @@ describe("ApprovalQueue bulk UI", () => {
       ],
     });
 
+    // A notification deep-link (?item_id=) lands on All items so the item's detail/approve panel
+    // renders in place, not on the value-free triage inbox (B1 regression fix).
+    expect(screen.getByRole("tab", { name: /All items/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     expect(
       screen.getByRole("heading", { name: "Approve selected item" }),
     ).toBeInTheDocument();
@@ -42,6 +121,7 @@ describe("ApprovalQueue bulk UI", () => {
       ),
     });
 
+    await user.click(screen.getByRole("tab", { name: /All items/ }));
     await user.click(screen.getByLabelText("Select visible"));
 
     expect(
@@ -114,6 +194,7 @@ describe("ApprovalQueue bulk UI", () => {
       ],
     });
 
+    await user.click(screen.getByRole("tab", { name: /All items/ }));
     await user.click(screen.getByLabelText("Select visible"));
     await user.click(screen.getByRole("button", { name: "Apply Bulk" }));
 
@@ -143,6 +224,7 @@ describe("ApprovalQueue bulk UI", () => {
 
     renderQueue({ items: [queueItem({ risk: "High" })] });
 
+    await user.click(screen.getByRole("tab", { name: /All items/ }));
     await user.click(screen.getByLabelText("Select visible"));
     await user.click(screen.getByRole("button", { name: "Apply Bulk" }));
 

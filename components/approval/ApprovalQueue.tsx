@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import { queueActionAvailability } from "@/lib/approval/queue";
+import { buildNeedsDecisionInbox } from "@/lib/approval/needs-decision-inbox";
 import type { RenewalReviewBoard } from "@/lib/approval/renewal-review";
 import type { WritebackApprovalQueue } from "@/lib/approval/writeback-approval-queue";
 import type { Role } from "@/lib/auth/roles";
@@ -32,10 +33,11 @@ import {
   QueueListPanel,
   QueueUnavailableState,
 } from "./ApprovalQueuePanels";
+import { NeedsDecisionInboxPanel } from "./NeedsDecisionInboxPanel";
 import { RenewalReviewPanel } from "./RenewalReviewPanel";
 import { WritebackQueuePanel } from "./WritebackQueuePanel";
 
-type QueueView = "all" | "renewals" | "writeback";
+type QueueView = "needs" | "all" | "renewals" | "writeback";
 
 export function ApprovalQueue({
   currentUser,
@@ -54,7 +56,10 @@ export function ApprovalQueue({
   renewalBoard?: RenewalReviewBoard;
   writebackQueue?: WritebackApprovalQueue;
 }>) {
-  const [view, setView] = useState<QueueView>("all");
+  // A notification deep-link (`?item_id=`) resolves to initialSelectedItemId; its detail + approve
+  // control only render in the "all" view, so a deep-linked visit lands there. A normal visit lands on
+  // the unified inbox.
+  const [view, setView] = useState<QueueView>(initialSelectedItemId ? "all" : "needs");
   const firstInitialItem =
     initialItems.find((item) => item.id === initialSelectedItemId) ?? initialItems.at(0);
   const [items, setItems] = useState(initialItems);
@@ -458,10 +463,28 @@ export function ApprovalQueue({
 
   const renewalOpenFlags = renewalBoard?.totalOpenFlags ?? 0;
   const writebackAwaiting = writebackQueue?.counts.awaitingApproval ?? 0;
+  // The default landing: one value-free, attention-ordered list merging the three feeds this page
+  // already gathers, so a real backlog never hides behind a near-empty "All items" tab (B1). Built from
+  // the immutable full item set (initialItems), NOT the mutable `items` that "All items" filtering
+  // overwrites — an operator's status/risk filter must never shrink the triage inbox or its badge.
+  const needsInbox = useMemo(
+    () => buildNeedsDecisionInbox(initialItems, renewalBoard, writebackQueue),
+    [initialItems, renewalBoard, writebackQueue],
+  );
 
   return (
     <div className="approval-queue-shell">
       <div className="ui-tablist" role="tablist" aria-label="Approval queue views">
+        <button
+          aria-selected={view === "needs"}
+          className="ui-tab"
+          onClick={() => setView("needs")}
+          role="tab"
+          type="button"
+        >
+          Needs your decision
+          {needsInbox.counts.total > 0 ? ` (${needsInbox.counts.total})` : ""}
+        </button>
         <button
           aria-selected={view === "all"}
           className="ui-tab"
@@ -491,7 +514,9 @@ export function ApprovalQueue({
         </button>
       </div>
 
-      {view === "renewals" ? (
+      {view === "needs" ? (
+        <NeedsDecisionInboxPanel inbox={needsInbox} />
+      ) : view === "renewals" ? (
         <RenewalReviewPanel board={renewalBoard} />
       ) : view === "writeback" ? (
         <WritebackQueuePanel queue={writebackQueue} />
