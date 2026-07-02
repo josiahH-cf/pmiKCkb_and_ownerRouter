@@ -25,6 +25,19 @@ const moveIn: LaunchSpace = {
   id: "move-in",
   name: "Move-In",
   processCategory: "Move-In",
+  processDefinitionId: "move-in",
+};
+const moveOut: LaunchSpace = {
+  id: "move-out-deposit-disposition",
+  name: "Move-Out + Deposit Disposition",
+  processCategory: "Move-Out",
+  processDefinitionId: "move-out-deposit-disposition",
+};
+// A genuinely unmapped scaffold Space (no connector dependency, no seeded process).
+const ownerOnboarding: LaunchSpace = {
+  id: "owner-onboarding",
+  name: "Owner Onboarding",
+  processCategory: "Onboarding",
 };
 const ownerEmail: LaunchSpace = {
   id: "owner-email",
@@ -54,8 +67,24 @@ describe("computeSpaceCardState", () => {
   });
 
   it("returns needs-a-process for an unmapped scaffold Space (never mislabeled connections-needed)", () => {
-    expect(computeSpaceCardState(moveIn, new Set(), NONE_PRESENT)).toBe(
+    expect(computeSpaceCardState(ownerOnboarding, new Set(), NONE_PRESENT)).toBe(
       "needs-a-process",
+    );
+  });
+
+  it("flips Move-In and Move-Out to has-a-process once their definitions are seeded and connections are present", () => {
+    const seeded = new Set(["move-in", "move-out-deposit-disposition"]);
+    expect(computeSpaceCardState(moveIn, seeded, ALL_PRESENT)).toBe("has-a-process");
+    expect(computeSpaceCardState(moveOut, seeded, ALL_PRESENT)).toBe("has-a-process");
+  });
+
+  it("still surfaces connections-needed for Move-In/Move-Out when RentVine/Sheets presence is missing", () => {
+    const seeded = new Set(["move-in", "move-out-deposit-disposition"]);
+    expect(computeSpaceCardState(moveIn, seeded, NONE_PRESENT)).toBe(
+      "connections-needed",
+    );
+    expect(computeSpaceCardState(moveOut, seeded, NONE_PRESENT)).toBe(
+      "connections-needed",
     );
   });
 

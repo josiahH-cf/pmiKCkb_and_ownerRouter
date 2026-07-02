@@ -6086,3 +6086,33 @@ print-access-token` — no matter how many `gcloud auth login`s. STRUCTURAL: the
   VERBATIM from `docs/products/v1-process-qa.md`) in a fresh session. Residual: bulk-bar UX not browser-walked
   (run page is auth+Firestore-gated locally; jsdom interaction tests cover it) — include in the end-of-cycle
   deployed-endpoint walkthrough; Tier-0 owner steps still pending and none block Wave 2.
+- 2026-07-02 — S13 WAVE 2 (SPACE-TEETH) E1-E4 BUILT (loop run, branch `s13-wave2-space-teeth`, NOT merged; 1022
+  tests, all gates green): built the four launch Spaces' real desks from the answered Q&A verbatim. E1 — Move-In
+  (10-step) + Move-Out+Deposit-Disposition (11-step) Draft process-definition seeds quoting
+  move-in-move-out-process.md §3/§4, wired onto their Spaces (processDefinitionId + rentvine/google_sheets
+  connectors), registered in the seed CLI (dry-run shows 6 defs, all Draft, none Approved-for-Execution). The Q2
+  override holds (every move-in step incl. e-sign/certified-funds is a checklist flag, no hard gate), Q1 holds
+  (Move-Out manual "Start move-out" trigger only, no Renewals handoff); F-MOVEIN-1/F-MOVEOUT-1 recorded. E2 — a
+  reusable `SpaceDesk` server component generalizes the Renewal Desk shape (PageHeader + Stepper from the
+  definition + connected-tools via classifyConnector + one next action + an injected domain slot), backed by a NEW
+  persisted per-step checklist layer (`lib/firestore/workflow-run-step-checks.ts`: `workflow_run_step_checks` +
+  append-only twin, natural-key upsert by `${run_id}:${step_id}`, gated at `edit` — app-plane, NOT the Admin
+  write-back tier; Skipped-requires-reason; route `app/api/workflow-runs/[runId]/step-checks`), a "Start a run"
+  client control reusing the EXISTING test-runs path, wired into `app/spaces/[spaceId]` (the desk replaces the
+  placeholder for process-carrying Spaces; every other Space unchanged). Move-In domain core = a DRAFT welcome
+  (email + Portal Chat; fees render "see RentVine", deposit posture cites Missouri 2x rent as text); Move-Out core
+  = an evidence packet with a SUGGESTED deposit deduction (integer-cents summation, labeled
+  SUGGESTION-ONLY/owner-approval-required, never posts anywhere; the statutory deadline + legal wording stay
+  literal Needs-Verification). E3 — Tenant Renewal Notice + Dotloop follow-up Draft definition (new pure
+  `buildDotloopFollowUpDraft` referencing the two EXISTING Dotloop registry keys, Needs Permission; wraps the
+  existing `buildTenantOfferDraft`). E4 — Owner Renewal Outreach Draft definition wrapping the existing
+  `buildOwnerRenewalDraft` verbatim. E3/E4 reuse the E2a shell as-is (no new desk component) — F-SPACE-DESK-1.
+  Gates each slice: lint, tsc --noEmit, full suite (983→1011→1022), verify:falsification/copy-voice/
+  context-freshness/router-boundary, prettier on touched files; diff-grep proved no RentVine/Dotloop/Sheets/
+  ledger/QuickBooks write call and no send call in any new code (the only fetches target the app's own /api
+  routes). Docs: facts F-MOVEIN-1/F-MOVEOUT-1/F-SPACE-DESK-1, loop-state repointed to E5, this entry;
+  space-teeth.md + move-in-move-out-process.md status lines + the stale client-checklist "Move-Out" row refreshed.
+  STOP fired: E1-E4 shipped; E5 (the LIVE seed — set PROCESS_OWNER_UID/PROCESS_APPROVER_UID, then `npm run
+seed:process-definitions`) is owner-run, handed back as the next Tier-0 step. Commit queue prepared per
+  sub-slice; NOT committed/pushed/merged (awaiting explicit ask). Residual: desk not browser-walked (auth+Firestore
+  gated locally; jsdom render + service/route tests cover it) — include in the deployed-endpoint acceptance review.

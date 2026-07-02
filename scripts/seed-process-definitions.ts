@@ -23,6 +23,22 @@ import {
   buildMaintenanceDefinitionRecord,
   seedMaintenanceDefinition,
 } from "../lib/maintenance/process-definition-seed";
+import {
+  buildMoveInDefinitionRecord,
+  seedMoveInDefinition,
+} from "../lib/move-in/process-definition-seed";
+import {
+  buildMoveOutDefinitionRecord,
+  seedMoveOutDefinition,
+} from "../lib/move-out/process-definition-seed";
+import {
+  buildTenantRenewalNoticeDefinitionRecord,
+  seedTenantRenewalNoticeDefinition,
+} from "../lib/lease-renewal/tenant-renewal-notice/process-definition-seed";
+import {
+  buildOwnerRenewalOutreachDefinitionRecord,
+  seedOwnerRenewalOutreachDefinition,
+} from "../lib/lease-renewal/owner-renewal-outreach/process-definition-seed";
 
 export interface SeedProcessDefinitionsOptions {
   help: boolean;
@@ -31,7 +47,7 @@ export interface SeedProcessDefinitionsOptions {
   json: boolean;
 }
 
-const HELP = `Seed the process definitions (Lease Renewal + Maintenance Work Order Intake) as non-executable Drafts.
+const HELP = `Seed the process definitions (Lease Renewal + Maintenance + Move-In + Move-Out + Deposit Disposition) as non-executable Drafts.
 
 Usage: tsx scripts/seed-process-definitions.ts [--dry-run] [--force] [--json]
 
@@ -98,6 +114,54 @@ export async function main(argv = process.argv.slice(2)) {
       record: buildMaintenanceDefinitionRecord({ ownerUid, approverUid }),
       seed: (db, now) =>
         seedMaintenanceDefinition({
+          db,
+          ownerUid,
+          approverUid,
+          force: options.force,
+          now,
+        }),
+    },
+    {
+      name: "Move-In",
+      record: buildMoveInDefinitionRecord({ ownerUid, approverUid }),
+      seed: (db, now) =>
+        seedMoveInDefinition({
+          db,
+          ownerUid,
+          approverUid,
+          force: options.force,
+          now,
+        }),
+    },
+    {
+      name: "Move-Out + Deposit Disposition",
+      record: buildMoveOutDefinitionRecord({ ownerUid, approverUid }),
+      seed: (db, now) =>
+        seedMoveOutDefinition({
+          db,
+          ownerUid,
+          approverUid,
+          force: options.force,
+          now,
+        }),
+    },
+    {
+      name: "Tenant Renewal Notice + Dotloop Follow-Up",
+      record: buildTenantRenewalNoticeDefinitionRecord({ ownerUid, approverUid }),
+      seed: (db, now) =>
+        seedTenantRenewalNoticeDefinition({
+          db,
+          ownerUid,
+          approverUid,
+          force: options.force,
+          now,
+        }),
+    },
+    {
+      name: "Owner Renewal Outreach + Comp Lookup",
+      record: buildOwnerRenewalOutreachDefinitionRecord({ ownerUid, approverUid }),
+      seed: (db, now) =>
+        seedOwnerRenewalOutreachDefinition({
           db,
           ownerUid,
           approverUid,

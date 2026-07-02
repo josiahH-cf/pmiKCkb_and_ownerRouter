@@ -502,6 +502,39 @@ export interface WorkflowRunTimelineRecord {
   created_at: string;
 }
 
+// Per-Space desk checklist (S13 Wave 2 / space-teeth E2b). One record per (run, step): the operator
+// marks each process step Unchecked / Checked / Skipped as they work a run, keyed by a deterministic
+// `${run_id}:${step_id}` doc id, with an append-only Activity twin. This is app-plane bookkeeping
+// gated at `edit` — NOT the Admin-only write-back approval tier — and NEVER executes a
+// system-of-record write. `Skipped` requires a reason ("not applicable this run").
+export type WorkflowRunStepCheckStatus = "Unchecked" | "Checked" | "Skipped";
+
+export interface WorkflowRunStepCheckRecord {
+  id: string;
+  run_id: string;
+  definition_id: string;
+  step_id: string;
+  step_title: string;
+  status: WorkflowRunStepCheckStatus;
+  checked_by_uid?: string;
+  checked_at?: string;
+  reason?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkflowRunStepCheckActivityRecord {
+  id: string;
+  run_id: string;
+  step_id: string;
+  actor_uid: string;
+  action: WorkflowRunStepCheckStatus;
+  previous_status?: WorkflowRunStepCheckStatus;
+  new_status: WorkflowRunStepCheckStatus;
+  reason?: string;
+  created_at: string;
+}
+
 // Lease Renewal Phase-1 resolution layer (connector design §3.5). One record per resolved
 // reconciliation flag, keyed by its stable source_trigger_key. The flags themselves are recomputed
 // deterministically from the run; only the human resolution + its append-only Activity persist.

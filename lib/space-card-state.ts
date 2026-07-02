@@ -19,6 +19,10 @@ export type SpaceCardState =
 export const SPACE_CONNECTOR_IDS: Readonly<Record<string, readonly string[]>> = {
   "lease-renewals": ["rentvine", "google_sheets"],
   "maintenance-work-order-intake": ["google_drive"],
+  // Move-In / Move-Out content-key off the renewal sheet's Tab 1 / Tab 2 and read RentVine as the
+  // read-authoritative system of record — same connector dependency as lease-renewals.
+  "move-in": ["rentvine", "google_sheets"],
+  "move-out-deposit-disposition": ["rentvine", "google_sheets"],
 };
 
 export const SPACE_CARD_STATE_LABEL: Record<SpaceCardState, string> = {

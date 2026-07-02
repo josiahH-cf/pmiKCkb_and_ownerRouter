@@ -5,6 +5,13 @@ Sensitivity: **Low** (sanitized — no customer identifiers, no credentials, no 
 dollar figures).
 Cleaned: 2026-06-20.
 
+> **Built (S13 Wave 2, 2026-07-02):** the Move-In and Move-Out V1 desks + Draft process-definition seeds are now
+> implemented from the answered `v1-process-qa.md` — several answers OVERRIDE this doc's printed defaults (Move-In
+> Q2: NO hard blocking gates; Move-Out Q1: manual "Start move-out" trigger only; Move-Out Q3: the app computes a
+> SUGGESTED, owner-approval-gated deposit deduction). The §3/§4 step text below is quoted verbatim into
+> `lib/move-in/process-template.ts` and `lib/move-out/process-template.ts`. See `F-MOVEIN-1` / `F-MOVEOUT-1` /
+> `F-SPACE-DESK-1`. This doc remains discovery reference, not a build authorization.
+
 Sources (this doc's only grounding; every process statement traces to one of these):
 
 - [`lease-renewal-spreadsheet-map.md`](lease-renewal-spreadsheet-map.md) — the operational

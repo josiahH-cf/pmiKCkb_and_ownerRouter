@@ -32,15 +32,14 @@ stop-and-reset rules.
   notice rules per-tenant/property CONFIGURABLE — `F-PRECUST-CYCLE`). Tracked spec: S13
   `docs/feature-suites/pre-customer-refinement.md`; mapping packet: `docs/temp/pre-customer-refinement-plan.md`.
   **WAVE 1 MERGED** to `main` 2026-07-02 (PR #35, CI green, ff-merge f402d22; `F-PRECUST-WAVE1`;
-  narrative in `docs/status.md`); 970 tests, all gates green. **WAVE 2 PLANNED, NOT BUILT** (2026-07-02
-  "plan" trigger — packet only): decision-complete packet `docs/temp/wave2-space-teeth-plan.md` +
-  executable meta-prompt `docs/meta-prompts/space-teeth-wave2.md`, grounded in a fresh research pass
-  over `v1-process-qa.md` + `move-in-move-out-process.md` + every file Wave 2 reuses. Order: E1
-  Move-In(10)/Move-Out(11) Draft seeds → E2a-f reusable desk shell + persisted per-step checklist
-  (new `WorkflowRunStepCheckRecord`, mirrors `lease-renewal-resolutions.ts`) + both V1 desks' domain
-  cores → E3 Tenant Notice+Dotloop (reuses `buildTenantOfferDraft`) → E4 Owner Outreach (reuses
-  `buildOwnerRenewalDraft`) → E5 owner-run seed. E1-E4 unattended-authorized; E5 owner-run. Both new
-  docs UNCOMMITTED (plan-only turn). NEXT: "run the loop" builds E1→E4 from the meta-prompt. TIER-0
+  narrative in `docs/status.md`); 970 tests, all gates green. **WAVE 2 E1-E4 BUILT + verified** (2026-07-02, branch
+  `s13-wave2-space-teeth`, NOT merged; 1022 tests, all gates green; `F-MOVEIN-1`/`F-MOVEOUT-1`/`F-SPACE-DESK-1`):
+  E1 Move-In(10)/Move-Out(11) Draft seeds; E2 reusable `SpaceDesk` + persisted per-step checklist
+  (`workflow_run_step_checks`, edit-gated, mirrors `lease-renewal-resolutions.ts`) wired via `app/spaces/[spaceId]`,
+  plus a Move-In welcome draft and a Move-Out SUGGESTED-deduction evidence packet (integer-cents, owner-approval-gated);
+  E3 Tenant Notice+Dotloop (reuses `buildTenantOfferDraft` + new `buildDotloopFollowUpDraft`); E4 Owner Outreach
+  (reuses `buildOwnerRenewalDraft`). All Draft/non-executable, no SoR write, no send; commit queue prepared per
+  sub-slice, NOT committed. NEXT: E5 owner-run LIVE seed (Tier-0 step 2) applies the 4 new Draft defs to prod. TIER-0
   (front-load, none block Wave 1): (1) `npm run auth:session`; (2) LIVE seed — set `PROCESS_OWNER_UID` +
   `PROCESS_APPROVER_UID` env FIRST (silent placeholder fallback), then `npm run seed:process-definitions`;
   (3) Dan's prod Admin claim; (4) `gcloud services enable speech.googleapis.com --project=pmi-kc-kb-prod`;

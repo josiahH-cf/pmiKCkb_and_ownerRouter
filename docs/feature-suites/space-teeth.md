@@ -5,6 +5,12 @@
 > clarity on how to use them. This suite gives each V1 Space teeth. The `v1-process-qa.md` gate is
 > ANSWERED (2026-07-01); this suite executes via S13 Wave 2 (`pre-customer-refinement.md`).
 
+> **Status (2026-07-02): E1-E4 BUILT** via S13 Wave 2 (branch `s13-wave2-space-teeth`, not merged) — the
+> reusable `SpaceDesk` + persisted per-step checklist, the Move-In and Move-Out V1 desks (draft welcome +
+> SUGGESTED-deduction evidence packet), and the Tenant Renewal Notice + Owner Renewal Outreach desks that reuse
+> the same shell. All Draft/non-executable, no SoR write, no send. The live seed (E5) is owner-run. See
+> `F-MOVEIN-1` / `F-MOVEOUT-1` / `F-SPACE-DESK-1` in `docs/facts.md`.
+
 **Goal.** When the operator opens a Space (e.g. Move-In), it should be immediately clear what the
 Space is for, what to do next, which tools are connected, and where the process stands — built for a
 non-technical, process-oriented user: simple, elegant, intuitive, workflow-first, less reading. No
@@ -51,10 +57,10 @@ only where a process doc defines it. Reuses the connector + reconciliation philo
 
 1. _Gate (SATISFIED 2026-07-01):_ the move-in / move-out `v1-process-qa.md` answers are recorded —
    build from them verbatim (several override the printed defaults).
-2. _Build:_ a reusable per-Space desk pattern from the Renewal Desk / Maintenance shape.
-3. _Build:_ the Move-In domain core + Draft process-definition seed + desk (read + checklist + drafts).
-4. _Build:_ the Move-Out + Deposit Disposition core + seed + evidence-packet desk + gate tracking.
-5. _Context update:_ add `F-MOVEIN-*` / `F-MOVEOUT-*` facts + seeds; update `move-in-move-out-process.md`.
+2. _Built 2026-07-02:_ a reusable per-Space desk pattern (`SpaceDesk`) from the Renewal Desk / Maintenance shape.
+3. _Built 2026-07-02:_ the Move-In domain core + Draft process-definition seed + desk (read + checklist + drafts).
+4. _Built 2026-07-02:_ the Move-Out + Deposit Disposition core + seed + evidence-packet desk + checklist tracking.
+5. _Context update (done 2026-07-02):_ `F-MOVEIN-1` / `F-MOVEOUT-1` / `F-SPACE-DESK-1` facts + seeds; updated `move-in-move-out-process.md`.
 
 **Deletion/merge recommendation.** KEEP all routes. BUILD desks behind the answered Q&A; do not infer
 process scope, deposit/legal rules, or the excluded-credential-tab workflows from the sheet.
