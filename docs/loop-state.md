@@ -35,8 +35,9 @@ stop-and-reset rules.
   branch): slice A DONE (copy v2 + `verify:copy-voice` gate + RentVine display seam, `F-VOICE-2`, 72bb7a7);
   B3 DONE (5ffffba); B1 DONE (0c1e770); B2 DONE (bulk approve/return ON the run page — multi-select + ONE
   shared mandatory reason, Admin-only, per-item Activity row + per-item failure reporting, value-free tabs
-  untouched, c07a8dd; 945 tests). NEXT: B4 collapse terminal items to counts → B5 Space-card + Console
-  "N waiting" interlock (fixes `resolveApprovalsState` answering "Nothing" while work waits) → C deep-link
+  untouched, c07a8dd); B4 DONE (decided/resolved items default-collapse to counts-only details sections on
+  the write-back queue + renewal review, 86e9c1a; 948 tests). NEXT: B5 Space-card + Console "N waiting"
+  interlock (fixes `resolveApprovalsState` answering "Nothing" while work waits) → C deep-link
   404 + counts → D connections truth → Wave 2 desks → Wave 3. TIER-0 OWNER STEPS
   (front-load, none block Wave 1): (1) `npm run auth:session`; (2) LIVE seed — set `PROCESS_OWNER_UID` +
   `PROCESS_APPROVER_UID` env FIRST (silent placeholder fallback), then `npm run seed:process-definitions`;
