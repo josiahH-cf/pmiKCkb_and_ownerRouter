@@ -89,6 +89,48 @@ describe("GoogleSpeechToTextProvider", () => {
     ).rejects.toBeInstanceOf(SpeechSetupError);
   });
 
+  it("surfaces an API-disabled error with the Google detail and an api_disabled code (G1)", async () => {
+    const provider = new GoogleSpeechToTextProvider({
+      transport: transport(403, {
+        error: {
+          code: 403,
+          status: "PERMISSION_DENIED",
+          message:
+            "Cloud Speech-to-Text API has not been used in project pmi-kc-kb-prod before or it is disabled.",
+        },
+      }),
+      getAccessToken: async () => "tok",
+    });
+    await expect(
+      provider.transcribe({ audioBase64: "AAAA", mimeType: "audio/webm" }),
+    ).rejects.toMatchObject({
+      code: "api_disabled",
+      message: expect.stringContaining("speech.googleapis.com"),
+    });
+  });
+
+  it("classifies an auth failure and an encoding failure distinctly (G1)", async () => {
+    const auth = new GoogleSpeechToTextProvider({
+      transport: transport(401, {
+        error: { status: "UNAUTHENTICATED", message: "bad token" },
+      }),
+      getAccessToken: async () => "tok",
+    });
+    await expect(
+      auth.transcribe({ audioBase64: "AAAA", mimeType: "audio/webm" }),
+    ).rejects.toMatchObject({ code: "auth" });
+
+    const encoding = new GoogleSpeechToTextProvider({
+      transport: transport(400, {
+        error: { status: "INVALID_ARGUMENT", message: "bad encoding" },
+      }),
+      getAccessToken: async () => "tok",
+    });
+    await expect(
+      encoding.transcribe({ audioBase64: "AAAA", mimeType: "audio/mp4" }),
+    ).rejects.toMatchObject({ code: "encoding" });
+  });
+
   it("throws SpeechSetupError on a 2xx with a non-JSON body", async () => {
     const provider = new GoogleSpeechToTextProvider({
       transport: {

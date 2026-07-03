@@ -31,6 +31,7 @@ export const REQUIRED_GCP_APIS = [
   "cloudresourcemanager.googleapis.com",
   "serviceusage.googleapis.com",
   "cloudbilling.googleapis.com",
+  "speech.googleapis.com",
 ];
 
 export function parseGcpSetupArgs(argv = process.argv.slice(2)) {

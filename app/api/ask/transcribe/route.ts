@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof SpeechSetupError) {
       return NextResponse.json(
-        { error: error.message, error_type: error.name },
+        { error: error.message, error_type: error.name, error_code: error.code },
         { status: 503 },
       );
     }

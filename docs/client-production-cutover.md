@@ -129,10 +129,11 @@ running setup commands:
 npm run preflight:gcp -- --project=<client-project-id> --live --json
 ```
 
-Enable required APIs in the client project:
+Enable required APIs in the client project (`speech.googleapis.com` powers Dictate — the
+maintenance and Console voice capture; without it every Dictate click returns a 503 in prod):
 
 ```bash
-gcloud services enable aiplatform.googleapis.com discoveryengine.googleapis.com storage.googleapis.com firestore.googleapis.com datastore.googleapis.com firebase.googleapis.com identitytoolkit.googleapis.com securetoken.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com run.googleapis.com iam.googleapis.com iamcredentials.googleapis.com logging.googleapis.com monitoring.googleapis.com cloudresourcemanager.googleapis.com serviceusage.googleapis.com cloudbilling.googleapis.com --project=<client-project-id>
+gcloud services enable aiplatform.googleapis.com discoveryengine.googleapis.com storage.googleapis.com firestore.googleapis.com datastore.googleapis.com firebase.googleapis.com identitytoolkit.googleapis.com securetoken.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com run.googleapis.com iam.googleapis.com iamcredentials.googleapis.com logging.googleapis.com monitoring.googleapis.com cloudresourcemanager.googleapis.com serviceusage.googleapis.com cloudbilling.googleapis.com speech.googleapis.com --project=<client-project-id>
 ```
 
 Attach Firebase and create/reuse the Firebase Web app:

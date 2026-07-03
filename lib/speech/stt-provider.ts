@@ -23,11 +23,73 @@ export interface SpeechToTextProvider {
   transcribe(request: TranscriptionRequest): Promise<TranscriptionResult>;
 }
 
+/** Coarse classification so the UI and logs can distinguish an un-enabled API from an auth or an
+ *  encoding problem — the S12 "surface the real cause" lesson, applied to STT. */
+export type SpeechSetupErrorCode =
+  | "api_disabled"
+  | "auth"
+  | "encoding"
+  | "http"
+  | "config"
+  | "empty_audio";
+
 export class SpeechSetupError extends Error {
-  constructor(message: string) {
+  readonly code: SpeechSetupErrorCode;
+  /** The raw upstream detail (e.g. Google's `error.message`), when available. */
+  readonly detail?: string;
+
+  constructor(message: string, code: SpeechSetupErrorCode = "config", detail?: string) {
     super(message);
     this.name = "SpeechSetupError";
+    this.code = code;
+    this.detail = detail;
   }
+}
+
+interface GoogleErrorBody {
+  error?: { message?: string; status?: string; code?: number };
+}
+
+/** Turn a non-2xx Speech-to-Text response into a SpeechSetupError that names the real cause. */
+export function classifySpeechHttpError(
+  httpStatus: number,
+  googleStatus: string | undefined,
+  detail: string | undefined,
+): SpeechSetupError {
+  const suffix = detail ? ` (Google: ${detail})` : "";
+  const lowerDetail = (detail ?? "").toLowerCase();
+
+  const looksDisabled =
+    lowerDetail.includes("has not been used") ||
+    lowerDetail.includes("is disabled") ||
+    lowerDetail.includes("api is not enabled") ||
+    lowerDetail.includes("enable it by visiting");
+  if (httpStatus === 403 && (looksDisabled || googleStatus === "PERMISSION_DENIED")) {
+    return new SpeechSetupError(
+      `The Speech-to-Text API is not enabled for this project. Enable speech.googleapis.com.${suffix}`,
+      "api_disabled",
+      detail,
+    );
+  }
+  if (httpStatus === 401 || googleStatus === "UNAUTHENTICATED") {
+    return new SpeechSetupError(
+      `Speech-to-Text could not authenticate the request.${suffix}`,
+      "auth",
+      detail,
+    );
+  }
+  if (httpStatus === 400 || googleStatus === "INVALID_ARGUMENT") {
+    return new SpeechSetupError(
+      `Speech-to-Text rejected the audio format or request.${suffix}`,
+      "encoding",
+      detail,
+    );
+  }
+  return new SpeechSetupError(
+    `Speech-to-Text returned HTTP ${httpStatus}.${suffix}`,
+    "http",
+    detail,
+  );
 }
 
 /** Free dev/test stand-in — returns a canned transcript, no network, no spend. */
@@ -80,9 +142,10 @@ function encodingForMime(mimeType: string): string | undefined {
   const m = mimeType.toLowerCase();
   if (m.includes("webm")) return "WEBM_OPUS";
   if (m.includes("ogg")) return "OGG_OPUS";
-  if (m.includes("wav") || m.includes("x-wav")) return "LINEAR16";
   if (m.includes("flac")) return "FLAC";
-  return undefined; // let the API infer
+  // WAV/RIFF is self-describing: omit encoding + sampleRateHertz so the API reads them from the
+  // header (the robust path for the committed smoke fixture). Anything else, let the API infer.
+  return undefined;
 }
 
 interface RecognizeResponse {
@@ -113,6 +176,7 @@ export class GoogleSpeechToTextProvider implements SpeechToTextProvider {
         if (!token) {
           throw new SpeechSetupError(
             "Could not obtain a Google access token for Speech-to-Text.",
+            "auth",
           );
         }
         return token;
@@ -137,14 +201,25 @@ export class GoogleSpeechToTextProvider implements SpeechToTextProvider {
     });
 
     if (response.status < 200 || response.status >= 300) {
-      throw new SpeechSetupError(`Speech-to-Text returned HTTP ${response.status}.`);
+      // Read Google's structured error so the real cause (API disabled vs auth vs encoding) surfaces
+      // instead of a bare HTTP status. A non-JSON error body is tolerated (detail stays undefined).
+      let detail: string | undefined;
+      let googleStatus: string | undefined;
+      try {
+        const body = (await response.json()) as GoogleErrorBody;
+        detail = body.error?.message;
+        googleStatus = body.error?.status;
+      } catch {
+        // no structured detail available
+      }
+      throw classifySpeechHttpError(response.status, googleStatus, detail);
     }
 
     let payload: RecognizeResponse;
     try {
       payload = (await response.json()) as RecognizeResponse;
     } catch {
-      throw new SpeechSetupError("Speech-to-Text returned a non-JSON response.");
+      throw new SpeechSetupError("Speech-to-Text returned a non-JSON response.", "http");
     }
     const transcript = (payload.results ?? [])
       .map((result) => result.alternatives?.[0]?.transcript ?? "")
