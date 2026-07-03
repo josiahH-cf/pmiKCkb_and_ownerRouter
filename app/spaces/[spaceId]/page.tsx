@@ -3,6 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { EvidencePacketCard } from "@/components/desk/EvidencePacketCard";
+import { NoticeRuleCard } from "@/components/desk/NoticeRuleCard";
+import {
+  OwnerRenewalDraftPreviewCard,
+  TenantRenewalDraftPreviewCard,
+} from "@/components/desk/RenewalDraftPreviewCard";
 import { SpaceDesk } from "@/components/desk/SpaceDesk";
 import { WelcomeDraftCard } from "@/components/desk/WelcomeDraftCard";
 import { ProcessSummaryPanel } from "@/components/spaces/ProcessSummaryPanel";
@@ -25,16 +30,42 @@ import {
 } from "@/lib/launch/content";
 import { buildWelcomeDraft } from "@/lib/move-in/welcome-draft";
 import { buildEvidencePacket } from "@/lib/move-out/evidence-packet";
+import { getRenewalLeaseWorkspace } from "@/lib/lease-renewal/sample-desk";
 import { SPACE_CONNECTOR_IDS } from "@/lib/space-card-state";
 import { launchSpaces } from "@/lib/spaces";
 
-/** The domain-specific desk Card for a Space (Move-In welcome / Move-Out evidence packet), if any. */
+/** The domain-specific desk Card(s) for a Space, if any:
+ *  Move-In welcome / Move-Out evidence packet; the three Renewals Spaces get the read-only effective
+ *  notice-rule card (F2) and, for the outreach/notice Spaces, a sample renewal draft (F3). */
 function buildDomainSlot(spaceId: string): ReactNode {
   if (spaceId === "move-in") {
     return <WelcomeDraftCard draft={buildWelcomeDraft({})} />;
   }
   if (spaceId === "move-out-deposit-disposition") {
     return <EvidencePacketCard packet={buildEvidencePacket({ lines: [] })} />;
+  }
+  if (spaceId === "lease-renewals") {
+    return <NoticeRuleCard />;
+  }
+  if (spaceId === "owner-renewal-outreach") {
+    const sample = getRenewalLeaseWorkspace("lease-318-cedar-7");
+    return (
+      <>
+        <NoticeRuleCard />
+        {sample ? <OwnerRenewalDraftPreviewCard draft={sample.ownerDraft} /> : null}
+      </>
+    );
+  }
+  if (spaceId === "tenant-renewal-notice") {
+    const sample = getRenewalLeaseWorkspace("lease-318-cedar-7");
+    return (
+      <>
+        <NoticeRuleCard />
+        {sample?.tenantDraft ? (
+          <TenantRenewalDraftPreviewCard draft={sample.tenantDraft} />
+        ) : null}
+      </>
+    );
   }
   return null;
 }

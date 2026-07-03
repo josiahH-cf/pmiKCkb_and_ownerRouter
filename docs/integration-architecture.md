@@ -175,6 +175,50 @@ Move-Out + Deposit Disposition actions were deliberately **not** added: the
 research backlog still marks their triggers, approvers, and target systems as TBD, so
 catalog entries would invent scope.
 
+### Renewal-notice send policy — per-action spec drafts (S13 F5, spec-only)
+
+These two draft specs frame the future renewal-notice send path for the owner. They are
+**docs-only this cycle**: no seed entry, no Gmail runtime, no code. Both stay
+`production_allowed: false`. The locked policy (decision 3, 2026-07-02, `F-PRECUST-CYCLE`) is
+**unsent draft, human clicks Send** — so only the first action is ever pursued; the second is
+recorded as the alternative that was explicitly **not** chosen and would need its own future
+decision to reconsider.
+
+**`gmail.renewal_notice.draft_create`** (the policy-aligned action, not yet built)
+
+- `label`: "Create renewal-notice Gmail draft (unsent)"
+- `target_system`: Gmail
+- `product_lane`: Lease Renewal Agent
+- `expected_action`: Create an UNSENT Gmail draft in the approval sender's mailbox from an
+  owner-approved renewal notice (reusing the built `buildOwnerRenewalDraft` /
+  `buildTenantOfferDraft` composers with the verbatim `DRAFT_BANNER`). The operator opens the
+  draft in Gmail and clicks Send. Never sends from the app.
+- `readiness`: `Needs Permission` — blocked on the client-approved Gmail access model (sender
+  identity, OAuth scope `gmail.compose` on `kb-automation@pmikcmetro.com`) and a per-action spec.
+- `evidence_status`: `Documented` — Gmail API `users.drafts.create` is a documented,
+  compose-only (no send) capability; the gap is the access-model approval, not the API.
+- `required_permissions`: `https://www.googleapis.com/auth/gmail.compose` (create/read/update
+  drafts; **no** `gmail.send`), domain-wide delegation as the approval sender, inside the
+  `pmikcmetro.com` boundary.
+- `preview_schema_note`: the approver sees the exact recipient, subject, and body (banner
+  included) before the draft is created; no auto-population of the To field beyond the
+  owner-approved recipient.
+- `rollback_note`: an unsent draft is deletable with no external effect; nothing leaves the
+  mailbox until a human sends it.
+- `connection_health_check_ref`: `health.gmail.workspace_api`.
+- `production_allowed`: **false**.
+
+**`gmail.renewal_notice.send`** (the alternative — explicitly NOT chosen)
+
+- `label`: "Send renewal notice from the app (autonomous send)"
+- `expected_action`: Send the renewal notice directly (auto-send after queue approval).
+- `readiness`: `Disabled`. The owner chose the unsent-draft model; app-initiated send stays
+  off. This entry exists only to make the rejected alternative auditable.
+- `evidence_status`: `Undocumented` (policy, not capability) — reviving it requires a new owner
+  decision that overrides decision 3 plus a full per-action spec.
+- `required_permissions`: would need `gmail.send` — deliberately **not** requested.
+- `production_allowed`: **false** (and would stay false without an explicit future approval).
+
 ## Vendor-confirmation matrix
 
 | Capability                               | Status                       | Action                                   |
