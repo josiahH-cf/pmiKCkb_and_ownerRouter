@@ -156,8 +156,8 @@ describe("Action Registry seed catalog", () => {
     expect(writeback?.production_allowed).toBe(false);
   });
 
-  it("contains the expanded 18-entry catalog", () => {
-    expect(ACTION_REGISTRY_SEED).toHaveLength(18);
+  it("contains the expanded 19-entry catalog", () => {
+    expect(ACTION_REGISTRY_SEED).toHaveLength(19);
     expect(ACTION_REGISTRY_SEED.map((entry) => entry.key)).toEqual(
       expect.arrayContaining([
         "rentvine.lease.read",
@@ -165,6 +165,7 @@ describe("Action Registry seed catalog", () => {
         "leadsimple.task.create",
         "gmail.label.apply",
         "gmail.draft.create",
+        "gmail.renewal_notice.draft_create",
         "google_sheets.renewal_checklist.read",
         "google_sheets.renewal_checklist.reconcile",
         "google_sheets.renewal_checklist.writeback",
@@ -173,17 +174,28 @@ describe("Action Registry seed catalog", () => {
     );
   });
 
-  it("keeps Gmail entries Planned until the access model is approved", () => {
+  it("keeps every Gmail entry Planned + non-executable until the access model is approved", () => {
     const gmailEntries = ACTION_REGISTRY_SEED.filter(
       (entry) => entry.target_system === "Gmail",
     );
 
-    expect(gmailEntries).toHaveLength(2);
+    // The two Gmail Inbox 0 entries (label.apply, draft.create) + the Lease Renewal renewal-notice
+    // draft-create. None sends; none is executable.
+    expect(gmailEntries).toHaveLength(3);
 
     for (const entry of gmailEntries) {
       expect(entry.readiness).toBe("Planned");
-      expect(entry.product_lane).toBe("Gmail Inbox 0");
+      expect(entry.production_allowed).toBe(false);
     }
+
+    // The renewal-notice draft entry belongs to the Lease Renewal lane (send policy, decision 3).
+    const renewalNotice = gmailEntries.find(
+      (entry) => entry.key === "gmail.renewal_notice.draft_create",
+    );
+    expect(renewalNotice?.product_lane).toBe("Lease Renewal Agent");
+    expect(
+      gmailEntries.filter((entry) => entry.product_lane === "Gmail Inbox 0"),
+    ).toHaveLength(2);
   });
 
   it("keeps LeadSimple task creation behind vendor confirmation", () => {

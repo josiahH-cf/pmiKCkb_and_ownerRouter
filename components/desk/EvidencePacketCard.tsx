@@ -9,6 +9,7 @@ import { formatUsd } from "@/lib/lease-renewal/owner-draft";
 import type { EvidencePacket } from "@/lib/move-out/evidence-packet";
 
 export function EvidencePacketCard({ packet }: Readonly<{ packet: EvidencePacket }>) {
+  const signoffKeys = new Set(packet.linesNeedingSignoff.map((line) => line.key));
   return (
     <Card title="Deposit deduction — evidence packet">
       <p className="review-pill">{DRAFT_BANNER}</p>
@@ -24,6 +25,11 @@ export function EvidencePacketCard({ packet }: Readonly<{ packet: EvidencePacket
             <li className="ui-spread" key={line.key}>
               <span>
                 {line.label} <span className="muted">— {line.source}</span>
+                {signoffKeys.has(line.key) ? (
+                  <span className="queue-pill" data-value="Needs Attention">
+                    Needs owner sign-off
+                  </span>
+                ) : null}
               </span>
               <span>{formatUsd(line.amountCents / 100)}</span>
             </li>
@@ -36,10 +42,21 @@ export function EvidencePacketCard({ packet }: Readonly<{ packet: EvidencePacket
         <strong>{packet.suggestedDeductionFormatted}</strong>
       </div>
 
+      {packet.signoffRequired ? (
+        <p className="muted">
+          {packet.linesNeedingSignoff.length} line(s) at or above{" "}
+          {packet.repairSignoffThresholdFormatted} need Dan&apos;s explicit sign-off
+          before use.
+        </p>
+      ) : null}
+
       <h3>Needs Verification</h3>
       <ul className="compact-list">
         <li>{packet.statutoryDeadline}</li>
         <li>{packet.legalWordingNote}</li>
+        {packet.repairSignoffThresholdLabel ? (
+          <li>{packet.repairSignoffThresholdLabel}</li>
+        ) : null}
       </ul>
     </Card>
   );

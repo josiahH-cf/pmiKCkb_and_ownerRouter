@@ -655,6 +655,61 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     production_allowed: false,
   },
   {
+    key: "gmail.renewal_notice.draft_create",
+    label: "Create renewal-notice Gmail draft (unsent)",
+    target_system: "Gmail",
+    expected_action:
+      "Create an unsent Gmail draft in the approval sender's mailbox from an owner-approved renewal notice (owner email or tenant offer email), with the verbatim DRAFT_BANNER in the body; the operator opens it in Gmail and clicks Send. Code never calls send.",
+    product_lane: "Lease Renewal Agent",
+    readiness: "Planned",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Gmail API documents draft creation via gmail.compose (users.drafts.create); code never calls send, preserving human send authority (decision 3, 2026-07-02, F-PRECUST-CYCLE). Runtime stays blocked until the client-approved Gmail access model + the approved per-action spec land.",
+    required_permissions: [
+      "Client-approved Gmail access model for the approval sender (kb-automation@pmikcmetro.com)",
+      "gmail.compose scope (no gmail.send in code)",
+    ],
+    event_ingestion_mode: "Manual",
+    preview_schema_note:
+      "Show the recipient, subject, and full body (DRAFT_BANNER included) before creating the unsent draft; the To field carries only the owner-approved recipient.",
+    preview_payload_schema: [
+      {
+        name: "to",
+        label: "Recipient",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "subject",
+        label: "Subject",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "draft_body",
+        label: "Draft body",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "draft_banner_present",
+        label: "Draft banner present",
+        type: "boolean",
+        required: true,
+        source_system: "KB Internal",
+        note: "Drafts carry the review-before-sending banner.",
+      },
+    ],
+    test_notes:
+      "The client-approved Gmail access model is a tracked ask; until then the draft REQUEST is built by buildOwnerNoticeDraftRequest / buildTenantNoticeDraftRequest and exercised only in unit tests — no Gmail call, no send.",
+    rollback_note: "Delete the unsent draft; nothing was sent.",
+    connection_health_check_ref: "health.gmail.workspace_api",
+    production_allowed: false,
+  },
+  {
     key: "rentvine.lease.renewal_writeback",
     label: "Write lease renewal back to Rentvine",
     target_system: "Rentvine",
