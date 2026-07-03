@@ -6116,3 +6116,33 @@ print-access-token` — no matter how many `gcloud auth login`s. STRUCTURAL: the
 seed:process-definitions`) is owner-run, handed back as the next Tier-0 step. Commit queue prepared per
   sub-slice; NOT committed/pushed/merged (awaiting explicit ask). Residual: desk not browser-walked (auth+Firestore
   gated locally; jsdom render + service/route tests cover it) — include in the deployed-endpoint acceptance review.
+- 2026-07-02 — S13 WAVE 3 (NOTICES / DICTATE / LEARNING LOOP) BUILT + MERGED (loop run, branch
+  `s13-wave3-notices-dictate-learning`; 1066 tests, all gates green — lint, tsc, vitest, verify:falsification/
+  copy-voice/context-freshness/router-boundary/redaction; prettier on touched files). Final S13 wave.
+  **F — governed renewal-notice engine** (`F-NOTICE-ENGINE`): F1 a pure most-specific-wins (lease>property>global)
+  rule resolver over configurable timing DATA with per-field provenance + boundary-safe date math (mirrors
+  `cohort.ts`), a seedable app-plane config record (`lease_renewal_notice_rules`, client-read-only, `seed:notice-rules`
+  owner-run, dry-run verified), every default `Needs Verification` until Dan confirms; F2 read-only effective-rule
+  surfacing (`NoticeRuleCard` on the renewal Space desks + a per-lease "Notice due by <date> (default)" view on the
+  live workspace); F3 owner/tenant drafts reuse the built composers with the verbatim `DRAFT_BANNER` on the
+  outreach/notice desks; F4 operator-triggered reminders via `notices:reminders` (pure planner, dry-run, deduped, NO
+  Scheduler, NO send); F5 DOCS-ONLY per-action specs for `gmail.renewal_notice.draft_create` + the future send
+  (`production_allowed:false`). **G — verified Dictate** (`F-DICTATE-VERIFIED`): G1 `SpeechSetupError` classifies the
+  Google error (api_disabled/auth/encoding) + surfaces its detail; G2 one shared `useAudioRecorder` hook (dedupes the
+  maintenance + Console recorders) with network catch, ~55s auto-stop, empty-transcript hint; G3
+  `MediaRecorder.isTypeSupported` negotiation with an HONEST Safari/iPhone mp4 message; G4 new `smoke:transcribe-live`
+  (committed few-KB SYNTHETIC WAV fixture) + `speech.googleapis.com` added to `REQUIRED_GCP_APIS` AND the cutover
+  enable block in one change (doc-sync test enforces sync). Enabling the API + the live smoke are OWNER-RUN. **H —
+  deterministic learning loop** (`F-LEARN-LOOP`): H1 a value-free decision-metrics card (accept/correct/dismiss +
+  reason-code counts over the decision collections; sentinel-tested exact key set); H2 an enumerated `reason_code`
+  taxonomy (6 defaults) added ADDITIVELY/optionally to BOTH decision schemas + records + the three run-page forms via a
+  shared `ReasonCodeSelect`; H3 an OFFLINE `golden:distill` CLI that pre-fills golden worksheets from value-free
+  `(fieldKey, kind)` signals and never auto-verifies (reviewed stays false, counts-only stdout); H4 a rule-tuning-as-PR
+  loop = PR-template checklist + a `verify:redaction` gate (CI + verify.sh) that fails if any `golden-data/`/
+  `docs/client_docs/` file is tracked. Diff-grep proved no SoR/Sheet/Gmail send-or-write call and no client data on any
+  committable path; every Action Registry entry stays `production_allowed:false`; identity unchanged. Adversarial
+  self-review (governance / gate-mechanics / value-free skeptics) run before push. Docs: facts
+  `F-NOTICE-ENGINE`/`F-DICTATE-VERIFIED`/`F-LEARN-LOOP`, loop-state RESUME repointed, this entry. STOP fired: F+G+H all
+  shipped (Wave 3 complete). OWNER-RUN handoffs remain (auth:session; live seeds incl. the new `seed:notice-rules` +
+  Wave-2 E5; Dan prod Admin claim; `gcloud services enable speech.googleapis.com`; SEND the unblock note; end-of-cycle
+  redeploy + `smoke:ask-live` + `smoke:transcribe-live` vs the deployed endpoint + Dan's Admin walkthrough).

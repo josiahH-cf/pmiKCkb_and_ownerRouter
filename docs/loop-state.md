@@ -28,22 +28,20 @@ stop-and-reset rules.
   `F-DEVPROD-PARITY`/`F-IA-CONSOLE-HOME`/`F-CONSOLE-APP-STATE`) and 2026-07-02 (S13 pre-customer refinement, see RESUME).
 - 2026-07-01 cycle: SHIPPED the write-back APPROVAL control plane (`F-WRITEBACK-APPROVAL`) + "Write-back queue" tab
   (`F-WRITEBACK-QUEUE`) + run-page audit trail; 913 tests; ALL PROVEN LIVE in prod (detail in `docs/status.md`).
-- **RESUME — next / waiting-on (2026-07-02):** ALL 12 pre-customer refinement decisions LOCKED (owner 2026-07-02;
-  notice rules per-tenant/property CONFIGURABLE — `F-PRECUST-CYCLE`). Tracked spec: S13
-  `docs/feature-suites/pre-customer-refinement.md`; mapping packet: `docs/temp/pre-customer-refinement-plan.md`.
-  **WAVE 1 MERGED** to `main` 2026-07-02 (PR #35, CI green, ff-merge f402d22; `F-PRECUST-WAVE1`;
-  narrative in `docs/status.md`); 970 tests, all gates green. **WAVE 2 E1-E4 MERGED** to `main` 2026-07-02 (PR #36,
-  merge 314c59b, CI green; 1022 tests; `F-MOVEIN-1`/`F-MOVEOUT-1`/`F-SPACE-DESK-1`): E1 Move-In(10)/Move-Out(11)
-  Draft seeds; E2 reusable `SpaceDesk` + persisted per-step checklist (`workflow_run_step_checks`, edit-gated); E3
-  Tenant Notice+Dotloop; E4 Owner Outreach (reuse the built composers). All Draft/non-executable, no SoR write, no
-  send; browser-walked on the Firestore emulator (start-run + step-check persist across reload). NEXT: **WAVE 3**
-  (F notice rule engine → G Dictate → H learning loop, per the S13 spec's ordered sequence) is the next build; the
-  owner-run E5 LIVE seed (Tier-0 step 2) applies the 4 new Draft defs to prod when the owner runs it. TIER-0
-  (front-load, none block Wave 1): (1) `npm run auth:session`; (2) LIVE seed — set `PROCESS_OWNER_UID` +
-  `PROCESS_APPROVER_UID` env FIRST (silent placeholder fallback), then `npm run seed:process-definitions`;
-  (3) Dan's prod Admin claim; (4) `gcloud services enable speech.googleapis.com --project=pmi-kc-kb-prod`;
-  (5) SEND `docs/temp/client-unblock-note-draft.md`; (6) golden-labeling review → `npm run golden:apply-labels`.
-  GATED unchanged: Sheet write EXECUTION (`F-WRITE-GATE`), Gmail runtime, Cloud Scheduler.
+- **RESUME — next / waiting-on (2026-07-02):** ALL 12 pre-customer refinement decisions LOCKED (`F-PRECUST-CYCLE`);
+  tracked spec S13 `docs/feature-suites/pre-customer-refinement.md`. **WAVE 1 MERGED** (PR #35) + **WAVE 2 E1-E4
+  MERGED** (PR #36) to `main`. **WAVE 3 BUILT** on branch `s13-wave3-notices-dictate-learning` (1066 tests, all
+  gates green): F notice rule engine (`F-NOTICE-ENGINE`: configurable timing DATA, most-specific-wins resolver,
+  seedable app-plane config, read-only surfacing, banner drafts, operator reminders, docs-only send specs), G
+  verified Dictate (`F-DICTATE-VERIFIED`: error detail, one shared recorder hook, mime negotiation + honest Safari
+  msg, `smoke:transcribe-live` + Speech API in the cutover doc), H the deterministic learning loop (`F-LEARN-LOOP`:
+  value-free metrics card, additive `reason_code`, offline `golden:distill`, redaction gate + PR template). No
+  SoR/Sheet/Gmail write, no send, no Scheduler; every `production_allowed:false`. OWNER-RUN remaining (do not
+  attempt): `npm run auth:session`; LIVE seeds (set `PROCESS_OWNER_UID`/`PROCESS_APPROVER_UID` FIRST) `npm run
+seed:process-definitions` (Wave-2 E5) + `npm run seed:notice-rules`; Dan prod Admin claim; `gcloud services enable
+speech.googleapis.com --project=pmi-kc-kb-prod`; SEND `docs/temp/client-unblock-note-draft.md`; end-of-cycle
+  redeploy + `smoke:ask-live` + `smoke:transcribe-live` vs the deployed endpoint + Dan Admin walkthrough. GATED
+  unchanged: Sheet write EXECUTION (`F-WRITE-GATE`), Gmail runtime, Cloud Scheduler.
 
 ## Next Safe Slice Candidates
 
