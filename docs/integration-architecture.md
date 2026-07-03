@@ -177,14 +177,22 @@ catalog entries would invent scope.
 
 ### Renewal-notice send policy — per-action spec drafts (S13 F5, spec-only)
 
-These two draft specs frame the future renewal-notice send path for the owner. They are
-**docs-only this cycle**: no seed entry, no Gmail runtime, no code. Both stay
+These two specs frame the renewal-notice send path for the owner. Both stay
 `production_allowed: false`. The locked policy (decision 3, 2026-07-02, `F-PRECUST-CYCLE`) is
 **unsent draft, human clicks Send** — so only the first action is ever pursued; the second is
 recorded as the alternative that was explicitly **not** chosen and would need its own future
 decision to reconsider.
 
-**`gmail.renewal_notice.draft_create`** (the policy-aligned action, not yet built)
+**Built out (S13 follow-on):** `gmail.renewal_notice.draft_create` is now a real Action Registry
+entry (`readiness: Planned`, `production_allowed: false`, Gmail Inbox 0's `gmail.compose`
+posture), and the UNSENT draft REQUEST is composed by `buildOwnerNoticeDraftRequest` /
+`buildTenantNoticeDraftRequest` (`lib/lease-renewal/notice-send-policy.ts`) — pure text, verbatim
+`DRAFT_BANNER`, recipient never invented (`Needs Verification:` when absent), `send_allowed:false`.
+There is still **no Gmail runtime**: no route calls the Gmail API, and the draft-create stays gated
+behind the client-approved Gmail access model + the approved per-action spec. The `send` action
+below remains docs-only.
+
+**`gmail.renewal_notice.draft_create`** (the policy-aligned action; registry entry + composer built, runtime gated)
 
 - `label`: "Create renewal-notice Gmail draft (unsent)"
 - `target_system`: Gmail
