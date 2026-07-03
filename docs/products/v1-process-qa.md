@@ -121,7 +121,11 @@ Verification:` pointer for it; the ledger location is a genuine Dan question (ro
 5. **Final approver + repair/bid owner-approval thresholds.** _Default:_ approver = Dan; the dollar
    threshold is **owner-owned (state it).** _Owner: client._ — **⏳ PARTIAL 2026-07-01: approver = Dan
    (admin) confirmed; the dollar threshold is Dan's business rule → surface it as a `Needs Verification:`
-   placeholder (no invented number renders as final) and route the exact amount to Dan.**
+   placeholder (no invented number renders as final) and route the exact amount to Dan. WORKING DEFAULT
+   set 2026-07-03 (Josiah, unblock-note #5): a PROVISIONAL $500 sign-off threshold is now wired into the
+   Move-Out evidence packet (`PROVISIONAL_REPAIR_SIGNOFF_THRESHOLD_CENTS`) — any deduction line ≥ $500
+   flags "Needs owner sign-off"; the threshold itself renders `Needs Verification` and is overridable
+   (`repairSignoffThresholdCents` + `repairSignoffThresholdVerified`) the moment Dan confirms a number.**
 6. **RentVine close-out steps (auto-charge off, credit-reporting off, lease close).** _Default:_ all stay
    manual/recorded in V1 (`production_allowed:false`); capture the click-path in the admin-led demo.
    _Owner: client._

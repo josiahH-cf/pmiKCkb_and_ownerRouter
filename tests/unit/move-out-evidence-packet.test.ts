@@ -78,6 +78,46 @@ describe("buildEvidencePacket", () => {
     );
   });
 
+  it("defaults to the provisional $500 sign-off threshold, flagged Needs Verification (note #5)", () => {
+    const packet = buildEvidencePacket({ lines: LINES });
+    expect(packet.repairSignoffThresholdCents).toBe(50000);
+    expect(packet.repairSignoffThresholdFormatted).toBe("$500");
+    expect(packet.repairSignoffThresholdVerified).toBe(false);
+    expect(packet.repairSignoffThresholdLabel).toContain("Needs Verification");
+    // Every LINES amount is under $500, so nothing needs sign-off.
+    expect(packet.signoffRequired).toBe(false);
+    expect(packet.linesNeedingSignoff).toHaveLength(0);
+  });
+
+  it("flags a line at or above the threshold as needing owner sign-off", () => {
+    const packet = buildEvidencePacket({
+      lines: [
+        ...LINES,
+        {
+          key: "big-bid",
+          label: "Drywall repair bid",
+          amountCents: 65000,
+          source: "Vendor bid",
+        },
+      ],
+    });
+    expect(packet.signoffRequired).toBe(true);
+    expect(packet.linesNeedingSignoff.map((line) => line.key)).toEqual(["big-bid"]);
+  });
+
+  it("honors a Dan-confirmed threshold override and clears the Needs-Verification label", () => {
+    const packet = buildEvidencePacket({
+      lines: LINES,
+      repairSignoffThresholdCents: 20000, // $200
+      repairSignoffThresholdVerified: true,
+    });
+    expect(packet.repairSignoffThresholdFormatted).toBe("$200");
+    expect(packet.repairSignoffThresholdVerified).toBe(true);
+    expect(packet.repairSignoffThresholdLabel).toBe("");
+    // The $210 lock charge is now at/above $200.
+    expect(packet.linesNeedingSignoff.map((line) => line.key)).toEqual(["lock"]);
+  });
+
   it("is draft-only and never posts to a system of record", () => {
     const packet = buildEvidencePacket({ lines: LINES });
     expect(packet.production_allowed).toBe(false);

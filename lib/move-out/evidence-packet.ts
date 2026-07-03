@@ -21,6 +21,13 @@ const NEEDS_VERIFICATION = "Needs Verification";
 export const SUGGESTED_DEDUCTION_LABEL =
   "Suggested deduction — SUGGESTION ONLY, owner approval required";
 
+/** Provisional repair/bid owner-sign-off threshold (unblock note #5; Josiah 2026-07-03 chose the
+ *  note's $500 starting point). PROVISIONAL + UNVERIFIED — it is Dan's business rule; overridable via
+ *  `input.repairSignoffThresholdCents` once he confirms a number. Any deduction line at or above it
+ *  needs Dan's explicit sign-off before it is treated as final. */
+export const PROVISIONAL_REPAIR_SIGNOFF_THRESHOLD_CENTS = 50_000;
+export const REPAIR_SIGNOFF_THRESHOLD_LABEL = `${NEEDS_VERIFICATION}: repair/bid owner-sign-off threshold (provisional $500 — Dan to confirm)`;
+
 export interface EvidenceLine {
   key: string;
   label: string;
@@ -36,6 +43,10 @@ export interface EvidencePacketInput {
   statutoryDeadlineNote?: string;
   /** Legally-reviewed deposit-disposition wording, if supplied; else a placeholder is used. */
   legalWordingNote?: string;
+  /** Repair/bid owner-sign-off threshold in integer cents; defaults to the provisional $500 (note #5). */
+  repairSignoffThresholdCents?: number;
+  /** True once Dan confirms the threshold; false leaves it flagged Needs Verification. */
+  repairSignoffThresholdVerified?: boolean;
 }
 
 export interface EvidencePacket {
@@ -45,6 +56,16 @@ export interface EvidencePacket {
   suggestedDeductionCents: number;
   suggestedDeductionLabel: string;
   suggestedDeductionFormatted: string;
+  /** The applied repair/bid sign-off threshold (cents) + its formatted + verification state. */
+  repairSignoffThresholdCents: number;
+  repairSignoffThresholdFormatted: string;
+  repairSignoffThresholdVerified: boolean;
+  /** `Needs Verification:` label while the threshold is the provisional default; empty once confirmed. */
+  repairSignoffThresholdLabel: string;
+  /** Lines at or above the threshold — each needs Dan's explicit sign-off before it is treated as final. */
+  linesNeedingSignoff: readonly EvidenceLine[];
+  /** True when any line needs owner sign-off. */
+  signoffRequired: boolean;
   /** Literal `Needs Verification:` placeholder unless a legally-reviewed value was supplied. */
   statutoryDeadline: string;
   /** Literal `Needs Verification:` placeholder unless legally-reviewed wording was supplied. */
@@ -61,6 +82,15 @@ export function buildEvidencePacket(input: EvidencePacketInput): EvidencePacket 
     0,
   );
 
+  // Repair/bid sign-off guardrail (note #5): any single line at or above the threshold needs Dan's
+  // explicit sign-off. The threshold is the provisional $500 default until Dan confirms a real number.
+  const repairSignoffThresholdCents =
+    input.repairSignoffThresholdCents ?? PROVISIONAL_REPAIR_SIGNOFF_THRESHOLD_CENTS;
+  const repairSignoffThresholdVerified = input.repairSignoffThresholdVerified ?? false;
+  const linesNeedingSignoff = input.lines.filter(
+    (line) => Math.round(line.amountCents) >= repairSignoffThresholdCents,
+  );
+
   const statutoryDeadline = input.statutoryDeadlineNote?.trim()
     ? input.statutoryDeadlineNote.trim()
     : `${NEEDS_VERIFICATION}: deposit-disposition statutory deadline (legal/owner — route to Dan; never computed)`;
@@ -75,6 +105,14 @@ export function buildEvidencePacket(input: EvidencePacketInput): EvidencePacket 
     suggestedDeductionLabel: SUGGESTED_DEDUCTION_LABEL,
     // Single, final format step (cents → dollars) using the shared USD formatter.
     suggestedDeductionFormatted: formatUsd(suggestedDeductionCents / 100),
+    repairSignoffThresholdCents,
+    repairSignoffThresholdFormatted: formatUsd(repairSignoffThresholdCents / 100),
+    repairSignoffThresholdVerified,
+    repairSignoffThresholdLabel: repairSignoffThresholdVerified
+      ? ""
+      : REPAIR_SIGNOFF_THRESHOLD_LABEL,
+    linesNeedingSignoff,
+    signoffRequired: linesNeedingSignoff.length > 0,
     statutoryDeadline,
     legalWordingNote,
     production_allowed: false,
