@@ -11,6 +11,7 @@ import type {
 } from "@/lib/lease-renewal/run-view";
 import type { WritebackProposal } from "@/lib/lease-renewal/writeback-proposal";
 import { displaySourceLabel } from "@/lib/lease-renewal/source-display";
+import { ReasonCodeSelect } from "@/components/lease-renewal/ReasonCodeSelect";
 
 type ResolveKind = "pick_source" | "corrected_value" | "flag_incorrect";
 
@@ -215,6 +216,7 @@ function WritebackBulkDecisionBar({
 }) {
   const router = useRouter();
   const [reason, setReason] = useState("");
+  const [reasonCode, setReasonCode] = useState("");
   const [submitting, setSubmitting] = useState<null | "approve" | "return">(null);
   const [error, setError] = useState<string | null>(null);
   const [outcomes, setOutcomes] = useState<BulkItemOutcome[] | null>(null);
@@ -240,6 +242,7 @@ function WritebackBulkDecisionBar({
           source_trigger_keys: selected.map((item) => item.key),
           decision,
           reason: reason.trim(),
+          reason_code: reasonCode || undefined,
         }),
       });
       if (!response.ok) {
@@ -269,6 +272,7 @@ function WritebackBulkDecisionBar({
         })),
       );
       setReason("");
+      setReasonCode("");
       onClearSelection();
       router.refresh();
     } catch {
@@ -303,6 +307,7 @@ function WritebackBulkDecisionBar({
             value={reason}
           />
         </label>
+        <ReasonCodeSelect value={reasonCode} onChange={setReasonCode} />
         {error ? <p className="lr-error">{error}</p> : null}
         <div className="lr-approve-actions">
           <button
@@ -409,6 +414,7 @@ function WritebackApprovalControl({
 }) {
   const router = useRouter();
   const [reason, setReason] = useState("");
+  const [reasonCode, setReasonCode] = useState("");
   const [submitting, setSubmitting] = useState<null | "approve" | "return">(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -428,6 +434,7 @@ function WritebackApprovalControl({
           source_trigger_key: sourceTriggerKey,
           decision,
           reason: reason.trim(),
+          reason_code: reasonCode || undefined,
         }),
       });
       if (!response.ok) {
@@ -438,6 +445,7 @@ function WritebackApprovalControl({
         return;
       }
       setReason("");
+      setReasonCode("");
       router.refresh();
     } catch {
       setError("Could not reach the approval endpoint.");
@@ -482,6 +490,7 @@ function WritebackApprovalControl({
               rows={2}
             />
           </label>
+          <ReasonCodeSelect value={reasonCode} onChange={setReasonCode} />
           {error ? <p className="lr-error">{error}</p> : null}
           <div className="lr-approve-actions">
             {approval.state !== "Approved" ? (
@@ -585,6 +594,7 @@ function FlagCard({
   );
   const [correctedValue, setCorrectedValue] = useState<string>("");
   const [reason, setReason] = useState<string>("");
+  const [reasonCode, setReasonCode] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -617,6 +627,7 @@ function FlagCard({
           chosen_source: kind === "pick_source" ? chosenSource : undefined,
           corrected_value: kind === "corrected_value" ? correctedValue : undefined,
           reason: reason.trim(),
+          reason_code: reasonCode || undefined,
         }),
       });
       if (!response.ok) {
@@ -627,6 +638,7 @@ function FlagCard({
         return;
       }
       setReason("");
+      setReasonCode("");
       setCorrectedValue("");
       router.refresh();
     } catch {
@@ -764,6 +776,8 @@ function FlagCard({
                 rows={2}
               />
             </label>
+
+            <ReasonCodeSelect value={reasonCode} onChange={setReasonCode} />
 
             {error ? <p className="lr-error">{error}</p> : null}
 
