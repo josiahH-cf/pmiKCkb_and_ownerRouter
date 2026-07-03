@@ -30,8 +30,8 @@ stop-and-reset rules.
   (`F-WRITEBACK-QUEUE`) + run-page audit trail; 913 tests; ALL PROVEN LIVE in prod (detail in `docs/status.md`).
 - **RESUME — next / waiting-on (2026-07-02):** ALL 12 pre-customer refinement decisions LOCKED (`F-PRECUST-CYCLE`);
   tracked spec S13 `docs/feature-suites/pre-customer-refinement.md`. **WAVE 1 MERGED** (PR #35) + **WAVE 2 E1-E4
-  MERGED** (PR #36) to `main`. **WAVE 3 BUILT** on branch `s13-wave3-notices-dictate-learning` (1066 tests, all
-  gates green): F notice rule engine (`F-NOTICE-ENGINE`: configurable timing DATA, most-specific-wins resolver,
+  MERGED** (PR #36) to `main`. **WAVE 3 MERGED** to `main` 2026-07-02 (PR #37, CI green, merge a4eb2e7; 1068 tests,
+  all gates green) — S13 COMPLETE: F notice rule engine (`F-NOTICE-ENGINE`: configurable timing DATA, most-specific-wins resolver,
   seedable app-plane config, read-only surfacing, banner drafts, operator reminders, docs-only send specs), G
   verified Dictate (`F-DICTATE-VERIFIED`: error detail, one shared recorder hook, mime negotiation + honest Safari
   msg, `smoke:transcribe-live` + Speech API in the cutover doc), H the deterministic learning loop (`F-LEARN-LOOP`:
