@@ -20,9 +20,15 @@ temporary away-mode overlay (`docs/away-mode.md`) is active.
   PM-created account-level budget id `82962d7e-b340-4253-8348-38caff16e88a`. A GCP budget alert is
   **notify-only — it does not stop spend.** The hard stop is the kill switch
   (`docs/budget-killswitch.md`, `infra/budget-guardrail/`): budget → Pub/Sub → Cloud Function that
-  disables the project's billing at the cap. **Still pending before any prod deploy:** a
-  _project-scoped_ $10 budget alert on `pmi-kc-kb-prod` and the kill switch armed (owner-side —
-  `npm run killswitch:plan`). Every cost-bearing step still needs explicit per-step approval.
+  disables the project's billing at the cap. The _project-scoped_ $10 budget on `pmi-kc-kb-prod`
+  and the armed kill switch are **in place** — kill switch FULLY ARMED 2026-06-23
+  (`docs/budget-killswitch.md`), both re-verified live 2026-07-03: project budgets
+  `033af8c0-8f21-48af-b89b-0632896e5018` + `15ddc8d6-e96e-4696-9d3c-c09e23997206` (50/90/100%) and the
+  ACTIVE 2nd-gen function `budget-guardrail` on `budget-guardrail-topic`. **Coverage gap:** the other
+  project on this billing account, `adept-primacy-499822-d7` (number `910739668168`), has **no** budget
+  or kill switch — it is outside the PMI cap. Generate its runbook by passing that project's
+  `--project` and `--project-number` to `npm run killswitch:plan`. Every cost-bearing step still needs
+  explicit per-step approval.
 
 The constant `BUDGET_CAP_USD = 10` lives in `scripts/check-budget-guard.mjs`. Keep this
 doc and that constant in sync. The optional `AUTONOMOUS_BUDGET_CAP_USD` env var can lower
