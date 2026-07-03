@@ -1,9 +1,16 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { ApprovalQueue } from "@/components/approval/ApprovalQueue";
+import { DecisionMetricsCard } from "@/components/approval/DecisionMetricsCard";
 import {
   buildRenewalReviewBoard,
   type RenewalReviewBoard,
 } from "@/lib/approval/renewal-review";
+import {
+  buildDecisionMetrics,
+  type DecisionMetrics,
+} from "@/lib/lease-renewal/decision-metrics";
+import { listAllLeaseRenewalResolutions } from "@/lib/firestore/lease-renewal-resolutions";
+import { listAllWritebackApprovals } from "@/lib/firestore/lease-renewal-writeback-approvals";
 import {
   buildWritebackApprovalQueue,
   type WritebackApprovalQueue,
@@ -57,10 +64,24 @@ export default async function ApprovalQueuePage({
     writebackQueue = undefined;
   }
 
+  // Value-free decision metrics (H1): counts only, degrades independently. Reads the KB-owned decision
+  // collections directly (small volume) and projects to a value-free shape.
+  let decisionMetrics: DecisionMetrics | undefined;
+  try {
+    const [resolutions, approvals] = await Promise.all([
+      listAllLeaseRenewalResolutions(user),
+      listAllWritebackApprovals(user),
+    ]);
+    decisionMetrics = buildDecisionMetrics({ resolutions, approvals });
+  } catch {
+    decisionMetrics = undefined;
+  }
+
   return (
     <AppShell user={user}>
       <section className="content">
         <h1 className="section-title">Approval Queue</h1>
+        {decisionMetrics ? <DecisionMetricsCard metrics={decisionMetrics} /> : null}
         <ApprovalQueue
           currentUser={{ role: user.role, uid: user.uid }}
           initialActivity={initialActivity}

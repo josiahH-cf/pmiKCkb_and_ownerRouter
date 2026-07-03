@@ -30,6 +30,7 @@ import {
   WRITEBACK_AWAITING_APPROVAL,
   type WritebackApprovalState,
 } from "@/lib/lease-renewal/writeback-approval";
+import { DECISION_REASON_CODES } from "@/lib/lease-renewal/reason-codes";
 
 export const LEASE_RENEWAL_WRITEBACK_COLLECTIONS = {
   approvals: "lease_renewal_writeback_approvals",
@@ -41,6 +42,8 @@ export const DecideWritebackApprovalInputSchema = z.object({
   source_trigger_key: z.string().min(1),
   decision: z.enum(["approve", "return"]),
   reason: z.string().trim().min(1, "A plain-English reason is required."),
+  // Additive enumerated reason code (S13 H2); optional so existing callers are unaffected.
+  reason_code: z.enum(DECISION_REASON_CODES).optional(),
 });
 export type DecideWritebackApprovalInput = z.input<
   typeof DecideWritebackApprovalInputSchema
@@ -53,6 +56,7 @@ export const DecideWritebackApprovalsBulkInputSchema = z.object({
   source_trigger_keys: z.array(z.string().min(1)).min(1).max(200),
   decision: z.enum(["approve", "return"]),
   reason: z.string().trim().min(1, "A plain-English reason is required."),
+  reason_code: z.enum(DECISION_REASON_CODES).optional(),
 });
 export type DecideWritebackApprovalsBulkInput = z.input<
   typeof DecideWritebackApprovalsBulkInputSchema
@@ -155,6 +159,7 @@ export async function decideWritebackApproval(
         proposed_value: proposal.value,
         source_of_value: proposal.source_of_value,
         reason: parsed.reason,
+        reason_code: parsed.reason_code,
         decided_by_uid: actor.uid,
         production_allowed: plan.productionAllowed,
         executed: plan.executed,
@@ -175,6 +180,7 @@ export async function decideWritebackApproval(
         previous_state: priorState,
         new_state: plan.state,
         reason: parsed.reason,
+        reason_code: parsed.reason_code,
         created_at: FieldValue.serverTimestamp(),
       }),
     );
@@ -218,6 +224,7 @@ export async function decideWritebackApprovalsBulk(
           source_trigger_key: key,
           decision: parsed.decision,
           reason: parsed.reason,
+          reason_code: parsed.reason_code,
         },
         db,
       );
@@ -263,6 +270,23 @@ export async function listWritebackApprovalsForRun(
   return snapshot.docs
     .map((doc) => readRecord<LeaseRenewalWritebackApprovalRecord>(doc.id, doc.data()))
     .sort((left, right) => left.created_at.localeCompare(right.created_at));
+}
+
+/**
+ * Read every write-back approval across all runs (S13 H1 metrics). Read-gated. Bounded by the small
+ * KB-owned decision volume; the caller projects it to value-free counts only.
+ */
+export async function listAllWritebackApprovals(
+  actor: AuthenticatedUser,
+  db: Firestore = getAdminFirestore(),
+): Promise<LeaseRenewalWritebackApprovalRecord[]> {
+  assertCan(actor, "read");
+  const snapshot = await db
+    .collection(LEASE_RENEWAL_WRITEBACK_COLLECTIONS.approvals)
+    .get();
+  return snapshot.docs.map((doc) =>
+    readRecord<LeaseRenewalWritebackApprovalRecord>(doc.id, doc.data()),
+  );
 }
 
 export async function listWritebackApprovalActivity(

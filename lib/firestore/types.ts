@@ -5,6 +5,7 @@ import type {
   ACTION_PREVIEW_FIELD_TYPES,
   ACTION_TARGET_SYSTEMS,
 } from "@/lib/constants";
+import type { DecisionReasonCode } from "@/lib/lease-renewal/reason-codes";
 import type { Citation } from "@/lib/schemas";
 import type { SourceState } from "@/lib/source-state";
 
@@ -568,6 +569,8 @@ export interface LeaseRenewalResolutionRecord {
   chosen_source?: string;
   corrected_value?: string;
   reason?: string;
+  /** Enumerated reason-code taxonomy (S13 H2, additive/optional); a category, never a client value. */
+  reason_code?: DecisionReasonCode;
   resolved_by_uid?: string;
   proposed_writeback?: LeaseRenewalProposedWriteback;
   created_at: string;
@@ -583,6 +586,7 @@ export interface LeaseRenewalResolutionActivityRecord {
   previous_status?: LeaseRenewalResolutionStatus;
   new_status: LeaseRenewalResolutionStatus;
   reason: string;
+  reason_code?: DecisionReasonCode;
   created_at: string;
 }
 
@@ -608,6 +612,8 @@ export interface LeaseRenewalWritebackApprovalRecord {
   proposed_value: string;
   source_of_value: string;
   reason: string;
+  /** Enumerated reason-code taxonomy (S13 H2, additive/optional); a category, never a client value. */
+  reason_code?: DecisionReasonCode;
   decided_by_uid: string;
   // Hard invariants — this layer never executes. Both are always false.
   production_allowed: false;
@@ -625,5 +631,6 @@ export interface LeaseRenewalWritebackApprovalActivityRecord {
   previous_state?: LeaseRenewalWritebackApprovalState;
   new_state: LeaseRenewalWritebackApprovalState;
   reason: string;
+  reason_code?: DecisionReasonCode;
   created_at: string;
 }

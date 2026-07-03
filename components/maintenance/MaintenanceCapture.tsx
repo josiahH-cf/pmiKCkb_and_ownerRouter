@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 
+import { useAudioRecorder } from "@/components/hooks/useAudioRecorder";
 import {
   buildWorkOrderDraft,
   type MaintenanceUnitMatch,
@@ -43,12 +44,10 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
   const [ownerNotice, setOwnerNotice] = useState<OwnerNoticeDraft | null>(null);
   const [vendorSuggestion, setVendorSuggestion] =
     useState<VendorAssignmentSuggestion | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [photoRefs, setPhotoRefs] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [status, setStatus] = useState("");
-  const recorderRef = useRef<MediaRecorder | null>(null);
 
   async function transcribe(blob: Blob) {
     setIsTranscribing(true);
@@ -62,49 +61,31 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
       });
       if (response.ok) {
         const payload = (await response.json()) as { transcript: string };
-        setTranscript((prev) =>
-          [prev, payload.transcript].filter(Boolean).join(" ").trim(),
-        );
+        if (payload.transcript.trim()) {
+          setTranscript((prev) =>
+            [prev, payload.transcript].filter(Boolean).join(" ").trim(),
+          );
+        } else {
+          setStatus("No speech detected. Try again a little closer to the mic.");
+        }
       } else {
-        setStatus("Could not transcribe the recording.");
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setStatus(payload?.error ?? "Could not transcribe the recording.");
       }
+    } catch {
+      setStatus("Could not reach the transcription service. Type the note instead.");
     } finally {
       setIsTranscribing(false);
     }
   }
 
-  async function toggleRecording() {
-    if (isRecording) {
-      recorderRef.current?.stop();
-      return;
-    }
-    const media = typeof navigator !== "undefined" ? navigator.mediaDevices : undefined;
-    if (!media?.getUserMedia || typeof MediaRecorder === "undefined") {
-      setStatus(
-        "Voice recording isn't available in this browser — type the note instead.",
-      );
-      return;
-    }
-    setStatus("");
-    try {
-      const stream = await media.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      const chunks: Blob[] = [];
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunks.push(event.data);
-      };
-      recorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop());
-        setIsRecording(false);
-        await transcribe(new Blob(chunks, { type: recorder.mimeType || "audio/webm" }));
-      };
-      recorder.start();
-      recorderRef.current = recorder;
-      setIsRecording(true);
-    } catch {
-      setStatus("Microphone unavailable or permission denied — type the note instead.");
-    }
-  }
+  const { isRecording, toggleRecording } = useAudioRecorder({
+    onRecording: transcribe,
+    onError: setStatus,
+    onStatus: setStatus,
+  });
 
   async function handlePhoto(file: File) {
     setIsUploading(true);

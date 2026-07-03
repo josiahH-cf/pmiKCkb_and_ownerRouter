@@ -43,6 +43,25 @@ export function RenewalWorkspace({
 
       <Stepper currentIndex={workspace.currentStepIndex} steps={workspace.steps} />
 
+      {workspace.notice ? (
+        <Card title="Notice timing">
+          <p className="muted">{workspace.notice.statusLabel}</p>
+          <ul className="ui-rows">
+            {workspace.notice.lines.map((line) => (
+              <li className="ui-spread" key={line.label}>
+                <span>
+                  {line.label}: <strong>{line.value}</strong>{" "}
+                  <span className="muted">({line.provenance})</span>
+                </span>
+                {line.needsVerification ? (
+                  <StatusPill value="Needs Verification">Needs Verification</StatusPill>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+
       <Card title="Data check">
         <ul className="ui-rows">
           {dataCheck.map((item) => (

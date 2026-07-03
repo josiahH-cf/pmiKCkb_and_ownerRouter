@@ -266,6 +266,14 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Renewal-notice rule engine config (S13 F1): the app's own timing rules, seeded server-side
+    // through the Admin SDK boundary only. Clients may read the effective rules but never write, so
+    // the timing rules cannot be changed from the app until the named Admin edit surface lands.
+    match /lease_renewal_notice_rules/{configId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

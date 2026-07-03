@@ -35,6 +35,17 @@ import {
   type RenewalReadinessInput,
   type RenewalReadinessResult,
 } from "@/lib/lease-renewal/renewal-readiness";
+import {
+  DEFAULT_NOTICE_RULE_SET,
+  buildEffectiveRuleView,
+  detectNoticeStatus,
+  resolveNoticeRule,
+  type EffectiveRuleView,
+} from "@/lib/lease-renewal/notice-rules";
+
+/** Deterministic reference date for the sample batch's notice status ("as of" this date). The live
+ *  page passes the real current date; the sample keeps a fixed date so the desk stays reproducible. */
+export const SAMPLE_NOTICE_REFERENCE_DATE = "2026-07-14";
 
 /** The active batch: leases ending end-of-August through end-of-September 2026. */
 export const SAMPLE_DESK_WINDOWS: DateWindow[] = [
@@ -310,6 +321,8 @@ export interface RenewalLeaseWorkspace {
   /** Present only once the owner has recorded a decision. */
   tenantDraft: TenantOfferDraft | null;
   readiness: RenewalReadinessResult;
+  /** Read-only effective notice-rule view for this lease (F2). Null when no lease-end is on file. */
+  notice: EffectiveRuleView | null;
 }
 
 function toSummary(
@@ -355,7 +368,10 @@ export function getRenewalDeskView(): RenewalDeskView {
  * The per-lease workspace: builds the owner draft, the tenant offer (once a decision exists), and the
  * readiness checklist via the real modules. Returns null for an unknown or non-actionable lease. Pure.
  */
-export function getRenewalLeaseWorkspace(id: string): RenewalLeaseWorkspace | null {
+export function getRenewalLeaseWorkspace(
+  id: string,
+  referenceDateIso: string = SAMPLE_NOTICE_REFERENCE_DATE,
+): RenewalLeaseWorkspace | null {
   const seedIndex = SAMPLE_DESK_SEEDS.findIndex((seed) => seed.id === id);
   if (seedIndex === -1) return null;
   const seed = SAMPLE_DESK_SEEDS[seedIndex];
@@ -369,6 +385,26 @@ export function getRenewalLeaseWorkspace(id: string): RenewalLeaseWorkspace | nu
 
   const summary = toSummary(seed, classification);
   const ownerDraft = buildOwnerRenewalDraft(seed.owner);
+
+  // Effective notice rule for this lease. The sample desk is app-plane synthetic data, so it uses the
+  // built-in DEFAULT rule set (values UNVERIFIED); the live surfaces read the seeded config record.
+  const resolvedNoticeRule = resolveNoticeRule(DEFAULT_NOTICE_RULE_SET, {
+    leaseId: seed.id,
+  });
+  const notice = classification.endDateIso
+    ? buildEffectiveRuleView(
+        resolvedNoticeRule,
+        detectNoticeStatus(
+          resolvedNoticeRule,
+          {
+            leaseEndDateIso: classification.endDateIso,
+            renewalLetterSentIso: null,
+            tenantResponded: false,
+          },
+          referenceDateIso,
+        ),
+      )
+    : null;
 
   const tenantDraft =
     seed.ownerDecision && classification.endDateIso
@@ -390,5 +426,6 @@ export function getRenewalLeaseWorkspace(id: string): RenewalLeaseWorkspace | nu
     ownerDraft,
     tenantDraft,
     readiness: evaluateRenewalReadiness(seed.readiness),
+    notice,
   };
 }

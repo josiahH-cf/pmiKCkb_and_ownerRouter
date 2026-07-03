@@ -28,6 +28,7 @@ import type {
 } from "@/lib/firestore/types";
 import { getSimulationRun } from "@/lib/lease-renewal/simulation";
 import type { RenewalRunResult } from "@/lib/lease-renewal/pipeline";
+import { DECISION_REASON_CODES } from "@/lib/lease-renewal/reason-codes";
 
 export const LEASE_RENEWAL_COLLECTIONS = {
   resolutions: "lease_renewal_resolutions",
@@ -41,6 +42,8 @@ export const ResolveLeaseRenewalFlagInputSchema = z.object({
   chosen_source: z.string().min(1).optional(),
   corrected_value: z.string().min(1).optional(),
   reason: z.string().trim().min(1, "A plain-English reason is required."),
+  // Additive enumerated reason code (S13 H2); optional so existing callers are unaffected.
+  reason_code: z.enum(DECISION_REASON_CODES).optional(),
 });
 export type ResolveLeaseRenewalFlagInput = z.input<
   typeof ResolveLeaseRenewalFlagInputSchema
@@ -213,6 +216,7 @@ export async function resolveLeaseRenewalFlag(
         chosen_source: plan.chosen_source,
         corrected_value: plan.corrected_value,
         reason: parsed.reason,
+        reason_code: parsed.reason_code,
         resolved_by_uid: actor.uid,
         proposed_writeback: plan.proposed_writeback,
         created_at: createdAt,
@@ -232,6 +236,7 @@ export async function resolveLeaseRenewalFlag(
         previous_status: previousStatus,
         new_status: plan.status,
         reason: parsed.reason,
+        reason_code: parsed.reason_code,
         created_at: FieldValue.serverTimestamp(),
       }),
     );
@@ -272,6 +277,21 @@ export async function listResolutionsForRun(
   return snapshot.docs
     .map((doc) => readRecord<LeaseRenewalResolutionRecord>(doc.id, doc.data()))
     .sort((left, right) => left.created_at.localeCompare(right.created_at));
+}
+
+/**
+ * Read every resolution across all runs (S13 H1 metrics). Read-gated. Bounded by the small KB-owned
+ * decision volume; the caller projects it to value-free counts only. Never returns to the client raw.
+ */
+export async function listAllLeaseRenewalResolutions(
+  actor: AuthenticatedUser,
+  db: Firestore = getAdminFirestore(),
+): Promise<LeaseRenewalResolutionRecord[]> {
+  assertCan(actor, "read");
+  const snapshot = await db.collection(LEASE_RENEWAL_COLLECTIONS.resolutions).get();
+  return snapshot.docs.map((doc) =>
+    readRecord<LeaseRenewalResolutionRecord>(doc.id, doc.data()),
+  );
 }
 
 export async function listLeaseRenewalResolutionActivity(

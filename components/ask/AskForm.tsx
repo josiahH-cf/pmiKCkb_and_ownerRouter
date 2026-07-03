@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { useAudioRecorder } from "@/components/hooks/useAudioRecorder";
 import { SourceStateBanner } from "@/components/source-state-banner/SourceStateBanner";
 import { detectProcess } from "@/lib/processes/intent";
 import { launchSpaces } from "@/lib/spaces";
@@ -76,9 +77,7 @@ export function AskForm({
   const [isDetecting, setIsDetecting] = useState(false);
   const [appState, setAppState] = useState<AppStateResult | null>(null);
   const [appStateLoading, setAppStateLoading] = useState<AppStateQuery | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const recorderRef = useRef<MediaRecorder | null>(null);
 
   const showProcessPicker = canStartSimulation && processes.length > 0;
   const willSimulate = showProcessPicker && processId !== "";
@@ -225,55 +224,32 @@ export function AskForm({
       });
       if (response.ok) {
         const payload = (await response.json()) as { transcript: string };
-        setQuestion((prev) =>
-          [prev, payload.transcript].filter(Boolean).join(" ").trim(),
-        );
+        if (payload.transcript.trim()) {
+          setQuestion((prev) =>
+            [prev, payload.transcript].filter(Boolean).join(" ").trim(),
+          );
+        } else {
+          setStatusMessage("No speech detected. Try again a little closer to the mic.");
+        }
       } else {
         setStatusMessage(
           await readErrorMessage(response, "Could not transcribe the recording."),
         );
       }
+    } catch {
+      setStatusMessage(
+        "Could not reach the transcription service. Type your question instead.",
+      );
     } finally {
       setIsTranscribing(false);
     }
   }
 
-  async function toggleRecording() {
-    if (isRecording) {
-      recorderRef.current?.stop();
-      return;
-    }
-    const media = typeof navigator !== "undefined" ? navigator.mediaDevices : undefined;
-    if (!media?.getUserMedia || typeof MediaRecorder === "undefined") {
-      setStatusMessage(
-        "Voice input isn't available in this browser — type your question instead.",
-      );
-      return;
-    }
-    setStatusMessage("");
-    try {
-      const stream = await media.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      const chunks: Blob[] = [];
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunks.push(event.data);
-      };
-      recorder.onstop = async () => {
-        stream.getTracks().forEach((track) => track.stop());
-        setIsRecording(false);
-        await transcribeAudio(
-          new Blob(chunks, { type: recorder.mimeType || "audio/webm" }),
-        );
-      };
-      recorder.start();
-      recorderRef.current = recorder;
-      setIsRecording(true);
-    } catch {
-      setStatusMessage(
-        "Microphone unavailable or permission denied — type your question instead.",
-      );
-    }
-  }
+  const { isRecording, toggleRecording } = useAudioRecorder({
+    onRecording: transcribeAudio,
+    onError: setStatusMessage,
+    onStatus: setStatusMessage,
+  });
 
   const canCapture = result ? capturableStates.has(result.source_state) : false;
   const submitLabel = isPending

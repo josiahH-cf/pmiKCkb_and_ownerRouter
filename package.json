@@ -26,6 +26,7 @@
     "verify:falsification": "node scripts/check-falsification-preflight.mjs",
     "verify:context-freshness": "node scripts/check-context-freshness.mjs",
     "verify:copy-voice": "node scripts/check-copy-voice.mjs",
+    "verify:redaction": "node scripts/check-redaction.mjs",
     "host:setup": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/setup-windows-google-dev.ps1 -EnableApis",
     "host:check": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/setup-windows-google-dev.ps1 -CheckOnly",
     "firebase:setup": "node scripts/setup-firebase-demo.mjs",
@@ -53,6 +54,7 @@
     "maintenance:ensure-folder": "tsx scripts/ensure-maintenance-drive-folder.ts",
     "golden:worksheet": "tsx scripts/golden-labeling.ts worksheet",
     "golden:apply-labels": "tsx scripts/golden-labeling.ts apply",
+    "golden:distill": "tsx scripts/distill-decisions-to-golden.ts",
     "smoke:ask-local": "tsx scripts/smoke-local-ask.ts",
     "smoke:rentvine-read": "tsx scripts/smoke-rentvine-read.ts",
     "smoke:sheet-read": "tsx scripts/smoke-sheet-read.ts",
@@ -60,6 +62,7 @@
     "reality:check": "node scripts/reality-check.mjs",
     "import:agent-search": "node scripts/import-agent-search-documents.mjs",
     "smoke:ask-live": "node scripts/smoke-live-ask.mjs",
+    "smoke:transcribe-live": "node scripts/smoke-transcribe-live.mjs",
     "smoke:auth-live": "node scripts/smoke-live-auth.mjs",
     "smoke:demo-live": "node scripts/smoke-demo-live.mjs",
     "seed:launch-skeletons": "node scripts/seed-launch-skeletons.mjs",
@@ -67,7 +70,9 @@
     "seed:spaces": "node scripts/seed-spaces.mjs",
     "seed:demo": "node scripts/seed-demo-records.mjs",
     "seed:action-registry": "tsx scripts/seed-action-registry.ts",
-    "seed:process-definitions": "tsx scripts/seed-process-definitions.ts"
+    "seed:process-definitions": "tsx scripts/seed-process-definitions.ts",
+    "seed:notice-rules": "tsx scripts/seed-notice-rules.ts",
+    "notices:reminders": "tsx scripts/run-notice-reminders.ts"
   },
   "dependencies": {
     "@google-cloud/discoveryengine": "^2.7.0",
