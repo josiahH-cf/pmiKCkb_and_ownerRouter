@@ -13,7 +13,7 @@ stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-07-02
+- Last updated: 2026-07-07
 - Where we are: the multi-process operations console is the north star (lease-renewal = process #1). The
   2026-06-29 cycle shipped + merged R1–R5 (spine+IA, golden harness+labeling, renewal math, action console +
   intent-detect, and the full Maintenance Work Order Intake incl. live Drive photo sync). Full detail is in
@@ -28,7 +28,7 @@ stop-and-reset rules.
   `F-DEVPROD-PARITY`/`F-IA-CONSOLE-HOME`/`F-CONSOLE-APP-STATE`) and 2026-07-02 (S13 pre-customer refinement, see RESUME).
 - 2026-07-01 cycle: SHIPPED the write-back APPROVAL control plane (`F-WRITEBACK-APPROVAL`) + "Write-back queue" tab
   (`F-WRITEBACK-QUEUE`) + run-page audit trail; 913 tests; ALL PROVEN LIVE in prod (detail in `docs/status.md`).
-- **RESUME — next / waiting-on (2026-07-02):** ALL 12 pre-customer refinement decisions LOCKED (`F-PRECUST-CYCLE`);
+- **RESUME — next / waiting-on (2026-07-07):** ALL 12 pre-customer refinement decisions LOCKED (`F-PRECUST-CYCLE`);
   tracked spec S13 `docs/feature-suites/pre-customer-refinement.md`. **WAVE 1 MERGED** (PR #35) + **WAVE 2 E1-E4
   MERGED** (PR #36) to `main`. **WAVE 3 MERGED** to `main` 2026-07-02 (PR #37, CI green, merge a4eb2e7; 1068 tests,
   all gates green) — S13 COMPLETE: F notice rule engine (`F-NOTICE-ENGINE`: configurable timing DATA, most-specific-wins resolver,
@@ -36,12 +36,15 @@ stop-and-reset rules.
   verified Dictate (`F-DICTATE-VERIFIED`: error detail, one shared recorder hook, mime negotiation + honest Safari
   msg, `smoke:transcribe-live` + Speech API in the cutover doc), H the deterministic learning loop (`F-LEARN-LOOP`:
   value-free metrics card, additive `reason_code`, offline `golden:distill`, redaction gate + PR template). No
-  SoR/Sheet/Gmail write, no send, no Scheduler; every `production_allowed:false`. OWNER-RUN remaining (do not
-  attempt): `npm run auth:session`; LIVE seeds (set `PROCESS_OWNER_UID`/`PROCESS_APPROVER_UID` FIRST) `npm run
-seed:process-definitions` (Wave-2 E5) + `npm run seed:notice-rules`; Dan prod Admin claim; `gcloud services enable
-speech.googleapis.com --project=pmi-kc-kb-prod`; SEND `docs/temp/client-unblock-note-draft.md`; end-of-cycle
-  redeploy + `smoke:ask-live` + `smoke:transcribe-live` vs the deployed endpoint + Dan Admin walkthrough. GATED
-  unchanged: Sheet write EXECUTION (`F-WRITE-GATE`), Gmail runtime, Cloud Scheduler.
+  SoR/Sheet/Gmail write, no send, no Scheduler; every `production_allowed:false`. Post-Wave-3: PR #38 (governed
+  Gmail send-policy seam + provisional $500 move-out sign-off threshold) + PR #39 (budget kill-switch doc reconcile)
+  merged 2026-07-07. **GO-LIVE COMPLETE 2026-07-07** (verified live): owner refreshed ADC + redeployed `main` (Cloud
+  Run rev `pmi-kc-kb-demo-00010-sgt`, 100% traffic, HTTP 200); LIVE seeds landed (`lease_renewal_notice_rules/active`
+  DEFAULT+unverified, `process_definitions/lease-renewal` Draft); TWO Admins confirmed via claim read-back (dan@ +
+  josiah@ = Admin); live Dictate PROVEN on the deployed endpoint (`smoke:transcribe-live --browser-session` HTTP 200,
+  runtime SA); `speech.googleapis.com` enabled 2026-07-03; $10 kill switch armed. REMAINING: Dan's Admin walkthrough
+  (this meeting) + his 2nd sign-in to activate the claim + two client answers (QuickBooks access tier, official
+  deposit-accounting home). GATED unchanged: Sheet write EXECUTION (`F-WRITE-GATE`), Gmail runtime, Cloud Scheduler.
 
 ## Next Safe Slice Candidates
 
