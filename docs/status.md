@@ -6146,3 +6146,29 @@ seed:process-definitions`) is owner-run, handed back as the next Tier-0 step. Co
   shipped (Wave 3 complete). OWNER-RUN handoffs remain (auth:session; live seeds incl. the new `seed:notice-rules` +
   Wave-2 E5; Dan prod Admin claim; `gcloud services enable speech.googleapis.com`; SEND the unblock note; end-of-cycle
   redeploy + `smoke:ask-live` + `smoke:transcribe-live` vs the deployed endpoint + Dan's Admin walkthrough).
+- 2026-07-04 — S13 PRODUCTION-READINESS HANDOFF STARTED (no live writes/deploy): implemented the local/verifiable
+  portion of the next-slice plan. Green checks: `npm run format:check`, `npm run typecheck`, `npm run lint`,
+  `npm test` (148 files / 1076 tests), `npm run verify:falsification`, `npm run verify:context-freshness`, and
+  `bash scripts/verify.sh` (format, lint, typecheck, tests, router-boundary, falsification, context-freshness,
+  redaction, build). `npm run check:budget-guard` passed ($10 cap, away mode inactive). Dry-runs passed:
+  `seed:process-definitions -- --dry-run` built the six Draft definitions with no `Approved for Execution`
+  references; `seed:notice-rules -- --dry-run` built one unverified config; and the deploy dry-run previewed the
+  expected `pmi-kc-kb-prod` / `pmi-kc-kb-demo` deploy with RentVine credentials still via Secret Manager. BLOCKED
+  before live seed/API enable/deploy/smoke: `npm run preflight:adc` failed `invalid_grant`
+  / `invalid_rapt`, so the owner must run `npm run auth:session`; the seed JSON also still showed
+  `process-owner-PLACEHOLDER` / `process-approver-PLACEHOLDER`, so real Dan/Josiah Firebase UIDs must be exported
+  as `PROCESS_OWNER_UID` and `PROCESS_APPROVER_UID` before any live seed. The gitignored
+  `docs/temp/client-unblock-note-draft.md` was trimmed to the two real Dan asks (QuickBooks access and official
+  deposit-accounting home); it remains human-send-only and was not sent.
+- 2026-07-07 — S13 GO-LIVE COMPLETE, verified live in prod. Post-Wave-3 increments merged first: PR #38 (governed
+  Gmail renewal-notice draft composer + gated `gmail.renewal_notice.draft_create` registry entry + provisional
+  $500 move-out repair sign-off threshold) and PR #39 (budget-policy kill-switch doc reconcile). Owner refreshed
+  ADC (`npm run auth:session`) and redeployed `main` to Cloud Run: revision `pmi-kc-kb-demo-00010-sgt` serving 100%
+  traffic (canonical URL https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app, HTTP 200). LIVE app-plane seeds landed:
+  `lease_renewal_notice_rules/active` (DEFAULT, unverified pending Dan) and `process_definitions/lease-renewal`
+  (status Draft). TWO Admins confirmed by custom-claim read-back: `dan@pmikcmetro.com`=Admin (activates on his next
+  sign-in) and `josiah@pmikcmetro.com`=Admin. Live Dictate PROVEN on the DEPLOYED endpoint:
+  `smoke:transcribe-live --browser-session` PASS (HTTP 200) via the runtime SA (no user-ADC quota-project issue);
+  `speech.googleapis.com` enabled 2026-07-03. Budget: $10 kill switch armed + verified on `pmi-kc-kb-prod`.
+  REMAINING: Dan's Admin walkthrough (this meeting) + his 2nd sign-in + two client answers (QuickBooks access tier,
+  official deposit-accounting home). Still GATED/unchanged: Sheet write EXECUTION, Gmail runtime, Cloud Scheduler.
