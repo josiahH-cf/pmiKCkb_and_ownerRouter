@@ -354,6 +354,53 @@ button {
   font-weight: 700;
 }
 
+/* Lease-renewal run-page decision forms (console overhaul Slice C). These carried no styling, so the
+   mandatory reason box rendered unusably narrow at the end of the "unblock this" path. Give the
+   resolve/approve/bulk forms a real column layout with a full-width reason field. */
+.lr-resolve-form,
+.lr-approve-form {
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.lr-resolve-form label,
+.lr-approve-form label {
+  display: grid;
+  font-weight: 650;
+  gap: 6px;
+}
+
+.lr-resolve-form textarea,
+.lr-approve-form textarea,
+.lr-resolve-form select,
+.lr-approve-form select {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font: inherit;
+  min-height: 44px;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.lr-bulk-bar {
+  display: grid;
+  gap: 12px;
+}
+
+.lr-bulk-select {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.lr-bulk-results ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
 .compact-record {
   border-top: 1px solid var(--color-border);
   padding: 12px 0;

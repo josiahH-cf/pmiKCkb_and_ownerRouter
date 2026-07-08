@@ -18,6 +18,10 @@ import {
   Stepper,
 } from "@/components/ui";
 import {
+  buildRenewalAttention,
+  type AttentionItem,
+} from "@/lib/lease-renewal/attention";
+import {
   RENEWAL_STEPS,
   type DeskLeaseSummary,
   type RenewalDeskView,
@@ -28,6 +32,7 @@ export function RenewalDesk({
   liveReviewHref,
 }: Readonly<{ view: RenewalDeskView; liveReviewHref?: string }>) {
   const { summary } = view.cohort;
+  const attention = buildRenewalAttention(view.actionable);
 
   return (
     <div className="ui-stack">
@@ -45,6 +50,15 @@ export function RenewalDesk({
         subtitle={`${summary.total} leases in your current renewal window`}
         title="Renewals"
       />
+
+      {attention.length > 0 ? (
+        <section aria-label="Needs your attention" className="ui-stack">
+          <h2 className="section-subtitle">Needs your attention</h2>
+          {attention.map((item) => (
+            <AttentionCard item={item} key={item.leaseId} />
+          ))}
+        </section>
+      ) : null}
 
       <div className="ui-metric-grid">
         <Metric label="Actionable" value={summary.actionable} />
@@ -99,6 +113,22 @@ export function RenewalDesk({
         </p>
       </Disclosure>
     </div>
+  );
+}
+
+function AttentionCard({ item }: Readonly<{ item: AttentionItem }>) {
+  return (
+    <Card>
+      <div className="ui-spread">
+        <div>
+          <h3 className="ui-card-title">{item.addressLabel}</h3>
+          <p className="muted">{item.headline}</p>
+        </div>
+        <Link className="primary-button" href={item.href}>
+          {item.actionLabel}
+        </Link>
+      </div>
+    </Card>
   );
 }
 

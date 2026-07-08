@@ -25,8 +25,15 @@ describe("RenewalDesk", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Sample data")).toBeInTheDocument();
 
-    // Actionable leases appear as cards with an Open link.
-    expect(screen.getByText("4821 Maple Ct, Unit 4")).toBeInTheDocument();
+    // The desk now leads with a needs-attention fold; the address appears there and in the queue.
+    expect(screen.getByText("Needs your attention")).toBeInTheDocument();
+    expect(screen.getAllByText("4821 Maple Ct, Unit 4").length).toBeGreaterThan(0);
+    // The conflict lease surfaces a one-click "Resolve conflicts" next action at the top.
+    expect(
+      screen.getByRole("link", { name: "Resolve conflicts" }),
+    ).toBeInTheDocument();
+
+    // Actionable leases still appear as cards with an Open link.
     expect(screen.getAllByRole("link", { name: "Open" })).toHaveLength(3);
 
     // The conflict lease shows a humanized source-conflict pill, not severity jargon.
