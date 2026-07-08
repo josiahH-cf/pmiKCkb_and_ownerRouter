@@ -127,8 +127,9 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
     <section className="content console">
       <h1 className="section-title">Console</h1>
       <p className="muted">
-        See what needs your attention, ask a grounded question, or start a process as a test
-        run. Answers cite approved sources, and a test run never touches a system of record.
+        See what needs your attention, ask a grounded question, or start a process as a
+        test run. Answers cite approved sources, and a test run never touches a system of
+        record.
       </p>
       <ConsoleActionDeck cards={cards} />
       <AskForm canStartSimulation={canStartSimulation} processes={processes} />

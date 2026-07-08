@@ -359,7 +359,9 @@ export function AskForm({
                   {simulationRun.next_action ? (
                     <p className="muted">Next: {simulationRun.next_action}</p>
                   ) : null}
-                  <Link href={`/workflow-runs/${simulationRun.id}`}>View the test run</Link>
+                  <Link href={`/workflow-runs/${simulationRun.id}`}>
+                    View the test run
+                  </Link>
                 </div>
               ) : null}
               {canCapture ? (

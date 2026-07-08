@@ -17,10 +17,7 @@ import {
   StatusPill,
   Stepper,
 } from "@/components/ui";
-import {
-  buildRenewalAttention,
-  type AttentionItem,
-} from "@/lib/lease-renewal/attention";
+import { buildRenewalAttention, type AttentionItem } from "@/lib/lease-renewal/attention";
 import {
   RENEWAL_STEPS,
   type DeskLeaseSummary,

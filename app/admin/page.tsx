@@ -73,7 +73,9 @@ export default async function AdminPage() {
             <article className="panel">
               <h2>Domain</h2>
               <p>{config.allowedHostedDomain}</p>
-              <p className="muted">The only Google Workspace domain allowed to sign in.</p>
+              <p className="muted">
+                The only Google Workspace domain allowed to sign in.
+              </p>
             </article>
           </div>
         </section>
@@ -145,9 +147,9 @@ export default async function AdminPage() {
                     <div className="compact-record" key={space.spaceId}>
                       <strong>{space.spaceName}</strong>
                       <p className="muted">
-                        Source target: {space.sourceTargetConfigured ? "set" : "missing"} -
-                        Data store: {space.dataStoreConfigured ? "set" : "missing"} - Source
-                        records: {space.sourceMetaCount}
+                        Source target: {space.sourceTargetConfigured ? "set" : "missing"}{" "}
+                        - Data store: {space.dataStoreConfigured ? "set" : "missing"} -
+                        Source records: {space.sourceMetaCount}
                         {space.readOnly ? " - read-only" : ""}
                       </p>
                     </div>

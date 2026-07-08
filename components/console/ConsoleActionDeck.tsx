@@ -42,7 +42,11 @@ export function ConsoleActionDeck({
         const preview = card.rows.slice(0, PREVIEW_ROWS);
         const status = card.count > 0 ? "action" : "connected";
         return (
-          <section className="panel console-deck-card" data-status={status} key={card.key}>
+          <section
+            className="panel console-deck-card"
+            data-status={status}
+            key={card.key}
+          >
             <div className="console-deck-head">
               <StatusDot status={status} />
               <h2>{card.title}</h2>
