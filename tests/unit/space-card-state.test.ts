@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { SPACE_CARD_STATE_LABEL, computeSpaceCardState } from "@/lib/space-card-state";
+import {
+  SPACE_CARD_STATE_LABEL,
+  SPACE_CARD_STATE_TONE,
+  computeSpaceCardState,
+} from "@/lib/space-card-state";
 import type { LaunchSpace } from "@/lib/spaces";
 
 // Presence covering RentVine + the renewal sheet + Drive so mapped Spaces are "connected".
@@ -100,6 +104,21 @@ describe("computeSpaceCardState", () => {
       "reference",
     ] as const) {
       expect(SPACE_CARD_STATE_LABEL[state]).toBeTruthy();
+    }
+  });
+
+  it("maps every state to a color tone (green ready / amber attention / red blocked / purple reference)", () => {
+    expect(SPACE_CARD_STATE_TONE["has-a-process"]).toBe("ready");
+    expect(SPACE_CARD_STATE_TONE["connections-needed"]).toBe("attention");
+    expect(SPACE_CARD_STATE_TONE["needs-a-process"]).toBe("blocked");
+    expect(SPACE_CARD_STATE_TONE.reference).toBe("reference");
+    for (const state of [
+      "connections-needed",
+      "needs-a-process",
+      "has-a-process",
+      "reference",
+    ] as const) {
+      expect(SPACE_CARD_STATE_TONE[state]).toBeTruthy();
     }
   });
 });

@@ -196,8 +196,41 @@ button {
   margin: 0;
 }
 
-.space-card .review-pill {
+.space-card .review-pill,
+.space-card .space-card-state-pill {
   align-self: flex-start;
+}
+
+/* Color-coded card state (console overhaul Slice B): green ready / amber attention / red blocked /
+   purple reference. The label text always renders, so hue is never the only signal. */
+.space-card-state-pill {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 750;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+
+.space-card-state-pill[data-tone="ready"] {
+  background: #edf7f1;
+  border-color: var(--state-verified);
+}
+
+.space-card-state-pill[data-tone="attention"] {
+  background: #fff7e6;
+  border-color: var(--state-partial);
+}
+
+.space-card-state-pill[data-tone="blocked"] {
+  background: #fff5f5;
+  border-color: var(--state-no-source);
+}
+
+.space-card-state-pill[data-tone="reference"] {
+  background: #f3effc;
+  border-color: var(--state-reference);
 }
 
 /* Value-free "N waiting on you" interlock pill (S13 B5) — attention-colored so real work reads as

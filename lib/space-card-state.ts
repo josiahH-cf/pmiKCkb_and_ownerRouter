@@ -32,6 +32,19 @@ export const SPACE_CARD_STATE_LABEL: Record<SpaceCardState, string> = {
   reference: "Reference (read-only)",
 };
 
+// The color a card reads at (console overhaul Slice B). Pure map, no I/O: process-ready is green
+// (ready), a missing connection is amber (attention), no-process-yet is red and stays red (blocked),
+// and a read-only reference space is purple. The state LABEL always renders alongside the color, so
+// severity is never conveyed by hue alone (the StatusPill a11y contract).
+export type SpaceCardTone = "ready" | "attention" | "blocked" | "reference";
+
+export const SPACE_CARD_STATE_TONE: Record<SpaceCardState, SpaceCardTone> = {
+  "has-a-process": "ready",
+  "connections-needed": "attention",
+  "needs-a-process": "blocked",
+  reference: "reference",
+};
+
 /** True when any connector the Space depends on is missing a required config value (presence=false). */
 function hasMissingConnection(
   spaceId: string,
