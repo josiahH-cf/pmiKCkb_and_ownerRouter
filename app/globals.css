@@ -401,6 +401,12 @@ button {
   padding-left: 18px;
 }
 
+/* Admin tab sections (console overhaul Slice D): People and Access / Activity and Logs /
+   App Info and Readiness, so the tab reads as three clear jobs instead of one flat wall. */
+.admin-section + .admin-section {
+  margin-top: 28px;
+}
+
 .compact-record {
   border-top: 1px solid var(--color-border);
   padding: 12px 0;
