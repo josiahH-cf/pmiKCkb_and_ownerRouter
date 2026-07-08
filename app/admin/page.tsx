@@ -64,10 +64,12 @@ export default async function AdminPage() {
                 starts as an Editor. Promote a teammate to Approver or Admin to let them
                 approve work.
               </p>
+              <p>
+                <Link href="/admin/users">Manage users and roles</Link>
+              </p>
               <p className="muted">
-                Today a role change runs from the terminal with{" "}
-                <code>npm run firebase:set-role</code>. An in-app role manager is planned
-                for this cycle.
+                The terminal command <code>npm run firebase:set-role</code> stays as a
+                break-glass path for the first Admin.
               </p>
             </article>
             <article className="panel">

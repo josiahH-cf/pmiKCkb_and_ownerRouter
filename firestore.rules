@@ -274,6 +274,13 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // In-app role-change audit (console overhaul Slice D). Written server-side through the Admin SDK
+    // boundary only; Admin-only read (the Admin page reads it server-side). Append-only.
+    match /admin_role_changes/{changeId} {
+      allow read: if signedIn() && admin();
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
