@@ -14,6 +14,11 @@ import {
   PageHeader,
   StatusPill,
 } from "@/components/ui";
+import {
+  FlagResolveForm,
+  WritebackApprovalControl,
+  WritebackProposalCard,
+} from "@/components/lease-renewal/flag-actions";
 import { displaySourceLabel } from "@/lib/lease-renewal/source-display";
 import type { LiveReviewMeta } from "@/lib/lease-renewal/live-review";
 import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-view";
@@ -33,7 +38,16 @@ function humanizeAgreement(agreement: string): string {
 export function LiveRenewalReview({
   view,
   meta,
-}: Readonly<{ view: RenewalRunView; meta: LiveReviewMeta }>) {
+  canResolve,
+  isAdmin,
+  resolutionsError,
+}: Readonly<{
+  view: RenewalRunView;
+  meta: LiveReviewMeta;
+  canResolve: boolean;
+  isAdmin: boolean;
+  resolutionsError: boolean;
+}>) {
   return (
     <div className="ui-stack">
       <PageHeader
@@ -48,6 +62,14 @@ export function LiveRenewalReview({
         Live, read-only view of RentVine and the renewal sheet. Nothing here is sent and
         no record is changed — review each item, then make the fix at the source.
       </p>
+
+      {resolutionsError ? (
+        <p className="workflow-blocker">
+          Saved decisions could not be loaded (Firestore unavailable). Items below are
+          shown without their saved resolution; resolving needs a working Firestore
+          connection.
+        </p>
+      ) : null}
 
       {view.groups.length === 0 ? (
         <EmptyState
@@ -66,7 +88,13 @@ export function LiveRenewalReview({
               {group.flags.length === 1 ? "" : "s"}
             </h2>
             {group.flags.map((flag) => (
-              <LiveFlagCard flag={flag} key={flag.sourceTriggerKey} />
+              <LiveFlagCard
+                canResolve={canResolve}
+                flag={flag}
+                isAdmin={isAdmin}
+                key={flag.sourceTriggerKey}
+                runId={view.runId}
+              />
             ))}
           </section>
         ))
@@ -89,7 +117,17 @@ export function LiveRenewalReview({
   );
 }
 
-function LiveFlagCard({ flag }: Readonly<{ flag: RenewalFlagView }>) {
+function LiveFlagCard({
+  flag,
+  runId,
+  canResolve,
+  isAdmin,
+}: Readonly<{
+  flag: RenewalFlagView;
+  runId: string;
+  canResolve: boolean;
+  isAdmin: boolean;
+}>) {
   return (
     <article className="lr-flag-card">
       <header className="lr-flag-head">
@@ -122,6 +160,29 @@ function LiveFlagCard({ flag }: Readonly<{ flag: RenewalFlagView }>) {
       ) : flag.blockedReason ? (
         <p className="muted">Blocked: {flag.blockedReason} — needs a human decision.</p>
       ) : null}
+
+      {flag.writeback ? (
+        <WritebackProposalCard
+          proposal={flag.writeback}
+          queued={flag.writebackApproval !== null}
+        />
+      ) : null}
+
+      {flag.writebackApproval ? (
+        <WritebackApprovalControl
+          approval={flag.writebackApproval}
+          isAdmin={isAdmin}
+          runId={runId}
+          sourceTriggerKey={flag.sourceTriggerKey}
+        />
+      ) : null}
+
+      <FlagResolveForm
+        canResolve={canResolve}
+        flag={flag}
+        isAdmin={isAdmin}
+        runId={runId}
+      />
     </article>
   );
 }

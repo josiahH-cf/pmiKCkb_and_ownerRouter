@@ -2,7 +2,7 @@
 
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
 import { LiveRenewalReview } from "@/components/lease-renewal/LiveRenewalReview";
@@ -14,6 +14,11 @@ import {
 } from "@/lib/lease-renewal/live-review";
 import type { RenewalRunView } from "@/lib/lease-renewal/run-view";
 import { RentVineAuthError } from "@/lib/integrations/rentvine/client";
+
+// The reused resolve + approval controls call useRouter(); stub it so they render in jsdom.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
 
 afterEach(() => {
   cleanup();
@@ -79,8 +84,16 @@ const SAMPLE_META: LiveReviewMeta = {
 };
 
 describe("LiveRenewalReview", () => {
-  it("renders the live chip, the conflict item with both source values, and read-only posture", () => {
-    render(<LiveRenewalReview meta={SAMPLE_META} view={SAMPLE_VIEW} />);
+  it("renders the live chip, the conflict item with both source values, and the reused resolve control", () => {
+    render(
+      <LiveRenewalReview
+        canResolve={true}
+        isAdmin={true}
+        meta={SAMPLE_META}
+        resolutionsError={false}
+        view={SAMPLE_VIEW}
+      />,
+    );
 
     expect(
       screen.getByRole("heading", { name: "Live renewal review", level: 1 }),
@@ -89,26 +102,45 @@ describe("LiveRenewalReview", () => {
     expect(screen.getByText("Live data")).toBeInTheDocument();
     expect(screen.queryByText("Sample data")).not.toBeInTheDocument();
 
-    // The reconciliation item shows BOTH sources with their values (in-app PII display).
+    // The reconciliation item shows BOTH sources with their values (in-app PII display). Each value
+    // now appears more than once (the candidate list AND the reused resolve-form source options).
     expect(screen.getByText("Lease end date")).toBeInTheDocument();
-    expect(screen.getByText(/2026-08-31/)).toBeInTheDocument();
-    expect(screen.getByText(/2026-09-30/)).toBeInTheDocument();
+    expect(screen.getAllByText(/2026-08-31/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/2026-09-30/).length).toBeGreaterThan(0);
     // Agreement label is humanized, not jargon.
     expect(screen.getByText("Two sources disagree")).toBeInTheDocument();
 
-    // Read-only: no resolve form is rendered.
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    // Actionable now: the reused resolve form renders for an Admin on this High flag (slice 1b).
+    expect(screen.getByRole("button", { name: "Resolve" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("textbox", { name: /Reason \(required\)/ }),
+    ).toBeInTheDocument();
 
     // production_allowed is surfaced in the demoted diagnostics.
     expect(screen.getByText("Read details")).toBeInTheDocument();
     expect(screen.getByText("false")).toBeInTheDocument();
   });
 
+  it("shows a non-fatal degrade banner when saved decisions could not be loaded", () => {
+    render(
+      <LiveRenewalReview
+        canResolve={true}
+        isAdmin={true}
+        meta={SAMPLE_META}
+        resolutionsError={true}
+        view={SAMPLE_VIEW}
+      />,
+    );
+    expect(screen.getByText(/Saved decisions could not be loaded/)).toBeInTheDocument();
+  });
+
   it("shows an empty state when no items need a decision", () => {
     render(
       <LiveRenewalReview
+        canResolve={true}
+        isAdmin={true}
         meta={SAMPLE_META}
+        resolutionsError={false}
         view={{ ...SAMPLE_VIEW, groups: [], totalFlags: 0 }}
       />,
     );
