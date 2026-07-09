@@ -691,9 +691,18 @@ button {
 .queue-pill[data-value="Low"],
 .queue-pill[data-value="Approved"],
 .queue-pill[data-value="Completed"],
+.queue-pill[data-value="Scheduled"],
 .queue-pill[data-value="Healthy"] {
   background: #edf7f1;
   border-color: var(--state-verified);
+}
+
+.maintenance-history-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.9em;
 }
 
 .queue-detail-grid {
