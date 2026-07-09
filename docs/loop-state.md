@@ -45,6 +45,10 @@ stop-and-reset rules.
   Dan's Admin walkthrough + 2nd sign-in to activate his claim; QuickBooks access tier + official deposit-accounting home.
   GATED unchanged: Sheet-write EXECUTION (`F-WRITE-GATE`), Gmail runtime (client access model + DWD), Cloud Scheduler.
   Next buildable slice: Approval-Queue action-first rebuild (see the console-overhaul DEFERRED list above).
+- **Deferred cycle IN PROGRESS (2026-07-09, branch `console-overhaul-g-deferred-cycle`):** shipped app-plane 2c
+  (maintenance history route/panel + accurate status pills) + 3c (`planCallTasks` cadence CLI) — `F-DEFCYCLE-APPPLANE-1`,
+  `production_allowed:false`. Owner opted into A4/A5/B1; Gmail runtime builds TO THE GATE only (the `production_allowed:true`
+  flip stays owner-gated on the committed DWD grant + owner-run deploy). Remaining slices designed + staged as PRs.
 
 ## Next Safe Slice Candidates
 
@@ -108,13 +112,8 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 
 ## Stop-Condition State
 
-- Fired earlier + 2026-06-30: migration-readiness / "no safe slice" stops — foundations + the S12→S6→S10 slices
-  shipped + merged; high-value work blocked on client replies, prod setup, approved sources (`docs/status.md`).
-- Owner-present cycles 2026-07-01: Working Order added (`F-WORKING-ORDER`); shipped the renewal review sub-tab,
-  write-back proposal + APPROVAL control plane + queue tab + audit trail, maintenance unit matcher wired live,
-  owner-notice draft + vendor suggestion (`F-RENEWAL-REVIEW-SUBTAB` … `F-MAINT-NOTICE-VENDOR`); Maintenance V1 UI
-  COMPLETE; 913 tests; S12 REDEPLOY DONE (`main` live on `pmi-kc-kb-demo`, prod fence HTTP-verified 401/307).
-  Remaining: the gated SoR write spec.
+- Prior stop-conditions (2026-06-30 migration-readiness / "no safe slice"; 2026-07-01 owner-present cycles) are
+  cleared and archived in `docs/status.md` (2026-07-09 entry).
 
 ## Security Note
 

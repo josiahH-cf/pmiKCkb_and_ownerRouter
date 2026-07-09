@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   MAINTENANCE_TICKET_STATUSES,
+  type MaintenanceTicketActivityRecord,
   type MaintenanceTicketRecord,
   type MaintenanceTicketStatus,
 } from "@/lib/maintenance/ticket-model";
@@ -10,12 +11,16 @@ import {
 // The staff ticket queue (console overhaul Slice E). Lists persisted tickets grouped Open-first, with
 // one-change-per-action lifecycle transitions (status / note / close-with-reason). Closed tickets
 // collapse. Read + app-plane transitions only; no system-of-record write, no send.
+//
+// Color-tone bucket per status (drives the queue-pill accent). Maintenance-accurate vocabulary — the
+// renewal/approval words ("Ready for Approval" / "Approved") that leaked in from the renewal queue are
+// gone; the visible pill text is always the real ticket status.
 const STATUS_PILL: Record<MaintenanceTicketStatus, string> = {
-  Open: "Ready for Approval",
+  Open: "Needs Attention",
   "Waiting on Response": "Needs Attention",
   "Waiting on Vendor": "Needs Attention",
-  Scheduled: "Ready for Approval",
-  Closed: "Approved",
+  Scheduled: "Scheduled",
+  Closed: "Completed",
 };
 
 export function MaintenanceQueue({
@@ -184,6 +189,97 @@ function TicketCard({
           Add note
         </button>
       </div>
+      <TicketHistory ticketId={ticket.id} />
     </article>
   );
+}
+
+// Collapsible per-ticket lifecycle trail. Fetches the append-only activity on first expand from the
+// read-gated activity route; renders it plainly. Read-only — surfaces existing history, never mutates.
+function TicketHistory({ ticketId }: Readonly<{ ticketId: string }>) {
+  const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [activity, setActivity] = useState<MaintenanceTicketActivityRecord[]>([]);
+  const [error, setError] = useState("");
+
+  async function load() {
+    if (loaded || loading) return;
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/maintenance/tickets/${encodeURIComponent(ticketId)}/activity`,
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        activity?: MaintenanceTicketActivityRecord[];
+        error?: string;
+      };
+      if (response.ok && payload.activity) {
+        setActivity(payload.activity);
+        setLoaded(true);
+      } else {
+        setError(payload.error ?? "Could not load history.");
+      }
+    } catch {
+      // Network failure (fetch rejected) — surface it rather than leaving an unhandled rejection.
+      setError("Could not load history.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <details
+      className="ui-stack maintenance-history"
+      onToggle={(event) => {
+        if ((event.target as HTMLDetailsElement).open) void load();
+      }}
+    >
+      <summary>History</summary>
+      {loading ? <p className="muted">Loading history…</p> : null}
+      {error ? <p className="muted">{error}</p> : null}
+      {loaded && activity.length === 0 ? (
+        <p className="muted">No activity recorded yet.</p>
+      ) : null}
+      {activity.length > 0 ? (
+        <ul className="maintenance-history-list">
+          {activity.map((entry) => (
+            <li key={entry.id}>
+              <span className="muted">{formatHistoryStamp(entry.created_at)}</span>{" "}
+              {describeActivity(entry)}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </details>
+  );
+}
+
+// Deterministic, locale-stable ISO render (date + HH:MM) so the trail reads the same everywhere.
+function formatHistoryStamp(iso: string): string {
+  return iso.replace("T", " ").slice(0, 16);
+}
+
+function describeActivity(entry: MaintenanceTicketActivityRecord): string {
+  switch (entry.action) {
+    case "create":
+      return "Ticket created";
+    case "status":
+      return `Status set to ${entry.new_status ?? "updated"}`;
+    case "close":
+      return entry.text ? `Closed: ${entry.text}` : "Closed";
+    case "reopen":
+      return "Reopened";
+    case "assign":
+      // entry.text is a raw uid (not a display name) or "unassigned" — don't render it as a name.
+      return entry.text && entry.text !== "unassigned"
+        ? "Assignment updated"
+        : "Unassigned";
+    case "label":
+      return entry.text ? `Label ${entry.text}` : "Label updated";
+    case "note":
+      return entry.text ? `Note: ${entry.text}` : "Note added";
+    default:
+      return entry.action;
+  }
 }

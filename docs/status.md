@@ -6196,3 +6196,23 @@ seed:process-definitions`) is owner-run, handed back as the next Tier-0 step. Co
   AI-drafted replies / notifications / reminder cadence, gated on the client Gmail access model + DWD authorization); and
   the Approval-Queue action-first rebuild (detail-panel decision-first + tab collapse). Governance note added to
   `AGENTS.md` for the new in-app role-management surface + the per-user Gmail identity model.
+
+## 2026-07-09 — Stop-condition archive + deferred-cycle kickoff
+
+Loop-state headroom reclaim (context-freshness cap): the older Stop-Condition detail is moved here verbatim from
+`docs/loop-state.md`, which must stay a short pointer under the 140-line cap so the deferred-cycle slices can
+record their facts. Both blocks below are cleared/superseded and kept here as append-only history.
+
+- Fired earlier + 2026-06-30: migration-readiness / "no safe slice" stops — foundations + the S12→S6→S10 slices
+  shipped + merged; high-value work blocked on client replies, prod setup, approved sources.
+- Owner-present cycles 2026-07-01: Working Order added (`F-WORKING-ORDER`); shipped the renewal review sub-tab,
+  write-back proposal + APPROVAL control plane + queue tab + audit trail, maintenance unit matcher wired live,
+  owner-notice draft + vendor suggestion (`F-RENEWAL-REVIEW-SUBTAB` … `F-MAINT-NOTICE-VENDOR`); Maintenance V1 UI
+  COMPLETE; 913 tests; S12 REDEPLOY DONE (`main` live on `pmi-kc-kb-demo`, prod fence HTTP-verified 401/307).
+  Remaining: the gated SoR write spec.
+
+Deferred-cycle kickoff (2026-07-09): began the four DEFERRED bullets on branch `console-overhaul-g-deferred-cycle`,
+sequenced slice-by-slice (app-plane, `production_allowed:false`, no SoR write, no send). Owner decisions this cycle:
+A4 = open Console act-in-place (supersede recorded when built), A5 = build the tokenized-link public maintenance
+intake ingress, B1 = Gmail DWD scopes reported granted → build the per-user Gmail runtime TO THE GATE (registry stays
+`production_allowed:false` until the real DWD grant artifact is committed and the owner runs the live deploy).
