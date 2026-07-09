@@ -354,6 +354,12 @@ button {
   font-weight: 700;
 }
 
+/* Maintenance ticket queue cards (console overhaul Slice E). */
+.maintenance-ticket {
+  display: grid;
+  gap: 10px;
+}
+
 /* Lease-renewal run-page decision forms (console overhaul Slice C). These carried no styling, so the
    mandatory reason box rendered unusably narrow at the end of the "unblock this" path. Give the
    resolve/approve/bulk forms a real column layout with a full-width reason field. */

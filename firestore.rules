@@ -281,6 +281,19 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Maintenance Work Order Intake ticket queue + append-only Activity (console overhaul Slice E).
+    // Written server-side through the Admin SDK boundary only (edit capability enforced there); staff
+    // may read, no client writes, so the lifecycle and the gated RentVine create cannot be bypassed.
+    match /maintenance_tickets/{ticketId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
+    match /maintenance_ticket_activity/{activityId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
