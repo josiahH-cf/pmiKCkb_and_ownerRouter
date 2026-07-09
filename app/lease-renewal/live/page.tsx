@@ -3,7 +3,14 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { LiveRenewalReview } from "@/components/lease-renewal/LiveRenewalReview";
 import { requirePageCapability } from "@/lib/auth/page-guards";
+import { can } from "@/lib/auth/roles";
+import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
 import {
+  listWritebackApprovalActivityForRun,
+  listWritebackApprovalsForRun,
+} from "@/lib/firestore/lease-renewal-writeback-approvals";
+import {
+  LIVE_REVIEW_RUN_ID,
   loadLiveRenewalReview,
   type LiveReviewStatus,
 } from "@/lib/lease-renewal/live-review";
@@ -40,7 +47,28 @@ const PANELS: Record<
 
 export default async function LiveRenewalReviewPage() {
   const user = await requirePageCapability("manageAdmin");
-  const outcome = await loadLiveRenewalReview(new Date().toISOString());
+
+  // The live flags are recomputed on each render; only persisted resolutions + write-back approvals +
+  // their append-only decision history need Firestore. Load them for run_id "live-review" (the same id
+  // the live run is built under) and degrade to a non-fatal banner when Firestore is unavailable.
+  let resolutions: Awaited<ReturnType<typeof listResolutionsForRun>> = [];
+  let approvals: Awaited<ReturnType<typeof listWritebackApprovalsForRun>> = [];
+  let activityByKey: Awaited<ReturnType<typeof listWritebackApprovalActivityForRun>> =
+    new Map();
+  let resolutionsError = false;
+  try {
+    resolutions = await listResolutionsForRun(user, LIVE_REVIEW_RUN_ID);
+    approvals = await listWritebackApprovalsForRun(user, LIVE_REVIEW_RUN_ID);
+    activityByKey = await listWritebackApprovalActivityForRun(user, LIVE_REVIEW_RUN_ID);
+  } catch {
+    resolutionsError = true;
+  }
+
+  const outcome = await loadLiveRenewalReview(new Date().toISOString(), {
+    resolutions,
+    approvals,
+    activityByKey,
+  });
 
   return (
     <AppShell user={user}>
@@ -49,7 +77,13 @@ export default async function LiveRenewalReviewPage() {
           ← Renewals
         </Link>
         {outcome.status === "ok" ? (
-          <LiveRenewalReview meta={outcome.meta} view={outcome.view} />
+          <LiveRenewalReview
+            canResolve={can(user.role, "approve")}
+            isAdmin={can(user.role, "manageAdmin")}
+            meta={outcome.meta}
+            resolutionsError={resolutionsError}
+            view={outcome.view}
+          />
         ) : (
           <LiveReviewPanel status={outcome.status} />
         )}

@@ -153,8 +153,13 @@ function toResolvableFlag(
   };
 }
 
-/** Injectable run source so tests / a future live runner can supply the run. */
-export type RunResolver = (runId: string) => RenewalRunResult | null;
+/**
+ * Injectable run source so tests / a live runner can supply the run. May be async: the resolve route
+ * injects a resolver that rebuilds the live-review run (a network read), so this awaits its result.
+ */
+export type RunResolver = (
+  runId: string,
+) => RenewalRunResult | null | Promise<RenewalRunResult | null>;
 
 /**
  * Resolve one reconciliation flag (§3.5). Requires the Approver capability; a High or Blocked flag
@@ -170,7 +175,7 @@ export async function resolveLeaseRenewalFlag(
   assertCan(actor, "approve");
   const parsed = ResolveLeaseRenewalFlagInputSchema.parse(input);
 
-  const run = getRun(parsed.run_id);
+  const run = await getRun(parsed.run_id);
   if (!run) throw new EditableLayerError("Renewal run was not found.", 404);
 
   const flag = toResolvableFlag(run, parsed.source_trigger_key);

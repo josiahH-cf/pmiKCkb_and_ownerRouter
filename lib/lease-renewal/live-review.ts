@@ -11,11 +11,24 @@
 // authenticated app (design §6.1); they are never logged here.
 
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
-import { runFullyLiveRenewalReview } from "@/lib/lease-renewal/live-run";
+import {
+  runFullyLiveRenewalReview,
+  type FullyLiveRenewalRunResult,
+} from "@/lib/lease-renewal/live-run";
+import type { RenewalRunResult } from "@/lib/lease-renewal/pipeline";
 import { buildRenewalRunView, type RenewalRunView } from "@/lib/lease-renewal/run-view";
 import { RentVineAuthError } from "@/lib/integrations/rentvine/client";
+import type {
+  LeaseRenewalResolutionRecord,
+  LeaseRenewalWritebackApprovalActivityRecord,
+  LeaseRenewalWritebackApprovalRecord,
+} from "@/lib/firestore/types";
 
 const LIVE_REVIEW_LABEL = "Live renewal review";
+// Shared run id for the live review. The resolve route rebuilds this run to match a flag by
+// source_trigger_key (`lease_renewal:reconcile:live-review:{field}`), which is derived from
+// runId + field_key only — so a rebuild at resolve time lines up with the flag rendered on the page.
+export const LIVE_REVIEW_RUN_ID = "live-review";
 // Parity with `smoke:renewal-review --live`: the single "Lease Renewal" tab, fuzzy (name) join, the
 // full lease set (no cohort pre-filter). This reproduces the calibration result reviewers have seen.
 const LIVE_REVIEW_TABS = ["Lease Renewal"];
@@ -34,6 +47,18 @@ export type LiveReviewStatus =
   | "auth_error"
   | "read_error";
 
+/**
+ * Persisted-decision overlay for the live review. All optional; the live page loads them (try/catch)
+ * for run_id LIVE_REVIEW_RUN_ID and threads them so the live surface shows the SAME saved
+ * resolutions / approvals / decision history the run page shows. The page omits it (defaults empty)
+ * when Firestore is unavailable, degrading to an unresolved view.
+ */
+export interface LiveReviewOverlay {
+  resolutions?: LeaseRenewalResolutionRecord[];
+  approvals?: LeaseRenewalWritebackApprovalRecord[];
+  activityByKey?: ReadonlyMap<string, LeaseRenewalWritebackApprovalActivityRecord[]>;
+}
+
 export type LiveReviewOutcome =
   | { status: "ok"; view: RenewalRunView; meta: LiveReviewMeta }
   | { status: Exclude<LiveReviewStatus, "ok"> };
@@ -51,13 +76,18 @@ export function categorizeLiveReviewError(error: unknown): "auth_error" | "read_
 }
 
 /**
- * Run the owner-gated live review (read-only). Reads process.env for config and makes exactly one
- * Sheet read + one RentVine read. `readTimestamp` is injected by the caller so this module has no
- * Date dependency (matching the pipeline's no-Date.now() discipline).
+ * Internal shared run builder. Builds the live config, runs the fully-live read-only review with the
+ * SAME tabs + runId used everywhere else (so a rebuild's source_trigger_keys line up with the page
+ * render), and maps any thrown read error to a safe category. Reused by loadLiveRenewalReview (which
+ * projects the view) and rebuildLiveRenewalRun (which the resolve route matches a flag against).
+ * `readTimestamp` is injected by the caller so this module has no Date dependency.
  */
-export async function loadLiveRenewalReview(
+async function runLiveReview(
   readTimestamp: string,
-): Promise<LiveReviewOutcome> {
+): Promise<
+  | { status: "ok"; result: FullyLiveRenewalRunResult }
+  | { status: Exclude<LiveReviewStatus, "ok"> }
+> {
   const config = buildLiveRenewalConfig();
   if (!config.ok) return { status: config.reason };
 
@@ -67,21 +97,57 @@ export async function loadLiveRenewalReview(
       sheetsReader: config.sheetsReader,
       spreadsheetId: config.spreadsheetId,
       tabTitles: LIVE_REVIEW_TABS,
-      runId: "live-review",
+      runId: LIVE_REVIEW_RUN_ID,
       readTimestamp,
     });
-
-    return {
-      status: "ok",
-      view: buildRenewalRunView(result.run, [], LIVE_REVIEW_LABEL),
-      meta: {
-        sheetTabsRead: result.sheetTabsRead,
-        liveRentvineCandidates: result.liveRentvineCandidates,
-        skippedLeases: result.skippedLeases,
-        productionAllowed: result.run.production_allowed,
-      },
-    };
+    return { status: "ok", result };
   } catch (error) {
     return { status: categorizeLiveReviewError(error) };
   }
+}
+
+/**
+ * Run the owner-gated live review (read-only). Reads process.env for config and makes exactly one
+ * Sheet read + one RentVine read. `readTimestamp` is injected by the caller so this module has no
+ * Date dependency (matching the pipeline's no-Date.now() discipline). The optional `overlay` layers
+ * the persisted resolutions / approvals / decision history onto the projected view (the live page
+ * loads them for run_id LIVE_REVIEW_RUN_ID and degrades to an unresolved view when Firestore fails).
+ */
+export async function loadLiveRenewalReview(
+  readTimestamp: string,
+  overlay: LiveReviewOverlay = {},
+): Promise<LiveReviewOutcome> {
+  const outcome = await runLiveReview(readTimestamp);
+  if (outcome.status !== "ok") return { status: outcome.status };
+
+  const { result } = outcome;
+  return {
+    status: "ok",
+    view: buildRenewalRunView(
+      result.run,
+      overlay.resolutions ?? [],
+      LIVE_REVIEW_LABEL,
+      overlay.approvals ?? [],
+      overlay.activityByKey ?? new Map(),
+    ),
+    meta: {
+      sheetTabsRead: result.sheetTabsRead,
+      liveRentvineCandidates: result.liveRentvineCandidates,
+      skippedLeases: result.skippedLeases,
+      productionAllowed: result.run.production_allowed,
+    },
+  };
+}
+
+/**
+ * Rebuild ONLY the live-review run (no view projection) for the resolve route to match a flag by
+ * source_trigger_key. Returns null when the live sources are unconfigured or a read fails — it never
+ * throws and never surfaces the underlying error (which could carry configuration detail). Shares
+ * runLiveReview with loadLiveRenewalReview so the rebuilt run uses the identical tabs + runId.
+ */
+export async function rebuildLiveRenewalRun(
+  readTimestamp: string,
+): Promise<RenewalRunResult | null> {
+  const outcome = await runLiveReview(readTimestamp);
+  return outcome.status === "ok" ? outcome.result.run : null;
 }
