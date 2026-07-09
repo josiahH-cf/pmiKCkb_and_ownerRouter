@@ -75,9 +75,21 @@ export const CONNECTORS: readonly ConnectorDef[] = [
     powers:
       "Sends the approval notification emails the app queues. The app never reads any inbox.",
     method: "google",
-    // The send-only notifier that already works (S13 D4). Inbox access is a separate, unapproved
-    // access model and is NOT represented by this card.
+    // The send-only notifier that already works (S13 D4). Per-user inbox access is the separate,
+    // gated gmail_inbox card below; this card is send-only.
     requiredConfig: ["KB_APPROVAL_SENDER", "KB_APPROVAL_RECIPIENTS"],
+  },
+  {
+    id: "gmail_inbox",
+    name: "Gmail (per-user inbox)",
+    powers:
+      "Reads and drafts replies in the signed-in user's own mailbox. The app never sends a message on its own.",
+    method: "google",
+    // Per-user, domain-wide Gmail read + draft (console overhaul Slice F). Gated: there is no runtime
+    // and no live probe, and requiredConfig is empty on purpose, so this card can never show
+    // "Connected". It stays an honest "Not connected" until the client-approved access model + the
+    // domain-wide-delegation Gmail scopes are authorized. No inbox is read and no draft is created yet.
+    requiredConfig: [],
   },
   {
     id: "quickbooks",

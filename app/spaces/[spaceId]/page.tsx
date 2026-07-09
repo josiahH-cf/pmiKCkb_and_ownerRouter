@@ -190,11 +190,13 @@ export default async function SpaceDetailPage({
           />
         ) : space.readOnly ? (
           <div className="panel">
-            <h2>Read-only Gmail Inbox 0 sources</h2>
+            <h2>Read-only Gmail sources</h2>
             <p className="muted">
-              Owner Email is sourced from the Gmail Inbox 0 source package. The KB can
-              index and cite those files after read-only retrieval is configured, but it
-              must not edit Gmail Inbox 0 sources or live Gmail.
+              Owner Email now applies per user: each pmikcmetro.com user works their own
+              Gmail. The app can index and cite the approved reply patterns and routing
+              rules after read-only retrieval is configured; it never edits or sends live
+              Gmail. Per-user reading and drafting stays gated until the access model is
+              approved.
             </p>
             <ul className="compact-list">
               {ownerEmailReadOnlySources.map((source) => (

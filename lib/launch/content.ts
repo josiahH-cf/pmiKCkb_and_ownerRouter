@@ -130,11 +130,12 @@ export const launchEditableSeedsBySpaceId: Readonly<Record<string, LaunchEditabl
       ]),
   );
 
+// Owner Email is per-user domain-wide (console overhaul Slice F): each pmikcmetro.com user works
+// their own Gmail, not a single owner mailbox. The legacy Owner Router artifact framing is retired.
 export const ownerEmailReadOnlySources = [
-  "Gmail Inbox 0 source package",
-  "Legacy Owner Router artifacts, pending naming migration",
-  "01 Reply Patterns - Approved",
-  "03 Routing Rules",
+  "Per-user Gmail: each pmikcmetro.com user works their own mailbox",
+  "Approved reply patterns",
+  "Routing rules",
 ] as const;
 
 export function launchApprovalQueueItems() {
