@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { ApprovalQueue } from "@/components/approval/ApprovalQueue";
@@ -118,10 +119,12 @@ describe("ApprovalQueue write-back queue tab", () => {
     writebackQueue: queue,
   };
 
-  it("offers a Write-back queue tab with the awaiting-approval count", () => {
+  it("offers a Write-back proposals tab with the awaiting-approval count behind Other views", async () => {
+    const user = userEvent.setup();
     render(<ApprovalQueue {...baseProps} />);
 
-    const tab = screen.getByRole("tab", { name: "Write-back queue (2)" });
+    await user.click(screen.getByText("Other views"));
+    const tab = screen.getByRole("tab", { name: "Write-back proposals (2)" });
     expect(tab).toHaveAttribute("aria-selected", "false");
     // Not rendered until its tab is selected.
     expect(
@@ -129,16 +132,20 @@ describe("ApprovalQueue write-back queue tab", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows the queue after switching to the Write-back queue tab", () => {
+  it("shows the queue after switching to the Write-back proposals tab", async () => {
+    const user = userEvent.setup();
     render(<ApprovalQueue {...baseProps} />);
 
-    fireEvent.click(screen.getByRole("tab", { name: "Write-back queue (2)" }));
+    await user.click(screen.getByText("Other views"));
+    await user.click(screen.getByRole("tab", { name: "Write-back proposals (2)" }));
 
-    expect(screen.getByRole("tab", { name: "Write-back queue (2)" })).toHaveAttribute(
+    expect(screen.getByRole("tab", { name: "Write-back proposals (2)" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
-    expect(screen.getByText("Current rent")).toBeInTheDocument();
-    expect(screen.getByText("Renewal date")).toBeInTheDocument();
+    // Unique to the write-back panel; the inbox surfaces rows but not these state headings.
+    expect(
+      screen.getByRole("heading", { name: /Awaiting approval \(2\)/ }),
+    ).toBeInTheDocument();
   });
 });

@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { ApprovalQueue } from "@/components/approval/ApprovalQueue";
 import { RenewalReviewPanel } from "@/components/approval/RenewalReviewPanel";
@@ -151,33 +152,33 @@ describe("ApprovalQueue renewal sub-tab", () => {
     renewalBoard: board,
   };
 
-  it("defaults to the unified 'Needs your decision' inbox and offers a Renewals tab with the open count", () => {
+  it("surfaces the open renewal flag on the always-visible inbox and a renamed tab behind Other views", async () => {
+    const user = userEvent.setup();
     render(<ApprovalQueue {...baseProps} />);
 
-    // B1: the default landing is the merged inbox, not "All items".
-    expect(screen.getByRole("tab", { name: /Needs your decision/ })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
-    expect(screen.getByRole("tab", { name: "Renewals (1)" })).toBeInTheDocument();
-    // The open renewal flag surfaces on the default inbox as a value-free deep-link row, so a real
-    // backlog no longer hides behind a near-empty tab.
+    // The open renewal flag surfaces on the always-visible inbox as a value-free deep-link row, so a
+    // real backlog no longer hides behind a near-empty tab.
     expect(screen.getByRole("link", { name: /Current rent/ })).toHaveAttribute(
       "href",
       "/lease-renewal/runs/sim-renewal-001",
     );
+    // The secondary views (renamed "Renewal reviews") live behind the "Other views" disclosure.
+    await user.click(screen.getByText("Other views"));
+    expect(screen.getByRole("tab", { name: "Renewal reviews (1)" })).toBeInTheDocument();
   });
 
-  it("shows the renewal review board after switching to the Renewals tab", () => {
+  it("shows the renewal review board after switching to the Renewal reviews tab", async () => {
+    const user = userEvent.setup();
     render(<ApprovalQueue {...baseProps} />);
 
-    fireEvent.click(screen.getByRole("tab", { name: "Renewals (1)" }));
+    await user.click(screen.getByText("Other views"));
+    await user.click(screen.getByRole("tab", { name: "Renewal reviews (1)" }));
 
-    expect(screen.getByRole("tab", { name: "Renewals (1)" })).toHaveAttribute(
+    expect(screen.getByRole("tab", { name: "Renewal reviews (1)" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
+    // "Sample renewal run" is unique to the renewal panel (the inbox row shows the field label only).
     expect(screen.getByText("Sample renewal run")).toBeInTheDocument();
-    expect(screen.getByText("Current rent")).toBeInTheDocument();
   });
 });

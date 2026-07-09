@@ -54,7 +54,7 @@ invented values; identity stays `pmikcmetro.com`.
    files exist in the repo yet.**
 7. **OQ-UI-1 — renewal review surface: extend the Approval Queue, or build a renewal run page?**
    _**No safe default — product call.**_ This is the gate where Dan reviews Phase-1 accuracy. _Owner:
-   owner/design._ — **✅ ANSWERED 2026-07-01: a dedicated renewal SUB-TAB _inside_ the Approval Queue — same space + the built approve/return/assign machinery, but its own logically-organized view for Dan (mirrors the Spaces⊇Processes sub-tab pattern). Not a standalone run page, and not un-organized into the general queue.**
+   owner/design._ — **✅ ANSWERED 2026-07-01: renewal review lives _inside_ the Approval Queue (the built approve/return/assign machinery, its own logically-organized view for Dan, NOT a standalone run page and NOT un-organized into the general queue). Presentation evolved 2026-07-09 (F-APPROVAL-QUEUE-UNIFIED, Slice 4a): it moved from a peer "Renewals" tab to one of the "Other views" behind the unified urgent-first "Needs your decision" list; the value-free-triage and resolve-on-the-run-page invariants are unchanged.**
 8. **OQ-RV-1 — RentVine renewal/field-write endpoint.** _**No safe default — vendor-gated.**_ V1 ends at
    "approved renewal package + non-executable RentVine flag"; the RentVine entry stays a human step.
    _Owner: vendor._
