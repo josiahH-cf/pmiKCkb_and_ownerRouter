@@ -71,6 +71,7 @@ const JARGON_ROOTS = ["app", "components", "lib"];
 const OPERATOR_UI_ROOTS = ["app", "components"];
 // Em dashes in these client-facing EMAIL drafts hard-fail (they reach tenants/owners).
 export const CLIENT_DRAFT_FILES = [
+  "lib/gmail-inbox-zero/anticipatory-draft.ts",
   "lib/lease-renewal/owner-draft.ts",
   "lib/lease-renewal/tenant-draft.ts",
   "lib/maintenance/owner-notice-draft.ts",
