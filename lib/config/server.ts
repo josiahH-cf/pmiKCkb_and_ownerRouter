@@ -99,6 +99,14 @@ const EnvSchema = z.object({
   // KB-source prefix and a photo folder. Falls back to the legacy
   // SPACE_DRIVE_FOLDER_IDS["maintenance-work-order-intake"] for back-compat.
   MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: OptionalStringSchema,
+  // Public tokenized maintenance intake (A5). The HMAC signing secret for intake links; ABSENT by
+  // default so the public route fails CLOSED (503) until the owner provisions it in Secret Manager —
+  // there is no dev fallback secret (a checked-in default would be a forgeable token). The salt hashes
+  // reporter IPs so the rate-counter key is opaque; absent → no per-IP key (the per-property global cap
+  // still applies). The daily cap is the per-property 503 kill-ceiling (owner budget safety).
+  MAINTENANCE_INTAKE_TOKEN_SECRET: OptionalStringSchema,
+  MAINTENANCE_INTAKE_IP_HASH_SALT: OptionalStringSchema,
+  MAINTENANCE_INTAKE_DAILY_CAP: z.coerce.number().int().positive().default(500),
   SPACE_DRIVE_FOLDER_IDS: JsonMapSchema,
   SPACE_VERTEX_DATA_STORE_IDS: JsonMapSchema,
   VERTEX_AI_LOCATION: z.string().trim().min(1).default("us-central1"),
@@ -144,6 +152,10 @@ export function readServerConfig(env: Environment = process.env) {
       parsed.MAINTENANCE_PHOTO_DRIVE_FOLDER_ID ??
       parsed.SPACE_DRIVE_FOLDER_IDS["maintenance-work-order-intake"] ??
       "",
+    // Public tokenized maintenance intake (A5). Secret undefined ⇒ the public route fails closed (503).
+    maintenanceIntakeTokenSecret: parsed.MAINTENANCE_INTAKE_TOKEN_SECRET,
+    maintenanceIntakeIpHashSalt: parsed.MAINTENANCE_INTAKE_IP_HASH_SALT,
+    maintenanceIntakeDailyCap: parsed.MAINTENANCE_INTAKE_DAILY_CAP,
     spaceDriveFolderIds: parsed.SPACE_DRIVE_FOLDER_IDS,
     spaceVertexDataStoreIds: parsed.SPACE_VERTEX_DATA_STORE_IDS,
     vertexAiLocation: parsed.VERTEX_AI_LOCATION,

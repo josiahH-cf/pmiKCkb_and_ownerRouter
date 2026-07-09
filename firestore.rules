@@ -294,6 +294,34 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Public tokenized maintenance intake (A5). The UNVERIFIED quarantine queue + its append-only
+    // Activity are written server-side ONLY, through the token-gated no-actor Admin SDK writer — never a
+    // client credential. Staff may read to triage/promote; no client writes, so an unauthenticated
+    // reporter can never reach the real ticket queue or a system of record. The single-use nonce, the
+    // per-property rate counter, and the revocation epoch are server-only bookkeeping with NO client
+    // access at all (reading them would leak the abuse-control state).
+    match /maintenance_unverified_intake/{intakeId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
+    match /maintenance_unverified_intake_activity/{activityId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
+    match /maintenance_intake_nonce/{jti} {
+      allow read, write: if false;
+    }
+
+    match /maintenance_intake_rate_counter/{counterId} {
+      allow read, write: if false;
+    }
+
+    match /maintenance_intake_epoch/{propertyKey} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
