@@ -6216,3 +6216,27 @@ sequenced slice-by-slice (app-plane, `production_allowed:false`, no SoR write, n
 A4 = open Console act-in-place (supersede recorded when built), A5 = build the tokenized-link public maintenance
 intake ingress, B1 = Gmail DWD scopes reported granted → build the per-user Gmail runtime TO THE GATE (registry stays
 `production_allowed:false` until the real DWD grant artifact is committed and the owner runs the live deploy).
+
+A5 — public tokenized maintenance intake SHIPPED (2026-07-09, branch `console-overhaul-h-a5-intake`, `F-MAINT-INTAKE-PUBLIC`).
+This is the app's FIRST and ONLY unauthenticated write endpoint, built after an adversarial hardening pass (4 attackers +
+synthesizer). Flow: a staff member mints an HMAC-signed, property-scoped token (edit-gated `POST /api/maintenance/intake/token`
+or `npm run intake:mint`); a tenant/vendor POSTs one report to the UNAUTHENTICATED `/api/maintenance/intake/public` with the
+token in an `X-Intake-Token` header; on success it lands in the `maintenance_unverified_intake` QUARANTINE collection via the
+no-actor `createUnverifiedIntakeFromPublic` writer. Structural isolation is the core guarantee: the public route + writer
+import none of `createMaintenanceTicket` / `requireCapability` / `lib/auth/session` / RentVine / unit-matcher, pinned by a
+negative-import test, and a NEW enumerating `tests/unit/route-auth-boundary.test.ts` asserts every `app/api/**/route.ts` is
+authed except a 3-entry allow-list (`auth/session`, `auth/demo`, this route) — so no future route ships unauthed by accident.
+Hardenings baked in (adversarial pass): length-guarded `timingSafeEqual` (forged token → generic 401, never a 500/timing
+oracle); domain-separated HMAC over literal payload bytes + verify-side 30-day max-TTL; single-use nonce (replay guard),
+per-property daily 503 kill-ceiling (owner budget safety), and a revocation epoch, all enforced transactionally
+(reads-before-writes); an in-instance token-bucket pre-gate keyed on the salted rightmost-XFF IP (fires before any HMAC);
+a hard 16 KB streamed body cap; a shared sanitizer (NFC + strip C0/C1/bidi/zero-width + CSV-injection neutralization); and a
+202 with a fresh random reference (never the doc id/jti). Owner decisions applied per the plan: D1 single-use ≤7d default
+(reusable ≤30d for signage), D2 photoRef DROPPED (attacker-controlled; add later via a minted-id channel). Owner activation
+steps (D3/D4): the route FAILS CLOSED (503) until `MAINTENANCE_INTAKE_TOKEN_SECRET` (+ `_IP_HASH_SALT`, `_DAILY_CAP`) is
+provisioned in Secret Manager, and a Firestore TTL policy on the intake/nonce `expires_at` reaps junk. Ships
+`production_allowed:false` (an app-plane quarantine write, not an external action → no registry entry). Verified locally: full
+unit suite (1200+) + typecheck + lint (0 errors) + copy-voice + router-boundary green; the emulator rules test denies every
+client write to intake/activity and denies all client access to nonce/counter/epoch. STILL owner-gated (unchanged): the Gmail
+`production_allowed:true` flip (needs the committed DWD grant artifact + an owner-run deploy). Remaining deferred slices: A4
+(Console act-in-place), unit type-ahead, delegable ownership, notifications, Approval-Queue rebuild.

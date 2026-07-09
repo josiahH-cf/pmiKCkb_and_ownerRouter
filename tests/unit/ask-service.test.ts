@@ -57,6 +57,9 @@ const liveConfig: ServerConfig = {
   speechLanguageCode: "en-US",
   speechProvider: "stub",
   maintenanceImageFolderId: "",
+  maintenanceIntakeTokenSecret: undefined,
+  maintenanceIntakeIpHashSalt: undefined,
+  maintenanceIntakeDailyCap: 500,
   imageStore: "stub",
   spaceDriveFolderIds: {
     "lease-renewals": "folder-1",
