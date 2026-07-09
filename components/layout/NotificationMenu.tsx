@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ApprovalQueueNotificationRecord } from "@/lib/firestore/types";
+import type {
+  NotificationFamilyKey,
+  NotificationFamilyView,
+  UnifiedNotification,
+} from "@/lib/notifications/families";
 
 type NotificationState = "idle" | "loading" | "ready" | "error";
 
@@ -9,9 +13,8 @@ export function NotificationMenu({
   navigate = (url) => window.location.assign(url),
 }: Readonly<{ navigate?: (url: string) => void }>) {
   const [isOpen, setIsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<ApprovalQueueNotificationRecord[]>(
-    [],
-  );
+  const [notifications, setNotifications] = useState<UnifiedNotification[]>([]);
+  const [families, setFamilies] = useState<NotificationFamilyView[]>([]);
   const [state, setState] = useState<NotificationState>("idle");
   const [message, setMessage] = useState("Loading notifications.");
   const hasLoaded = useRef(false);
@@ -31,19 +34,19 @@ export function NotificationMenu({
     setState(hasLoaded.current ? "ready" : "loading");
 
     try {
-      const response = await fetch(
-        "/api/approval-queue/notifications?mine_only=true&unread_only=true&limit=5",
-      );
+      const response = await fetch("/api/notifications?unread_only=true&limit=8");
       const payload = await readJsonResponse<{
-        notifications: ApprovalQueueNotificationRecord[];
+        notifications: UnifiedNotification[];
+        families: NotificationFamilyView[];
       }>(response);
 
       setNotifications(payload.notifications);
+      setFamilies(payload.families);
       setState("ready");
       setMessage(
         payload.notifications.length > 0
-          ? "Queue notifications loaded."
-          : "No queue notifications need your attention.",
+          ? "Notifications loaded."
+          : "No notifications need your attention.",
       );
       hasLoaded.current = true;
     } catch (error) {
@@ -52,23 +55,36 @@ export function NotificationMenu({
     }
   }
 
-  async function openNotification(notification: ApprovalQueueNotificationRecord) {
-    const targetUrl = `/approval-queue?item_id=${encodeURIComponent(notification.item_id)}`;
-
+  async function openNotification(notification: UnifiedNotification) {
     try {
-      await fetch(
-        `/api/approval-queue/notifications/${encodeURIComponent(notification.id)}`,
-        {
-          body: JSON.stringify({ action: "mark_read" }),
-          headers: { "Content-Type": "application/json" },
-          method: "PATCH",
-        },
-      );
+      await fetch("/api/notifications/mark-read", {
+        body: JSON.stringify({ source: notification.source, id: notification.id }),
+        headers: { "Content-Type": "application/json" },
+        method: "POST",
+      });
     } catch {
-      // Opening the queue item is more important than blocking on read-state cleanup.
+      // Opening the linked item is more important than blocking on read-state cleanup.
     }
 
-    navigate(targetUrl);
+    navigate(notification.href);
+  }
+
+  async function toggleMute(familyKey: NotificationFamilyKey) {
+    const nextMuted = families
+      .filter((family) => family.available)
+      .filter((family) => (family.key === familyKey ? !family.muted : family.muted))
+      .map((family) => family.key);
+
+    try {
+      await fetch("/api/notifications/preferences", {
+        body: JSON.stringify({ muted_families: nextMuted }),
+        headers: { "Content-Type": "application/json" },
+        method: "PATCH",
+      });
+      await loadNotifications();
+    } catch {
+      // Muting is best-effort; a failure leaves the current view unchanged.
+    }
   }
 
   return (
@@ -94,9 +110,9 @@ export function NotificationMenu({
         ) : null}
       </button>
       {isOpen ? (
-        <section className="notification-popover" aria-label="Queue notifications">
+        <section className="notification-popover" aria-label="Notifications">
           <div className="notification-popover-header">
-            <strong>Queue Notifications</strong>
+            <strong>Notifications</strong>
             <button
               className="notification-refresh"
               disabled={state === "loading"}
@@ -109,12 +125,12 @@ export function NotificationMenu({
           {state === "loading" ? <p className="muted">Loading notifications.</p> : null}
           {state === "error" ? <p className="muted">{message}</p> : null}
           {state === "ready" && notifications.length === 0 ? (
-            <p className="muted">No queue notifications need your attention.</p>
+            <p className="muted">No notifications need your attention.</p>
           ) : null}
           {notifications.length > 0 ? (
             <ol className="notification-list">
               {notifications.map((notification) => (
-                <li key={notification.id}>
+                <li key={`${notification.source}:${notification.id}`}>
                   <button
                     className="notification-item"
                     onClick={() => void openNotification(notification)}
@@ -122,14 +138,37 @@ export function NotificationMenu({
                   >
                     <strong>{notification.title}</strong>
                     <span>{notification.message}</span>
-                    <small>
-                      {notification.process_run_ref.label} - {notification.risk}
-                      {notification.due_date ? ` - Due ${notification.due_date}` : ""}
-                    </small>
                   </button>
                 </li>
               ))}
             </ol>
+          ) : null}
+          {families.length > 0 ? (
+            <div className="notification-families">
+              <strong>Notification types</strong>
+              <ul className="notification-family-list">
+                {families.map((family) =>
+                  family.available ? (
+                    <li key={family.key}>
+                      <label className="notification-family">
+                        <input
+                          checked={!family.muted}
+                          onChange={() => void toggleMute(family.key)}
+                          type="checkbox"
+                        />
+                        <span>{family.label}</span>
+                      </label>
+                    </li>
+                  ) : (
+                    <li key={family.key} className="notification-family-stub">
+                      <span>
+                        {family.label}: {family.unavailableReason}
+                      </span>
+                    </li>
+                  ),
+                )}
+              </ul>
+            </div>
           ) : null}
           <a className="notification-all-link" href="/approval-queue">
             Open Approval Queue
@@ -144,12 +183,12 @@ async function readJsonResponse<T>(response: Response): Promise<T> {
   const payload = (await response.json().catch(() => ({}))) as { error?: string };
 
   if (!response.ok) {
-    throw new Error(payload.error ?? "Queue notifications are unavailable.");
+    throw new Error(payload.error ?? "Notifications are unavailable.");
   }
 
   return payload as T;
 }
 
 function readErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Queue notifications are unavailable.";
+  return error instanceof Error ? error.message : "Notifications are unavailable.";
 }

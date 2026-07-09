@@ -10,6 +10,7 @@ import {
   listMaintenanceTickets,
   transitionMaintenanceTicket,
 } from "@/lib/firestore/maintenance-tickets";
+import { MAINTENANCE_TICKET_NOTIFICATION_COLLECTION } from "@/lib/firestore/maintenance-ticket-notifications";
 
 // Minimal in-memory Firestore matching the Admin-SDK surface the writer uses (doc get/set, collection
 // get). The writer stores plain ISO-string records (no serverTimestamp), so this fake is faithful.
@@ -58,6 +59,66 @@ function fakeDb() {
     },
   };
   return { db: db as unknown as Firestore, store };
+}
+
+// A recording variant of fakeDb: it tags every runTransaction with a unique id and logs each
+// transaction.set as { txId, collection, id }, so a test can prove two writes are enqueued on the
+// SAME transaction handle.
+//
+// ROLLBACK NOTE: like the shared tests/helpers/fake-firestore.ts (and fakeDb above), this fake
+// applies transaction writes to the backing store IMMEDIATELY inside tx.set and does NOT discard
+// staged writes when the callback throws — it does not model Firestore's atomic ROLLBACK. So a true
+// "the notification is not committed when a later step in the same transaction throws" test is not
+// expressible against the fake. We instead prove the structural guarantee of atomicity: the ticket
+// write and the notification write share ONE transaction object, which the real Admin SDK commits or
+// rolls back together.
+function recordingFakeDb() {
+  const store = new Map<string, Map<string, Record<string, unknown>>>();
+  const txSets: Array<{ txId: number; collection: string; id: string }> = [];
+  let txCounter = 0;
+  const col = (name: string) => {
+    if (!store.has(name)) store.set(name, new Map());
+    return store.get(name)!;
+  };
+  function docRef(name: string, id: string) {
+    const c = col(name);
+    return {
+      id,
+      _name: name,
+      async get() {
+        const data = c.get(id);
+        return { exists: c.has(id), id, data: () => data };
+      },
+      async set(data: Record<string, unknown>) {
+        c.set(id, data);
+      },
+    };
+  }
+  const db = {
+    collection(name: string) {
+      return {
+        doc: (id: string) => docRef(name, id),
+        async get() {
+          const c = col(name);
+          return {
+            docs: [...c.entries()].map(([id, data]) => ({ id, data: () => data })),
+          };
+        },
+      };
+    },
+    async runTransaction<T>(fn: (tx: unknown) => Promise<T>): Promise<T> {
+      const txId = ++txCounter;
+      const tx = {
+        get: (ref: { get(): Promise<unknown> }) => ref.get(),
+        set: (ref: { _name: string; id: string }, data: Record<string, unknown>) => {
+          txSets.push({ txId, collection: ref._name, id: ref.id });
+          col(ref._name).set(ref.id, data);
+        },
+      };
+      return fn(tx);
+    },
+  };
+  return { db: db as unknown as Firestore, store, txSets };
 }
 
 const editor: AuthenticatedUser = {
@@ -201,5 +262,111 @@ describe("maintenance tickets", () => {
     const tickets = await listMaintenanceTickets(editor, db);
     expect(tickets).toHaveLength(2);
     expect(tickets.map((t) => t.summary).sort()).toEqual(["A", "B"]);
+  });
+
+  it("notifies the assignee on assign + status, and never on create/label/note or unassigned", async () => {
+    const { db, store } = fakeDb();
+    const ticket = await createMaintenanceTicket(editor, baseInput, db);
+    // create writes no notification (baseInput has no assignee).
+    expect(store.get("maintenance_ticket_notifications")).toBeUndefined();
+
+    const notifs = () =>
+      [...(store.get("maintenance_ticket_notifications")?.values() ?? [])] as Array<
+        Record<string, unknown>
+      >;
+
+    // Assigning to a DIFFERENT uid than the actor writes one 'assigned' notification.
+    await transitionMaintenanceTicket(
+      editor,
+      ticket.id,
+      { op: "assign", assigneeUid: "assignee-1" },
+      db,
+    );
+    expect(notifs()).toHaveLength(1);
+    expect(notifs()[0]).toMatchObject({
+      event: "assigned",
+      recipient_uid: "assignee-1",
+      href: "/maintenance",
+    });
+
+    // A subsequent status change by the actor notifies the assignee.
+    await transitionMaintenanceTicket(
+      editor,
+      ticket.id,
+      { op: "status", status: "Scheduled" },
+      db,
+    );
+    expect(notifs()).toHaveLength(2);
+    expect(
+      notifs().some(
+        (n) => n.event === "status_changed" && n.recipient_uid === "assignee-1",
+      ),
+    ).toBe(true);
+
+    // Label + note changes write no new notification.
+    await transitionMaintenanceTicket(
+      editor,
+      ticket.id,
+      { op: "label-add", label: "plumbing" },
+      db,
+    );
+    await transitionMaintenanceTicket(
+      editor,
+      ticket.id,
+      { op: "note", text: "called the tenant" },
+      db,
+    );
+    expect(notifs()).toHaveLength(2);
+  });
+
+  it("writes no notification for a status change on an unassigned ticket", async () => {
+    const { db, store } = fakeDb();
+    const ticket = await createMaintenanceTicket(editor, baseInput, db);
+    await transitionMaintenanceTicket(
+      editor,
+      ticket.id,
+      { op: "status", status: "Scheduled" },
+      db,
+    );
+    expect(store.get("maintenance_ticket_notifications")).toBeUndefined();
+  });
+
+  it("enqueues the ticket write and the assignee notification on ONE shared transaction (atomicity)", async () => {
+    // The fake Firestore applies transaction writes immediately and does NOT model rollback (see the
+    // recordingFakeDb ROLLBACK NOTE), so a true "not committed on throw" test is not expressible here.
+    // Instead we prove the structural guarantee: the notification set and the ticket set are enqueued
+    // on the SAME transaction object within a SINGLE runTransaction — one atomic unit the real Admin
+    // SDK commits or rolls back together, so the notification twin can never be committed without the
+    // ticket update (or vice versa).
+    const { db, txSets } = recordingFakeDb();
+    const ticket = await createMaintenanceTicket(editor, baseInput, db);
+
+    // Ignore the create transaction's writes; measure only the transition's.
+    const beforeTransition = txSets.length;
+    await transitionMaintenanceTicket(
+      editor,
+      ticket.id,
+      { op: "assign", assigneeUid: "assignee-1" },
+      db,
+    );
+    const transitionSets = txSets.slice(beforeTransition);
+
+    // The transition opened exactly one transaction: every write it staged shares one tx id.
+    const txIds = new Set(transitionSets.map((s) => s.txId));
+    expect(txIds.size).toBe(1);
+
+    // That one transaction wrote BOTH the ticket doc and the notification doc.
+    const ticketSet = transitionSets.find(
+      (s) => s.collection === MAINTENANCE_TICKET_COLLECTIONS.tickets,
+    );
+    const notificationSet = transitionSets.find(
+      (s) => s.collection === MAINTENANCE_TICKET_NOTIFICATION_COLLECTION,
+    );
+    expect(ticketSet).toBeDefined();
+    expect(notificationSet).toBeDefined();
+
+    // The notification is enqueued on the SAME transaction handle as the ticket write (one atomic
+    // unit), not a separate best-effort write on its own transaction.
+    expect(notificationSet?.txId).toBe(ticketSet?.txId);
   });
 });

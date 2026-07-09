@@ -322,6 +322,23 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // In-app notification framework (console overhaul Slice 3b). Both collections are written
+    // server-side through the Admin SDK boundary only; a signed-in editor may read ONLY their own
+    // records (Admin may read any), and every client write is denied. In-app only: there is no email
+    // channel and email stays hard-off.
+    match /maintenance_ticket_notifications/{notificationId} {
+      allow read: if signedIn() && editorOrBetter() &&
+        (admin() ||
+          ('recipient_uid' in resource.data && resource.data.recipient_uid == request.auth.uid));
+      allow create, update, delete: if false;
+    }
+
+    match /user_notification_preferences/{userId} {
+      allow read: if signedIn() && editorOrBetter() &&
+        (admin() || userId == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

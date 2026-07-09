@@ -18,6 +18,10 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
+  appendMaintenanceTicketNotification,
+  type MaintenanceTicketNotificationEvent,
+} from "@/lib/firestore/maintenance-ticket-notifications";
+import {
   MAINTENANCE_TICKET_STATUSES,
   type MaintenanceTicketActivityRecord,
   type MaintenanceTicketRecord,
@@ -171,6 +175,10 @@ export async function transitionMaintenanceTicket(
 
     let updated: MaintenanceTicketRecord = { ...ticket, updated_at: updatedAt };
     let activity: Omit<MaintenanceTicketActivityRecord, "id" | "created_at">;
+    // The assignee-facing notification event for this transition, or undefined when the change carries
+    // no notification (label/note edits, or an unassign). Emitted at the end inside the SAME atomic
+    // transaction so the notification twin can never be left missing after a partial failure.
+    let notificationEvent: MaintenanceTicketNotificationEvent | undefined;
 
     switch (op.op) {
       case "status": {
@@ -197,6 +205,8 @@ export async function transitionMaintenanceTicket(
           new_status: op.status,
           text: reason,
         };
+        notificationEvent =
+          op.status === "Closed" ? "closed" : reopening ? "reopened" : "status_changed";
         break;
       }
       case "assign": {
@@ -207,6 +217,7 @@ export async function transitionMaintenanceTicket(
           action: "assign",
           text: op.assigneeUid ?? "unassigned",
         };
+        notificationEvent = op.assigneeUid ? "assigned" : undefined;
         break;
       }
       case "label-add": {
@@ -253,6 +264,18 @@ export async function transitionMaintenanceTicket(
       db.collection(MAINTENANCE_TICKET_COLLECTIONS.activity).doc(uuidv7()),
       activityDoc(activity, updatedAt),
     );
+    // Notify the ticket's assignee inside the same transaction. No-op when nobody is assigned or the
+    // assignee is the actor (no self-notify), so only a delegated change reaches someone else.
+    if (notificationEvent) {
+      appendMaintenanceTicketNotification(transaction, db, {
+        ticketId,
+        event: notificationEvent,
+        recipientUid: updated.assignee_uid,
+        actorUid: actor.uid,
+        ticketStatus: updated.status,
+        createdAt: updatedAt,
+      });
+    }
     return updated;
   });
 }
