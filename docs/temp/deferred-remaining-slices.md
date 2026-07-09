@@ -3,9 +3,11 @@
 _Generated 2026-07-09 from a decision-complete spec pass. Disposable workspace doc (docs/temp). The `/loop` runner reads `docs/loop-state.md` + `docs/facts.md` first, then this packet for the selected slice._
 
 ## How the loop uses this
+
 Build ONE slice per branch → PR → CI `verify` → merge, in the recommended order below (all 7 are independent unless a Depends-on says otherwise; the two GOVERNANCE slices A4 and 4a come last). For each slice: build → add/adjust tests → run its Verify list → add the Fact + do the in-place loop-state progress edit → PR → wait green → merge → pull main → next.
 
 ## Cross-cutting rules (every slice)
+
 - Every Action Registry entry stays `production_allowed:false` EXCEPT `gmail.renewal_notice.draft_create` (already flipped). Do NOT flip others; do NOT touch the `EXECUTABLE_ALLOWLIST` in `scripts/seed-action-registry.ts` / `lib/admin/migration-readiness.ts`.
 - App-plane only: no system-of-record write, no send, no Gmail call.
 - New `app/api/**/route.ts` must be authed (`requireCapability`) OR added to the allow-list in `tests/unit/route-auth-boundary.test.ts` (only intake/public is allow-listed today).
@@ -21,6 +23,7 @@ Build ONE slice per branch → PR → CI `verify` → merge, in the recommended 
 ---
 
 ## 2a — Unit type-ahead for maintenance
+
 **Cached unit index + edit-gated units/search + shared UnitTypeahead wired into MaintenanceCapture and the intake review**
 
 - Loop-executable: true
@@ -29,6 +32,7 @@ Build ONE slice per branch → PR → CI `verify` → merge, in the recommended 
 **Objective:** Add a shared unit type-ahead for maintenance: a ~10-min in-process TTL cache over the already-approved RentVine /leases/export read (no per-keystroke live reads, no LLM), an edit-gated GET /api/maintenance/units/search that serves from that cache, and a reusable <UnitTypeahead/> client component wired into MaintenanceCapture's unit field (replacing the manual Find-unit flow) and into the UnverifiedIntakeReview promote flow (optional unit confirmation). App-plane only; no system-of-record write, no send, no Action Registry flip.
 
 **In scope:**
+
 - New lib/maintenance/unit-index.ts: UNIT_INDEX_TTL_MS=10*60*1000 (mirrors lib/connections/verification.ts VERIFICATION_TTL_MS), an in-process cache over loadLiveUnitCandidates() that caches the WHOLE outcome (ok or failure) for the TTL like verification.ts does, a demo-aware short-circuit to synthetic DEMO_UNIT_CANDIDATES when config.localDemoAuth, a clearUnitIndexCache() test seam, and a pure deterministic searchUnits(candidates,query,limit) substring/token filter (NOT the fuzzy join matcher, NOT an LLM).
 - New edit-gated GET /api/maintenance/units/search?q= route (requireCapability('edit')) that reads getUnitIndex() and returns { units: [{unitId,label}] }; empty q -> 200 { units: [] }; over-long q -> 400; unavailable index -> 503 with error_type.
 - New shared client component components/maintenance/UnitTypeahead.tsx: debounced query against the search endpoint, a clickable suggestion list, non-fatal degrade (503/network -> a note, no crash), Enter suppressed so it never submits an enclosing form, onSelect({unitId,label}|null).
@@ -39,6 +43,7 @@ Build ONE slice per branch → PR → CI `verify` → merge, in the recommended 
 - Add Verified fact F-MAINT-UNIT-TYPEAHEAD and extend F-MAINT-INTAKE-REVIEW; net-zero-line loop-state progress edit.
 
 **Out of scope:**
+
 - Any new connector or connector-catalog entry.
 - Per-keystroke live RentVine reads (the endpoint MUST serve from the TTL cache).
 - Any LLM/model call for matching (deterministic substring filter only).
@@ -48,6 +53,7 @@ Build ONE slice per branch → PR → CI `verify` → merge, in the recommended 
 - Adding priority controls to the intake-review promote UI (keep its existing no-priority promote).
 
 **Files to create:**
+
 - `lib/maintenance/unit-index.ts` — Server-only ~10-min TTL cache over loadLiveUnitCandidates() plus a pure searchUnits() filter and a DEMO_UNIT_CANDIDATES fallback. Exports: `export const UNIT_INDEX_TTL_MS = 10 * 60 * 1000;`; `export type UnitIndexOutcome = { status: 'ok'; candidates: UnitCandidate[] } | { status: 'not_configured' | 'account_mismatch' | 'auth_error' | 'read_error' };`; `export const DEMO_UNIT_CANDIDATES: readonly UnitCandidate[]` (4 o …
 - `app/api/maintenance/units/search/route.ts` — Edit-gated type-ahead endpoint. Mirror app/api/maintenance/match-unit/route.ts auth shape. `import { NextResponse } from 'next/server';` `import { authErrorResponse, requireCapability } from '@/lib/auth/session';` `import { getUnitIndex, searchUnits } from '@/lib/maintenance/unit-index';`. `const MAX_Q = 120;`. export async function GET(request: Request): try { await requireCapability('edit'); } catch (error) { retur …
 - `components/maintenance/UnitTypeahead.tsx` — Reusable client type-ahead. 'use client'; `import { useEffect, useRef, useState } from 'react';`. `export interface UnitTypeaheadSelection { unitId: string; label: string; }`. Props: `{ id: string; label?: string; placeholder?: string; onSelect: (unit: UnitTypeaheadSelection | null) => void }` (default label 'Unit / location', default placeholder 'Start typing an address or unit number'). Internal state: query, resul …
@@ -56,6 +62,7 @@ Build ONE slice per branch → PR → CI `verify` → merge, in the recommended 
 - `tests/unit/maintenance-unit-typeahead.test.tsx` — jsdom component test (@vitest-environment jsdom). Stub fetch to return { units:[{unitId:'unit:456',label:'123 Main Street Unit 2'}] } for a units/search URL. Render <UnitTypeahead id='t' onSelect={spy} />; type '123 Main'; await findByRole('button',{name:/123 Main Street Unit 2/}); click it; assert onSelect called with { unitId:'unit:456', label:'123 Main Street Unit 2' } and the input value becomes the label. Second …
 
 **Files to edit:**
+
 - `components/maintenance/MaintenanceCapture.tsx` — Replace the manual unit flow with the typeahead. (a) Add `import { UnitTypeahead } from '@/components/maintenance/UnitTypeahead';`. (b) Remove `import type { ScoredUnitCandidate } from '@/lib/maintenance/unit-matcher';` (now unused). (c) Delete state: unitLabel, unitCandidates, isMatching. Keep `unitMatch`. (d) Delete the findUnit() and selectCandidate() functions and the match-unit fetch. (e) Replace the JSX block from the `<label htmlFor="mx-unit">Unit / location</label>` through the candidate `<select>` (current lines ~282-335, i.e. the input+Find-unit button and the candidates select) with …
 - `tests/unit/maintenance-capture.test.tsx` — Rewrite ONLY the second test ('builds a clean draft after matching the unit'). Stub fetch to branch on URL: when the URL includes '/api/maintenance/units/search' return Response.json({ units: [{ unitId: 'unit:456', label: '123 Main Street Unit 2' }] }); otherwise Response.json({}). Steps: type 'Dishwasher won\'t drain' into 'Issue'; type '123 Main' into the 'Unit / location' input; `await user.click(await screen.findByRole('button', { name: /123 Main Street Unit 2/ }))`; expect findByText(/Matched:/); click 'Build work-order draft'; keep the remaining assertions unchanged (Work-order draft hea …
 - `components/maintenance/UnverifiedIntakeReview.tsx` — Add optional unit confirmation to the promote flow. (a) `import { UnitTypeahead } from '@/components/maintenance/UnitTypeahead';`. (b) Add state `const [selectedUnits, setSelectedUnits] = useState<Record<string, { unitId: string; label: string }>>({});`. (c) In each row, above the button row, render `<UnitTypeahead id={`intake-unit-${row.id}`} label="Confirm unit (optional)" onSelect={(unit) => setSelectedUnits((prev) => { const next = { ...prev }; if (unit) next[row.id] = unit; else delete next[row.id]; return next; })} />`. (d) Change the Promote button onClick from `() => act(row.id, 'promo …
@@ -98,6 +105,7 @@ Net-zero-line in-place edit to line 53 (the 'Deferred cycle IN PROGRESS' bullet)
 ```
 
 **Guardrails:**
+
 - No per-keystroke live RentVine reads: the search endpoint MUST read getUnitIndex() (the TTL cache), never call loadLiveUnitCandidates/RentVine directly; RentVine is read at most once per UNIT_INDEX_TTL_MS per process.
 - No LLM/model call anywhere in the index, route, or component — searchUnits is a pure deterministic substring/token filter.
 - GET /api/maintenance/units/search MUST be authed via requireCapability('edit') so it satisfies tests/unit/route-auth-boundary.test.ts (do NOT add it to ALLOW_UNAUTHENTICATED).
@@ -117,6 +125,7 @@ Net-zero-line in-place edit to line 53 (the 'Deferred cycle IN PROGRESS' bullet)
 ---
 
 ## 1b
+
 **Lease-renewal live-review actionable: extract resolve + approve/return/revoke controls, fix live-review resolve 404**
 
 - Loop-executable: true
@@ -124,6 +133,7 @@ Net-zero-line in-place edit to line 53 (the 'Deferred cycle IN PROGRESS' bullet)
 **Objective:** Make the owner-gated live renewal review (/lease-renewal/live) actionable by reusing the run-page resolve form and the Admin approve/return/revoke write-back controls, extracted verbatim into a shared client module. Fix the blocker where POST /api/lease-renewal/resolve 404s for live runs (run_id "live-review") because it defaults its run resolver to getSimulationRun: the route now injects a resolver that rebuilds the live run. Queue-only: production_allowed:false, no system-of-record write, no send.
 
 **In scope:**
+
 - Extract FlagResolveForm, WritebackApprovalControl (+ its internal WritebackApprovalTimeline/DECISION_LABEL), and WritebackProposalCard (plus ResolveKind/KIND_LABEL) verbatim from components/lease-renewal/LeaseRenewalRunClient.tsx into a new shared "use client" module components/lease-renewal/flag-actions.tsx; re-import them in LeaseRenewalRunClient so its rendered DOM/labels are byte-identical (bulk test stays green).
 - Fix the resolve blocker: add lib/lease-renewal/resolve-run.ts exporting resolveRenewalRun(runId) that rebuilds the live run for the live id and falls back to getSimulationRun otherwise; widen RunResolver in lib/firestore/lease-renewal-resolutions.ts to allow an async resolver and await it; inject resolveRenewalRun in app/api/lease-renewal/resolve/route.ts.
 - In lib/lease-renewal/live-review.ts export LIVE_REVIEW_RUN_ID, factor a shared internal run builder, add rebuildLiveRenewalRun(readTimestamp), and add an optional resolutions/approvals/activity overlay param to loadLiveRenewalReview.
@@ -132,6 +142,7 @@ Net-zero-line in-place edit to line 53 (the 'Deferred cycle IN PROGRESS' bullet)
 - Add a Verified F-RENEWAL-LIVE-ACTIONABLE fact row + fold a 1b progress note into docs/loop-state.md in place.
 
 **Out of scope:**
+
 - Any Action Registry flip or change to the EXECUTABLE_ALLOWLIST (stays exactly ["gmail.renewal_notice.draft_create"]).
 - Any system-of-record / Sheet / RentVine / Gmail write or send; the actual Sheet write-back execution stays gated (F-WRITE-GATE).
 - Bulk write-back decision bar on the live review (bulk stays run-page-only).
@@ -140,11 +151,13 @@ Net-zero-line in-place edit to line 53 (the 'Deferred cycle IN PROGRESS' bullet)
 - The ?flag= highlight/scroll deep-link on the live review (run-page-only).
 
 **Files to create:**
+
 - `components/lease-renewal/flag-actions.tsx` — New shared "use client" module holding the reusable flag actions extracted verbatim from LeaseRenewalRunClient.tsx. Exports: (1) FlagResolveForm({flag: RenewalFlagView, runId: string, canResolve: boolean, isAdmin: boolean}) — encapsulates the FlagCard resolve logic (useState for kind/chosenSource/correctedValue/reason/reasonCode/submitting/error initialized exactly as today; the submit() POST to /api/lease-renewal/re …
 - `lib/lease-renewal/resolve-run.ts` — Server-only run resolver injected by the resolve route. Full content: header comment noting keys are derived from runId+field_key only (so a rebuild matches) and that it writes nothing; import type { RenewalRunResult } from "@/lib/lease-renewal/pipeline"; import { LIVE_REVIEW_RUN_ID, rebuildLiveRenewalRun } from "@/lib/lease-renewal/live-review"; import { getSimulationRun } from "@/lib/lease-renewal/simulation"; expo …
 - `tests/unit/lease-renewal-resolve-run.test.ts` — Unit test locking the dispatch + non-fatal degrade. Cases: resolveRenewalRun(SIMULATION_RUN_ID) resolves to a run whose runId===SIMULATION_RUN_ID; resolveRenewalRun("does-not-exist") resolves to null; and — guarded by if(!process.env.RENTVINE_API_BASE_URL) so it stays hermetic — resolveRenewalRun("live-review") resolves to null when live sources are unconfigured (proves the live branch degrades, never throws or leaks …
 
 **Files to edit:**
+
 - `lib/firestore/lease-renewal-resolutions.ts` — Widen the resolver type to allow an async resolver and await it. Line 157: change `export type RunResolver = (runId: string) => RenewalRunResult | null;` to `export type RunResolver = (runId: string) => RenewalRunResult | null | Promise<RenewalRunResult | null>;`. In resolveLeaseRenewalFlag (line ~173): change `const run = getRun(parsed.run_id);` to `const run = await getRun(parsed.run_id);`. Keep the default `getRun: RunResolver = getSimulationRun` (pure test seam; do NOT import resolve-run here — avoid coupling the persistence layer to the live network clients). No other logic changes; the 4 …
 - `app/api/lease-renewal/resolve/route.ts` — Inject the combined resolver so live-review flags no longer 404. Add import { resolveRenewalRun } from "@/lib/lease-renewal/resolve-run";. Change the call `const resolution = await resolveLeaseRenewalFlag(user, input);` to `const resolution = await resolveLeaseRenewalFlag(user, input, undefined, resolveRenewalRun);` (undefined keeps the getAdminFirestore() default for db). Add a one-line comment explaining the resolver rebuilds the live-review run. Route stays gated by requireCapability("read") — no auth-boundary change.
 - `lib/lease-renewal/live-review.ts` — (1) Add `export const LIVE_REVIEW_RUN_ID = "live-review";` and use it in place of the literal runId in the run builds. (2) Factor an internal `async function runLiveReview(readTimestamp): Promise<{status:"ok";result:FullyLiveRenewalRunResult}|{status:Exclude<LiveReviewStatus,"ok">}>` that does buildLiveRenewalConfig() (return {status:config.reason} when !ok), then runFullyLiveRenewalReview with tabTitles: LIVE_REVIEW_TABS, runId: LIVE_REVIEW_RUN_ID, readTimestamp, in a try/catch returning {status: categorizeLiveReviewError(error)}. (3) Add `export interface LiveReviewOverlay { resolutions?: Le …
@@ -168,6 +181,7 @@ loop-state.md is EXACTLY at the 140-line cap (139 newlines + trailing newline = 
 ```
 
 **Guardrails:**
+
 - production_allowed:false everywhere; queue-only; NO system-of-record / Sheet / RentVine / Gmail write or send. The actual Sheet write-back execution stays gated (F-WRITE-GATE).
 - Do NOT flip any Action Registry entry. EXECUTABLE_ALLOWLIST in scripts/seed-action-registry.ts AND lib/admin/migration-readiness.ts must stay exactly new Set(["gmail.renewal_notice.draft_create"]).
 - No new app/api route is added; the resolve route keeps requireCapability("read") and the data layer keeps enforcing approve + manageAdmin (High/Blocked) + mandatory reason. tests/unit/route-auth-boundary.test.ts allow-list is unchanged.
@@ -187,6 +201,7 @@ loop-state.md is EXACTLY at the 140-line cap (139 newlines + trailing newline = 
 ---
 
 ## 1c
+
 **Slice 1c — Per-property lease-renewal decision repository + manageAdmin page**
 
 - Loop-executable: true
@@ -194,6 +209,7 @@ loop-state.md is EXACTLY at the 140-line cap (139 newlines + trailing newline = 
 **Objective:** Add a pure per-property repository that joins each simulation run's ADDRESS-joined reconciliation flags to a canonical property key (deriveAddressKey of the record's join value) and buckets the EXISTING append-only resolution + write-back-approval Activity by property, exposing a strictly value-free payload ({actorUid, action, timestamp, reason}). Surface it on a new manageAdmin-only /lease-renewal/property/[propertyKey] server page. No new Firestore collection or index; app-plane only; production_allowed:false throughout; golden-tested for no cross-property bleed.
 
 **In scope:**
+
 - New pure module lib/lease-renewal/property-repository.ts: types (PropertyActivityEntry with EXACTLY actorUid/action/timestamp/reason; PropertyActivityBucket; PropertyRunActivity input) + buildRunPropertyKeyIndex(run) + listRunPropertyKeys(run) + buildPropertyActivity(runs) + getPropertyActivity(runs, propertyKey). No I/O, no firebase-admin import, no Date.now().
 - Minimal additive pipeline change: add optional propertyKey?: string to ReconciledFieldOutcome in lib/lease-renewal/pipeline.ts, populated ONLY for spec.joinKind === 'address' as deriveAddressKey(joinRaw).key (import deriveAddressKey from the already-used @/lib/lease-renewal/join).
 - New run-scoped reader listResolutionActivityForRun(actor, runId, db) in lib/firestore/lease-renewal-resolutions.ts mirroring the existing listWritebackApprovalActivityForRun (read-gated; single-field where('run_id','==',runId); no composite index).
@@ -202,6 +218,7 @@ loop-state.md is EXACTLY at the 140-line cap (139 newlines + trailing newline = 
 - Governance close-out: add Verified fact F-RENEWAL-PROPERTY-REPO to docs/facts.md; edit-in-place progress in docs/loop-state.md (keep <=140 lines); append dated slice-1c entry to docs/status.md.
 
 **Out of scope:**
+
 - Navigation/links INTO the property page (run page, desk, attention fold) — deferred; the page is directly-addressable this slice.
 - Attributing NAME-joined fields (renewal_date, current_rent, tenant_responded) — those Renewals-tab records carry no address column, so they have no property; excluded by design.
 - Storing the RAW address on the outcome — only the derived deriveAddressKey().key is added.
@@ -210,11 +227,13 @@ loop-state.md is EXACTLY at the 140-line cap (139 newlines + trailing newline = 
 - Any change to run-view.ts / the value-free board / queue drafts (propertyKey must NOT be projected onto them).
 
 **Files to create:**
+
 - `lib/lease-renewal/property-repository.ts` — Pure per-property repository. Exports: interface PropertyActivityEntry { actorUid: string; action: string; timestamp: string; reason: string } (EXACTLY these 4 keys — value-free); interface PropertyActivityBucket { propertyKey: string; entries: PropertyActivityEntry[]; resolutionCount: number; approvalCount: number }; interface PropertyRunActivity { run: RenewalRunResult; resolutionActivity: readonly LeaseRenewalReso …
 - `app/lease-renewal/property/[propertyKey]/page.tsx` — manageAdmin-only server component (NO 'use client'). Signature: props { params: Promise<{ propertyKey: string }> }. const user = await requirePageCapability('manageAdmin'); const { propertyKey } = await params. Build PropertyRunActivity[] by iterating listSimulationRuns(): for each summary, getSimulationRun(runId) (pure, always available); then try { resolutionActivity = await listResolutionActivityForRun(user, runId …
 - `tests/unit/lease-renewal-property-repository.test.ts` — Golden test (Vitest). Helper builds a custom run via runRenewalPipeline({runId:'prop-run', tables:[propertyAttributesGrid], nonSheetCandidates:[...]}) using a Property Attributes grid (reuse the exact header row: ['Property','Unit','Updated to Kwickset Smart Locks','Utilities Needed','Lawn Care','Inspections','Appliances provided','','Notes']) with two data rows for '100 Birchwood Ln' and '2200 Elmgrove'. Test A (no …
 
 **Files to edit:**
+
 - `lib/lease-renewal/pipeline.ts` — 1) Change the join import to `import { deriveAddressKey, proposeJoin, type JoinKind } from "@/lib/lease-renewal/join";`. 2) In interface ReconciledFieldOutcome add an optional field with a doc comment: `/** Canonical property key (deriveAddressKey of the record's join value) for ADDRESS-joined fields; undefined for name-joined fields. In-boundary only; never projected onto the value-free board/queue. */ propertyKey?: string;`. 3) Inside runRenewalPipeline, after `const joinRaw = record.fields[spec.joinFieldKey]?.raw ?? "";` (currently ~line 245) compute `const propertyKey = spec.joinKind === " …
 - `lib/firestore/lease-renewal-resolutions.ts` — Add exported async function listResolutionActivityForRun(actor: AuthenticatedUser, runId: string, db: Firestore = getAdminFirestore()): Promise<LeaseRenewalResolutionActivityRecord[]> that assertCan(actor,'read'), queries db.collection(LEASE_RENEWAL_COLLECTIONS.resolutionActivity).where('run_id','==',runId).get(), maps via readRecord<LeaseRenewalResolutionActivityRecord>, and sorts by created_at.localeCompare (mirror the existing listWritebackApprovalActivityForRun; LeaseRenewalResolutionActivityRecord is already imported in this file; the activity write already stamps run_id, so the single-fi …
 - `docs/facts.md` — Append one Verified Fact-Ledger row F-RENEWAL-PROPERTY-REPO (exact text in governanceChanges). Evidence cites ONLY existing non-bracket paths (repository, pipeline, firestore reader, golden test) — NOT the bracketed page route, which the freshness gate mis-parses.
@@ -242,6 +261,7 @@ Append (append-only; never rewrite history) a 2026-07-09 entry for slice 1c. PRE
 ```
 
 **Guardrails:**
+
 - MUST NOT flip or add any Action Registry production_allowed, and MUST NOT touch EXECUTABLE_ALLOWLIST in scripts/seed-action-registry.ts or lib/admin/migration-readiness.ts. Only gmail.renewal_notice.draft_create stays executable; everything else remains production_allowed:false.
 - MUST NOT create a new Firestore collection or any index. firestore.indexes.json stays []. Only single-field where('run_id','==',runId) equality reads on the existing lease_renewal_resolution_activity + lease_renewal_writeback_approval_activity collections (matches existing readers).
 - VALUE-FREE invariant: PropertyActivityEntry exposes EXACTLY {actorUid, action, timestamp, reason}. Never copy address, field value, field_key, propertyKey-raw-address, proposed_value, source_of_value, severity, or reason_code onto an entry. Pin with a sentinel key-set assertion in the golden test.
@@ -259,6 +279,7 @@ Append (append-only; never rewrite history) a 2026-07-09 entry for slice 1c. PRE
 ---
 
 ## 3a
+
 **Anticipatory AI draft-TEXT composer for Gmail Inbox 0 (ModelProvider seam, deterministic spine first)**
 
 - Loop-executable: true
@@ -267,6 +288,7 @@ Append (append-only; never rewrite history) a 2026-07-09 entry for slice 1c. PRE
 **Objective:** Add lib/gmail-inbox-zero/anticipatory-draft.ts: a pure app-plane function composeAnticipatoryReplyDraft that tailors an already-Approved Gmail Inbox 0 reply template for ONE thread through the ModelProvider seam (free local model in dev/test, Gemini in prod, NODE_ENV-fenced). The deterministic buildReplyDraft spine runs FIRST and refuses an unapproved template or a hard-excluded category BEFORE the model is ever called; the verbatim DRAFT_BANNER and "Needs Verification: <fact>" placeholders are re-applied deterministically after the model returns; any model failure degrades non-fatally to the deterministic template draft. Single-thread explicit invoke, under the $10 cap, NO Gmail API call, no send, no Action Registry entry touched. Register the file in CLIENT_DRAFT_FILES so its em dashes hard-fail copy-voice, and record a Verified F-GMAIL-DRAFT-COMPOSER fact + a loop-state progress line.
 
 **In scope:**
+
 - New pure lib module lib/gmail-inbox-zero/anticipatory-draft.ts using the ModelProvider seam via dependency injection (provider + model passed in, exactly like lib/processes/classify.ts — never constructs a provider or reads config)
 - Deterministic spine FIRST: call buildReplyDraft (lib/gmail-inbox-zero/drafts.ts) before any model call so an unapproved template or a hard-excluded category (Owner money / Legal/notices / Tenant disputes) is refused with the model never invoked
 - Re-apply the verbatim DRAFT_BANNER + UNVERIFIED_PLACEHOLDER deterministically by re-running buildReplyDraft over the model's tailored body (so banner + Needs-Verification lines are byte-identical to the deterministic path); strip a leading banner the model wrongly emits so it is never duplicated
@@ -277,6 +299,7 @@ Append (append-only; never rewrite history) a 2026-07-09 entry for slice 1c. PRE
 - Add Verified fact F-GMAIL-DRAFT-COMPOSER to docs/facts.md and fold a 3a progress note into the existing loop-state 'Deferred cycle IN PROGRESS' bullet (in-place, no net new physical line)
 
 **Out of scope:**
+
 - Any Gmail API call, mailbox read, draft create, or label apply (the per-user Gmail runtime stays gated; do NOT use the Gmail MCP tools)
 - A new app/api route or React/UI wiring for the composer (no route means no tests/unit/route-auth-boundary.test.ts change; caller wiring is a later slice) — the composer is lib-only with DI provider+model
 - Any Action Registry change or production_allowed flip; the gmail.label.apply / gmail.draft.create entries stay Planned/production_allowed:false; EXECUTABLE_ALLOWLIST is untouched
@@ -285,40 +308,43 @@ Append (append-only; never rewrite history) a 2026-07-09 entry for slice 1c. PRE
 - docs/status.md is append-only history; a one-line entry is optional and gate-neutral, not required by this slice
 
 **Files to create:**
+
 - `lib/gmail-inbox-zero/anticipatory-draft.ts` — Anticipatory AI draft-TEXT composer. EXACT full contents:
 
 // Anticipatory AI draft-TEXT composer for Gmail Inbox 0 (deferred-cycle bullet 3, slice 3a).
 // It tailors an ALREADY-APPROVED reply template so it reads naturally for one specific email,
 // through the ModelProvider seam so a free local model stands in for Gemini in dev/test and
 // Gemini runs in prod (lib/config/server.ts fences the local path out of prod) …
+
 - `tests/unit/gmail-inbox-zero-anticipatory-draft.test.ts` — Unit tests with a fake ModelProvider (no Gmail, no network). EXACT full contents:
 
 import { describe, expect, it } from "vitest";
 
 import { DRAFT_BANNER } from "@/lib/constants";
 import {
-  composeAnticipatoryReplyDraft,
-  type ComposeAnticipatoryDraftInput,
+composeAnticipatoryReplyDraft,
+type ComposeAnticipatoryDraftInput,
 } from "@/lib/gmail-inbox-zero/anticipatory-draft";
 import type { ReplyTemplate } from "@/lib/gmail-inbox-zero/drafts";
 import type { TriageMessageFacts } from " …
 
 **Files to edit:**
+
 - `scripts/check-copy-voice.mjs` — Add the new composer to the CLIENT_DRAFT_FILES array so its em dashes hard-fail the copy-voice gate. Replace exactly:
 
 export const CLIENT_DRAFT_FILES = [
-  "lib/lease-renewal/owner-draft.ts",
-  "lib/lease-renewal/tenant-draft.ts",
-  "lib/maintenance/owner-notice-draft.ts",
+"lib/lease-renewal/owner-draft.ts",
+"lib/lease-renewal/tenant-draft.ts",
+"lib/maintenance/owner-notice-draft.ts",
 ];
 
 with:
 
 export const CLIENT_DRAFT_FILES = [
-  "lib/gmail-inbox-zero/anticipatory-draft.ts",
-  "lib/lease-renewal/owner-draft.ts",
-  "lib/lease-renewal/tenant-draft.ts",
-  "lib/maintenance/owner-notice-draft.ts",
+"lib/gmail-inbox-zero/anticipatory-draft.ts",
+"lib/lease-renewal/owner-draft.ts",
+"lib/lease-renewal/tenant-draft.ts",
+"lib/maintenance/owner-notice-draft.ts",
 ];
 
 No other change. tests/unit/check-copy-voice.test.mjs does NOT pin the array contents (it only asserts sca …
@@ -352,7 +378,8 @@ PRESERVE: 'Last updated: 2026-07-09' stays as-is (freshness gate needs it >= new
 ```
 
 **Guardrails:**
-- MUST NOT make any Gmail API call, nor use the live Gmail MCP tools (create_draft / search_threads / get_message / label_*) — the composer is pure text over sanitized caller-supplied facts
+
+- MUST NOT make any Gmail API call, nor use the live Gmail MCP tools (create*draft / search_threads / get_message / label*\*) — the composer is pure text over sanitized caller-supplied facts
 - MUST NOT add or flip any Action Registry entry; gmail.label.apply and gmail.draft.create stay Planned / production_allowed:false; do not touch EXECUTABLE_ALLOWLIST in scripts/seed-action-registry.ts or lib/admin/migration-readiness.ts
 - MUST run the deterministic buildReplyDraft spine and RETURN on !spine.ok BEFORE calling provider.generateText — the excluded-category / unapproved-template refusal must be provable by a fake provider whose call count stays 0
 - MUST NOT construct a ModelProvider or read config inside the module — provider + model are injected (DI), exactly like classify.ts, so no route/config coupling and prod/dev fencing stays in lib/config/server.ts
@@ -369,6 +396,7 @@ PRESERVE: 'Last updated: 2026-07-09' stays as-is (freshness gate needs it >= new
 ---
 
 ## 3b
+
 **In-app notification framework (unified feed + maintenance-ticket notifications, email hard-off, stubbed Gmail families)**
 
 - Loop-executable: true
@@ -376,6 +404,7 @@ PRESERVE: 'Last updated: 2026-07-09' stays as-is (freshness gate needs it >= new
 **Objective:** Ship an app-plane in-app notification framework that unifies the app's per-user notifications into one feed surfaced by the existing NotificationMenu. Add PII-free maintenance-lifecycle notifications written inside the existing ticket transactions, a self-scoped per-user in-app preferences record (email hard-off; KB_APPROVAL_NOTIFICATIONS_ENABLED stays false), and stub the two Gmail-dependent notification families (RentVine replies, Owner replies) as available:false with "Waiting on Gmail access". No system-of-record write, no send, no Action Registry flip.
 
 **In scope:**
+
 - Client-safe notification family catalog (lib/notifications/families.ts): NOTIFICATION_FAMILY_KEYS tuple + NOTIFICATION_FAMILIES (2 available: approval_queue, maintenance_tickets; 2 stubbed available:false with unavailableReason 'Waiting on Gmail access': rentvine_replies, owner_process_replies) + UnifiedNotification / NotificationFamilyView types + buildFamilyViews(mutedFamilies).
 - New server module lib/firestore/maintenance-ticket-notifications.ts: MaintenanceTicketNotificationRecord + event type, appendMaintenanceTicketNotification(transaction,db,input) (PII-free, assignee-only, never the actor), listMaintenanceTicketNotifications (self-scoped), markMaintenanceTicketNotificationRead (recipient-only).
 - New server module lib/firestore/notification-preferences.ts: NotificationPreferencesRecord (doc id = uid, email_enabled:false literal), getNotificationPreferences (self, default when absent), updateNotificationPreferences (self-scoped write to doc id = actor.uid, filters mutes to available families).
@@ -389,6 +418,7 @@ PRESERVE: 'Last updated: 2026-07-09' stays as-is (freshness gate needs it >= new
 - Governance: add Verified F-NOTIF-FRAMEWORK to docs/facts.md and a line-neutral loop-state progress edit.
 
 **Out of scope:**
+
 - Any email / Gmail send or draft path for notifications (email stays gated OFF; no email channel field).
 - Flipping any Action Registry entry to production_allowed:true or touching the EXECUTABLE_ALLOWLIST in scripts/seed-action-registry.ts or lib/admin/migration-readiness.ts.
 - Real RentVine-reply or owner-process-reply notification runtime (those families stay stubbed until the client Gmail access model + DWD land).
@@ -397,6 +427,7 @@ PRESERVE: 'Last updated: 2026-07-09' stays as-is (freshness gate needs it >= new
 - Any change to the approval-queue notification writer or its existing routes (they are reused as-is).
 
 **Files to create:**
+
 - `lib/notifications/families.ts` — Client-safe catalog (NO firebase-admin import). Export: `const NOTIFICATION_FAMILY_KEYS = ['approval_queue','maintenance_tickets','rentvine_replies','owner_process_replies'] as const;` and `type NotificationFamilyKey = (typeof NOTIFICATION_FAMILY_KEYS)[number];`. Export `type NotificationSource = 'approval_queue' | 'maintenance_ticket';`. Export `interface NotificationFamily { key: NotificationFamilyKey; label: strin …
 - `lib/firestore/maintenance-ticket-notifications.ts` — Server (firebase-admin) writer/reader for the `maintenance_ticket_notifications` collection, PII-FREE. Imports: FieldValue-free ISO strings only (mirror lib/firestore/maintenance-tickets.ts determinism); import type {Firestore, Transaction} from 'firebase-admin/firestore', {v7 as uuidv7} from 'uuid', {can} from '@/lib/auth/roles', {AuthenticatedUser} from '@/lib/auth/session', {getAdminFirestore} from '@/lib/firestor …
 - `lib/firestore/notification-preferences.ts` — Server (firebase-admin) self-scoped preferences for `user_notification_preferences` (doc id = uid). Imports mirror the maintenance module; also import {NotificationFamilyKey, NOTIFICATION_FAMILIES} from '@/lib/notifications/families' and {UpdateNotificationPreferencesInputSchema} from '@/lib/firestore/schemas'. `const COLLECTION = 'user_notification_preferences'`. Export `interface NotificationPreferencesRecord { uid …
@@ -408,16 +439,17 @@ PRESERVE: 'Last updated: 2026-07-09' stays as-is (freshness gate needs it >= new
 - `tests/unit/maintenance-ticket-notifications.test.ts` — Unit test with an in-memory fake db (copy the fakeDb() from tests/unit/maintenance-tickets.test.ts). Directly exercise appendMaintenanceTicketNotification via a fake transaction {set}: (a) event 'assigned' with a recipient != actor writes one PII-free doc (assert fields exactly: recipient_uid, title, message, ticket_status, href='/maintenance'; assert NO summary/unit/reporter keys present); (b) recipient === actorUid …
 - `tests/unit/notification-preferences.test.ts` — Unit test (fake db). getNotificationPreferences returns a default {muted_families:[], email_enabled:false} when absent; updateNotificationPreferences writes to doc id === actor.uid ONLY, keeps only available family keys (a request to mute 'rentvine_replies' is dropped; 'maintenance_tickets' is kept), and the persisted record always has email_enabled:false; a second update preserves created_at and bumps updated_at.
 - `tests/unit/notification-feed.test.ts` — Pure-builder test for buildNotificationFeed: merges approval + maintenance into UnifiedNotification, sorts newest-first by created_at, maps approval href to /approval-queue?item_id=..., maps maintenance href to /maintenance, DROPS a notification whose family is muted, respects limit, and families output includes all four with muted flags and the two stubbed families carrying unavailableReason 'Waiting on Gmail access …
-- `tests/unit/notifications-route.test.ts` — Light route test using setAuthResolverForTest (mirror an existing *-route.test.ts). GET /api/notifications returns {notifications, families} with families length 4 and the two stubs available:false; unauth (resolver -> null) -> 401; mark-read POST dispatches (assert it calls the right per-source writer via injected/mocked db or a spy, or asserts a 200 ok:true with a seeded record); preferences GET/PATCH round-trip re …
+- `tests/unit/notifications-route.test.ts` — Light route test using setAuthResolverForTest (mirror an existing \*-route.test.ts). GET /api/notifications returns {notifications, families} with families length 4 and the two stubs available:false; unauth (resolver -> null) -> 401; mark-read POST dispatches (assert it calls the right per-source writer via injected/mocked db or a spy, or asserts a 200 ok:true with a seeded record); preferences GET/PATCH round-trip re …
 
 **Files to edit:**
+
 - `lib/firestore/maintenance-tickets.ts` — Import appendMaintenanceTicketNotification + type MaintenanceTicketNotificationEvent from '@/lib/firestore/maintenance-ticket-notifications'. Inside transitionMaintenanceTicket's runTransaction callback, declare `let notificationEvent: MaintenanceTicketNotificationEvent | undefined;` before the switch. In case 'status': set notificationEvent = op.status==='Closed' ? 'closed' : reopening ? 'reopened' : 'status_changed'. In case 'assign': set notificationEvent = op.assigneeUid ? 'assigned' : undefined (unassign emits none). Leave 'label-add'/'label-remove'/'note' with notificationEvent undefined …
 - `lib/firestore/schemas.ts` — Add `import { NOTIFICATION_FAMILY_KEYS } from '@/lib/notifications/families';` at top. Add `export const NotificationFamilyKeySchema = z.enum(NOTIFICATION_FAMILY_KEYS);`. Add `export const UpdateNotificationPreferencesInputSchema = z.object({ muted_families: z.array(NotificationFamilyKeySchema).default([]) });`. Add `export const MarkNotificationReadInputSchema = z.object({ source: z.enum(['approval_queue','maintenance_ticket']), id: requiredTextSchema });`. Add the two `export type ... = z.input<typeof ...>` lines. Note z.enum needs a readonly tuple; NOTIFICATION_FAMILY_KEYS is `as const` so …
 - `components/layout/NotificationMenu.tsx` — Rewire from the approval-only endpoint to the unified feed. Replace the ApprovalQueueNotificationRecord import with `import type { UnifiedNotification, NotificationFamilyView } from '@/lib/notifications/families';`. State: notifications: UnifiedNotification[]; add families: NotificationFamilyView[]. loadNotifications fetches `/api/notifications?unread_only=true&limit=8` and reads `{ notifications, families }`. unreadCount unchanged (filter !read_at). openNotification(n): POST `/api/notifications/mark-read` with JSON body `{ source: n.source, id: n.id }` (Content-Type application/json), then na …
 - `firestore.rules` — Add two match blocks immediately BEFORE the final `match /{document=**}` catch-all (after the maintenance intake blocks). Block 1: `match /maintenance_ticket_notifications/{notificationId} { allow read: if signedIn() && editorOrBetter() && (admin() || ('recipient_uid' in resource.data && resource.data.recipient_uid == request.auth.uid)); allow create, update, delete: if false; }` with a comment noting server-written via Admin SDK, self-scoped read, and in-app-only (email stays gated off). Block 2: `match /user_notification_preferences/{userId} { allow read: if signedIn() && editorOrBetter() && …
 - `tests/unit/notification-menu-component.test.tsx` — Rewrite to the unified shape. Mock fetch: `/api/notifications?` -> { notifications: [approvalUnified(), maintenanceUnified()], families: [{key:'approval_queue',label:'Approvals',...,available:true,muted:false},{key:'maintenance_tickets',label:'Maintenance tickets',...,available:true,muted:false},{key:'rentvine_replies',label:'RentVine replies',...,available:false,unavailableReason:'Waiting on Gmail access',muted:false},{key:'owner_process_replies',...available:false,unavailableReason:'Waiting on Gmail access',muted:false}] }; `/api/notifications/mark-read` (POST) -> {ok:true}; `/api/notificati …
 - `tests/unit/maintenance-tickets.test.ts` — Extend (do not rewrite) to assert the notification wiring. Add a test: create a ticket, assign it to a DIFFERENT uid than the actor, assert one doc lands in store.get('maintenance_ticket_notifications') with event 'assigned' and recipient = the assignee; a subsequent status transition by the actor writes a 'status_changed' notification to that assignee; a status transition on an UNASSIGNED ticket writes none; create/label/note write none. Existing assertions are unaffected because baseInput has no assignee (no notifications on the current transitions).
-- `docs/facts.md` — Append a new Verified row to the Fact Ledger table immediately after the F-MAINT-ASSIGNEE row (line 124), separated by a blank line, before the '## Supersede Log' heading. See governanceChanges for the exact row. All cited evidence paths exist on disk after the build and contain no [bracket] dynamic-route segment (cite the rules test + feed test + lib modules, not app/api/**/route.ts).
+- `docs/facts.md` — Append a new Verified row to the Fact Ledger table immediately after the F-MAINT-ASSIGNEE row (line 124), separated by a blank line, before the '## Supersede Log' heading. See governanceChanges for the exact row. All cited evidence paths exist on disk after the build and contain no [bracket] dynamic-route segment (cite the rules test + feed test + lib modules, not app/api/\*\*/route.ts).
 - `docs/loop-state.md` — Line-neutral edit ONLY (the file is at the 140-line cap; do NOT add or remove any newline). On the existing physical line ending '...assignee picker + Assigned-to-me filter (`F-MAINT-ASSIGNEE`). Remaining: A4, unit type-ahead, notifications, queue rebuild.' replace the tail so it reads: '...assignee picker + Assigned-to-me filter (`F-MAINT-ASSIGNEE`); 3b the in-app notification framework (unified feed + maintenance-ticket notifications, in-app-only, email hard-off, stubbed Gmail-dependent families) (`F-NOTIF-FRAMEWORK`). Remaining: A4, unit type-ahead, queue rebuild.' Keep it a single physical …
 
 **Governance changes (apply EXACTLY):**
@@ -441,6 +473,7 @@ NO CHANGE. Do NOT touch the EXECUTABLE_ALLOWLIST or flip any Action Registry ent
 ```
 
 **Guardrails:**
+
 - No Action Registry entry is flipped: EXECUTABLE_ALLOWLIST in scripts/seed-action-registry.ts + lib/admin/migration-readiness.ts stays byte-identical; gmail.renewal_notice.draft_create remains the only production_allowed:true key.
 - Email stays OFF: the framework has NO email channel, no send, no Gmail call; KB_APPROVAL_NOTIFICATIONS_ENABLED stays false and NotificationPreferencesRecord.email_enabled is the literal-false type (never settable true).
 - Maintenance notification copy is PII-FREE: only event label + ticket status + ticket id (uuid) + '/maintenance' href; never summary, description, unit label/address, reporter name/contact, or assignee email/uid in title or message.
@@ -460,6 +493,7 @@ NO CHANGE. Do NOT touch the EXECUTABLE_ALLOWLIST or flip any Action Registry ent
 ---
 
 ## A4
+
 **Console act-in-place: inline Approve for queue_item rows (GOVERNANCE)**
 
 - Loop-executable: true
@@ -467,6 +501,7 @@ NO CHANGE. Do NOT touch the EXECUTABLE_ALLOWLIST or flip any Action Registry ent
 **Objective:** Let the Console action deck approve a queue item IN PLACE — the single app-plane decision — instead of only deep-linking. Add an optional minimal `itemId` to `NeedsDecisionRow` on queue_item rows only, render a canApprove-gated inline Approve on those deck rows that calls the EXISTING authed PATCH /api/approval-queue/:itemId with {action:"approve"} (records status->Approved; no send, no system-of-record write, no external action). Supersede F-CONSOLE-APP-STATE with F-CONSOLE-ACT-IN-PLACE, scope F-PRECUST-WAVE1, and relax exactly three pins while keeping the SECRET no-leak asserts.
 
 **In scope:**
+
 - Add optional `itemId?: string` to NeedsDecisionRow (lib/approval/needs-decision-inbox.ts), set to item.id on queue_item rows ONLY
 - New client component components/console/ConsoleApproveButton.tsx that PATCHes the existing /api/approval-queue/:itemId with {action:'approve'} and shows Approve/Approving/Approved + server error inline
 - ConsoleActionDeck: add itemId? to ConsoleDeckRow, add optional canApprove prop (default false), render ConsoleApproveButton only when canApprove && row.itemId
@@ -475,6 +510,7 @@ NO CHANGE. Do NOT touch the EXECUTABLE_ALLOWLIST or flip any Action Registry ent
 - Supersede F-CONSOLE-APP-STATE -> F-CONSOLE-ACT-IN-PLACE + supersede-log row; scope F-PRECUST-WAVE1; add net-zero-line loop-state A4 progress line
 
 **Out of scope:**
+
 - Any external action: no send, no Sheet/SoR write, no bulk 'execute' wiring (stays blocked)
 - Approve affordance on the value-free triage surfaces: NeedsDecisionInboxPanel (Approval-Queue 'Needs your decision' tab), renewal review board, write-back queue, Spaces card all stay read-only
 - return/snooze/disable/assign transitions from the Console (approve only)
@@ -484,9 +520,11 @@ NO CHANGE. Do NOT touch the EXECUTABLE_ALLOWLIST or flip any Action Registry ent
 - router.refresh / client refetch of the deck count (accepted: a reload reflects the new count)
 
 **Files to create:**
+
 - `components/console/ConsoleApproveButton.tsx` — 'use client' in-place Approve for a Console deck queue_item row. On click: fetch PATCH `/api/approval-queue/${encodeURIComponent(itemId)}` with body {action:'approve'}, headers {'Content-Type':'application/json'}. On !response.ok read {error} (apiErrorResponse returns {error}) and show it inline; on success show 'Approved.' via a done state. Props: Readonly<{ itemId: string }>. NO useRouter (avoids jsdom router-conte …
 
 **Files to edit:**
+
 - `lib/approval/needs-decision-inbox.ts` — 1) In `interface NeedsDecisionRow`, after `href: string;` add optional `itemId?: string;` with a comment: set on `queue_item` rows ONLY (the queue item id), never a proposed value/reason/decider/assignee. 2) In step 3 (the queue-item `consider(queueItemTargetKey(item), {...})` block), add `itemId: item.id,` right after the `key:` line. No other row kind gets itemId.
 - `components/console/ConsoleActionDeck.tsx` — 1) Add `import { ConsoleApproveButton } from '@/components/console/ConsoleApproveButton';`. 2) Add `itemId?: string;` to `interface ConsoleDeckRow` (comment: approval queue_item rows only; enables in-place Approve). 3) Change the component signature to `({ cards, canApprove = false }: Readonly<{ cards: readonly ConsoleDeckCard[]; canApprove?: boolean }>)`. 4) Inside the row `<li>`, after the detail span, render `{canApprove && row.itemId ? <ConsoleApproveButton itemId={row.itemId} /> : null}`. 5) Extend the file docstring to note the queue_item in-place approve (app-plane, no external action); …
 - `components/console/ConsoleView.tsx` — 1) After `const canStartSimulation = can(user.role, 'edit');` add `const canApprove = can(user.role, 'approve');` (`can` already imported). 2) In the `approvals` card's `rows: inbox.rows.map((row) => ({ label, detail, href }))`, add `itemId: row.itemId,` (this map is uniquely anchored by its emptyLabel 'Nothing needs your decision right now.'). 3) Change `<ConsoleActionDeck cards={cards} />` to `<ConsoleActionDeck canApprove={canApprove} cards={cards} />`. Do NOT add itemId to the connections/coverage card maps.
@@ -543,6 +581,7 @@ NET-ZERO-LINE progress edit (add NO newline; file is at the 140-line cap). On th
 ```
 
 **Guardrails:**
+
 - HARD STOP: never a button/control that executes an EXTERNAL action. The only inline control is Approve, which records an app-plane queue-item decision (status->Approved) via the existing PATCH — verified app-plane: planTransition('approve') only sets status/closed_at + appends activity, and syncProcessDefinitionQueueItemTransition only edits a Firestore process-definition status (no send, no SoR write). Do NOT wire return/snooze/disable/assign/execute; the bulk 'execute' path stays blocked.
 - itemId is set on queue_item rows ONLY and equals item.id — NEVER a proposedValue, reason, decider, or assignee. Add no other field to NeedsDecisionRow.
 - KEEP the SECRET no-leak asserts in tests/unit/needs-decision-inbox.test.ts unchanged; they must still pass with itemId present.
@@ -563,6 +602,7 @@ NET-ZERO-LINE progress edit (add NO newline; file is at the 140-line cap). On th
 ---
 
 ## 4a
+
 **Approval-Queue presentation rebuild: unified urgent-first list + "Other views" disclosure (GOVERNANCE)**
 
 - Loop-executable: true
@@ -571,6 +611,7 @@ NET-ZERO-LINE progress edit (add NO newline; file is at the 140-line cap). On th
 **Objective:** Collapse the Approval Queue's four peer tabs into one always-visible, value-free "Needs your decision" list plus an "Other views" disclosure that holds All items / Renewal reviews / Write-back proposals. Presentation-only: the NeedsDecisionRow data shape (ROW_KEYS pin) is unchanged, existing All-items transitions are reused verbatim, approving/resolving stays on the run page, and every production_allowed:false holds. Governance is recorded (new Verified F-APPROVAL-QUEUE-UNIFIED + a Supersede-Log marker retiring the OQ-UI-1 four-tab layout; F-RENEWAL-REVIEW-SUBTAB and F-WRITEBACK-QUEUE tab wording reconciled).
 
 **In scope:**
+
 - Rewrite the render tree of components/approval/ApprovalQueue.tsx: NeedsDecisionInboxPanel always at top; a <details className="panel ui-collapse"> "Other views" disclosure containing the 3 secondary views, whose inner tablist+panel render only when the disclosure is open.
 - Drop the "needs" QueueView; default view="all"; add otherViewsOpen state initialized from Boolean(initialSelectedItemId) so a ?item_id= deep-link opens the disclosure straight to All items.
 - Plain-language relabel of the secondary tabs: "Renewals"->"Renewal reviews", "Write-back queue"->"Write-back proposals"; keep "All items".
@@ -579,6 +620,7 @@ NET-ZERO-LINE progress edit (add NO newline; file is at the 140-line cap). On th
 - Governance: add Verified F-APPROVAL-QUEUE-UNIFIED, add a Supersede-Log row (OQ-UI-1-TAB-LAYOUT -> F-APPROVAL-QUEUE-UNIFIED), reconcile the tab-layout wording in F-RENEWAL-REVIEW-SUBTAB + F-WRITEBACK-QUEUE, amend the OQ-UI-1 answer in docs/products/v1-process-qa.md, add the loop-state progress line by editing line 53 in place.
 
 **Out of scope:**
+
 - Any change to lib/approval/needs-decision-inbox.ts, renewal-review.ts, writeback-approval-queue.ts or the NeedsDecisionRow shape (the ROW_KEYS pin ['detail','href','key','kind','label','severity'] in tests/unit/needs-decision-inbox.test.ts stays UNCHANGED).
 - Adding any approve/return/resolve affordance to the value-free surfaces (inbox / renewal review / write-back queue) — approving stays on the run page.
 - Flipping any Action Registry production_allowed (the EXECUTABLE_ALLOWLIST guard is untouched); any system-of-record/Sheet write or send.
@@ -588,11 +630,12 @@ NET-ZERO-LINE progress edit (add NO newline; file is at the 140-line cap). On th
 
 **Files to create:**
 
-
 **Files to edit:**
+
 - `components/approval/ApprovalQueue.tsx` — EDIT 1 (line 40): change `type QueueView = "needs" | "all" | "renewals" | "writeback";` to `type QueueView = "all" | "renewals" | "writeback";`.
 
 EDIT 2 (lines 59-62): replace the 3-line comment + `const [view, setView] = useState<QueueView>(initialSelectedItemId ? "all" : "needs");` with:
+
 ```
   // The unified, value-free "Needs your decision" list is always the landing surface (Slice 4a). The
   // other three views live behind an "Other views" disclosure; `view` selects which one renders once it
@@ -604,13 +647,16 @@ Test 3 ("keeps the inbox stable when the All items list is filtered"): (a) repla
 
 Test at line 154 -> rewrite as async: assert the inbox deep-link row on landing, then open "Other views" and assert the renamed tab. Replace the body with:
 ```
+
     const user = userEvent.setup();
     render(<ApprovalQueue {...baseProps} />);
     // The open renewal flag surfaces on the always-visible inbox as a value-free deep-link row.
     expect(screen.ge …
+
 - `tests/unit/writeback-approval-queue-panel.test.tsx` — Add `import userEvent from "@testing-library/user-event";`. In `describe("ApprovalQueue write-back queue tab")`:
 
 Test line 121 ("offers a Write-back queue tab...") -> rewrite async, rename label:
+
 ```
     const user = userEvent.setup();
     render(<ApprovalQueue {...baseProps} />);
@@ -621,8 +667,10 @@ Test line 121 ("offers a Write-back queue tab...") -> rewrite async, rename labe
       screen.queryByRole("heading", { name: /Awaiting approval \(2\)/ }),
     ).not.toBeInTheDocument();
 ```
+
 (af …
-- `docs/facts.md` — See governanceChanges for exact text. (1) Add the new Verified fact F-APPROVAL-QUEUE-UNIFIED as a new one-row table line (with a blank line before/after, matching the F-*-since-line-42 style) immediately BEFORE the `## Supersede Log` heading (after the F-MAINT-ASSIGNEE row). (2) Add the Supersede-Log row after the SPACETEETH-HARD-GATES row, before `## Open Questions`. (3) Reconcile the tab-layout clause inside the F-RENEWAL-REVIEW-SUBTAB and F-WRITEBACK-QUEUE claims (exact substrings, verified unique).
+
+- `docs/facts.md` — See governanceChanges for exact text. (1) Add the new Verified fact F-APPROVAL-QUEUE-UNIFIED as a new one-row table line (with a blank line before/after, matching the F-\*-since-line-42 style) immediately BEFORE the `## Supersede Log` heading (after the F-MAINT-ASSIGNEE row). (2) Add the Supersede-Log row after the SPACETEETH-HARD-GATES row, before `## Open Questions`. (3) Reconcile the tab-layout clause inside the F-RENEWAL-REVIEW-SUBTAB and F-WRITEBACK-QUEUE claims (exact substrings, verified unique).
 - `docs/products/v1-process-qa.md` — Amend the OQ-UI-1 answer (line 57) — replace the tab-layout clause; exact old/new in governanceChanges. This deletes the old 'dedicated renewal SUB-TAB ... mirrors the Spaces⊇Processes sub-tab pattern' active wording per the supersede rule (delete-from-active-doc).
 - `docs/loop-state.md` — Edit line 53 IN PLACE (no net new line — the file is already at the 140-line cap the freshness gate enforces). Exact old/new in governanceChanges. Do NOT change the 'Last updated: 2026-07-09' line (still current vs docs/status.md).
 
@@ -689,6 +737,7 @@ PRESERVE: keep 'Last updated: 2026-07-09' unchanged; do NOT add any new line any
 ```
 
 **Guardrails:**
+
 - ROW_KEYS pin is UNCHANGED: do not touch lib/approval/needs-decision-inbox.ts or the NeedsDecisionRow interface; tests/unit/needs-decision-inbox.test.ts ROW_KEYS ['detail','href','key','kind','label','severity'] must stay exactly as-is (this slice is presentation-only).
 - No approve/return/resolve affordance may be added to the inbox / RenewalReviewPanel / WritebackQueuePanel — approving stays on the run page; only renderAllItemsView keeps its pre-existing queue-item transitions, reused verbatim.
 - Do NOT flip any Action Registry production_allowed and do not touch scripts/seed-action-registry.ts or lib/admin/migration-readiness.ts EXECUTABLE_ALLOWLIST; no system-of-record/Sheet write, no send.
@@ -706,4 +755,3 @@ PRESERVE: keep 'Last updated: 2026-07-09' unchanged; do NOT add any new line any
 **Done when:** ApprovalQueue renders the value-free 'Needs your decision' list as the always-visible landing surface with a closed 'Other views' disclosure below it; opening the disclosure reveals the All items / Renewal reviews / Write-back proposals tabs and their existing panels; a ?item_id= deep-link opens the disclosure to All items with the item selected; no approve affordance exists on the value-free surfaces and no bulk machinery is mounted on landing. All three component tests pass with extended (not weakened) value-free/no-bulk assertions and the ROW_KEYS pin untouched. docs/facts.md carries the new Verified F-APPROVAL-QUEUE-UNIFIED row and the OQ-UI-1-TAB-LAYOUT Supersede-Log row, with F-RENEWAL-REVIEW-SUBTAB/F-WRITEBACK-QUEUE tab wording reconciled; docs/products/v1-process-qa.md OQ-UI-1 answer amended; docs/loop-state.md line 53 updated in place (still <=140 lines). The full verify sweep (typecheck, lint, format:check, copy-voice, context-freshness, test, build) is green.
 
 ---
-
