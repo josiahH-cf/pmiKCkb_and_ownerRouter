@@ -64,7 +64,10 @@ export const TransitionMaintenanceTicketInputSchema = z.discriminatedUnion("op",
     status: MaintenanceTicketStatusSchema,
     reason: z.string().optional(),
   }),
-  z.object({ op: z.literal("assign"), assigneeUid: z.string().nullable() }),
+  // Non-empty uid to assign, or null to unassign. trim().min(1) rejects "" / whitespace AND normalizes so
+  // the value the route roster-checks is exactly the value persisted (no check/write drift); the route
+  // additionally validates the uid against the assignable roster.
+  z.object({ op: z.literal("assign"), assigneeUid: z.string().trim().min(1).nullable() }),
   z.object({ op: z.literal("label-add"), label: z.string().trim().min(1) }),
   z.object({ op: z.literal("label-remove"), label: z.string().trim().min(1) }),
   z.object({ op: z.literal("note"), text: z.string().trim().min(1) }),

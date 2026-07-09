@@ -6277,3 +6277,21 @@ seed (`isActionExecutable` reads `ACTION_REGISTRY_SEED`), the Prepare-owner-emai
 only after the OWNER deploys this branch; rollback = set the entry back to Planned/false and redeploy. Verified locally:
 typecheck, lint (0 errors), 1202 unit tests, falsification + freshness + copy-voice + router-boundary + redaction, Turbopack
 build — all green.
+
+2b — delegable maintenance ownership (assignee picker + "Assigned to me") SHIPPED (2026-07-09, branch
+`console-overhaul-h-2b-assignee`, `F-MAINT-ASSIGNEE`). Built under ultracode: an understand-workflow (3 parallel readers)
+first mapped the surface and corrected a false premise — the roster is Firebase AUTH (`listAppUsers` → `getAuth().listUsers`),
+NOT a Firestore collection, and demo auth is synthetic (a demo Editor is never a real Auth account). That drove the key design
+call: `lib/maintenance/assignees.ts` `listAssignableUsers()` is DEMO-AWARE — synthetic demo users when `localDemoAuth` (so the
+picker is testable with a plain `npm run dev`), else the real Firebase Auth roster filtered to non-disabled accounts inside the
+allowed hosted domain. The roster is fetched server-side on the already edit-gated maintenance page and passed to the client
+queue (no manageAdmin admin-route reuse, no new endpoint; client-safe `assignee-model` type keeps firebase-admin out of the
+bundle). Assign is validated server-side (`isAssignableUser` → 400 for a non-rostered uid; schema `trim().min(1).nullable()`
+rejects ""/whitespace and normalizes so the checked value equals the persisted value); the picker shows email, never the raw
+uid (off-roster shows a value-free "Assigned (outside roster)"). Then an adversarial review-workflow (3 lenses → find →
+independently verify, 9 agents) confirmed 5 findings, all fixed: (1) MEDIUM — the prod roster wasn't domain-filtered
+(asymmetric with the admin role path's defense-in-depth guard), so an external non-disabled Auth account could be shown +
+assigned → fixed by filtering to the allowed hosted domain; (2) LOW — a check/write trim mismatch (validator trimmed, schema
+didn't) → fixed with `trim()` on the schema; (3-5) three test-coverage gaps (Assigned-to-me empty state, off-roster selected
+value, null no-op guard) → tests added. App-plane only; no SoR write, no send, no role grant, no notification. Verified
+locally: typecheck, lint (0 errors), 1222 unit tests, all gates + Turbopack build green.
