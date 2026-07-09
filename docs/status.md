@@ -6313,3 +6313,26 @@ unavailable; a new read-gated `listResolutionActivityForRun` mirrors `listWriteb
 board/queue (`run-view.ts`, `approval-queue-mapping.ts`) are untouched so `propertyKey` never leaks; no Action Registry flip,
 `EXECUTABLE_ALLOWLIST` unchanged, `production_allowed:false` app-plane only. Verified locally: typecheck, lint (0 errors),
 full unit suite, copy-voice, context-freshness, redaction, router-boundary, and the Turbopack build all green.
+
+## 2026-07-09 — Deferred cycle COMPLETE: all 7 slices shipped + merged (PRs #56-#62)
+
+The 7-slice deferred cycle ran unattended to completion and merged to `main`: 2a unit type-ahead over a cached
+RentVine unit index (`F-MAINT-UNIT-TYPEAHEAD`, PR #56); 1b live renewal review made actionable + the resolve-404
+blocker fixed (`F-RENEWAL-LIVE-ACTIONABLE`, PR #57); 1c per-property lease-renewal decision repository +
+manageAdmin page (`F-RENEWAL-PROPERTY-REPO`, PR #58); 3a anticipatory AI draft-text composer via the
+ModelProvider seam (`F-GMAIL-DRAFT-COMPOSER`, PR #59); 3b in-app notification framework, email hard-off + Gmail
+families stubbed (`F-NOTIF-FRAMEWORK`, PR #60); A4 Console act-in-place inline approve, superseding
+F-CONSOLE-APP-STATE (`F-CONSOLE-ACT-IN-PLACE`, PR #61); 4a Approval-Queue presentation rebuild = one
+urgent-first list + an "Other views" disclosure, superseding OQ-UI-1-TAB-LAYOUT (`F-APPROVAL-QUEUE-UNIFIED`,
+PR #62).
+
+Process: each slice was built on its own branch (heavier slices delegated to fresh-context subagents; the
+notification framework and the two governance slices A4/4a were built + adversarially verified by a build +
+4-lens falsification workflow — objective/scope, guardrails/security, governance-docs, tests/regression), then
+PR -> CI `verify` -> merge. Every merge passed CI (~2 min each). The adversarial lenses surfaced and closed real
+gaps before merge: a route param pass-through + transactional-atomicity coverage gap (3b), and the Approve
+button's click->PATCH wiring being untested (A4). App-plane only throughout: no Action Registry flip
+(`EXECUTABLE_ALLOWLIST` stays `["gmail.renewal_notice.draft_create"]`), no system-of-record write, no send, no
+live Google auth needed (all slices demo-aware + unit-tested). Final `main`: full `npm run verify` green, 1288
+tests. Stop condition: no safe app-plane slice remains — remaining work is owner/vendor-gated (prod deploy,
+RentVine/Sheet writes, Gmail runtime, live process seed). See `docs/loop-state.md` for the resume pointer.

@@ -44,40 +44,25 @@ stop-and-reset rules.
   narrative in `docs/status.md`). The 2026-07-08/09 console overhaul (bullet above) shipped on top. REMAINING client-owned:
   Dan's Admin walkthrough + 2nd sign-in to activate his claim; QuickBooks access tier + official deposit-accounting home.
   GATED unchanged: Sheet-write EXECUTION (`F-WRITE-GATE`), Gmail runtime (client access model + DWD), Cloud Scheduler.
-  Next buildable slice: Approval-Queue action-first rebuild (see the console-overhaul DEFERRED list above).
-- **Deferred cycle IN PROGRESS (2026-07-09):** shipped app-plane 2c/3c (`F-DEFCYCLE-APPPLANE-1`); the per-user Gmail draft
+  Deferred cycle COMPLETE (all 7 app-plane slices merged, PRs #56-#62); no safe app-plane slice remains, so
+  the next work is owner/vendor-gated (see Next Safe Slice + Stop-Condition State).
+- **Deferred cycle COMPLETE (2026-07-09), all 7 slices merged (PRs #56-#62):** shipped app-plane 2c/3c (`F-DEFCYCLE-APPPLANE-1`); the per-user Gmail draft
   runtime + action-gate built TO THE GATE + renewal Prepare-owner-email button (`F-GMAIL-RUNTIME-GATED`); A5 the HMAC-token
   PUBLIC intake → quarantine via a no-actor writer + a route-auth-boundary invariant (`F-MAINT-INTAKE-PUBLIC`); 2d the edit-gated
   triage that promotes/dismisses it (`F-MAINT-INTAKE-REVIEW`); the Gmail renewal-notice draft FLIPPED executable on the committed
   DWD grant + live smoke (`F-GMAIL-RENEWAL-DRAFT-LIVE`; gmail.compose only, no send; owner deploy pending); 2b the edit-gated
-  assignee picker + Assigned-to-me filter (`F-MAINT-ASSIGNEE`); 2a the edit-gated unit type-ahead over a cached RentVine unit index + optional confirm-on-promote (`F-MAINT-UNIT-TYPEAHEAD`); 1b made the live renewal review actionable (reused resolve + approve/return/revoke controls; the resolve route rebuilds the live run) (`F-RENEWAL-LIVE-ACTIONABLE`); 1c the per-property lease-renewal decision repo + manageAdmin page (`F-RENEWAL-PROPERTY-REPO`); 3a the anticipatory AI draft-text composer via the ModelProvider seam, deterministic spine first, no Gmail call (`F-GMAIL-DRAFT-COMPOSER`); 3b the in-app notification framework (unified feed + maintenance-ticket notifications, in-app-only, email hard-off, stubbed Gmail-dependent families) (`F-NOTIF-FRAMEWORK`); A4 the Console in-place approve of a queue item via the existing PATCH (`F-CONSOLE-ACT-IN-PLACE`, supersedes `F-CONSOLE-APP-STATE`); 4a the Approval-Queue presentation rebuild = one urgent-first list + an "Other views" disclosure (`F-APPROVAL-QUEUE-UNIFIED`). Remaining 0 slices are decision-complete in
-  `docs/temp/deferred-remaining-slices.md` (see Next Safe Slice Candidates).
+  assignee picker + Assigned-to-me filter (`F-MAINT-ASSIGNEE`); 2a the edit-gated unit type-ahead over a cached RentVine unit index + optional confirm-on-promote (`F-MAINT-UNIT-TYPEAHEAD`); 1b made the live renewal review actionable (reused resolve + approve/return/revoke controls; the resolve route rebuilds the live run) (`F-RENEWAL-LIVE-ACTIONABLE`); 1c the per-property lease-renewal decision repo + manageAdmin page (`F-RENEWAL-PROPERTY-REPO`); 3a the anticipatory AI draft-text composer via the ModelProvider seam, deterministic spine first, no Gmail call (`F-GMAIL-DRAFT-COMPOSER`); 3b the in-app notification framework (unified feed + maintenance-ticket notifications, in-app-only, email hard-off, stubbed Gmail-dependent families) (`F-NOTIF-FRAMEWORK`); A4 the Console in-place approve of a queue item via the existing PATCH (`F-CONSOLE-ACT-IN-PLACE`, supersedes `F-CONSOLE-APP-STATE`); 4a the Approval-Queue presentation rebuild = one urgent-first list + an "Other views" disclosure (`F-APPROVAL-QUEUE-UNIFIED`). All 7 slices were adversarially verified (build + 4-lens falsification workflow) then PR -> CI `verify` -> merged; the decision-complete spec is archived in `docs/temp/deferred-remaining-slices.md`.
 
-## Next Safe Slice Candidates
+## Next Safe Slice — none (deferred cycle done)
 
-The remaining deferred-cycle slices are DECISION-COMPLETE in `docs/temp/deferred-remaining-slices.md` — one
-section each: objective, in/out scope, exact files, EXACT governance pin/fact/supersede edits, guardrails,
-verify list, done-definition. All 7 are loop-executable + app-plane; build ONE per branch → PR → CI `verify`
-→ merge, governance (A4/4a) LAST:
-
-1. **2a** unit type-ahead, maintenance (`F-MAINT-UNIT-TYPEAHEAD`).
-2. **1b** lease-renewal live-review actionable + fix the live-review resolve 404 (new fact).
-3. **1c** per-property lease-renewal repository, manageAdmin + value-free (`F-RENEWAL-PROPERTY-REPO`).
-4. **3a** anticipatory AI draft-TEXT composer, no Gmail call (new fact).
-5. **3b** in-app notification framework; email hard-off, Gmail families stubbed (`F-NOTIF-FRAMEWORK`).
-6. **A4** Console act-in-place — GOVERNANCE, owner-opted-in: supersede F-CONSOLE-APP-STATE →
-   F-CONSOLE-ACT-IN-PLACE, scope F-PRECUST-WAVE1, relax the ROW_KEYS + console-view + console-action-deck pins
-   (KEEP the SECRET no-leak asserts). Exact edits in the packet.
-7. **4a** Approval-Queue presentation rebuild — GOVERNANCE: unified urgent-first list + "Other views";
-   `F-APPROVAL-QUEUE-UNIFIED` + OQ-UI-1-TAB-LAYOUT supersede marker; ROW_KEYS pin UNCHANGED.
-
-The packet header carries the cross-cutting rules (no registry flip; authed routes; keep loop-state ≤140
-lines; no `[bracket]` paths in fact evidence; client-safe types; demo-aware live reads). A4/4a relax pinning
-tests DELIBERATELY — the exact assertion changes are pre-specified and recorded as facts + supersede markers.
+The 7 deferred-cycle slices (2a, 1b, 1c, 3a, 3b, A4, 4a) are ALL shipped + merged (PRs #56-#62); the
+decision-complete spec is archived in `docs/temp/deferred-remaining-slices.md`. No safe app-plane slice
+remains — the readiness-improving backlog is exhausted. Remaining work is owner/vendor-gated (below).
 
 Carried owner/vendor-gated (unchanged): prod `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` + live process seed;
 RentVine work-order create; Sheet-write EXECUTION (`F-WRITE-GATE`, `OQ-RV-1`); the Gmail renewal-draft prod
-deploy (`npm run deploy -- --budget-confirmed`).
+deploy (`npm run deploy -- --budget-confirmed`); the 3b Gmail-dependent notification families + Gmail runtime
+(client Gmail access model + DWD); wiring the A4 act-in-place / 3a anticipatory composer into a live surface.
 
 ## Active Blockers And Exact Client Asks
 
@@ -111,6 +96,9 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 
 ## Stop-Condition State
 
+- 2026-07-09: **No safe slice remains** — the 7-slice deferred cycle is fully shipped + merged (PRs #56-#62);
+  every readiness-improving app-plane option is done. Remaining work is owner/vendor-gated (deploy, RentVine /
+  Sheet writes, Gmail runtime). Clean stop; the loop hands back to owner-unblock / cutover prep.
 - Prior stop-conditions (2026-06-30 migration-readiness / "no safe slice"; 2026-07-01 owner-present cycles) are
   cleared and archived in `docs/status.md` (2026-07-09 entry).
 
