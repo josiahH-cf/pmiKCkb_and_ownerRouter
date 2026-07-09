@@ -45,10 +45,11 @@ stop-and-reset rules.
   Dan's Admin walkthrough + 2nd sign-in to activate his claim; QuickBooks access tier + official deposit-accounting home.
   GATED unchanged: Sheet-write EXECUTION (`F-WRITE-GATE`), Gmail runtime (client access model + DWD), Cloud Scheduler.
   Next buildable slice: Approval-Queue action-first rebuild (see the console-overhaul DEFERRED list above).
-- **Deferred cycle IN PROGRESS (2026-07-09, branch `console-overhaul-g-deferred-cycle`):** shipped app-plane 2c
-  (maintenance history route/panel + accurate status pills) + 3c (`planCallTasks` cadence CLI) — `F-DEFCYCLE-APPPLANE-1`,
-  `production_allowed:false`. Owner opted into A4/A5/B1; Gmail runtime builds TO THE GATE only (the `production_allowed:true`
-  flip stays owner-gated on the committed DWD grant + owner-run deploy). Remaining slices designed + staged as PRs.
+- **Deferred cycle IN PROGRESS (2026-07-09):** shipped app-plane 2c (maintenance history + accurate pills) + 3c
+  (`planCallTasks` cadence CLI) on PR #46 (`F-DEFCYCLE-APPPLANE-1`); then the per-user Gmail draft runtime + action-gate
+  built TO THE GATE + the renewal Prepare-owner-email button (`F-GMAIL-RUNTIME-GATED`) — NO send, NO Gmail call, seed
+  unchanged. Owner opted into A4/A5/B1; the `production_allowed:true` flip + live activation stay owner-gated on the
+  committed DWD grant artifact + an owner-run deploy. Remaining slices (A4/A5, unit type-ahead, notifications, etc.) staged.
 
 ## Next Safe Slice Candidates
 
