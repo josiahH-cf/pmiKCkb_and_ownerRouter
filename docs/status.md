@@ -6240,3 +6240,21 @@ unit suite (1200+) + typecheck + lint (0 errors) + copy-voice + router-boundary 
 client write to intake/activity and denies all client access to nonce/counter/epoch. STILL owner-gated (unchanged): the Gmail
 `production_allowed:true` flip (needs the committed DWD grant artifact + an owner-run deploy). Remaining deferred slices: A4
 (Console act-in-place), unit type-ahead, delegable ownership, notifications, Approval-Queue rebuild.
+
+2d — public-intake review/promote triage SHIPPED (2026-07-09, branch `console-overhaul-h-2d-intake-review`,
+`F-MAINT-INTAKE-REVIEW`). Completes the A5 loop: A5 dropped tenant/vendor reports into the `maintenance_unverified_intake`
+quarantine; 2d is the edit-gated staff surface that acts on them. New `lib/firestore/maintenance-intake-review.ts` — kept a
+SEPARATE module from the no-actor public writer so the writer preserves its negative-import isolation — exposes
+`listUnverifiedIntake` (edit-gated read), `promoteUnverifiedIntake`, and `dismissUnverifiedIntake`. Promotion is ONE atomic
+transaction: it creates a real `maintenance_tickets` ticket (reporter.kind "external", unit null, labelled "Needs
+Verification", priority inferred from the report text with transparent provenance unless the operator overrides) + its
+Activity twin AND flips the intake to "promoted" together — so a double-click or concurrent promote cannot mint two tickets
+(404 on a missing intake, 409 on an already-triaged one). Dismissal records a required reason on the append-only intake
+Activity. Three edit-gated routes (`GET /api/maintenance/intake`, `POST /api/maintenance/intake/:id/promote`, `.../dismiss`)
+are all covered by the enumerating route-auth-boundary invariant — only `/intake/public` stays allow-listed unauthenticated.
+The maintenance page renders a new `UnverifiedIntakeReview` client panel (a client-safe `lib/maintenance/intake-model` type,
+extracted from the Admin-SDK writer module so the panel does not pull firebase-admin; non-fatal degrade like the ticket
+queue). App-plane only — promotion creates a KB ticket, never a system-of-record work order, never a send;
+`production_allowed:false` throughout, no registry change. Verified locally: typecheck, lint (0 errors), the full unit suite
+(incl. atomic-promote + idempotency + route-auth + component tests), the emulator rules test, Turbopack build, and every
+gate green.

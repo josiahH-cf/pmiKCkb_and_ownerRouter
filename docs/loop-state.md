@@ -45,12 +45,12 @@ stop-and-reset rules.
   Dan's Admin walkthrough + 2nd sign-in to activate his claim; QuickBooks access tier + official deposit-accounting home.
   GATED unchanged: Sheet-write EXECUTION (`F-WRITE-GATE`), Gmail runtime (client access model + DWD), Cloud Scheduler.
   Next buildable slice: Approval-Queue action-first rebuild (see the console-overhaul DEFERRED list above).
-- **Deferred cycle IN PROGRESS (2026-07-09):** shipped app-plane 2c (maintenance history + accurate pills) + 3c
-  (`planCallTasks` cadence CLI) on PR #46 (`F-DEFCYCLE-APPPLANE-1`); the per-user Gmail draft runtime + action-gate built
-  TO THE GATE + the renewal Prepare-owner-email button (`F-GMAIL-RUNTIME-GATED`); then A5 — the HMAC-token PUBLIC
-  maintenance-intake ingress → unverified quarantine via a no-actor writer, fail-closed 503 until the owner provisions the
-  secret, plus an enumerating route-auth-boundary invariant (`F-MAINT-INTAKE-PUBLIC`). NO send/SoR write; seed unchanged.
-  Owner opted into A4/A5/B1; Gmail `production_allowed:true` stays owner-gated (DWD artifact + deploy). Remaining: A4, unit type-ahead, notifications.
+- **Deferred cycle IN PROGRESS (2026-07-09):** shipped app-plane 2c/3c (maintenance history + accurate pills; `planCallTasks`
+  cadence CLI) PR #46 (`F-DEFCYCLE-APPPLANE-1`); the per-user Gmail draft runtime + action-gate built TO THE GATE + renewal
+  Prepare-owner-email button (`F-GMAIL-RUNTIME-GATED`); A5 the HMAC-token PUBLIC intake → quarantine via a no-actor writer,
+  fail-closed 503 + an enumerating route-auth-boundary invariant (`F-MAINT-INTAKE-PUBLIC`); 2d the edit-gated triage that
+  promotes a quarantined intake into an external Needs-Verification ticket or dismisses it (`F-MAINT-INTAKE-REVIEW`). NO
+  send/SoR write; seed unchanged. Owner opted into A4/A5/B1; Gmail flip owner-gated. Remaining: A4, unit type-ahead, notifications, queue rebuild.
 
 ## Next Safe Slice Candidates
 

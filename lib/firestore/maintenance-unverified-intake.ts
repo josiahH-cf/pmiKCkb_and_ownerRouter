@@ -20,10 +20,18 @@ import type { Firestore } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 
 import { getAdminFirestore } from "@/lib/firestore/admin";
+import type { UnverifiedIntakeRecord } from "@/lib/maintenance/intake-model";
 import {
   normalizeIntakePropertyKey,
   sanitizeIntakeText,
 } from "@/lib/maintenance/intake-sanitize";
+
+// Re-export the client-safe record shape so server callers can keep importing it from here; the review
+// UI imports it directly from lib/maintenance/intake-model to avoid pulling this Admin-SDK module client-side.
+export type {
+  UnverifiedIntakeRecord,
+  UnverifiedIntakeStatus,
+} from "@/lib/maintenance/intake-model";
 
 export const MAINTENANCE_INTAKE_COLLECTIONS = {
   intake: "maintenance_unverified_intake",
@@ -37,20 +45,6 @@ export const MAINTENANCE_INTAKE_COLLECTIONS = {
 // `expires_at` (owner-configured), so junk cannot accumulate unbounded (owner budget safety).
 const NONCE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days (>= max token TTL)
 const INTAKE_RETENTION_MS = 90 * 24 * 60 * 60 * 1000; // 90 days of un-triaged intake
-
-export interface UnverifiedIntakeRecord {
-  id: string;
-  status: "unverified";
-  source: "public-link";
-  property_key: string;
-  summary: string;
-  description: string;
-  contact: string;
-  reporter_kind: "external";
-  ip_hash: string | null;
-  created_at: string;
-  expires_at: string;
-}
 
 export interface PublicIntakeSubmission {
   propertyKey: string;
