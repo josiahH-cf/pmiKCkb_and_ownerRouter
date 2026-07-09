@@ -92,6 +92,8 @@ export interface MigrationReadinessReport {
     by_evidence: Record<string, number>;
     gated: Array<{ key: string; reason: string }>;
     production_allowed_keys: string[];
+    // production_allowed keys NOT on the executable allow-list — a surprise flip; empty is healthy.
+    unexpected_production_allowed_keys: string[];
   };
   notifications: {
     available: boolean;
@@ -145,6 +147,12 @@ const defaultDeps: MigrationReadinessDeps = {
 // Blockers in these sections need owner-side action (credentials, billing, real project
 // ids, a reviewed production manifest); they cannot be cleared from the remote container.
 const OWNER_SIDE_SECTIONS = ["gcp:", "env:", "corpus:"];
+
+// Action Registry keys that are intentionally production_allowed, each backed by a committed
+// owner-approved grant artifact (Section 3). A production_allowed key NOT in this set is a surprise
+// flip the cutover must flag. Grows only when a new grant artifact is committed.
+//   - gmail.renewal_notice.draft_create: docs/evidence/gmail-dwd-grant-2026-07.md (gmail.compose; no send)
+const EXECUTABLE_ALLOWLIST = new Set<string>(["gmail.renewal_notice.draft_create"]);
 
 export function classifyOwnerActions(rollup: ReadinessRollup): string[] {
   return rollup.blockers.filter((blocker) =>
@@ -310,11 +318,14 @@ export async function buildMigrationReadinessReport(
       "Showing the static seed catalog because Firestore is not available in this session.";
   }
 
-  if (actionRegistry.production_allowed_keys.length > 0) {
+  // Executable keys on the allow-list are backed by committed grant artifacts (Section 3) — not
+  // violations. Any OTHER production_allowed key is a surprise flip the cutover must catch.
+  if (actionRegistry.unexpected_production_allowed_keys.length > 0) {
+    const unexpected = actionRegistry.unexpected_production_allowed_keys;
     blockers.push(
-      `registry: ${actionRegistry.production_allowed_keys.length} entr${
-        actionRegistry.production_allowed_keys.length === 1 ? "y is" : "ies are"
-      } production_allowed=true (${actionRegistry.production_allowed_keys.join(", ")}) — governance violation, investigate before any cutover step.`,
+      `registry: ${unexpected.length} entr${
+        unexpected.length === 1 ? "y is" : "ies are"
+      } production_allowed=true (${unexpected.join(", ")}) — governance violation, investigate before any cutover step.`,
     );
   }
 
@@ -411,6 +422,9 @@ function summarizeRegistry(
     by_evidence: byEvidence,
     gated,
     production_allowed_keys: productionAllowedKeys,
+    unexpected_production_allowed_keys: productionAllowedKeys.filter(
+      (key) => !EXECUTABLE_ALLOWLIST.has(key),
+    ),
   };
 }
 

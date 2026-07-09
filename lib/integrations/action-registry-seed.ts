@@ -661,13 +661,13 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "Create an unsent Gmail draft in the approval sender's mailbox from an owner-approved renewal notice (owner email or tenant offer email), with the verbatim DRAFT_BANNER in the body; the operator opens it in Gmail and clicks Send. Code never calls send.",
     product_lane: "Lease Renewal Agent",
-    readiness: "Planned",
+    readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
-      "Gmail API documents draft creation via gmail.compose (users.drafts.create); code never calls send, preserving human send authority (decision 3, 2026-07-02, F-PRECUST-CYCLE). Runtime stays blocked until the client-approved Gmail access model + the approved per-action spec land.",
+      "Gmail API documents draft creation via gmail.compose (users.drafts.create); code never calls send, preserving human send authority (decision 3, 2026-07-02, F-PRECUST-CYCLE). Owner-approved + the domain-wide-delegation grant is committed and proven live: docs/evidence/gmail-dwd-grant-2026-07.md (SA client id 104374162913177846911 authorized for gmail.compose; gmail.send absent; smoke created + deleted an unsent draft 2026-07-09). The ceiling is an unsent draft a human presses Send on.",
     required_permissions: [
-      "Client-approved Gmail access model for the approval sender (kb-automation@pmikcmetro.com)",
-      "gmail.compose scope (no gmail.send in code)",
+      "Committed DWD grant for the signed-in pmikcmetro.com user (docs/evidence/gmail-dwd-grant-2026-07.md)",
+      "gmail.compose scope only (no gmail.send scope, no send call in code)",
     ],
     event_ingestion_mode: "Manual",
     preview_schema_note:
@@ -704,10 +704,10 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
       },
     ],
     test_notes:
-      "The client-approved Gmail access model is a tracked ask; until then the draft REQUEST is built by buildOwnerNoticeDraftRequest / buildTenantNoticeDraftRequest and exercised only in unit tests — no Gmail call, no send.",
+      "The draft REQUEST is built by buildOwnerNoticeDraftRequest / buildTenantNoticeDraftRequest; the edit-gated POST /api/lease-renewal/owner-notice-draft route checks isActionExecutable and, now that the gate is open, creates the UNSENT draft via GmailRuntimeClient.createDraft (gmail.compose). No send method exists; the route maps a closed gate to a typed needs-Gmail-access refusal.",
     rollback_note: "Delete the unsent draft; nothing was sent.",
     connection_health_check_ref: "health.gmail.workspace_api",
-    production_allowed: false,
+    production_allowed: true,
   },
   {
     key: "rentvine.lease.renewal_writeback",

@@ -17,7 +17,12 @@ export default async function AdminMigrationPage() {
   const config = readServerConfig();
   const report = await buildMigrationReadinessReport({ actor: user, config });
   const registry = report.action_registry;
-  const registryGovernanceOk = registry.production_allowed_keys.length === 0;
+  // Governance is healthy when there is no UNEXPECTED executable entry; allow-listed executables (each
+  // backed by a committed grant artifact) are fine.
+  const registryGovernanceOk = registry.unexpected_production_allowed_keys.length === 0;
+  const allowListedExecutable = registry.production_allowed_keys.filter(
+    (key) => !registry.unexpected_production_allowed_keys.includes(key),
+  );
 
   return (
     <AppShell user={user}>
@@ -160,14 +165,20 @@ export default async function AdminMigrationPage() {
               className="queue-pill"
               data-value={registryGovernanceOk ? "Healthy" : "Action Required"}
             >
-              {registryGovernanceOk ? "Non-executable" : "Governance violation"}
+              {!registryGovernanceOk
+                ? "Governance violation"
+                : allowListedExecutable.length === 0
+                  ? "Non-executable"
+                  : "Gate-controlled"}
             </span>
           </h2>
           {registry.note ? <p className="muted">{registry.note}</p> : null}
           <p>
-            {registryGovernanceOk
-              ? `All ${registry.total} entries are production_allowed=false; no external write path exists.`
-              : `${registry.production_allowed_keys.length} entries are production_allowed=true — investigate before any cutover step.`}
+            {!registryGovernanceOk
+              ? `${registry.unexpected_production_allowed_keys.length} entries are production_allowed=true without a committed grant — investigate before any cutover step.`
+              : allowListedExecutable.length === 0
+                ? `All ${registry.total} entries are production_allowed=false; no external write path exists.`
+                : `${allowListedExecutable.length} allow-listed executable (${allowListedExecutable.join(", ")}, unsent draft only); the other ${registry.total - allowListedExecutable.length} are production_allowed=false.`}
           </p>
           <div className="grid two">
             <div>

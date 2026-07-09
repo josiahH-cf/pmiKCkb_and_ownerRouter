@@ -21,8 +21,13 @@ Usage: tsx scripts/seed-action-registry.ts [--dry-run] [--json]
   --json      Print built records as JSON (implied detail for --dry-run).
   --help      Show this help.
 
-Every catalog entry is production_allowed=false. This script refuses to seed any
-production-eligible entry; executable actions require an approved per-action spec.`;
+Executable entries are limited to an explicit allow-list (each backed by a committed grant
+artifact); this script refuses to seed any OTHER production_allowed entry.`;
+
+// Action Registry keys intentionally production_allowed, each backed by a committed grant artifact
+// (Section 3). Mirrors the allow-list in lib/admin/migration-readiness.ts. Any production_allowed entry
+// NOT listed here is a surprise flip and the seed refuses it.
+const EXECUTABLE_ALLOWLIST = new Set<string>(["gmail.renewal_notice.draft_create"]);
 
 export function parseSeedActionRegistryArgs(
   argv = process.argv.slice(2),
@@ -56,20 +61,24 @@ export async function main(argv = process.argv.slice(2)) {
   // enforces the production_allowed governance gate.
   const records = ACTION_REGISTRY_SEED.map((entry) => buildActionRegistryRecord(entry));
 
-  const productionEligible = records.filter((record) => record.production_allowed);
-  if (productionEligible.length > 0) {
+  const unexpectedExecutable = records.filter(
+    (record) => record.production_allowed && !EXECUTABLE_ALLOWLIST.has(record.key),
+  );
+  if (unexpectedExecutable.length > 0) {
     throw new Error(
-      `Refusing to seed: ${productionEligible.length} entr(y/ies) are production_allowed. ` +
-        "The catalog seed handles non-executable metadata only; executable actions require an approved spec.",
+      `Refusing to seed: ${unexpectedExecutable.length} entr(y/ies) are production_allowed and NOT on the ` +
+        `executable allow-list (${unexpectedExecutable.map((r) => r.key).join(", ")}). ` +
+        "Every executable action requires a committed grant artifact + an allow-list entry.",
     );
   }
 
+  const executable = records.filter((record) => record.production_allowed);
   if (options.dryRun) {
     if (options.json) {
       console.log(JSON.stringify(records, null, 2));
     }
     console.log(
-      `[dry-run] validated ${records.length} Action Registry entries; all production_allowed=false. No writes performed.`,
+      `[dry-run] validated ${records.length} Action Registry entries; ${executable.length} allow-listed executable (${executable.map((r) => r.key).join(", ") || "none"}), the rest production_allowed=false. No writes performed.`,
     );
     return;
   }

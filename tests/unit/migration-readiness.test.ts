@@ -171,7 +171,12 @@ describe("buildMigrationReadinessReport", () => {
     expect(report.action_registry.source).toBe("seed-catalog");
     expect(report.action_registry.total).toBe(ACTION_REGISTRY_SEED.length);
     expect(report.action_registry.note).toMatch(/static seed catalog/);
-    expect(report.action_registry.production_allowed_keys).toEqual([]);
+    // The seed now has exactly one allow-listed executable entry (flipped 2026-07-09); it is reported
+    // but NOT treated as a governance violation.
+    expect(report.action_registry.production_allowed_keys).toEqual([
+      "gmail.renewal_notice.draft_create",
+    ]);
+    expect(report.rollup.blockers.join(" ")).not.toMatch(/governance violation/);
     expect(
       report.action_registry.gated.find(
         (entry) => entry.key === "rentvine.lease.renewal_writeback",
@@ -290,7 +295,9 @@ describe("buildMigrationReadinessReport", () => {
     expect(report.budget.available).toBe(true);
     expect(report.budget.cap_usd).toBe(10);
     expect(report.action_registry.total).toBeGreaterThanOrEqual(14);
-    expect(report.action_registry.production_allowed_keys).toEqual([]);
+    expect(report.action_registry.production_allowed_keys).toEqual([
+      "gmail.renewal_notice.draft_create",
+    ]);
     expect(report.rollup.ok).toBe(false);
     expect(report.owner_actions.length).toBeGreaterThan(0);
     // Cold-importing the real .mjs module graph (firebase-admin, google libs) can exceed the
