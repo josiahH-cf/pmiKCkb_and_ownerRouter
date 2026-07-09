@@ -17,68 +17,29 @@ import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
+import {
+  MAINTENANCE_TICKET_STATUSES,
+  type MaintenanceTicketActivityRecord,
+  type MaintenanceTicketRecord,
+  type MaintenanceTicketStatus,
+} from "@/lib/maintenance/ticket-model";
 
-export const MAINTENANCE_TICKET_STATUSES = [
-  "Open",
-  "Waiting on Response",
-  "Waiting on Vendor",
-  "Scheduled",
-  "Closed",
-] as const;
-export type MaintenanceTicketStatus = (typeof MAINTENANCE_TICKET_STATUSES)[number];
+// Re-export the client-safe model so server callers (routes, page) can keep importing types from
+// here; the client queue imports them directly from lib/maintenance/ticket-model to avoid pulling
+// this server module (firebase-admin) into the client bundle.
+export {
+  MAINTENANCE_TICKET_STATUSES,
+  type MaintenanceTicketActivityAction,
+  type MaintenanceTicketActivityRecord,
+  type MaintenanceTicketRecord,
+  type MaintenanceTicketReporter,
+  type MaintenanceTicketStatus,
+} from "@/lib/maintenance/ticket-model";
 
 export const MAINTENANCE_TICKET_COLLECTIONS = {
   tickets: "maintenance_tickets",
   activity: "maintenance_ticket_activity",
 } as const;
-
-export type MaintenanceTicketActivityAction =
-  | "create"
-  | "status"
-  | "close"
-  | "reopen"
-  | "assign"
-  | "label"
-  | "note";
-
-export interface MaintenanceTicketReporter {
-  kind: "staff" | "external";
-  uid?: string;
-  name?: string;
-  contact?: string;
-}
-
-export interface MaintenanceTicketRecord {
-  id: string;
-  status: MaintenanceTicketStatus;
-  priority: string;
-  /** "auto-inferred" (emergency-keyword scan) or "operator-set" — transparent + overridable. */
-  priority_provenance: string;
-  summary: string;
-  description: string;
-  unit: { unitId: string; label: string } | null;
-  photo_refs: string[];
-  reporter: MaintenanceTicketReporter;
-  labels: string[];
-  assignee_uid?: string;
-  space_id: string;
-  source_trigger_key?: string;
-  created_at: string;
-  updated_at: string;
-  closed_at?: string;
-  closed_reason?: string;
-}
-
-export interface MaintenanceTicketActivityRecord {
-  id: string;
-  ticket_id: string;
-  actor_uid: string;
-  action: MaintenanceTicketActivityAction;
-  previous_status?: MaintenanceTicketStatus;
-  new_status?: MaintenanceTicketStatus;
-  text?: string;
-  created_at: string;
-}
 
 export const CreateMaintenanceTicketInputSchema = z.object({
   summary: z.string().trim().min(1),

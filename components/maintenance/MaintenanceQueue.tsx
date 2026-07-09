@@ -5,7 +5,7 @@ import {
   MAINTENANCE_TICKET_STATUSES,
   type MaintenanceTicketRecord,
   type MaintenanceTicketStatus,
-} from "@/lib/firestore/maintenance-tickets";
+} from "@/lib/maintenance/ticket-model";
 
 // The staff ticket queue (console overhaul Slice E). Lists persisted tickets grouped Open-first, with
 // one-change-per-action lifecycle transitions (status / note / close-with-reason). Closed tickets
