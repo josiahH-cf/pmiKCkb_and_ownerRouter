@@ -206,6 +206,13 @@ answer ourselves.
   `NODE_ENV` guard.
 - "Blocked on access" is raised as an explicit blocker, never worked around with a personal
   account or a demo-mode fallback.
+- In-app role management (console overhaul 2026-07-08, `F-ADMIN-USERS`): `/admin/users` lets an Admin change a
+  teammate's role via `setCustomUserClaims` — an app-plane privilege-escalation surface previously reachable only through
+  the `firebase:set-role` break-glass script. It is Admin-only (`manageAdmin`), requires a plain-English reason, enforces
+  the pmikcmetro.com domain boundary, writes an append-only `admin_role_changes` audit, and has a best-effort last-Admin
+  guard (NOT concurrency-safe; the break-glass script recovers). Per-user domain-wide Gmail (`F-GMAIL-PER-USER`) is a new
+  identity model (act AS each signed-in user's own mailbox via DWD) but is REPRESENTATIONAL only today — no Gmail runtime,
+  gated on the client-approved access model + DWD scope authorization.
 - Full strategy, per-surface mechanisms, and migration plan:
   `docs/auth-identity-and-access-strategy.md`.
 

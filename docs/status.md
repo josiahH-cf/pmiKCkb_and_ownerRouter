@@ -6172,3 +6172,27 @@ seed:process-definitions`) is owner-run, handed back as the next Tier-0 step. Co
   `speech.googleapis.com` enabled 2026-07-03. Budget: $10 kill switch armed + verified on `pmi-kc-kb-prod`.
   REMAINING: Dan's Admin walkthrough (this meeting) + his 2nd sign-in + two client answers (QuickBooks access tier,
   official deposit-accounting home). Still GATED/unchanged: Sheet write EXECUTION, Gmail runtime, Cloud Scheduler.
+- 2026-07-08/09 — CONSOLE OVERHAUL cycle shipped + merged to `main` (from the 2026-07-08 operator voice note "PMI console
+  edit and integrations"; decision-complete packet `docs/temp/console-overhaul-plan.md`). Six slices across four PRs, each
+  behind full CI (typecheck, lint, `next build`, ~1100 unit tests, format, copy-voice, context-freshness, Firestore rules
+  emulator): PR #41 — A action-first Console (always-visible action deck + read-only process strip + prominent Dictate;
+  `F-CONSOLE-APP-STATE` amended), B color-coded Space cards green/amber/red/purple (`F-SPACE-CARD-COLOR`), C Renewal
+  needs-attention fold + run-form CSS fix (`F-RENEWAL-ATTENTION`), D Admin re-section into People/Logs/Info (`F-ADMIN-IA`);
+  PR #42 — in-app user + role management with last-Admin guard + `admin_role_changes` audit (`F-ADMIN-USERS`); PR #43 —
+  persisted Maintenance ticket queue + lifecycle + append-only activity (`F-MAINT-TICKETS`); PR #44 — per-user Gmail
+  representation (`gmail_inbox` connector) + Owner-Email reframe to per-user (`F-GMAIL-PER-USER`). All app-plane;
+  `production_allowed:false` throughout; no system-of-record write, no send; three new server-write-only Firestore
+  collections (`admin_role_changes`, `maintenance_tickets`, `maintenance_ticket_activity`) with client writes denied.
+  THEN an adversarial review (7 parallel reviewers vs. the operator's original note) drove a remediation PR: fixed the
+  maintenance writer to use a Firestore transaction (was a non-transactional read-modify-write → lost-update/atomicity
+  bug), made the renewal attention fold surface only leases that genuinely need attention (was duplicating the queue) +
+  fixed its deadline ordering, made the admin audit write graceful-degrade (a failed audit no longer reports a false
+  role-change failure) + bounded its query + documented the last-Admin guard as best-effort, corrected the `gmail_inbox`
+  "never Connected" reasoning (it is the probe omission, not the empty config) + pinned it with a test, cleaned copy-voice
+  em-dashes, and updated `docs/loop-state.md` + this log (the review's top governance finding: docs went un-updated across
+  the cycle). Facts this cycle are UNIT-verified only (stale ADC blocked live runs). DEFERRED / not built (tracked as the
+  next slices): renewal owner-email send affordance + live-review actionability + per-property repository; maintenance
+  external-worker Submitter auth + universal unit type-ahead DB + delegable ownership; per-user Gmail RUNTIME (reading /
+  AI-drafted replies / notifications / reminder cadence, gated on the client Gmail access model + DWD authorization); and
+  the Approval-Queue action-first rebuild (detail-panel decision-first + tab collapse). Governance note added to
+  `AGENTS.md` for the new in-app role-management surface + the per-user Gmail identity model.

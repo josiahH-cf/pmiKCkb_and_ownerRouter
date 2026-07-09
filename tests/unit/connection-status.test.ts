@@ -6,6 +6,7 @@ import {
   classifyConnector,
 } from "@/lib/connections/connection-status";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
+import { LIVE_VERIFIABLE_CONNECTOR_IDS } from "@/lib/connections/verification";
 
 const rentvine = CONNECTORS.find((c) => c.id === "rentvine")!;
 const dotloop = CONNECTORS.find((c) => c.id === "dotloop")!;
@@ -64,6 +65,10 @@ describe("classifyConnector", () => {
     expect(gmailInbox.requiredConfig).toEqual([]);
     expect(gmailInbox.healthCheckRef).toBeUndefined();
     expect(classifyConnector(gmailInbox, {}).state).toBe("none");
+    // The real "can never show Connected" safeguard: gmail_inbox has no live verification probe, so it
+    // is never added to verifiedIds. (classifyConnector checks `verified` before requiredCount, so the
+    // empty requiredConfig alone would not stop a Connected state.)
+    expect(LIVE_VERIFIABLE_CONNECTOR_IDS).not.toContain("gmail_inbox");
   });
 });
 

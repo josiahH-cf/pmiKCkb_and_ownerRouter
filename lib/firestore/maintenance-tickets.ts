@@ -86,16 +86,11 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
-async function appendActivity(
-  db: Firestore,
+function activityDoc(
   partial: Omit<MaintenanceTicketActivityRecord, "id" | "created_at">,
   createdAt: string,
-): Promise<void> {
-  const id = uuidv7();
-  await db
-    .collection(MAINTENANCE_TICKET_COLLECTIONS.activity)
-    .doc(id)
-    .set(stripUndefined({ id, created_at: createdAt, ...partial }));
+) {
+  return stripUndefined({ id: uuidv7(), created_at: createdAt, ...partial });
 }
 
 export async function createMaintenanceTicket(
@@ -127,15 +122,21 @@ export async function createMaintenanceTicket(
     updated_at: createdAt,
   };
 
-  await db
-    .collection(MAINTENANCE_TICKET_COLLECTIONS.tickets)
-    .doc(id)
-    .set(stripUndefined(record));
-  await appendActivity(
-    db,
-    { ticket_id: id, actor_uid: actor.uid, action: "create", new_status: "Open" },
-    createdAt,
-  );
+  // The ticket and its append-only Activity row commit together (atomic), so the audit twin can
+  // never be left missing after a partial failure.
+  await db.runTransaction(async (transaction) => {
+    transaction.set(
+      db.collection(MAINTENANCE_TICKET_COLLECTIONS.tickets).doc(id),
+      stripUndefined(record),
+    );
+    transaction.set(
+      db.collection(MAINTENANCE_TICKET_COLLECTIONS.activity).doc(uuidv7()),
+      activityDoc(
+        { ticket_id: id, actor_uid: actor.uid, action: "create", new_status: "Open" },
+        createdAt,
+      ),
+    );
+  });
 
   return record;
 }
@@ -148,98 +149,109 @@ export async function transitionMaintenanceTicket(
 ): Promise<MaintenanceTicketRecord> {
   assertCan(actor, "edit");
   const op = TransitionMaintenanceTicketInputSchema.parse(input);
-  const ticket = await getMaintenanceTicket(actor, ticketId, db);
-  if (!ticket) {
-    throw new EditableLayerError("That maintenance ticket does not exist.", 404);
+  // Input-only validation (not state-dependent) is cheap to do before the transaction.
+  if (op.op === "status" && op.status === "Closed" && !op.reason?.trim()) {
+    throw new EditableLayerError("A reason is required to close a ticket.", 400);
   }
 
   const updatedAt = nowIso();
-  let updated: MaintenanceTicketRecord = { ...ticket, updated_at: updatedAt };
-  let activity: Omit<MaintenanceTicketActivityRecord, "id" | "created_at">;
+  const ticketRef = db.collection(MAINTENANCE_TICKET_COLLECTIONS.tickets).doc(ticketId);
 
-  switch (op.op) {
-    case "status": {
-      const reason = op.reason?.trim();
-      if (op.status === "Closed" && !reason) {
-        throw new EditableLayerError("A reason is required to close a ticket.", 400);
+  // Read-modify-write inside a transaction so concurrent transitions on the same ticket cannot
+  // clobber each other (lost update), and the ticket + its Activity row commit atomically.
+  return db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ticketRef);
+    if (!snapshot.exists) {
+      throw new EditableLayerError("That maintenance ticket does not exist.", 404);
+    }
+    const ticket = readRecord<MaintenanceTicketRecord>(snapshot.id, snapshot.data()!);
+
+    let updated: MaintenanceTicketRecord = { ...ticket, updated_at: updatedAt };
+    let activity: Omit<MaintenanceTicketActivityRecord, "id" | "created_at">;
+
+    switch (op.op) {
+      case "status": {
+        const reason = op.reason?.trim();
+        if (op.status === "Closed" && !reason) {
+          throw new EditableLayerError("A reason is required to close a ticket.", 400);
+        }
+        const reopening = ticket.status === "Closed" && op.status !== "Closed";
+        updated = {
+          ...updated,
+          status: op.status,
+          closed_at: op.status === "Closed" ? updatedAt : undefined,
+          closed_reason: op.status === "Closed" ? reason : undefined,
+        };
+        if (reopening) {
+          updated.closed_at = undefined;
+          updated.closed_reason = undefined;
+        }
+        activity = {
+          ticket_id: ticketId,
+          actor_uid: actor.uid,
+          action: op.status === "Closed" ? "close" : reopening ? "reopen" : "status",
+          previous_status: ticket.status,
+          new_status: op.status,
+          text: reason,
+        };
+        break;
       }
-      const reopening = ticket.status === "Closed" && op.status !== "Closed";
-      updated = {
-        ...updated,
-        status: op.status,
-        closed_at: op.status === "Closed" ? updatedAt : undefined,
-        closed_reason: op.status === "Closed" ? reason : undefined,
-      };
-      if (reopening) {
-        updated.closed_at = undefined;
-        updated.closed_reason = undefined;
+      case "assign": {
+        updated = { ...updated, assignee_uid: op.assigneeUid ?? undefined };
+        activity = {
+          ticket_id: ticketId,
+          actor_uid: actor.uid,
+          action: "assign",
+          text: op.assigneeUid ?? "unassigned",
+        };
+        break;
       }
-      activity = {
-        ticket_id: ticketId,
-        actor_uid: actor.uid,
-        action: op.status === "Closed" ? "close" : reopening ? "reopen" : "status",
-        previous_status: ticket.status,
-        new_status: op.status,
-        text: reason,
-      };
-      break;
+      case "label-add": {
+        updated = {
+          ...updated,
+          labels: updated.labels.includes(op.label)
+            ? updated.labels
+            : [...updated.labels, op.label],
+        };
+        activity = {
+          ticket_id: ticketId,
+          actor_uid: actor.uid,
+          action: "label",
+          text: `+${op.label}`,
+        };
+        break;
+      }
+      case "label-remove": {
+        updated = {
+          ...updated,
+          labels: updated.labels.filter((label) => label !== op.label),
+        };
+        activity = {
+          ticket_id: ticketId,
+          actor_uid: actor.uid,
+          action: "label",
+          text: `-${op.label}`,
+        };
+        break;
+      }
+      case "note": {
+        activity = {
+          ticket_id: ticketId,
+          actor_uid: actor.uid,
+          action: "note",
+          text: op.text,
+        };
+        break;
+      }
     }
-    case "assign": {
-      updated = { ...updated, assignee_uid: op.assigneeUid ?? undefined };
-      activity = {
-        ticket_id: ticketId,
-        actor_uid: actor.uid,
-        action: "assign",
-        text: op.assigneeUid ?? "unassigned",
-      };
-      break;
-    }
-    case "label-add": {
-      updated = {
-        ...updated,
-        labels: updated.labels.includes(op.label)
-          ? updated.labels
-          : [...updated.labels, op.label],
-      };
-      activity = {
-        ticket_id: ticketId,
-        actor_uid: actor.uid,
-        action: "label",
-        text: `+${op.label}`,
-      };
-      break;
-    }
-    case "label-remove": {
-      updated = {
-        ...updated,
-        labels: updated.labels.filter((label) => label !== op.label),
-      };
-      activity = {
-        ticket_id: ticketId,
-        actor_uid: actor.uid,
-        action: "label",
-        text: `-${op.label}`,
-      };
-      break;
-    }
-    case "note": {
-      activity = {
-        ticket_id: ticketId,
-        actor_uid: actor.uid,
-        action: "note",
-        text: op.text,
-      };
-      break;
-    }
-  }
 
-  await db
-    .collection(MAINTENANCE_TICKET_COLLECTIONS.tickets)
-    .doc(ticketId)
-    .set(stripUndefined(updated));
-  await appendActivity(db, activity, updatedAt);
-
-  return updated;
+    transaction.set(ticketRef, stripUndefined(updated));
+    transaction.set(
+      db.collection(MAINTENANCE_TICKET_COLLECTIONS.activity).doc(uuidv7()),
+      activityDoc(activity, updatedAt),
+    );
+    return updated;
+  });
 }
 
 export async function getMaintenanceTicket(

@@ -56,7 +56,7 @@ export default async function AdminPage() {
         <section aria-label="People and access" className="admin-section">
           <h2 className="section-subtitle">People and Access</h2>
           <p className="muted">Who can use the app and what they can do.</p>
-          <div className="grid three">
+          <div className="grid two">
             <article className="panel">
               <h2>Access</h2>
               <p className="muted">

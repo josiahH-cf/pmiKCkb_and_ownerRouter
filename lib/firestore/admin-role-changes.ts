@@ -35,9 +35,14 @@ export async function listAdminRoleChanges(
   limit = 25,
   db: Firestore = getAdminFirestore(),
 ): Promise<AdminRoleChangeRecord[]> {
-  const snapshot = await db.collection(COLLECTION).get();
-  return snapshot.docs
-    .map((doc) => ({ id: doc.id, ...(doc.data() as Omit<AdminRoleChangeRecord, "id">) }))
-    .sort((left, right) => right.created_at.localeCompare(left.created_at))
-    .slice(0, limit);
+  // Bound + order server-side so a long-lived audit collection is not scanned in full on each read.
+  const snapshot = await db
+    .collection(COLLECTION)
+    .orderBy("created_at", "desc")
+    .limit(limit)
+    .get();
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...(doc.data() as Omit<AdminRoleChangeRecord, "id">),
+  }));
 }
