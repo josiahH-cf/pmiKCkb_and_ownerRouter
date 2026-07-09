@@ -58,6 +58,75 @@ function adcRemediation(): string {
   ].join("\n");
 }
 
+function base64UrlMime(subject: string): string {
+  const mime = [
+    `To: ${subject}`,
+    "Subject: [smoke-diagnostic] safe to ignore",
+    "",
+    "diagnostic",
+  ].join("\r\n");
+  return Buffer.from(mime, "utf8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function projectFromServiceAccount(sa: string | undefined): string | undefined {
+  // lease-renewal-reader@PROJECT.iam.gserviceaccount.com -> PROJECT
+  return sa?.match(/@([^.]+)\.iam\.gserviceaccount\.com$/)?.[1];
+}
+
+// On failure AFTER a successful mint, do ONE raw drafts.create with the same token so we can print the
+// actual Gmail error body — the product client (GmailRuntimeError) deliberately hides it, but this is a
+// standalone owner diagnostic, not the product path. Names the most common cause (Gmail API not enabled).
+async function diagnoseGmail(
+  subject: string,
+  token: string,
+  serviceAccount?: string,
+): Promise<void> {
+  try {
+    const res = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/${encodeURIComponent(subject)}/drafts`,
+      {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+        body: JSON.stringify({ message: { raw: base64UrlMime(subject) } }),
+      },
+    );
+    const body = await res.text();
+    console.error(`\nGmail API said (raw): HTTP ${res.status}`);
+    console.error(body.slice(0, 1500));
+    if (res.ok) {
+      // It actually worked this time — clean up the diagnostic draft so nothing is left behind.
+      try {
+        const { id } = JSON.parse(body) as { id?: string };
+        if (id) {
+          await fetch(
+            `https://gmail.googleapis.com/gmail/v1/users/${encodeURIComponent(subject)}/drafts/${encodeURIComponent(id)}`,
+            { method: "DELETE", headers: { authorization: `Bearer ${token}` } },
+          );
+        }
+      } catch {
+        /* best-effort cleanup */
+      }
+    } else if (
+      /accessNotConfigured|SERVICE_DISABLED|has not been used|is disabled/i.test(body)
+    ) {
+      const project = projectFromServiceAccount(serviceAccount) ?? "<the SA's project>";
+      console.error(
+        `\nLikely fix: the Gmail API is not enabled on the service account's project. Run:\n` +
+          `  gcloud services enable gmail.googleapis.com --project=${project}\n` +
+          `then wait ~1 minute and re-run this smoke.`,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `Gmail diagnostic call also failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
 async function main(): Promise<void> {
   const env = loadEnvLocal();
   const read = (name: string): string | undefined =>
@@ -93,13 +162,15 @@ async function main(): Promise<void> {
     return;
   }
 
+  let mintedToken: string | undefined;
   try {
     // One mint, reused for create + delete.
-    const token = await mintGmailDwdToken({
+    mintedToken = await mintGmailDwdToken({
       subject,
       scope: GMAIL_COMPOSE_SCOPE,
       serviceAccount,
     });
+    const token = mintedToken;
     const client = new GmailRuntimeClient({ subject, getToken: async () => token });
     const { draftId } = await client.createDraft({
       to: subject,
@@ -131,8 +202,14 @@ async function main(): Promise<void> {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`Gmail draft smoke FAILED: ${message}`);
-    console.error("");
-    console.error(adcRemediation());
+    if (mintedToken) {
+      // The DWD token minted, so the gmail.compose scope IS authorized in Admin console; the failure is
+      // downstream at the Gmail API. Surface the raw reason (most often: Gmail API not enabled).
+      await diagnoseGmail(subject, mintedToken, serviceAccount);
+    } else {
+      console.error("");
+      console.error(adcRemediation());
+    }
     process.exitCode = 1;
   }
 }
