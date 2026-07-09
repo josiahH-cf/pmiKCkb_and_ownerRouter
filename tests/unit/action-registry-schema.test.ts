@@ -135,10 +135,13 @@ describe("Action Registry seed catalog", () => {
     }
   });
 
-  it("keeps every entry non-executable (production_allowed=false)", () => {
+  it("keeps every entry non-executable except the allow-listed, documented Gmail renewal-notice draft", () => {
+    // Only gmail.renewal_notice.draft_create is production_allowed — flipped 2026-07-09 on the committed
+    // DWD grant (docs/evidence/gmail-dwd-grant-2026-07.md). Any OTHER executable entry trips this pin.
+    const EXECUTABLE = new Set(["gmail.renewal_notice.draft_create"]);
     for (const entry of ACTION_REGISTRY_SEED) {
       const parsed = CreateActionRegistryInputSchema.parse(entry);
-      expect(parsed.production_allowed).toBe(false);
+      expect(parsed.production_allowed, entry.key).toBe(EXECUTABLE.has(entry.key));
     }
   });
 
@@ -174,28 +177,31 @@ describe("Action Registry seed catalog", () => {
     );
   });
 
-  it("keeps every Gmail entry Planned + non-executable until the access model is approved", () => {
+  it("opens ONLY the renewal-notice Gmail draft (Approved+Documented); the two Inbox 0 entries stay Planned", () => {
     const gmailEntries = ACTION_REGISTRY_SEED.filter(
       (entry) => entry.target_system === "Gmail",
     );
-
-    // The two Gmail Inbox 0 entries (label.apply, draft.create) + the Lease Renewal renewal-notice
-    // draft-create. None sends; none is executable.
     expect(gmailEntries).toHaveLength(3);
 
-    for (const entry of gmailEntries) {
-      expect(entry.readiness).toBe("Planned");
-      expect(entry.production_allowed).toBe(false);
-    }
-
-    // The renewal-notice draft entry belongs to the Lease Renewal lane (send policy, decision 3).
+    // Flipped 2026-07-09 on the committed DWD grant (gmail.compose proven live; no send scope, no send
+    // call). The ceiling stays an unsent draft.
     const renewalNotice = gmailEntries.find(
       (entry) => entry.key === "gmail.renewal_notice.draft_create",
     );
     expect(renewalNotice?.product_lane).toBe("Lease Renewal Agent");
-    expect(
-      gmailEntries.filter((entry) => entry.product_lane === "Gmail Inbox 0"),
-    ).toHaveLength(2);
+    expect(renewalNotice?.readiness).toBe("Approved for Execution");
+    expect(renewalNotice?.evidence_status).toBe("Documented");
+    expect(renewalNotice?.production_allowed).toBe(true);
+
+    // The two Gmail Inbox 0 entries (label.apply, draft.create) have no runtime yet — still gated.
+    const inboxZero = gmailEntries.filter(
+      (entry) => entry.product_lane === "Gmail Inbox 0",
+    );
+    expect(inboxZero).toHaveLength(2);
+    for (const entry of inboxZero) {
+      expect(entry.readiness, entry.key).toBe("Planned");
+      expect(entry.production_allowed, entry.key).toBe(false);
+    }
   });
 
   it("keeps LeadSimple task creation behind vendor confirmation", () => {

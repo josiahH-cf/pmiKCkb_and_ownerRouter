@@ -34,7 +34,8 @@ describe("admin migration console", () => {
     expect(html).toContain("Budget &amp; Away Mode");
     expect(html).toContain("Action Registry Readiness");
     expect(html).toContain("Notification Posture");
-    expect(html).toContain("production_allowed=false; no external write path exists.");
+    // Copy varies with registry state (all-gated vs an allow-listed executable); assert the stable token.
+    expect(html).toContain("production_allowed");
     // Dev/demo sessions honestly report owner-side production blockers.
     expect(html).toContain("Owner-side action required");
   });

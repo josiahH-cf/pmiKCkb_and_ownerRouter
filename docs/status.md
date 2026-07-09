@@ -6258,3 +6258,22 @@ queue). App-plane only — promotion creates a KB ticket, never a system-of-reco
 `production_allowed:false` throughout, no registry change. Verified locally: typecheck, lint (0 errors), the full unit suite
 (incl. atomic-promote + idempotency + route-auth + component tests), the emulator rules test, Turbopack build, and every
 gate green.
+
+Gmail renewal-notice draft — SECTION-3 FLIP to executable (2026-07-09, branch `gmail-renewal-draft-flip`,
+`F-GMAIL-RENEWAL-DRAFT-LIVE`). The FIRST executable external action in the Action Registry. Owner ran the live smoke, which
+minted a keyless DWD token and created + deleted an UNSENT draft (`r-5809471014674430724`) — the root cause of the prior 403
+was the Gmail API not being enabled on `pmi-kc-kb-prod` (the DWD `gmail.compose` grant + Token Creator were already fine; the
+403 came AFTER a successful token mint). Enabling `gmail.googleapis.com` cleared it. Committed the grant artifact
+(`docs/evidence/gmail-dwd-grant-2026-07.md`: SA client id 104374162913177846911, scope gmail.compose, gmail.send absent,
+date) and flipped ONLY `gmail.renewal_notice.draft_create` → readiness "Approved for Execution" + evidence_status
+"Documented" + `production_allowed:true`. Deliberately did NOT flip the two Gmail Inbox 0 entries (`gmail.label.apply`,
+`gmail.draft.create`) — they have no runtime and only `gmail.compose` was granted (least privilege). The guards were updated
+to the new state, NOT weakened: the four blanket "all production_allowed:false" pins (action-registry-schema, action-gate,
+action-registry, rentvine-health-probe) now assert EXACTLY this one key is executable, so any further flip trips them; the
+seed script + migration-readiness share an `EXECUTABLE_ALLOWLIST` so a surprise flip of any un-allow-listed key is still
+refused/flagged (migration-readiness gained `unexpected_production_allowed_keys`; the admin page reads "Gate-controlled", not
+a violation). The runtime is unchanged — createDraft only, no send scope, no send method. Because the gate is the committed
+seed (`isActionExecutable` reads `ACTION_REGISTRY_SEED`), the Prepare-owner-email button produces a real unsent draft in prod
+only after the OWNER deploys this branch; rollback = set the entry back to Planned/false and redeploy. Verified locally:
+typecheck, lint (0 errors), 1202 unit tests, falsification + freshness + copy-voice + router-boundary + redaction, Turbopack
+build — all green.
