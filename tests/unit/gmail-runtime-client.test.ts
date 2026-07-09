@@ -28,7 +28,7 @@ describe("GmailRuntimeClient.createDraft", () => {
   it("creates an UNSENT draft (drafts endpoint, never /messages/send), preserving DRAFT_BANNER", async () => {
     const { calls, transport } = fakeTransport({ status: 200, body: { id: "draft_1" } });
     const client = new GmailRuntimeClient({
-      subject: "user@pmikcmetro.com",
+      subject: "josiah@pmikcmetro.com",
       transport,
       getToken: async () => "test-token",
     });
@@ -42,19 +42,19 @@ describe("GmailRuntimeClient.createDraft", () => {
     expect(result.draftId).toBe("draft_1");
     expect(calls).toHaveLength(1);
     expect(calls[0].url).toBe(
-      "https://gmail.googleapis.com/gmail/v1/users/user%40pmikcmetro.com/drafts",
+      "https://gmail.googleapis.com/gmail/v1/users/josiah%40pmikcmetro.com/drafts",
     );
     expect(calls[0].url).not.toContain("/messages/send");
     const decoded = decodeRaw(calls[0].body);
     expect(decoded).toContain(DRAFT_BANNER);
     expect(decoded).toContain("To: owner@example.com");
     expect(decoded).toContain("Subject: Renewal notice");
-    expect(decoded).toContain("From: user@pmikcmetro.com");
+    expect(decoded).toContain("From: josiah@pmikcmetro.com");
   });
 
   it("exposes no send capability (createDraft is the only action)", () => {
     const client = new GmailRuntimeClient({
-      subject: "u@pmikcmetro.com",
+      subject: "josiah@pmikcmetro.com",
       transport: fakeTransport({ status: 200, body: { id: "d" } }).transport,
       getToken: async () => "t",
     });
@@ -64,7 +64,7 @@ describe("GmailRuntimeClient.createDraft", () => {
   it("throws with only the HTTP status on a Gmail error, never leaking the token", async () => {
     const { transport } = fakeTransport({ status: 403 });
     const client = new GmailRuntimeClient({
-      subject: "user@pmikcmetro.com",
+      subject: "josiah@pmikcmetro.com",
       transport,
       getToken: async () => "SECRET-BEARER-TOKEN",
     });
