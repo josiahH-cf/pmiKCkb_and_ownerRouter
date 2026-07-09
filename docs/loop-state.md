@@ -47,10 +47,10 @@ stop-and-reset rules.
   Next buildable slice: Approval-Queue action-first rebuild (see the console-overhaul DEFERRED list above).
 - **Deferred cycle IN PROGRESS (2026-07-09):** shipped app-plane 2c/3c (`F-DEFCYCLE-APPPLANE-1`); the per-user Gmail draft
   runtime + action-gate built TO THE GATE + renewal Prepare-owner-email button (`F-GMAIL-RUNTIME-GATED`); A5 the HMAC-token
-  PUBLIC intake → quarantine via a no-actor writer, fail-closed 503 + a route-auth-boundary invariant (`F-MAINT-INTAKE-PUBLIC`);
-  2d the edit-gated triage that promotes/dismisses a quarantined intake (`F-MAINT-INTAKE-REVIEW`). Then the Gmail renewal-notice
-  draft was FLIPPED executable on the committed DWD grant + live smoke (`F-GMAIL-RENEWAL-DRAFT-LIVE`; gmail.compose only, no
-  send; the two Inbox 0 entries stay Planned; owner deploy pending). Remaining: A4, unit type-ahead, notifications, queue rebuild.
+  PUBLIC intake → quarantine via a no-actor writer + a route-auth-boundary invariant (`F-MAINT-INTAKE-PUBLIC`); 2d the edit-gated
+  triage that promotes/dismisses it (`F-MAINT-INTAKE-REVIEW`); the Gmail renewal-notice draft FLIPPED executable on the committed
+  DWD grant + live smoke (`F-GMAIL-RENEWAL-DRAFT-LIVE`; gmail.compose only, no send; owner deploy pending); 2b the edit-gated
+  assignee picker + Assigned-to-me filter (`F-MAINT-ASSIGNEE`). Remaining: A4, unit type-ahead, notifications, queue rebuild.
 
 ## Next Safe Slice Candidates
 

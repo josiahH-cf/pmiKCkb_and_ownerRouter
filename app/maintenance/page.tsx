@@ -8,6 +8,8 @@ import {
   type MaintenanceTicketRecord,
   listMaintenanceTickets,
 } from "@/lib/firestore/maintenance-tickets";
+import type { AssignableUser } from "@/lib/maintenance/assignee-model";
+import { listAssignableUsers } from "@/lib/maintenance/assignees";
 import type { UnverifiedIntakeRecord } from "@/lib/maintenance/intake-model";
 
 export default async function MaintenancePage() {
@@ -34,6 +36,15 @@ export default async function MaintenancePage() {
       "The unverified-intake queue is unavailable in this session. Refresh Google credentials (npm run auth:session) or check the Firestore setup, then reload.";
   }
 
+  // The assignable-user roster for the per-ticket picker (edit-gated; demo-aware). Non-fatal: if the
+  // roster is unavailable the queue simply offers "Unassigned" only, rather than 500-ing the desk.
+  let assignees: AssignableUser[] = [];
+  try {
+    assignees = await listAssignableUsers();
+  } catch {
+    assignees = [];
+  }
+
   return (
     <AppShell user={user}>
       <section className="content ui-stack">
@@ -49,7 +60,12 @@ export default async function MaintenancePage() {
           initialIntake={intake}
           unavailableNote={intakeUnavailableNote}
         />
-        <MaintenanceQueue initialTickets={tickets} unavailableNote={unavailableNote} />
+        <MaintenanceQueue
+          initialTickets={tickets}
+          unavailableNote={unavailableNote}
+          assignees={assignees}
+          currentUid={user.uid}
+        />
       </section>
     </AppShell>
   );

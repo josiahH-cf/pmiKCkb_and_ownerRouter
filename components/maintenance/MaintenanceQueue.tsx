@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { AssignableUser } from "@/lib/maintenance/assignee-model";
 import {
   MAINTENANCE_TICKET_STATUSES,
   type MaintenanceTicketActivityRecord,
@@ -26,10 +27,18 @@ const STATUS_PILL: Record<MaintenanceTicketStatus, string> = {
 export function MaintenanceQueue({
   initialTickets,
   unavailableNote,
-}: Readonly<{ initialTickets: MaintenanceTicketRecord[]; unavailableNote?: string }>) {
+  assignees = [],
+  currentUid,
+}: Readonly<{
+  initialTickets: MaintenanceTicketRecord[];
+  unavailableNote?: string;
+  assignees?: AssignableUser[];
+  currentUid?: string;
+}>) {
   const [tickets, setTickets] = useState(initialTickets);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [status, setStatus] = useState("");
+  const [assignedToMe, setAssignedToMe] = useState(false);
 
   if (unavailableNote) {
     return (
@@ -80,20 +89,49 @@ export function MaintenanceQueue({
     void patch(ticket.id, { op: "status", status: next, reason });
   }
 
-  const open = tickets.filter((ticket) => ticket.status !== "Closed");
-  const closed = tickets.filter((ticket) => ticket.status === "Closed");
+  function assign(ticket: MaintenanceTicketRecord, assigneeUid: string | null) {
+    // No-op guard: re-selecting the current assignee would emit a redundant Activity row.
+    if ((ticket.assignee_uid ?? null) === assigneeUid) return;
+    void patch(ticket.id, { op: "assign", assigneeUid });
+  }
+
+  // "Assigned to me" is an app-plane view filter (there is no per-user security rule for maintenance
+  // tickets); it hides tickets not assigned to the signed-in user. Disabled when we don't know the uid.
+  const visible =
+    assignedToMe && currentUid
+      ? tickets.filter((ticket) => ticket.assignee_uid === currentUid)
+      : tickets;
+  const open = visible.filter((ticket) => ticket.status !== "Closed");
+  const closed = visible.filter((ticket) => ticket.status === "Closed");
 
   return (
     <section aria-label="Ticket queue" className="ui-stack">
-      <h2 className="section-subtitle">Ticket queue</h2>
+      <div className="ui-spread">
+        <h2 className="section-subtitle">Ticket queue</h2>
+        {currentUid ? (
+          <label className="ui-row">
+            <input
+              checked={assignedToMe}
+              onChange={(event) => setAssignedToMe(event.target.checked)}
+              type="checkbox"
+            />
+            Assigned to me
+          </label>
+        ) : null}
+      </div>
       {tickets.length === 0 ? (
         <p className="muted">
           No tickets yet. Build a work-order draft and create a ticket.
         </p>
       ) : null}
+      {tickets.length > 0 && open.length === 0 && closed.length === 0 ? (
+        <p className="muted">No tickets assigned to you.</p>
+      ) : null}
       {open.map((ticket) => (
         <TicketCard
           key={ticket.id}
+          assignees={assignees}
+          onAssign={(assigneeUid) => assign(ticket, assigneeUid)}
           onNote={(text) => patch(ticket.id, { op: "note", text })}
           onStatus={(next) => changeStatus(ticket, next)}
           pending={pendingId === ticket.id}
@@ -106,6 +144,8 @@ export function MaintenanceQueue({
           {closed.map((ticket) => (
             <TicketCard
               key={ticket.id}
+              assignees={assignees}
+              onAssign={(assigneeUid) => assign(ticket, assigneeUid)}
               onNote={(text) => patch(ticket.id, { op: "note", text })}
               onStatus={(next) => changeStatus(ticket, next)}
               pending={pendingId === ticket.id}
@@ -122,15 +162,24 @@ export function MaintenanceQueue({
 function TicketCard({
   ticket,
   pending,
+  assignees,
   onStatus,
+  onAssign,
   onNote,
 }: Readonly<{
   ticket: MaintenanceTicketRecord;
   pending: boolean;
+  assignees: AssignableUser[];
   onStatus: (next: MaintenanceTicketStatus) => void;
+  onAssign: (assigneeUid: string | null) => void;
   onNote: (text: string) => void;
 }>) {
   const [note, setNote] = useState("");
+  // The current assignee may be a real user not in the (demo) roster; show a value-free "outside roster"
+  // option for it rather than leaking the raw uid, preserving the queue's no-uid-on-screen invariant.
+  const assigneeOffRoster =
+    Boolean(ticket.assignee_uid) &&
+    !assignees.some((user) => user.uid === ticket.assignee_uid);
 
   return (
     <article className="panel maintenance-ticket">
@@ -164,6 +213,27 @@ function TicketCard({
             {MAINTENANCE_TICKET_STATUSES.map((option) => (
               <option key={option} value={option}>
                 {option}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="select-field" htmlFor={`assignee-${ticket.id}`}>
+          Assignee
+          <select
+            disabled={pending}
+            id={`assignee-${ticket.id}`}
+            onChange={(event) =>
+              onAssign(event.target.value === "" ? null : event.target.value)
+            }
+            value={ticket.assignee_uid ?? ""}
+          >
+            <option value="">Unassigned</option>
+            {assigneeOffRoster ? (
+              <option value={ticket.assignee_uid}>Assigned (outside roster)</option>
+            ) : null}
+            {assignees.map((user) => (
+              <option key={user.uid} value={user.uid}>
+                {user.email}
               </option>
             ))}
           </select>
