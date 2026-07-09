@@ -3,12 +3,12 @@
 import { useState } from "react";
 
 import { useAudioRecorder } from "@/components/hooks/useAudioRecorder";
+import { UnitTypeahead } from "@/components/maintenance/UnitTypeahead";
 import {
   buildWorkOrderDraft,
   type MaintenanceUnitMatch,
   type WorkOrderDraft,
 } from "@/lib/maintenance/work-order-draft";
-import type { ScoredUnitCandidate } from "@/lib/maintenance/unit-matcher";
 import {
   buildOwnerNoticeDraft,
   type OwnerNoticeDraft,
@@ -35,10 +35,7 @@ async function blobToBase64(blob: Blob): Promise<string> {
 export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: string }>) {
   const [typedNote, setTypedNote] = useState("");
   const [transcript, setTranscript] = useState("");
-  const [unitLabel, setUnitLabel] = useState("");
   const [unitMatch, setUnitMatch] = useState<MaintenanceUnitMatch | null>(null);
-  const [unitCandidates, setUnitCandidates] = useState<ScoredUnitCandidate[]>([]);
-  const [isMatching, setIsMatching] = useState(false);
   const [priority, setPriority] = useState("");
   const [draft, setDraft] = useState<WorkOrderDraft | null>(null);
   const [ownerNotice, setOwnerNotice] = useState<OwnerNoticeDraft | null>(null);
@@ -110,58 +107,6 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
       }
     } finally {
       setIsUploading(false);
-    }
-  }
-
-  async function findUnit() {
-    const location = unitLabel.trim();
-    if (!location) {
-      setStatus("Enter a unit or location to look up.");
-      return;
-    }
-    setIsMatching(true);
-    setStatus("");
-    try {
-      const response = await fetch("/api/maintenance/match-unit", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ location }),
-      });
-      if (response.ok) {
-        const payload = (await response.json()) as {
-          match: MaintenanceUnitMatch | null;
-          candidates: ScoredUnitCandidate[];
-        };
-        setUnitMatch(payload.match);
-        setUnitCandidates(payload.candidates);
-        if (!payload.match) {
-          setStatus("No unit matched — pick from the candidates or refine the location.");
-        }
-      } else {
-        setUnitMatch(null);
-        setUnitCandidates([]);
-        setStatus("Unit lookup is unavailable (RentVine not connected).");
-      }
-    } catch {
-      setStatus("Could not reach the unit matcher.");
-    } finally {
-      setIsMatching(false);
-    }
-  }
-
-  // Confirm/override the suggested unit with any scored candidate (or clear it back to unmatched).
-  function selectCandidate(unitId: string) {
-    if (!unitId) {
-      setUnitMatch(null);
-      return;
-    }
-    const candidate = unitCandidates.find((entry) => entry.unitId === unitId);
-    if (candidate) {
-      setUnitMatch({
-        unitId: candidate.unitId,
-        label: candidate.label,
-        confidence: candidate.confidence,
-      });
     }
   }
 
@@ -279,59 +224,24 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
           <p className="muted">{photoRefs.length} photo(s) attached.</p>
         ) : null}
 
-        <label htmlFor="mx-unit">Unit / location</label>
-        <div className="field-row">
-          <input
-            id="mx-unit"
-            name="mx-unit"
-            onChange={(event) => setUnitLabel(event.target.value)}
-            placeholder="e.g. 123 Main St #2"
-            value={unitLabel}
-          />
-          <button
-            className="secondary-button"
-            disabled={isMatching}
-            onClick={findUnit}
-            type="button"
-          >
-            {isMatching ? "Finding…" : "Find unit"}
-          </button>
-        </div>
+        <UnitTypeahead
+          id="mx-unit"
+          onSelect={(unit) =>
+            setUnitMatch(
+              unit
+                ? { unitId: unit.unitId, label: unit.label, confidence: "Verified" }
+                : null,
+            )
+          }
+        />
 
         {unitMatch ? (
           <p className="muted">
             Matched: <strong>{unitMatch.label}</strong>{" "}
-            <span
-              className="queue-pill"
-              data-value={
-                unitMatch.confidence === "Verified"
-                  ? "Approved"
-                  : unitMatch.confidence === "Likely"
-                    ? "Ready for Approval"
-                    : "Needs Attention"
-              }
-            >
+            <span className="queue-pill" data-value="Approved">
               {unitMatch.confidence}
             </span>
           </p>
-        ) : null}
-
-        {unitCandidates.length > 0 ? (
-          <label className="select-field" htmlFor="mx-unit-candidate">
-            Confirm / override unit
-            <select
-              id="mx-unit-candidate"
-              onChange={(event) => selectCandidate(event.target.value)}
-              value={unitMatch?.unitId ?? ""}
-            >
-              <option value="">None (unmatched)</option>
-              {unitCandidates.map((candidate) => (
-                <option key={candidate.unitId} value={candidate.unitId}>
-                  {candidate.label} ({candidate.confidence})
-                </option>
-              ))}
-            </select>
-          </label>
         ) : null}
 
         <label className="select-field" htmlFor="mx-priority">

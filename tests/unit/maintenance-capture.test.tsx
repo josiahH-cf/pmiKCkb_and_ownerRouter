@@ -29,34 +29,25 @@ describe("MaintenanceCapture", () => {
 
   it("builds a clean draft after matching the unit, marked simulation-only", async () => {
     const user = userEvent.setup();
-    // The unit now comes from the matcher (real confidence), not the typed text — mock the route.
+    // The unit now comes from the type-ahead (real confidence), not the typed text — branch on URL.
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () =>
-        Response.json({
-          match: {
-            unitId: "unit:456",
-            label: "123 Main Street Unit 2",
-            confidence: "Likely",
-          },
-          candidates: [
-            {
-              unitId: "unit:456",
-              label: "123 Main Street Unit 2",
-              score: 1,
-              confidence: "Likely",
-            },
-          ],
-          autoMerge: false,
-        }),
+      vi.fn(async (url: string) =>
+        url.includes("/api/maintenance/units/search")
+          ? Response.json({
+              units: [{ unitId: "unit:456", label: "123 Main Street Unit 2" }],
+            })
+          : Response.json({}),
       ),
     );
 
     render(<MaintenanceCapture reporterUid="u" />);
 
     await user.type(screen.getByLabelText("Issue"), "Dishwasher won't drain");
-    await user.type(screen.getByLabelText("Unit / location"), "123 Main #2");
-    await user.click(screen.getByRole("button", { name: "Find unit" }));
+    await user.type(screen.getByLabelText("Unit / location"), "123 Main");
+    await user.click(
+      await screen.findByRole("button", { name: /123 Main Street Unit 2/ }),
+    );
     expect(await screen.findByText(/Matched:/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Build work-order draft" }));
