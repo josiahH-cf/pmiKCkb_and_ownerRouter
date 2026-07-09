@@ -47,6 +47,7 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [photoRefs, setPhotoRefs] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [status, setStatus] = useState("");
 
   async function transcribe(blob: Blob) {
@@ -179,6 +180,41 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
     // Non-executable next stages (M-5): an owner-notice DRAFT + a vendor-assignment SUGGESTION.
     setOwnerNotice(buildOwnerNoticeDraft({ workOrder }));
     setVendorSuggestion(suggestVendorAssignment(workOrder.description));
+  }
+
+  // Persist the built draft as a tracked ticket (console overhaul Slice E). App-plane only; the
+  // RentVine work-order create stays gated. The queue below shows the ticket after a reload.
+  async function createTicket() {
+    if (!draft) return;
+    setIsCreating(true);
+    setStatus("");
+    try {
+      const response = await fetch("/api/maintenance/tickets", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          summary: draft.summary,
+          description: draft.description,
+          priority: draft.priority,
+          priority_provenance: priority ? "operator-set" : "auto-inferred",
+          unit: draft.unit,
+          photo_refs: draft.photoRefs,
+        }),
+      });
+      if (response.ok) {
+        const { ticket } = (await response.json()) as { ticket: { status: string } };
+        setStatus(
+          `Ticket created (${ticket.status}). Reload to see it in the queue below.`,
+        );
+      } else {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string };
+        setStatus(payload.error ?? "Could not create the ticket.");
+      }
+    } catch {
+      setStatus("Could not reach the ticket service.");
+    } finally {
+      setIsCreating(false);
+    }
   }
 
   return (
@@ -351,6 +387,15 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
             ) : (
               <p className="muted">No blockers — ready for human review.</p>
             )}
+
+            <button
+              className="primary-button"
+              disabled={isCreating}
+              onClick={createTicket}
+              type="button"
+            >
+              {isCreating ? "Creating…" : "Create ticket"}
+            </button>
 
             {ownerNotice ? (
               <section aria-label="Owner notice draft">
