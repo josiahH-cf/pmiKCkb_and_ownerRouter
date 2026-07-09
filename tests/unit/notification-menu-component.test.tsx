@@ -5,7 +5,10 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NotificationMenu } from "@/components/layout/NotificationMenu";
-import type { ApprovalQueueNotificationRecord } from "@/lib/firestore/types";
+import type {
+  NotificationFamilyView,
+  UnifiedNotification,
+} from "@/lib/notifications/families";
 
 afterEach(() => {
   cleanup();
@@ -14,22 +17,19 @@ afterEach(() => {
 });
 
 describe("NotificationMenu", () => {
-  it("loads unread queue notifications and marks one read before opening the queue item", async () => {
+  it("loads a unified feed and marks one read before opening its link", async () => {
     const user = userEvent.setup();
     const navigate = vi.fn();
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
 
-      if (url.includes("/api/approval-queue/notifications?")) {
-        return jsonResponse({ notifications: [notification()] });
+      if (url.includes("/api/notifications/mark-read") && init?.method === "POST") {
+        return jsonResponse({ ok: true });
       }
-
-      if (
-        url === "/api/approval-queue/notifications/notification-1" &&
-        init?.method === "PATCH"
-      ) {
+      if (url.includes("/api/notifications?")) {
         return jsonResponse({
-          notification: notification({ read_at: "2026-06-06T00:00:00.000Z" }),
+          notifications: [approvalUnified(), maintenanceUnified()],
+          families: familyViews(),
         });
       }
 
@@ -39,60 +39,150 @@ describe("NotificationMenu", () => {
 
     render(<NotificationMenu navigate={navigate} />);
 
-    expect(await screen.findByText("1")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Notifications, 1 unread/ }));
+    expect(await screen.findByText("2")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Notifications, 2 unread/ }));
 
     expect(screen.getByText("New queue item: Lease Renewal")).toBeInTheDocument();
+    expect(screen.getByText("Maintenance ticket assigned")).toBeInTheDocument();
+
     await user.click(screen.getByText("New queue item: Lease Renewal"));
 
     await waitFor(() =>
       expect(navigate).toHaveBeenCalledWith("/approval-queue?item_id=item-1"),
     );
-    const patchCall = fetchMock.mock.calls.find(
-      ([url]) => String(url) === "/api/approval-queue/notifications/notification-1",
+    const markReadCall = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes("/api/notifications/mark-read"),
     );
-    expect(patchCall).toBeTruthy();
-    expect(JSON.parse(String(patchCall?.[1]?.body))).toEqual({
-      action: "mark_read",
+    expect(markReadCall).toBeTruthy();
+    expect(JSON.parse(String(markReadCall?.[1]?.body))).toEqual({
+      source: "approval_queue",
+      id: "a-1",
     });
   });
 
-  it("shows a quiet empty state when no queue notifications need attention", async () => {
+  it("renders the stubbed Gmail-dependent families as waiting on access", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => jsonResponse({ notifications: [] })),
+      vi.fn(async () => jsonResponse({ notifications: [], families: familyViews() })),
     );
 
     render(<NotificationMenu navigate={() => undefined} />);
-
     await user.click(await screen.findByRole("button", { name: "Notifications" }));
 
     expect(
-      screen.getByText("No queue notifications need your attention."),
+      screen.getByText("RentVine replies: Waiting on Gmail access"),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText("Owner replies: Waiting on Gmail access"),
+    ).toBeInTheDocument();
+  });
+
+  it("mutes an available family through the preferences endpoint", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/api/notifications/preferences") && init?.method === "PATCH") {
+        return jsonResponse({
+          preferences: {
+            uid: "editor-1",
+            muted_families: ["maintenance_tickets"],
+            email_enabled: false,
+          },
+        });
+      }
+      if (url.includes("/api/notifications?")) {
+        return jsonResponse({
+          notifications: [maintenanceUnified()],
+          families: familyViews(),
+        });
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<NotificationMenu navigate={() => undefined} />);
+    await user.click(await screen.findByRole("button", { name: /Notifications/ }));
+
+    await user.click(screen.getByRole("checkbox", { name: "Maintenance tickets" }));
+
+    await waitFor(() => {
+      const patchCall = fetchMock.mock.calls.find(
+        ([url, init]) =>
+          String(url).includes("/api/notifications/preferences") &&
+          (init as RequestInit | undefined)?.method === "PATCH",
+      );
+      expect(patchCall).toBeTruthy();
+      expect(JSON.parse(String(patchCall?.[1]?.body))).toEqual({
+        muted_families: ["maintenance_tickets"],
+      });
+    });
   });
 });
 
-function notification(
-  overrides: Partial<ApprovalQueueNotificationRecord> = {},
-): ApprovalQueueNotificationRecord {
+function approvalUnified(
+  overrides: Partial<UnifiedNotification> = {},
+): UnifiedNotification {
   return {
-    created_at: "2026-06-06T00:00:00.000Z",
-    direct_link: "/runs/run-1",
-    due_date: "2026-06-15",
-    event: "created",
-    id: "notification-1",
-    item_id: "item-1",
-    message: "Review the requested approval action.",
-    process_run_ref: { id: "run-1", label: "Lease Renewal" },
-    recipient_role: "Assignee",
-    recipient_uid: "editor-1",
-    risk: "High",
-    status: "Ready for Approval",
+    id: "a-1",
+    source: "approval_queue",
+    family: "approval_queue",
     title: "New queue item: Lease Renewal",
+    message: "Review the requested approval action.",
+    href: "/approval-queue?item_id=item-1",
+    created_at: "2026-07-09T01:00:00.000Z",
     ...overrides,
   };
+}
+
+function maintenanceUnified(
+  overrides: Partial<UnifiedNotification> = {},
+): UnifiedNotification {
+  return {
+    id: "m-1",
+    source: "maintenance_ticket",
+    family: "maintenance_tickets",
+    title: "Maintenance ticket assigned",
+    message: "A maintenance ticket was assigned to you.",
+    href: "/maintenance",
+    created_at: "2026-07-09T02:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function familyViews(): NotificationFamilyView[] {
+  return [
+    {
+      key: "approval_queue",
+      label: "Approvals",
+      description: "Queue items assigned to you or waiting on your approval.",
+      available: true,
+      muted: false,
+    },
+    {
+      key: "maintenance_tickets",
+      label: "Maintenance tickets",
+      description: "Updates on maintenance tickets assigned to you.",
+      available: true,
+      muted: false,
+    },
+    {
+      key: "rentvine_replies",
+      label: "RentVine replies",
+      description: "Replies on RentVine conversations you are working.",
+      available: false,
+      unavailableReason: "Waiting on Gmail access",
+      muted: false,
+    },
+    {
+      key: "owner_process_replies",
+      label: "Owner replies",
+      description: "Owner replies to process emails you sent.",
+      available: false,
+      unavailableReason: "Waiting on Gmail access",
+      muted: false,
+    },
+  ];
 }
 
 function jsonResponse(payload: unknown) {

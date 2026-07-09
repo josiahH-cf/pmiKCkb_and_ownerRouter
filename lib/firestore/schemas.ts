@@ -6,6 +6,7 @@ import {
   ACTION_TARGET_SYSTEMS,
   SOURCE_STATES,
 } from "@/lib/constants";
+import { NOTIFICATION_FAMILY_KEYS } from "@/lib/notifications/families";
 
 const isoDateSchema = z
   .string()
@@ -408,6 +409,19 @@ export const UpdateApprovalQueueNotificationInputSchema = z.object({
   action: z.enum(["mark_read"]),
 });
 
+// In-app notification framework (console overhaul Slice 3b). NOTIFICATION_FAMILY_KEYS is an `as const`
+// readonly tuple, which z.enum accepts. There is intentionally NO email field: email stays hard-off.
+export const NotificationFamilyKeySchema = z.enum(NOTIFICATION_FAMILY_KEYS);
+
+export const UpdateNotificationPreferencesInputSchema = z.object({
+  muted_families: z.array(NotificationFamilyKeySchema).default([]),
+});
+
+export const MarkNotificationReadInputSchema = z.object({
+  source: z.enum(["approval_queue", "maintenance_ticket"]),
+  id: requiredTextSchema,
+});
+
 const processDefinitionSourceLinkInputSchema = z.object({
   label: requiredTextSchema,
   url: z.string().trim().url(),
@@ -517,6 +531,10 @@ export type ParsedUpdateApprovalQueueEmailSettingInput = z.output<
 export type UpdateApprovalQueueNotificationInput = z.input<
   typeof UpdateApprovalQueueNotificationInputSchema
 >;
+export type UpdateNotificationPreferencesInput = z.input<
+  typeof UpdateNotificationPreferencesInputSchema
+>;
+export type MarkNotificationReadInput = z.input<typeof MarkNotificationReadInputSchema>;
 export type CreateProcessDefinitionInput = z.input<
   typeof CreateProcessDefinitionInputSchema
 >;
