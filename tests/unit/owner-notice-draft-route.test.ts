@@ -42,7 +42,7 @@ import { isActionExecutable } from "@/lib/integrations/action-gate";
 
 function setEditor() {
   setAuthResolverForTest(() => ({
-    email: "editor@pmikcmetro.com",
+    email: "josiah@pmikcmetro.com",
     hd: "pmikcmetro.com",
     role: "Editor",
     uid: "editor-1",
@@ -104,7 +104,7 @@ describe("owner-notice-draft route", () => {
     expect(GmailRuntimeClient).toHaveBeenCalledTimes(1);
     // Impersonate the SIGNED-IN user (never a fixed mailbox), and pass the composed draft verbatim.
     expect(GmailRuntimeClient).toHaveBeenCalledWith({
-      subject: "editor@pmikcmetro.com",
+      subject: "josiah@pmikcmetro.com",
     });
     expect(createDraftMock).toHaveBeenCalledWith({
       to: "owner@example.com",
