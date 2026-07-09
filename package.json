@@ -59,6 +59,7 @@
     "smoke:rentvine-read": "tsx scripts/smoke-rentvine-read.ts",
     "smoke:sheet-read": "tsx scripts/smoke-sheet-read.ts",
     "smoke:renewal-review": "tsx scripts/smoke-renewal-review.ts",
+    "smoke:gmail-draft-live": "tsx scripts/smoke-gmail-draft-live.ts",
     "reality:check": "node scripts/reality-check.mjs",
     "import:agent-search": "node scripts/import-agent-search-documents.mjs",
     "smoke:ask-live": "node scripts/smoke-live-ask.mjs",
