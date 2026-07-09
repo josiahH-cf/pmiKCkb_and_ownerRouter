@@ -30,6 +30,11 @@ export interface NeedsDecisionRow {
   severity: Severity;
   /** Deep link to the authenticated surface where the real value + the decision control live. */
   href: string;
+  /**
+   * Set on `queue_item` rows ONLY (the queue item id), never a proposed value, reason, decider, or
+   * assignee. Lets the Console deck offer an in-place Approve via the existing item PATCH (A4).
+   */
+  itemId?: string;
 }
 
 export interface NeedsDecisionCounts {
@@ -133,6 +138,7 @@ export function buildNeedsDecisionInbox(
     consider(queueItemTargetKey(item), {
       kind: "queue_item",
       key: `queue_item:${item.id}`,
+      itemId: item.id,
       label: item.action_needed,
       detail: item.process_run_ref.label,
       severity: item.risk,

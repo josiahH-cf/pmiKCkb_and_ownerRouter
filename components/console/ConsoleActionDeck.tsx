@@ -6,14 +6,22 @@
 // Value-free by construction: only a label, PII-free detail, and a deep link cross onto this
 // surface (the same invariant the needs-decision inbox holds). The real values, reasons, and
 // deciders live behind each row's href, on its gated surface.
+//
+// A4 adds ONE in-place action: a queue_item row may carry itemId, and when the viewer canApprove
+// (Approver/Admin), the deck renders an Approve button that records the app-plane approval decision
+// via the existing item PATCH. That is the only inline control; it executes no external action (no
+// send, no system-of-record write), and every other row stays a deep link.
 
 import Link from "next/link";
+import { ConsoleApproveButton } from "@/components/console/ConsoleApproveButton";
 import { StatusDot } from "@/components/ui";
 
 export interface ConsoleDeckRow {
   label: string;
   detail?: string;
   href: string;
+  /** Approval queue_item rows only; enables the in-place Approve when the viewer canApprove. */
+  itemId?: string;
 }
 
 export interface ConsoleDeckCard {
@@ -31,7 +39,8 @@ const PREVIEW_ROWS = 3;
 
 export function ConsoleActionDeck({
   cards,
-}: Readonly<{ cards: readonly ConsoleDeckCard[] }>) {
+  canApprove = false,
+}: Readonly<{ cards: readonly ConsoleDeckCard[]; canApprove?: boolean }>) {
   return (
     <div
       aria-label="What needs your attention"
@@ -62,6 +71,9 @@ export function ConsoleActionDeck({
                       <Link href={row.href}>{row.label}</Link>
                       {row.detail ? (
                         <span className="muted console-deck-detail">{row.detail}</span>
+                      ) : null}
+                      {canApprove && row.itemId ? (
+                        <ConsoleApproveButton itemId={row.itemId} />
                       ) : null}
                     </li>
                   ))}

@@ -45,6 +45,7 @@ function toDotStatus(state: SpaceCardState): ConnectionStatus {
  */
 export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
   const canStartSimulation = can(user.role, "edit");
+  const canApprove = can(user.role, "approve");
   // One definitions read serves the process picker, the coverage card, and the process strip.
   let definitions: Awaited<ReturnType<typeof listProcessDefinitions>> = [];
   try {
@@ -79,6 +80,7 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
         label: row.label,
         detail: row.detail,
         href: row.href,
+        itemId: row.itemId,
       })),
       emptyLabel: "Nothing needs your decision right now.",
       seeAllHref: "/approval-queue",
@@ -131,7 +133,7 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
         test run. Answers cite approved sources, and a test run never touches a system of
         record.
       </p>
-      <ConsoleActionDeck cards={cards} />
+      <ConsoleActionDeck canApprove={canApprove} cards={cards} />
       <AskForm canStartSimulation={canStartSimulation} processes={processes} />
       <ConsoleProcessStrip items={processItems} />
     </section>

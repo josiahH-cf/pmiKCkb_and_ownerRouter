@@ -39,6 +39,44 @@ const cards: ConsoleDeckCard[] = [
   },
 ];
 
+// One approvals card mixing a queue_item row (itemId → in-place Approve) with a plain deep-link row.
+const withQueueItem: ConsoleDeckCard[] = [
+  {
+    key: "approvals",
+    title: "Needs your decision",
+    count: 2,
+    rows: [
+      {
+        label: "Approve renewal package",
+        detail: "Run 1",
+        href: "/approval-queue?item_id=q1",
+        itemId: "q1",
+      },
+      { label: "Current rent", detail: "Run 2", href: "/lease-renewal/runs/run-2" },
+    ],
+    emptyLabel: "Nothing needs your decision right now.",
+    seeAllHref: "/approval-queue",
+  },
+];
+
+const withQueueItemSingle: ConsoleDeckCard[] = [
+  {
+    key: "approvals",
+    title: "Needs your decision",
+    count: 1,
+    rows: [
+      {
+        label: "Approve renewal package",
+        detail: "Run 1",
+        href: "/approval-queue?item_id=q1",
+        itemId: "q1",
+      },
+    ],
+    emptyLabel: "Nothing needs your decision right now.",
+    seeAllHref: "/approval-queue",
+  },
+];
+
 describe("ConsoleActionDeck", () => {
   it("renders each area with the top rows as deep links, capped with a See-all link", () => {
     render(<ConsoleActionDeck cards={cards} />);
@@ -62,6 +100,20 @@ describe("ConsoleActionDeck", () => {
     render(<ConsoleActionDeck cards={cards} />);
 
     expect(screen.getByText("Every connector is set up.")).toBeInTheDocument();
+  });
+
+  it("renders an in-place Approve ONLY for a queue_item row (itemId) when the user can approve", () => {
+    render(<ConsoleActionDeck canApprove cards={withQueueItem} />);
+
+    expect(screen.getAllByRole("button", { name: "Approve" })).toHaveLength(1);
+    expect(screen.getByRole("link", { name: "Current rent" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /send|execute|write/i })).toBeNull();
+  });
+
+  it("shows NO Approve control when the user cannot approve, even for a queue_item row", () => {
+    render(<ConsoleActionDeck canApprove={false} cards={withQueueItemSingle} />);
+
+    expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
   });
 });
 
