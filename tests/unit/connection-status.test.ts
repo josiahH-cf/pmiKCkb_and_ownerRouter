@@ -56,6 +56,15 @@ describe("classifyConnector", () => {
   it("is Connected once verified", () => {
     expect(classifyConnector(rentvine, {}, true).state).toBe("connected");
   });
+
+  it("keeps the per-user Gmail inbox connector honestly gated (no config, no probe)", () => {
+    const gmailInbox = CONNECTORS.find((c) => c.id === "gmail_inbox")!;
+    // Empty requiredConfig + no health-check ref means it is never wired to a live verify path, so its
+    // card reads "Not connected" until the access model + DWD scopes are authorized (Slice F).
+    expect(gmailInbox.requiredConfig).toEqual([]);
+    expect(gmailInbox.healthCheckRef).toBeUndefined();
+    expect(classifyConnector(gmailInbox, {}).state).toBe("none");
+  });
 });
 
 describe("connector copy voice", () => {
