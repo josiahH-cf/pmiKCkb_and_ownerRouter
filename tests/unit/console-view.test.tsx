@@ -5,8 +5,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 // The Console front door (rendered at both `/` and `/ask`). Mock the Firestore-backed process list
-// and the needs-decision gather (C3 counts) so the async server component renders without touching
-// firebase-admin.
+// and the needs-decision gather (the action-deck approvals count) so the async server component
+// renders without touching firebase-admin.
 vi.mock("@/lib/firestore/workflows", () => ({
   listProcessDefinitions: vi.fn(async () => [
     { id: "lease-renewal", name: "Lease Renewal", status: "Draft" },
@@ -48,18 +48,27 @@ describe("ConsoleView", () => {
     expect(screen.getByLabelText("Question")).toBeInTheDocument();
   });
 
-  it("surfaces the live approvals count and the start-here deep link (C3)", async () => {
+  it("surfaces the needs-your-decision area with the top row as a deep link (no click-to-reveal)", async () => {
     render(await ConsoleView({ user: adminUser as never }));
 
-    expect(screen.getByRole("button", { name: "My approvals (1)" })).toBeInTheDocument();
-    expect(screen.getByText(/1 thing needs your decision/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Needs your decision" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Current rent" })).toHaveAttribute(
       "href",
       "/lease-renewal/runs/run-1",
     );
+    // The old click-to-reveal command button is gone; the deck is always visible.
+    expect(screen.queryByRole("button", { name: /My approvals/ })).toBeNull();
   });
 
-  it("loads process definitions for an editor so the process picker is populated", async () => {
+  it("shows the live processes as a read-only front door", async () => {
+    render(await ConsoleView({ user: adminUser as never }));
+
+    expect(screen.getByRole("heading", { name: "Processes" })).toBeInTheDocument();
+  });
+
+  it("loads process definitions once for an editor so the process picker is populated", async () => {
     render(await ConsoleView({ user: adminUser as never }));
 
     expect(listProcessDefinitions).toHaveBeenCalledTimes(1);

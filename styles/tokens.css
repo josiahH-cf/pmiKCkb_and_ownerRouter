@@ -41,6 +41,7 @@
   --state-placeholder: #4a4a4a; /* decoupled from old navy primary → neutral slate */
   --state-conflict: #b7791f;
   --state-no-source: #9b2c2c;
+  --state-reference: #6b46c1; /* read-only reference — purple, clearly not a green/amber/red to-do */
 
   /* Neutrals */
   --color-bg: #ffffff;

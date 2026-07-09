@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { GMAIL_INBOX_ZERO_NAME } from "@/lib/constants";
-import { requirePageRole } from "@/lib/auth/page-guards";
+import { requirePageCapability } from "@/lib/auth/page-guards";
 import { readServerConfig } from "@/lib/config/server";
 import {
   GMAIL_HARD_EXCLUSION_CATEGORIES,
@@ -16,7 +16,7 @@ import {
  * not-connected status. It performs no Gmail call and has no send capability.
  */
 export default async function GmailInboxZeroAdminPage() {
-  const user = await requirePageRole("Admin");
+  const user = await requirePageCapability("manageAdmin");
   const config = readServerConfig();
   const baseLabels = new Set<string>(GMAIL_INBOX_ZERO_BASE_LABELS);
 

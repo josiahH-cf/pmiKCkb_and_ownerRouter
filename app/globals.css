@@ -196,8 +196,41 @@ button {
   margin: 0;
 }
 
-.space-card .review-pill {
+.space-card .review-pill,
+.space-card .space-card-state-pill {
   align-self: flex-start;
+}
+
+/* Color-coded card state (console overhaul Slice B): green ready / amber attention / red blocked /
+   purple reference. The label text always renders, so hue is never the only signal. */
+.space-card-state-pill {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 750;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+
+.space-card-state-pill[data-tone="ready"] {
+  background: #edf7f1;
+  border-color: var(--state-verified);
+}
+
+.space-card-state-pill[data-tone="attention"] {
+  background: #fff7e6;
+  border-color: var(--state-partial);
+}
+
+.space-card-state-pill[data-tone="blocked"] {
+  background: #fff5f5;
+  border-color: var(--state-no-source);
+}
+
+.space-card-state-pill[data-tone="reference"] {
+  background: #f3effc;
+  border-color: var(--state-reference);
 }
 
 /* Value-free "N waiting on you" interlock pill (S13 B5) — attention-colored so real work reads as
@@ -230,22 +263,53 @@ button {
   color: var(--color-primary-700);
 }
 
-/* Console app-state affordances (S10): visible command buttons + the advisory result panel. */
-.console-commands {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
+/* Console action deck (console overhaul, Slice A): the three always-visible front-door areas. */
+.console-deck {
+  margin-bottom: 20px;
 }
 
-/* One-line "start here" pointer above the commands (S13 C3). */
-.console-next-action {
-  background: #fff7e6;
-  border: 1px solid var(--state-partial);
-  border-radius: 6px;
-  font-weight: 600;
-  margin: 0 0 12px;
-  padding: 8px 12px;
+.console-deck-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.console-deck-card[data-status="action"] {
+  border-left: 3px solid var(--state-partial);
+}
+
+.console-deck-head {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.console-deck-head h2 {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.console-deck-count {
+  background: var(--color-accent-100);
+  border-radius: 999px;
+  font-weight: 750;
+  margin-left: auto;
+  min-width: 28px;
+  padding: 2px 10px;
+  text-align: center;
+}
+
+.console-deck-list {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.console-deck-detail {
+  display: block;
+  font-size: 0.85rem;
 }
 
 .field-label-row {
@@ -254,19 +318,93 @@ button {
   justify-content: space-between;
 }
 
-.app-state-panel {
-  margin-bottom: 16px;
+/* One-line dictation helper under the question box (console overhaul, Slice A). */
+.dictate-hint {
+  font-size: 0.85rem;
+  margin: 6px 0 0;
 }
 
-.app-state-list {
-  list-style: none;
-  margin: 8px 0 0;
-  padding: 0;
+/* Console process strip: a compact front door to the live processes and their state. */
+.console-process-strip {
+  margin-top: 24px;
 }
 
-.app-state-list li {
+.console-strip-title {
+  font-size: 1.1rem;
+  margin: 0 0 12px;
+}
+
+.console-process-chip {
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.console-process-chip:hover {
+  border-color: var(--color-primary-700);
+  box-shadow: 0 1px 6px rgb(0 0 0 / 8%);
+}
+
+.console-process-name {
+  font-weight: 700;
+}
+
+/* Lease-renewal run-page decision forms (console overhaul Slice C). These carried no styling, so the
+   mandatory reason box rendered unusably narrow at the end of the "unblock this" path. Give the
+   resolve/approve/bulk forms a real column layout with a full-width reason field. */
+.lr-resolve-form,
+.lr-approve-form {
   border-top: 1px solid var(--color-border);
-  padding: 8px 0;
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.lr-resolve-form label,
+.lr-approve-form label {
+  display: grid;
+  font-weight: 650;
+  gap: 6px;
+}
+
+.lr-resolve-form textarea,
+.lr-approve-form textarea,
+.lr-resolve-form select,
+.lr-approve-form select {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font: inherit;
+  min-height: 44px;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.lr-bulk-bar {
+  display: grid;
+  gap: 12px;
+}
+
+.lr-bulk-select {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.lr-bulk-results ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+/* Admin tab sections (console overhaul Slice D): People and Access / Activity and Logs /
+   App Info and Readiness, so the tab reads as three clear jobs instead of one flat wall. */
+.admin-section + .admin-section {
+  margin-top: 28px;
 }
 
 .compact-record {

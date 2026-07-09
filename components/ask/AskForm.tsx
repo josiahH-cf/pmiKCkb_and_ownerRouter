@@ -7,18 +7,8 @@ import { SourceStateBanner } from "@/components/source-state-banner/SourceStateB
 import { detectProcess } from "@/lib/processes/intent";
 import { launchSpaces } from "@/lib/spaces";
 import type { AskResponse } from "@/lib/schemas";
-// Type-only import (erased at build) so the server-only app-state module never enters the client bundle.
-import type { AppStateQuery, AppStateResult } from "@/lib/ask/app-state-context";
 
 type SelectOption = { label: string; value: string };
-
-// Visible slash-command affordances (S10): map each button to a read-only app-state query. The query
-// ids mirror APP_STATE_QUERIES in lib/ask/app-state-context.ts (kept client-safe here, no server import).
-const APP_STATE_COMMANDS: ReadonlyArray<{ query: AppStateQuery; label: string }> = [
-  { query: "approvals", label: "My approvals" },
-  { query: "connections", label: "Connections to set up" },
-  { query: "coverage", label: "Space coverage" },
-];
 
 async function blobToBase64(blob: Blob): Promise<string> {
   const buffer = await blob.arrayBuffer();
@@ -48,20 +38,14 @@ const capturableStates = new Set([
   "No Reliable Source Found",
 ]);
 
-/** The Console's one-line "start here" pointer (S13 C3): the most urgent waiting decision. */
-export type ConsoleNextAction = { count: number; label: string; href: string };
-
+// The Console's ask + dictation surface. The always-visible action deck and process strip live in
+// their own server components (ConsoleView assembles them); this form is just the AI question box.
 export function AskForm({
   canStartSimulation = false,
   processes = [],
-  commandCounts = {},
-  nextAction = null,
 }: Readonly<{
   canStartSimulation?: boolean;
   processes?: ProcessOption[];
-  /** Live, value-free counts for the command buttons (server-gathered, non-fatal). */
-  commandCounts?: Partial<Record<AppStateQuery, number>>;
-  nextAction?: ConsoleNextAction | null;
 }>) {
   const [question, setQuestion] = useState("");
   const [processId, setProcessId] = useState("");
@@ -75,8 +59,6 @@ export function AskForm({
   const [captureStatus, setCaptureStatus] = useState("");
   const [isCapturing, setIsCapturing] = useState(false);
   const [isDetecting, setIsDetecting] = useState(false);
-  const [appState, setAppState] = useState<AppStateResult | null>(null);
-  const [appStateLoading, setAppStateLoading] = useState<AppStateQuery | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
 
   const showProcessPicker = canStartSimulation && processes.length > 0;
@@ -198,21 +180,6 @@ export function AskForm({
     setIsDetecting(false);
   }
 
-  async function loadAppState(query: AppStateQuery) {
-    setAppStateLoading(query);
-    setStatusMessage("");
-    try {
-      const response = await fetch(`/api/ask/app-state?query=${query}`);
-      if (response.ok) {
-        setAppState((await response.json()) as AppStateResult);
-      } else {
-        setStatusMessage(await readErrorMessage(response, "Could not load app state."));
-      }
-    } finally {
-      setAppStateLoading(null);
-    }
-  }
-
   async function transcribeAudio(blob: Blob) {
     setIsTranscribing(true);
     try {
@@ -260,48 +227,13 @@ export function AskForm({
 
   return (
     <div className="ask-console">
-      {nextAction ? (
-        // The next right action (S13 C3): one line, one primary deep link, straight to the most
-        // urgent waiting decision. Advisory only; the decision itself happens on the linked page.
-        <p className="console-next-action">
-          {nextAction.count} {nextAction.count === 1 ? "thing needs" : "things need"} your
-          decision. Start with{" "}
-          <Link className="text-link" href={nextAction.href}>
-            {nextAction.label}
-          </Link>
-          .
-        </p>
-      ) : null}
-
-      <div className="console-commands" role="group" aria-label="Console commands">
-        {APP_STATE_COMMANDS.map((command) => {
-          const count = commandCounts[command.query] ?? 0;
-          const label = count > 0 ? `${command.label} (${count})` : command.label;
-          return (
-            <button
-              className="secondary-button"
-              disabled={appStateLoading !== null}
-              key={command.query}
-              onClick={() => loadAppState(command.query)}
-              type="button"
-            >
-              {appStateLoading === command.query ? "Loading…" : label}
-            </button>
-          );
-        })}
-      </div>
-
-      {appState ? (
-        <AppStatePanel result={appState} onDismiss={() => setAppState(null)} />
-      ) : null}
-
       <div className="ask-grid">
         <form className="ask-form panel" onSubmit={submit}>
           <div className="field-label-row">
             <label htmlFor="question">Question</label>
             <button
               aria-pressed={isRecording}
-              className="secondary-button"
+              className="secondary-button dictate-button"
               disabled={isTranscribing}
               onClick={toggleRecording}
               type="button"
@@ -323,6 +255,9 @@ export function AskForm({
             rows={7}
             value={question}
           />
+          <p className="muted dictate-hint">
+            Type your question, or use Dictate to speak it.
+          </p>
 
           {showProcessPicker ? (
             <div className="field-row">
@@ -424,7 +359,9 @@ export function AskForm({
                   {simulationRun.next_action ? (
                     <p className="muted">Next: {simulationRun.next_action}</p>
                   ) : null}
-                  <Link href="/processes">View in Processes</Link>
+                  <Link href={`/workflow-runs/${simulationRun.id}`}>
+                    View the test run
+                  </Link>
                 </div>
               ) : null}
               {canCapture ? (
@@ -455,37 +392,6 @@ export function AskForm({
           {statusMessage ? <p className="muted">{statusMessage}</p> : null}
         </aside>
       </div>
-    </div>
-  );
-}
-
-// Read-only, advisory app-state result (S10): reports state + deep links, never executes. The engine
-// surfaces (Approval Queue, Connections, Spaces) remain the only place actions happen.
-function AppStatePanel({
-  result,
-  onDismiss,
-}: Readonly<{ result: AppStateResult; onDismiss: () => void }>) {
-  return (
-    <div className="panel app-state-panel" aria-live="polite">
-      <div className="section-heading-row">
-        <div>
-          <h2>{result.title}</h2>
-          <p className="muted">{result.summary}</p>
-        </div>
-        <button className="secondary-button" onClick={onDismiss} type="button">
-          Dismiss
-        </button>
-      </div>
-      {result.items.length > 0 ? (
-        <ul className="app-state-list">
-          {result.items.map((item) => (
-            <li key={`${item.href}::${item.label}`}>
-              <Link href={item.href}>{item.label}</Link>
-              {item.detail ? <span className="muted"> — {item.detail}</span> : null}
-            </li>
-          ))}
-        </ul>
-      ) : null}
     </div>
   );
 }

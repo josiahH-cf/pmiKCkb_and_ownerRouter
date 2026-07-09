@@ -7,9 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AskForm } from "@/components/ask/AskForm";
 
-// The R4 action console: the Console is process-aware (the four Ask metadata selects are gone), and an
-// editor who picks a process launches a SAFE simulation run alongside the grounded answer. Verifies the
-// rescope (no audience/channel/space/urgency), the role gate on the picker, and the launch flow.
+// The action console's ask surface: process-aware (the four Ask metadata selects are gone), an
+// editor who picks a process launches a SAFE simulation alongside the grounded answer, and the
+// Dictate control is a first-class affordance. The always-visible action deck + process strip live
+// in their own server components (see console-action-deck.test.tsx), not here.
 
 const ANSWER = {
   question: "How do renewals work?",
@@ -54,43 +55,6 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("AskForm next-right-action strip + command counts (C3)", () => {
-  it("shows live counts on the command buttons and the one-line start-here link", () => {
-    render(
-      <AskForm
-        canStartSimulation={false}
-        commandCounts={{ approvals: 6, connections: 2, coverage: 0 }}
-        nextAction={{
-          count: 6,
-          label: "Current rent",
-          href: "/lease-renewal/runs/run-1",
-        }}
-        processes={[]}
-      />,
-    );
-
-    expect(screen.getByRole("button", { name: "My approvals (6)" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Connections to set up (2)" }),
-    ).toBeInTheDocument();
-    // Zero counts stay quiet — no "(0)" noise.
-    expect(screen.getByRole("button", { name: "Space coverage" })).toBeInTheDocument();
-
-    expect(screen.getByText(/6 things need your decision/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Current rent" })).toHaveAttribute(
-      "href",
-      "/lease-renewal/runs/run-1",
-    );
-  });
-
-  it("renders no strip and plain buttons when nothing waits", () => {
-    render(<AskForm canStartSimulation={false} processes={[]} />);
-
-    expect(screen.queryByText(/need your decision/)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "My approvals" })).toBeInTheDocument();
-  });
-});
-
 describe("AskForm (action console)", () => {
   it("drops the four Ask metadata selects and shows no process picker for read-only users", () => {
     render(<AskForm canStartSimulation={false} processes={[]} />);
@@ -100,6 +64,15 @@ describe("AskForm (action console)", () => {
     expect(screen.queryByLabelText("Urgency")).toBeNull();
     expect(screen.queryByLabelText("Process")).toBeNull();
     expect(screen.getByRole("button", { name: "Get answer" })).toBeInTheDocument();
+  });
+
+  it("shows the Dictate control and its helper (S10 / F-DICTATE-VERIFIED)", () => {
+    render(<AskForm />);
+
+    expect(screen.getByRole("button", { name: "Dictate" })).toBeInTheDocument();
+    expect(screen.getByText(/use Dictate to speak it/)).toBeInTheDocument();
+    // The action deck moved out of the ask form; its command buttons are no longer here.
+    expect(screen.queryByRole("button", { name: /My approvals/ })).toBeNull();
   });
 
   it("asks without a process and never starts a simulation", async () => {
@@ -122,7 +95,7 @@ describe("AskForm (action console)", () => {
     expect(askBody(fetchMock).process_id).toBeUndefined();
   });
 
-  it("launches a simulation when an editor selects a process", async () => {
+  it("launches a simulation when an editor selects a process and links to the run", async () => {
     const user = userEvent.setup();
     render(
       <AskForm
@@ -142,7 +115,10 @@ describe("AskForm (action console)", () => {
     );
 
     expect(await screen.findByText("Test run started")).toBeInTheDocument();
-    expect(screen.getByText("Lease Renewal")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View the test run" })).toHaveAttribute(
+      "href",
+      "/workflow-runs/run-1",
+    );
 
     await waitFor(() => {
       const calledUrls = fetchMock.mock.calls.map((call) => String(call[0]));
@@ -175,53 +151,6 @@ describe("AskForm (action console)", () => {
     expect(
       screen.getByRole("button", { name: "Get answer + start a test run" }),
     ).toBeInTheDocument();
-  });
-
-  it("shows the visible Console command buttons and the Dictate control (S10)", () => {
-    render(<AskForm />);
-
-    expect(screen.getByRole("button", { name: "My approvals" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Connections to set up" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Space coverage" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Dictate" })).toBeInTheDocument();
-  });
-
-  it("loads app-state via a command button and shows an advisory, deep-linked panel", async () => {
-    const user = userEvent.setup();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (input: RequestInfo | URL) => {
-        if (String(input).includes("/api/ask/app-state")) {
-          return jsonResponse({
-            query: "approvals",
-            title: "Your approvals",
-            summary: "1 item ready for your approval.",
-            items: [
-              {
-                label: "Approve renewal package",
-                detail: "Risk: Medium",
-                href: "/approval-queue#a",
-              },
-            ],
-          });
-        }
-        return jsonResponse({}, false);
-      }),
-    );
-
-    render(<AskForm />);
-    await user.click(screen.getByRole("button", { name: "My approvals" }));
-
-    expect(
-      await screen.findByRole("heading", { name: "Your approvals" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("1 item ready for your approval.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Approve renewal package" })).toHaveAttribute(
-      "href",
-      "/approval-queue#a",
-    );
   });
 });
 

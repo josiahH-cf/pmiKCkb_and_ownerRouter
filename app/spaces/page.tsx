@@ -7,7 +7,11 @@ import {
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
 import { listProcessDefinitions } from "@/lib/firestore/workflows";
-import { SPACE_CARD_STATE_LABEL, computeSpaceCardState } from "@/lib/space-card-state";
+import {
+  SPACE_CARD_STATE_LABEL,
+  SPACE_CARD_STATE_TONE,
+  computeSpaceCardState,
+} from "@/lib/space-card-state";
 import { launchSpaces, spaceHref } from "@/lib/spaces";
 
 export default async function SpacesPage() {
@@ -46,7 +50,12 @@ export default async function SpacesPage() {
               <Link className="panel space-card" href={spaceHref(space)} key={space.id}>
                 <h2>{space.name}</h2>
                 <p className="muted">{space.processCategory}</p>
-                <span className="review-pill">{SPACE_CARD_STATE_LABEL[state]}</span>
+                <span
+                  className="space-card-state-pill"
+                  data-tone={SPACE_CARD_STATE_TONE[state]}
+                >
+                  {SPACE_CARD_STATE_LABEL[state]}
+                </span>
                 {waiting > 0 ? (
                   <span className="review-pill space-card-waiting">
                     {waiting} waiting on you

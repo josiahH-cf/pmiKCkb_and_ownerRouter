@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { buildMigrationReadinessReport } from "@/lib/admin/migration-readiness";
-import { requirePageRole } from "@/lib/auth/page-guards";
+import { requirePageCapability } from "@/lib/auth/page-guards";
 import { readServerConfig } from "@/lib/config/server";
 
 function readinessPill(blockerCount: number, warningCount: number) {
@@ -13,7 +13,7 @@ function readinessPill(blockerCount: number, warningCount: number) {
 }
 
 export default async function AdminMigrationPage() {
-  const user = await requirePageRole("Admin");
+  const user = await requirePageCapability("manageAdmin");
   const config = readServerConfig();
   const report = await buildMigrationReadinessReport({ actor: user, config });
   const registry = report.action_registry;
