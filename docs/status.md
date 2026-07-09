@@ -6295,3 +6295,21 @@ assigned → fixed by filtering to the allowed hosted domain; (2) LOW — a chec
 didn't) → fixed with `trim()` on the schema; (3-5) three test-coverage gaps (Assigned-to-me empty state, off-roster selected
 value, null no-op guard) → tests added. App-plane only; no SoR write, no send, no role grant, no notification. Verified
 locally: typecheck, lint (0 errors), 1222 unit tests, all gates + Turbopack build green.
+
+1c — per-property lease-renewal decision repository SHIPPED (2026-07-09, branch `deferred-1c-property-repository`,
+`F-RENEWAL-PROPERTY-REPO`). A pure `lib/lease-renewal/property-repository.ts` joins each simulation run's ADDRESS-joined
+reconciliation flags to a canonical property key (`deriveAddressKey` of the record's join value, now surfaced additively as
+`ReconciledFieldOutcome.propertyKey`, populated ONLY for `spec.joinKind === "address"`) and buckets the EXISTING append-only
+resolution + write-back-approval Activity by property. The surfaced payload is strictly VALUE-FREE — each entry is exactly
+{actorUid, action, timestamp, reason}, never an address, field value, field_key, proposed value, severity, or reason_code
+(pinned by a sentinel key-set assertion in the golden test). Because a flag's source_trigger_key is run+field only
+(`lease_renewal:reconcile:{runId}:{field}`), a key raised by two or more properties in the same run is AMBIGUOUS and its
+Activity is attributed to NEITHER property (no cross-property bleed); name-joined lifecycle fields carry no address and are
+excluded by design. The golden test proves all three cases: 1:1 attribution on different fields, no bleed on a same-field
+collision, and the value-free sentinel. A new manageAdmin-only server page `app/lease-renewal/property/[propertyKey]/page.tsx`
+renders one property's decision history inside AppShell with a back-link, degrading non-fatally (try/catch) when Firestore is
+unavailable; a new read-gated `listResolutionActivityForRun` mirrors `listWritebackApprovalActivityForRun` with a single-field
+`where("run_id","==",runId)` read. NO new Firestore collection or index (`firestore.indexes.json` stays `[]`); the value-free
+board/queue (`run-view.ts`, `approval-queue-mapping.ts`) are untouched so `propertyKey` never leaks; no Action Registry flip,
+`EXECUTABLE_ALLOWLIST` unchanged, `production_allowed:false` app-plane only. Verified locally: typecheck, lint (0 errors),
+full unit suite, copy-voice, context-freshness, redaction, router-boundary, and the Turbopack build all green.

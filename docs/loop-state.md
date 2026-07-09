@@ -35,7 +35,7 @@ stop-and-reset rules.
   - Owner-Email reframe (`F-GMAIL-PER-USER`). App-plane only, `production_allowed:false` throughout, no SoR write/send;
     adversarially reviewed + remediated (transaction safety, attention filter, audit degradation); 1100+ tests, all gates
     green. Facts are UNIT-verified, not live-run (stale ADC this cycle). DEFERRED / not built: renewal owner-email send
-    affordance + live-review actionability + per-property repository; maintenance external-worker Submitter auth + universal
+    affordance + live-review actionability; maintenance external-worker Submitter auth + universal
     unit type-ahead DB + delegable ownership; per-user Gmail RUNTIME (reading / AI replies / notifications / reminders,
     gated on the client Gmail access model + DWD auth); Approval-Queue action-first rebuild.
 - **RESUME — next / waiting-on (2026-07-09):** S13 pre-customer refinement COMPLETE + **GO-LIVE done 2026-07-07** (waves
@@ -50,7 +50,7 @@ stop-and-reset rules.
   PUBLIC intake → quarantine via a no-actor writer + a route-auth-boundary invariant (`F-MAINT-INTAKE-PUBLIC`); 2d the edit-gated
   triage that promotes/dismisses it (`F-MAINT-INTAKE-REVIEW`); the Gmail renewal-notice draft FLIPPED executable on the committed
   DWD grant + live smoke (`F-GMAIL-RENEWAL-DRAFT-LIVE`; gmail.compose only, no send; owner deploy pending); 2b the edit-gated
-  assignee picker + Assigned-to-me filter (`F-MAINT-ASSIGNEE`); 2a the edit-gated unit type-ahead over a cached RentVine unit index + optional confirm-on-promote (`F-MAINT-UNIT-TYPEAHEAD`); 1b made the live renewal review actionable (reused resolve + approve/return/revoke controls; the resolve route rebuilds the live run) (`F-RENEWAL-LIVE-ACTIONABLE`). Remaining 5 slices are decision-complete in
+  assignee picker + Assigned-to-me filter (`F-MAINT-ASSIGNEE`); 2a the edit-gated unit type-ahead over a cached RentVine unit index + optional confirm-on-promote (`F-MAINT-UNIT-TYPEAHEAD`); 1b made the live renewal review actionable (reused resolve + approve/return/revoke controls; the resolve route rebuilds the live run) (`F-RENEWAL-LIVE-ACTIONABLE`); 1c the per-property lease-renewal decision repo + manageAdmin page (`F-RENEWAL-PROPERTY-REPO`). Remaining 4 slices are decision-complete in
   `docs/temp/deferred-remaining-slices.md` (see Next Safe Slice Candidates).
 
 ## Next Safe Slice Candidates

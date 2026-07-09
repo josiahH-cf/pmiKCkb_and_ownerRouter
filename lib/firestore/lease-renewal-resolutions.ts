@@ -314,6 +314,27 @@ export async function listLeaseRenewalResolutionActivity(
     .sort((left, right) => left.created_at.localeCompare(right.created_at));
 }
 
+/**
+ * Read the append-only resolution Activity for a WHOLE run in ONE query (single-field run_id
+ * equality; no composite index). Read-gated. Sorted oldest→newest. Mirrors
+ * listWritebackApprovalActivityForRun; the per-property repository (slice 1c) buckets these by the
+ * canonical property key. The activity write already stamps run_id, so no schema change is needed.
+ */
+export async function listResolutionActivityForRun(
+  actor: AuthenticatedUser,
+  runId: string,
+  db: Firestore = getAdminFirestore(),
+): Promise<LeaseRenewalResolutionActivityRecord[]> {
+  assertCan(actor, "read");
+  const snapshot = await db
+    .collection(LEASE_RENEWAL_COLLECTIONS.resolutionActivity)
+    .where("run_id", "==", runId)
+    .get();
+  return snapshot.docs
+    .map((doc) => readRecord<LeaseRenewalResolutionActivityRecord>(doc.id, doc.data()))
+    .sort((left, right) => left.created_at.localeCompare(right.created_at));
+}
+
 /** Deterministic, Firestore-safe doc id derived from the (colon-bearing) source_trigger_key. */
 export function resolutionDocId(sourceTriggerKey: string): string {
   return sourceTriggerKey.replace(/[^a-zA-Z0-9_-]/g, "_");
