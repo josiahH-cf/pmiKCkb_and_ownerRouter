@@ -14,7 +14,9 @@ import { pathToFileURL } from "node:url";
 import { readNoticeRuleSet } from "../lib/firestore/lease-renewal-notice-rules";
 import { DEFAULT_NOTICE_RULE_SET } from "../lib/lease-renewal/notice-rules";
 import {
+  planCallTasks,
   planNoticeReminders,
+  type CallTaskPlan,
   type NoticeReminderLeaseFacts,
   type NoticeReminderPlan,
 } from "../lib/lease-renewal/notice-reminders";
@@ -75,19 +77,35 @@ export async function main(argv = process.argv.slice(2)) {
     return;
   }
 
+  const leases = sampleReminderLeases();
   const ruleSet = options.live ? await readNoticeRuleSet() : DEFAULT_NOTICE_RULE_SET;
   const plan = planNoticeReminders({
-    leases: sampleReminderLeases(),
+    leases,
     ruleSet,
+    referenceDateIso: options.referenceDate,
+  });
+  // "Last contact" is the internal renewal-letter-sent date already on file (never a Gmail read).
+  // When no notice has been sent, there is no recorded contact and the call task says so honestly.
+  const lastContactByLease = Object.fromEntries(
+    leases.map((lease) => [lease.leaseId, lease.renewalLetterSentIso]),
+  );
+  const callPlan = planCallTasks({
+    reminders: plan.reminders,
+    lastContactByLease,
     referenceDateIso: options.referenceDate,
   });
 
   console.log(
-    options.json ? JSON.stringify(plan, null, 2) : formatNoticeReminderPlan(plan),
+    options.json
+      ? JSON.stringify({ plan, callTasks: callPlan }, null, 2)
+      : formatNoticeReminderPlan(plan, callPlan),
   );
 }
 
-export function formatNoticeReminderPlan(plan: NoticeReminderPlan): string {
+export function formatNoticeReminderPlan(
+  plan: NoticeReminderPlan,
+  callPlan?: CallTaskPlan,
+): string {
   const lines = [
     `Renewal-notice reminders (operator-triggered; no send, no write)`,
     `Reference date: ${plan.referenceDateIso}`,
@@ -100,6 +118,17 @@ export function formatNoticeReminderPlan(plan: NoticeReminderPlan): string {
   ];
   for (const reminder of plan.reminders) {
     lines.push(`- ${reminder.kind} ${reminder.leaseId} due=${reminder.dueByIso}`);
+  }
+  if (callPlan) {
+    lines.push("");
+    lines.push(
+      `Call tasks (no send, no scheduler; last-contact from internal records): ${callPlan.tasks.length}`,
+    );
+    for (const task of callPlan.tasks) {
+      lines.push(
+        `- make_call ${task.leaseId} basis=${task.basis} last_contact=${task.lastContactIso ?? "none"} due=${task.dueByIso}`,
+      );
+    }
   }
   return lines.join("\n");
 }

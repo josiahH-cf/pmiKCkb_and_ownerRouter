@@ -126,3 +126,98 @@ export function planNoticeReminders(options: {
 
   return { referenceDateIso: options.referenceDateIso, reminders, summary };
 }
+
+// ---------------------------------------------------------------------------
+// Call-task cadence (deferred-cycle bullet 3c). Turns the actionable reminders into operator "make a
+// call task" items, suppressing a task when there is a recent contact on file. "Last contact" is an
+// INTERNAL signal (the renewal-letter-sent date, or the notification log) — never a Gmail read. Pure
+// and deterministic: reference date + last-contact map are inputs; no Date.now(), no I/O, no send.
+
+/** Reminder kinds that escalate to a phone call (a due-soon nudge is "send the notice", not a call). */
+const CALL_TASK_BASIS: readonly NoticeReminderKind[] = [
+  "notice_overdue",
+  "follow_up_due",
+];
+
+export interface CallTask {
+  leaseId: string;
+  label: string;
+  kind: "make_call";
+  /** The underlying reminder that escalated to a call. */
+  basis: NoticeReminderKind;
+  /** The most recent internal contact on file, or null when none is recorded. */
+  lastContactIso: string | null;
+  dueByIso: string;
+  dedupeKey: string;
+  message: string;
+}
+
+export interface CallTaskPlan {
+  referenceDateIso: string;
+  minDaysSinceContact: number;
+  tasks: CallTask[];
+}
+
+function daysBetween(fromIso: string, toIso: string): number {
+  const from = Date.parse(fromIso);
+  const to = Date.parse(toIso);
+  if (Number.isNaN(from) || Number.isNaN(to)) return Number.POSITIVE_INFINITY;
+  return (to - from) / (1000 * 60 * 60 * 24);
+}
+
+function callMessage(reminder: NoticeReminder, lastContactIso: string | null): string {
+  const contact =
+    lastContactIso === null
+      ? "No recorded contact on file"
+      : `Last recorded contact ${lastContactIso.slice(0, 10)}`;
+  const why =
+    reminder.kind === "notice_overdue" ? "notice is overdue" : "tenant follow-up is due";
+  return `Make a call for ${reminder.label}. ${contact}; ${why} (due ${reminder.dueByIso}).`;
+}
+
+/**
+ * Turn a batch of reminders into "make a call" tasks. A task is emitted for an escalating reminder
+ * (overdue / follow-up-due) UNLESS a contact is on file within the cadence window (minDaysSinceContact).
+ * Deduped by a stable key. Operator-triggered; no Cloud Scheduler, no send.
+ */
+export function planCallTasks(options: {
+  reminders: readonly NoticeReminder[];
+  lastContactByLease: Readonly<Record<string, string | null | undefined>>;
+  referenceDateIso: string;
+  minDaysSinceContact?: number;
+}): CallTaskPlan {
+  const minDays = options.minDaysSinceContact ?? 7;
+  const seen = new Set<string>();
+  const tasks: CallTask[] = [];
+
+  for (const reminder of options.reminders) {
+    if (!CALL_TASK_BASIS.includes(reminder.kind)) continue;
+    const lastContactIso = options.lastContactByLease[reminder.leaseId] ?? null;
+    // Suppress when we already have a recent contact on file (within the cadence window).
+    if (
+      lastContactIso !== null &&
+      daysBetween(lastContactIso, options.referenceDateIso) < minDays
+    ) {
+      continue;
+    }
+    const dedupeKey = `${reminder.leaseId}:make_call:${reminder.dueByIso}`;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    tasks.push({
+      leaseId: reminder.leaseId,
+      label: reminder.label,
+      kind: "make_call",
+      basis: reminder.kind,
+      lastContactIso,
+      dueByIso: reminder.dueByIso,
+      dedupeKey,
+      message: callMessage(reminder, lastContactIso),
+    });
+  }
+
+  return {
+    referenceDateIso: options.referenceDateIso,
+    minDaysSinceContact: minDays,
+    tasks,
+  };
+}

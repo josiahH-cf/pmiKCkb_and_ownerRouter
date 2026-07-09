@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { DEFAULT_NOTICE_RULE_SET } from "@/lib/lease-renewal/notice-rules";
 import {
+  planCallTasks,
   planNoticeReminders,
   type NoticeReminderLeaseFacts,
 } from "@/lib/lease-renewal/notice-reminders";
@@ -98,5 +99,72 @@ describe("planNoticeReminders", () => {
       referenceDateIso: "2026-07-14",
     });
     expect(plan.reminders).toHaveLength(0);
+  });
+});
+
+describe("planCallTasks", () => {
+  const reminderPlan = planNoticeReminders({
+    leases,
+    ruleSet: RULE_SET,
+    referenceDateIso: "2026-07-14",
+  });
+
+  it("emits a call task for overdue + follow-up reminders when no contact is on file", () => {
+    const plan = planCallTasks({
+      reminders: reminderPlan.reminders,
+      lastContactByLease: {},
+      referenceDateIso: "2026-07-14",
+    });
+    const byLease = new Map(plan.tasks.map((task) => [task.leaseId, task]));
+    expect(byLease.get("L-overdue")?.basis).toBe("notice_overdue");
+    expect(byLease.get("L-overdue")?.lastContactIso).toBeNull();
+    expect(byLease.get("L-followup")?.basis).toBe("follow_up_due");
+    // A due-soon reminder is a "send the notice" nudge, not a phone call.
+    expect(byLease.has("L-due-soon")).toBe(false);
+    expect(plan.tasks).toHaveLength(2);
+  });
+
+  it("suppresses a call task when a recent contact is on file within the cadence window", () => {
+    const plan = planCallTasks({
+      reminders: reminderPlan.reminders,
+      lastContactByLease: { "L-overdue": "2026-07-13", "L-followup": "2026-06-01" },
+      referenceDateIso: "2026-07-14",
+      minDaysSinceContact: 7,
+    });
+    const ids = plan.tasks.map((task) => task.leaseId);
+    expect(ids).not.toContain("L-overdue"); // contacted yesterday -> suppressed
+    expect(ids).toContain("L-followup"); // contacted six weeks ago -> still due
+    expect(plan.tasks.find((task) => task.leaseId === "L-followup")?.lastContactIso).toBe(
+      "2026-06-01",
+    );
+  });
+
+  it("does not suppress a contact exactly minDaysSinceContact days old (boundary)", () => {
+    const plan = planCallTasks({
+      reminders: reminderPlan.reminders,
+      lastContactByLease: { "L-overdue": "2026-07-07" }, // exactly 7 days before the reference
+      referenceDateIso: "2026-07-14",
+      minDaysSinceContact: 7,
+    });
+    expect(plan.tasks.map((task) => task.leaseId)).toContain("L-overdue");
+  });
+
+  it("produces stable, unique dedupe keys (idempotent across runs)", () => {
+    const first = planCallTasks({
+      reminders: reminderPlan.reminders,
+      lastContactByLease: {},
+      referenceDateIso: "2026-07-14",
+    });
+    const second = planCallTasks({
+      reminders: reminderPlan.reminders,
+      lastContactByLease: {},
+      referenceDateIso: "2026-07-14",
+    });
+    expect(first.tasks.map((task) => task.dedupeKey)).toEqual(
+      second.tasks.map((task) => task.dedupeKey),
+    );
+    expect(new Set(first.tasks.map((task) => task.dedupeKey)).size).toBe(
+      first.tasks.length,
+    );
   });
 });
