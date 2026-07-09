@@ -21,7 +21,7 @@ import {
   type ExcludedTab,
   type IngestManifest,
 } from "@/lib/lease-renewal/ingest";
-import { proposeJoin, type JoinKind } from "@/lib/lease-renewal/join";
+import { deriveAddressKey, proposeJoin, type JoinKind } from "@/lib/lease-renewal/join";
 import type { NormalizedConfidence } from "@/lib/lease-renewal/normalized-value";
 import {
   rentsAgree,
@@ -121,6 +121,12 @@ export interface ReconciledFieldOutcome {
   reconciliation: FieldReconciliation;
   /** Non-null exactly when the reconciliation raised a flag. */
   queueMapping: ReconciliationQueueMapping | null;
+  /**
+   * Canonical property key (deriveAddressKey of the record's join value) for ADDRESS-joined fields;
+   * undefined for name-joined fields. In-boundary only; never projected onto the value-free
+   * board/queue.
+   */
+  propertyKey?: string;
 }
 
 export interface RenewalRunResult {
@@ -243,6 +249,10 @@ export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
       // back to the sourceRowIndex map.
       const recordId = record.joinId ?? input.recordJoinIds?.[record.sourceRowIndex];
       const joinRaw = record.fields[spec.joinFieldKey]?.raw ?? "";
+      // Canonical property key for ADDRESS-joined fields only (name-joined lifecycle fields carry no
+      // address, so no property). In-boundary only; never projected onto the value-free board/queue.
+      const propertyKey =
+        spec.joinKind === "address" ? deriveAddressKey(joinRaw).key : undefined;
       const matched: ReconCandidate[] = [];
       for (const candidate of nonSheetCandidates) {
         const candidateField = candidate.fields[spec.fieldKey];
@@ -331,6 +341,7 @@ export function runRenewalPipeline(input: RenewalRunInput): RenewalRunResult {
         fieldLabel,
         reconciliation,
         queueMapping,
+        propertyKey,
       });
     }
   }
