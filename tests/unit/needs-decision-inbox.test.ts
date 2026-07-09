@@ -132,6 +132,7 @@ function queueItem(
 }
 
 const ROW_KEYS = ["detail", "href", "key", "kind", "label", "severity"];
+const QUEUE_ROW_KEYS = ["detail", "href", "itemId", "key", "kind", "label", "severity"];
 
 describe("buildNeedsDecisionInbox", () => {
   it("merges the three feeds into one attention-ordered, value-free list", () => {
@@ -215,7 +216,12 @@ describe("buildNeedsDecisionInbox", () => {
 
     expect(inbox.rows.length).toBeGreaterThan(0);
     for (const row of inbox.rows) {
-      expect(Object.keys(row).sort()).toEqual(ROW_KEYS);
+      expect(Object.keys(row).sort()).toEqual(
+        row.kind === "queue_item" ? QUEUE_ROW_KEYS : ROW_KEYS,
+      );
+      if (row.kind === "queue_item") {
+        expect(row.itemId).toBe(row.key.slice("queue_item:".length));
+      }
     }
   });
 

@@ -23,8 +23,17 @@ vi.mock("@/lib/approval/needs-decision-gather", () => ({
         severity: "High",
         href: "/lease-renewal/runs/run-1",
       },
+      {
+        kind: "queue_item",
+        key: "queue_item:q1",
+        itemId: "q1",
+        label: "Approve renewal package",
+        detail: "Run 1",
+        severity: "Medium",
+        href: "/approval-queue?item_id=q1",
+      },
     ],
-    counts: { total: 1, renewalFlags: 1, writebacksAwaiting: 0, queueItems: 0 },
+    counts: { total: 2, renewalFlags: 1, writebacksAwaiting: 0, queueItems: 1 },
   })),
 }));
 
@@ -60,6 +69,10 @@ describe("ConsoleView", () => {
     );
     // The old click-to-reveal command button is gone; the deck is always visible.
     expect(screen.queryByRole("button", { name: /My approvals/ })).toBeNull();
+    // A4: an Admin (canApprove) gets an in-place Approve on the queue_item row.
+    expect(screen.getByRole("button", { name: "Approve" })).toBeInTheDocument();
+    // HARD STOP: no control ever executes an external action from the Console.
+    expect(screen.queryByRole("button", { name: /send|execute|write/i })).toBeNull();
   });
 
   it("shows the live processes as a read-only front door", async () => {
