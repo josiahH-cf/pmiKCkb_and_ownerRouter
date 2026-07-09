@@ -49,6 +49,8 @@ adc.json
 !docs/temp/
 docs/temp/*
 !docs/temp/README.md
+# Tracked exception: the decision-complete remaining-slice packet the /loop runner reads (see loop-state).
+!docs/temp/deferred-remaining-slices.md
 
 # Claude Code runtime locks (harness-generated; never commit)
 .claude/*.lock

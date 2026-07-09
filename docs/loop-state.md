@@ -50,37 +50,34 @@ stop-and-reset rules.
   PUBLIC intake → quarantine via a no-actor writer + a route-auth-boundary invariant (`F-MAINT-INTAKE-PUBLIC`); 2d the edit-gated
   triage that promotes/dismisses it (`F-MAINT-INTAKE-REVIEW`); the Gmail renewal-notice draft FLIPPED executable on the committed
   DWD grant + live smoke (`F-GMAIL-RENEWAL-DRAFT-LIVE`; gmail.compose only, no send; owner deploy pending); 2b the edit-gated
-  assignee picker + Assigned-to-me filter (`F-MAINT-ASSIGNEE`). Remaining: A4, unit type-ahead, notifications, queue rebuild.
+  assignee picker + Assigned-to-me filter (`F-MAINT-ASSIGNEE`). Remaining 7 slices are decision-complete in
+  `docs/temp/deferred-remaining-slices.md` (see Next Safe Slice Candidates).
 
 ## Next Safe Slice Candidates
 
-Recalibrated 2026-06-30 (`docs/temp/recalibration-plan.md`) and again 2026-07-02: the pre-customer
-refinement packet `docs/temp/pre-customer-refinement-plan.md` now SEQUENCES these candidates (Wave 1
-copy/queue/deep-links/connections → Wave 2 move-in/move-out desks → Wave 3 notices/Dictate/learning loop).
-R1–R5 DONE + merged. Move-in/move-out Q&A self-resolved to confirmed defaults; Dan-owned values stay
-Needs Verification placeholders (teeth before scaffolding is satisfied).
+The remaining deferred-cycle slices are DECISION-COMPLETE in `docs/temp/deferred-remaining-slices.md` — one
+section each: objective, in/out scope, exact files, EXACT governance pin/fact/supersede edits, guardrails,
+verify list, done-definition. All 7 are loop-executable + app-plane; build ONE per branch → PR → CI `verify`
+→ merge, governance (A4/4a) LAST:
 
-0. Owner Q&A — ANSWERED 2026-07-01/02 (`docs/products/v1-process-qa.md` + `F-PRECUST-CYCLE`); several answers
-   OVERRIDE the printed defaults — build from that doc VERBATIM. Dan-owned values stay Needs Verification.
-1. Dev↔prod parity (`dev-prod-parity.md`, S12) — DONE 2026-06-30 (`F-DEVPROD-PARITY`); REDEPLOYED + FULLY VERIFIED
-   2026-07-01: current `main` live on `pmi-kc-kb-demo`; prod demo-auth fence HTTP-verified (401/307) AND the live
-   renewal review pulls the real 25 RentVine leases + Sheet DWD against the DEPLOYED endpoint (2 real conflicts,
-   production_allowed:false). Surfaced+fixed 2 prod-setup gaps: operator Admin claim + runtime-SA tokenCreator on reader SA (cutover doc).
-2. IA rework (`ui-ia.md`, S6, `A-IA-V2`) — DONE 2026-06-30 (`F-IA-CONSOLE-HOME`, supersedes F-OPS-CONSOLE-IA):
-   Console-as-home (`/`+`/ask`), Processes nav retired (engine+routes kept), fully-clickable Space cards with
-   real state, per-Space Process sub-tab, "Process space" copy. Routes + `smoke:*` preserved. Maintenance stays
-   its own edit-gated Space (folding it under Admin would regress Editor access).
-3. Console app-state brain (`console-app-state.md`, S10) — DONE 2026-06-30 (`F-CONSOLE-APP-STATE`): read-only
-   app-state provider (approvals / connection gaps / Space coverage) via `/api/ask/app-state` + visible command
-   buttons + Console STT (`/api/ask/transcribe`); advisory + deep-linked, never executes.
-4. Per-Space teeth (`space-teeth.md`, S11) — runs via S13 Wave 2 (Q&A answered): reusable desk + the Move-In +
-   Move-Out V1 desks (operator-first, read/draft/suggest only).
-5. Lease-renewal Phase-2 — ALL SHIPPED + prod-verified: review sub-tab (`F-RENEWAL-REVIEW-SUBTAB`), write-back
-   PROPOSAL (`F-WRITEBACK-PROPOSAL`), APPROVAL control plane + queue + audit trail (`F-WRITEBACK-APPROVAL`,
-   `F-WRITEBACK-QUEUE`). GATED next: Sheet write EXECUTION (`F-WRITE-GATE` + golden ground-truth); RentVine write (`OQ-RV-1`).
+1. **2a** unit type-ahead, maintenance (`F-MAINT-UNIT-TYPEAHEAD`).
+2. **1b** lease-renewal live-review actionable + fix the live-review resolve 404 (new fact).
+3. **1c** per-property lease-renewal repository, manageAdmin + value-free (`F-RENEWAL-PROPERTY-REPO`).
+4. **3a** anticipatory AI draft-TEXT composer, no Gmail call (new fact).
+5. **3b** in-app notification framework; email hard-off, Gmail families stubbed (`F-NOTIF-FRAMEWORK`).
+6. **A4** Console act-in-place — GOVERNANCE, owner-opted-in: supersede F-CONSOLE-APP-STATE →
+   F-CONSOLE-ACT-IN-PLACE, scope F-PRECUST-WAVE1, relax the ROW_KEYS + console-view + console-action-deck pins
+   (KEEP the SECRET no-leak asserts). Exact edits in the packet.
+7. **4a** Approval-Queue presentation rebuild — GOVERNANCE: unified urgent-first list + "Other views";
+   `F-APPROVAL-QUEUE-UNIFIED` + OQ-UI-1-TAB-LAYOUT supersede marker; ROW_KEYS pin UNCHANGED.
 
-Carried owner/vendor-gated: prod `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` + live process seed; RentVine
-work-order create.
+The packet header carries the cross-cutting rules (no registry flip; authed routes; keep loop-state ≤140
+lines; no `[bracket]` paths in fact evidence; client-safe types; demo-aware live reads). A4/4a relax pinning
+tests DELIBERATELY — the exact assertion changes are pre-specified and recorded as facts + supersede markers.
+
+Carried owner/vendor-gated (unchanged): prod `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` + live process seed;
+RentVine work-order create; Sheet-write EXECUTION (`F-WRITE-GATE`, `OQ-RV-1`); the Gmail renewal-draft prod
+deploy (`npm run deploy -- --budget-confirmed`).
 
 ## Active Blockers And Exact Client Asks
 
