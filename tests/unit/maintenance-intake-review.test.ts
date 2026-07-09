@@ -111,6 +111,26 @@ describe("maintenance intake review", () => {
     expect(ticket.priority_provenance).toBe("operator-set");
   });
 
+  it("promotes with an operator-confirmed unit and drops the Needs-Verification label", async () => {
+    const db = new FakeFirestore();
+    seedIntake(db, "x");
+    const ticket = await promoteUnverifiedIntake(
+      editor,
+      "x",
+      { unit: { unitId: "unit:456", label: "123 Main Street Unit 2" } },
+      db as unknown as Firestore,
+      NOW,
+    );
+
+    expect(ticket.unit).toEqual({ unitId: "unit:456", label: "123 Main Street Unit 2" });
+    expect(ticket.labels).not.toContain(NEEDS_VERIFICATION_LABEL);
+
+    // The ticket + the flipped intake still land atomically.
+    expect(ticketDocs(db)).toHaveLength(1);
+    const intake = db.store.get(`${MAINTENANCE_INTAKE_COLLECTIONS.intake}/x`);
+    expect(intake).toMatchObject({ status: "promoted", ticket_id: ticket.id });
+  });
+
   it("refuses to promote a missing intake (404) or an already-triaged one (409)", async () => {
     const db = new FakeFirestore();
     await expect(

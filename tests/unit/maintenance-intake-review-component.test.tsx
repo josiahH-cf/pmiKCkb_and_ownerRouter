@@ -65,6 +65,37 @@ describe("UnverifiedIntakeReview", () => {
     expect(screen.getByText(/Promoted to a ticket/)).toBeInTheDocument();
   });
 
+  it("promotes with an operator-confirmed unit in the request body", async () => {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      void init;
+      return String(url).includes("/api/maintenance/units/search")
+        ? Response.json({
+            units: [{ unitId: "unit:456", label: "123 Main Street Unit 2" }],
+          })
+        : new Response(JSON.stringify({ ticket: { id: "t1" } }), { status: 201 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<UnverifiedIntakeReview initialIntake={[intake()]} />);
+    fireEvent.change(screen.getByLabelText("Confirm unit (optional)"), {
+      target: { value: "123 Main" },
+    });
+    fireEvent.click(
+      await screen.findByRole("button", { name: /123 Main Street Unit 2/ }),
+    );
+    fireEvent.click(screen.getByText("Promote to ticket"));
+
+    await waitFor(() => {
+      const promoteCall = fetchMock.mock.calls.find(([url]) =>
+        String(url).endsWith("/promote"),
+      );
+      expect(promoteCall).toBeTruthy();
+      expect(JSON.parse(String(promoteCall?.[1]?.body))).toMatchObject({
+        unit: { unitId: "unit:456", label: "123 Main Street Unit 2" },
+      });
+    });
+  });
+
   it("requires a reason to dismiss (cancels when the prompt is empty)", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);

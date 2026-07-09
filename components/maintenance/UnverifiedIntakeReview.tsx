@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { UnitTypeahead } from "@/components/maintenance/UnitTypeahead";
 import type { UnverifiedIntakeRecord } from "@/lib/maintenance/intake-model";
 
 // Staff triage for the public tokenized intake (2d). Lists what the unauthenticated ingress captured and
@@ -21,6 +22,11 @@ export function UnverifiedIntakeReview({
   const [intake, setIntake] = useState(initialIntake);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [status, setStatus] = useState("");
+  // Optional per-row unit confirmation before promotion (slice 2a). Absence keeps the default
+  // Needs-Verification promote unchanged.
+  const [selectedUnits, setSelectedUnits] = useState<
+    Record<string, { unitId: string; label: string }>
+  >({});
 
   if (unavailableNote) {
     return (
@@ -92,11 +98,29 @@ export function UnverifiedIntakeReview({
             </div>
           </div>
           {row.description ? <p>{row.description}</p> : null}
+          <UnitTypeahead
+            id={`intake-unit-${row.id}`}
+            label="Confirm unit (optional)"
+            onSelect={(unit) =>
+              setSelectedUnits((prev) => {
+                const next = { ...prev };
+                if (unit) next[row.id] = unit;
+                else delete next[row.id];
+                return next;
+              })
+            }
+          />
           <div className="ui-row">
             <button
               type="button"
               disabled={pendingId === row.id}
-              onClick={() => act(row.id, "promote")}
+              onClick={() =>
+                act(
+                  row.id,
+                  "promote",
+                  selectedUnits[row.id] ? { unit: selectedUnits[row.id] } : undefined,
+                )
+              }
             >
               Promote to ticket
             </button>

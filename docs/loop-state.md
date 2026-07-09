@@ -50,7 +50,7 @@ stop-and-reset rules.
   PUBLIC intake → quarantine via a no-actor writer + a route-auth-boundary invariant (`F-MAINT-INTAKE-PUBLIC`); 2d the edit-gated
   triage that promotes/dismisses it (`F-MAINT-INTAKE-REVIEW`); the Gmail renewal-notice draft FLIPPED executable on the committed
   DWD grant + live smoke (`F-GMAIL-RENEWAL-DRAFT-LIVE`; gmail.compose only, no send; owner deploy pending); 2b the edit-gated
-  assignee picker + Assigned-to-me filter (`F-MAINT-ASSIGNEE`). Remaining 7 slices are decision-complete in
+  assignee picker + Assigned-to-me filter (`F-MAINT-ASSIGNEE`); 2a the edit-gated unit type-ahead over a cached RentVine unit index + optional confirm-on-promote (`F-MAINT-UNIT-TYPEAHEAD`). Remaining 6 slices are decision-complete in
   `docs/temp/deferred-remaining-slices.md` (see Next Safe Slice Candidates).
 
 ## Next Safe Slice Candidates
