@@ -13,7 +13,7 @@ stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-07-07
+- Last updated: 2026-07-09
 - Where we are: the multi-process operations console is the north star (lease-renewal = process #1). The
   2026-06-29 cycle shipped + merged R1–R5 (spine+IA, golden harness+labeling, renewal math, action console +
   intent-detect, and the full Maintenance Work Order Intake incl. live Drive photo sync). Full detail is in
@@ -28,23 +28,23 @@ stop-and-reset rules.
   `F-DEVPROD-PARITY`/`F-IA-CONSOLE-HOME`/`F-CONSOLE-APP-STATE`) and 2026-07-02 (S13 pre-customer refinement, see RESUME).
 - 2026-07-01 cycle: SHIPPED the write-back APPROVAL control plane (`F-WRITEBACK-APPROVAL`) + "Write-back queue" tab
   (`F-WRITEBACK-QUEUE`) + run-page audit trail; 913 tests; ALL PROVEN LIVE in prod (detail in `docs/status.md`).
-- **RESUME — next / waiting-on (2026-07-07):** ALL 12 pre-customer refinement decisions LOCKED (`F-PRECUST-CYCLE`);
-  tracked spec S13 `docs/feature-suites/pre-customer-refinement.md`. **WAVE 1 MERGED** (PR #35) + **WAVE 2 E1-E4
-  MERGED** (PR #36) to `main`. **WAVE 3 MERGED** to `main` 2026-07-02 (PR #37, CI green, merge a4eb2e7; 1068 tests,
-  all gates green) — S13 COMPLETE: F notice rule engine (`F-NOTICE-ENGINE`: configurable timing DATA, most-specific-wins resolver,
-  seedable app-plane config, read-only surfacing, banner drafts, operator reminders, docs-only send specs), G
-  verified Dictate (`F-DICTATE-VERIFIED`: error detail, one shared recorder hook, mime negotiation + honest Safari
-  msg, `smoke:transcribe-live` + Speech API in the cutover doc), H the deterministic learning loop (`F-LEARN-LOOP`:
-  value-free metrics card, additive `reason_code`, offline `golden:distill`, redaction gate + PR template). No
-  SoR/Sheet/Gmail write, no send, no Scheduler; every `production_allowed:false`. Post-Wave-3: PR #38 (governed
-  Gmail send-policy seam + provisional $500 move-out sign-off threshold) + PR #39 (budget kill-switch doc reconcile)
-  merged 2026-07-07. **GO-LIVE COMPLETE 2026-07-07** (verified live): owner refreshed ADC + redeployed `main` (Cloud
-  Run rev `pmi-kc-kb-demo-00010-sgt`, 100% traffic, HTTP 200); LIVE seeds landed (`lease_renewal_notice_rules/active`
-  DEFAULT+unverified, `process_definitions/lease-renewal` Draft); TWO Admins confirmed via claim read-back (dan@ +
-  josiah@ = Admin); live Dictate PROVEN on the deployed endpoint (`smoke:transcribe-live --browser-session` HTTP 200,
-  runtime SA); `speech.googleapis.com` enabled 2026-07-03; $10 kill switch armed. REMAINING: Dan's Admin walkthrough
-  (this meeting) + his 2nd sign-in to activate the claim + two client answers (QuickBooks access tier, official
-  deposit-accounting home). GATED unchanged: Sheet write EXECUTION (`F-WRITE-GATE`), Gmail runtime, Cloud Scheduler.
+- 2026-07-08/09 CONSOLE OVERHAUL cycle SHIPPED + merged to `main` (PRs #41–#44): A action-first Console (deck + process
+  strip + prominent Dictate; `F-CONSOLE-APP-STATE` amended); B color-coded Space cards (`F-SPACE-CARD-COLOR`); C Renewal
+  needs-attention fold (`F-RENEWAL-ATTENTION`); D Admin re-section + in-app user/role management with audit (`F-ADMIN-IA`,
+  `F-ADMIN-USERS`); E persisted Maintenance ticket queue + lifecycle (`F-MAINT-TICKETS`); F per-user Gmail representation
+  - Owner-Email reframe (`F-GMAIL-PER-USER`). App-plane only, `production_allowed:false` throughout, no SoR write/send;
+    adversarially reviewed + remediated (transaction safety, attention filter, audit degradation); 1100+ tests, all gates
+    green. Facts are UNIT-verified, not live-run (stale ADC this cycle). DEFERRED / not built: renewal owner-email send
+    affordance + live-review actionability + per-property repository; maintenance external-worker Submitter auth + universal
+    unit type-ahead DB + delegable ownership; per-user Gmail RUNTIME (reading / AI replies / notifications / reminders,
+    gated on the client Gmail access model + DWD auth); Approval-Queue action-first rebuild.
+- **RESUME — next / waiting-on (2026-07-09):** S13 pre-customer refinement COMPLETE + **GO-LIVE done 2026-07-07** (waves
+  1–3 merged PRs #35–#39; `F-PRECUST-CYCLE`/`-NOTICE-ENGINE`/`-DICTATE-VERIFIED`/`-LEARN-LOOP`; Cloud Run
+  `pmi-kc-kb-demo-00010-sgt` 100% traffic; two Admins confirmed; live Dictate proven; $10 kill switch armed — full
+  narrative in `docs/status.md`). The 2026-07-08/09 console overhaul (bullet above) shipped on top. REMAINING client-owned:
+  Dan's Admin walkthrough + 2nd sign-in to activate his claim; QuickBooks access tier + official deposit-accounting home.
+  GATED unchanged: Sheet-write EXECUTION (`F-WRITE-GATE`), Gmail runtime (client access model + DWD), Cloud Scheduler.
+  Next buildable slice: Approval-Queue action-first rebuild (see the console-overhaul DEFERRED list above).
 
 ## Next Safe Slice Candidates
 

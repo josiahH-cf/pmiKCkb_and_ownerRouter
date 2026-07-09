@@ -19,28 +19,42 @@ function fakeDb() {
     if (!store.has(name)) store.set(name, new Map());
     return store.get(name)!;
   };
+  function docRef(name: string, id: string) {
+    const c = col(name);
+    return {
+      id,
+      _name: name,
+      async get() {
+        const data = c.get(id);
+        return { exists: c.has(id), id, data: () => data };
+      },
+      async set(data: Record<string, unknown>) {
+        c.set(id, data);
+      },
+    };
+  }
   const db = {
     collection(name: string) {
-      const c = col(name);
       return {
-        doc(id: string) {
-          return {
-            id,
-            async get() {
-              const data = c.get(id);
-              return { exists: c.has(id), id, data: () => data };
-            },
-            async set(data: Record<string, unknown>) {
-              c.set(id, data);
-            },
-          };
-        },
+        doc: (id: string) => docRef(name, id),
         async get() {
+          const c = col(name);
           return {
             docs: [...c.entries()].map(([id, data]) => ({ id, data: () => data })),
           };
         },
       };
+    },
+    // Minimal transaction: get() reads the doc; set() writes synchronously to the backing map,
+    // mirroring Firestore's tx.get (async) + tx.set (queued) so the writer's transaction path runs.
+    async runTransaction<T>(fn: (tx: unknown) => Promise<T>): Promise<T> {
+      const tx = {
+        get: (ref: { get(): Promise<unknown> }) => ref.get(),
+        set: (ref: { _name: string; id: string }, data: Record<string, unknown>) => {
+          col(ref._name).set(ref.id, data);
+        },
+      };
+      return fn(tx);
     },
   };
   return { db: db as unknown as Firestore, store };

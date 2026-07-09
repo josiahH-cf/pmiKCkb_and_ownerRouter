@@ -80,7 +80,7 @@ export function RenewalDesk({
 
       <CollapsedGroup
         leases={view.review}
-        note="Off-cycle or missing end dates — confirm before working."
+        note="Off-cycle or missing end dates. Confirm before working."
         title="Needs review"
       />
       <CollapsedGroup
@@ -96,7 +96,7 @@ export function RenewalDesk({
 
       <Disclosure summary="Data diagnostics">
         <p className="muted">
-          Sample data — no live read performed. {summary.total} leases classified.
+          Sample data. No live read performed. {summary.total} leases classified.
         </p>
         <p>
           <Link className="text-link" href="/lease-renewal/runs">

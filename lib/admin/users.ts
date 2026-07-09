@@ -121,7 +121,11 @@ export async function setAppUserRole(
 
   const previousRole = roleFromClaims(target.customClaims);
 
-  // Last-Admin guard: never let a demotion drop the app to zero Admins.
+  // Last-Admin guard: never let a demotion drop the app to zero Admins. Best-effort, NOT
+  // concurrency-safe: the count-then-write is not atomic across Firebase Auth, so two simultaneous
+  // demotions of the last two Admins could still race to zero. That is recoverable with the
+  // break-glass `npm run firebase:set-role` script; a stronger invariant needs an atomic admin
+  // counter (tracked as a follow-on).
   if (previousRole === "Admin" && role !== "Admin") {
     const users = await listAppUsers(auth);
     const adminCount = users.filter((user) => user.role === "Admin").length;
@@ -135,18 +139,28 @@ export async function setAppUserRole(
     role,
   });
 
-  await recordAdminRoleChange(
-    {
-      actor_uid: actor.uid,
-      actor_email: actor.email,
-      target_uid: targetUid,
-      target_email: target.email,
-      previous_role: previousRole,
-      new_role: role,
-      reason: reason.trim(),
-    },
-    new Date().toISOString(),
-  );
+  // The privilege change has already committed. If the audit write fails (transient Firestore
+  // error), do NOT surface a role-change failure — that would leave the operator's roster view stale
+  // and wrong while the claim actually changed. Log the audit gap and return the true new state.
+  try {
+    await recordAdminRoleChange(
+      {
+        actor_uid: actor.uid,
+        actor_email: actor.email,
+        target_uid: targetUid,
+        target_email: target.email,
+        previous_role: previousRole,
+        new_role: role,
+        reason: reason.trim(),
+      },
+      new Date().toISOString(),
+    );
+  } catch (error) {
+    console.error(
+      `Role change applied for ${target.email} (${previousRole} -> ${role}) but the audit write failed:`,
+      error,
+    );
+  }
 
   return {
     uid: targetUid,

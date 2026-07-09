@@ -83,12 +83,15 @@ export const CONNECTORS: readonly ConnectorDef[] = [
     id: "gmail_inbox",
     name: "Gmail (per-user inbox)",
     powers:
-      "Reads and drafts replies in the signed-in user's own mailbox. The app never sends a message on its own.",
+      "Will read and draft replies in each user's own mailbox once the access model is approved. The app never sends a message on its own.",
     method: "google",
-    // Per-user, domain-wide Gmail read + draft (console overhaul Slice F). Gated: there is no runtime
-    // and no live probe, and requiredConfig is empty on purpose, so this card can never show
-    // "Connected". It stays an honest "Not connected" until the client-approved access model + the
-    // domain-wide-delegation Gmail scopes are authorized. No inbox is read and no draft is created yet.
+    // Per-user, domain-wide Gmail read + draft (console overhaul Slice F). Gated: no runtime exists. It
+    // reads "Not connected" because it is deliberately absent from the live verification probes
+    // (lib/connections/verification.ts), so it is never in verifiedIds and classifyConnector never
+    // returns "Connected" for it (classifyConnector checks `verified` first, so an empty requiredConfig
+    // alone would NOT prevent Connected — the probe omission is the real safeguard). Empty
+    // requiredConfig also keeps it from ever reading "Ready to verify". Stays gated until the
+    // client-approved access model + the domain-wide-delegation Gmail scopes are authorized.
     requiredConfig: [],
   },
   {

@@ -1,12 +1,12 @@
-// Renewal needs-attention fold (console overhaul Slice C). Pure, deterministic projection over the
-// actionable leases the desk already classified: one AttentionItem per lease answering "what do I do
-// next?", ordered most-attention-first. It reads only fields already on DeskLeaseSummary (open
-// conflicts, stage, end date) — no new data, no I/O — so the desk can lead with the work instead of a
-// flat metric grid. Every item deep-links to that lease's workspace, where the real action happens.
+// Renewal needs-attention fold (console overhaul Slice C; refined after adversarial review). Pure,
+// deterministic projection that surfaces ONLY the actionable leases that genuinely need a human now
+// — an open source conflict, or an awaited data-check / owner decision — so the desk leads with what
+// needs attention instead of re-listing every lease (the full list stays in "Your queue" below). It
+// reads only fields already on DeskLeaseSummary; no new data, no I/O.
 
 import type { DeskLeaseSummary } from "@/lib/lease-renewal/sample-desk";
 
-export type AttentionUrgency = "high" | "medium" | "low";
+export type AttentionUrgency = "high" | "medium";
 
 export interface AttentionItem {
   leaseId: string;
@@ -19,11 +19,26 @@ export interface AttentionItem {
   urgency: AttentionUrgency;
 }
 
-const URGENCY_RANK: Record<AttentionUrgency, number> = { high: 0, medium: 1, low: 2 };
+const URGENCY_RANK: Record<AttentionUrgency, number> = { high: 0, medium: 1 };
 
-// Owner-decision is the earliest human decision in the flow (stage index 1 = "Owner decision"), so
-// data-check / owner-decision stages read as medium urgency and later stages as low.
-const EARLY_STAGE_MAX_INDEX = 1;
+// Stage indices into RENEWAL_STEPS: 0 = Data check, 1 = Owner decision. A lease at or before the owner
+// decision is awaiting a human input; later stages are progressing and belong in the full queue.
+const OWNER_DECISION_STAGE_INDEX = 1;
+
+// A lease needs attention now when a source conflict blocks it, or it is still awaiting the data check
+// or owner decision. Progressing leases (tenant offer / build docs, in agreement) are not shown here.
+function needsAttention(lease: DeskLeaseSummary): boolean {
+  return (
+    lease.openConflicts > 0 ||
+    (lease.stageIndex >= 0 && lease.stageIndex <= OWNER_DECISION_STAGE_INDEX)
+  );
+}
+
+function actionLabelForStage(stageIndex: number): string {
+  if (stageIndex === 0) return "Check the data";
+  if (stageIndex === 1) return "Get the owner decision";
+  return "Open the renewal";
+}
 
 function itemFor(lease: DeskLeaseSummary): AttentionItem {
   const href = `/lease-renewal/lease/${lease.id}`;
@@ -40,15 +55,13 @@ function itemFor(lease: DeskLeaseSummary): AttentionItem {
     };
   }
 
-  const urgency: AttentionUrgency =
-    lease.stageIndex >= 0 && lease.stageIndex <= EARLY_STAGE_MAX_INDEX ? "medium" : "low";
   return {
     leaseId: lease.id,
     addressLabel: lease.addressLabel,
     headline: lease.nextAction ?? "Continue the renewal",
-    actionLabel: "Open the renewal",
+    actionLabel: actionLabelForStage(lease.stageIndex),
     href,
-    urgency,
+    urgency: "medium",
   };
 }
 
@@ -61,13 +74,16 @@ function compareEndDate(a: string | null, b: string | null): number {
 }
 
 /**
- * Fold the actionable leases into one attention-ordered list (pure). Order: open source conflicts
- * first, then earlier-stage work, then soonest end date, then address for a stable tiebreak.
+ * Fold the actionable leases into the needs-attention list (pure). Includes ONLY leases with an open
+ * conflict or an awaited data-check / owner decision — progressing leases live in the full queue, not
+ * here, so the fold never duplicates the queue. Order: conflicts first, then soonest end date
+ * (deadline-driven, so a lease due sooner never sorts below one due later within a band), then address.
  */
 export function buildRenewalAttention(
   actionable: readonly DeskLeaseSummary[],
 ): AttentionItem[] {
   return [...actionable]
+    .filter(needsAttention)
     .map((lease) => ({ lease, item: itemFor(lease) }))
     .sort(
       (a, b) =>

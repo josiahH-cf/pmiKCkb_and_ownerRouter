@@ -27,7 +27,7 @@ export default async function MaintenancePage() {
       <section className="content ui-stack">
         <h1 className="section-title">Maintenance Work Order Intake</h1>
         <p className="muted">
-          Capture a maintenance issue — type or record the problem and the unit — build a
+          Capture a maintenance issue (type or record the problem and the unit), build a
           work-order draft, then create a tracked ticket. Nothing is sent or written to a
           system of record; the RentVine work order is created only after a human
           approves.
