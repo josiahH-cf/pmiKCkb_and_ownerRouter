@@ -407,6 +407,43 @@ button {
   margin-top: 28px;
 }
 
+/* In-app user + role management table (console overhaul Slice D). */
+.admin-user-table {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.admin-user-row {
+  align-items: end;
+  border-top: 1px solid var(--color-border);
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(120px, 0.5fr) minmax(0, 1.2fr) auto;
+  padding-top: 12px;
+}
+
+.admin-user-id {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-user-row input[type="text"] {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font: inherit;
+  min-height: 44px;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+@media (max-width: 760px) {
+  .admin-user-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .compact-record {
   border-top: 1px solid var(--color-border);
   padding: 12px 0;
