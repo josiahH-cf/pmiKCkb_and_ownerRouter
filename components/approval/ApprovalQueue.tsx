@@ -37,7 +37,7 @@ import { NeedsDecisionInboxPanel } from "./NeedsDecisionInboxPanel";
 import { RenewalReviewPanel } from "./RenewalReviewPanel";
 import { WritebackQueuePanel } from "./WritebackQueuePanel";
 
-type QueueView = "needs" | "all" | "renewals" | "writeback";
+type QueueView = "all" | "renewals" | "writeback";
 
 export function ApprovalQueue({
   currentUser,
@@ -56,10 +56,12 @@ export function ApprovalQueue({
   renewalBoard?: RenewalReviewBoard;
   writebackQueue?: WritebackApprovalQueue;
 }>) {
-  // A notification deep-link (`?item_id=`) resolves to initialSelectedItemId; its detail + approve
-  // control only render in the "all" view, so a deep-linked visit lands there. A normal visit lands on
-  // the unified inbox.
-  const [view, setView] = useState<QueueView>(initialSelectedItemId ? "all" : "needs");
+  // The unified, value-free "Needs your decision" list is always the landing surface (Slice 4a). The
+  // other three views live behind an "Other views" disclosure; `view` selects which one renders once it
+  // is open. A notification deep-link (`?item_id=`) opens the disclosure straight to "All items" with the
+  // deep-linked item selected.
+  const [view, setView] = useState<QueueView>("all");
+  const [otherViewsOpen, setOtherViewsOpen] = useState(Boolean(initialSelectedItemId));
   const firstInitialItem =
     initialItems.find((item) => item.id === initialSelectedItemId) ?? initialItems.at(0);
   const [items, setItems] = useState(initialItems);
@@ -474,55 +476,64 @@ export function ApprovalQueue({
 
   return (
     <div className="approval-queue-shell">
-      <div className="ui-tablist" role="tablist" aria-label="Approval queue views">
-        <button
-          aria-selected={view === "needs"}
-          className="ui-tab"
-          onClick={() => setView("needs")}
-          role="tab"
-          type="button"
-        >
-          Needs your decision
-          {needsInbox.counts.total > 0 ? ` (${needsInbox.counts.total})` : ""}
-        </button>
-        <button
-          aria-selected={view === "all"}
-          className="ui-tab"
-          onClick={() => setView("all")}
-          role="tab"
-          type="button"
-        >
-          All items
-        </button>
-        <button
-          aria-selected={view === "renewals"}
-          className="ui-tab"
-          onClick={() => setView("renewals")}
-          role="tab"
-          type="button"
-        >
-          Renewals{renewalOpenFlags > 0 ? ` (${renewalOpenFlags})` : ""}
-        </button>
-        <button
-          aria-selected={view === "writeback"}
-          className="ui-tab"
-          onClick={() => setView("writeback")}
-          role="tab"
-          type="button"
-        >
-          Write-back queue{writebackAwaiting > 0 ? ` (${writebackAwaiting})` : ""}
-        </button>
-      </div>
+      <NeedsDecisionInboxPanel inbox={needsInbox} />
 
-      {view === "needs" ? (
-        <NeedsDecisionInboxPanel inbox={needsInbox} />
-      ) : view === "renewals" ? (
-        <RenewalReviewPanel board={renewalBoard} />
-      ) : view === "writeback" ? (
-        <WritebackQueuePanel queue={writebackQueue} />
-      ) : (
-        renderAllItemsView()
-      )}
+      <details
+        className="panel ui-collapse"
+        open={otherViewsOpen}
+        onToggle={(event) => setOtherViewsOpen(event.currentTarget.open)}
+      >
+        <summary>
+          <span className="ui-card-title">Other views</span>
+          <span className="muted">
+            {" "}
+            Browse every queue item, renewal review, and write-back proposal.
+          </span>
+        </summary>
+
+        {otherViewsOpen ? (
+          <>
+            <div className="ui-tablist" role="tablist" aria-label="Approval queue views">
+              <button
+                aria-selected={view === "all"}
+                className="ui-tab"
+                onClick={() => setView("all")}
+                role="tab"
+                type="button"
+              >
+                All items
+              </button>
+              <button
+                aria-selected={view === "renewals"}
+                className="ui-tab"
+                onClick={() => setView("renewals")}
+                role="tab"
+                type="button"
+              >
+                Renewal reviews{renewalOpenFlags > 0 ? ` (${renewalOpenFlags})` : ""}
+              </button>
+              <button
+                aria-selected={view === "writeback"}
+                className="ui-tab"
+                onClick={() => setView("writeback")}
+                role="tab"
+                type="button"
+              >
+                Write-back proposals
+                {writebackAwaiting > 0 ? ` (${writebackAwaiting})` : ""}
+              </button>
+            </div>
+
+            {view === "renewals" ? (
+              <RenewalReviewPanel board={renewalBoard} />
+            ) : view === "writeback" ? (
+              <WritebackQueuePanel queue={writebackQueue} />
+            ) : (
+              renderAllItemsView()
+            )}
+          </>
+        ) : null}
+      </details>
     </div>
   );
 

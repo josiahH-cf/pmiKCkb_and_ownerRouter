@@ -29,11 +29,8 @@ describe("ApprovalQueue default inbox (B1)", () => {
       ],
     });
 
-    // The unified inbox is the default tab.
-    expect(screen.getByRole("tab", { name: /Needs your decision/ })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    // The unified inbox is the always-visible landing surface; the other views hide behind a disclosure.
+    expect(screen.getByText("Other views")).toBeInTheDocument();
     // The open queue item shows as a value-free deep-link row, not the bulk detail panel.
     expect(
       screen.getByRole("link", { name: /Approve the renewal package/ }),
@@ -72,20 +69,17 @@ describe("ApprovalQueue default inbox (B1)", () => {
       ],
     });
 
-    // The badge reflects the full open backlog on landing.
-    expect(
-      screen.getByRole("tab", { name: /Needs your decision \(2\)/ }),
-    ).toBeInTheDocument();
+    // The always-visible inbox reflects the full open backlog on landing (2 queue items).
+    expect(screen.getByText(/2 things need your decision/)).toBeInTheDocument();
 
-    // Filtering the All items list to an empty subset must NOT shrink the inbox or its badge: the
-    // triage inbox is built from the immutable full set, not the filtered list (B1 regression fix).
-    await user.click(screen.getByRole("tab", { name: /All items/ }));
+    // Filtering the All items list to an empty subset must NOT shrink the inbox: the triage inbox is
+    // built from the immutable full set, not the filtered list (B1 regression fix). Open "Other views"
+    // to reach the All items filter.
+    await user.click(screen.getByText("Other views"));
     await user.click(screen.getByRole("button", { name: "Apply" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
-    expect(
-      screen.getByRole("tab", { name: /Needs your decision \(2\)/ }),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/2 things need your decision/)).toBeInTheDocument();
   });
 });
 
@@ -121,7 +115,7 @@ describe("ApprovalQueue bulk UI", () => {
       ),
     });
 
-    await user.click(screen.getByRole("tab", { name: /All items/ }));
+    await user.click(screen.getByText("Other views"));
     await user.click(screen.getByLabelText("Select visible"));
 
     expect(
@@ -194,7 +188,7 @@ describe("ApprovalQueue bulk UI", () => {
       ],
     });
 
-    await user.click(screen.getByRole("tab", { name: /All items/ }));
+    await user.click(screen.getByText("Other views"));
     await user.click(screen.getByLabelText("Select visible"));
     await user.click(screen.getByRole("button", { name: "Apply Bulk" }));
 
@@ -224,7 +218,7 @@ describe("ApprovalQueue bulk UI", () => {
 
     renderQueue({ items: [queueItem({ risk: "High" })] });
 
-    await user.click(screen.getByRole("tab", { name: /All items/ }));
+    await user.click(screen.getByText("Other views"));
     await user.click(screen.getByLabelText("Select visible"));
     await user.click(screen.getByRole("button", { name: "Apply Bulk" }));
 
