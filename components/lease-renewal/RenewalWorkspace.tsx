@@ -16,6 +16,7 @@ import {
   Stepper,
   Tabs,
 } from "@/components/ui";
+import { PrepareOwnerEmailButton } from "@/components/lease-renewal/PrepareOwnerEmailButton";
 import { DRAFT_BANNER } from "@/lib/constants";
 import type { ReadinessStatus } from "@/lib/lease-renewal/renewal-readiness";
 import type { RenewalLeaseWorkspace } from "@/lib/lease-renewal/sample-desk";
@@ -113,6 +114,7 @@ export function RenewalWorkspace({
           </p>
           <div className="draft-box">{ownerDraft.body}</div>
         </Disclosure>
+        <PrepareOwnerEmailButton leaseId={summary.id} />
       </Card>
 
       <Card title="Tenant offer">
