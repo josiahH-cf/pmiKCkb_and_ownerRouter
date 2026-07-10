@@ -211,6 +211,10 @@ export default async function SpaceDetailPage({
                 <li key={source}>{source}</li>
               ))}
             </ul>
+            <p className="muted">
+              Draft replies, manage reply patterns, and summarize threads in the{" "}
+              <Link href="/gmail-hub">Gmail hub</Link> — no mailbox access required.
+            </p>
           </div>
         ) : hasProcess && space.processDefinitionId ? (
           <SpaceDesk

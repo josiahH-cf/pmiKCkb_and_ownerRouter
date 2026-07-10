@@ -80,5 +80,6 @@ export const launchSpaces: readonly LaunchSpace[] = [
 export function spaceHref(space: Pick<LaunchSpace, "id">): string {
   if (space.id === "lease-renewals") return "/lease-renewal";
   if (space.id === "maintenance-work-order-intake") return "/maintenance";
+  if (space.id === "owner-email") return "/gmail-hub";
   return `/spaces/${space.id}`;
 }

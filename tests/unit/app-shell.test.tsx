@@ -54,7 +54,14 @@ describe("AppShell space-scoped navigation", () => {
       </AppShell>,
     );
 
-    for (const link of ["Console", "Spaces", "Approval Queue", "Connections", "Admin"]) {
+    for (const link of [
+      "Console",
+      "Spaces",
+      "Approval Queue",
+      "Gmail Hub",
+      "Connections",
+      "Admin",
+    ]) {
       expect(screen.getByRole("link", { name: link })).toBeInTheDocument();
     }
   });
