@@ -6385,3 +6385,18 @@ write, no autonomous send, no new Google scope, no Cloud Scheduler, ~$10 cap, de
 `format:check` all green; `next build` not run (no `app/` runtime files changed). NO pillar implementation this
 cycle — the branch holds foundation + specs only. Stop condition: **D4 clean stop for owner review**; on owner
 go the S14–S18 buildable-now slices are the next work (build S16 before S17's B7). Nothing committed/pushed yet.
+
+## 2026-07-10 (later) — Overhaul MERGED to main (PRs #65, #66); D4 review gate LIFTED, loop cleared to build S14
+
+Owner-go event, superseding the "clean stop / nothing pushed yet" note in the entry above. The overhaul
+foundation + specs were committed and **merged to `main` via PR #65** (CI `verify` green — that run exercised the
+newly-added `verify:falsification` / `verify:context-freshness` / `verify:spec-traceability` gates). The owner
+then approved proceeding to implementation, so **PR #66** (`chore(loop-state): lift the D4 review gate`) merged
+to `main` (CI green), flipping `docs/loop-state.md` to GO: no active stop-condition, Next Safe Slice = **S14**
+(then S16 → S17 → S15 → S18), and Resume-Here pointing a triggered loop at building each spec's "Buildable now
+(app-plane)" slices unattended. Verified by two independent cold-start agents (Claude entrypoint via CLAUDE.md,
+Codex entrypoint via AGENTS.md): both resolved the routing to **WOULD-BUILD S14 (B3 first)** and confirmed the
+runner-neutral routing is enforced by `scripts/check-router-boundary.mjs` (requires both `CLAUDE.md` +
+`.codex/config.toml`). Governance unchanged: app-plane only, `production_allowed:false`, no SoR write, no
+autonomous send, ~$10 cap, deploy owner-run. Next: a runner triggered with `/loop` / "run the loop" / "build"
+begins S14; the shipped `F-*` facts must cite the `AC-S14-*` ids (`verify:spec-traceability` enforces).
