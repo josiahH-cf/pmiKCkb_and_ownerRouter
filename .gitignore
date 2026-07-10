@@ -60,3 +60,7 @@ docs/temp/*
 Thumbs.db
 .vscode/
 .idea/
+
+# Next.js auto-generates this on dev/build; the routes.d.ts import flips between
+# .next/dev/types and .next/types, so keep it out of commits.
+next-env.d.ts
