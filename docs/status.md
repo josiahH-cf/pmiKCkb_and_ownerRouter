@@ -6336,3 +6336,52 @@ button's click->PATCH wiring being untested (A4). App-plane only throughout: no 
 live Google auth needed (all slices demo-aware + unit-tested). Final `main`: full `npm run verify` green, 1288
 tests. Stop condition: no safe app-plane slice remains — remaining work is owner/vendor-gated (prod deploy,
 RentVine/Sheet writes, Gmail runtime, live process seed). See `docs/loop-state.md` for the resume pointer.
+
+## 2026-07-10 — UI/UX + governance overhaul: runner-agnostic foundation + specs S14–S18 (branch, stopped for owner review)
+
+Triggered by the owner voice-memo transcript (`obsidian-sync-vault/.../PMI KB Project Spec and UIUX
+Overhaul/transcript.md`, 2026-07-10). A 7-reader grounding workflow mapped the five overhaul surfaces +
+the governance/loop layer against current code; the recurring finding was that the engines already exist
+and the gap is UI/IA wiring plus one governance hole (CI omitted the adversarial + freshness gates). Four
+owner decisions were locked via confirm-with-default (recorded in `docs/facts.md` Open Questions):
+**D1** a tapped `reason_code` satisfies the mandatory-reason rule for Low/Medium approval flags only (free
+text stays required for High/Blocked + overrides); **D2** Console stays home, Notifications becomes a
+superset hub the same signals also flow into; **D3** build the Gmail hub app-plane to-the-gate, no read
+scope; **D4** deliver the foundation + specs this cycle, then STOP for owner review before any pillar build.
+
+FOUNDATION (all app-plane docs/scripts/CI, gate-green on branch `feat/agnostic-governance-and-uiux-specs`):
+(1) `F-RUNNER-AGNOSTIC` — AGENTS.md reframed runner-neutral with a "Per-Runner Pointers" section naming
+`CLAUDE.md` (Claude Code) + `.codex/config.toml` (Codex) as thin adapters; `scripts/check-router-boundary.mjs`
+made symmetric (requires both pointers + the neutral framing, no longer Claude-only); the six-identity row (a)
+generalized off "Claude" in AGENTS.md + `scripts/preflight-identity.mjs`. (2) `F-ADVERSARIAL-CI-GATE` —
+`.github/workflows/ci.yml` now runs `verify:falsification`, `verify:context-freshness`, and the new
+`verify:spec-traceability` (they were local-only via `scripts/verify.sh`), so the adversarial pass binds
+every PR regardless of authoring runner. (3) `F-SPEC-TRACEABILITY` — new `docs/feature-suites/TEMPLATE.md`
+(spec-shape sentinel + two extra sections: Adversarial acceptance checks with stable `AC-S<n>-<k>` ids, and
+Forbidden actions / hard gates), `tests/unit/feature-suite-spec-shape.test.mjs` (shape + README registration,
+sentinel-scoped so S1–S13 are untouched), and `scripts/check-spec-traceability.mjs` (AC-id uniqueness +
+suite-match on BOLD declarations only, so cross-spec references are allowed, + facts.md cross-reference). The
+runner doc's Verification-and-Falsification phase now requires the shipped fact to cite the `AC-` ids it
+satisfies; `docs/meta-prompts/scaffold.md` updated to emit the new shape.
+
+SPECS: five decision-complete feature suites authored by a parallel-author + adversarial-critic workflow and
+registered in `docs/feature-suites/README.md` + the AGENTS.md Route Table/Project Map — S14 approval-queue-mobile
+(the owner's #1 target; one-card push-button decider, one-tap Accept-suggested, reason-code-first per D1, over
+the existing resolve/write-back routes), S15 gmail-hub (surfaces the invisible composer + triage/template engine
+
+- thread summaries to-the-gate per D3), S16 rbac-subusers (orthogonal `scopes` claim → a maintenance-only
+  sub-user; default all-spaces), S17 unified-console-and-attention (a `/notifications` superset hub + one
+  value-free attention contract + Dan's Admin-scoped review digest per D2), and S18 process-auto-initiation (an
+  app-plane "Anticipated work" lane; no Cloud Scheduler, no send). The critic found 4 items — all fixed: the
+  README registration (integration step), an S17 family-count contradiction (six→seven, `team_review` included),
+  an S16/S17 double-ownership of the Console-deck filter (S16 owns the filter; S17 only lane-stamps), and an S15
+  header overclaim about the one pre-approved compose entry. The traceability gate then surfaced a real refinement
+  (distinguish bold `**AC-**` declarations from plain-prose cross-references), which was applied.
+
+Governance posture UNCHANGED: app-plane only, every Action Registry entry `production_allowed:false`, no SoR
+write, no autonomous send, no new Google scope, no Cloud Scheduler, ~$10 cap, deploy owner-run. Verification:
+`npm test` (all unit incl. the new shape test), `lint`, `typecheck`, `verify:router-boundary`,
+`verify:falsification`, `verify:context-freshness`, `verify:spec-traceability`, `verify:redaction`, and
+`format:check` all green; `next build` not run (no `app/` runtime files changed). NO pillar implementation this
+cycle — the branch holds foundation + specs only. Stop condition: **D4 clean stop for owner review**; on owner
+go the S14–S18 buildable-now slices are the next work (build S16 before S17's B7). Nothing committed/pushed yet.

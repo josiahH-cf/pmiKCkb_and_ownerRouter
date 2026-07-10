@@ -20,6 +20,9 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run verify:router-boundary
+      - run: npm run verify:falsification
+      - run: npm run verify:context-freshness
+      - run: npm run verify:spec-traceability
       - run: npm run verify:redaction
       - run: npm run check:budget-guard
       - run: npm run build

@@ -331,7 +331,10 @@ Run this phase for every slice:
 
 1. Explain in plain English what the slice actually changed.
 2. Verify the implementation against intended behavior, the packet objective, acceptance
-   criteria, and any referenced spec.
+   criteria, and any referenced spec. For an overhaul feature-suite spec, name the `AC-`
+   acceptance-check ids the slice claims and confirm each stated OBSERVABLE state actually
+   holds (not merely that code exists). This runs identically under any runner; the gates in
+   step 5 are enforced for every runner by CI (`.github/workflows/ci.yml`).
 3. Try to falsify it. Actively look for:
    - mismatches between stated intent and actual behavior,
    - omissions and missing acceptance-criteria coverage,
@@ -346,8 +349,8 @@ Run this phase for every slice:
    as hard blockers.
 5. Run checks proportional to the change:
    - Documentation-only: `npm run format:check`, `git diff --check`,
-     `npm run verify:router-boundary`, `npm run verify:falsification`, and
-     `npm run verify:context-freshness`.
+     `npm run verify:router-boundary`, `npm run verify:falsification`,
+     `npm run verify:context-freshness`, and `npm run verify:spec-traceability`.
    - TypeScript/runtime changes: add `npm run lint`, `npm run typecheck`, and `npm test`.
    - Firestore or persistence changes: add `npm run test:firestore` when Java is
      available.
@@ -361,8 +364,11 @@ Run this phase for every slice:
 8. If a real issue cannot be fixed safely from available context, record it as a blocker
    instead of guessing.
 
-If a check cannot run, record the reason and residual risk. Record the falsification
-result and last-known-green checks in `docs/loop-state.md`.
+If a check cannot run, record the reason and residual risk. When a slice ships work claimed
+by an overhaul spec, its promoting `docs/facts.md` `F-*` row cites the `AC-` acceptance-check
+ids it satisfies (`npm run verify:spec-traceability` fails if a cited id does not resolve).
+Record the falsification result, the `AC-` ids covered, and the last-known-green checks in
+`docs/loop-state.md` so the spec-to-implementation trail is durable, not narrated.
 
 ## Multi-Slice Continuation Loop
 

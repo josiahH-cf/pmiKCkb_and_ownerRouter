@@ -32,13 +32,22 @@ STEP 1 — Governance spine FIRST.
      cap); the history lives in docs/status.md.
 
 STEP 2 — Scaffold the specs (docs only; no feature code).
-  Ensure docs/voice-and-audience.md and docs/feature-suites/*.md exist (one per suite). Each follows:
-  Goal / What it is / Open questions & assumptions (labeled) / Cross-product impacts / Ordered prompt
-  sequence / Deletion-merge note. Register each in AGENTS.md routing and record remaining decisions in
-  docs/facts.md open questions.
+  Ensure docs/voice-and-audience.md and docs/feature-suites/*.md exist (one per suite). A new or
+  overhaul spec is copied from docs/feature-suites/TEMPLATE.md, keeps the
+  `<!-- spec-shape: overhaul-v1 -->` sentinel on line 1, and carries ALL required sections:
+  Goal / What it is / how it functions (with an explicit "Buildable now (app-plane)" vs
+  "Gated (owner/vendor)" split) / Open questions & assumptions (labeled) / Cross-product impacts /
+  Adversarial acceptance checks (falsifiable Done-when bullets as observable states, each with a
+  stable AC-S<n>-<k> id, the Verify command list, and named sentinel tests) / Forbidden actions &
+  hard gates / Ordered prompt sequence / Deletion-merge note. Register each in the
+  docs/feature-suites/README.md table AND the AGENTS.md Route Table + Project Map, and record
+  remaining decisions as Q-/A- rows in docs/facts.md open questions. The sentinel opts the spec into
+  tests/unit/feature-suite-spec-shape.test.mjs (shape) and npm run verify:spec-traceability (AC-id
+  integrity + facts.md cross-reference); the 13 pre-existing S1–S13 specs keep their original shape.
 
-STEP 3 — Verify and hand off. Run npm run verify:context-freshness, npm test, npm run
-verify:router-boundary, npm run verify:falsification, and bash scripts/verify.sh. Update docs/status.md
+STEP 3 — Verify and hand off. Run npm run verify:context-freshness, npm run
+verify:spec-traceability, npm test, npm run verify:router-boundary, npm run
+verify:falsification, and bash scripts/verify.sh. Update docs/status.md
 and docs/loop-state.md. Stop. Do not build features; lease-renewal stays gated until the team validates
 process, columns, and golden data.
 ```

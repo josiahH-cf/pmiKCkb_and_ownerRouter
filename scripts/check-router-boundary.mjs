@@ -6,6 +6,7 @@ const root = process.cwd();
 const requiredFiles = [
   "AGENTS.md",
   "CLAUDE.md",
+  ".codex/config.toml",
   "README.md",
   "docs/spec.md",
   "docs/specs/spec-1-technical-spec.md",
@@ -103,6 +104,15 @@ assertIncludes(
   "CLAUDE.md",
   ["AGENTS.md", "docs/autonomous-agent-runner.md"],
   "CLAUDE.md compatibility pointer",
+);
+
+// Runner-neutral routing: AGENTS.md is the single source and names BOTH runner adapters as
+// thin pointers, so the boundary gate stops encoding a single-runner coupling. Adding a new
+// runner means adding its pointer here, not moving rules into a runner-specific file.
+assertIncludes(
+  "AGENTS.md",
+  ["Per-Runner Pointers", "runner-neutral", "CLAUDE.md", ".codex/config.toml"],
+  "AGENTS.md per-runner routing",
 );
 
 assertIncludes("README.md", [
