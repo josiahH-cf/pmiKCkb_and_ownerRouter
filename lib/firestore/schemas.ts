@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ATTENTION_LANES, ATTENTION_SEVERITIES } from "@/lib/attention/lanes";
 import {
   ACTION_EVENT_MODES,
   ACTION_EVIDENCE_STATUSES,
@@ -413,8 +414,24 @@ export const UpdateApprovalQueueNotificationInputSchema = z.object({
 // readonly tuple, which z.enum accepts. There is intentionally NO email field: email stays hard-off.
 export const NotificationFamilyKeySchema = z.enum(NOTIFICATION_FAMILY_KEYS);
 
+// S17 B4 low-alarm layer. All three fields are ADDITIVE and OPTIONAL: an omitted field leaves the
+// stored value unchanged (the writer merge-preserves it), so the existing mute-only bell PATCH keeps
+// working and never wipes a threshold/snooze/digest. These shape the IN-APP feed only; they deliver
+// nothing (email stays hard-off). `partialRecord` allows a subset of lanes (Zod 4 records over an enum
+// are exhaustive by default).
+const AttentionLaneSchema = z.enum(ATTENTION_LANES);
+const AttentionSeveritySchema = z.enum(ATTENTION_SEVERITIES);
+const IsoTimestampSchema = z
+  .string()
+  .refine((value) => !Number.isNaN(new Date(value).getTime()), "invalid timestamp");
+
 export const UpdateNotificationPreferencesInputSchema = z.object({
   muted_families: z.array(NotificationFamilyKeySchema).default([]),
+  lane_thresholds: z
+    .partialRecord(AttentionLaneSchema, AttentionSeveritySchema)
+    .optional(),
+  snoozed_lanes: z.partialRecord(AttentionLaneSchema, IsoTimestampSchema).optional(),
+  digest_lanes: z.array(AttentionLaneSchema).optional(),
 });
 
 export const MarkNotificationReadInputSchema = z.object({

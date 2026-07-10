@@ -107,10 +107,14 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
       ? coverage.items
       : coverage.items.filter((item) => visibleSpaceHrefs.has(item.href));
 
+  // Each deck card speaks one shared attention lane (S17 B3/B7): the deck now uses the same vocabulary
+  // as the /notifications hub + the renewal desk. This suite adds NO scope filter of its own — the
+  // rows above are already S16-scope-filtered (AC-S16-4); B7 only stamps the lane.
   const cards: ConsoleDeckCard[] = [
     {
       key: "approvals",
       title: "Needs your decision",
+      lane: "decision",
       count: inbox.counts.total,
       rows: inbox.rows.map((row) => ({
         label: row.label,
@@ -124,6 +128,7 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
     {
       key: "connections",
       title: "Connections to set up",
+      lane: "connection",
       count: connectionItems.length,
       rows: connectionItems.map((item) => ({
         label: item.label,
@@ -136,6 +141,7 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
     {
       key: "coverage",
       title: "Space coverage",
+      lane: "coverage",
       count: coverageItems.length,
       rows: coverageItems.map((item) => ({
         label: item.label,

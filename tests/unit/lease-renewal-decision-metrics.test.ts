@@ -92,8 +92,57 @@ describe("buildDecisionMetrics", () => {
       "approvals",
       "reason_codes",
       "resolutions",
+      "review",
       "total_decisions",
       "uncategorized",
     ]);
+    // The S17 review roll-up is integers only.
+    expect(Object.keys(metrics.review).sort()).toEqual([
+      "high_risk_overrides",
+      "self_corrections",
+    ]);
+    expect(typeof metrics.review.high_risk_overrides).toBe("number");
+    expect(typeof metrics.review.self_corrections).toBe("number");
+  });
+
+  // AC-S17-6: the value-free review roll-up counts high-risk overrides (corrected_value at High) and
+  // self-corrections (returned write-back authorizations), and the digest projects them into ONE signal.
+  it("rolls up high-risk overrides + self-corrections and builds one value-free digest (AC-S17-6)", async () => {
+    const { buildTeamReviewDigest } = await import("@/lib/attention/review-lane");
+    const metrics = buildDecisionMetrics({
+      resolutions: [
+        { resolution_kind: "corrected_value", severity: "High" },
+        { resolution_kind: "corrected_value", severity: "Medium" },
+        { resolution_kind: "pick_source", severity: "High" },
+      ],
+      approvals: [
+        { state: "Approved" },
+        { state: "Returned for Revision" },
+        { state: "Returned for Revision" },
+      ],
+    });
+    expect(metrics.review.high_risk_overrides).toBe(1); // only the High corrected_value
+    expect(metrics.review.self_corrections).toBe(2); // the two returned approvals
+
+    const digest = buildTeamReviewDigest(metrics);
+    expect(digest).not.toBeNull();
+    expect(digest!.lane).toBe("review");
+    expect(digest!.severity).toBe("high");
+    expect(digest!.signal_key).toBe("team_review:digest");
+    expect(digest!.detail).toBe("1 high-risk override, 2 self-corrections this period");
+    // Value-free: the digest is exactly the six whitelisted keys, no value-bearing field.
+    expect(Object.keys(digest!).sort()).toEqual([
+      "detail",
+      "href",
+      "label",
+      "lane",
+      "severity",
+      "signal_key",
+    ]);
+
+    // Nothing to review => no signal (never a per-edit ping).
+    expect(
+      buildTeamReviewDigest(buildDecisionMetrics({ resolutions: [], approvals: [] })),
+    ).toBeNull();
   });
 });

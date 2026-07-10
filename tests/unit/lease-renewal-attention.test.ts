@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { ATTENTION_LANES, ATTENTION_SEVERITIES } from "@/lib/attention/lanes";
 import { buildRenewalAttention } from "@/lib/lease-renewal/attention";
 import {
   getRenewalDeskView,
@@ -73,5 +74,20 @@ describe("buildRenewalAttention", () => {
 
   it("returns an empty list when nothing is actionable", () => {
     expect(buildRenewalAttention([])).toEqual([]);
+  });
+
+  // AC-S17-4: the renewal fold speaks the shared attention contract — every item carries the `renewal`
+  // lane and a neutral severity from the closed enums, so the desk uses the hub's + deck's vocabulary.
+  it("stamps every item with the renewal lane and a neutral attention severity (AC-S17-4)", () => {
+    const view = getRenewalDeskView();
+    const items = buildRenewalAttention(view.actionable);
+    expect(items.length).toBeGreaterThan(0);
+    for (const item of items) {
+      expect(item.lane).toBe("renewal");
+      expect(ATTENTION_LANES).toContain(item.lane);
+      expect(ATTENTION_SEVERITIES).toContain(item.severity);
+      // urgency and severity agree: a high-urgency item is high severity.
+      expect(item.severity).toBe(item.urgency === "high" ? "high" : "medium");
+    }
   });
 });

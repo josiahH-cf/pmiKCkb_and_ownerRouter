@@ -4,6 +4,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { ATTENTION_LANES } from "@/lib/attention/lanes";
 import {
   ConsoleActionDeck,
   type ConsoleDeckCard,
@@ -19,6 +20,7 @@ const cards: ConsoleDeckCard[] = [
   {
     key: "approvals",
     title: "Needs your decision",
+    lane: "decision",
     count: 5,
     rows: [
       { label: "Current rent", detail: "Run 1", href: "/lease-renewal/runs/run-1" },
@@ -32,6 +34,7 @@ const cards: ConsoleDeckCard[] = [
   {
     key: "connections",
     title: "Connections to set up",
+    lane: "connection",
     count: 0,
     rows: [],
     emptyLabel: "Every connector is set up.",
@@ -44,6 +47,7 @@ const withQueueItem: ConsoleDeckCard[] = [
   {
     key: "approvals",
     title: "Needs your decision",
+    lane: "decision",
     count: 2,
     rows: [
       {
@@ -63,6 +67,7 @@ const withQueueItemSingle: ConsoleDeckCard[] = [
   {
     key: "approvals",
     title: "Needs your decision",
+    lane: "decision",
     count: 1,
     rows: [
       {
@@ -100,6 +105,22 @@ describe("ConsoleActionDeck", () => {
     render(<ConsoleActionDeck cards={cards} />);
 
     expect(screen.getByText("Every connector is set up.")).toBeInTheDocument();
+  });
+
+  // AC-S17-9: every deck row speaks the shared attention vocabulary — each rendered row carries a lane
+  // from the closed ATTENTION_LANES enum (stamped from its card), so the deck matches the hub + desk.
+  it("stamps every rendered row with a lane from the closed ATTENTION_LANES enum", () => {
+    const { container } = render(<ConsoleActionDeck cards={cards} />);
+    const rows = container.querySelectorAll(".console-deck-list li");
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(ATTENTION_LANES).toContain(row.getAttribute("data-lane"));
+    }
+    // The approvals card + all its rows carry the "decision" lane.
+    const approvalsCard = container.querySelector(
+      '.console-deck-card[data-lane="decision"]',
+    );
+    expect(approvalsCard).not.toBeNull();
   });
 
   it("renders an in-place Approve ONLY for a queue_item row (itemId) when the user can approve", () => {

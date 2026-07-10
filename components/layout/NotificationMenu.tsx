@@ -72,6 +72,15 @@ export function NotificationMenu({
     navigate(notification.href);
   }
 
+  async function markAllRead() {
+    try {
+      await fetch("/api/notifications/mark-all-read", { method: "POST" });
+      await loadNotifications();
+    } catch {
+      // Mark-all-read is best-effort; a failure leaves the current view unchanged.
+    }
+  }
+
   async function toggleMute(familyKey: NotificationFamilyKey) {
     const nextMuted = families
       .filter((family) => family.available)
@@ -173,11 +182,25 @@ export function NotificationMenu({
               </ul>
             </div>
           ) : null}
-          {canOpenApprovalQueue ? (
-            <a className="notification-all-link" href="/approval-queue">
-              Open Approval Queue
+          <div className="notification-popover-actions">
+            {unreadCount > 0 ? (
+              <button
+                className="notification-mark-all"
+                onClick={() => void markAllRead()}
+                type="button"
+              >
+                Mark all read
+              </button>
+            ) : null}
+            <a className="notification-all-link" href="/notifications">
+              See all notifications
             </a>
-          ) : null}
+            {canOpenApprovalQueue ? (
+              <a className="notification-all-link" href="/approval-queue">
+                Open Approval Queue
+              </a>
+            ) : null}
+          </div>
         </section>
       ) : null}
     </div>

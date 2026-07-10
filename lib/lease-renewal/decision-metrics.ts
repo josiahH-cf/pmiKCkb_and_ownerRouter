@@ -14,10 +14,13 @@ import {
   type DecisionReasonCode,
 } from "@/lib/lease-renewal/reason-codes";
 
-/** The minimal, value-free shape the projection reads from a resolution record. */
+/** The minimal, value-free shape the projection reads from a resolution record. `severity` is the
+ *  flag's risk band (a category, never a value), used only to threshold high-risk overrides for the
+ *  S17 review digest. */
 export interface DecisionMetricsResolutionInput {
   resolution_kind?: "pick_source" | "corrected_value" | "flag_incorrect";
   reason_code?: string;
+  severity?: string;
 }
 
 /** The minimal, value-free shape the projection reads from a write-back approval record. */
@@ -48,6 +51,17 @@ export interface DecisionMetrics {
   reason_codes: Record<DecisionReasonCode, number>;
   /** Decisions that carried no reason code. */
   uncategorized: number;
+  /**
+   * S17 B5 — the value-free roll-up Dan's Admin-only review digest reads. `high_risk_overrides` counts
+   * corrected_value resolutions at High severity (a reviewer overrode the source on a high-risk field);
+   * `self_corrections` counts write-back authorizations later walked back (returned for revision). Both
+   * are integers only — never a value, address, field, or reason. The exact self-correction definition +
+   * the digest window are display defaults pending Dan's confirmation (Q-DAN-REVIEW-CADENCE).
+   */
+  review: {
+    high_risk_overrides: number;
+    self_corrections: number;
+  };
 }
 
 function emptyReasonCodeCounts(): Record<DecisionReasonCode, number> {
@@ -76,10 +90,13 @@ export function buildDecisionMetrics(input: {
   let accepted = 0;
   let corrected = 0;
   let dismissed = 0;
+  let highRiskOverrides = 0;
   for (const resolution of input.resolutions) {
     if (resolution.resolution_kind === "pick_source") accepted += 1;
-    else if (resolution.resolution_kind === "corrected_value") corrected += 1;
-    else if (resolution.resolution_kind === "flag_incorrect") dismissed += 1;
+    else if (resolution.resolution_kind === "corrected_value") {
+      corrected += 1;
+      if (resolution.severity === "High") highRiskOverrides += 1;
+    } else if (resolution.resolution_kind === "flag_incorrect") dismissed += 1;
     tallyReasonCode(resolution.reason_code);
   }
 
@@ -108,5 +125,12 @@ export function buildDecisionMetrics(input: {
     },
     reason_codes: reasonCodes,
     uncategorized,
+    review: {
+      high_risk_overrides: highRiskOverrides,
+      // A returned write-back authorization is an approver walking a decision back — the observable
+      // self-correction in the persisted records (stale-via-re-resolution needs the Activity cross-join,
+      // a documented future refinement).
+      self_corrections: returned,
+    },
   };
 }

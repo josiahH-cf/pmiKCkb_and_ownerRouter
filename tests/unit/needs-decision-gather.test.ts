@@ -135,6 +135,17 @@ describe("gatherNeedsDecisionInbox", () => {
     expect(loadRenewalRunViews).toHaveBeenCalledTimes(1);
     // The Space-card count covers the renewal work only (flags + awaiting write-backs).
     expect(renewalWaitingCount(inbox)).toBe(2);
+
+    // AC-S17-3 single-source invariant: the decision integer every surface shows is
+    // counts.total, and it is EXACTLY the sum of its kinds and the row count — no surface can
+    // recompute a different number without changing the rows. The Console deck reads this total; the
+    // Approval Queue builds the same buildNeedsDecisionInbox over the same-filtered inputs.
+    expect(inbox.counts.total).toBe(
+      inbox.counts.renewalFlags +
+        inbox.counts.writebacksAwaiting +
+        inbox.counts.queueItems,
+    );
+    expect(inbox.counts.total).toBe(inbox.rows.length);
   });
 
   it("degrades each feed independently and never throws", async () => {

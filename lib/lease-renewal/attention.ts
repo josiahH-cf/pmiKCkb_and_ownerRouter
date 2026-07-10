@@ -4,9 +4,16 @@
 // needs attention instead of re-listing every lease (the full list stays in "Your queue" below). It
 // reads only fields already on DeskLeaseSummary; no new data, no I/O.
 
+import type { AttentionLane, AttentionSeverity } from "@/lib/attention/lanes";
 import type { DeskLeaseSummary } from "@/lib/lease-renewal/sample-desk";
 
 export type AttentionUrgency = "high" | "medium";
+
+// The renewal fold speaks the shared attention contract (S17 B3): every item carries the `renewal` lane
+// and a neutral severity, so the desk uses the same vocabulary as the hub + the Console deck. The
+// value-bearing display fields (addressLabel, headline) stay on THIS desk's own type — the shared,
+// cross-surface AttentionSignal is built value-free via `toAttentionSignal` and never carries them.
+export const RENEWAL_LANE: AttentionLane = "renewal";
 
 export interface AttentionItem {
   leaseId: string;
@@ -17,6 +24,10 @@ export interface AttentionItem {
   actionLabel: string;
   href: string;
   urgency: AttentionUrgency;
+  /** Shared attention lane (always `renewal`) so the fold speaks the hub/deck vocabulary. */
+  lane: AttentionLane;
+  /** Neutral attention severity derived from urgency. */
+  severity: AttentionSeverity;
 }
 
 const URGENCY_RANK: Record<AttentionUrgency, number> = { high: 0, medium: 1 };
@@ -52,6 +63,8 @@ function itemFor(lease: DeskLeaseSummary): AttentionItem {
       actionLabel: "Resolve conflicts",
       href,
       urgency: "high",
+      lane: RENEWAL_LANE,
+      severity: "high",
     };
   }
 
@@ -62,6 +75,8 @@ function itemFor(lease: DeskLeaseSummary): AttentionItem {
     actionLabel: actionLabelForStage(lease.stageIndex),
     href,
     urgency: "medium",
+    lane: RENEWAL_LANE,
+    severity: "medium",
   };
 }
 
