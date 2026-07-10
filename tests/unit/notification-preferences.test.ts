@@ -6,6 +6,12 @@ import {
   getNotificationPreferences,
   updateNotificationPreferences,
 } from "@/lib/firestore/notification-preferences";
+import {
+  applyLowAlarm,
+  isLaneDigested,
+  isLaneSnoozed,
+  passesLaneThreshold,
+} from "@/lib/notifications/low-alarm";
 
 const COLLECTION = "user_notification_preferences";
 
@@ -86,5 +92,86 @@ describe("notification preferences", () => {
     expect(second.created_at).toBe(first.created_at);
     expect(second.updated_at).not.toBe(first.updated_at);
     expect(second.updated_at! >= first.updated_at!).toBe(true);
+  });
+
+  // B4: the low-alarm fields are MERGE-PRESERVED — a mute-only update never wipes a stored threshold.
+  it("merge-preserves lane_thresholds / snoozed_lanes / digest_lanes on a mute-only update", async () => {
+    const { db } = fakeDb();
+    await updateNotificationPreferences(
+      actor,
+      {
+        muted_families: [],
+        lane_thresholds: { connection: "high" },
+        digest_lanes: ["decision"],
+      },
+      db,
+    );
+    // A later update that only changes mutes must NOT wipe the low-alarm settings.
+    const merged = await updateNotificationPreferences(
+      actor,
+      { muted_families: ["maintenance_tickets"] },
+      db,
+    );
+    expect(merged.lane_thresholds).toEqual({ connection: "high" });
+    expect(merged.digest_lanes).toEqual(["decision"]);
+    expect(merged.muted_families).toEqual(["maintenance_tickets"]);
+
+    const readBack = await getNotificationPreferences(actor, db);
+    expect(readBack.lane_thresholds).toEqual({ connection: "high" });
+    expect(readBack.digest_lanes).toEqual(["decision"]);
+  });
+});
+
+// AC-S17-5: the pure low-alarm resolver primitives — threshold, snooze, digest.
+describe("low-alarm resolver (S17 B4)", () => {
+  const now = "2026-07-10T12:00:00.000Z";
+
+  it("hides a signal below its lane threshold, keeps one at or above it", () => {
+    const prefs = { lane_thresholds: { connection: "high" as const } };
+    expect(passesLaneThreshold({ lane: "connection", severity: "medium" }, prefs)).toBe(
+      false,
+    );
+    expect(passesLaneThreshold({ lane: "connection", severity: "high" }, prefs)).toBe(
+      true,
+    );
+    // A lane with no threshold passes everything.
+    expect(passesLaneThreshold({ lane: "coverage", severity: "low" }, prefs)).toBe(true);
+  });
+
+  it("silences a lane until its snooze expires", () => {
+    const future = { snoozed_lanes: { coverage: "2026-07-10T18:00:00.000Z" } };
+    const past = { snoozed_lanes: { coverage: "2026-07-10T06:00:00.000Z" } };
+    expect(isLaneSnoozed("coverage", future, now)).toBe(true);
+    expect(isLaneSnoozed("coverage", past, now)).toBe(false);
+    // An unparseable timestamp fails toward showing the signal (never silently hides work).
+    expect(
+      isLaneSnoozed("coverage", { snoozed_lanes: { coverage: "not-a-date" } }, now),
+    ).toBe(false);
+  });
+
+  it("flags a digested lane", () => {
+    expect(isLaneDigested("decision", { digest_lanes: ["decision"] })).toBe(true);
+    expect(isLaneDigested("renewal", { digest_lanes: ["decision"] })).toBe(false);
+  });
+
+  it("applyLowAlarm drops snoozed + below-threshold items and keeps the rest", () => {
+    const items = [
+      { lane: "connection" as const, severity: "medium" as const }, // below threshold -> dropped
+      { lane: "connection" as const, severity: "high" as const }, // kept
+      { lane: "coverage" as const, severity: "high" as const }, // snoozed -> dropped
+      { lane: "renewal" as const, severity: "low" as const }, // kept
+    ];
+    const kept = applyLowAlarm(
+      items,
+      {
+        lane_thresholds: { connection: "high" },
+        snoozed_lanes: { coverage: "2026-07-10T18:00:00.000Z" },
+      },
+      now,
+    );
+    expect(kept).toEqual([
+      { lane: "connection", severity: "high" },
+      { lane: "renewal", severity: "low" },
+    ]);
   });
 });

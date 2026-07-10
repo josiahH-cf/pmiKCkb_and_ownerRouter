@@ -28,7 +28,9 @@ stop-and-reset rules.
   The loop then CONTINUED into **S16 rbac-subusers** (orthogonal `scopes` claim + `requireSpaceAccess` guards +
   admin scope editor + tests) but was interrupted before its verification boundary; it is now green after an
   owner-run fix of an overlooked step-checks route test-mock gap (+ a scope-denial test). Committed + merged
-  with S14. S16 still needs its dedicated adversarial pass + `F-S16` promotion (see Next Safe Slice).
+  (PR #68), then VERIFIED 2026-07-10 (`F-RBAC-SUBUSERS`, AC-S16-1..9). The loop then built + verified **S17
+  unified-console-and-attention** (`F-UNIFIED-ATTENTION`, AC-S17-1..9): the `/notifications` superset hub + one
+  value-free attention-lane contract + low-alarm layer + Admin-only review digest; adversarial + browser-verified.
 - Production-plane fence verified (`F-PROD-CLOUD-MODEL`): prod forces Gemini + Drive; the local model,
   demo auth, and the STT/image stubs are dev/test-only (NODE_ENV-fenced), never a prod dependency.
 - Earlier context (full history in `docs/status.md`): client beta deployed on the `pmi-kc-kb-demo` Cloud
@@ -59,16 +61,13 @@ stop-and-reset rules.
   the next work was then owner/vendor-gated (SUPERSEDED 2026-07-10 — the overhaul reopened S14–S18; see below).
 - **Deferred cycle COMPLETE (2026-07-09), 7 slices merged (PRs #56-#62):** 2a/1b/1c/3a/3b/A4/4a + 2c/3c/A5/2d/2b shipped app-plane, each adversarially verified then PR -> CI -> merge. Full narrative in `docs/status.md`; decision spec in `docs/temp/deferred-remaining-slices.md`.
 
-## Next Safe Slice — S16 verification boundary, then S17 (owner APPROVED 2026-07-10)
+## Next Safe Slice — S15 gmail-hub (owner APPROVED 2026-07-10)
 
-S14's app-plane tier is complete + adversarially verified (AC-S14-1..9, `F-RENEWAL-DECIDER-MOBILE`). **S16
-rbac-subusers is BUILT locally + GREEN** (orthogonal `scopes` claim; `requireSpaceAccess` guards across ~35
-routes; nav/Spaces/Console filtering; a manageAdmin scope editor with an `admin_scope_changes` audit; full S16
-test suite; typecheck, lint, 1413 tests, all gates, and the production build pass). It has NOT had a dedicated
-adversarial boundary or an `F-S16` fact — DO THAT FIRST: run S16's Verification-and-Falsification pass against
-AC-S16-1..9 (the guard on every scoped route, nav/Spaces/Console filtering, the admin scope editor + audit) and
-promote `F-S16`. Then **S17** unified-console-and-attention (B7 consumes S16's filter) → **S15** gmail-hub →
-**S18** process-auto-initiation. Cycle packet: `docs/temp/ui-ux-overhaul-plan.md`.
+S14 + S16 + **S17 are DONE + adversarially verified** (`F-RENEWAL-DECIDER-MOBILE` AC-S14-1..9; `F-RBAC-SUBUSERS`
+AC-S16-1..9; `F-UNIFIED-ATTENTION` AC-S17-1..9 — three fresh-context falsifiers per suite, all ACs HOLD,
+browser-verified; the gaps they surfaced were closed). Next is **S15** gmail-hub (D3: app-plane to-the-gate over
+pasted/sanitized content, request NO Gmail READ scope this cycle, every live-mailbox action reads "Waiting on
+Gmail access") → then **S18** process-auto-initiation. Cycle packet: `docs/temp/ui-ux-overhaul-plan.md`.
 
 Carried owner/vendor-gated (unchanged): prod `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` + live process seed;
 RentVine work-order create; Sheet-write EXECUTION (`F-WRITE-GATE`, `OQ-RV-1`); the Gmail renewal-draft prod
@@ -107,8 +106,9 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 
 ## Stop-Condition State
 
-- 2026-07-10: S14 passed its local build + adversarial boundary; no stop-condition fired. Continue to S16's
-  buildable app-plane tier. External writes, deploy, Gmail scope, and cost-bearing actions remain gated.
+- 2026-07-10: S14 + S16 + S17 passed their adversarial boundaries (`F-RENEWAL-DECIDER-MOBILE`,
+  `F-RBAC-SUBUSERS`, `F-UNIFIED-ATTENTION`); no stop-condition fired. S15 gmail-hub is next. External writes,
+  deploy, Gmail scope, and cost-bearing actions remain gated.
 - 2026-07-09: the 7-slice deferred cycle shipped + merged (PRs #56-#62); superseded as the active stop by the
   2026-07-10 cycle above.
 - Prior stop-conditions (2026-06-30 migration-readiness / "no safe slice"; 2026-07-01 owner-present cycles) are

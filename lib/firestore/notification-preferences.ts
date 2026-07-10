@@ -10,12 +10,14 @@
 
 import type { Firestore } from "firebase-admin/firestore";
 
+import type { AttentionLane, AttentionSeverity } from "@/lib/attention/lanes";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { UpdateNotificationPreferencesInputSchema } from "@/lib/firestore/schemas";
 import type { UpdateNotificationPreferencesInput } from "@/lib/firestore/schemas";
+import type { LowAlarmPreferences } from "@/lib/notifications/low-alarm";
 import {
   isAvailableNotificationFamily,
   type NotificationFamilyKey,
@@ -26,10 +28,27 @@ const COLLECTION = "user_notification_preferences";
 export interface NotificationPreferencesRecord {
   uid: string;
   muted_families: NotificationFamilyKey[];
+  /** S17 B4 low-alarm layer — per-lane minimum severity. Absent lane ⇒ no threshold. */
+  lane_thresholds: Partial<Record<AttentionLane, AttentionSeverity>>;
+  /** S17 B4 — per-lane snooze-until ISO. */
+  snoozed_lanes: Partial<Record<AttentionLane, string>>;
+  /** S17 B4 — lanes that collapse to one digest row. */
+  digest_lanes: AttentionLane[];
   /** Literal false: in-app-only framework, email stays hard-off and is never settable true. */
   email_enabled: false;
   created_at?: string;
   updated_at?: string;
+}
+
+/** Project the record onto the resolver's preference view (B4). */
+export function toLowAlarmPreferences(
+  record: NotificationPreferencesRecord,
+): LowAlarmPreferences {
+  return {
+    lane_thresholds: record.lane_thresholds,
+    snoozed_lanes: record.snoozed_lanes,
+    digest_lanes: record.digest_lanes,
+  };
 }
 
 export async function getNotificationPreferences(
@@ -40,7 +59,7 @@ export async function getNotificationPreferences(
   const snapshot = await db.collection(COLLECTION).doc(actor.uid).get();
 
   if (!snapshot.exists) {
-    return { uid: actor.uid, muted_families: [], email_enabled: false };
+    return emptyPreferences(actor.uid);
   }
 
   const record = readRecord<NotificationPreferencesRecord>(snapshot.id, snapshot.data()!);
@@ -49,6 +68,20 @@ export async function getNotificationPreferences(
     uid: actor.uid,
     email_enabled: false,
     muted_families: onlyAvailable(record.muted_families),
+    lane_thresholds: record.lane_thresholds ?? {},
+    snoozed_lanes: record.snoozed_lanes ?? {},
+    digest_lanes: record.digest_lanes ?? [],
+  };
+}
+
+function emptyPreferences(uid: string): NotificationPreferencesRecord {
+  return {
+    uid,
+    muted_families: [],
+    lane_thresholds: {},
+    snoozed_lanes: {},
+    digest_lanes: [],
+    email_enabled: false,
   };
 }
 
@@ -69,9 +102,14 @@ export async function updateNotificationPreferences(
       )
     : null;
 
+  // Low-alarm fields are MERGE-PRESERVED: an omitted field keeps the stored value, so the existing
+  // mute-only bell PATCH never wipes a threshold/snooze/digest a settings surface set (B4 additive).
   const record: NotificationPreferencesRecord = {
     uid: actor.uid,
     muted_families: onlyAvailable(parsed.muted_families),
+    lane_thresholds: parsed.lane_thresholds ?? existing?.lane_thresholds ?? {},
+    snoozed_lanes: parsed.snoozed_lanes ?? existing?.snoozed_lanes ?? {},
+    digest_lanes: parsed.digest_lanes ?? existing?.digest_lanes ?? [],
     email_enabled: false,
     created_at: existing?.created_at ?? now,
     updated_at: now,

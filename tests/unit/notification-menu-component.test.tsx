@@ -60,6 +60,44 @@ describe("NotificationMenu", () => {
     });
   });
 
+  // AC-S17-1 + B6: the popover links to the /notifications hub and offers Mark all read when unread.
+  it("links to the notifications hub and marks all read (AC-S17-1, B6)", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/api/notifications/mark-all-read") && init?.method === "POST") {
+        return jsonResponse({ ok: true, marked: 2 });
+      }
+      if (url.includes("/api/notifications?")) {
+        return jsonResponse({
+          notifications: [approvalUnified(), maintenanceUnified()],
+          families: familyViews(),
+        });
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<NotificationMenu navigate={() => undefined} />);
+    await user.click(
+      await screen.findByRole("button", { name: /Notifications, 2 unread/ }),
+    );
+
+    const hubLink = screen.getByRole("link", { name: "See all notifications" });
+    expect(hubLink).toHaveAttribute("href", "/notifications");
+
+    await user.click(screen.getByRole("button", { name: "Mark all read" }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          ([url, init]) =>
+            String(url).includes("/api/notifications/mark-all-read") &&
+            (init as RequestInit | undefined)?.method === "POST",
+        ),
+      ).toBe(true),
+    );
+  });
+
   it("renders the stubbed Gmail-dependent families as waiting on access", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
@@ -146,6 +184,8 @@ function approvalUnified(
     id: "a-1",
     source: "approval_queue",
     family: "approval_queue",
+    lane: "decision",
+    severity: "medium",
     title: "New queue item: Lease Renewal",
     message: "Review the requested approval action.",
     href: "/approval-queue?item_id=item-1",
@@ -161,6 +201,8 @@ function maintenanceUnified(
     id: "m-1",
     source: "maintenance_ticket",
     family: "maintenance_tickets",
+    lane: "decision",
+    severity: "medium",
     title: "Maintenance ticket assigned",
     message: "A maintenance ticket was assigned to you.",
     href: "/maintenance",
@@ -176,6 +218,7 @@ function familyViews(): NotificationFamilyView[] {
       label: "Approvals",
       description: "Queue items assigned to you or waiting on your approval.",
       available: true,
+      lane: "decision",
       muted: false,
     },
     {
@@ -183,6 +226,7 @@ function familyViews(): NotificationFamilyView[] {
       label: "Maintenance tickets",
       description: "Updates on maintenance tickets assigned to you.",
       available: true,
+      lane: "decision",
       muted: false,
     },
     {
@@ -190,6 +234,7 @@ function familyViews(): NotificationFamilyView[] {
       label: "RentVine replies",
       description: "Replies on RentVine conversations you are working.",
       available: false,
+      lane: "decision",
       unavailableReason: "Waiting on Gmail access",
       muted: false,
     },
@@ -198,6 +243,7 @@ function familyViews(): NotificationFamilyView[] {
       label: "Owner replies",
       description: "Owner replies to process emails you sent.",
       available: false,
+      lane: "decision",
       unavailableReason: "Waiting on Gmail access",
       muted: false,
     },

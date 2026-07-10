@@ -14,6 +14,7 @@
 
 import Link from "next/link";
 import { ConsoleApproveButton } from "@/components/console/ConsoleApproveButton";
+import type { AttentionLane } from "@/lib/attention/lanes";
 import { StatusDot } from "@/components/ui";
 
 export interface ConsoleDeckRow {
@@ -29,6 +30,8 @@ export interface ConsoleDeckCard {
   title: string;
   count: number;
   rows: readonly ConsoleDeckRow[];
+  /** The shared attention lane this card + all its rows speak (S17 B3/B7). */
+  lane: AttentionLane;
   /** Shown when the count is zero, so an all-clear area reads as done, not empty. */
   emptyLabel: string;
   seeAllHref: string;
@@ -54,6 +57,7 @@ export function ConsoleActionDeck({
           <section
             className="panel console-deck-card"
             data-status={status}
+            data-lane={card.lane}
             key={card.key}
           >
             <div className="console-deck-head">
@@ -67,7 +71,7 @@ export function ConsoleActionDeck({
               <>
                 <ul className="console-deck-list">
                   {preview.map((row) => (
-                    <li key={`${row.href}::${row.label}`}>
+                    <li key={`${row.href}::${row.label}`} data-lane={card.lane}>
                       <Link href={row.href}>{row.label}</Link>
                       {row.detail ? (
                         <span className="muted console-deck-detail">{row.detail}</span>

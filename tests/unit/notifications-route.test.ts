@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { GET } from "@/app/api/notifications/route";
 import { POST } from "@/app/api/notifications/mark-read/route";
+import { POST as markAllRead } from "@/app/api/notifications/mark-all-read/route";
 import {
   GET as prefsGet,
   PATCH as prefsPatch,
@@ -34,6 +35,16 @@ vi.mock("@/lib/firestore/maintenance-ticket-notifications", () => ({
 vi.mock("@/lib/firestore/notification-preferences", () => ({
   getNotificationPreferences: vi.fn(),
   updateNotificationPreferences: vi.fn(),
+  // Pure projection reused by the hub loader; keep the real behavior so the low-alarm resolver runs.
+  toLowAlarmPreferences: (record: {
+    lane_thresholds?: unknown;
+    snoozed_lanes?: unknown;
+    digest_lanes?: unknown;
+  }) => ({
+    lane_thresholds: record.lane_thresholds,
+    snoozed_lanes: record.snoozed_lanes,
+    digest_lanes: record.digest_lanes,
+  }),
 }));
 
 const editor = {
@@ -51,6 +62,13 @@ const maintenanceEditor = {
 const renewalsEditor = {
   ...editor,
   scopes: ["renewals"] as const,
+};
+
+const admin = {
+  email: "admin@pmikcmetro.com",
+  hd: "pmikcmetro.com",
+  role: "Admin" as const,
+  uid: "admin-uid",
 };
 
 afterEach(() => {
@@ -106,13 +124,16 @@ function maintenanceRecord(
 }
 
 describe("notifications routes", () => {
-  it("GET returns the unified feed with all four families (two stubbed)", async () => {
+  it("GET serves the six non-admin families for a wildcard editor (team_review dropped, two stubbed)", async () => {
     setAuthResolverForTest(() => editor);
     vi.mocked(listApprovalQueueNotifications).mockResolvedValue([]);
     vi.mocked(listMaintenanceTicketNotifications).mockResolvedValue([]);
     vi.mocked(getNotificationPreferences).mockResolvedValue({
       uid: "editor-uid",
       muted_families: [],
+      lane_thresholds: {},
+      snoozed_lanes: {},
+      digest_lanes: [],
       email_enabled: false,
     });
 
@@ -122,7 +143,10 @@ describe("notifications routes", () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.notifications).toEqual([]);
-    expect(body.families).toHaveLength(4);
+    // Catalog is 7; a non-admin editor is served 6 (team_review is Admin-only, AC-S17-6).
+    expect(body.families).toHaveLength(6);
+    expect(body.families.map((f: { key: string }) => f.key)).not.toContain("team_review");
+    // The two Gmail-dependent families stay stubbed (available:false).
     expect(
       body.families.filter((f: { available: boolean }) => !f.available),
     ).toHaveLength(2);
@@ -147,6 +171,9 @@ describe("notifications routes", () => {
     vi.mocked(getNotificationPreferences).mockResolvedValue({
       uid: "editor-uid",
       muted_families: [],
+      lane_thresholds: {},
+      snoozed_lanes: {},
+      digest_lanes: [],
       email_enabled: false,
     });
     // Two approval notifications so a limit of 1 has something to slice off.
@@ -182,6 +209,9 @@ describe("notifications routes", () => {
     vi.mocked(getNotificationPreferences).mockResolvedValue({
       uid: "editor-uid",
       muted_families: ["maintenance_tickets"],
+      lane_thresholds: {},
+      snoozed_lanes: {},
+      digest_lanes: [],
       email_enabled: false,
     });
     vi.mocked(listApprovalQueueNotifications).mockResolvedValue([
@@ -215,6 +245,9 @@ describe("notifications routes", () => {
     vi.mocked(getNotificationPreferences).mockResolvedValue({
       uid: "editor-uid",
       muted_families: [],
+      lane_thresholds: {},
+      snoozed_lanes: {},
+      digest_lanes: [],
       email_enabled: false,
     });
     vi.mocked(listMaintenanceTicketNotifications).mockResolvedValue([
@@ -240,6 +273,9 @@ describe("notifications routes", () => {
     vi.mocked(getNotificationPreferences).mockResolvedValue({
       uid: "editor-uid",
       muted_families: [],
+      lane_thresholds: {},
+      snoozed_lanes: {},
+      digest_lanes: [],
       email_enabled: false,
     });
     vi.mocked(listApprovalQueueNotifications).mockResolvedValue([approvalRecord()]);
@@ -256,6 +292,76 @@ describe("notifications routes", () => {
     expect(body.families.map((family: { key: string }) => family.key)).not.toContain(
       "maintenance_tickets",
     );
+  });
+
+  // AC-S17-6 (family gating): the team_review family is served ONLY to an Admin; an editor never sees it.
+  it("serves the team_review family to an Admin but not an editor", async () => {
+    vi.mocked(listApprovalQueueNotifications).mockResolvedValue([]);
+    vi.mocked(listMaintenanceTicketNotifications).mockResolvedValue([]);
+    vi.mocked(getNotificationPreferences).mockResolvedValue({
+      uid: "admin-uid",
+      muted_families: [],
+      lane_thresholds: {},
+      snoozed_lanes: {},
+      digest_lanes: [],
+      email_enabled: false,
+    });
+
+    setAuthResolverForTest(() => admin);
+    const adminBody = await (
+      await GET(new Request("http://localhost/api/notifications"))
+    ).json();
+    expect(adminBody.families.map((f: { key: string }) => f.key)).toContain(
+      "team_review",
+    );
+
+    setAuthResolverForTest(() => editor);
+    const editorBody = await (
+      await GET(new Request("http://localhost/api/notifications"))
+    ).json();
+    expect(editorBody.families.map((f: { key: string }) => f.key)).not.toContain(
+      "team_review",
+    );
+  });
+
+  // AC-S17-7: mark-all-read flips every unread EVENT notification for the caller and reports the count.
+  it("mark-all-read marks every unread approval + maintenance notification for the caller", async () => {
+    setAuthResolverForTest(() => editor);
+    vi.mocked(listApprovalQueueNotifications).mockResolvedValue([
+      approvalRecord({ id: "a-1" }),
+      approvalRecord({ id: "a-2", item_id: "item-2" }),
+    ]);
+    vi.mocked(listMaintenanceTicketNotifications).mockResolvedValue([
+      maintenanceRecord({ id: "m-1" }),
+    ]);
+    vi.mocked(markApprovalQueueNotificationRead).mockResolvedValue(undefined as never);
+    vi.mocked(markMaintenanceTicketNotificationRead).mockResolvedValue(
+      undefined as never,
+    );
+
+    const response = await markAllRead();
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ok: true, marked: 3 });
+
+    // Each unread notification is flipped via its per-source writer (self-scoped, recipient-only).
+    expect(listApprovalQueueNotifications).toHaveBeenCalledWith(editor, {
+      recipientOnly: true,
+      unreadOnly: true,
+    });
+    expect(markApprovalQueueNotificationRead).toHaveBeenCalledWith(editor, "a-1");
+    expect(markApprovalQueueNotificationRead).toHaveBeenCalledWith(editor, "a-2");
+    expect(markMaintenanceTicketNotificationRead).toHaveBeenCalledWith(editor, "m-1");
+  });
+
+  it("mark-all-read only touches the caller's in-scope sources", async () => {
+    setAuthResolverForTest(() => maintenanceEditor);
+    vi.mocked(listMaintenanceTicketNotifications).mockResolvedValue([]);
+
+    const response = await markAllRead();
+    expect(response.status).toBe(200);
+    // A maintenance-only user never reads or marks the renewals-scoped approval notifications.
+    expect(listApprovalQueueNotifications).not.toHaveBeenCalled();
+    expect(markApprovalQueueNotificationRead).not.toHaveBeenCalled();
   });
 
   it("mark-read dispatches to the maintenance writer for a maintenance source", async () => {
@@ -301,6 +407,9 @@ describe("notifications routes", () => {
     vi.mocked(getNotificationPreferences).mockResolvedValue({
       uid: "editor-uid",
       muted_families: [],
+      lane_thresholds: {},
+      snoozed_lanes: {},
+      digest_lanes: [],
       email_enabled: false,
     });
     const getResponse = await prefsGet();
@@ -310,6 +419,9 @@ describe("notifications routes", () => {
     vi.mocked(updateNotificationPreferences).mockResolvedValue({
       uid: "editor-uid",
       muted_families: ["maintenance_tickets"],
+      lane_thresholds: {},
+      snoozed_lanes: {},
+      digest_lanes: [],
       email_enabled: false,
     });
     const patchResponse = await prefsPatch(

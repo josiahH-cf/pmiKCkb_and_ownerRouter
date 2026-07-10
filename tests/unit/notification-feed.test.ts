@@ -1,5 +1,8 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
+import { ATTENTION_LANES, toAttentionSignal } from "@/lib/attention/lanes";
 import type { ApprovalQueueNotificationRecord } from "@/lib/firestore/types";
 import type { MaintenanceTicketNotificationRecord } from "@/lib/firestore/maintenance-ticket-notifications";
 import { buildNotificationFeed } from "@/lib/notifications/feed";
@@ -88,19 +91,142 @@ describe("buildNotificationFeed", () => {
     expect(feed.notifications.map((n) => n.id)).toEqual(["a-late", "m-mid"]);
   });
 
-  it("returns all four families, with the two Gmail-dependent ones stubbed", () => {
+  // AC-S17-2: the catalog exposes exactly SEVEN families — three new AVAILABLE (connections_setup,
+  // space_coverage, team_review) plus the two stubbed Gmail-dependent ones.
+  it("returns exactly seven families (three new available, two Gmail-stubbed)", () => {
     const feed = buildNotificationFeed({ approval: [], maintenance: [] });
 
     expect(feed.families.map((family) => family.key)).toEqual([
       "approval_queue",
       "maintenance_tickets",
+      "connections_setup",
+      "space_coverage",
+      "team_review",
       "rentvine_replies",
       "owner_process_replies",
     ]);
     const stubbed = feed.families.filter((family) => !family.available);
-    expect(stubbed).toHaveLength(2);
+    expect(stubbed.map((f) => f.key)).toEqual([
+      "rentvine_replies",
+      "owner_process_replies",
+    ]);
     for (const family of stubbed) {
       expect(family.unavailableReason).toBe("Waiting on Gmail access");
     }
+  });
+
+  // AC-S17-4: every event carries a lane from the closed ATTENTION_LANES enum.
+  it("stamps every event notification with a lane from the closed ATTENTION_LANES enum", () => {
+    const feed = buildNotificationFeed({
+      approval: [approval()],
+      maintenance: [maintenance()],
+    });
+    for (const notification of feed.notifications) {
+      expect(ATTENTION_LANES).toContain(notification.lane);
+      expect(notification.severity).toBe("medium");
+    }
+  });
+
+  // AC-S17-2/B2: the standing setup signals (connection + coverage) flow through the feed and the review
+  // digest is passed through, so the hub is a true superset of the deck.
+  it("carries standing signals and the review digest through to the feed", () => {
+    const connectionSignal = toAttentionSignal({
+      lane: "connection",
+      severity: "medium",
+      label: "RentVine",
+      detail: "Needs setup",
+      href: "/connections#connector-rentvine",
+      signalKey: "connection:/connections#connector-rentvine",
+    });
+    const reviewSignal = toAttentionSignal({
+      lane: "review",
+      severity: "high",
+      label: "Team review",
+      detail: "2 high-risk overrides, 1 self-correction this period",
+      href: "/approval-queue",
+      signalKey: "team_review:digest",
+    });
+    const feed = buildNotificationFeed({
+      approval: [],
+      maintenance: [],
+      standing: [connectionSignal],
+      review: reviewSignal,
+    });
+    expect(feed.standing).toEqual([connectionSignal]);
+    expect(feed.review).toEqual(reviewSignal);
+  });
+
+  // AC-S17-5 (feed integration): a digested lane collapses its N event rows to ONE digest row.
+  it("collapses a digested lane's rows into one digest row", () => {
+    const feed = buildNotificationFeed({
+      approval: [
+        approval({ id: "a-1", created_at: "2026-07-09T01:00:00.000Z" }),
+        approval({
+          id: "a-2",
+          item_id: "item-2",
+          created_at: "2026-07-09T03:00:00.000Z",
+        }),
+      ],
+      maintenance: [maintenance({ id: "m-1", created_at: "2026-07-09T02:00:00.000Z" })],
+      preferences: { digest_lanes: ["decision"] },
+    });
+    // All three events are in the decision lane, so they collapse to exactly one digest row.
+    expect(feed.notifications).toHaveLength(1);
+    expect(feed.notifications[0].id).toBe("digest:decision");
+    expect(feed.notifications[0].title).toContain("3");
+  });
+
+  // AC-S17-5 (feed integration): a lane threshold hides a standing signal below it; a snoozed lane is
+  // silent until it expires.
+  it("applies lane thresholds and snooze to standing signals", () => {
+    const connection = toAttentionSignal({
+      lane: "connection",
+      severity: "medium",
+      label: "RentVine",
+      detail: "Needs setup",
+      href: "/connections#connector-rentvine",
+      signalKey: "connection:rentvine",
+    });
+    const coverage = toAttentionSignal({
+      lane: "coverage",
+      severity: "medium",
+      label: "Owner Email",
+      detail: "Needs a process",
+      href: "/spaces/owner-email",
+      signalKey: "coverage:owner-email",
+    });
+
+    const thresholded = buildNotificationFeed({
+      approval: [],
+      maintenance: [],
+      standing: [connection, coverage],
+      preferences: { lane_thresholds: { connection: "high" } },
+    });
+    // connection (medium) is below the "high" threshold and hidden; coverage (medium) survives.
+    expect(thresholded.standing.map((s) => s.lane)).toEqual(["coverage"]);
+
+    const snoozed = buildNotificationFeed({
+      approval: [],
+      maintenance: [],
+      standing: [connection, coverage],
+      preferences: { snoozed_lanes: { coverage: "2026-07-10T00:00:00.000Z" } },
+      now: "2026-07-09T00:00:00.000Z",
+    });
+    // coverage is snoozed until tomorrow; only connection survives.
+    expect(snoozed.standing.map((s) => s.lane)).toEqual(["connection"]);
+  });
+
+  // AC-S17-8: the pure feed builder makes ZERO external calls — it imports no RentVine / Sheet / Gmail
+  // client. Guarded by a source scan so a future edit that pulls one in trips this test.
+  it("imports no RentVine, Sheet, or Gmail client (zero external calls)", () => {
+    const raw = readFileSync(
+      fileURLToPath(new URL("../../lib/notifications/feed.ts", import.meta.url)),
+      "utf8",
+    );
+    // Strip comments so only CODE (imports) is scanned, not a header comment naming these clients.
+    const source = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    expect(source).not.toMatch(/rentvine/i);
+    expect(source).not.toMatch(/google-sheets|googleapis|sheets-read/i);
+    expect(source).not.toMatch(/gmail/i);
   });
 });
