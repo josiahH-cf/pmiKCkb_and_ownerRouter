@@ -18,13 +18,14 @@ stop-and-reset rules.
   2026-06-29 cycle shipped + merged R1–R5 (spine+IA, golden harness+labeling, renewal math, action console +
   intent-detect, and the full Maintenance Work Order Intake incl. live Drive photo sync). Full detail is in
   `docs/status.md` + `docs/facts.md` (`F-*` rows). All gates green on every merge.
-- **2026-07-10 UI/UX + governance overhaul — foundation + specs on a branch, STOPPED for owner review (D4).**
+- **2026-07-10 UI/UX + governance overhaul — foundation + specs MERGED to main (PR #65); owner APPROVED, loop CLEARED to build.**
   Made governance runner-neutral (`F-RUNNER-AGNOSTIC`: AGENTS.md single source + Per-Runner Pointers; the
   router-boundary gate now requires both `CLAUDE.md` and `.codex/config.toml`), wired the adversarial +
   freshness + new spec-traceability gates into CI (`F-ADVERSARIAL-CI-GATE`), and added the spec-shape +
-  traceability mechanism (`F-SPEC-TRACEABILITY`). Authored five overhaul specs S14–S18 (approval-queue-mobile,
-  gmail-hub, rbac-subusers, unified-console-and-attention, process-auto-initiation) on branch
-  `feat/agnostic-governance-and-uiux-specs`; four owner decisions locked (D1–D4). NO pillar implementation.
+  traceability mechanism (`F-SPEC-TRACEABILITY`). Authored + merged five overhaul specs S14–S18
+  (approval-queue-mobile, gmail-hub, rbac-subusers, unified-console-and-attention, process-auto-initiation);
+  four owner decisions locked (D1–D4). The D4 review gate is now LIFTED — pillar implementation is the next
+  work (build order below); the loop builds unattended when triggered.
 - Production-plane fence verified (`F-PROD-CLOUD-MODEL`): prod forces Gemini + Drive; the local model,
   demo auth, and the STT/image stubs are dev/test-only (NODE_ENV-fenced), never a prod dependency.
 - Earlier context (full history in `docs/status.md`): client beta deployed on the `pmi-kc-kb-demo` Cloud
@@ -52,22 +53,19 @@ stop-and-reset rules.
   Dan's Admin walkthrough + 2nd sign-in to activate his claim; QuickBooks access tier + official deposit-accounting home.
   GATED unchanged: Sheet-write EXECUTION (`F-WRITE-GATE`), Gmail runtime (client access model + DWD), Cloud Scheduler.
   Deferred cycle COMPLETE (all 7 app-plane slices merged, PRs #56-#62); no safe app-plane slice remains, so
-  the next work is owner/vendor-gated (see Next Safe Slice + Stop-Condition State).
-- **Deferred cycle COMPLETE (2026-07-09), all 7 slices merged (PRs #56-#62):** shipped app-plane 2c/3c (`F-DEFCYCLE-APPPLANE-1`); the per-user Gmail draft
-  runtime + action-gate built TO THE GATE + renewal Prepare-owner-email button (`F-GMAIL-RUNTIME-GATED`); A5 the HMAC-token
-  PUBLIC intake → quarantine via a no-actor writer + a route-auth-boundary invariant (`F-MAINT-INTAKE-PUBLIC`); 2d the edit-gated
-  triage that promotes/dismisses it (`F-MAINT-INTAKE-REVIEW`); the Gmail renewal-notice draft FLIPPED executable on the committed
-  DWD grant + live smoke (`F-GMAIL-RENEWAL-DRAFT-LIVE`; gmail.compose only, no send; owner deploy pending); 2b the edit-gated
-  assignee picker + Assigned-to-me filter (`F-MAINT-ASSIGNEE`); 2a the edit-gated unit type-ahead over a cached RentVine unit index + optional confirm-on-promote (`F-MAINT-UNIT-TYPEAHEAD`); 1b made the live renewal review actionable (reused resolve + approve/return/revoke controls; the resolve route rebuilds the live run) (`F-RENEWAL-LIVE-ACTIONABLE`); 1c the per-property lease-renewal decision repo + manageAdmin page (`F-RENEWAL-PROPERTY-REPO`); 3a the anticipatory AI draft-text composer via the ModelProvider seam, deterministic spine first, no Gmail call (`F-GMAIL-DRAFT-COMPOSER`); 3b the in-app notification framework (unified feed + maintenance-ticket notifications, in-app-only, email hard-off, stubbed Gmail-dependent families) (`F-NOTIF-FRAMEWORK`); A4 the Console in-place approve of a queue item via the existing PATCH (`F-CONSOLE-ACT-IN-PLACE`, supersedes `F-CONSOLE-APP-STATE`); 4a the Approval-Queue presentation rebuild = one urgent-first list + an "Other views" disclosure (`F-APPROVAL-QUEUE-UNIFIED`). All 7 slices were adversarially verified (build + 4-lens falsification workflow) then PR -> CI `verify` -> merged; the decision-complete spec is archived in `docs/temp/deferred-remaining-slices.md`.
+  the next work was then owner/vendor-gated (SUPERSEDED 2026-07-10 — the overhaul reopened S14–S18; see below).
+- **Deferred cycle COMPLETE (2026-07-09), 7 slices merged (PRs #56-#62):** 2a/1b/1c/3a/3b/A4/4a + 2c/3c/A5/2d/2b shipped app-plane, each adversarially verified then PR -> CI -> merge. Full narrative in `docs/status.md`; decision spec in `docs/temp/deferred-remaining-slices.md`.
 
-## Next Safe Slice — S14–S18 implementation (owner-review-gated)
+## Next Safe Slice — S14 (owner APPROVED 2026-07-10; loop cleared to build)
 
 The 2026-07-10 overhaul reopened a large app-plane backlog: the five specs S14–S18 (`docs/feature-suites/`)
 are decision-complete, each with a "Buildable now (app-plane)" vs "Gated" split and falsifiable `AC-` checks.
-Per D4 the loop STOPPED after writing them for owner review. On owner go, build highest-value first:
-**S14** approval-queue-mobile (the #1 target) → **S16** rbac-subusers → **S17** unified-console-and-attention
-(its B7 depends on S16) → **S15** gmail-hub → **S18** process-auto-initiation. The disposable per-cycle packet
-is `docs/temp/ui-ux-overhaul-plan.md`; the prior deferred cycle's is `docs/temp/deferred-remaining-slices.md`.
+Owner reviewed + APPROVED the specs (PR #65 merged to main); the D4 review gate is LIFTED and the loop is
+CLEARED to build the buildable-now slices unattended. Build highest-value first: **S14** approval-queue-mobile
+(the #1 target) → **S16** rbac-subusers → **S17** unified-console-and-attention (its B7 depends on S16) →
+**S15** gmail-hub → **S18** process-auto-initiation. Build only each spec's "Buildable now (app-plane)" slices;
+stop at its named gates. The disposable per-cycle packet is `docs/temp/ui-ux-overhaul-plan.md`; the prior
+deferred cycle's is `docs/temp/deferred-remaining-slices.md`.
 
 Carried owner/vendor-gated (unchanged): prod `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` + live process seed;
 RentVine work-order create; Sheet-write EXECUTION (`F-WRITE-GATE`, `OQ-RV-1`); the Gmail renewal-draft prod
@@ -106,10 +104,11 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 
 ## Stop-Condition State
 
-- 2026-07-10: **Clean stop after the overhaul foundation + specs (D4).** Runner-agnostic governance + the
-  adversarial/spec-traceability gates shipped, and specs S14–S18 are written + gate-green on branch
-  `feat/agnostic-governance-and-uiux-specs`. The loop STOPPED before pillar implementation for owner review;
-  on owner go, the S14–S18 buildable-now slices are the next work.
+- 2026-07-10: **D4 review gate LIFTED — owner approved (PR #65 merged to main).** The overhaul foundation +
+  specs are on main; there is NO active stop-condition. When the loop is triggered it builds the S14–S18
+  buildable-now slices (S14 first) unattended; normal per-slice stop-and-reset rules resume. Runner-agnostic
+  governance + the adversarial/spec-traceability gates are live in CI, so a Claude- or Codex-triggered loop is
+  held to the same falsification-against-spec bar.
 - 2026-07-09: the 7-slice deferred cycle shipped + merged (PRs #56-#62); superseded as the active stop by the
   2026-07-10 cycle above.
 - Prior stop-conditions (2026-06-30 migration-readiness / "no safe slice"; 2026-07-01 owner-present cycles) are
@@ -131,7 +130,9 @@ only from env/Secret Manager, never committed. Record only non-secret references
    read-only `npm run preflight:adc`; if it fails, ask the owner to run `auth:session` (`F-SESSION-AUTH`) — a stale token stalls mid-step.
 3. If the trigger is "plan the next feature cycle", produce a decision-complete packet and stop. If
    the trigger authorizes running the loop, proceed unattended.
-4. Pick the next slice from **Next Safe Slice Candidates** above; for lease-renewal, stay in discovery
-   until the team validates the process, column meanings, and golden data.
+4. Pick the next slice from **Next Safe Slice** above — **S14** approval-queue-mobile is first (then S16 →
+   S17 → S15 → S18); build only each spec's "Buildable now (app-plane)" slices and stop at its named gates.
+   For lease-renewal writeback specifically, stay in discovery until the team validates process, columns, and
+   golden data.
 5. Keep every Action Registry entry `production_allowed:false`; honor the stop gate and the $10 cap.
 6. Update `docs/facts.md` and this file at each slice boundary; run `npm run verify:context-freshness`.
