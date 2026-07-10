@@ -15,7 +15,7 @@ import {
   buildWritebackApprovalQueue,
   type WritebackApprovalQueue,
 } from "@/lib/approval/writeback-approval-queue";
-import { requirePageCapability } from "@/lib/auth/page-guards";
+import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import {
   listApprovalQueue,
   listApprovalQueueActivity,
@@ -31,6 +31,7 @@ export default async function ApprovalQueuePage({
 }: {
   searchParams?: Promise<{ item_id?: string }>;
 }) {
+  await requirePageSpaceAccess("renewals");
   const user = await requirePageCapability("read");
   let initialActivity: ApprovalQueueActivityRecord[] = [];
   let items: ApprovalQueueItemRecord[] = [];

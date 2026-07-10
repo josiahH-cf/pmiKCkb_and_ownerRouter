@@ -279,19 +279,15 @@ log instead of extra toggles or custom fields. AI-readable queue state should co
 these fixed fields plus `Activity`, not from user-specific settings. V1 should not
 support custom queue fields; any new field should go through the new-setting guardrail.
 
-Approval Queue v1 should use one main queue table/list plus a right-side or modal detail
-view, not multiple queue dashboards. The list should show only status, risk, action
-needed, process/run, assignee, required approver, due date, and a direct link or open
-action. The detail view should show summary, evidence links/previews, available actions,
-and `Activity`. Admin-only health and settings should be reachable from a simple Admin
-area, not mixed into every normal queue item.
+S14 replaces the earlier list-only mobile direction for renewal decisions. The shipped
+review surface pages one value-bearing renewal flag at a time over the existing
+`RenewalRunView`, with a phone-first suggested-source action and an explicit switch back
+to the established desktop cards and run-page bulk bar. High/Blocked flags and manual
+overrides retain the full audited form.
 
-Mobile Approval Queue v1 should use the same queue list and detail view, with rows or
-cards stacked for readability instead of a separate mobile workflow. Mobile list items
-should show only status, risk, action needed, due date, and open action; other fixed
-fields can appear in the detail view. Primary actions should remain visible in the detail
-view without requiring users to understand Admin settings. Desktop and mobile should use
-the same fixed fields and `Activity` source so AI and automation see one queue model.
+The unified Approval Queue remains a value-free urgent list. Only a safe Low/Medium
+`queue_item` may expose one inline app-plane approval; renewal-flag and write-back rows
+remain deep links to the run page where their values and governed actions live.
 
 Approval Queue empty, loading, and error states should be plain and production-safe. An
 empty queue should say there is nothing currently waiting for review and should not show

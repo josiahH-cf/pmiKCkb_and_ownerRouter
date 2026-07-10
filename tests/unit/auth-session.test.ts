@@ -4,11 +4,14 @@ import {
   AUTH_ABSOLUTE_MAX_AGE_SECONDS,
   AuthError,
   authenticateIdToken,
+  hasSpaceAccess,
   localDemoSessionValue,
   localDemoUser,
   readLocalDemoSessionRole,
   requireCapability,
+  requireCapabilityInSpace,
   requireRole,
+  requireSpaceAccess,
   requireUser,
   setAuthResolverForTest,
   setIdTokenVerifierForTest,
@@ -57,6 +60,7 @@ describe("auth hosted-domain enforcement", () => {
         email: "editor@example.com",
         hd: "example.com",
         role: "Editor",
+        scopes: ["maintenance"],
       }),
     ).toThrow(AuthError);
   });
@@ -69,6 +73,70 @@ describe("auth hosted-domain enforcement", () => {
         role: "Editor",
       }),
     ).toThrow(AuthError);
+  });
+});
+
+describe("auth space-scope claims", () => {
+  beforeEach(() => {
+    process.env.ALLOWED_HD = "pmikcmetro.com";
+  });
+
+  it("preserves a non-empty array of known scopes", () => {
+    expect(
+      validateAuthClaims({
+        uid: "maintenance-editor",
+        email: "maintenance-editor@pmikcmetro.com",
+        hd: "pmikcmetro.com",
+        role: "Editor",
+        scopes: ["maintenance"],
+      }),
+    ).toMatchObject({ scopes: ["maintenance"] });
+  });
+
+  it.each([undefined, null, ""])(
+    "treats a missing-compatible %s scope claim as access to all spaces",
+    (scopes) => {
+      const user = validateAuthClaims({
+        uid: "existing-editor",
+        email: "existing-editor@pmikcmetro.com",
+        hd: "pmikcmetro.com",
+        role: "Editor",
+        scopes,
+      });
+
+      expect(user.scopes).toBeUndefined();
+      expect(Object.hasOwn(user, "scopes")).toBe(false);
+    },
+  );
+
+  it.each([[], ["nope"], ["maintenance", "nope"], "maintenance", [null]])(
+    "rejects an invalid scope claim %#",
+    (scopes) => {
+      expect(() =>
+        validateAuthClaims({
+          uid: "invalid-scope-editor",
+          email: "invalid-scope-editor@pmikcmetro.com",
+          hd: "pmikcmetro.com",
+          role: "Editor",
+          scopes,
+        }),
+      ).toThrow(expect.objectContaining({ status: 403 }));
+    },
+  );
+
+  it("copies a valid scope claim instead of retaining a mutable claims array", () => {
+    const scopes = ["maintenance"];
+    const user = validateAuthClaims({
+      uid: "maintenance-editor",
+      email: "maintenance-editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+      scopes,
+    });
+
+    scopes[0] = "renewals";
+
+    expect(user.scopes).toEqual(["maintenance"]);
   });
 });
 
@@ -125,6 +193,54 @@ describe("auth guards", () => {
 
     await expect(requireRole("Admin")).resolves.toMatchObject({ role: "Admin" });
   });
+
+  it("allows explicit access only to the user's assigned spaces", async () => {
+    setAuthResolverForTest(() => ({
+      uid: "maintenance-editor",
+      email: "maintenance-editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+      scopes: ["maintenance"],
+    }));
+
+    await expect(requireSpaceAccess("maintenance")).resolves.toMatchObject({
+      scopes: ["maintenance"],
+    });
+    await expect(requireSpaceAccess("renewals")).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("keeps role and space checks orthogonal", async () => {
+    setAuthResolverForTest(() => ({
+      uid: "maintenance-editor",
+      email: "maintenance-editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+      scopes: ["maintenance"],
+    }));
+
+    await expect(requireCapabilityInSpace("edit", "maintenance")).resolves.toMatchObject({
+      role: "Editor",
+      scopes: ["maintenance"],
+    });
+    await expect(
+      requireCapabilityInSpace("approve", "maintenance"),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(requireCapabilityInSpace("edit", "renewals")).rejects.toMatchObject({
+      status: 403,
+    });
+  });
+
+  it("keeps existing scope-less users authorized in every space", () => {
+    const user = validateAuthClaims({
+      uid: "existing-admin",
+      email: "existing-admin@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Admin",
+    });
+
+    expect(hasSpaceAccess(user, "maintenance")).toBe(true);
+    expect(hasSpaceAccess(user, "renewals")).toBe(true);
+  });
 });
 
 describe("Firebase session-cookie verification", () => {
@@ -143,6 +259,24 @@ describe("Firebase session-cookie verification", () => {
       email: "editor@pmikcmetro.com",
       hd: "pmikcmetro.com",
       role: "Editor",
+    });
+  });
+
+  it("threads valid space scopes from Firebase claims", async () => {
+    setSessionCookieVerifierForTest(() =>
+      makeFirebaseClaims({ scopes: ["maintenance"] }),
+    );
+
+    await expect(authenticateSessionCookie("scoped-session")).resolves.toMatchObject({
+      scopes: ["maintenance"],
+    });
+  });
+
+  it("rejects invalid space scopes from Firebase claims", async () => {
+    setSessionCookieVerifierForTest(() => makeFirebaseClaims({ scopes: [] }));
+
+    await expect(authenticateSessionCookie("invalid-scopes")).rejects.toMatchObject({
+      status: 403,
     });
   });
 

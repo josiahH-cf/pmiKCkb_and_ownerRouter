@@ -13,6 +13,7 @@ import {
   type WritebackProposal,
 } from "@/lib/lease-renewal/writeback-proposal";
 import type { WritebackApprovalState } from "@/lib/lease-renewal/writeback-approval";
+import type { DecisionReasonCode } from "@/lib/lease-renewal/reason-codes";
 import type {
   LeaseRenewalResolutionRecord,
   LeaseRenewalWritebackApprovalActivityRecord,
@@ -33,6 +34,7 @@ export interface ResolutionView {
   chosenSource?: string;
   correctedValue?: string;
   reason?: string;
+  reasonCode?: DecisionReasonCode;
   resolvedByUid?: string;
 }
 
@@ -127,6 +129,7 @@ function toResolutionView(
     chosenSource: record.chosen_source,
     correctedValue: record.corrected_value,
     reason: record.reason,
+    reasonCode: record.reason_code,
     resolvedByUid: record.resolved_by_uid,
   };
 }

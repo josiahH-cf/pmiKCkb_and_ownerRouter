@@ -58,18 +58,32 @@ export function FlagResolveForm({
     flag.candidates.length > 0 ? "pick_source" : "corrected_value",
   );
   const [chosenSource, setChosenSource] = useState<string>(
-    flag.candidates[0]?.source ?? "",
+    flag.suggestedWinner?.source ?? flag.candidates[0]?.source ?? "",
   );
   const [correctedValue, setCorrectedValue] = useState<string>("");
   const [reason, setReason] = useState<string>("");
-  const [reasonCode, setReasonCode] = useState<string>("");
+  const [reasonCode, setReasonCode] = useState<string>(
+    (flag.severity === "Low" || flag.severity === "Medium") && flag.suggestedWinner
+      ? "accepted_suggestion"
+      : "",
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const acceptsSuggestedSource =
+    (flag.severity === "Low" || flag.severity === "Medium") &&
+    kind === "pick_source" &&
+    Boolean(flag.suggestedWinner) &&
+    chosenSource === flag.suggestedWinner?.source;
+  const requiresFreeTextReason = !acceptsSuggestedSource;
 
   async function submit() {
     setError(null);
-    if (!reason.trim()) {
+    if (requiresFreeTextReason && !reason.trim()) {
       setError("A plain-English reason is required.");
+      return;
+    }
+    if (!requiresFreeTextReason && !reasonCode) {
+      setError("Choose a reason code.");
       return;
     }
     if (kind === "corrected_value" && !correctedValue.trim()) {
@@ -94,7 +108,7 @@ export function FlagResolveForm({
           kind,
           chosen_source: kind === "pick_source" ? chosenSource : undefined,
           corrected_value: kind === "corrected_value" ? correctedValue : undefined,
-          reason: reason.trim(),
+          reason: reason.trim() || undefined,
           reason_code: reasonCode || undefined,
         }),
       });
@@ -139,7 +153,11 @@ export function FlagResolveForm({
               Resolution
               <select
                 value={kind}
-                onChange={(event) => setKind(event.target.value as ResolveKind)}
+                onChange={(event) => {
+                  const nextKind = event.target.value as ResolveKind;
+                  setKind(nextKind);
+                  if (nextKind !== "pick_source") setReasonCode("");
+                }}
               >
                 {flag.candidates.length > 0 ? (
                   <option value="pick_source">{KIND_LABEL.pick_source}</option>
@@ -149,12 +167,27 @@ export function FlagResolveForm({
               </select>
             </label>
 
+            <ReasonCodeSelect
+              required={!requiresFreeTextReason}
+              value={reasonCode}
+              onChange={setReasonCode}
+            />
+
             {kind === "pick_source" ? (
               <label>
                 Source
                 <select
                   value={chosenSource}
-                  onChange={(event) => setChosenSource(event.target.value)}
+                  onChange={(event) => {
+                    const nextSource = event.target.value;
+                    setChosenSource(nextSource);
+                    setReasonCode(
+                      nextSource === flag.suggestedWinner?.source &&
+                        (flag.severity === "Low" || flag.severity === "Medium")
+                        ? "accepted_suggestion"
+                        : "",
+                    );
+                  }}
                 >
                   {flag.candidates.map((candidate, index) => (
                     <option key={`${candidate.source}-${index}`} value={candidate.source}>
@@ -176,16 +209,16 @@ export function FlagResolveForm({
               </label>
             ) : null}
 
-            <label>
-              Reason (required)
-              <textarea
-                value={reason}
-                onChange={(event) => setReason(event.target.value)}
-                rows={2}
-              />
-            </label>
-
-            <ReasonCodeSelect value={reasonCode} onChange={setReasonCode} />
+            {requiresFreeTextReason ? (
+              <label>
+                Reason (required)
+                <textarea
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                  rows={2}
+                />
+              </label>
+            ) : null}
 
             {error ? <p className="lr-error">{error}</p> : null}
 

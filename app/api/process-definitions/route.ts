@@ -6,11 +6,18 @@ import {
   listProcessDefinitions,
 } from "@/lib/firestore/workflows";
 import { CreateProcessDefinitionInputSchema } from "@/lib/firestore/schemas";
+import {
+  assertWildcardResourceAccess,
+  filterProcessDefinitionsForUser,
+} from "@/lib/space-scope-resources";
 
 export async function GET() {
   try {
     const user = await requireCapability("read");
-    const definitions = await listProcessDefinitions(user);
+    const definitions = filterProcessDefinitionsForUser(
+      user,
+      await listProcessDefinitions(user),
+    );
 
     return NextResponse.json({ definitions });
   } catch (error) {
@@ -21,6 +28,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireCapability("edit");
+    assertWildcardResourceAccess(user);
     const input = await parseJsonBody(request, CreateProcessDefinitionInputSchema);
     const definition = await createProcessDefinition(user, input);
 

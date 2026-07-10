@@ -6,17 +6,22 @@
 // calls stay owner-gated behind the manageAdmin capability at the route.
 
 import { getAuth } from "firebase-admin/auth";
-import type { Role } from "@/lib/auth/roles";
+import { can, type Role } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
-import { ROLES } from "@/lib/constants";
+import { ROLES, SPACE_SCOPES, type SpaceScope } from "@/lib/constants";
 import { getFirebaseAdminApp } from "@/lib/firebase/admin";
 import { recordAdminRoleChange } from "@/lib/firestore/admin-role-changes";
+import { recordAdminScopeChange } from "@/lib/firestore/admin-scope-changes";
 
 export interface AppUser {
   uid: string;
   email: string;
   role: Role;
+  /** Missing means the backward-compatible All spaces wildcard. */
+  scopes?: readonly SpaceScope[];
+  /** Fail-loud roster marker for a present but malformed custom claim. */
+  scopeClaimInvalid?: boolean;
   disabled: boolean;
   lastSignInAt: string | null;
 }
@@ -60,12 +65,44 @@ function roleFromClaims(claims: Record<string, unknown> | null | undefined): Rol
   return role === "Approver" || role === "Admin" ? role : "Editor";
 }
 
+interface ScopeClaimState {
+  scopes: readonly SpaceScope[] | undefined;
+  invalid: boolean;
+}
+
+function scopeStateFromClaims(
+  claims: Record<string, unknown> | null | undefined,
+): ScopeClaimState {
+  const scopes = claims?.scopes;
+  if (scopes === undefined || scopes === null || scopes === "") {
+    return { scopes: undefined, invalid: false };
+  }
+  if (
+    !Array.isArray(scopes) ||
+    scopes.length === 0 ||
+    scopes.some(
+      (scope) =>
+        typeof scope !== "string" || !(SPACE_SCOPES as readonly string[]).includes(scope),
+    )
+  ) {
+    return { scopes: undefined, invalid: true };
+  }
+
+  return {
+    scopes: SPACE_SCOPES.filter((scope) => scopes.includes(scope)),
+    invalid: false,
+  };
+}
+
 function toAppUser(record: AdminUserRecordLike): AppUser | null {
   if (!record.email) return null;
+  const scopeState = scopeStateFromClaims(record.customClaims);
   return {
     uid: record.uid,
     email: record.email,
     role: roleFromClaims(record.customClaims),
+    scopes: scopeState.scopes,
+    scopeClaimInvalid: scopeState.invalid,
     disabled: Boolean(record.disabled),
     lastSignInAt: record.metadata?.lastSignInTime ?? null,
   };
@@ -162,10 +199,121 @@ export async function setAppUserRole(
     );
   }
 
+  const scopeState = scopeStateFromClaims(target.customClaims);
   return {
     uid: targetUid,
     email: target.email,
     role,
+    scopes: scopeState.scopes,
+    scopeClaimInvalid: scopeState.invalid,
+    disabled: Boolean(target.disabled),
+    lastSignInAt: target.metadata?.lastSignInTime ?? null,
+  };
+}
+
+export interface SetAppUserScopesInput {
+  actor: AuthenticatedUser;
+  targetUid: string;
+  /** Undefined clears the claim and restores the backward-compatible All spaces wildcard. */
+  scopes: readonly SpaceScope[] | undefined;
+  reason: string;
+}
+
+function normalizeRequestedScopes(
+  scopes: readonly SpaceScope[] | undefined,
+): readonly SpaceScope[] | undefined {
+  if (scopes === undefined) return undefined;
+  if (
+    !Array.isArray(scopes) ||
+    scopes.length === 0 ||
+    scopes.some(
+      (scope) =>
+        typeof scope !== "string" || !(SPACE_SCOPES as readonly string[]).includes(scope),
+    )
+  ) {
+    throw new UserManagementError(
+      "Choose at least one known space, or choose All spaces.",
+      400,
+    );
+  }
+
+  // Store a deterministic set even if a direct caller repeats or reorders values.
+  return SPACE_SCOPES.filter((scope) => scopes.includes(scope));
+}
+
+/**
+ * Narrow or restore a user's space reach without changing their role/capability tier. This is an
+ * app-plane Firebase Auth operation: Admin-only, domain-bound, reasoned, and append-only audited.
+ */
+export async function setAppUserScopes(
+  input: SetAppUserScopesInput,
+  auth: AdminAuthLike = defaultAuth(),
+): Promise<AppUser> {
+  const { actor, targetUid, reason } = input;
+
+  if (!can(actor.role, "manageAdmin")) {
+    throw new UserManagementError("Admin access is required.", 403);
+  }
+  if (reason.trim().length < 3) {
+    throw new UserManagementError("A plain-English reason is required.", 400);
+  }
+  const scopes = normalizeRequestedScopes(input.scopes);
+
+  const target = await auth.getUser(targetUid);
+  if (!target.email) {
+    throw new UserManagementError("The target user has no email address.", 400);
+  }
+
+  const allowedHd = readServerConfig().allowedHostedDomain.toLowerCase();
+  if (!target.email.toLowerCase().endsWith(`@${allowedHd}`)) {
+    throw new UserManagementError(
+      "Scope changes are limited to the allowed Google Workspace domain.",
+      403,
+    );
+  }
+
+  const previousScopeState = scopeStateFromClaims(target.customClaims);
+  const nextClaims = { ...(target.customClaims ?? {}) };
+  if (scopes === undefined) {
+    delete nextClaims.scopes;
+  } else {
+    nextClaims.scopes = [...scopes];
+  }
+
+  // Merge rather than replace so the target's role and any unrelated custom claims are untouched.
+  await auth.setCustomUserClaims(targetUid, nextClaims);
+
+  // The claim has already committed. Match role changes' degradation policy: report an audit gap,
+  // but return the true claim state rather than telling the operator the scope change failed.
+  try {
+    await recordAdminScopeChange(
+      {
+        actor_uid: actor.uid,
+        actor_email: actor.email,
+        target_uid: targetUid,
+        target_email: target.email,
+        previous_scopes: previousScopeState.scopes
+          ? [...previousScopeState.scopes]
+          : null,
+        previous_scope_claim_invalid: previousScopeState.invalid,
+        new_scopes: scopes ? [...scopes] : null,
+        reason: reason.trim(),
+      },
+      new Date().toISOString(),
+    );
+  } catch (error) {
+    console.error(
+      `Scope change applied for ${target.email} but the audit write failed:`,
+      error,
+    );
+  }
+
+  return {
+    uid: targetUid,
+    email: target.email,
+    role: roleFromClaims(target.customClaims),
+    scopes,
+    scopeClaimInvalid: false,
     disabled: Boolean(target.disabled),
     lastSignInAt: target.metadata?.lastSignInTime ?? null,
   };

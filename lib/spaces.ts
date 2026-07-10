@@ -1,7 +1,14 @@
+import type { SpaceScope } from "@/lib/constants";
+
 export interface LaunchSpace {
   id: string;
   name: string;
   processCategory: string;
+  /**
+   * The app surface that an explicitly scoped principal may enter. Launch-planning spaces without
+   * a mapped operator desk stay wildcard-only until they gain their own scope id.
+   */
+  scope?: SpaceScope;
   readOnly?: boolean;
   /**
    * The process-definition id this Space carries (Spaces ⊇ Processes). Set only for Spaces whose
@@ -17,6 +24,7 @@ export const launchSpaces: readonly LaunchSpace[] = [
     name: "Lease Renewals",
     processCategory: "Renewals",
     processDefinitionId: "lease-renewal",
+    scope: "renewals",
   },
   {
     id: "owner-renewal-outreach",
@@ -35,6 +43,7 @@ export const launchSpaces: readonly LaunchSpace[] = [
     name: "Maintenance Work Order Intake",
     processCategory: "Maintenance",
     processDefinitionId: "maintenance-work-order-intake",
+    scope: "maintenance",
   },
   {
     id: "vendor-assignment-handoff",

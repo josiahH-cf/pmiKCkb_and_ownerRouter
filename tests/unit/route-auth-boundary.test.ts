@@ -32,7 +32,15 @@ function stripComments(src: string): string {
     .replace(/(^|[^:])\/\/.*$/gm, "$1"); // line comments (leave http:// alone)
 }
 
-const AUTH_GUARD = /require(Capability|User|Role)\b/;
+// A combined capability+space guard still proves the base auth invariant. A space-only guard does
+// not: scoped routes must keep their role/capability boundary as well as the new scope boundary.
+const AUTH_GUARD = /require(Capability(?:InSpace)?|User|Role)\b/;
+
+const SCOPED_ROUTE_SCOPE = {
+  "approval-queue/": "renewals",
+  "lease-renewal/": "renewals",
+  "maintenance/": "maintenance",
+} as const;
 
 // The ONLY routes allowed to run without a throwing auth guard — each a conscious decision:
 //   - auth/session, auth/demo ESTABLISH a session (verify an ID token / demo flag themselves).
@@ -67,6 +75,30 @@ describe("API route auth-boundary invariant", () => {
     for (const allowed of ALLOW_UNAUTHENTICATED) {
       expect(present.has(allowed)).toBe(true);
     }
+  });
+
+  it("every route under a scoped prefix enforces its required space without weakening base auth", () => {
+    const offenders = routes.map(relApi).flatMap((relPath) => {
+      if (relPath === "maintenance/intake/public/route.ts") {
+        return [];
+      }
+
+      const entry = Object.entries(SCOPED_ROUTE_SCOPE).find(([prefix]) =>
+        relPath.startsWith(prefix),
+      );
+      if (!entry) {
+        return [];
+      }
+
+      const [, scope] = entry;
+      const code = stripComments(readFileSync(join(API_ROOT, relPath), "utf8"));
+      const scopedGuard = new RegExp(
+        `require(?:SpaceAccess|CapabilityInSpace)\\([\\s\\S]{0,120}["']${scope}["']\\s*\\)`,
+      );
+      return scopedGuard.test(code) ? [] : [relPath];
+    });
+
+    expect(offenders).toEqual([]);
   });
 
   it("the public intake route imports no authed-write / session-escalation path", () => {

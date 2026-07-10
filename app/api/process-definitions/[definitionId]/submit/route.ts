@@ -6,6 +6,7 @@ import {
   listWorkflowRuns,
   submitProcessDefinitionForApproval,
 } from "@/lib/firestore/workflows";
+import { assertProcessDefinitionAccess } from "@/lib/space-scope-resources";
 
 interface RouteContext {
   params: Promise<{ definitionId: string }>;
@@ -15,6 +16,7 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const user = await requireCapability("edit");
     const { definitionId } = await context.params;
+    assertProcessDefinitionAccess(user, definitionId);
     const input = await parseOptionalJsonBody(
       request,
       SubmitProcessDefinitionInputSchema,

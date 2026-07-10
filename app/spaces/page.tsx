@@ -5,6 +5,7 @@ import {
   renewalWaitingCount,
 } from "@/lib/approval/needs-decision-gather";
 import { requirePageCapability } from "@/lib/auth/page-guards";
+import { hasSpaceAccess } from "@/lib/auth/session";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
 import { listProcessDefinitions } from "@/lib/firestore/workflows";
 import {
@@ -16,6 +17,11 @@ import { launchSpaces, spaceHref } from "@/lib/spaces";
 
 export default async function SpacesPage() {
   const user = await requirePageCapability("read");
+  const visibleSpaces = launchSpaces.filter(
+    (space) =>
+      user.scopes === undefined ||
+      (space.scope !== undefined && hasSpaceAccess(user, space.scope)),
+  );
 
   // Real card state (A-IA-V2): reflect whether each Space has its process and connections. Both reads
   // are read-only and degrade gracefully — if Firestore is unavailable the cards fall back to
@@ -32,9 +38,11 @@ export default async function SpacesPage() {
   // Value-free "waiting on you" interlock (S13 B5): the same merged inbox the Approval Queue and the
   // Console answer from, gathered once per request, so a Space card never says all-quiet while its
   // queue holds work. Counts only — no values, no reasons.
-  const inbox = await gatherNeedsDecisionInbox(user);
+  const inbox = hasSpaceAccess(user, "renewals")
+    ? await gatherNeedsDecisionInbox(user)
+    : undefined;
   const waitingBySpace: Record<string, number> = {
-    "lease-renewals": renewalWaitingCount(inbox),
+    "lease-renewals": inbox ? renewalWaitingCount(inbox) : 0,
   };
 
   return (
@@ -42,7 +50,7 @@ export default async function SpacesPage() {
       <section className="content">
         <h1 className="section-title">Spaces</h1>
         <div className="grid three">
-          {launchSpaces.map((space) => {
+          {visibleSpaces.map((space) => {
             const state = computeSpaceCardState(space, definitionIds, presence);
             const waiting = waitingBySpace[space.id] ?? 0;
             return (

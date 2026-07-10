@@ -6,10 +6,15 @@
 //
 // Pure + deterministic: it PROJECTS over data the caller already has (no new Firestore reads) and, like
 // the renewal review board and the write-back queue, copies ONLY value-free fields. The real values,
-// reasons, and deciders stay behind each row's `href` (connector design §6.1). Acting still happens on
-// the linked surface; this list is triage only and carries no approve affordance.
+// reasons, and deciders stay behind each row's `href` (connector design §6.1). A safe queue-item
+// row may also carry one value-free capability boolean for the existing app-plane approve action;
+// renewal flags and write-backs remain deep-link-only.
 
-import { isQueueItemTerminal } from "@/lib/approval/queue";
+import {
+  isQueueItemTerminal,
+  queueActionAvailability,
+  type ApprovalQueueActor,
+} from "@/lib/approval/queue";
 import type { RenewalReviewBoard } from "@/lib/approval/renewal-review";
 import type { WritebackApprovalQueue } from "@/lib/approval/writeback-approval-queue";
 import type { ApprovalQueueItemRecord, QueueItemStatus } from "@/lib/firestore/types";
@@ -35,6 +40,11 @@ export interface NeedsDecisionRow {
    * assignee. Lets the Console deck offer an in-place Approve via the existing item PATCH (A4).
    */
   itemId?: string;
+  /**
+   * Set on `queue_item` rows ONLY. This value-free capability is true only for Low/Medium items that
+   * the current actor may approve now and that are not assigned to that actor.
+   */
+  canApproveInline?: boolean;
 }
 
 export interface NeedsDecisionCounts {
@@ -94,6 +104,7 @@ export function buildNeedsDecisionInbox(
   queueItems: readonly ApprovalQueueItemRecord[],
   renewalBoard: RenewalReviewBoard | undefined,
   writebackQueue: WritebackApprovalQueue | undefined,
+  actor: ApprovalQueueActor,
 ): NeedsDecisionInbox {
   const byTarget = new Map<string, { row: NeedsDecisionRow; targetKey: string }>();
 
@@ -135,10 +146,17 @@ export function buildNeedsDecisionInbox(
   // 3. Live approval-queue items that need a decision now (reconcile items dedupe by target — C4).
   for (const item of queueItems) {
     if (!queueItemNeedsDecision(item.status)) continue;
+    const safeRisk = item.risk === "Low" || item.risk === "Medium";
+    const canApproveInline =
+      safeRisk &&
+      item.status === "Ready for Approval" &&
+      item.assignee_uid !== actor.uid &&
+      queueActionAvailability(actor, item).approve;
     consider(queueItemTargetKey(item), {
       kind: "queue_item",
       key: `queue_item:${item.id}`,
       itemId: item.id,
+      canApproveInline,
       label: item.action_needed,
       detail: item.process_run_ref.label,
       severity: item.risk,

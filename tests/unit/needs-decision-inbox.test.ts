@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { ApprovalQueueActor } from "@/lib/approval/queue";
 import { buildNeedsDecisionInbox } from "@/lib/approval/needs-decision-inbox";
 import { buildRenewalReviewBoard } from "@/lib/approval/renewal-review";
 import { buildWritebackApprovalQueue } from "@/lib/approval/writeback-approval-queue";
@@ -16,6 +17,7 @@ import type { ApprovalQueueItemRecord } from "@/lib/firestore/types";
 const SECRET = "SENTINEL_RENT_4242";
 const SECRET_REASON = "SENSITIVE_APPROVAL_REASON_9000";
 const SECRET_DECIDER = "admin-secret-uid";
+const ACTOR: ApprovalQueueActor = { role: "Admin", uid: "admin-1" };
 
 function approvalOverlay(
   state: RenewalWritebackApprovalView["state"] | null,
@@ -132,7 +134,16 @@ function queueItem(
 }
 
 const ROW_KEYS = ["detail", "href", "key", "kind", "label", "severity"];
-const QUEUE_ROW_KEYS = ["detail", "href", "itemId", "key", "kind", "label", "severity"];
+const QUEUE_ROW_KEYS = [
+  "canApproveInline",
+  "detail",
+  "href",
+  "itemId",
+  "key",
+  "kind",
+  "label",
+  "severity",
+];
 
 describe("buildNeedsDecisionInbox", () => {
   it("merges the three feeds into one attention-ordered, value-free list", () => {
@@ -164,6 +175,7 @@ describe("buildNeedsDecisionInbox", () => {
           ]),
         ],
       ),
+      ACTOR,
     );
 
     // High writeback + High open flag + Medium queue item; the resolved renewal_date is excluded.
@@ -204,6 +216,7 @@ describe("buildNeedsDecisionInbox", () => {
       [queueItem({ id: "q1" })],
       buildRenewalReviewBoard(views),
       buildWritebackApprovalQueue(views),
+      ACTOR,
     );
 
     const serialized = JSON.stringify(inbox);
@@ -221,8 +234,91 @@ describe("buildNeedsDecisionInbox", () => {
       );
       if (row.kind === "queue_item") {
         expect(row.itemId).toBe(row.key.slice("queue_item:".length));
+        expect(typeof row.canApproveInline).toBe("boolean");
       }
     }
+  });
+
+  it("allows inline approval only for Low/Medium Ready queue rows the actor may approve and does not own", () => {
+    const approver: ApprovalQueueActor = { role: "Approver", uid: "approver-1" };
+    const inbox = buildNeedsDecisionInbox(
+      [
+        queueItem({
+          id: "safe-low",
+          assignee_uid: "editor-1",
+          required_approver_uid: approver.uid,
+          risk: "Low",
+        }),
+        queueItem({
+          id: "safe-medium",
+          assignee_uid: "editor-1",
+          required_approver_uid: approver.uid,
+          risk: "Medium",
+        }),
+        queueItem({
+          id: "high",
+          assignee_uid: "editor-1",
+          required_approver_uid: approver.uid,
+          risk: "High",
+        }),
+        queueItem({
+          id: "self-assigned",
+          assignee_uid: approver.uid,
+          required_approver_uid: approver.uid,
+          risk: "Medium",
+        }),
+        queueItem({
+          id: "wrong-approver",
+          assignee_uid: "editor-1",
+          required_approver_uid: "approver-2",
+          risk: "Medium",
+        }),
+        queueItem({
+          id: "not-ready",
+          assignee_uid: "editor-1",
+          required_approver_uid: approver.uid,
+          risk: "Medium",
+          status: "Blocked",
+        }),
+      ],
+      undefined,
+      undefined,
+      approver,
+    );
+
+    const capabilityById = Object.fromEntries(
+      inbox.rows.map((row) => [row.itemId, row.canApproveInline]),
+    );
+    expect(capabilityById).toEqual({
+      "safe-low": true,
+      "safe-medium": true,
+      high: false,
+      "self-assigned": false,
+      "wrong-approver": false,
+      "not-ready": false,
+    });
+  });
+
+  it("never offers inline approval for an Admin's own assigned item", () => {
+    const inbox = buildNeedsDecisionInbox(
+      [
+        queueItem({
+          id: "admin-owned",
+          assignee_uid: ACTOR.uid,
+          required_approver_uid: ACTOR.uid,
+          risk: "Medium",
+        }),
+      ],
+      undefined,
+      undefined,
+      ACTOR,
+    );
+
+    expect(inbox.rows[0]).toMatchObject({
+      kind: "queue_item",
+      itemId: "admin-owned",
+      canApproveInline: false,
+    });
   });
 
   it("de-dupes a field that is both an open flag and an awaiting write-back (write-back wins)", () => {
@@ -241,6 +337,7 @@ describe("buildNeedsDecisionInbox", () => {
       [],
       buildRenewalReviewBoard(views),
       buildWritebackApprovalQueue(views),
+      ACTOR,
     );
 
     expect(inbox.counts.total).toBe(1);
@@ -265,6 +362,7 @@ describe("buildNeedsDecisionInbox", () => {
       ],
       buildRenewalReviewBoard(views),
       buildWritebackApprovalQueue(views),
+      ACTOR,
     );
 
     expect(inbox.counts).toEqual({
@@ -289,6 +387,7 @@ describe("buildNeedsDecisionInbox", () => {
       ],
       undefined,
       undefined,
+      ACTOR,
     );
 
     expect(inbox.counts.queueItems).toBe(3);
@@ -300,7 +399,7 @@ describe("buildNeedsDecisionInbox", () => {
   });
 
   it("returns an empty, well-formed inbox when nothing needs a decision", () => {
-    const inbox = buildNeedsDecisionInbox([], undefined, undefined);
+    const inbox = buildNeedsDecisionInbox([], undefined, undefined, ACTOR);
     expect(inbox.rows).toEqual([]);
     expect(inbox.counts).toEqual({
       total: 0,

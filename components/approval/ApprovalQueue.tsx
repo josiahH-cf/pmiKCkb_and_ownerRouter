@@ -470,8 +470,9 @@ export function ApprovalQueue({
   // the immutable full item set (initialItems), NOT the mutable `items` that "All items" filtering
   // overwrites — an operator's status/risk filter must never shrink the triage inbox or its badge.
   const needsInbox = useMemo(
-    () => buildNeedsDecisionInbox(initialItems, renewalBoard, writebackQueue),
-    [initialItems, renewalBoard, writebackQueue],
+    () =>
+      buildNeedsDecisionInbox(initialItems, renewalBoard, writebackQueue, currentUser),
+    [currentUser, initialItems, renewalBoard, writebackQueue],
   );
 
   return (

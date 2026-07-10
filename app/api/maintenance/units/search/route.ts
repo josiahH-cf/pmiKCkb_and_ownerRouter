@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { authErrorResponse, requireCapability } from "@/lib/auth/session";
+import { authErrorResponse, requireCapabilityInSpace } from "@/lib/auth/session";
 import { getUnitIndex, searchUnits } from "@/lib/maintenance/unit-index";
 
 const MAX_Q = 120;
@@ -12,7 +12,7 @@ const MAX_Q = 120;
 // is satisfied without any allow-list change.
 export async function GET(request: Request) {
   try {
-    await requireCapability("edit");
+    await requireCapabilityInSpace("edit", "maintenance");
   } catch (error) {
     return authErrorResponse(error);
   }

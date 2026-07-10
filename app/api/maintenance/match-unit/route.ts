@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { authErrorResponse, requireCapability } from "@/lib/auth/session";
+import { authErrorResponse, requireCapabilityInSpace } from "@/lib/auth/session";
 import { loadLiveUnitCandidates } from "@/lib/maintenance/live-unit-source";
 import { matchLocationToUnit } from "@/lib/maintenance/unit-matcher";
 
@@ -16,7 +16,7 @@ const MatchUnitRequestSchema = z.object({
 // Value-bearing but authenticated + edit-gated; never writes, never assigns (autoMerge:false).
 export async function POST(request: Request) {
   try {
-    await requireCapability("edit");
+    await requireCapabilityInSpace("edit", "maintenance");
   } catch (error) {
     return authErrorResponse(error);
   }

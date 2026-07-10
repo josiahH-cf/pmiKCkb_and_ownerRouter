@@ -14,10 +14,11 @@ import {
   resolveCoverageState,
 } from "@/lib/ask/app-state-context";
 import { can } from "@/lib/auth/roles";
-import type { AuthenticatedUser } from "@/lib/auth/session";
+import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
 import { listProcessDefinitions } from "@/lib/firestore/workflows";
 import {
+  SPACE_CONNECTOR_IDS,
   SPACE_CARD_STATE_LABEL,
   computeSpaceCardState,
   type SpaceCardState,
@@ -46,6 +47,17 @@ function toDotStatus(state: SpaceCardState): ConnectionStatus {
 export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
   const canStartSimulation = can(user.role, "edit");
   const canApprove = can(user.role, "approve");
+  const canSeeRenewals = hasSpaceAccess(user, "renewals");
+  const visibleSpaces = launchSpaces.filter(
+    (space) =>
+      user.scopes === undefined ||
+      (space.scope !== undefined && hasSpaceAccess(user, space.scope)),
+  );
+  const visibleDefinitionIds = new Set(
+    visibleSpaces.flatMap((space) =>
+      space.processDefinitionId ? [space.processDefinitionId] : [],
+    ),
+  );
   // One definitions read serves the process picker, the coverage card, and the process strip.
   let definitions: Awaited<ReturnType<typeof listProcessDefinitions>> = [];
   try {
@@ -53,23 +65,47 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
   } catch {
     definitions = [];
   }
+  const scopedDefinitions =
+    user.scopes === undefined
+      ? definitions
+      : definitions.filter((definition) => visibleDefinitionIds.has(definition.id));
   const processes: ProcessOption[] = canStartSimulation
-    ? definitions.map((definition) => ({
+    ? scopedDefinitions.map((definition) => ({
         id: definition.id,
         name: definition.name,
         status: definition.status,
       }))
     : [];
 
-  const definitionIds = new Set(definitions.map((definition) => definition.id));
+  const definitionIds = new Set(scopedDefinitions.map((definition) => definition.id));
   const presence = readConnectorPresence();
 
   // Value-free app-state, gathered once and rendered server-side into the always-visible deck (no
   // click-to-reveal, no client refetch). Approvals come from the SAME merged needs-decision gather
   // every other surface answers from; every read is read-only and non-fatal.
-  const inbox = await gatherNeedsDecisionInbox(user);
+  const inbox = canSeeRenewals
+    ? await gatherNeedsDecisionInbox(user)
+    : {
+        rows: [],
+        counts: { total: 0, renewalFlags: 0, writebacksAwaiting: 0, queueItems: 0 },
+      };
   const connections = resolveConnectionsState();
+  const visibleConnectorIds = new Set(
+    visibleSpaces.flatMap((space) => SPACE_CONNECTOR_IDS[space.id] ?? []),
+  );
+  const connectionItems =
+    user.scopes === undefined
+      ? connections.items
+      : connections.items.filter((item) => {
+          const connectorId = item.href.split("#connector-")[1];
+          return connectorId !== undefined && visibleConnectorIds.has(connectorId);
+        });
   const coverage = await resolveCoverageState(user, definitionIds);
+  const visibleSpaceHrefs = new Set(visibleSpaces.map((space) => spaceHref(space)));
+  const coverageItems =
+    user.scopes === undefined
+      ? coverage.items
+      : coverage.items.filter((item) => visibleSpaceHrefs.has(item.href));
 
   const cards: ConsoleDeckCard[] = [
     {
@@ -80,7 +116,7 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
         label: row.label,
         detail: row.detail,
         href: row.href,
-        itemId: row.itemId,
+        itemId: row.canApproveInline ? row.itemId : undefined,
       })),
       emptyLabel: "Nothing needs your decision right now.",
       seeAllHref: "/approval-queue",
@@ -88,8 +124,8 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
     {
       key: "connections",
       title: "Connections to set up",
-      count: connections.items.length,
-      rows: connections.items.map((item) => ({
+      count: connectionItems.length,
+      rows: connectionItems.map((item) => ({
         label: item.label,
         detail: item.detail,
         href: item.href,
@@ -100,8 +136,8 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
     {
       key: "coverage",
       title: "Space coverage",
-      count: coverage.items.length,
-      rows: coverage.items.map((item) => ({
+      count: coverageItems.length,
+      rows: coverageItems.map((item) => ({
         label: item.label,
         detail: item.detail,
         href: item.href,
@@ -111,7 +147,7 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
     },
   ];
 
-  const processItems: ConsoleProcessItem[] = launchSpaces
+  const processItems: ConsoleProcessItem[] = visibleSpaces
     .filter((space) => space.processDefinitionId)
     .map((space) => {
       const state = computeSpaceCardState(space, definitionIds, presence);

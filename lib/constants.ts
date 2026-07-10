@@ -29,6 +29,15 @@ export const SOURCE_STATES = [
 
 export const ROLES = ["Editor", "Approver", "Admin"] as const;
 
+export const SPACE_SCOPES = Object.freeze(["renewals", "maintenance"] as const);
+
+export type SpaceScope = (typeof SPACE_SCOPES)[number];
+
+export const SPACE_SCOPE_HOME = Object.freeze({
+  renewals: "/lease-renewal",
+  maintenance: "/maintenance",
+} as const satisfies Readonly<Record<SpaceScope, string>>);
+
 // Action Registry vocabulary. One record per external action type catalogs the verified
 // integration roles in docs/integration-architecture.md. These are metadata only; nothing
 // here authorizes an external write.

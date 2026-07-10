@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { ProcessDefinitionDetailClient } from "@/components/workflows/ProcessDefinitionDetailClient";
 import { can } from "@/lib/auth/roles";
-import { requirePageCapability } from "@/lib/auth/page-guards";
+import { primarySpaceHref, requirePageCapability } from "@/lib/auth/page-guards";
 import { getProcessDefinition, listWorkflowRuns } from "@/lib/firestore/workflows";
+import { canAccessProcessDefinitionId } from "@/lib/space-scope-resources";
 
 interface ProcessDefinitionPageProps {
   params: Promise<{ definitionId: string }>;
@@ -14,6 +16,9 @@ export default async function ProcessDefinitionPage({
 }: ProcessDefinitionPageProps) {
   const user = await requirePageCapability("read");
   const { definitionId } = await params;
+  if (!canAccessProcessDefinitionId(user, definitionId)) {
+    redirect(primarySpaceHref(user));
+  }
   let loadError = false;
   let definition: Awaited<ReturnType<typeof getProcessDefinition>> | undefined;
   let runs: Awaited<ReturnType<typeof listWorkflowRuns>> = [];

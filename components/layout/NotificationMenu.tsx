@@ -25,6 +25,9 @@ export function NotificationMenu({
     () => (unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"),
     [unreadCount],
   );
+  const canOpenApprovalQueue = families.some(
+    (family) => family.key === "approval_queue" && family.available,
+  );
 
   useEffect(() => {
     void loadNotifications();
@@ -170,9 +173,11 @@ export function NotificationMenu({
               </ul>
             </div>
           ) : null}
-          <a className="notification-all-link" href="/approval-queue">
-            Open Approval Queue
-          </a>
+          {canOpenApprovalQueue ? (
+            <a className="notification-all-link" href="/approval-queue">
+              Open Approval Queue
+            </a>
+          ) : null}
         </section>
       ) : null}
     </div>

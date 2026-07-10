@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
-import { requireCapability } from "@/lib/auth/session";
+import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
 import { readIntakeEpoch } from "@/lib/firestore/maintenance-unverified-intake";
 import { normalizeIntakePropertyKey } from "@/lib/maintenance/intake-sanitize";
@@ -28,7 +28,7 @@ const MintBodySchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    await requireCapability("edit");
+    await requireCapabilityInSpace("edit", "maintenance");
 
     const config = readServerConfig();
     const secret = config.maintenanceIntakeTokenSecret;

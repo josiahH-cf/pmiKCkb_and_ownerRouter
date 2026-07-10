@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { EvidencePacketCard } from "@/components/desk/EvidencePacketCard";
 import { NoticeRuleCard } from "@/components/desk/NoticeRuleCard";
@@ -13,7 +13,8 @@ import { WelcomeDraftCard } from "@/components/desk/WelcomeDraftCard";
 import { ProcessSummaryPanel } from "@/components/spaces/ProcessSummaryPanel";
 import { SpaceDetailClient } from "@/components/spaces/SpaceDetailClient";
 import { can } from "@/lib/auth/roles";
-import { requirePageCapability } from "@/lib/auth/page-guards";
+import { primarySpaceHref, requirePageCapability } from "@/lib/auth/page-guards";
+import { hasSpaceAccess } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
 import { CONNECTORS, type ConnectorDef } from "@/lib/connections/connector-catalog";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
@@ -85,6 +86,13 @@ export default async function SpaceDetailPage({
 
   if (!space) {
     notFound();
+  }
+
+  if (
+    user.scopes !== undefined &&
+    (space.scope === undefined || !hasSpaceAccess(user, space.scope))
+  ) {
+    redirect(primarySpaceHref(user));
   }
 
   const config = readServerConfig();

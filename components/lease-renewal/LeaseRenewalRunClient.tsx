@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-view";
 import { displaySourceLabel } from "@/lib/lease-renewal/source-display";
 import { ReasonCodeSelect } from "@/components/lease-renewal/ReasonCodeSelect";
+import { RenewalReviewMode } from "@/components/lease-renewal/RenewalReviewMode";
 import {
   FlagResolveForm,
   WritebackApprovalControl,
@@ -15,6 +16,7 @@ import {
 interface LeaseRenewalRunClientProps {
   view: RenewalRunView;
   canResolve: boolean;
+  canDefer?: boolean;
   isAdmin: boolean;
   resolutionsError: boolean;
   /** Field key from a ?flag= deep link: that flag's card is highlighted and scrolled into view. */
@@ -24,10 +26,12 @@ interface LeaseRenewalRunClientProps {
 export function LeaseRenewalRunClient({
   view,
   canResolve,
+  canDefer,
   isAdmin,
   resolutionsError,
   highlightFieldKey = null,
 }: LeaseRenewalRunClientProps) {
+  const canSaveProgress = canDefer ?? canResolve;
   // Bulk decisions (S13 B2) live HERE on the run page, where the proposed values are visible —
   // never on the value-free queue tabs. Selection is keyed by sourceTriggerKey and derived against
   // the current view on every render, so a flag that stops being queued silently drops out.
@@ -59,109 +63,116 @@ export function LeaseRenewalRunClient({
         system-of-record update.
       </p>
 
-      {bulkEnabled ? (
-        <WritebackBulkDecisionBar
-          eligible={eligibleFlags.map((flag) => ({
-            key: flag.sourceTriggerKey,
-            label: flag.fieldLabel,
-          }))}
-          onClearSelection={() => setSelectedKeys(new Set())}
-          onSelectAll={() =>
-            setSelectedKeys(new Set(eligibleFlags.map((flag) => flag.sourceTriggerKey)))
-          }
-          runId={view.runId}
-          selected={selectedEligible.map((flag) => ({
-            key: flag.sourceTriggerKey,
-            label: flag.fieldLabel,
-          }))}
-        />
-      ) : null}
-
-      <section className="panel" aria-label="Run summary">
-        <h2 className="section-subtitle">{view.label}</h2>
-        <p className="muted">
-          {view.totalFlags} flag{view.totalFlags === 1 ? "" : "s"} raised ·{" "}
-          {view.resolvedCount} resolved
-        </p>
-        <div className="queue-detail-grid">
-          <SummaryField label="Tabs recognized" value={view.manifest.tabsRecognized} />
-          <SummaryField
-            label="Tabs unrecognized"
-            value={view.manifest.tabsUnrecognized}
+      <RenewalReviewMode
+        canDefer={canSaveProgress}
+        canResolve={canResolve}
+        isAdmin={isAdmin}
+        view={view}
+      >
+        {bulkEnabled ? (
+          <WritebackBulkDecisionBar
+            eligible={eligibleFlags.map((flag) => ({
+              key: flag.sourceTriggerKey,
+              label: flag.fieldLabel,
+            }))}
+            onClearSelection={() => setSelectedKeys(new Set())}
+            onSelectAll={() =>
+              setSelectedKeys(new Set(eligibleFlags.map((flag) => flag.sourceTriggerKey)))
+            }
+            runId={view.runId}
+            selected={selectedEligible.map((flag) => ({
+              key: flag.sourceTriggerKey,
+              label: flag.fieldLabel,
+            }))}
           />
-          <SummaryField label="Records read" value={view.manifest.totalRecords} />
-          <SummaryField
-            label="Credential tabs excluded"
-            value={view.manifest.credentialTabsExcluded}
-          />
-          <SummaryField
-            label="Credential scrub hits"
-            value={view.manifest.credentialScrubHits}
-          />
-          <SummaryField
-            label="Divider rows dropped"
-            value={view.manifest.dividerRowsDropped}
-          />
-        </div>
-        {view.excludedTabs.length > 0 ? (
-          <div className="lr-excluded">
-            <h3 className="section-subtitle">Excluded tabs (labels only)</h3>
-            <ul>
-              {view.excludedTabs.map((excluded, index) => (
-                <li key={`${excluded.tab}-${index}`}>
-                  <strong>{excluded.tab}</strong> — {excluded.reason}
-                </li>
-              ))}
-            </ul>
-          </div>
         ) : null}
-      </section>
 
-      {resolutionsError ? (
-        <p className="workflow-blocker">
-          Saved resolutions could not be loaded (Firestore unavailable). Flags below are
-          shown unresolved; resolving requires a working Firestore connection.
-        </p>
-      ) : null}
+        <section className="panel" aria-label="Run summary">
+          <h2 className="section-subtitle">{view.label}</h2>
+          <p className="muted">
+            {view.totalFlags} flag{view.totalFlags === 1 ? "" : "s"} raised ·{" "}
+            {view.resolvedCount} resolved
+          </p>
+          <div className="queue-detail-grid">
+            <SummaryField label="Tabs recognized" value={view.manifest.tabsRecognized} />
+            <SummaryField
+              label="Tabs unrecognized"
+              value={view.manifest.tabsUnrecognized}
+            />
+            <SummaryField label="Records read" value={view.manifest.totalRecords} />
+            <SummaryField
+              label="Credential tabs excluded"
+              value={view.manifest.credentialTabsExcluded}
+            />
+            <SummaryField
+              label="Credential scrub hits"
+              value={view.manifest.credentialScrubHits}
+            />
+            <SummaryField
+              label="Divider rows dropped"
+              value={view.manifest.dividerRowsDropped}
+            />
+          </div>
+          {view.excludedTabs.length > 0 ? (
+            <div className="lr-excluded">
+              <h3 className="section-subtitle">Excluded tabs (labels only)</h3>
+              <ul>
+                {view.excludedTabs.map((excluded, index) => (
+                  <li key={`${excluded.tab}-${index}`}>
+                    <strong>{excluded.tab}</strong> — {excluded.reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </section>
 
-      {view.groups.length === 0 ? (
-        <article className="panel">
-          <p className="muted">No flags were raised for this run.</p>
-        </article>
-      ) : (
-        view.groups.map((group) => (
-          <section
-            className="panel"
-            key={group.severity}
-            aria-label={`${group.severity} flags`}
-          >
-            <h2 className="section-subtitle">
-              <span className="queue-pill" data-value={group.severity}>
-                {group.severity}
-              </span>{" "}
-              {group.flags.length} flag{group.flags.length === 1 ? "" : "s"}
-            </h2>
-            {group.flags.map((flag) => (
-              <FlagCard
-                bulk={
-                  bulkEnabled && flag.writebackApproval
-                    ? {
-                        selected: selectedKeys.has(flag.sourceTriggerKey),
-                        onToggle: () => toggleSelected(flag.sourceTriggerKey),
-                      }
-                    : null
-                }
-                canResolve={canResolve}
-                flag={flag}
-                highlighted={flag.fieldKey === highlightFieldKey}
-                isAdmin={isAdmin}
-                key={flag.sourceTriggerKey}
-                runId={view.runId}
-              />
-            ))}
-          </section>
-        ))
-      )}
+        {resolutionsError ? (
+          <p className="workflow-blocker">
+            Saved resolutions could not be loaded (Firestore unavailable). Flags below are
+            shown unresolved; resolving requires a working Firestore connection.
+          </p>
+        ) : null}
+
+        {view.groups.length === 0 ? (
+          <article className="panel">
+            <p className="muted">No flags were raised for this run.</p>
+          </article>
+        ) : (
+          view.groups.map((group) => (
+            <section
+              className="panel"
+              key={group.severity}
+              aria-label={`${group.severity} flags`}
+            >
+              <h2 className="section-subtitle">
+                <span className="queue-pill" data-value={group.severity}>
+                  {group.severity}
+                </span>{" "}
+                {group.flags.length} flag{group.flags.length === 1 ? "" : "s"}
+              </h2>
+              {group.flags.map((flag) => (
+                <FlagCard
+                  bulk={
+                    bulkEnabled && flag.writebackApproval
+                      ? {
+                          selected: selectedKeys.has(flag.sourceTriggerKey),
+                          onToggle: () => toggleSelected(flag.sourceTriggerKey),
+                        }
+                      : null
+                  }
+                  canResolve={canResolve}
+                  flag={flag}
+                  highlighted={flag.fieldKey === highlightFieldKey}
+                  isAdmin={isAdmin}
+                  key={flag.sourceTriggerKey}
+                  runId={view.runId}
+                />
+              ))}
+            </section>
+          ))
+        )}
+      </RenewalReviewMode>
     </div>
   );
 }

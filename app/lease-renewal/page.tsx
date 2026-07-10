@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
-import { requirePageCapability } from "@/lib/auth/page-guards";
+import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { can } from "@/lib/auth/roles";
 import { getRenewalDeskView } from "@/lib/lease-renewal/sample-desk";
 
@@ -8,6 +8,7 @@ import { getRenewalDeskView } from "@/lib/lease-renewal/sample-desk";
 // no live read, no write, no system-of-record update. Admins also get a link into the owner-gated
 // live review (the live read itself only happens on that route).
 export default async function LeaseRenewalDeskPage() {
+  await requirePageSpaceAccess("renewals");
   const user = await requirePageCapability("read");
   const view = getRenewalDeskView();
 

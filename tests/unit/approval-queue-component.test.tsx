@@ -5,10 +5,12 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApprovalQueue } from "@/components/approval/ApprovalQueue";
+import { NeedsDecisionInboxPanel } from "@/components/approval/NeedsDecisionInboxPanel";
 import type {
   ApprovalQueueActivityRecord,
   ApprovalQueueItemRecord,
 } from "@/lib/firestore/types";
+import type { Role } from "@/lib/auth/roles";
 
 afterEach(() => {
   cleanup();
@@ -35,9 +37,93 @@ describe("ApprovalQueue default inbox (B1)", () => {
     expect(
       screen.getByRole("link", { name: /Approve the renewal package/ }),
     ).toHaveAttribute("href", "/runs/run-9");
-    // No approve/bulk affordance on this triage surface.
+    // High-risk rows stay deep-link-only on this triage surface.
+    expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
     expect(screen.queryByLabelText("Select visible")).toBeNull();
     expect(screen.queryByRole("button", { name: "Apply Bulk" })).toBeNull();
+  });
+
+  it("approves a safe queue row inline through the existing item PATCH", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ message: "Queue item approved." }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderQueue({
+      currentUser: { role: "Approver", uid: "approver-1" },
+      items: [
+        queueItem({
+          id: "safe-item",
+          assignee_uid: "editor-1",
+          required_approver_uid: "approver-1",
+          risk: "Medium",
+        }),
+      ],
+    });
+
+    await user.click(screen.getByRole("button", { name: "Approve" }));
+
+    await waitFor(() => expect(screen.getByText("Approved.")).toBeInTheDocument());
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith("/api/approval-queue/safe-item", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "approve" }),
+    });
+  });
+
+  it("keeps self-assigned safe-risk queue rows deep-link-only", () => {
+    renderQueue({
+      currentUser: { role: "Approver", uid: "approver-1" },
+      items: [
+        queueItem({
+          id: "own-item",
+          assignee_uid: "approver-1",
+          required_approver_uid: "approver-1",
+          risk: "Low",
+        }),
+      ],
+    });
+
+    expect(screen.getByRole("link", { name: /Approve own-item/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+  });
+
+  it("keeps renewal-flag and write-back rows deep-link-only", () => {
+    render(
+      <NeedsDecisionInboxPanel
+        inbox={{
+          counts: {
+            total: 2,
+            queueItems: 0,
+            renewalFlags: 1,
+            writebacksAwaiting: 1,
+          },
+          rows: [
+            {
+              kind: "renewal_flag",
+              key: "renewal_flag:run-1:rent",
+              label: "Current rent",
+              detail: "Run 1",
+              severity: "Medium",
+              href: "/lease-renewal/runs/run-1",
+            },
+            {
+              kind: "writeback",
+              key: "writeback:run-1:rent",
+              label: "Current rent write-back",
+              detail: "Run 1 · awaiting write-back approval",
+              severity: "Low",
+              href: "/lease-renewal/runs/run-1?field=rent",
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getAllByRole("link")).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
   });
 
   it("hides queue items that no longer need a decision", () => {
@@ -231,16 +317,18 @@ describe("ApprovalQueue bulk UI", () => {
 
 function renderQueue({
   activity = [activityEntry()],
+  currentUser = { role: "Admin", uid: "admin-1" },
   initialSelectedItemId,
   items,
 }: {
   activity?: ApprovalQueueActivityRecord[];
+  currentUser?: { role: Role; uid: string };
   initialSelectedItemId?: string;
   items: ApprovalQueueItemRecord[];
 }) {
   return render(
     <ApprovalQueue
-      currentUser={{ role: "Admin", uid: "admin-1" }}
+      currentUser={currentUser}
       initialActivity={activity}
       initialItems={items}
       initialSelectedItemId={initialSelectedItemId}

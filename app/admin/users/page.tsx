@@ -5,7 +5,7 @@ import { type AppUser, listAppUsers } from "@/lib/admin/users";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { readServerConfig } from "@/lib/config/server";
 
-// In-app user + role management (console overhaul Slice D). Admin-only. Degrades to a clear note if
+// In-app user role + space-scope management (console overhaul Slice D + S16). Admin-only. Degrades to a clear note if
 // the Admin SDK is unavailable in this session (matching the admin observability panel).
 export default async function AdminUsersPage() {
   const user = await requirePageCapability("manageAdmin");
@@ -30,7 +30,7 @@ export default async function AdminUsersPage() {
         <p className="muted">
           Anyone who signs in with a {config.allowedHostedDomain} Google account starts as
           an Editor. Promote a teammate to Approver or Admin here. Account creation stays
-          in Google Workspace; this manages roles only.
+          in Google Workspace; this manages roles and space access.
         </p>
         <UserManagementPanel initialUsers={users} unavailableNote={unavailableNote} />
       </section>

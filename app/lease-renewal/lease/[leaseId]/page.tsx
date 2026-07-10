@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
-import { requirePageCapability } from "@/lib/auth/page-guards";
+import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { getRenewalLeaseWorkspace } from "@/lib/lease-renewal/sample-desk";
 
 interface LeaseWorkspacePageProps {
@@ -13,6 +13,7 @@ interface LeaseWorkspacePageProps {
 export default async function LeaseRenewalWorkspacePage({
   params,
 }: LeaseWorkspacePageProps) {
+  await requirePageSpaceAccess("renewals");
   const user = await requirePageCapability("read");
   const { leaseId } = await params;
   const workspace = getRenewalLeaseWorkspace(leaseId);

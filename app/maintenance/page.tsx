@@ -2,7 +2,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { MaintenanceCapture } from "@/components/maintenance/MaintenanceCapture";
 import { MaintenanceQueue } from "@/components/maintenance/MaintenanceQueue";
 import { UnverifiedIntakeReview } from "@/components/maintenance/UnverifiedIntakeReview";
-import { requirePageCapability } from "@/lib/auth/page-guards";
+import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { listUnverifiedIntake } from "@/lib/firestore/maintenance-intake-review";
 import {
   type MaintenanceTicketRecord,
@@ -13,6 +13,7 @@ import { listAssignableUsers } from "@/lib/maintenance/assignees";
 import type { UnverifiedIntakeRecord } from "@/lib/maintenance/intake-model";
 
 export default async function MaintenancePage() {
+  await requirePageSpaceAccess("maintenance");
   // Capture is editor work (it produces a work-order draft); read-only users don't see it.
   const user = await requirePageCapability("edit");
 

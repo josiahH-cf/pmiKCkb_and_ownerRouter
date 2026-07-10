@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
-import { requireCapability } from "@/lib/auth/session";
+import { AuthError, hasSpaceAccess, requireCapability } from "@/lib/auth/session";
 import { markApprovalQueueNotificationRead } from "@/lib/firestore/approval-queue-notifications";
 import { markMaintenanceTicketNotificationRead } from "@/lib/firestore/maintenance-ticket-notifications";
 import { MarkNotificationReadInputSchema } from "@/lib/firestore/schemas";
@@ -13,8 +13,14 @@ export async function POST(request: Request) {
     const input = await parseJsonBody(request, MarkNotificationReadInputSchema);
 
     if (input.source === "approval_queue") {
+      if (!hasSpaceAccess(user, "renewals")) {
+        throw new AuthError("This user is not authorized for the requested space.", 403);
+      }
       await markApprovalQueueNotificationRead(user, input.id);
     } else {
+      if (!hasSpaceAccess(user, "maintenance")) {
+        throw new AuthError("This user is not authorized for the requested space.", 403);
+      }
       await markMaintenanceTicketNotificationRead(user, input.id);
     }
 

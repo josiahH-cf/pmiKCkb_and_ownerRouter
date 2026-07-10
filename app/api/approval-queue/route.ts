@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { isQueueAudienceGroup, isQueueRisk, isQueueStatus } from "@/lib/approval/queue";
 import { apiErrorResponse } from "@/lib/api/editable";
-import { requireCapability } from "@/lib/auth/session";
+import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   listApprovalQueue,
@@ -10,7 +10,7 @@ import {
 
 export async function GET(request: Request) {
   try {
-    const user = await requireCapability("read");
+    const user = await requireCapabilityInSpace("read", "renewals");
     const options = parseListOptions(new URL(request.url).searchParams);
     const items = await listApprovalQueue(user, options);
 

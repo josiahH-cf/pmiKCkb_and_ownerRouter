@@ -34,8 +34,9 @@ proven live, and a Dan-decisions-teach-the-model loop that never puts client dat
 7. "You have N approvals" is ONE merged, deduped number (queue items + awaiting write-backs +
    open flags).
 8. Learning loop V1 is deterministic (rules + golden-set tuning, not model retraining); live
-   decisions PRE-FILL golden worksheets only (never auto-verify); enumerated reason-code taxonomy
-   ships with the six defaults; Josiah merges rule-tuning PRs, Dan reviews in-app.
+   decisions PRE-FILL golden worksheets only (never auto-verify); the enumerated reason-code taxonomy
+   ships with its original six categories and S14 adds the value-free `accepted_suggestion` category;
+   Josiah merges rule-tuning PRs, Dan reviews in-app.
 9. Dictate must work on iPhone/mobile Safari (field use); a few-KB committed SYNTHETIC audio
    fixture is acceptable for the live smoke.
 10. Per-step desk check-off persists as app-plane Firestore state (app-owned, not a

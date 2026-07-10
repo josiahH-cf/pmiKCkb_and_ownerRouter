@@ -22,6 +22,7 @@ import {
 import { displaySourceLabel } from "@/lib/lease-renewal/source-display";
 import type { LiveReviewMeta } from "@/lib/lease-renewal/live-review";
 import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-view";
+import { RenewalReviewMode } from "@/components/lease-renewal/RenewalReviewMode";
 
 // Humanize the reconciliation agreement label into the operator's language.
 const AGREEMENT_LABEL: Record<string, string> = {
@@ -39,12 +40,14 @@ export function LiveRenewalReview({
   view,
   meta,
   canResolve,
+  canDefer,
   isAdmin,
   resolutionsError,
 }: Readonly<{
   view: RenewalRunView;
   meta: LiveReviewMeta;
   canResolve: boolean;
+  canDefer?: boolean;
   isAdmin: boolean;
   resolutionsError: boolean;
 }>) {
@@ -71,34 +74,41 @@ export function LiveRenewalReview({
         </p>
       ) : null}
 
-      {view.groups.length === 0 ? (
-        <EmptyState
-          description="Every reconciled field agrees across sources. Nothing needs a decision right now."
-          title="No open items"
-        />
-      ) : (
-        view.groups.map((group) => (
-          <section
-            aria-label={`${group.severity} items`}
-            className="ui-stack-tight"
-            key={group.severity}
-          >
-            <h2 className="section-subtitle">
-              <StatusPill value={group.severity} /> {group.flags.length} item
-              {group.flags.length === 1 ? "" : "s"}
-            </h2>
-            {group.flags.map((flag) => (
-              <LiveFlagCard
-                canResolve={canResolve}
-                flag={flag}
-                isAdmin={isAdmin}
-                key={flag.sourceTriggerKey}
-                runId={view.runId}
-              />
-            ))}
-          </section>
-        ))
-      )}
+      <RenewalReviewMode
+        canDefer={canDefer ?? canResolve}
+        canResolve={canResolve}
+        isAdmin={isAdmin}
+        view={view}
+      >
+        {view.groups.length === 0 ? (
+          <EmptyState
+            description="Every reconciled field agrees across sources. Nothing needs a decision right now."
+            title="No open items"
+          />
+        ) : (
+          view.groups.map((group) => (
+            <section
+              aria-label={`${group.severity} items`}
+              className="ui-stack-tight"
+              key={group.severity}
+            >
+              <h2 className="section-subtitle">
+                <StatusPill value={group.severity} /> {group.flags.length} item
+                {group.flags.length === 1 ? "" : "s"}
+              </h2>
+              {group.flags.map((flag) => (
+                <LiveFlagCard
+                  canResolve={canResolve}
+                  flag={flag}
+                  isAdmin={isAdmin}
+                  key={flag.sourceTriggerKey}
+                  runId={view.runId}
+                />
+              ))}
+            </section>
+          ))
+        )}
+      </RenewalReviewMode>
 
       <Disclosure summary="Read details">
         <p className="muted">

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
-import { requireCapability } from "@/lib/auth/session";
+import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { GmailRuntimeClient, GmailRuntimeError } from "@/lib/gmail-runtime/client";
 import { GmailDwdSetupError } from "@/lib/gmail-runtime/dwd-token";
 import { isActionExecutable } from "@/lib/integrations/action-gate";
@@ -24,7 +24,7 @@ const OwnerNoticeDraftInputSchema = z.object({
 // the gate is open it creates an unsent draft in the signed-in user's mailbox. Never sends. Edit-gated.
 export async function POST(request: Request) {
   try {
-    const user = await requireCapability("edit");
+    const user = await requireCapabilityInSpace("edit", "renewals");
     const input = await parseJsonBody(request, OwnerNoticeDraftInputSchema);
 
     const workspace = getRenewalLeaseWorkspace(input.leaseId);

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
@@ -22,6 +22,7 @@ vi.mock("next/navigation", () => ({
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
 });
 
 // A synthetic view (no real PII) shaped exactly like buildRenewalRunView's output.
@@ -84,6 +85,27 @@ const SAMPLE_META: LiveReviewMeta = {
 };
 
 describe("LiveRenewalReview", () => {
+  it("mounts the one-at-a-time decider mode over the same live view", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ progress: [] }) }),
+    );
+    render(
+      <LiveRenewalReview
+        canResolve={true}
+        isAdmin={true}
+        meta={SAMPLE_META}
+        resolutionsError={false}
+        view={SAMPLE_VIEW}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Decide one at a time" }));
+    expect(await screen.findByText("1 of 1")).toBeInTheDocument();
+    expect(document.querySelectorAll(".lr-decider-card")).toHaveLength(1);
+    expect(screen.queryByText("Accept suggested source")).not.toBeInTheDocument();
+  });
+
   it("renders the live chip, the conflict item with both source values, and the reused resolve control", () => {
     render(
       <LiveRenewalReview

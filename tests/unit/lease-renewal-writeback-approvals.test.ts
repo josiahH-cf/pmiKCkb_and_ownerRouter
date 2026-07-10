@@ -9,6 +9,8 @@ import {
   resolutionDocId,
 } from "@/lib/firestore/lease-renewal-resolutions";
 import {
+  DecideWritebackApprovalInputSchema,
+  LEASE_RENEWAL_WRITEBACK_COLLECTIONS,
   decideWritebackApproval,
   decideWritebackApprovalsBulk,
   getWritebackApproval,
@@ -110,6 +112,98 @@ describe("decideWritebackApproval", () => {
     expect(activity[0].previous_state).toBeUndefined();
   });
 
+  it("supports a one-tap approve by stamping the reused reason-code label on its distinct audit records", async () => {
+    seedResolution(db, {
+      severity: "Medium",
+      reason: "Accepted the suggested source",
+      reason_code: "accepted_suggestion",
+    });
+
+    const approval = await decideWritebackApproval(
+      admin,
+      {
+        run_id: RUN_ID,
+        source_trigger_key: KEY,
+        decision: "approve",
+        reason_code: "accepted_suggestion",
+      },
+      fs(),
+    );
+
+    expect(approval).toMatchObject({
+      state: "Approved",
+      reason: "Accepted the suggested source",
+      reason_code: "accepted_suggestion",
+      decided_by_uid: "admin-1",
+      production_allowed: false,
+      executed: false,
+    });
+
+    const activity = await listWritebackApprovalActivity(admin, KEY, fs());
+    expect(activity).toHaveLength(1);
+    expect(activity[0]).toMatchObject({
+      action: "approve",
+      reason: "Accepted the suggested source",
+      reason_code: "accepted_suggestion",
+      actor_uid: "admin-1",
+    });
+
+    // Same deterministic id, separate collections and separate human decisions/timestamps.
+    const docId = resolutionDocId(KEY);
+    const resolutionRecord = db.store.get(
+      `${LEASE_RENEWAL_COLLECTIONS.resolutions}/${docId}`,
+    );
+    const approvalRecord = db.store.get(
+      `${LEASE_RENEWAL_WRITEBACK_COLLECTIONS.approvals}/${docId}`,
+    );
+    expect(resolutionRecord).toMatchObject({ resolved_by_uid: "approver-1" });
+    expect(approvalRecord).toMatchObject({ decided_by_uid: "admin-1" });
+    expect(resolutionRecord?.updated_at).toBe("2026-07-01T00:00:00.000Z");
+    expect(approvalRecord?.updated_at).toBe("2026-05-27T00:00:00.000Z");
+  });
+
+  it("confines code-only approval to the Low/Medium accepted-suggestion follow-on", async () => {
+    seedResolution(db, {
+      severity: "High",
+      reason: "Accepted the suggested source",
+      reason_code: "accepted_suggestion",
+    });
+
+    await expect(
+      decideWritebackApproval(
+        admin,
+        {
+          run_id: RUN_ID,
+          source_trigger_key: KEY,
+          decision: "approve",
+          reason_code: "accepted_suggestion",
+        },
+        fs(),
+      ),
+    ).rejects.toThrow("A plain-English reason is required.");
+  });
+
+  it("refuses a code-only approval that does not reuse the stamped resolution code", async () => {
+    seedResolution(db, {
+      severity: "Medium",
+      reason: "Accepted the suggested source",
+      reason_code: "accepted_suggestion",
+    });
+
+    await expect(
+      decideWritebackApproval(
+        admin,
+        {
+          run_id: RUN_ID,
+          source_trigger_key: KEY,
+          decision: "approve",
+          reason_code: "stale_source",
+        },
+        fs(),
+      ),
+    ).rejects.toThrow("A plain-English reason is required.");
+  });
+
   it("is Admin-only — an Approver cannot authorize a write-back", async () => {
     seedResolution(db);
     await expect(decide(approver, "approve")).rejects.toThrow(EditableLayerError);
@@ -156,6 +250,27 @@ describe("decideWritebackApproval", () => {
         fs(),
       ),
     ).rejects.toThrow();
+  });
+
+  it("requires free text for a return even when a reason code is present", () => {
+    expect(() =>
+      DecideWritebackApprovalInputSchema.parse({
+        run_id: RUN_ID,
+        source_trigger_key: KEY,
+        decision: "return",
+        reason_code: "accepted_suggestion",
+      }),
+    ).toThrow("A plain-English reason is required.");
+  });
+
+  it("refuses an approve when neither free text nor a reason code is present", () => {
+    expect(() =>
+      DecideWritebackApprovalInputSchema.parse({
+        run_id: RUN_ID,
+        source_trigger_key: KEY,
+        decision: "approve",
+      }),
+    ).toThrow("A plain-English reason is required.");
   });
 
   it("rejects a double-approve (already approved is terminal until re-resolved)", async () => {

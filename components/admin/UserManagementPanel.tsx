@@ -2,20 +2,34 @@
 
 import { useState } from "react";
 import type { AppUser } from "@/lib/admin/users";
+import { SPACE_SCOPES, type SpaceScope } from "@/lib/constants";
 
 const ROLE_OPTIONS = ["Editor", "Approver", "Admin"] as const;
+const SCOPE_LABELS = {
+  renewals: "Renewals",
+  maintenance: "Maintenance",
+} as const satisfies Readonly<Record<SpaceScope, string>>;
 
-// Roster + per-user role change (console overhaul Slice D). A role change needs a plain-English
-// reason and a confirm for any Admin grant/removal; the last-Admin guard is enforced server-side.
+interface RoleDraft {
+  role: string;
+  reason: string;
+}
+
+interface ScopeDraft {
+  scopes: readonly SpaceScope[] | undefined;
+  reason: string;
+}
+
+// Roster + per-user role and orthogonal space-scope changes. Missing scopes means All spaces; an
+// explicit non-empty set only narrows surfaces and never changes the user's role capability tier.
 export function UserManagementPanel({
   initialUsers,
   unavailableNote,
 }: Readonly<{ initialUsers: AppUser[]; unavailableNote?: string }>) {
   const [users, setUsers] = useState<AppUser[]>(initialUsers);
-  const [draft, setDraft] = useState<Record<string, { role: string; reason: string }>>(
-    {},
-  );
-  const [pendingUid, setPendingUid] = useState<string | null>(null);
+  const [roleDrafts, setRoleDrafts] = useState<Record<string, RoleDraft>>({});
+  const [scopeDrafts, setScopeDrafts] = useState<Record<string, ScopeDraft>>({});
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [status, setStatus] = useState("");
 
   if (unavailableNote) {
@@ -27,12 +41,21 @@ export function UserManagementPanel({
     );
   }
 
-  function draftFor(user: AppUser) {
-    return draft[user.uid] ?? { role: user.role, reason: "" };
+  function roleDraftFor(user: AppUser): RoleDraft {
+    return roleDrafts[user.uid] ?? { role: user.role, reason: "" };
   }
 
-  function setDraftValue(uid: string, patch: Partial<{ role: string; reason: string }>) {
-    setDraft((prev) => ({
+  function scopeDraftFor(user: AppUser): ScopeDraft {
+    return (
+      scopeDrafts[user.uid] ?? {
+        scopes: user.scopeClaimInvalid ? [] : user.scopes ? [...user.scopes] : undefined,
+        reason: "",
+      }
+    );
+  }
+
+  function setRoleDraftValue(uid: string, patch: Partial<RoleDraft>) {
+    setRoleDrafts((prev) => ({
       ...prev,
       [uid]: { ...(prev[uid] ?? { role: "", reason: "" }), ...patch } as {
         role: string;
@@ -41,8 +64,25 @@ export function UserManagementPanel({
     }));
   }
 
-  async function save(user: AppUser) {
-    const current = draftFor(user);
+  function setScopeDraftValue(user: AppUser, patch: Partial<ScopeDraft>) {
+    setScopeDrafts((prev) => ({
+      ...prev,
+      [user.uid]: {
+        ...(prev[user.uid] ?? {
+          scopes: user.scopeClaimInvalid
+            ? []
+            : user.scopes
+              ? [...user.scopes]
+              : undefined,
+          reason: "",
+        }),
+        ...patch,
+      },
+    }));
+  }
+
+  async function saveRole(user: AppUser) {
+    const current = roleDraftFor(user);
     if (current.role === user.role) {
       setStatus("Pick a different role before saving.");
       return;
@@ -61,7 +101,7 @@ export function UserManagementPanel({
       return;
     }
 
-    setPendingUid(user.uid);
+    setPendingKey(`${user.uid}:role`);
     setStatus("");
     try {
       const response = await fetch(`/api/admin/users/${encodeURIComponent(user.uid)}`, {
@@ -76,13 +116,74 @@ export function UserManagementPanel({
       if (response.ok && payload.user) {
         const updated = payload.user;
         setUsers((prev) => prev.map((u) => (u.uid === updated.uid ? updated : u)));
-        setDraft((prev) => ({ ...prev, [user.uid]: { role: updated.role, reason: "" } }));
+        setRoleDrafts((prev) => ({
+          ...prev,
+          [user.uid]: { role: updated.role, reason: "" },
+        }));
         setStatus(`${updated.email} is now ${updated.role}. They re-sign-in to refresh.`);
       } else {
         setStatus(payload.error ?? "Could not change the role.");
       }
     } finally {
-      setPendingUid(null);
+      setPendingKey(null);
+    }
+  }
+
+  async function saveScopes(user: AppUser) {
+    const current = scopeDraftFor(user);
+    if (!user.scopeClaimInvalid && sameScopes(current.scopes, user.scopes)) {
+      setStatus("Pick different space access before saving.");
+      return;
+    }
+    if (current.scopes?.length === 0) {
+      setStatus("Choose at least one space, or choose All spaces.");
+      return;
+    }
+    if (current.reason.trim().length < 3) {
+      setStatus("Add a short reason for the access change.");
+      return;
+    }
+
+    setPendingKey(`${user.uid}:scopes`);
+    setStatus("");
+    try {
+      const response = await fetch(
+        `/api/admin/users/${encodeURIComponent(user.uid)}/scopes`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            // null deliberately means clear the custom claim (the All spaces wildcard).
+            scopes: current.scopes ?? null,
+            reason: current.reason.trim(),
+          }),
+        },
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        user?: AppUser;
+        error?: string;
+      };
+      if (response.ok && payload.user) {
+        const updated = payload.user;
+        setUsers((prev) => prev.map((u) => (u.uid === updated.uid ? updated : u)));
+        setScopeDrafts((prev) => ({
+          ...prev,
+          [user.uid]: {
+            scopes: updated.scopes ? [...updated.scopes] : undefined,
+            reason: "",
+          },
+        }));
+        const access = updated.scopes
+          ? updated.scopes.map((scope) => SCOPE_LABELS[scope]).join(" and ")
+          : "All spaces";
+        setStatus(
+          `${updated.email} now has access to ${access}. They re-sign-in to refresh.`,
+        );
+      } else {
+        setStatus(payload.error ?? "Could not change space access.");
+      }
+    } finally {
+      setPendingKey(null);
     }
   }
 
@@ -95,55 +196,140 @@ export function UserManagementPanel({
       </p>
       <div className="admin-user-table">
         {users.map((user) => {
-          const current = draftFor(user);
+          const roleDraft = roleDraftFor(user);
+          const scopeDraft = scopeDraftFor(user);
+          const allSpaces = scopeDraft.scopes === undefined;
+          const userPending = pendingKey?.startsWith(`${user.uid}:`) ?? false;
           return (
-            <div className="admin-user-row" key={user.uid}>
-              <div className="admin-user-id">
-                <strong>{user.email}</strong>
-                <span className="muted">
-                  {user.lastSignInAt
-                    ? `Last sign-in ${user.lastSignInAt.slice(0, 10)}`
-                    : "No sign-in yet"}
-                </span>
-              </div>
-              <label className="select-field" htmlFor={`role-${user.uid}`}>
-                Role
-                <select
-                  id={`role-${user.uid}`}
+            <div key={user.uid}>
+              <div className="admin-user-row">
+                <div className="admin-user-id">
+                  <strong>{user.email}</strong>
+                  <span className="muted">
+                    {user.lastSignInAt
+                      ? `Last sign-in ${user.lastSignInAt.slice(0, 10)}`
+                      : "No sign-in yet"}
+                  </span>
+                </div>
+                <label className="select-field" htmlFor={`role-${user.uid}`}>
+                  Role
+                  <select
+                    id={`role-${user.uid}`}
+                    onChange={(event) =>
+                      setRoleDraftValue(user.uid, { role: event.target.value })
+                    }
+                    value={roleDraft.role}
+                  >
+                    {ROLE_OPTIONS.map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <input
+                  aria-label={`Reason for changing ${user.email}`}
                   onChange={(event) =>
-                    setDraftValue(user.uid, { role: event.target.value })
+                    setRoleDraftValue(user.uid, { reason: event.target.value })
                   }
-                  value={current.role}
+                  placeholder="Reason (required)"
+                  type="text"
+                  value={roleDraft.reason}
+                />
+                <button
+                  className="secondary-button"
+                  disabled={userPending || roleDraft.role === user.role}
+                  onClick={() => saveRole(user)}
+                  type="button"
                 >
-                  {ROLE_OPTIONS.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
+                  {pendingKey === `${user.uid}:role` ? "Saving" : "Save role"}
+                </button>
+              </div>
+              <div className="admin-user-row">
+                <div className="admin-user-id">
+                  <strong>Space access</strong>
+                  <span className="muted">
+                    {user.scopeClaimInvalid
+                      ? "Invalid scope claim — choose valid access and save before this user signs in."
+                      : "Scopes narrow reach; the role still applies."}
+                  </span>
+                </div>
+                <fieldset>
+                  <legend className="muted">Spaces</legend>
+                  <label>
+                    <input
+                      aria-label={`All spaces for ${user.email}`}
+                      checked={allSpaces}
+                      onChange={(event) =>
+                        setScopeDraftValue(user, {
+                          scopes: event.target.checked ? undefined : [...SPACE_SCOPES],
+                        })
+                      }
+                      type="checkbox"
+                    />{" "}
+                    All spaces
+                  </label>
+                  {SPACE_SCOPES.map((scope) => (
+                    <label key={scope}>
+                      <input
+                        aria-label={`${SCOPE_LABELS[scope]} for ${user.email}`}
+                        checked={scopeDraft.scopes?.includes(scope) ?? false}
+                        disabled={allSpaces}
+                        onChange={(event) => {
+                          const selected = scopeDraft.scopes ?? [];
+                          setScopeDraftValue(user, {
+                            scopes: event.target.checked
+                              ? SPACE_SCOPES.filter(
+                                  (candidate) =>
+                                    candidate === scope || selected.includes(candidate),
+                                )
+                              : selected.filter((candidate) => candidate !== scope),
+                          });
+                        }}
+                        type="checkbox"
+                      />{" "}
+                      {SCOPE_LABELS[scope]}
+                    </label>
                   ))}
-                </select>
-              </label>
-              <input
-                aria-label={`Reason for changing ${user.email}`}
-                onChange={(event) =>
-                  setDraftValue(user.uid, { reason: event.target.value })
-                }
-                placeholder="Reason (required)"
-                type="text"
-                value={current.reason}
-              />
-              <button
-                className="secondary-button"
-                disabled={pendingUid === user.uid || current.role === user.role}
-                onClick={() => save(user)}
-                type="button"
-              >
-                {pendingUid === user.uid ? "Saving" : "Save role"}
-              </button>
+                </fieldset>
+                <input
+                  aria-label={`Reason for changing space access for ${user.email}`}
+                  onChange={(event) =>
+                    setScopeDraftValue(user, { reason: event.target.value })
+                  }
+                  placeholder="Access reason (required)"
+                  type="text"
+                  value={scopeDraft.reason}
+                />
+                <button
+                  className="secondary-button"
+                  disabled={
+                    userPending ||
+                    (!user.scopeClaimInvalid &&
+                      sameScopes(scopeDraft.scopes, user.scopes))
+                  }
+                  onClick={() => saveScopes(user)}
+                  type="button"
+                >
+                  {pendingKey === `${user.uid}:scopes` ? "Saving" : "Save space access"}
+                </button>
+              </div>
             </div>
           );
         })}
       </div>
       {status ? <p className="muted">{status}</p> : null}
     </article>
+  );
+}
+
+function sameScopes(
+  left: readonly SpaceScope[] | undefined,
+  right: readonly SpaceScope[] | undefined,
+) {
+  if (left === undefined || right === undefined) return left === right;
+  return (
+    left.length === right.length &&
+    SPACE_SCOPES.every((scope) => left.includes(scope) === right.includes(scope))
   );
 }
