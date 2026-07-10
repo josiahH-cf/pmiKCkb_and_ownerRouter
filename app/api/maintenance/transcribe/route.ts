@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { authErrorResponse, requireCapability } from "@/lib/auth/session";
+import { authErrorResponse, requireCapabilityInSpace } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
 import { SpeechSetupError, createSpeechToTextProvider } from "@/lib/speech/stt-provider";
 
@@ -18,7 +18,7 @@ const TranscribeRequestSchema = z.object({
 // free stub in dev). Edit-gated (capture is editor work). The stub path is zero-spend.
 export async function POST(request: Request) {
   try {
-    await requireCapability("edit");
+    await requireCapabilityInSpace("edit", "maintenance");
   } catch (error) {
     return authErrorResponse(error);
   }

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { can, type Capability, type Role } from "@/lib/auth/roles";
 import { readServerConfig } from "@/lib/config/server";
+import { SPACE_SCOPES, type SpaceScope } from "@/lib/constants";
 import {
   createFirebaseSessionCookie,
   verifyFirebaseIdToken,
@@ -18,6 +19,7 @@ export interface AuthenticatedUser {
   email: string;
   hd: string;
   role: Role;
+  scopes?: readonly SpaceScope[];
 }
 
 export interface AuthClaims {
@@ -25,6 +27,7 @@ export interface AuthClaims {
   email?: unknown;
   hd?: unknown;
   role?: unknown;
+  scopes?: unknown;
 }
 
 interface FirebaseAuthClaims extends AuthClaims {
@@ -203,18 +206,52 @@ export async function requireCapability(capability: Capability) {
   return user;
 }
 
+export function hasSpaceAccess(user: AuthenticatedUser, scope: SpaceScope) {
+  return user.scopes === undefined || user.scopes.includes(scope);
+}
+
+export async function requireSpaceAccess(scope: SpaceScope) {
+  const user = await requireUser();
+
+  if (!hasSpaceAccess(user, scope)) {
+    throw new AuthError("This user is not authorized for the requested space.", 403);
+  }
+
+  return user;
+}
+
+export async function requireCapabilityInSpace(
+  capability: Capability,
+  scope: SpaceScope,
+) {
+  const user = await requireCapability(capability);
+
+  if (!hasSpaceAccess(user, scope)) {
+    throw new AuthError("This user is not authorized for the requested space.", 403);
+  }
+
+  return user;
+}
+
 export function validateAuthClaims(claims: AuthClaims): AuthenticatedUser {
   const uid = readRequiredString(claims.uid, "uid");
   const email = readRequiredString(claims.email, "email");
   const hd = readRequiredString(claims.hd, "hd").toLowerCase();
   const role = readRole(claims.role);
+  const scopes = readSpaceScopes(claims.scopes);
   const allowedHd = getAllowedHostedDomain();
 
   if (hd !== allowedHd) {
     throw new AuthError("Google Workspace hosted domain is not allowed.", 403);
   }
 
-  return { uid, email, hd, role };
+  return {
+    uid,
+    email,
+    hd,
+    role,
+    ...(scopes === undefined ? {} : { scopes }),
+  };
 }
 
 function validateFirebaseAuthClaims(claims: FirebaseAuthClaims): AuthenticatedUser {
@@ -236,6 +273,7 @@ function validateFirebaseAuthClaims(claims: FirebaseAuthClaims): AuthenticatedUs
     email,
     hd,
     role: readFirebaseRole(claims.role),
+    scopes: claims.scopes,
   });
 }
 
@@ -378,4 +416,26 @@ function readRole(value: unknown): Role {
   }
 
   throw new AuthError("Missing or invalid authenticated user role.", 403);
+}
+
+function readSpaceScopes(value: unknown): readonly SpaceScope[] | undefined {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new AuthError("Missing or invalid authenticated user scopes.", 403);
+  }
+
+  const scopes = Array.from(value);
+
+  if (!scopes.every(isSpaceScope)) {
+    throw new AuthError("Missing or invalid authenticated user scopes.", 403);
+  }
+
+  return Object.freeze(SPACE_SCOPES.filter((scope) => scopes.includes(scope)));
+}
+
+function isSpaceScope(value: unknown): value is SpaceScope {
+  return SPACE_SCOPES.includes(value as SpaceScope);
 }

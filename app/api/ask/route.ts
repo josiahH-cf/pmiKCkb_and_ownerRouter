@@ -4,6 +4,7 @@ import { answerQuestion } from "@/lib/ask/service";
 import { AnswerGenerationSetupError } from "@/lib/llm/answer";
 import { RetrievalSetupError } from "@/lib/retrieval/vertex-search";
 import { AskRequestSchema, type AskResponse } from "@/lib/schemas";
+import { scopeAskRequest } from "@/lib/space-scope-resources";
 
 export async function POST(request: Request) {
   let user;
@@ -27,8 +28,15 @@ export async function POST(request: Request) {
     );
   }
 
+  let scopedRequest;
   try {
-    const response: AskResponse = await answerQuestion(user, parsed.data);
+    scopedRequest = scopeAskRequest(user, parsed.data);
+  } catch (error) {
+    return authErrorResponse(error);
+  }
+
+  try {
+    const response: AskResponse = await answerQuestion(user, scopedRequest);
     return NextResponse.json(response);
   } catch (error) {
     if (

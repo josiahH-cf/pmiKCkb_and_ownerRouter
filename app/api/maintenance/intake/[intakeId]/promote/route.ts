@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { apiErrorResponse, parseOptionalJsonBody } from "@/lib/api/editable";
-import { requireCapability } from "@/lib/auth/session";
+import { requireCapabilityInSpace } from "@/lib/auth/session";
 import {
   PromoteIntakeInputSchema,
   promoteUnverifiedIntake,
@@ -16,7 +16,7 @@ interface RouteContext {
 // ({ priority? }); the writer 409s if it was already triaged. App-plane only; no SoR write, no send.
 export async function POST(request: Request, context: RouteContext) {
   try {
-    const user = await requireCapability("edit");
+    const user = await requireCapabilityInSpace("edit", "maintenance");
     const { intakeId } = await context.params;
     const input = await parseOptionalJsonBody(request, PromoteIntakeInputSchema);
     const ticket = await promoteUnverifiedIntake(user, intakeId, input);

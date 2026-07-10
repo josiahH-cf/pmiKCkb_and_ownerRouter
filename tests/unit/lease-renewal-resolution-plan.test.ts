@@ -4,6 +4,7 @@ import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   planLeaseRenewalResolution,
   ResolveLeaseRenewalFlagInputSchema,
+  resolutionReasonRequirement,
   type ResolvableFlag,
 } from "@/lib/firestore/lease-renewal-resolutions";
 
@@ -13,10 +14,16 @@ const FLAG: ResolvableFlag = {
   field_key: "renewal_date",
   field_label: "Renewal date",
   severity: "High",
+  suggested_source: "rentvine",
   candidate_sources: [
     { source: "sheet_tab3", value: "2026-08-31" },
     { source: "rentvine", value: "2026-09-01" },
   ],
+};
+
+const MEDIUM_FLAG: ResolvableFlag = {
+  ...FLAG,
+  severity: "Medium",
 };
 
 function parse(input: Record<string, unknown>) {
@@ -94,7 +101,7 @@ describe("planLeaseRenewalResolution", () => {
     expect(plan.proposed_writeback).toBeUndefined();
   });
 
-  it("requires a plain-English reason", () => {
+  it("rejects a blank plain-English reason when the key is supplied", () => {
     expect(() =>
       parse({
         run_id: "run-1",
@@ -103,5 +110,116 @@ describe("planLeaseRenewalResolution", () => {
         reason: "   ",
       }),
     ).toThrow();
+  });
+});
+
+describe("resolutionReasonRequirement", () => {
+  it.each(["High", "Blocked"] as const)(
+    "requires free text for %s severity even when the suggested source and a code are supplied",
+    (severity) => {
+      const flag: ResolvableFlag = { ...FLAG, severity };
+      const input = parse({
+        run_id: flag.run_id,
+        source_trigger_key: flag.source_trigger_key,
+        kind: "pick_source",
+        chosen_source: "rentvine",
+        reason_code: "accepted_suggestion",
+      });
+
+      expect(() => resolutionReasonRequirement(flag, input)).toThrow(
+        "A plain-English reason is required.",
+      );
+    },
+  );
+
+  it.each([
+    {
+      label: "a corrected value",
+      input: {
+        kind: "corrected_value",
+        corrected_value: "2026-10-15",
+      },
+    },
+    {
+      label: "an incorrect-flag dismissal",
+      input: { kind: "flag_incorrect" },
+    },
+    {
+      label: "a source override",
+      input: { kind: "pick_source", chosen_source: "sheet_tab3" },
+    },
+  ])("requires free text for $label despite a reason code", ({ input }) => {
+    const parsed = parse({
+      run_id: MEDIUM_FLAG.run_id,
+      source_trigger_key: MEDIUM_FLAG.source_trigger_key,
+      reason_code: "accepted_suggestion",
+      ...input,
+    });
+
+    expect(() => resolutionReasonRequirement(MEDIUM_FLAG, parsed)).toThrow(
+      "A plain-English reason is required.",
+    );
+  });
+
+  it("rejects the accepted-suggestion code on a manual source override even with spoofed label text", () => {
+    const input = parse({
+      run_id: MEDIUM_FLAG.run_id,
+      source_trigger_key: MEDIUM_FLAG.source_trigger_key,
+      kind: "pick_source",
+      chosen_source: "sheet",
+      reason: "Accepted the suggested source",
+      reason_code: "accepted_suggestion",
+    });
+
+    expect(() => resolutionReasonRequirement(MEDIUM_FLAG, input)).toThrow(
+      "only valid for the exact suggested source",
+    );
+  });
+
+  it.each(["Low", "Medium"] as const)(
+    "uses the reason-code label verbatim for a code-only %s suggested-source acceptance",
+    (severity) => {
+      const flag: ResolvableFlag = { ...MEDIUM_FLAG, severity };
+      const input = parse({
+        run_id: flag.run_id,
+        source_trigger_key: flag.source_trigger_key,
+        kind: "pick_source",
+        chosen_source: "rentvine",
+        reason_code: "accepted_suggestion",
+      });
+
+      expect(resolutionReasonRequirement(flag, input)).toBe(
+        "Accepted the suggested source",
+      );
+    },
+  );
+
+  it("requires a reason code on the safe suggested-source path", () => {
+    const input = parse({
+      run_id: MEDIUM_FLAG.run_id,
+      source_trigger_key: MEDIUM_FLAG.source_trigger_key,
+      kind: "pick_source",
+      chosen_source: "rentvine",
+      reason: "I agree with the suggestion.",
+    });
+
+    expect(() => resolutionReasonRequirement(MEDIUM_FLAG, input)).toThrow(
+      "A reason code is required.",
+    );
+  });
+
+  it("keeps supplied free text as optional elaboration when the safe path also has a code", () => {
+    const input = parse({
+      run_id: MEDIUM_FLAG.run_id,
+      source_trigger_key: MEDIUM_FLAG.source_trigger_key,
+      kind: "pick_source",
+      chosen_source: "rentvine",
+      reason: "  Confirmed against the signed lease.  ",
+      reason_code: "accepted_suggestion",
+    });
+
+    expect(resolutionReasonRequirement(MEDIUM_FLAG, input)).toBe(
+      "Confirmed against the signed lease.",
+    );
   });
 });

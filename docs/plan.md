@@ -464,18 +464,13 @@ Key gates:
   instead of extra toggles or custom fields. AI-readable queue state comes from these
   fixed fields plus `Activity`, not user-specific settings. V1 has no custom queue
   fields; any new field goes through the new-setting guardrail.
-- Approval Queue v1 uses one main queue table/list plus a right-side or modal detail
-  view, not multiple queue dashboards. The list shows only status, risk, action needed,
-  process/run, assignee, required approver, due date, and a direct link or open action.
-  The detail view shows summary, evidence links/previews, available actions, and
-  `Activity`. Admin-only health and settings are reachable from a simple Admin area, not
-  mixed into every normal queue item.
-- Mobile Approval Queue v1 uses the same queue list and detail view, with rows or cards
-  stacked for readability instead of a separate mobile workflow. Mobile list items show
-  only status, risk, action needed, due date, and open action; other fixed fields can
-  appear in the detail view. Primary actions remain visible in the detail view without
-  requiring users to understand Admin settings. Desktop and mobile use the same fixed
-  fields and `Activity` source so AI and automation see one queue model.
+- Renewal-flag decisions use S14's phone-first, one-card-at-a-time decider over the same
+  `RenewalRunView` as the established desktop cards. Low/Medium suggested-source choices
+  are one tap; High/Blocked and manual overrides keep the full audited form. The desktop
+  list and run-page bulk bar remain available as the alternate review mode.
+- The unified Approval Queue remains an urgent-first, value-free triage list. A safe
+  Low/Medium `queue_item` may expose one inline app-plane approval; renewal-flag and
+  write-back rows remain deep links to their value-bearing run page.
 - Approval Queue empty, loading, and error states are plain and production-safe. Empty
   queues say nothing is currently waiting for review and do not show fake/demo queue
   items. Loading and error states use plain-English messages with one obvious retry or

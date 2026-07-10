@@ -1,8 +1,10 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { WorkflowRunClient } from "@/components/workflows/WorkflowRunClient";
+import { redirect } from "next/navigation";
 import { can } from "@/lib/auth/roles";
-import { requirePageCapability } from "@/lib/auth/page-guards";
+import { primarySpaceHref, requirePageCapability } from "@/lib/auth/page-guards";
 import { getWorkflowRun, listWorkflowRunTimeline } from "@/lib/firestore/workflows";
+import { canAccessWorkflowRun } from "@/lib/space-scope-resources";
 
 interface WorkflowRunPageProps {
   params: Promise<{ runId: string }>;
@@ -16,12 +18,21 @@ export default async function WorkflowRunPage({ params }: WorkflowRunPageProps) 
   let timeline: Awaited<ReturnType<typeof listWorkflowRunTimeline>> = [];
 
   try {
-    [run, timeline] = await Promise.all([
-      getWorkflowRun(user, runId),
-      listWorkflowRunTimeline(user, runId),
-    ]);
+    run = await getWorkflowRun(user, runId);
   } catch {
     loadError = true;
+  }
+
+  if (run && !canAccessWorkflowRun(user, run)) {
+    redirect(primarySpaceHref(user));
+  }
+
+  if (run) {
+    try {
+      timeline = await listWorkflowRunTimeline(user, runId);
+    } catch {
+      loadError = true;
+    }
   }
 
   return (

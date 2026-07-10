@@ -43,6 +43,16 @@ const editor = {
   uid: "editor-uid",
 };
 
+const maintenanceEditor = {
+  ...editor,
+  scopes: ["maintenance"] as const,
+};
+
+const renewalsEditor = {
+  ...editor,
+  scopes: ["renewals"] as const,
+};
+
 afterEach(() => {
   setAuthResolverForTest(null);
   vi.clearAllMocks();
@@ -200,6 +210,54 @@ describe("notifications routes", () => {
     expect(families.find((f) => f.key === "approval_queue")?.muted).toBe(false);
   });
 
+  it("GET does not read or return renewal notifications for a maintenance-only user", async () => {
+    setAuthResolverForTest(() => maintenanceEditor);
+    vi.mocked(getNotificationPreferences).mockResolvedValue({
+      uid: "editor-uid",
+      muted_families: [],
+      email_enabled: false,
+    });
+    vi.mocked(listMaintenanceTicketNotifications).mockResolvedValue([
+      maintenanceRecord(),
+    ]);
+
+    const response = await GET(new Request("http://localhost/api/notifications"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    expect(listApprovalQueueNotifications).not.toHaveBeenCalled();
+    expect(listMaintenanceTicketNotifications).toHaveBeenCalledOnce();
+    expect(body.notifications.map((item: { source: string }) => item.source)).toEqual([
+      "maintenance_ticket",
+    ]);
+    expect(body.families.map((family: { key: string }) => family.key)).not.toContain(
+      "approval_queue",
+    );
+  });
+
+  it("GET does not read or return maintenance notifications for a renewals-only user", async () => {
+    setAuthResolverForTest(() => renewalsEditor);
+    vi.mocked(getNotificationPreferences).mockResolvedValue({
+      uid: "editor-uid",
+      muted_families: [],
+      email_enabled: false,
+    });
+    vi.mocked(listApprovalQueueNotifications).mockResolvedValue([approvalRecord()]);
+
+    const response = await GET(new Request("http://localhost/api/notifications"));
+    expect(response.status).toBe(200);
+    const body = await response.json();
+
+    expect(listApprovalQueueNotifications).toHaveBeenCalledOnce();
+    expect(listMaintenanceTicketNotifications).not.toHaveBeenCalled();
+    expect(body.notifications.map((item: { source: string }) => item.source)).toEqual([
+      "approval_queue",
+    ]);
+    expect(body.families.map((family: { key: string }) => family.key)).not.toContain(
+      "maintenance_tickets",
+    );
+  });
+
   it("mark-read dispatches to the maintenance writer for a maintenance source", async () => {
     setAuthResolverForTest(() => editor);
     vi.mocked(markMaintenanceTicketNotificationRead).mockResolvedValue(
@@ -220,6 +278,21 @@ describe("notifications routes", () => {
     const response = await POST(jsonReq({ source: "approval_queue", id: "a-1" }));
     expect(response.status).toBe(200);
     expect(markApprovalQueueNotificationRead).toHaveBeenCalledWith(editor, "a-1");
+    expect(markMaintenanceTicketNotificationRead).not.toHaveBeenCalled();
+  });
+
+  it("mark-read rejects a notification source outside the caller's spaces", async () => {
+    setAuthResolverForTest(() => maintenanceEditor);
+
+    const response = await POST(jsonReq({ source: "approval_queue", id: "a-1" }));
+    expect(response.status).toBe(403);
+    expect(markApprovalQueueNotificationRead).not.toHaveBeenCalled();
+
+    setAuthResolverForTest(() => renewalsEditor);
+    const maintenanceResponse = await POST(
+      jsonReq({ source: "maintenance_ticket", id: "m-1" }),
+    );
+    expect(maintenanceResponse.status).toBe(403);
     expect(markMaintenanceTicketNotificationRead).not.toHaveBeenCalled();
   });
 

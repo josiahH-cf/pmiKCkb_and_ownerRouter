@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse } from "@/lib/api/editable";
-import { requireCapability } from "@/lib/auth/session";
+import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { listApprovalQueueNotifications } from "@/lib/firestore/approval-queue-notifications";
 
 export async function GET(request: Request) {
   try {
-    const user = await requireCapability("read");
+    const user = await requireCapabilityInSpace("read", "renewals");
     const searchParams = new URL(request.url).searchParams;
     const limitParam = optionalParam(searchParams, "limit");
     const limit = limitParam ? Number(limitParam) : undefined;

@@ -161,8 +161,8 @@ suggestedWinner.source, reason_code:"accepted_suggestion" }` with NO `reason` ke
   resolves 200. _Verify:_ `npm test -- renewal-decider`, `npm test -- lease-renewal-resolutions`.
 - **AC-S14-3** — Governance refusal: `POST /api/lease-renewal/resolve` for a High or Blocked flag, OR for
   `kind:"corrected_value"`, OR for a `pick_source` whose `chosen_source !== suggestedWinner.source`, with
-  a `reason_code` but a blank/absent free-text `reason`, is refused with HTTP 400 and error text "A
-  plain-English reason is required." _Verify:_ `npm test -- lease-renewal-resolutions`; keep the
+  a `reason_code` but a blank/absent free-text `reason`, is refused with HTTP 400 and error text
+  containing "A plain-English reason is required." _Verify:_ `npm test -- lease-renewal-resolutions`; keep the
   Admin-for-High resolve test green.
 - **AC-S14-4** — Persisted audit: after a Low/Med code-only accept, the resolution record AND its
   append-only Activity twin carry `reason_code:"accepted_suggestion"` and a `reason` equal verbatim to
@@ -170,7 +170,7 @@ suggestedWinner.source, reason_code:"accepted_suggestion" }` with NO `reason` ke
 -- lease-renewal-resolutions`, `npm run verify:copy-voice`.
 - **AC-S14-5** — The 6-metric plumbing manifest (`tabsRecognized`, `tabsUnrecognized`, `totalRecords`,
   `credentialTabsExcluded`, `credentialScrubHits`, `dividerRowsDropped`) is absent from the card's
-  initial DOM and present only inside a collapsed `<details>`/Disclosure "Read details", matching
+  initial visible presentation and available only inside a collapsed `<details>`/Disclosure "Read details", matching
   `LiveRenewalReview.tsx:103-115`. _Verify:_ `npm test -- renewal-decider`.
 - **AC-S14-6** — After a Low/Med accept queues a write-back, the card shows a single "Approve write-back"
   button and NO `.lr-approve-form` textarea; tapping it POSTs to `/api/lease-renewal/writeback-approvals`
@@ -207,8 +207,8 @@ Named sentinels to keep green throughout: `tests/unit/approval-queue.test.ts` (s
 `tests/unit/live-renewal-review.test.tsx` (live review actionable), and
 `tests/unit/feature-suite-spec-shape.test.mjs` (this spec's shape gate).
 
-**Forbidden actions / hard gates.** App-plane only. Every Action Registry entry stays
-`production_allowed:false`. No autonomous send. No system-of-record write (RentVine / Sheet /
+**Forbidden actions / hard gates.** App-plane only. The existing Action Registry executable allowlist
+stays unchanged; this suite flips no entry. No autonomous send. No system-of-record write (RentVine / Sheet /
 QuickBooks / bank / client Drive) — a resolve QUEUES an append-only proposal and an approve RECORDS
 authorization; neither executes, and this suite adds NO new write path (it reuses `/resolve` +
 `/writeback-approvals` unchanged in contract). No new Google scope. No Cloud Scheduler. No client data

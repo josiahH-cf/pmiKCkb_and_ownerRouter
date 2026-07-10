@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse } from "@/lib/api/editable";
-import { requireCapability } from "@/lib/auth/session";
+import { hasSpaceAccess, requireCapability } from "@/lib/auth/session";
 import { listApprovalQueueNotifications } from "@/lib/firestore/approval-queue-notifications";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { listMaintenanceTicketNotifications } from "@/lib/firestore/maintenance-ticket-notifications";
@@ -21,20 +21,33 @@ export async function GET(request: Request) {
       throw new EditableLayerError("Invalid notification limit.", 400);
     }
 
+    const canReadRenewals = hasSpaceAccess(user, "renewals");
+    const canReadMaintenance = hasSpaceAccess(user, "maintenance");
     const [preferences, approval, maintenance] = await Promise.all([
       getNotificationPreferences(user),
-      listApprovalQueueNotifications(user, { recipientOnly: true, unreadOnly }),
-      listMaintenanceTicketNotifications(user, { unreadOnly }),
+      canReadRenewals
+        ? listApprovalQueueNotifications(user, { recipientOnly: true, unreadOnly })
+        : Promise.resolve([]),
+      canReadMaintenance
+        ? listMaintenanceTicketNotifications(user, { unreadOnly })
+        : Promise.resolve([]),
     ]);
 
-    return NextResponse.json(
-      buildNotificationFeed({
-        approval,
-        maintenance,
-        mutedFamilies: preferences.muted_families,
-        limit,
-      }),
-    );
+    const feed = buildNotificationFeed({
+      approval,
+      maintenance,
+      mutedFamilies: preferences.muted_families,
+      limit,
+    });
+
+    return NextResponse.json({
+      ...feed,
+      families: feed.families.filter(
+        (family) =>
+          (family.key !== "approval_queue" || canReadRenewals) &&
+          (family.key !== "maintenance_tickets" || canReadMaintenance),
+      ),
+    });
   } catch (error) {
     return apiErrorResponse(error);
   }

@@ -81,7 +81,7 @@ today's reach with zero migration.
   an "All spaces" (clear the claim) toggle + reason.
 
 - **Buildable now (app-plane).** No system-of-record write, no autonomous send, no new Google scope,
-  `production_allowed:false`, not an Action Registry entry (an app-plane auth op like F-ADMIN-USERS).
+  and no Action Registry state change (an app-plane auth op like F-ADMIN-USERS; preserve the existing allowlist).
   The loop may build all of the below unattended:
   - The `SPACE_SCOPES` + `SPACE_SCOPE_HOME` vocabulary in `lib/constants.ts` and the `SpaceScope` type.
   - The orthogonal `scopes` field on `AuthClaims`/`AuthenticatedUser` + parsing/rejection in
@@ -137,8 +137,8 @@ today's reach with zero migration.
   `docs/client-checklist.md` as confirm-with-default (default: no outside logins; the HMAC intake
   remains the only external ingress). Tracked alongside the existing intake access asks.
 - _Assumption:_ hard gates unchanged this cycle — no autonomous send, no SoR write, no new Google
-  scope, no Cloud Scheduler, no client data on GitHub, every Action Registry entry
-  `production_allowed:false`, ~$10 cap; deploy owner-run.
+  scope, no Cloud Scheduler, no client data on GitHub, no Action Registry flip, existing executable
+  allowlist preserved, ~$10 cap; deploy owner-run.
 
 **Cross-product impacts.** `lib/constants.ts` (new `SPACE_SCOPES`/`SPACE_SCOPE_HOME`);
 `lib/auth/session.ts` (claim + validation + `hasSpaceAccess`/`requireSpaceAccess`/
@@ -210,8 +210,8 @@ at the promote step. NAMED sentinels to keep green throughout: `tests/unit/route
 `tests/unit/admin-users-route.test.ts`, `tests/unit/console-view.test.tsx`,
 `tests/unit/space-card-state.test.ts`.
 
-**Forbidden actions / hard gates.** App-plane only; every Action Registry entry
-`production_allowed:false` (this suite adds NO registry entry — it is an app-plane auth op, like
+**Forbidden actions / hard gates.** App-plane only; preserve the existing Action Registry executable
+allowlist exactly and flip no entry (this suite adds NO registry entry — it is an app-plane auth op, like
 F-ADMIN-USERS); no autonomous send; no system-of-record write (RentVine / Sheet / QuickBooks / bank /
 client Drive); no new Google scope; no Cloud Scheduler; no client data on GitHub; ~$10 budget cap;
 deploy stays owner-run. Suite-specific hard stops, each a falsification if violated: (1) the

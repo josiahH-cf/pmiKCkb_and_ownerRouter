@@ -18,19 +18,22 @@ stop-and-reset rules.
   2026-06-29 cycle shipped + merged R1–R5 (spine+IA, golden harness+labeling, renewal math, action console +
   intent-detect, and the full Maintenance Work Order Intake incl. live Drive photo sync). Full detail is in
   `docs/status.md` + `docs/facts.md` (`F-*` rows). All gates green on every merge.
-- **2026-07-10 UI/UX + governance overhaul — foundation + specs MERGED to main (PR #65); owner APPROVED, loop CLEARED to build.**
-  Made governance runner-neutral (`F-RUNNER-AGNOSTIC`: AGENTS.md single source + Per-Runner Pointers; the
-  router-boundary gate now requires both `CLAUDE.md` and `.codex/config.toml`), wired the adversarial +
-  freshness + new spec-traceability gates into CI (`F-ADVERSARIAL-CI-GATE`), and added the spec-shape +
-  traceability mechanism (`F-SPEC-TRACEABILITY`). Authored + merged five overhaul specs S14–S18
-  (approval-queue-mobile, gmail-hub, rbac-subusers, unified-console-and-attention, process-auto-initiation);
-  four owner decisions locked (D1–D4). The D4 review gate is now LIFTED — pillar implementation is the next
-  work (build order below); the loop builds unattended when triggered.
+- **2026-07-10 overhaul foundation + specs MERGED (PR #65); owner APPROVED; S14 app-plane tier BUILT locally.**
+  Runner-neutral governance, adversarial/freshness/spec-traceability CI gates, and specs S14–S18 are on main
+  (`F-RUNNER-AGNOSTIC`, `F-ADVERSARIAL-CI-GATE`, `F-SPEC-TRACEABILITY`). S14 now supplies the phone-first
+  one-card renewal decider, exact D1 conditional reasons, distinct one-tap write-back authorization, same-session
+  per-user Skip progress, and actor-safe inline queue approval (`F-RENEWAL-DECIDER-MOBILE`; AC-S14-1..9).
+  Adversarial review closed state bleed, over-broad code-only approval, indefinite Skip hiding, tuple-key
+  collisions, and stale governance claims. Full `scripts/verify.sh` + production build are green; no live action.
+  The loop then CONTINUED into **S16 rbac-subusers** (orthogonal `scopes` claim + `requireSpaceAccess` guards +
+  admin scope editor + tests) but was interrupted before its verification boundary; it is now green after an
+  owner-run fix of an overlooked step-checks route test-mock gap (+ a scope-denial test). Committed + merged
+  with S14. S16 still needs its dedicated adversarial pass + `F-S16` promotion (see Next Safe Slice).
 - Production-plane fence verified (`F-PROD-CLOUD-MODEL`): prod forces Gemini + Drive; the local model,
   demo auth, and the STT/image stubs are dev/test-only (NODE_ENV-fenced), never a prod dependency.
 - Earlier context (full history in `docs/status.md`): client beta deployed on the `pmi-kc-kb-demo` Cloud
   Run service (`pmi-kc-kb-prod`); real Google auth locked to `pmikcmetro.com`; live RentVine (25 leases) +
-  Sheet (DWD) reads work; `production_allowed:false` throughout.
+  Sheet (DWD) reads work; external execution stays gated except the documented unsent renewal-draft action.
 - Operating mode: normal owner-present; Remote Away Mode INACTIVE (`docs/away-mode.md`); hard $10 budget cap.
 - Recalibrations: 2026-06-30 (`A-IA-V2` — Console-as-home, Spaces ⊇ Processes, teeth, parity; shipped as S12→S6→S10:
   `F-DEVPROD-PARITY`/`F-IA-CONSOLE-HOME`/`F-CONSOLE-APP-STATE`) and 2026-07-02 (S13 pre-customer refinement, see RESUME).
@@ -56,16 +59,16 @@ stop-and-reset rules.
   the next work was then owner/vendor-gated (SUPERSEDED 2026-07-10 — the overhaul reopened S14–S18; see below).
 - **Deferred cycle COMPLETE (2026-07-09), 7 slices merged (PRs #56-#62):** 2a/1b/1c/3a/3b/A4/4a + 2c/3c/A5/2d/2b shipped app-plane, each adversarially verified then PR -> CI -> merge. Full narrative in `docs/status.md`; decision spec in `docs/temp/deferred-remaining-slices.md`.
 
-## Next Safe Slice — S14 (owner APPROVED 2026-07-10; loop cleared to build)
+## Next Safe Slice — S16 verification boundary, then S17 (owner APPROVED 2026-07-10)
 
-The 2026-07-10 overhaul reopened a large app-plane backlog: the five specs S14–S18 (`docs/feature-suites/`)
-are decision-complete, each with a "Buildable now (app-plane)" vs "Gated" split and falsifiable `AC-` checks.
-Owner reviewed + APPROVED the specs (PR #65 merged to main); the D4 review gate is LIFTED and the loop is
-CLEARED to build the buildable-now slices unattended. Build highest-value first: **S14** approval-queue-mobile
-(the #1 target) → **S16** rbac-subusers → **S17** unified-console-and-attention (its B7 depends on S16) →
-**S15** gmail-hub → **S18** process-auto-initiation. Build only each spec's "Buildable now (app-plane)" slices;
-stop at its named gates. The disposable per-cycle packet is `docs/temp/ui-ux-overhaul-plan.md`; the prior
-deferred cycle's is `docs/temp/deferred-remaining-slices.md`.
+S14's app-plane tier is complete + adversarially verified (AC-S14-1..9, `F-RENEWAL-DECIDER-MOBILE`). **S16
+rbac-subusers is BUILT locally + GREEN** (orthogonal `scopes` claim; `requireSpaceAccess` guards across ~35
+routes; nav/Spaces/Console filtering; a manageAdmin scope editor with an `admin_scope_changes` audit; full S16
+test suite; typecheck, lint, 1413 tests, all gates, and the production build pass). It has NOT had a dedicated
+adversarial boundary or an `F-S16` fact — DO THAT FIRST: run S16's Verification-and-Falsification pass against
+AC-S16-1..9 (the guard on every scoped route, nav/Spaces/Console filtering, the admin scope editor + audit) and
+promote `F-S16`. Then **S17** unified-console-and-attention (B7 consumes S16's filter) → **S15** gmail-hub →
+**S18** process-auto-initiation. Cycle packet: `docs/temp/ui-ux-overhaul-plan.md`.
 
 Carried owner/vendor-gated (unchanged): prod `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` + live process seed;
 RentVine work-order create; Sheet-write EXECUTION (`F-WRITE-GATE`, `OQ-RV-1`); the Gmail renewal-draft prod
@@ -104,11 +107,8 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 
 ## Stop-Condition State
 
-- 2026-07-10: **D4 review gate LIFTED — owner approved (PR #65 merged to main).** The overhaul foundation +
-  specs are on main; there is NO active stop-condition. When the loop is triggered it builds the S14–S18
-  buildable-now slices (S14 first) unattended; normal per-slice stop-and-reset rules resume. Runner-agnostic
-  governance + the adversarial/spec-traceability gates are live in CI, so a Claude- or Codex-triggered loop is
-  held to the same falsification-against-spec bar.
+- 2026-07-10: S14 passed its local build + adversarial boundary; no stop-condition fired. Continue to S16's
+  buildable app-plane tier. External writes, deploy, Gmail scope, and cost-bearing actions remain gated.
 - 2026-07-09: the 7-slice deferred cycle shipped + merged (PRs #56-#62); superseded as the active stop by the
   2026-07-10 cycle above.
 - Prior stop-conditions (2026-06-30 migration-readiness / "no safe slice"; 2026-07-01 owner-present cycles) are
@@ -130,9 +130,9 @@ only from env/Secret Manager, never committed. Record only non-secret references
    read-only `npm run preflight:adc`; if it fails, ask the owner to run `auth:session` (`F-SESSION-AUTH`) — a stale token stalls mid-step.
 3. If the trigger is "plan the next feature cycle", produce a decision-complete packet and stop. If
    the trigger authorizes running the loop, proceed unattended.
-4. Pick the next slice from **Next Safe Slice** above — **S14** approval-queue-mobile is first (then S16 →
-   S17 → S15 → S18); build only each spec's "Buildable now (app-plane)" slices and stop at its named gates.
+4. Pick the next slice from **Next Safe Slice** above — **S16** rbac-subusers is next (then S17 → S15 →
+   S18); build only each spec's "Buildable now (app-plane)" slices and stop at its named gates.
    For lease-renewal writeback specifically, stay in discovery until the team validates process, columns, and
    golden data.
-5. Keep every Action Registry entry `production_allowed:false`; honor the stop gate and the $10 cap.
+5. Preserve the existing executable allowlist exactly; do not flip another registry entry. Honor all gates + cap.
 6. Update `docs/facts.md` and this file at each slice boundary; run `npm run verify:context-freshness`.

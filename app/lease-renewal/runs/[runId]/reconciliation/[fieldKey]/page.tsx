@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { requirePageSpaceAccess } from "@/lib/auth/page-guards";
 
 // Reconciliation queue items persist direct_link = /lease-renewal/runs/{runId}/reconciliation/
 // {fieldKey}, but the flag's evidence + resolve control live on the run page — so this route 404ed
@@ -10,6 +11,7 @@ export default async function ReconciliationDeepLinkPage({
 }: {
   params: Promise<{ runId: string; fieldKey: string }>;
 }) {
+  await requirePageSpaceAccess("renewals");
   const { runId, fieldKey } = await params;
   redirect(
     `/lease-renewal/runs/${encodeURIComponent(runId)}?flag=${encodeURIComponent(fieldKey)}`,

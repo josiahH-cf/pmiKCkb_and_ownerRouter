@@ -253,6 +253,22 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Per-user renewal-decider Seen/Deferred markers (S14 B6). Written server-side through the
+    // edit-gated Admin SDK boundary only. Unlike shared renewal decisions, these are personal
+    // navigation markers: clients may read ONLY their own current + Activity records, including
+    // Admin clients, and may never write either collection directly.
+    match /renewal_decider_progress/{progressId} {
+      allow read: if signedIn() && editorOrBetter() &&
+        ('user_uid' in resource.data && resource.data.user_uid == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
+    match /renewal_decider_progress_activity/{activityId} {
+      allow read: if signedIn() && editorOrBetter() &&
+        ('actor_uid' in resource.data && resource.data.actor_uid == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
     // Lease Renewal Phase-2 write-back approvals and their append-only Activity are written server-side
     // through the Admin SDK boundary only (Admin capability enforced there). Clients may read but never
     // write directly, so the admin-gated approval and the no-execute write-back gate cannot be bypassed.
@@ -277,6 +293,13 @@ service cloud.firestore {
     // In-app role-change audit (console overhaul Slice D). Written server-side through the Admin SDK
     // boundary only; Admin-only read (the Admin page reads it server-side). Append-only.
     match /admin_role_changes/{changeId} {
+      allow read: if signedIn() && admin();
+      allow create, update, delete: if false;
+    }
+
+    // In-app space-scope audit (S16). Same boundary as role changes: Admin-readable and
+    // server-written only; no direct client may forge, mutate, or delete an audit entry.
+    match /admin_scope_changes/{changeId} {
       allow read: if signedIn() && admin();
       allow create, update, delete: if false;
     }

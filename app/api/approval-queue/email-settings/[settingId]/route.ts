@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
-import { requireCapability } from "@/lib/auth/session";
+import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { updateApprovalQueueEmailSetting } from "@/lib/firestore/approval-queue-notifications";
 import { UpdateApprovalQueueEmailSettingInputSchema } from "@/lib/firestore/schemas";
 
@@ -10,7 +10,7 @@ interface RouteContext {
 
 export async function PATCH(request: Request, context: RouteContext) {
   try {
-    const user = await requireCapability("manageAdmin");
+    const user = await requireCapabilityInSpace("manageAdmin", "renewals");
     const { settingId } = await context.params;
     const input = await parseJsonBody(
       request,

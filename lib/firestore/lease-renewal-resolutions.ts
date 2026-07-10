@@ -3,7 +3,8 @@
 // The reconciliation FLAGS are recomputed deterministically from the run (simulation today); only a
 // human RESOLUTION and its append-only Activity persist here, in the KB's own Firestore. The three
 // resolution paths are: pick a source, enter a corrected value, or "flag is wrong / the sheet is
-// already right". A required plain-English reason is captured for every path.
+// already right". A plain-English reason is captured for every manual path; a Low/Medium acceptance
+// of the suggested source may instead use a value-free reason code whose label is stamped as reason.
 //
 // GOVERNANCE: this layer NEVER executes a sheet / system-of-record write. A pick-a-source or
 // corrected-value resolution only QUEUES a proposed write-back (`production_allowed: false`) for the
@@ -28,7 +29,10 @@ import type {
 } from "@/lib/firestore/types";
 import { getSimulationRun } from "@/lib/lease-renewal/simulation";
 import type { RenewalRunResult } from "@/lib/lease-renewal/pipeline";
-import { DECISION_REASON_CODES } from "@/lib/lease-renewal/reason-codes";
+import {
+  DECISION_REASON_CODES,
+  DECISION_REASON_CODE_LABELS,
+} from "@/lib/lease-renewal/reason-codes";
 
 export const LEASE_RENEWAL_COLLECTIONS = {
   resolutions: "lease_renewal_resolutions",
@@ -41,8 +45,10 @@ export const ResolveLeaseRenewalFlagInputSchema = z.object({
   kind: z.enum(["pick_source", "corrected_value", "flag_incorrect"]),
   chosen_source: z.string().min(1).optional(),
   corrected_value: z.string().min(1).optional(),
-  reason: z.string().trim().min(1, "A plain-English reason is required."),
-  // Additive enumerated reason code (S13 H2); optional so existing callers are unaffected.
+  // D1 is flag-dependent, so the schema accepts an omitted reason and the pure
+  // resolutionReasonRequirement helper enforces the precise branch after the flag is loaded.
+  reason: z.string().trim().min(1, "A plain-English reason is required.").optional(),
+  // Additive enumerated reason code (S13 H2); required by D1 only on the safe code-only path.
   reason_code: z.enum(DECISION_REASON_CODES).optional(),
 });
 export type ResolveLeaseRenewalFlagInput = z.input<
@@ -57,7 +63,50 @@ export interface ResolvableFlag {
   field_key: string;
   field_label: string;
   severity: QueueRiskLevel;
+  /** Suggested source from reconciliation, when one exists. Suggestion only; never auto-applied. */
+  suggested_source?: string;
   candidate_sources: { source: string; value: string | number | boolean | null }[];
+}
+
+/**
+ * Enforce S14 D1 and return the nonblank reason text that must be persisted.
+ *
+ * A reason code is sufficient only for a Low/Medium pick of the exact suggested source. When that
+ * safe path omits free text, the code's operator-facing label becomes the audit reason verbatim.
+ * Every High/Blocked decision and every manual override/correction/dismissal still requires free
+ * text, even if a reason code is present. Pure: no Firestore, auth, or run lookup.
+ */
+export function resolutionReasonRequirement(
+  flag: ResolvableFlag,
+  input: Pick<
+    ResolveLeaseRenewalFlagInput,
+    "kind" | "chosen_source" | "reason" | "reason_code"
+  >,
+): string {
+  const reason = input.reason?.trim();
+  const acceptsSuggestedSource =
+    (flag.severity === "Low" || flag.severity === "Medium") &&
+    input.kind === "pick_source" &&
+    Boolean(flag.suggested_source) &&
+    input.chosen_source === flag.suggested_source;
+
+  if (!acceptsSuggestedSource) {
+    if (!reason) {
+      throw new EditableLayerError("A plain-English reason is required.", 400);
+    }
+    if (input.reason_code === "accepted_suggestion") {
+      throw new EditableLayerError(
+        "The accepted-suggestion reason code is only valid for the exact suggested source.",
+        400,
+      );
+    }
+    return reason;
+  }
+
+  if (!input.reason_code) {
+    throw new EditableLayerError("A reason code is required.", 400);
+  }
+  return reason ?? DECISION_REASON_CODE_LABELS[input.reason_code];
 }
 
 export interface ResolutionPlan {
@@ -146,6 +195,7 @@ function toResolvableFlag(
     field_key: flag.fieldKey,
     field_label: flag.fieldLabel,
     severity: flag.reconciliation.severity,
+    suggested_source: flag.reconciliation.suggested_winner?.source,
     candidate_sources: flag.reconciliation.candidates.map((candidate) => ({
       source: candidate.source,
       value: candidate.value,
@@ -193,6 +243,7 @@ export async function resolveLeaseRenewalFlag(
     );
   }
 
+  const reason = resolutionReasonRequirement(flag, parsed);
   const plan = planLeaseRenewalResolution(flag, parsed);
   const docId = resolutionDocId(parsed.source_trigger_key);
 
@@ -220,7 +271,7 @@ export async function resolveLeaseRenewalFlag(
         resolution_kind: plan.resolution_kind,
         chosen_source: plan.chosen_source,
         corrected_value: plan.corrected_value,
-        reason: parsed.reason,
+        reason,
         reason_code: parsed.reason_code,
         resolved_by_uid: actor.uid,
         proposed_writeback: plan.proposed_writeback,
@@ -240,7 +291,7 @@ export async function resolveLeaseRenewalFlag(
         action: plan.resolution_kind,
         previous_status: previousStatus,
         new_status: plan.status,
-        reason: parsed.reason,
+        reason,
         reason_code: parsed.reason_code,
         created_at: FieldValue.serverTimestamp(),
       }),

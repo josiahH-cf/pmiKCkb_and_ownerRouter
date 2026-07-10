@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
 // S13 B2 — bulk approve/return lives ONLY on the run page (where values are visible), is Admin-only,
-// shares ONE mandatory reason across the selection, and reports per-item results. The value-free
-// queue surfaces keep zero approve affordances (their own sentinel tests assert that).
+// shares ONE mandatory reason across the selection, and reports per-item results. Renewal/write-back
+// queue rows stay deep-link-only; S14's separate safe queue_item boolean is the sole inline exception.
 
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
@@ -83,6 +83,39 @@ function renderClient(view: RenewalRunView, isAdmin = true) {
 }
 
 describe("run-page bulk write-back decisions", () => {
+  it("defaults a phone viewport to one card and can switch back to the desktop bulk view", async () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({
+        matches: true,
+        media: "(max-width: 720px)",
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    );
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ progress: [] }) }),
+    );
+
+    renderClient(twoQueued);
+
+    expect(await screen.findByText("1 of 3")).toBeInTheDocument();
+    expect(document.querySelectorAll(".lr-decider-card")).toHaveLength(1);
+    expect(
+      screen.queryByRole("heading", { name: "Decide several write-backs at once" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "View all flags" }));
+    expect(
+      screen.getByRole("heading", { name: "Decide several write-backs at once" }),
+    ).toBeInTheDocument();
+  });
+
   it("offers the bulk bar + one checkbox per QUEUED proposal to an Admin", () => {
     renderClient(twoQueued);
 

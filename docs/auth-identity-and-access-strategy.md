@@ -122,7 +122,36 @@ places and do **not** cascade. The most dangerous misconception is that
   `LOCAL_DEMO_AUTH=false` override surviving every deploy. Remaining hardening: a **runtime startup
   assertion** that fails fast if a demo flag is truthy while `NODE_ENV==="production"` (§5.3).
 
-### 2.1 App-side Drive access — decide before any direct app Drive read
+### 2.1 Role-scoped sub-users — orthogonal space access
+
+Firebase end-user authorization has two independent axes:
+
+- `role` remains the monotonic capability tier (`Editor` → `Approver` → `Admin`). It answers what a
+  user may do and is never widened by a space scope.
+- `scopes` is an optional custom-claim array that narrows where the user may work. The initial
+  assignable values are `renewals` and `maintenance`. `{ role: "Editor", scopes: ["maintenance"] }`
+  is the maintenance-only staff principal; the role still denies approval actions.
+
+A missing `scopes` claim is the backward-compatible ALL-spaces wildcard, so existing Dan/Josiah and
+demo sessions need no claim migration. A present claim must be a non-empty array of known values;
+empty or unknown arrays are rejected with 403 instead of silently locking the user out or fanning
+access open. Page and API entry requires both the existing capability check and the matching space
+scope. An authenticated scope miss redirects to that user's primary in-scope desk; an unauthenticated
+request still goes to sign-in. Navigation, Spaces cards, and Console rows/process chips use the same
+scope predicate, while server guards remain authoritative.
+
+Admins may edit scopes through the in-app user-management surface. Scope changes preserve the target's
+existing role claim, require a plain-English reason, stay inside `pmikcmetro.com`, and append an
+`admin_scope_changes` audit record. "All spaces" clears the optional claim and restores wildcard
+behavior. Creating a real user or assigning a live scope remains owner-run; this implementation does
+not mint or alter any live account autonomously.
+
+The hosted-domain boundary is unchanged. A third-party maintenance vendor is not eligible for this
+Firebase sub-user model without a later client-approved identity-policy change. Outside reporters keep
+using the HMAC-token public maintenance intake; it remains the only scoped-prefix route that is both
+unauthenticated and intentionally outside the staff scope guard.
+
+### 2.2 App-side Drive access — decide before any direct app Drive read
 
 Distinct from connector (a) (which is _Claude's_ surface). For the app (c) reading Drive:
 

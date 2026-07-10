@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { requireCapability } from "@/lib/auth/session";
+import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { apiErrorResponse } from "@/lib/api/editable";
 import { listUnverifiedIntake } from "@/lib/firestore/maintenance-intake-review";
 
@@ -10,7 +10,7 @@ import { listUnverifiedIntake } from "@/lib/firestore/maintenance-intake-review"
 // /api/maintenance/intake/public POST (which writes here) and /intake/token (mint).
 export async function GET() {
   try {
-    const user = await requireCapability("edit");
+    const user = await requireCapabilityInSpace("edit", "maintenance");
     const intake = await listUnverifiedIntake(user);
     return NextResponse.json({ intake });
   } catch (error) {

@@ -27,6 +27,7 @@ vi.mock("@/lib/approval/needs-decision-gather", () => ({
         kind: "queue_item",
         key: "queue_item:q1",
         itemId: "q1",
+        canApproveInline: true,
         label: "Approve renewal package",
         detail: "Run 1",
         severity: "Medium",
@@ -38,6 +39,7 @@ vi.mock("@/lib/approval/needs-decision-gather", () => ({
 }));
 
 import { ConsoleView } from "@/components/console/ConsoleView";
+import { gatherNeedsDecisionInbox } from "@/lib/approval/needs-decision-gather";
 import { listProcessDefinitions } from "@/lib/firestore/workflows";
 
 afterEach(() => {
@@ -46,6 +48,12 @@ afterEach(() => {
 });
 
 const adminUser = { uid: "u-admin", role: "Admin", email: "admin@pmikcmetro.com" };
+const maintenanceUser = {
+  uid: "u-maintenance",
+  role: "Editor",
+  email: "maintenance@pmikcmetro.com",
+  scopes: ["maintenance"],
+} as const;
 
 describe("ConsoleView", () => {
   it("renders the Console front door with the grounded-answer form", async () => {
@@ -87,5 +95,25 @@ describe("ConsoleView", () => {
     expect(listProcessDefinitions).toHaveBeenCalledTimes(1);
     // Editors get the process picker (canStartSimulation), populated from the loaded definitions.
     expect(screen.getByLabelText("Process")).toHaveTextContent("Lease Renewal");
+  });
+
+  it("removes renewals rows and process chips for a maintenance-only principal", async () => {
+    render(await ConsoleView({ user: maintenanceUser as never }));
+
+    expect(screen.queryByRole("link", { name: "Current rent" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Approve renewal package" })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Lease Renewals/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Google Sheets" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Google Drive" })).toHaveAttribute(
+      "href",
+      "/connections#connector-google_drive",
+    );
+    expect(
+      screen
+        .getAllByRole("link", { name: /Maintenance Work Order Intake/ })
+        .every((link) => link.getAttribute("href") === "/maintenance"),
+    ).toBe(true);
+    expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+    expect(gatherNeedsDecisionInbox).not.toHaveBeenCalled();
   });
 });

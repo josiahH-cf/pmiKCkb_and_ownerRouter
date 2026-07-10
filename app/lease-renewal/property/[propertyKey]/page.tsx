@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { requirePageCapability } from "@/lib/auth/page-guards";
+import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { listResolutionActivityForRun } from "@/lib/firestore/lease-renewal-resolutions";
 import { listWritebackApprovalActivityForRun } from "@/lib/firestore/lease-renewal-writeback-approvals";
 import type { LeaseRenewalWritebackApprovalActivityRecord } from "@/lib/firestore/types";
@@ -19,6 +19,7 @@ interface PropertyPageProps {
 }
 
 export default async function LeaseRenewalPropertyPage({ params }: PropertyPageProps) {
+  await requirePageSpaceAccess("renewals");
   const user = await requirePageCapability("manageAdmin");
   const { propertyKey: rawKey } = await params;
   const propertyKey = decodeURIComponent(rawKey);

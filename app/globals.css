@@ -1235,6 +1235,122 @@ button {
   }
 }
 
+/* S14 phone-first renewal decider. The established list and bulk bar remain in the alternate mode. */
+.lr-review-mode,
+.lr-decider {
+  display: grid;
+  gap: 14px;
+}
+
+.lr-review-mode-switch,
+.lr-decider-pager,
+.lr-decider-secondary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lr-review-mode-switch {
+  justify-content: flex-end;
+}
+
+.lr-decider-progress {
+  align-items: baseline;
+  display: flex;
+  justify-content: space-between;
+}
+
+.lr-decider-card {
+  display: grid;
+  gap: 14px;
+}
+
+.lr-decider-card > p,
+.lr-decider-card > ul {
+  margin-bottom: 0;
+  margin-top: 0;
+}
+
+.lr-decider-suggestion {
+  background: var(--color-primary-100);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  padding: 12px;
+}
+
+.lr-decider-actions,
+.lr-decider-follow-on,
+.lr-decider-manual {
+  display: grid;
+  gap: 10px;
+}
+
+.lr-decider-manual {
+  border-left: 3px solid var(--color-primary-500);
+  padding-left: 12px;
+}
+
+.lr-decider-manual label {
+  display: grid;
+  font-weight: 700;
+  gap: 4px;
+}
+
+.lr-decider-manual input,
+.lr-decider-manual select,
+.lr-decider-manual textarea {
+  box-sizing: border-box;
+  font: inherit;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.lr-decider-manual textarea {
+  min-height: 86px;
+  resize: vertical;
+}
+
+.lr-decider-skip {
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+}
+
+.lr-decider-pager {
+  justify-content: space-between;
+}
+
+.lr-decider-manifest {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.lr-decider-manifest > div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.lr-decider-manifest dt {
+  color: var(--color-text-muted);
+}
+
+.lr-decider-manifest dd {
+  font-weight: 800;
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .lr-review-mode-switch > button,
+  .lr-decider-actions > button {
+    flex: 1 1 100%;
+  }
+
+  .lr-decider-secondary-actions > button {
+    flex: 1 1 45%;
+  }
+}
+
 .lr-error {
   color: var(--state-no-source);
   font-weight: 700;

@@ -4,6 +4,10 @@ import { can } from "@/lib/auth/roles";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { listProcessDefinitions, listWorkflowRuns } from "@/lib/firestore/workflows";
 import type { ProcessDefinitionRecord, WorkflowRunRecord } from "@/lib/firestore/types";
+import {
+  filterProcessDefinitionsForUser,
+  filterWorkflowRunsForUser,
+} from "@/lib/space-scope-resources";
 
 export default async function ProcessesPage() {
   const user = await requirePageCapability("read");
@@ -13,14 +17,20 @@ export default async function ProcessesPage() {
   let initialRunsError: string | undefined;
 
   try {
-    definitions = await listProcessDefinitions(user);
+    definitions = filterProcessDefinitionsForUser(
+      user,
+      await listProcessDefinitions(user),
+    );
   } catch {
     initialError =
       "Workflow definitions are unavailable. Refresh Google credentials or check Firestore setup.";
   }
 
   try {
-    recentRuns = await listWorkflowRuns(user, { limit: 6, simulationOnly: true });
+    recentRuns = filterWorkflowRunsForUser(
+      user,
+      await listWorkflowRuns(user, { limit: 6, simulationOnly: true }),
+    );
   } catch {
     initialRunsError =
       "Recent test runs are unavailable. Refresh Google credentials or check Firestore setup.";

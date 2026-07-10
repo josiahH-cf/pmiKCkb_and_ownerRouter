@@ -15,9 +15,13 @@ vi.mock("next/navigation", () => ({
   }),
   useRouter: () => ({ refresh: vi.fn() }),
 }));
+vi.mock("@/lib/auth/page-guards", () => ({
+  requirePageSpaceAccess: vi.fn(async () => undefined),
+}));
 
 import ReconciliationDeepLinkPage from "@/app/lease-renewal/runs/[runId]/reconciliation/[fieldKey]/page";
 import { LeaseRenewalRunClient } from "@/components/lease-renewal/LeaseRenewalRunClient";
+import { requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-view";
 
 afterEach(() => cleanup());
@@ -31,6 +35,7 @@ describe("reconciliation deep-link redirect (C1)", () => {
     ).rejects.toThrow(
       "NEXT_REDIRECT:/lease-renewal/runs/sim-renewal-001?flag=current_rent",
     );
+    expect(requirePageSpaceAccess).toHaveBeenCalledWith("renewals");
   });
 });
 

@@ -1,10 +1,11 @@
 import Link from "next/link";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { requirePageCapability } from "@/lib/auth/page-guards";
+import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { listSimulationRuns } from "@/lib/lease-renewal/simulation";
 
 export default async function LeaseRenewalRunsPage() {
+  await requirePageSpaceAccess("renewals");
   const user = await requirePageCapability("read");
   const runs = listSimulationRuns();
 

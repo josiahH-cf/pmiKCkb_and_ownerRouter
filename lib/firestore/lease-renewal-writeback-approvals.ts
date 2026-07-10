@@ -30,21 +30,35 @@ import {
   WRITEBACK_AWAITING_APPROVAL,
   type WritebackApprovalState,
 } from "@/lib/lease-renewal/writeback-approval";
-import { DECISION_REASON_CODES } from "@/lib/lease-renewal/reason-codes";
+import {
+  DECISION_REASON_CODES,
+  DECISION_REASON_CODE_LABELS,
+} from "@/lib/lease-renewal/reason-codes";
 
 export const LEASE_RENEWAL_WRITEBACK_COLLECTIONS = {
   approvals: "lease_renewal_writeback_approvals",
   approvalActivity: "lease_renewal_writeback_approval_activity",
 } as const;
 
-export const DecideWritebackApprovalInputSchema = z.object({
-  run_id: z.string().min(1),
-  source_trigger_key: z.string().min(1),
-  decision: z.enum(["approve", "return"]),
-  reason: z.string().trim().min(1, "A plain-English reason is required."),
-  // Additive enumerated reason code (S13 H2); optional so existing callers are unaffected.
-  reason_code: z.enum(DECISION_REASON_CODES).optional(),
-});
+export const DecideWritebackApprovalInputSchema = z
+  .object({
+    run_id: z.string().min(1),
+    source_trigger_key: z.string().min(1),
+    decision: z.enum(["approve", "return"]),
+    // A one-tap approval may reuse the resolution's reason code; returns still require free text.
+    reason: z.string().trim().min(1, "A plain-English reason is required.").optional(),
+    // Additive enumerated reason code (S13 H2); optional so existing callers are unaffected.
+    reason_code: z.enum(DECISION_REASON_CODES).optional(),
+  })
+  .superRefine((input, context) => {
+    if (!input.reason && (input.decision !== "approve" || !input.reason_code)) {
+      context.addIssue({
+        code: "custom",
+        path: ["reason"],
+        message: "A plain-English reason is required.",
+      });
+    }
+  });
 export type DecideWritebackApprovalInput = z.input<
   typeof DecideWritebackApprovalInputSchema
 >;
@@ -117,6 +131,23 @@ export async function decideWritebackApproval(
     );
   }
 
+  // The code-only relaxation is deliberately narrower than the schema can express: it is valid
+  // only as the second tap after a Low/Medium accept-suggested resolution. The resolution must carry
+  // the same fixed code and its exact stamped label. Every High/Blocked or manual-resolution
+  // approval still requires fresh free text, even if the caller supplies an arbitrary code.
+  const codeOnlyFollowOn =
+    !parsed.reason &&
+    parsed.decision === "approve" &&
+    (resolution.severity === "Low" || resolution.severity === "Medium") &&
+    resolution.resolution_kind === "pick_source" &&
+    parsed.reason_code === "accepted_suggestion" &&
+    resolution.reason_code === parsed.reason_code &&
+    resolution.reason === DECISION_REASON_CODE_LABELS[parsed.reason_code];
+  if (!parsed.reason && !codeOnlyFollowOn) {
+    throw new EditableLayerError("A plain-English reason is required.", 400);
+  }
+  const reason = parsed.reason ?? DECISION_REASON_CODE_LABELS[parsed.reason_code!];
+
   const docId = resolutionDocId(parsed.source_trigger_key);
 
   // Read the existing approval, validate the transition, and write — all inside ONE transaction, so a
@@ -158,7 +189,7 @@ export async function decideWritebackApproval(
         state: plan.state,
         proposed_value: proposal.value,
         source_of_value: proposal.source_of_value,
-        reason: parsed.reason,
+        reason,
         reason_code: parsed.reason_code,
         decided_by_uid: actor.uid,
         production_allowed: plan.productionAllowed,
@@ -179,7 +210,7 @@ export async function decideWritebackApproval(
         action: parsed.decision,
         previous_state: priorState,
         new_state: plan.state,
-        reason: parsed.reason,
+        reason,
         reason_code: parsed.reason_code,
         created_at: FieldValue.serverTimestamp(),
       }),

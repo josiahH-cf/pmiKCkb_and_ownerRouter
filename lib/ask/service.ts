@@ -21,6 +21,7 @@ import {
 import type { RetrievalClient } from "@/lib/retrieval/vertex-search";
 import { VertexSearchRetrievalClient } from "@/lib/retrieval/vertex-search";
 import type { AskRequest, AskResponse } from "@/lib/schemas";
+import { scopeAskRequest } from "@/lib/space-scope-resources";
 import type { SourceState } from "@/lib/source-state";
 import { classifyGrounding, noReliableSourceResponse } from "@/lib/source-state";
 
@@ -57,6 +58,7 @@ export async function answerQuestion(
   request: AskRequest,
   options: AskServiceOptions = {},
 ): Promise<AskResponse> {
+  request = scopeAskRequest(user, request);
   const config = options.config ?? readServerConfig();
   const askLogWriter =
     options.askLogWriter ??

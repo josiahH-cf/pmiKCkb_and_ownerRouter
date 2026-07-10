@@ -46,7 +46,7 @@ export async function gatherNeedsDecisionInbox(
     writebackQueue = undefined;
   }
 
-  return buildNeedsDecisionInbox(queueItems, renewalBoard, writebackQueue);
+  return buildNeedsDecisionInbox(queueItems, renewalBoard, writebackQueue, user);
 }
 
 /**

@@ -7,6 +7,7 @@ import { listProcessDefinitions } from "@/lib/firestore/workflows";
 import { AnswerGenerationSetupError } from "@/lib/llm/answer";
 import { createModelProvider } from "@/lib/llm/model-provider";
 import { classifyProcessWithModel } from "@/lib/processes/classify";
+import { filterProcessDefinitionsForUser } from "@/lib/space-scope-resources";
 
 const ClassifyRequestSchema = z.object({ question: z.string().trim().min(3) });
 
@@ -30,7 +31,10 @@ export async function POST(request: Request) {
 
   try {
     const config = readServerConfig();
-    const definitions = await listProcessDefinitions(user);
+    const definitions = filterProcessDefinitionsForUser(
+      user,
+      await listProcessDefinitions(user),
+    );
     const provider = createModelProvider(config);
     const model =
       config.modelProvider === "local"

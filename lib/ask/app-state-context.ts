@@ -9,7 +9,12 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { buildConnectionView } from "@/lib/connections/connection-status";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
 import { listProcessDefinitions } from "@/lib/firestore/workflows";
-import { computeSpaceCardState } from "@/lib/space-card-state";
+import { SPACE_CONNECTOR_IDS, computeSpaceCardState } from "@/lib/space-card-state";
+import {
+  canAccessLaunchSpace,
+  canAccessMappedScope,
+  filterProcessDefinitionsForUser,
+} from "@/lib/space-scope-resources";
 import { launchSpaces, spaceHref } from "@/lib/spaces";
 
 export const APP_STATE_QUERIES = ["approvals", "connections", "coverage"] as const;
@@ -41,6 +46,15 @@ function plural(count: number, noun: string): string {
 export async function resolveApprovalsState(
   user: AuthenticatedUser,
 ): Promise<AppStateResult> {
+  if (!canAccessMappedScope(user, "renewals")) {
+    return {
+      query: "approvals",
+      title: "Needs your decision",
+      summary: "Nothing needs your decision right now.",
+      items: [],
+    };
+  }
+
   const inbox = await gatherNeedsDecisionInbox(user);
   const items: AppStateItem[] = inbox.rows.map((row) => ({
     label: row.label,
@@ -64,13 +78,22 @@ export async function resolveApprovalsState(
  *  runs) is NOT an operator setup gap, so it is excluded to keep the list actionable. */
 export function resolveConnectionsState(
   env: Record<string, string | undefined> = process.env,
+  user?: AuthenticatedUser,
 ): AppStateResult {
   const view = buildConnectionView(readConnectorPresence(env));
-  const gaps = view.items.filter(
+  let gaps = view.items.filter(
     (item) =>
       item.status.state === "none" ||
       item.status.configuredCount < item.status.requiredCount,
   );
+  if (user?.scopes !== undefined) {
+    const visibleConnectorIds = new Set(
+      launchSpaces
+        .filter((space) => canAccessLaunchSpace(user, space))
+        .flatMap((space) => SPACE_CONNECTOR_IDS[space.id] ?? []),
+    );
+    gaps = gaps.filter((item) => visibleConnectorIds.has(item.def.id));
+  }
 
   return {
     query: "connections",
@@ -98,7 +121,10 @@ export async function resolveCoverageState(
   let definitionIds: ReadonlySet<string> = knownDefinitionIds ?? new Set<string>();
   if (!knownDefinitionIds) {
     try {
-      const definitions = await listProcessDefinitions(user);
+      const definitions = filterProcessDefinitionsForUser(
+        user,
+        await listProcessDefinitions(user),
+      );
       definitionIds = new Set(definitions.map((definition) => definition.id));
     } catch {
       definitionIds = new Set();
@@ -107,6 +133,7 @@ export async function resolveCoverageState(
   const presence = readConnectorPresence();
 
   const gaps = launchSpaces
+    .filter((space) => canAccessLaunchSpace(user, space))
     .filter((space) => !space.readOnly)
     .map((space) => ({
       space,
@@ -141,7 +168,7 @@ export async function resolveAppState(
     case "approvals":
       return resolveApprovalsState(user);
     case "connections":
-      return resolveConnectionsState();
+      return resolveConnectionsState(process.env, user);
     case "coverage":
       return resolveCoverageState(user);
   }

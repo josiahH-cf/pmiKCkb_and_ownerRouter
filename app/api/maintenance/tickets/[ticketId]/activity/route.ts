@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse } from "@/lib/api/editable";
-import { requireCapability } from "@/lib/auth/session";
+import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { listMaintenanceTicketActivity } from "@/lib/firestore/maintenance-tickets";
 
 interface RouteContext {
@@ -12,7 +12,7 @@ interface RouteContext {
 // per-ticket history panel without rebuilding the F-MAINT-TICKETS lifecycle. No write, no send.
 export async function GET(_request: Request, context: RouteContext) {
   try {
-    const user = await requireCapability("read");
+    const user = await requireCapabilityInSpace("read", "maintenance");
     const { ticketId } = await context.params;
     const activity = await listMaintenanceTicketActivity(user, ticketId);
     return NextResponse.json({ activity });

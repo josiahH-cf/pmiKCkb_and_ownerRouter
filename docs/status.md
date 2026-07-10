@@ -6400,3 +6400,61 @@ runner-neutral routing is enforced by `scripts/check-router-boundary.mjs` (requi
 `.codex/config.toml`). Governance unchanged: app-plane only, `production_allowed:false`, no SoR write, no
 autonomous send, ~$10 cap, deploy owner-run. Next: a runner triggered with `/loop` / "run the loop" / "build"
 begins S14; the shipped `F-*` facts must cite the `AC-S14-*` ids (`verify:spec-traceability` enforces).
+
+## 2026-07-10 (loop run) — S14 mobile Approval Queue buildable tier complete locally
+
+Built all S14 app-plane slices against the existing run/live data paths (`F-RENEWAL-DECIDER-MOBILE`,
+AC-S14-1..9): a phone viewport defaults to one severity-ordered renewal card with N-of-M buttons and
+collapsed diagnostics; Low/Medium exact suggested-source acceptance posts `accepted_suggestion` with no
+typed reason, while the trusted boundary still requires free text for High/Blocked and every manual
+override; the persisted code label becomes the resolution + Activity reason. A safe queued acceptance
+then exposes a separate Admin-only one-tap write-back authorization using the same code, with no second
+textarea and no execution. The established desktop cards and bulk bar remain the alternate mode.
+
+Added per-user Skip persistence (`renewal_decider_progress` + append-only Activity, transactional,
+`edit`-gated, collision-free tuple id, client-read-own/direct-write-denied). Suppression intersects the
+persisted marker with `sessionStorage`, so remounts in the same browser session stay deferred but a new
+session resurfaces unresolved work. Extended the unified value-free inbox with the upstream-only
+`canApproveInline` boolean: only Low/Medium, Ready, actor-eligible, non-self-assigned `queue_item` rows may
+reuse the existing app-plane approval PATCH in the Approval Queue or Console; High/self-assigned and all
+renewal/write-back rows remain deep links.
+
+Three independent falsification lenses found and closed real defects before promotion: React state leaked
+between pager cards; code-only write-back approval was initially broader than D1; Skip initially hid stable
+live-review keys indefinitely; sanitized tuple IDs could collide; optimistic queued state was lost across
+Next/Back; manual and follow-on forms could coexist; UI eligibility differed from the server; and four active
+fact/doc claims still described the retired list-only/no-inline posture. Regression tests now pin each fix.
+
+Verification at the slice boundary: `npm run typecheck`; `npm run lint` (0 errors, 3 pre-existing unrelated
+warnings); `npm test` (189 files / 1,353 tests); `verify:copy-voice`; `verify:spec-traceability`;
+`verify:context-freshness`; `verify:falsification`; `git diff --check`; and the new Firestore rules test
+(4/4 against the emulator) all pass. After stopping the workspace-local Firestore emulator that had locked
+`re2.node`, `bash scripts/verify.sh` also passed end to end (clean install through production build). No live
+Google read, deploy, send, external write, registry flip, cost-bearing action, or client data was touched.
+The unrelated pre-existing `.codex/config.toml` deletion remains untouched and outside the S14 commit queue.
+Loop continuation: S16 RBAC/sub-user scopes is next, then S17 → S15 → S18.
+
+## 2026-07-10 (later) — Owner commit/merge of the background S14 + S16 work; S16 test gap fixed; S16 pending its boundary
+
+The background loop (Codex) built S14 to completion (above, `F-RENEWAL-DECIDER-MOBILE`) and then CONTINUED into
+S16 rbac-subusers, leaving the whole slice in the working tree uncommitted on `main`. At the owner's request to
+commit/merge/push it all, the working tree was verified BEFORE any push and two real issues were found and
+handled: (1) the loop had emptied `.codex/config.toml` (its own harness config) — RESTORED from HEAD, matching
+the loop's own note that the deletion was outside the S14 commit queue; (2) the full test suite hit 2 timeouts
+in `tests/unit/workflow-run-step-checks-route.test.ts` — S16 had added `assertWorkflowRunAccess(user, await
+getWorkflowRun(...))` to that route but never updated its test, so the unmocked `getWorkflowRun` hung the route.
+Fixed by mocking `@/lib/firestore/workflows` (mirroring the sibling route test) and ADDING a scope-denial test
+(a `maintenance`-scoped sub-user is refused a `move-in` run: 403, no write) so the new guard is actually covered.
+
+S16 rbac-subusers is now BUILT + GREEN: the orthogonal `scopes` custom claim + `validateAuthClaims` parsing,
+`requireSpaceAccess`/`requirePageSpaceAccess` guards across ~35 API routes and the maintenance/renewals/approval
+pages, nav + Spaces-directory + Console scope filtering, an extended route-auth-boundary invariant, and a
+manageAdmin `setAppUserScopes` editor with an `admin_scope_changes` audit twin (default all-spaces when the claim
+is absent, backward-compatible). Whole-tree verification GREEN: `typecheck`, `lint`, `npm test` (197 files /
+1,413 tests), `verify:router-boundary`, `verify:falsification`, `verify:context-freshness`,
+`verify:spec-traceability`, `verify:redaction`, `verify:copy-voice`, and the production `next build`. Governance
+unchanged: app-plane only, `production_allowed:false`, no SoR write, no autonomous send, no new Google scope, no
+Cloud Scheduler, ~$10 cap, deploy owner-run. IMPORTANT: S16 has NOT had its own dedicated
+Verification-and-Falsification boundary and is deliberately NOT yet promoted to an `F-S16` fact — that pass
+(guard on every scoped route, nav/Spaces/Console filtering, admin scope editor + audit, against AC-S16-1..9) is
+the next work before S17. Committed + merged via PR; the local `docs/temp/ui-ux-overhaul-plan.md` reflects S14 done.

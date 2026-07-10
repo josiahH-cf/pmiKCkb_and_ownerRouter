@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { authErrorResponse, requireCapability } from "@/lib/auth/session";
+import { authErrorResponse, requireCapabilityInSpace } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
 import {
   ImageStoreSetupError,
@@ -22,7 +22,7 @@ const PhotoRequestSchema = z.object({
 // the binary.
 export async function POST(request: Request) {
   try {
-    await requireCapability("edit");
+    await requireCapabilityInSpace("edit", "maintenance");
   } catch (error) {
     return authErrorResponse(error);
   }

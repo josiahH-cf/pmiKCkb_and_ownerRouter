@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { LiveRenewalReview } from "@/components/lease-renewal/LiveRenewalReview";
-import { requirePageCapability } from "@/lib/auth/page-guards";
+import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { can } from "@/lib/auth/roles";
 import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
 import {
@@ -46,6 +46,7 @@ const PANELS: Record<
 };
 
 export default async function LiveRenewalReviewPage() {
+  await requirePageSpaceAccess("renewals");
   const user = await requirePageCapability("manageAdmin");
 
   // The live flags are recomputed on each render; only persisted resolutions + write-back approvals +
@@ -78,6 +79,7 @@ export default async function LiveRenewalReviewPage() {
         </Link>
         {outcome.status === "ok" ? (
           <LiveRenewalReview
+            canDefer={can(user.role, "edit")}
             canResolve={can(user.role, "approve")}
             isAdmin={can(user.role, "manageAdmin")}
             meta={outcome.meta}

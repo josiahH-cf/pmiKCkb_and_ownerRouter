@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
-import { requireCapability } from "@/lib/auth/session";
+import { requireCapabilityInSpace } from "@/lib/auth/session";
 import {
   DecideWritebackApprovalInputSchema,
   decideWritebackApproval,
@@ -14,7 +14,7 @@ import {
 // happens here — approving only records human authorization for the future, separately-gated write.
 export async function POST(request: Request) {
   try {
-    const user = await requireCapability("read");
+    const user = await requireCapabilityInSpace("read", "renewals");
     const input = await parseJsonBody(request, DecideWritebackApprovalInputSchema);
     const approval = await decideWritebackApproval(user, input);
     const activity = await listWritebackApprovalActivity(user, input.source_trigger_key);

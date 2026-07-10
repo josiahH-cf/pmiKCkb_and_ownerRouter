@@ -3,6 +3,7 @@ import { apiErrorResponse, parseOptionalJsonBody } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
 import { ActivateProcessDefinitionInputSchema } from "@/lib/firestore/schemas";
 import { activateProcessDefinition, listWorkflowRuns } from "@/lib/firestore/workflows";
+import { assertProcessDefinitionAccess } from "@/lib/space-scope-resources";
 
 interface RouteContext {
   params: Promise<{ definitionId: string }>;
@@ -12,6 +13,7 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const user = await requireCapability("manageAdmin");
     const { definitionId } = await context.params;
+    assertProcessDefinitionAccess(user, definitionId);
     const input = await parseOptionalJsonBody(
       request,
       ActivateProcessDefinitionInputSchema,

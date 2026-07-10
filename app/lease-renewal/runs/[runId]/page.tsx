@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { LeaseRenewalRunClient } from "@/components/lease-renewal/LeaseRenewalRunClient";
-import { requirePageCapability } from "@/lib/auth/page-guards";
+import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { can } from "@/lib/auth/roles";
 import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
 import {
@@ -19,6 +19,7 @@ export default async function LeaseRenewalRunPage({
   params,
   searchParams,
 }: LeaseRenewalRunPageProps) {
+  await requirePageSpaceAccess("renewals");
   const user = await requirePageCapability("read");
   const { runId } = await params;
   // A ?flag= deep link (from the reconcile redirect route or a queue row) scrolls to and highlights
@@ -65,6 +66,7 @@ export default async function LeaseRenewalRunPage({
       <section className="content">
         <h1 className="section-title">Lease Renewal Run</h1>
         <LeaseRenewalRunClient
+          canDefer={can(user.role, "edit")}
           canResolve={can(user.role, "approve")}
           highlightFieldKey={highlightFieldKey}
           isAdmin={can(user.role, "manageAdmin")}

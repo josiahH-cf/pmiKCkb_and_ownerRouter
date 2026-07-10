@@ -1,13 +1,15 @@
 import Link from "next/link";
+import { ConsoleApproveButton } from "@/components/console/ConsoleApproveButton";
 import type {
   NeedsDecisionInbox,
   NeedsDecisionRow,
 } from "@/lib/approval/needs-decision-inbox";
 
-// Read-only, value-free unified inbox body (S13 B1). One attention-ordered list of everything that
+// Value-free unified inbox body (S13 B1 + S14 B5). One attention-ordered list of everything that
 // needs a decision — open renewal flags, write-backs awaiting approval, and live approval-queue items —
-// each deep-linking to the authenticated surface where the real value and the decision control live.
-// There is NO approve affordance here: acting stays on the linked run/detail page (value-free-triage).
+// each deep-linking to the authenticated surface where the real value and full controls live. The one
+// inline action is app-plane approval on an upstream-authorized safe queue-item row; renewal flags and
+// write-backs remain deep-link-only.
 
 const KIND_LABEL: Record<NeedsDecisionRow["kind"], string> = {
   writeback: "Write-back",
@@ -35,8 +37,9 @@ export function NeedsDecisionInboxPanel({
         {plural(counts.total, "thing needs", "things need")} your decision, most urgent
         first. {plural(counts.renewalFlags, "renewal flag", "renewal flags")} ·{" "}
         {plural(counts.writebacksAwaiting, "write-back", "write-backs")} ·{" "}
-        {plural(counts.queueItems, "queue item", "queue items")}. Open each to decide; the
-        value and the approve control live on its page.
+        {plural(counts.queueItems, "queue item", "queue items")}. Open each to decide.
+        Safe queue approvals can be recorded here; values and all other controls live on
+        their pages.
       </p>
       <ul className="ui-rows">
         {inbox.rows.map((row) => (
@@ -49,6 +52,9 @@ export function NeedsDecisionInboxPanel({
             <span className="queue-pill" data-value={row.severity}>
               {row.severity}
             </span>
+            {row.kind === "queue_item" && row.canApproveInline && row.itemId ? (
+              <ConsoleApproveButton itemId={row.itemId} />
+            ) : null}
           </li>
         ))}
       </ul>

@@ -118,6 +118,25 @@ describe("NotificationMenu", () => {
       });
     });
   });
+
+  it("omits the Approval Queue link when the server omits that scoped family", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponse({
+          notifications: [maintenanceUnified()],
+          families: familyViews().filter((family) => family.key !== "approval_queue"),
+        }),
+      ),
+    );
+
+    render(<NotificationMenu navigate={() => undefined} />);
+    await user.click(await screen.findByRole("button", { name: /Notifications/ }));
+
+    expect(screen.queryByRole("link", { name: "Open Approval Queue" })).toBeNull();
+    expect(screen.getByText("Maintenance ticket assigned")).toBeInTheDocument();
+  });
 });
 
 function approvalUnified(
