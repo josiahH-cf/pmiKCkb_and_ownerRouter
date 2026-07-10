@@ -69,9 +69,11 @@ export function buildIdentityChecklist(state) {
   const mark = (ok) => (ok === true ? "ok" : ok === false ? "FAIL" : "verify manually");
   return [
     {
-      system: "(a) Claude MCP Drive/Workspace connector",
+      system:
+        "(a) agent runner's file/Drive connector (Claude MCP today; N/A under Codex)",
       status: mark(undefined),
-      detail: "Check claude.ai → Settings → Connectors is the pmikcmetro.com account.",
+      detail:
+        "Under Claude Code, check claude.ai → Settings → Connectors is the pmikcmetro.com account; not applicable under Codex.",
     },
     {
       system: "(b) gcloud user / ADC",

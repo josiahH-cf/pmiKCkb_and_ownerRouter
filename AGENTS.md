@@ -1,7 +1,9 @@
 # PMI KC Product Agent Router
 
-This file routes future Codex sessions. Keep it under 150 lines; put durable detail in
-`docs/`.
+This file is the single **runner-neutral** router for every agent runner (Codex, Claude
+Code, and any other). Durable product and execution rules live here and in `docs/`; each
+runner keeps only a thin pointer back to this file — see **Per-Runner Pointers** below. Keep
+durable detail in `docs/`.
 
 > ⚪ **Temporary Operating Overlay — Remote Away Mode (INACTIVE as of 2026-06-15).**
 > Normal owner-present governance is back in effect. Keep doing readiness, docs,
@@ -9,6 +11,27 @@ This file routes future Codex sessions. Keep it under 150 lines; put durable det
 > standing approval for live/cloud/client actions. The durable ~$10 budget ceiling,
 > security rules, human-send authority, and system-of-record write gates still apply.
 > Details live in `docs/away-mode.md` and `docs/budget-and-cost-policy.md`.
+
+## Per-Runner Pointers
+
+This repository is **runner-neutral**: `AGENTS.md` (this file) plus `docs/` hold every
+durable rule, and each agent runner keeps only a thin adapter that points back here. Do not
+put durable governance in a runner-specific file — if a rule matters, it belongs in this
+router or a `docs/` file both runners read.
+
+- **Claude Code** → `CLAUDE.md` (a compatibility pointer to this router) and `.claude/`
+  (slash-command wrappers, `launch.json`). `.claude/` files stay thin wrappers over a
+  runner-neutral capability doc, never a second copy of the rules.
+- **Codex** → `.codex/config.toml` (harness/model config only). Any operating rule a Codex
+  session needs lives here or in `docs/`, never only in that file.
+- **Any other runner** → read `AGENTS.md` first, then `docs/loop-state.md` and
+  `docs/autonomous-agent-runner.md`. The same comprehensive loop (plan → build →
+  verify + falsify → stop/reset) is invoked identically regardless of runner.
+
+The identity, security, budget, and write/send gates in this file bind every runner equally.
+Harness-level autonomy settings differ by runner (e.g. `.codex/config.toml` sets its own
+approval/sandbox posture); document such differences and never let a runner's local defaults
+silently widen these gates.
 
 ## Purpose
 
@@ -24,45 +47,51 @@ route new work through the three-product docs.
 
 ## Route Table
 
-| Need                                | Read                                                                                                |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Solidified facts vs assumptions     | `docs/facts.md` (Tier-0 spine; read with `docs/loop-state.md` before acting)                        |
-| Feature-suite specs (backlog)       | `docs/feature-suites/`                                                                              |
-| Governance meta-prompts             | `docs/meta-prompts/`                                                                                |
-| Audience profile and copy voice     | `docs/voice-and-audience.md`                                                                        |
-| North star and product direction    | `docs/north-star.md`                                                                                |
-| Product lane routing                | `docs/products/README.md`, then the relevant product doc                                            |
-| Continue feature development        | `docs/products/lease-renewal-build-plan.md`                                                         |
-| Renewal / move-in / move-out flow   | `docs/products/lease-renewal-discovery-reference.md`, `docs/products/move-in-move-out-process.md`   |
-| Renewal sheet connector + conflicts | `docs/products/lease-renewal-connector-design.md`, `docs/products/lease-renewal-spreadsheet-map.md` |
-| V1 process Q&A and owner decisions  | `docs/products/v1-process-qa.md`                                                                    |
-| Renewal discovery validation (team) | `docs/products/lease-renewal-discovery-packet.md`                                                   |
-| Demo lane retirement                | `docs/demo-lane-retirement.md`                                                                      |
-| Phase plan and acceptance gates     | `docs/plan.md`                                                                                      |
-| Integration and cutover             | `docs/integration-cutover-plan.md`                                                                  |
-| Verified integration architecture   | `docs/integration-architecture.md`                                                                  |
-| Integration capability research     | `docs/research/integration-capability-2026-06.md`                                                   |
-| Environment and key handoff         | `docs/environment-handoff.md`                                                                       |
-| Product definition gaps             | `docs/product-definition-gap-plan.md`                                                               |
-| How to work next                    | `docs/implement.md`                                                                                 |
-| Autonomous feature-cycle runner     | `docs/autonomous-agent-runner.md`                                                                   |
-| Plan, run, or continue the loop     | `docs/loop-state.md`, then `docs/autonomous-agent-runner.md`                                        |
-| Cost ceiling and budget policy      | `docs/budget-and-cost-policy.md`                                                                    |
-| Vacation / away-mode overlay        | `docs/away-mode.md`                                                                                 |
-| Local-dev stop/cutover gate         | `docs/autonomous-agent-runner.md`, `docs/implement.md`                                              |
-| Current status and blockers         | `docs/status.md`                                                                                    |
-| Loop resume state and next slice    | `docs/loop-state.md`                                                                                |
-| Client asks                         | `docs/client-checklist.md`                                                                          |
-| Client unblock and parallel work    | `docs/status.md`, `docs/client-checklist.md`, `docs/implement.md`                                   |
-| Engineering checklist               | `docs/engineering-checklist.md`                                                                     |
-| AI execution workflow               | `docs/ai-execution-workflow.md`                                                                     |
-| Research backlog                    | `docs/research-backlog.md`                                                                          |
-| Security and conventions            | `docs/engineering.md`                                                                               |
-| Original preserved specs            | `docs/specs/`                                                                                       |
-| KB technical spec                   | `docs/spec.md`                                                                                      |
-| Legacy Owner Router split           | `docs/legacy/owner-router-separate-repo.md`                                                         |
-| Owner Router artifact source        | `docs/legacy/owner-router-artifact-source.md`                                                       |
-| Google setup details                | `docs/google-setup.md`, `SETUP.md`                                                                  |
+| Need                                  | Read                                                                                                                   |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Solidified facts vs assumptions       | `docs/facts.md` (Tier-0 spine; read with `docs/loop-state.md` before acting)                                           |
+| Feature-suite specs (backlog)         | `docs/feature-suites/`                                                                                                 |
+| New/overhaul spec template + gates    | `docs/feature-suites/TEMPLATE.md` (sentinel-gated by `feature-suite-spec-shape.test.mjs` + `verify:spec-traceability`) |
+| Approval Queue mobile redesign (S14)  | `docs/feature-suites/approval-queue-mobile.md`                                                                         |
+| Gmail hub — drafts/templates (S15)    | `docs/feature-suites/gmail-hub.md`                                                                                     |
+| Role-scoped sub-users / scopes (S16)  | `docs/feature-suites/rbac-subusers.md`                                                                                 |
+| Unified Console + notifications (S17) | `docs/feature-suites/unified-console-and-attention.md`                                                                 |
+| Process auto-initiation (S18)         | `docs/feature-suites/process-auto-initiation.md`                                                                       |
+| Governance meta-prompts               | `docs/meta-prompts/`                                                                                                   |
+| Audience profile and copy voice       | `docs/voice-and-audience.md`                                                                                           |
+| North star and product direction      | `docs/north-star.md`                                                                                                   |
+| Product lane routing                  | `docs/products/README.md`, then the relevant product doc                                                               |
+| Continue feature development          | `docs/products/lease-renewal-build-plan.md`                                                                            |
+| Renewal / move-in / move-out flow     | `docs/products/lease-renewal-discovery-reference.md`, `docs/products/move-in-move-out-process.md`                      |
+| Renewal sheet connector + conflicts   | `docs/products/lease-renewal-connector-design.md`, `docs/products/lease-renewal-spreadsheet-map.md`                    |
+| V1 process Q&A and owner decisions    | `docs/products/v1-process-qa.md`                                                                                       |
+| Renewal discovery validation (team)   | `docs/products/lease-renewal-discovery-packet.md`                                                                      |
+| Demo lane retirement                  | `docs/demo-lane-retirement.md`                                                                                         |
+| Phase plan and acceptance gates       | `docs/plan.md`                                                                                                         |
+| Integration and cutover               | `docs/integration-cutover-plan.md`                                                                                     |
+| Verified integration architecture     | `docs/integration-architecture.md`                                                                                     |
+| Integration capability research       | `docs/research/integration-capability-2026-06.md`                                                                      |
+| Environment and key handoff           | `docs/environment-handoff.md`                                                                                          |
+| Product definition gaps               | `docs/product-definition-gap-plan.md`                                                                                  |
+| How to work next                      | `docs/implement.md`                                                                                                    |
+| Autonomous feature-cycle runner       | `docs/autonomous-agent-runner.md`                                                                                      |
+| Plan, run, or continue the loop       | `docs/loop-state.md`, then `docs/autonomous-agent-runner.md`                                                           |
+| Cost ceiling and budget policy        | `docs/budget-and-cost-policy.md`                                                                                       |
+| Vacation / away-mode overlay          | `docs/away-mode.md`                                                                                                    |
+| Local-dev stop/cutover gate           | `docs/autonomous-agent-runner.md`, `docs/implement.md`                                                                 |
+| Current status and blockers           | `docs/status.md`                                                                                                       |
+| Loop resume state and next slice      | `docs/loop-state.md`                                                                                                   |
+| Client asks                           | `docs/client-checklist.md`                                                                                             |
+| Client unblock and parallel work      | `docs/status.md`, `docs/client-checklist.md`, `docs/implement.md`                                                      |
+| Engineering checklist                 | `docs/engineering-checklist.md`                                                                                        |
+| AI execution workflow                 | `docs/ai-execution-workflow.md`                                                                                        |
+| Research backlog                      | `docs/research-backlog.md`                                                                                             |
+| Security and conventions              | `docs/engineering.md`                                                                                                  |
+| Original preserved specs              | `docs/specs/`                                                                                                          |
+| KB technical spec                     | `docs/spec.md`                                                                                                         |
+| Legacy Owner Router split             | `docs/legacy/owner-router-separate-repo.md`                                                                            |
+| Owner Router artifact source          | `docs/legacy/owner-router-artifact-source.md`                                                                          |
+| Google setup details                  | `docs/google-setup.md`, `SETUP.md`                                                                                     |
 
 ## Project Map
 
@@ -72,6 +101,10 @@ route new work through the three-product docs.
 - `docs/facts.md`: Tier-0 solidified-context spine — verified facts, labeled assumptions, open
   questions, and the supersede log. Gated by `npm run verify:context-freshness`.
 - `docs/feature-suites/`: executable specs for the discussed backlog (one file per suite).
+  `TEMPLATE.md` is the shape for new/overhaul specs; the 2026-07-10 overhaul suites are S14
+  (approval-queue-mobile), S15 (gmail-hub), S16 (rbac-subusers), S17 (unified-console-and-attention),
+  and S18 (process-auto-initiation) — sentinel-gated by `feature-suite-spec-shape.test.mjs` +
+  `verify:spec-traceability`.
 - `docs/meta-prompts/`: governance-first scaffold, golden next-step set, and the re-scaffold/cleanup
   meta-prompt.
 - `docs/voice-and-audience.md`: audience profile and client-facing copy voice rules.
@@ -194,11 +227,12 @@ answer ourselves.
 
 - This project always uses a `pmikcmetro.com` Google identity. The personal
   `josiah.abernathy@gmail.com` account must never appear in any auth path.
-- Six identity systems are separate and do NOT cascade: (a) Claude's MCP Drive/Workspace
-  connector, (b) local gcloud/ADC, (c) the Cloud Run runtime service account, (d) Firebase
+- Six identity systems are separate and do NOT cascade: (a) the agent runner's file/Drive
+  connector (Claude Code's MCP Drive/Workspace connector today; not applicable under Codex),
+  (b) local gcloud/ADC, (c) the Cloud Run runtime service account, (d) Firebase
   end-user auth, (e) the Firebase CLI login, (f) the Cloud Build/buildpack identity. All must be
   `pmikcmetro.com` (human/connector/firebase-CLI) or a `pmi-kc-kb-prod` service identity
-  (runtime/build). `gcloud auth` does NOT change the Claude connector, and vice-versa.
+  (runtime/build). `gcloud auth` does NOT change the runner's file/Drive connector, and vice-versa.
 - No `cherrybridge.ai` / `pmikckb-test` (legacy demo) in any production path. No downloadable
   key files — ADC (local human) and attached service account (runtime) only. The legacy demo
   cloud lane is being retired (repo pointers neutralized 2026-06-20; GCP teardown is owner-side) —

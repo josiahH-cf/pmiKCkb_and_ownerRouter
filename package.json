@@ -25,6 +25,7 @@
     "verify:router-boundary": "node scripts/check-router-boundary.mjs",
     "verify:falsification": "node scripts/check-falsification-preflight.mjs",
     "verify:context-freshness": "node scripts/check-context-freshness.mjs",
+    "verify:spec-traceability": "node scripts/check-spec-traceability.mjs",
     "verify:copy-voice": "node scripts/check-copy-voice.mjs",
     "verify:redaction": "node scripts/check-redaction.mjs",
     "host:setup": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/setup-windows-google-dev.ps1 -EnableApis",
