@@ -19,17 +19,17 @@ export function GmailHubHome() {
       <div>
         <h1 className="section-title">Gmail hub</h1>
         <p className="muted">
-          Draft replies, manage reply patterns and triage rules, and summarize threads — all before a
-          mailbox is connected. Live-mailbox actions wait on the approved Gmail access model, and human
-          send authority is preserved.
+          Draft replies, manage reply patterns and triage rules, and summarize threads —
+          all before a mailbox is connected. Live-mailbox actions wait on the approved
+          Gmail access model, and human send authority is preserved.
         </p>
       </div>
 
       <article className="panel ui-stack">
         <h2>Read my inbox</h2>
         <p className="muted">
-          Reading, auto-triaging, and drafting from your live mailbox needs the client-approved Gmail
-          access model and a domain-wide-delegation read grant.
+          Reading, auto-triaging, and drafting from your live mailbox needs the
+          client-approved Gmail access model and a domain-wide-delegation read grant.
         </p>
         <button className="secondary-button" disabled type="button">
           {WAITING_ON_GMAIL}
@@ -43,8 +43,8 @@ export function GmailHubHome() {
       <article className="panel ui-stack">
         <h2>Notifications</h2>
         <p className="muted">
-          The same in-app notification families as the Console and the bell. The Gmail-dependent
-          families stay gated until inbox access is approved.
+          The same in-app notification families as the Console and the bell. The
+          Gmail-dependent families stay gated until inbox access is approved.
         </p>
         <ul className="compact-list">
           {NOTIFICATION_FAMILIES.map((family) => (

@@ -21,9 +21,10 @@ export default async function GmailInboxZeroAdminPage() {
         <div>
           <h1 className="section-title">{`${GMAIL_INBOX_ZERO_NAME} Management`}</h1>
           <p className="muted">
-            Manage the approved rules and reply patterns and evaluate them over pasted, sanitized
-            facts. Live mailbox actions wait on the approved Gmail access model; human send authority
-            is preserved. <Link href="/gmail-hub">Open the Gmail hub</Link> ·{" "}
+            Manage the approved rules and reply patterns and evaluate them over pasted,
+            sanitized facts. Live mailbox actions wait on the approved Gmail access model;
+            human send authority is preserved.{" "}
+            <Link href="/gmail-hub">Open the Gmail hub</Link> ·{" "}
             <Link href="/admin">Back to Admin</Link>
           </p>
         </div>
@@ -37,8 +38,8 @@ export default async function GmailInboxZeroAdminPage() {
               </span>
             </p>
             <p className="muted">
-              Blocked on the client-approved Gmail access model, mailbox scan protocol, and live
-              test-thread protocol (owner-side asks).
+              Blocked on the client-approved Gmail access model, mailbox scan protocol,
+              and live test-thread protocol (owner-side asks).
             </p>
           </article>
           <article className="panel">

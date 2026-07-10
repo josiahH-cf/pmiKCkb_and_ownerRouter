@@ -9,7 +9,10 @@ import {
   type GmailInboxZeroPhase,
   type TriageResult,
 } from "@/lib/gmail-inbox-zero/rules";
-import { SAMPLE_LABEL_RULES, SAMPLE_REPLY_TEMPLATES } from "@/lib/gmail-inbox-zero/sample-hub";
+import {
+  SAMPLE_LABEL_RULES,
+  SAMPLE_REPLY_TEMPLATES,
+} from "@/lib/gmail-inbox-zero/sample-hub";
 
 interface DraftPreview {
   ok: boolean;
@@ -63,10 +66,10 @@ export function TemplateWorkspace() {
       <div>
         <h2 className="section-title">Template &amp; triage workspace</h2>
         <p className="muted">
-          Evaluate a message against the Admin-approved rule and reply-pattern sets over pasted,
-          sanitized facts. Approved rules only; Shadow phase applies nothing; hard-excluded categories
-          are label-only; every draft carries the review-before-sending banner. No mailbox is read and
-          nothing here can send.
+          Evaluate a message against the Admin-approved rule and reply-pattern sets over
+          pasted, sanitized facts. Approved rules only; Shadow phase applies nothing;
+          hard-excluded categories are label-only; every draft carries the
+          review-before-sending banner. No mailbox is read and nothing here can send.
         </p>
       </div>
 
@@ -108,7 +111,10 @@ export function TemplateWorkspace() {
           </label>
           <label className="field">
             <span>Category</span>
-            <input value={category} onChange={(event) => setCategory(event.target.value)} />
+            <input
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+            />
           </label>
         </div>
         <label className="field">
@@ -131,7 +137,10 @@ export function TemplateWorkspace() {
           </label>
           <label className="field">
             <span>Reply pattern</span>
-            <select value={templateId} onChange={(event) => setTemplateId(event.target.value)}>
+            <select
+              value={templateId}
+              onChange={(event) => setTemplateId(event.target.value)}
+            >
               {SAMPLE_REPLY_TEMPLATES.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name} — {t.status}

@@ -87,13 +87,17 @@ export function AnticipatoryDraftComposer({
     <article className="panel ui-stack">
       <h2>Anticipatory draft</h2>
       <p className="muted">
-        Draft a reply from an Approved pattern over pasted, sanitized facts. Unapproved patterns and
-        hard-excluded categories are refused before the model. Nothing here can send.
+        Draft a reply from an Approved pattern over pasted, sanitized facts. Unapproved
+        patterns and hard-excluded categories are refused before the model. Nothing here
+        can send.
       </p>
 
       <label className="field">
         <span>Reply pattern</span>
-        <select value={templateId} onChange={(event) => setTemplateId(event.target.value)}>
+        <select
+          value={templateId}
+          onChange={(event) => setTemplateId(event.target.value)}
+        >
           {templates.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name} — {t.status}
@@ -155,7 +159,8 @@ export function AnticipatoryDraftComposer({
             </>
           ) : (
             <p className="muted">
-              Refused before the model: {result.errors.join(" ") || "not eligible for a draft."}
+              Refused before the model:{" "}
+              {result.errors.join(" ") || "not eligible for a draft."}
             </p>
           )}
         </div>

@@ -33,7 +33,10 @@ const structured = {
   suggested_next_action: "Send the owner the invoice for approval.",
 };
 
-function baseInput(provider: ModelProvider, threadText = "Vendor: invoice attached. Manager: thanks.") {
+function baseInput(
+  provider: ModelProvider,
+  threadText = "Vendor: invoice attached. Manager: thanks.",
+) {
   return { threadText, provider, model: "test-model" };
 }
 

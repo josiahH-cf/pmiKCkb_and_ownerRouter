@@ -6,7 +6,10 @@ import { requireCapability } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
 import { composeAnticipatoryReplyDraft } from "@/lib/gmail-inbox-zero/anticipatory-draft";
 import { GMAIL_RULE_STATUSES } from "@/lib/gmail-inbox-zero/constants";
-import { AnswerGenerationSetupError, createModelProvider } from "@/lib/llm/model-provider";
+import {
+  AnswerGenerationSetupError,
+  createModelProvider,
+} from "@/lib/llm/model-provider";
 
 const AnticipatoryDraftInputSchema = z.object({
   template: z.object({

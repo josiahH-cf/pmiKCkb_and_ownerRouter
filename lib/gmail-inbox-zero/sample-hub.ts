@@ -24,7 +24,8 @@ export const SAMPLE_LABEL_RULES: readonly LabelRule[] = [
   {
     id: "rule-walkthrough-team",
     label: "Waiting on Team",
-    plain_english: "Anything mentioning a walkthrough is waiting on the team to schedule it.",
+    plain_english:
+      "Anything mentioning a walkthrough is waiting on the team to schedule it.",
     criteria: { subject_contains: "walkthrough" },
     match_kind: "pattern",
     status: "Approved",
@@ -32,7 +33,8 @@ export const SAMPLE_LABEL_RULES: readonly LabelRule[] = [
   {
     id: "rule-owner-money-holdback",
     label: "Dan Decision",
-    plain_english: "Owner money threads go to Dan for a decision — label only, never auto-draft.",
+    plain_english:
+      "Owner money threads go to Dan for a decision — label only, never auto-draft.",
     criteria: { category: "Owner money" },
     match_kind: "exact",
     status: "Approved",

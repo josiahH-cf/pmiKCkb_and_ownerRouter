@@ -42,7 +42,9 @@ describe("PrepareTenantEmailButton (AC-S15-6)", () => {
     await user.click(screen.getByRole("button", { name: "Prepare tenant email" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    expect(String(fetchMock.mock.calls[0][0])).toBe("/api/lease-renewal/tenant-notice-draft");
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
+      "/api/lease-renewal/tenant-notice-draft",
+    );
     expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
       leaseId: "lease-318-cedar-7",
     });

@@ -5,7 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // tests/unit/owner-notice-draft-route.test.ts.
 vi.mock("@/lib/lease-renewal/sample-desk", () => ({
   getRenewalLeaseWorkspace: vi.fn((id: string) => {
-    if (id === "lease-known") return { tenantDraft: { channels: { email: { subject: "s", body: "b" } } } };
+    if (id === "lease-known")
+      return { tenantDraft: { channels: { email: { subject: "s", body: "b" } } } };
     if (id === "lease-no-offer") return { tenantDraft: null };
     return null;
   }),

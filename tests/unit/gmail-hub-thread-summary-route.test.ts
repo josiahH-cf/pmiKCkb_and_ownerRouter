@@ -58,7 +58,9 @@ describe("gmail-hub thread-summary route (AC-S15-4)", () => {
 
   it("returns 200 with a structured summary object over pasted text", async () => {
     setEditor();
-    const response = await POST(req({ threadText: "Vendor: invoice attached. Manager: thanks." }));
+    const response = await POST(
+      req({ threadText: "Vendor: invoice attached. Manager: thanks." }),
+    );
     expect(response.status).toBe(200);
     const payload = await response.json();
     expect(payload.ok).toBe(true);

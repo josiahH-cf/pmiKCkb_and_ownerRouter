@@ -26,7 +26,13 @@ describe("AnticipatoryDraftComposer", () => {
     const user = userEvent.setup();
     const draft = `${DRAFT_BANNER}\n\nTailored: thanks, we will follow up shortly.`;
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
-      jsonResponse({ ok: true, draft, usedModel: true, refusedBeforeModel: false, errors: [] }),
+      jsonResponse({
+        ok: true,
+        draft,
+        usedModel: true,
+        refusedBeforeModel: false,
+        errors: [],
+      }),
     );
     vi.stubGlobal("fetch", fetchMock);
 
@@ -36,7 +42,9 @@ describe("AnticipatoryDraftComposer", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(String(fetchMock.mock.calls[0][0])).toBe("/api/gmail-hub/anticipatory-draft");
 
-    expect(await screen.findByText(/Tailored: thanks, we will follow up shortly\./)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Tailored: thanks, we will follow up shortly\./),
+    ).toBeInTheDocument();
     // The governance ceiling is a review-before-send draft: there is no send control anywhere.
     expect(screen.queryByRole("button", { name: /send/i })).toBeNull();
     expect(screen.getByRole("button", { name: "Copy draft" })).toBeInTheDocument();
@@ -49,7 +57,9 @@ describe("AnticipatoryDraftComposer", () => {
         ok: false,
         usedModel: false,
         refusedBeforeModel: true,
-        errors: ['Reply template "x" is Proposed; only Approved reply patterns can produce drafts.'],
+        errors: [
+          'Reply template "x" is Proposed; only Approved reply patterns can produce drafts.',
+        ],
       }),
     );
     vi.stubGlobal("fetch", fetchMock);

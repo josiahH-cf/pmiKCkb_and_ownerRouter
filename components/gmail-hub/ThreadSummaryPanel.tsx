@@ -50,8 +50,8 @@ export function ThreadSummaryPanel() {
     <article className="panel ui-stack">
       <h2>Thread summary</h2>
       <p className="muted">
-        Paste sanitized thread text to get a summary, who it is waiting on, and a suggested next action.
-        No mailbox is read and nothing here can send.
+        Paste sanitized thread text to get a summary, who it is waiting on, and a
+        suggested next action. No mailbox is read and nothing here can send.
       </p>
       <label className="field">
         <span>Thread text</span>

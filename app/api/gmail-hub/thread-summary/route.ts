@@ -5,7 +5,10 @@ import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
 import { summarizeThread } from "@/lib/gmail-inbox-zero/thread-summary";
-import { AnswerGenerationSetupError, createModelProvider } from "@/lib/llm/model-provider";
+import {
+  AnswerGenerationSetupError,
+  createModelProvider,
+} from "@/lib/llm/model-provider";
 
 // z.string().trim().min(1) rejects an empty or whitespace-only paste with a typed 400 (via
 // parseJsonBody) BEFORE any model or mailbox work — the summary is never produced from nothing.
@@ -27,7 +30,11 @@ export async function POST(request: Request) {
     const model =
       config.modelProvider === "local" ? config.localModelName : config.geminiAnswerModel;
 
-    const result = await summarizeThread({ threadText: input.threadText, provider, model });
+    const result = await summarizeThread({
+      threadText: input.threadText,
+      provider,
+      model,
+    });
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof AnswerGenerationSetupError) {
