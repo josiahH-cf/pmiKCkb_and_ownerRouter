@@ -615,6 +615,40 @@ describe("cheap live setup scripts", () => {
     expect(result.errors).toEqual([]);
   });
 
+  it("accepts the verified production service's historical demo name", () => {
+    const result = validateProductionCutoverConfig({
+      ALLOWED_HD: "pmikcmetro.com",
+      APP_BASE_URL: "https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app",
+      ASK_DEMO_MODE: "false",
+      FIREBASE_PROJECT_ID: "pmi-kc-kb-prod",
+      GCP_PROJECT_ID: "pmi-kc-kb-prod",
+      LOCAL_DEMO_AUTH: "false",
+      NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
+      NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmi-kc-kb-prod.firebaseapp.com",
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmi-kc-kb-prod",
+      KB_APPROVAL_NOTIFICATIONS_ENABLED: "false",
+      MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: "drive-folder-maintenance-photos",
+      RENTVINE_API_BASE_URL: "https://pmikcmetro.rentvine.com/api/manager",
+      RENEWAL_SHEET_ID: "prod-renewal-sheet-id",
+      SHEETS_IMPERSONATE_SA:
+        "lease-renewal-reader@pmi-kc-kb-prod.iam.gserviceaccount.com",
+      SHEETS_DWD_SUBJECT: "josiah@pmikcmetro.com",
+      SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
+        "lease-renewals": "gs://pmi-kc-kb-prod-sources/lease-renewals/",
+      }),
+      SPACE_VERTEX_DATA_STORE_IDS: JSON.stringify({
+        "lease-renewals": "kb-lease-renewals-txt",
+      }),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toContain(
+      "KB approval email notifications remain disabled. App-plane production deployment is allowed, but notification delivery is not part of this cutover.",
+    );
+  });
+
   it("rejects legacy cherrybridge.ai references in production config", () => {
     const result = validateProductionCutoverConfig({
       ALLOWED_HD: "pmikcmetro.com",
@@ -701,7 +735,7 @@ describe("cheap live setup scripts", () => {
     expect(validSa.errors).toEqual([]);
   });
 
-  it("requires enabled pmikcmetro.com approval notifications for production", () => {
+  it("requires pmikcmetro.com sender and recipients when notifications are enabled", () => {
     const result = validateProductionCutoverConfig({
       ALLOWED_HD: "pmikcmetro.com",
       APP_BASE_URL: "https://kb.pmikcmetro.example",
@@ -713,9 +747,15 @@ describe("cheap live setup scripts", () => {
       NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
       NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmikc-kb-production.firebaseapp.com",
       NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmikc-kb-production",
-      KB_APPROVAL_NOTIFICATIONS_ENABLED: "false",
+      KB_APPROVAL_NOTIFICATIONS_ENABLED: "true",
       KB_APPROVAL_RECIPIENTS: "outside-user@example.com",
       KB_APPROVAL_SENDER: "kb-automation@example.com",
+      MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: "drive-folder-maintenance-photos",
+      RENTVINE_API_BASE_URL: "https://pmikcmetro.rentvine.com/api/manager",
+      RENEWAL_SHEET_ID: "prod-renewal-sheet-id",
+      SHEETS_IMPERSONATE_SA:
+        "kb-sheets-reader@pmikc-kb-production.iam.gserviceaccount.com",
+      SHEETS_DWD_SUBJECT: "kb-reader@pmikcmetro.com",
       SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
         "lease-renewals": "gs://pmikc-kb-production-sources/lease-renewals/",
       }),
@@ -725,9 +765,6 @@ describe("cheap live setup scripts", () => {
     });
 
     expect(result.ok).toBe(false);
-    expect(result.errors).toContain(
-      "KB_APPROVAL_NOTIFICATIONS_ENABLED must be true for client-production.",
-    );
     expect(result.errors).toContain(
       "KB_APPROVAL_SENDER must use only pmikcmetro.com email addresses.",
     );

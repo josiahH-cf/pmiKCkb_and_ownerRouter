@@ -6,7 +6,6 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEMO_PROJECT_IDS = new Set(["pmikckb-test", "pmikckb-test-8f927"]);
 const DEMO_VALUE_PATTERNS = [
   "pmikckb-test",
-  "pmi-kc-kb-demo",
   "lease-renewals-686407",
   "800237451321",
   "cherrybridge.ai",
@@ -161,18 +160,21 @@ export function validateProductionCutoverConfig(env) {
   assertNoPlaceholderValues("SPACE_DRIVE_FOLDER_IDS", sourceTargets, errors);
   assertNoPlaceholderValues("SPACE_VERTEX_DATA_STORE_IDS", dataStores, errors);
 
-  if (!readBoolean(env.KB_APPROVAL_NOTIFICATIONS_ENABLED, false)) {
-    errors.push("KB_APPROVAL_NOTIFICATIONS_ENABLED must be true for client-production.");
+  const notificationsEnabled = readBoolean(env.KB_APPROVAL_NOTIFICATIONS_ENABLED, false);
+  if (notificationsEnabled) {
+    const approvalSender = readString(env.KB_APPROVAL_SENDER);
+    const approvalRecipients = readString(env.KB_APPROVAL_RECIPIENTS);
+    requireValue(approvalSender, "KB_APPROVAL_SENDER", errors);
+    requireValue(approvalRecipients, "KB_APPROVAL_RECIPIENTS", errors);
+    assertNoPlaceholderString("KB_APPROVAL_SENDER", approvalSender, errors);
+    assertNoPlaceholderString("KB_APPROVAL_RECIPIENTS", approvalRecipients, errors);
+    assertPmikcmetroEmailList("KB_APPROVAL_SENDER", approvalSender, errors);
+    assertPmikcmetroEmailList("KB_APPROVAL_RECIPIENTS", approvalRecipients, errors);
+  } else {
+    warnings.push(
+      "KB approval email notifications remain disabled. App-plane production deployment is allowed, but notification delivery is not part of this cutover.",
+    );
   }
-
-  const approvalSender = readString(env.KB_APPROVAL_SENDER);
-  const approvalRecipients = readString(env.KB_APPROVAL_RECIPIENTS);
-  requireValue(approvalSender, "KB_APPROVAL_SENDER", errors);
-  requireValue(approvalRecipients, "KB_APPROVAL_RECIPIENTS", errors);
-  assertNoPlaceholderString("KB_APPROVAL_SENDER", approvalSender, errors);
-  assertNoPlaceholderString("KB_APPROVAL_RECIPIENTS", approvalRecipients, errors);
-  assertPmikcmetroEmailList("KB_APPROVAL_SENDER", approvalSender, errors);
-  assertPmikcmetroEmailList("KB_APPROVAL_RECIPIENTS", approvalRecipients, errors);
 
   if (!readString(env.CLOUD_RUN_SERVICE_ACCOUNT)) {
     warnings.push(

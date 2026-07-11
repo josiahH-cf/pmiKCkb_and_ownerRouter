@@ -64,24 +64,30 @@ Credentials, no network, and no spend against the $10 cap. A green run prints:
   corpus plan: 3 upload / 3 import / 3 seed commands
 ```
 
-Expected residual (read this before §6): the aggregate `cutover:report` `readiness.ok` stays
-`false` by design even on a perfect config. A production-valid env requires
-`KB_APPROVAL_NOTIFICATIONS_ENABLED=true`, but the budget guard inside the report evaluates
-without `--allow-notifications`, so it emits exactly one blocker —
+Expected residual (read this before §6): the synthetic rehearsal intentionally enables approval
+email so its aggregate `cutover:report` `readiness.ok` stays `false` with exactly one blocker:
 `gcp: KB approval Gmail notifications are enabled (...)`. Live Gmail sends are externally visible
-and stay approval-gated. The dry-run treats that single blocker as the documented, expected
-residual and confirms every OTHER gate is green; it fails loudly if any additional blocker
-appears. Do not "fix" it by routing `--allow-notifications` through the report — clearing it is a
-real send approval, not a dry-run step.
+and stay approval-gated. The dry-run treats that single blocker as documented and confirms every
+OTHER gate is green; it fails loudly if any additional blocker appears. Do not "fix" it by routing
+`--allow-notifications` through the report — clearing it is a real send approval, not a dry-run step.
 
-When the real client values arrive, point `cutover:report` at the live `--env-file` and
-`--manifest` (see §5/§6) and confirm the same shape: every section green with the lone
-notification-send blocker as the only residual.
+For a real app-plane deployment, keep `KB_APPROVAL_NOTIFICATIONS_ENABLED=false` until sender,
+recipients, and delivery are explicitly approved. The production preflight passes with a warning
+that email delivery is excluded, and `cutover:report` should have no notification blocker. If email
+is explicitly enabled later, the lone notification-send blocker becomes the expected residual.
 
 ## 2. Create The Client Google Environment
 
-Create or select the PMI KC-owned GCP/Firebase project, then set local env values in an
-ignored file such as `.env.production.local`:
+Create or select the PMI KC-owned GCP/Firebase project, then prepare the ignored production env
+from the already-configured `.env.local`. The helper copies only allowlisted production identifiers,
+forces the production fences, and excludes RentVine secrets, emulator configuration, and local-model
+configuration:
+
+```bash
+npm run prepare:production-env -- --app-base-url=https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com
+```
+
+It refuses to overwrite an existing file unless `--force` is passed. The resulting shape is:
 
 ```dotenv
 ALLOWED_HD=pmikcmetro.com
@@ -102,17 +108,18 @@ SPACE_DRIVE_FOLDER_IDS={}
 SPACE_VERTEX_DATA_STORE_IDS={}
 MAINTENANCE_PHOTO_DRIVE_FOLDER_ID=<maintenance-photo-drive-folder-id>
 APP_BASE_URL=<deployed-production-url>
-KB_APPROVAL_NOTIFICATIONS_ENABLED=true
-KB_APPROVAL_SENDER=<kb-automation@pmikcmetro.com>
-KB_APPROVAL_RECIPIENTS=<dan-pmi-kc-account@pmikcmetro.com>,<josiah-pmi-kc-account@pmikcmetro.com>
+KB_APPROVAL_NOTIFICATIONS_ENABLED=false
 ```
 
-Most repo scripts read process environment variables and ignored `.env.local`; only
-commands that explicitly accept `--env-file` read `.env.production.local` directly.
-For an unattended cutover, copy the reviewed production values into `.env.local` for
-the active session or load them into the shell before running seed/deploy commands.
-Keep `.env.production.local` as the reviewed preflight input if you want a separate
-handoff file.
+Only after separate notification approval, regenerate with
+`--notifications-enabled --approval-sender=<approved@pmikcmetro.com>
+--approval-recipients=<approved-list>`.
+
+Most repo scripts read process environment variables and ignored `.env.local`; only commands that
+explicitly accept `--env-file` read `.env.production.local` directly. The helper does not modify
+`.env.local`; deploy continues to use its production-connected identifiers while the deploy script
+forces `ASK_DEMO_MODE=false`, `LOCAL_DEMO_AUTH=false`, and the cloud model. Review both files before
+the live command and never copy raw secret values into the production preflight file.
 
 Print the full converge plan (API enablement, Firebase setup, Firestore create/deploy
 commands) and the budget posture without touching the project:
@@ -314,6 +321,15 @@ is not a deploy blocker:
 
 ```bash
 npm run cutover:report -- --manifest=temp/client-production-source-manifest.json --env-file=.env.production.local --json
+```
+
+That consolidated report is the gate for initial cutover, source imports, source-map changes, or
+other migration work. For a code-only redeploy that preserves the already-live source and data-store
+maps, do not invent a manifest or reuse `demo-live-source-manifest.json`. Instead, pass the production
+env preflight above, then inspect the deploy command itself without changing Cloud Run:
+
+```bash
+npm run deploy -- --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo --region=us-central1 --search-location=us --budget-confirmed --allow-multiple-spaces --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com --dry-run
 ```
 
 The Admin migration console at `/admin/migration` mirrors this report read-only in-app

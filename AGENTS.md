@@ -145,6 +145,9 @@ route new work through the three-product docs.
 - Maintenance Drive folder (in-boundary, keyless DWD as a pmikcmetro.com user): `npm run maintenance:ensure-folder -- --live [--shared-drive <id>]` — find-or-creates the photo folder (in a team Shared Drive when `--shared-drive` is given, else the subject's My Drive) + prints the id for SPACE_DRIVE_FOLDER_IDS. The Drive scope is authorized + the Drive API enabled (2026-06-29). Uploads use supportsAllDrives, so Shared Drives work.
 - Golden-data labeling: `npm run golden:worksheet` (build a reviewer worksheet from a draft) → team reviews → `npm run golden:apply-labels -- --worksheet <path>` (write the `labelsVerified:true` set the harness gates on). In-boundary only; never invent labels.
 - GCP setup preflight: `npm run preflight:gcp -- --project=<id>` (`--live` for read-only state)
+- Prepare the ignored production preflight env safely from `.env.local` (allowlisted identifiers only;
+  no secrets/emulator/local-model settings):
+  `npm run prepare:production-env -- --app-base-url=<canonical-production-url> --service-account=<runtime-sa>`
 - Cutover report: `npm run cutover:report -- --manifest=<path> --env-file=<path> --json`
 - Seed source metadata: `npm run seed:source-meta`
 - Live demo smoke: `npm run smoke:demo-live`

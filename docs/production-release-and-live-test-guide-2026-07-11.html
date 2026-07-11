@@ -377,13 +377,7 @@
           Confirm <code>.env.production.local</code> contains reviewed production values
           and no placeholders.
         </li>
-        <li>
-          Confirm the approved source manifest is outside git at
-          <code>temp/client-production-source-manifest.json</code>.
-        </li>
-        <li>
-          Run the budget guard, production preflight, and consolidated cutover report.
-        </li>
+        <li>Run the budget guard, production preflight, and deploy-command dry-run.</li>
         <li>
           Review the current Cloud Run revision before deployment so rollback is
           immediate.
@@ -396,13 +390,22 @@ npm install
 npm run auth:session
 npm run preflight:adc
 npm run check:budget-guard
+npm run prepare:production-env -- --app-base-url=https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com
 npm run preflight:production -- --env-file=.env.production.local
-npm run cutover:report -- --manifest=temp/client-production-source-manifest.json --env-file=.env.production.local --json</code></pre>
+npm run deploy -- --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo --region=us-central1 --search-location=us --budget-confirmed --allow-multiple-spaces --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com --dry-run</code></pre>
 
       <div class="callout">
-        A production-valid notification configuration can leave the documented Gmail-send
-        residual in the cutover report. Do not bypass it with an allow-notifications flag
-        unless a separate, explicit send approval is granted.
+        The helper keeps approval email notifications disabled by default. The preflight
+        should pass with a warning that notification delivery is excluded. Do not enable
+        notifications or use an allow-notifications flag unless sender, recipients, and
+        delivery have separate explicit approval.
+      </div>
+
+      <div class="callout">
+        This release is a code-only redeploy against the existing production sources and
+        data stores. Run the consolidated <code>cutover:report</code> only when an
+        approved source manifest exists and the task includes source import, source-map
+        changes, or initial environment setup. Never substitute the tracked demo manifest.
       </div>
 
       <h2>3. Deploy the merged release</h2>
