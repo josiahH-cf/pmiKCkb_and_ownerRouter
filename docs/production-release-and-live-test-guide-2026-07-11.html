@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PMI KC Production Release and Live Test Guide — July 11, 2026</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #182235;
+        --muted: #5a6679;
+        --line: #d8dee9;
+        --paper: #ffffff;
+        --wash: #f3f6fa;
+        --navy: #163a63;
+        --blue: #2369a8;
+        --green: #1d704a;
+        --green-wash: #eaf7f0;
+        --amber: #8a5a09;
+        --amber-wash: #fff7e2;
+        --red: #9c2f2f;
+        --red-wash: #fff0f0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--wash);
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        line-height: 1.55;
+      }
+
+      main {
+        width: min(1080px, calc(100% - 32px));
+        margin: 32px auto;
+        padding: clamp(24px, 4vw, 56px);
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        box-shadow: 0 18px 48px rgb(34 52 76 / 10%);
+      }
+
+      h1,
+      h2,
+      h3 {
+        color: var(--navy);
+        line-height: 1.2;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(2rem, 5vw, 3.4rem);
+        letter-spacing: -0.04em;
+      }
+
+      h2 {
+        margin-top: 48px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid var(--line);
+        font-size: 1.55rem;
+      }
+
+      h3 {
+        margin: 24px 0 8px;
+        font-size: 1.1rem;
+      }
+
+      p,
+      li {
+        max-width: 84ch;
+      }
+
+      code,
+      pre {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      }
+
+      code {
+        padding: 0.15em 0.35em;
+        background: #edf1f6;
+        border-radius: 5px;
+      }
+
+      pre {
+        overflow-x: auto;
+        padding: 16px;
+        color: #eef6ff;
+        background: #11263e;
+        border-radius: 10px;
+        line-height: 1.45;
+      }
+
+      table {
+        width: 100%;
+        margin: 18px 0;
+        border-collapse: collapse;
+        font-size: 0.94rem;
+      }
+
+      th,
+      td {
+        padding: 12px;
+        border: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--navy);
+        background: #edf3f9;
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: var(--blue);
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .lede {
+        margin: 0;
+        color: var(--muted);
+        font-size: 1.1rem;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 22px;
+      }
+
+      .pill {
+        padding: 7px 11px;
+        color: var(--navy);
+        background: #edf3f9;
+        border: 1px solid #cbd9e8;
+        border-radius: 999px;
+        font-size: 0.84rem;
+        font-weight: 700;
+      }
+
+      .callout {
+        margin: 22px 0;
+        padding: 16px 18px;
+        border-left: 5px solid var(--blue);
+        border-radius: 8px;
+        background: #eef6fd;
+      }
+
+      .callout.success {
+        border-color: var(--green);
+        background: var(--green-wash);
+      }
+
+      .callout.warning {
+        border-color: var(--amber);
+        background: var(--amber-wash);
+      }
+
+      .callout.danger {
+        border-color: var(--red);
+        background: var(--red-wash);
+      }
+
+      .checklist {
+        padding-left: 0;
+        list-style: none;
+      }
+
+      .checklist li {
+        position: relative;
+        margin: 8px 0;
+        padding-left: 30px;
+      }
+
+      .checklist li::before {
+        position: absolute;
+        left: 0;
+        content: "☐";
+        color: var(--blue);
+        font-size: 1.15rem;
+      }
+
+      .test-card {
+        margin: 18px 0;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: #fcfdff;
+      }
+
+      .test-card h3 {
+        margin-top: 0;
+      }
+
+      .result {
+        color: var(--green);
+        font-weight: 750;
+      }
+
+      .boundary {
+        color: var(--red);
+        font-weight: 750;
+      }
+
+      footer {
+        margin-top: 52px;
+        padding-top: 18px;
+        color: var(--muted);
+        border-top: 1px solid var(--line);
+        font-size: 0.86rem;
+      }
+
+      @media print {
+        body {
+          background: #fff;
+        }
+
+        main {
+          width: 100%;
+          margin: 0;
+          padding: 18px;
+          border: 0;
+          box-shadow: none;
+        }
+
+        pre,
+        .test-card,
+        table {
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">PMI KC Product Workstream</p>
+      <h1>Production Release and Live Test Guide</h1>
+      <p class="lede">
+        A practical owner-and-operator guide to the functionality now merged into the PMI
+        KC KB, how to deploy it to the existing production Cloud Run service, and how to
+        decide whether each feature works as intended.
+      </p>
+      <div class="meta">
+        <span class="pill">Prepared July 11, 2026</span>
+        <span class="pill">Target: pmi-kc-kb-prod</span>
+        <span class="pill">Service: pmi-kc-kb-demo</span>
+        <span class="pill">Human-controlled sends and writes</span>
+      </div>
+
+      <div class="callout warning">
+        <strong>Release boundary:</strong> deployment, live smoke tests, Gmail mailbox
+        access, and external writes are owner-gated. This release does not authorize
+        autonomous sending or a RentVine, Sheet, QuickBooks, bank, or other
+        system-of-record write.
+      </div>
+
+      <h2>1. What was developed</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>What is new</th>
+            <th>Primary surface</th>
+            <th>Safety boundary</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Mobile renewal decisions</td>
+            <td>
+              A phone-first, one-card-at-a-time renewal decider with progress, Skip,
+              reason-code-first acceptance, and a separate write-back-authorization
+              decision.
+            </td>
+            <td><code>/lease-renewal/live</code>, renewal run pages</td>
+            <td>
+              Authorization is recorded; the operating Sheet or RentVine is not updated.
+            </td>
+          </tr>
+          <tr>
+            <td>Scoped team access</td>
+            <td>
+              Orthogonal space scopes for maintenance-only or renewals-only staff,
+              including navigation filtering, route guards, and an Admin scope editor with
+              audit history.
+            </td>
+            <td><code>/admin/users</code>, navigation, Spaces, Console</td>
+            <td>
+              Scopes can only narrow an existing role; they do not grant a stronger role.
+            </td>
+          </tr>
+          <tr>
+            <td>Unified attention</td>
+            <td>
+              The Console remains the at-a-glance home, while Notifications provides a
+              time-ordered superset hub with shared counts, standing connection/coverage
+              signals, low-alarm preferences, and an Admin review digest.
+            </td>
+            <td><code>/</code>, <code>/notifications</code></td>
+            <td>In-app only; email and push delivery remain off.</td>
+          </tr>
+          <tr>
+            <td>Gmail workflow hub</td>
+            <td>
+              Draft-text, template/triage, and thread-summary tools over pasted or
+              sanitized content; tenant and owner renewal-draft preparation reuse the
+              approved compose-only gate.
+            </td>
+            <td><code>/gmail-hub</code>, Owner Email Space</td>
+            <td>
+              No inbox read scope and no Send control. The only allowlisted Gmail action
+              creates an unsent draft.
+            </td>
+          </tr>
+          <tr>
+            <td>Anticipated work</td>
+            <td>
+              A read-only Console lane that projects upcoming renewal and notice work and
+              names unsupported families honestly instead of fabricating items.
+            </td>
+            <td>Console</td>
+            <td>
+              Computed on request; no scheduler, auto-start, send, or external write.
+            </td>
+          </tr>
+          <tr>
+            <td>Supporting operator improvements</td>
+            <td>
+              Unified urgent-first Approval Queue, safe inline approval, live renewal
+              actionability, maintenance unit type-ahead and assignment, per-property
+              decision history, and an app-plane notification framework.
+            </td>
+            <td>Approval Queue, renewal, maintenance, Admin</td>
+            <td>
+              App-plane records and previews only unless an exact action is separately
+              approved.
+            </td>
+          </tr>
+          <tr>
+            <td>Production readiness</td>
+            <td>
+              Governance and handoff docs now match the verified production project, $10
+              hard kill switch, canonical Cloud Run host, and exact one-key Action
+              Registry allowlist.
+            </td>
+            <td>Admin migration view and repository runbooks</td>
+            <td>The hard budget cap and per-step live approval remain binding.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>2. Before deploying</h2>
+
+      <ul class="checklist">
+        <li>Use a <code>pmikcmetro.com</code> identity only.</li>
+        <li>
+          Pull the merged <code>main</code> branch and confirm the worktree is clean.
+        </li>
+        <li>Run session auth in the owner's interactive terminal.</li>
+        <li>
+          Confirm <code>.env.production.local</code> contains reviewed production values
+          and no placeholders.
+        </li>
+        <li>
+          Confirm the approved source manifest is outside git at
+          <code>temp/client-production-source-manifest.json</code>.
+        </li>
+        <li>
+          Run the budget guard, production preflight, and consolidated cutover report.
+        </li>
+        <li>
+          Review the current Cloud Run revision before deployment so rollback is
+          immediate.
+        </li>
+      </ul>
+
+      <pre><code>git switch main
+git pull --ff-only origin main
+npm install
+npm run auth:session
+npm run preflight:adc
+npm run check:budget-guard
+npm run preflight:production -- --env-file=.env.production.local
+npm run cutover:report -- --manifest=temp/client-production-source-manifest.json --env-file=.env.production.local --json</code></pre>
+
+      <div class="callout">
+        A production-valid notification configuration can leave the documented Gmail-send
+        residual in the cutover report. Do not bypass it with an allow-notifications flag
+        unless a separate, explicit send approval is granted.
+      </div>
+
+      <h2>3. Deploy the merged release</h2>
+
+      <p>
+        Deploy Firestore rules and indexes first, then update the existing Cloud Run
+        service:
+      </p>
+
+      <pre><code>npm exec firebase -- deploy --only firestore:rules,firestore:indexes --project pmi-kc-kb-prod
+
+npm run deploy -- --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo --region=us-central1 --search-location=us --budget-confirmed --allow-multiple-spaces --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com</code></pre>
+
+      <p>
+        Canonical production URL:
+        <code>https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app</code>
+      </p>
+
+      <div class="callout danger">
+        <strong>Stop immediately</strong> if the deploy targets another project or
+        identity, the budget guard fails, the preflight reports a new blocker, or the
+        canonical URL changes unexpectedly.
+      </div>
+
+      <h2>4. Automated production smoke</h2>
+
+      <p>
+        Establish the signed-in browser profile once, then reuse it for the Ask and
+        Dictate smokes:
+      </p>
+
+      <pre><code>$baseUrl = "https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app"
+
+npm run smoke:auth-live -- --base-url=$baseUrl --pause-on-human
+npm run smoke:ask-live -- --base-url=$baseUrl --browser-session
+npm run smoke:transcribe-live -- --base-url=$baseUrl --browser-session</code></pre>
+
+      <p class="result">
+        Pass when sign-in returns to the app, Ask returns a grounded answer with source
+        behavior intact, and Dictate returns HTTP 200 through the real speech boundary.
+      </p>
+
+      <h2>5. Feature-by-feature live acceptance</h2>
+
+      <div class="test-card">
+        <h3>A. Mobile renewal decider</h3>
+        <ol>
+          <li>
+            Sign in as an Admin and open <code>/lease-renewal/live</code> on a phone-sized
+            viewport.
+          </li>
+          <li>
+            Open the decider mode and confirm exactly one renewal flag card is visible
+            with “1 of N” progress.
+          </li>
+          <li>
+            For an approved Low/Medium test flag with a suggested winner, choose “Accept
+            suggested source.”
+          </li>
+          <li>
+            Confirm the decision advances without a free-text prompt and the audit reason
+            reads “Accepted the suggested source.”
+          </li>
+          <li>
+            Confirm “Approve write-back” is a distinct follow-on action and does not claim
+            the change was written.
+          </li>
+          <li>
+            Use Skip and confirm the card stays deferred during that browser session
+            without creating a resolution.
+          </li>
+          <li>
+            For a High/Blocked or manually corrected test flag, confirm a plain-English
+            reason is required.
+          </li>
+        </ol>
+        <p class="result">
+          Pass: one-card flow, correct conditional reasons, durable audit, distinct
+          authorization, and no external write.
+        </p>
+      </div>
+
+      <div class="test-card">
+        <h3>B. Scoped sub-user access</h3>
+        <ol>
+          <li>
+            In <code>/admin/users</code>, choose an approved internal test user and assign
+            the Maintenance scope with a reason.
+          </li>
+          <li>Have that user sign out and back in so the refreshed claim is active.</li>
+          <li>Confirm Maintenance remains visible and usable.</li>
+          <li>
+            Confirm Lease Renewals and Approval Queue are absent or redirect to the user's
+            primary in-scope surface.
+          </li>
+          <li>
+            Confirm the Admin audit records the scope change and the user's role did not
+            change.
+          </li>
+          <li>Restore the intended scope after the test and record the reason.</li>
+        </ol>
+        <p class="result">
+          Pass: the scope subtracts access without granting a role or exposing an
+          out-of-scope route.
+        </p>
+      </div>
+
+      <div class="test-card">
+        <h3>C. Unified Console and Notifications</h3>
+        <ol>
+          <li>Open the Console and record the “Needs your decision” count.</li>
+          <li>Open <code>/notifications</code> from the notification menu.</li>
+          <li>
+            Confirm the hub includes the same decision signal plus connection and
+            Space-coverage conditions.
+          </li>
+          <li>
+            Confirm values such as addresses, proposed values, and decision reasons are
+            not exposed in summary rows.
+          </li>
+          <li>
+            Use “mark all read” and confirm event notifications clear while standing setup
+            conditions remain until fixed.
+          </li>
+          <li>
+            As an Admin, confirm the team-review digest appears as one value-free rollup
+            rather than one alert per edit.
+          </li>
+        </ol>
+        <p class="result">
+          Pass: Console and hub agree, the hub is a superset, summaries remain value-free,
+          and no email is sent.
+        </p>
+      </div>
+
+      <div class="test-card">
+        <h3>D. Gmail Hub</h3>
+        <ol>
+          <li>
+            Open <code>/gmail-hub</code> and confirm draft, template/triage, and
+            thread-summary tools render together.
+          </li>
+          <li>
+            Paste sanitized test facts into the triage/template workspace and confirm a
+            suggested label and draft preview appear.
+          </li>
+          <li>
+            Paste a sanitized test thread and confirm a structured summary, waiting-on
+            party, and suggested next action appear.
+          </li>
+          <li>
+            Test an excluded category such as legal/notices and confirm the system refuses
+            before AI drafting.
+          </li>
+          <li>Confirm every mailbox-read affordance says “Waiting on Gmail access.”</li>
+          <li>Confirm there is no Send control and no claim that the inbox was read.</li>
+          <li>
+            Optionally, with the approved compose-only runtime configured, prepare one
+            renewal draft and confirm it appears as UNSENT in the approved mailbox. Delete
+            the test draft afterward.
+          </li>
+        </ol>
+        <p class="result">
+          Pass: pasted-content tools work, exclusions fail closed, mailbox read stays
+          gated, and any created message remains an unsent draft.
+        </p>
+      </div>
+
+      <div class="test-card">
+        <h3>E. Anticipated work</h3>
+        <ol>
+          <li>Open the Console and find the Anticipated work lane.</li>
+          <li>
+            Confirm renewal, owner-outreach, and notice items are computed from the
+            existing planners.
+          </li>
+          <li>
+            Confirm unsupported Maintenance/compliance families show an honest
+            waiting/no-source state.
+          </li>
+          <li>
+            Confirm the caption states that work is computed on request and never
+            scheduled or sent.
+          </li>
+          <li>
+            Use a start link only on an approved test case and confirm it opens a test-run
+            or desk flow rather than silently starting production work.
+          </li>
+        </ol>
+        <p class="result">
+          Pass: real supported projections, honest unsupported states, and no scheduler or
+          autonomous start.
+        </p>
+      </div>
+
+      <div class="test-card">
+        <h3>F. Approval Queue and maintenance supporting improvements</h3>
+        <ol>
+          <li>
+            Confirm Approval Queue opens to one urgent-first “Needs your decision” list
+            with alternate views under disclosure.
+          </li>
+          <li>
+            On an eligible safe Low/Medium queue row, confirm inline approval records the
+            app-plane decision.
+          </li>
+          <li>
+            Confirm High-risk, self-assigned, renewal-flag, and write-back rows still
+            require their full surfaces.
+          </li>
+          <li>
+            In Maintenance, confirm unit search suggests live RentVine units without
+            auto-selecting an uncertain match.
+          </li>
+          <li>
+            Confirm assignment shows approved internal users, supports “Assigned to me,”
+            and never exposes a raw UID as the normal label.
+          </li>
+        </ol>
+        <p class="result">
+          Pass: faster triage and assignment without weakening risk, actor, or
+          system-of-record gates.
+        </p>
+      </div>
+
+      <h2>6. Release-wide safety checks</h2>
+
+      <ul class="checklist">
+        <li>No control sends an email automatically.</li>
+        <li>No renewal approval changes RentVine or the operating Sheet.</li>
+        <li>Gmail Hub never claims to read the mailbox.</li>
+        <li>
+          The only executable registry key is the compose-only unsent renewal-draft
+          action.
+        </li>
+        <li>A maintenance-only user cannot access renewals or Approval Queue.</li>
+        <li>
+          Summary cards do not expose addresses, proposed values, free-text reasons, or
+          customer records.
+        </li>
+        <li>
+          Unsupported or missing sources render uncertainty instead of generic
+          property-management advice.
+        </li>
+      </ul>
+
+      <h2>7. Acceptance record</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Check</th>
+            <th>Tester</th>
+            <th>Date</th>
+            <th>Pass / issue</th>
+            <th>Evidence or follow-up</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Auth + role</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Ask + Dictate smoke</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Mobile renewal decider</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Scoped sub-user</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Console + Notifications</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Gmail Hub</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Anticipated work</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Queue + Maintenance</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Safety boundary</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout success">
+        <strong>Release decision:</strong> accept the deployment only when the automated
+        smoke, the relevant role-based feature checks, and the release-wide safety checks
+        pass. A feature issue can be documented and isolated; an auth, budget, privacy,
+        send, or external-write boundary failure is a rollback condition.
+      </div>
+
+      <footer>
+        Source of truth: repository <code>main</code>, <code>docs/facts.md</code>,
+        <code>docs/loop-state.md</code>, and the S14–S18 feature-suite specifications.
+        This guide contains no credentials or customer records.
+      </footer>
+    </main>
+  </body>
+</html>

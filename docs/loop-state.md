@@ -68,20 +68,18 @@ All five overhaul pillars are DONE + verified: `F-RENEWAL-DECIDER-MOBILE` (S14, 
 (S16, AC-S16-1..9), `F-UNIFIED-ATTENTION` (S17, AC-S17-1..9), `F-GMAIL-HUB` (S15, AC-S15-1..7), and
 `F-ANTICIPATION-LANE` (S18, AC-S18-1..9 — the Console's read-only Anticipated-work lane; no scheduler, no send).
 No safe app-plane slice remains; the app is migration-ready but every next step is owner/vendor-gated (below).
-Cycle packet `docs/temp/ui-ux-overhaul-plan.md` is now DELETABLE (all `F-*` facts landed).
 
-Carried owner/vendor-gated (unchanged): prod `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` + live process seed;
-RentVine work-order create; Sheet-write EXECUTION (`F-WRITE-GATE`, `OQ-RV-1`); the Gmail renewal-draft prod
-deploy (`npm run deploy -- --budget-confirmed`); the 3b Gmail-dependent notification families + Gmail runtime
-(client Gmail access model + DWD); wiring the A4 act-in-place / 3a anticipatory composer into a live surface.
+Carried owner/vendor-gated: prod photo-folder config + live process seed; Firestore rules/index deployment;
+RentVine work-order create; Sheet-write execution (`F-WRITE-GATE`, `OQ-RV-1`); deploy of the approved
+compose-only Gmail draft path; Gmail READ/inbox runtime; and wiring A4/3a into a live surface.
 
 ## Active Blockers And Exact Client Asks
 
-All client-owned (tracked in `docs/client-checklist.md` and `docs/research-backlog.md`):
+Tracked owner/client/vendor gates (in `docs/client-checklist.md` and `docs/research-backlog.md`):
 
-- A PMI KC production project id (create/select + link billing + $10 budget alert) and explicit
-  per-step approval for each cost-bearing migration step; the $10 guard stays binding. (Billing card
-  PROVISIONED 2026-06-19.)
+- Approved production sources and source-folder scope; explicit per-step approval for each cost-bearing
+  import/deploy/smoke step. `pmi-kc-kb-prod`, billing, the project-scoped budgets, and the hard $10 kill
+  switch are already provisioned and verified.
 - Lease Renewal acceptance scenarios (the walkthrough was HELD 2026-06-19; source notes captured; signed-lease/lease-end RESOLVED).
 - Google Sheets exact in-scope sheet list and owner confirmation.
 - QuickBooks access status/location (blank in the returned tool-access spreadsheet).
@@ -99,9 +97,10 @@ Manager); signed leases live in Dotloop, lease-end reads from the RentVine lease
 ## Pending Approval Gates
 
 Cost-bearing steps stay behind explicit per-step approval (each must also pass
-`npm run check:budget-guard` and stay under the $10 cap): cheap-live Ask demo; production infra setup
-(`gcloud services enable …`, Firestore create + rules/index deploy, source import, deploy, production
-smoke). Hard stops still require explicit approval and will not be performed autonomously:
+`npm run check:budget-guard` and stay under the $10 cap): any live Ask rerun, approved-source import,
+deployment of current `main`, and production smoke. Firestore rules/index deployment is also owner-auth
+gated even when it has no material cloud cost. Hard stops still require explicit approval and will not be
+performed autonomously:
 billing/cap changes, Pro model usage, autonomous sends, destructive changes, raw client
 data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 

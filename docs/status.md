@@ -6468,3 +6468,35 @@ send, or system-of-record behavior changed.
 
 Verification: `npm run verify:router-boundary`, `npm run verify:context-freshness`, `npm run verify:falsification`,
 `npm run format:check`, and `git diff --check` all passed locally.
+
+## 2026-07-11 — Migration-readiness truth reconciliation
+
+The resumed build loop correctly hit the no-safe-feature stop after S14–S18, then took the runner's allowed
+client-unblock/cutover-readiness path. A cross-check of active docs against the committed Action Registry and
+production handoff found two material stale claims: the client was still being asked to create/confirm the
+production project even though `pmi-kc-kb-prod`, billing, project budgets, the hard $10 kill switch, and the
+canonical Cloud Run service are verified; and several active governance docs still claimed every Action
+Registry entry was false after the owner-approved `gmail.renewal_notice.draft_create` compose-only flip.
+
+Reconciled the Tier-0 fact and supersede ledger, integration architecture, loop pointer, client checklist,
+environment handoff, research backlog, V1 governance floor, overhaul spec fences, and the Action Registry
+source comment. The durable invariant is now exact: one allowlisted action can create an UNSENT Gmail draft
+and cannot send; every other registry key remains false; no RentVine, Sheet, QuickBooks, bank, or other
+system-of-record write executes. Resolved project/billing, renewal-walkthrough/source, maintenance-photo-index,
+and canonical-auth-host asks were retired from the active blocker thread. Remaining gates are approved source
+scope/content, exact Sheet scope, QuickBooks access, the RentVine renewal-write endpoint, vocabulary freeze,
+Gmail READ model, sender/approver defaults, Firestore rules/index deployment with owner auth, and explicit
+per-step approval for import/deploy/live smoke.
+
+Documentation/readiness only: no runtime behavior, Action Registry value, cloud/client environment, Gmail
+mailbox, secret, send, deploy, or plan phase changed. Verification: `npm run format:check`,
+`npm run verify:router-boundary`, `npm run verify:falsification`, `npm run verify:context-freshness`,
+`npm run verify:spec-traceability`, and `git diff --check` all pass locally.
+
+Added `docs/production-release-and-live-test-guide-2026-07-11.html` as the owner/operator handoff for the
+next approved deployment. It summarizes the merged feature set, gives the exact existing-service deploy
+shape, and provides role-based live acceptance plus release-wide safety checks without credentials or client
+records. Final branch verification: `bash scripts/verify.sh` passed end to end (211 test files / 1,484 tests,
+lint with zero errors, typecheck, router/falsification/freshness/spec-traceability/redaction gates, and the
+production Next.js build). The clean install reported 11 npm dependency advisories (1 low, 7 moderate, 3
+high); they are not introduced by this docs/readiness slice and did not fail the build.

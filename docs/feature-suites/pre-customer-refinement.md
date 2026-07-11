@@ -128,7 +128,8 @@ detail (file:line evidence, risks) is in the packet. Slice ids match the packet 
   weakened.
 - _Assumption:_ hard gates unchanged this cycle — no autonomous send, no Sheet/SoR write
   execution (`F-WRITE-GATE`), no Cloud Scheduler, no Gmail runtime, no client data on GitHub,
-  every Action Registry entry `production_allowed:false`, ~$10 cap.
+  and no new Action Registry flip. The later owner-approved compose-only
+  `gmail.renewal_notice.draft_create` allowlist does not authorize any send or SoR write. ~$10 cap.
 
 **Cross-product impacts.** `lib/connections/*`, `components/connections/*`, `components/console/*`,
 `components/ask/*`, `components/approval/*`, `components/lease-renewal/*`, `app/globals.css`

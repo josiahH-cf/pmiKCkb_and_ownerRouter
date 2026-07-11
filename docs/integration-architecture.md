@@ -154,12 +154,15 @@ Approved for Execution` (or `Disabled` at any time).
 
 `production_allowed` may be `true` only when `readiness` is `Approved for Execution` and
 `evidence_status` is `Documented` with non-empty `documented_evidence`. This is enforced in
-the schema. Every seeded entry today is `production_allowed: false`, which keeps the
-registry inside the no-write safety boundary.
+the schema. Exactly one seeded entry is allowlisted today:
+`gmail.renewal_notice.draft_create`, a compose-only action backed by the committed owner-grant
+artifact in `docs/evidence/gmail-dwd-grant-2026-07.md`. It creates an UNSENT draft and has no
+send scope or send method. Every other entry remains `production_allowed: false`; no
+system-of-record write is executable.
 
-### Catalog coverage (2026-06-12 expansion)
+### Catalog coverage
 
-The seed catalog (`lib/integrations/action-registry-seed.ts`) now holds 17 entries: the
+The seed catalog (`lib/integrations/action-registry-seed.ts`) now holds 19 entries: the
 original 9 plus read-only `rentvine.lease.read` and `rentvine.work_order.read` (documented
 lease/work-order list/view used for renewal-candidate discovery and chain verification),
 `leadsimple.task.create` (orchestration task creation, vendor-confirmation-required), the
@@ -177,20 +180,22 @@ catalog entries would invent scope.
 
 ### Renewal-notice send policy — per-action spec drafts (S13 F5, spec-only)
 
-These two specs frame the renewal-notice send path for the owner. Both stay
-`production_allowed: false`. The locked policy (decision 3, 2026-07-02, `F-PRECUST-CYCLE`) is
-**unsent draft, human clicks Send** — so only the first action is ever pursued; the second is
-recorded as the alternative that was explicitly **not** chosen and would need its own future
-decision to reconsider.
+These two specs frame the renewal-notice send path for the owner. The compose-only draft action
+is the sole allowlisted Action Registry entry; the send alternative stays
+`production_allowed: false`. The locked policy (decision 3, 2026-07-02,
+`F-PRECUST-CYCLE`) is **unsent draft, human clicks Send** — so only the first action is ever
+pursued; the second is recorded as the alternative that was explicitly **not** chosen and would
+need its own future decision to reconsider.
 
-**Built out (S13 follow-on):** `gmail.renewal_notice.draft_create` is now a real Action Registry
-entry (`readiness: Planned`, `production_allowed: false`, Gmail Inbox 0's `gmail.compose`
-posture), and the UNSENT draft REQUEST is composed by `buildOwnerNoticeDraftRequest` /
-`buildTenantNoticeDraftRequest` (`lib/lease-renewal/notice-send-policy.ts`) — pure text, verbatim
-`DRAFT_BANNER`, recipient never invented (`Needs Verification:` when absent), `send_allowed:false`.
-There is still **no Gmail runtime**: no route calls the Gmail API, and the draft-create stays gated
-behind the client-approved Gmail access model + the approved per-action spec. The `send` action
-below remains docs-only.
+**Built out (S13 follow-on + owner approval 2026-07-09):**
+`gmail.renewal_notice.draft_create` is a real Action Registry entry (`readiness: Approved for
+Execution`, `evidence_status: Documented`, `production_allowed: true`) backed by the committed
+compose grant. The UNSENT draft request is composed by `buildOwnerNoticeDraftRequest` /
+`buildTenantNoticeDraftRequest` (`lib/lease-renewal/notice-send-policy.ts`) and executed through
+the keyless DWD Gmail runtime in `lib/gmail-runtime/`: verbatim `DRAFT_BANNER`, recipient never
+invented (`Needs Verification:` when absent), and `send_allowed:false`. The runtime exposes
+`createDraft` only; it has no send method or `gmail.send` scope. Production use of the current
+code still requires an owner-run deploy. The `send` action below remains docs-only and disabled.
 
 **`gmail.renewal_notice.draft_create`** (the policy-aligned action; registry entry + composer built, runtime gated)
 
@@ -201,8 +206,8 @@ below remains docs-only.
   owner-approved renewal notice (reusing the built `buildOwnerRenewalDraft` /
   `buildTenantOfferDraft` composers with the verbatim `DRAFT_BANNER`). The operator opens the
   draft in Gmail and clicks Send. Never sends from the app.
-- `readiness`: `Needs Permission` — blocked on the client-approved Gmail access model (sender
-  identity, OAuth scope `gmail.compose` on `kb-automation@pmikcmetro.com`) and a per-action spec.
+- `readiness`: `Approved for Execution` — owner-approved compose-only DWD grant, verified by a
+  live create/delete smoke and recorded in `docs/evidence/gmail-dwd-grant-2026-07.md`.
 - `evidence_status`: `Documented` — Gmail API `users.drafts.create` is a documented,
   compose-only (no send) capability; the gap is the access-model approval, not the API.
 - `required_permissions`: `https://www.googleapis.com/auth/gmail.compose` (create/read/update
@@ -214,7 +219,8 @@ below remains docs-only.
 - `rollback_note`: an unsent draft is deletable with no external effect; nothing leaves the
   mailbox until a human sends it.
 - `connection_health_check_ref`: `health.gmail.workspace_api`.
-- `production_allowed`: **false**.
+- `production_allowed`: **true** for this exact compose-only key; the executable allowlist rejects
+  any other unexpected flip.
 
 **`gmail.renewal_notice.send`** (the alternative — explicitly NOT chosen)
 

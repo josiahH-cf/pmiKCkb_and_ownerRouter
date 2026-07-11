@@ -125,8 +125,9 @@ are the real ones read for this spec.
   notifications out of app (email/push). Both are confirm-with-default: stay in-app until the client says
   otherwise.
 - _Assumption:_ hard gates unchanged this cycle — no autonomous send, no SoR write, no Cloud Scheduler,
-  no new Google scope, no client data on GitHub, every Action Registry entry `production_allowed:false`,
-  ~$10 cap. This suite adds no Action Registry entry.
+  no new Google scope, no client data on GitHub, and no new Action Registry flip (the existing
+  compose-only `gmail.renewal_notice.draft_create` allowlist is unchanged), ~$10 cap. This suite
+  adds no Action Registry entry.
 
 **Cross-product impacts.** New: `app/notifications/page.tsx`, `lib/attention/lanes.ts`,
 `lib/attention/review-lane.ts`, `app/api/notifications/mark-all-read/route.ts`. Extended:

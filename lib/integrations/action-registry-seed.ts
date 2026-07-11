@@ -6,11 +6,11 @@ import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
  * (docs/integration-architecture.md), and the Gmail Inbox 0 connective architecture
  * (docs/products/gmail-inbox-zero.md).
  *
- * Safety invariant: every entry is `production_allowed: false`. This catalog is metadata
- * only and authorizes no external write. Readiness and evidence reflect documented
- * capability today; an approved per-action spec is still required before any entry can be
- * marked production-eligible (and the schema only permits that for `Approved for Execution`
- * entries with `Documented` evidence).
+ * Safety invariant: exactly one entry is production-eligible today:
+ * `gmail.renewal_notice.draft_create`, the owner-approved compose-only path backed by the
+ * committed grant artifact. It creates an UNSENT draft and cannot send. Every other entry is
+ * `production_allowed: false`; the schema permits a true value only for `Approved for Execution`
+ * entries with `Documented` evidence.
  *
  * Each entry's `connection_health_check_ref` points at the matching per-system contract in
  * lib/integrations/health-checks.ts. Maintenance-chain entries carry a structured
