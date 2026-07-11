@@ -1,34 +1,33 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
+import { TemplateWorkspace } from "@/components/gmail-hub/TemplateWorkspace";
 import { GMAIL_INBOX_ZERO_NAME } from "@/lib/constants";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { readServerConfig } from "@/lib/config/server";
-import {
-  GMAIL_HARD_EXCLUSION_CATEGORIES,
-  GMAIL_INBOX_ZERO_BASE_LABELS,
-  GMAIL_INBOX_ZERO_LABELS,
-  GMAIL_INBOX_ZERO_PHASES,
-} from "@/lib/gmail-inbox-zero/constants";
 
 /**
- * Minimal Admin-only Gmail Inbox 0 management page (read-only v1). Gmail runtime stays
- * client-gated: this page renders the governed label/rule/reply models and an honest
- * not-connected status. It performs no Gmail call and has no send capability.
+ * Admin-only Gmail Inbox 0 management surface. The static read-only v1 placeholder is retired: this
+ * page now renders the live Template & triage workspace (the governed engines run over pasted,
+ * sanitized facts) beside an honest not-connected Gmail status. No live mailbox is read; nothing here
+ * can send — a human presses Send in Gmail once the access model is approved.
  */
 export default async function GmailInboxZeroAdminPage() {
   const user = await requirePageCapability("manageAdmin");
   const config = readServerConfig();
-  const baseLabels = new Set<string>(GMAIL_INBOX_ZERO_BASE_LABELS);
 
   return (
     <AppShell user={user}>
-      <section className="content">
-        <h1 className="section-title">{`${GMAIL_INBOX_ZERO_NAME} Management`}</h1>
-        <p className="muted">
-          Read-only v1. Gmail runtime is client-gated: no live Gmail access model is
-          approved yet, and this page makes no Gmail call. Human send authority is
-          preserved — nothing here can send. <Link href="/admin">Back to Admin</Link>
-        </p>
+      <section className="content ui-stack">
+        <div>
+          <h1 className="section-title">{`${GMAIL_INBOX_ZERO_NAME} Management`}</h1>
+          <p className="muted">
+            Manage the approved rules and reply patterns and evaluate them over pasted,
+            sanitized facts. Live mailbox actions wait on the approved Gmail access model;
+            human send authority is preserved.{" "}
+            <Link href="/gmail-hub">Open the Gmail hub</Link> ·{" "}
+            <Link href="/admin">Back to Admin</Link>
+          </p>
+        </div>
 
         <div className="grid two">
           <article className="panel">
@@ -53,64 +52,7 @@ export default async function GmailInboxZeroAdminPage() {
           </article>
         </div>
 
-        <article className="panel">
-          <h2>Rollout Phase</h2>
-          <p>
-            Not started — the reversible, opt-in rollout begins at{" "}
-            {GMAIL_INBOX_ZERO_PHASES[0]} (classify only, apply nothing) once access is
-            approved.
-          </p>
-          <ul className="compact-list">
-            <li>Shadow: classify only; nothing is applied to the mailbox.</li>
-            <li>Suggest: auto-label only exact matches of Admin-approved rules.</li>
-            <li>Drafts: unsent drafts from approved reply patterns; Dan presses Send.</li>
-          </ul>
-        </article>
-
-        <article className="panel">
-          <h2>Labels</h2>
-          <ul className="compact-list">
-            {GMAIL_INBOX_ZERO_LABELS.map((label) => (
-              <li key={label}>
-                {label}
-                {baseLabels.has(label) ? " — base layer" : " — target set"}
-              </li>
-            ))}
-          </ul>
-          <p className="muted">
-            Labels are additive and reversible; disconnecting leaves ordinary Gmail
-            labels.
-          </p>
-        </article>
-
-        <div className="grid two">
-          <article className="panel">
-            <h2>Rules</h2>
-            <p className="muted">
-              No approved rules yet. Plain-English rules become structured fields after
-              Admin approval; Dan&apos;s corrections arrive here as Proposed changes.
-            </p>
-            <p className="muted">
-              Hard exclusions (label only, never draft):{" "}
-              {GMAIL_HARD_EXCLUSION_CATEGORIES.join(", ")}.
-            </p>
-          </article>
-          <article className="panel">
-            <h2>Approved Replies</h2>
-            <p className="muted">
-              No approved reply patterns yet. Drafts always carry the review-before-
-              sending banner and mark missing facts for verification.
-            </p>
-          </article>
-        </div>
-
-        <article className="panel">
-          <h2>History of Changes</h2>
-          <p className="muted">
-            No rule or reply-pattern changes yet. Changes are approval-gated and will be
-            recorded here.
-          </p>
-        </article>
+        <TemplateWorkspace />
       </section>
     </AppShell>
   );

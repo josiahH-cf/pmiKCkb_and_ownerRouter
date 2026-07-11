@@ -19,7 +19,7 @@ describe("gmail inbox zero management page", () => {
     expect(locationPath(response)).toBe("/sign-in?error=forbidden");
   });
 
-  it("renders the read-only management panels for a demo Admin", async () => {
+  it("renders the template & triage workspace for a demo Admin", async () => {
     const client = createClient();
     await client.signInDemo();
 
@@ -30,13 +30,14 @@ describe("gmail inbox zero management page", () => {
     expect(html).toContain("Gmail Connection");
     expect(html).toContain("Not connected");
     expect(html).toContain("Gemini Status");
-    expect(html).toContain("Rollout Phase");
+    // The static read-only v1 panels are retired; the live workspace renders the governed sets.
+    expect(html).toContain("Label rules");
+    expect(html).toContain("Reply patterns");
     expect(html).toContain("Waiting on Outside");
     expect(html).toContain("Waiting on Team");
     expect(html).toContain("Dan Decision");
     expect(html).toContain("Draft Ready");
-    expect(html).toContain("Approved Replies");
-    expect(html).toContain("History of Changes");
+    expect(html).not.toContain("Read-only v1");
   });
 
   it("links to the management page from /admin", async () => {

@@ -13,6 +13,7 @@ const navItems: readonly { href: string; label: string; scope?: SpaceScope }[] =
   { href: "/ask", label: "Console" },
   { href: "/spaces", label: "Spaces" },
   { href: "/approval-queue", label: "Approval Queue", scope: "renewals" },
+  { href: "/gmail-hub", label: "Gmail Hub" },
 ];
 
 export function AppShell({

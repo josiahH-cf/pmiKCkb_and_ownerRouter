@@ -17,6 +17,7 @@ import {
   Tabs,
 } from "@/components/ui";
 import { PrepareOwnerEmailButton } from "@/components/lease-renewal/PrepareOwnerEmailButton";
+import { PrepareTenantEmailButton } from "@/components/lease-renewal/PrepareTenantEmailButton";
 import { DRAFT_BANNER } from "@/lib/constants";
 import type { ReadinessStatus } from "@/lib/lease-renewal/renewal-readiness";
 import type { RenewalLeaseWorkspace } from "@/lib/lease-renewal/sample-desk";
@@ -141,6 +142,7 @@ export function RenewalWorkspace({
                 },
               ]}
             />
+            <PrepareTenantEmailButton leaseId={summary.id} />
           </div>
         ) : (
           <EmptyState

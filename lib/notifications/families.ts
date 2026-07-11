@@ -62,7 +62,9 @@ export interface NotificationFamilyView extends NotificationFamily {
   muted: boolean;
 }
 
-const WAITING_ON_GMAIL = "Waiting on Gmail access";
+/** The single gated-affordance string for every Gmail-dependent surface (families + the hub's
+ *  "read my inbox" control). Exported so no consumer re-hardcodes the literal. */
+export const WAITING_ON_GMAIL = "Waiting on Gmail access";
 
 export const NOTIFICATION_FAMILIES: readonly NotificationFamily[] = [
   {
