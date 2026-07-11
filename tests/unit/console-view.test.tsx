@@ -63,6 +63,8 @@ describe("ConsoleView", () => {
       screen.getByRole("heading", { name: "Console", level: 1 }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Question")).toBeInTheDocument();
+    // A renewals-visible principal sees the read-only anticipation lane (S18).
+    expect(screen.getByRole("heading", { name: "Anticipated work" })).toBeInTheDocument();
   });
 
   it("surfaces the needs-your-decision area with the top row as a deep link (no click-to-reveal)", async () => {
@@ -115,5 +117,8 @@ describe("ConsoleView", () => {
     ).toBe(true);
     expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
     expect(gatherNeedsDecisionInbox).not.toHaveBeenCalled();
+    // The renewal anticipation lane is renewals-scoped: a maintenance-only principal never sees it
+    // (removing the canSeeRenewals gate in ConsoleView would leak renewal work here and fail this).
+    expect(screen.queryByRole("heading", { name: "Anticipated work" })).toBeNull();
   });
 });
