@@ -354,6 +354,34 @@ button {
   font-weight: 700;
 }
 
+/* Anticipated-work lane (S18 process-auto-initiation). Read-only, request-computed. */
+.console-anticipated {
+  margin-top: 24px;
+}
+
+.console-anticipated-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.console-anticipated-name {
+  font-weight: 700;
+}
+
+.console-anticipated-summary {
+  font-size: 0.95rem;
+}
+
+.console-anticipated-open {
+  font-size: 0.9rem;
+}
+
+.console-anticipated-caption {
+  margin-top: 12px;
+  font-size: 0.85rem;
+}
+
 /* Maintenance ticket queue cards (console overhaul Slice E). */
 .maintenance-ticket {
   display: grid;

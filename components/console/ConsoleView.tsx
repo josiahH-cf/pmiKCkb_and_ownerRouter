@@ -7,7 +7,16 @@ import {
   ConsoleProcessStrip,
   type ConsoleProcessItem,
 } from "@/components/console/ConsoleProcessStrip";
+import { ConsoleAnticipatedWork } from "@/components/console/ConsoleAnticipatedWork";
 import type { ConnectionStatus } from "@/components/ui";
+import {
+  buildAnticipatedWork,
+  type AnticipatedWorkGroup,
+} from "@/lib/anticipation/projection";
+import {
+  getRenewalDeskView,
+  SAMPLE_NOTICE_REFERENCE_DATE,
+} from "@/lib/lease-renewal/sample-desk";
 import { gatherNeedsDecisionInbox } from "@/lib/approval/needs-decision-gather";
 import {
   resolveConnectionsState,
@@ -167,6 +176,21 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
       };
     });
 
+  // Anticipated work — a read-only, request-computed projection of coming-up / due process work, each
+  // one click from starting the existing human-run process. Renewals-scoped like the approvals gather;
+  // pure + non-fatal (getRenewalDeskView is deterministic sample data, never a live read this cycle).
+  let anticipatedGroups: AnticipatedWorkGroup[] = [];
+  if (canSeeRenewals) {
+    try {
+      anticipatedGroups = buildAnticipatedWork({
+        referenceDateIso: SAMPLE_NOTICE_REFERENCE_DATE,
+        deskView: getRenewalDeskView(),
+      }).groups;
+    } catch {
+      anticipatedGroups = [];
+    }
+  }
+
   return (
     <section className="content console">
       <h1 className="section-title">Console</h1>
@@ -177,6 +201,7 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
       </p>
       <ConsoleActionDeck canApprove={canApprove} cards={cards} />
       <AskForm canStartSimulation={canStartSimulation} processes={processes} />
+      <ConsoleAnticipatedWork groups={anticipatedGroups} canStart={canStartSimulation} />
       <ConsoleProcessStrip items={processItems} />
     </section>
   );

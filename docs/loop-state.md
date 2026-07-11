@@ -31,7 +31,7 @@ stop-and-reset rules.
   (PR #68), then VERIFIED 2026-07-10 (`F-RBAC-SUBUSERS`, AC-S16-1..9). The loop then built + verified **S17
   unified-console-and-attention** (`F-UNIFIED-ATTENTION`, AC-S17-1..9): the `/notifications` superset hub + one
   value-free attention-lane contract + low-alarm layer + Admin-only review digest; adversarial + browser-verified.
-  Then **S15 gmail-hub** shipped app-plane TO-THE-GATE (`F-GMAIL-HUB`, AC-S15-1..7): `/gmail-hub` surfaces the invisible draft/triage/summary engines over pasted text, a tenant prepare-email twin reuses the one pre-approved compose gate, the admin page runs the live workspace, and Owner Email opens the hub — NO Gmail read scope; 1473 tests + all gates + prod build green.
+  Then **S15 gmail-hub** shipped app-plane TO-THE-GATE (`F-GMAIL-HUB`, AC-S15-1..7): `/gmail-hub` surfaces the invisible draft/triage/summary engines over pasted text, a tenant prepare-email twin reuses the one pre-approved compose gate, the admin page runs the live workspace, and Owner Email opens the hub — NO Gmail read scope; 1473 tests + all gates + prod build green. Then **S18 process-auto-initiation** (`F-ANTICIPATION-LANE`, AC-S18-1..9) shipped the Console's read-only "Anticipated work" lane — a pure value-free projection folding the renewal cohort + notice planners, each family one click from a test run (no scheduler, no send, no SoR write) — COMPLETING the S14–S18 overhaul; 1484 tests + all gates + prod build green.
 - Production-plane fence verified (`F-PROD-CLOUD-MODEL`): prod forces Gemini + Drive; the local model,
   demo auth, and the STT/image stubs are dev/test-only (NODE_ENV-fenced), never a prod dependency.
 - Earlier context (full history in `docs/status.md`): client beta deployed on the `pmi-kc-kb-demo` Cloud
@@ -62,13 +62,13 @@ stop-and-reset rules.
   the next work was then owner/vendor-gated (SUPERSEDED 2026-07-10 — the overhaul reopened S14–S18; see below).
 - **Deferred cycle COMPLETE (2026-07-09), 7 slices merged (PRs #56-#62):** 2a/1b/1c/3a/3b/A4/4a + 2c/3c/A5/2d/2b shipped app-plane, each adversarially verified then PR -> CI -> merge. Full narrative in `docs/status.md`; decision spec in `docs/temp/deferred-remaining-slices.md`.
 
-## Next Safe Slice — S18 process-auto-initiation (last overhaul pillar)
+## Next Safe Slice — NONE: S14–S18 overhaul COMPLETE (remaining work owner/vendor-gated)
 
-S14 + S16 + S17 + **S15 are DONE + verified** (`F-RENEWAL-DECIDER-MOBILE` AC-S14-1..9; `F-RBAC-SUBUSERS`
-AC-S16-1..9; `F-UNIFIED-ATTENTION` AC-S17-1..9; `F-GMAIL-HUB` AC-S15-1..7 — the Gmail hub built app-plane
-to-the-gate: invisible draft/triage/summary engines surfaced over pasted text, a tenant prepare-email twin, the
-admin live workspace, and the Owner Email → hub front door; NO Gmail read scope). Next (last pillar) is **S18**
-process-auto-initiation (the app-plane anticipation lane). Cycle packet: `docs/temp/ui-ux-overhaul-plan.md`.
+All five overhaul pillars are DONE + verified: `F-RENEWAL-DECIDER-MOBILE` (S14, AC-S14-1..9), `F-RBAC-SUBUSERS`
+(S16, AC-S16-1..9), `F-UNIFIED-ATTENTION` (S17, AC-S17-1..9), `F-GMAIL-HUB` (S15, AC-S15-1..7), and
+`F-ANTICIPATION-LANE` (S18, AC-S18-1..9 — the Console's read-only Anticipated-work lane; no scheduler, no send).
+No safe app-plane slice remains; the app is migration-ready but every next step is owner/vendor-gated (below).
+Cycle packet `docs/temp/ui-ux-overhaul-plan.md` is now DELETABLE (all `F-*` facts landed).
 
 Carried owner/vendor-gated (unchanged): prod `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` + live process seed;
 RentVine work-order create; Sheet-write EXECUTION (`F-WRITE-GATE`, `OQ-RV-1`); the Gmail renewal-draft prod
@@ -107,9 +107,9 @@ data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 
 ## Stop-Condition State
 
-- 2026-07-10: S14 + S16 + S17 + S15 passed their adversarial boundaries (`F-RENEWAL-DECIDER-MOBILE`,
-  `F-RBAC-SUBUSERS`, `F-UNIFIED-ATTENTION`, `F-GMAIL-HUB`); no stop-condition fired. S18 process-auto-initiation
-  is the last overhaul pillar. External writes, deploy, Gmail read scope, and cost-bearing actions remain gated.
+- 2026-07-10: S14 + S16 + S17 + S15 + S18 all passed their adversarial boundaries (`F-RENEWAL-DECIDER-MOBILE`,
+  `F-RBAC-SUBUSERS`, `F-UNIFIED-ATTENTION`, `F-GMAIL-HUB`, `F-ANTICIPATION-LANE`). The S14–S18 overhaul is COMPLETE;
+  "No safe slice remains" now fires — external writes, deploy, Gmail read scope, live feeds, and cost-bearing actions are owner/vendor-gated.
 - 2026-07-09: the 7-slice deferred cycle shipped + merged (PRs #56-#62); superseded as the active stop by the
   2026-07-10 cycle above.
 - Prior stop-conditions (2026-06-30 migration-readiness / "no safe slice"; 2026-07-01 owner-present cycles) are
@@ -131,8 +131,8 @@ only from env/Secret Manager, never committed. Record only non-secret references
    read-only `npm run preflight:adc`; if it fails, ask the owner to run `auth:session` (`F-SESSION-AUTH`) — a stale token stalls mid-step.
 3. If the trigger is "plan the next feature cycle", produce a decision-complete packet and stop. If
    the trigger authorizes running the loop, proceed unattended.
-4. Pick the next slice from **Next Safe Slice** above — **S16** rbac-subusers is next (then S17 → S15 →
-   S18); build only each spec's "Buildable now (app-plane)" slices and stop at its named gates.
+4. Pick the next slice from **Next Safe Slice** above — the S14–S18 overhaul is COMPLETE, so no safe
+   app-plane slice remains; route to client-unblock / owner-gated cutover prep, not a new local feature.
    For lease-renewal writeback specifically, stay in discovery until the team validates process, columns, and
    golden data.
 5. Preserve the existing executable allowlist exactly; do not flip another registry entry. Honor all gates + cap.
