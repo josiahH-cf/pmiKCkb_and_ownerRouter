@@ -156,7 +156,7 @@ The durable budget policy, budget guard script, CI guard, and `.gitignore` harde
 
 ## What Is Intentionally Not Changed
 
-- `.codex/config.toml` remains open for unattended execution.
+- No tracked Codex harness config is required for unattended execution.
 - Security rules still block secrets and raw customer/Gmail data in git.
 - Human send authority is preserved.
 - System-of-record writes still require explicit Action Registry readiness.

@@ -6458,3 +6458,13 @@ Cloud Scheduler, ~$10 cap, deploy owner-run. IMPORTANT: S16 has NOT had its own 
 Verification-and-Falsification boundary and is deliberately NOT yet promoted to an `F-S16` fact — that pass
 (guard on every scoped route, nav/Spaces/Console filtering, admin scope editor + audit, against AC-S16-1..9) is
 the next work before S17. Committed + merged via PR; the local `docs/temp/ui-ux-overhaul-plan.md` reflects S14 done.
+
+## 2026-07-11 — Removed tracked Codex harness config
+
+Deleted `.codex/config.toml` and removed the active router-boundary requirement for a Codex adapter file. Codex now
+reads `AGENTS.md` and `docs/` directly, while `CLAUDE.md` remains the Claude compatibility pointer; the
+runner-neutral fact row and inactive Away Mode note were updated to match. No runtime, cloud, auth, Action Registry,
+send, or system-of-record behavior changed.
+
+Verification: `npm run verify:router-boundary`, `npm run verify:context-freshness`, `npm run verify:falsification`,
+`npm run format:check`, and `git diff --check` all passed locally.

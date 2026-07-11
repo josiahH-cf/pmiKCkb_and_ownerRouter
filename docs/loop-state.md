@@ -13,7 +13,7 @@ stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-07-10
+- Last updated: 2026-07-11
 - Where we are: the multi-process operations console is the north star (lease-renewal = process #1). The
   2026-06-29 cycle shipped + merged R1–R5 (spine+IA, golden harness+labeling, renewal math, action console +
   intent-detect, and the full Maintenance Work Order Intake incl. live Drive photo sync). Full detail is in

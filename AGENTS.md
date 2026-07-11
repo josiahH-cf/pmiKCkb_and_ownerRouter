@@ -22,16 +22,15 @@ router or a `docs/` file both runners read.
 - **Claude Code** → `CLAUDE.md` (a compatibility pointer to this router) and `.claude/`
   (slash-command wrappers, `launch.json`). `.claude/` files stay thin wrappers over a
   runner-neutral capability doc, never a second copy of the rules.
-- **Codex** → `.codex/config.toml` (harness/model config only). Any operating rule a Codex
-  session needs lives here or in `docs/`, never only in that file.
+- **Codex** → no repo-tracked harness config. Codex sessions read this router and `docs/`
+  directly; app/session-level settings stay outside this repo.
 - **Any other runner** → read `AGENTS.md` first, then `docs/loop-state.md` and
   `docs/autonomous-agent-runner.md`. The same comprehensive loop (plan → build →
   verify + falsify → stop/reset) is invoked identically regardless of runner.
 
 The identity, security, budget, and write/send gates in this file bind every runner equally.
-Harness-level autonomy settings differ by runner (e.g. `.codex/config.toml` sets its own
-approval/sandbox posture); document such differences and never let a runner's local defaults
-silently widen these gates.
+Harness-level autonomy settings differ by runner and may be app/session-local; document such
+differences when they matter, and never let a runner's local defaults silently widen these gates.
 
 ## Purpose
 
