@@ -6500,3 +6500,36 @@ records. Final branch verification: `bash scripts/verify.sh` passed end to end (
 lint with zero errors, typecheck, router/falsification/freshness/spec-traceability/redaction gates, and the
 production Next.js build). The clean install reported 11 npm dependency advisories (1 low, 7 moderate, 3
 high); they are not introduced by this docs/readiness slice and did not fail the build.
+
+## 2026-07-11 — Production env/preflight unblock
+
+The first owner-run deployment attempt correctly passed session auth, ADC freshness, and the $10 budget
+guard, then stopped because the gitignored `.env.production.local` had never been created. Investigation
+found two downstream cutover defects before any live mutation: the production validator rejected the
+verified canonical host solely because its historically named service contains `pmi-kc-kb-demo`, and it
+forced approval email notifications on even though sender/recipients and delivery remain separately gated.
+
+Fixed the preflight to distinguish the retired demo project/resources from the production service name and
+to permit an app-plane deploy with notifications explicitly false (clear warning; sender/recipients required
+only when delivery is enabled). Added `npm run prepare:production-env`, which builds the ignored production
+preflight file from an allowlist of `.env.local` identifiers, forces cloud/auth fences, and never copies raw
+RentVine secrets, emulator settings, or local-model settings. Regression tests cover the canonical host,
+notifications-off posture, missing notification approval, required identifiers, and forbidden-key exclusion.
+No cloud/client action, send, external write, or secret output occurred in this fix.
+
+The supplied full-cutover command also referenced a nonexistent ignored production source manifest.
+No manifest was fabricated or copied from the tracked demo manifest: this release is a code-only redeploy
+against existing live source/data-store maps. The owner handoff now uses the deploy helper's `--dry-run` as
+the code-release gate and reserves `cutover:report --manifest=...` for approved source/import or initial
+migration work.
+
+Local owner environment verification after the fix: the helper created the ignored
+`.env.production.local` with 29 allowlisted variables and no runtime secrets; the real production
+preflight passed with only the expected notifications-disabled warning. The code-only deploy `--dry-run`
+also passed and was programmatically checked (without printing env values): correct project/service/runtime
+SA, canonical APP_BASE_URL, demo auth forced off, notifications disabled, and RentVine credentials bound by
+Secret Manager references.
+
+Final verification: `bash scripts/verify.sh` passed end to end (212 test files / 1,489 tests, lint with
+zero errors, typecheck, router/falsification/freshness/spec-traceability/redaction gates, and production
+Next.js build). The 11 pre-existing npm dependency advisories remain visible and unchanged.

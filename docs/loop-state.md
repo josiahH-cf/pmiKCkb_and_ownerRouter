@@ -68,6 +68,7 @@ All five overhaul pillars are DONE + verified: `F-RENEWAL-DECIDER-MOBILE` (S14, 
 (S16, AC-S16-1..9), `F-UNIFIED-ATTENTION` (S17, AC-S17-1..9), `F-GMAIL-HUB` (S15, AC-S15-1..7), and
 `F-ANTICIPATION-LANE` (S18, AC-S18-1..9 — the Console's read-only Anticipated-work lane; no scheduler, no send).
 No safe app-plane slice remains; the app is migration-ready but every next step is owner/vendor-gated (below).
+Cutover prep includes a safe ignored-env generator; notifications stay off unless separately approved.
 
 Carried owner/vendor-gated: prod photo-folder config + live process seed; Firestore rules/index deployment;
 RentVine work-order create; Sheet-write execution (`F-WRITE-GATE`, `OQ-RV-1`); deploy of the approved

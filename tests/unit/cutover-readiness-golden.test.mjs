@@ -158,13 +158,17 @@ describe("production env preflight rejects broken configs", () => {
     ).toBe(true);
   });
 
-  it("rejects notifications disabled", () => {
-    expect(
-      hasError(
-        withEnv({ KB_APPROVAL_NOTIFICATIONS_ENABLED: "false" }),
-        "KB_APPROVAL_NOTIFICATIONS_ENABLED must be true",
-      ),
-    ).toBe(true);
+  it("allows an app-plane deploy with notifications disabled and warns clearly", () => {
+    const result = withEnv({
+      KB_APPROVAL_NOTIFICATIONS_ENABLED: "false",
+      KB_APPROVAL_RECIPIENTS: "",
+      KB_APPROVAL_SENDER: "",
+    });
+    expect(result.ok).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toContain(
+      "KB approval email notifications remain disabled. App-plane production deployment is allowed, but notification delivery is not part of this cutover.",
+    );
   });
 
   it("rejects a non-pmikcmetro approval recipient", () => {

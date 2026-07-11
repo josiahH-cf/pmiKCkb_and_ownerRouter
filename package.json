@@ -50,6 +50,7 @@
     "preflight:gcp": "node scripts/preflight-gcp-setup.mjs",
     "preflight:identity": "node scripts/preflight-identity.mjs",
     "preflight:production": "node scripts/preflight-production-cutover.mjs",
+    "prepare:production-env": "node scripts/prepare-production-env.mjs",
     "preflight:rentvine": "node scripts/preflight-rentvine.mjs",
     "golden:capture": "tsx scripts/capture-golden-data.ts",
     "maintenance:ensure-folder": "tsx scripts/ensure-maintenance-drive-folder.ts",
