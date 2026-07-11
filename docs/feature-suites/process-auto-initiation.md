@@ -106,8 +106,9 @@ referenceDateIso, batch, ruleSet })` that mirrors `lib/lease-renewal/cohort.ts` 
   `Needs Verification:` until Dan confirms (`F-NOTICE-ENGINE`); the lane's urgency inherits them and
   is only as confirmed as they are.
 - _Assumption:_ hard gates unchanged this cycle — no autonomous send, no SoR write execution
-  (`F-WRITE-GATE`), no Cloud Scheduler, no new Google scope, every Action Registry entry
-  `production_allowed:false`, ~$10 cap, deploy owner-run.
+  (`F-WRITE-GATE`), no Cloud Scheduler, no new Google scope, and no new Action Registry flip (the
+  existing compose-only `gmail.renewal_notice.draft_create` allowlist is unchanged), ~$10 cap,
+  deploy owner-run.
 
 **Cross-product impacts.** New `lib/anticipation/projection.ts` +
 `components/console/ConsoleAnticipatedWork.tsx`; consumes (unchanged)

@@ -49,10 +49,11 @@ NAMED sentinel/invariant tests the slice must keep green. Example:
 - **AC-S{n}-2** — {observable state}. _Verify:_ `npm run typecheck`, `npm run lint`.
 
 **Forbidden actions / hard gates.** Restate the fence a violation of which is itself a
-falsification: app-plane only; every Action Registry entry `production_allowed:false`; no
-autonomous send; no system-of-record write (RentVine / Sheet / QuickBooks / bank / client
-Drive); no new Google scope; no Cloud Scheduler; no client data on GitHub; ~$10 budget cap;
-deploy stays owner-run. Add any suite-specific hard stop.
+falsification: app-plane only unless the suite names an already-approved action; no new Action
+Registry flip (the existing compose-only `gmail.renewal_notice.draft_create` allowlist is not a
+general write grant); no autonomous send; no system-of-record write (RentVine / Sheet /
+QuickBooks / bank / client Drive); no new Google scope; no Cloud Scheduler; no client data on
+GitHub; ~$10 budget cap; deploy stays owner-run. Add any suite-specific hard stop.
 
 **Ordered prompt sequence.** Numbered steps, each tagged `_Discovery:_` / `_Understanding:_` /
 `_Build:_` / `_Gate:_` / `_Owner:_` / `_Context update:_` / `_Verify:_`. The final step always
