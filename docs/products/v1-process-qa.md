@@ -12,10 +12,9 @@ the `OQ-*` lease-renewal items live in the lease-renewal discovery docs (`lease-
 `lease-renewal-discovery-packet.md`); the move-in/move-out answers become new `F-MOVEIN-*` / `F-MOVEOUT-*`
 facts when their desks are specced. The build does not invent answers.
 
-Governance floor (unchanged, applies to every answer): no autonomous send and no system-of-record
-write. The allowlisted external actions are the bounded readonly self-pilot `gmail.mailbox.read`
-and the owner-approved compose-only `gmail.renewal_notice.draft_create`, which creates an UNSENT
-draft and cannot send; every send/reply/mutation and other Action Registry entry stays
+Governance floor (applies to every answer): no autonomous send and no non-Gmail system-of-record
+write. The five separately governed Gmail Inbox 0 actions plus the renewal unsent-draft action are
+allowlisted; send/reply require exact human confirmation. Other Action Registry entries stay
 `production_allowed:false`. Missing facts render visible
 `Needs Verification:` markers, never invented values; identity stays `pmikcmetro.com`.
 

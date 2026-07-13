@@ -93,8 +93,8 @@ npm run format:check
 
 ### P2 - Access And Account Setup
 
-Status: in progress — GCP/Firebase project + billing confirmed (`pmi-kc-kb-prod`); Drive source
-ownership, Gmail Inbox 0 authority, and approved sources still pending.
+Status: in progress — GCP/Firebase project + billing and Gmail Inbox 0 authority confirmed;
+Drive source ownership and approved KB sources still pending.
 
 Acceptance criteria:
 
@@ -536,28 +536,19 @@ Key gates:
 
 ### Gmail Inbox 0
 
-Current state: S19 is built as a per-authenticated-user Gmail workspace; the S15
-simulator/pasted-text workspace remains a separate fallback. The keyless readonly
-self-pilot profile connection is live-proven and `gmail.mailbox.read` is locally
-allowlisted. The deployed revision is still simulator-only. No thread/body read, send,
-reply, Pub/Sub resource, or deploy occurred.
+Current state: S19 is the owner-approved per-authenticated-user Gmail production workspace;
+the S15 simulator/pasted-text workspace remains a separate fallback. DWD carries readonly,
+compose, labels, and modify; all five Inbox 0 actions are allowlisted. Production resource,
+deploy, watch, and synthetic proof results are recorded in the S19 activation evidence.
 
 Key gates:
 
 - Start with `Waiting on Outside` and `Waiting on Team`; later add `Dan Decision` and
   `Draft Ready`.
-- Stage 1 profile gate: COMPLETE 2026-07-13 for `josiah@pmikcmetro.com` under
-  `gmail.readonly` on DWD client `104374162913177846911`; aggregate counts and cursor
-  presence only. Any thread/body read remains separately gated. Do not add `gmail.modify`
-  or `mail.google.com`.
-- Stage 1 send gate: after local verification, approve one exact synthetic self-message
-  and one exact-confirmed reply; prove two Gmail messages share one thread ID. Broader
-  recipients and Dan mailbox access are separate decisions.
-- Stage 2 gate: budget-check and separately approve Pub/Sub topic/IAM/dedicated OIDC push
-  identity/subscription plus one manual INBOX watch. No Cloud Scheduler.
-- `gmail.mailbox.read` is promoted from S19 evidence. Promote `gmail.message.send` or
-  `gmail.thread.reply` only with separate per-action evidence and owner approval; deploy
-  only after a second explicit production approval.
+- Stage 1: bounded per-user reads plus reviewed drafts/send/reply and user-label application.
+- Stage 2: authenticated Pub/Sub push, transactional history cursor/dedupe, and bounded resync.
+- Production proof uses a synthetic self-addressed message/reply, label, and watch; identifiers only.
+- `mail.google.com`, cross-mailbox browsing, automatic processing, and autonomous send remain absent.
 - Preserve human send authority. No autonomous/background/model-triggered/scheduled
   send, automatic retry of an ambiguous result, cross-mailbox Admin access, persisted
   mailbox body, or system-of-record write.
@@ -569,8 +560,8 @@ Key gates:
   system list remains TBD until scoped with the client.
 - Maintenance automation requires further chatbot/phone-system product alignment; tools,
   services, and connections remain TBD until scoped with the client.
-- Gmail Inbox 0 requires a narrow pilot allowlist and bounded on-demand reads so no
-  domain mailbox, including Dan's, is scanned merely because DWD could impersonate it.
+- Gmail Inbox 0 derives the mailbox only from the server-verified session and uses bounded
+  on-demand reads so no other domain mailbox is scanned merely because DWD could impersonate it.
 - Some historical demo/status/spec material still mentions Bailey Brain, Dan's AI
   Assistant, and Owner Router; those names must be read as demo/legacy context unless
   updated by product docs.
@@ -582,8 +573,8 @@ Key gates:
 
 1. Keep the KB demo and verification path green.
 2. Stand up PMI KC KB production with the first four internal Spaces.
-3. Move Gmail Inbox 0 through S19's self-only per-user proof first; consider Dan workflow,
-   broader recipients, and labels only in later separately approved slices.
+3. Operate Gmail Inbox 0 through S19's approved per-user runtime; scope Dan-specific automatic
+   workflow and historical processing only after the live connection is stable.
 4. Scope and build Lease Renewal as the first full backend automation with connected
    apps and explicit approval.
 5. Scope Maintenance automation after chatbot/phone intake behavior is aligned and

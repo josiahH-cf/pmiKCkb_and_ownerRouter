@@ -13,6 +13,7 @@ interface LiveGmailWorkspaceProps {
   authenticatedEmail: string;
   canCompose: boolean;
   canSend: boolean;
+  canLabel?: boolean;
 }
 
 interface ConfirmationPreview {
@@ -25,6 +26,7 @@ export function LiveGmailWorkspace({
   authenticatedEmail,
   canCompose,
   canSend,
+  canLabel = false,
 }: LiveGmailWorkspaceProps) {
   const hasAuthenticatedMailbox = /^[^@\s]+@[^@\s]+$/.test(authenticatedEmail);
   const [connection, setConnection] = useState<
@@ -37,8 +39,12 @@ export function LiveGmailWorkspace({
   const [selectedThread, setSelectedThread] = useState<GmailThreadView | null>(null);
   const [threadError, setThreadError] = useState("");
   const [mode, setMode] = useState<"new" | "reply">("new");
+  const [to, setTo] = useState(authenticatedEmail);
+  const [cc, setCc] = useState("");
+  const [bcc, setBcc] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [label, setLabel] = useState("PMI KC/Handled");
   const [preview, setPreview] = useState<ConfirmationPreview | null>(null);
   const [result, setResult] = useState("");
   const [ambiguous, setAmbiguous] = useState(false);
@@ -126,6 +132,60 @@ export function LiveGmailWorkspace({
     }
   }
 
+  async function startPushWatch() {
+    if (!liveEnabled || busy) return;
+    setBusy(true);
+    setThreadError("");
+    try {
+      const response = await fetch("/api/gmail-hub/watch", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setThreadError(data.error ?? "The Gmail push watch could not be started.");
+        return;
+      }
+      const expirationMs = Number(data.expiration);
+      setSyncMessage(
+        Number.isFinite(expirationMs)
+          ? `Push watch active until ${new Date(expirationMs).toLocaleString()}.`
+          : "Push watch active.",
+      );
+    } catch {
+      setThreadError("The Gmail push watch could not be started.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function applyLabel() {
+    if (!selectedThread || !canLabel || busy) return;
+    setBusy(true);
+    setThreadError("");
+    try {
+      const response = await fetch(
+        `/api/gmail-hub/threads/${encodeURIComponent(selectedThread.id)}/labels`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ label }),
+        },
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        setThreadError(data.error ?? "The Gmail label could not be applied.");
+        return;
+      }
+      setResult(`Applied Gmail label ${data.labelName}.`);
+    } catch {
+      setThreadError("The Gmail label could not be applied.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function startReply() {
     if (!selectedThread) return;
     setMode("reply");
@@ -143,7 +203,14 @@ export function LiveGmailWorkspace({
     const input =
       mode === "reply" && selectedThread
         ? { kind: "reply", threadId: selectedThread.id, body }
-        : { kind: "new", subject, body };
+        : {
+            kind: "new",
+            to: parseRecipientList(to),
+            cc: parseRecipientList(cc),
+            bcc: parseRecipientList(bcc),
+            subject,
+            body,
+          };
     try {
       const response = await fetch("/api/gmail-hub/send-confirmations", {
         method: "POST",
@@ -170,7 +237,14 @@ export function LiveGmailWorkspace({
     const input =
       mode === "reply" && selectedThread
         ? { kind: "reply", threadId: selectedThread.id, body }
-        : { kind: "new", subject, body };
+        : {
+            kind: "new",
+            to: parseRecipientList(to),
+            cc: parseRecipientList(cc),
+            bcc: parseRecipientList(bcc),
+            subject,
+            body,
+          };
     try {
       const response = await fetch("/api/gmail-hub/drafts", {
         method: "POST",
@@ -269,6 +343,16 @@ export function LiveGmailWorkspace({
         <span className="muted">Authenticated mailbox</span>
         <strong>{connectedEmail}</strong>
         <span className="muted">{syncMessage}</span>
+        {liveEnabled ? (
+          <button
+            className="secondary-button"
+            disabled={busy}
+            onClick={() => void startPushWatch()}
+            type="button"
+          >
+            Start or renew push watch
+          </button>
+        ) : null}
       </div>
 
       {!liveEnabled ? (
@@ -338,6 +422,25 @@ export function LiveGmailWorkspace({
                 >
                   Reply to this thread
                 </button>
+                <div className="simulated-thread-actions">
+                  <label className="field">
+                    <span>Apply Gmail label</span>
+                    <input
+                      disabled={!canLabel || busy}
+                      maxLength={225}
+                      onChange={(event) => setLabel(event.target.value)}
+                      value={label}
+                    />
+                  </label>
+                  <button
+                    className="secondary-button"
+                    disabled={!canLabel || !label.trim() || busy}
+                    onClick={() => void applyLabel()}
+                    type="button"
+                  >
+                    Apply label
+                  </button>
+                </div>
               </>
             )}
           </section>
@@ -346,7 +449,7 @@ export function LiveGmailWorkspace({
 
       <form className="ui-stack" onSubmit={reviewMessage}>
         <div className="ui-spread">
-          <h3>{mode === "reply" ? "Reply editor" : "Compose to yourself"}</h3>
+          <h3>{mode === "reply" ? "Reply editor" : "Compose message"}</h3>
           {mode === "reply" ? (
             <button
               className="text-link"
@@ -368,13 +471,52 @@ export function LiveGmailWorkspace({
           </div>
           <div>
             <dt>To</dt>
-            <dd>{authenticatedEmail} (self-only pilot)</dd>
+            <dd>{mode === "reply" ? "Resolved from the selected thread" : to}</dd>
           </div>
           <div>
             <dt>Cc / Bcc</dt>
             <dd>None</dd>
           </div>
         </dl>
+        {mode === "new" ? (
+          <>
+            <label className="field">
+              <span>To</span>
+              <input
+                maxLength={2_540}
+                onChange={(event) => {
+                  setTo(event.target.value);
+                  setPreview(null);
+                }}
+                placeholder="name@example.com, teammate@example.com"
+                required
+                value={to}
+              />
+            </label>
+            <label className="field">
+              <span>Cc (optional)</span>
+              <input
+                maxLength={2_540}
+                onChange={(event) => {
+                  setCc(event.target.value);
+                  setPreview(null);
+                }}
+                value={cc}
+              />
+            </label>
+            <label className="field">
+              <span>Bcc (optional)</span>
+              <input
+                maxLength={2_540}
+                onChange={(event) => {
+                  setBcc(event.target.value);
+                  setPreview(null);
+                }}
+                value={bcc}
+              />
+            </label>
+          </>
+        ) : null}
         <label className="field">
           <span>Subject</span>
           <input
@@ -417,6 +559,7 @@ export function LiveGmailWorkspace({
               !canSend ||
               !body.trim() ||
               (mode === "new" && !subject.trim()) ||
+              (mode === "new" && parseRecipientList(to).length === 0) ||
               busy
             }
             type="submit"
@@ -485,4 +628,11 @@ export function LiveGmailWorkspace({
       </p>
     </article>
   );
+}
+
+function parseRecipientList(value: string): string[] {
+  return value
+    .split(/[;,]/)
+    .map((recipient) => recipient.trim().toLowerCase())
+    .filter(Boolean);
 }

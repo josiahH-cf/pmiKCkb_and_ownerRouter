@@ -6,7 +6,7 @@ import { GmailPushAuthError } from "@/lib/gmail-hub/pubsub";
 import { GmailAmbiguousSendError, GmailHubError } from "@/lib/gmail-hub/service";
 import { GmailStateError } from "@/lib/gmail-hub/state-store";
 import { GmailRuntimeError } from "@/lib/gmail-runtime/client";
-import { GmailPilotSetupError, GmailSubjectError } from "@/lib/gmail-runtime/subject";
+import { GmailSubjectError } from "@/lib/gmail-runtime/subject";
 
 export function gmailHubErrorResponse(error: unknown) {
   if (
@@ -25,9 +25,6 @@ export function gmailHubErrorResponse(error: unknown) {
   }
   if (error instanceof GmailSubjectError) {
     return NextResponse.json({ error: error.message }, { status: 403 });
-  }
-  if (error instanceof GmailPilotSetupError) {
-    return NextResponse.json({ error: error.message }, { status: 503 });
   }
   if (error instanceof GmailRuntimeError) {
     return NextResponse.json(

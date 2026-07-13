@@ -5,7 +5,6 @@ import {
   type GmailStateStore,
 } from "@/lib/gmail-hub/state-store";
 import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
-import { readRequiredGmailPilotUsers } from "@/lib/gmail-runtime/subject";
 import { isActionExecutable } from "@/lib/integrations/action-gate";
 
 export interface GmailHubRuntimeDependencies {
@@ -30,11 +29,7 @@ export function setGmailHubDependenciesForTest(
 export function getGmailHubDependencies(): GmailHubRuntimeDependencies {
   return (
     testDependencies ?? {
-      createClient: (subject) =>
-        new GmailRuntimeClient({
-          subject,
-          pilotUsers: readRequiredGmailPilotUsers(),
-        }),
+      createClient: (subject) => new GmailRuntimeClient({ subject }),
       store: new FirestoreGmailStateStore(),
       isActionExecutable,
     }

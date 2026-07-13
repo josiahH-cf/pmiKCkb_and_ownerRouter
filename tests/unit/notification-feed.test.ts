@@ -131,7 +131,7 @@ describe("buildNotificationFeed", () => {
       "owner_process_replies",
     ]);
     for (const family of stubbed) {
-      expect(family.unavailableReason).toBe("Waiting on Gmail access");
+      expect(family.unavailableReason).toBe("Mailbox event rules not configured");
     }
   });
 

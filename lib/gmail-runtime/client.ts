@@ -7,8 +7,13 @@ import { randomUUID } from "node:crypto";
 import { mintGmailDwdToken } from "@/lib/gmail-runtime/dwd-token";
 import { parseGmailThread } from "@/lib/gmail-runtime/mime";
 import { encodeRawDraft, encodeRawMessage } from "@/lib/gmail-runtime/raw-message";
-import { GMAIL_COMPOSE_SCOPE, GMAIL_READONLY_SCOPE } from "@/lib/gmail-runtime/scopes";
-import { normalizeGmailSubject, readGmailPilotUsers } from "@/lib/gmail-runtime/subject";
+import {
+  GMAIL_COMPOSE_SCOPE,
+  GMAIL_LABELS_SCOPE,
+  GMAIL_MODIFY_SCOPE,
+  GMAIL_READONLY_SCOPE,
+} from "@/lib/gmail-runtime/scopes";
+import { normalizeGmailSubject } from "@/lib/gmail-runtime/subject";
 import {
   createGmailFetchTransport,
   type GmailHttpTransport,
@@ -17,6 +22,8 @@ import {
   GMAIL_RUNTIME_LIMITS,
   type GmailHistoryMessageRef,
   type GmailHistoryResult,
+  type GmailLabel,
+  type GmailLabelMutationResult,
   type GmailOutgoingMessage,
   type GmailProfile,
   type GmailSendResult,
@@ -56,13 +63,11 @@ export class GmailRuntimeClient {
   constructor(options: {
     subject: string;
     allowedDomain?: string;
-    pilotUsers?: readonly string[];
     transport?: GmailHttpTransport;
     getToken?: (scope: string) => Promise<string>;
   }) {
     this.subject = normalizeGmailSubject(options.subject, {
       allowedDomain: options.allowedDomain,
-      pilotUsers: options.pilotUsers ?? readGmailPilotUsers(),
     });
     this.transport = options.transport ?? createGmailFetchTransport();
     this.getToken =
@@ -210,6 +215,74 @@ export class GmailRuntimeClient {
     const id = optionalString(first.id);
     const threadId = optionalString(first.threadId);
     return id && threadId ? { messageId: id, threadId, labelIds: [] } : null;
+  }
+
+  async listLabels(): Promise<GmailLabel[]> {
+    const data = await this.request(GMAIL_LABELS_SCOPE, "GET", "/labels");
+    if (!isRecord(data) || !Array.isArray(data.labels)) {
+      throw new GmailRuntimeError("Gmail returned an invalid label list.");
+    }
+    return data.labels.slice(0, 1_000).flatMap((value) => {
+      if (!isRecord(value)) return [];
+      const id = optionalString(value.id);
+      const name = optionalString(value.name);
+      const type = optionalString(value.type)?.toLowerCase();
+      if (!id || !name || (type !== "system" && type !== "user")) return [];
+      return [{ id, name, type }];
+    });
+  }
+
+  async createLabel(labelName: string): Promise<GmailLabel> {
+    const name = safeLabelName(labelName);
+    const data = await this.request(GMAIL_LABELS_SCOPE, "POST", "/labels", {
+      body: {
+        name,
+        labelListVisibility: "labelShow",
+        messageListVisibility: "show",
+      },
+    });
+    if (!isRecord(data)) throw new GmailRuntimeError("Gmail returned an invalid label.");
+    const id = requiredString(data.id, "label id");
+    return { id, name: requiredString(data.name, "label name"), type: "user" };
+  }
+
+  async applyThreadLabel(
+    threadId: string,
+    labelName: string,
+  ): Promise<GmailLabelMutationResult> {
+    const id = opaqueId(threadId, "thread id");
+    const name = safeLabelName(labelName);
+    const labels = await this.listLabels();
+    let label = labels.find(
+      (candidate) => candidate.name.toLocaleLowerCase() === name.toLocaleLowerCase(),
+    );
+    if (!label) label = await this.createLabel(name);
+    if (label.type !== "user") {
+      throw new GmailRuntimeError(
+        "Only a user label can be applied through the Gmail hub.",
+        400,
+        false,
+      );
+    }
+    const data = await this.request(
+      GMAIL_MODIFY_SCOPE,
+      "POST",
+      `/threads/${encodeURIComponent(id)}/modify`,
+      { body: { addLabelIds: [label.id], removeLabelIds: [] } },
+    );
+    if (!isRecord(data)) {
+      throw new GmailRuntimeError("Gmail returned an invalid label mutation.");
+    }
+    return {
+      threadId: requiredString(data.id, "labeled thread id"),
+      labelId: label.id,
+      labelName: label.name,
+      labelIds: Array.isArray(data.labelIds)
+        ? data.labelIds
+            .filter((value): value is string => typeof value === "string")
+            .slice(0, 100)
+        : [],
+    };
   }
 
   async watchMailbox(topicName: string): Promise<GmailWatchResult> {
@@ -370,6 +443,18 @@ function opaqueId(value: string, label: string): string {
   const normalized = value.trim();
   if (!OPAQUE_GMAIL_ID.test(normalized)) {
     throw new GmailRuntimeError(`Gmail ${label} is invalid.`, 400, false);
+  }
+  return normalized;
+}
+
+function safeLabelName(value: string): string {
+  const normalized = value.trim();
+  if (
+    normalized.length < 1 ||
+    normalized.length > 225 ||
+    /[\u0000-\u001f\u007f]/.test(normalized)
+  ) {
+    throw new GmailRuntimeError("Gmail label name is invalid.", 400, false);
   }
   return normalized;
 }

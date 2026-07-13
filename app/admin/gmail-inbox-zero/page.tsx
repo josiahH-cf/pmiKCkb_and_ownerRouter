@@ -7,9 +7,8 @@ import { readServerConfig } from "@/lib/config/server";
 
 /**
  * Admin-only Gmail Inbox 0 management surface. The static read-only v1 placeholder is retired: this
- * page now renders the live Template & triage workspace (the governed engines run over pasted,
- * sanitized facts) beside an honest not-connected Gmail status. No live mailbox is read; nothing here
- * can send — a human presses Send in Gmail once the access model is approved.
+ * page now renders the Template & triage workspace beside the activated per-user Gmail status. The
+ * live hub remains the place where a user checks their own connection and exact-confirms a send.
  */
 export default async function GmailInboxZeroAdminPage() {
   const user = await requirePageCapability("manageAdmin");
@@ -22,8 +21,8 @@ export default async function GmailInboxZeroAdminPage() {
           <h1 className="section-title">{`${GMAIL_INBOX_ZERO_NAME} Management`}</h1>
           <p className="muted">
             Manage the approved rules and reply patterns and evaluate them over pasted,
-            sanitized facts. Live mailbox actions wait on the approved Gmail access model;
-            human send authority is preserved.{" "}
+            sanitized facts. Per-user mailbox read, draft, exact-confirmed send/reply,
+            labels, and push sync are active; human send authority is preserved.{" "}
             <Link href="/gmail-hub">Open the Gmail hub</Link> ·{" "}
             <Link href="/admin">Back to Admin</Link>
           </p>
@@ -33,13 +32,14 @@ export default async function GmailInboxZeroAdminPage() {
           <article className="panel">
             <h2>Gmail Connection</h2>
             <p>
-              <span className="queue-pill" data-value="Action Required">
-                Not connected
+              <span className="queue-pill" data-value="Available">
+                Activated
               </span>
             </p>
             <p className="muted">
-              Blocked on the client-approved Gmail access model, mailbox scan protocol,
-              and live test-thread protocol (owner-side asks).
+              Open the Gmail hub to verify the signed-in user&apos;s own mailbox
+              connection, start or renew its push watch, and use the reviewed mail
+              actions.
             </p>
           </article>
           <article className="panel">
@@ -47,7 +47,7 @@ export default async function GmailInboxZeroAdminPage() {
             <p>
               {config.askDemoMode
                 ? "Demo mode — no live Gemini calls from this session."
-                : "Live mode configured for the KB Ask path; Gmail evaluation remains client-gated."}
+                : "Live mode configured for the KB Ask path and Gmail draft evaluation."}
             </p>
           </article>
         </div>

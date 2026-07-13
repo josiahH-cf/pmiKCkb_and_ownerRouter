@@ -11,6 +11,25 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Gmail Inbox 0 production activation complete
+
+- Date: 2026-07-13
+- Owner authorization promoted the five Gmail Inbox 0 actions: bounded per-user read, unsent draft,
+  exact-confirmed new-message send, exact-confirmed threaded reply, and user-label application.
+- Workspace DWD client `104374162913177846911` now carries the exact read, compose, labels, and modify
+  scopes. The rollout-only mailbox allowlist was removed; every DWD subject/From remains bound to the
+  signed-in `pmikcmetro.com` user.
+- Provisioned the production Gmail topic, authenticated OIDC push subscription, dedicated no-key push
+  service account, topic-scoped Gmail publisher binding, Action Registry records, and Firestore rules.
+- Deployed Cloud Run revision `pmi-kc-kb-demo-00020-24d` at 100% traffic. Production proof succeeded:
+  one synthetic self-addressed new message, one explicit same-thread reply, one user label, a future
+  watch expiration, five authenticated Pub/Sub `200` deliveries, and completed Firestore sync audits.
+- Production falsification caught and fixed the real Pub/Sub wrapper aliases/metadata plus Gmail's
+  numeric `historyId` encoding before acceptance. Evidence records only identifiers/statuses in
+  `docs/evidence/gmail-production-activation-2026-07-13.md`.
+- Exact-message confirmation, single-use idempotency, no ambiguous retry, no autonomous send, identity
+  binding, bodyless audit, and the non-Gmail system-of-record write gates remain intact.
+
 ## Initial Scaffold
 
 - Date: 2026-05-27

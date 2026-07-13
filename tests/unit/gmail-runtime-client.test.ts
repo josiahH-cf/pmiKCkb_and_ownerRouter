@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { DRAFT_BANNER } from "@/lib/constants";
 import { GmailRuntimeClient, GmailRuntimeError } from "@/lib/gmail-runtime/client";
-import { GMAIL_COMPOSE_SCOPE, GMAIL_READONLY_SCOPE } from "@/lib/gmail-runtime/scopes";
 import {
-  GmailPilotSetupError,
-  GmailSubjectError,
-  readRequiredGmailPilotUsers,
-} from "@/lib/gmail-runtime/subject";
+  GMAIL_COMPOSE_SCOPE,
+  GMAIL_LABELS_SCOPE,
+  GMAIL_MODIFY_SCOPE,
+  GMAIL_READONLY_SCOPE,
+} from "@/lib/gmail-runtime/scopes";
+import { GmailSubjectError } from "@/lib/gmail-runtime/subject";
 import type { GmailHttpRequest } from "@/lib/gmail-runtime/transport";
 import type { GmailOutgoingMessage } from "@/lib/gmail-runtime/types";
 
@@ -46,22 +47,14 @@ function outgoing(overrides: Partial<GmailOutgoingMessage> = {}): GmailOutgoingM
 }
 
 describe("GmailRuntimeClient.createDraft", () => {
-  it("fails closed when the live Gmail pilot allowlist is absent or invalid", () => {
-    expect(() =>
-      readRequiredGmailPilotUsers({ NODE_ENV: "test" } as NodeJS.ProcessEnv),
-    ).toThrow(GmailPilotSetupError);
-    expect(() =>
-      readRequiredGmailPilotUsers({
-        NODE_ENV: "test",
-        GMAIL_PILOT_USERS: "person@gmail.com",
-      } as NodeJS.ProcessEnv),
-    ).toThrow(GmailPilotSetupError);
+  it("accepts server-verified pmikcmetro.com users without a rollout allowlist", () => {
     expect(
-      readRequiredGmailPilotUsers({
-        NODE_ENV: "test",
-        GMAIL_PILOT_USERS: " JOSIAH@PMIKCMETRO.COM ",
-      } as NodeJS.ProcessEnv),
-    ).toEqual(["josiah@pmikcmetro.com"]);
+      new GmailRuntimeClient({
+        subject: " editor@pmikcmetro.com ",
+        transport: fakeTransport({ status: 200 }).transport,
+        getToken: async () => "token",
+      }).subject,
+    ).toBe("editor@pmikcmetro.com");
   });
 
   it("creates an UNSENT draft (drafts endpoint, never /messages/send), preserving DRAFT_BANNER", async () => {
@@ -175,6 +168,55 @@ describe("GmailRuntimeClient.createDraft", () => {
     expect(decoded).toContain(
       "References: <root@pmikcmetro.com> <parent@pmikcmetro.com>",
     );
+  });
+
+  it("creates a user label with gmail.labels and applies it with gmail.modify", async () => {
+    const scopes: string[] = [];
+    const calls: GmailHttpRequest[] = [];
+    const client = new GmailRuntimeClient({
+      subject: "josiah@pmikcmetro.com",
+      transport: {
+        async send(request) {
+          calls.push(request);
+          if (request.method === "GET" && request.url.endsWith("/labels")) {
+            return { status: 200, json: async () => ({ labels: [] }) };
+          }
+          if (request.method === "POST" && request.url.endsWith("/labels")) {
+            return {
+              status: 200,
+              json: async () => ({
+                id: "Label_1",
+                name: "Waiting on Team",
+                type: "user",
+              }),
+            };
+          }
+          return {
+            status: 200,
+            json: async () => ({ id: "thread-1", labelIds: ["INBOX", "Label_1"] }),
+          };
+        },
+      },
+      getToken: async (scope) => {
+        scopes.push(scope);
+        return "token";
+      },
+    });
+
+    await expect(client.applyThreadLabel("thread-1", "Waiting on Team")).resolves.toEqual(
+      {
+        threadId: "thread-1",
+        labelId: "Label_1",
+        labelName: "Waiting on Team",
+        labelIds: ["INBOX", "Label_1"],
+      },
+    );
+    expect(scopes).toEqual([GMAIL_LABELS_SCOPE, GMAIL_LABELS_SCOPE, GMAIL_MODIFY_SCOPE]);
+    expect(calls.at(-1)?.url).toContain("/threads/thread-1/modify");
+    expect(JSON.parse(calls.at(-1)?.body ?? "{}")).toEqual({
+      addLabelIds: ["Label_1"],
+      removeLabelIds: [],
+    });
   });
 
   it("rejects wrong-domain subjects and mismatched From before transport work", async () => {

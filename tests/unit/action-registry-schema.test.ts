@@ -135,9 +135,13 @@ describe("Action Registry seed catalog", () => {
     }
   });
 
-  it("keeps every entry non-executable except the two documented Gmail actions", () => {
+  it("keeps every entry non-executable except the approved Gmail actions", () => {
     const EXECUTABLE = new Set([
       "gmail.mailbox.read",
+      "gmail.message.send",
+      "gmail.thread.reply",
+      "gmail.label.apply",
+      "gmail.draft.create",
       "gmail.renewal_notice.draft_create",
     ]);
     for (const entry of ACTION_REGISTRY_SEED) {
@@ -181,7 +185,7 @@ describe("Action Registry seed catalog", () => {
     );
   });
 
-  it("opens only the renewal draft and bounded self-mailbox read", () => {
+  it("opens the documented Gmail actions while other integrations remain gated", () => {
     const gmailEntries = ACTION_REGISTRY_SEED.filter(
       (entry) => entry.target_system === "Gmail",
     );
@@ -201,12 +205,10 @@ describe("Action Registry seed catalog", () => {
       (entry) => entry.product_lane === "Gmail Inbox 0",
     );
     expect(inboxZero).toHaveLength(5);
-    const mailboxRead = inboxZero.find((entry) => entry.key === "gmail.mailbox.read");
-    expect(mailboxRead?.readiness).toBe("Approved for Execution");
-    expect(mailboxRead?.evidence_status).toBe("Documented");
-    expect(mailboxRead?.production_allowed).toBe(true);
-    for (const entry of inboxZero.filter((entry) => entry.key !== "gmail.mailbox.read")) {
-      expect(entry.production_allowed, entry.key).toBe(false);
+    for (const entry of inboxZero) {
+      expect(entry.readiness, entry.key).toBe("Approved for Execution");
+      expect(entry.evidence_status, entry.key).toBe("Documented");
+      expect(entry.production_allowed, entry.key).toBe(true);
     }
   });
 

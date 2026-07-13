@@ -211,23 +211,24 @@ export const HEALTH_CHECK_CONTRACTS: readonly HealthCheckContract[] = [
         id: "gmail.config",
         kind: "config_presence",
         description:
-          "A client-approved Gmail access model is configured for Dan's mailbox.",
+          "The approved per-user Gmail access model and authenticated push resources are configured.",
         expected_evidence:
-          "Expected to fail today: no client-approved access model exists yet (docs/products/gmail-inbox-zero.md).",
+          "DWD client, push topic/subscription, audience, and service identities match the production evidence artifact.",
       },
       {
         id: "gmail.auth",
         kind: "auth_validation",
         description:
-          "Credentials carry only the Gmail read-only and label-management scopes for triage.",
+          "Credentials carry only the approved Gmail read, compose, label, and modify scopes.",
         expected_evidence:
-          "Granted scopes exclude any send capability; draft work adds gmail.compose only.",
+          "The signed-in pmikcmetro.com user is the DWD subject; every delivery still requires exact-message confirmation.",
       },
       {
         id: "gmail.probe",
         kind: "endpoint_probe",
-        description: "labels.list answers a read-only probe.",
-        expected_evidence: "Successful label list response.",
+        description: "Mailbox read, label list, and push-watch probes succeed.",
+        expected_evidence:
+          "Successful bounded Gmail API responses without message content in evidence.",
       },
     ],
   },

@@ -12,7 +12,7 @@ export type Capability =
   | "softDelete";
 
 const permissions: Record<Role, ReadonlySet<Capability>> = {
-  Editor: new Set(["read", "edit"]),
+  Editor: new Set(["read", "edit", "sendEmail"]),
   Approver: new Set(["read", "edit", "approve", "sendEmail", "resolvePlaceholder"]),
   Admin: new Set([
     "read",

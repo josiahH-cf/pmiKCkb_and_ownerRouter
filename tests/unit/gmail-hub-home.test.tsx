@@ -5,7 +5,10 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { GmailHubHome } from "@/components/gmail-hub/GmailHubHome";
-import { WAITING_ON_GMAIL } from "@/lib/notifications/families";
+import {
+  GMAIL_EVENT_RULES_REQUIRED,
+  WAITING_ON_GMAIL,
+} from "@/lib/notifications/families";
 
 afterEach(cleanup);
 
@@ -34,7 +37,8 @@ describe("GmailHubHome (AC-S15-5, AC-S19-7)", () => {
 
     expect(screen.getByText("RentVine replies")).toBeInTheDocument();
     expect(screen.getByText("Owner replies")).toBeInTheDocument();
-    expect(screen.getAllByText(WAITING_ON_GMAIL).length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByText(WAITING_ON_GMAIL).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(GMAIL_EVENT_RULES_REQUIRED)).toHaveLength(2);
   });
 
   it("has no immediate Send control before exact-message review", () => {

@@ -29,25 +29,23 @@ stop-and-reset rules.
   demo auth, and the STT/image stubs are dev/test-only (NODE_ENV-fenced), never a prod dependency.
 - Earlier context (full history in `docs/status.md`): client beta deployed on the `pmi-kc-kb-demo` Cloud
   Run service (`pmi-kc-kb-prod`); real Google auth locked to `pmikcmetro.com`; live RentVine (25 leases) +
-  Sheet (DWD) reads work; external execution stays gated except the documented unsent renewal-draft action.
+  Sheet (DWD) reads work; non-Gmail external execution remains gated.
 - Operating mode: normal owner-present; Remote Away Mode INACTIVE (`docs/away-mode.md`); hard $10 budget cap.
-- **S19 GMAIL LIVE PER-USER READ PROVEN (2026-07-13):** owner direction supersedes the
-  simulator-only final state. Server-session-derived self-mailbox read/draft/exact-confirmation send/reply,
-  defensive MIME, bodyless transactional state/audit, authenticated Pub/Sub history sync, live/fallback UI,
-  three new false registry keys, and adversarial fake-transport tests are implemented (`F-GMAIL-LIVE-DIRECTION`,
-  `F-GMAIL-LIVE-PER-USER`, `F-GMAIL-RUNTIME-S19`). A keyless DWD self-pilot profile read matched
-  `josiah@pmikcmetro.com`, returned aggregate counts, and supplied a history cursor; a missing pilot list now
-  fails closed. `gmail.mailbox.read` is locally allowlisted from that evidence. Full local verification, E2E core,
-  and Firestore rules tests are green. No thread/body, send/reply, Pub/Sub mutation, or deploy occurred.
+- **S19 GMAIL PRODUCTION ACTIVATION (2026-07-13):** the owner approved read, draft,
+  exact-confirmed send/reply, labels, Pub/Sub/watch, deployment, and repository publication. DWD client
+  `104374162913177846911` now includes readonly, compose, labels, and modify. The rollout-only mailbox
+  allowlist is removed; each server-verified `pmikcmetro.com` user remains bound to their own mailbox.
+  All five Inbox 0 registry actions are executable. Exact confirmation, one-attempt idempotency,
+  ambiguous-outcome reconciliation, bodyless audit, and no-autonomous-send remain mandatory. Production
+  Production revision `pmi-kc-kb-demo-00020-24d` serves 100% traffic; synthetic self-send/reply/label,
+  future watch, five authenticated push deliveries, and Firestore cursor/audit proof all passed. Evidence
+  is in `docs/evidence/gmail-production-activation-2026-07-13.md`.
 
-## Next Safe Slice — STOP: read proven; send, push, and deployment gated
+## Next Safe Slice — stop/reset
 
-The bounded self-pilot read proof is complete and `gmail.mailbox.read` is locally promoted. Do not read a thread
-or deploy without the next explicit approval. Request separate action-time approval for the exact synthetic
-self-message and reply; send/reply registry keys remain false. No Pub/Sub provisioning, Scheduler, deployment,
-or Dan/third-party send is authorized. Before any approved live Google read run `npm run preflight:adc`; before
-cloud mutation/cost run the budget guard. The Drive photo action and QA-007 production cleanup also remain
-separate owner-only actions.
+The authorized Gmail activation is complete. No further live Gmail action is implied. The next work must
+come from a new owner request or an already-documented non-Gmail slice; the Drive photo action and QA-007
+production cleanup remain separate owner-only actions.
 
 ## Active Blockers And Exact Client Asks
 
@@ -63,8 +61,7 @@ Tracked owner/client/vendor gates (in `docs/client-checklist.md` and `docs/resea
   confirmation required before any renewal writeback (`docs/integration-architecture.md`).
 - Source-vocabulary normalization — freeze canonical stage/system/record-ID/approval names before any
   live connector work.
-- Owner Gmail gates: readonly grant/self-pilot profile proof complete; next are separate thread-read,
-  exact self-thread send/reply, Pub/Sub, and deployment approvals.
+- Gmail production proof is complete in the S19 evidence artifact; no follow-up Gmail action is pending.
 - Approval sender (`kb-automation@pmikcmetro.com`) and launch approver defaults (Dan + Josiah).
 - Owner to define the term "ABC" (`Q-ABC-1`).
 
@@ -75,20 +72,22 @@ Manager); signed leases live in Dotloop, lease-end reads from the RentVine lease
 
 The two 2026-07-13 code-only deploys plus their bounded production checks were explicitly owner-authorized and are
 complete, including the synthetic-chain revision `pmi-kc-kb-demo-00014-cwq`.
-Future cost-bearing steps stay behind explicit per-step approval (each must also pass
+The 2026-07-13 Gmail activation deploy/Pub/Sub/synthetic self-proof is complete. Other
+future cost-bearing steps stay behind explicit per-step approval (each must also pass
 `npm run check:budget-guard` and stay under the $10 cap): any live Ask rerun, approved-source import,
 future deployment, and production smoke. Firestore rules/index deployment is also owner-auth gated even when it
 has no material cloud cost. Hard stops still require explicit approval and will not be
 performed autonomously:
 billing/cap changes, Pro model usage, autonomous sends, destructive changes, raw client
-data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
+data/secrets, cross-mailbox Gmail access, autonomous send, or unapproved system-of-record writes.
 
 ## Stop-Condition State
 
 - 2026-07-13: the additive browser-only synthetic-chain slice is fully verified and deployed as
   `pmi-kc-kb-demo-00014-cwq`; the Wednesday request is complete and no safe in-scope slice remains.
-- 2026-07-13: S19's self-pilot profile connection is live-proven and the read key is locally promoted. Stop before
-  any thread/body read, send/reply, Pub/Sub/cloud mutation, or deploy; the owner instructions above are next.
+- 2026-07-13: Gmail production activation is fully verified and deployed as
+  `pmi-kc-kb-demo-00020-24d`; the authorized live slice is complete and no further Gmail action is pending.
+- 2026-07-13: the prior S19 read-only stop is superseded by the owner's explicit production activation request.
 - 2026-07-10: S14 + S16 + S17 + S15 + S18 all passed their adversarial boundaries (`F-RENEWAL-DECIDER-MOBILE`,
   `F-RBAC-SUBUSERS`, `F-UNIFIED-ATTENTION`, `F-GMAIL-HUB`, `F-ANTICIPATION-LANE`). The S14–S18 overhaul is COMPLETE;
   "No safe slice remains" now fires — external writes, deploy, Gmail read scope, live feeds, and cost-bearing actions are owner/vendor-gated.
@@ -113,12 +112,13 @@ only from env/Secret Manager, never committed. Record only non-secret references
    read-only `npm run preflight:adc`; if it fails, ask the owner to run `auth:session` (`F-SESSION-AUTH`) — a stale token stalls mid-step.
 3. If the trigger is "plan the next feature cycle", produce a decision-complete packet and stop. If
    the trigger authorizes running the loop, proceed unattended.
-4. For Gmail, start at S19 and the handoff table. Never accept a mailbox identity from the browser. Keep all
-   S19 actions false until the exact scope/evidence/action-time promotion gate is satisfied.
+4. For Gmail, start at S19 and its completed activation evidence. Never accept a mailbox identity from the
+   browser; preserve exact confirmation and the signed-in From binding. All five separately governed Inbox 0
+   actions are approved, deployed, and live-proven.
 5. Review the completed QA-001..QA-011 worktree and evidence. If the owner separately authorizes the QA-007
    production incident response, authenticate interactively with `npm run auth:session`, define the exact
    collection/document scope and backup/rollback plan, then run a read-only inspection before requesting any
    cleanup authorization. Do not infer that authority from this remediation. For lease-renewal writeback
    specifically, stay in discovery until the team validates process, columns, and golden data.
-6. Preserve the existing executable allowlist exactly; do not flip another registry entry. Honor all gates + cap.
+6. Preserve the executable allowlist exactly; no non-Gmail external action is newly approved. Honor all gates + cap.
 7. Update `docs/facts.md` and this file at each slice boundary; run `npm run verify:context-freshness`.

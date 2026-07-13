@@ -9,7 +9,7 @@ import {
 import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 
 const GMAIL_KEY = "gmail.renewal_notice.draft_create"; // flipped executable 2026-07-09 (committed DWD grant)
-const GATED_KEY = "gmail.draft.create"; // an Inbox 0 entry with no runtime yet — still Planned/false
+const GATED_KEY = "google_sheets.renewal_checklist.writeback"; // documented capability, still Planned/false
 
 function seedEntry(key: string): CreateActionRegistryInput {
   const entry = ACTION_REGISTRY_SEED.find((candidate) => candidate.key === key);

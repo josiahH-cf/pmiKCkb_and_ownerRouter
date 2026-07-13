@@ -97,6 +97,19 @@ export interface GmailHistoryResult {
   nextPageToken?: string;
 }
 
+export interface GmailLabel {
+  id: string;
+  name: string;
+  type: "system" | "user";
+}
+
+export interface GmailLabelMutationResult {
+  threadId: string;
+  labelId: string;
+  labelName: string;
+  labelIds: string[];
+}
+
 export interface GmailApiHeader {
   name?: unknown;
   value?: unknown;
