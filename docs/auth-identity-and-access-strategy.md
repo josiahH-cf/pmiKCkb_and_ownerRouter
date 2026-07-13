@@ -4,9 +4,9 @@ Status: Draft for review (2026-06-20). Produced by a multi-agent audit of every 
 in the repo + adversarial review, then reconciled against live findings this session.
 Owner action items are at the end.
 
-2026-07-13 Gmail update: S19 adds a local per-user Gmail runtime whose Firebase user
+2026-07-13 Gmail update: S19 activates a per-user Gmail runtime whose Firebase user
 identity, DWD authorization, and Pub/Sub service identity remain three separate checks.
-No S19 Gmail scope/action was promoted or used live; see §2.3.
+The four exact Gmail scopes and five Inbox 0 actions are owner-approved; see §2.3.
 
 > **Why this exists.** A "blocked on access" failure (Claude's Drive connector couldn't read
 > the `pmikcmetro.com` renewal sheet because it was authed to a personal Google account)
@@ -180,23 +180,22 @@ access.
 
 - The DWD `sub` is always the server-verified Firebase email. Request bodies and query
   strings cannot supply `userEmail`, `mailbox`, `subjectUser`, or any equivalent.
-- `normalizeGmailSubject` enforces `pmikcmetro.com`; Gmail Hub additionally requires a non-empty,
-  valid ignored `GMAIL_PILOT_USERS` allowlist and fails closed before mint when it is absent. The token mint independently allows only
-  `gmail.readonly` and `gmail.compose`; `gmail.modify` and `mail.google.com` are denied.
+- `normalizeGmailSubject` enforces `pmikcmetro.com`; there is no rollout-only mailbox allowlist.
+  The token mint independently allows exactly `gmail.readonly`, `gmail.compose`, `gmail.labels`,
+  and `gmail.modify`; `mail.google.com` is denied.
 - `gmail.readonly` is for bounded profile/thread/history/watch calls. The existing
   `gmail.compose` grant is send-capable; S19 safety is implemented by separate capability
-  and Action Registry gates, self-recipient enforcement, an exact-payload one-time
+  and Action Registry gates, authenticated-From enforcement, an exact-payload one-time
   confirmation, transactional idempotency, bodyless audit, and no ambiguous retry.
 - Read/edit/send authority is separate: Editor can read/edit when the corresponding
   registry actions are promoted; only Approver/Admin has `sendEmail`. Admin does not gain
   cross-mailbox browsing.
 - Pub/Sub push uses a dedicated no-key service account and OIDC audience validation before
   body decoding. The Gmail API publisher is only
-  `gmail-api-push@system.gserviceaccount.com`; notification email must be a configured
-  domain pilot.
-- Rollback: set the three S19 read/send/reply registry keys false (read is currently true;
-  send/reply remain false),
-  remove `gmail.readonly`/`gmail.compose` from DWD client `104374162913177846911` as
+  `gmail-api-push@system.gserviceaccount.com`; notification email must be a server-verified
+  domain mailbox with registered watch state.
+- Rollback: set the five S19 registry keys false,
+  remove the four Gmail scopes from DWD client `104374162913177846911` as
   appropriate, disable the push subscription/topic, and redeploy the prior revision. No
   Cloud Scheduler is authorized.
 

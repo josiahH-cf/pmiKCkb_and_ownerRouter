@@ -33,6 +33,9 @@ export const PrepareGmailMessageSchema = z.discriminatedUnion("kind", [
   z
     .object({
       kind: z.literal("new"),
+      to: z.array(EmailSchema).min(1).max(10),
+      cc: z.array(EmailSchema).max(10).default([]),
+      bcc: z.array(EmailSchema).max(10).default([]),
       subject: HeaderSchema,
       body: BodySchema,
     })
@@ -85,6 +88,17 @@ export const ReconcileGmailSendSchema = z
 
 export const CreateGmailDraftSchema = PrepareGmailMessageSchema;
 
+export const ApplyGmailLabelSchema = z
+  .object({
+    label: z
+      .string()
+      .trim()
+      .min(1)
+      .max(225)
+      .refine((value) => !/[\u0000-\u001f\u007f]/.test(value)),
+  })
+  .strict();
+
 export function hashGmailPayload(payload: GmailOutgoingMessage): string {
   const parsed = GmailOutgoingMessageSchema.parse(payload);
   return sha256(
@@ -107,22 +121,14 @@ export function hashConfirmationToken(token: string): string {
   return sha256(token);
 }
 
-export function assertSelfRecipientBoundary(
+export function assertAuthenticatedSender(
   payload: GmailOutgoingMessage,
   authenticatedEmail: string,
 ): void {
   const parsed = GmailOutgoingMessageSchema.parse(payload);
   const email = authenticatedEmail.trim().toLowerCase();
-  if (
-    parsed.from !== email ||
-    parsed.to.length !== 1 ||
-    parsed.to[0] !== email ||
-    parsed.cc.length !== 0 ||
-    parsed.bcc.length !== 0
-  ) {
-    throw new GmailBoundaryError(
-      "The Gmail pilot permits only the signed-in user sending to themselves.",
-    );
+  if (parsed.from !== email) {
+    throw new GmailBoundaryError("Gmail From must match the signed-in user.");
   }
 }
 

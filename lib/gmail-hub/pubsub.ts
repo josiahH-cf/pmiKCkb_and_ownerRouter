@@ -9,12 +9,17 @@ const PubSubEnvelopeSchema = z
       .object({
         data: z.string().min(1).max(10_000),
         messageId: z.string().min(1).max(500),
+        message_id: z.string().min(1).max(500).optional(),
         publishTime: z.string().optional(),
+        publish_time: z.string().optional(),
+        orderingKey: z.string().max(1_024).optional(),
+        attributes: z.record(z.string().max(256), z.string().max(1_024)).optional(),
       })
-      .strict(),
+      .passthrough(),
     subscription: z.string().min(1).max(1_000),
+    deliveryAttempt: z.number().int().positive().optional(),
   })
-  .strict();
+  .passthrough();
 
 const GmailNotificationSchema = z
   .object({
@@ -27,7 +32,6 @@ export interface GmailPushConfig {
   topicName: string;
   expectedAudience: string;
   pushServiceAccount: string;
-  pilotUsers: readonly string[];
   allowedDomain: string;
 }
 
@@ -62,14 +66,9 @@ export function readGmailPushConfig(
   const expectedAudience = env.GMAIL_PUBSUB_AUDIENCE?.trim();
   const pushServiceAccount = env.GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT?.trim().toLowerCase();
   const allowedDomain = (env.ALLOWED_HD ?? "pmikcmetro.com").trim().toLowerCase();
-  const pilotUsers = (env.GMAIL_PILOT_USERS ?? "")
-    .split(",")
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
-
-  if (!topicName || !expectedAudience || !pushServiceAccount || pilotUsers.length === 0) {
+  if (!topicName || !expectedAudience || !pushServiceAccount) {
     throw new GmailPushAuthError(
-      "Gmail push is not configured with a topic, audience, service account, and pilot allowlist.",
+      "Gmail push is not configured with a topic, audience, and service account.",
       503,
     );
   }
@@ -87,7 +86,7 @@ export function readGmailPushConfig(
   } catch {
     throw new GmailPushAuthError("Gmail push audience must be an HTTPS URL.", 503);
   }
-  return { topicName, expectedAudience, pushServiceAccount, pilotUsers, allowedDomain };
+  return { topicName, expectedAudience, pushServiceAccount, allowedDomain };
 }
 
 /** Authenticate the Pub/Sub service identity before reading/decoding the push body. */
@@ -116,13 +115,25 @@ export async function verifyPubSubPushRequest(
   const envelope = PubSubEnvelopeSchema.safeParse(await request.json().catch(() => null));
   if (!envelope.success)
     throw new GmailPushAuthError("Pub/Sub push body is invalid.", 400);
+  if (
+    envelope.data.message.message_id &&
+    envelope.data.message.message_id !== envelope.data.message.messageId
+  ) {
+    throw new GmailPushAuthError("Pub/Sub push message identifiers disagree.", 400);
+  }
   if (!envelope.data.subscription.startsWith("projects/pmi-kc-kb-prod/subscriptions/")) {
     throw new GmailPushAuthError("Pub/Sub subscription is not allowed.", 403);
   }
   let decoded: unknown;
   try {
+    const decodedText = Buffer.from(envelope.data.message.data, "base64url").toString(
+      "utf8",
+    );
+    // Gmail's live notification encodes historyId as a JSON integer even though the API's
+    // cursor contract is an opaque decimal string. Quote only that bounded field before JSON
+    // parsing so a future 64-bit cursor cannot lose precision in JavaScript.
     decoded = JSON.parse(
-      Buffer.from(envelope.data.message.data, "base64url").toString("utf8"),
+      decodedText.replace(/(\"historyId\"\s*:\s*)(\d{1,30})(?=\s*[,}])/, '$1"$2"'),
     );
   } catch {
     throw new GmailPushAuthError("Gmail push data is invalid.", 400);
@@ -132,7 +143,6 @@ export async function verifyPubSubPushRequest(
     throw new GmailPushAuthError("Gmail push data is invalid.", 400);
   const mailboxEmail = normalizeGmailSubject(notification.data.emailAddress, {
     allowedDomain: config.allowedDomain,
-    pilotUsers: config.pilotUsers,
   });
   return {
     messageId: envelope.data.message.messageId,

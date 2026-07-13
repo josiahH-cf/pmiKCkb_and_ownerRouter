@@ -3,10 +3,8 @@
 // /notifications hub page, and the pure feed builder share the family vocabulary without pulling the
 // Admin SDK into the client bundle.
 //
-// The framework is IN-APP ONLY: there is no email channel here, and the two Gmail-dependent families
-// (RentVine replies, Owner replies) are stubbed available:false with "Waiting on Gmail access" until the
-// client Gmail access model and the domain-wide-delegation scopes land. App-plane only: no send, no
-// system-of-record write.
+// The framework is IN-APP ONLY: there is no email channel here. The two Gmail-dependent event families
+// remain unavailable until their product-specific classification rules exist; Gmail access itself is active.
 //
 // S17 adds three AVAILABLE families so the hub is a true SUPERSET of the Console's three deck cards
 // (approvals ⇒ approval_queue, connections ⇒ connections_setup, coverage ⇒ space_coverage) plus Dan's
@@ -65,6 +63,7 @@ export interface NotificationFamilyView extends NotificationFamily {
 /** The single gated-affordance string for every Gmail-dependent surface (families + the hub's
  *  "read my inbox" control). Exported so no consumer re-hardcodes the literal. */
 export const WAITING_ON_GMAIL = "Waiting on Gmail access";
+export const GMAIL_EVENT_RULES_REQUIRED = "Mailbox event rules not configured";
 
 export const NOTIFICATION_FAMILIES: readonly NotificationFamily[] = [
   {
@@ -109,7 +108,7 @@ export const NOTIFICATION_FAMILIES: readonly NotificationFamily[] = [
     description: "Replies on RentVine conversations you are working.",
     available: false,
     lane: "decision",
-    unavailableReason: WAITING_ON_GMAIL,
+    unavailableReason: GMAIL_EVENT_RULES_REQUIRED,
   },
   {
     key: "owner_process_replies",
@@ -117,7 +116,7 @@ export const NOTIFICATION_FAMILIES: readonly NotificationFamily[] = [
     description: "Owner replies to process emails you sent.",
     available: false,
     lane: "decision",
-    unavailableReason: WAITING_ON_GMAIL,
+    unavailableReason: GMAIL_EVENT_RULES_REQUIRED,
   },
 ];
 

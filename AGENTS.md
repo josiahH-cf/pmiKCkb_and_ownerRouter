@@ -171,8 +171,9 @@ route new work through the three-product docs.
   executable write, and Rentvine lease-renewal writeback stays gated as undocumented.
 - Add tests with any behavior change.
 - Do not build Lease Renewal Agent or Gmail Inbox 0 runtime behavior until their
-  product docs define scope, permissions, and acceptance gates. S19 now defines the local Gmail
-  runtime build; its DWD, live-mailbox, Pub/Sub, send, action-promotion, and deploy gates remain closed.
+  product docs define scope, permissions, and acceptance gates. S19 defines and activates the
+  per-user Gmail runtime; its approved actions, scopes, Pub/Sub resources, and exact-confirmation
+  boundary live in the Action Registry, product spec, and production evidence artifact.
 
 ## Working Order
 
@@ -250,9 +251,9 @@ answer ourselves.
   the `firebase:set-role` break-glass script. It is Admin-only (`manageAdmin`), requires a plain-English reason, enforces
   the pmikcmetro.com domain boundary, writes an append-only `admin_role_changes` audit, and has a best-effort last-Admin
   guard (NOT concurrency-safe; the break-glass script recovers). Per-user domain-wide Gmail
-  (`F-GMAIL-PER-USER`, evolved by S19) acts AS each signed-in user's own mailbox via DWD. The local
-  runtime is built and its bounded self-pilot profile connection is live-proven under `gmail.readonly`;
-  any thread/body read or deployment still needs action-time approval, and every send remains
+  (`F-GMAIL-PER-USER`, evolved by S19) acts AS each signed-in user's own mailbox via DWD. The
+  production runtime uses the four approved Gmail scopes and five separately governed Inbox 0 actions;
+  the rollout-only pilot allowlist is removed. Every send remains
   exact-message, human-confirmed, action-gated, and audited. Firebase authentication
   and Gmail DWD authorization are separate systems.
 - Full strategy, per-surface mechanisms, and migration plan:

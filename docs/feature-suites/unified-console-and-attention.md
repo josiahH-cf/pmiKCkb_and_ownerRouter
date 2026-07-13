@@ -93,10 +93,11 @@ are the real ones read for this spec.
     **This spec references the S16 scope claim and re-models neither the auth claim nor the deck
     filter.**
 
-- **Gated (owner / vendor).**
-  - **G1 — activate the Gmail-dependent families.** `rentvine_replies` + `owner_process_replies` stay
-    `available:false` ("Waiting on Gmail access", `families.ts:65,72`) until the client Gmail access model
-    and a Gmail READ scope (domain-wide delegation) are authorized. That is an owner + vendor decision.
+- **Follow-ons.**
+  - **G1 — classify Gmail-dependent event families.** S19 activated the per-user mailbox connection and
+    authenticated push on 2026-07-13. `rentvine_replies` + `owner_process_replies` remain
+    `available:false` with "Mailbox event rules not configured" until their product-specific,
+    source-backed classification rules are defined; mailbox access is no longer their blocker.
   - **G2 — any email/push DELIVERY.** The framework is in-app ONLY; email is hard-off
     (`KB_APPROVAL_NOTIFICATIONS_ENABLED` false, `email_enabled` literal-false). Turning on any out-of-app
     delivery is an autonomous-send decision and stays gated.
@@ -120,10 +121,9 @@ are the real ones read for this spec.
 - _Open:_ Dan's preferred review cadence and whether the review lane should also cover Maintenance
   overrides (not just renewals). Default: renewals-only digest, weekly window. Recorded as a `Q-` row in
   `docs/facts.md` "## Open Questions" at authoring time; confirm-with-default, not a blocker.
-- _Client-owned:_ the Gmail access model + READ scope that would flip G1's two families available
-  (tracked in `docs/client-checklist.md` / `docs/environment-handoff.md`); any decision to deliver
-  notifications out of app (email/push). Both are confirm-with-default: stay in-app until the client says
-  otherwise.
+- _Product-owned:_ the source-backed classification rules that would flip G1's two families available;
+  mailbox access is active under S19. Any decision to deliver notifications out of app remains
+  client-owned. Default: stay in-app until the client says otherwise.
 - _Assumption:_ hard gates unchanged this cycle — no autonomous send, no SoR write, no Cloud Scheduler,
   no new Google scope, no client data on GitHub, and no new Action Registry flip (the existing
   compose-only `gmail.renewal_notice.draft_create` allowlist is unchanged), ~$10 cap. This suite
@@ -158,7 +158,7 @@ are the real ones read for this spec.
 - **AC-S17-2** — the family catalog exposes exactly SEVEN families: `approval_queue`,
   `maintenance_tickets`, `connections_setup` (available), `space_coverage` (available), `team_review`
   (available, but Admin-gated at SERVE time per AC-S17-6), and `rentvine_replies` +
-  `owner_process_replies` still `available:false` with detail "Waiting on Gmail access". _Verify:_
+  `owner_process_replies` still `available:false` with detail "Mailbox event rules not configured". _Verify:_
   `npm run test -- tests/unit/notification-feed.test.ts`; keep the families enum invariant green.
 - **AC-S17-3** — for one fixture the "Needs your decision" integer is byte-identical on the Console deck,
   the bell badge, and `/approval-queue`, and each reads `gatherNeedsDecisionInbox(user).counts.total`
@@ -244,8 +244,8 @@ fenced STT seam is unchanged.
 6. _Build:_ B7 lane-stamp the Console deck so it speaks the shared contract. Do NOT implement a deck
    scope filter — that is S16's (AC-S16-4). Stamp lanes over whatever rows the (S16-scoped or, if S16
    has not landed, unscoped) deck yields; do not re-model auth.
-7. _Owner:_ hand back the gated items — G1 (Gmail access model + READ scope), G2 (any delivery), G3
-   (scheduled digest), G4 (deploy). None are performed autonomously.
+7. _Owner/product:_ hand back the follow-ons — G1 (reply-event classification rules), G2 (any delivery),
+   G3 (scheduled digest), G4 (future deploy). None are performed autonomously.
 8. _Verify:_ run the full gate list above; browser-walk the hub + deck + desk with an Editor session and
    an Admin session (the review digest appears only for Admin); confirm the three surfaces agree on the
    decision count.

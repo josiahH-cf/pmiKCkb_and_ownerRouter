@@ -154,13 +154,13 @@ Approved for Execution` (or `Disabled` at any time).
 
 `production_allowed` may be `true` only when `readiness` is `Approved for Execution` and
 `evidence_status` is `Documented` with non-empty `documented_evidence`. This is enforced in
-the schema. Exactly two seeded entries are allowlisted today: the bounded self-pilot
-`gmail.mailbox.read` backed by `docs/evidence/gmail-read-grant-2026-07-13.md`, and
+the schema. Six seeded Gmail entries are allowlisted today: the five separately governed Inbox 0
+actions backed by `docs/evidence/gmail-production-activation-2026-07-13.md`, and
 `gmail.renewal_notice.draft_create`, a draft-only action backed by the committed owner-grant
-artifact in `docs/evidence/gmail-dwd-grant-2026-07.md`. The latter creates an UNSENT draft and has
+artifact in `docs/evidence/gmail-dwd-grant-2026-07.md`. The renewal action creates an UNSENT draft and has
 no code path to the Gmail send method. The granted `gmail.compose` scope is itself send-capable;
 the safety boundary is the action-specific runtime/gate, not a no-send claim about that scope.
-Every send/reply/mutation and all other entries remain `production_allowed: false`; no
+All non-Gmail external entries remain `production_allowed: false`; no non-Gmail
 system-of-record write is executable.
 
 The Maintenance photo runtime is also bound to this committed decision. With
@@ -177,9 +177,9 @@ original 9 plus read-only `rentvine.lease.read` and `rentvine.work_order.read` (
 lease/work-order list/view used for renewal-candidate discovery and chain verification),
 `leadsimple.task.create` (orchestration task creation, vendor-confirmation-required), the
 five Gmail Inbox 0 actions `gmail.label.apply`, `gmail.draft.create`,
-`gmail.mailbox.read`, `gmail.message.send`, and `gmail.thread.reply` (per S19: readonly
-bounded self-mailbox access, unsent drafts, and exact-confirmation self-send/reply; only
-the live-proven bounded read is `production_allowed:true`, while the other four remain false), and the
+`gmail.mailbox.read`, `gmail.message.send`, and `gmail.thread.reply` (per S19: bounded
+self-mailbox access, unsent drafts, exact-confirmed send/reply, and bounded labels; all five are
+`production_allowed:true`), and the
 lease-renewal connector trio `google_sheets.renewal_checklist.{read,
 reconcile,writeback}` (per `docs/products/lease-renewal-connector-design.md` §5.2: read the
 mapped tabs with tabs 4 & 7 denied at the connector boundary; reconcile fields into flags,
@@ -192,8 +192,8 @@ catalog entries would invent scope.
 ### Renewal-notice send policy — per-action spec drafts (S13 F5, spec-only)
 
 These two specs frame the renewal-notice send path for the owner. The compose-only draft action
-is one of two allowlisted Action Registry entries; the other is the readonly self-mailbox
-connection. The send alternative stays
+is one of six allowlisted Action Registry entries; the other five are the Gmail Inbox 0 actions.
+The autonomous renewal-send alternative stays
 `production_allowed: false`. The locked policy (decision 3, 2026-07-02,
 `F-PRECUST-CYCLE`) is **unsent draft, human clicks Send** — so only the first action is ever
 pursued; the second is recorded as the alternative that was explicitly **not** chosen and would
@@ -233,7 +233,7 @@ owner-run deploy. The renewal `send` action below remains docs-only and disabled
   mailbox until a human sends it.
 - `connection_health_check_ref`: `health.gmail.workspace_api`.
 - `production_allowed`: **true** for this exact compose-only key; the executable allowlist also
-  permits only the separately evidenced `gmail.mailbox.read` action and rejects any other flip.
+  permits the five separately evidenced Gmail Inbox 0 actions and rejects any other flip.
 
 **`gmail.renewal_notice.send`** (the alternative — explicitly NOT chosen)
 
@@ -248,21 +248,21 @@ owner-run deploy. The renewal `send` action below remains docs-only and disabled
   `gmail.send` grant is not requested.
 - `production_allowed`: **false** (and would stay false without an explicit future approval).
 
-### Gmail live per-user actions (S19, read connection proven 2026-07-13)
+### Gmail live per-user actions (S19, production activation approved 2026-07-13)
 
 - `gmail.mailbox.read`: `gmail.readonly`; bounded profile/thread/history/watch calls for the
-  authenticated user's own mailbox; `Approved for Execution`, `production_allowed:true` after
-  the recorded self-pilot profile proof. Any thread/body read and deployment remain separately gated.
-- `gmail.message.send`: `gmail.compose`; one self-addressed new message only after exact-payload
-  one-time confirmation and transactional claim; `Planned`, `production_allowed:false`.
+  authenticated user's own mailbox; `Approved for Execution`, `production_allowed:true`.
+- `gmail.message.send`: `gmail.compose`; one reviewed message after exact-payload one-time
+  confirmation and transactional claim; `Approved for Execution`, `production_allowed:true`.
 - `gmail.thread.reply`: same explicit-send contract plus live parent re-read, matching subject,
-  Gmail `threadId`, `In-Reply-To`, and `References`; `Planned`,
-  `production_allowed:false`.
-- `gmail.draft.create`: remains the separate Gmail Inbox 0 unsent-draft key and remains gated.
-- `gmail.label.apply`: remains gated because S19 does not request `gmail.modify`.
+  Gmail `threadId`, `In-Reply-To`, and `References`; `Approved for Execution`,
+  `production_allowed:true`.
+- `gmail.draft.create`: Gmail Inbox 0 unsent-draft creation; Approved for Execution.
+- `gmail.label.apply`: `gmail.labels` for user-label discovery/creation plus `gmail.modify` for
+  bounded application to a selected thread; Approved for Execution.
 
-Normal tests inject transport/state seams and never call Gmail. Send/reply promotion requires the
-S19 per-action evidence, owner action-time approval, safe self-thread proof, and rollback record.
+Normal tests inject transport/state seams and never call Gmail. Production use is backed by the S19
+activation evidence, owner authorization, synthetic self-thread proof, and rollback record.
 Ambiguous sends are never automatically retried; reconciliation searches
 the unique RFC Message-ID first. Minimal Firestore state stores bodyless confirmation/audit and
 watch cursor/dedupe records only.

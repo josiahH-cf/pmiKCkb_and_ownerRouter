@@ -14,6 +14,7 @@ export default async function GmailHubPage() {
         authenticatedEmail={user.email}
         canCompose={can(user.role, "edit")}
         canSend={can(user.role, "sendEmail")}
+        canLabel={can(user.role, "edit")}
       />
     </AppShell>
   );

@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
-  assertSelfRecipientBoundary,
+  assertAuthenticatedSender,
   GmailOutgoingMessageSchema,
   hashConfirmationToken,
   hashGmailPayload,
@@ -30,6 +30,7 @@ export const GMAIL_HUB_ACTIONS = {
   draft: "gmail.draft.create",
   send: "gmail.message.send",
   reply: "gmail.thread.reply",
+  label: "gmail.label.apply",
 } as const;
 
 export interface GmailHubServiceDependencies {
@@ -120,7 +121,7 @@ export class GmailHubService {
     const payload = await this.buildOutgoingPayload(
       PrepareGmailMessageSchema.parse(input),
     );
-    assertSelfRecipientBoundary(payload, this.mailboxEmail);
+    assertAuthenticatedSender(payload, this.mailboxEmail);
     const result = await this.dependencies.client.createDraft(payload);
     return {
       status: "draft_created" as const,
@@ -136,7 +137,7 @@ export class GmailHubService {
       parsed.kind === "reply" ? GMAIL_HUB_ACTIONS.reply : GMAIL_HUB_ACTIONS.send,
     );
     const payload = await this.buildOutgoingPayload(parsed);
-    assertSelfRecipientBoundary(payload, this.mailboxEmail);
+    assertAuthenticatedSender(payload, this.mailboxEmail);
     const confirmationToken = this.createToken();
     const id = hashConfirmationToken(confirmationToken);
     const nowMs = this.now();
@@ -165,7 +166,7 @@ export class GmailHubService {
     payload: GmailOutgoingMessage;
   }): Promise<{ status: "sent"; result: GmailSendResult; duplicate: boolean }> {
     const payload = GmailOutgoingMessageSchema.parse(input.payload);
-    assertSelfRecipientBoundary(payload, this.mailboxEmail);
+    assertAuthenticatedSender(payload, this.mailboxEmail);
     this.assertExecutable(
       payload.threadId ? GMAIL_HUB_ACTIONS.reply : GMAIL_HUB_ACTIONS.send,
     );
@@ -277,15 +278,20 @@ export class GmailHubService {
     return watch;
   }
 
+  async applyThreadLabel(threadId: string, labelName: string) {
+    this.assertExecutable(GMAIL_HUB_ACTIONS.label);
+    return this.dependencies.client.applyThreadLabel(threadId, labelName);
+  }
+
   private async buildOutgoingPayload(
     input: PrepareGmailMessageInput,
   ): Promise<GmailOutgoingMessage> {
     if (input.kind === "new") {
       return GmailOutgoingMessageSchema.parse({
         from: this.mailboxEmail,
-        to: [this.mailboxEmail],
-        cc: [],
-        bcc: [],
+        to: input.to,
+        cc: input.cc,
+        bcc: input.bcc,
         subject: input.subject,
         body: input.body,
         messageId: createRfcMessageId(this.mailboxEmail),
@@ -303,9 +309,10 @@ export class GmailHubService {
       );
     }
     const references = [...new Set([...parent.references, parent.messageId])].slice(-20);
+    const replyRecipient = resolveReplyRecipient(parent, this.mailboxEmail);
     return GmailOutgoingMessageSchema.parse({
       from: this.mailboxEmail,
-      to: [this.mailboxEmail],
+      to: [replyRecipient],
       cc: [],
       bcc: [],
       subject: parent.subject,
@@ -326,6 +333,23 @@ export class GmailHubService {
       throw new GmailHubGateError(action);
     }
   }
+}
+
+function resolveReplyRecipient(
+  parent: GmailThreadView["messages"][number],
+  mailboxEmail: string,
+): string {
+  const candidates = [parent.from, ...parent.to, ...parent.cc]
+    .map(extractEmailAddress)
+    .filter((value): value is string => Boolean(value));
+  return candidates.find((value) => value !== mailboxEmail) ?? mailboxEmail;
+}
+
+function extractEmailAddress(value: string): string | undefined {
+  const normalized = value.trim();
+  const angle = normalized.match(/<([^<>\s]+@[^<>\s]+)>/);
+  const candidate = (angle?.[1] ?? normalized).trim().toLowerCase();
+  return /^[^@\s]+@[^@\s]+$/.test(candidate) ? candidate : undefined;
 }
 
 export async function processGmailPushNotification(input: {

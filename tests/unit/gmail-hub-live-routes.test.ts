@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { GET as getThreads } from "@/app/api/gmail-hub/threads/route";
+import { POST as applyThreadLabel } from "@/app/api/gmail-hub/threads/[threadId]/labels/route";
 import { POST as prepareSend } from "@/app/api/gmail-hub/send-confirmations/route";
 import { setAuthResolverForTest, type AuthenticatedUser } from "@/lib/auth/session";
 import { setGmailHubDependenciesForTest } from "@/lib/gmail-hub/dependencies";
@@ -88,6 +89,9 @@ describe("Gmail Hub live route boundaries (AC-S19-2, AC-S19-8)", () => {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           kind: "new",
+          to: [actor.email],
+          cc: [],
+          bcc: [],
           subject: "Synthetic",
           body: "Synthetic body",
           subjectUser: "dan@pmikcmetro.com",
@@ -99,18 +103,66 @@ describe("Gmail Hub live route boundaries (AC-S19-2, AC-S19-8)", () => {
     expect(tracker.clientsCreated()).toBe(0);
   });
 
-  it("separates edit from explicit-send authority", async () => {
+  it("allows an Editor to prepare an exact-confirmed send from their own mailbox", async () => {
     const tracker = installDependencies();
     setAuthResolverForTest(async () => ({ ...actor, role: "Editor" }));
     const response = await prepareSend(
       new Request("https://example.test/api/gmail-hub/send-confirmations", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ kind: "new", subject: "Synthetic", body: "Body" }),
+        body: JSON.stringify({
+          kind: "new",
+          to: ["recipient@example.com"],
+          cc: [],
+          bcc: [],
+          subject: "Synthetic",
+          body: "Body",
+        }),
       }),
     );
 
-    expect(response.status).toBe(403);
-    expect(tracker.clientsCreated()).toBe(0);
+    expect(response.status).toBe(200);
+    expect(tracker.clientsCreated()).toBe(1);
+  });
+
+  it("strictly applies a user label to the selected signed-in mailbox thread", async () => {
+    setAuthResolverForTest(async () => ({ ...actor, role: "Editor" }));
+    setGmailHubDependenciesForTest({
+      createClient(subject) {
+        const client = new GmailRuntimeClient({
+          subject,
+          transport: {
+            async send() {
+              throw new Error("unexpected Gmail transport");
+            },
+          },
+          getToken: async () => "unused",
+        });
+        client.applyThreadLabel = async (threadId, labelName) => ({
+          threadId,
+          labelId: "Label_1",
+          labelName,
+          labelIds: ["Label_1"],
+        });
+        return client;
+      },
+      store: new MemoryGmailStateStore(),
+      isActionExecutable: () => true,
+    });
+
+    const response = await applyThreadLabel(
+      new Request("https://example.test/api/gmail-hub/threads/thread-1/labels", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ label: "Waiting on Team" }),
+      }),
+      { params: Promise.resolve({ threadId: "thread-1" }) },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      threadId: "thread-1",
+      labelName: "Waiting on Team",
+    });
   });
 });

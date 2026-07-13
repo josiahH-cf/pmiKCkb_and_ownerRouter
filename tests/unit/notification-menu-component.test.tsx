@@ -98,7 +98,7 @@ describe("NotificationMenu", () => {
     );
   });
 
-  it("renders the stubbed Gmail-dependent families as waiting on access", async () => {
+  it("renders Gmail-dependent families as awaiting event rules, not mailbox access", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
       "fetch",
@@ -110,10 +110,10 @@ describe("NotificationMenu", () => {
 
     expect(screen.getByText("No unread event notifications.")).toBeInTheDocument();
     expect(
-      screen.getByText("RentVine replies: Waiting on Gmail access"),
+      screen.getByText("RentVine replies: Mailbox event rules not configured"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Owner replies: Waiting on Gmail access"),
+      screen.getByText("Owner replies: Mailbox event rules not configured"),
     ).toBeInTheDocument();
   });
 
@@ -236,7 +236,7 @@ function familyViews(): NotificationFamilyView[] {
       description: "Replies on RentVine conversations you are working.",
       available: false,
       lane: "decision",
-      unavailableReason: "Waiting on Gmail access",
+      unavailableReason: "Mailbox event rules not configured",
       muted: false,
     },
     {
@@ -245,7 +245,7 @@ function familyViews(): NotificationFamilyView[] {
       description: "Owner replies to process emails you sent.",
       available: false,
       lane: "decision",
-      unavailableReason: "Waiting on Gmail access",
+      unavailableReason: "Mailbox event rules not configured",
       muted: false,
     },
   ];

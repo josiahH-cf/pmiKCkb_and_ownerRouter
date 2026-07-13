@@ -13,10 +13,12 @@ export function GmailHubHome({
   authenticatedEmail = "signed-in user",
   canCompose = false,
   canSend = false,
+  canLabel = false,
 }: {
   authenticatedEmail?: string;
   canCompose?: boolean;
   canSend?: boolean;
+  canLabel?: boolean;
 }) {
   return (
     <section className="content ui-stack gmail-hub">
@@ -33,6 +35,7 @@ export function GmailHubHome({
         authenticatedEmail={authenticatedEmail}
         canCompose={canCompose}
         canSend={canSend}
+        canLabel={canLabel}
       />
 
       <h2>Offline and demo fallback</h2>
@@ -44,8 +47,9 @@ export function GmailHubHome({
       <article className="panel ui-stack">
         <h2>Notifications</h2>
         <p className="muted">
-          The same in-app notification families as the Console and the bell. The
-          Gmail-dependent families stay gated until inbox access is approved.
+          The same in-app notification families as the Console and the bell. The mailbox
+          connection is active; reply-event categories appear after their product-specific
+          classification rules are configured.
         </p>
         <ul className="compact-list">
           {NOTIFICATION_FAMILIES.map((family) => (

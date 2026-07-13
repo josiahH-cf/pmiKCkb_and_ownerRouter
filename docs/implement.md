@@ -47,12 +47,12 @@ Default priority:
 4. Convert client answers into product-lane scope and acceptance gates.
 5. Prepare KB production cutover only from approved client-owned resources.
 6. Scope Lease Renewal Agent before implementation.
-7. Scope Gmail Inbox 0 live Gmail setup before implementation.
+7. Operate Gmail Inbox 0 only through the approved S19 per-user scopes/actions and evidence workflow.
 
 ## While Waiting On Client Replies
 
 The current outbound client asks are tracked in `docs/client-checklist.md`. They still
-block unknown-cost work, raw client data handling, live Gmail work, external-system writes,
+block unknown-cost work, raw client data handling, unapproved Gmail expansion, external-system writes,
 and Lease Renewal runtime execution, but they do not block reversible product work,
 API-backed setup, or migration preparation when Remote Away Mode allows it.
 
@@ -79,8 +79,8 @@ Continue iterating on:
   and integration architecture per `docs/integration-architecture.md`, with Maintenance
   Work Order Intake as the first executable-write target and the Rentvine lease-renewal
   writeback gated as undocumented.
-- Gmail Inbox 0 label/rule/prompt planning, legacy artifact mining, safe-thread
-  scenario design, and management-page planning without live Gmail access.
+- Gmail Inbox 0 label/rule/prompt planning, legacy artifact mining, and safe-thread
+  scenario design; production Gmail actions follow S19's exact-confirmation and identity boundaries.
 - Tool access templates and integration capability classification using placeholders
   until Dan/team provide the spreadsheet answers.
 
@@ -122,8 +122,8 @@ building speculative features.
 - KB runtime changes belong in the existing Next.js/Firebase/Firestore/Vertex/Gemini
   boundaries.
 - Lease Renewal Agent changes are docs/discovery only until scope is locked.
-- Gmail Inbox 0 changes are docs/artifact migration only until Gmail setup authority and
-  test model are approved.
+- Gmail Inbox 0's five S19 actions are approved; automatic processing, historical scans, and
+  cross-mailbox behavior still require separate product scope and permission.
 - Do not add a dependency or integration unless the active product lane needs it.
 - Do not add product behavior not present in confirmed direction or approved sources.
 

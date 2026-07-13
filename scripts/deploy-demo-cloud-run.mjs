@@ -211,7 +211,6 @@ function readRuntimeEnv(env, project, region, searchLocation) {
     GEMINI_MODEL_ANSWER: CHEAP_LIVE_MODEL,
     GEMINI_MODEL_CLASSIFY: withDefault("GEMINI_MODEL_CLASSIFY", "gemini-2.5-flash"),
     GMAIL_DWD_SA: withDefault("GMAIL_DWD_SA", ""),
-    GMAIL_PILOT_USERS: withDefault("GMAIL_PILOT_USERS", ""),
     GMAIL_PUBSUB_AUDIENCE: withDefault("GMAIL_PUBSUB_AUDIENCE", ""),
     GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT: withDefault(
       "GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT",

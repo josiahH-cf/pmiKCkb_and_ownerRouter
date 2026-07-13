@@ -8,3 +8,9 @@ export const GMAIL_READONLY_SCOPE = `${GMAIL_SCOPE_PREFIX}readonly`;
 
 /** Draft creation plus explicit human-confirmed send; Google defines this scope as send-capable. */
 export const GMAIL_COMPOSE_SCOPE = `${GMAIL_SCOPE_PREFIX}compose`;
+
+/** Create and inspect user labels. */
+export const GMAIL_LABELS_SCOPE = `${GMAIL_SCOPE_PREFIX}labels`;
+
+/** Apply or remove labels and perform other bounded mailbox mutations. */
+export const GMAIL_MODIFY_SCOPE = `${GMAIL_SCOPE_PREFIX}modify`;

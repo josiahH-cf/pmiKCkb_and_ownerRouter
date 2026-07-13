@@ -425,8 +425,8 @@
             >.
           </li>
           <li>
-            On the currently deployed revision, show that live inbox access is disabled
-            with Waiting on Gmail access.
+            Confirm the signed-in <code>pmikcmetro.com</code> mailbox is connected. Use
+            <strong>Start or renew push watch</strong> when the watch needs renewal.
           </li>
           <li>
             In <strong>Simulated email chain</strong>, point out the Browser only badge,
@@ -552,19 +552,17 @@ No automatic send or system-of-record writes</pre
         <li>Press <strong>Reset demo thread</strong> before rehearsing again.</li>
       </ol>
 
-      <h2>S19 live Gmail promotion checkpoint</h2>
-      <div class="callout warn">
-        Do not substitute the local S19 workspace for the simulator during this demo. The
-        bounded self-pilot profile proof under <code>gmail.readonly</code> is complete,
-        but the deployed revision remains simulator-only. Any thread/body read,
-        deployment, synthetic self-message, or reply needs its own approval. The read key
-        is locally approved; send/reply keys remain false.
+      <h2>S19 live Gmail checkpoint</h2>
+      <div class="callout">
+        The live per-user Gmail workspace is owner-approved for bounded read, draft,
+        exact-confirmed send/reply, labels, and push sync. Use only the signed-in user's
+        mailbox and keep the simulator as an offline walkthrough fallback.
       </div>
       <ul>
         <li>No Dan or third-party recipient in the first proof.</li>
         <li>
-          No Pub/Sub provisioning, watch, Scheduler, promotion, or deploy without its own
-          approval.
+          Every real send still requires the exact-message review and one-time
+          confirmation.
         </li>
         <li>
           Record only Gmail message/thread IDs, counts, and statuses; never subject/body
@@ -592,10 +590,9 @@ No automatic send or system-of-record writes</pre
           <tr>
             <td>Gmail Hub</td>
             <td>
-              Deployed demo: browser-only synthetic chain plus pasted content, previews,
-              summaries, and approved unsent drafts. S19 live read and
-              explicit-confirmation self-send/reply are local and gated, not part of this
-              walkthrough.
+              Deployed live per-user mailbox: bounded read, unsent drafts, exact-confirmed
+              send/reply, user labels, and authenticated push sync. The browser-only
+              synthetic chain remains available as an offline fallback.
             </td>
           </tr>
           <tr>

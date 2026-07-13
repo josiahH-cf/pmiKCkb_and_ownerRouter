@@ -43,7 +43,14 @@ describe("Action Registry repository", () => {
     expect(keys).toEqual([...keys].sort());
     expect(
       all.filter((entry) => entry.production_allowed).map((entry) => entry.key),
-    ).toEqual(["gmail.mailbox.read", "gmail.renewal_notice.draft_create"]);
+    ).toEqual([
+      "gmail.draft.create",
+      "gmail.label.apply",
+      "gmail.mailbox.read",
+      "gmail.message.send",
+      "gmail.renewal_notice.draft_create",
+      "gmail.thread.reply",
+    ]);
   });
 
   it("reads a single entry by key", async () => {

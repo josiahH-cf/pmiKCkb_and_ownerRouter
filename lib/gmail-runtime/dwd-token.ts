@@ -9,11 +9,21 @@
 
 import { GoogleAuth } from "google-auth-library";
 
-import { GMAIL_COMPOSE_SCOPE, GMAIL_READONLY_SCOPE } from "@/lib/gmail-runtime/scopes";
+import {
+  GMAIL_COMPOSE_SCOPE,
+  GMAIL_LABELS_SCOPE,
+  GMAIL_MODIFY_SCOPE,
+  GMAIL_READONLY_SCOPE,
+} from "@/lib/gmail-runtime/scopes";
 import { normalizeGmailSubject } from "@/lib/gmail-runtime/subject";
 
 const CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
-const ALLOWED_GMAIL_DWD_SCOPES = new Set([GMAIL_COMPOSE_SCOPE, GMAIL_READONLY_SCOPE]);
+const ALLOWED_GMAIL_DWD_SCOPES = new Set([
+  GMAIL_COMPOSE_SCOPE,
+  GMAIL_LABELS_SCOPE,
+  GMAIL_MODIFY_SCOPE,
+  GMAIL_READONLY_SCOPE,
+]);
 
 export class GmailDwdSetupError extends Error {
   constructor(message: string) {
@@ -48,7 +58,7 @@ export async function mintGmailDwdToken(options: {
   const subject = normalizeGmailSubject(options.subject);
   if (!ALLOWED_GMAIL_DWD_SCOPES.has(options.scope)) {
     throw new GmailDwdSetupError(
-      "Gmail DWD permits only the approved readonly and compose scopes.",
+      "Gmail DWD permits only the approved readonly, compose, labels, and modify scopes.",
     );
   }
 

@@ -28,7 +28,7 @@ describe("gmail inbox zero management page", () => {
     expect(response.status).toBe(200);
     expect(html).toContain("Gmail Inbox 0 Management");
     expect(html).toContain("Gmail Connection");
-    expect(html).toContain("Not connected");
+    expect(html).toContain("Activated");
     expect(html).toContain("Gemini Status");
     // The static read-only v1 panels are retired; the live workspace renders the governed sets.
     expect(html).toContain("Label rules");

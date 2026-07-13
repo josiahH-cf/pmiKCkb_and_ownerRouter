@@ -23,6 +23,10 @@ const actor: AuthenticatedUser = {
   role: "Approver",
 };
 
+function newMessage(subject: string, body: string, to = [actor.email]) {
+  return { kind: "new" as const, to, cc: [], bcc: [], subject, body };
+}
+
 class FakeGmailClient extends GmailRuntimeClient {
   profileCalls = 0;
   sendCalls = 0;
@@ -30,6 +34,7 @@ class FakeGmailClient extends GmailRuntimeClient {
   sendError: Error | null = null;
   sendDelay: Promise<void> | null = null;
   reconcileResult: GmailSendResult | null = null;
+  labelsApplied: Array<{ threadId: string; labelName: string }> = [];
   thread: GmailThreadView = {
     id: "thread-1",
     truncated: false,
@@ -94,6 +99,16 @@ class FakeGmailClient extends GmailRuntimeClient {
   override async findMessageByRfcMessageId() {
     return this.reconcileResult;
   }
+
+  override async applyThreadLabel(threadId: string, labelName: string) {
+    this.labelsApplied.push({ threadId, labelName });
+    return {
+      threadId,
+      labelId: "Label_1",
+      labelName,
+      labelIds: ["INBOX", "Label_1"],
+    };
+  }
 }
 
 function service(
@@ -113,6 +128,7 @@ function service(
       "gmail.draft.create",
       "gmail.message.send",
       "gmail.thread.reply",
+      "gmail.label.apply",
     ],
   );
   return {
@@ -129,7 +145,7 @@ function service(
 }
 
 describe("GmailHubService connection", () => {
-  it("reports the self pilot connected through the committed read gate", async () => {
+  it("reports the signed-in mailbox connected through the committed read gate", async () => {
     const client = new FakeGmailClient();
     const hub = new GmailHubService(actor, {
       client,
@@ -144,26 +160,24 @@ describe("GmailHubService connection", () => {
       sync: { health: "manual" },
     });
     expect(client.profileCalls).toBe(1);
-    expect(isActionExecutable("gmail.message.send")).toBe(false);
-    expect(isActionExecutable("gmail.thread.reply")).toBe(false);
+    expect(isActionExecutable("gmail.message.send")).toBe(true);
+    expect(isActionExecutable("gmail.thread.reply")).toBe(true);
   });
 });
 
 describe("GmailHubService exact-message sending (AC-S19-4, AC-S19-5)", () => {
-  it("binds a one-time confirmation to the authenticated self-recipient payload", async () => {
+  it("binds a one-time confirmation to the authenticated user's reviewed recipients", async () => {
     const { hub, store } = service();
-    const prepared = await hub.prepareSendConfirmation({
-      kind: "new",
-      subject: "Self proof",
-      body: "Synthetic test body",
-    });
+    const prepared = await hub.prepareSendConfirmation(
+      newMessage("External recipient proof", "Synthetic test body", ["dan@example.com"]),
+    );
 
     expect(prepared.payload).toMatchObject({
       from: actor.email,
-      to: [actor.email],
+      to: ["dan@example.com"],
       cc: [],
       bcc: [],
-      subject: "Self proof",
+      subject: "External recipient proof",
       body: "Synthetic test body",
     });
     const record = store.confirmations.get(
@@ -176,11 +190,9 @@ describe("GmailHubService exact-message sending (AC-S19-4, AC-S19-5)", () => {
 
   it("rejects a missing confirmation or any changed exact payload before Gmail", async () => {
     const { hub, client } = service();
-    const prepared = await hub.prepareSendConfirmation({
-      kind: "new",
-      subject: "Self proof",
-      body: "Exact body",
-    });
+    const prepared = await hub.prepareSendConfirmation(
+      newMessage("Self proof", "Exact body"),
+    );
 
     await expect(
       hub.sendConfirmed({
@@ -197,20 +209,17 @@ describe("GmailHubService exact-message sending (AC-S19-4, AC-S19-5)", () => {
     expect(client.sendCalls).toBe(0);
   });
 
-  it("cannot use a valid confirmation to send as or to another mailbox", async () => {
+  it("cannot use a valid confirmation to change the authenticated From mailbox", async () => {
     const { hub, client } = service();
-    const prepared = await hub.prepareSendConfirmation({
-      kind: "new",
-      subject: "Boundary proof",
-      body: "Self only",
-    });
+    const prepared = await hub.prepareSendConfirmation(
+      newMessage("Boundary proof", "Authenticated sender only", ["dan@example.com"]),
+    );
     await expect(
       hub.sendConfirmed({
         confirmationToken: prepared.confirmationToken,
         payload: {
           ...prepared.payload,
           from: "dan@pmikcmetro.com",
-          to: ["dan@pmikcmetro.com"],
         },
       }),
     ).rejects.toMatchObject({ status: 403 });
@@ -220,11 +229,9 @@ describe("GmailHubService exact-message sending (AC-S19-4, AC-S19-5)", () => {
   it("consumes no expired confirmation", async () => {
     let now = 1_000;
     const { hub, client } = service({ now: () => now });
-    const prepared = await hub.prepareSendConfirmation({
-      kind: "new",
-      subject: "Expiry proof",
-      body: "Synthetic body",
-    });
+    const prepared = await hub.prepareSendConfirmation(
+      newMessage("Expiry proof", "Synthetic body"),
+    );
     now += 10 * 60 * 1000 + 1;
 
     await expect(hub.sendConfirmed(prepared)).rejects.toThrow("expired");
@@ -239,11 +246,9 @@ describe("GmailHubService exact-message sending (AC-S19-4, AC-S19-5)", () => {
     const client = new FakeGmailClient();
     client.sendDelay = blocker;
     const { hub } = service({ client });
-    const prepared = await hub.prepareSendConfirmation({
-      kind: "new",
-      subject: "Double-click proof",
-      body: "One attempt only",
-    });
+    const prepared = await hub.prepareSendConfirmation(
+      newMessage("Double-click proof", "One attempt only"),
+    );
 
     const first = hub.sendConfirmed(prepared);
     const second = hub.sendConfirmed(prepared);
@@ -262,11 +267,9 @@ describe("GmailHubService exact-message sending (AC-S19-4, AC-S19-5)", () => {
     const client = new FakeGmailClient();
     client.sendError = new GmailRuntimeError("unclear", undefined, true);
     const { hub, store } = service({ client });
-    const prepared = await hub.prepareSendConfirmation({
-      kind: "new",
-      subject: "Ambiguity proof",
-      body: "Do not retry",
-    });
+    const prepared = await hub.prepareSendConfirmation(
+      newMessage("Ambiguity proof", "Do not retry"),
+    );
 
     await expect(hub.sendConfirmed(prepared)).rejects.toBeInstanceOf(
       GmailAmbiguousSendError,
@@ -305,6 +308,19 @@ describe("GmailHubService exact-message sending (AC-S19-4, AC-S19-5)", () => {
       inReplyTo: "<parent@pmikcmetro.com>",
       references: ["<root@pmikcmetro.com>", "<parent@pmikcmetro.com>"],
     });
+  });
+
+  it("applies a bounded user label through its separately gated action", async () => {
+    const { hub, client } = service();
+    await expect(hub.applyThreadLabel("thread-1", "Waiting on Team")).resolves.toEqual({
+      threadId: "thread-1",
+      labelId: "Label_1",
+      labelName: "Waiting on Team",
+      labelIds: ["INBOX", "Label_1"],
+    });
+    expect(client.labelsApplied).toEqual([
+      { threadId: "thread-1", labelName: "Waiting on Team" },
+    ]);
   });
 
   it("refuses a Gmail client for any mailbox other than the authenticated actor", () => {

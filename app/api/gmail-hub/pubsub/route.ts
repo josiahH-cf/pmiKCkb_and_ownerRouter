@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getGmailHubDependencies } from "@/lib/gmail-hub/dependencies";
 import { gmailHubErrorResponse } from "@/lib/gmail-hub/http";
-import { verifyPubSubPushRequest } from "@/lib/gmail-hub/pubsub";
+import { GmailPushAuthError, verifyPubSubPushRequest } from "@/lib/gmail-hub/pubsub";
 import {
   GMAIL_HUB_ACTIONS,
   GmailHubGateError,
@@ -25,6 +25,16 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(result);
   } catch (error) {
+    if (error instanceof GmailPushAuthError) {
+      console.warn("Gmail Pub/Sub push rejected", {
+        status: error.status,
+        reason: error.message,
+      });
+    } else {
+      console.warn("Gmail Pub/Sub processing failed", {
+        type: error instanceof Error ? error.name : "UnknownError",
+      });
+    }
     return gmailHubErrorResponse(error);
   }
 }

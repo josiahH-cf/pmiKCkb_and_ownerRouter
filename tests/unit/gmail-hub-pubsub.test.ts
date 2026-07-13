@@ -15,7 +15,6 @@ const config: GmailPushConfig = {
   topicName: "projects/pmi-kc-kb-prod/topics/gmail-inbox",
   expectedAudience: "https://example.test/api/gmail-hub/pubsub",
   pushServiceAccount: "gmail-push@pmi-kc-kb-prod.iam.gserviceaccount.com",
-  pilotUsers: [mailbox],
   allowedDomain: "pmikcmetro.com",
 };
 
@@ -101,7 +100,7 @@ describe("authenticated Gmail Pub/Sub push (AC-S19-6)", () => {
     expect(audience).toBe(config.expectedAudience);
   });
 
-  it("accepts only a verified pilot mailbox notification", async () => {
+  it("accepts only a verified pmikcmetro.com mailbox notification", async () => {
     setGmailPushOidcVerifierForTest(async () => ({
       email: config.pushServiceAccount,
       email_verified: true,
@@ -124,6 +123,40 @@ describe("authenticated Gmail Pub/Sub push (AC-S19-6)", () => {
         config,
       ),
     ).rejects.toBeInstanceOf(Error);
+  });
+
+  it("accepts the official wrapped push aliases and optional metadata", async () => {
+    setGmailPushOidcVerifierForTest(async () => ({
+      email: config.pushServiceAccount,
+      email_verified: true,
+    }));
+    const notification = { emailAddress: mailbox, historyId: 101 };
+    const request = new Request(config.expectedAudience, {
+      method: "POST",
+      headers: { authorization: "Bearer signed-oidc" },
+      body: JSON.stringify({
+        deliveryAttempt: 2,
+        delivery_attempt: 2,
+        message: {
+          data: Buffer.from(JSON.stringify(notification), "utf8").toString("base64"),
+          messageId: "pubsub-1",
+          message_id: "pubsub-1",
+          publishTime: "2026-07-13T20:22:00Z",
+          publish_time: "2026-07-13T20:22:00Z",
+          orderingKey: "",
+          ordering_key: "",
+          attributes: {},
+          futureMetadata: "ignored-after-OIDC",
+        },
+        subscription: "projects/pmi-kc-kb-prod/subscriptions/gmail-push",
+      }),
+    });
+
+    await expect(verifyPubSubPushRequest(request, config)).resolves.toMatchObject({
+      messageId: "pubsub-1",
+      mailboxEmail: mailbox,
+      historyId: "101",
+    });
   });
 
   it("deduplicates replay and advances the stored history cursor", async () => {

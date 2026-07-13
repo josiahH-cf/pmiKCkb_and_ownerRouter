@@ -32,6 +32,12 @@ describe("LiveGmailWorkspace exact send UX (AC-S19-7)", () => {
         if (url.endsWith("/threads")) {
           return Response.json({ threads: [], resultSizeEstimate: 0 });
         }
+        if (url.endsWith("/watch")) {
+          return Response.json({
+            historyId: "12345",
+            expiration: "1784012400000",
+          });
+        }
         if (url.endsWith("/send-confirmations")) {
           return Response.json({
             confirmationToken: "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG",
@@ -69,6 +75,10 @@ describe("LiveGmailWorkspace exact send UX (AC-S19-7)", () => {
     expect(
       await screen.findByText("Connected as josiah@pmikcmetro.com"),
     ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Start or renew push watch" }));
+    expect(await screen.findByText(/Push watch active until/)).toBeInTheDocument();
+    expect(calls.some((call) => call.url.endsWith("/watch"))).toBe(true);
 
     fireEvent.change(screen.getByRole("textbox", { name: "Subject" }), {
       target: { value: "Self proof" },
