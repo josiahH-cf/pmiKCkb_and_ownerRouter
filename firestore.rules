@@ -362,6 +362,29 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // S19 Gmail operational state is server-only. The web client receives bounded projections through
+    // authenticated routes and can never read/write confirmations, payload hashes, delivery audit,
+    // mailbox cursors, or Pub/Sub replay state directly. These records never contain bodies or MIME.
+    match /gmail_send_confirmations/{confirmationId} {
+      allow read, write: if false;
+    }
+
+    match /gmail_send_audit/{auditId} {
+      allow read, write: if false;
+    }
+
+    match /gmail_mailbox_state/{mailboxId} {
+      allow read, write: if false;
+    }
+
+    match /gmail_push_dedupe/{messageId} {
+      allow read, write: if false;
+    }
+
+    match /gmail_sync_audit/{auditId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

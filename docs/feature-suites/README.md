@@ -47,3 +47,4 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 | S16 Role-scoped sub-users (space scopes)   | `docs/feature-suites/rbac-subusers.md`                 | Spec — app-plane; live claim mint owner-gated |
 | S17 Unified Console + attention hub        | `docs/feature-suites/unified-console-and-attention.md` | Spec — decided 2026-07-10 (D2)                |
 | S18 Process auto-initiation (anticipation) | `docs/feature-suites/process-auto-initiation.md`       | Spec — app-plane, ready to run                |
+| S19 Live Gmail per authenticated user      | `docs/feature-suites/gmail-live-per-user.md`           | Local build authorized; live actions gated    |

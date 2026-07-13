@@ -108,13 +108,11 @@ describe("Action Registry stays non-executable for the live read paths", () => {
     }
   });
 
-  it("keeps every seed entry non-executable except the allow-listed Gmail renewal-notice draft", () => {
-    // Only gmail.renewal_notice.draft_create is production_allowed (flipped 2026-07-09 on the committed
-    // DWD grant); every RentVine/Sheets read path stays gated.
+  it("keeps every seed entry non-executable except the two allow-listed Gmail actions", () => {
     expect(
       ACTION_REGISTRY_SEED.filter((entry) => entry.production_allowed).map(
         (entry) => entry.key,
       ),
-    ).toEqual(["gmail.renewal_notice.draft_create"]);
+    ).toEqual(["gmail.mailbox.read", "gmail.renewal_notice.draft_create"]);
   });
 });

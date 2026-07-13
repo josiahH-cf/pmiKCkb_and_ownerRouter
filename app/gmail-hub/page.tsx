@@ -1,15 +1,20 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { GmailHubHome } from "@/components/gmail-hub/GmailHubHome";
 import { requirePageCapability } from "@/lib/auth/page-guards";
+import { can } from "@/lib/auth/roles";
 
-// /gmail-hub — the Gmail workflow hub, built app-plane TO-THE-GATE. Read-capability page: any signed-in
-// operator can draft, template, and summarize over pasted text. Every live-mailbox affordance renders
-// "Waiting on Gmail access"; no route it reaches performs a Gmail read or send (owner decision D3).
+// /gmail-hub — a self-mailbox live workspace built to the S19 gates, with the S15 pasted-text and
+// browser simulator retained as an explicitly labeled fallback. Firebase auth identifies the app user;
+// server-side DWD authorization independently determines whether the live Gmail connection succeeds.
 export default async function GmailHubPage() {
   const user = await requirePageCapability("read");
   return (
     <AppShell user={user}>
-      <GmailHubHome />
+      <GmailHubHome
+        authenticatedEmail={user.email}
+        canCompose={can(user.role, "edit")}
+        canSend={can(user.role, "sendEmail")}
+      />
     </AppShell>
   );
 }

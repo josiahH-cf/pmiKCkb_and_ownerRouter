@@ -6,17 +6,19 @@ export type Capability =
   | "read"
   | "edit"
   | "approve"
+  | "sendEmail"
   | "resolvePlaceholder"
   | "manageAdmin"
   | "softDelete";
 
 const permissions: Record<Role, ReadonlySet<Capability>> = {
   Editor: new Set(["read", "edit"]),
-  Approver: new Set(["read", "edit", "approve", "resolvePlaceholder"]),
+  Approver: new Set(["read", "edit", "approve", "sendEmail", "resolvePlaceholder"]),
   Admin: new Set([
     "read",
     "edit",
     "approve",
+    "sendEmail",
     "resolvePlaceholder",
     "manageAdmin",
     "softDelete",

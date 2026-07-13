@@ -14,64 +14,40 @@ stop-and-reset rules.
 ## Snapshot
 
 - Last updated: 2026-07-13
-- **LOCAL REMEDIATION COMPLETE — QA-001..QA-011:** the 2026-07-13 interactive localhost audit remediation is
-  complete on the isolated `codex/remediate-local-audit-2026-07-13` worktree. All four implementation waves,
-  focused tests, direct localhost browser/emulator re-audit, core E2E flows, the full 1,548-test repository gate,
-  and the production build are green; evidence is in
-  `docs/local-app-interactive-audit-remediation-2026-07-13.md`. The remediation remains uncommitted for owner
-  review because its implementation task explicitly prohibited commit/push. Any later recheck must use explicit
-  emulator/local-model/stub overrides. No live read, external
-  write, deploy, production inspection, or cleanup is authorized. The suspected QA-007 synthetic production
-  fixtures remain an owner-only incident review after code containment.
+- **PRODUCTION RELEASE + WEDNESDAY DEMO VERIFIED:** the QA-001..QA-011 remediation is committed and pushed as
+  `b24c67d` on `main`, then owner-authorized and deployed 2026-07-13 as Cloud Run revision
+  `pmi-kc-kb-demo-00013-gm4` (100% traffic). Direct production checks passed for pmikcmetro.com Admin auth, the
+  phone renewal decider, Console/Notifications count parity, Gmail Hub drafting + summary, anticipated work,
+  Maintenance readiness guards, and cited Ask; see `docs/wednesday-demo-runbook-2026-07-15.html`. No decision,
+  ticket, assignment, external send, SoR write, or fixture cleanup executed. The browser-only simulator was
+  subsequently deployed as `pmi-kc-kb-demo-00014-cwq`; S19 is local-only and not in that revision.
 - Where we are: the multi-process operations console is the north star (lease-renewal = process #1). The
   2026-06-29 cycle shipped + merged R1–R5 (spine+IA, golden harness+labeling, renewal math, action console +
   intent-detect, and the full Maintenance Work Order Intake incl. live Drive photo sync). Full detail is in
   `docs/status.md` + `docs/facts.md` (`F-*` rows). All gates green on every merge.
-- **2026-07-10 overhaul foundation + specs MERGED (PR #65); owner APPROVED; S14 app-plane tier BUILT locally.**
-  Runner-neutral governance, adversarial/freshness/spec-traceability CI gates, and specs S14–S18 are on main
-  (`F-RUNNER-AGNOSTIC`, `F-ADVERSARIAL-CI-GATE`, `F-SPEC-TRACEABILITY`). S14 now supplies the phone-first
-  one-card renewal decider, exact D1 conditional reasons, distinct one-tap write-back authorization, same-session
-  per-user Skip progress, and actor-safe inline queue approval (`F-RENEWAL-DECIDER-MOBILE`; AC-S14-1..9).
-  Adversarial review closed state bleed, over-broad code-only approval, indefinite Skip hiding, tuple-key
-  collisions, and stale governance claims. Full `scripts/verify.sh` + production build are green; no live action.
-  The loop then CONTINUED into **S16 rbac-subusers** (orthogonal `scopes` claim + `requireSpaceAccess` guards +
-  admin scope editor + tests) but was interrupted before its verification boundary; it is now green after an
-  owner-run fix of an overlooked step-checks route test-mock gap (+ a scope-denial test). Committed + merged
-  (PR #68), then VERIFIED 2026-07-10 (`F-RBAC-SUBUSERS`, AC-S16-1..9). The loop then built + verified **S17
-  unified-console-and-attention** (`F-UNIFIED-ATTENTION`, AC-S17-1..9): the `/notifications` superset hub + one
-  value-free attention-lane contract + low-alarm layer + Admin-only review digest; adversarial + browser-verified.
-  Then **S15 gmail-hub** shipped app-plane TO-THE-GATE (`F-GMAIL-HUB`, AC-S15-1..7): `/gmail-hub` surfaces the invisible draft/triage/summary engines over pasted text, a tenant prepare-email twin reuses the one pre-approved compose gate, the admin page runs the live workspace, and Owner Email opens the hub — NO Gmail read scope; 1473 tests + all gates + prod build green. Then **S18 process-auto-initiation** (`F-ANTICIPATION-LANE`, AC-S18-1..9) shipped the Console's read-only "Anticipated work" lane — a pure value-free projection folding the renewal cohort + notice planners, each family one click from a test run (no scheduler, no send, no SoR write) — COMPLETING the S14–S18 overhaul; 1484 tests + all gates + prod build green.
 - Production-plane fence verified (`F-PROD-CLOUD-MODEL`): prod forces Gemini + Drive; the local model,
   demo auth, and the STT/image stubs are dev/test-only (NODE_ENV-fenced), never a prod dependency.
 - Earlier context (full history in `docs/status.md`): client beta deployed on the `pmi-kc-kb-demo` Cloud
   Run service (`pmi-kc-kb-prod`); real Google auth locked to `pmikcmetro.com`; live RentVine (25 leases) +
   Sheet (DWD) reads work; external execution stays gated except the documented unsent renewal-draft action.
 - Operating mode: normal owner-present; Remote Away Mode INACTIVE (`docs/away-mode.md`); hard $10 budget cap.
-- 2026-07-08/09 CONSOLE OVERHAUL cycle SHIPPED + merged to `main` (PRs #41–#44): A action-first Console (deck + process
-  strip + prominent Dictate; `F-CONSOLE-APP-STATE` amended); B color-coded Space cards (`F-SPACE-CARD-COLOR`); C Renewal
-  needs-attention fold (`F-RENEWAL-ATTENTION`); D Admin re-section + in-app user/role management with audit (`F-ADMIN-IA`,
-  `F-ADMIN-USERS`); E persisted Maintenance ticket queue + lifecycle (`F-MAINT-TICKETS`); F per-user Gmail representation
-  - Owner-Email reframe (`F-GMAIL-PER-USER`). App-plane only, `production_allowed:false` throughout, no SoR write/send;
-    adversarially reviewed + remediated (transaction safety, attention filter, audit degradation); 1100+ tests, all gates
-    green. Facts are UNIT-verified, not live-run (stale ADC this cycle). DEFERRED / not built: renewal owner-email send
-    affordance + live-review actionability; maintenance external-worker Submitter auth + universal
-    unit type-ahead DB + delegable ownership; per-user Gmail RUNTIME (reading / AI replies / notifications / reminders,
-    gated on the client Gmail access model + DWD auth); Approval-Queue action-first rebuild.
-- Earlier go-live/refinement detail is in `docs/status.md`. Remaining client-owned: Dan's Admin walkthrough + second
-  sign-in, QuickBooks access/location, Sheet-write execution, Gmail runtime access model/DWD, and Cloud Scheduler.
-- **Deferred cycle COMPLETE (2026-07-09), 7 slices merged (PRs #56-#62):** 2a/1b/1c/3a/3b/A4/4a + 2c/3c/A5/2d/2b shipped app-plane, each adversarially verified then PR -> CI -> merge. Full narrative in `docs/status.md`; decision spec in `docs/temp/deferred-remaining-slices.md`.
+- **S19 GMAIL LIVE PER-USER READ PROVEN (2026-07-13):** owner direction supersedes the
+  simulator-only final state. Server-session-derived self-mailbox read/draft/exact-confirmation send/reply,
+  defensive MIME, bodyless transactional state/audit, authenticated Pub/Sub history sync, live/fallback UI,
+  three new false registry keys, and adversarial fake-transport tests are implemented (`F-GMAIL-LIVE-DIRECTION`,
+  `F-GMAIL-LIVE-PER-USER`, `F-GMAIL-RUNTIME-S19`). A keyless DWD self-pilot profile read matched
+  `josiah@pmikcmetro.com`, returned aggregate counts, and supplied a history cursor; a missing pilot list now
+  fails closed. `gmail.mailbox.read` is locally allowlisted from that evidence. Full local verification, E2E core,
+  and Firestore rules tests are green. No thread/body, send/reply, Pub/Sub mutation, or deploy occurred.
 
-## Next Safe Slice — STOP: owner review of completed localhost audit remediation
+## Next Safe Slice — STOP: read proven; send, push, and deployment gated
 
-Review the completed, uncommitted QA-001 through QA-011 worktree and its evidence in
-`docs/local-app-interactive-audit-remediation-2026-07-13.md`. S14–S18 remain feature-complete; this remediation
-corrects verified defects without broadening their scope. The production Action Registry allowlist is unchanged,
-`google_drive.maintenance_photo.store` stays closed, and QA-007 production incident inspection/cleanup remains a
-separate owner-only action. No additional safe product slice is authorized by this task.
-
-Carried owner/vendor-gated: prod photo-folder config + live process seed; Firestore rules/index deployment;
-RentVine work-order create; Sheet-write execution (`F-WRITE-GATE`, `OQ-RV-1`); deploy of the approved
-compose-only Gmail draft path; Gmail READ/inbox runtime; and wiring A4/3a into a live surface.
+The bounded self-pilot read proof is complete and `gmail.mailbox.read` is locally promoted. Do not read a thread
+or deploy without the next explicit approval. Request separate action-time approval for the exact synthetic
+self-message and reply; send/reply registry keys remain false. No Pub/Sub provisioning, Scheduler, deployment,
+or Dan/third-party send is authorized. Before any approved live Google read run `npm run preflight:adc`; before
+cloud mutation/cost run the budget guard. The Drive photo action and QA-007 production cleanup also remain
+separate owner-only actions.
 
 ## Active Blockers And Exact Client Asks
 
@@ -87,7 +63,8 @@ Tracked owner/client/vendor gates (in `docs/client-checklist.md` and `docs/resea
   confirmation required before any renewal writeback (`docs/integration-architecture.md`).
 - Source-vocabulary normalization — freeze canonical stage/system/record-ID/approval names before any
   live connector work.
-- Gmail Inbox 0 safe test-thread protocol confirmation.
+- Owner Gmail gates: readonly grant/self-pilot profile proof complete; next are separate thread-read,
+  exact self-thread send/reply, Pub/Sub, and deployment approvals.
 - Approval sender (`kb-automation@pmikcmetro.com`) and launch approver defaults (Dan + Josiah).
 - Owner to define the term "ABC" (`Q-ABC-1`).
 
@@ -96,16 +73,22 @@ Manager); signed leases live in Dotloop, lease-end reads from the RentVine lease
 
 ## Pending Approval Gates
 
-Cost-bearing steps stay behind explicit per-step approval (each must also pass
+The two 2026-07-13 code-only deploys plus their bounded production checks were explicitly owner-authorized and are
+complete, including the synthetic-chain revision `pmi-kc-kb-demo-00014-cwq`.
+Future cost-bearing steps stay behind explicit per-step approval (each must also pass
 `npm run check:budget-guard` and stay under the $10 cap): any live Ask rerun, approved-source import,
-deployment of current `main`, and production smoke. Firestore rules/index deployment is also owner-auth
-gated even when it has no material cloud cost. Hard stops still require explicit approval and will not be
+future deployment, and production smoke. Firestore rules/index deployment is also owner-auth gated even when it
+has no material cloud cost. Hard stops still require explicit approval and will not be
 performed autonomously:
 billing/cap changes, Pro model usage, autonomous sends, destructive changes, raw client
 data/secrets, Gmail mailbox access, or unapproved system-of-record writes.
 
 ## Stop-Condition State
 
+- 2026-07-13: the additive browser-only synthetic-chain slice is fully verified and deployed as
+  `pmi-kc-kb-demo-00014-cwq`; the Wednesday request is complete and no safe in-scope slice remains.
+- 2026-07-13: S19's self-pilot profile connection is live-proven and the read key is locally promoted. Stop before
+  any thread/body read, send/reply, Pub/Sub/cloud mutation, or deploy; the owner instructions above are next.
 - 2026-07-10: S14 + S16 + S17 + S15 + S18 all passed their adversarial boundaries (`F-RENEWAL-DECIDER-MOBILE`,
   `F-RBAC-SUBUSERS`, `F-UNIFIED-ATTENTION`, `F-GMAIL-HUB`, `F-ANTICIPATION-LANE`). The S14–S18 overhaul is COMPLETE;
   "No safe slice remains" now fires — external writes, deploy, Gmail read scope, live feeds, and cost-bearing actions are owner/vendor-gated.
@@ -130,10 +113,12 @@ only from env/Secret Manager, never committed. Record only non-secret references
    read-only `npm run preflight:adc`; if it fails, ask the owner to run `auth:session` (`F-SESSION-AUTH`) — a stale token stalls mid-step.
 3. If the trigger is "plan the next feature cycle", produce a decision-complete packet and stop. If
    the trigger authorizes running the loop, proceed unattended.
-4. Review the completed QA-001..QA-011 worktree and evidence. If the owner separately authorizes the QA-007
+4. For Gmail, start at S19 and the handoff table. Never accept a mailbox identity from the browser. Keep all
+   S19 actions false until the exact scope/evidence/action-time promotion gate is satisfied.
+5. Review the completed QA-001..QA-011 worktree and evidence. If the owner separately authorizes the QA-007
    production incident response, authenticate interactively with `npm run auth:session`, define the exact
    collection/document scope and backup/rollback plan, then run a read-only inspection before requesting any
    cleanup authorization. Do not infer that authority from this remediation. For lease-renewal writeback
    specifically, stay in discovery until the team validates process, columns, and golden data.
-5. Preserve the existing executable allowlist exactly; do not flip another registry entry. Honor all gates + cap.
-6. Update `docs/facts.md` and this file at each slice boundary; run `npm run verify:context-freshness`.
+6. Preserve the existing executable allowlist exactly; do not flip another registry entry. Honor all gates + cap.
+7. Update `docs/facts.md` and this file at each slice boundary; run `npm run verify:context-freshness`.

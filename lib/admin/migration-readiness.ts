@@ -152,7 +152,11 @@ const OWNER_SIDE_SECTIONS = ["gcp:", "env:", "corpus:"];
 // owner-approved grant artifact (Section 3). A production_allowed key NOT in this set is a surprise
 // flip the cutover must flag. Grows only when a new grant artifact is committed.
 //   - gmail.renewal_notice.draft_create: docs/evidence/gmail-dwd-grant-2026-07.md (gmail.compose; no send)
-const EXECUTABLE_ALLOWLIST = new Set<string>(["gmail.renewal_notice.draft_create"]);
+//   - gmail.mailbox.read: docs/evidence/gmail-read-grant-2026-07-13.md (self-pilot readonly)
+const EXECUTABLE_ALLOWLIST = new Set<string>([
+  "gmail.mailbox.read",
+  "gmail.renewal_notice.draft_create",
+]);
 
 export function classifyOwnerActions(rollup: ReadinessRollup): string[] {
   return rollup.blockers.filter((blocker) =>

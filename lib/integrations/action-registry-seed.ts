@@ -6,11 +6,12 @@ import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
  * (docs/integration-architecture.md), and the Gmail Inbox 0 connective architecture
  * (docs/products/gmail-inbox-zero.md).
  *
- * Safety invariant: exactly one entry is production-eligible today:
- * `gmail.renewal_notice.draft_create`, the owner-approved compose-only path backed by the
- * committed grant artifact. It creates an UNSENT draft and cannot send. Every other entry is
- * `production_allowed: false`; the schema permits a true value only for `Approved for Execution`
- * entries with `Documented` evidence.
+ * Safety invariant: exactly two entries are production-eligible today: the bounded readonly
+ * `gmail.mailbox.read` self-pilot path and `gmail.renewal_notice.draft_create`, the owner-approved
+ * draft-only path. The latter creates an UNSENT draft. Google documents gmail.compose as
+ * send-capable, so its no-send ceiling is the route/method contract, not the scope itself. Every
+ * send/reply/mutation and other entry is `production_allowed: false`; the schema permits a true
+ * value only for `Approved for Execution` entries with `Documented` evidence.
  *
  * Each entry's `connection_health_check_ref` points at the matching per-system contract in
  * lib/integrations/health-checks.ts. Maintenance-chain entries carry a structured
@@ -554,6 +555,76 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     production_allowed: false,
   },
   {
+    key: "gmail.mailbox.read",
+    label: "Read signed-in user's Gmail mailbox",
+    target_system: "Gmail",
+    expected_action:
+      "Read a bounded list of recent threads, one selected thread, mailbox profile, and incremental history for the signed-in user's own mailbox.",
+    product_lane: "Gmail Inbox 0",
+    readiness: "Approved for Execution",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Gmail API documents users.getProfile, users.threads.list/get, users.watch, and users.history.list under gmail.readonly. On 2026-07-13 the owner authorized the self-pilot connection proof; a keyless DWD users.getProfile call matched josiah@pmikcmetro.com and returned aggregate counts plus a history cursor. S19 limits access to the server-verified signed-in pilot user and bounded queries. Evidence: docs/evidence/gmail-read-grant-2026-07-13.md.",
+    required_permissions: [
+      "Owner-approved per-user DWD access model with a required self-pilot allowlist",
+      "Verified https://www.googleapis.com/auth/gmail.readonly on DWD client 104374162913177846911",
+    ],
+    event_ingestion_mode: "Webhook",
+    preview_schema_note:
+      "Show the signed-in mailbox identity and bounded query/label/page limits; no cross-mailbox access and no mutation.",
+    rollback_note:
+      "Set production_allowed false, remove gmail.readonly from the DWD client, stop watches, and redeploy the prior revision.",
+    connection_health_check_ref: "health.gmail.workspace_api",
+    production_allowed: true,
+  },
+  {
+    key: "gmail.message.send",
+    label: "Send confirmed Gmail message",
+    target_system: "Gmail",
+    expected_action:
+      "Attempt exactly one send of a new message whose exact payload the signed-in user reviewed and confirmed; the initial live boundary permits self-recipient only.",
+    product_lane: "Gmail Inbox 0",
+    readiness: "Planned",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Gmail API documents users.messages.send under gmail.compose. S19 requires an unconsumed exact-payload confirmation, self-recipient rollout, idempotency transaction, bodyless audit, and no retry of ambiguous outcomes.",
+    required_permissions: [
+      "Existing gmail.compose DWD grant",
+      "Owner-approved S19 send promotion after safe self-thread proof",
+    ],
+    event_ingestion_mode: "Manual",
+    preview_schema_note:
+      "Show exact From, To, Cc, Bcc, Subject, body, RFC Message-ID, and new-message status before one-time confirmation and send.",
+    rollback_note:
+      "Disable this action and redeploy. A delivered email is not retractable; ambiguous outcomes are reconciled by RFC Message-ID and never automatically retried.",
+    connection_health_check_ref: "health.gmail.workspace_api",
+    production_allowed: false,
+  },
+  {
+    key: "gmail.thread.reply",
+    label: "Send confirmed Gmail thread reply",
+    target_system: "Gmail",
+    expected_action:
+      "Attempt exactly one user-confirmed reply in the signed-in user's selected Gmail thread with matching Subject, threadId, In-Reply-To, and References.",
+    product_lane: "Gmail Inbox 0",
+    readiness: "Planned",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Gmail thread guidance documents the required threadId, matching Subject, In-Reply-To, and References contract. S19 adds exact-payload confirmation, self-recipient rollout, idempotency, and bodyless audit.",
+    required_permissions: [
+      "gmail.readonly for the live parent thread",
+      "Existing gmail.compose DWD grant",
+      "Owner-approved S19 reply promotion after safe self-thread proof",
+    ],
+    event_ingestion_mode: "Manual",
+    preview_schema_note:
+      "Show exact From, To, Cc, Bcc, matching Subject, body, thread id, In-Reply-To, References, and RFC Message-ID before confirmation.",
+    rollback_note:
+      "Disable this action and redeploy. A delivered reply is not retractable; ambiguous outcomes are reconciled before any new attempt.",
+    connection_health_check_ref: "health.gmail.workspace_api",
+    production_allowed: false,
+  },
+  {
     key: "gmail.label.apply",
     label: "Apply Gmail triage label",
     target_system: "Gmail",
@@ -563,10 +634,10 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     readiness: "Planned",
     evidence_status: "Documented",
     documented_evidence:
-      "Gmail API documents label management via gmail.labels alongside the read-only triage scope; labels are additive and carry no send capability. Runtime stays blocked until the client approves the Gmail access model (docs/products/gmail-inbox-zero.md).",
+      "Gmail API documents applying/removing labels on messages or threads under gmail.modify. S19 deliberately does not request that broader scope, exposes no label-mutation runtime, and keeps this action disabled.",
     required_permissions: [
-      "Client-approved Gmail access model for Dan's mailbox",
-      "Gmail read-only and gmail.labels scopes only",
+      "Separate owner-approved label-mutation action model",
+      "Future https://www.googleapis.com/auth/gmail.modify grant (not requested by S19)",
     ],
     event_ingestion_mode: "Webhook",
     preview_schema_note:
@@ -609,10 +680,10 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     readiness: "Planned",
     evidence_status: "Documented",
     documented_evidence:
-      "Gmail API documents draft creation via gmail.compose; code never calls send, preserving Dan's manual send authority. Runtime stays blocked until the safe test-thread protocol and draft spec are approved (docs/products/gmail-inbox-zero.md).",
+      "Gmail API documents draft creation via gmail.compose. That scope can also send; this action remains draft-only because its runtime method and action gate never call send. Runtime stays blocked until the S19 promotion gates are satisfied.",
     required_permissions: [
-      "Client-approved Gmail access model for Dan's mailbox",
-      "gmail.compose scope (no send in code)",
+      "Owner-approved per-user draft action model",
+      "gmail.compose scope (send-capable; this action invokes draft creation only)",
     ],
     event_ingestion_mode: "Webhook",
     preview_schema_note:
@@ -664,10 +735,10 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
-      "Gmail API documents draft creation via gmail.compose (users.drafts.create); code never calls send, preserving human send authority (decision 3, 2026-07-02, F-PRECUST-CYCLE). Owner-approved + the domain-wide-delegation grant is committed and proven live: docs/evidence/gmail-dwd-grant-2026-07.md (SA client id 104374162913177846911 authorized for gmail.compose; gmail.send absent; smoke created + deleted an unsent draft 2026-07-09). The ceiling is an unsent draft a human presses Send on.",
+      "Gmail API documents draft creation via the send-capable gmail.compose scope (users.drafts.create); this action's route calls only createDraft, preserving human send authority (decision 3, 2026-07-02, F-PRECUST-CYCLE). Owner-approved DWD evidence is committed: docs/evidence/gmail-dwd-grant-2026-07.md (SA client id 104374162913177846911; smoke created + deleted an unsent draft 2026-07-09). The action ceiling is an unsent draft a human presses Send on.",
     required_permissions: [
       "Committed DWD grant for the signed-in pmikcmetro.com user (docs/evidence/gmail-dwd-grant-2026-07.md)",
-      "gmail.compose scope only (no gmail.send scope, no send call in code)",
+      "gmail.compose scope (this action's route calls only createDraft; separate gmail.send scope absent)",
     ],
     event_ingestion_mode: "Manual",
     preview_schema_note:
