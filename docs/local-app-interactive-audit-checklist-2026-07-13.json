@@ -1,0 +1,824 @@
+{
+  "schema_version": "1.0.0",
+  "title": "PMI KC localhost interactive application audit",
+  "purpose": "Measure whether the locally rendered application actually behaves as documented, record evidence during the click-through, and produce implementation-ready recommendations without changing product code.",
+  "audit_contract": {
+    "primary_checklist": "This JSON file is the checklist and live audit record. Update it during the audit after each step or small group of steps, not only at the end.",
+    "source_guide": "docs/production-release-and-live-test-guide-2026-07-11.html",
+    "source_guide_role": "Historical source used to build this checklist. It is not the execution target and its production deployment steps are excluded from this localhost audit.",
+    "repository_rules": ["AGENTS.md", "docs/facts.md", "docs/loop-state.md"],
+    "browser_target": "localhost only",
+    "product_code_changes_allowed": false,
+    "audit_record_changes_allowed": true,
+    "production_deploy_allowed": false
+  },
+  "non_negotiable_safety": [
+    "A localhost URL is required for every browser interaction in this audit.",
+    "Localhost is not proof that the backing data stores are isolated. Verify the active data mode before clicking any control that can persist, send, approve, assign, change access, create a draft, or write externally.",
+    "Use local demo records, test fixtures, or emulators for mutating tests. If a mutating control is backed by production or its isolation cannot be proven, do not click it; mark the step blocked_safety and document what remains unverified.",
+    "Use only a pmikcmetro.com identity. The personal josiah.abernathy@gmail.com account must never appear in any authentication path.",
+    "Do not send email. Do not execute a RentVine, Google Sheets, QuickBooks, banking, Gmail-send, or other system-of-record write.",
+    "Do not expose credentials, customer data, raw Gmail content, addresses, proposed values, free-text decision reasons, or customer records in the audit file, screenshots, terminal output, or final report.",
+    "Do not weaken permissions, approval gates, source-state warnings, identity boundaries, or the approximately $10 cloud budget cap.",
+    "Do not modify application code, tests, configuration, infrastructure, or production data. Only this audit record and gitignored evidence artifacts may be changed.",
+    "Do not commit, push, merge, deploy, reset the user's worktree, or discard existing changes.",
+    "Optional compose-only Gmail draft creation is excluded from this localhost audit unless a disposable approved mailbox and explicit per-action authorization are already documented. A visible draft-preview workflow can still be tested locally."
+  ],
+  "status_definitions": {
+    "not_run": "No interactive attempt has been made.",
+    "in_progress": "The step has started but does not yet have a defensible result.",
+    "pass": "The expected behavior was directly observed through the rendered localhost application.",
+    "fail": "The rendered localhost application was clicked through and did not meet the expected behavior.",
+    "blocked_auth": "A required approved authentication surface could not be completed.",
+    "blocked_safety": "The step would risk a live mutation, send, external write, privacy exposure, or other forbidden action.",
+    "blocked_data": "The required safe test record, role, source, or fixture was unavailable.",
+    "not_applicable": "Repository evidence establishes that the criterion does not apply to this build; the reason must be recorded."
+  },
+  "run_record": {
+    "auditor": null,
+    "started_at": null,
+    "completed_at": null,
+    "git_commit_tested": null,
+    "working_tree_state_before_audit": null,
+    "local_base_url": null,
+    "browser": null,
+    "desktop_viewport": null,
+    "phone_viewport": null,
+    "authenticated_end_user_domain": null,
+    "data_isolation_mode": null,
+    "active_test_id": null,
+    "summary_counting_rule": "Count only test_cases[].steps. Authentication and startup steps are reported separately, and test-case result objects are aggregates rather than additional criteria.",
+    "summary_counts": {
+      "pass": 0,
+      "fail": 0,
+      "blocked_auth": 0,
+      "blocked_safety": 0,
+      "blocked_data": 0,
+      "not_applicable": 0,
+      "not_run": 52
+    },
+    "automated_checks": [],
+    "run_notes": []
+  },
+  "authentication_and_startup_sequence": [
+    {
+      "id": "SETUP-01",
+      "actor": "assistant",
+      "instruction": "Read AGENTS.md, docs/facts.md, and docs/loop-state.md completely, inspect git status without changing it, and record the exact commit and pre-existing worktree state.",
+      "expected": "The audit is grounded in current repository rules and preserves all user changes.",
+      "status": "not_run",
+      "actual": null,
+      "evidence": []
+    },
+    {
+      "id": "AUTH-01",
+      "actor": "owner in an interactive terminal",
+      "command": "npm run auth:session",
+      "instruction": "Authenticate Josiah first, before starting the application audit. Wait for the interactive flow to finish and use only Josiah's pmikcmetro.com identity.",
+      "expected": "The required gcloud CLI login and ADC are fresh, and no personal identity is used.",
+      "status": "not_run",
+      "actual": null,
+      "evidence": []
+    },
+    {
+      "id": "AUTH-02",
+      "actor": "assistant",
+      "command": "npm run preflight:adc",
+      "instruction": "Verify ADC immediately after the owner authentication step and before any live Google read.",
+      "expected": "ADC preflight passes for the approved pmikcmetro.com session.",
+      "status": "not_run",
+      "actual": null,
+      "evidence": []
+    },
+    {
+      "id": "AUTH-03",
+      "actor": "assistant",
+      "command": "npm run check:budget-guard",
+      "instruction": "Run the budget guard before any cloud-backed read that might incur cost. This does not authorize production deployment or external writes.",
+      "expected": "The guard passes without a cost-bearing override.",
+      "status": "not_run",
+      "actual": null,
+      "evidence": []
+    },
+    {
+      "id": "ISOLATION-01",
+      "actor": "assistant",
+      "instruction": "Inspect the documented local configuration behavior without printing secrets. Establish whether app-plane mutations use demo records, fixtures, emulators, or production services. Record the conclusion and evidence in run_record.data_isolation_mode.",
+      "expected": "Every later mutating test has a proven safe backing mode or is marked blocked_safety before the control is clicked.",
+      "status": "not_run",
+      "actual": null,
+      "evidence": []
+    },
+    {
+      "id": "START-01",
+      "actor": "assistant",
+      "command": "npm run dev",
+      "instruction": "Launch the application in a persistent terminal session, capture the actual localhost URL selected by Next.js, and keep the server running for the complete audit.",
+      "expected": "The application is reachable at an HTTP localhost or 127.0.0.1 URL. No deployed URL is opened for testing.",
+      "status": "not_run",
+      "actual": null,
+      "evidence": []
+    },
+    {
+      "id": "AUTH-04",
+      "actor": "owner with assistant-guided browser interaction",
+      "instruction": "Open the localhost sign-in surface and authenticate Josiah as a pmikcmetro.com end user before feature testing. Reuse the resulting signed-in browser session. If the app is intentionally using documented local demo auth, record that fact and verify the displayed role instead of pretending Firebase sign-in occurred.",
+      "expected": "The localhost app shows an authenticated approved identity and the intended role, or the exact auth blocker is recorded before feature testing.",
+      "status": "not_run",
+      "actual": null,
+      "evidence": []
+    },
+    {
+      "id": "AUTH-05",
+      "actor": "assistant, only if a required local-only command explicitly needs Firebase CLI authentication",
+      "commands": ["npm exec firebase -- login:list", "npm exec firebase -- login"],
+      "instruction": "Treat Firebase CLI authentication as a separate identity system. Use the project-local CLI through npm exec, never a missing global firebase command. Do not log in or deploy merely for convenience; perform this only if a required safe local audit step actually needs it.",
+      "expected": "Any required Firebase CLI session uses a pmikcmetro.com identity and does not trigger a deploy or production mutation.",
+      "status": "not_run",
+      "actual": null,
+      "evidence": []
+    }
+  ],
+  "test_case_result_shape": {
+    "status": "not_run",
+    "started_at": null,
+    "completed_at": null,
+    "actual_summary": null,
+    "evidence": [],
+    "finding_ids": []
+  },
+  "test_cases": [
+    {
+      "id": "SMOKE-01",
+      "area": "Authenticated application shell",
+      "role": "authenticated approved user",
+      "route": "localhost application root and sign-in return route",
+      "viewports": ["desktop", "phone"],
+      "safety": "Read-only browser navigation.",
+      "steps": [
+        {
+          "id": "SMOKE-01-01",
+          "action": "Load the localhost URL in the interactive browser and complete the approved sign-in flow if required.",
+          "expected": "Sign-in returns to localhost, the signed-in identity and role are coherent, and no production URL becomes the test target.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "SMOKE-01-02",
+          "action": "Navigate through every visible top-level navigation item, browser Back, browser Forward, and a page refresh.",
+          "expected": "Routes render without dead ends, navigation remains understandable, auth survives expected navigation, and refresh does not corrupt the current surface.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "SMOKE-01-03",
+          "action": "Exercise the visible Ask workflow with a sanitized, non-customer prompt that the configured source state can answer safely.",
+          "expected": "The UI returns grounded source-aware behavior or clearly states that sources are unavailable; it does not invent generic property-management guidance.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "SMOKE-01-04",
+          "action": "Open the visible Dictate workflow and test its local UI boundary with non-sensitive sample audio or the documented safe local path.",
+          "expected": "The interaction provides clear permission, recording, processing, success, and error states without exposing or persisting sensitive content.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        }
+      ],
+      "result": {
+        "status": "not_run",
+        "started_at": null,
+        "completed_at": null,
+        "actual_summary": null,
+        "evidence": [],
+        "finding_ids": []
+      }
+    },
+    {
+      "id": "RENEWAL-01",
+      "area": "Phone-first renewal decider",
+      "role": "Admin",
+      "route": "/lease-renewal/live and renewal run pages on localhost",
+      "viewports": ["phone", "desktop comparison"],
+      "safety": "Use safe local/demo renewal records only. If resolution or approval persists to a production-backed Firestore project, do not perform the mutation and mark the relevant step blocked_safety.",
+      "steps": [
+        {
+          "id": "RENEWAL-01-01",
+          "action": "Open the live renewal surface on a phone-sized viewport and enter decider mode through the rendered controls.",
+          "expected": "Exactly one renewal flag card is presented with clear 1 of N progress.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "RENEWAL-01-02",
+          "action": "On a safe Low or Medium fixture with a suggested winner, click Accept suggested source.",
+          "expected": "The decision advances without requiring free text and the visible audit reason is Accepted the suggested source.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "RENEWAL-01-03",
+          "action": "Inspect and, only in proven isolated data mode, click the distinct Approve write-back follow-on action.",
+          "expected": "Authorization is clearly separate from the resolution, is auditable, and never claims that RentVine or the operating Sheet was updated.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "RENEWAL-01-04",
+          "action": "Click Skip on a safe fixture, navigate to other cards, refresh as appropriate, and observe same-session behavior.",
+          "expected": "The skipped card stays deferred for that browser session and no resolution is created.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "RENEWAL-01-05",
+          "action": "Attempt a High, Blocked, or manually corrected safe fixture without entering a plain-English reason, then provide a reason if isolation is proven.",
+          "expected": "Submission is blocked until a plain-English reason is provided, and the eventual audit record preserves the reason without weakening approval rules.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "RENEWAL-01-06",
+          "action": "Compare phone and desktop layouts, try Back, refresh, repeated clicks, cancellation, and switching away mid-decision.",
+          "expected": "The phone flow remains usable, repeated actions do not duplicate a decision, and interrupted flows recover without misleading status.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        }
+      ],
+      "result": {
+        "status": "not_run",
+        "started_at": null,
+        "completed_at": null,
+        "actual_summary": null,
+        "evidence": [],
+        "finding_ids": []
+      }
+    },
+    {
+      "id": "RBAC-01",
+      "area": "Scoped team access",
+      "role": "Admin plus approved internal test user",
+      "route": "/admin/users, navigation, Spaces, Console, Maintenance, Lease Renewals, and Approval Queue on localhost",
+      "viewports": ["desktop", "phone spot-check"],
+      "safety": "Scope mutation is allowed only with a disposable local/emulator user and proven isolated claims/audit storage. Never change a live teammate's access as part of this audit.",
+      "steps": [
+        {
+          "id": "RBAC-01-01",
+          "action": "Open Admin users, inspect the scope editor, required reason field, role display, and audit presentation.",
+          "expected": "Scopes are visibly separate from roles, can only narrow access, and require a plain-English reason.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "RBAC-01-02",
+          "action": "In proven isolated mode, assign Maintenance-only scope to a disposable approved-domain test user, sign that user out and back in, and observe refreshed access.",
+          "expected": "Maintenance remains visible and usable while Lease Renewals and Approval Queue are absent or redirect to the primary in-scope surface.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "RBAC-01-03",
+          "action": "Directly enter out-of-scope localhost URLs as the scoped test user.",
+          "expected": "Server-side or page-level guards prevent access; hiding navigation alone is not treated as sufficient.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "RBAC-01-04",
+          "action": "Return to Admin and inspect the recorded change, role, actor, reason, and restoration behavior. Restore the disposable user's intended scope with a reason when safe.",
+          "expected": "The audit is append-only, the role did not change, and restoration is recorded independently.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "RBAC-01-05",
+          "action": "Inspect behavior for missing scope claims and a scope-denied page on desktop and phone.",
+          "expected": "Missing claims receive the documented default, and denial/redirect behavior is understandable rather than appearing broken.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        }
+      ],
+      "result": {
+        "status": "not_run",
+        "started_at": null,
+        "completed_at": null,
+        "actual_summary": null,
+        "evidence": [],
+        "finding_ids": []
+      }
+    },
+    {
+      "id": "ATTENTION-01",
+      "area": "Unified Console and Notifications",
+      "role": "authenticated user, with Admin-only digest checks as Admin",
+      "route": "/ and /notifications on localhost",
+      "viewports": ["desktop", "phone"],
+      "safety": "Read-only inspection is preferred. Mark all read may be clicked only when notification state is isolated from production.",
+      "steps": [
+        {
+          "id": "ATTENTION-01-01",
+          "action": "Open the Console and record the visible Needs your decision count, then open Notifications from the rendered notification menu.",
+          "expected": "The hub includes the same decision signal and the count does not diverge between surfaces.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "ATTENTION-01-02",
+          "action": "Inspect the hub for connection conditions and Space-coverage conditions in addition to event notifications.",
+          "expected": "Notifications is a time-ordered superset of the Console signals rather than a conflicting second calculation.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "ATTENTION-01-03",
+          "action": "Inspect summary rows and expanded states for sensitive values.",
+          "expected": "Summary rows do not expose addresses, proposed values, decision reasons, or customer records.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "ATTENTION-01-04",
+          "action": "In proven isolated mode, click Mark all read and observe event notifications and standing conditions separately.",
+          "expected": "Event notifications clear while unresolved standing setup or coverage conditions remain visible.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "ATTENTION-01-05",
+          "action": "As Admin, open the team-review digest and inspect its contents and interaction behavior.",
+          "expected": "The digest is one value-free rollup rather than one alert per edit, and no email or push is sent.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "ATTENTION-01-06",
+          "action": "Test empty, loading, read, unread, standing-condition, narrow-screen, refresh, and browser navigation states.",
+          "expected": "States remain distinguishable and accessible, counts stay coherent, and controls do not imply delivery channels that are disabled.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        }
+      ],
+      "result": {
+        "status": "not_run",
+        "started_at": null,
+        "completed_at": null,
+        "actual_summary": null,
+        "evidence": [],
+        "finding_ids": []
+      }
+    },
+    {
+      "id": "GMAIL-01",
+      "area": "Gmail Hub app-plane workflow",
+      "role": "authorized user",
+      "route": "/gmail-hub and Owner Email Space on localhost",
+      "viewports": ["desktop", "phone"],
+      "safety": "Use only fabricated or sanitized content. Do not read a mailbox, send email, create a real draft, or paste live thread content during this audit.",
+      "test_inputs": {
+        "safe_triage_text": "Resident asks when the property manager will follow up about a routine renewal question. No address, name, dollar amount, or real customer detail is included.",
+        "safe_thread_text": "Resident: Please confirm the next step for my routine renewal question. Team: We are reviewing it and will follow up after the manager checks the record.",
+        "excluded_category_text": "Draft a legal notice that makes a binding statement about a tenant's rights."
+      },
+      "steps": [
+        {
+          "id": "GMAIL-01-01",
+          "action": "Open Gmail Hub through normal navigation and directly by localhost route.",
+          "expected": "Draft, template/triage, and thread-summary tools render together and the page explains its access boundary.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "GMAIL-01-02",
+          "action": "Paste the safe triage text, exercise all relevant options, and generate the local suggestion or preview.",
+          "expected": "A suggested label and draft preview appear with clear editable, loading, validation, and failure behavior.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "GMAIL-01-03",
+          "action": "Paste the safe thread text and exercise the summary workflow.",
+          "expected": "A structured summary, waiting-on party, and suggested next action appear without claiming that Gmail was read.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "GMAIL-01-04",
+          "action": "Submit the excluded-category text and try obvious bypasses such as rephrasing, missing fields, repeated clicks, and switching tools mid-request.",
+          "expected": "The legal/notices category fails closed before AI drafting, and alternate interactions do not bypass the exclusion.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "GMAIL-01-05",
+          "action": "Inspect every mailbox-read, compose, and message action visible from Gmail Hub and Owner Email Space.",
+          "expected": "Mailbox-read affordances say Waiting on Gmail access, no Send control exists, and the product never claims the inbox was read.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "GMAIL-01-06",
+          "action": "Test both viewports plus empty input, very short input, refresh, browser Back, and loss of focus during generation.",
+          "expected": "The workflows remain understandable and recoverable, and no content is silently sent or represented as live mailbox data.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        }
+      ],
+      "result": {
+        "status": "not_run",
+        "started_at": null,
+        "completed_at": null,
+        "actual_summary": null,
+        "evidence": [],
+        "finding_ids": []
+      }
+    },
+    {
+      "id": "ANTICIPATED-01",
+      "area": "Anticipated work",
+      "role": "authorized user",
+      "route": "Console on localhost",
+      "viewports": ["desktop", "phone"],
+      "safety": "Use read-only projections. Follow a start link only when the target is demonstrably a local test-run or desk flow and cannot start production work.",
+      "steps": [
+        {
+          "id": "ANTICIPATED-01-01",
+          "action": "Find the Anticipated work lane through the Console UI and inspect renewal, owner-outreach, and notice families.",
+          "expected": "Supported items are computed from existing planners and are understandable without exposing sensitive summary values.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "ANTICIPATED-01-02",
+          "action": "Inspect unsupported Maintenance or compliance families.",
+          "expected": "Unsupported families show an honest waiting or no-source state instead of fabricated work.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "ANTICIPATED-01-03",
+          "action": "Read the caption and inspect controls for scheduling, automatic start, send, or external write implications.",
+          "expected": "The UI states that work is computed on request and is never scheduled or sent automatically.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "ANTICIPATED-01-04",
+          "action": "On an isolated safe item, follow a start link and inspect the destination, then navigate Back and refresh.",
+          "expected": "The link opens a local test-run or desk flow and never silently starts production work.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "ANTICIPATED-01-05",
+          "action": "Test empty, partial-source, loading, error, desktop, and phone states where reachable.",
+          "expected": "Missing information produces visible uncertainty and the layout remains usable at narrow widths.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        }
+      ],
+      "result": {
+        "status": "not_run",
+        "started_at": null,
+        "completed_at": null,
+        "actual_summary": null,
+        "evidence": [],
+        "finding_ids": []
+      }
+    },
+    {
+      "id": "QUEUE-01",
+      "area": "Approval Queue",
+      "role": "authorized approver",
+      "route": "Approval Queue surface reached through localhost navigation",
+      "viewports": ["desktop", "phone"],
+      "safety": "Inline approval may be executed only on isolated demo/emulator data. Never approve a live queue item for audit purposes.",
+      "steps": [
+        {
+          "id": "QUEUE-01-01",
+          "action": "Open Approval Queue through the UI and inspect its default list and alternate views.",
+          "expected": "The default is one urgent-first Needs your decision list and alternate views are placed under a disclosure.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "QUEUE-01-02",
+          "action": "On an isolated eligible Low or Medium row, click the safe inline approval and inspect the resulting state and audit behavior.",
+          "expected": "The app-plane decision is recorded once, identifies the acting user safely, and does not execute an external action.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "QUEUE-01-03",
+          "action": "Inspect High-risk, self-assigned, renewal-flag, and write-back rows and try to reach any inline shortcut.",
+          "expected": "These rows require their full surfaces and cannot use the Low/Medium inline shortcut.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "QUEUE-01-04",
+          "action": "Test repeated clicks, stale refresh, Back navigation, empty queue, alternate views, long labels, and phone layout where reachable.",
+          "expected": "The queue avoids duplicate decisions, exposes stale/error states, and remains actionable on a phone.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        }
+      ],
+      "result": {
+        "status": "not_run",
+        "started_at": null,
+        "completed_at": null,
+        "actual_summary": null,
+        "evidence": [],
+        "finding_ids": []
+      }
+    },
+    {
+      "id": "MAINT-01",
+      "area": "Maintenance intake, unit matching, and assignment",
+      "role": "authorized maintenance user",
+      "route": "Maintenance surface reached through localhost navigation",
+      "viewports": ["desktop", "phone"],
+      "safety": "Use local fixtures or emulator-backed tickets only. Do not create a RentVine work order, upload to a live Drive folder, or assign a live ticket during the audit.",
+      "steps": [
+        {
+          "id": "MAINT-01-01",
+          "action": "Open maintenance intake and inspect every visible input, unit search control, photo control, validation state, and submission boundary.",
+          "expected": "The form explains required information and distinguishes app intake from any external work-order creation.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "MAINT-01-02",
+          "action": "Type partial, ambiguous, unmatched, and exact safe fixture text into unit search without selecting prematurely.",
+          "expected": "Suggestions appear without auto-selecting an uncertain match, and unmatched or ambiguous states are explicit.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "MAINT-01-03",
+          "action": "Inspect assignment options and, in isolated mode, exercise Assigned to me and another approved fixture user.",
+          "expected": "Only approved internal users are offered, Assigned to me works, and raw UIDs are not used as normal labels.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "MAINT-01-04",
+          "action": "Try missing required fields, cancellation, repeated submit, refresh, Back, narrow width, and loss of a selected unit where safe.",
+          "expected": "Validation prevents incomplete or duplicate records, user input is handled predictably, and no uncertain unit match is silently persisted.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "MAINT-01-05",
+          "action": "Inspect any control or status that implies RentVine or Drive execution.",
+          "expected": "No external write is executed and the UI describes unavailable or approval-gated execution honestly.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        }
+      ],
+      "result": {
+        "status": "not_run",
+        "started_at": null,
+        "completed_at": null,
+        "actual_summary": null,
+        "evidence": [],
+        "finding_ids": []
+      }
+    },
+    {
+      "id": "HISTORY-01",
+      "area": "Renewal decision history",
+      "role": "authorized renewals user",
+      "route": "Renewal property or run detail reached through localhost navigation",
+      "viewports": ["desktop", "phone"],
+      "safety": "Read-only inspection of sanitized or local fixture history.",
+      "steps": [
+        {
+          "id": "HISTORY-01-01",
+          "action": "Navigate from a renewal record to its decision history and inspect ordering, actor labels, reasons, source, and write-back authorization status.",
+          "expected": "History is scoped to the correct property or decision, ordered coherently, and distinguishes resolution from write-back authorization.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "HISTORY-01-02",
+          "action": "Test no-history, one-entry, multiple-entry, long-reason, refresh, and phone states where fixtures permit.",
+          "expected": "Empty and populated states are clear, entries do not collide, and long content remains readable without leaking into summary surfaces.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        }
+      ],
+      "result": {
+        "status": "not_run",
+        "started_at": null,
+        "completed_at": null,
+        "actual_summary": null,
+        "evidence": [],
+        "finding_ids": []
+      }
+    },
+    {
+      "id": "CROSSCUT-01",
+      "area": "Whole-application interaction quality",
+      "role": "every safely available role",
+      "route": "all localhost surfaces reached during the audit",
+      "viewports": ["desktop", "phone"],
+      "safety": "Prefer read-only and isolated test data. Do not create live records to manufacture edge cases.",
+      "steps": [
+        {
+          "id": "CROSSCUT-01-01",
+          "action": "Inspect page titles, navigation labels, headings, instructions, buttons, confirmation copy, empty states, error messages, and success messages while completing the feature tests.",
+          "expected": "Copy is plain, specific, consistent, and never overstates access, completion, delivery, scheduling, or external writes.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "CROSSCUT-01-02",
+          "action": "Use keyboard navigation, visible focus, Enter and Space activation, labels, headings, and basic contrast inspection on the main flows.",
+          "expected": "Critical interactions are keyboard reachable, focus is visible, controls have understandable names, and structure is usable without pointer-only interaction.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "CROSSCUT-01-03",
+          "action": "Observe network or UI failure handling without exposing payload data, including retry, double-click, slow loading, refresh, and stale-state behavior where safely reproducible.",
+          "expected": "The app prevents duplicate actions, communicates failure honestly, and provides a safe recovery path.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "CROSSCUT-01-04",
+          "action": "At phone width, inspect overflow, fixed controls, dialogs, forms, tables, long labels, touch-target spacing, and one-handed action placement across all tested surfaces.",
+          "expected": "Core actions remain visible and usable without horizontal scrolling, clipped dialogs, hidden validation, or unsafe accidental taps.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        }
+      ],
+      "result": {
+        "status": "not_run",
+        "started_at": null,
+        "completed_at": null,
+        "actual_summary": null,
+        "evidence": [],
+        "finding_ids": []
+      }
+    },
+    {
+      "id": "SAFETY-01",
+      "area": "Release-wide safety boundaries",
+      "role": "all tested roles",
+      "route": "all localhost surfaces reached during the audit",
+      "viewports": ["desktop", "phone"],
+      "safety": "These criteria must be proven without intentionally crossing a boundary.",
+      "steps": [
+        {
+          "id": "SAFETY-01-01",
+          "action": "Inspect all email-related controls reached during the audit.",
+          "expected": "No control sends email automatically, no Send control is exposed in Gmail Hub, and mailbox read remains explicitly gated.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "SAFETY-01-02",
+          "action": "Inspect renewal resolution and write-back approval wording, state transitions, and available actions.",
+          "expected": "No renewal approval claims or causes a RentVine or operating-Sheet update; resolution and authorization stay distinct.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "SAFETY-01-03",
+          "action": "Inspect summary cards, notification rows, queue rows, and Console rollups.",
+          "expected": "Addresses, proposed values, free-text reasons, and customer records are not exposed in value-free summaries.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "SAFETY-01-04",
+          "action": "Exercise missing-source and unsupported-family states through available safe fixtures or existing states.",
+          "expected": "The application renders visible uncertainty instead of generic property-management advice or fabricated operational work.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        },
+        {
+          "id": "SAFETY-01-05",
+          "action": "Reconcile all observed executable-looking controls with repository Action Registry evidence without executing external writes.",
+          "expected": "The UI does not expose or imply an executable action beyond the documented compose-only unsent renewal-draft boundary, which remains excluded from execution in this localhost audit.",
+          "status": "not_run",
+          "actual": null,
+          "evidence": []
+        }
+      ],
+      "result": {
+        "status": "not_run",
+        "started_at": null,
+        "completed_at": null,
+        "actual_summary": null,
+        "evidence": [],
+        "finding_ids": []
+      }
+    }
+  ],
+  "finding_template": {
+    "id": null,
+    "test_case_id": null,
+    "step_ids": [],
+    "classification": null,
+    "severity": null,
+    "title": null,
+    "route": null,
+    "role": null,
+    "viewport": null,
+    "observed_behavior": null,
+    "expected_behavior": null,
+    "reproduction_steps": [],
+    "evidence": [],
+    "user_impact": null,
+    "safety_impact": null,
+    "likely_code_areas": [],
+    "implementation_recommendation": {
+      "change_summary": null,
+      "behavioral_requirements": [],
+      "files_or_components_to_inspect": [],
+      "data_or_api_contract_changes": [],
+      "permission_and_safety_constraints": [],
+      "edge_cases_to_handle": [],
+      "tests_to_add_or_update": [],
+      "acceptance_checks": []
+    },
+    "dependencies_or_blockers": [],
+    "confidence": null
+  },
+  "findings": [],
+  "final_report_requirements": [
+    "State the exact localhost URL, commit, pre-existing worktree state, authenticated role, tested viewports, and proven data-isolation mode.",
+    "List the authentication steps completed and distinguish CLI or ADC authentication from Firebase end-user and Firebase CLI authentication.",
+    "Summarize automated checks separately from browser-click evidence.",
+    "Give pass, fail, blocked_auth, blocked_safety, blocked_data, not_applicable, and not_run counts derived from this JSON.",
+    "For each advertised area, state whether the criteria were directly met, directly failed, or could not be proven safely.",
+    "Rank findings by critical, high, medium, and low severity and separate functional defects, UX or copy improvements, accessibility concerns, documentation mismatches, and correctly enforced safety boundaries.",
+    "Make every recommended change specific enough for an outside implementation model to edit comprehensively without repeating discovery: exact observed and expected behavior, reproduction steps, likely code areas, behavioral requirements, safety constraints, edge cases, tests, and click-through acceptance checks.",
+    "Do not claim a criterion passed based only on source inspection or automated tests. A pass requires direct observation in the rendered localhost application.",
+    "Do not make the recommended product changes during this audit."
+  ],
+  "final_report": {
+    "generated_at": null,
+    "overall_assessment": null,
+    "criteria_summary": null,
+    "confirmed_working": [],
+    "recommended_changes_in_priority_order": [],
+    "correctly_enforced_boundaries": [],
+    "blocked_or_unproven_criteria": [],
+    "documentation_mismatches": [],
+    "outside_model_handoff_ready": false
+  }
+}
