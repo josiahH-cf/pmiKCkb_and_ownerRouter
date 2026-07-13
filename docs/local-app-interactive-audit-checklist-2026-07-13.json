@@ -35,30 +35,55 @@
     "not_applicable": "Repository evidence establishes that the criterion does not apply to this build; the reason must be recorded."
   },
   "run_record": {
-    "auditor": null,
-    "started_at": null,
-    "completed_at": null,
-    "git_commit_tested": null,
-    "working_tree_state_before_audit": null,
-    "local_base_url": null,
-    "browser": null,
-    "desktop_viewport": null,
-    "phone_viewport": null,
-    "authenticated_end_user_domain": null,
-    "data_isolation_mode": null,
+    "auditor": "Codex hands-on QA auditor",
+    "started_at": "2026-07-13T05:22:06.6480857-05:00",
+    "completed_at": "2026-07-13T06:30:26.0554011-05:00",
+    "git_commit_tested": "e4541866dd42fa4f30f8c4e0f38461d0ec5d753b (the audit began at eeefc75b5ee5ae38c7d5477458b79f01c4d76af3; HEAD advanced to the merge commit mid-run, and both commits have the identical tree aece46db9b5fb323db5ac4fa616c8f029975e310)",
+    "working_tree_state_before_audit": "Clean on branch codex/add-local-audit-checklist tracking origin/codex/add-local-audit-checklist; no staged or unstaged changes were present before the audit record was updated.",
+    "local_base_url": "http://localhost:3000",
+    "browser": "Codex In-app Browser",
+    "desktop_viewport": "1440x1000",
+    "phone_viewport": "390x844",
+    "authenticated_end_user_domain": "pmikcmetro.com via documented local demo session (Admin); Firebase end-user auth was not used",
+    "data_isolation_mode": "Mixed and partially breached: the running Next.js app inherited FIRESTORE_EMULATOR_HOST from .env.local and its app-plane Firestore mutations were observed in the local 127.0.0.1:8080 emulator; LOCAL_DEMO_AUTH=true, MODEL_PROVIDER=local, and development speech used the stub. However, the shell environment did not export FIRESTORE_EMULATOR_HOST, and scripts/seed-demo-records.mjs reads .env.local only for project IDs without exporting the emulator host. Therefore the earlier npm run seed:demo likely wrote the reported synthetic fixtures to the configured live Firestore project. No cleanup was attempted. ASK_DEMO_MODE=false and IMAGE_STORE=drive also left live-source/photo paths unisolated and unclicked.",
     "active_test_id": null,
     "summary_counting_rule": "Count only test_cases[].steps. Authentication and startup steps are reported separately, and test-case result objects are aggregates rather than additional criteria.",
     "summary_counts": {
-      "pass": 0,
-      "fail": 0,
+      "pass": 24,
+      "fail": 16,
       "blocked_auth": 0,
-      "blocked_safety": 0,
-      "blocked_data": 0,
+      "blocked_safety": 4,
+      "blocked_data": 8,
       "not_applicable": 0,
-      "not_run": 52
+      "not_run": 0
     },
-    "automated_checks": [],
-    "run_notes": []
+    "automated_checks": [
+      {
+        "command": "npm run typecheck",
+        "status": "pass",
+        "evidence": "tsc --noEmit exited 0."
+      },
+      {
+        "command": "npm exec vitest run (8 targeted audit-relevant files)",
+        "status": "pass",
+        "evidence": "8 test files passed; 51 tests passed. Browser findings remain authoritative and were not converted to passes."
+      },
+      {
+        "command": "npm run lint",
+        "status": "pass_with_warnings",
+        "evidence": "Exited 0 with 0 errors and 11 warnings (unused-variable warnings in existing source/test files)."
+      },
+      {
+        "command": "npm run format:check",
+        "status": "pass",
+        "evidence": "The initial check identified only this audit JSON after manual evidence edits; the single authorized report file was formatted, and the final repository-wide recheck passed."
+      }
+    ],
+    "run_notes": [
+      "CRITICAL SAFETY INCIDENT: npm run seed:demo reported creating synthetic demo records while the shell FIRESTORE_EMULATOR_HOST was unset. Source inspection shows the seed/reset modules do not propagate the .env.local emulator host or refuse production. The app-visible emulator queue remained empty. The command therefore likely wrote synthetic fixtures to the configured live Firestore project. No deletion or cleanup was attempted.",
+      "HEAD advanced during the audit from eeefc75b5ee5ae38c7d5477458b79f01c4d76af3 to merge commit e4541866dd42fa4f30f8c4e0f38461d0ec5d753b. The two commits have the identical Git tree, so the tested code did not change.",
+      "The in-app browser screenshot command repeatedly timed out; no screenshot file was successfully captured. Evidence entries are rendered DOM observations, interaction outcomes, local request logs, and bounded layout measurements."
+    ]
   },
   "authentication_and_startup_sequence": [
     {
@@ -66,9 +91,12 @@
       "actor": "assistant",
       "instruction": "Read AGENTS.md, docs/facts.md, and docs/loop-state.md completely, inspect git status without changing it, and record the exact commit and pre-existing worktree state.",
       "expected": "The audit is grounded in current repository rules and preserves all user changes.",
-      "status": "not_run",
-      "actual": null,
-      "evidence": []
+      "status": "pass",
+      "actual": "Read the repository router, Tier-0 fact ledger, loop state, and complete JSON audit contract. Recorded the exact commit and confirmed a clean pre-audit working tree without changing or discarding user work.",
+      "evidence": [
+        "git rev-parse HEAD -> eeefc75b5ee5ae38c7d5477458b79f01c4d76af3",
+        "git status --short --branch -> clean branch codex/add-local-audit-checklist tracking origin/codex/add-local-audit-checklist"
+      ]
     },
     {
       "id": "AUTH-01",
@@ -76,9 +104,12 @@
       "command": "npm run auth:session",
       "instruction": "Authenticate Josiah first, before starting the application audit. Wait for the interactive flow to finish and use only Josiah's pmikcmetro.com identity.",
       "expected": "The required gcloud CLI login and ADC are fresh, and no personal identity is used.",
-      "status": "not_run",
-      "actual": null,
-      "evidence": []
+      "status": "pass",
+      "actual": "Owner completed the interactive managed-account authentication flow. A follow-up identity check showed the active gcloud account is josiah@pmikcmetro.com; no personal account was used.",
+      "evidence": [
+        "npm run auth:session completed in the owner-controlled visible terminal",
+        "gcloud auth list active account -> josiah@pmikcmetro.com"
+      ]
     },
     {
       "id": "AUTH-02",
@@ -86,9 +117,9 @@
       "command": "npm run preflight:adc",
       "instruction": "Verify ADC immediately after the owner authentication step and before any live Google read.",
       "expected": "ADC preflight passes for the approved pmikcmetro.com session.",
-      "status": "not_run",
-      "actual": null,
-      "evidence": []
+      "status": "pass",
+      "actual": "ADC preflight passed immediately after owner authentication and reported fresh Application Default Credentials.",
+      "evidence": ["npm run preflight:adc -> exit 0; ADC preflight OK"]
     },
     {
       "id": "AUTH-03",
@@ -96,18 +127,26 @@
       "command": "npm run check:budget-guard",
       "instruction": "Run the budget guard before any cloud-backed read that might incur cost. This does not authorize production deployment or external writes.",
       "expected": "The guard passes without a cost-bearing override.",
-      "status": "not_run",
-      "actual": null,
-      "evidence": []
+      "status": "pass",
+      "actual": "Budget guard passed in demo posture with Remote Away Mode inactive, the $10 cap active, and no cost-bearing override.",
+      "evidence": [
+        "npm run check:budget-guard -> exit 0; posture demo; cap $10; no cost-bearing override"
+      ]
     },
     {
       "id": "ISOLATION-01",
       "actor": "assistant",
       "instruction": "Inspect the documented local configuration behavior without printing secrets. Establish whether app-plane mutations use demo records, fixtures, emulators, or production services. Record the conclusion and evidence in run_record.data_isolation_mode.",
       "expected": "Every later mutating test has a proven safe backing mode or is marked blocked_safety before the control is clicked.",
-      "status": "not_run",
-      "actual": null,
-      "evidence": []
+      "status": "fail",
+      "actual": "The running app's Firestore traffic was isolated to 127.0.0.1:8080, but the standalone seed command was not. The shell emulator variable was unset; seed-demo-records.mjs loaded only project identifiers from .env.local and initialized Firebase Admin without an emulator safety guard. Its reported synthetic writes therefore likely targeted the configured live Firestore project. All later mutation tests were stopped; no cleanup was attempted.",
+      "evidence": [
+        ".env.local safe-mode inspection: LOCAL_DEMO_AUTH=true, FIRESTORE_EMULATOR_HOST=127.0.0.1:8080, MODEL_PROVIDER=local, IMAGE_STORE=drive, ASK_DEMO_MODE=false",
+        "Firestore emulator startup -> demo-no-project; 127.0.0.1:8080; attempts to access non-emulated services for that demo project fail",
+        "Shell inspection after the command: FIRESTORE_EMULATOR_HOST=<unset>",
+        "npm run seed:demo -> reported seeded synthetic records, while app-visible emulator Approval Queue contained zero general queue items",
+        "scripts/seed-demo-records.mjs and scripts/demo-firestore.mjs use localEnv for project ID but call getFirestore() without propagating or requiring FIRESTORE_EMULATOR_HOST"
+      ]
     },
     {
       "id": "START-01",
@@ -115,18 +154,23 @@
       "command": "npm run dev",
       "instruction": "Launch the application in a persistent terminal session, capture the actual localhost URL selected by Next.js, and keep the server running for the complete audit.",
       "expected": "The application is reachable at an HTTP localhost or 127.0.0.1 URL. No deployed URL is opened for testing.",
-      "status": "not_run",
-      "actual": null,
-      "evidence": []
+      "status": "pass",
+      "actual": "Next.js 16.2.6 started successfully from .env.local and selected http://localhost:3000. The persistent dev-server session remains running for the audit.",
+      "evidence": [
+        "npm run dev -> Next.js Ready; Local: http://localhost:3000; environment: .env.local"
+      ]
     },
     {
       "id": "AUTH-04",
       "actor": "owner with assistant-guided browser interaction",
       "instruction": "Open the localhost sign-in surface and authenticate Josiah as a pmikcmetro.com end user before feature testing. Reuse the resulting signed-in browser session. If the app is intentionally using documented local demo auth, record that fact and verify the displayed role instead of pretending Firebase sign-in occurred.",
       "expected": "The localhost app shows an authenticated approved identity and the intended role, or the exact auth blocker is recorded before feature testing.",
-      "status": "not_run",
-      "actual": null,
-      "evidence": []
+      "status": "pass",
+      "actual": "The rendered localhost sign-in surface showed both Google sign-in and the documented local-demo option. Continue in local demo mode was clicked once; the app returned to http://localhost:3000 and rendered the Admin role. This is a pmikcmetro.com-domain local demo session, not Firebase end-user authentication.",
+      "evidence": [
+        "Rendered sign-in DOM: Sign in with Google; Continue in local demo mode; pmikcmetro.com guidance",
+        "Clicked Continue in local demo mode -> http://localhost:3000; rendered header role Admin"
+      ]
     },
     {
       "id": "AUTH-05",
@@ -134,9 +178,12 @@
       "commands": ["npm exec firebase -- login:list", "npm exec firebase -- login"],
       "instruction": "Treat Firebase CLI authentication as a separate identity system. Use the project-local CLI through npm exec, never a missing global firebase command. Do not log in or deploy merely for convenience; perform this only if a required safe local audit step actually needs it.",
       "expected": "Any required Firebase CLI session uses a pmikcmetro.com identity and does not trigger a deploy or production mutation.",
-      "status": "not_run",
-      "actual": null,
-      "evidence": []
+      "status": "not_applicable",
+      "actual": "No safe local audit step required Firebase CLI authentication. The Firestore emulator and documented local demo app auth worked without a Firebase CLI login; no deploy was attempted.",
+      "evidence": [
+        "Local Firestore emulator started without Firebase CLI authentication",
+        "Local app sign-in completed through the documented local demo session"
+      ]
     }
   ],
   "test_case_result_shape": {
@@ -160,42 +207,59 @@
           "id": "SMOKE-01-01",
           "action": "Load the localhost URL in the interactive browser and complete the approved sign-in flow if required.",
           "expected": "Sign-in returns to localhost, the signed-in identity and role are coherent, and no production URL becomes the test target.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "The rendered sign-in flow returned to http://localhost:3000. Desktop and 390x844 phone views both retained the authenticated local-demo session and displayed the Admin role in the application header; the test target never left localhost.",
+          "evidence": [
+            "Desktop rendered DOM after sign-in: localhost root, Admin role, authenticated primary navigation",
+            "390x844 rendered DOM: localhost root, Admin role, same authenticated navigation"
+          ]
         },
         {
           "id": "SMOKE-01-02",
           "action": "Navigate through every visible top-level navigation item, browser Back, browser Forward, and a page refresh.",
           "expected": "Routes render without dead ends, navigation remains understandable, auth survives expected navigation, and refresh does not corrupt the current surface.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "Clicked the rendered primary navigation items for Console, Spaces, Approval Queue, Gmail Hub, Connections, and Admin. Opened the Notifications menu and clicked See all notifications. Each route rendered its expected H1 on localhost. Browser Back, Forward, and refresh preserved the authenticated shell and current route.",
+          "evidence": [
+            "Clicked primary nav -> /ask Console, /spaces Spaces, /approval-queue Approval Queue, /gmail-hub Gmail hub, /connections Connections, /admin Admin",
+            "Notifications menu expanded with See all notifications; clicked -> /notifications H1 Notifications",
+            "Back -> localhost root; Forward -> /notifications; refresh retained authenticated navigation"
+          ]
         },
         {
           "id": "SMOKE-01-03",
           "action": "Exercise the visible Ask workflow with a sanitized, non-customer prompt that the configured source state can answer safely.",
           "expected": "The UI returns grounded source-aware behavior or clearly states that sources are unavailable; it does not invent generic property-management guidance.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "blocked_safety",
+          "actual": "Did not submit the Ask prompt. Source inspection showed ASK_DEMO_MODE=false routes the rendered Ask form through VertexSearchRetrievalClient and live configured source data stores, despite MODEL_PROVIDER=local. That could surface approved client source content in the browser or audit evidence, which this audit forbids.",
+          "evidence": [
+            ".env.local safe-mode inspection: ASK_DEMO_MODE=false; MODEL_PROVIDER=local",
+            "lib/ask/service.ts: non-demo Ask instantiates VertexSearchRetrievalClient and FirestoreAskLogWriter"
+          ]
         },
         {
           "id": "SMOKE-01-04",
           "action": "Open the visible Dictate workflow and test its local UI boundary with non-sensitive sample audio or the documented safe local path.",
           "expected": "The interaction provides clear permission, recording, processing, success, and error states without exposing or persisting sensitive content.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "fail",
+          "actual": "Clicking Dictate immediately began microphone capture and changed only the button label/state to Stop recording. No application permission disclosure, recording-status message, timer, or live-region announcement appeared. Clicking Stop recording returned the label to Dictate and silently inserted the development stub transcript into Question; no visible processing or success message appeared. Error/denied behavior could not be reached in the already-authorized browser.",
+          "evidence": [
+            "Rendered interaction: Dictate -> Stop recording [pressed] -> Dictate",
+            "After stop, Question value became [dev STT stub] transcript unavailable in this environment; no status message rendered",
+            "components/ask/AskForm.tsx and components/hooks/useAudioRecorder.ts handle errors but do not announce recording start or successful transcription"
+          ]
         }
       ],
       "result": {
-        "status": "not_run",
-        "started_at": null,
-        "completed_at": null,
-        "actual_summary": null,
-        "evidence": [],
-        "finding_ids": []
+        "status": "fail",
+        "started_at": "2026-07-13T05:22:06.6480857-05:00",
+        "completed_at": "2026-07-13T05:36:39.7420710-05:00",
+        "actual_summary": "The authenticated localhost shell, navigation, history, refresh, and responsive session worked. Ask was safety-blocked by live retrieval configuration. Dictate captured and transcribed through the dev stub but failed the required explicit permission/recording/processing/success-state feedback.",
+        "evidence": [
+          "Rendered localhost shell and primary navigation",
+          "Direct Dictate click-through on /ask"
+        ],
+        "finding_ids": ["QA-001"]
       }
     },
     {
@@ -210,58 +274,87 @@
           "id": "RENEWAL-01-01",
           "action": "Open the live renewal surface on a phone-sized viewport and enter decider mode through the rendered controls.",
           "expected": "Exactly one renewal flag card is presented with clear 1 of N progress.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "blocked_safety",
+          "actual": "The actual /lease-renewal/live route was not opened because the current environment can perform live RentVine and Sheet reads and could render customer records. The same rendered decider component was safely exercised on the synthetic sim-renewal-001 run at 390x844: the one-at-a-time control displayed exactly one card with 1 of 5 progress and no horizontal overflow.",
+          "evidence": [
+            "Synthetic run banner: Test run only, on sample data; no live read, write, or system-of-record update",
+            "Phone DOM after toggling View all flags -> Decide one at a time: Renewal decider, one article, 1 of 5",
+            "390px layout measurement: clientWidth 390; scrollWidth 390"
+          ]
         },
         {
           "id": "RENEWAL-01-02",
           "action": "On a safe Low or Medium fixture with a suggested winner, click Accept suggested source.",
           "expected": "The decision advances without requiring free text and the visible audit reason is Accepted the suggested source.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "On the synthetic Medium 5 of 5 card, clicked Accept suggested source once. The card changed to a saved-resolution state and exposed a separate Approve write-back action. In View all flags, the resolved item displayed the exact audit reason Accepted the suggested source and reported 1 resolved.",
+          "evidence": [
+            "Rendered Medium synthetic card exposed Accept suggested source",
+            "Post-click rendered copy: resolution is saved; approval is a separate audited decision; nothing is written to the Sheet",
+            "View all flags rendered Resolved and via Pick a source: Accepted the suggested source"
+          ]
         },
         {
           "id": "RENEWAL-01-03",
           "action": "Inspect and, only in proven isolated data mode, click the distinct Approve write-back follow-on action.",
           "expected": "Authorization is clearly separate from the resolution, is auditable, and never claims that RentVine or the operating Sheet was updated.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "The resolved synthetic item exposed a separate Write-back proposal approval panel. Entered a sanitized isolated-test reason and clicked Approve proposal once. The panel changed to Approved - ready to write (not executed), showed local-demo-admin in append-only approval history, and repeated that the Sheet write was not executed and remains gated.",
+          "evidence": [
+            "Rendered approval panel was distinct from resolution and required its own reason",
+            "Post-click status: Approved - ready to write (not executed)",
+            "Rendered approval history identified local-demo-admin; copy states the write remains behind an approved action spec"
+          ]
         },
         {
           "id": "RENEWAL-01-04",
           "action": "Click Skip on a safe fixture, navigate to other cards, refresh as appropriate, and observe same-session behavior.",
           "expected": "The skipped card stays deferred for that browser session and no resolution is created.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "Clicked Skip on the synthetic first unresolved card. Progress changed from 1 of 4 to 1 of 3 and advanced to a different card. After refresh and re-entering decider mode, the skipped card remained deferred and the same next card was shown. View all flags still reported exactly 1 resolved, confirming Skip created no resolution.",
+          "evidence": [
+            "Before Skip: 1 of 4; after Skip: 1 of 3 on a different field",
+            "After refresh and re-entering decider: still 1 of 3 on the same next field",
+            "View all flags after Skip: 5 flags raised; 1 resolved"
+          ]
         },
         {
           "id": "RENEWAL-01-05",
           "action": "Attempt a High, Blocked, or manually corrected safe fixture without entering a plain-English reason, then provide a reason if isolation is proven.",
           "expected": "Submission is blocked until a plain-English reason is provided, and the eventual audit record preserves the reason without weakening approval rules.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "fail",
+          "actual": "The empty High-card submission was blocked by required-field validation and the resolved count remained unchanged. After a sanitized reason was entered, clicking Resolve invoked the component's native window.confirm gate, but the interactive in-app browser auto-dismissed it before acceptance; repeated fresh-tab attempts therefore created no High resolution or audit record. The reason gate works, but the eventual save could not be completed in this supported browser surface.",
+          "evidence": [
+            "Empty Resolve attempt left the reason field invalid/valueMissing and the rendered summary at 1 resolved",
+            "With a populated valid reason, repeated Resolve clicks created no persisted Renewal date resolution after refresh",
+            "components/lease-renewal/flag-actions.tsx uses window.confirm for High-severity resolution"
+          ]
         },
         {
           "id": "RENEWAL-01-06",
           "action": "Compare phone and desktop layouts, try Back, refresh, repeated clicks, cancellation, and switching away mid-decision.",
           "expected": "The phone flow remains usable, repeated actions do not duplicate a decision, and interrupted flows recover without misleading status.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "The synthetic renewal run remained usable at the 390x844 phone override and desktop comparison. Phone and desktop measurements showed no document-level horizontal overflow. View-mode switching, Skip plus refresh, cancellation of the High native confirmation, repeated High attempts, Back, Forward, and refresh all recovered to a coherent authenticated run without duplicate saved resolutions.",
+          "evidence": [
+            "Phone measurement: clientWidth 390; scrollWidth 390",
+            "Desktop content measurement: clientWidth and scrollWidth both 1265 under the desktop browser override",
+            "Back -> /ask; Forward -> synthetic run; refresh retained Admin auth and the single saved resolution",
+            "Repeated auto-dismissed High attempts did not create duplicate records"
+          ]
         }
       ],
       "result": {
-        "status": "not_run",
-        "started_at": null,
-        "completed_at": null,
-        "actual_summary": null,
-        "evidence": [],
-        "finding_ids": []
+        "status": "fail",
+        "started_at": "2026-07-13T05:36:39.7420710-05:00",
+        "completed_at": "2026-07-13T05:53:47.8863614-05:00",
+        "actual_summary": "The synthetic decider, suggested-source shortcut, distinct write-back authorization, Skip behavior, responsive layout, and navigation recovery worked against the emulator. The real live-review route was safety-blocked. High/Blocked reason validation worked, but native window.confirm prevented completion in the in-app browser.",
+        "evidence": [
+          "Rendered synthetic renewal run on phone and desktop",
+          "Local Firestore emulator resolution and approval history",
+          "Browser Back/Forward/refresh and repeated-attempt checks"
+        ],
+        "finding_ids": ["QA-002"]
       }
     },
     {
@@ -276,49 +369,69 @@
           "id": "RBAC-01-01",
           "action": "Open Admin users, inspect the scope editor, required reason field, role display, and audit presentation.",
           "expected": "Scopes are visibly separate from roles, can only narrow access, and require a plain-English reason.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "The rendered People and Access page separated each user's Role controls from Space access controls. All spaces was selected while narrower Renewals and Maintenance choices were disabled until All spaces is cleared. Separate plain-English reason fields and disabled Save buttons were visible for role and scope changes. The page explained that scopes narrow reach while the role still applies.",
+          "evidence": [
+            "Rendered H1 People and Access with approved-domain user roster",
+            "Per-user Role combobox and independent Space access group",
+            "Separate required reason fields; Save role and Save space access disabled with unchanged values"
+          ]
         },
         {
           "id": "RBAC-01-02",
           "action": "In proven isolated mode, assign Maintenance-only scope to a disposable approved-domain test user, sign that user out and back in, and observe refreshed access.",
           "expected": "Maintenance remains visible and usable while Lease Renewals and Approval Queue are absent or redirect to the primary in-scope surface.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "blocked_safety",
+          "actual": "No scope mutation was performed. The roster is read from live Firebase Auth because no Auth emulator is configured; both rendered users are real teammates, not disposable fixtures. Changing scopes would call setCustomUserClaims on a live identity even though the audit log target is the Firestore emulator.",
+          "evidence": [
+            "NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST and FIREBASE_AUTH_EMULATOR_HOST are not configured",
+            "lib/admin/users.ts defaultAuth uses firebase-admin getAuth().listUsers and setCustomUserClaims"
+          ]
         },
         {
           "id": "RBAC-01-03",
           "action": "Directly enter out-of-scope localhost URLs as the scoped test user.",
           "expected": "Server-side or page-level guards prevent access; hiding navigation alone is not treated as sufficient.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "blocked_data",
+          "actual": "No disposable approved-domain scoped test user was available, so direct out-of-scope URL denial could not be exercised without first changing a live teammate's custom claims.",
+          "evidence": [
+            "Rendered roster contained only two live approved-domain teammates",
+            "No Firebase Auth emulator was configured"
+          ]
         },
         {
           "id": "RBAC-01-04",
           "action": "Return to Admin and inspect the recorded change, role, actor, reason, and restoration behavior. Restore the disposable user's intended scope with a reason when safe.",
           "expected": "The audit is append-only, the role did not change, and restoration is recorded independently.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "blocked_safety",
+          "actual": "No scope change was created, so there was nothing safe to restore or inspect in append-only scope-change audit history. Mutating and then restoring a live teammate was explicitly forbidden.",
+          "evidence": [
+            "Live Firebase Auth custom-claim boundary confirmed before clicking Save space access",
+            "No role or scope mutation was submitted"
+          ]
         },
         {
           "id": "RBAC-01-05",
           "action": "Inspect behavior for missing scope claims and a scope-denied page on desktop and phone.",
           "expected": "Missing claims receive the documented default, and denial/redirect behavior is understandable rather than appearing broken.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "blocked_data",
+          "actual": "The current local-demo Admin has no scope claim and directly demonstrated the documented All spaces default through complete navigation. A scope-denied page could not be rendered on desktop or phone because no disposable scoped Auth user existed; the criterion therefore remains only partially proven.",
+          "evidence": [
+            "Local-demo Admin with missing scopes could access Lease Renewals, Approval Queue, Maintenance, Spaces, and Admin",
+            "No safe scoped user was available for denial/redirect testing"
+          ]
         }
       ],
       "result": {
-        "status": "not_run",
-        "started_at": null,
-        "completed_at": null,
-        "actual_summary": null,
-        "evidence": [],
+        "status": "blocked_safety",
+        "started_at": "2026-07-13T05:53:47.8863614-05:00",
+        "completed_at": "2026-07-13T05:54:50.6137246-05:00",
+        "actual_summary": "The rendered role/scope editor correctly separates roles from narrowing scopes and requires reasons. Live Firebase Auth backing made all mutation, restoration, and scoped-user denial scenarios unsafe; missing-scope All spaces behavior was directly observed only for local-demo Admin.",
+        "evidence": [
+          "Rendered /admin/users controls",
+          "Safe local environment inspection",
+          "lib/admin/users.ts Firebase Auth boundary"
+        ],
         "finding_ids": []
       }
     },
@@ -334,58 +447,83 @@
           "id": "ATTENTION-01-01",
           "action": "Open the Console and record the visible Needs your decision count, then open Notifications from the rendered notification menu.",
           "expected": "The hub includes the same decision signal and the count does not diverge between surfaces.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "fail",
+          "actual": "The Console rendered 4 Needs your decision items after the synthetic resolution. Opening Notifications through the rendered menu produced a hub whose Recent activity region said the user was all caught up and contained no decision signal or link, so the two surfaces diverged.",
+          "evidence": [
+            "Rendered Console: Needs your decision; See all 4",
+            "Rendered /notifications Recent activity: You are all caught up; nothing needs your attention right now",
+            "No decision lane or Approval Queue link appeared in the hub DOM"
+          ]
         },
         {
           "id": "ATTENTION-01-02",
           "action": "Inspect the hub for connection conditions and Space-coverage conditions in addition to event notifications.",
           "expected": "Notifications is a time-ordered superset of the Console signals rather than a conflicting second calculation.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "The rendered Set-up region included both Connections to set up and Space coverage standing conditions. The same connection labels and coverage states seen on Console were represented as links with plain setup details, in addition to the separate event-log region.",
+          "evidence": [
+            "Rendered /notifications Set-up region with connection conditions",
+            "Rendered Space coverage list with all currently uncovered Spaces"
+          ]
         },
         {
           "id": "ATTENTION-01-03",
           "action": "Inspect summary rows and expanded states for sensitive values.",
           "expected": "Summary rows do not expose addresses, proposed values, decision reasons, or customer records.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "Inspected every rendered hub row and standing condition. The summaries contained only labels, setup instructions, coverage state, and links; no address, proposed value, decision reason, or customer record appeared.",
+          "evidence": [
+            "Recent activity rendered an empty state with no payload rows",
+            "Set-up summaries contained connector/Space labels and value-free status copy only"
+          ]
         },
         {
           "id": "ATTENTION-01-04",
           "action": "In proven isolated mode, click Mark all read and observe event notifications and standing conditions separately.",
           "expected": "Event notifications clear while unresolved standing setup or coverage conditions remain visible.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "blocked_data",
+          "actual": "No isolated unread event notification existed, so Mark all read was not rendered and the event-versus-standing transition could not be clicked through. Standing setup conditions remained visible in the empty-event state.",
+          "evidence": [
+            "Rendered Recent activity: empty",
+            "No Mark all read control in the hub DOM",
+            "Set-up standing conditions remained populated"
+          ]
         },
         {
           "id": "ATTENTION-01-05",
           "action": "As Admin, open the team-review digest and inspect its contents and interaction behavior.",
           "expected": "The digest is one value-free rollup rather than one alert per edit, and no email or push is sent.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "blocked_data",
+          "actual": "The Admin session was active, but the current emulator metrics did not produce a team-review digest; no review rollup rendered. Creating a qualifying High override was blocked by the native-confirm defect, so the digest interaction remained unproven.",
+          "evidence": [
+            "Header role Admin on /notifications",
+            "No Team review region in the rendered hub",
+            "Current synthetic state did not contain a qualifying review digest"
+          ]
         },
         {
           "id": "ATTENTION-01-06",
           "action": "Test empty, loading, read, unread, standing-condition, narrow-screen, refresh, and browser navigation states.",
           "expected": "States remain distinguishable and accessible, counts stay coherent, and controls do not imply delivery channels that are disabled.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "fail",
+          "actual": "Empty-event and standing-condition states rendered distinctly, and the 390x844 phone override had no horizontal overflow. Refresh, Back, and Forward preserved the same states. However, the hub's all-caught-up copy remained while Console still had 4 decisions, so counts and global state were not coherent; read/unread and review states were unavailable.",
+          "evidence": [
+            "Phone metrics: clientWidth 375; scrollWidth 375",
+            "Refresh and Back/Forward retained Recent activity and Set-up regions",
+            "Global all-caught-up copy contradicted Console's 4 pending decisions"
+          ]
         }
       ],
       "result": {
-        "status": "not_run",
-        "started_at": null,
-        "completed_at": null,
-        "actual_summary": null,
-        "evidence": [],
-        "finding_ids": []
+        "status": "fail",
+        "started_at": "2026-07-13T05:54:50.6137246-05:00",
+        "completed_at": "2026-07-13T05:57:27.1860801-05:00",
+        "actual_summary": "Connection and coverage standing signals were value-free and responsive. The event log was empty and lacked safe read/unread or review fixtures. The hub critically omitted the Console decision lane and falsely reported global all-clear.",
+        "evidence": [
+          "Rendered Console and /notifications comparison",
+          "Phone layout and browser history checks"
+        ],
+        "finding_ids": ["QA-003"]
       }
     },
     {
@@ -405,58 +543,90 @@
           "id": "GMAIL-01-01",
           "action": "Open Gmail Hub through normal navigation and directly by localhost route.",
           "expected": "Draft, template/triage, and thread-summary tools render together and the page explains its access boundary.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "Opened Gmail Hub through primary navigation at the direct localhost /gmail-hub route. The page rendered Anticipatory draft, Template and triage workspace, Thread summary, notification families, and a disabled Read my inbox boundary together. Copy explicitly stated that no mailbox is connected, nothing can send, and live-mail actions wait on approved access.",
+          "evidence": [
+            "Rendered localhost /gmail-hub H1 Gmail hub",
+            "All three app-plane tools and Notifications rendered on one page",
+            "Read my inbox displayed Waiting on Gmail access and was disabled"
+          ]
         },
         {
           "id": "GMAIL-01-02",
           "action": "Paste the safe triage text, exercise all relevant options, and generate the local suggestion or preview.",
           "expected": "A suggested label and draft preview appear with clear editable, loading, validation, and failure behavior.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "Entered the contract's sanitized triage text into both the deterministic Template and triage workspace and the local-model Anticipatory draft form. Evaluate rendered a suggested label and review-before-sending draft preview. Compose draft showed a Composing state, then a model-tailored review-before-sending preview with verification placeholders and a Copy draft action. Inputs remained editable and no send control appeared.",
+          "evidence": [
+            "Rendered Suggested labels and Draft preview after Evaluate",
+            "Anticipatory composer transitioned Compose draft -> Composing -> model-tailored preview",
+            "Both previews carried Draft - Review before sending and verification copy"
+          ]
         },
         {
           "id": "GMAIL-01-03",
           "action": "Paste the safe thread text and exercise the summary workflow.",
           "expected": "A structured summary, waiting-on party, and suggested next action appear without claiming that Gmail was read.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "Pasted the sanitized thread text and clicked Summarize thread. The form showed Summarizing, then rendered three distinct fields: Summary, Waiting on, and Suggested next action. The result described only the pasted scenario and did not claim that Gmail was read.",
+          "evidence": [
+            "Rendered Summarizing loading state",
+            "Rendered structured Summary, Waiting on, and Suggested next action result",
+            "Page copy continued to state No mailbox is read and nothing here can send"
+          ]
         },
         {
           "id": "GMAIL-01-04",
           "action": "Submit the excluded-category text and try obvious bypasses such as rephrasing, missing fields, repeated clicks, and switching tools mid-request.",
           "expected": "The legal/notices category fails closed before AI drafting, and alternate interactions do not bypass the exclusion.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "fail",
+          "actual": "The exact category Legal/notices refused before the model, including empty facts and repeated clicks. Changing only the category text to the obvious rephrase legal notice bypassed the exact-string gate: the UI entered Composing and returned a model-tailored draft containing the excluded legal-request text. The bypass reached the model even though no send occurred.",
+          "evidence": [
+            "Exact Legal/notices -> Refused before the model",
+            "Repeated exact-category clicks with empty facts remained refused",
+            "Rephrased legal notice -> Composing -> model-tailored draft with the excluded request in a Needs Verification line",
+            "lib/gmail-inbox-zero/drafts.ts uses exact array includes(category) against three display strings"
+          ]
         },
         {
           "id": "GMAIL-01-05",
           "action": "Inspect every mailbox-read, compose, and message action visible from Gmail Hub and Owner Email Space.",
           "expected": "Mailbox-read affordances say Waiting on Gmail access, no Send control exists, and the product never claims the inbox was read.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "Inspected Read my inbox, Compose draft, Copy draft, Evaluate, Summarize thread, and the Owner Email Space entry. Read my inbox was disabled with Waiting on Gmail access; RentVine replies and Owner replies showed the same gate. No Send control existed. The Owner Email Space link intentionally opened /gmail-hub and the page never claimed a mailbox read.",
+          "evidence": [
+            "Read my inbox disabled: Waiting on Gmail access",
+            "Gmail-dependent notification families: Waiting on Gmail access",
+            "Owner Email Space card -> /gmail-hub",
+            "Only app-plane compose/copy/evaluate/summary actions rendered; no Send button"
+          ]
         },
         {
           "id": "GMAIL-01-06",
           "action": "Test both viewports plus empty input, very short input, refresh, browser Back, and loss of focus during generation.",
           "expected": "The workflows remain understandable and recoverable, and no content is silently sent or represented as live mailbox data.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "fail",
+          "actual": "Empty Thread text correctly disabled Summarize; a very short input returned a structured result with an Unclear next action. A safe draft completed after focus moved to another tool. Back/Forward and refresh returned to a clean Gmail Hub state, and desktop had no horizontal overflow. At the 390x844 phone override, however, the 375px content viewport had a 425px document width and could be horizontally scrolled; root Gmail sections measured about 413px wide.",
+          "evidence": [
+            "Empty Thread text -> Summarize thread disabled",
+            "Very short input -> structured Summary/Waiting on/Suggested next action with uncertainty",
+            "Focus moved during Composing; safe review-before-sending draft still completed",
+            "Phone: clientWidth 375, scrollWidth 425; Gmail root sections extended to document right 425",
+            "Desktop: clientWidth and scrollWidth both 1265"
+          ]
         }
       ],
       "result": {
-        "status": "not_run",
-        "started_at": null,
-        "completed_at": null,
-        "actual_summary": null,
-        "evidence": [],
-        "finding_ids": []
+        "status": "fail",
+        "started_at": "2026-07-13T05:57:27.1860801-05:00",
+        "completed_at": "2026-07-13T06:05:48.4216225-05:00",
+        "actual_summary": "Gmail Hub app-plane drafting, triage, summary, loading, empty/short input, no-send, and mailbox gates mostly worked. A trivial category rephrase bypassed the deterministic exclusion boundary, and the phone layout overflowed horizontally.",
+        "evidence": [
+          "Rendered Gmail Hub workflows and boundary copy",
+          "Direct exact-category and rephrased-category click-through",
+          "Responsive DOM measurements"
+        ],
+        "finding_ids": ["QA-004", "QA-005"]
       }
     },
     {
@@ -471,50 +641,70 @@
           "id": "ANTICIPATED-01-01",
           "action": "Find the Anticipated work lane through the Console UI and inspect renewal, owner-outreach, and notice families.",
           "expected": "Supported items are computed from existing planners and are understandable without exposing sensitive summary values.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "The Console's Anticipated work region rendered Lease Renewals, Owner Renewal Outreach and Comp Lookup, and Tenant Renewal Notice and DotLoop Follow-Up as distinct renewal families. Summaries used counts/status labels rather than addresses, values, or customer records.",
+          "evidence": [
+            "Rendered Anticipated work region with three renewal-family articles",
+            "Status labels included Upcoming, All clear, and Due soon with value-free summaries"
+          ]
         },
         {
           "id": "ANTICIPATED-01-02",
           "action": "Inspect unsupported Maintenance or compliance families.",
           "expected": "Unsupported families show an honest waiting or no-source state instead of fabricated work.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "Unsupported Maintenance Work Order Intake and Compliance and New User families rendered honest Waiting on a signal states instead of fabricated tasks.",
+          "evidence": [
+            "Maintenance: Waiting on a maintenance signal",
+            "Compliance: Waiting on a compliance or new-user signal"
+          ]
         },
         {
           "id": "ANTICIPATED-01-03",
           "action": "Read the caption and inspect controls for scheduling, automatic start, send, or external write implications.",
           "expected": "The UI states that work is computed on request and is never scheduled or sent automatically.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "The region caption explicitly stated Computed on request; this never runs on a schedule and never sends. No scheduling, auto-start, send, or external-write control was rendered.",
+          "evidence": [
+            "Rendered caption under Anticipated work",
+            "Only Start a test run controls were available on supported families"
+          ]
         },
         {
           "id": "ANTICIPATED-01-04",
           "action": "On an isolated safe item, follow a start link and inspect the destination, then navigate Back and refresh.",
           "expected": "The link opens a local test-run or desk flow and never silently starts production work.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "fail",
+          "actual": "Clicked the Lease Renewals Start a test run control once. It showed Starting, then stayed on Console with Test run could not be started. The dev request log showed POST /api/process-definitions/lease-renewal/test-runs -> 404, so no test-run destination existed. No production work or external action started.",
+          "evidence": [
+            "Rendered Start a test run -> Starting -> Test run could not be started",
+            "Local dev log: POST /api/process-definitions/lease-renewal/test-runs 404",
+            "ConsoleAnticipatedWork received the static processDefinitionId even though the emulator had no corresponding definition"
+          ]
         },
         {
           "id": "ANTICIPATED-01-05",
           "action": "Test empty, partial-source, loading, error, desktop, and phone states where reachable.",
           "expected": "Missing information produces visible uncertainty and the layout remains usable at narrow widths.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "The mixed available, all-clear, unsupported, and start-error states remained understandable. At the 390x844 phone override the Console had no horizontal overflow, the start error remained visible, and refresh cleared the transient error while preserving the honest waiting states. No additional loading/error fixture was manufactured.",
+          "evidence": [
+            "Phone: clientWidth 375; scrollWidth 375",
+            "Start failure copy visible on phone and cleared after refresh",
+            "Maintenance and Compliance waiting states remained after refresh"
+          ]
         }
       ],
       "result": {
-        "status": "not_run",
-        "started_at": null,
-        "completed_at": null,
-        "actual_summary": null,
-        "evidence": [],
-        "finding_ids": []
+        "status": "fail",
+        "started_at": "2026-07-13T06:05:48.4216225-05:00",
+        "completed_at": "2026-07-13T06:08:45.2648549-05:00",
+        "actual_summary": "Anticipated work summaries, unsupported-state honesty, no-schedule/no-send copy, phone layout, and error recovery worked. The supported Lease Renewals action was incorrectly rendered as startable and failed with a local 404 because its process definition was absent.",
+        "evidence": [
+          "Rendered Console Anticipated work lane",
+          "Local test-run API response and phone recovery checks"
+        ],
+        "finding_ids": ["QA-006"]
       }
     },
     {
@@ -529,42 +719,64 @@
           "id": "QUEUE-01-01",
           "action": "Open Approval Queue through the UI and inspect its default list and alternate views.",
           "expected": "The default is one urgent-first Needs your decision list and alternate views are placed under a disclosure.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "Approval Queue opened through the primary navigation. Its default rendered four renewal decisions in urgent-first order, while All items, Renewal reviews, and Write-back proposals stayed under a collapsed Other views disclosure until explicitly opened.",
+          "evidence": [
+            "Default copy: 4 things need your decision, most urgent first; 4 renewal flags, 0 write-backs, 0 queue items.",
+            "Rows were ordered High, High, High, then Blocked.",
+            "Other views was collapsed after refresh and exposed three tabs only when opened."
+          ]
         },
         {
           "id": "QUEUE-01-02",
           "action": "On an isolated eligible Low or Medium row, click the safe inline approval and inspect the resulting state and audit behavior.",
           "expected": "The app-plane decision is recorded once, identifies the acting user safely, and does not execute an external action.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "blocked_data",
+          "actual": "No eligible Low or Medium general queue row existed in the app-visible emulator: the default stated 0 queue items and All items rendered its empty state. After the isolation breach was discovered, no additional fixture creation or mutating click was permitted.",
+          "evidence": [
+            "Rendered queue summary: 0 queue items.",
+            "All items: Approval Queue connected; Nothing is currently waiting for review.",
+            "ISOLATION-01 failed because npm run seed:demo likely targeted live Firestore; see QA-007."
+          ]
         },
         {
           "id": "QUEUE-01-03",
           "action": "Inspect High-risk, self-assigned, renewal-flag, and write-back rows and try to reach any inline shortcut.",
           "expected": "These rows require their full surfaces and cannot use the Low/Medium inline shortcut.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "blocked_data",
+          "actual": "The available High and Blocked renewal rows correctly exposed links to the full renewal run and no inline shortcut. The write-back view stated that decisions occur on the run page and that nothing is written from the queue. Self-assigned and eligible awaiting-writeback fixtures were absent, so the entire matrix could not be proven.",
+          "evidence": [
+            "High and Blocked rows exposed only renewal-run links.",
+            "Renewal reviews copy: Resolve each on its run page — the app never writes to the sheet without your approval.",
+            "Write-back queue copy: Approve or return each on its run page — nothing is written to the sheet here.",
+            "Awaiting approval count was 0; no self-assigned general rows were present."
+          ]
         },
         {
           "id": "QUEUE-01-04",
           "action": "Test repeated clicks, stale refresh, Back navigation, empty queue, alternate views, long labels, and phone layout where reachable.",
           "expected": "The queue avoids duplicate decisions, exposes stale/error states, and remains actionable on a phone.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "fail",
+          "actual": "Alternate tabs, a renewal-run navigation, browser Back, and refresh recovered without changing decision counts, and refresh collapsed Other views. Duplicate/stale inline behavior could not be exercised without an eligible fixture. At 390x844, expanding Other views to Write-back proposals caused document-level horizontal overflow, so the phone-layout expectation directly failed.",
+          "evidence": [
+            "Renewal-run navigation reached /lease-renewal/runs/sim-renewal-001 and Back returned to /approval-queue.",
+            "Refresh preserved the page and collapsed the disclosure.",
+            "Collapsed phone state fit (document scrollWidth 375 at clientWidth 375).",
+            "Expanded Write-back proposals phone state overflowed (document scrollWidth 478 at clientWidth 375); overflowing elements included needs-decision-inbox and the open Other views panel.",
+            "See QA-008."
+          ]
         }
       ],
       "result": {
-        "status": "not_run",
-        "started_at": null,
-        "completed_at": null,
-        "actual_summary": null,
-        "evidence": [],
-        "finding_ids": []
+        "status": "fail",
+        "started_at": "2026-07-13T06:08:45.2648549-05:00",
+        "completed_at": "2026-07-13T06:17:32.3870714-05:00",
+        "actual_summary": "The queue's urgent-first default and full-surface boundaries were clear, but fixture isolation left inline decisions unprovable and the expanded phone layout horizontally overflowed.",
+        "evidence": [
+          "Direct rendered localhost inspection on desktop and 390x844 phone viewports.",
+          "No queue mutation was attempted after the isolation failure."
+        ],
+        "finding_ids": ["QA-007", "QA-008"]
       }
     },
     {
@@ -579,50 +791,80 @@
           "id": "MAINT-01-01",
           "action": "Open maintenance intake and inspect every visible input, unit search control, photo control, validation state, and submission boundary.",
           "expected": "The form explains required information and distinguishes app intake from any external work-order creation.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "Maintenance opened from the rendered Spaces card and exposed issue, voice, photo, unit typeahead, priority, and draft controls. The introductory copy distinguished the app's tracked draft/ticket flow from the human-approved RentVine work-order boundary, and a blocker-bearing draft made missing requirements explicit.",
+          "evidence": [
+            "Rendered route: /maintenance reached from Spaces > Maintenance Work Order Intake.",
+            "Top copy: Nothing is sent or written to a system of record; the RentVine work order is created only after a human approves.",
+            "An empty draft rendered Before submitting blockers for an issue description and matched unit."
+          ]
         },
         {
           "id": "MAINT-01-02",
           "action": "Type partial, ambiguous, unmatched, and exact safe fixture text into unit search without selecting prematurely.",
           "expected": "Suggestions appear without auto-selecting an uncertain match, and unmatched or ambiguous states are explicit.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "Against the local-demo synthetic unit index, a broad query produced four suggestions without selection, a partial query produced one suggestion, an unmatched query rendered an explicit no-match state, and an exact synthetic label still required clicking its suggestion. Raw unselected text was not persisted into the draft as a match.",
+          "evidence": [
+            "Broad synthetic query: four buttons under Unit suggestions; no Matched status.",
+            "Partial synthetic query: one suggestion; no auto-selection.",
+            "Unmatched query: No matching units yet.",
+            "Exact synthetic label: one suggestion remained; building without clicking it rendered Unit: unmatched."
+          ]
         },
         {
           "id": "MAINT-01-03",
           "action": "Inspect assignment options and, in isolated mode, exercise Assigned to me and another approved fixture user.",
           "expected": "Only approved internal users are offered, Assigned to me works, and raw UIDs are not used as normal labels.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "blocked_data",
+          "actual": "The only rendered assignment control was the Assigned to me queue filter. With zero emulator-backed tickets, no assignment picker or approved internal-user labels were reachable, and creating a fixture was prohibited after the isolation failure.",
+          "evidence": [
+            "Rendered Ticket queue: No tickets yet.",
+            "Assigned to me checkbox was present as a filter, not an assignment action.",
+            "No raw UID was rendered in the empty state."
+          ]
         },
         {
           "id": "MAINT-01-04",
           "action": "Try missing required fields, cancellation, repeated submit, refresh, Back, narrow width, and loss of a selected unit where safe.",
           "expected": "Validation prevents incomplete or duplicate records, user input is handled predictably, and no uncertain unit match is silently persisted.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "fail",
+          "actual": "A draft with no issue and no selected unit correctly displayed two blockers, but the Create ticket control remained enabled and the server-side create contract accepts an empty description and null unit. The control was not clicked. Refresh cleared the draft and typed text, Back returned to Spaces, and the 390x844 layout fit without horizontal overflow. Cancellation, duplicate submit, and selected-unit loss could not be exercised safely without creating a ticket.",
+          "evidence": [
+            "Rendered blockers: Add an issue description or voice note; Match the location to a unit.",
+            "Create ticket remained enabled in the same blocker-bearing draft.",
+            "Refresh returned to the empty form and draft placeholder; Back returned to /spaces.",
+            "Phone metrics: document scrollWidth 375 and clientWidth 375.",
+            "See QA-009."
+          ]
         },
         {
           "id": "MAINT-01-05",
           "action": "Inspect any control or status that implies RentVine or Drive execution.",
           "expected": "No external write is executed and the UI describes unavailable or approval-gated execution honestly.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "fail",
+          "actual": "Rendered RentVine, owner-notice, and vendor-assignment language stayed explicitly gated or draft/suggestion only. However, Add / take photo was exposed without a target preview or approval warning while this local environment resolved IMAGE_STORE=drive with the Drive folder and DWD inputs present. Repository reconciliation showed the upload route writes directly without checking the Action Registry entry, which is production_allowed:false. No file was selected.",
+          "evidence": [
+            "Draft copy: Test run only; RentVine work-order create is gated; a human reviews and approves.",
+            "Owner notice: Draft only — no send; a human reviews and sends.",
+            "Vendor assignment: Suggestion only — not assigned; no system-of-record write.",
+            "Startup isolation inspection: IMAGE_STORE=drive; the maintenance folder and DWD configuration names were non-empty.",
+            "Action Registry: google_drive.maintenance_photo.store is Needs Permission and production_allowed:false, with a required file/folder preview.",
+            "POST /api/maintenance/photo constructs the configured image store and calls put() without isActionExecutable or equivalent registry enforcement.",
+            "Add / take photo was intentionally not clicked; see QA-011."
+          ]
         }
       ],
       "result": {
-        "status": "not_run",
-        "started_at": null,
-        "completed_at": null,
-        "actual_summary": null,
-        "evidence": [],
-        "finding_ids": []
+        "status": "fail",
+        "started_at": "2026-07-13T06:17:45.0000000-05:00",
+        "completed_at": "2026-07-13T06:21:21.2743837-05:00",
+        "actual_summary": "The synthetic unit matcher and external-action copy behaved clearly, but incomplete drafts can present an enabled Create ticket action, while empty fixture data and the live Drive configuration blocked assignment and photo verification.",
+        "evidence": [
+          "Direct rendered desktop and 390x844 inspection with synthetic typeahead queries.",
+          "No ticket or photo was created."
+        ],
+        "finding_ids": ["QA-009", "QA-011"]
       }
     },
     {
@@ -637,26 +879,36 @@
           "id": "HISTORY-01-01",
           "action": "Navigate from a renewal record to its decision history and inspect ordering, actor labels, reasons, source, and write-back authorization status.",
           "expected": "History is scoped to the correct property or decision, ordered coherently, and distinguishes resolution from write-back authorization.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "fail",
+          "actual": "The synthetic Renewals list opened a renewal record, and Approval Queue opened the reconciliation run, but neither rendered a link or control for property decision history. The audit did not construct or directly enter an undisclosed dynamic route, so the history surface was unreachable through the required user path.",
+          "evidence": [
+            "Rendered renewal record /lease-renewal/lease/lease-1207-walnut-2 exposed workflow sections but no history link.",
+            "Rendered reconciliation run /lease-renewal/runs/sim-renewal-001 exposed resolutions, evidence links, and inline activity but no property-history link.",
+            "Repository link search found no href to /lease-renewal/property/[propertyKey].",
+            "See QA-010."
+          ]
         },
         {
           "id": "HISTORY-01-02",
           "action": "Test no-history, one-entry, multiple-entry, long-reason, refresh, and phone states where fixtures permit.",
           "expected": "Empty and populated states are clear, entries do not collide, and long content remains readable without leaking into summary surfaces.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "blocked_data",
+          "actual": "No-history, populated-history, long-reason, refresh, and phone states could not be reached from a renewal record because the user-facing navigation path is absent. Existing inline decision history on the run page showed one entry, but that is flag-scoped and does not prove the property-history criteria.",
+          "evidence": [
+            "The run page displayed a resolved-flag disclosure with Decision history, but no property-scoped destination.",
+            "No safe rendered link existed for empty or populated Property decision history states."
+          ]
         }
       ],
       "result": {
-        "status": "not_run",
-        "started_at": null,
-        "completed_at": null,
-        "actual_summary": null,
-        "evidence": [],
-        "finding_ids": []
+        "status": "fail",
+        "started_at": "2026-07-13T06:21:35.0000000-05:00",
+        "completed_at": "2026-07-13T06:23:32.1847658-05:00",
+        "actual_summary": "Property decision history could not be reached through the rendered renewal UI, so its content and responsive states remain unproven.",
+        "evidence": [
+          "Direct rendered navigation from Spaces to Renewals, a renewal record, Approval Queue, and the synthetic reconciliation run."
+        ],
+        "finding_ids": ["QA-010"]
       }
     },
     {
@@ -671,42 +923,72 @@
           "id": "CROSSCUT-01-01",
           "action": "Inspect page titles, navigation labels, headings, instructions, buttons, confirmation copy, empty states, error messages, and success messages while completing the feature tests.",
           "expected": "Copy is plain, specific, consistent, and never overstates access, completion, delivery, scheduling, or external writes.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "fail",
+          "actual": "Most navigation, headings, boundary copy, loading states, and empty states were plain and specific. However, Notifications declared Everything is caught up while Console showed four decisions, Anticipated work offered a start action for a missing definition, and Gmail's hard-exclusion promise was contradicted by a trivial rephrase.",
+          "evidence": [
+            "QA-003: false all-clear Notifications copy.",
+            "QA-004: hard-excluded Gmail category bypass.",
+            "QA-006: executable-looking anticipated action ended in a known 404.",
+            "Empty queue, maintenance, unsupported-family, and missing-input copy were otherwise explicit."
+          ]
         },
         {
           "id": "CROSSCUT-01-02",
           "action": "Use keyboard navigation, visible focus, Enter and Space activation, labels, headings, and basic contrast inspection on the main flows.",
           "expected": "Critical interactions are keyboard reachable, focus is visible, controls have understandable names, and structure is usable without pointer-only interaction.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "fail",
+          "actual": "Main flows used semantic headings, labeled native controls, and a visible 2.4px solid focus outline. The in-app browser's synthesized Enter/Space bridge did not trigger native-button activation, so activation evidence was inconclusive rather than attributed to product code. Independently, Dictate lacked explicit recording/processing/success status, so the accessibility expectation directly failed.",
+          "evidence": [
+            "Focused renewal mode button rendered a solid 2.4px accent outline plus contrast box shadow.",
+            "Buttons, links, comboboxes, textboxes, tablists, regions, and disclosures exposed understandable accessible names in DOM snapshots.",
+            "The in-app browser keyboard bridge left a focused native button unchanged under synthesized Enter/Space; no separate product defect was inferred from that harness limitation.",
+            "QA-001: Dictate recording lifecycle was not announced visibly."
+          ]
         },
         {
           "id": "CROSSCUT-01-03",
           "action": "Observe network or UI failure handling without exposing payload data, including retry, double-click, slow loading, refresh, and stale-state behavior where safely reproducible.",
           "expected": "The app prevents duplicate actions, communicates failure honestly, and provides a safe recovery path.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "fail",
+          "actual": "Gmail loading and Anticipated-work error states recovered without page loss, refresh and Back worked across multiple flows, and no external action was executed. Nevertheless, the High-resolution native confirmation could not complete in the in-app browser, the anticipated start control led to a 404, and a blocker-bearing maintenance draft left ticket creation enabled. Duplicate/stale mutation checks remained unproven where safe fixtures were absent.",
+          "evidence": [
+            "QA-002: native confirmation prevented High-resolution completion.",
+            "QA-006: missing process definition produced a local 404 with inline error.",
+            "QA-009: incomplete maintenance draft left Create ticket enabled.",
+            "Queue duplicate/stale inline checks were blocked by zero eligible queue fixtures."
+          ]
         },
         {
           "id": "CROSSCUT-01-04",
           "action": "At phone width, inspect overflow, fixed controls, dialogs, forms, tables, long labels, touch-target spacing, and one-handed action placement across all tested surfaces.",
           "expected": "Core actions remain visible and usable without horizontal scrolling, clipped dialogs, hidden validation, or unsafe accidental taps.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "fail",
+          "actual": "Console, renewal decider/run, Maintenance, and collapsed Approval Queue fit the 390x844 viewport, and primary controls remained reachable. Gmail Hub and expanded Approval Queue alternate views produced document-level horizontal overflow.",
+          "evidence": [
+            "QA-005: Gmail Hub scrollWidth 425 at clientWidth 375.",
+            "QA-008: expanded Approval Queue scrollWidth 478 at clientWidth 375.",
+            "Maintenance phone layout fit at scrollWidth/clientWidth 375/375."
+          ]
         }
       ],
       "result": {
-        "status": "not_run",
-        "started_at": null,
-        "completed_at": null,
-        "actual_summary": null,
-        "evidence": [],
-        "finding_ids": []
+        "status": "fail",
+        "started_at": "2026-07-13T06:24:00.0000000-05:00",
+        "completed_at": "2026-07-13T06:28:20.9109271-05:00",
+        "actual_summary": "Semantic structure, focus visibility, recovery copy, and most phone layouts were usable, but copy coherence, recording status, failure-prone actions, incomplete-ticket validation, and two phone overflow defects failed the release-wide interaction criteria.",
+        "evidence": [
+          "Aggregated direct observations from every rendered localhost feature flow."
+        ],
+        "finding_ids": [
+          "QA-001",
+          "QA-002",
+          "QA-003",
+          "QA-005",
+          "QA-006",
+          "QA-008",
+          "QA-009",
+          "QA-010"
+        ]
       }
     },
     {
@@ -721,50 +1003,74 @@
           "id": "SAFETY-01-01",
           "action": "Inspect all email-related controls reached during the audit.",
           "expected": "No control sends email automatically, no Send control is exposed in Gmail Hub, and mailbox read remains explicitly gated.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "Gmail Hub generated only an in-app draft preview, exposed no Send control, stated mailbox read was disabled, and the Owner Email Space redirected to the same read-gated Hub. No email was sent or scheduled.",
+          "evidence": [
+            "Rendered Gmail Hub: mailbox read disabled and no Send control.",
+            "Draft preview remained inside localhost; no Gmail draft-create or send action was invoked.",
+            "Owner Email Space linked to /gmail-hub."
+          ]
         },
         {
           "id": "SAFETY-01-02",
           "action": "Inspect renewal resolution and write-back approval wording, state transitions, and available actions.",
           "expected": "No renewal approval claims or causes a RentVine or operating-Sheet update; resolution and authorization stay distinct.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "The synthetic reconciliation flow separately recorded a flag resolution and write-back authorization. Every proposal and authorization state stated that the append-only Sheet write was not executed, and RentVine remained read/suggestion-only.",
+          "evidence": [
+            "Flag resolution changed only the emulator-backed review state.",
+            "Write-back state: Approved — ready to write (not executed).",
+            "Run copy repeatedly stated no operating-Sheet write and no RentVine update occurred."
+          ]
         },
         {
           "id": "SAFETY-01-03",
           "action": "Inspect summary cards, notification rows, queue rows, and Console rollups.",
           "expected": "Addresses, proposed values, free-text reasons, and customer records are not exposed in value-free summaries.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "Console rollups, Notifications standing cards, queue metrics/default rows, and reviewed summaries remained count/label based and did not expose addresses, proposed values, free-text reasons, or customer records. Detailed values stayed on the renewal run and sample renewal record surfaces.",
+          "evidence": [
+            "Approval Queue metrics used counts and reason-code counts only.",
+            "Needs your decision rows used field labels and synthetic run label without values or reasons.",
+            "Console and notification summaries exposed counts/standing only."
+          ]
         },
         {
           "id": "SAFETY-01-04",
           "action": "Exercise missing-source and unsupported-family states through available safe fixtures or existing states.",
           "expected": "The application renders visible uncertainty instead of generic property-management advice or fabricated operational work.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "pass",
+          "actual": "Available blocked, missing-input, excluded, and unsupported-family states showed visible uncertainty rather than invented work. The Gmail rephrase bypass is separately recorded as a safety defect in its feature test, but the directly exercised canonical excluded category did refuse drafting.",
+          "evidence": [
+            "Blocked renewal flag: no precedence rule; needs a human decision; no value proposed.",
+            "Maintenance unmatched unit: No matching units yet; draft blocker required a match.",
+            "Unsupported anticipated families remained Waiting on setup with read-only space links.",
+            "Exact canonical Gmail excluded category refused drafting."
+          ]
         },
         {
           "id": "SAFETY-01-05",
           "action": "Reconcile all observed executable-looking controls with repository Action Registry evidence without executing external writes.",
           "expected": "The UI does not expose or imply an executable action beyond the documented compose-only unsent renewal-draft boundary, which remains excluded from execution in this localhost audit.",
-          "status": "not_run",
-          "actual": null,
-          "evidence": []
+          "status": "fail",
+          "actual": "RentVine renewal writeback, operating-Sheet append, email send, and Gmail Hub mailbox access stayed closed. However, Maintenance exposed a live-Drive-capable photo control even though google_drive.maintenance_photo.store is Needs Permission and production_allowed:false; its route bypasses the Action Registry. No file was selected.",
+          "evidence": [
+            "Action Registry reconciliation confirmed renewal Gmail unsent draft is the only external action marked production_allowed:true in this area.",
+            "google_drive.maintenance_photo.store is production_allowed:false and requires a pre-upload preview.",
+            "Rendered Add / take photo did not show that closed gate or preview, and the route does not enforce it.",
+            "See QA-011."
+          ]
         }
       ],
       "result": {
-        "status": "not_run",
-        "started_at": null,
-        "completed_at": null,
-        "actual_summary": null,
-        "evidence": [],
-        "finding_ids": []
+        "status": "fail",
+        "started_at": "2026-07-13T06:24:00.0000000-05:00",
+        "completed_at": "2026-07-13T06:28:20.9109271-05:00",
+        "actual_summary": "Human send authority, renewal writeback separation, value-free summaries, and uncertainty states were directly preserved, but the Maintenance photo path bypasses its closed Action Registry gate.",
+        "evidence": [
+          "Direct UI inspection plus the repository Action Registry reconciliation required by SAFETY-01-05."
+        ],
+        "finding_ids": ["QA-004", "QA-011"]
       }
     }
   ],
@@ -798,7 +1104,943 @@
     "dependencies_or_blockers": [],
     "confidence": null
   },
-  "findings": [],
+  "findings": [
+    {
+      "id": "QA-001",
+      "test_case_id": "SMOKE-01",
+      "step_ids": ["SMOKE-01-04"],
+      "classification": "accessibility_and_ux",
+      "severity": "medium",
+      "title": "Dictate starts capture without explicit status and silently inserts the transcript",
+      "route": "/ask",
+      "role": "Admin (local demo session)",
+      "viewport": "desktop 1440x1000",
+      "observed_behavior": "Clicking Dictate immediately changed the button to Stop recording and began capture. The application displayed no permission disclosure, recording status, timer, or live-region message. After Stop recording, the control returned to Dictate and the development stub transcript appeared in the Question field without a visible processing or success message.",
+      "expected_behavior": "The rendered workflow should make permission/capture intent explicit and expose distinct, accessible recording, processing, success, and failure states while preserving the non-sensitive local transcription boundary.",
+      "reproduction_steps": [
+        "Start the localhost app with the documented local demo configuration and sign in as Admin.",
+        "Open /ask at 1440x1000.",
+        "Click Dictate once and observe the button and surrounding status area.",
+        "Click Stop recording and observe the transition and Question field."
+      ],
+      "evidence": [
+        "Rendered DOM changed only from Dictate to Stop recording [pressed] during capture.",
+        "After stopping, the Question value became the development STT stub transcript with no visible processing or success message.",
+        "Relevant implementation: components/ask/AskForm.tsx; components/hooks/useAudioRecorder.ts; lib/speech/stt-provider.ts."
+      ],
+      "user_impact": "Users cannot confidently tell when audio capture begins, whether transcription is processing, or whether insertion succeeded; screen-reader users receive especially weak state feedback.",
+      "safety_impact": "Immediate capture without app-level disclosure increases the chance of unintended ambient recording, even though this audit used the local stub boundary.",
+      "likely_code_areas": [
+        "components/ask/AskForm.tsx",
+        "components/hooks/useAudioRecorder.ts",
+        "lib/speech/stt-provider.ts",
+        "tests/unit/ask-form.test.tsx",
+        "tests/unit/use-audio-recorder.test.ts"
+      ],
+      "implementation_recommendation": {
+        "change_summary": "Add an explicit pre-capture hint and a single aria-live status model for permission request, recording, transcribing, success, no-speech, and failure states without changing the existing provider or safety fence.",
+        "behavioral_requirements": [
+          "Before capture, state that microphone access will be requested and audio is used only to fill the current Question field.",
+          "On start, announce Recording and expose a visible state independent of button focus.",
+          "On stop, show Transcribing until the request settles and then announce whether text was inserted.",
+          "Retain the existing permission-denied, unsupported-browser, no-speech, and network-error recovery copy.",
+          "Never submit the Ask form automatically after transcription."
+        ],
+        "files_or_components_to_inspect": [
+          "components/ask/AskForm.tsx",
+          "components/hooks/useAudioRecorder.ts",
+          "tests/unit/ask-form.test.tsx",
+          "tests/unit/use-audio-recorder.test.ts"
+        ],
+        "data_or_api_contract_changes": [
+          "No API shape change is required; expose recorder lifecycle status from useAudioRecorder or map existing callbacks into a typed UI-state enum."
+        ],
+        "permission_and_safety_constraints": [
+          "Do not auto-request microphone permission before an explicit user gesture.",
+          "Do not persist audio or auto-submit the transcribed question.",
+          "Keep production STT and development stub selection behind the existing NODE_ENV fence."
+        ],
+        "edge_cases_to_handle": [
+          "Permission denied or revoked",
+          "Unsupported or MP4-only browser",
+          "Rapid start/stop and repeated clicks",
+          "Empty recording or no speech",
+          "Transcription request failure",
+          "Auto-stop at the duration limit",
+          "User navigates away while recording or transcribing"
+        ],
+        "tests_to_add_or_update": [
+          "Update AskForm tests to assert the visible and aria-live lifecycle states.",
+          "Add recorder-hook tests for permission denial, start, stop, auto-stop, and repeated-click idempotence.",
+          "Add a browser acceptance test that records a short local-stub sample and verifies Recording -> Transcribing -> transcript inserted without form submission."
+        ],
+        "acceptance_checks": [
+          "At /ask as Admin, Dictate shows a pre-capture explanation before the first click.",
+          "During capture, visible text and an aria-live region announce Recording while Stop recording remains keyboard reachable.",
+          "After stop, Transcribing is visible until completion, followed by a success or actionable error message.",
+          "The transcript populates Question but Get answer is not invoked automatically.",
+          "Denied permission and unsupported-browser states provide a Type instead recovery path on desktop and phone."
+        ]
+      },
+      "dependencies_or_blockers": [],
+      "confidence": "high"
+    },
+    {
+      "id": "QA-002",
+      "test_case_id": "RENEWAL-01",
+      "step_ids": ["RENEWAL-01-05"],
+      "classification": "functional_accessibility_compatibility",
+      "severity": "medium",
+      "title": "High-severity resolution depends on native window.confirm and cannot complete in the in-app browser",
+      "route": "/lease-renewal/runs/sim-renewal-001",
+      "role": "Admin (local demo session)",
+      "viewport": "phone 390x844 and desktop comparison",
+      "observed_behavior": "Required-field validation correctly blocked an empty High resolution. After a sanitized reason was entered, Resolve invoked window.confirm. The in-app browser auto-dismissed that native dialog before acceptance, so no High resolution persisted after multiple fresh-tab attempts and refreshes.",
+      "expected_behavior": "A High or Blocked resolution should require a plain-English reason and an explicit, accessible confirmation that can be completed consistently in supported browsers; acceptance should append exactly one audit record and cancellation should append none.",
+      "reproduction_steps": [
+        "Sign in to localhost as local-demo Admin with Firestore pointed at the emulator.",
+        "Open the synthetic renewal run and View all flags.",
+        "On an unresolved High card, click Resolve with no reason and observe required-field blocking.",
+        "Enter a sanitized reason and click Resolve.",
+        "Attempt to accept the native confirmation, then refresh and inspect the card and resolved count."
+      ],
+      "evidence": [
+        "The empty reason remained valueMissing and no resolution was created.",
+        "A populated valid reason followed by Resolve produced no persisted High resolution after refresh in the Codex in-app browser.",
+        "components/lease-renewal/flag-actions.tsx calls window.confirm for High-severity submissions."
+      ],
+      "user_impact": "High-risk decisions may be impossible to complete in embedded, automation-controlled, or dialog-restrictive browser contexts, despite valid input.",
+      "safety_impact": "The confirmation gate is appropriate and must remain, but an unreliable native dialog can create false confidence that a decision was saved or pressure users to retry.",
+      "likely_code_areas": [
+        "components/lease-renewal/flag-actions.tsx",
+        "components/lease-renewal/LeaseRenewalRunClient.tsx",
+        "tests/unit/lease-renewal-run-client-bulk.test.tsx",
+        "tests/unit/live-renewal-review.test.tsx"
+      ],
+      "implementation_recommendation": {
+        "change_summary": "Replace window.confirm with an app-rendered accessible confirmation dialog that preserves the High/Blocked gate and submits only after an explicit Continue action.",
+        "behavioral_requirements": [
+          "Keep required plain-English reason validation before confirmation.",
+          "Render the confirmation in the application DOM with Cancel and Continue actions.",
+          "Continue must submit at most once and display a saving state until the API response settles.",
+          "Cancel must preserve entered form data and create no resolution.",
+          "Success must update the resolved count and append-only audit state without requiring a refresh."
+        ],
+        "files_or_components_to_inspect": [
+          "components/lease-renewal/flag-actions.tsx",
+          "components/lease-renewal/LeaseRenewalRunClient.tsx",
+          "styles/globals.css or the existing dialog component system",
+          "tests/unit/lease-renewal-run-client-bulk.test.tsx"
+        ],
+        "data_or_api_contract_changes": [
+          "No route schema change is required; keep the existing resolution payload and append-only persistence contract."
+        ],
+        "permission_and_safety_constraints": [
+          "Do not weaken the Admin/Approver capability checks or High/Blocked reason requirement.",
+          "Do not cause any Sheet or RentVine write; resolution remains app-plane only.",
+          "Keep confirmation explicit and non-bypassable by repeated clicks or keyboard shortcuts."
+        ],
+        "edge_cases_to_handle": [
+          "Cancel then continue editing",
+          "Double-click or repeated Enter/Space on Continue",
+          "API failure after confirmation",
+          "Stale or already-resolved card",
+          "Back or route change with the dialog open",
+          "Phone viewport and long reason text",
+          "Focus restoration after Cancel or success"
+        ],
+        "tests_to_add_or_update": [
+          "Component test for empty-reason blocking before the dialog opens.",
+          "Component test for Cancel preserving input and making zero API calls.",
+          "Component test for Continue making exactly one API call and updating success state.",
+          "Browser test in the in-app/embedded Chromium surface at phone and desktop widths."
+        ],
+        "acceptance_checks": [
+          "Empty High reason cannot open the confirmation dialog.",
+          "Valid High reason opens a labeled DOM dialog with focus trapped and Cancel/Continue keyboard reachable.",
+          "Cancel creates no audit record and returns focus to Resolve.",
+          "Continue creates exactly one resolution, updates the resolved count immediately, and preserves the reason in history.",
+          "Refresh shows the same single resolution; RentVine and operating Sheet remain unchanged."
+        ]
+      },
+      "dependencies_or_blockers": [],
+      "confidence": "high"
+    },
+    {
+      "id": "QA-003",
+      "test_case_id": "ATTENTION-01",
+      "step_ids": ["ATTENTION-01-01", "ATTENTION-01-06"],
+      "classification": "functional_defect",
+      "severity": "high",
+      "title": "Notifications declares all caught up while Console still has decisions",
+      "route": "/ and /notifications",
+      "role": "Admin (local demo session)",
+      "viewport": "desktop comparison",
+      "observed_behavior": "The Console showed 4 Needs your decision items. The Notifications hub, opened through the rendered notification menu, omitted that decision signal and stated that the user was all caught up with nothing needing attention.",
+      "expected_behavior": "Notifications must be a value-free superset of the Console attention signals and must show the same decision count/source; empty event-log copy must not claim global all-clear while standing decisions remain.",
+      "reproduction_steps": [
+        "Sign in to localhost as local-demo Admin with the synthetic approval and renewal fixtures loaded.",
+        "Open Console and note the Needs your decision count.",
+        "Open the Notifications menu and click See all notifications.",
+        "Compare the Recent activity and standing sections with the Console decision signal."
+      ],
+      "evidence": [
+        "Rendered Console: Needs your decision; See all 4.",
+        "Rendered /notifications: You are all caught up. Nothing needs your attention right now.",
+        "lib/notifications/hub.ts gathers notification records, standing setup signals, and review digest but not gatherNeedsDecisionInbox."
+      ],
+      "user_impact": "Users relying on the full Notifications hub can miss required decisions and receive a false all-clear.",
+      "safety_impact": "A false all-clear undermines human approval governance by hiding pending decisions rather than encouraging explicit review.",
+      "likely_code_areas": [
+        "lib/notifications/hub.ts",
+        "app/notifications/page.tsx",
+        "lib/approval/needs-decision-gather.ts",
+        "components/console/ConsoleView.tsx",
+        "lib/attention/lanes.ts",
+        "tests/unit/notification-hub.test.ts",
+        "tests/unit/lease-renewal-decision-metrics.test.ts"
+      ],
+      "implementation_recommendation": {
+        "change_summary": "Make the full Notifications hub consume the same gathered needs-decision inbox as Console and render a value-free decision lane/count before evaluating global all-clear copy.",
+        "behavioral_requirements": [
+          "Call the shared gatherNeedsDecisionInbox path once for full hub requests when the user has renewal scope.",
+          "Project only whitelisted, value-free decision fields into the attention contract.",
+          "Render the same total and decision links/count semantics used by Console and Approval Queue.",
+          "Reserve Recent activity empty copy for the event log; do not say nothing needs attention when decisions or standing conditions exist.",
+          "Keep the bell unread-event badge distinct from the decision count."
+        ],
+        "files_or_components_to_inspect": [
+          "lib/notifications/hub.ts",
+          "app/notifications/page.tsx",
+          "lib/approval/needs-decision-gather.ts",
+          "components/console/ConsoleView.tsx",
+          "tests/unit/notification-hub.test.ts"
+        ],
+        "data_or_api_contract_changes": [
+          "Extend NotificationFeed or the full-hub view model with a decision-lane summary derived from the shared inbox; do not copy raw renewal values, reasons, addresses, or customer records.",
+          "If GET /api/notifications serves the full hub, keep the additive field backward compatible."
+        ],
+        "permission_and_safety_constraints": [
+          "Respect renewal Space scope and existing read capability before gathering decisions.",
+          "Keep summary and rows value-free through the existing attention whitelist.",
+          "Do not add approval, send, write-back, or external execution behavior to Notifications."
+        ],
+        "edge_cases_to_handle": [
+          "Decision count greater than zero with no event notifications",
+          "Event notifications present with no decisions",
+          "Scope-denied renewals user",
+          "Decision gather failure while standing signals still load",
+          "Resolved item disappearing from both Console and hub after refresh",
+          "Phone layout with long decision labels"
+        ],
+        "tests_to_add_or_update": [
+          "Unit invariant that Console and full hub receive the same counts.total from one shared gather result.",
+          "Hub rendering test for decisions with an empty event log.",
+          "Negative serialization tests for addresses, proposed values, reasons, field keys, and deciders.",
+          "Browser test: resolve one synthetic item and confirm Console and hub both decrement from the same count."
+        ],
+        "acceptance_checks": [
+          "With 4 pending decisions, Console and Notifications both render 4 from the same source.",
+          "Notifications never says nothing needs attention while any decision or standing condition remains.",
+          "Resolving one synthetic item decrements both surfaces after navigation/refresh.",
+          "Decision summaries expose no addresses, values, reasons, or customer records.",
+          "Unread-event badge behavior remains unchanged and clearly distinct."
+        ]
+      },
+      "dependencies_or_blockers": [],
+      "confidence": "high"
+    },
+    {
+      "id": "QA-004",
+      "test_case_id": "GMAIL-01",
+      "step_ids": ["GMAIL-01-04", "SAFETY-01-01"],
+      "classification": "safety_defect",
+      "severity": "high",
+      "title": "Hard-excluded Gmail drafting is bypassed by trivial category rephrasing",
+      "route": "/gmail-hub",
+      "role": "Admin (local demo session)",
+      "viewport": "phone 390x844",
+      "observed_behavior": "The exact category Legal/notices refused before the model. Changing only the free-text category to legal notice caused the request to enter Composing and produced a model-tailored draft containing the excluded legal request, proving that excluded content reached the model.",
+      "expected_behavior": "Legal/notices, Owner money, and Tenant disputes must fail closed before any model call under obvious casing, punctuation, singular/plural, whitespace, or equivalent category rephrasing; pasted excluded intent must not be drafted under a benign category.",
+      "reproduction_steps": [
+        "Open /gmail-hub as an authorized local-demo user.",
+        "In Anticipatory draft, leave an Approved reply pattern selected.",
+        "Set Category to Legal/notices and enter the sanitized excluded-category test text; click Compose draft and observe refusal.",
+        "Change only Category to legal notice and click Compose draft again.",
+        "Observe Composing followed by a model-tailored draft containing the excluded request."
+      ],
+      "evidence": [
+        "Exact Legal/notices rendered Refused before the model.",
+        "Rephrased legal notice rendered Model-tailored draft - review before sending.",
+        "lib/gmail-inbox-zero/drafts.ts checks GMAIL_HARD_EXCLUSION_CATEGORIES.includes(category) with exact display strings."
+      ],
+      "user_impact": "Users can generate drafts for categories the product explicitly promises will remain label-only, making the safety claim unreliable.",
+      "safety_impact": "Excluded legal/rights-related content reaches the model before human review, violating the deterministic pre-model safety boundary even though send authority remains preserved.",
+      "likely_code_areas": [
+        "lib/gmail-inbox-zero/constants.ts",
+        "lib/gmail-inbox-zero/drafts.ts",
+        "lib/gmail-inbox-zero/anticipatory-draft.ts",
+        "components/gmail-hub/AnticipatoryDraftComposer.tsx",
+        "components/gmail-hub/TemplateWorkspace.tsx",
+        "app/api/gmail-hub/anticipatory-draft/route.ts",
+        "tests/unit/gmail-inbox-zero-drafts.test.ts",
+        "tests/unit/gmail-hub-anticipatory-draft-route.test.ts"
+      ],
+      "implementation_recommendation": {
+        "change_summary": "Replace free-text/exact-display category gating with a closed canonical category contract and a deterministic, server-side fail-closed normalization and excluded-intent preflight over category, subject, and pasted facts before model construction or invocation.",
+        "behavioral_requirements": [
+          "Represent categories with stable IDs, not display strings, across UI, route schema, and deterministic spine.",
+          "Reject unknown category IDs instead of treating them as draftable.",
+          "Normalize case, Unicode, whitespace, punctuation, slash/hyphen variation, and singular/plural aliases before exclusion checks.",
+          "Conservatively detect obvious excluded intent in subject and pasted facts even if a benign category is selected.",
+          "Set refusedBeforeModel=true and prove model call count zero on every excluded or unknown case.",
+          "Keep the human-reviewed draft banner and no-Send boundary for allowed categories."
+        ],
+        "files_or_components_to_inspect": [
+          "lib/gmail-inbox-zero/constants.ts",
+          "lib/gmail-inbox-zero/drafts.ts",
+          "lib/gmail-inbox-zero/anticipatory-draft.ts",
+          "components/gmail-hub/AnticipatoryDraftComposer.tsx",
+          "components/gmail-hub/TemplateWorkspace.tsx",
+          "app/api/gmail-hub/anticipatory-draft/route.ts"
+        ],
+        "data_or_api_contract_changes": [
+          "Change category from arbitrary string to a shared canonical enum/ID in the route and client state.",
+          "Return a typed fail-closed error for unknown, aliased-excluded, or content-detected excluded intent.",
+          "Do not send excluded text to createModelProvider or any model prompt."
+        ],
+        "permission_and_safety_constraints": [
+          "The deterministic exclusion check must execute before model-provider construction and invocation.",
+          "Do not use the model itself to decide whether excluded text may reach the model.",
+          "Do not add Gmail read, draft creation, or send scope while fixing this app-plane text workflow."
+        ],
+        "edge_cases_to_handle": [
+          "legal notice, legal-notice, Legal / Notices, notices, tenant rights",
+          "owner money casing and punctuation variants",
+          "tenant dispute singular/plural and whitespace variants",
+          "Unknown or blank category",
+          "Benign category selected while subject/facts request an excluded draft",
+          "Unicode confusables and repeated whitespace",
+          "Repeated clicks and switching tools during a refused request"
+        ],
+        "tests_to_add_or_update": [
+          "Table-driven deterministic tests for case, punctuation, slash, hyphen, whitespace, and singular/plural variants.",
+          "Route tests asserting refusedBeforeModel and model call count zero for every variant.",
+          "Tests for excluded intent embedded in subject/facts under an allowed category.",
+          "Browser test reproducing Legal/notices and legal notice with identical fail-closed UI."
+        ],
+        "acceptance_checks": [
+          "Legal/notices and legal notice both refuse before the model with identical label-only guidance.",
+          "An excluded request pasted under Vendor still refuses before the model.",
+          "Network/model instrumentation confirms zero model calls for excluded and unknown categories.",
+          "Allowed Vendor content still reaches the local model and retains the review-before-sending banner.",
+          "No Send control or Gmail API call is introduced."
+        ]
+      },
+      "dependencies_or_blockers": [],
+      "confidence": "high"
+    },
+    {
+      "id": "QA-005",
+      "test_case_id": "GMAIL-01",
+      "step_ids": ["GMAIL-01-06", "CROSSCUT-01-04"],
+      "classification": "responsive_ux_defect",
+      "severity": "medium",
+      "title": "Gmail Hub is wider than the phone viewport",
+      "route": "/gmail-hub",
+      "role": "Admin (local demo session)",
+      "viewport": "phone 390x844 override; 375px content viewport",
+      "observed_behavior": "The Gmail Hub document measured 425px wide in a 375px content viewport and could be horizontally scrolled. Root Gmail sections measured about 413px wide; the same page fit exactly at desktop width.",
+      "expected_behavior": "All Gmail Hub forms, panels, controls, previews, and long labels should fit the phone viewport without document-level horizontal scrolling.",
+      "reproduction_steps": [
+        "Sign in to localhost and open /gmail-hub.",
+        "Apply the 390x844 phone viewport override.",
+        "Use the draft and thread-summary forms so long select options and previews render.",
+        "Inspect documentElement.clientWidth, documentElement.scrollWidth, and horizontal scroll behavior."
+      ],
+      "evidence": [
+        "Phone measurement: clientWidth 375; scrollWidth 425; horizontal scroll position reached about 29px.",
+        "Gmail root content sections had document bounds approximately left 12 to right 425.",
+        "Desktop measurement: clientWidth and scrollWidth both 1265."
+      ],
+      "user_impact": "Phone users must pan horizontally to read and operate Gmail workflows, and focus changes can shift the entire page sideways.",
+      "safety_impact": "Off-screen validation or controls increase the chance of missed review boundaries and accidental action selection on a narrow screen.",
+      "likely_code_areas": [
+        "components/gmail-hub/GmailHubHome.tsx",
+        "components/gmail-hub/AnticipatoryDraftComposer.tsx",
+        "components/gmail-hub/TemplateWorkspace.tsx",
+        "components/gmail-hub/ThreadSummaryPanel.tsx",
+        "app/globals.css",
+        "styles/tokens.css"
+      ],
+      "implementation_recommendation": {
+        "change_summary": "Constrain Gmail grid children and form controls to their tracks on phones, including long select options and nested content sections, without hiding overflow globally.",
+        "behavioral_requirements": [
+          "Set min-width: 0 on Gmail grid/panel children and nested content containers.",
+          "Set input, select, and textarea width/max-width to 100% with min-width: 0 inside the Gmail hub.",
+          "Allow long labels, options, preview text, and buttons to wrap without expanding the document.",
+          "Keep deliberate tablist horizontal scrolling scoped to tablists only; do not mask document overflow with body overflow-x hidden."
+        ],
+        "files_or_components_to_inspect": [
+          "app/globals.css",
+          "components/gmail-hub/GmailHubHome.tsx",
+          "components/gmail-hub/TemplateWorkspace.tsx",
+          "components/gmail-hub/AnticipatoryDraftComposer.tsx"
+        ],
+        "data_or_api_contract_changes": ["None."],
+        "permission_and_safety_constraints": [
+          "Do not remove or truncate review-before-sending or Waiting on Gmail access copy.",
+          "Do not hide content or validation merely to eliminate the measured overflow."
+        ],
+        "edge_cases_to_handle": [
+          "Longest reply-pattern option",
+          "Long verification placeholder",
+          "Long excluded-category refusal",
+          "Structured thread summary with long content",
+          "Notification-family labels",
+          "Browser focus auto-scroll to fields near the right edge"
+        ],
+        "tests_to_add_or_update": [
+          "Responsive browser test at 320, 375, and 390 CSS pixels asserting scrollWidth equals clientWidth.",
+          "Component layout fixture with longest select option and long preview text.",
+          "Phone keyboard/focus test proving the page does not shift horizontally."
+        ],
+        "acceptance_checks": [
+          "At 320px, 375px, and 390px content widths, document scrollWidth is no greater than clientWidth.",
+          "Every field, select, button, refusal, and preview remains fully reachable without horizontal panning.",
+          "Long text wraps and remains readable; no review or safety copy is clipped.",
+          "Desktop two-column layout remains unchanged."
+        ]
+      },
+      "dependencies_or_blockers": [],
+      "confidence": "high"
+    },
+    {
+      "id": "QA-006",
+      "test_case_id": "ANTICIPATED-01",
+      "step_ids": ["ANTICIPATED-01-04"],
+      "classification": "functional_defect",
+      "severity": "medium",
+      "title": "Anticipated work advertises a start action for a missing process definition",
+      "route": "/ask",
+      "role": "Admin (local demo session)",
+      "viewport": "desktop and phone 390x844",
+      "observed_behavior": "Lease Renewals rendered Start a test run. Clicking it showed Starting and then Test run could not be started; the local POST to /api/process-definitions/lease-renewal/test-runs returned 404 because that definition did not exist in the emulator.",
+      "expected_behavior": "A supported anticipated item should start an isolated test run and offer a View the test run destination. If the process definition is absent, the lane should render the documented read-only Open the space link rather than a known-failing start button.",
+      "reproduction_steps": [
+        "Start localhost with Firestore pointed at an empty/seeded demo emulator that lacks process_definitions/lease-renewal.",
+        "Sign in as local-demo Admin and open Console.",
+        "In Anticipated work, click Lease Renewals Start a test run.",
+        "Observe the inline failure and the 404 local request."
+      ],
+      "evidence": [
+        "Rendered Starting followed by Test run could not be started.",
+        "Local dev log: POST /api/process-definitions/lease-renewal/test-runs 404.",
+        "ConsoleView computes available definitionIds but buildAnticipatedWork returns the static launch-space processDefinitionId without reconciling availability."
+      ],
+      "user_impact": "The primary one-click action in Anticipated work is a dead end in a valid local/demo state, reducing trust in whether supported work is actually startable.",
+      "safety_impact": "The failure is safely contained and starts no external work, but misleading executable-looking controls weaken the app's action-readiness contract.",
+      "likely_code_areas": [
+        "components/console/ConsoleView.tsx",
+        "components/console/ConsoleAnticipatedWork.tsx",
+        "components/console/StartTestRunButton.tsx",
+        "lib/anticipation/projection.ts",
+        "lib/firestore/workflows.ts",
+        "app/api/process-definitions/[definitionId]/test-runs/route.ts",
+        "tests/unit/console-anticipated-work.test.tsx"
+      ],
+      "implementation_recommendation": {
+        "change_summary": "Reconcile each anticipated group's static processDefinitionId against the definitions actually loaded for the signed-in user before choosing the start control.",
+        "behavioral_requirements": [
+          "Render Start a test run only when the process definition exists, is in scope, and the user can start runs.",
+          "Render Open the space when the definition is absent, matching the component's documented fallback.",
+          "On a genuine post-render 404/stale deletion, replace the action with the fallback and explain that setup is incomplete.",
+          "On success, render Test run started and a local View the test run link."
+        ],
+        "files_or_components_to_inspect": [
+          "components/console/ConsoleView.tsx",
+          "components/console/ConsoleAnticipatedWork.tsx",
+          "lib/anticipation/projection.ts",
+          "tests/unit/console-anticipated-work.test.tsx"
+        ],
+        "data_or_api_contract_changes": [
+          "No route change is required if availability is injected into the view model; alternatively add an explicit startable boolean derived from the loaded definition set."
+        ],
+        "permission_and_safety_constraints": [
+          "Keep scope filtering and edit capability checks before rendering or invoking start.",
+          "Test runs must remain simulation-only with no send or system-of-record write.",
+          "Do not auto-seed or create a process merely because Console was opened."
+        ],
+        "edge_cases_to_handle": [
+          "Definition absent",
+          "Definition becomes unavailable between render and click",
+          "Out-of-scope definition",
+          "Viewer lacks edit capability",
+          "Retired definition",
+          "Repeated Start clicks",
+          "Phone error and fallback layout"
+        ],
+        "tests_to_add_or_update": [
+          "Component test: missing definition renders Open the space and no Start button.",
+          "Component test: available definition starts once and renders the run link.",
+          "Route integration test for a stale/missing definition with actionable inline fallback copy.",
+          "Browser test against a freshly seeded emulator."
+        ],
+        "acceptance_checks": [
+          "Without lease-renewal in process_definitions, Console shows Open the space and makes no POST.",
+          "With a valid definition, one click creates one emulator-backed test run and renders View the test run.",
+          "Repeated clicks cannot create duplicate runs while pending.",
+          "No external write, send, or live process start occurs."
+        ]
+      },
+      "dependencies_or_blockers": [],
+      "confidence": "high"
+    },
+    {
+      "id": "QA-007",
+      "test_case_id": "QUEUE-01",
+      "step_ids": ["QUEUE-01-02"],
+      "classification": "safety_defect",
+      "severity": "critical",
+      "title": "Demo fixture commands can target live Firestore when the emulator host exists only in .env.local",
+      "route": "localhost setup via npm run seed:demo",
+      "role": "authenticated owner CLI and ADC context",
+      "viewport": "not applicable (CLI isolation boundary)",
+      "observed_behavior": "With FIRESTORE_EMULATOR_HOST present in .env.local but absent from the PowerShell process environment, npm run seed:demo reported creating synthetic records. The running app's emulator-backed Approval Queue then contained zero general queue items. Source inspection shows the seed/reset modules read .env.local for project IDs but neither propagate nor require FIRESTORE_EMULATOR_HOST before initializing Firebase Admin, so the command likely wrote the synthetic fixtures to the configured live Firestore project.",
+      "expected_behavior": "Demo seed, reset, and operator commands must fail closed before Firebase initialization unless their effective Firestore target is an explicitly allowed localhost emulator. They must print the non-sensitive target, never infer permission to write production from a project ID, and require a separately designed and owner-approved live workflow for any live mutation.",
+      "reproduction_steps": [
+        "Configure .env.local with a production project identifier and FIRESTORE_EMULATOR_HOST=127.0.0.1:8080.",
+        "Start the emulator and local app so the app runtime inherits .env.local.",
+        "From a new PowerShell process where $env:FIRESTORE_EMULATOR_HOST is unset, run npm run seed:demo.",
+        "Observe that the command reports seeded records instead of refusing to run.",
+        "Inspect the app-visible emulator and observe that the expected general Approval Queue fixtures are absent."
+      ],
+      "evidence": [
+        "PowerShell inspection after seeding: FIRESTORE_EMULATOR_HOST=<unset>.",
+        "npm run seed:demo reported seeded synthetic SOP, template, placeholder, tool, and approval-queue records.",
+        "Rendered emulator-backed Approval Queue: 0 queue items and an empty All items view.",
+        "scripts/seed-demo-records.mjs and scripts/demo-firestore.mjs pass a project ID to Firebase Admin but do not set or validate the emulator host.",
+        "No cleanup or deletion was attempted after discovery."
+      ],
+      "user_impact": "A routine local QA setup command can silently mutate the client production database, contaminate operational views, and undermine confidence in all local-fixture workflows.",
+      "safety_impact": "This is a production-write isolation breach. Although the emitted fixtures are synthetic, the command crossed the repository's system-of-record and live-write approval gates without an explicit live flag or owner authorization.",
+      "likely_code_areas": [
+        "scripts/seed-demo-records.mjs",
+        "scripts/demo-firestore.mjs",
+        "scripts/reset-demo-records.mjs",
+        "scripts/demo-operator.mjs",
+        "package.json",
+        "tests/unit/demo-operator.test.mjs"
+      ],
+      "implementation_recommendation": {
+        "change_summary": "Centralize a fail-closed demo Firestore target guard and require every seed/reset/operator entry point to establish and verify a localhost emulator before Firebase Admin is initialized.",
+        "behavioral_requirements": [
+          "Resolve the effective emulator host once, using an allowlisted local value and never merely a project ID.",
+          "Refuse to run when FIRESTORE_EMULATOR_HOST is absent, malformed, non-local, or the emulator is unreachable.",
+          "Print the effective non-secret host, port, and demo project before any write.",
+          "Make seed and reset idempotent inside the emulator and impossible against production by default.",
+          "Keep any future live maintenance command separate, explicitly named, owner-approved, and governed by the Action Registry."
+        ],
+        "files_or_components_to_inspect": [
+          "scripts/seed-demo-records.mjs",
+          "scripts/demo-firestore.mjs",
+          "scripts/reset-demo-records.mjs",
+          "scripts/demo-operator.mjs",
+          "package.json",
+          "tests/unit/demo-operator.test.mjs"
+        ],
+        "data_or_api_contract_changes": [
+          "No product API contract change is required.",
+          "The CLI contract should require a verified localhost emulator target and expose that target in counts-only startup output."
+        ],
+        "permission_and_safety_constraints": [
+          "Do not automatically delete or modify the suspected live fixtures as part of the fix.",
+          "Do not use a personal account or alternate project as a workaround.",
+          "Do not add a permissive --live switch to demo seed/reset commands.",
+          "Preserve the no-customer-data-in-git and no-secrets-in-output rules."
+        ],
+        "edge_cases_to_handle": [
+          "Host present only in .env.local",
+          "Host present only in the parent shell",
+          "Production project ID paired with a local emulator",
+          "IPv4 localhost, localhost name, and approved IPv6 loopback forms",
+          "Emulator configured but not listening",
+          "Child-process environment loss",
+          "Seed interrupted halfway",
+          "Repeated seed and reset invocations"
+        ],
+        "tests_to_add_or_update": [
+          "Child-process test: absent shell emulator host fails before Firebase initialization even when .env.local contains production project metadata.",
+          "Target-guard unit tests for local allowlist, malformed host, non-local host, and unreachable emulator.",
+          "Integration test: verified 127.0.0.1 emulator accepts seed and the fixtures appear only there.",
+          "Reset and demo-operator tests proving they preserve and validate the guarded target.",
+          "Regression test that production Firebase Admin initialization is never reached from demo seed/reset entry points."
+        ],
+        "acceptance_checks": [
+          "With FIRESTORE_EMULATOR_HOST unset or non-local, npm run seed:demo exits nonzero before any write and names the required corrective action.",
+          "With a verified local emulator, npm run seed:demo writes the expected fixtures to the emulator and prints its target.",
+          "Stopping the emulator causes seed/reset to fail before writes rather than falling back to production.",
+          "The configured production Firestore remains unchanged during all demo seed/reset tests.",
+          "An owner-reviewed incident check determines whether the suspected synthetic live records require a separately authorized cleanup."
+        ]
+      },
+      "dependencies_or_blockers": [
+        "Owner review is required to inspect the production project and decide whether the suspected synthetic records should be removed through an authorized, narrowly scoped cleanup."
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "QA-008",
+      "test_case_id": "QUEUE-01",
+      "step_ids": ["QUEUE-01-04"],
+      "classification": "responsive_defect",
+      "severity": "medium",
+      "title": "Expanded Approval Queue alternate views overflow the phone viewport",
+      "route": "/approval-queue",
+      "role": "Admin (local demo session)",
+      "viewport": "phone 390x844",
+      "observed_behavior": "The collapsed Approval Queue fit the phone viewport, but opening Other views and selecting Write-back proposals increased document scrollWidth to 478 while clientWidth was 375. The default decision inbox and the open alternate-view panel both expanded to the oversized grid track, requiring horizontal scrolling.",
+      "expected_behavior": "Opening any alternate queue view must preserve a single-column layout within the phone viewport. Long synthetic labels, tab names, disclosure summaries, and spread rows should wrap or scroll only inside an intentional local tab strip, never widen the whole document.",
+      "reproduction_steps": [
+        "Open /approval-queue through the localhost primary navigation.",
+        "Set the browser viewport to 390x844.",
+        "Open Other views and select Write-back proposals.",
+        "Observe horizontal document scrolling and measure documentElement.scrollWidth greater than clientWidth.",
+        "Refresh to collapse the disclosure and observe that the page fits again."
+      ],
+      "evidence": [
+        "Expanded state: document scrollWidth 478, clientWidth 375, innerWidth 390.",
+        "Collapsed state after refresh: document scrollWidth 375, clientWidth 375.",
+        "Overflow inspection identified .needs-decision-inbox at width 466 and the open .panel.ui-collapse at width 466.",
+        "The phone CSS intentionally makes .ui-tablist horizontally scrollable but does not constrain the Approval Queue grid items' min-content width."
+      ],
+      "user_impact": "Phone users must pan sideways to read queue decisions and reach alternate-view content, making urgent approval work slower and increasing the risk of missed controls.",
+      "safety_impact": "The defect does not itself execute actions, but poor one-handed layout on an approval surface can increase accidental or misunderstood decision risk once inline actions are present.",
+      "likely_code_areas": [
+        "app/globals.css",
+        "components/approval/ApprovalQueue.tsx",
+        "components/approval/NeedsDecisionInboxPanel.tsx",
+        "components/approval/WritebackQueuePanel.tsx",
+        "components/approval/RenewalReviewPanel.tsx"
+      ],
+      "implementation_recommendation": {
+        "change_summary": "Constrain Approval Queue grid children and nested flex content to the available width, while retaining local horizontal scrolling only for the tab strip.",
+        "behavioral_requirements": [
+          "Set min-width: 0 on the approval shell's direct children, open disclosure content, and flex/grid row children that contain long labels.",
+          "Allow long row labels and disclosure copy to wrap with overflow-wrap where needed.",
+          "Keep risk chips and controls visible without forcing the document wider.",
+          "Keep .ui-tablist as the only intentionally horizontally scrollable region on very narrow screens.",
+          "Do not hide overflow globally or clip actionable content."
+        ],
+        "files_or_components_to_inspect": [
+          "app/globals.css",
+          "components/approval/ApprovalQueue.tsx",
+          "components/approval/NeedsDecisionInboxPanel.tsx",
+          "components/approval/WritebackQueuePanel.tsx",
+          "components/approval/RenewalReviewPanel.tsx"
+        ],
+        "data_or_api_contract_changes": ["None."],
+        "permission_and_safety_constraints": [
+          "Do not change risk ordering, inline-action eligibility, or external-write boundaries while fixing layout.",
+          "Do not use document-level overflow:hidden as a substitute for sizing the content correctly."
+        ],
+        "edge_cases_to_handle": [
+          "Collapsed and expanded disclosure",
+          "All items filters",
+          "Long renewal field labels",
+          "Long synthetic run names",
+          "Write-back approved disclosure",
+          "Blocked and High chips",
+          "320px to 400px phone widths",
+          "Browser text zoom"
+        ],
+        "tests_to_add_or_update": [
+          "Responsive browser test at 390x844 for every alternate tab with document scrollWidth no greater than clientWidth.",
+          "Long-label fixture test for inbox, renewal-review, and write-back rows.",
+          "Component/CSS regression check that the tab strip can scroll locally without widening the document."
+        ],
+        "acceptance_checks": [
+          "At 390x844, the collapsed queue and every expanded tab have document scrollWidth equal to clientWidth.",
+          "Long labels wrap without overlapping the High or Blocked chip.",
+          "All tabs remain keyboard reachable and locally scrollable when necessary.",
+          "Desktop layout and urgent-first ordering remain unchanged."
+        ]
+      },
+      "dependencies_or_blockers": [],
+      "confidence": "high"
+    },
+    {
+      "id": "QA-009",
+      "test_case_id": "MAINT-01",
+      "step_ids": ["MAINT-01-04"],
+      "classification": "functional_defect",
+      "severity": "medium",
+      "title": "Maintenance permits ticket creation while required-input blockers remain",
+      "route": "/maintenance",
+      "role": "Admin (local demo session)",
+      "viewport": "desktop and phone 390x844",
+      "observed_behavior": "Building a draft with no issue description and no selected unit rendered two clear Before submitting blockers, but the Create ticket button remained enabled. The client sends that blocked draft unchanged, and the server creation schema accepts description as an empty string and unit as null. The audit did not click Create ticket or persist a record.",
+      "expected_behavior": "A blocker-bearing draft must not be persistable as a tracked ticket. The Create ticket control should remain disabled with an accessible explanation until an issue exists and a unit suggestion has been explicitly selected; the server must independently reject incomplete input.",
+      "reproduction_steps": [
+        "Open Maintenance Work Order Intake from Spaces.",
+        "Leave Issue empty and do not select a unit suggestion.",
+        "Click Build work-order draft; this is a client-only preview action.",
+        "Observe both missing-input blockers in the preview.",
+        "Observe that Create ticket is still enabled; do not click it against live or uncertain data."
+      ],
+      "evidence": [
+        "Rendered blockers: Add an issue description or voice note; Match the location to a unit.",
+        "Rendered Create ticket button was enabled in the same preview.",
+        "MaintenanceCapture.createTicket posts draft.description and draft.unit without checking draft.blockers.",
+        "CreateMaintenanceTicketInputSchema defaults description to an empty string and unit to null."
+      ],
+      "user_impact": "Operators can create noisy, unactionable tickets lacking both the reported problem and a verified location, forcing manual cleanup and weakening queue trust.",
+      "safety_impact": "The write remains inside the app plane and does not create a RentVine work order, but incomplete records can generate audit activity and notification noise and may later be mistaken for execution-ready work.",
+      "likely_code_areas": [
+        "components/maintenance/MaintenanceCapture.tsx",
+        "lib/maintenance/work-order-draft.ts",
+        "app/api/maintenance/tickets/route.ts",
+        "lib/firestore/maintenance-tickets.ts",
+        "tests/unit/maintenance-capture.test.tsx",
+        "tests/unit/maintenance-tickets.test.ts"
+      ],
+      "implementation_recommendation": {
+        "change_summary": "Enforce required issue and verified-unit invariants in both the Maintenance UI and ticket API before any app-plane ticket write.",
+        "behavioral_requirements": [
+          "Disable Create ticket whenever draft.blockers is non-empty and associate the control with visible blocker guidance.",
+          "Require a non-empty description and a non-null verified unit in the server input schema or a dedicated ticket-readiness assertion.",
+          "Preserve the ability to preview a blocked draft so missing inputs remain visible.",
+          "If a selected unit is edited or cleared, invalidate the selection and disable creation immediately.",
+          "On a stale or crafted POST, return a specific 400 response without creating ticket, activity, or notification records."
+        ],
+        "files_or_components_to_inspect": [
+          "components/maintenance/MaintenanceCapture.tsx",
+          "lib/maintenance/work-order-draft.ts",
+          "app/api/maintenance/tickets/route.ts",
+          "lib/firestore/maintenance-tickets.ts",
+          "tests/unit/maintenance-capture.test.tsx",
+          "tests/unit/maintenance-tickets.test.ts"
+        ],
+        "data_or_api_contract_changes": [
+          "Tighten CreateMaintenanceTicketInputSchema so description is trimmed and non-empty and unit is a required verified object.",
+          "Return a stable validation error shape for blocker-bearing or incomplete ticket creation requests."
+        ],
+        "permission_and_safety_constraints": [
+          "Keep ticket creation app-plane only and preserve the human approval gate before any RentVine write.",
+          "Do not silently auto-select a unit from raw typeahead text.",
+          "Do not persist a partial ticket merely to preserve form progress; use client state or a separately specified draft record if needed."
+        ],
+        "edge_cases_to_handle": [
+          "Whitespace-only issue",
+          "Voice transcript present with no typed note",
+          "Exact unit text typed but suggestion not selected",
+          "Selected unit edited after selection",
+          "Low-confidence or Needs Review match",
+          "Repeated Create clicks",
+          "Stale client against tightened API validation",
+          "Refresh after blocker correction"
+        ],
+        "tests_to_add_or_update": [
+          "Component test: blocker-bearing draft renders disabled Create ticket and guidance.",
+          "Component test: typed exact label without selecting remains blocked.",
+          "Component test: valid description plus selected synthetic unit enables exactly one create request.",
+          "Route/schema tests rejecting empty description and null unit before Firestore is called.",
+          "Persistence test confirming rejected requests create no ticket, activity, or notification documents."
+        ],
+        "acceptance_checks": [
+          "Empty or unmatched drafts cannot invoke POST /api/maintenance/tickets.",
+          "A crafted incomplete POST returns 400 and creates zero emulator documents.",
+          "Selecting a verified synthetic unit and adding an issue enables Create ticket.",
+          "One valid click creates one emulator-backed ticket while RentVine remains untouched.",
+          "Clearing or editing the selected unit disables creation again."
+        ]
+      },
+      "dependencies_or_blockers": [],
+      "confidence": "high"
+    },
+    {
+      "id": "QA-010",
+      "test_case_id": "HISTORY-01",
+      "step_ids": ["HISTORY-01-01", "HISTORY-01-02"],
+      "classification": "functional_defect",
+      "severity": "medium",
+      "title": "Property decision history is orphaned from renewal records and runs",
+      "route": "/lease-renewal and /lease-renewal/runs/sim-renewal-001",
+      "role": "Admin (local demo session)",
+      "viewport": "desktop",
+      "observed_behavior": "A synthetic renewal record and the reconciliation run exposed workflow details, evidence, flag resolution, and flag-scoped activity but no rendered link to Property decision history. The repository contains an Admin-only dynamic history page, yet no application component links to its route, making it undiscoverable without constructing a property key manually.",
+      "expected_behavior": "An authorized user should be able to open property-scoped decision history from a renewal record or reconciliation run using a clearly named link. The link must carry the canonical property key internally, preserve scope and Admin checks, and never require users to infer or type dynamic route identifiers.",
+      "reproduction_steps": [
+        "Open Spaces, then Lease Renewals.",
+        "Open a synthetic renewal record from Needs your attention.",
+        "Inspect the record sections and actions for a decision-history destination.",
+        "Open Approval Queue and navigate to the synthetic reconciliation run.",
+        "Inspect the run summary, flags, evidence links, resolved disclosure, and activity; observe that no property-history link exists."
+      ],
+      "evidence": [
+        "Renewal record exposed no history link.",
+        "Reconciliation run exposed flag-scoped Decision history but no property-scoped link.",
+        "Repository search found the Property decision history page but no href to /lease-renewal/property/[propertyKey].",
+        "The audit did not bypass the missing UI by constructing the route."
+      ],
+      "user_impact": "Admins cannot discover the cross-run property audit trail from the work they are reviewing, so prior decisions may be missed and the existing history feature provides no practical value.",
+      "safety_impact": "The authorization boundary remains intact, but an inaccessible audit trail makes it harder to verify who decided what before later approval or write-back authorization.",
+      "likely_code_areas": [
+        "app/lease-renewal/property/[propertyKey]/page.tsx",
+        "components/lease-renewal/LeaseRenewalRunClient.tsx",
+        "components/lease-renewal/flag-actions.tsx",
+        "app/lease-renewal/lease/[leaseId]/page.tsx",
+        "lib/lease-renewal/property-repository.ts"
+      ],
+      "implementation_recommendation": {
+        "change_summary": "Add authorized, canonical property-history links to the renewal record and unambiguous reconciliation-run contexts, with an honest unavailable state when no property key can be derived.",
+        "behavioral_requirements": [
+          "Render View decision history on renewal records that have a canonical property key.",
+          "Render the same destination from a reconciliation flag only when its source trigger maps unambiguously to one property.",
+          "Omit or disable the destination with specific copy for name-joined or ambiguous flags.",
+          "Keep the destination Admin-only and preserve renewals space checks.",
+          "Return users to the originating record or run, not only the generic Renewals list."
+        ],
+        "files_or_components_to_inspect": [
+          "app/lease-renewal/property/[propertyKey]/page.tsx",
+          "components/lease-renewal/LeaseRenewalRunClient.tsx",
+          "components/lease-renewal/flag-actions.tsx",
+          "app/lease-renewal/lease/[leaseId]/page.tsx",
+          "lib/lease-renewal/property-repository.ts"
+        ],
+        "data_or_api_contract_changes": [
+          "Expose or derive the canonical property key in the client-safe record/run view model without leaking addresses into value-free summary surfaces.",
+          "Optionally carry an origin query parameter or route state for the Back destination."
+        ],
+        "permission_and_safety_constraints": [
+          "Retain requirePageSpaceAccess(renewals) and manageAdmin enforcement on property history.",
+          "Never construct a link for ambiguous source-trigger-to-property mappings.",
+          "Do not expose property keys, addresses, reasons, or values in global summaries or notifications."
+        ],
+        "edge_cases_to_handle": [
+          "No history",
+          "One entry",
+          "Multiple entries across runs",
+          "Name-joined field with no property",
+          "Ambiguous source trigger",
+          "Long reason",
+          "History read unavailable",
+          "Phone navigation and Back behavior"
+        ],
+        "tests_to_add_or_update": [
+          "Component test: canonical property record renders a correctly encoded history link.",
+          "Component test: ambiguous or missing property mapping renders no unsafe link and explains why.",
+          "Authorization tests for Admin, scoped non-Admin, and out-of-scope users.",
+          "Browser test navigating record to history and back across empty and populated fixtures.",
+          "Responsive test for long reasons and multiple entries."
+        ],
+        "acceptance_checks": [
+          "From a synthetic renewal record, View decision history opens the correct property history without manually editing the URL.",
+          "Entries are oldest-to-newest, value-free, and distinguish resolution from write-back approval.",
+          "No-history and unavailable states are explicit.",
+          "Ambiguous flags do not link to another property's history.",
+          "Back returns to the originating renewal context on desktop and phone."
+        ]
+      },
+      "dependencies_or_blockers": [],
+      "confidence": "high"
+    },
+    {
+      "id": "QA-011",
+      "test_case_id": "MAINT-01",
+      "step_ids": ["MAINT-01-05", "SAFETY-01-05"],
+      "classification": "safety_defect",
+      "severity": "high",
+      "title": "Maintenance photo upload bypasses its closed Action Registry gate",
+      "route": "/maintenance and POST /api/maintenance/photo",
+      "role": "Admin (local demo session)",
+      "viewport": "desktop and phone 390x844",
+      "observed_behavior": "Maintenance exposed Add / take photo with no target preview or gate warning. In the audited localhost configuration, IMAGE_STORE resolved to drive and the non-secret folder/DWD configuration names were populated. Selecting a file would POST to a route that directly creates the Drive-backed image store and calls put(); it never checks the Action Registry entry, which is Needs Permission and production_allowed:false. No file was selected and no upload was attempted.",
+      "expected_behavior": "The upload control and route must fail closed while google_drive.maintenance_photo.store is not executable. Once a future owner-approved gate opens, the UI must preview filename, MIME type, and target in-boundary folder, require the authorized user action, and enforce the same registry decision server-side before uploading.",
+      "reproduction_steps": [
+        "Start localhost with IMAGE_STORE=drive and the maintenance Drive/DWD configuration present.",
+        "Open Spaces, then Maintenance Work Order Intake.",
+        "Observe the Add / take photo control and the absence of a target preview or closed-gate message; do not select a file.",
+        "Reconcile google_drive.maintenance_photo.store in the Action Registry and observe Needs Permission with production_allowed:false.",
+        "Inspect POST /api/maintenance/photo and observe that it calls the configured store without registry enforcement."
+      ],
+      "evidence": [
+        "Rendered control: Add / take photo; no Drive target, preview, approval, or unavailable message.",
+        "Non-secret environment posture: IMAGE_STORE, maintenance folder, DWD service-account, and DWD subject configuration were present.",
+        "Action Registry entry google_drive.maintenance_photo.store: readiness Needs Permission; production_allowed false.",
+        "The registry preview schema requires filename, MIME type, and target folder before upload.",
+        "app/api/maintenance/photo/route.ts does not call isActionExecutable and immediately invokes store.put after payload validation."
+      ],
+      "user_impact": "A field operator can unknowingly create a live client-Drive file from what appears to be a normal local capture control, without seeing where it will be stored or whether the action is approved.",
+      "safety_impact": "This bypasses the central external-action readiness gate and can write customer media to a live client Drive folder despite production_allowed:false. It also defeats the localhost audit's non-live isolation expectation.",
+      "likely_code_areas": [
+        "components/maintenance/MaintenanceCapture.tsx",
+        "app/api/maintenance/photo/route.ts",
+        "lib/maintenance/image-store.ts",
+        "lib/integrations/action-registry-seed.ts",
+        "lib/integrations/action-readiness.ts",
+        "lib/config/server.ts",
+        "tests/unit/maintenance-image-store.test.ts",
+        "tests/unit/maintenance-capture.test.tsx"
+      ],
+      "implementation_recommendation": {
+        "change_summary": "Enforce the Drive photo Action Registry gate in both the rendered control and the upload route, and add the registry-defined preview before any permitted external write.",
+        "behavioral_requirements": [
+          "Hide or disable Add / take photo with explicit unavailable copy while the action is not executable.",
+          "Check isActionExecutable or the canonical equivalent server-side before reading or storing the payload.",
+          "When the gate eventually opens, render filename, MIME type, and a safe target-folder label before the user confirms upload.",
+          "Return a typed closed-gate response without constructing a Drive client or uploading bytes.",
+          "Force the stub store for local-demo sessions unless an explicit, separately approved live-upload test protocol is active."
+        ],
+        "files_or_components_to_inspect": [
+          "components/maintenance/MaintenanceCapture.tsx",
+          "app/api/maintenance/photo/route.ts",
+          "lib/maintenance/image-store.ts",
+          "lib/integrations/action-registry-seed.ts",
+          "lib/integrations/action-readiness.ts",
+          "lib/config/server.ts"
+        ],
+        "data_or_api_contract_changes": [
+          "Add a safe readiness/preview response that exposes only action status and a non-sensitive folder label, never credentials or a raw customer path.",
+          "Use a stable needs-permission error type for POST attempts while the registry gate is closed."
+        ],
+        "permission_and_safety_constraints": [
+          "Do not open production_allowed as part of this defect fix.",
+          "Do not upload a test file to prove the closed gate; assert that no Drive client/write occurs.",
+          "Preserve pmikcmetro.com DWD identity and the in-boundary folder requirement for any future approved execution.",
+          "Never print folder IDs, credentials, customer images, or image bytes in logs or audit output."
+        ],
+        "edge_cases_to_handle": [
+          "Local demo with IMAGE_STORE=drive",
+          "Gate closed with folder configured",
+          "Gate open but folder missing",
+          "Gate changes between preview and upload",
+          "Oversized or unsupported file",
+          "Repeated file selection",
+          "Upload failure after approval",
+          "Phone camera capture"
+        ],
+        "tests_to_add_or_update": [
+          "Route test: closed registry gate returns typed refusal before createMaintenanceImageStore or put is called.",
+          "Component test: closed gate renders unavailable copy and no actionable file input.",
+          "Local-demo configuration test forcing stub or refusing Drive without explicit approved protocol.",
+          "Preview contract tests for filename, MIME type, and safe folder label.",
+          "Future open-gate integration test with an injected fake store proving one confirmed upload and no duplicate."
+        ],
+        "acceptance_checks": [
+          "With production_allowed:false, /maintenance exposes no live upload action and POST creates zero Drive files.",
+          "A crafted POST while closed returns the stable gate error before any Drive API call.",
+          "Local demo cannot resolve to a live Drive store by ordinary .env.local configuration alone.",
+          "When separately approved and opened, the user sees the registry-required preview before one upload.",
+          "RentVine, email-send, and other external boundaries remain unchanged."
+        ]
+      },
+      "dependencies_or_blockers": [
+        "The action must remain closed until the required Drive permission and owner-approved execution protocol are documented in the Action Registry."
+      ],
+      "confidence": "high"
+    }
+  ],
   "final_report_requirements": [
     "State the exact localhost URL, commit, pre-existing worktree state, authenticated role, tested viewports, and proven data-isolation mode.",
     "List the authentication steps completed and distinguish CLI or ADC authentication from Firebase end-user and Firebase CLI authentication.",
@@ -811,14 +2053,231 @@
     "Do not make the recommended product changes during this audit."
   ],
   "final_report": {
-    "generated_at": null,
-    "overall_assessment": null,
-    "criteria_summary": null,
-    "confirmed_working": [],
-    "recommended_changes_in_priority_order": [],
-    "correctly_enforced_boundaries": [],
-    "blocked_or_unproven_criteria": [],
-    "documentation_mismatches": [],
-    "outside_model_handoff_ready": false
+    "generated_at": "2026-07-13T06:30:26.0554011-05:00",
+    "overall_assessment": "Not release-ready. The localhost application was authenticated and exercised across all advertised areas, but the audit found one critical fixture-isolation breach, three high-severity safety/attention defects, seven medium defects, and a failed isolation startup gate. The most urgent action is owner-led incident review of the likely synthetic live-Firestore writes; no cleanup was attempted. Product remediation should then close the demo Firestore guard, Gmail category normalization, Maintenance Drive Action Registry enforcement, and Notifications false-all-clear behavior before broader interactive testing. No product code, production data, deployment, commit, or external send was intentionally changed by this audit.",
+    "criteria_summary": {
+      "browser_step_counts": {
+        "pass": 24,
+        "fail": 16,
+        "blocked_auth": 0,
+        "blocked_safety": 4,
+        "blocked_data": 8,
+        "not_applicable": 0,
+        "not_run": 0,
+        "total": 52
+      },
+      "startup_and_authentication": "6 passed, ISOLATION-01 failed, and Firebase CLI authentication was not applicable. CLI/ADC used josiah@pmikcmetro.com; the rendered app used documented local-demo Admin auth, not Firebase end-user auth.",
+      "areas": [
+        {
+          "id": "SMOKE-01",
+          "status": "fail",
+          "summary": "Shell navigation and recovery passed; live-backed Ask was safely blocked and Dictate lifecycle feedback failed."
+        },
+        {
+          "id": "RENEWAL-01",
+          "status": "fail",
+          "summary": "Synthetic resolution, authorization separation, skip, and phone decider worked; live review was safely blocked and High resolution failed at native confirmation."
+        },
+        {
+          "id": "RBAC-01",
+          "status": "blocked_safety",
+          "summary": "Rendered role/scope separation passed, but no live teammate claims were mutated and no disposable scoped Firebase Auth user existed."
+        },
+        {
+          "id": "ATTENTION-01",
+          "status": "fail",
+          "summary": "Coverage and value-free standing summaries worked; Notifications falsely declared all caught up and unread/digest fixtures were absent."
+        },
+        {
+          "id": "GMAIL-01",
+          "status": "fail",
+          "summary": "Read gating, structured preview, no-Send boundary, and exact exclusion worked; a rephrased exclusion bypassed the gate and phone layout overflowed."
+        },
+        {
+          "id": "ANTICIPATED-01",
+          "status": "fail",
+          "summary": "Families, waiting states, and no-schedule copy worked; a missing process definition still rendered a start action that returned 404."
+        },
+        {
+          "id": "QUEUE-01",
+          "status": "fail",
+          "summary": "Urgent-first default and full-surface boundaries worked; safe inline fixtures were absent and expanded phone views overflowed."
+        },
+        {
+          "id": "MAINT-01",
+          "status": "fail",
+          "summary": "Synthetic unit matching, refresh/Back, phone layout, and RentVine/no-send copy worked; incomplete tickets remained creatable and the photo route bypassed a closed registry gate."
+        },
+        {
+          "id": "HISTORY-01",
+          "status": "fail",
+          "summary": "Property history was unreachable from rendered renewal records/runs, so its empty, populated, long-content, and phone states were unproven."
+        },
+        {
+          "id": "CROSSCUT-01",
+          "status": "fail",
+          "summary": "Semantic structure, visible focus, recovery copy, and most responsive flows were sound; coherence, lifecycle feedback, failure-prone actions, and two phone overflow cases failed."
+        },
+        {
+          "id": "SAFETY-01",
+          "status": "fail",
+          "summary": "Human send authority, renewal writeback separation, value-free summaries, and visible uncertainty held; the Maintenance Drive action did not honor its registry gate."
+        }
+      ]
+    },
+    "confirmed_working": [
+      "Managed-org authentication completed with josiah@pmikcmetro.com; ADC and the budget guard passed before live-capable reads.",
+      "The localhost shell authenticated in documented local-demo Admin mode and primary navigation, browser Back, refresh, and recovery remained usable.",
+      "Synthetic renewal resolution and write-back authorization were distinct emulator-backed decisions; no operating-Sheet or RentVine write executed.",
+      "Renewal one-card phone review showed one item with progress and no horizontal overflow.",
+      "Gmail Hub kept mailbox read disabled, exposed no Send control, and generated only a local structured preview.",
+      "Approval Queue defaulted to one urgent-first decision list and placed alternate views under a disclosure.",
+      "Maintenance unit typeahead used deterministic synthetic candidates, never auto-selected uncertain text, and made unmatched state explicit.",
+      "Console, Notifications, Approval Queue rollups, and metrics remained value-free; detailed values stayed on scoped record/run pages.",
+      "Blocked and unsupported states used visible uncertainty rather than invented operational work.",
+      "Typecheck and 51 targeted tests passed; lint completed with no errors."
+    ],
+    "recommended_changes_in_priority_order": [
+      {
+        "priority": 1,
+        "finding_id": "QA-007",
+        "severity": "critical",
+        "change": "Fail-close every demo seed/reset/operator entry point on a verified local emulator and conduct an owner-authorized incident review of the suspected synthetic production records."
+      },
+      {
+        "priority": 2,
+        "finding_id": "QA-004",
+        "severity": "high",
+        "change": "Replace free-text exact display-label exclusion checks with canonical category IDs, normalized aliases, and a fail-closed subject/facts scan before any model call."
+      },
+      {
+        "priority": 3,
+        "finding_id": "QA-011",
+        "severity": "high",
+        "change": "Enforce google_drive.maintenance_photo.store readiness in both UI and route, keep it closed, and require the registry-defined preview before any future approved upload."
+      },
+      {
+        "priority": 4,
+        "finding_id": "QA-003",
+        "severity": "high",
+        "change": "Use the same full needs-decision gatherer for Notifications and Console so a nonzero decision backlog can never coexist with an all-clear message."
+      },
+      {
+        "priority": 5,
+        "finding_id": "QA-009",
+        "severity": "medium",
+        "change": "Disable and server-reject maintenance ticket creation until an issue and explicitly selected verified unit satisfy all draft blockers."
+      },
+      {
+        "priority": 6,
+        "finding_id": "QA-006",
+        "severity": "medium",
+        "change": "Reconcile anticipated process IDs against loaded definitions and render Open the space instead of a start button when the definition is absent."
+      },
+      {
+        "priority": 7,
+        "finding_id": "QA-002",
+        "severity": "medium",
+        "change": "Replace native window.confirm with an accessible in-app confirmation dialog that preserves the High-severity gate and supports reliable recovery."
+      },
+      {
+        "priority": 8,
+        "finding_id": "QA-010",
+        "severity": "medium",
+        "change": "Link authorized, unambiguous renewal records and run flags to property decision history and preserve a safe Back destination."
+      },
+      {
+        "priority": 9,
+        "finding_id": "QA-005",
+        "severity": "medium",
+        "change": "Constrain Gmail Hub grid/form children and long selects to the phone viewport without hiding content globally."
+      },
+      {
+        "priority": 10,
+        "finding_id": "QA-008",
+        "severity": "medium",
+        "change": "Set min-width:0 and wrapping rules on Approval Queue grid/flex children while keeping only the tab strip locally scrollable."
+      },
+      {
+        "priority": 11,
+        "finding_id": "QA-001",
+        "severity": "medium",
+        "change": "Add explicit accessible recording, processing, success, empty, and error lifecycle feedback to Dictate."
+      }
+    ],
+    "correctly_enforced_boundaries": [
+      "No personal Google identity appeared; CLI/ADC authentication used the pmikcmetro.com account.",
+      "Firebase end-user authentication and Firebase CLI authentication were kept distinct and were not invoked unnecessarily.",
+      "No email Send control appeared and no email was sent or scheduled.",
+      "Gmail mailbox read remained explicitly disabled in the Hub.",
+      "Renewal resolution, write-back authorization, and actual Sheet/RentVine execution remained separate states.",
+      "Live Ask, live renewal review, live role/scope mutation, and live photo upload were not clicked when privacy or mutation isolation was not proven.",
+      "Value-free global summaries omitted addresses, values, and free-text reasons.",
+      "Blocked renewal conflicts and unmatched maintenance units surfaced uncertainty instead of inventing a value or match."
+    ],
+    "blocked_or_unproven_criteria": [
+      {
+        "step_ids": ["SMOKE-01-03", "RENEWAL-01-01"],
+        "status": "blocked_safety",
+        "reason": "Ask and live renewal review could expose configured client sources; synthetic supporting flows were used instead."
+      },
+      {
+        "step_ids": ["RBAC-01-02", "RBAC-01-04"],
+        "status": "blocked_safety",
+        "reason": "Scope change/restore would mutate live Firebase Auth claims for real teammates."
+      },
+      {
+        "step_ids": ["RBAC-01-03", "RBAC-01-05"],
+        "status": "blocked_data",
+        "reason": "No disposable approved-domain scoped Firebase Auth user existed for denial and phone checks."
+      },
+      {
+        "step_ids": ["ATTENTION-01-04", "ATTENTION-01-05"],
+        "status": "blocked_data",
+        "reason": "No isolated unread event or qualifying team-review digest fixture rendered."
+      },
+      {
+        "step_ids": ["QUEUE-01-02", "QUEUE-01-03"],
+        "status": "blocked_data",
+        "reason": "The emulator had no eligible Low/Medium general row, self-assigned row, or awaiting-writeback fixture; no new mutation was manufactured after the isolation incident."
+      },
+      {
+        "step_ids": ["MAINT-01-03"],
+        "status": "blocked_data",
+        "reason": "Zero tickets meant no assignment picker or approved-user roster was reachable."
+      },
+      {
+        "step_ids": ["HISTORY-01-02"],
+        "status": "blocked_data",
+        "reason": "The missing rendered navigation path prevented safe access to empty, populated, long-reason, refresh, and phone history states."
+      }
+    ],
+    "documentation_mismatches": [
+      {
+        "finding_id": "QA-007",
+        "mismatch": "Local demo guidance presents seed/reset as emulator work, but the scripts do not propagate or require the .env.local emulator host and can initialize production Admin Firestore."
+      },
+      {
+        "finding_id": "QA-003",
+        "mismatch": "Notifications presents itself as the attention hub/all-clear source while omitting the decision gatherer that powers Console."
+      },
+      {
+        "finding_id": "QA-004",
+        "mismatch": "Gmail Hub describes categories as hard-excluded, but enforcement compares exact free-text display labels and is bypassed by equivalent wording."
+      },
+      {
+        "finding_id": "QA-006",
+        "mismatch": "Anticipated work promises a one-click test run for supported families even when the corresponding process definition is absent."
+      },
+      {
+        "finding_id": "QA-011",
+        "mismatch": "The Action Registry keeps Maintenance Drive photo storage at Needs Permission/production_allowed:false with a required preview, while the route exposes and can execute the upload without that gate or preview."
+      },
+      {
+        "finding_id": "QA-010",
+        "mismatch": "Property decision history exists as an Admin feature but no renewal record or run provides the advertised user navigation path."
+      }
+    ],
+    "outside_model_handoff_ready": true
   }
 }
