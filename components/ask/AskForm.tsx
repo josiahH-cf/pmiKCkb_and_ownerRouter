@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useAudioRecorder } from "@/components/hooks/useAudioRecorder";
 import { SourceStateBanner } from "@/components/source-state-banner/SourceStateBanner";
 import { detectProcess } from "@/lib/processes/intent";
@@ -60,6 +60,8 @@ export function AskForm({
   const [isCapturing, setIsCapturing] = useState(false);
   const [isDetecting, setIsDetecting] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [dictationStatus, setDictationStatus] = useState("");
+  const dictateButtonRef = useRef<HTMLButtonElement>(null);
 
   const showProcessPicker = canStartSimulation && processes.length > 0;
   const willSimulate = showProcessPicker && processId !== "";
@@ -182,6 +184,7 @@ export function AskForm({
 
   async function transcribeAudio(blob: Blob) {
     setIsTranscribing(true);
+    setDictationStatus("Processing the recording…");
     try {
       const audioBase64 = await blobToBase64(blob);
       const response = await fetch("/api/ask/transcribe", {
@@ -195,27 +198,51 @@ export function AskForm({
           setQuestion((prev) =>
             [prev, payload.transcript].filter(Boolean).join(" ").trim(),
           );
+          setDictationStatus(
+            "Transcript appended to your question. Review it before submitting.",
+          );
         } else {
-          setStatusMessage("No speech detected. Try again a little closer to the mic.");
+          setDictationStatus(
+            "No speech was detected. Your typed question was preserved; try again or keep typing.",
+          );
         }
       } else {
-        setStatusMessage(
+        setDictationStatus(
           await readErrorMessage(response, "Could not transcribe the recording."),
         );
       }
     } catch {
-      setStatusMessage(
+      setDictationStatus(
         "Could not reach the transcription service. Type your question instead.",
       );
     } finally {
       setIsTranscribing(false);
+      requestAnimationFrame(() => dictateButtonRef.current?.focus());
     }
   }
 
-  const { isRecording, toggleRecording } = useAudioRecorder({
+  const {
+    isRecording,
+    phase: recorderPhase,
+    toggleRecording,
+  } = useAudioRecorder({
     onRecording: transcribeAudio,
-    onError: setStatusMessage,
-    onStatus: setStatusMessage,
+    onError: (message) => {
+      setDictationStatus(message);
+      requestAnimationFrame(() => dictateButtonRef.current?.focus());
+    },
+    onStatus: setDictationStatus,
+    onLifecycle: (phase) => {
+      if (phase === "requesting-permission") {
+        setDictationStatus("Requesting microphone permission…");
+      } else if (phase === "recording") {
+        setDictationStatus("Recording. Press Stop recording when you are finished.");
+      } else if (phase === "stopping") {
+        setDictationStatus("Stopping the recording…");
+      } else if (phase === "processing") {
+        setDictationStatus("Processing the recording…");
+      }
+    },
   });
 
   const canCapture = result ? capturableStates.has(result.source_state) : false;
@@ -232,17 +259,28 @@ export function AskForm({
           <div className="field-label-row">
             <label htmlFor="question">Question</label>
             <button
+              ref={dictateButtonRef}
+              aria-describedby="dictation-status"
               aria-pressed={isRecording}
               className="secondary-button dictate-button"
-              disabled={isTranscribing}
-              onClick={toggleRecording}
+              disabled={
+                isTranscribing ||
+                recorderPhase === "requesting-permission" ||
+                recorderPhase === "stopping" ||
+                recorderPhase === "processing"
+              }
+              onClick={() => void toggleRecording()}
               type="button"
             >
               {isRecording
                 ? "Stop recording"
-                : isTranscribing
-                  ? "Transcribing…"
-                  : "Dictate"}
+                : recorderPhase === "requesting-permission"
+                  ? "Requesting microphone…"
+                  : recorderPhase === "stopping"
+                    ? "Stopping…"
+                    : isTranscribing
+                      ? "Processing…"
+                      : "Dictate"}
             </button>
           </div>
           <textarea
@@ -257,6 +295,15 @@ export function AskForm({
           />
           <p className="muted dictate-hint">
             Type your question, or use Dictate to speak it.
+          </p>
+          <p
+            aria-atomic="true"
+            aria-live="polite"
+            className="muted dictate-status"
+            id="dictation-status"
+            role="status"
+          >
+            {dictationStatus}
           </p>
 
           {showProcessPicker ? (

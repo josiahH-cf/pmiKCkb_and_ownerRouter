@@ -42,12 +42,29 @@ export default async function NotificationsPage() {
           </section>
         ) : null}
 
+        <section className="panel" aria-label="Needs your decision">
+          <div className="notifications-lane-head">
+            <h2>Needs your decision</h2>
+            <span className="console-deck-count">{feed.decisions.count}</span>
+          </div>
+          {feed.decisions.count === 0 ? (
+            <p className="muted">{ATTENTION_LANE_META.decision.allClear}</p>
+          ) : (
+            <ul className="notifications-standing-list">
+              {feed.decisions.signals.map((signal) => (
+                <li key={signal.signal_key} data-lane={signal.lane}>
+                  <Link href={signal.href}>{signal.label}</Link>
+                  <span className="muted">{signal.detail}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
         <section className="panel" aria-label="Recent activity">
           <h2>Recent activity</h2>
           {feed.notifications.length === 0 ? (
-            <p className="muted">
-              You are all caught up. Nothing needs your attention right now.
-            </p>
+            <p className="muted">No recent event notifications.</p>
           ) : (
             <ol className="notifications-log">
               {feed.notifications.map((notification) => (

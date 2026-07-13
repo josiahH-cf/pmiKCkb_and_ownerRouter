@@ -15,7 +15,7 @@ import { ThreadSummaryPanel } from "@/components/gmail-hub/ThreadSummaryPanel";
  */
 export function GmailHubHome() {
   return (
-    <section className="content ui-stack">
+    <section className="content ui-stack gmail-hub">
       <div>
         <h1 className="section-title">Gmail hub</h1>
         <p className="muted">

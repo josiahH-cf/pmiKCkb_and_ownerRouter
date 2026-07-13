@@ -21,10 +21,44 @@ describe("MaintenanceCapture", () => {
     expect(screen.getByLabelText("Issue")).toBeInTheDocument();
     expect(screen.getByLabelText("Unit / location")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Record voice" })).toBeInTheDocument();
-    expect(screen.getByText("Add / take photo")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Photo storage is unavailable until the Drive action/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText(/photo/i, { selector: "input" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Build work-order draft" }),
     ).toBeInTheDocument();
+  });
+
+  it("requires the registry preview and explicit confirmation before an enabled upload", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async () => Response.json({ ref: "stub:fixture.jpg" }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <MaintenanceCapture
+        reporterUid="u"
+        photoAction={{
+          actionKey: "google_drive.maintenance_photo.store",
+          executable: true,
+          message: "Review before upload.",
+          targetLabel: "Safe maintenance folder",
+        }}
+      />,
+    );
+
+    const input = screen.getByLabelText("Choose / take photo");
+    await user.upload(
+      input,
+      new File(["fixture"], "fixture.jpg", { type: "image/jpeg" }),
+    );
+
+    expect(screen.getByText("fixture.jpg")).toBeInTheDocument();
+    expect(screen.getByText("Safe maintenance folder")).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Confirm photo upload" }));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("builds a clean draft after matching the unit, marked simulation-only", async () => {
@@ -86,5 +120,33 @@ describe("MaintenanceCapture", () => {
       await screen.findByText("Add an issue description or voice note."),
     ).toBeInTheDocument();
     expect(screen.getByText("Match the location to a unit.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create ticket" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Create ticket" })).toHaveAttribute(
+      "aria-describedby",
+      "maintenance-ticket-blockers",
+    );
+  });
+
+  it("invalidates a ready draft when the selected unit is edited", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({ units: [{ unitId: "u1", label: "123 Main St Unit 1" }] }),
+      ),
+    );
+    render(<MaintenanceCapture reporterUid="u" />);
+
+    await user.type(screen.getByLabelText("Issue"), "Kitchen pipe is leaking");
+    await user.type(screen.getByLabelText("Unit / location"), "123 Main");
+    await user.click(await screen.findByRole("button", { name: "123 Main St Unit 1" }));
+    await user.click(screen.getByRole("button", { name: "Build work-order draft" }));
+    expect(screen.getByRole("button", { name: "Create ticket" })).toBeEnabled();
+
+    await user.type(screen.getByLabelText("Unit / location"), " edited");
+    expect(
+      screen.queryByRole("button", { name: "Create ticket" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("The work-order draft appears here.")).toBeInTheDocument();
   });
 });

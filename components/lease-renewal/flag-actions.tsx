@@ -8,7 +8,7 @@
 // This is a client module. It imports server-shaped view types with `import type` ONLY and never
 // value-imports a firebase-admin module (gotcha 4); nothing here executes a system-of-record write.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type {
@@ -69,6 +69,9 @@ export function FlagResolveForm({
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const resolveButtonRef = useRef<HTMLButtonElement>(null);
+  const requestInFlight = useRef(false);
   const acceptsSuggestedSource =
     (flag.severity === "Low" || flag.severity === "Medium") &&
     kind === "pick_source" &&
@@ -76,7 +79,7 @@ export function FlagResolveForm({
     chosenSource === flag.suggestedWinner?.source;
   const requiresFreeTextReason = !acceptsSuggestedSource;
 
-  async function submit() {
+  function requestSubmit() {
     setError(null);
     if (requiresFreeTextReason && !reason.trim()) {
       setError("A plain-English reason is required.");
@@ -90,13 +93,17 @@ export function FlagResolveForm({
       setError("Enter the corrected value.");
       return;
     }
-    if (
-      flag.severity === "High" &&
-      !window.confirm("This is a High-severity resolution. Continue?")
-    ) {
+    if (requiresAdmin) {
+      setConfirmationOpen(true);
       return;
     }
 
+    void performSubmit();
+  }
+
+  async function performSubmit() {
+    if (requestInFlight.current) return;
+    requestInFlight.current = true;
     setSubmitting(true);
     try {
       const response = await fetch("/api/lease-renewal/resolve", {
@@ -117,15 +124,19 @@ export function FlagResolveForm({
           error?: string;
         } | null;
         setError(body?.error ?? "Could not save the resolution.");
+        setConfirmationOpen(false);
         return;
       }
       setReason("");
       setReasonCode("");
       setCorrectedValue("");
+      setConfirmationOpen(false);
       router.refresh();
     } catch {
       setError("Could not reach the resolution endpoint.");
+      setConfirmationOpen(false);
     } finally {
+      requestInFlight.current = false;
       setSubmitting(false);
     }
   }
@@ -222,9 +233,25 @@ export function FlagResolveForm({
 
             {error ? <p className="lr-error">{error}</p> : null}
 
-            <button type="button" disabled={submitting} onClick={submit}>
+            <button
+              ref={resolveButtonRef}
+              type="button"
+              disabled={submitting}
+              onClick={requestSubmit}
+            >
               {submitting ? "Saving…" : flag.resolution ? "Re-resolve" : "Resolve"}
             </button>
+            {confirmationOpen ? (
+              <ResolutionConfirmationDialog
+                fieldLabel={flag.fieldLabel}
+                kindLabel={KIND_LABEL[kind]}
+                onCancel={() => setConfirmationOpen(false)}
+                onConfirm={() => void performSubmit()}
+                restoreFocusRef={resolveButtonRef}
+                severity={flag.severity === "High" ? "High" : "Blocked"}
+                submitting={submitting}
+              />
+            ) : null}
           </div>
         ) : (
           <p className="muted">An Admin must resolve High and Blocked flags.</p>
@@ -233,6 +260,85 @@ export function FlagResolveForm({
         <p className="muted">Approver or Admin access is required to resolve flags.</p>
       )}
     </>
+  );
+}
+
+function ResolutionConfirmationDialog({
+  fieldLabel,
+  kindLabel,
+  onCancel,
+  onConfirm,
+  restoreFocusRef,
+  severity,
+  submitting,
+}: Readonly<{
+  fieldLabel: string;
+  kindLabel: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+  restoreFocusRef: React.RefObject<HTMLButtonElement | null>;
+  severity: "High" | "Blocked";
+  submitting: boolean;
+}>) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const restoreFocus = restoreFocusRef.current;
+    cancelRef.current?.focus();
+    return () => restoreFocus?.focus();
+  }, [restoreFocusRef]);
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape" && !submitting) {
+      event.preventDefault();
+      onCancel();
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = Array.from(
+      dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ) ?? [],
+    );
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  return (
+    <div className="ui-dialog-backdrop">
+      <div
+        aria-describedby="resolution-confirm-description"
+        aria-labelledby="resolution-confirm-title"
+        aria-modal="true"
+        className="panel ui-confirmation-dialog"
+        onKeyDown={handleKeyDown}
+        ref={dialogRef}
+        role="dialog"
+      >
+        <h2 id="resolution-confirm-title">Confirm {severity} resolution</h2>
+        <p id="resolution-confirm-description">
+          Resolve <strong>{fieldLabel}</strong> using “{kindLabel}”? This records the
+          decision and its reason, but does not execute a write-back.
+        </p>
+        <div className="field-row">
+          <button ref={cancelRef} disabled={submitting} onClick={onCancel} type="button">
+            Cancel
+          </button>
+          <button disabled={submitting} onClick={onConfirm} type="button">
+            {submitting ? "Saving…" : "Confirm resolution"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

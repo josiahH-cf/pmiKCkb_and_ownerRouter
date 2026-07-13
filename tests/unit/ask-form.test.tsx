@@ -30,6 +30,9 @@ let fetchMock: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
+    if (url.includes("/api/ask/transcribe")) {
+      return jsonResponse({ transcript: "spoken follow-up" });
+    }
     if (url.includes("/api/ask")) return jsonResponse(ANSWER);
     if (url.includes("/test-runs")) {
       return jsonResponse(
@@ -73,6 +76,60 @@ describe("AskForm (action console)", () => {
     expect(screen.getByText(/use Dictate to speak it/)).toBeInTheDocument();
     // The action deck moved out of the ask form; its command buttons are no longer here.
     expect(screen.queryByRole("button", { name: /My approvals/ })).toBeNull();
+  });
+
+  it("announces the recorder lifecycle, appends visibly, preserves typed text, and returns focus", async () => {
+    const user = userEvent.setup();
+    installRecorder(async () => fakeStream());
+    render(<AskForm />);
+
+    const question = screen.getByLabelText("Question");
+    await user.type(question, "Keep this typed text.");
+    await user.click(screen.getByRole("button", { name: "Dictate" }));
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Recording. Press Stop recording when you are finished.",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Stop recording" }));
+    expect(
+      await screen.findByText(/Transcript appended to your question/),
+    ).toBeInTheDocument();
+    expect(question).toHaveValue("Keep this typed text. spoken follow-up");
+    expect(screen.getByRole("button", { name: "Dictate" })).toHaveFocus();
+  });
+
+  it("announces no speech without changing typed text and supports retry", async () => {
+    const user = userEvent.setup();
+    installRecorder(async () => fakeStream());
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) =>
+      String(input).includes("/api/ask/transcribe")
+        ? jsonResponse({ transcript: "" })
+        : jsonResponse(ANSWER),
+    );
+    render(<AskForm />);
+
+    const question = screen.getByLabelText("Question");
+    await user.type(question, "Original question");
+    await user.click(screen.getByRole("button", { name: "Dictate" }));
+    await user.click(screen.getByRole("button", { name: "Stop recording" }));
+    expect(await screen.findByText(/No speech was detected/)).toBeInTheDocument();
+    expect(question).toHaveValue("Original question");
+    expect(screen.getByRole("button", { name: "Dictate" })).toBeEnabled();
+  });
+
+  it("announces denied permission and restores focus to Dictate", async () => {
+    const user = userEvent.setup();
+    installRecorder(async () => {
+      throw new DOMException("denied", "NotAllowedError");
+    });
+    render(<AskForm />);
+
+    const button = screen.getByRole("button", { name: "Dictate" });
+    await user.click(button);
+    expect(
+      await screen.findByText(/Microphone unavailable or permission denied/),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(button).toHaveFocus());
   });
 
   it("asks without a process and never starts a simulation", async () => {
@@ -153,6 +210,35 @@ describe("AskForm (action console)", () => {
     ).toBeInTheDocument();
   });
 });
+
+function fakeStream() {
+  return { getTracks: () => [{ stop: vi.fn() }] } as unknown as MediaStream;
+}
+
+function installRecorder(getUserMedia: () => Promise<MediaStream>) {
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: { getUserMedia: vi.fn(getUserMedia) },
+  });
+  class FakeMediaRecorder {
+    static isTypeSupported(type: string) {
+      return type === "audio/webm;codecs=opus";
+    }
+    mimeType = "audio/webm;codecs=opus";
+    state: RecordingState = "inactive";
+    ondataavailable: ((event: BlobEvent) => void) | null = null;
+    onstop: (() => void) | null = null;
+    start() {
+      this.state = "recording";
+    }
+    stop() {
+      this.state = "inactive";
+      this.ondataavailable?.({ data: new Blob(["audio"]) } as BlobEvent);
+      this.onstop?.();
+    }
+  }
+  vi.stubGlobal("MediaRecorder", FakeMediaRecorder);
+}
 
 /** Parse the JSON body of the /api/ask call (not /api/ask/capture). */
 function askBody(mock: ReturnType<typeof vi.fn>): Record<string, unknown> {

@@ -133,7 +133,7 @@ const baseInput = {
   description: "Water under the kitchen sink",
   priority: "Emergency",
   priority_provenance: "auto-inferred" as const,
-  unit: { unitId: "u-1", label: "123 Main St #2" },
+  unit: { unitId: "u-1", label: "123 Main St #2", confidence: "Verified" as const },
 };
 
 describe("maintenance tickets", () => {

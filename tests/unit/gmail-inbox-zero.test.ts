@@ -158,7 +158,10 @@ describe("proposeRuleChangeFromFeedback", () => {
 
 describe("buildReplyDraft", () => {
   it("builds an approved-template draft carrying the review banner", () => {
-    const result = buildReplyDraft({ template: approvedTemplate() });
+    const result = buildReplyDraft({
+      template: approvedTemplate(),
+      category: "vendor",
+    });
 
     expect(result.ok).toBe(true);
     expect(result.draft?.startsWith(DRAFT_BANNER)).toBe(true);
@@ -168,6 +171,7 @@ describe("buildReplyDraft", () => {
   it("marks missing facts with the Needs Verification placeholder", () => {
     const result = buildReplyDraft({
       template: approvedTemplate(),
+      category: "vendor",
       missingFacts: ["invoice number", "due date"],
     });
 
@@ -178,6 +182,7 @@ describe("buildReplyDraft", () => {
   it("refuses non-approved reply templates", () => {
     const result = buildReplyDraft({
       template: approvedTemplate({ status: "Proposed" }),
+      category: "vendor",
     });
 
     expect(result.ok).toBe(false);

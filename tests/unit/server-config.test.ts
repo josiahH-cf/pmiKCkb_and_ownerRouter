@@ -37,6 +37,12 @@ describe("server config", () => {
     expect(readServerConfig({}).imageStore).toBe("stub");
   });
 
+  it("forces the image stub in local-demo auth even when .env requests Drive", () => {
+    expect(
+      readServerConfig({ IMAGE_STORE: "drive", LOCAL_DEMO_AUTH: "true" }).imageStore,
+    ).toBe("stub");
+  });
+
   it("forces Google Cloud STT + Drive image store in production (stubs are dev/test-only)", () => {
     vi.stubEnv("NODE_ENV", "production");
     expect(readServerConfig({ SPEECH_PROVIDER: "stub" }).speechProvider).toBe("google");

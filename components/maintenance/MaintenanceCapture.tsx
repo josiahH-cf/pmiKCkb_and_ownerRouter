@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { useAudioRecorder } from "@/components/hooks/useAudioRecorder";
 import { UnitTypeahead } from "@/components/maintenance/UnitTypeahead";
@@ -18,6 +18,7 @@ import {
   type VendorAssignmentSuggestion,
 } from "@/lib/maintenance/vendor-assignment";
 import { MAINTENANCE_PRIORITIES } from "@/lib/maintenance/constants";
+import type { MaintenancePhotoActionView } from "@/lib/maintenance/photo-action";
 
 // Maintenance capture desk (S4): a field worker reports an issue — typed note + tap-to-record voice
 // (transcribed via the STT seam) + the unit — and gets a structured work-order DRAFT preview. The draft
@@ -32,7 +33,21 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return btoa(binary);
 }
 
-export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: string }>) {
+const CLOSED_PHOTO_ACTION: MaintenancePhotoActionView = {
+  actionKey: "google_drive.maintenance_photo.store",
+  executable: false,
+  message:
+    "Photo storage is unavailable until the Drive action has owner-approved permission. Continue without a photo.",
+  targetLabel: "PMI KC in-boundary maintenance photo folder",
+};
+
+export function MaintenanceCapture({
+  reporterUid,
+  photoAction = CLOSED_PHOTO_ACTION,
+}: Readonly<{
+  reporterUid: string;
+  photoAction?: MaintenancePhotoActionView;
+}>) {
   const [typedNote, setTypedNote] = useState("");
   const [transcript, setTranscript] = useState("");
   const [unitMatch, setUnitMatch] = useState<MaintenanceUnitMatch | null>(null);
@@ -44,8 +59,16 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [photoRefs, setPhotoRefs] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [status, setStatus] = useState("");
+  const createInFlight = useRef(false);
+
+  function invalidateDraft() {
+    setDraft(null);
+    setOwnerNotice(null);
+    setVendorSuggestion(null);
+  }
 
   async function transcribe(blob: Blob) {
     setIsTranscribing(true);
@@ -60,6 +83,7 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
       if (response.ok) {
         const payload = (await response.json()) as { transcript: string };
         if (payload.transcript.trim()) {
+          invalidateDraft();
           setTranscript((prev) =>
             [prev, payload.transcript].filter(Boolean).join(" ").trim(),
           );
@@ -101,9 +125,14 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
       });
       if (response.ok) {
         const stored = (await response.json()) as { ref: string };
+        invalidateDraft();
         setPhotoRefs((prev) => [...prev, stored.ref]);
+        setPendingPhoto(null);
       } else {
-        setStatus("Could not upload the photo.");
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setStatus(payload?.error ?? "Could not upload the photo.");
       }
     } finally {
       setIsUploading(false);
@@ -130,7 +159,8 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
   // Persist the built draft as a tracked ticket (console overhaul Slice E). App-plane only; the
   // RentVine work-order create stays gated. The queue below shows the ticket after a reload.
   async function createTicket() {
-    if (!draft) return;
+    if (!draft || draft.blockers.length > 0 || createInFlight.current) return;
+    createInFlight.current = true;
     setIsCreating(true);
     setStatus("");
     try {
@@ -158,6 +188,7 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
     } catch {
       setStatus("Could not reach the ticket service.");
     } finally {
+      createInFlight.current = false;
       setIsCreating(false);
     }
   }
@@ -175,7 +206,10 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
         <textarea
           id="mx-note"
           name="mx-note"
-          onChange={(event) => setTypedNote(event.target.value)}
+          onChange={(event) => {
+            invalidateDraft();
+            setTypedNote(event.target.value);
+          }}
           placeholder="Describe the maintenance issue…"
           rows={5}
           value={typedNote}
@@ -202,37 +236,77 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
           </p>
         ) : null}
 
-        {/* A styled label triggers the hidden file input; `capture` opens the camera on mobile. */}
-        <div className="field-row">
-          <label className="secondary-button" htmlFor="mx-photo">
-            {isUploading ? "Uploading photo…" : "Add / take photo"}
-          </label>
-          <input
-            accept="image/*"
-            capture="environment"
-            hidden
-            id="mx-photo"
-            name="mx-photo"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) void handlePhoto(file);
-            }}
-            type="file"
-          />
-        </div>
+        {photoAction.executable ? (
+          <div className="ui-stack" aria-label="Maintenance photo upload">
+            {/* The file input is rendered only after the committed registry gate opens. Selection
+                creates a preview; a separate explicit confirmation performs the upload. */}
+            <div className="field-row">
+              <label className="secondary-button" htmlFor="mx-photo">
+                {isUploading ? "Uploading photo…" : "Choose / take photo"}
+              </label>
+              <input
+                accept="image/*"
+                capture="environment"
+                hidden
+                id="mx-photo"
+                name="mx-photo"
+                onChange={(event) => setPendingPhoto(event.target.files?.[0] ?? null)}
+                type="file"
+              />
+            </div>
+            {pendingPhoto ? (
+              <section className="ui-callout" aria-label="Photo upload preview">
+                <p>
+                  <strong>File:</strong> {pendingPhoto.name}
+                </p>
+                <p>
+                  <strong>Type:</strong> {pendingPhoto.type || "image/jpeg"}
+                </p>
+                <p>
+                  <strong>Target:</strong> {photoAction.targetLabel}
+                </p>
+                <div className="field-row">
+                  <button
+                    className="secondary-button"
+                    disabled={isUploading}
+                    onClick={() => void handlePhoto(pendingPhoto)}
+                    type="button"
+                  >
+                    {isUploading ? "Uploading…" : "Confirm photo upload"}
+                  </button>
+                  <button
+                    className="text-button"
+                    disabled={isUploading}
+                    onClick={() => setPendingPhoto(null)}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </section>
+            ) : (
+              <p className="muted">{photoAction.message}</p>
+            )}
+          </div>
+        ) : (
+          <p className="muted" role="status" data-action-key={photoAction.actionKey}>
+            {photoAction.message}
+          </p>
+        )}
         {photoRefs.length > 0 ? (
           <p className="muted">{photoRefs.length} photo(s) attached.</p>
         ) : null}
 
         <UnitTypeahead
           id="mx-unit"
-          onSelect={(unit) =>
+          onSelect={(unit) => {
+            invalidateDraft();
             setUnitMatch(
               unit
                 ? { unitId: unit.unitId, label: unit.label, confidence: "Verified" }
                 : null,
-            )
-          }
+            );
+          }}
         />
 
         {unitMatch ? (
@@ -248,7 +322,10 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
           Priority
           <select
             id="mx-priority"
-            onChange={(event) => setPriority(event.target.value)}
+            onChange={(event) => {
+              invalidateDraft();
+              setPriority(event.target.value);
+            }}
             value={priority}
           >
             <option value="">Auto (infer from description)</option>
@@ -287,8 +364,8 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
             </p>
             {draft.blockers.length > 0 ? (
               <>
-                <h3>Before submitting</h3>
-                <ul>
+                <h3 id="maintenance-ticket-blockers">Before creating a ticket</h3>
+                <ul aria-labelledby="maintenance-ticket-blockers">
                   {draft.blockers.map((blocker) => (
                     <li key={blocker}>{blocker}</li>
                   ))}
@@ -300,7 +377,10 @@ export function MaintenanceCapture({ reporterUid }: Readonly<{ reporterUid: stri
 
             <button
               className="primary-button"
-              disabled={isCreating}
+              aria-describedby={
+                draft.blockers.length > 0 ? "maintenance-ticket-blockers" : undefined
+              }
+              disabled={isCreating || draft.blockers.length > 0}
               onClick={createTicket}
               type="button"
             >

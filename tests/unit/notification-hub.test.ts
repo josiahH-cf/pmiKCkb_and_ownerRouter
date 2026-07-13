@@ -23,6 +23,10 @@ const mocks = vi.hoisted(() => ({
   })),
   listAllLeaseRenewalResolutions: vi.fn(),
   listAllWritebackApprovals: vi.fn(),
+  gatherNeedsDecisionInbox: vi.fn(async () => ({
+    rows: [],
+    counts: { total: 0, renewalFlags: 0, writebacksAwaiting: 0, queueItems: 0 },
+  })),
 }));
 
 vi.mock("@/lib/firestore/approval-queue-notifications", () => ({
@@ -47,6 +51,9 @@ vi.mock("@/lib/firestore/lease-renewal-resolutions", () => ({
 }));
 vi.mock("@/lib/firestore/lease-renewal-writeback-approvals", () => ({
   listAllWritebackApprovals: mocks.listAllWritebackApprovals,
+}));
+vi.mock("@/lib/approval/needs-decision-gather", () => ({
+  gatherNeedsDecisionInbox: mocks.gatherNeedsDecisionInbox,
 }));
 
 import { loadNotificationHub } from "@/lib/notifications/hub";
@@ -132,6 +139,40 @@ describe("loadNotificationHub — Admin-only review digest (AC-S17-6)", () => {
     // Bell path never issues the coverage / decision-metrics reads.
     expect(mocks.resolveCoverageState).not.toHaveBeenCalled();
     expect(mocks.listAllLeaseRenewalResolutions).not.toHaveBeenCalled();
+    expect(mocks.gatherNeedsDecisionInbox).not.toHaveBeenCalled();
+  });
+
+  it("carries the same value-free needs-decision backlog even when the event log is empty", async () => {
+    seedReviewData();
+    mocks.gatherNeedsDecisionInbox.mockResolvedValue({
+      rows: [
+        {
+          kind: "renewal_flag",
+          key: "renewal_flag:run-1:rent",
+          label: "Current rent",
+          detail: "Synthetic renewal run",
+          severity: "High",
+          href: "/lease-renewal/runs/run-1",
+          proposed_value: "$1,200",
+          reason: "private reason",
+        },
+      ],
+      counts: { total: 1, renewalFlags: 1, writebacksAwaiting: 0, queueItems: 0 },
+    } as never);
+
+    const feed = await loadNotificationHub(admin, { full: true });
+
+    expect(feed.notifications).toEqual([]);
+    expect(feed.decisions.count).toBe(1);
+    expect(feed.decisions.signals[0]).toEqual({
+      lane: "decision",
+      severity: "high",
+      label: "Current rent",
+      detail: "Synthetic renewal run",
+      href: "/lease-renewal/runs/run-1",
+      signal_key: "decision:renewal_flag:run-1:rent",
+    });
+    expect(JSON.stringify(feed.decisions)).not.toMatch(/\$1,200|private reason/);
   });
 });
 

@@ -21,6 +21,15 @@ content, leases, ledgers, bank data, SSNs, or full source packets in this docume
 - Every setup row should have a verification command or manual check before it is marked
   complete.
 
+### Local emulator mutation boundary
+
+Demo seed/reset/operator writes require a reachable process-level loopback Firestore emulator target before
+Firebase Admin initialization. Use explicit `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080` plus a non-secret emulator
+namespace project id; `.env.local` may supply the same values, but the guard normalizes and propagates them before
+child processes. An absent, malformed, non-local, or stopped target fails closed. Demo commands have no live mode,
+do not require ADC, and must never be redirected to production. Local-demo auth also forces `IMAGE_STORE=stub`;
+the Maintenance Drive action remains closed by the Action Registry even when a folder id exists.
+
 ## Non-Secret Source Artifact Registry
 
 | Artifact source                    | Path or location                                                           | Product lane  | Status                          | Handoff note                                                                                                                                                                    |

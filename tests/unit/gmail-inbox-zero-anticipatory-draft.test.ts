@@ -66,6 +66,7 @@ function baseInput(
   return {
     template: approvedTemplate(),
     message,
+    category: "vendor",
     provider,
     model: "test-model",
     ...overrides,
@@ -74,7 +75,11 @@ function baseInput(
 
 /** The exact draft the deterministic spine produces (the degrade target). */
 function deterministicDraft(missingFacts: string[] = []): string {
-  const result = buildReplyDraft({ template: approvedTemplate(), missingFacts });
+  const result = buildReplyDraft({
+    template: approvedTemplate(),
+    category: "vendor",
+    missingFacts,
+  });
   return result.draft ?? "";
 }
 
@@ -114,15 +119,24 @@ describe("composeAnticipatoryReplyDraft — deterministic spine refuses before t
     }
   });
 
-  it("refuses a hard-excluded category carried on the message itself (call count 0)", async () => {
+  it("refuses excluded intent carried in the subject even under an allowed category", async () => {
     const provider = throwingProvider();
 
     const result = await composeAnticipatoryReplyDraft(
       baseInput(provider, {
-        message: { ...message, category: "Owner money" },
+        message: { ...message, subject: "Please draft a legal notice" },
       }),
     );
 
+    expect(result.refusedBeforeModel).toBe(true);
+    expect(provider.calls).toBe(0);
+  });
+
+  it("refuses excluded intent carried in facts even under an allowed category", async () => {
+    const provider = throwingProvider();
+    const result = await composeAnticipatoryReplyDraft(
+      baseInput(provider, { missingFacts: ["tenant rights statement"] }),
+    );
     expect(result.refusedBeforeModel).toBe(true);
     expect(provider.calls).toBe(0);
   });

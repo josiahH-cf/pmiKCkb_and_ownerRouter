@@ -3,6 +3,10 @@
 import { useState } from "react";
 
 import type { ReplyTemplate } from "@/lib/gmail-inbox-zero/drafts";
+import {
+  GMAIL_DRAFT_CATEGORIES,
+  type GmailDraftCategoryId,
+} from "@/lib/gmail-inbox-zero/constants";
 import { SAMPLE_REPLY_TEMPLATES } from "@/lib/gmail-inbox-zero/sample-hub";
 
 // Mirrors the /api/gmail-hub/anticipatory-draft response (composeAnticipatoryReplyDraft result).
@@ -28,7 +32,7 @@ export function AnticipatoryDraftComposer({
   const [templateId, setTemplateId] = useState(templates[0]?.id ?? "");
   const [sender, setSender] = useState("vendor@example.com");
   const [subject, setSubject] = useState("Re: invoice question");
-  const [category, setCategory] = useState("Vendor");
+  const [category, setCategory] = useState<GmailDraftCategoryId>("vendor");
   const [missingFactsText, setMissingFactsText] = useState("");
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<DraftResponse | null>(null);
@@ -56,7 +60,7 @@ export function AnticipatoryDraftComposer({
           message: {
             sender,
             subject,
-            ...(category.trim() ? { category: category.trim() } : {}),
+            category,
           },
           ...(missingFacts.length > 0 ? { missingFacts } : {}),
         }),
@@ -113,7 +117,16 @@ export function AnticipatoryDraftComposer({
         </label>
         <label className="field">
           <span>Category</span>
-          <input value={category} onChange={(event) => setCategory(event.target.value)} />
+          <select
+            value={category}
+            onChange={(event) => setCategory(event.target.value as GmailDraftCategoryId)}
+          >
+            {GMAIL_DRAFT_CATEGORIES.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </label>
       </div>
       <label className="field">

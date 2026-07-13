@@ -2,6 +2,7 @@
 
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
@@ -53,6 +54,7 @@ const SAMPLE_VIEW: RenewalRunView = {
           actionNeeded:
             "Two sources disagree on the lease end date — confirm which is right.",
           directLink: "/lease-renewal/live",
+          propertyKey: "1207 walnut street unit 2",
           suggestedWinner: null,
           candidates: [
             {
@@ -137,6 +139,12 @@ describe("LiveRenewalReview", () => {
     expect(
       screen.getByRole("textbox", { name: /Reason \(required\)/ }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "View property decision history" }),
+    ).toHaveAttribute(
+      "href",
+      "/lease-renewal/property/1207%20walnut%20street%20unit%202?returnTo=%2Flease-renewal%2Flive",
+    );
 
     // production_allowed is surfaced in the demoted diagnostics.
     expect(screen.getByText("Read details")).toBeInTheDocument();
@@ -154,6 +162,44 @@ describe("LiveRenewalReview", () => {
       />,
     );
     expect(screen.getByText(/Saved decisions could not be loaded/)).toBeInTheDocument();
+  });
+
+  it("confirms High resolutions in an accessible dialog and preserves state on keyboard cancel", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async () => Response.json({ ok: true }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <LiveRenewalReview
+        canResolve={true}
+        isAdmin={true}
+        meta={SAMPLE_META}
+        resolutionsError={false}
+        view={SAMPLE_VIEW}
+      />,
+    );
+
+    const reason = screen.getByRole("textbox", { name: /Reason \(required\)/ });
+    await user.type(reason, "Verified against the signed renewal packet.");
+    const resolve = screen.getByRole("button", { name: "Resolve" });
+    await user.click(resolve);
+
+    const dialog = screen.getByRole("dialog", { name: "Confirm High resolution" });
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Confirm resolution" })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(resolve).toHaveFocus();
+    expect(reason).toHaveValue("Verified against the signed renewal packet.");
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await user.click(resolve);
+    await user.click(screen.getByRole("button", { name: "Confirm resolution" }));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("shows an empty state when no items need a decision", () => {

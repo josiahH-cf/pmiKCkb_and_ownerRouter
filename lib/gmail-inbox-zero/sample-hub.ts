@@ -17,7 +17,7 @@ export const SAMPLE_LABEL_RULES: readonly LabelRule[] = [
     id: "rule-vendor-invoice",
     label: "Draft Ready",
     plain_english: "Vendor invoice questions are ready for a drafted acknowledgement.",
-    criteria: { category: "Vendor" },
+    criteria: { category: "vendor" },
     match_kind: "exact",
     status: "Approved",
   },
@@ -35,7 +35,7 @@ export const SAMPLE_LABEL_RULES: readonly LabelRule[] = [
     label: "Dan Decision",
     plain_english:
       "Owner money threads go to Dan for a decision — label only, never auto-draft.",
-    criteria: { category: "Owner money" },
+    criteria: { category: "owner_money" },
     match_kind: "exact",
     status: "Approved",
   },

@@ -108,6 +108,7 @@ describe("NotificationMenu", () => {
     render(<NotificationMenu navigate={() => undefined} />);
     await user.click(await screen.findByRole("button", { name: "Notifications" }));
 
+    expect(screen.getByText("No unread event notifications.")).toBeInTheDocument();
     expect(
       screen.getByText("RentVine replies: Waiting on Gmail access"),
     ).toBeInTheDocument();

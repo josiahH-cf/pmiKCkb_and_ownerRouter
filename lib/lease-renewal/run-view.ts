@@ -19,6 +19,7 @@ import type {
   LeaseRenewalWritebackApprovalActivityRecord,
   LeaseRenewalWritebackApprovalRecord,
 } from "@/lib/firestore/types";
+import { buildRunPropertyKeyIndex } from "@/lib/lease-renewal/property-repository";
 
 export interface RenewalCandidateView {
   source: string;
@@ -79,6 +80,8 @@ export interface RenewalFlagView {
   agreement: string;
   actionNeeded: string;
   directLink: string;
+  /** In-boundary canonical key, present only when this trigger maps to exactly one property. */
+  propertyKey?: string;
   suggestedWinner: { source: string; value: string } | null;
   blockedReason?: string;
   candidates: RenewalCandidateView[];
@@ -182,6 +185,7 @@ function toFlagView(
   resolutionsByKey: Map<string, LeaseRenewalResolutionRecord>,
   approvalsByKey: Map<string, LeaseRenewalWritebackApprovalRecord>,
   activityByKey: ReadonlyMap<string, LeaseRenewalWritebackApprovalActivityRecord[]>,
+  propertyKeyByTrigger: ReadonlyMap<string, string | null>,
 ): RenewalFlagView | null {
   const queueItem = outcome.queueMapping?.queueItem;
   if (!queueItem) return null;
@@ -195,6 +199,9 @@ function toFlagView(
     agreement: reconciliation.agreement,
     actionNeeded: queueItem.action_needed,
     directLink: queueItem.direct_link,
+    ...(propertyKeyByTrigger.get(queueItem.source_trigger_key)
+      ? { propertyKey: propertyKeyByTrigger.get(queueItem.source_trigger_key)! }
+      : {}),
     suggestedWinner: reconciliation.suggested_winner
       ? {
           source: reconciliation.suggested_winner.source,
@@ -241,12 +248,19 @@ export function buildRenewalRunView(
   const approvalsByKey = new Map(
     approvals.map((record) => [record.source_trigger_key, record]),
   );
+  const propertyKeyByTrigger = buildRunPropertyKeyIndex(run);
 
   const groups: RenewalSeverityGroup[] = [];
   for (const severity of SEVERITY_ORDER) {
     const flags = run.bySeverity[severity]
       .map((outcome) =>
-        toFlagView(outcome, resolutionsByKey, approvalsByKey, activityByKey),
+        toFlagView(
+          outcome,
+          resolutionsByKey,
+          approvalsByKey,
+          activityByKey,
+          propertyKeyByTrigger,
+        ),
       )
       .filter((flag): flag is RenewalFlagView => flag !== null);
     if (flags.length > 0) groups.push({ severity, flags });

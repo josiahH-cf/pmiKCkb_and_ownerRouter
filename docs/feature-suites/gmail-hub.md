@@ -179,6 +179,18 @@ code-forbidden by `verify:router-boundary`. No Cloud Scheduler. No client mailbo
 (the composer/workspace operate on sanitized/pasted `TriageMessageFacts` only). ~$10 budget cap
 (single-thread on-demand model calls). Deploy and the DWD grant stay owner-run.
 
+**2026-07-13 audit hardening (QA-004).** Draft categories are stable ids, never presentation-label
+comparisons. `draft-safety.ts` normalizes approved aliases and deterministically scans the untrusted category,
+subject, and pasted fact names before the route reads model config or constructs a provider; the pure composer
+repeats the check before invocation. Unknown/blank categories, the three excluded ids, and obvious excluded
+intent all return `refusedBeforeModel:true`. Canonical and alias exclusions are table-tested with provider and
+model call counts fixed at zero. The UI uses closed selects; pasted/mailbox/no-send boundaries are unchanged.
+
+**2026-07-13 phone containment (QA-005).** The hub has one page-content wrapper; nested grids, panels,
+fields, controls, pasted facts, refusals, summaries, buttons, and draft previews use shrinkable tracks and wrap
+long content. The correction targets actual Gmail descendants and does not hide document overflow or clip
+review-before-send / Waiting on Gmail access guidance.
+
 **Ordered prompt sequence.**
 
 1. _Discovery:_ Confirm the invisible-engine claim — grep that `composeAnticipatoryReplyDraft` +

@@ -1,17 +1,10 @@
-import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
-import { FieldValue, getFirestore } from "firebase-admin/firestore";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   buildLaunchSkeletonRecords,
   launchSkeletonDeleteFieldsFor,
 } from "./seed-launch-skeletons.mjs";
+import { verifyDemoFirestoreTarget } from "./demo-firestore-target.mjs";
 
 const DRAFT_BANNER = "Draft \u2014 Review before sending";
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const localEnv = readLocalEnv();
-
 const demoWorkflowRecords = [
   {
     placeholder: {
@@ -310,13 +303,15 @@ export async function resetDemoRecords({
   includeLaunchSkeletons = false,
   note = "Reset safe four-workflow demo records.",
 } = {}) {
-  const db = getDemoFirestore();
+  const { db, FieldValue } = await getVerifiedDemoFirestore();
   const now = new Date().toISOString();
   const resetRecords = buildDemoResetRecords(now, { includeLaunchSkeletons });
+  const counts = { created: 0, updated: 0, total: resetRecords.length };
 
   for (const record of resetRecords) {
     const ref = db.collection(record.collection).doc(record.id);
     const snapshot = await ref.get();
+    counts[snapshot.exists ? "updated" : "created"] += 1;
 
     const resetData = {
       id: record.id,
@@ -341,7 +336,8 @@ export async function resetDemoRecords({
     const entityType = entityTypeFor(record.collection);
 
     if (record.writeChangeLog !== false && entityType) {
-      const changeLogId = `demo-reset-${Date.now()}-${record.id}`;
+      // One deterministic audit row per demo entity keeps repeated/interrupted resets idempotent.
+      const changeLogId = `demo-reset-${record.id}`;
 
       await db
         .collection("change_log")
@@ -357,6 +353,8 @@ export async function resetDemoRecords({
         });
     }
   }
+
+  return counts;
 }
 
 export function buildDemoResetRecords(now, { includeLaunchSkeletons = false } = {}) {
@@ -371,25 +369,16 @@ export function buildDemoResetRecords(now, { includeLaunchSkeletons = false } = 
   ];
 }
 
-function getDemoFirestore() {
-  const projectId =
-    readEnv("FIREBASE_PROJECT_ID") ||
-    readEnv("GCP_PROJECT_ID") ||
-    readEnv("GOOGLE_CLOUD_PROJECT") ||
-    readEnv("GCLOUD_PROJECT");
-
-  if (!projectId) {
-    throw new Error("Set FIREBASE_PROJECT_ID, GCP_PROJECT_ID, or GOOGLE_CLOUD_PROJECT.");
+export async function getVerifiedDemoFirestore(options = {}) {
+  const target = await verifyDemoFirestoreTarget(options.target);
+  // These imports and Admin initialization occur only after the loopback target is verified and
+  // propagated to process.env. Emulator operation needs no ADC credential at all.
+  const admin = options.admin ?? (await import("firebase-admin/app"));
+  const firestore = options.firestore ?? (await import("firebase-admin/firestore"));
+  if (!admin.getApps().length) {
+    admin.initializeApp({ projectId: target.projectId });
   }
-
-  if (!getApps().length) {
-    initializeApp({
-      credential: applicationDefault(),
-      projectId,
-    });
-  }
-
-  return getFirestore();
+  return { db: firestore.getFirestore(), FieldValue: firestore.FieldValue, target };
 }
 
 function entityTypeFor(collection) {
@@ -410,36 +399,4 @@ function entityTypeFor(collection) {
   }
 
   return null;
-}
-
-function readEnv(name) {
-  return process.env[name] || localEnv[name];
-}
-
-function readLocalEnv() {
-  try {
-    return Object.fromEntries(
-      readFileSync(join(root, ".env.local"), "utf8")
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter((line) => line && !line.startsWith("#"))
-        .map((line) => {
-          const separator = line.indexOf("=");
-
-          if (separator === -1) {
-            return null;
-          }
-
-          const key = line.slice(0, separator).trim();
-          const value = line
-            .slice(separator + 1)
-            .trim()
-            .replace(/^"|"$/g, "");
-          return [key, value];
-        })
-        .filter(Boolean),
-    );
-  } catch {
-    return {};
-  }
 }

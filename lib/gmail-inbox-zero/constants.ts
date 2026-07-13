@@ -27,10 +27,38 @@ export const GMAIL_INBOX_ZERO_PHASES = ["Shadow", "Suggest", "Drafts"] as const;
 // stay in history.
 export const GMAIL_RULE_STATUSES = ["Proposed", "Approved", "Retired"] as const;
 
-// Default hard exclusions (discovery question 3 default): these categories are
-// label-only and must never be auto-drafted.
-export const GMAIL_HARD_EXCLUSION_CATEGORIES = [
-  "Owner money",
-  "Legal/notices",
-  "Tenant disputes",
+// Drafting uses stable IDs end to end. Labels are presentation only and aliases are normalized by
+// draft-safety.ts at every untrusted/server boundary.
+export const GMAIL_DRAFT_CATEGORY_IDS = [
+  "vendor",
+  "scheduling",
+  "general_question",
+  "owner_money",
+  "legal_notices",
+  "tenant_disputes",
 ] as const;
+export type GmailDraftCategoryId = (typeof GMAIL_DRAFT_CATEGORY_IDS)[number];
+
+export const GMAIL_DRAFT_CATEGORIES: readonly {
+  id: GmailDraftCategoryId;
+  label: string;
+  draftAllowed: boolean;
+}[] = [
+  { id: "vendor", label: "Vendor", draftAllowed: true },
+  { id: "scheduling", label: "Scheduling", draftAllowed: true },
+  { id: "general_question", label: "General question", draftAllowed: true },
+  { id: "owner_money", label: "Owner money", draftAllowed: false },
+  { id: "legal_notices", label: "Legal/notices", draftAllowed: false },
+  { id: "tenant_disputes", label: "Tenant disputes", draftAllowed: false },
+] as const;
+
+export const GMAIL_HARD_EXCLUSION_CATEGORY_IDS = [
+  "owner_money",
+  "legal_notices",
+  "tenant_disputes",
+] as const satisfies readonly GmailDraftCategoryId[];
+
+// Display vocabulary retained for rule/admin copy only; no safety decision compares these strings.
+export const GMAIL_HARD_EXCLUSION_CATEGORIES = GMAIL_DRAFT_CATEGORIES.filter(
+  (category) => !category.draftAllowed,
+).map((category) => category.label);

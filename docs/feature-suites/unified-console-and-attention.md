@@ -214,6 +214,18 @@ the review lane is value-free by construction (counts + lane only; a sentinel pi
 holds; deploy stays owner-run (G4). Suite-specific hard stop: the review lane must NEVER emit one
 notification per team edit — a per-edit ping (not a rolled-up digest) is itself a falsification of B5.
 
+**2026-07-13 audit hardening (QA-003).** `gatherDecisionAttention` is now the single Console/full-hub
+boundary over `gatherNeedsDecisionInbox`: it returns the original inbox for the Console's existing authorized
+inline app-plane action plus one six-key value-free decision projection for Notifications. The hub renders this
+backlog separately from unread events and standing setup signals. An empty event log says only "No recent event
+notifications"; it never declares global all-clear while a decision or setup condition exists. The bell badge
+remains an unread-event count, not a decision count.
+
+**2026-07-13 Dictate lifecycle (QA-001).** Console Dictate publishes permission, recording, stopping,
+processing, appended, no-speech, and error states through one polite live region; it preserves typed text,
+restores focus, suppresses duplicate permission requests, and stops active media on unmount. The production-
+fenced STT seam is unchanged.
+
 **Ordered prompt sequence.**
 
 1. _Discovery:_ read `docs/facts.md` (`F-NOTIF-FRAMEWORK`, `F-CONSOLE-ACT-IN-PLACE`,

@@ -6,6 +6,8 @@
 // a quiet "Read details" disclosure, matching the Renewal Desk. Severity colors and the candidate /
 // confidence shape are reused verbatim from the simulation run view so the two surfaces read alike.
 
+import Link from "next/link";
+
 import {
   Disclosure,
   EmptyState,
@@ -23,6 +25,7 @@ import { displaySourceLabel } from "@/lib/lease-renewal/source-display";
 import type { LiveReviewMeta } from "@/lib/lease-renewal/live-review";
 import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-view";
 import { RenewalReviewMode } from "@/components/lease-renewal/RenewalReviewMode";
+import { buildPropertyHistoryHref } from "@/lib/lease-renewal/property-history-link";
 
 // Humanize the reconciliation agreement label into the operator's language.
 const AGREEMENT_LABEL: Record<string, string> = {
@@ -138,6 +141,9 @@ function LiveFlagCard({
   canResolve: boolean;
   isAdmin: boolean;
 }>) {
+  const historyHref = isAdmin
+    ? buildPropertyHistoryHref(flag.propertyKey, flag.directLink)
+    : null;
   return (
     <article className="lr-flag-card">
       <header className="lr-flag-head">
@@ -147,6 +153,14 @@ function LiveFlagCard({
       </header>
 
       <p>{flag.actionNeeded}</p>
+
+      {historyHref ? (
+        <p>
+          <Link className="secondary-button" href={historyHref}>
+            View property decision history
+          </Link>
+        </p>
+      ) : null}
 
       <ul className="lr-candidates">
         {flag.candidates.map((candidate, index) => (

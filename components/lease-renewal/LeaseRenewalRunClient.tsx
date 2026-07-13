@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-view";
 import { displaySourceLabel } from "@/lib/lease-renewal/source-display";
+import { buildPropertyHistoryHref } from "@/lib/lease-renewal/property-history-link";
 import { ReasonCodeSelect } from "@/components/lease-renewal/ReasonCodeSelect";
 import { RenewalReviewMode } from "@/components/lease-renewal/RenewalReviewMode";
 import {
@@ -364,6 +366,12 @@ function FlagCard({
   /** True when a ?flag= deep link targets this card: highlight it and scroll it into view (C1). */
   highlighted: boolean;
 }) {
+  const historyHref = isAdmin
+    ? buildPropertyHistoryHref(
+        flag.propertyKey,
+        `/lease-renewal/runs/${encodeURIComponent(runId)}?flag=${encodeURIComponent(flag.fieldKey)}`,
+      )
+    : null;
   const cardRef = useRef<HTMLElement>(null);
   useEffect(() => {
     if (highlighted) {
@@ -386,6 +394,14 @@ function FlagCard({
       </header>
 
       <p>{flag.actionNeeded}</p>
+
+      {historyHref ? (
+        <p>
+          <Link className="secondary-button" href={historyHref}>
+            View property decision history
+          </Link>
+        </p>
+      ) : null}
 
       <ul className="lr-candidates">
         {flag.candidates.map((candidate, index) => (

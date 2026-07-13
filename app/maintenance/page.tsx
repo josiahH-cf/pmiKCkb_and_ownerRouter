@@ -11,6 +11,7 @@ import {
 import type { AssignableUser } from "@/lib/maintenance/assignee-model";
 import { listAssignableUsers } from "@/lib/maintenance/assignees";
 import type { UnverifiedIntakeRecord } from "@/lib/maintenance/intake-model";
+import { getMaintenancePhotoActionView } from "@/lib/maintenance/photo-action";
 
 export default async function MaintenancePage() {
   await requirePageSpaceAccess("maintenance");
@@ -56,7 +57,10 @@ export default async function MaintenancePage() {
           system of record; the RentVine work order is created only after a human
           approves.
         </p>
-        <MaintenanceCapture reporterUid={user.uid} />
+        <MaintenanceCapture
+          reporterUid={user.uid}
+          photoAction={getMaintenancePhotoActionView()}
+        />
         <UnverifiedIntakeReview
           initialIntake={intake}
           unavailableNote={intakeUnavailableNote}

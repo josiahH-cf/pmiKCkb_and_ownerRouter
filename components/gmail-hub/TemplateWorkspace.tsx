@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 
-import { GMAIL_INBOX_ZERO_PHASES } from "@/lib/gmail-inbox-zero/constants";
+import {
+  GMAIL_DRAFT_CATEGORIES,
+  GMAIL_INBOX_ZERO_PHASES,
+  type GmailDraftCategoryId,
+} from "@/lib/gmail-inbox-zero/constants";
 import { buildReplyDraft } from "@/lib/gmail-inbox-zero/drafts";
 import {
   evaluateInboxTriage,
@@ -29,7 +33,7 @@ interface DraftPreview {
 export function TemplateWorkspace() {
   const [sender, setSender] = useState("vendor@example.com");
   const [subject, setSubject] = useState("Re: invoice question");
-  const [category, setCategory] = useState("Vendor");
+  const [category, setCategory] = useState<GmailDraftCategoryId>("vendor");
   const [phase, setPhase] = useState<GmailInboxZeroPhase>("Suggest");
   const [templateId, setTemplateId] = useState(SAMPLE_REPLY_TEMPLATES[0]?.id ?? "");
   const [missingFactsText, setMissingFactsText] = useState("");
@@ -39,11 +43,10 @@ export function TemplateWorkspace() {
   const template = SAMPLE_REPLY_TEMPLATES.find((t) => t.id === templateId);
 
   function evaluate() {
-    const trimmedCategory = category.trim();
     const message = {
       sender,
       subject,
-      ...(trimmedCategory ? { category: trimmedCategory } : {}),
+      category,
     };
     setTriage(evaluateInboxTriage([...SAMPLE_LABEL_RULES], message, phase));
 
@@ -55,14 +58,14 @@ export function TemplateWorkspace() {
       const result = buildReplyDraft({
         template,
         missingFacts,
-        ...(trimmedCategory ? { category: trimmedCategory } : {}),
+        category,
       });
       setDraft({ ok: result.ok, draft: result.draft, errors: result.errors });
     }
   }
 
   return (
-    <section className="content ui-stack">
+    <section className="gmail-template-workspace ui-stack">
       <div>
         <h2 className="section-title">Template &amp; triage workspace</h2>
         <p className="muted">
@@ -111,10 +114,18 @@ export function TemplateWorkspace() {
           </label>
           <label className="field">
             <span>Category</span>
-            <input
+            <select
               value={category}
-              onChange={(event) => setCategory(event.target.value)}
-            />
+              onChange={(event) =>
+                setCategory(event.target.value as GmailDraftCategoryId)
+              }
+            >
+              {GMAIL_DRAFT_CATEGORIES.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </label>
         </div>
         <label className="field">

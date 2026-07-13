@@ -25,7 +25,6 @@ import {
   MAINTENANCE_TICKET_STATUSES,
   type MaintenanceTicketActivityRecord,
   type MaintenanceTicketRecord,
-  type MaintenanceTicketStatus,
 } from "@/lib/maintenance/ticket-model";
 
 // Re-export the client-safe model so server callers (routes, page) can keep importing types from
@@ -47,10 +46,16 @@ export const MAINTENANCE_TICKET_COLLECTIONS = {
 
 export const CreateMaintenanceTicketInputSchema = z.object({
   summary: z.string().trim().min(1),
-  description: z.string().default(""),
+  description: z.string().trim().min(1),
   priority: z.string().trim().min(1),
   priority_provenance: z.enum(["auto-inferred", "operator-set"]).default("operator-set"),
-  unit: z.object({ unitId: z.string(), label: z.string() }).nullable().default(null),
+  // A ticket is actionable only after the operator chooses a roster-backed suggestion. Raw typed
+  // location text and nullable/unverified objects are intentionally rejected at this server seam.
+  unit: z.object({
+    unitId: z.string().trim().min(1),
+    label: z.string().trim().min(1),
+    confidence: z.literal("Verified"),
+  }),
   photo_refs: z.array(z.string()).default([]),
   space_id: z.string().default("maintenance-work-order-intake"),
   source_trigger_key: z.string().optional(),
@@ -117,7 +122,7 @@ export async function createMaintenanceTicket(
     priority_provenance: parsed.priority_provenance,
     summary: parsed.summary,
     description: parsed.description,
-    unit: parsed.unit,
+    unit: { unitId: parsed.unit.unitId, label: parsed.unit.label },
     photo_refs: parsed.photo_refs,
     reporter: { kind: "staff", uid: actor.uid },
     labels: [],

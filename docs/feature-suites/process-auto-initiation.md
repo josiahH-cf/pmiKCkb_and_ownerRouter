@@ -215,3 +215,9 @@ Console front door (S10 / `F-CONSOLE-APP-STATE`) and the notice planners (S13 / 
 rather than replacing them, and it does NOT supersede S13 — it builds the anticipation lane S13 left
 as a manual CLI dry-run. If the Console app-state suites are later consolidated, this may MERGE into
 that family as the "anticipation lane" section; until then keep it standalone.
+
+**2026-07-13 audit hardening (QA-006).** A projected static id is no longer sufficient to render Start.
+`ConsoleView` intersects it with the definitions actually loaded and scoped for the principal, excludes Retired
+definitions, and still requires edit permission. Missing/unavailable definitions render Open the space; a stale
+POST replaces the start control with that recovery, and pending starts are deduplicated. Starts still use only
+the existing simulation test-run endpoint.

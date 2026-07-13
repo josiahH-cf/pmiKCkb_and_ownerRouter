@@ -9,6 +9,7 @@ import {
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { spawn } from "node:child_process";
+import { verifyDemoFirestoreTarget } from "./demo-firestore-target.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const defaultBaseUrl = "http://localhost:3000";
@@ -307,6 +308,11 @@ export async function main(argv = process.argv.slice(2)) {
   if (args.dryRun) {
     printPlan(plan);
     return;
+  }
+
+  if (plan.steps.some((step) => step.args?.includes("demo:reset"))) {
+    // Establish the process-level emulator target once so every spawned reset/server child inherits it.
+    await verifyDemoFirestoreTarget();
   }
 
   await runDemoOperatorPlan(plan);

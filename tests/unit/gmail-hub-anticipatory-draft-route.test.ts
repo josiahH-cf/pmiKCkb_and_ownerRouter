@@ -105,7 +105,63 @@ describe("gmail-hub anticipatory-draft route", () => {
       const payload = await response.json();
       expect(payload.refusedBeforeModel, category).toBe(true);
     }
+    expect(createModelProvider).not.toHaveBeenCalled();
     expect(generateTextMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "legal notice",
+    "LEGAL-NOTICES",
+    " Legal / Notice ",
+    "ｌｅｇａｌ　ｎｏｔｉｃｅ",
+    "owner monies",
+    "Owner-Funds",
+    "tenant dispute",
+    "resident conflicts",
+  ])(
+    "refuses normalized excluded alias %j before provider construction",
+    async (category) => {
+      setEditor();
+      const response = await POST(
+        req({ template: approvedTemplate, message: { ...message, category } }),
+      );
+      expect(response.status).toBe(200);
+      expect((await response.json()).refusedBeforeModel).toBe(true);
+      expect(createModelProvider).not.toHaveBeenCalled();
+      expect(generateTextMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    { subject: "Draft a statutory notice", missingFacts: undefined },
+    { subject: "Routine follow-up", missingFacts: ["tenant rights statement"] },
+    { subject: "Routine follow-up", missingFacts: ["owner payout amount"] },
+  ])(
+    "refuses excluded subject/facts under an allowed category before the provider",
+    async (facts) => {
+      setEditor();
+      const response = await POST(
+        req({
+          template: approvedTemplate,
+          message: { ...message, category: "vendor", subject: facts.subject },
+          missingFacts: facts.missingFacts,
+        }),
+      );
+      expect((await response.json()).refusedBeforeModel).toBe(true);
+      expect(createModelProvider).not.toHaveBeenCalled();
+      expect(generateTextMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it("refuses an unknown category before provider construction", async () => {
+    setEditor();
+    const response = await POST(
+      req({ template: approvedTemplate, message: { ...message, category: "misc" } }),
+    );
+    const payload = await response.json();
+    expect(payload.refusedBeforeModel).toBe(true);
+    expect(payload.errors.join(" ")).toMatch(/unknown or blank/i);
+    expect(createModelProvider).not.toHaveBeenCalled();
   });
 
   it("rejects a malformed body with a typed 400 and never calls the model", async () => {

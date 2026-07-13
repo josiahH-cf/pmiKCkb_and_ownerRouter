@@ -9,6 +9,10 @@
 // (no RentVine / Sheet / Gmail client) — only the app's own Firestore + process.env.
 
 import type { AttentionSignal } from "@/lib/attention/lanes";
+import {
+  EMPTY_DECISION_ATTENTION,
+  gatherDecisionAttention,
+} from "@/lib/attention/decision-backlog";
 import { buildTeamReviewDigest } from "@/lib/attention/review-lane";
 import { buildStandingSignals } from "@/lib/attention/standing-signals";
 import {
@@ -49,7 +53,7 @@ export async function loadNotificationHub(
   const canReadMaintenance = hasSpaceAccess(user, "maintenance");
   const isAdmin = can(user.role, "manageAdmin");
 
-  const [preferences, approval, maintenance, coverage] = await Promise.all([
+  const [preferences, approval, maintenance, coverage, decision] = await Promise.all([
     getNotificationPreferences(user),
     canReadRenewals
       ? listApprovalQueueNotifications(user, { recipientOnly: true, unreadOnly })
@@ -58,6 +62,9 @@ export async function loadNotificationHub(
       ? listMaintenanceTicketNotifications(user, { unreadOnly })
       : Promise.resolve([]),
     full ? resolveCoverageState(user) : Promise.resolve(null),
+    full && canReadRenewals
+      ? gatherDecisionAttention(user)
+      : Promise.resolve({ attention: EMPTY_DECISION_ATTENTION }),
   ]);
 
   const standing: AttentionSignal[] =
@@ -76,6 +83,7 @@ export async function loadNotificationHub(
     maintenance,
     standing,
     review,
+    decisions: decision.attention,
     mutedFamilies: preferences.muted_families,
     preferences: toLowAlarmPreferences(preferences),
     now,

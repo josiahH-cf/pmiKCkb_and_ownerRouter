@@ -13,6 +13,26 @@ lighter task-triage entry point and does not repeat a divergent order.
    product shape, or follow-up questions are part of the task, and the rest of the Route Table.
 4. Check the git worktree and preserve user changes.
 
+## Local Demo Firestore Writes
+
+`npm run seed:demo`, `npm run demo:reset`, and any `npm run demo:operator` mode that resets data
+are emulator-only commands. Before Firebase Admin is imported or initialized they resolve the effective
+`FIRESTORE_EMULATOR_HOST`, permit only a reachable loopback target (`127.0.0.0/8`, `localhost`, or `[::1]`),
+and propagate that verified target to child processes. A configured project id is only the emulator namespace;
+it never authorizes a live fallback. These commands intentionally have no `--live` option.
+
+Start the emulator, then set the target explicitly in the same shell before demo mutation:
+
+```powershell
+$env:FIRESTORE_EMULATOR_HOST="127.0.0.1:8080"
+$env:FIREBASE_PROJECT_ID="pmi-kc-kb-e2e"
+npm run seed:demo
+```
+
+The startup line prints only host, port, project id, and final counts. An absent, malformed, non-local, or
+unreachable target exits nonzero before any write. Never work around that refusal with ADC, a personal account,
+a production endpoint, or a permissive live flag.
+
 Do not start from older KB-only or separate Owner Router assumptions. Those are legacy
 unless an active product doc preserves a specific safety rule.
 

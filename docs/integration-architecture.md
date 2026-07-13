@@ -160,6 +160,13 @@ artifact in `docs/evidence/gmail-dwd-grant-2026-07.md`. It creates an UNSENT dra
 send scope or send method. Every other entry remains `production_allowed: false`; no
 system-of-record write is executable.
 
+The Maintenance photo runtime is also bound to this committed decision. With
+`google_drive.maintenance_photo.store` at `Needs Permission` / `production_allowed:false`, the maintenance UI
+does not render a file input and `POST /api/maintenance/photo` returns a typed refusal before parsing the request
+body or constructing an image/Drive store. Local-demo auth forces the stub provider. The dormant Drive adapter is
+capability evidence only; any future approved gate-open slice must retain the registry preview fields (filename,
+MIME type, and a safe target-folder label) plus explicit user confirmation.
+
 ### Catalog coverage
 
 The seed catalog (`lib/integrations/action-registry-seed.ts`) now holds 19 entries: the

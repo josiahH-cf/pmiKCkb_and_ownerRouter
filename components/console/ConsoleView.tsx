@@ -17,7 +17,7 @@ import {
   getRenewalDeskView,
   SAMPLE_NOTICE_REFERENCE_DATE,
 } from "@/lib/lease-renewal/sample-desk";
-import { gatherNeedsDecisionInbox } from "@/lib/approval/needs-decision-gather";
+import { gatherDecisionAttention } from "@/lib/attention/decision-backlog";
 import {
   resolveConnectionsState,
   resolveCoverageState,
@@ -87,17 +87,26 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
     : [];
 
   const definitionIds = new Set(scopedDefinitions.map((definition) => definition.id));
+  const startableDefinitionIds = new Set(
+    scopedDefinitions
+      .filter((definition) => definition.status !== "Retired")
+      .map((definition) => definition.id),
+  );
   const presence = readConnectorPresence();
 
   // Value-free app-state, gathered once and rendered server-side into the always-visible deck (no
   // click-to-reveal, no client refetch). Approvals come from the SAME merged needs-decision gather
   // every other surface answers from; every read is read-only and non-fatal.
-  const inbox = canSeeRenewals
-    ? await gatherNeedsDecisionInbox(user)
+  const decision = canSeeRenewals
+    ? await gatherDecisionAttention(user)
     : {
-        rows: [],
-        counts: { total: 0, renewalFlags: 0, writebacksAwaiting: 0, queueItems: 0 },
+        attention: { count: 0, signals: [] },
+        inbox: {
+          rows: [],
+          counts: { total: 0, renewalFlags: 0, writebacksAwaiting: 0, queueItems: 0 },
+        },
       };
+  const inbox = decision.inbox;
   const connections = resolveConnectionsState();
   const visibleConnectorIds = new Set(
     visibleSpaces.flatMap((space) => SPACE_CONNECTOR_IDS[space.id] ?? []),
@@ -124,7 +133,7 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
       key: "approvals",
       title: "Needs your decision",
       lane: "decision",
-      count: inbox.counts.total,
+      count: decision.attention.count,
       rows: inbox.rows.map((row) => ({
         label: row.label,
         detail: row.detail,
@@ -201,7 +210,11 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
       </p>
       <ConsoleActionDeck canApprove={canApprove} cards={cards} />
       <AskForm canStartSimulation={canStartSimulation} processes={processes} />
-      <ConsoleAnticipatedWork groups={anticipatedGroups} canStart={canStartSimulation} />
+      <ConsoleAnticipatedWork
+        groups={anticipatedGroups}
+        canStart={canStartSimulation}
+        startableDefinitionIds={startableDefinitionIds}
+      />
       <ConsoleProcessStrip items={processItems} />
     </section>
   );

@@ -7,6 +7,10 @@ import {
   ImageStoreSetupError,
   createMaintenanceImageStore,
 } from "@/lib/maintenance/image-store";
+import {
+  getMaintenancePhotoActionView,
+  maintenancePhotoClosedResponse,
+} from "@/lib/maintenance/photo-action";
 
 // ~10 MB base64 cap (~7.5 MB image) bounds payload size + storage. Field photos are small.
 const MAX_IMAGE_BASE64 = 10_000_000;
@@ -25,6 +29,12 @@ export async function POST(request: Request) {
     await requireCapabilityInSpace("edit", "maintenance");
   } catch (error) {
     return authErrorResponse(error);
+  }
+
+  // The committed Action Registry is the canonical execution gate. Refuse before inspecting body
+  // size, parsing JSON/base64, reading config, constructing the Drive client, or touching bytes.
+  if (!getMaintenancePhotoActionView().executable) {
+    return NextResponse.json(maintenancePhotoClosedResponse(), { status: 409 });
   }
 
   // Reject an oversized body via Content-Length BEFORE buffering it into memory (the Zod cap below only

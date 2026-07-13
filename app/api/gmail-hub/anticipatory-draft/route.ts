@@ -6,6 +6,7 @@ import { requireCapability } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
 import { composeAnticipatoryReplyDraft } from "@/lib/gmail-inbox-zero/anticipatory-draft";
 import { GMAIL_RULE_STATUSES } from "@/lib/gmail-inbox-zero/constants";
+import { inspectGmailDraftSafety } from "@/lib/gmail-inbox-zero/draft-safety";
 import {
   AnswerGenerationSetupError,
   createModelProvider,
@@ -38,6 +39,22 @@ export async function POST(request: Request) {
     await requireCapability("edit");
     const input = await parseJsonBody(request, AnticipatoryDraftInputSchema);
 
+    // Client category text is untrusted. Refuse unknown/excluded category aliases or excluded intent
+    // in the subject/facts before config is read or a model provider is constructed.
+    const safety = inspectGmailDraftSafety({
+      category: input.category ?? input.message.category,
+      subject: input.message.subject,
+      facts: input.missingFacts,
+    });
+    if (!safety.allowed || !safety.categoryId) {
+      return NextResponse.json({
+        ok: false,
+        usedModel: false,
+        refusedBeforeModel: true,
+        errors: safety.errors,
+      });
+    }
+
     const config = readServerConfig();
     const provider = createModelProvider(config);
     const model =
@@ -45,9 +62,9 @@ export async function POST(request: Request) {
 
     const result = await composeAnticipatoryReplyDraft({
       template: input.template,
-      message: input.message,
+      message: { ...input.message, category: safety.categoryId },
       missingFacts: input.missingFacts,
-      category: input.category,
+      category: safety.categoryId,
       provider,
       model,
     });

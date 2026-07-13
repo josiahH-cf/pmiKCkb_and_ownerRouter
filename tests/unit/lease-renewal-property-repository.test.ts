@@ -17,6 +17,7 @@ import {
   listRunPropertyKeys,
   type PropertyRunActivity,
 } from "@/lib/lease-renewal/property-repository";
+import { buildRenewalRunView } from "@/lib/lease-renewal/run-view";
 
 // Reuse the exact Property Attributes header row so ingest classifies this grid as that tab (which is
 // where the address-joined lawn_care + utilities_needed specs apply). Two properties, one per row.
@@ -147,6 +148,12 @@ describe("property-repository (per-property lease-renewal decision repository)",
     expect(index.get(lawnKey)).toBe(BIRCHWOOD_KEY);
     expect(index.get(utilKey)).toBe(ELMGROVE_KEY);
     expect(listRunPropertyKeys(run).sort()).toEqual([BIRCHWOOD_KEY, ELMGROVE_KEY].sort());
+    const view = buildRenewalRunView(run, [], "Property run");
+    const viewKeys = view.groups.flatMap((group) =>
+      group.flags.flatMap((flag) => (flag.propertyKey ? [flag.propertyKey] : [])),
+    );
+    expect(viewKeys).toContain(BIRCHWOOD_KEY);
+    expect(viewKeys).toContain(ELMGROVE_KEY);
 
     const runs: PropertyRunActivity[] = [
       {
@@ -225,6 +232,11 @@ describe("property-repository (per-property lease-renewal decision repository)",
     const index = buildRunPropertyKeyIndex(run);
     expect(index.get(sharedKey)).toBeNull();
     expect(listRunPropertyKeys(run)).toEqual([]);
+    expect(
+      buildRenewalRunView(run, [], "Ambiguous run").groups.flatMap((group) =>
+        group.flags.flatMap((flag) => (flag.propertyKey ? [flag.propertyKey] : [])),
+      ),
+    ).toEqual([]);
 
     const runs: PropertyRunActivity[] = [
       {

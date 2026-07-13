@@ -72,7 +72,9 @@ describe("maintenance tickets API route", () => {
     const response = await POST(
       jsonRequest("http://localhost/api/maintenance/tickets", "POST", {
         summary: "Leak",
+        description: "Water is leaking below the kitchen sink.",
         priority: "Emergency",
+        unit: { unitId: "unit-1", label: "123 Main St Unit 1", confidence: "Verified" },
       }),
     );
     expect(response.status).toBe(201);
@@ -86,6 +88,35 @@ describe("maintenance tickets API route", () => {
     setEditor();
     const response = await POST(
       jsonRequest("http://localhost/api/maintenance/tickets", "POST", { summary: "" }),
+    );
+    expect(response.ok).toBe(false);
+    expect(createMaintenanceTicket).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      "blank description",
+      {
+        summary: "Leak",
+        description: "   ",
+        priority: "High",
+        unit: { unitId: "u1", label: "Unit 1", confidence: "Verified" },
+      },
+    ],
+    ["missing unit", { summary: "Leak", description: "Pipe leak", priority: "High" }],
+    [
+      "unverified unit",
+      {
+        summary: "Leak",
+        description: "Pipe leak",
+        priority: "High",
+        unit: { unitId: "u1", label: "Unit 1", confidence: "Suggested" },
+      },
+    ],
+  ])("POST rejects %s before any ticket/activity write", async (_case, body) => {
+    setEditor();
+    const response = await POST(
+      jsonRequest("http://localhost/api/maintenance/tickets", "POST", body),
     );
     expect(response.ok).toBe(false);
     expect(createMaintenanceTicket).not.toHaveBeenCalled();

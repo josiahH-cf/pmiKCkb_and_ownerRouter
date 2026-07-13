@@ -49,7 +49,7 @@ export function NotificationMenu({
       setMessage(
         payload.notifications.length > 0
           ? "Notifications loaded."
-          : "No notifications need your attention.",
+          : "No unread event notifications.",
       );
       hasLoaded.current = true;
     } catch (error) {
@@ -137,7 +137,7 @@ export function NotificationMenu({
           {state === "loading" ? <p className="muted">Loading notifications.</p> : null}
           {state === "error" ? <p className="muted">{message}</p> : null}
           {state === "ready" && notifications.length === 0 ? (
-            <p className="muted">No notifications need your attention.</p>
+            <p className="muted">No unread event notifications.</p>
           ) : null}
           {notifications.length > 0 ? (
             <ol className="notification-list">

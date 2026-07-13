@@ -62,6 +62,26 @@ describe("buildNotificationFeed", () => {
     expect(approvalUnified.family).toBe("approval_queue");
     expect(maintenanceUnified.href).toBe("/maintenance");
     expect(maintenanceUnified.family).toBe("maintenance_tickets");
+    expect(feed.decisions).toEqual({ count: 0, signals: [] });
+  });
+
+  it("keeps the actionable decision backlog distinct from unread event notifications", () => {
+    const decision = toAttentionSignal({
+      lane: "decision",
+      severity: "high",
+      label: "Current rent",
+      detail: "Synthetic renewal run",
+      href: "/lease-renewal/runs/run-1",
+      signalKey: "decision:run-1:rent",
+    });
+    const feed = buildNotificationFeed({
+      approval: [],
+      maintenance: [],
+      decisions: { count: 1, signals: [decision] },
+    });
+
+    expect(feed.notifications).toEqual([]);
+    expect(feed.decisions).toEqual({ count: 1, signals: [decision] });
   });
 
   it("drops notifications whose family is muted", () => {

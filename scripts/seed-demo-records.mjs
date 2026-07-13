@@ -1,40 +1,16 @@
-import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { demoRecords } from "./demo-firestore.mjs";
+import { demoRecords, getVerifiedDemoFirestore } from "./demo-firestore.mjs";
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const localEnv = readLocalEnv();
-
-const projectId =
-  readEnv("FIREBASE_PROJECT_ID") ||
-  readEnv("GCP_PROJECT_ID") ||
-  readEnv("GOOGLE_CLOUD_PROJECT") ||
-  readEnv("GCLOUD_PROJECT");
-
-if (!projectId) {
-  throw new Error("Set FIREBASE_PROJECT_ID, GCP_PROJECT_ID, or GOOGLE_CLOUD_PROJECT.");
-}
-
-if (!getApps().length) {
-  initializeApp({
-    credential: applicationDefault(),
-    projectId,
-  });
-}
-
-const db = getFirestore();
+const { db } = await getVerifiedDemoFirestore();
 const now = new Date().toISOString();
 const seedActor = "setup-seed";
+const counts = { existing: 0, seeded: 0, total: demoRecords.length };
 
 for (const record of demoRecords) {
   const ref = db.collection(record.collection).doc(record.id);
   const snapshot = await ref.get();
 
   if (snapshot.exists) {
-    console.log(`existing ${record.collection}: ${record.id}`);
+    counts.existing += 1;
     continue;
   }
 
@@ -62,8 +38,12 @@ for (const record of demoRecords) {
       });
   }
 
-  console.log(`seeded ${record.collection}: ${record.id}`);
+  counts.seeded += 1;
 }
+
+console.log(
+  `Demo seed complete: total=${counts.total} seeded=${counts.seeded} existing=${counts.existing}`,
+);
 
 function entityTypeFor(collection) {
   if (collection === "sops") {
@@ -83,36 +63,4 @@ function entityTypeFor(collection) {
   }
 
   return null;
-}
-
-function readEnv(name) {
-  return process.env[name] || localEnv[name];
-}
-
-function readLocalEnv() {
-  try {
-    return Object.fromEntries(
-      readFileSync(join(root, ".env.local"), "utf8")
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter((line) => line && !line.startsWith("#"))
-        .map((line) => {
-          const separator = line.indexOf("=");
-
-          if (separator === -1) {
-            return null;
-          }
-
-          const key = line.slice(0, separator).trim();
-          const value = line
-            .slice(separator + 1)
-            .trim()
-            .replace(/^"|"$/g, "");
-          return [key, value];
-        })
-        .filter(Boolean),
-    );
-  } catch {
-    return {};
-  }
 }

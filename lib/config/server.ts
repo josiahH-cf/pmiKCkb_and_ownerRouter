@@ -118,6 +118,8 @@ type Environment = Record<string, string | undefined>;
 
 export function readServerConfig(env: Environment = process.env) {
   const parsed = EnvSchema.parse(env);
+  const isProduction = (env.NODE_ENV ?? process.env.NODE_ENV) === "production";
+  const localDemoAuth = parsed.LOCAL_DEMO_AUTH && !isProduction;
 
   return {
     allowedHostedDomain: parsed.ALLOWED_HD.toLowerCase(),
@@ -134,18 +136,16 @@ export function readServerConfig(env: Environment = process.env) {
     kbApprovalNotificationsEnabled: parsed.KB_APPROVAL_NOTIFICATIONS_ENABLED,
     kbApprovalRecipients: parsed.KB_APPROVAL_RECIPIENTS,
     kbApprovalSender: parsed.KB_APPROVAL_SENDER,
-    localDemoAuth: parsed.LOCAL_DEMO_AUTH && process.env.NODE_ENV !== "production",
+    localDemoAuth,
     localModelBaseUrl: parsed.LOCAL_MODEL_BASE_URL,
     localModelName: parsed.LOCAL_MODEL_NAME,
     // The local provider is dev/test-only; force Gemini in production (mirrors localDemoAuth).
-    modelProvider:
-      process.env.NODE_ENV === "production" ? "gemini" : parsed.MODEL_PROVIDER,
+    modelProvider: isProduction ? "gemini" : parsed.MODEL_PROVIDER,
     // The stub STT is dev/test-only (free); force Google Cloud Speech-to-Text in production.
-    speechProvider:
-      process.env.NODE_ENV === "production" ? "google" : parsed.SPEECH_PROVIDER,
+    speechProvider: isProduction ? "google" : parsed.SPEECH_PROVIDER,
     speechLanguageCode: parsed.SPEECH_LANGUAGE_CODE,
     // The stub image store is dev/test-only (free); force Google Drive in-boundary in production.
-    imageStore: process.env.NODE_ENV === "production" ? "drive" : parsed.IMAGE_STORE,
+    imageStore: isProduction ? "drive" : localDemoAuth ? "stub" : parsed.IMAGE_STORE,
     // Prefer the dedicated photo-folder var; fall back to the legacy SPACE_DRIVE_FOLDER_IDS key.
     // Absent → "" (the Drive store treats falsy as "no folder configured" and fails closed).
     maintenanceImageFolderId:

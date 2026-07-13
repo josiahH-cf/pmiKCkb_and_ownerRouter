@@ -1107,7 +1107,7 @@ button {
   }
 
   .approval-queue-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .queue-bulk-reason {
@@ -1772,6 +1772,108 @@ button {
   margin: 4px 0 0;
 }
 
+/* Gmail Hub: every nested grid/form/preview is allowed to shrink to its track. Long select labels,
+   pasted facts, generated previews, and localized button copy wrap instead of widening the page. */
+.gmail-hub,
+.gmail-hub > *,
+.gmail-hub .grid,
+.gmail-hub .grid > *,
+.gmail-hub .ui-stack,
+.gmail-hub .ui-stack > *,
+.gmail-hub .field,
+.gmail-hub .summary-list,
+.gmail-hub .summary-list > *,
+.gmail-hub .compact-list,
+.gmail-hub .compact-list > * {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.gmail-hub .grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+
+.gmail-hub .field {
+  display: grid;
+  gap: 6px;
+}
+
+.gmail-hub input,
+.gmail-hub select,
+.gmail-hub textarea {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+}
+
+.gmail-hub button,
+.gmail-hub .draft-box,
+.gmail-hub .summary-list dd,
+.gmail-hub p,
+.gmail-hub li {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.gmail-hub .draft-box {
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.gmail-hub .summary-list dd {
+  margin-inline-start: 0;
+}
+
+/* Approval Queue: expanded alternate views and value-free inbox rows stay within the one-column phone
+   track. The tablist below remains the only intentional horizontal scroller. */
+.approval-queue-shell,
+.approval-queue-shell > *,
+.approval-queue-shell .panel,
+.approval-queue-shell .ui-collapse,
+.approval-queue-shell .ui-collapse > *,
+.approval-queue-shell .ui-stack,
+.approval-queue-shell .ui-stack > *,
+.approval-queue-shell .ui-rows,
+.approval-queue-shell .ui-rows > *,
+.approval-queue-shell .ui-tabpanel,
+.approval-queue-shell .approval-queue-layout,
+.approval-queue-shell .approval-queue-layout > * {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.approval-queue-shell .ui-spread > *,
+.approval-queue-shell .queue-row > *,
+.approval-queue-shell .queue-detail-grid > * {
+  min-width: 0;
+}
+
+.approval-queue-shell .text-link,
+.approval-queue-shell summary,
+.approval-queue-shell p,
+.approval-queue-shell li,
+.approval-queue-shell h3 {
+  overflow-wrap: anywhere;
+}
+
+.approval-queue-shell .ui-spread > .text-link {
+  flex: 1 1 12rem;
+  max-width: 100%;
+}
+
+.approval-queue-shell .queue-pill,
+.approval-queue-shell .renewal-review-flag-tags {
+  flex: 0 0 auto;
+}
+
+.approval-queue-shell .ui-tablist {
+  max-width: 100%;
+  min-width: 0;
+}
+
 @media (max-width: 760px) {
   .ui-page-header {
     flex-direction: column;
@@ -1806,7 +1908,7 @@ button {
   }
 
   .grid.two {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .panel {
@@ -1830,6 +1932,7 @@ button {
 
   .ui-tablist {
     flex-wrap: nowrap;
+    max-width: 100%;
     overflow-x: auto;
   }
 
@@ -1875,4 +1978,20 @@ button {
   .ui-metric-value {
     font-size: 1.35rem;
   }
+}
+/* Keyboard-accessible destructive/high-risk confirmation surface. */
+.ui-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  background: rgb(15 23 42 / 55%);
+}
+
+.ui-confirmation-dialog {
+  width: min(32rem, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
 }

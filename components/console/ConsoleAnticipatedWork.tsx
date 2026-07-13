@@ -28,7 +28,12 @@ const URGENCY_LABEL: Record<AnticipatedUrgency, string> = {
 export function ConsoleAnticipatedWork({
   groups,
   canStart,
-}: Readonly<{ groups: readonly AnticipatedWorkGroup[]; canStart: boolean }>) {
+  startableDefinitionIds,
+}: Readonly<{
+  groups: readonly AnticipatedWorkGroup[];
+  canStart: boolean;
+  startableDefinitionIds: ReadonlySet<string>;
+}>) {
   if (groups.length === 0) {
     return null;
   }
@@ -50,7 +55,7 @@ export function ConsoleAnticipatedWork({
               {group.category} · {URGENCY_LABEL[group.urgency]}
             </span>
             <span className="console-anticipated-summary">{group.summary}</span>
-            {renderStartControl(group, canStart)}
+            {renderStartControl(group, canStart, startableDefinitionIds)}
           </article>
         ))}
       </div>
@@ -59,14 +64,27 @@ export function ConsoleAnticipatedWork({
   );
 }
 
-function renderStartControl(group: AnticipatedWorkGroup, canStart: boolean) {
+function renderStartControl(
+  group: AnticipatedWorkGroup,
+  canStart: boolean,
+  startableDefinitionIds: ReadonlySet<string>,
+) {
   // No startable work: an un-fed (no-source-yet) or all-clear family shows its summary only.
   if (group.count === 0) {
     return null;
   }
   // Editor with a seeded process: one click starts a test run. Never a send/write.
-  if (canStart && group.processDefinitionId) {
-    return <StartTestRunButton processDefinitionId={group.processDefinitionId} />;
+  if (
+    canStart &&
+    group.processDefinitionId &&
+    startableDefinitionIds.has(group.processDefinitionId)
+  ) {
+    return (
+      <StartTestRunButton
+        fallbackHref={group.startHref}
+        processDefinitionId={group.processDefinitionId}
+      />
+    );
   }
   // Viewer, or a family with no seeded process: a read-only deep link, never a start control.
   return (

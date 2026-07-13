@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 interface StartedRun {
   id: string;
@@ -17,13 +17,18 @@ interface StartedRun {
  * (rendered only when the viewer can start a run).
  */
 export function StartTestRunButton({
+  fallbackHref,
   processDefinitionId,
-}: Readonly<{ processDefinitionId: string }>) {
+}: Readonly<{ fallbackHref: string; processDefinitionId: string }>) {
   const [pending, setPending] = useState(false);
   const [run, setRun] = useState<StartedRun | null>(null);
   const [error, setError] = useState("");
+  const [unavailable, setUnavailable] = useState(false);
+  const inFlight = useRef(false);
 
   async function start() {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setPending(true);
     setError("");
     try {
@@ -39,11 +44,12 @@ export function StartTestRunButton({
         const payload = (await response.json()) as { run: StartedRun };
         setRun(payload.run);
       } else {
-        setError("Test run could not be started.");
+        setUnavailable(true);
       }
     } catch {
-      setError("Test run could not be started.");
+      setError("Test run could not be started. Try again or open the space.");
     } finally {
+      inFlight.current = false;
       setPending(false);
     }
   }
@@ -52,6 +58,15 @@ export function StartTestRunButton({
     return (
       <p className="muted">
         Test run started. <Link href={`/workflow-runs/${run.id}`}>View the test run</Link>
+      </p>
+    );
+  }
+
+  if (unavailable) {
+    return (
+      <p className="muted" role="status">
+        This process is not available to start.{" "}
+        <Link href={fallbackHref}>Open the space</Link>
       </p>
     );
   }
@@ -67,6 +82,11 @@ export function StartTestRunButton({
         {pending ? "Starting…" : "Start a test run"}
       </button>
       {error ? <p className="muted">{error}</p> : null}
+      {error ? (
+        <Link className="console-anticipated-open" href={fallbackHref}>
+          Open the space
+        </Link>
+      ) : null}
     </>
   );
 }

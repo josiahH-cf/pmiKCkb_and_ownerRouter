@@ -23,6 +23,7 @@
 
 import { DRAFT_BANNER, UNVERIFIED_PLACEHOLDER } from "@/lib/constants";
 import { buildReplyDraft, type ReplyTemplate } from "@/lib/gmail-inbox-zero/drafts";
+import { inspectGmailDraftSafety } from "@/lib/gmail-inbox-zero/draft-safety";
 import type { TriageMessageFacts } from "@/lib/gmail-inbox-zero/rules";
 import type { ModelProvider } from "@/lib/llm/model-provider";
 
@@ -35,7 +36,7 @@ export interface ComposeAnticipatoryDraftInput {
   missingFacts?: string[];
   /** Optional triage category; a hard-excluded category is refused before the model runs. Falls
    * back to the message category when omitted. */
-  category?: string;
+  category: string;
   /** Injected model seam (local model in dev/test, Gemini in prod; fenced by lib/config/server.ts). */
   provider: ModelProvider;
   /** Injected model id (cheap Flash in prod / local model name in dev). */
@@ -139,7 +140,20 @@ export async function composeAnticipatoryReplyDraft(
 ): Promise<ComposeAnticipatoryDraftResult> {
   const { template, message, provider, model } = input;
   const missingFacts = input.missingFacts ?? [];
-  const category = input.category ?? message.category;
+  const safety = inspectGmailDraftSafety({
+    category: input.category,
+    subject: message.subject,
+    facts: missingFacts,
+  });
+  if (!safety.allowed || !safety.categoryId) {
+    return {
+      ok: false,
+      usedModel: false,
+      refusedBeforeModel: true,
+      errors: safety.errors,
+    };
+  }
+  const category = safety.categoryId;
 
   // 1. Deterministic spine FIRST: refuse before the model is ever invoked.
   const spine = buildReplyDraft({ template, missingFacts, category });

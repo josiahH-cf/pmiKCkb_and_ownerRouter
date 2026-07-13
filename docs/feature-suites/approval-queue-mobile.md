@@ -265,3 +265,9 @@ forking them, and it SUPERSEDES the scattered desktop-list approval prose in `do
 `docs/product-definition-gap-plan.md` (delete-on-supersede at B1). Do not run it as a parallel track to
 S13; it builds on S13's shipped shared `flag-actions.tsx`, `NeedsDecisionInboxPanel`, and reason-code
 taxonomy.
+
+**2026-07-13 audit hardening (QA-002, QA-008).** High/Blocked resolution confirmation is an accessible
+in-app dialog with preserved reason/selection, focus trap, Escape/cancel, explicit confirm, focus return, and a
+duplicate-request guard; the Admin resolution gate and separate write-back authorization remain intact.
+Expanded Queue phone views constrain disclosure, inbox, row, link, chip, and nested-panel min widths; long labels
+wrap while risk chips remain reachable, and only the tab strip scrolls locally. No document overflow is hidden.

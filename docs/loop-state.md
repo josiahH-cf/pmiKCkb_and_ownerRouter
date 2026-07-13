@@ -13,7 +13,16 @@ stop-and-reset rules.
 
 ## Snapshot
 
-- Last updated: 2026-07-11
+- Last updated: 2026-07-13
+- **LOCAL REMEDIATION COMPLETE — QA-001..QA-011:** the 2026-07-13 interactive localhost audit remediation is
+  complete on the isolated `codex/remediate-local-audit-2026-07-13` worktree. All four implementation waves,
+  focused tests, direct localhost browser/emulator re-audit, core E2E flows, the full 1,548-test repository gate,
+  and the production build are green; evidence is in
+  `docs/local-app-interactive-audit-remediation-2026-07-13.md`. The remediation remains uncommitted for owner
+  review because its implementation task explicitly prohibited commit/push. Any later recheck must use explicit
+  emulator/local-model/stub overrides. No live read, external
+  write, deploy, production inspection, or cleanup is authorized. The suspected QA-007 synthetic production
+  fixtures remain an owner-only incident review after code containment.
 - Where we are: the multi-process operations console is the north star (lease-renewal = process #1). The
   2026-06-29 cycle shipped + merged R1–R5 (spine+IA, golden harness+labeling, renewal math, action console +
   intent-detect, and the full Maintenance Work Order Intake incl. live Drive photo sync). Full detail is in
@@ -38,10 +47,6 @@ stop-and-reset rules.
   Run service (`pmi-kc-kb-prod`); real Google auth locked to `pmikcmetro.com`; live RentVine (25 leases) +
   Sheet (DWD) reads work; external execution stays gated except the documented unsent renewal-draft action.
 - Operating mode: normal owner-present; Remote Away Mode INACTIVE (`docs/away-mode.md`); hard $10 budget cap.
-- Recalibrations: 2026-06-30 (`A-IA-V2` — Console-as-home, Spaces ⊇ Processes, teeth, parity; shipped as S12→S6→S10:
-  `F-DEVPROD-PARITY`/`F-IA-CONSOLE-HOME`/`F-CONSOLE-APP-STATE`) and 2026-07-02 (S13 pre-customer refinement, see RESUME).
-- 2026-07-01 cycle: SHIPPED the write-back APPROVAL control plane (`F-WRITEBACK-APPROVAL`) + "Write-back queue" tab
-  (`F-WRITEBACK-QUEUE`) + run-page audit trail; 913 tests; ALL PROVEN LIVE in prod (detail in `docs/status.md`).
 - 2026-07-08/09 CONSOLE OVERHAUL cycle SHIPPED + merged to `main` (PRs #41–#44): A action-first Console (deck + process
   strip + prominent Dictate; `F-CONSOLE-APP-STATE` amended); B color-coded Space cards (`F-SPACE-CARD-COLOR`); C Renewal
   needs-attention fold (`F-RENEWAL-ATTENTION`); D Admin re-section + in-app user/role management with audit (`F-ADMIN-IA`,
@@ -52,23 +57,17 @@ stop-and-reset rules.
     affordance + live-review actionability; maintenance external-worker Submitter auth + universal
     unit type-ahead DB + delegable ownership; per-user Gmail RUNTIME (reading / AI replies / notifications / reminders,
     gated on the client Gmail access model + DWD auth); Approval-Queue action-first rebuild.
-- **RESUME — next / waiting-on (2026-07-09):** S13 pre-customer refinement COMPLETE + **GO-LIVE done 2026-07-07** (waves
-  1–3 merged PRs #35–#39; `F-PRECUST-CYCLE`/`-NOTICE-ENGINE`/`-DICTATE-VERIFIED`/`-LEARN-LOOP`; Cloud Run
-  `pmi-kc-kb-demo-00010-sgt` 100% traffic; two Admins confirmed; live Dictate proven; $10 kill switch armed — full
-  narrative in `docs/status.md`). The 2026-07-08/09 console overhaul (bullet above) shipped on top. REMAINING client-owned:
-  Dan's Admin walkthrough + 2nd sign-in to activate his claim; QuickBooks access tier + official deposit-accounting home.
-  GATED unchanged: Sheet-write EXECUTION (`F-WRITE-GATE`), Gmail runtime (client access model + DWD), Cloud Scheduler.
-  Deferred cycle COMPLETE (all 7 app-plane slices merged, PRs #56-#62); no safe app-plane slice remains, so
-  the next work was then owner/vendor-gated (SUPERSEDED 2026-07-10 — the overhaul reopened S14–S18; see below).
+- Earlier go-live/refinement detail is in `docs/status.md`. Remaining client-owned: Dan's Admin walkthrough + second
+  sign-in, QuickBooks access/location, Sheet-write execution, Gmail runtime access model/DWD, and Cloud Scheduler.
 - **Deferred cycle COMPLETE (2026-07-09), 7 slices merged (PRs #56-#62):** 2a/1b/1c/3a/3b/A4/4a + 2c/3c/A5/2d/2b shipped app-plane, each adversarially verified then PR -> CI -> merge. Full narrative in `docs/status.md`; decision spec in `docs/temp/deferred-remaining-slices.md`.
 
-## Next Safe Slice — NONE: S14–S18 overhaul COMPLETE (remaining work owner/vendor-gated)
+## Next Safe Slice — STOP: owner review of completed localhost audit remediation
 
-All five overhaul pillars are DONE + verified: `F-RENEWAL-DECIDER-MOBILE` (S14, AC-S14-1..9), `F-RBAC-SUBUSERS`
-(S16, AC-S16-1..9), `F-UNIFIED-ATTENTION` (S17, AC-S17-1..9), `F-GMAIL-HUB` (S15, AC-S15-1..7), and
-`F-ANTICIPATION-LANE` (S18, AC-S18-1..9 — the Console's read-only Anticipated-work lane; no scheduler, no send).
-No safe app-plane slice remains; the app is migration-ready but every next step is owner/vendor-gated (below).
-Cutover prep includes a safe ignored-env generator; notifications stay off unless separately approved.
+Review the completed, uncommitted QA-001 through QA-011 worktree and its evidence in
+`docs/local-app-interactive-audit-remediation-2026-07-13.md`. S14–S18 remain feature-complete; this remediation
+corrects verified defects without broadening their scope. The production Action Registry allowlist is unchanged,
+`google_drive.maintenance_photo.store` stays closed, and QA-007 production incident inspection/cleanup remains a
+separate owner-only action. No additional safe product slice is authorized by this task.
 
 Carried owner/vendor-gated: prod photo-folder config + live process seed; Firestore rules/index deployment;
 RentVine work-order create; Sheet-write execution (`F-WRITE-GATE`, `OQ-RV-1`); deploy of the approved
@@ -131,9 +130,10 @@ only from env/Secret Manager, never committed. Record only non-secret references
    read-only `npm run preflight:adc`; if it fails, ask the owner to run `auth:session` (`F-SESSION-AUTH`) — a stale token stalls mid-step.
 3. If the trigger is "plan the next feature cycle", produce a decision-complete packet and stop. If
    the trigger authorizes running the loop, proceed unattended.
-4. Pick the next slice from **Next Safe Slice** above — the S14–S18 overhaul is COMPLETE, so no safe
-   app-plane slice remains; route to client-unblock / owner-gated cutover prep, not a new local feature.
-   For lease-renewal writeback specifically, stay in discovery until the team validates process, columns, and
-   golden data.
+4. Review the completed QA-001..QA-011 worktree and evidence. If the owner separately authorizes the QA-007
+   production incident response, authenticate interactively with `npm run auth:session`, define the exact
+   collection/document scope and backup/rollback plan, then run a read-only inspection before requesting any
+   cleanup authorization. Do not infer that authority from this remediation. For lease-renewal writeback
+   specifically, stay in discovery until the team validates process, columns, and golden data.
 5. Preserve the existing executable allowlist exactly; do not flip another registry entry. Honor all gates + cap.
 6. Update `docs/facts.md` and this file at each slice boundary; run `npm run verify:context-freshness`.

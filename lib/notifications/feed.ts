@@ -9,6 +9,7 @@
 
 import type { ApprovalQueueNotificationRecord } from "@/lib/firestore/types";
 import type { MaintenanceTicketNotificationRecord } from "@/lib/firestore/maintenance-ticket-notifications";
+import type { DecisionAttentionBacklog } from "@/lib/attention/decision-backlog";
 import {
   ATTENTION_LANE_META,
   type AttentionLane,
@@ -41,6 +42,8 @@ export interface BuildNotificationFeedInput {
   standing?: readonly AttentionSignal[];
   /** B5 Admin-only review digest, already gated to an Admin viewer by the caller. */
   review?: AttentionSignal | null;
+  /** Canonical needs-decision backlog shared with Console; value-free and read-only. */
+  decisions?: DecisionAttentionBacklog;
   mutedFamilies?: readonly NotificationFamilyKey[];
   /** B4 low-alarm preferences (per-lane threshold / snooze / digest). */
   preferences?: LowAlarmPreferences;
@@ -56,6 +59,8 @@ export interface NotificationFeed {
   standing: AttentionSignal[];
   /** B5 review digest surviving mute / threshold / snooze, or null. */
   review: AttentionSignal | null;
+  /** Actionable decisions are a standing backlog, not unread event notifications. */
+  decisions: DecisionAttentionBacklog;
   families: NotificationFamilyView[];
 }
 
@@ -103,6 +108,7 @@ export function buildNotificationFeed(
     notifications,
     standing,
     review,
+    decisions: input.decisions ?? { count: 0, signals: [] },
     families: buildFamilyViews([...muted]),
   };
 }

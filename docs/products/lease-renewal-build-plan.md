@@ -223,6 +223,14 @@ reconciliation finalization, live reads, write-back, or prod completion.
 
 ## 8. Production cutover — two tracks (do NOT promise completion by a date)
 
+### 2026-07-13 local-audit navigation hardening
+
+The Admin-only property decision history is reachable from an authorized sample renewal record and from a
+run/live flag only when that source trigger resolves to exactly one canonical property key. Ambiguous and
+property-less mappings deliberately render no destination. The route retains renewals scope plus `manageAdmin`,
+renders value-free oldest-to-newest Activity, degrades explicitly when Firestore is unavailable, and validates an
+internal renewal return path so Back returns to the originating record/run where possible.
+
 Completion bottlenecks on **OQ-PROD-1** (client-owned, no committed ETA per
 [`../client-checklist.md`](../client-checklist.md)). Frame it as two tracks; Track B is
 "ready-to-execute within hours once OQ-PROD-1/2/3/4 clear," not an end-of-week deliverable.

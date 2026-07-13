@@ -15,7 +15,7 @@ describe("TemplateWorkspace (AC-S15-3)", () => {
     const user = userEvent.setup();
     const { container } = render(<TemplateWorkspace />);
 
-    // Defaults: category "Vendor" matches the Approved rule-vendor-invoice; template is the Approved
+    // Defaults: canonical category "vendor" matches the Approved rule-vendor-invoice; template is the Approved
     // vendor acknowledgement. Evaluate runs evaluateInboxTriage + buildReplyDraft client-side.
     await user.click(screen.getByRole("button", { name: "Evaluate" }));
 
@@ -41,8 +41,7 @@ describe("TemplateWorkspace (AC-S15-3)", () => {
     const user = userEvent.setup();
     render(<TemplateWorkspace />);
 
-    await user.clear(screen.getByLabelText("Category"));
-    await user.type(screen.getByLabelText("Category"), "Owner money");
+    await user.selectOptions(screen.getByLabelText("Category"), "owner_money");
     await user.click(screen.getByRole("button", { name: "Evaluate" }));
 
     expect(await screen.findByText(/Draft refused/)).toBeInTheDocument();

@@ -6533,3 +6533,97 @@ Secret Manager references.
 Final verification: `bash scripts/verify.sh` passed end to end (212 test files / 1,489 tests, lint with
 zero errors, typecheck, router/falsification/freshness/spec-traceability/redaction gates, and production
 Next.js build). The 11 pre-existing npm dependency advisories remain visible and unchanged.
+
+## 2026-07-13 — Local interactive audit remediation: critical containment boundary
+
+The preserved localhost audit identified two live-write containment defects. QA-007 showed that demo
+seed/reset/operator helpers could initialize Firebase Admin without propagating or requiring the emulator host;
+QA-011 showed that Maintenance photo upload bypassed its closed Action Registry entry. This slice contains both
+without any production inspection, cleanup, live read, Drive upload, deploy, send, or external mutation.
+
+Demo Firestore commands now share one pre-Admin guard: only a reachable loopback target is accepted, `.env.local`
+targets are explicitly propagated to the process/children, a project id is namespace-only, and no live flag exists.
+Admin imports are dynamic after verification and use no ADC credential; seed/reset output is target metadata plus
+counts, and deterministic demo audit ids make repeated recovery idempotent. Maintenance photo readiness is now
+canonical in `lib/maintenance/photo-action.ts`: the closed UI has no file input, a crafted POST returns typed 409
+before body/config/store work, local-demo auth forces the stub, and the future enabled UI requires a
+filename/MIME/safe-target preview and explicit confirmation. The registry seed remains false.
+
+Focused verification: 8 test files / 78 tests passed, including child-process refusal, unreachable pre-Admin
+failure, local-host propagation, zero store/Drive construction, closed UI, future-preview confirmation, Action
+Registry pins, and server-config fences. `npm run typecheck` passed. Safe localhost click-through is deferred to
+the final integrated re-audit. The suspected synthetic production Firestore records remain an owner-only incident
+review; this code fix does not authorize inspection or cleanup.
+
+## 2026-07-13 — Local interactive audit remediation: Gmail and attention truth boundary
+
+QA-004 and QA-003 are code-complete with focused negative-path verification. Gmail drafting now uses stable
+category ids and one deterministic alias/intent guard. The route checks untrusted category, subject, and pasted
+fact names before model config/provider construction; the pure composer repeats the check before invocation.
+Unknown, canonical excluded, normalized alias, Unicode-width, or obvious mixed-category excluded intent refuses
+with no provider/model call. The category UI is a closed canonical select; Gmail read/send scope did not change.
+
+Console and full Notifications requests now share `gatherDecisionAttention`, which calls the existing
+scope-filtered `gatherNeedsDecisionInbox` and produces one strict six-key signal projection. Notifications renders
+the same total/rows as a distinct decision backlog. Its empty event-log copy is event-specific, so a nonzero
+decision count can no longer coexist with a global all-clear. Standing setup conditions and unread event/bell
+counts remain separate; no approval, send, external action, or value-bearing field was added.
+
+Focused verification: 10 test files / 80 tests and `npm run typecheck` passed. Direct localhost comparison and
+alias click-through remain for the final integrated re-audit; source/tests alone are not being counted as an
+interactive pass.
+
+## 2026-07-13 — Local interactive audit remediation: workflow and responsive boundaries
+
+QA-009/006/002/010 are code-complete. Maintenance tickets now require a trimmed issue plus a verified roster
+selection in both the preview and server schema; editing the unit invalidates the draft and invalid crafted POSTs
+stop before persistence. Anticipated work starts only against a loaded, scoped, non-retired definition and changes
+to a safe space link if unavailable. High/Blocked renewal resolution now uses a focus-trapped DOM dialog with
+Escape/cancel/focus-return and a one-request guard. Admins receive property-history links from renewal records and
+only from flags whose trigger maps to exactly one canonical property; origin-aware Back navigation is internal-only.
+
+QA-001/005/008 are also code-complete. Dictate exposes permission, recording, stopping, processing, appended,
+no-speech, and error states through one polite live region; it preserves typed text, suppresses rapid duplicate
+permission requests, returns focus, and cleans up streams on unmount. Gmail Hub now marks its actual nested
+grid/form/preview children shrinkable and removes a nested page-content wrapper. Approval Queue constrains its
+expanded disclosure, inbox, rows, links, chips, and panels while leaving the tab strip as the only local horizontal
+scroller. No global overflow hiding was added.
+
+Focused workflow and responsive suites plus typecheck are green. Full verification and direct browser width,
+keyboard, Back/refresh, and unavailable-state evidence remain active. No live read/write, production incident
+inspection/cleanup, Drive upload, send, deployment, or registry allowlist change occurred.
+
+## 2026-07-13 — Local interactive audit remediation complete (QA-001 through QA-011)
+
+The isolated `codex/remediate-local-audit-2026-07-13` worktree now closes all eleven preserved localhost audit
+findings without changing the original audit artifact. Demo seed/reset/operator commands refuse missing,
+malformed, non-loopback, or unreachable Firestore emulator targets before Admin initialization; Maintenance photo
+upload is fenced by the still-closed Action Registry entry; Gmail exclusions normalize and fail before the model;
+Console and full Notifications share one value-free decision backlog; and incomplete Maintenance tickets stop
+before persistence. Anticipated-work actions reconcile against loaded, scoped, active definitions; High/Blocked
+renewal decisions use an accessible confirmation dialog; property history links are canonical and ambiguity-safe;
+Dictate publishes its complete accessible lifecycle; and the Gmail/Approval Queue phone layouts are contained.
+
+Direct localhost evidence used only `127.0.0.1:8080`, local demo auth/model settings, and speech/image stubs. The
+safe demo reset verified the loopback target before Admin initialization and created 24 deterministic local
+records. In-app browser checks verified the 7-to-7 Console/Notifications decision count, hard-exclusion refusal,
+disabled incomplete ticket creation and draft invalidation, no Maintenance file input, no dead anticipated start
+buttons, real-browser dialog focus trap/Escape/state/focus return, property-history Back navigation, and empty
+browser error logs. Gmail Hub and every Approval Queue tab had no document overflow at 320, 375, 390, or 400 CSS
+pixels, including a 260-character synthetic draft fact at 320 px. Authenticated Chrome also confirmed the actual
+Gmail Hub and Approval Queue routes/headings at the exact 1440×1000 desktop and 390×844 phone viewports, with
+`scrollWidth === clientWidth` throughout. A deterministic Chrome pass over the real `AskForm` directly observed
+every Dictate announcement (permission, recording, stopping, processing, appended, no-speech, and error), typed
+preservation, stopped media tracks, and focus return after success/no-speech/error. That pass exposed and fixed a
+real focus-timing defect by deferring focus until the disabled button re-enabled; its temporary route/harness were
+deleted. No confirmation action, external send, Drive
+upload, system-of-record write, live Google read, deployment, production fixture inspection, or cleanup occurred.
+
+Verification is green: focused wave suites, `npm run test:e2e:core` (7 files / 31 tests passed; 3 emulator-only
+files / 18 tests skipped as designed), and `bash scripts/verify.sh` (format, lint with zero errors, typecheck, 219
+files / 1,548 tests, router/falsification/freshness/spec-traceability/redaction gates, and production build).
+`git diff --check` passed. The clean install reported the same 11 dependency advisories (1 low, 7 moderate, 3
+high); dependency versions were not changed. The remediation stays uncommitted/unpushed for owner review because
+the implementation brief explicitly prohibited those actions. Suspected production demo fixtures remain a
+separate owner-only incident: reauthenticate with `npm run auth:session`, define exact scope and rollback, inspect
+read-only first, and request separate cleanup authorization before any mutation.

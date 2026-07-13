@@ -1,5 +1,5 @@
 import { DRAFT_BANNER, UNVERIFIED_PLACEHOLDER } from "@/lib/constants";
-import { GMAIL_HARD_EXCLUSION_CATEGORIES } from "@/lib/gmail-inbox-zero/constants";
+import { inspectGmailDraftSafety } from "@/lib/gmail-inbox-zero/draft-safety";
 import type { GmailRuleStatus } from "@/lib/gmail-inbox-zero/rules";
 
 /**
@@ -23,7 +23,7 @@ export interface ReplyTemplate {
 export interface BuildReplyDraftInput {
   template: ReplyTemplate;
   missingFacts?: string[];
-  category?: string;
+  category: string;
 }
 
 export interface BuildReplyDraftResult {
@@ -43,14 +43,8 @@ export function buildReplyDraft(input: BuildReplyDraftInput): BuildReplyDraftRes
     );
   }
 
-  if (
-    category !== undefined &&
-    (GMAIL_HARD_EXCLUSION_CATEGORIES as readonly string[]).includes(category)
-  ) {
-    errors.push(
-      `Category "${category}" is a hard exclusion: label only, never auto-draft.`,
-    );
-  }
+  const categorySafety = inspectGmailDraftSafety({ category });
+  errors.push(...categorySafety.errors);
 
   if (errors.length > 0) {
     return { ok: false, errors };

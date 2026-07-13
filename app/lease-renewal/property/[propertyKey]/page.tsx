@@ -9,6 +9,7 @@ import {
   getPropertyActivity,
   type PropertyRunActivity,
 } from "@/lib/lease-renewal/property-repository";
+import { normalizeRenewalReturnTo } from "@/lib/lease-renewal/property-history-link";
 import { getSimulationRun, listSimulationRuns } from "@/lib/lease-renewal/simulation";
 
 // Admin-only, and it reads persisted decision Activity on each render, so never statically cached.
@@ -16,13 +17,18 @@ export const dynamic = "force-dynamic";
 
 interface PropertyPageProps {
   params: Promise<{ propertyKey: string }>;
+  searchParams?: Promise<{ returnTo?: string }>;
 }
 
-export default async function LeaseRenewalPropertyPage({ params }: PropertyPageProps) {
+export default async function LeaseRenewalPropertyPage({
+  params,
+  searchParams,
+}: PropertyPageProps) {
   await requirePageSpaceAccess("renewals");
   const user = await requirePageCapability("manageAdmin");
   const { propertyKey: rawKey } = await params;
   const propertyKey = decodeURIComponent(rawKey);
+  const returnTo = normalizeRenewalReturnTo((await searchParams)?.returnTo);
 
   // getSimulationRun is pure and always available, so the header renders even with Firestore down.
   // Only the append-only Activity needs Firestore; wrap those reads (also covers demo runs with no
@@ -49,8 +55,8 @@ export default async function LeaseRenewalPropertyPage({ params }: PropertyPageP
   return (
     <AppShell user={user}>
       <section className="content">
-        <Link className="back-link" href="/lease-renewal">
-          ← Renewals
+        <Link className="back-link" href={returnTo ?? "/lease-renewal"}>
+          ← {returnTo ? "Back to renewal" : "Renewals"}
         </Link>
         <h1 className="section-title">Property decision history</h1>
         <p className="muted">

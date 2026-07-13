@@ -57,9 +57,17 @@ function okRun() {
   );
 }
 
+const startable = new Set(["lease-renewal", "maintenance-work-order-intake"]);
+
 describe("ConsoleAnticipatedWork", () => {
   it("AC-S18-3: renders each family, and an un-fed family shows its placeholder with no start control", () => {
-    render(<ConsoleAnticipatedWork groups={[group(), noSourceMaintenance]} canStart />);
+    render(
+      <ConsoleAnticipatedWork
+        groups={[group(), noSourceMaintenance]}
+        canStart
+        startableDefinitionIds={startable}
+      />,
+    );
     expect(screen.getByText("Lease Renewals")).toBeInTheDocument();
     expect(screen.getByText("Maintenance Work Order Intake")).toBeInTheDocument();
     expect(screen.getByText("Waiting on a maintenance signal")).toBeInTheDocument();
@@ -75,6 +83,7 @@ describe("ConsoleAnticipatedWork", () => {
           noSourceMaintenance,
         ]}
         canStart
+        startableDefinitionIds={startable}
       />,
     );
     expect(screen.getByText(ANTICIPATION_ALL_CLEAR)).toBeInTheDocument();
@@ -85,18 +94,30 @@ describe("ConsoleAnticipatedWork", () => {
   });
 
   it("always renders the computed-on-request caption", () => {
-    render(<ConsoleAnticipatedWork groups={[group()]} canStart />);
+    render(
+      <ConsoleAnticipatedWork
+        groups={[group()]}
+        canStart
+        startableDefinitionIds={startable}
+      />,
+    );
     expect(screen.getByText(ANTICIPATION_CAPTION)).toBeInTheDocument();
   });
 
   it("AC-S18-5: starting a run POSTs exactly the test-runs endpoint and issues no send/write", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
-      okRun(),
-    );
+    const fetchMock = vi.fn<
+      (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+    >(async () => okRun());
     vi.stubGlobal("fetch", fetchMock);
 
-    render(<ConsoleAnticipatedWork groups={[group()]} canStart />);
+    render(
+      <ConsoleAnticipatedWork
+        groups={[group()]}
+        canStart
+        startableDefinitionIds={startable}
+      />,
+    );
     await user.click(screen.getByRole("button", { name: "Start a test run" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
@@ -111,8 +132,58 @@ describe("ConsoleAnticipatedWork", () => {
   });
 
   it("AC-S18-6: a viewer who cannot start runs sees ZERO start controls (deep link only)", () => {
-    render(<ConsoleAnticipatedWork groups={[group()]} canStart={false} />);
+    render(
+      <ConsoleAnticipatedWork
+        groups={[group()]}
+        canStart={false}
+        startableDefinitionIds={startable}
+      />,
+    );
     expect(screen.queryByRole("button", { name: "Start a test run" })).toBeNull();
     expect(screen.getByRole("link", { name: "Open the space" })).toBeInTheDocument();
+  });
+
+  it("renders a safe deep link when the projected definition is absent or retired", () => {
+    render(
+      <ConsoleAnticipatedWork
+        groups={[group()]}
+        canStart
+        startableDefinitionIds={new Set()}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Start a test run" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Open the space" })).toHaveAttribute(
+      "href",
+      "/lease-renewal",
+    );
+  });
+
+  it("replaces a stale start action with the safe fallback and suppresses rapid duplicates", async () => {
+    const user = userEvent.setup();
+    let release!: () => void;
+    const fetchMock = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          release = () => resolve(new Response(null, { status: 404 }));
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <ConsoleAnticipatedWork
+        groups={[group()]}
+        canStart
+        startableDefinitionIds={startable}
+      />,
+    );
+
+    const button = screen.getByRole("button", { name: "Start a test run" });
+    await Promise.all([user.click(button), user.click(button)]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    release();
+    expect(await screen.findByRole("link", { name: "Open the space" })).toHaveAttribute(
+      "href",
+      "/lease-renewal",
+    );
+    expect(screen.queryByRole("button", { name: "Start a test run" })).toBeNull();
   });
 });
