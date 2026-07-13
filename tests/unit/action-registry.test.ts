@@ -41,10 +41,9 @@ describe("Action Registry repository", () => {
 
     expect(all).toHaveLength(ACTION_REGISTRY_SEED.length);
     expect(keys).toEqual([...keys].sort());
-    // Only the allow-listed, documented Gmail renewal-notice draft is executable (flipped 2026-07-09).
     expect(
       all.filter((entry) => entry.production_allowed).map((entry) => entry.key),
-    ).toEqual(["gmail.renewal_notice.draft_create"]);
+    ).toEqual(["gmail.mailbox.read", "gmail.renewal_notice.draft_create"]);
   });
 
   it("reads a single entry by key", async () => {

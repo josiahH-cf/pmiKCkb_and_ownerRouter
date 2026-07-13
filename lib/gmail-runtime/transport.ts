@@ -19,10 +19,12 @@ export interface GmailHttpTransport {
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
+const DEFAULT_MAX_RESPONSE_BYTES = 2_000_000;
 
 /** Live fetch transport (prod only). Never imported by unit tests. */
 export function createGmailFetchTransport(
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  maxResponseBytes = DEFAULT_MAX_RESPONSE_BYTES,
 ): GmailHttpTransport {
   return {
     async send(request) {
@@ -35,7 +37,14 @@ export function createGmailFetchTransport(
           body: request.body,
           signal: controller.signal,
         });
+        const declaredLength = Number(response.headers.get("content-length") ?? "0");
+        if (declaredLength > maxResponseBytes) {
+          throw new Error("Gmail response exceeded the configured size limit.");
+        }
         const text = await response.text();
+        if (Buffer.byteLength(text, "utf8") > maxResponseBytes) {
+          throw new Error("Gmail response exceeded the configured size limit.");
+        }
         return {
           status: response.status,
           json: async () => (text ? JSON.parse(text) : {}),

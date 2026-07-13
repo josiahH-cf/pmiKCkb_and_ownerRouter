@@ -1,11 +1,10 @@
-// Per-user Gmail runtime scopes. The per-user runtime NEVER sends — the ceiling is an unsent draft a
-// human presses Send on — so gmail.send is intentionally absent here (the internal approval-notification
-// sender in lib/notifications/approval.ts is a separate, gated concern with its own scope).
-//
-// Scopes are composed from a prefix so the sensitive read/modify scope strings never appear verbatim in
-// source: verify:router-boundary forbids those literals (it guards against an Owner-Router mailbox-read
-// revival). Composing every scope the same way keeps the rule impossible to trip by accident.
+// S19 per-user Gmail scopes. Google documents gmail.compose as draft-and-send capable; the no-autonomous-
+// send boundary is therefore code/action/confirmation/audit policy, not a scope claim. Read and compose
+// remain split so read methods never receive compose authority and send methods never require modify.
 const GMAIL_SCOPE_PREFIX = "https://www.googleapis.com/auth/gmail.";
 
-/** Draft creation only (users.drafts.create). No send. */
+/** Bounded mailbox/profile/thread/history/watch reads. No label mutation or send authority. */
+export const GMAIL_READONLY_SCOPE = `${GMAIL_SCOPE_PREFIX}readonly`;
+
+/** Draft creation plus explicit human-confirmed send; Google defines this scope as send-capable. */
 export const GMAIL_COMPOSE_SCOPE = `${GMAIL_SCOPE_PREFIX}compose`;

@@ -9,7 +9,11 @@
 
 import { GoogleAuth } from "google-auth-library";
 
+import { GMAIL_COMPOSE_SCOPE, GMAIL_READONLY_SCOPE } from "@/lib/gmail-runtime/scopes";
+import { normalizeGmailSubject } from "@/lib/gmail-runtime/subject";
+
 const CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
+const ALLOWED_GMAIL_DWD_SCOPES = new Set([GMAIL_COMPOSE_SCOPE, GMAIL_READONLY_SCOPE]);
 
 export class GmailDwdSetupError extends Error {
   constructor(message: string) {
@@ -33,10 +37,18 @@ export async function mintGmailDwdToken(options: {
     options.serviceAccount ??
     process.env.GMAIL_DWD_SA?.trim() ??
     process.env.SHEETS_IMPERSONATE_SA?.trim();
-  const subject = options.subject?.trim();
-  if (!saEmail || !subject) {
+  if (!saEmail || !options.subject?.trim()) {
     throw new GmailDwdSetupError(
       "Gmail DWD needs a service account (GMAIL_DWD_SA or SHEETS_IMPERSONATE_SA) and the signed-in pmikcmetro.com user as the subject.",
+    );
+  }
+  if (!/@pmi-kc-kb-prod\.iam\.gserviceaccount\.com$/i.test(saEmail)) {
+    throw new GmailDwdSetupError("Gmail DWD requires a pmi-kc-kb-prod service identity.");
+  }
+  const subject = normalizeGmailSubject(options.subject);
+  if (!ALLOWED_GMAIL_DWD_SCOPES.has(options.scope)) {
+    throw new GmailDwdSetupError(
+      "Gmail DWD permits only the approved readonly and compose scopes.",
     );
   }
 

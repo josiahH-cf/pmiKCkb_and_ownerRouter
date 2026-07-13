@@ -222,6 +222,10 @@ Acceptance criteria:
   approvals, and Admin visibility.
 - Lease Renewal Agent acceptance scenarios pass once runtime exists.
 - Gmail Inbox 0 test scenarios pass against approved safe threads or sanitized threads.
+- S19 fake-transport tests prove per-user subject isolation, bounded/safe MIME reads,
+  exact-payload confirmation, one-attempt idempotency, ambiguous-send reconciliation,
+  reply headers/thread ID, authenticated push replay/cursor handling, and the simulator
+  no-Gmail fallback before any live test.
 - Dan, Bailey, and named operators complete training and signoff tasks.
 - Backend automation tests prove explicit approval, audit fields, rollback/error
   handling, and no unapproved external writes.
@@ -305,8 +309,9 @@ bash scripts/verify.sh
 
 ### P7 - Production Cutover And Monitoring
 
-Status: blocked — needs client-owned production resources and named go-live/rollback/monitoring
-owners.
+Status: in progress — the client-owned service has the current app release and its bounded production smoke is
+green; full cutover still needs named go-live/rollback/monitoring owners, approved source scope, and the remaining
+owner/vendor gates.
 
 Acceptance criteria:
 
@@ -329,7 +334,7 @@ bash scripts/verify.sh
 
 ### PMI KC KB
 
-Current state: runtime exists; production cutover remains.
+Current state: commit `b24c67d` is deployed + directly demo-verified on production; full production cutover remains.
 
 Key gates:
 
@@ -531,19 +536,31 @@ Key gates:
 
 ### Gmail Inbox 0
 
-Current state: Dan-email-first planning lane with reusable Owner Router artifacts.
+Current state: S19 is built as a per-authenticated-user Gmail workspace; the S15
+simulator/pasted-text workspace remains a separate fallback. The keyless readonly
+self-pilot profile connection is live-proven and `gmail.mailbox.read` is locally
+allowlisted. The deployed revision is still simulator-only. No thread/body read, send,
+reply, Pub/Sub resource, or deploy occurred.
 
 Key gates:
 
 - Start with `Waiting on Outside` and `Waiting on Team`; later add `Dan Decision` and
   `Draft Ready`.
-- Confirm Dan mailbox access, historical scan model, approved auto-label rules, Drive
-  source folder/files, Gem path, and safe live testing approach.
-- Plan an Admin-only KB management page for labels, rules, approved replies, change
-  history, and Gmail/Gemini status.
-- Preserve human send authority.
-- No autonomous send, no unapproved Gmail read/modify runtime, and no system-of-record
-  writes.
+- Stage 1 profile gate: COMPLETE 2026-07-13 for `josiah@pmikcmetro.com` under
+  `gmail.readonly` on DWD client `104374162913177846911`; aggregate counts and cursor
+  presence only. Any thread/body read remains separately gated. Do not add `gmail.modify`
+  or `mail.google.com`.
+- Stage 1 send gate: after local verification, approve one exact synthetic self-message
+  and one exact-confirmed reply; prove two Gmail messages share one thread ID. Broader
+  recipients and Dan mailbox access are separate decisions.
+- Stage 2 gate: budget-check and separately approve Pub/Sub topic/IAM/dedicated OIDC push
+  identity/subscription plus one manual INBOX watch. No Cloud Scheduler.
+- `gmail.mailbox.read` is promoted from S19 evidence. Promote `gmail.message.send` or
+  `gmail.thread.reply` only with separate per-action evidence and owner approval; deploy
+  only after a second explicit production approval.
+- Preserve human send authority. No autonomous/background/model-triggered/scheduled
+  send, automatic retry of an ambiguous result, cross-mailbox Admin access, persisted
+  mailbox body, or system-of-record write.
 
 ## Risks And Unknowns
 
@@ -552,8 +569,8 @@ Key gates:
   system list remains TBD until scoped with the client.
 - Maintenance automation requires further chatbot/phone-system product alignment; tools,
   services, and connections remain TBD until scoped with the client.
-- Gmail Inbox 0 requires careful all-mailbox scan permissions so Dan's inbox is not
-  disrupted.
+- Gmail Inbox 0 requires a narrow pilot allowlist and bounded on-demand reads so no
+  domain mailbox, including Dan's, is scanned merely because DWD could impersonate it.
 - Some historical demo/status/spec material still mentions Bailey Brain, Dan's AI
   Assistant, and Owner Router; those names must be read as demo/legacy context unless
   updated by product docs.
@@ -565,8 +582,8 @@ Key gates:
 
 1. Keep the KB demo and verification path green.
 2. Stand up PMI KC KB production with the first four internal Spaces.
-3. Move Gmail Inbox 0 in tandem as a non-disruptive Dan Gmail pilot, starting with two
-   labels and a minimal KB management page.
+3. Move Gmail Inbox 0 through S19's self-only per-user proof first; consider Dan workflow,
+   broader recipients, and labels only in later separately approved slices.
 4. Scope and build Lease Renewal as the first full backend automation with connected
    apps and explicit approval.
 5. Scope Maintenance automation after chatbot/phone intake behavior is aligned and

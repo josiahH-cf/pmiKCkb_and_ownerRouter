@@ -154,10 +154,13 @@ Approved for Execution` (or `Disabled` at any time).
 
 `production_allowed` may be `true` only when `readiness` is `Approved for Execution` and
 `evidence_status` is `Documented` with non-empty `documented_evidence`. This is enforced in
-the schema. Exactly one seeded entry is allowlisted today:
-`gmail.renewal_notice.draft_create`, a compose-only action backed by the committed owner-grant
-artifact in `docs/evidence/gmail-dwd-grant-2026-07.md`. It creates an UNSENT draft and has no
-send scope or send method. Every other entry remains `production_allowed: false`; no
+the schema. Exactly two seeded entries are allowlisted today: the bounded self-pilot
+`gmail.mailbox.read` backed by `docs/evidence/gmail-read-grant-2026-07-13.md`, and
+`gmail.renewal_notice.draft_create`, a draft-only action backed by the committed owner-grant
+artifact in `docs/evidence/gmail-dwd-grant-2026-07.md`. The latter creates an UNSENT draft and has
+no code path to the Gmail send method. The granted `gmail.compose` scope is itself send-capable;
+the safety boundary is the action-specific runtime/gate, not a no-send claim about that scope.
+Every send/reply/mutation and all other entries remain `production_allowed: false`; no
 system-of-record write is executable.
 
 The Maintenance photo runtime is also bound to this committed decision. With
@@ -169,14 +172,15 @@ MIME type, and a safe target-folder label) plus explicit user confirmation.
 
 ### Catalog coverage
 
-The seed catalog (`lib/integrations/action-registry-seed.ts`) now holds 19 entries: the
+The seed catalog (`lib/integrations/action-registry-seed.ts`) now holds 22 entries: the
 original 9 plus read-only `rentvine.lease.read` and `rentvine.work_order.read` (documented
 lease/work-order list/view used for renewal-candidate discovery and chain verification),
 `leadsimple.task.create` (orchestration task creation, vendor-confirmation-required), the
-Gmail Inbox 0 pair `gmail.label.apply` / `gmail.draft.create` (per
-`docs/products/gmail-inbox-zero.md`: additive labels and unsent drafts only, no send
-capability in any scope; both stay `Planned` until the client approves the Gmail access
-model), and the lease-renewal connector trio `google_sheets.renewal_checklist.{read,
+five Gmail Inbox 0 actions `gmail.label.apply`, `gmail.draft.create`,
+`gmail.mailbox.read`, `gmail.message.send`, and `gmail.thread.reply` (per S19: readonly
+bounded self-mailbox access, unsent drafts, and exact-confirmation self-send/reply; only
+the live-proven bounded read is `production_allowed:true`, while the other four remain false), and the
+lease-renewal connector trio `google_sheets.renewal_checklist.{read,
 reconcile,writeback}` (per `docs/products/lease-renewal-connector-design.md` §5.2: read the
 mapped tabs with tabs 4 & 7 denied at the connector boundary; reconcile fields into flags,
 never writes; and the one approval-gated single-cell write-back, `Documented` + `Planned`,
@@ -188,7 +192,8 @@ catalog entries would invent scope.
 ### Renewal-notice send policy — per-action spec drafts (S13 F5, spec-only)
 
 These two specs frame the renewal-notice send path for the owner. The compose-only draft action
-is the sole allowlisted Action Registry entry; the send alternative stays
+is one of two allowlisted Action Registry entries; the other is the readonly self-mailbox
+connection. The send alternative stays
 `production_allowed: false`. The locked policy (decision 3, 2026-07-02,
 `F-PRECUST-CYCLE`) is **unsent draft, human clicks Send** — so only the first action is ever
 pursued; the second is recorded as the alternative that was explicitly **not** chosen and would
@@ -200,9 +205,10 @@ Execution`, `evidence_status: Documented`, `production_allowed: true`) backed by
 compose grant. The UNSENT draft request is composed by `buildOwnerNoticeDraftRequest` /
 `buildTenantNoticeDraftRequest` (`lib/lease-renewal/notice-send-policy.ts`) and executed through
 the keyless DWD Gmail runtime in `lib/gmail-runtime/`: verbatim `DRAFT_BANNER`, recipient never
-invented (`Needs Verification:` when absent), and `send_allowed:false`. The runtime exposes
-`createDraft` only; it has no send method or `gmail.send` scope. Production use of the current
-code still requires an owner-run deploy. The `send` action below remains docs-only and disabled.
+invented (`Needs Verification:` when absent), and `send_allowed:false`. S19 adds a separate
+explicit-send method, but this renewal route still calls only `createDraft`; its action gate and
+request contract cannot invoke send. Production use of the current code still requires an
+owner-run deploy. The renewal `send` action below remains docs-only and disabled.
 
 **`gmail.renewal_notice.draft_create`** (the policy-aligned action; registry entry + composer built, runtime gated)
 
@@ -215,10 +221,10 @@ code still requires an owner-run deploy. The `send` action below remains docs-on
   draft in Gmail and clicks Send. Never sends from the app.
 - `readiness`: `Approved for Execution` — owner-approved compose-only DWD grant, verified by a
   live create/delete smoke and recorded in `docs/evidence/gmail-dwd-grant-2026-07.md`.
-- `evidence_status`: `Documented` — Gmail API `users.drafts.create` is a documented,
-  compose-only (no send) capability; the gap is the access-model approval, not the API.
-- `required_permissions`: `https://www.googleapis.com/auth/gmail.compose` (create/read/update
-  drafts; **no** `gmail.send`), domain-wide delegation as the approval sender, inside the
+- `evidence_status`: `Documented` — Gmail API `users.drafts.create` is documented; the
+  action-specific route/runtime is constrained to creating an unsent draft.
+- `required_permissions`: `https://www.googleapis.com/auth/gmail.compose` (a send-capable
+  scope used here only for draft creation), domain-wide delegation as the approval sender, inside the
   `pmikcmetro.com` boundary.
 - `preview_schema_note`: the approver sees the exact recipient, subject, and body (banner
   included) before the draft is created; no auto-population of the To field beyond the
@@ -226,8 +232,8 @@ code still requires an owner-run deploy. The `send` action below remains docs-on
 - `rollback_note`: an unsent draft is deletable with no external effect; nothing leaves the
   mailbox until a human sends it.
 - `connection_health_check_ref`: `health.gmail.workspace_api`.
-- `production_allowed`: **true** for this exact compose-only key; the executable allowlist rejects
-  any other unexpected flip.
+- `production_allowed`: **true** for this exact compose-only key; the executable allowlist also
+  permits only the separately evidenced `gmail.mailbox.read` action and rejects any other flip.
 
 **`gmail.renewal_notice.send`** (the alternative — explicitly NOT chosen)
 
@@ -237,8 +243,29 @@ code still requires an owner-run deploy. The `send` action below remains docs-on
   off. This entry exists only to make the rejected alternative auditable.
 - `evidence_status`: `Undocumented` (policy, not capability) — reviving it requires a new owner
   decision that overrides decision 3 plus a full per-action spec.
-- `required_permissions`: would need `gmail.send` — deliberately **not** requested.
+- `required_permissions`: the existing `gmail.compose` scope is technically sufficient to
+  send, which is why the disabled action gate and route separation are mandatory. A separate
+  `gmail.send` grant is not requested.
 - `production_allowed`: **false** (and would stay false without an explicit future approval).
+
+### Gmail live per-user actions (S19, read connection proven 2026-07-13)
+
+- `gmail.mailbox.read`: `gmail.readonly`; bounded profile/thread/history/watch calls for the
+  authenticated user's own mailbox; `Approved for Execution`, `production_allowed:true` after
+  the recorded self-pilot profile proof. Any thread/body read and deployment remain separately gated.
+- `gmail.message.send`: `gmail.compose`; one self-addressed new message only after exact-payload
+  one-time confirmation and transactional claim; `Planned`, `production_allowed:false`.
+- `gmail.thread.reply`: same explicit-send contract plus live parent re-read, matching subject,
+  Gmail `threadId`, `In-Reply-To`, and `References`; `Planned`,
+  `production_allowed:false`.
+- `gmail.draft.create`: remains the separate Gmail Inbox 0 unsent-draft key and remains gated.
+- `gmail.label.apply`: remains gated because S19 does not request `gmail.modify`.
+
+Normal tests inject transport/state seams and never call Gmail. Send/reply promotion requires the
+S19 per-action evidence, owner action-time approval, safe self-thread proof, and rollback record.
+Ambiguous sends are never automatically retried; reconciliation searches
+the unique RFC Message-ID first. Minimal Firestore state stores bodyless confirmation/audit and
+watch cursor/dedupe records only.
 
 ## Vendor-confirmation matrix
 

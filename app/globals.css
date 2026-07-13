@@ -1827,6 +1827,129 @@ button {
   margin-inline-start: 0;
 }
 
+.simulated-email-chain-heading {
+  gap: var(--space-3);
+}
+
+.simulated-email-chain-heading h2,
+.simulated-thread-message p,
+.simulated-thread-status {
+  margin: 0;
+}
+
+.simulated-thread-summary {
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+}
+
+.simulated-thread-list {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.simulated-thread-message {
+  border-left: 3px solid var(--color-primary);
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+}
+
+.simulated-thread-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.simulated-thread-status:empty {
+  display: none;
+}
+
+.live-gmail-workspace,
+.gmail-live-grid,
+.gmail-live-grid > *,
+.gmail-send-preview,
+.gmail-thread-list,
+.gmail-message-list {
+  min-width: 0;
+}
+
+.gmail-live-identity {
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  overflow-wrap: anywhere;
+}
+
+.gmail-live-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.gmail-thread-button {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: left;
+  white-space: normal;
+  width: 100%;
+}
+
+.gmail-message-list {
+  display: grid;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.gmail-message-list li {
+  border-left: 3px solid var(--color-primary);
+  display: grid;
+  gap: var(--space-1);
+  overflow-wrap: anywhere;
+  padding: var(--space-2) var(--space-3);
+}
+
+.gmail-message-list p,
+.gmail-exact-addresses dd,
+.gmail-exact-addresses dt {
+  margin: 0;
+}
+
+.gmail-exact-addresses {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.gmail-exact-addresses > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.gmail-exact-addresses dt {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+@media (max-width: 720px) {
+  .gmail-live-grid,
+  .gmail-exact-addresses {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* Approval Queue: expanded alternate views and value-free inbox rows stay within the one-column phone
    track. The tablist below remains the only intentional horizontal scroller. */
 .approval-queue-shell,

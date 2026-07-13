@@ -135,10 +135,11 @@ describe("Action Registry seed catalog", () => {
     }
   });
 
-  it("keeps every entry non-executable except the allow-listed, documented Gmail renewal-notice draft", () => {
-    // Only gmail.renewal_notice.draft_create is production_allowed — flipped 2026-07-09 on the committed
-    // DWD grant (docs/evidence/gmail-dwd-grant-2026-07.md). Any OTHER executable entry trips this pin.
-    const EXECUTABLE = new Set(["gmail.renewal_notice.draft_create"]);
+  it("keeps every entry non-executable except the two documented Gmail actions", () => {
+    const EXECUTABLE = new Set([
+      "gmail.mailbox.read",
+      "gmail.renewal_notice.draft_create",
+    ]);
     for (const entry of ACTION_REGISTRY_SEED) {
       const parsed = CreateActionRegistryInputSchema.parse(entry);
       expect(parsed.production_allowed, entry.key).toBe(EXECUTABLE.has(entry.key));
@@ -159,8 +160,8 @@ describe("Action Registry seed catalog", () => {
     expect(writeback?.production_allowed).toBe(false);
   });
 
-  it("contains the expanded 19-entry catalog", () => {
-    expect(ACTION_REGISTRY_SEED).toHaveLength(19);
+  it("contains the expanded 22-entry catalog", () => {
+    expect(ACTION_REGISTRY_SEED).toHaveLength(22);
     expect(ACTION_REGISTRY_SEED.map((entry) => entry.key)).toEqual(
       expect.arrayContaining([
         "rentvine.lease.read",
@@ -168,6 +169,9 @@ describe("Action Registry seed catalog", () => {
         "leadsimple.task.create",
         "gmail.label.apply",
         "gmail.draft.create",
+        "gmail.mailbox.read",
+        "gmail.message.send",
+        "gmail.thread.reply",
         "gmail.renewal_notice.draft_create",
         "google_sheets.renewal_checklist.read",
         "google_sheets.renewal_checklist.reconcile",
@@ -177,11 +181,11 @@ describe("Action Registry seed catalog", () => {
     );
   });
 
-  it("opens ONLY the renewal-notice Gmail draft (Approved+Documented); the two Inbox 0 entries stay Planned", () => {
+  it("opens only the renewal draft and bounded self-mailbox read", () => {
     const gmailEntries = ACTION_REGISTRY_SEED.filter(
       (entry) => entry.target_system === "Gmail",
     );
-    expect(gmailEntries).toHaveLength(3);
+    expect(gmailEntries).toHaveLength(6);
 
     // Flipped 2026-07-09 on the committed DWD grant (gmail.compose proven live; no send scope, no send
     // call). The ceiling stays an unsent draft.
@@ -193,13 +197,15 @@ describe("Action Registry seed catalog", () => {
     expect(renewalNotice?.evidence_status).toBe("Documented");
     expect(renewalNotice?.production_allowed).toBe(true);
 
-    // The two Gmail Inbox 0 entries (label.apply, draft.create) have no runtime yet — still gated.
     const inboxZero = gmailEntries.filter(
       (entry) => entry.product_lane === "Gmail Inbox 0",
     );
-    expect(inboxZero).toHaveLength(2);
-    for (const entry of inboxZero) {
-      expect(entry.readiness, entry.key).toBe("Planned");
+    expect(inboxZero).toHaveLength(5);
+    const mailboxRead = inboxZero.find((entry) => entry.key === "gmail.mailbox.read");
+    expect(mailboxRead?.readiness).toBe("Approved for Execution");
+    expect(mailboxRead?.evidence_status).toBe("Documented");
+    expect(mailboxRead?.production_allowed).toBe(true);
+    for (const entry of inboxZero.filter((entry) => entry.key !== "gmail.mailbox.read")) {
       expect(entry.production_allowed, entry.key).toBe(false);
     }
   });

@@ -9,31 +9,37 @@ import { WAITING_ON_GMAIL } from "@/lib/notifications/families";
 
 afterEach(cleanup);
 
-describe("GmailHubHome (AC-S15-5)", () => {
-  it("presents the drafts, templates, and summary tools together", () => {
+describe("GmailHubHome (AC-S15-5, AC-S19-7)", () => {
+  it("separates the live workspace from browser-only and pasted-text fallbacks", () => {
     render(<GmailHubHome />);
+    expect(screen.getByRole("heading", { name: "Live Gmail" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Offline and demo fallback" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Simulated email chain" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Browser only")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Compose draft" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Evaluate" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Summarize thread" })).toBeInTheDocument();
   });
 
-  it("renders every live-mailbox affordance disabled with the exact 'Waiting on Gmail access' literal", () => {
+  it("keeps live controls disabled until a real connection succeeds", () => {
     render(<GmailHubHome />);
 
-    // The "read my inbox" control is disabled and carries the exact gated string.
-    const readInbox = screen.getByRole("button", { name: WAITING_ON_GMAIL });
-    expect(readInbox).toBeDisabled();
     expect(WAITING_ON_GMAIL).toBe("Waiting on Gmail access");
+    expect(screen.getByRole("button", { name: "Create unsent draft" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Review exact message" })).toBeDisabled();
 
-    // Both Gmail-dependent families are present and gated with the same literal.
     expect(screen.getByText("RentVine replies")).toBeInTheDocument();
     expect(screen.getByText("Owner replies")).toBeInTheDocument();
-    // read-my-inbox button + rentvine_replies pill + owner_process_replies pill = 3 occurrences.
     expect(screen.getAllByText(WAITING_ON_GMAIL).length).toBeGreaterThanOrEqual(3);
   });
 
-  it("has no send control anywhere on the hub", () => {
+  it("has no immediate Send control before exact-message review", () => {
     render(<GmailHubHome />);
-    expect(screen.queryByRole("button", { name: /send/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Send this exact message" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Review exact message" })).toBeDisabled();
   });
 });

@@ -58,6 +58,7 @@ function startDevServer() {
         ...process.env,
         ASK_DEMO_MODE: "true",
         LOCAL_DEMO_AUTH: "true",
+        NEXT_E2E_ISOLATED_BUILD: "true",
         NEXT_TELEMETRY_DISABLED: "1",
       },
       stdio: ["ignore", "pipe", "pipe"],

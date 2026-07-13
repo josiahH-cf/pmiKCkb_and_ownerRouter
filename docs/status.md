@@ -6627,3 +6627,136 @@ high); dependency versions were not changed. The remediation stays uncommitted/u
 the implementation brief explicitly prohibited those actions. Suspected production demo fixtures remain a
 separate owner-only incident: reauthenticate with `npm run auth:session`, define exact scope and rollback, inspect
 read-only first, and request separate cleanup authorization before any mutation.
+
+## 2026-07-13 — Current main deployed and Wednesday demo verified
+
+The completed QA-001..QA-011 remediation is now commit `b24c67d` on local and remote `main`. After the owner
+explicitly authorized authentication, deployment, production smoke, and a self-email check, both ADC and the
+gcloud CLI token passed as `josiah@pmikcmetro.com`; the active project was `pmi-kc-kb-prod`. The production
+preflight passed with approval-notification email intentionally disabled. The prior Cloud Run revision was
+`pmi-kc-kb-demo-00012-kf7` (2026-07-11); the clean `main` worktree deployed successfully as
+`pmi-kc-kb-demo-00013-gm4`, which became latest-created, latest-ready, and 100% traffic. The canonical root
+redirected unauthenticated traffic to sign-in, `/sign-in` returned 200, and a local-demo cookie was rejected by
+the production Ask API with 401. The deploy's attempt to reapply the public IAM binding warned, but the existing
+service reachability remained healthy and traffic routing completed.
+
+The authenticated production walkthrough passed as Admin at the canonical URL. At a 390x844 viewport the sample
+renewal run defaulted to one-card mode, advanced from 1-of-5 to 2-of-5, and had no document overflow. Console and
+the full Notifications hub both showed the same eight decision items, with the hub also showing setup/coverage
+signals. Gmail Hub stayed overflow-free, produced a structured summary from the sanitized project-update text,
+and produced an Approved-pattern scheduling draft with the mandatory review banner + Needs Verification facts;
+mailbox read stayed disabled and no Send control appeared. Console's anticipated-work families rendered with
+the no-schedule/no-send caption. Maintenance built a synthetic faucet draft, inferred Plumbing, rendered the
+owner-notice/vendor suggestions, disabled Create until a verified unit, invalidated the preview after the unit
+input changed, and exposed status + Dan/Josiah assignment choices in the existing queue. A read-only live Ask
+returned `Verified Source` with two approved-source citations. No decision, test run, ticket, assignment, Gmail
+draft API call, email send, SoR write, or fixture cleanup executed.
+
+The simple engineer Wednesday walkthrough was added, rendered, and visually checked at desktop and 390x844 with
+no horizontal overflow. The only unfinished requested check is the separate
+Gmail self-delivery/thread verification: the Gmail connector reported that its app connection requires
+reauthentication. Owner action is to reconnect that app as `josiah@pmikcmetro.com`; after that, send the supplied
+update to `me`, reply to the exact message, and confirm the two messages share one Gmail thread. This does not
+change the app's Gmail ceiling: the production app can create approved unsent drafts only and cannot send.
+
+## 2026-07-13 — Gmail connector check replaced by an in-app synthetic chain
+
+The owner explicitly rejected using the Codex Gmail connector or a real send for the Wednesday email-chain
+demonstration. The active direction is now a clearly labeled `SimulatedEmailChain` inside `/gmail-hub`: it starts
+with one synthetic message, lets the operator append a simulated Dan/Josiah reply under one subject, counts the
+messages in one simulated thread, and resets to its seed fixture. The action is deliberately named "Add simulated
+reply", never Send. State is React memory in the current browser tab only; the component has no route request,
+Gmail runtime, Firestore, browser-storage, mailbox, or external-delivery path. The prior connector blocker above
+is historical and no longer an active task gate.
+
+Focused component + hub verification is green (2 files / 6 tests), including a negative source sentinel and a
+runtime `fetch` spy proving the interaction makes zero network calls. Typecheck and lint are green. The tracked
+S15 spec now includes owner direction D4 and AC-S15-8; the Wednesday runbook instructs the engineer to use this
+browser-only chain and explicitly prohibits a Gmail connector or real email. Full verification, production deploy,
+and direct production interaction remain in progress for this slice.
+
+## 2026-07-13 — Synthetic Gmail Hub chain verified and deployed
+
+Full `bash scripts/verify.sh` passed after the additive slice: format, lint (zero errors; eight pre-existing test
+warnings), typecheck, 220 test files / 1,551 tests, router boundary, falsification, context freshness, spec
+traceability, redaction, and the production Next.js build. The dependency audit remains unchanged at 11 known
+advisories (1 low, 7 moderate, 3 high). The ADC freshness check, hard $10 budget guard, and production cutover
+preflight all passed; approval-notification delivery remains intentionally disabled.
+
+The verified working tree based on `b24c67d` deployed to Cloud Run as revision
+`pmi-kc-kb-demo-00014-cwq`; latest-created, latest-ready, and traffic all resolved to that revision at 100%. The
+canonical root returned a 307 to `/sign-in` and the sign-in page returned 200. Direct authenticated production
+verification appended the prefilled Dan reply and observed "2 messages in one simulated thread", reset it to one,
+appended again, refreshed, and observed one again. At a 390x844 viewport the simulator remained visible and the
+document scroll width equaled its client width (375 CSS pixels), so there was no horizontal overflow. The live
+inbox control remained disabled, there was no Send button, and the production browser warning/error log was empty.
+
+No Gmail connector was used. No real email, Gmail API call, app API request, mailbox read, external delivery,
+Firestore write, browser-storage write, Action Registry change, or system-of-record write occurred. The updated
+Wednesday HTML runbook now uses only this browser-local simulator for the chain demonstration. These changes are
+deployed but remain uncommitted and unpushed for owner review.
+
+## 2026-07-13 — S19 live per-user Gmail built locally to the permission gate
+
+The owner-provided Gmail overhaul brief is now an executable S19 spec and a local implementation, while the
+deployed `pmi-kc-kb-demo-00014-cwq` revision remains simulator-only. Gmail Hub now has a separately labeled live
+workspace with authenticated connection health, bounded thread list/detail, manual refresh, new/reply editing,
+an unsent draft step, exact message confirmation, explicit Send, result ids, and ambiguous-outcome reconciliation.
+The browser-only synthetic chain remains an honest offline/demo fallback.
+
+Server routes derive the represented mailbox only from the authenticated `pmikcmetro.com` session and configured
+pilot list. Read uses only `gmail.readonly`; draft/send uses only `gmail.compose`; the DWD mint rejects any other
+subject or scope. MIME handling is text-only, bounded, attachment-metadata-only, and never forwards mailbox text
+to Gemini automatically. Exact-payload confirmations are expiring, one-time, transactionally claimed, and
+self-recipient-only. Concurrent or repeated sends make at most one Gmail call; ambiguous results never auto-retry
+and reconcile by unique RFC Message-ID. Replies re-read the live parent and preserve the Gmail thread id plus
+matching Subject, In-Reply-To, and References headers.
+
+Authenticated Pub/Sub intake validates OIDC identity/audience and project configuration before Gmail work, then
+uses replay dedupe, monotonic history cursors, a five-page cap, and bounded full resync on stale history. Firestore
+rules deny client access to confirmations, idempotency, sync, dedupe, and audit state; stored state contains no
+body, raw MIME, attachment content, prompt, or token. The Action Registry gained separate
+`gmail.mailbox.read`, `gmail.message.send`, and `gmail.thread.reply` entries, all still
+`production_allowed:false`; the existing approved renewal unsent-draft action is unchanged.
+
+Verification is green: `bash scripts/verify.sh` passed format, lint (zero errors; eight existing test warnings),
+typecheck, 226 unit files / 1,582 tests, router boundary, falsification, context freshness, spec traceability (56
+acceptance ids across six overhaul specs), redaction, and production build. `npm run test:e2e:core` passed 7 files
+/ 31 tests with 3 emulator-only files / 18 tests skipped as designed; `npm run test:firestore` passed 10 files /
+43 tests; `git diff --check` passed. The E2E runner now uses an isolated Next build directory so an owner-run dev
+server cannot contend for `.next/dev`; generated output is excluded from lint. The install still reports 11 known
+dependency advisories (1 low, 7 moderate, 3 high); dependency versions were not changed.
+
+No Gmail API, mailbox, DWD Admin, Pub/Sub, Scheduler, IAM, Firestore deployment, Cloud Run deployment, or other
+live/cloud action occurred. The next gate is owner-side: add only `gmail.readonly` to DWD client
+`104374162913177846911`, configure one self pilot, and explicitly approve one bounded profile/thread read. Send,
+reply, sync provisioning, registry promotion, and deployment each remain later, separate approvals; Dan and all
+third-party recipients stay outside the first proof.
+
+## 2026-07-13 — S19 self-pilot Gmail connection live-proven and read action approved
+
+The owner directed commit/merge and asked that the connection work as intended. ADC freshness passed, and one
+bounded `users.getProfile` call ran through the real keyless DWD path as the self-only pilot
+`josiah@pmikcmetro.com`. Gmail returned the same mailbox identity, aggregate message/thread counts, and a history
+cursor. No thread list, message/body, recipient, attachment, draft, send, reply, label, watch, Firestore, deploy,
+or other mutation ran; the console output contained only the identity-match boolean, counts, and cursor-presence
+boolean. This proves the existing DWD client `104374162913177846911` accepts `gmail.readonly` without recording a
+token or customer email content. Durable evidence is in `docs/evidence/gmail-read-grant-2026-07-13.md`.
+
+The readiness pass found and fixed a fail-open pilot boundary: an unset `GMAIL_PILOT_USERS` value previously made
+the optional list empty, which admitted any otherwise valid domain subject. Gmail Hub now requires a non-empty,
+valid `pmikcmetro.com` pilot list and returns setup-unavailable before token mint or Gmail work when it is absent.
+The ignored local development and production env files now select only the self pilot; the existing Lease Renewal
+Agent unsent-draft path is not coupled to the S19 pilot list.
+
+From the owner approval plus live evidence, only `gmail.mailbox.read` moved to `Approved for Execution` /
+`Documented` / `production_allowed:true`; the executable allowlists and tests now admit exactly it plus the
+existing `gmail.renewal_notice.draft_create`. Gmail Inbox 0 send, reply, draft, and label actions remain false.
+Pub/Sub/Scheduler/IAM provisioning, thread/body reads, self-thread send/reply, deployment, production smoke, Dan
+mailbox access, and third-party delivery remain separate action-time gates.
+
+Final verification is green after promotion: `bash scripts/verify.sh` passed format, lint (zero errors; eight
+existing warnings), typecheck, 226 unit files / 1,584 tests, router boundary, falsification, context freshness,
+spec traceability, redaction, and production build. `npm run test:e2e:core` passed 7 files / 31 tests with 3
+emulator-only files / 18 tests skipped as designed; `npm run test:firestore` passed 10 files / 43 tests. The clean
+install continues to report 11 known dependency advisories (1 low, 7 moderate, 3 high); versions were not changed.

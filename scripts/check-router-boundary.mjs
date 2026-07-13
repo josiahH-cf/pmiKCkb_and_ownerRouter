@@ -68,7 +68,9 @@ assertIncludes("docs/products/gmail-inbox-zero.md", [
   "Dan's Gmail",
   "Human send",
   "No autonomous send",
-  "No Gmail draft creation",
+  "docs/feature-suites/gmail-live-per-user.md",
+  "gmail.readonly",
+  "explicitly confirms",
   "docs/legacy/owner-router-artifact-source.md",
 ]);
 
@@ -176,9 +178,22 @@ assertIncludes("docs/temp/README.md", [
 const runtimeRoots = ["app", "components", "lib"];
 const forbiddenRuntimePatterns = [
   /Owner Router \/ [A-Za-z]/,
-  /gmail\.modify/,
-  /gmail\.readonly/,
+  /https:\/\/mail\.google\.com\//,
 ];
+
+const GMAIL_API_RUNTIME_ALLOWLIST = new Set([
+  join(root, "lib", "gmail-runtime", "client.ts"),
+  join(root, "lib", "notifications", "approval.ts"),
+]);
+const GMAIL_PER_USER_SCOPE_MODULE_ALLOWLIST = new Set([
+  join(root, "lib", "gmail-runtime", "client.ts"),
+  join(root, "lib", "gmail-runtime", "dwd-token.ts"),
+  join(root, "lib", "gmail-runtime", "scopes.ts"),
+]);
+const GMAIL_READ_SCOPE_METADATA_ALLOWLIST = new Set([
+  join(root, "lib", "integrations", "action-registry-seed.ts"),
+]);
+const GMAIL_MODIFY_METADATA_ALLOWLIST = GMAIL_READ_SCOPE_METADATA_ALLOWLIST;
 
 function walk(dir) {
   for (const entry of readdirSync(dir)) {
@@ -198,6 +213,37 @@ function walk(dir) {
       if (pattern.test(text)) {
         throw new Error(`Forbidden Router runtime pattern in ${fullPath}: ${pattern}`);
       }
+    }
+
+    if (
+      /gmail\.googleapis\.com\/gmail\/v1/.test(text) &&
+      !GMAIL_API_RUNTIME_ALLOWLIST.has(fullPath)
+    ) {
+      throw new Error(`Gmail API path escaped the approved runtime client: ${fullPath}`);
+    }
+
+    if (
+      /GMAIL_(?:READONLY|COMPOSE)_SCOPE/.test(text) &&
+      !GMAIL_PER_USER_SCOPE_MODULE_ALLOWLIST.has(fullPath)
+    ) {
+      throw new Error(
+        `Per-user Gmail scope escaped the approved runtime modules: ${fullPath}`,
+      );
+    }
+
+    if (
+      text.includes("https://www.googleapis.com/auth/gmail.readonly") &&
+      !GMAIL_READ_SCOPE_METADATA_ALLOWLIST.has(fullPath)
+    ) {
+      throw new Error(
+        `Gmail readonly scope literal escaped registry metadata: ${fullPath}`,
+      );
+    }
+
+    if (/gmail\.modify/.test(text) && !GMAIL_MODIFY_METADATA_ALLOWLIST.has(fullPath)) {
+      throw new Error(
+        `Gmail modify scope escaped disabled registry metadata: ${fullPath}`,
+      );
     }
   }
 }

@@ -27,7 +27,10 @@ artifact); this script refuses to seed any OTHER production_allowed entry.`;
 // Action Registry keys intentionally production_allowed, each backed by a committed grant artifact
 // (Section 3). Mirrors the allow-list in lib/admin/migration-readiness.ts. Any production_allowed entry
 // NOT listed here is a surprise flip and the seed refuses it.
-const EXECUTABLE_ALLOWLIST = new Set<string>(["gmail.renewal_notice.draft_create"]);
+const EXECUTABLE_ALLOWLIST = new Set<string>([
+  "gmail.mailbox.read",
+  "gmail.renewal_notice.draft_create",
+]);
 
 export function parseSeedActionRegistryArgs(
   argv = process.argv.slice(2),

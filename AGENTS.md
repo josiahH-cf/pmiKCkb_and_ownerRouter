@@ -53,6 +53,7 @@ route new work through the three-product docs.
 | New/overhaul spec template + gates    | `docs/feature-suites/TEMPLATE.md` (sentinel-gated by `feature-suite-spec-shape.test.mjs` + `verify:spec-traceability`) |
 | Approval Queue mobile redesign (S14)  | `docs/feature-suites/approval-queue-mobile.md`                                                                         |
 | Gmail hub — drafts/templates (S15)    | `docs/feature-suites/gmail-hub.md`                                                                                     |
+| Live Gmail per user (S19)             | `docs/feature-suites/gmail-live-per-user.md`                                                                           |
 | Role-scoped sub-users / scopes (S16)  | `docs/feature-suites/rbac-subusers.md`                                                                                 |
 | Unified Console + notifications (S17) | `docs/feature-suites/unified-console-and-attention.md`                                                                 |
 | Process auto-initiation (S18)         | `docs/feature-suites/process-auto-initiation.md`                                                                       |
@@ -102,8 +103,9 @@ route new work through the three-product docs.
 - `docs/feature-suites/`: executable specs for the discussed backlog (one file per suite).
   `TEMPLATE.md` is the shape for new/overhaul specs; the 2026-07-10 overhaul suites are S14
   (approval-queue-mobile), S15 (gmail-hub), S16 (rbac-subusers), S17 (unified-console-and-attention),
-  and S18 (process-auto-initiation) — sentinel-gated by `feature-suite-spec-shape.test.mjs` +
-  `verify:spec-traceability`.
+  and S18 (process-auto-initiation), plus S19 (`gmail-live-per-user`) for the 2026-07-13
+  owner-approved live-per-user Gmail direction — sentinel-gated by
+  `feature-suite-spec-shape.test.mjs` + `verify:spec-traceability`.
 - `docs/meta-prompts/`: governance-first scaffold, golden next-step set, and the re-scaffold/cleanup
   meta-prompt.
 - `docs/voice-and-audience.md`: audience profile and client-facing copy voice rules.
@@ -169,7 +171,8 @@ route new work through the three-product docs.
   executable write, and Rentvine lease-renewal writeback stays gated as undocumented.
 - Add tests with any behavior change.
 - Do not build Lease Renewal Agent or Gmail Inbox 0 runtime behavior until their
-  product docs define scope, permissions, and acceptance gates.
+  product docs define scope, permissions, and acceptance gates. S19 now defines the local Gmail
+  runtime build; its DWD, live-mailbox, Pub/Sub, send, action-promotion, and deploy gates remain closed.
 
 ## Working Order
 
@@ -246,9 +249,12 @@ answer ourselves.
   teammate's role via `setCustomUserClaims` — an app-plane privilege-escalation surface previously reachable only through
   the `firebase:set-role` break-glass script. It is Admin-only (`manageAdmin`), requires a plain-English reason, enforces
   the pmikcmetro.com domain boundary, writes an append-only `admin_role_changes` audit, and has a best-effort last-Admin
-  guard (NOT concurrency-safe; the break-glass script recovers). Per-user domain-wide Gmail (`F-GMAIL-PER-USER`) is a new
-  identity model (act AS each signed-in user's own mailbox via DWD) but is REPRESENTATIONAL only today — no Gmail runtime,
-  gated on the client-approved access model + DWD scope authorization.
+  guard (NOT concurrency-safe; the break-glass script recovers). Per-user domain-wide Gmail
+  (`F-GMAIL-PER-USER`, evolved by S19) acts AS each signed-in user's own mailbox via DWD. The local
+  runtime is built and its bounded self-pilot profile connection is live-proven under `gmail.readonly`;
+  any thread/body read or deployment still needs action-time approval, and every send remains
+  exact-message, human-confirmed, action-gated, and audited. Firebase authentication
+  and Gmail DWD authorization are separate systems.
 - Full strategy, per-surface mechanisms, and migration plan:
   `docs/auth-identity-and-access-strategy.md`.
 

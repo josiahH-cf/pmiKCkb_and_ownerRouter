@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { DRAFT_BANNER } from "@/lib/constants";
 import { GmailRuntimeClient, GmailRuntimeError } from "@/lib/gmail-runtime/client";
+import { GMAIL_COMPOSE_SCOPE, GMAIL_READONLY_SCOPE } from "@/lib/gmail-runtime/scopes";
+import {
+  GmailPilotSetupError,
+  GmailSubjectError,
+  readRequiredGmailPilotUsers,
+} from "@/lib/gmail-runtime/subject";
 import type { GmailHttpRequest } from "@/lib/gmail-runtime/transport";
+import type { GmailOutgoingMessage } from "@/lib/gmail-runtime/types";
 
 function fakeTransport(response: { status: number; body?: unknown }) {
   const calls: GmailHttpRequest[] = [];
@@ -24,7 +31,39 @@ function decodeRaw(body: string | undefined): string {
   );
 }
 
+function outgoing(overrides: Partial<GmailOutgoingMessage> = {}): GmailOutgoingMessage {
+  return {
+    from: "josiah@pmikcmetro.com",
+    to: ["josiah@pmikcmetro.com"],
+    cc: [],
+    bcc: [],
+    subject: "Safe self test",
+    body: "Synthetic body",
+    messageId: "<unique-1@pmikcmetro.com>",
+    references: [],
+    ...overrides,
+  };
+}
+
 describe("GmailRuntimeClient.createDraft", () => {
+  it("fails closed when the live Gmail pilot allowlist is absent or invalid", () => {
+    expect(() =>
+      readRequiredGmailPilotUsers({ NODE_ENV: "test" } as NodeJS.ProcessEnv),
+    ).toThrow(GmailPilotSetupError);
+    expect(() =>
+      readRequiredGmailPilotUsers({
+        NODE_ENV: "test",
+        GMAIL_PILOT_USERS: "person@gmail.com",
+      } as NodeJS.ProcessEnv),
+    ).toThrow(GmailPilotSetupError);
+    expect(
+      readRequiredGmailPilotUsers({
+        NODE_ENV: "test",
+        GMAIL_PILOT_USERS: " JOSIAH@PMIKCMETRO.COM ",
+      } as NodeJS.ProcessEnv),
+    ).toEqual(["josiah@pmikcmetro.com"]);
+  });
+
   it("creates an UNSENT draft (drafts endpoint, never /messages/send), preserving DRAFT_BANNER", async () => {
     const { calls, transport } = fakeTransport({ status: 200, body: { id: "draft_1" } });
     const client = new GmailRuntimeClient({
@@ -41,9 +80,7 @@ describe("GmailRuntimeClient.createDraft", () => {
 
     expect(result.draftId).toBe("draft_1");
     expect(calls).toHaveLength(1);
-    expect(calls[0].url).toBe(
-      "https://gmail.googleapis.com/gmail/v1/users/josiah%40pmikcmetro.com/drafts",
-    );
+    expect(calls[0].url).toBe("https://gmail.googleapis.com/gmail/v1/users/me/drafts");
     expect(calls[0].url).not.toContain("/messages/send");
     const decoded = decodeRaw(calls[0].body);
     expect(decoded).toContain(DRAFT_BANNER);
@@ -52,13 +89,114 @@ describe("GmailRuntimeClient.createDraft", () => {
     expect(decoded).toContain("From: josiah@pmikcmetro.com");
   });
 
-  it("exposes no send capability (createDraft is the only action)", () => {
+  it("exposes only the bounded v1 surface and no destructive/settings methods", () => {
     const client = new GmailRuntimeClient({
       subject: "josiah@pmikcmetro.com",
       transport: fakeTransport({ status: 200, body: { id: "d" } }).transport,
       getToken: async () => "t",
     });
-    expect((client as unknown as Record<string, unknown>).send).toBeUndefined();
+    const surface = client as unknown as Record<string, unknown>;
+    expect(surface.sendMessage).toBeTypeOf("function");
+    for (const method of [
+      "delete",
+      "trash",
+      "untrash",
+      "forward",
+      "createFilter",
+      "createDelegate",
+      "updateSettings",
+    ]) {
+      expect(surface[method], method).toBeUndefined();
+    }
+  });
+
+  it("uses readonly only for reads and compose only for drafts/sends", async () => {
+    const scopes: string[] = [];
+    const { transport } = fakeTransport({
+      status: 200,
+      body: {
+        id: "draft-scope-test",
+        emailAddress: "josiah@pmikcmetro.com",
+        historyId: "10",
+        messagesTotal: 1,
+        threadsTotal: 1,
+      },
+    });
+    const client = new GmailRuntimeClient({
+      subject: "josiah@pmikcmetro.com",
+      transport,
+      getToken: async (scope) => {
+        scopes.push(scope);
+        return "token";
+      },
+    });
+
+    await client.getProfile();
+    expect(scopes).toEqual([GMAIL_READONLY_SCOPE]);
+
+    scopes.length = 0;
+    await client.createDraft({ to: "josiah@pmikcmetro.com", subject: "s", body: "b" });
+    expect(scopes).toEqual([GMAIL_COMPOSE_SCOPE]);
+  });
+
+  it("uses compose for one reply send and includes Gmail/RFC threading fields", async () => {
+    const scopes: string[] = [];
+    const { calls, transport } = fakeTransport({
+      status: 200,
+      body: { id: "sent-1", threadId: "thread-1", labelIds: ["SENT"] },
+    });
+    const client = new GmailRuntimeClient({
+      subject: "josiah@pmikcmetro.com",
+      transport,
+      getToken: async (scope) => {
+        scopes.push(scope);
+        return "token";
+      },
+    });
+    const result = await client.sendMessage(
+      outgoing({
+        threadId: "thread-1",
+        inReplyTo: "<parent@pmikcmetro.com>",
+        references: ["<root@pmikcmetro.com>", "<parent@pmikcmetro.com>"],
+      }),
+    );
+
+    expect(result).toMatchObject({ messageId: "sent-1", threadId: "thread-1" });
+    expect(scopes).toEqual([GMAIL_COMPOSE_SCOPE]);
+    expect(calls[0].url).toContain("/messages/send");
+    const request = JSON.parse(calls[0].body ?? "{}") as {
+      raw: string;
+      threadId: string;
+    };
+    const decoded = Buffer.from(request.raw, "base64url").toString("utf8");
+    expect(request.threadId).toBe("thread-1");
+    expect(decoded).toContain("Subject: Safe self test");
+    expect(decoded).toContain("In-Reply-To: <parent@pmikcmetro.com>");
+    expect(decoded).toContain(
+      "References: <root@pmikcmetro.com> <parent@pmikcmetro.com>",
+    );
+  });
+
+  it("rejects wrong-domain subjects and mismatched From before transport work", async () => {
+    const { calls, transport } = fakeTransport({ status: 200, body: {} });
+    expect(
+      () =>
+        new GmailRuntimeClient({
+          subject: "person@gmail.com",
+          transport,
+          getToken: async () => "token",
+        }),
+    ).toThrow(GmailSubjectError);
+
+    const client = new GmailRuntimeClient({
+      subject: "josiah@pmikcmetro.com",
+      transport,
+      getToken: async () => "token",
+    });
+    await expect(
+      client.sendMessage(outgoing({ from: "dan@pmikcmetro.com" })),
+    ).rejects.toMatchObject({ status: 403, ambiguous: false });
+    expect(calls).toHaveLength(0);
   });
 
   it("throws with only the HTTP status on a Gmail error, never leaking the token", async () => {

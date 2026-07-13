@@ -12,25 +12,34 @@ The local Owner Router source package is mapped in
 `C:\Users\josia\Documents\github-windows\pmi-kc-owner-router`, and treat the sibling
 package as historical source material only.
 
-Built 2026-06-12 (non-live foundation): the governed label/rule/reply domain models and
-triage/draft-text gates live in `lib/gmail-inbox-zero/` (pure, no Gmail API, no send
-capability), and the minimal Admin-only management page exists read-only at
-`/admin/gmail-inbox-zero` (honest not-connected status; no Gmail call). Gmail runtime
-remains client-gated per Safety Boundaries and Current Blockers below.
+Built locally to the live gate on 2026-07-13: S19
+(`docs/feature-suites/gmail-live-per-user.md`) adds a separate per-user Gmail workspace,
+server-derived DWD subject, bounded thread reads, defensive MIME parsing, unsent drafts,
+exact-payload send confirmation, reply threading, and authenticated watch/history
+handling. The new Action Registry keys remain `production_allowed:false`; no live read,
+send, Pub/Sub provisioning, promotion, or deploy occurred in this slice. The S15
+browser-only simulator and pasted-text tools remain a clearly labeled offline/demo
+fallback, not the final product boundary.
 
 ## Known Facts
 
 - The product stays Gmail-native for v1.
-- The first pilot mailbox is Dan's Gmail.
+- The product pilot still targets Dan's workflow, but the first technical live proof is
+  one configured authenticated pilot user sending only to the same mailbox. Dan's mailbox
+  is not part of that proof without a separate action-time approval.
 - The first base layer starts with `Waiting on Outside` and `Waiting on Team`.
 - The target label set also includes `Dan Decision` and `Draft Ready`.
-- Human send authority remains mandatory for now; Dan presses Send.
+- Human send authority remains mandatory: the authenticated user reviews the exact
+  message and explicitly confirms Send for that one message.
 - The current artifact set includes labels, prompt pack, sanitized scenarios, Drive
   package templates, and optional setup/health Apps Script.
 - The sibling Owner Router package can supply source ideas for labels, prompts,
   templates, safe scenarios, and setup helpers, but final Gmail Inbox 0 scope must be
   approved here.
 - The workflow must not add autonomous sending or system-of-record writes.
+- The 2026-07-13 self-pilot `users.getProfile` proof verified the keyless `gmail.readonly`
+  connection for `josiah@pmikcmetro.com`; the read action is allowlisted, while send/reply and
+  deployment remain separately gated (`docs/evidence/gmail-read-grant-2026-07-13.md`).
 - Gmail Inbox 0 should have a minimal management page inside the KB app from the start.
 - KB approval notifications are part of the Gmail Inbox 0 vision: approval work should
   eventually flow between the KB app and Gmail without removing human approval.
@@ -43,48 +52,49 @@ remains client-gated per Safety Boundaries and Current Blockers below.
 
 ## Working V1 Model
 
-- Automation and Gemini evaluate Dan's incoming email broadly, but rules determine what
-  is suggested or applied.
-- AI suggests labels and gets smarter from corrections. Auto-labeling is allowed only
-  for exact matches or repeated Dan-approved patterns.
-- The first active labels separate work that is waiting on someone outside PMI KC from
-  work waiting on someone inside PMI KC.
-- Drafting should support Gmail drafts and reply composition flows, but Dan sends
-  manually during the base layer.
-- Drafts use approved reply patterns and the `Draft — Review before sending` boundary.
-- Missing facts use `Needs Verification: <fact>`.
-- Dan's feedback enters the learning loop when he changes a label or marks a reply good
-  or bad. Feedback creates suggested changes; Admin approval is required before rules or
-  patterns become active.
-- Learning material starts in Gemini Gems and should also be managed through the KB app.
+- Firebase authentication identifies the signed-in app user; Gmail authorization is a
+  separate keyless DWD exchange whose `sub` is that server-verified
+  `pmikcmetro.com` email.
+- Stage 1 is a bounded, on-demand recent-inbox thread list and bounded thread detail using
+  `gmail.readonly`; attachments are metadata only and mailbox content is not sent to
+  Gemini automatically.
+- Stage 2 is an INBOX-restricted `users.watch`, authenticated Pub/Sub push, transactional
+  history cursor/replay state, and bounded resync after expired history. Watch renewal is
+  manual until separately approved.
+- Drafts are unsent Gmail drafts. New messages and replies may send only after the same
+  user reviews From/To/Cc/Bcc/subject/thread/body, receives an exact-payload one-time
+  confirmation, and explicitly confirms Send.
+- The live verification boundary is self-recipient only. Broader recipients, labels,
+  automated classification, model summarization, and learning remain later promotion
+  slices.
+- Reply construction re-reads the live parent and preserves Gmail `threadId`, matching
+  subject, `In-Reply-To`, and `References`.
+- The browser simulator and pasted-text draft/summary tools remain offline/demo fallback
+  surfaces and make no Gmail mailbox call.
 
 ## Connective Architecture
 
-Decided 2026-06-05. This records the intended design; Gmail runtime remains client-gated
-and docs-only until access and scope are approved (see Safety Boundaries and Blockers).
-The backend never paints its own screen over Gmail. It reaches back into Dan's inbox
-through Gmail's own objects plus one sanctioned in-Gmail panel, and it learns by observing
-what Dan does to those objects. It is a two-way street on native Gmail surfaces, so Dan
-never leaves his inbox.
+The 2026-07-13 owner direction supersedes the earlier final-state assumption that the
+product must remain simulated/pasted-text-only or exclusively in Gmail. The KB-hosted
+Gmail Hub is now the approved app surface for each authenticated user's own mailbox;
+native Gmail drafts/threads remain the system objects. A future Workspace Add-on may
+remain useful, but it is not required for S19.
 
 ### Backend to Gmail (how tailoring appears where Dan works)
 
-- Labels applied via the Gmail API appear natively in Dan's sidebar and on threads
-  (additive only).
-- Drafts created via the Gmail API appear as native unsent `Draft` replies in the thread.
-- Decided in-Gmail UI surface: a Google Workspace Add-on contextual card that our backend
-  controls, shown in the Gmail side panel when Dan opens a message (suggested label,
-  draft-ready, plain-English "why", and feedback controls). This is the target surface for
-  the drafting/explainability phase (Phase C+); Phases A and B work with labels and drafts
-  alone and do not require the add-on. The add-on path implies a future Workspace
-  Marketplace review.
+- Bounded thread reads appear in the authenticated user's KB Gmail Hub workspace.
+- Drafts created through the approved compose action appear as native unsent Gmail drafts.
+- A user-confirmed new message or reply uses Gmail's native send endpoint and returns only
+  Gmail message/thread identifiers to the UI; send/reply actions remain gated pending
+  promotion evidence.
+- Label application still requires `gmail.modify` and remains outside S19.
 
 ### Gmail to backend (how it learns)
 
-- The backend registers `users.watch` and reads `users.history.list` to observe
-  `labelAdded`, `labelRemoved`, message additions, and drafts that became sent messages.
-- Implicit signals (kept vs removed label; draft sent as-is, edited, or deleted) plus
-  optional explicit thumbs feedback flow back to the backend.
+- The backend registers an INBOX-restricted `users.watch` and reads bounded
+  `users.history.list` message-addition events from a stored cursor.
+- Push processing stores identifiers, counts, health, and cursors only. It does not store
+  message bodies, raw MIME, attachments, prompts, or complete threads.
 
 ### Learning governance (decided: reuse the KB model)
 
@@ -97,21 +107,24 @@ never leaves his inbox.
 
 ### Split-scope safety model
 
-- There is no Gmail OAuth scope that allows labeling/drafting while blocking send, so the
-  no-send guarantee is enforced in code, not by a scope.
-- Background triage uses `gmail.readonly` + `gmail.labels` only, which have no send
-  capability at all.
-- Draft creation uses a send-capable scope (`gmail.compose`), but the code never calls the
-  send method; Dan presses Send in Gmail.
+- `gmail.readonly` is the only S19 read/watch/history scope.
+- `gmail.compose` is send-capable. Safety therefore comes from server-derived identity,
+  capability and Action Registry gates, self-recipient enforcement, exact-payload
+  confirmation, one transactional claim, no ambiguous retry, and bodyless append-only
+  audit—not from claiming the scope cannot send.
+- `gmail.modify` and `https://mail.google.com/` are forbidden in this slice. Label
+  application remains gated.
 
 ### Rollout (reversible, opt-in)
 
-- Phase A shadow (classify only, apply nothing) -> Phase B suggest/auto-label exact
-  matches -> Phase C drafts -> later phases only after testing and explicit sign-off.
-- Back-labeling historical threads is opt-in. Disconnecting the integration stops
-  everything; remaining labels are ordinary Gmail labels.
+- Local fake-transport build -> approved `gmail.readonly` DWD scope -> bounded on-demand
+  self-mailbox profile proof (complete 2026-07-13) -> separately approved safe self-thread
+  send/reply proof -> optional
+  authenticated push proof -> explicit registry promotion/deploy approval.
+- Revoke `gmail.readonly`/`gmail.compose`, disable the registry keys, and remove Pub/Sub
+  delivery to stop the integration. No historical back-labeling is part of S19.
 
-## Discovery Questions (ask Dan first)
+## Later Workflow Discovery (after the self-only technical proof)
 
 These four high-leverage questions define the initial labels, draft templates, routing,
 and exclusions. Each lists the default to assume if Dan is brief.
@@ -155,19 +168,32 @@ they choose.
 
 ## Current Blockers
 
-- No client-approved live Gmail access model.
-- No approved Dan mailbox scan and labeling protocol.
-- No approved production Drive content.
-- No live test-thread protocol.
-- No approved Gmail draft/reply creation spec.
+- `gmail.readonly` is not yet recorded as granted to DWD client
+  `104374162913177846911`; the owner must approve/add that exact scope before any live
+  read. Rollback is removing that scope from the same client.
+- `gmail.mailbox.read`, `gmail.message.send`, and `gmail.thread.reply` remain
+  `production_allowed:false`. The safe self-thread proof requires action-time owner
+  approval and must record IDs/counts/statuses only.
+- The Pub/Sub topic, publisher binding, dedicated OIDC push identity/subscription, and
+  manual watch are not provisioned. Cloud Scheduler remains unauthorized.
+- Broader recipients, Dan mailbox access, live label modification, historical scans, and
+  production deploy remain separate approval decisions.
 - KB approval notification failure-escalation details still need production
   configuration.
 
 ## Safety Boundaries
 
 - No autonomous send.
-- No Gmail draft creation from this repo unless a future approved spec adds it.
-- No Gmail read/modify runtime code until explicitly scoped and approved.
+- No live Gmail read until the exact `gmail.readonly` grant and action-time test approval
+  are recorded. Local runtime/tests use injected transports only.
+- No send without an unexpired, unconsumed confirmation bound to the exact payload the
+  authenticated user reviewed and explicitly confirms.
+- No browser-supplied impersonation subject and no Admin cross-mailbox browsing.
+- No background, scheduled, model-triggered, retry-on-ambiguity, or automatic reply.
+- No mailbox bodies, raw MIME, attachments, tokens, or complete threads in Firestore or
+  logs. No automatic mailbox content to Gemini.
+- No `gmail.modify`, delete/trash/settings/filter/delegate/forwarding methods, or
+  `https://mail.google.com/` scope.
 - Optional Apps Script remains limited to setup and health checks unless governance is
   intentionally changed.
 - No writes to RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Sheets, or banks.

@@ -2,10 +2,19 @@
 
 # S15 — Gmail hub (drafts, templates, summaries) built to-the-gate
 
+> Historical shipped scope. S19 (`docs/feature-suites/gmail-live-per-user.md`) supersedes D3 as the
+> Gmail Hub final-state direction on 2026-07-13. Keep S15's pasted-text tools and browser-only chain as
+> the clearly separated fallback; do not use this historical no-read cycle fence to block the S19 local
+> runtime build or to authorize any live Gmail action.
+>
 > New 2026-07-10 (operator note). Owner decision **D3 (2026-07-10)**: build the Gmail workflow HUB
 > app-plane **TO-THE-GATE** now, and do NOT request any Gmail READ scope this cycle. Every
 > live-mailbox action renders as a gated "Waiting on Gmail access" affordance. The disposable
 > decision-complete packet is `docs/temp/gmail-hub-plan.md` (local-only); this file is the tracked spec.
+>
+> Additive owner direction **D4 (2026-07-13)**: demonstrate reply chaining with a clearly labeled,
+> browser-only synthetic thread inside the hub. It must never call Gmail, an app route, or persistence,
+> and must not imply that delivery occurred.
 
 **Goal.** Reframe the app one level up as a Gmail workflow tool: a single "Gmail hub" home where an
 operator drafts replies, manages reply templates and triage rules, and summarizes a thread — all
@@ -18,8 +27,9 @@ and it imports the vocabulary constants only, never the engines. This suite surf
 PASTED/sanitized text through the `ModelProvider` seam (local model in dev, Gemini in prod), reuses the
 existing `buildTenantNoticeDraftRequest` for a tenant "Prepare tenant email" button that mirrors the
 owner button, and turns the reframed Owner Email space into the hub's front door. The end-state: an
-operator can do real draft/template/summary work in the app with zero mailbox access, and every
-inbox-reading feature is visibly one owner/vendor grant away, never faked.
+operator can do real draft/template/summary work in the app with zero mailbox access. Every
+inbox-reading feature is visibly one owner/vendor grant away and is never represented as live; the
+separate demo-chain fixture is explicitly labeled synthetic and browser-only.
 
 **What it is / how it functions.**
 
@@ -47,6 +57,10 @@ inbox-reading feature is visibly one owner/vendor grant away, never faked.
   (`lib/notifications/families.ts`) together. The two Gmail-dependent families (`rentvine_replies`,
   `owner_process_replies`) already render `available:false` with the literal "Waiting on Gmail access"
   (`families.ts:49`); the hub reuses that exact posture for its "read my inbox" affordance.
+- **Synthetic demo chain — `components/gmail-hub/SimulatedEmailChain.tsx`.** A client-state-only
+  fixture starts with one synthetic message and lets an operator append or reset clearly labeled
+  simulated replies under one subject. It calls no route, Gmail runtime, mailbox, or persistence;
+  refresh resets it, and its action is "Add simulated reply", never Send.
 - **Tenant prepare-email — `components/lease-renewal/PrepareTenantEmailButton.tsx` +
   `app/api/lease-renewal/tenant-notice-draft/route.ts`.** A structural twin of the owner button
   (`PrepareOwnerEmailButton.tsx`) and its route (`app/api/lease-renewal/owner-notice-draft/route.ts`):
@@ -75,6 +89,8 @@ inbox-reading feature is visibly one owner/vendor grant away, never faked.
     with the owner button's `production_allowed:false`/`send_allowed:false`/needs-Gmail-access posture.
   - Slice 6 — the Owner Email space polish (`launch/content.ts`, `spaces/[spaceId]/page.tsx`) into the
     hub entry point.
+  - Additive demo slice — the browser-only synthetic chain inside Gmail Hub. This changes no Gmail
+    scope, registry entry, execution gate, mailbox state, or stored app state.
 - **Gated (owner / vendor).**
   - Any mailbox READ / true inbox integration: the client Gmail access model + a NEW DWD read-scope
     grant. The `gmail.readonly`/`gmail.modify` scope literals are code-FORBIDDEN by
@@ -160,11 +176,17 @@ for engines those facts already verify.
   introduced); the executable allow-list is unchanged (S15 adds no new `production_allowed:true` entry).
   _Verify:_ `npm run verify:router-boundary`, `npm test`; keep
   `tests/unit/action-registry-schema.test.ts` + `tests/unit/action-gate.test.ts` green.
+- **AC-S15-8** — The hub renders a "Simulated email chain" marked "Browser only"; adding a simulated
+  reply increments the messages-under-one-thread count without calling `fetch`, Gmail runtime,
+  Firestore, or browser storage; reset/refresh returns the seed fixture; and no Send control is
+  introduced. _Verify:_ `npm test`, `npm run lint`; keep
+  `tests/unit/gmail-hub-simulated-email-chain.test.tsx` green.
 
 _Verify command list (all green before promote):_ `npm test`, `npm run typecheck`, `npm run lint`,
 `npm run verify:router-boundary`, `npm run verify:copy-voice`, `npm run verify:spec-traceability`,
 `npm run verify:context-freshness`, `npm run build`. Named sentinels to keep green:
 `tests/unit/gmail-inbox-zero-anticipatory-draft.test.ts`, `tests/unit/gmail-inbox-zero.test.ts`,
+`tests/unit/gmail-hub-simulated-email-chain.test.tsx`,
 `tests/unit/action-gate.test.ts`, `tests/unit/action-registry-schema.test.ts`,
 `tests/unit/owner-notice-draft-route.test.ts`, `tests/unit/lease-renewal-notice-send-policy.test.ts`,
 `tests/unit/route-auth-boundary.test.ts`, and the `scripts/check-router-boundary.mjs` boundary gate.
