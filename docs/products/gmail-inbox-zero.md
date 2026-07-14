@@ -39,11 +39,11 @@ classification/back-labeling, or automatic model processing.
   only against existing workflow links; it does not fetch unrelated content or invoke AI.
 - Firestore Gmail operational collections are server-only and bodyless.
 
-Production Gmail linkage requires the approved 365-day link value in
-`GMAIL_WORKFLOW_LINK_TTL_DAYS` plus S24 cleanup/legal-hold implementation. R07 approves the exact
-current owner-renewal, tenant-renewal, and maintenance-owner generators as v1.0 base artifacts and the
-source-visible human-confirmed AI reply policy; current `governed-artifacts.ts` still returns false, so
-reply/initiation paths remain closed until S24 wires the registry and authoritative values.
+S24 is Local green: the 365-day link period and all other retention classes are versioned in code;
+cleanup/hold boundaries exist; exactly three immutable generator-backed v1.0 artifacts are registered;
+and `workflow-reply:v1.0` produces only transient, source-visible human-review proposals. Production
+Firestore TTL/scheduler activation remains gated. Reply/initiation paths also remain closed until
+S25/S26 supply authoritative runtime recipients/values and each action is separately promoted.
 
 ## Permissions
 
@@ -82,9 +82,9 @@ requirement while preserving Vendor/Admin exact confirmation for every AI-assist
 
 The current ticket model does not contain an authoritative owner email. Therefore
 `gmail.maintenance_owner_notice.draft_create` is Planned and non-executable. Round 2 selects the
-maintenance owner scaffold and requires outbound vendor messaging. R04/R07 now lock the TOTP/per-
-vendor OAuth identity and v1.0 artifact/AI policy; S22/S24/S26 implement them and authoritative runtime
-recipients before either path may open.
+maintenance owner scaffold and requires outbound vendor messaging. The v1.0 artifact/AI policy is
+Local green; S22 still implements TOTP/per-vendor OAuth and S26 supplies authoritative runtime
+recipients/execution before either path may open.
 
 ## Source state and governance
 
@@ -98,16 +98,18 @@ references, hashes, status, timestamps, and expiry only. Free-text link/label re
 audit and not retained. S24 retention is confirmation usable 10 minutes/delete 30 days, dedupe 7 days,
 sync audit 90 days, link 365 days from last authorized update, bodyless action audit 7 years, and no
 persisted V1 AI/extracted Gmail facts, with Admin legal hold/later written policy overriding deletion.
-Production link creation remains closed until configured and cleanup/hold are implemented.
+Cleanup/hold are implemented locally; production TTL/scheduler activation remains closed until
+separately configured and approved.
 
 ## Current implementation dependencies
 
-- Build S20/S22/S24 and the S25/S26 workflow-specific communication actions; current routes remain
-  narrower even though the decisions are settled.
+- Build S22 and the S25/S26 workflow-specific communication actions on the Local-green S20/S24
+  boundaries; current routes remain narrower even though the decisions are settled.
 - Configure authoritative renewal owner/tenant and maintenance owner/vendor recipient/value adapters;
   a browser-supplied address is never authoritative.
 - Separately approve Identity Platform/TOTP, OAuth app/client/redirect/token vault, first Vendor invite/
-  consent/read/send, retention TTL/cleanup, registry promotions, deploy, and bounded production proof.
+  consent/read/send, retention TTL/scheduler activation, registry promotions, deploy, and bounded
+  production proof.
 - Josiah owns manual watch/OAuth degraded response; no scheduler is authorized.
 
 ## Hard boundaries
@@ -122,6 +124,6 @@ Production link creation remains closed until configured and cleanup/hold are im
 - Current runtime has no outbound Vendor communication. S22/S26 may build it locally; live use remains
   separately gated and assigned-ticket/exact-confirmation-only.
 
-The active transport specification is `docs/feature-suites/gmail-live-per-user.md`; S20/S22/S24/S25/
-S26 govern its final-V1 authority, Vendor, policy, and workflow execution. S15 remains historical
+The active transport specification is `docs/feature-suites/gmail-live-per-user.md`; S20/S24 are Local
+green while S22/S25/S26 govern the remaining final-V1 Vendor and workflow execution. S15 remains historical
 fallback evidence.

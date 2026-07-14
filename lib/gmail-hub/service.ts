@@ -19,6 +19,10 @@ import type {
 } from "@/lib/gmail-hub/state-store";
 import { gmailMailboxKey } from "@/lib/gmail-hub/state-store";
 import {
+  communicationsRetentionFields,
+  GMAIL_CONFIRMATION_USABILITY_MS,
+} from "@/lib/gmail-hub/retention-policy";
+import {
   workflowActionContextKey,
   type WorkflowCommunicationContext,
   type WorkflowCommunicationLink,
@@ -229,15 +233,16 @@ export class GmailHubService {
       workflow_purpose: parsed.context.purpose,
       template_ref: parsed.context.templateRef,
       state: "pending",
-      expires_at_ms: nowMs + 10 * 60 * 1000,
+      usable_until_ms: nowMs + GMAIL_CONFIRMATION_USABILITY_MS,
       created_at_ms: nowMs,
       updated_at_ms: nowMs,
+      ...communicationsRetentionFields("confirmation", nowMs),
     };
     await this.dependencies.store.createConfirmation(record);
     return {
       context: parsed.context,
       confirmationToken,
-      expiresAt: new Date(record.expires_at_ms).toISOString(),
+      expiresAt: new Date(record.usable_until_ms).toISOString(),
       payload,
     };
   }
@@ -514,7 +519,7 @@ export class GmailHubService {
       reasonHash?: string;
     },
   ) {
-    const ttlDays = this.requireWorkflowLinkTtlDays();
+    this.requireWorkflowLinkTtlDays();
     const nowMs = this.now();
     await this.dependencies.store.saveCommunicationLink({
       id: uuidv7(),
@@ -528,26 +533,26 @@ export class GmailHubService {
       source_refs: context.sourceRefs,
       reason_hash: result.reasonHash,
       template_ref: context.templateRef,
+      reply_policy_ref: context.replyPolicyRef,
       draft_id: result.draftId,
       gmail_message_id: result.messageId,
       gmail_thread_id: result.threadId,
       status: result.status,
       created_at_ms: nowMs,
       updated_at_ms: nowMs,
-      expires_at_ms: nowMs + ttlDays * 24 * 60 * 60 * 1000,
+      ...communicationsRetentionFields("workflow_link", nowMs),
     });
   }
 
   private requireWorkflowLinkTtlDays(): number {
     const days = this.dependencies.workflowLinkTtlDays;
-    if (days && Number.isInteger(days) && days > 0 && days <= 3_650) return days;
-    if (process.env.NODE_ENV === "production") {
+    if (days !== undefined && days !== 365) {
       throw new GmailHubError(
-        "Workflow communication retention must be approved before Gmail linkage can run.",
-        503,
+        "Workflow communication retention must use the approved 365-day v1.0 policy.",
+        409,
       );
     }
-    return 30;
+    return 365;
   }
 }
 

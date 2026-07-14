@@ -71,7 +71,9 @@ describe("RenewalWorkspace", () => {
     // Tenant offer: email is shown first; switching to the text channel reveals the short nudge.
     expect(screen.getByText(/we'll get the documents out/)).toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: "Text" }));
-    expect(screen.getByText(/emailed and messaged you the details/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/emailed and messaged you the details/),
+    ).not.toBeInTheDocument();
 
     // Readiness flags the Kansas City addendum.
     expect(screen.getByText("City-specific addendum")).toBeInTheDocument();

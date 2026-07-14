@@ -30,23 +30,24 @@ and this pointer under 140 lines. The runner is `docs/autonomous-agent-runner.md
   provenance/freshness, visible per-source failure, bounded inert Gmail snippets, on-demand authorized
   full-body fetch, persistent test-data badge, and production cutover refusal of test mode are built.
   Production provider wiring/browser acceptance and every live customer/Gmail read remain gated.
-- **Remaining runtime is narrower than final V1:** no exact retention cleanup/v1.0 artifact activation,
-  Vendor principal/OAuth, R02/R03 executor set, or staged final-acceptance ledger is built.
-- **Existing local candidate:** the July 14 workflow-linked Communications slice is fully locally
-  verified but uncommitted/unpromoted. Preserve its dirty-worktree changes. Prior complete verification:
-  1,600 unit tests, typecheck, build, formatting, routing, redaction, traceability, freshness, and
-  falsification; lint zero errors/eight existing warnings; clean install eleven known audit findings.
+- **S24 Local green:** versioned retention/cleanup/legal hold, exactly three frozen v1.0 artifacts,
+  authoritative-value blocking, transient source-visible/no-invention AI replies, and artifact/policy/
+  source-bound exact confirmation are built. Full verification, 47 rules tests, and core E2E are green.
+  Live TTL/scheduler activation, authoritative S25/S26 value adapters, customer/Gmail reads, sends,
+  and deployment remain gated.
+- **Remaining runtime is narrower than final V1:** no Vendor principal/OAuth, R02/R03 executor set, or
+  staged final-acceptance ledger is built.
 - No live read, Gmail/customer content access, account creation, OAuth consent, source import, external
   write, send, cloud configuration, deploy, or production smoke occurred during the audit/spec rewrite.
 
-## Next Safe Slice — S24 Communications policy and v1.0 artifacts
+## Next Safe Slice — S22 External Vendor portal and mailbox
 
-Run S24 from `docs/feature-suites/communications-policy.md` end to end. Build the approved retention
-schema/cleanup planner/legal-hold override, immutable owner-renewal/tenant-renewal/maintenance-owner
-`v1.0` artifacts, verified value replacement, and source-visible/no-invention/human-exact-confirmed AI
-reply policy using synthetic linked threads only. Stop before TTL deployment, live Gmail/customer reads,
-or any send. Then continue automatically: S22 → S25 → S26 → S27. Within S25/S26, one provider is one
-slice.
+Run S22 from `docs/feature-suites/vendor-portal-and-mailbox.md` end to end. Build the Admin-invited
+external Vendor principal, one-time setup boundary, verified-email TOTP gate, assigned-ticket-only UI/
+API authorization, per-vendor Gmail/Workspace OAuth abstraction, encrypted token-vault interface,
+revocation, and fake/emulator acceptance. Stop before real invitation delivery, Identity Platform/TOTP
+configuration, OAuth client/consent/token, live mailbox access, or send. Then continue automatically:
+S25 → S26 → S27. Within S25/S26, one provider is one slice.
 
 At every slice boundary:
 
@@ -110,7 +111,7 @@ cost-bearing work. Before live Google reads run `npm run preflight:adc`; if stal
 ## Stop-Condition State
 
 - **GO for safe local implementation.** No owner-decision stop remains. `/loop`, “run the loop,”
-  “continue,” or “implement” should start S24 and continue in the program order.
+  “continue,” or “implement” should start S22 and continue in the program order.
 - Stop at a specific live/provider gate, not at the existence of eventual external work; continue other
   safe slices when dependencies permit.
 - Stop if the same root issue survives two repair cycles, required checks stay red, scope would be
@@ -122,9 +123,9 @@ cost-bearing work. Before live Google reads run `npm run preflight:adc`; if stal
 1. Read `AGENTS.md`, `docs/facts.md`, this file, `docs/autonomous-agent-runner.md`, the newest status
    entry, and `docs/v1-gap-implementation-program-2026-07-14.md`. A copy-ready outside-window handoff
    also lives at `docs/fresh-context-v1-implementation-prompt-2026-07-14.md`.
-2. Inspect `git status`; preserve the existing dirty Workflow Communications candidate and user work.
-3. Run `npm run verify:context-freshness`, then execute S24's ordered prompt sequence using the S20
-   authority, S21 source boundary, and S23 Console boundary rather than reopening decisions.
+2. Inspect `git status`, branch, and recent commits; preserve all user work and confirm S24 is committed.
+3. Run `npm run verify:context-freshness`, then execute S22's ordered prompt sequence using S20
+   authority, S21 publication, S23 Console, and S24 Communications policy rather than reopening decisions.
 4. Continue safe local slices without asking again; update the spine at every boundary.
 5. Never infer live action authority from R01–R09, the active goal, `/loop`, a green fake-provider test,
    an existing OAuth/DWD grant, or a prior deployment.

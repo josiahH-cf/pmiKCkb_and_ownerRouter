@@ -36,9 +36,6 @@ export function getGmailHubDependencies(): GmailHubRuntimeDependencies {
       createClient: (subject) => new GmailRuntimeClient({ subject }),
       store: new FirestoreGmailStateStore(),
       isActionExecutable,
-      workflowLinkTtlDays: parseWorkflowLinkTtlDays(
-        process.env.GMAIL_WORKFLOW_LINK_TTL_DAYS,
-      ),
       isApprovedWorkflowTemplate: isApprovedWorkflowReplyTemplate,
     }
   );
@@ -55,10 +52,4 @@ export function createGmailHubService(actor: AuthenticatedUser) {
     workflowLinkTtlDays: dependencies.workflowLinkTtlDays,
     isApprovedWorkflowTemplate: dependencies.isApprovedWorkflowTemplate,
   });
-}
-
-function parseWorkflowLinkTtlDays(value: string | undefined) {
-  if (!value) return undefined;
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 && parsed <= 3_650 ? parsed : undefined;
 }

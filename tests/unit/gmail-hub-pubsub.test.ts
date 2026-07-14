@@ -8,6 +8,7 @@ import {
 } from "@/lib/gmail-hub/pubsub";
 import { processGmailPushNotification } from "@/lib/gmail-hub/service";
 import { gmailMailboxKey, MemoryGmailStateStore } from "@/lib/gmail-hub/state-store";
+import { communicationsRetentionFields } from "@/lib/gmail-hub/retention-policy";
 import { GmailRuntimeClient, GmailRuntimeError } from "@/lib/gmail-runtime/client";
 
 const mailbox = "josiah@pmikcmetro.com";
@@ -102,6 +103,7 @@ async function seedLinkedCommunication(store: MemoryGmailStateStore) {
     status: "linked",
     created_at_ms: 1,
     updated_at_ms: 1,
+    ...communicationsRetentionFields("workflow_link", 1),
     expires_at_ms: Number.MAX_SAFE_INTEGER,
   });
 }

@@ -34,7 +34,8 @@ describe("workflow communication governance page", () => {
     expect(html).toContain("Label rules");
     expect(html).toContain("Reply patterns");
     expect(html).toContain("Synthetic rule/template evaluator");
-    expect(html).toContain("not persisted or production-approved");
+    expect(html).toContain("Immutable base copy only");
+    expect(html).toContain("cannot make an action executable");
     expect(html).not.toContain("Read-only v1");
   });
 

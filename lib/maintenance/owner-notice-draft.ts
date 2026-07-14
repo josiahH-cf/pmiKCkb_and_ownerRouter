@@ -12,6 +12,21 @@ import type { WorkOrderDraft } from "@/lib/maintenance/work-order-draft";
 
 const NEEDS_VERIFICATION = "Needs Verification";
 
+export const MAINTENANCE_OWNER_V1_BASE_COPY = Object.freeze({
+  subject: "Maintenance request for {{property}}",
+  body: Object.freeze([
+    "Hello {{owner_name}},",
+    "",
+    "We received a maintenance request at {{property}}: {{summary}}.",
+    "Priority: {{priority}}. {{photo_line}}",
+    "",
+    "We'll coordinate getting this addressed and keep you posted. If you have a preferred vendor or any questions, just let us know.",
+    "",
+    "Thanks,",
+    "PMI KC Metro",
+  ]),
+});
+
 export interface OwnerNoticeInput {
   workOrder: WorkOrderDraft;
   /** Owner recipient name, if known; absent → a Needs-Verification marker. */
@@ -95,18 +110,17 @@ export function buildOwnerNoticeDraft(input: OwnerNoticeInput): OwnerNoticeDraft
       ? `${workOrder.photoRefs.length} photo(s) are on file.`
       : "No photos are on file yet.";
 
-  const subject = `Maintenance request for ${property}`;
-  const body = [
-    `Hello ${ownerName},`,
-    ``,
-    `We received a maintenance request at ${property}: ${workOrder.summary}.`,
-    `Priority: ${workOrder.priority}. ${photoLine}`,
-    ``,
-    `We'll coordinate getting this addressed and keep you posted. If you have a preferred vendor or any questions, just let us know.`,
-    ``,
-    `Thanks,`,
-    `PMI KC Metro`,
-  ].join("\n");
+  const replacements = {
+    owner_name: ownerName,
+    property,
+    summary: workOrder.summary,
+    priority: workOrder.priority,
+    photo_line: photoLine,
+  };
+  const subject = renderBaseCopy(MAINTENANCE_OWNER_V1_BASE_COPY.subject, replacements);
+  const body = MAINTENANCE_OWNER_V1_BASE_COPY.body
+    .map((line) => renderBaseCopy(line, replacements))
+    .join("\n");
 
   return {
     kind: "maintenance_owner_notice",
@@ -117,4 +131,8 @@ export function buildOwnerNoticeDraft(input: OwnerNoticeInput): OwnerNoticeDraft
     production_allowed: false,
     send_allowed: false,
   };
+}
+
+function renderBaseCopy(template: string, values: Record<string, string>) {
+  return template.replace(/\{\{([a-z_]+)\}\}/g, (_, key: string) => values[key] ?? "");
 }

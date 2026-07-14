@@ -3,7 +3,10 @@
 import { useState } from "react";
 
 import { GMAIL_INBOX_ZERO_LABELS } from "@/lib/gmail-inbox-zero/constants";
-import { GMAIL_MANUAL_LABEL_RULE_REF } from "@/lib/gmail-hub/governed-artifacts";
+import {
+  GMAIL_MANUAL_LABEL_RULE_REF,
+  type GovernedArtifactRef,
+} from "@/lib/gmail-hub/governed-artifacts";
 import type {
   WorkflowCommunicationContext,
   WorkflowCommunicationEntityType,
@@ -35,11 +38,22 @@ export function WorkflowCommunicationPanel({
     useState<(typeof GMAIL_INBOX_ZERO_LABELS)[number]>("Waiting on Team");
   const [labelReason, setLabelReason] = useState("");
   const [analysisCategory, setAnalysisCategory] = useState("general_question");
+  const [currentDraft, setCurrentDraft] = useState("");
   const [analysis, setAnalysis] = useState<{
     review_state: string;
     refusedBeforeModel?: boolean;
     proposal?: { summary: string; waiting_on: string; suggested_next_action: string };
     errors?: string[];
+  } | null>(null);
+  const [aiReply, setAiReply] = useState<{
+    ok: boolean;
+    reviewState: string;
+    policyRef: string;
+    artifactRef: string;
+    proposal: string;
+    diff: { added: string[]; removed: string[] };
+    sources: { ref: string; label: string }[];
+    errors: string[];
   } | null>(null);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
@@ -185,6 +199,33 @@ export function WorkflowCommunicationPanel({
       setAnalysis(data);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "AI assistance is unavailable.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function draftReply() {
+    if (!selected?.gmail_thread_id) return;
+    setBusy(true);
+    setStatus("");
+    setAiReply(null);
+    try {
+      const response = await fetch("/api/gmail-hub/workflow-reply", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          artifactRef: artifactRefForPurpose(purpose),
+          category: analysisCategory,
+          context: context("gmail.mailbox.read"),
+          currentText: currentDraft,
+          threadId: selected.gmail_thread_id,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "AI reply is unavailable.");
+      setAiReply(data);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "AI reply is unavailable.");
     } finally {
       setBusy(false);
     }
@@ -348,6 +389,49 @@ export function WorkflowCommunicationPanel({
                   </p>
                 </div>
               ) : null}
+              <label className="field">
+                <span>Current human draft (optional)</span>
+                <textarea
+                  maxLength={50_000}
+                  onChange={(event) => setCurrentDraft(event.target.value)}
+                  rows={6}
+                  value={currentDraft}
+                />
+              </label>
+              <button
+                className="secondary-button"
+                disabled={busy}
+                onClick={() => void draftReply()}
+                type="button"
+              >
+                Request source-backed reply proposal
+              </button>
+              {aiReply ? (
+                <div className="notice ui-stack" role="status">
+                  <strong>{aiReply.reviewState}</strong>
+                  <p className="muted">
+                    {aiReply.artifactRef} · {aiReply.policyRef}
+                  </p>
+                  {aiReply.ok ? <pre>{aiReply.proposal}</pre> : null}
+                  {aiReply.errors.length > 0 ? <p>{aiReply.errors.join(" ")}</p> : null}
+                  <details>
+                    <summary>Sources and changes</summary>
+                    <ul className="compact-list">
+                      {aiReply.sources.map((source) => (
+                        <li key={source.ref}>
+                          {source.label} · {source.ref}
+                        </li>
+                      ))}
+                    </ul>
+                    <p>Added: {aiReply.diff.added.join(" / ") || "None"}</p>
+                    <p>Removed: {aiReply.diff.removed.join(" / ") || "None"}</p>
+                  </details>
+                  <p className="muted">
+                    Transient proposal only. Review every source and exact word before
+                    using the separately governed confirmation flow.
+                  </p>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </section>
@@ -360,4 +444,17 @@ export function WorkflowCommunicationPanel({
       ) : null}
     </details>
   );
+}
+
+function artifactRefForPurpose(
+  purpose: WorkflowCommunicationPurpose,
+): GovernedArtifactRef {
+  switch (purpose) {
+    case "renewal_owner":
+      return "owner-renewal:v1.0";
+    case "renewal_tenant":
+      return "tenant-renewal:v1.0";
+    case "maintenance_owner":
+      return "maintenance-owner:v1.0";
+  }
 }

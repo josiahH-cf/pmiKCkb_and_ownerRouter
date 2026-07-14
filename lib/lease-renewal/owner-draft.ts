@@ -54,6 +54,24 @@ export interface OwnerRenewalDraft {
 
 const NEEDS_VERIFICATION = "Needs Verification";
 
+export const OWNER_RENEWAL_V1_BASE_COPY = Object.freeze({
+  subject: "Renewal coming up for {{address}}",
+  body: Object.freeze([
+    "Hello,",
+    "",
+    "We have a renewal coming up for {{address}}. We are currently charging {{current_rent}}.",
+    "",
+    "{{range_line}}",
+    "{{suggestion_line}}",
+    "{{screenshot}}",
+    "",
+    "Please let me know your thoughts on offering them a renewal. When considering an increase it's important to find a balance, so let me know what works for you and we'll proceed from there.",
+    "",
+    "Thanks,",
+    "PMI KC Metro",
+  ]),
+});
+
 export function formatUsd(amount: number): string {
   const fixed = Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
   return "$" + fixed.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -124,21 +142,17 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
       ? `Based on the analysis, a renewal around ${formatUsd(market.specificNumber)} looks reasonable.`
       : `[${NEEDS_VERIFICATION}: specific market number from the rental-analysis tool]`;
 
-  const subject = `Renewal coming up for ${input.addressLabel}`;
-  const body = [
-    `Hello,`,
-    ``,
-    `We have a renewal coming up for ${input.addressLabel}. We are currently charging ${formatUsd(input.currentRent)}.`,
-    ``,
-    rangeLine,
-    suggestionLine,
+  const replacements = {
+    address: input.addressLabel,
+    current_rent: formatUsd(input.currentRent),
+    range_line: rangeLine,
+    suggestion_line: suggestionLine,
     screenshot,
-    ``,
-    `Please let me know your thoughts on offering them a renewal. When considering an increase it's important to find a balance, so let me know what works for you and we'll proceed from there.`,
-    ``,
-    `Thanks,`,
-    `PMI KC Metro`,
-  ].join("\n");
+  };
+  const subject = renderBaseCopy(OWNER_RENEWAL_V1_BASE_COPY.subject, replacements);
+  const body = OWNER_RENEWAL_V1_BASE_COPY.body
+    .map((line) => renderBaseCopy(line, replacements))
+    .join("\n");
 
   return {
     kind: "owner_renewal_email",
@@ -149,4 +163,8 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
     production_allowed: false,
     send_allowed: false,
   };
+}
+
+function renderBaseCopy(template: string, values: Record<string, string>) {
+  return template.replace(/\{\{([a-z_]+)\}\}/g, (_, key: string) => values[key] ?? "");
 }

@@ -160,7 +160,7 @@ Read the trigger literally to avoid re-prompting:
   between internal phases or between safe slices.
 
 For the active 2026-07-14 V1 goal, the decision-complete packet already exists. `/loop` or any run/
-continue/implement trigger starts the first non-green suite (currently S24), then follows the dependency order in
+continue/implement trigger starts the first non-green suite (currently S22), then follows the dependency order in
 `docs/v1-gap-implementation-program-2026-07-14.md`. Do not regenerate Round 3 questions. Continue
 safe fake-provider/emulator slices; stop before each exact live/config/provider gate.
 

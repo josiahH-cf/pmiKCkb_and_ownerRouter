@@ -11,6 +11,39 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## S24 Communications policy and v1.0 artifacts are Local green
+
+- Date: 2026-07-14
+- Implemented `communications-retention:v1.0`: confirmation usability is separate from 30-day record
+  deletion; dedupe is 7 days, sync audit 90 days, workflow links refresh to 365 days after authorized
+  updates, and bodyless audits retain for 7 years. The pure planner and idempotent worker recheck every
+  candidate before deletion and write only counts. Admin-only hold/release is reasoned, idempotent,
+  transaction-safe, and persists hashes rather than case/reason text.
+- Registered exactly three frozen/hash-addressed base artifacts: `owner-renewal:v1.0`,
+  `tenant-renewal:v1.0`, and `maintenance-owner:v1.0`. Rendering uses the approved generators and
+  fails closed on unverified/browser-derived recipient or mailbox, missing source/value, non-finite or
+  blank required fields, `Needs Verification`, and false tenant cross-channel success without both
+  receipts.
+- Added `workflow-reply:v1.0`: one explicit authorized-thread request yields only a transient,
+  source-visible `Needs Review` proposal and line diff. Existing category exclusions run before model
+  use; approved base copy plus verified workflow sources—not a human-typed draft—are the only factual
+  corpus; unsupported amounts, dates, recipients, approvals, commitments, completion, or channel claims
+  refuse. No proposal, prompt, extracted fact, body, MIME, or attachment content is persisted.
+- Exact confirmation now binds actor, mailbox, recipient, thread, body, artifact, reply policy, and
+  sorted source references. Added the workflow proposal UI, Admin policy/hold UI, bodyless retention
+  audit collection denial, and removed the mutable `GMAIL_WORKFLOW_LINK_TTL_DAYS` configuration in
+  favor of the owner-approved versioned code policy.
+- Verification passed: 67 focused S24/Gmail/renewal tests, all 1,721 unit tests, 47 Firestore rules
+  tests on an isolated local port, and the core E2E flow (31 passed/18 intentionally skipped). The full
+  `scripts/verify.sh` milestone passed clean install, formatting, typecheck, production build, routing,
+  redaction, freshness, falsification, and traceability (124 IDs). Lint has zero errors and the eight
+  existing warnings; clean install retains the known eleven dependency-audit findings. No live Gmail/
+  customer read, TTL/scheduler/cloud configuration, external write/send, Action Registry change,
+  deploy, or production smoke occurred.
+- Exact live gates: separately authorize/configure Firestore TTL and cleanup scheduling; wire S25/S26
+  authoritative recipient/value sources; then obtain per-action Registry, live proof, deploy, and
+  acceptance authority. Next safe local slice: S22 external Vendor portal and mailbox.
+
 ## S23 Console live/test-data boundary is Local green
 
 - Date: 2026-07-14

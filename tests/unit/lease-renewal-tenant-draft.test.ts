@@ -34,6 +34,29 @@ describe("buildTenantOfferDraft", () => {
       draft.channels.email.body.length,
     );
     expect(draft.channels.text.body).toContain("$1,150");
+    expect(draft.channels.text.body).not.toContain("We've also emailed and messaged you");
+  });
+
+  it("claims both other channels only when both receipts exist", () => {
+    const delivered = buildTenantOfferDraft({
+      tenantNameLabel: "T",
+      leaseEndDateIso: "2026-08-31",
+      ownerDecision: "keep_same",
+      offeredRent: 1250,
+      channelReceipts: { email: "gmail-message-1", portal_chat: "portal-1" },
+    });
+    expect(delivered.channels.text.body).toContain(
+      "We've also emailed and messaged you the details.",
+    );
+
+    const emailOnly = buildTenantOfferDraft({
+      tenantNameLabel: "T",
+      leaseEndDateIso: "2026-08-31",
+      ownerDecision: "keep_same",
+      offeredRent: 1250,
+      channelReceipts: { email: "gmail-message-1" },
+    });
+    expect(emailOnly.channels.text.body).not.toContain("also emailed");
   });
 
   it("never authorizes a send", () => {

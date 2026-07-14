@@ -12,6 +12,12 @@ import {
   type WorkflowCommunicationLink,
 } from "@/lib/gmail-hub/workflow-context";
 import type { GmailSendResult } from "@/lib/gmail-runtime/types";
+import {
+  bodylessRetentionAuditFields,
+  communicationsRetentionFields,
+  refreshCommunicationsRetention,
+  type CommunicationsRetentionFields,
+} from "@/lib/gmail-hub/retention-policy";
 
 export const GMAIL_STATE_COLLECTIONS = {
   confirmations: "gmail_send_confirmations",
@@ -31,7 +37,7 @@ export type GmailConfirmationState =
   | "ambiguous"
   | "failed";
 
-export interface GmailConfirmationRecord {
+export interface GmailConfirmationRecord extends CommunicationsRetentionFields {
   id: string;
   actor_uid: string;
   mailbox_email: string;
@@ -39,7 +45,7 @@ export interface GmailConfirmationRecord {
   message_id: string;
   message_kind: GmailMessageKind;
   state: GmailConfirmationState;
-  expires_at_ms: number;
+  usable_until_ms: number;
   created_at_ms: number;
   updated_at_ms: number;
   gmail_message_id?: string;
@@ -207,7 +213,7 @@ export class FirestoreGmailStateStore implements GmailStateStore {
       if (record.state === "ambiguous") return { status: "ambiguous" as const, record };
       if (record.state === "sending") return { status: "in_progress" as const, record };
       if (record.state === "failed") return { status: "failed" as const, record };
-      if (record.expires_at_ms <= input.nowMs)
+      if (record.usable_until_ms <= input.nowMs)
         return { status: "expired" as const, record };
 
       const claimed = {
@@ -295,6 +301,7 @@ export class FirestoreGmailStateStore implements GmailStateStore {
           mailbox_key: mailboxDocId(state.mailbox_email),
           history_id: state.history_id,
           created_at_ms: state.updated_at_ms,
+          ...communicationsRetentionFields("sync_audit", state.updated_at_ms),
         },
       );
     });
@@ -335,6 +342,7 @@ export class FirestoreGmailStateStore implements GmailStateStore {
         history_id: input.historyId,
         state: "processing",
         updated_at_ms: input.nowMs,
+        ...communicationsRetentionFields("push_dedupe", input.nowMs),
       });
       return "claimed" as const;
     });
@@ -378,6 +386,7 @@ export class FirestoreGmailStateStore implements GmailStateStore {
         history_id: historyId,
         state: "completed",
         updated_at_ms: input.nowMs,
+        ...communicationsRetentionFields("push_dedupe", input.nowMs),
       });
       transaction.create(
         this.db.collection(GMAIL_STATE_COLLECTIONS.syncAudit).doc(uuidv7()),
@@ -388,6 +397,7 @@ export class FirestoreGmailStateStore implements GmailStateStore {
           added_count: input.addedCount,
           matched_count: input.matchedCount ?? 0,
           created_at_ms: input.nowMs,
+          ...communicationsRetentionFields("sync_audit", input.nowMs),
         },
       );
     });
@@ -398,18 +408,27 @@ export class FirestoreGmailStateStore implements GmailStateStore {
       .collection(GMAIL_STATE_COLLECTIONS.pushDedupe)
       .doc(pushDocId(input.messageId))
       .set(
-        { state: "failed", updated_at_ms: input.nowMs, retryable: true },
+        {
+          state: "failed",
+          updated_at_ms: input.nowMs,
+          retryable: true,
+          ...communicationsRetentionFields("push_dedupe", input.nowMs),
+        },
         { merge: true },
       );
   }
 
   async saveCommunicationLink(link: WorkflowCommunicationLink): Promise<void> {
     const ref = this.db.collection(GMAIL_STATE_COLLECTIONS.workflowLinks).doc(link.id);
+    const retainedLink = {
+      ...link,
+      ...refreshCommunicationsRetention(link, "workflow_link", link.updated_at_ms),
+    };
     await this.db.runTransaction(async (transaction) => {
-      transaction.set(ref, link);
+      transaction.set(ref, retainedLink);
       transaction.create(
         this.db.collection(GMAIL_STATE_COLLECTIONS.workflowAudit).doc(uuidv7()),
-        workflowAudit(link, "link_saved", link.updated_at_ms),
+        workflowAudit(retainedLink, "link_saved", retainedLink.updated_at_ms),
       );
     });
   }
@@ -471,6 +490,7 @@ export class FirestoreGmailStateStore implements GmailStateStore {
         attention_at_ms: input.nowMs,
         read_at_ms: undefined,
         updated_at_ms: input.nowMs,
+        ...refreshCommunicationsRetention(link, "workflow_link", input.nowMs),
       };
       transaction.set(ref, stripUndefined(next));
       transaction.create(
@@ -500,7 +520,12 @@ export class FirestoreGmailStateStore implements GmailStateStore {
           403,
         );
       }
-      const next = { ...link, read_at_ms: input.nowMs, updated_at_ms: input.nowMs };
+      const next = {
+        ...link,
+        read_at_ms: input.nowMs,
+        updated_at_ms: input.nowMs,
+        ...refreshCommunicationsRetention(link, "workflow_link", input.nowMs),
+      };
       transaction.set(ref, next);
       transaction.create(
         this.db.collection(GMAIL_STATE_COLLECTIONS.workflowAudit).doc(uuidv7()),
@@ -527,6 +552,7 @@ export class FirestoreGmailStateStore implements GmailStateStore {
         rule_ref: input.ruleRef,
         reason_hash: input.reasonHash,
         created_at_ms: input.nowMs,
+        ...bodylessRetentionAuditFields(input.nowMs),
       });
   }
 }
@@ -584,7 +610,7 @@ export class MemoryGmailStateStore implements GmailStateStore {
       return { status: "in_progress", record: structuredClone(record) };
     if (record.state === "failed")
       return { status: "failed", record: structuredClone(record) };
-    if (record.expires_at_ms <= input.nowMs)
+    if (record.usable_until_ms <= input.nowMs)
       return { status: "expired", record: structuredClone(record) };
     record.state = "sending";
     record.updated_at_ms = input.nowMs;
@@ -679,6 +705,8 @@ export class MemoryGmailStateStore implements GmailStateStore {
       action: input.mode,
       added_count: input.addedCount,
       matched_count: input.matchedCount ?? 0,
+      created_at_ms: input.nowMs,
+      ...communicationsRetentionFields("sync_audit", input.nowMs),
     });
   }
 
@@ -687,8 +715,14 @@ export class MemoryGmailStateStore implements GmailStateStore {
   }
 
   async saveCommunicationLink(link: WorkflowCommunicationLink) {
-    this.communicationLinks.set(link.id, structuredClone(link));
-    this.audit.push(workflowAudit(link, "link_saved", link.updated_at_ms));
+    const retainedLink = {
+      ...link,
+      ...refreshCommunicationsRetention(link, "workflow_link", link.updated_at_ms),
+    };
+    this.communicationLinks.set(link.id, structuredClone(retainedLink));
+    this.audit.push(
+      workflowAudit(retainedLink, "link_saved", retainedLink.updated_at_ms),
+    );
   }
 
   async listCommunicationLinks(mailboxEmail: string) {
@@ -736,6 +770,10 @@ export class MemoryGmailStateStore implements GmailStateStore {
     link.attention_at_ms = input.nowMs;
     delete link.read_at_ms;
     link.updated_at_ms = input.nowMs;
+    Object.assign(
+      link,
+      refreshCommunicationsRetention(link, "workflow_link", input.nowMs),
+    );
     this.audit.push(workflowAudit(link, "reply_attention_created", input.nowMs));
     return "updated";
   }
@@ -755,6 +793,10 @@ export class MemoryGmailStateStore implements GmailStateStore {
     }
     link.read_at_ms = input.nowMs;
     link.updated_at_ms = input.nowMs;
+    Object.assign(
+      link,
+      refreshCommunicationsRetention(link, "workflow_link", input.nowMs),
+    );
     this.audit.push(workflowAudit(link, "attention_read", input.nowMs));
   }
 
@@ -773,6 +815,7 @@ export class MemoryGmailStateStore implements GmailStateStore {
       rule_ref: input.ruleRef,
       reason_hash: input.reasonHash,
       created_at_ms: input.nowMs,
+      ...bodylessRetentionAuditFields(input.nowMs),
     });
   }
 }
@@ -805,6 +848,7 @@ function sendAudit(record: GmailConfirmationRecord, action: string, createdAtMs:
     ...(record.gmail_message_id ? { gmail_message_id: record.gmail_message_id } : {}),
     ...(record.gmail_thread_id ? { gmail_thread_id: record.gmail_thread_id } : {}),
     created_at_ms: createdAtMs,
+    ...bodylessRetentionAuditFields(createdAtMs),
   };
 }
 
@@ -837,6 +881,7 @@ function workflowAudit(
     ...(link.gmail_thread_id ? { gmail_thread_id: link.gmail_thread_id } : {}),
     ...(link.last_message_id ? { last_message_id: link.last_message_id } : {}),
     created_at_ms: createdAtMs,
+    ...bodylessRetentionAuditFields(createdAtMs),
   };
 }
 

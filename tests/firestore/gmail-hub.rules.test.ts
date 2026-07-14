@@ -18,6 +18,7 @@ const PATHS = [
   "gmail_sync_audit/sync-1",
   "gmail_workflow_communications/communication-1",
   "gmail_workflow_communication_audit/audit-1",
+  "gmail_retention_audit/audit-1",
 ] as const;
 
 beforeAll(async () => {

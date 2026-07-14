@@ -406,6 +406,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // S24 retention cleanup and legal-hold decisions are server-only and bodyless. Even Admins use
+    // the reasoned API boundary; a browser cannot forge a hold, release one, or rewrite counts.
+    match /gmail_retention_audit/{auditId} {
+      allow read, write: if false;
+    }
+
     // S21 trusted publication is entirely server-owned. Policy changes require the
     // route-level manageAdmin gate; validated versions, Active pointers, and bodyless
     // audits are one transaction that no browser client may forge or rewrite.

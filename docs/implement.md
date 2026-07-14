@@ -81,17 +81,17 @@ Continue iterating on:
 - Reversible GCP/Firebase/API setup and migration helpers when `docs/away-mode.md` is
   ACTIVE, `npm run check:budget-guard` passes, and non-secret identifiers are recorded in
   `docs/environment-handoff.md`.
-- S24 retention/artifact policy; S20 risk/authority/ledger, S21 trusted publication, and S23 Console
-  live/test-data boundary are Local green and remain shared boundaries.
-- Then S22 Vendor auth/OAuth app-plane, S25/S26
+- S20 risk/authority/ledger, S21 trusted publication, S23 Console live/test-data, and S24 retention/
+  artifact/AI-reply policy are Local green and remain shared boundaries.
+- Start S22 Vendor auth/OAuth app-plane, then S25/S26
   orchestrators/adapters and S27 integrated release acceptance.
 - Action Registry catalog/schema modeling (metadata only; do not widen `production_allowed`)
   and integration architecture per `docs/integration-architecture.md`, with Maintenance
   Work Order Intake as the first executable-write target and the Rentvine lease-renewal
   writeback gated as undocumented.
-- S24's approved v1.0 workflow artifacts/AI policy and synthetic linked-thread scenarios; production
-  Gmail actions also require entity scope, authoritative runtime values, exact confirmation, and the
-  approved retention implementation.
+- S24's built v1.0 workflow artifacts/AI policy and synthetic linked-thread scenarios; production
+  Gmail actions still require entity scope, authoritative S25/S26 runtime values, exact confirmation,
+  separately activated cleanup/TTL, and per-action live authority.
 - Tool access templates and integration capability classification using placeholders
   until Dan/team provide the spreadsheet answers.
 

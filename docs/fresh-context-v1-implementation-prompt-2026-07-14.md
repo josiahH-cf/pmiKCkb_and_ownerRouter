@@ -19,18 +19,17 @@ First read, in order:
 4. `docs/autonomous-agent-runner.md`
 5. the newest entry in `docs/status.md`
 6. `docs/v1-gap-implementation-program-2026-07-14.md`
-7. the spec for the current first non-green suite
+7. this fresh-context prompt
+8. `docs/feature-suites/vendor-portal-and-mailbox.md`
 
 Then inspect `git status`, the current branch, and recent commits. Preserve all user work. Confirm the
 starting point from the repository rather than this prompt: as written on 2026-07-14, S20 execution
-authority, S21 trusted publication, and S23 Console live/test boundary are Local green, and the next
-safe slice is S24. Run `npm run verify:context-freshness` before implementation.
+authority, S21 trusted publication, S23 Console live/test boundary, and S24 Communications retention/
+artifacts/AI policy are Local green. The next safe slice is S22. Confirm local `main` equals
+`origin/main`, then run `npm run verify:context-freshness` before implementation.
 
 Pursue the active goal until the safe local implementation is genuinely complete:
 
-- S24 — Communications retention/legal hold, immutable v1.0 owner-renewal, tenant-renewal, and
-  maintenance-owner artifacts, verified value replacement, and the source-visible/no-invention/
-  human-exact-confirmed AI reply policy.
 - S22 — external Vendor app-plane: Admin invite, one-time setup, verified-email TOTP gate,
   assigned-ticket-only authorization, per-vendor Gmail/Workspace OAuth abstractions, token-vault
   boundary, revocation, and emulator/fake-provider acceptance.
@@ -41,6 +40,11 @@ Pursue the active goal until the safe local implementation is genuinely complete
   draft bill.
 - S27 — integrated fake/emulator E2E, acceptance ledger, pre-V1 report, monitoring and rollback plan,
   tab/browser acceptance plan, and final Dan/Josiah acceptance gates.
+
+Treat S24 as a shared completed boundary, not work to repeat: retention periods are versioned in code;
+cleanup/hold are Local green; exactly three immutable v1.0 artifacts exist; AI reply output is transient
+and supported only by approved base copy plus verified workflow sources; exact confirmation binds
+artifact/policy/sources. Do not configure live TTL/scheduling or infer authoritative S25/S26 values.
 
 Follow the dependency order in the program and `docs/loop-state.md`; within S25/S26, treat one external
 provider as one independently verified slice. Continue automatically between safe local slices without

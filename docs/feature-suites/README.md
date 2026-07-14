@@ -57,7 +57,7 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 | S21 Trusted immediate publication          | `docs/feature-suites/trusted-publication.md`           | Local green — 2026-07-14                      |
 | S22 External Vendor portal + Gmail OAuth   | `docs/feature-suites/vendor-portal-and-mailbox.md`     | Spec — Round 3 R03/R04 locked                 |
 | S23 Console live/test-data boundary        | `docs/feature-suites/console-live-data.md`             | Local green — 2026-07-14                      |
-| S24 Communications policy + artifacts      | `docs/feature-suites/communications-policy.md`         | Spec — Round 3 R06/R07 locked                 |
+| S24 Communications policy + artifacts      | `docs/feature-suites/communications-policy.md`         | Local green — 2026-07-14                      |
 | S25 Lease Renewal external execution       | `docs/feature-suites/lease-renewal-execution.md`       | Spec — every R02 action required for V1       |
 | S26 Maintenance external execution         | `docs/feature-suites/maintenance-execution.md`         | Spec — every R03 action required for V1       |
 | S27 Staged pre-V1 + final acceptance       | `docs/feature-suites/v1-release-acceptance.md`         | Spec — Round 3 R09 release gate               |

@@ -63,9 +63,9 @@ truth from email without human review.
 - **Buildable now (app-plane).** Maintain workflow context/link authorization, targeted reads,
   approved manual labels, bodyless attention, on-demand proposal-only analysis, exact-confirmation
   infrastructure, and negative tests. No live customer or mailbox content is required for verification.
-- **Gated (owner / vendor).** R01–R09 are settled; S20/S22/S24/S25/S26 implement risk authority,
-  retention/artifacts/AI policy, authoritative workflow values, multichannel actions, and external
-  Vendor TOTP/OAuth. Live configuration, mailbox access, sends, and any scheduler remain separately gated.
+- **Gated (owner / vendor).** R01–R09 are settled; S20/S24 locally implement risk and policy. S22/S25/
+  S26 implement Vendor identity/TOTP/OAuth, authoritative workflow values, multichannel actions, and
+  external providers. Live configuration, mailbox access, sends, and any scheduler remain separately gated.
 
 **Open questions & assumptions.**
 

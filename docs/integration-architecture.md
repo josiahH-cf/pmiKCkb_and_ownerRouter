@@ -137,11 +137,11 @@ trigger them.
 
 Each registry entry points to a deterministic health-check contract in
 `lib/integrations/health-checks.ts`. Gmail watch renewal is manual and observable; no scheduler is
-approved. Production workflow-link creation fails closed until the approved link retention is set in
-`GMAIL_WORKFLOW_LINK_TTL_DAYS`. S24 policy is confirmation usable 10 minutes/delete 30 days, dedupe 7
-days, sync audit 90 days, workflow link 365 days from last authorized update, bodyless send/write/
-workflow audit 7 years, and no persisted V1 AI/extracted Gmail facts. Admin legal hold and a later
-written policy override deletion. Cleanup/TTL/hold are not built or deployed yet.
+approved. S24 locally encodes confirmation usable 10 minutes/delete 30 days, dedupe 7 days, sync audit
+90 days, workflow link 365 days from last authorized update, bodyless send/write/workflow audit 7
+years, and no persisted V1 AI/extracted Gmail facts. Admin legal hold and a later written policy
+override deletion. Cleanup planning/worker and hold/release are Local green; production Firestore TTL
+and scheduler configuration remain separately gated and no mutable environment TTL can widen policy.
 
 ## Vendor-confirmation matrix
 

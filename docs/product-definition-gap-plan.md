@@ -6,11 +6,11 @@ create, and what still needs to be decided?"
 
 ## Current Reality
 
-| Product                 | What exists now                                                                                                                 | What is not proven yet                                                                                                |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| PMI KC KB               | Deployed source-backed runtime with auth, Console, Spaces, approvals, Admin, notifications, and connected read seams.           | S20–S27 implementation, approved launch/provider mappings, action proof, and release-candidate acceptance.            |
-| Lease Renewal Agent     | Built deterministic read/reconcile/review runtime with live Rentvine/Sheet reads and app-plane decision controls.               | S25 operational-run wiring and every R02 provider action/proof.                                                       |
-| Workflow Communications | Proven managed-user Gmail transport plus a locally verified workflow-linked UI/API boundary; external Vendor mail is not built. | S20/S22/S24/S25/S26 implementation, recipients/provider setup, and release promotion. Josiah owns watch/OAuth health. |
+| Product                 | What exists now                                                                                                                     | What is not proven yet                                                                                                                           |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PMI KC KB               | Deployed source-backed runtime with auth, Console, Spaces, approvals, Admin, notifications, and connected read seams.               | S20–S27 implementation, approved launch/provider mappings, action proof, and release-candidate acceptance.                                       |
+| Lease Renewal Agent     | Built deterministic read/reconcile/review runtime with live Rentvine/Sheet reads and app-plane decision controls.                   | S25 operational-run wiring and every R02 provider action/proof.                                                                                  |
+| Workflow Communications | Proven managed-user Gmail transport plus Local-green workflow boundary and S24 policy/artifacts; external Vendor mail is not built. | S22/S25/S26 implementation, authoritative recipients/provider setup, live TTL activation, and release promotion. Josiah owns watch/OAuth health. |
 
 ## Answered Direction
 

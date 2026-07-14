@@ -76,7 +76,7 @@ Track each row as `Not started`, `Local green`, `Gated`, `Live-proven`, or `Acce
 | S21   | Local green | Policy, bounded validation/scanners, immutable versions/rollback/audit, direct process + Space publish; live setup gated |
 | S22   | Not started | Vendor identity and Gmail OAuth                                                                                          |
 | S23   | Local green | Server mode, scoped/provenanced projection, bounded Gmail metadata, test badge/cutover fence; live wiring gated          |
-| S24   | Not started | Retention, artifacts, and AI replies                                                                                     |
+| S24   | Local green | Retention/cleanup/legal hold, three immutable artifacts, transient source-backed AI reply; live TTL and mappings gated   |
 | S25   | Not started | Gmail, Sheet, Rentvine, Dotloop, portal chat, SMS, Boom                                                                  |
 | S26   | Not started | Account, mailbox, Drive, Rentvine, owner/vendor mail, LeadSimple, QuickBooks draft bill                                  |
 | S27   | Not started | Pre-V1 and final acceptance                                                                                              |

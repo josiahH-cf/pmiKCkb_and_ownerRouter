@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import type { CommunicationsRetentionFields } from "@/lib/gmail-hub/retention-policy";
+
 export const WORKFLOW_COMMUNICATION_LANES = ["renewals", "maintenance"] as const;
 export type WorkflowCommunicationLane = (typeof WORKFLOW_COMMUNICATION_LANES)[number];
 
@@ -40,6 +42,7 @@ export const WorkflowCommunicationContextSchema = z
     actionKey: SafeReferenceSchema,
     sourceRefs: z.array(SafeReferenceSchema).max(20).default([]),
     templateRef: SafeReferenceSchema.optional(),
+    replyPolicyRef: SafeReferenceSchema.optional(),
   })
   .strict()
   .superRefine((context, issue) => {
@@ -80,7 +83,7 @@ export type WorkflowCommunicationStatus =
   (typeof WORKFLOW_COMMUNICATION_STATUSES)[number];
 
 /** Bodyless, client-safe projection. It intentionally contains no mailbox address or message text. */
-export interface WorkflowCommunicationLink {
+export interface WorkflowCommunicationLink extends CommunicationsRetentionFields {
   id: string;
   actor_uid: string;
   mailbox_key: string;
@@ -93,6 +96,7 @@ export interface WorkflowCommunicationLink {
   /** SHA-256 only; the human-entered reason text is never retained. */
   reason_hash?: string;
   template_ref?: string;
+  reply_policy_ref?: string;
   draft_id?: string;
   gmail_message_id?: string;
   gmail_thread_id?: string;
@@ -128,9 +132,15 @@ export function workflowEntityKey(
 }
 
 export function workflowActionContextKey(context: WorkflowCommunicationContext): string {
-  return `${workflowEntityKey(context)}:${encodeURIComponent(context.actionKey)}:${encodeURIComponent(
+  return [
+    workflowEntityKey(context),
+    context.actionKey,
     context.templateRef ?? "",
-  )}`;
+    context.replyPolicyRef ?? "",
+    [...new Set(context.sourceRefs)].sort().join("\u0001"),
+  ]
+    .map((part) => encodeURIComponent(part))
+    .join(":");
 }
 
 export function workflowEntityHref(

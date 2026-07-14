@@ -4,6 +4,10 @@
 
 > New 2026-07-14. Implements R06/R07 and closes the remaining S19 promotion-policy questions.
 
+**Status: Local green — 2026-07-14.** AC-S24-1 through AC-S24-8 are implemented and verified locally.
+Live Firestore TTL/scheduler activation, authoritative S25/S26 recipient/value mapping, any Gmail read/
+send, Registry promotion, deployment, and production acceptance remain separately gated.
+
 **Goal.** Workflow Communications has explicit deletion/hold behavior, three reviewable versioned V1
 base artifacts, and a source-visible AI reply policy that can improve a draft without inventing facts or
 commitments. Every outbound message remains a human-reviewed exact payload and every retained record is

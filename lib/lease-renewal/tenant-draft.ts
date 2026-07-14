@@ -35,7 +35,31 @@ export interface TenantOfferInput {
   };
   /** Link to the Google info-gathering form. */
   infoFormUrl?: string;
+  /** Receipts proving the corresponding channels actually succeeded. */
+  channelReceipts?: { email?: string; portal_chat?: string };
 }
+
+export const TENANT_RENEWAL_V1_BASE_COPY = Object.freeze({
+  subject: "Your lease renewal, ending {{lease_end_date}}",
+  fullBody: Object.freeze([
+    "Hello {{tenant_name}},",
+    "",
+    "Your lease ends on {{lease_end_date}}. We need to figure out if you plan to stay or leave.",
+    "If you'd like to renew, the rent would be {{offered_rent}}.",
+    "{{charges_line}}",
+    "",
+    "Please let us know if you plan to stay or leave as soon as possible, and we'll get the documents out if you plan to stay.",
+    "{{form_ask}}",
+    "",
+    "Thanks,",
+    "PMI KC Metro",
+  ]),
+  text: Object.freeze([
+    "Hi {{tenant_name}}, your lease ends {{lease_end_date}}. Renewal rent would be {{offered_rent}}.",
+    "Please reply to let us know if you plan to stay or leave.{{channel_success}}",
+  ]),
+  bothChannelSuccess: " We've also emailed and messaged you the details.",
+});
 
 export interface TenantOfferDraft {
   kind: "tenant_renewal_offer";
@@ -80,31 +104,33 @@ export function buildTenantOfferDraft(input: TenantOfferInput): TenantOfferDraft
   ];
 
   // Email + portal chat get the full message; the text is a short nudge that points back to it.
-  const fullBody = [
-    `Hello ${input.tenantNameLabel},`,
-    ``,
-    `Your lease ends on ${input.leaseEndDateIso}. We need to figure out if you plan to stay or leave.`,
-    `If you'd like to renew, the rent would be ${offered}.`,
-    ...(charges ? [charges] : []),
-    ``,
-    `Please let us know if you plan to stay or leave as soon as possible, and we'll get the documents out if you plan to stay.`,
-    ...(formAsk ? ["", formAsk] : []),
-    ``,
-    `Thanks,`,
-    `PMI KC Metro`,
-  ].join("\n");
-
-  const textBody = [
-    `Hi ${input.tenantNameLabel}, your lease ends ${input.leaseEndDateIso}. Renewal rent would be ${offered}.`,
-    `Please reply to let us know if you plan to stay or leave. We've also emailed and messaged you the details.`,
-  ].join(" ");
+  const bothChannelsSucceeded = Boolean(
+    input.channelReceipts?.email && input.channelReceipts.portal_chat,
+  );
+  const replacements = {
+    tenant_name: input.tenantNameLabel,
+    lease_end_date: input.leaseEndDateIso,
+    offered_rent: offered,
+    charges_line: charges ?? "",
+    form_ask: formAsk ? `\n${formAsk}` : "",
+    channel_success: bothChannelsSucceeded
+      ? TENANT_RENEWAL_V1_BASE_COPY.bothChannelSuccess
+      : "",
+  };
+  const fullBody = TENANT_RENEWAL_V1_BASE_COPY.fullBody
+    .map((line) => renderBaseCopy(line, replacements))
+    .filter((line, index, lines) => line !== "" || lines[index - 1] !== "")
+    .join("\n");
+  const textBody = TENANT_RENEWAL_V1_BASE_COPY.text
+    .map((line) => renderBaseCopy(line, replacements))
+    .join(" ");
 
   return {
     kind: "tenant_renewal_offer",
     channels: {
       email: {
         channel: "email",
-        subject: `Your lease renewal, ending ${input.leaseEndDateIso}`,
+        subject: renderBaseCopy(TENANT_RENEWAL_V1_BASE_COPY.subject, replacements),
         body: fullBody,
       },
       portal_chat: { channel: "portal_chat", body: fullBody },
@@ -114,4 +140,8 @@ export function buildTenantOfferDraft(input: TenantOfferInput): TenantOfferDraft
     production_allowed: false,
     send_allowed: false,
   };
+}
+
+function renderBaseCopy(template: string, values: Record<string, string>) {
+  return template.replace(/\{\{([a-z_]+)\}\}/g, (_, key: string) => values[key] ?? "");
 }

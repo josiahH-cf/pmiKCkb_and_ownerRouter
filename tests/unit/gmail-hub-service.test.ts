@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { hashConfirmationToken } from "@/lib/gmail-hub/contracts";
+import { WORKFLOW_REPLY_POLICY_REF } from "@/lib/gmail-hub/governed-artifacts";
+import { communicationsRetentionFields } from "@/lib/gmail-hub/retention-policy";
 import {
   GmailAmbiguousSendError,
   GmailHubError,
@@ -32,7 +34,8 @@ function context(actionKey: string): WorkflowCommunicationContext {
     purpose: "maintenance_owner",
     actionKey,
     sourceRefs: ["maintenance_ticket:ticket-synthetic-1"],
-    templateRef: "template:maintenance-owner-reply:v1",
+    templateRef: "maintenance-owner:v1.0",
+    replyPolicyRef: WORKFLOW_REPLY_POLICY_REF,
   };
 }
 
@@ -149,11 +152,13 @@ function service(
     purpose: "maintenance_owner",
     origin_action_key: "gmail.mailbox.read",
     source_refs: ["maintenance_ticket:ticket-synthetic-1"],
-    template_ref: "template:maintenance-owner-reply:v1",
+    template_ref: "maintenance-owner:v1.0",
+    reply_policy_ref: WORKFLOW_REPLY_POLICY_REF,
     gmail_thread_id: "thread-1",
     status: "linked",
     created_at_ms: 1,
     updated_at_ms: 1,
+    ...communicationsRetentionFields("workflow_link", 1),
     expires_at_ms: Number.MAX_SAFE_INTEGER,
   });
   const gates = new Set(
@@ -234,9 +239,43 @@ describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
       actor_uid: actor.uid,
       state: "pending",
       workflow_entity_id: "ticket-synthetic-1",
+      retention_policy_version: "communications-retention:v1.0",
+      retention_class: "confirmation",
+      legal_hold: false,
     });
+    expect((record?.expires_at_ms ?? 0) - (record?.created_at_ms ?? 0)).toBe(
+      30 * 24 * 60 * 60 * 1_000,
+    );
+    expect((record?.usable_until_ms ?? 0) - (record?.created_at_ms ?? 0)).toBe(
+      10 * 60 * 1_000,
+    );
     expect(JSON.stringify(record)).not.toContain("Synthetic test body");
     expect(JSON.stringify(store.audit)).not.toContain("Synthetic test body");
+  });
+
+  it("invalidates confirmation when policy or source context drifts", async () => {
+    const { hub, client } = service();
+    const prepared = await hub.prepareSendConfirmation(reply("Exact body"));
+
+    await expect(
+      hub.sendConfirmed({
+        ...prepared,
+        context: {
+          ...prepared.context,
+          replyPolicyRef: "workflow-reply:v1.1",
+        },
+      }),
+    ).rejects.toBeInstanceOf(GmailHubError);
+    await expect(
+      hub.sendConfirmed({
+        ...prepared,
+        context: {
+          ...prepared.context,
+          sourceRefs: ["maintenance_ticket:changed"],
+        },
+      }),
+    ).rejects.toBeInstanceOf(GmailHubError);
+    expect(client.sendCalls).toBe(0);
   });
 
   it("rejects a missing confirmation or any changed exact payload before Gmail", async () => {

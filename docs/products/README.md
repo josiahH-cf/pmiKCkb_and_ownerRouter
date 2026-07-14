@@ -9,7 +9,7 @@ Use it before older demo docs or preserved specs.
 | ----------------------- | ------------------------ | --------------------------------------------------------------- |
 | PMI KC KB               | `pmi-kc-kb.md`           | Deployed shared runtime; S20–S27 external-V1 gaps remain        |
 | Lease Renewal Agent     | `lease-renewal-agent.md` | Read/reconcile/review built; every S25 action is final-V1 scope |
-| Workflow Communications | `gmail-inbox-zero.md`    | Workflow-linked Gmail adapter built; S22/S24/S25/S26 remain     |
+| Workflow Communications | `gmail-inbox-zero.md`    | Workflow-linked Gmail adapter; S24 green; S22/S25/S26 remain    |
 
 ### Lease Renewal lane — sub-docs
 

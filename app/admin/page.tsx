@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { ApprovalQueueAdminPanel } from "@/components/admin/ApprovalQueueAdminPanel";
+import { CommunicationsRetentionAdminPanel } from "@/components/admin/CommunicationsRetentionAdminPanel";
 import { PublicationPolicyAdminPanel } from "@/components/admin/PublicationPolicyAdminPanel";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import {
@@ -224,6 +225,7 @@ export default async function AdminPage() {
             </p>
             <Link href="/admin/gmail-inbox-zero">Open communication governance</Link>
           </article>
+          <CommunicationsRetentionAdminPanel />
           <PublicationPolicyAdminPanel
             initialPolicies={publicationPolicies}
             spaces={launchSpaces.filter((space) => !space.readOnly)}

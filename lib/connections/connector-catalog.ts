@@ -87,7 +87,6 @@ export const CONNECTORS: readonly ConnectorDef[] = [
       "GMAIL_PUBSUB_TOPIC",
       "GMAIL_PUBSUB_AUDIENCE",
       "GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT",
-      "GMAIL_WORKFLOW_LINK_TTL_DAYS",
     ],
   },
   {
