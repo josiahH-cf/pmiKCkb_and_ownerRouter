@@ -3,8 +3,8 @@
 // /notifications hub page, and the pure feed builder share the family vocabulary without pulling the
 // Admin SDK into the client bundle.
 //
-// The framework is IN-APP ONLY: there is no email channel here. The two Gmail-dependent event families
-// remain unavailable until their product-specific classification rules exist; Gmail access itself is active.
+// The framework is IN-APP ONLY: there is no email channel here. Gmail events are value-free signals
+// from already-linked renewal/maintenance threads; they do not classify or expose unrelated mail.
 //
 // S17 adds three AVAILABLE families so the hub is a true SUPERSET of the Console's three deck cards
 // (approvals ⇒ approval_queue, connections ⇒ connections_setup, coverage ⇒ space_coverage) plus Dan's
@@ -19,8 +19,8 @@ export const NOTIFICATION_FAMILY_KEYS = [
   "connections_setup",
   "space_coverage",
   "team_review",
-  "rentvine_replies",
-  "owner_process_replies",
+  "renewal_communications",
+  "maintenance_communications",
 ] as const;
 
 export type NotificationFamilyKey = (typeof NOTIFICATION_FAMILY_KEYS)[number];
@@ -28,7 +28,10 @@ export type NotificationFamilyKey = (typeof NOTIFICATION_FAMILY_KEYS)[number];
 // The per-notification EVENT source discriminant: the subset of families that produce persisted, per-user
 // event notifications. mark-read / mark-all-read dispatch on it. connections_setup + space_coverage are
 // STANDING conditions (no per-event read_at) and team_review is a computed DIGEST, so none are sources.
-export type NotificationSource = "approval_queue" | "maintenance_ticket";
+export type NotificationSource =
+  | "approval_queue"
+  | "maintenance_ticket"
+  | "gmail_workflow";
 
 export interface NotificationFamily {
   key: NotificationFamilyKey;
@@ -60,10 +63,9 @@ export interface NotificationFamilyView extends NotificationFamily {
   muted: boolean;
 }
 
-/** The single gated-affordance string for every Gmail-dependent surface (families + the hub's
- *  "read my inbox" control). Exported so no consumer re-hardcodes the literal. */
+/** Connection-state fallback used by the workflow communication surface. It does not imply that the
+ * product may browse an inbox when a connection exists. */
 export const WAITING_ON_GMAIL = "Waiting on Gmail access";
-export const GMAIL_EVENT_RULES_REQUIRED = "Mailbox event rules not configured";
 
 export const NOTIFICATION_FAMILIES: readonly NotificationFamily[] = [
   {
@@ -103,20 +105,18 @@ export const NOTIFICATION_FAMILIES: readonly NotificationFamily[] = [
     lane: "review",
   },
   {
-    key: "rentvine_replies",
-    label: "RentVine replies",
-    description: "Replies on RentVine conversations you are working.",
-    available: false,
+    key: "renewal_communications",
+    label: "Renewal communications",
+    description: "Value-free attention for replies on linked renewal communication.",
+    available: true,
     lane: "decision",
-    unavailableReason: GMAIL_EVENT_RULES_REQUIRED,
   },
   {
-    key: "owner_process_replies",
-    label: "Owner replies",
-    description: "Owner replies to process emails you sent.",
-    available: false,
+    key: "maintenance_communications",
+    label: "Maintenance communications",
+    description: "Value-free attention for replies on linked maintenance communication.",
+    available: true,
     lane: "decision",
-    unavailableReason: GMAIL_EVENT_RULES_REQUIRED,
   },
 ];
 

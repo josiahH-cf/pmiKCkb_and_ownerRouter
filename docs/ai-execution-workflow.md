@@ -28,6 +28,11 @@ issues, align docs and `docs/loop-state.md`, prepare a commit queue, and continu
 next safe slice until a stop-and-reset condition fires. The user verifies at the
 end-of-run review point, not after every internal phase.
 
+For the active 2026-07-14 final-V1 goal, the permanent packet already exists at
+`docs/v1-gap-implementation-program-2026-07-14.md`. S20/S21/S23 are Local green; `/loop` starts with S24 and follows the remaining suites in
+that packet; it does not create another Round 3 question packet. Use fake providers/emulators and
+continue safe slices, stopping before exact live/config/provider gates.
+
 Before choosing a local feature, run the migration-readiness stop gate in
 `docs/autonomous-agent-runner.md`. If the proposed work does not improve production
 readiness, migration/cutover prep, verification, handoff, or an approved product

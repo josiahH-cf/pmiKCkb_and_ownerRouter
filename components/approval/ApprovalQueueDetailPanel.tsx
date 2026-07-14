@@ -21,7 +21,7 @@ interface QueueDetailPanelProps {
   onCancelAction: () => void;
   onStartAction: (mode: QueueActionMode) => void;
   onSubmitAssign: () => void;
-  onSubmitReasonedAction: (action: "disable" | "return") => void;
+  onSubmitReasonedAction: (action: "approve" | "disable" | "return") => void;
   onSubmitSnooze: () => void;
   reason: string;
   requiredApproverUid: string;
@@ -104,7 +104,7 @@ export function QueueDetailPanel({
               title={actionAvailability?.approveReason}
               type="button"
             >
-              Approve
+              {selectedItem.action_execution_id ? "Approve and execute" : "Approve"}
             </button>
             <button
               className="secondary-button compact-button"

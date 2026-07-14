@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ALLOWED_HD_DEFAULT, KB_APPROVAL_LABEL } from "@/lib/constants";
+import { resolveConsoleDataMode } from "@/lib/console/environment";
 
 const JsonMapSchema = z
   .string()
@@ -119,12 +120,13 @@ type Environment = Record<string, string | undefined>;
 export function readServerConfig(env: Environment = process.env) {
   const parsed = EnvSchema.parse(env);
   const isProduction = (env.NODE_ENV ?? process.env.NODE_ENV) === "production";
+  const consoleDataMode = resolveConsoleDataMode(env);
   const localDemoAuth = parsed.LOCAL_DEMO_AUTH && !isProduction;
 
   return {
     allowedHostedDomain: parsed.ALLOWED_HD.toLowerCase(),
     appBaseUrl: parsed.APP_BASE_URL,
-    askDemoMode: parsed.ASK_DEMO_MODE,
+    askDemoMode: parsed.ASK_DEMO_MODE && consoleDataMode.kind === "test",
     authSessionCookie: parsed.AUTH_SESSION_COOKIE,
     firebaseProjectId: parsed.FIREBASE_PROJECT_ID,
     firestoreDatabaseId: parsed.FIRESTORE_DATABASE_ID,

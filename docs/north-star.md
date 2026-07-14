@@ -5,11 +5,11 @@
 PMI KC has purchased three related products that should now be governed from this
 repository as one coordinated workstream:
 
-| Product             | Purpose                                                                                         | Current implementation posture                                                                                          |
-| ------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| PMI KC KB           | Source-backed knowledge, approval, and workflow-control app for operational Q&A and automation. | Existing Next.js/Firebase/Firestore/Vertex/Gemini runtime in this repo; production lift comes before automation writes. |
-| Lease Renewal Agent | Dedicated agent track for lease renewal workflows and handoffs.                                 | Separate product lane; use the existing KB Lease Renewals workflow as reference only until requirements are confirmed.  |
-| Gmail Inbox 0       | Gmail-native triage, drafting, and learning workflow for Dan's email.                           | Client-facing successor to Owner Router/Dan's AI Assistant; starts with Dan's mailbox and minimal labels.               |
+| Product                 | Purpose                                                                                                      | Current implementation posture                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| PMI KC KB               | Source-backed knowledge, approval, and workflow-control app for operational Q&A and automation.              | Existing runtime plus local-green S20/S21/S23; final external-user V1 requires S22/S24–S27 and live acceptance. |
+| Lease Renewal Agent     | Dedicated agent track for lease renewal workflows and handoffs.                                              | Read/reconcile/review exists; every S25 R02 action is required for final V1.                                    |
+| Workflow Communications | Workflow-linked Gmail evidence, approved labels, drafts, replies, and attention for renewal and maintenance. | Gmail remains the message system of record; PMI KC is not a general inbox client.                               |
 
 The end state is a coordinated operating system for PMI KC Metro: source-backed answers,
 approved backend workflow automation, repeatable renewal handoffs, and a visible Gmail
@@ -44,8 +44,10 @@ less reading). Detail: `docs/feature-suites/ui-ia.md` and the V1 process Q&A
   full lease packets, or live Gmail thread contents in git.
 - No autonomous send.
 - No system-of-record writes to RentVine, LeadSimple, DotLoop, QuickBooks, Boom,
-  operating Sheets, banks, ledgers, or client Drive folders unless a future approved
-  spec explicitly adds that product capability with tests and rollback.
+  operating Sheets, banks, ledgers, or client Drive folders except through its exact approved S25/S26
+  action contract after documented evidence, least privilege, preview, authority, idempotency,
+  reconciliation, tests, rollback/correction, registry review, and explicit live approval. Product
+  inclusion alone never permits execution.
 - Missing or weak sources produce visible uncertainty such as
   `Needs Verification: <fact>` or `No Reliable Source Found`, not generic property
   management answers.
@@ -54,9 +56,9 @@ less reading). Detail: `docs/feature-suites/ui-ia.md` and the V1 process Q&A
 
 ## Product Relationship
 
-- PMI KC KB is the current web app runtime and remains the first lane to production
-  hardening. Its target end state includes AI-started workflow automation, but production
-  launch should happen before external write paths are added.
+- PMI KC KB is the current web app runtime and remains the first lane to production hardening. Staged
+  intermediate deployments are pre-V1; the release is called V1 only after every S25/S26 action and
+  S22 Vendor portal pass S27 end-to-end acceptance.
 - Rentvine is the operational system of record; LeadSimple is workflow orchestration;
   Dotloop is the document-package layer; QuickBooks is the accounting layer downstream;
   Boom is an auxiliary resident rent-reporting/screening service; Google Sheets is an
@@ -65,17 +67,19 @@ less reading). Detail: `docs/feature-suites/ui-ia.md` and the V1 process Q&A
 - Maintenance Work Order Intake is the first executable-write integration target, because
   Rentvine work-order writes and the LeadSimple Rentvine maintenance sync are documented.
   It is built inside the KB automation surface before lease-renewal writeback.
-- Lease Renewal Agent is the first backend automation product lane after KB production. The
+- Lease Renewal Agent is the first backend automation product lane. The
   KB Lease Renewals Space is useful source material and a demo reference, not enough by
   itself to identify external systems or write permissions. Renewal preparation can proceed
   read-only, but the Rentvine lease-renewal writeback is undocumented in the public API and
-  stays non-executable until vendor confirmation and an approved per-action spec.
-- Gmail Inbox 0 supersedes the client-facing Owner Router/Dan's AI Assistant naming.
-  Existing Owner Router artifacts are reusable source material, but the active product
-  lane starts with Dan's whole mailbox, not owner-email-only.
-- Cross-product integrations must be explicitly documented before implementation. Until
-  then, product lanes share governance, vocabulary, and source discipline, not hidden
-  runtime dependencies.
+  stays non-executable until vendor confirmation and S25's per-action acceptance/live gate; because
+  R02 requires it, that vendor gap blocks final V1 rather than becoming a manual fallback.
+- Workflow Communications supersedes the active Gmail Inbox 0 / Owner Router / Dan's AI
+  Assistant product framing. Existing artifacts remain source material, but the active product
+  surface starts from authorized renewal or maintenance context and never scans or presents a
+  user's whole mailbox as an inbox replacement.
+- Cross-product integrations may be implemented locally through S20–S27 fake-provider contracts, but
+  must be explicitly documented before registry promotion/live use. Product lanes share governance,
+  vocabulary, and source discipline, not hidden runtime dependencies.
 
 ## Success Criteria
 

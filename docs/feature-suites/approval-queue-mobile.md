@@ -7,6 +7,11 @@
 > operator's choice. It reuses the EXISTING resolve + write-back-approve routes and never adds a write
 > path. The enabling relaxation (D1, locked 2026-07-10) is encoded verbatim below; it scopes but does
 > not remove `Q-PREC-1`.
+>
+> **2026-07-14 final-direction overlay:** this completed suite remains evidence for current mobile
+> resolution behavior. R01 now permits Admin self-approval at every risk, gives internal Editors
+> direct enabled Low/Medium execution, and keeps consequential High work Admin-approved. S20—not an
+> edit to these historical acceptance checks—governs that target behavior change.
 
 **Goal.** Today deciding one renewal flag is form-heavy: the run page leads with a 6-metric plumbing
 manifest (`components/lease-renewal/LeaseRenewalRunClient.tsx:80-118`), the resolve control is a

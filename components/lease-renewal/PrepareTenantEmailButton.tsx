@@ -14,6 +14,7 @@ interface DraftRequest {
 
 interface DraftResponse {
   enabled: boolean;
+  execution_allowed?: boolean;
   status: string;
   reason?: string;
   draftId?: string;
@@ -82,13 +83,15 @@ export function PrepareTenantEmailButton({ leaseId }: Readonly<{ leaseId: string
             To: {result.request.to} · Subject: {result.request.subject}
           </p>
           <div className="draft-box">{result.request.body}</div>
-          <button
-            className="secondary-button"
-            onClick={() => void copyDraft(result.request)}
-            type="button"
-          >
-            {copied ? "Copied" : "Copy draft"}
-          </button>
+          {result.execution_allowed ? (
+            <button
+              className="secondary-button"
+              onClick={() => void copyDraft(result.request)}
+              type="button"
+            >
+              {copied ? "Copied" : "Copy draft"}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>

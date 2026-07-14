@@ -1,189 +1,127 @@
-# Gmail Inbox 0 Product Lane
+# Workflow Communications Product Lane
 
-## Current State
+> Compatibility filename. The 2026-07-14 workflow-adapter boundary supersedes the former “Gmail
+> Inbox 0,” “all of Dan’s email,” and general Gmail-native workspace direction. Historical Owner
+> Router artifacts remain source material only; see
+> `docs/legacy/owner-router-artifact-source.md`.
 
-Gmail Inbox 0 is the client-facing successor to Owner Router/Dan's AI Assistant. The
-pilot starts with Dan's Gmail and all of Dan's email, not only owner email. Existing
-Owner Router artifacts in the sibling repo are source material to migrate, rename, or
-reference, but the active product lane is Gmail Inbox 0 in this monorepo.
+## Product boundary
 
-The local Owner Router source package is mapped in
-`docs/legacy/owner-router-artifact-source.md`. Use that map before inspecting
-`C:\Users\josia\Documents\github-windows\pmi-kc-owner-router`, and treat the sibling
-package as historical source material only.
+Gmail is PMI KC’s workflow communication adapter and evidence source, not an inbox replacement.
+Gmail owns messages, native threads, and unsent drafts. PMI KC owns authorized workflow linkage,
+bodyless communication attention, proposed tasks/decisions, reviewed workflow meaning, and audit
+context. Rentvine and other external systems retain their existing authority.
 
-Activated for production on 2026-07-13: S19
-(`docs/feature-suites/gmail-live-per-user.md`) adds a separate per-user Gmail workspace,
-server-derived DWD subject, bounded thread reads, defensive MIME parsing, unsent drafts,
-exact-payload send confirmation, reply threading, and authenticated watch/history
-handling plus user-label application. All five Inbox 0 Action Registry keys are Approved
-for Execution. The S15
-browser-only simulator and pasted-text tools remain a clearly labeled offline/demo
-fallback, not the final product boundary.
+The application exposes only:
 
-## Known Facts
+- bodyless attention for messages on already-linked renewal/maintenance threads;
+- targeted reading of a deliberately linked thread inside an authorized workflow entity;
+- the four approved labels after explicit human review and a governed rule/reason;
+- unsent workflow drafts and exact-confirmed linked replies after an approved versioned template or
+  versioned AI-reply policy exists;
+- explicit on-demand AI-assisted understanding that returns an unpersisted `Needs Review` proposal.
 
-- The product stays Gmail-native for v1.
-- The product targets Dan's workflow, while the runtime is per-user: every server-verified
-  `pmikcmetro.com` user operates only their own mailbox. Production proof sends only to the
-  proving user's own mailbox; it does not contact Dan or a third party.
-- The first base layer starts with `Waiting on Outside` and `Waiting on Team`.
-- The target label set also includes `Dan Decision` and `Draft Ready`.
-- Human send authority remains mandatory: the authenticated user reviews the exact
-  message and explicitly confirms Send for that one message.
-- The current artifact set includes labels, prompt pack, sanitized scenarios, Drive
-  package templates, and optional setup/health Apps Script.
-- The sibling Owner Router package can supply source ideas for labels, prompts,
-  templates, safe scenarios, and setup helpers, but final Gmail Inbox 0 scope must be
-  approved here.
-- The workflow must not add autonomous sending or system-of-record writes.
-- The owner approved read, draft, exact-confirmed send/reply, label application, Pub/Sub/watch,
-  deployment, and production proof. Evidence: `docs/evidence/gmail-production-activation-2026-07-13.md`.
-- Gmail Inbox 0 should have a minimal management page inside the KB app from the start.
-- KB approval notifications are part of the Gmail Inbox 0 vision: approval work should
-  eventually flow between the KB app and Gmail without removing human approval.
-- KB approval notification launch recipients are Dan and Josiah's PMI KC account.
-- KB approval notifications are sent from `kb-automation@pmikcmetro.com`.
-- KB approval notifications should use a clear approval subject line and apply the
-  `KB Approval` Gmail label.
-- KB approval notification failures should escalate instead of failing silently; the
-  exact escalation path is TBD.
+It does not expose recent-inbox browsing, arbitrary Gmail queries, free-form compose/recipients,
+delete/archive/settings/filter operations, attachment retrieval, cross-mailbox access, historical
+classification/back-labeling, or automatic model processing.
 
-## Working V1 Model
+## Verified foundation
 
-- Firebase authentication identifies the signed-in app user; Gmail authorization is a
-  separate keyless DWD exchange whose `sub` is that server-verified
-  `pmikcmetro.com` email.
-- Stage 1 is a bounded, on-demand recent-inbox thread list and bounded thread detail using
-  `gmail.readonly`; attachments are metadata only and mailbox content is not sent to
-  Gemini automatically.
-- Stage 2 is an INBOX-restricted `users.watch`, authenticated Pub/Sub push, transactional
-  history cursor/replay state, and bounded resync after expired history. Watch renewal is
-  manual until separately approved.
-- Drafts are unsent Gmail drafts. New messages and replies may send only after the same
-  user reviews From/To/Cc/Bcc/subject/thread/body, receives an exact-payload one-time
-  confirmation, and explicitly confirms Send.
-- Production compose supports schema-validated reviewed To/Cc/Bcc recipients and user labels.
-  Automated classification, automatic model processing, and learning remain later slices.
-- Reply construction re-reads the live parent and preserves Gmail `threadId`, matching
-  subject, `In-Reply-To`, and `References`.
-- The browser simulator and pasted-text draft/summary tools remain offline/demo fallback
-  surfaces and make no Gmail mailbox call.
+- Firebase end-user authentication and Gmail DWD authorization are separate. DWD acts only as the
+  server-verified signed-in `pmikcmetro.com` email; Admin gains no mailbox impersonation.
+- The approved scopes remain `gmail.readonly`, `gmail.compose`, `gmail.labels`, and `gmail.modify`.
+  Product/action authorization narrows these send-capable technical scopes.
+- MIME parsing is bounded, prefers plain text, converts HTML to inert text, and exposes attachment
+  metadata only.
+- Exact-confirmed linked replies use a short-lived hashed token, exact-payload hash, transaction
+  claim, authenticated From, at-most-one attempt, bodyless audit, and no ambiguous retry.
+- Authenticated Pub/Sub/history processing is deduplicated and cursor-based. It matches opaque IDs
+  only against existing workflow links; it does not fetch unrelated content or invoke AI.
+- Firestore Gmail operational collections are server-only and bodyless.
 
-## Connective Architecture
+Production Gmail linkage requires the approved 365-day link value in
+`GMAIL_WORKFLOW_LINK_TTL_DAYS` plus S24 cleanup/legal-hold implementation. R07 approves the exact
+current owner-renewal, tenant-renewal, and maintenance-owner generators as v1.0 base artifacts and the
+source-visible human-confirmed AI reply policy; current `governed-artifacts.ts` still returns false, so
+reply/initiation paths remain closed until S24 wires the registry and authoritative values.
 
-The 2026-07-13 owner direction supersedes the earlier final-state assumption that the
-product must remain simulated/pasted-text-only or exclusively in Gmail. The KB-hosted
-Gmail Hub is now the approved app surface for each authenticated user's own mailbox;
-native Gmail drafts/threads remain the system objects. A future Workspace Add-on may
-remain useful, but it is not required for S19.
+## Permissions
 
-### Backend to Gmail (how tailoring appears where Dan works)
+- Editor: S20 permits read/link, approved labels, governed drafts, and an exact-confirmed linked reply
+  when the action, space, workflow context, and approved artifact are enabled. This is Medium
+  workflow action authority, not generic compose/send access.
+- Approver/Admin: the Editor communication capabilities; Admin additionally approves consequential
+  High work and may self-approve with an exact preview and reason.
+- Admin: governance/configuration authority with all-risk self-approval; never cross-mailbox access
+  outside a separately authorized mailbox connection.
+- Vendor (new V1 role): Admin invite + one-time password setup + verified-email TOTP, assigned
+  Maintenance tickets only, and the same Gmail/Workspace address through per-vendor OAuth. It never
+  receives internal Editor/Admin, DWD, or general inbox access.
+- Pub/Sub principal: advance bodyless sync/dedupe state and mark linked attention only; never read
+  content, invoke a model, create a task, or send.
+- Model: one selected linked thread on explicit request only; output is a proposal, never an action.
 
-- Bounded thread reads appear in the authenticated user's KB Gmail Hub workspace.
-- Drafts created through the approved compose action appear as native unsent Gmail drafts.
-- A user-confirmed new message or reply uses Gmail's native send endpoint and returns only
-  Gmail message/thread identifiers to the UI; send/reply remain exact-confirmation actions.
-- Label discovery/creation uses `gmail.labels`; selected-thread application uses `gmail.modify`.
+## Lease-renewal integration
 
-### Gmail to backend (how it learns)
+Owner outreach must originate from a real authorized renewal run and authoritative owner contact.
+Owner replies may be read only on the linked run and may yield a proposed owner direction requiring
+human confirmation. Tenant email is available only after confirmed owner direction and a verified
+tenant recipient. Email never by itself completes portal-chat/SMS outreach, tenant consent, document
+buildout, or external writeback.
 
-- The backend registers an INBOX-restricted `users.watch` and reads bounded
-  `users.history.list` message-addition events from a stored cursor.
-- Push processing stores identifiers, counts, health, and cursors only. It does not store
-  message bodies, raw MIME, attachments, prompts, or complete threads.
+The current visible renewal desk uses sample/simulation workspaces. Its owner/tenant routes return
+unaddressed `preview_only` results, import no Gmail runtime, and explicitly say not to send.
 
-### Learning governance (decided: reuse the KB model)
+## Maintenance integration
 
-- Gmail Inbox 0 "learning" is not opaque retraining. It is the KB pattern set growing:
-  reply templates, label rules, and sender/category mappings stored in the KB and fed into
-  Gemini each time (the same source-backed approach the KB already uses).
-- Dan's edits become approval-gated proposed updates through the existing source-state and
-  approval-queue model. Nothing self-modifies; improvements are human-confirmed, matching
-  the no-autonomous-send philosophy.
+Maintenance-scoped staff may manually link/read an existing owner thread from a ticket they can
+access. A linked addition creates value-free in-app attention. On-demand analysis may propose a
+summary/waiting party/next action, but current code cannot approve cost, select a vendor, transition
+a ticket, or write Rentvine. S22/S26 make an external Vendor's assigned-ticket Gmail workflow a V1
+requirement while preserving Vendor/Admin exact confirmation for every AI-assisted send.
 
-### Split-scope safety model
+The current ticket model does not contain an authoritative owner email. Therefore
+`gmail.maintenance_owner_notice.draft_create` is Planned and non-executable. Round 2 selects the
+maintenance owner scaffold and requires outbound vendor messaging. R04/R07 now lock the TOTP/per-
+vendor OAuth identity and v1.0 artifact/AI policy; S22/S24/S26 implement them and authoritative runtime
+recipients before either path may open.
 
-- `gmail.readonly` is the S19 read/watch/history scope.
-- `gmail.compose` is send-capable. Safety therefore comes from server-derived identity,
-  capability and Action Registry gates, authenticated-From enforcement, exact-payload
-  confirmation, one transactional claim, no ambiguous retry, and bodyless append-only
-  audit—not from claiming the scope cannot send.
-- `gmail.labels` and `gmail.modify` are limited to user-label discovery/creation and bounded
-  selected-thread application. `https://mail.google.com/` remains forbidden.
+## Source state and governance
 
-### Rollout (reversible, opt-in)
+Email evidence begins as `Needs Review` with Gmail/workflow provenance. It is not automatically a
+Verified Source or authoritative operational fact. Current AI output is transient and unpersisted.
+A later confirmed-fact/task/status model requires its own reviewed commit path and must remain inside
+PMI KC app state; it cannot directly write an external system of record.
 
-- Completed 2026-07-13: local fake-transport build -> four exact DWD scopes -> bounded
-  self-addressed proof -> authenticated push/watch -> registry metadata + production deploy.
-- Revoke the four Gmail scopes, disable the registry keys, and remove Pub/Sub
-  delivery to stop the integration. No historical back-labeling is part of S19.
+Stored links carry actor/mailbox keys, workflow entity/purpose, Gmail identifiers, approved artifact
+references, hashes, status, timestamps, and expiry only. Free-text link/label reasons are hashed for
+audit and not retained. S24 retention is confirmation usable 10 minutes/delete 30 days, dedupe 7 days,
+sync audit 90 days, link 365 days from last authorized update, bodyless action audit 7 years, and no
+persisted V1 AI/extracted Gmail facts, with Admin legal hold/later written policy overriding deletion.
+Production link creation remains closed until configured and cleanup/hold are implemented.
 
-## Later Workflow Discovery
+## Current implementation dependencies
 
-These four high-leverage questions define the initial labels, draft templates, routing,
-and exclusions. Each lists the default to assume if Dan is brief.
+- Build S20/S22/S24 and the S25/S26 workflow-specific communication actions; current routes remain
+  narrower even though the decisions are settled.
+- Configure authoritative renewal owner/tenant and maintenance owner/vendor recipient/value adapters;
+  a browser-supplied address is never authoritative.
+- Separately approve Identity Platform/TOTP, OAuth app/client/redirect/token vault, first Vendor invite/
+  consent/read/send, retention TTL/cleanup, registry promotions, deploy, and bounded production proof.
+- Josiah owns manual watch/OAuth degraded response; no scheduler is authorized.
 
-1. When you open your inbox, what 3-5 piles do you mentally sort mail into? (Defines the
-   label taxonomy. Default to validate: Waiting on Outside, Waiting on Team, Dan Decision,
-   Draft Ready.)
-2. Which kinds of emails do you reply to the same way most of the time? (Defines first
-   auto-draft templates and which cases are safe to draft. Default: start with the 2-3
-   most repetitive.)
-3. Which emails must never be auto-touched? (Defines hard exclusions. Default:
-   owner-money, legal/notices, tenant disputes -> label only, never draft.)
-4. How do you currently know an email is stuck waiting on someone, and on whom? (Defines
-   the follow-up/aging logic and the waiting parties. Default: surface anything in a
-   Waiting label with no reply after N days.)
+## Hard boundaries
 
-## Management Page
+- No autonomous send, scheduled send, event-triggered send, model-triggered send, bulk send, or
+  retry-on-ambiguity send.
+- No automatic Gmail-to-workflow status/task/fact commit.
+- No external system-of-record or client Drive write except through the exact S25/S26 action contract
+  after it is implemented, tested, registry-reviewed, and explicitly enabled for that live action.
+- No raw Gmail/customer content in git, logs, notifications, or persistent Gmail operational state.
+- No cross-mailbox browsing or generic inbox management.
+- Current runtime has no outbound Vendor communication. S22/S26 may build it locally; live use remains
+  separately gated and assigned-ticket/exact-confirmation-only.
 
-The first KB-hosted Gmail Inbox 0 management page should be Admin-only and include:
-
-- Health/status bar for Gmail connection status and Gemini status.
-- Labels.
-- Plain-English rules that become structured fields after Admin approval.
-- Approved replies to select from.
-- History of changes.
-
-The same plain-English-to-structured-rule feedback model should eventually apply across
-KB automations.
-
-Initial Admins are Josiah and Dan. Admins may grant the Admin role to additional users
-they choose.
-
-## Setup Items To Confirm
-
-- Gmail access model for Dan's mailbox.
-- Safe historical scan model for training.
-- Whether approved rules may back-label historical threads.
-- Whether Gemini Gems are available in the target Workspace plan.
-- Minimal Gmail scopes and rollback model.
-- Drive folder name, access list, and source-file owners for prompt/rule materials.
-
-## Current Blockers
-
-- No product-governance blocker remains for the five approved Inbox 0 actions. Production
-  provisioning/proof state is recorded in the S19 activation evidence.
-- Cross-mailbox browsing, historical scans, automatic classification/model processing, and
-  autonomous sending remain out of scope.
-- KB approval notification failure-escalation details still need production
-  configuration.
-
-## Safety Boundaries
-
-- No autonomous send.
-- Gmail reads remain bound to the signed-in user's own mailbox and bounded queries.
-- No send without an unexpired, unconsumed confirmation bound to the exact payload the
-  authenticated user reviewed and explicitly confirms.
-- No browser-supplied impersonation subject and no Admin cross-mailbox browsing.
-- No background, scheduled, model-triggered, retry-on-ambiguity, or automatic reply.
-- No mailbox bodies, raw MIME, attachments, tokens, or complete threads in Firestore or
-  logs. No automatic mailbox content to Gemini.
-- No delete/trash/settings/filter/delegate/forwarding methods or
-  `https://mail.google.com/` scope.
-- Optional Apps Script remains limited to setup and health checks unless governance is
-  intentionally changed.
-- No writes to RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Sheets, or banks.
-- Historical scanning should produce suggestions first. Historical back-labeling requires
-  approved rules and explicit client confirmation.
+The active transport specification is `docs/feature-suites/gmail-live-per-user.md`; S20/S22/S24/S25/
+S26 govern its final-V1 authority, Vendor, policy, and workflow execution. S15 remains historical
+fallback evidence.

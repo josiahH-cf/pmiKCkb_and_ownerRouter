@@ -111,9 +111,8 @@ describe("buildNotificationFeed", () => {
     expect(feed.notifications.map((n) => n.id)).toEqual(["a-late", "m-mid"]);
   });
 
-  // AC-S17-2: the catalog exposes exactly SEVEN families — three new AVAILABLE (connections_setup,
-  // space_coverage, team_review) plus the two stubbed Gmail-dependent ones.
-  it("returns exactly seven families (three new available, two Gmail-stubbed)", () => {
+  // AC-GW-12: the catalog exposes the two available, workflow-specific Gmail families.
+  it("returns exactly seven available in-app families", () => {
     const feed = buildNotificationFeed({ approval: [], maintenance: [] });
 
     expect(feed.families.map((family) => family.key)).toEqual([
@@ -122,17 +121,10 @@ describe("buildNotificationFeed", () => {
       "connections_setup",
       "space_coverage",
       "team_review",
-      "rentvine_replies",
-      "owner_process_replies",
+      "renewal_communications",
+      "maintenance_communications",
     ]);
-    const stubbed = feed.families.filter((family) => !family.available);
-    expect(stubbed.map((f) => f.key)).toEqual([
-      "rentvine_replies",
-      "owner_process_replies",
-    ]);
-    for (const family of stubbed) {
-      expect(family.unavailableReason).toBe("Mailbox event rules not configured");
-    }
+    expect(feed.families.every((family) => family.available)).toBe(true);
   });
 
   // AC-S17-4: every event carries a lane from the closed ATTENTION_LANES enum.
@@ -247,6 +239,6 @@ describe("buildNotificationFeed", () => {
     const source = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
     expect(source).not.toMatch(/rentvine/i);
     expect(source).not.toMatch(/google-sheets|googleapis|sheets-read/i);
-    expect(source).not.toMatch(/gmail/i);
+    expect(source).not.toMatch(/gmail-runtime|googleapis\.com\/gmail/i);
   });
 });

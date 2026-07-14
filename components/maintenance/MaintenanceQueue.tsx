@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { WorkflowCommunicationPanel } from "@/components/gmail-hub/WorkflowCommunicationPanel";
 import type { AssignableUser } from "@/lib/maintenance/assignee-model";
 import {
   MAINTENANCE_TICKET_STATUSES,
@@ -260,6 +261,13 @@ function TicketCard({
         </button>
       </div>
       <TicketHistory ticketId={ticket.id} />
+      <WorkflowCommunicationPanel
+        canLink
+        entityId={ticket.id}
+        entityType="maintenance_ticket"
+        lane="maintenance"
+        purpose="maintenance_owner"
+      />
     </article>
   );
 }

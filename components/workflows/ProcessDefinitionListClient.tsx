@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { ProcessDefinitionRecord, WorkflowRunRecord } from "@/lib/firestore/types";
 
 interface ProcessDefinitionListClientProps {
+  availableSpaces?: readonly { id: string; name: string }[];
   canEdit: boolean;
   currentUserUid: string;
   initialDefinitions: ProcessDefinitionRecord[];
@@ -14,6 +15,7 @@ interface ProcessDefinitionListClientProps {
 }
 
 export function ProcessDefinitionListClient({
+  availableSpaces = [],
   canEdit,
   currentUserUid,
   initialDefinitions,
@@ -33,6 +35,7 @@ export function ProcessDefinitionListClient({
     name: "",
     owner_uid: currentUserUid,
     short_outcome: "",
+    space_id: availableSpaces[0]?.id ?? "",
     steps: "",
     success_condition: "",
     trigger: "",
@@ -64,6 +67,7 @@ export function ProcessDefinitionListClient({
             owner_uid: form.owner_uid,
             required_starting_inputs: [],
             short_outcome: form.short_outcome,
+            space_id: form.space_id,
             source_links: [],
             steps,
             success_condition: form.success_condition,
@@ -79,6 +83,7 @@ export function ProcessDefinitionListClient({
         name: "",
         owner_uid: currentUserUid,
         short_outcome: "",
+        space_id: availableSpaces[0]?.id ?? "",
         steps: "",
         success_condition: "",
         trigger: "",
@@ -170,6 +175,19 @@ export function ProcessDefinitionListClient({
       <aside className="panel workflow-create-panel">
         <h2>Create Process</h2>
         <fieldset disabled={!canEdit || isBusy}>
+          <label>
+            Space
+            <select
+              onChange={(event) => setForm({ ...form, space_id: event.target.value })}
+              value={form.space_id}
+            >
+              {availableSpaces.map((space) => (
+                <option key={space.id} value={space.id}>
+                  {space.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <label>
             Name
             <input

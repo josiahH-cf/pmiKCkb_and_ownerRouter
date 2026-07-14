@@ -1,0 +1,1527 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PMI KC V1 Audit — Final Round 3</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17213b;
+        --muted: #5e6980;
+        --paper: #ffffff;
+        --wash: #f4f6fb;
+        --line: #d9dfeb;
+        --blue: #1856c9;
+        --blue-dark: #102b63;
+        --green: #08795b;
+        --amber: #985800;
+        --red: #a52e36;
+        --shadow: 0 14px 38px rgba(23, 33, 59, 0.1);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 86% 0%, rgba(24, 86, 201, 0.14), transparent 32rem),
+          var(--wash);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        line-height: 1.52;
+      }
+
+      main {
+        width: min(1180px, calc(100% - 28px));
+        margin: 22px auto 110px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 880px;
+        margin-bottom: 15px;
+        font-size: clamp(2.45rem, 6vw, 4.9rem);
+        line-height: 0.98;
+        letter-spacing: -0.05em;
+      }
+
+      h2 {
+        margin-bottom: 10px;
+        font-size: clamp(1.65rem, 3vw, 2.5rem);
+        letter-spacing: -0.025em;
+      }
+
+      h3 {
+        margin-bottom: 6px;
+        font-size: 1.08rem;
+      }
+
+      .hero {
+        padding: clamp(28px, 6vw, 66px);
+        color: white;
+        border-radius: 28px;
+        background: linear-gradient(135deg, var(--blue-dark), var(--blue));
+        box-shadow: var(--shadow);
+      }
+
+      .hero .lede {
+        max-width: 820px;
+        margin-bottom: 0;
+        color: rgba(255, 255, 255, 0.88);
+        font-size: 1.05rem;
+      }
+
+      .eyebrow {
+        margin-bottom: 10px;
+        font-size: 0.76rem;
+        font-weight: 850;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .quick-nav {
+        position: sticky;
+        top: 10px;
+        z-index: 4;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 21px;
+        margin: 16px 0;
+        padding: 15px 20px;
+        border: 1px solid rgba(217, 223, 235, 0.92);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 8px 24px rgba(23, 33, 59, 0.08);
+        backdrop-filter: blur(10px);
+      }
+
+      .quick-nav a {
+        color: var(--ink);
+        font-size: 0.87rem;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      section {
+        margin-top: 16px;
+        padding: clamp(22px, 4vw, 38px);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
+
+      .lede,
+      .muted,
+      small {
+        color: var(--muted);
+      }
+
+      .notice {
+        padding: 15px 17px;
+        border-left: 4px solid var(--amber);
+        border-radius: 10px;
+        background: #fff7e7;
+      }
+
+      .notice strong {
+        color: #683d00;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .card,
+      .decision {
+        min-width: 0;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: #fbfcff;
+      }
+
+      .tag {
+        display: inline-flex;
+        margin-bottom: 9px;
+        padding: 4px 9px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 850;
+      }
+
+      .locked {
+        color: var(--green);
+        background: #e4f6ef;
+      }
+
+      .changed {
+        color: var(--red);
+        background: #fdebed;
+      }
+
+      .open {
+        color: var(--amber);
+        background: #fff1d4;
+      }
+
+      .decision-list {
+        display: grid;
+        gap: 14px;
+      }
+
+      .decision-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .decision-id {
+        flex: 0 0 auto;
+        padding: 5px 8px;
+        color: var(--blue);
+        border: 1px solid #b7caf3;
+        border-radius: 8px;
+        background: #edf3ff;
+        font:
+          800 0.76rem ui-monospace,
+          SFMono-Regular,
+          Consolas,
+          monospace;
+      }
+
+      .options {
+        display: grid;
+        gap: 8px;
+        margin: 11px 0 14px;
+      }
+
+      .option {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: white;
+        cursor: pointer;
+      }
+
+      .option:has(input:checked) {
+        border-color: #7ea4ef;
+        background: #f0f5ff;
+      }
+
+      input[type="radio"] {
+        margin-top: 4px;
+        accent-color: var(--blue);
+      }
+
+      .option small {
+        display: block;
+        margin-top: 3px;
+      }
+
+      .field-label {
+        display: block;
+        margin: 11px 0 6px;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      textarea,
+      input[type="text"],
+      select {
+        width: 100%;
+        padding: 11px 12px;
+        color: var(--ink);
+        border: 1px solid #bdc8d9;
+        border-radius: 10px;
+        background: white;
+        font: inherit;
+      }
+
+      textarea {
+        min-height: 88px;
+        resize: vertical;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.89rem;
+      }
+
+      th,
+      td {
+        padding: 11px 9px;
+        text-align: left;
+        vertical-align: top;
+        border-bottom: 1px solid var(--line);
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 0.74rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      td select {
+        min-width: 170px;
+        padding: 8px 9px;
+        font-size: 0.84rem;
+      }
+
+      code {
+        padding: 0.12rem 0.3rem;
+        border-radius: 5px;
+        background: #eef2f8;
+        font-size: 0.9em;
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 16px 0;
+      }
+
+      button {
+        padding: 11px 15px;
+        color: white;
+        border: 0;
+        border-radius: 10px;
+        background: var(--blue);
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        color: var(--ink);
+        border: 1px solid var(--line);
+        background: white;
+      }
+
+      pre {
+        min-height: 180px;
+        overflow: auto;
+        padding: 18px;
+        white-space: pre-wrap;
+        border: 1px solid #c5d0e0;
+        border-radius: 13px;
+        background: #f7f9fd;
+        font:
+          0.84rem/1.55 ui-monospace,
+          SFMono-Regular,
+          Consolas,
+          monospace;
+      }
+
+      .footer {
+        margin: 20px 4px 0;
+        color: var(--muted);
+        font-size: 0.83rem;
+      }
+
+      @media (max-width: 780px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .quick-nav {
+          position: static;
+        }
+
+        table,
+        tbody,
+        tr,
+        td {
+          display: block;
+        }
+
+        thead {
+          display: none;
+        }
+
+        tr {
+          padding: 12px 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        td {
+          padding: 5px 0;
+          border: 0;
+        }
+
+        td::before {
+          display: block;
+          margin-bottom: 2px;
+          color: var(--muted);
+          content: attr(data-label);
+          font-size: 0.69rem;
+          font-weight: 850;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+        }
+
+        td select {
+          min-width: 0;
+        }
+      }
+
+      @media print {
+        body {
+          background: white;
+        }
+
+        main {
+          width: 100%;
+          margin: 0;
+        }
+
+        .quick-nav,
+        .button-row {
+          display: none;
+        }
+
+        .hero,
+        section {
+          box-shadow: none;
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="hero" id="top">
+        <p class="eyebrow">PMI KC product alignment · July 14, 2026</p>
+        <h1>Final V1 audit — Round 3</h1>
+        <p class="lede">
+          Round 2 settled the vision. This final packet converts “direct execution,” “end
+          to end,” “external vendor,” “best-case retention,” and “full live detail” into
+          an exact build and acceptance contract. The defaults reflect your Round 2
+          answers; change only the rows that should not be V1 requirements.
+        </p>
+      </header>
+
+      <nav class="quick-nav" aria-label="Audit sections">
+        <a href="#locked">What is locked</a>
+        <a href="#why">Why one more round</a>
+        <a href="#decisions">Final decisions</a>
+        <a href="#templates">Template review</a>
+        <a href="#response">Generate response</a>
+      </nav>
+
+      <section id="locked">
+        <p class="eyebrow">No need to answer again</p>
+        <h2>Round 2 decisions now treated as product direction</h2>
+        <div class="grid">
+          <article class="card">
+            <span class="tag locked">Locked</span>
+            <h3>Internal Editors may directly execute enabled actions</h3>
+            <p>
+              This replaces the current prepare-only Editor behavior. Round 3 asks only
+              what “enabled” means per item and what remains in the Approval Queue.
+            </p>
+          </article>
+          <article class="card">
+            <span class="tag locked">Locked</span>
+            <h3>Admins may self-approve at every risk level</h3>
+            <p>
+              Dan/Admin may propose, approve, and execute the same item. The audit log
+              must retain actor, preview, reason, result, and reversal information.
+            </p>
+          </article>
+          <article class="card">
+            <span class="tag changed">V1 contract changed</span>
+            <h3>V1 is no longer internal-only or Gmail-only</h3>
+            <p>
+              The external vendor portal and named non-Gmail workflow writes are V1
+              requirements. The old D01 no-non-Gmail-write release boundary is superseded
+              as product scope.
+            </p>
+          </article>
+          <article class="card">
+            <span class="tag locked">Locked</span>
+            <h3>Sources and process versions publish immediately</h3>
+            <p>
+              Editor additions become active with an audit log. Round 3 asks for the
+              technical containment rules, not another human approval step.
+            </p>
+          </article>
+          <article class="card">
+            <span class="tag locked">Locked</span>
+            <h3>External vendors are V1 users</h3>
+            <p>
+              They use externally addressed app accounts, see only their assigned
+              maintenance tickets, and use their own external mailbox. AI drafts; a vendor
+              user or Admin confirms every send.
+            </p>
+          </article>
+          <article class="card">
+            <span class="tag locked">Locked</span>
+            <h3>Console uses full authorized live data</h3>
+            <p>
+              Property, tenant, rent, workflow, and communication detail belongs on the
+              authorized Console. Round 3 asks whether full email bodies are inline and
+              how test data is kept separate.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="why">
+        <p class="eyebrow">The remaining ambiguity</p>
+        <h2>“Current workflows end to end” names more systems than it first appears</h2>
+        <p class="lede">
+          The active workflow documents include Gmail, RentVine, the renewal Sheet,
+          Dotloop, RentVine portal chat, SMS, Google Drive, LeadSimple, QuickBooks, and
+          conditional Boom activity. Several are documented but not connected; RentVine
+          renewal writeback is still undocumented. Product inclusion can be approved now,
+          but each external action still needs a documented endpoint, least-privilege
+          credential, preview, idempotency, audit, failure behavior, and rollback before
+          code may execute it.
+        </p>
+        <div class="notice">
+          <strong>Important distinction:</strong> this packet approves the V1 build
+          contract. It does not itself authorize a live write, mailbox connection, account
+          invitation, deployment, or production smoke. Those remain explicit
+          action-by-action go-live steps after the relevant specs and tests pass.
+        </div>
+      </section>
+
+      <section id="decisions">
+        <p class="eyebrow">Final response needed</p>
+        <h2>Nine decision blocks</h2>
+        <p class="lede">
+          Defaults are selected from the literal Round 2 response or the narrowest
+          technical rule that makes it safe to implement. Use the notes only for
+          exceptions.
+        </p>
+
+        <div class="decision-list">
+          <article class="decision" data-clarification="R01">
+            <div class="decision-head">
+              <div>
+                <h3>
+                  R01 · What does “Editor may execute every enabled action directly” mean?
+                </h3>
+                <p class="muted">
+                  This determines whether each action instance needs Admin review or
+                  whether Admin enablement of the action type is enough.
+                </p>
+              </div>
+              <span class="decision-id">R01</span>
+            </div>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="R01"
+                  type="radio"
+                  value="Literal direct execution: once an action type is enabled and the internal Editor has its scope, each Editor instance executes without per-item Admin approval; Approval Queue remains for AI/system proposals, disabled or not-ready actions, exceptions, and optional review"
+                />
+                <span>
+                  <strong>Literal Round 2 interpretation</strong>
+                  <small>
+                    Internal Editors directly execute enabled action instances at every
+                    risk. The dedicated external Vendor role is not an Editor and stays
+                    ticket-limited.
+                  </small>
+                </span>
+              </label>
+              <label class="option">
+                <input
+                  name="R01"
+                  type="radio"
+                  value="Risk-bounded direct execution: internal Editors directly execute enabled Low and Medium actions; High and Blocked instances still require Admin approval"
+                />
+                <span>
+                  <strong>Risk-bounded execution</strong>
+                  <small
+                    >Preserves a per-item Admin check for the most consequential
+                    writes.</small
+                  >
+                </span>
+              </label>
+              <label class="option">
+                <input
+                  name="R01"
+                  type="radio"
+                  value="Action-specific execution: the action matrix or note names which enabled actions Editors execute directly and which still require per-item Admin approval"
+                />
+                <span><strong>Action-specific rule</strong></span>
+              </label>
+            </div>
+            <label class="field-label" for="R01-note">Exceptions by action or risk</label>
+            <textarea
+              id="R01-note"
+              data-label="R01 exceptions"
+              placeholder="Example: Editors may send Gmail and close routine tickets directly, but rent changes require Admin per item."
+            ></textarea>
+          </article>
+
+          <article class="decision" data-clarification="R02">
+            <div class="decision-head">
+              <div>
+                <h3>R02 · Exact Lease Renewal V1 execution matrix</h3>
+                <p class="muted">
+                  “App executes in V1” means the app performs the external action after
+                  its gate is ready. “Tracked manual” means the app proves the workflow
+                  end to end but a person performs that step in the system of record.
+                </p>
+              </div>
+              <span class="decision-id">R02</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Workflow action</th>
+                  <th>Current state</th>
+                  <th>V1 contract</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td data-label="Workflow action">
+                    Owner + tenant Gmail draft/send/reply/label
+                  </td>
+                  <td data-label="Current state">
+                    Transport proven; initiation artifacts/recipients gated
+                  </td>
+                  <td data-label="V1 contract">
+                    <select
+                      data-label="R02 Gmail renewal"
+                      aria-label="Renewal Gmail contract"
+                    >
+                      <option selected>App executes in V1</option>
+                      <option>Tracked manual step in V1</option>
+                      <option>After V1</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Workflow action">
+                    Renewal Sheet single-cell writeback
+                  </td>
+                  <td data-label="Current state">Designed; execution closed</td>
+                  <td data-label="V1 contract">
+                    <select
+                      data-label="R02 Sheet writeback"
+                      aria-label="Renewal Sheet contract"
+                    >
+                      <option selected>App executes in V1</option>
+                      <option>Tracked manual step in V1</option>
+                      <option>After V1</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Workflow action">
+                    RentVine renewal, new rent, dates, and renewal fee
+                  </td>
+                  <td data-label="Current state">
+                    Undocumented endpoint; vendor confirmation required
+                  </td>
+                  <td data-label="V1 contract">
+                    <select
+                      data-label="R02 RentVine renewal"
+                      aria-label="RentVine renewal contract"
+                    >
+                      <option selected>App executes in V1</option>
+                      <option>Tracked manual step in V1</option>
+                      <option>After V1</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Workflow action">
+                    Dotloop loop, participants, and renewal documents
+                  </td>
+                  <td data-label="Current state">
+                    API documented; app/permissions not connected
+                  </td>
+                  <td data-label="V1 contract">
+                    <select
+                      data-label="R02 Dotloop"
+                      aria-label="Dotloop renewal contract"
+                    >
+                      <option selected>App executes in V1</option>
+                      <option>Tracked manual step in V1</option>
+                      <option>After V1</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Workflow action">
+                    RentVine portal-chat tenant message
+                  </td>
+                  <td data-label="Current state">
+                    Template shape exists; no executable connector
+                  </td>
+                  <td data-label="V1 contract">
+                    <select
+                      data-label="R02 portal chat"
+                      aria-label="RentVine portal chat contract"
+                    >
+                      <option selected>App executes in V1</option>
+                      <option>Tracked manual step in V1</option>
+                      <option>After V1</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Workflow action">Tenant SMS renewal message</td>
+                  <td data-label="Current state">
+                    Template shape exists; channel not approved/connected
+                  </td>
+                  <td data-label="V1 contract">
+                    <select data-label="R02 SMS" aria-label="Renewal SMS contract">
+                      <option selected>App executes in V1</option>
+                      <option>Tracked manual step in V1</option>
+                      <option>After V1</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Workflow action">
+                    Conditional Boom resident enrollment
+                  </td>
+                  <td data-label="Current state">Vendor packet/credentials required</td>
+                  <td data-label="V1 contract">
+                    <select data-label="R02 Boom" aria-label="Boom enrollment contract">
+                      <option selected>App executes in V1</option>
+                      <option>Tracked manual step in V1</option>
+                      <option>After V1</option>
+                    </select>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <label class="field-label" for="R02-note"
+              >Lease Renewal exceptions or missing action</label
+            >
+            <textarea id="R02-note" data-label="R02 notes"></textarea>
+          </article>
+
+          <article class="decision" data-clarification="R03">
+            <div class="decision-head">
+              <div>
+                <h3>R03 · Exact Maintenance V1 execution matrix</h3>
+                <p class="muted">
+                  Provision/deprovision is split into app access and mailbox access
+                  because those are separate systems.
+                </p>
+              </div>
+              <span class="decision-id">R03</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Workflow action</th>
+                  <th>Current state</th>
+                  <th>V1 contract</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td data-label="Workflow action">
+                    Invite/disable external Vendor app account
+                  </td>
+                  <td data-label="Current state">
+                    New external-auth role and lifecycle required
+                  </td>
+                  <td data-label="V1 contract">
+                    <select
+                      data-label="R03 app account lifecycle"
+                      aria-label="Vendor app account contract"
+                    >
+                      <option selected>App executes in V1</option>
+                      <option>Admin manual setup in V1</option>
+                      <option>After V1</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Workflow action">
+                    Connect/revoke vendor external mailbox
+                  </td>
+                  <td data-label="Current state">
+                    New per-vendor OAuth/provider adapter required
+                  </td>
+                  <td data-label="V1 contract">
+                    <select
+                      data-label="R03 mailbox lifecycle"
+                      aria-label="Vendor mailbox contract"
+                    >
+                      <option selected>App executes in V1</option>
+                      <option>Admin manual setup in V1</option>
+                      <option>After V1</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Workflow action">
+                    Store ticket photos in approved Drive folder
+                  </td>
+                  <td data-label="Current state">Adapter built; action closed</td>
+                  <td data-label="V1 contract">
+                    <select
+                      data-label="R03 Drive photos"
+                      aria-label="Maintenance photo contract"
+                    >
+                      <option selected>App executes in V1</option>
+                      <option>Tracked manual step in V1</option>
+                      <option>After V1</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Workflow action">Create RentVine work order</td>
+                  <td data-label="Current state">
+                    Documented; write-role key/payload validation needed
+                  </td>
+                  <td data-label="V1 contract">
+                    <select
+                      data-label="R03 RentVine create"
+                      aria-label="RentVine work order create contract"
+                    >
+                      <option selected>App executes in V1</option>
+                      <option>Tracked manual step in V1</option>
+                      <option>After V1</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Workflow action">
+                    Assign vendor + update/close RentVine ticket
+                  </td>
+                  <td data-label="Current state">
+                    Status action catalogued; exact assignment/close contract incomplete
+                  </td>
+                  <td data-label="V1 contract">
+                    <select
+                      data-label="R03 RentVine assignment and close"
+                      aria-label="RentVine ticket lifecycle contract"
+                    >
+                      <option selected>App executes in V1</option>
+                      <option>Tracked manual step in V1</option>
+                      <option>After V1</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Workflow action">Owner Gmail notice/reply</td>
+                  <td data-label="Current state">
+                    Scaffold exists; recipient/trigger/version gated
+                  </td>
+                  <td data-label="V1 contract">
+                    <select
+                      data-label="R03 owner email"
+                      aria-label="Maintenance owner email contract"
+                    >
+                      <option selected>App executes in V1</option>
+                      <option>Tracked manual step in V1</option>
+                      <option>After V1</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Workflow action">
+                    Vendor sends/receives from external mailbox
+                  </td>
+                  <td data-label="Current state">Not supported by managed-domain DWD</td>
+                  <td data-label="V1 contract">
+                    <select
+                      data-label="R03 vendor email"
+                      aria-label="Vendor email contract"
+                    >
+                      <option selected>App executes in V1</option>
+                      <option>Portal-only messaging in V1</option>
+                      <option>After V1</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Workflow action">LeadSimple process stage/task sync</td>
+                  <td data-label="Current state">
+                    Vendor-confirmation/API-plan dependency
+                  </td>
+                  <td data-label="V1 contract">
+                    <select
+                      data-label="R03 LeadSimple"
+                      aria-label="LeadSimple maintenance contract"
+                    >
+                      <option selected>App executes in V1</option>
+                      <option>Tracked manual step in V1</option>
+                      <option>After V1</option>
+                    </select>
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Workflow action">
+                    QuickBooks draft bill from completed work
+                  </td>
+                  <td data-label="Current state">
+                    API documented; OAuth/accounting mapping not connected
+                  </td>
+                  <td data-label="V1 contract">
+                    <select
+                      data-label="R03 QuickBooks"
+                      aria-label="QuickBooks maintenance contract"
+                    >
+                      <option selected>App executes in V1</option>
+                      <option>Tracked manual step in V1</option>
+                      <option>After V1</option>
+                    </select>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <label class="field-label" for="R03-note"
+              >Maintenance exceptions or missing action</label
+            >
+            <textarea id="R03-note" data-label="R03 notes"></textarea>
+          </article>
+
+          <article class="decision" data-clarification="R04">
+            <div class="decision-head">
+              <div>
+                <h3>
+                  R04 · External Vendor identity, mailbox provider, and account security
+                </h3>
+                <p class="muted">
+                  App login and mailbox authorization are separate. The app can issue a
+                  login, but it cannot read/send as an arbitrary external mailbox without
+                  that mailbox owner's provider authorization. Vendor-owned mailbox OAuth
+                  also requires a narrow governance exception: all PMI KC
+                  cloud/admin/runtime identities stay
+                  <code>pmikcmetro.com</code>, while a Vendor token may authorize only
+                  that Vendor's own mailbox and assigned tickets.
+                </p>
+              </div>
+              <span class="decision-id">R04</span>
+            </div>
+            <label class="field-label">App-account setup</label>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="R04-account"
+                  type="radio"
+                  value="Admin creates the external Vendor account and the user receives a one-time password-setup link; no self-registration and no reusable password is shown to Admin"
+                />
+                <span>
+                  <strong>Admin invite + one-time setup link</strong>
+                  <small
+                    >Recommended. “Assign username/password” without sharing a permanent
+                    password.</small
+                  >
+                </span>
+              </label>
+              <label class="option">
+                <input
+                  name="R04-account"
+                  type="radio"
+                  value="Admin creates the external Vendor account and assigns a temporary password that the user must change at first login"
+                />
+                <span><strong>Admin-assigned temporary password</strong></span>
+              </label>
+            </div>
+            <label class="field-label">External mailbox provider in V1</label>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="R04-mail"
+                  type="radio"
+                  value="V1 supports vendor-owned Gmail or Google Workspace mailboxes through per-vendor OAuth; Microsoft and other providers follow after V1"
+                />
+                <span>
+                  <strong>Google-hosted vendor mail first</strong>
+                  <small>Recommended because the current transport is Gmail-based.</small>
+                </span>
+              </label>
+              <label class="option">
+                <input
+                  name="R04-mail"
+                  type="radio"
+                  value="V1 must support both vendor-owned Gmail/Google Workspace and Microsoft 365/Outlook mailboxes through separate OAuth adapters"
+                />
+                <span><strong>Google + Microsoft in V1</strong></span>
+              </label>
+              <label class="option">
+                <input
+                  name="R04-mail"
+                  type="radio"
+                  value="V1 vendors use their external address for app login but send ticket email through a PMI KC-controlled ticket mailbox"
+                />
+                <span><strong>PMI KC ticket mailbox</strong></span>
+              </label>
+            </div>
+            <label class="field-label">MFA for external Vendor accounts</label>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="R04-mfa"
+                  type="radio"
+                  value="MFA is required before an external Vendor can see ticket details or connect a mailbox"
+                />
+                <span
+                  ><strong>Require MFA</strong
+                  ><small
+                    >Recommended for external access to tenant/property data.</small
+                  ></span
+                >
+              </label>
+              <label class="option">
+                <input
+                  name="R04-mfa"
+                  type="radio"
+                  value="MFA is optional for the V1 vendor pilot"
+                />
+                <span><strong>Optional in the pilot</strong></span>
+              </label>
+            </div>
+            <label class="field-label" for="R04-note"
+              >First-pilot provider types and lifecycle exceptions</label
+            >
+            <textarea
+              id="R04-note"
+              data-label="R04 pilot details"
+              placeholder="Do not paste passwords. It is enough to say Gmail vs Microsoft, approximate pilot count, and who may invite/disable vendors."
+            ></textarea>
+          </article>
+
+          <article class="decision" data-clarification="R05">
+            <div class="decision-head">
+              <div>
+                <h3>R05 · Technical boundary for immediate source/process publication</h3>
+                <p class="muted">
+                  No human approval is added here. This is the containment that prevents a
+                  bad URL, oversized file, credential document, or process edit from
+                  silently widening production authority.
+                </p>
+              </div>
+              <span class="decision-id">R05</span>
+            </div>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="R05"
+                  type="radio"
+                  value="Publish immediately after automated validation inside an Admin-configured connector/root and the Editor's scope; enforce allowed type/size, malware and sensitivity checks, versioned rollback, and audit; process content can never enable an external action or widen a role"
+                />
+                <span>
+                  <strong>Immediate publish inside a technical trust boundary</strong>
+                  <small
+                    >Recommended. No approval queue; failed validation is visible and
+                    reversible.</small
+                  >
+                </span>
+              </label>
+              <label class="option">
+                <input
+                  name="R05"
+                  type="radio"
+                  value="Publish any Editor-added URL, file, folder, or process immediately with audit only; no configured-root, sensitivity, or automated validation restriction"
+                />
+                <span><strong>Any source publishes with audit only</strong></span>
+              </label>
+              <label class="option">
+                <input
+                  name="R05"
+                  type="radio"
+                  value="Use the custom immediate-publication boundary in the note"
+                />
+                <span><strong>Custom technical boundary</strong></span>
+              </label>
+            </div>
+            <label class="field-label" for="R05-note"
+              >Allowed roots, source types, or exceptions</label
+            >
+            <textarea id="R05-note" data-label="R05 source boundary"></textarea>
+          </article>
+
+          <article class="decision" data-clarification="R06">
+            <div class="decision-head">
+              <div>
+                <h3>R06 · Approve the exact launch retention defaults</h3>
+                <p class="muted">
+                  These are operational defaults, not legal-retention advice. Legal hold
+                  or a later written records policy overrides deletion. Gmail bodies and
+                  AI analysis remain unpersisted in V1.
+                </p>
+              </div>
+              <span class="decision-id">R06</span>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Record</th>
+                  <th>Default</th>
+                  <th>Why</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td data-label="Record">Send confirmation</td>
+                  <td data-label="Default">Usable 10 minutes; delete after 30 days</td>
+                  <td data-label="Why">Short replay window; enough support evidence</td>
+                </tr>
+                <tr>
+                  <td data-label="Record">Pub/Sub replay dedupe</td>
+                  <td data-label="Default">7 days</td>
+                  <td data-label="Why">
+                    Operational retry protection without indefinite state
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Record">Mailbox sync audit</td>
+                  <td data-label="Default">90 days</td>
+                  <td data-label="Why">Troubleshooting history; no message body</td>
+                </tr>
+                <tr>
+                  <td data-label="Record">Workflow communication link</td>
+                  <td data-label="Default">365 days from link/update</td>
+                  <td data-label="Why">
+                    Covers long-running renewal/maintenance follow-up
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Record">Bodyless send/write/workflow action audit</td>
+                  <td data-label="Default">7 years</td>
+                  <td data-label="Why">
+                    Durable accountability for external actions; no body content
+                  </td>
+                </tr>
+                <tr>
+                  <td data-label="Record">AI analysis / extracted Gmail facts</td>
+                  <td data-label="Default">Not persisted in V1</td>
+                  <td data-label="Why">
+                    Human reviews transient draft; no extra derived record
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="R06"
+                  type="radio"
+                  value="Approve the listed operational retention defaults for launch, with legal hold and later written policy overriding deletion"
+                />
+                <span><strong>Approve this default set</strong></span>
+              </label>
+              <label class="option">
+                <input
+                  name="R06"
+                  type="radio"
+                  value="Use the custom retention periods in the note"
+                />
+                <span><strong>Use custom periods</strong></span>
+              </label>
+            </div>
+            <label class="field-label" for="R06-note"
+              >Custom periods or policy exception</label
+            >
+            <textarea id="R06-note" data-label="R06 retention changes"></textarea>
+          </article>
+
+          <article class="decision" data-clarification="R07">
+            <div class="decision-head">
+              <div>
+                <h3>R07 · Promote the three template scaffolds after review</h3>
+                <p class="muted">
+                  The code review found small but meaningful issues. The recommended
+                  choice preserves the existing wording while fixing recipient, sender,
+                  channel-claim, and promise safety before versioning.
+                </p>
+              </div>
+              <span class="decision-id">R07</span>
+            </div>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="R07"
+                  type="radio"
+                  value="Approve all three scaffolds as V1 candidates after the listed required edits, then version each accepted artifact as v1.0 before enabling its action"
+                />
+                <span>
+                  <strong>Approve after required edits</strong>
+                  <small>Recommended. See the exact review below.</small>
+                </span>
+              </label>
+              <label class="option">
+                <input
+                  name="R07"
+                  type="radio"
+                  value="Approve all three current scaffolds exactly as written and version them as v1.0"
+                />
+                <span><strong>Approve exactly as written</strong></span>
+              </label>
+              <label class="option">
+                <input
+                  name="R07"
+                  type="radio"
+                  value="Keep the current scaffolds preview-only and wait for replacement wording"
+                />
+                <span><strong>Keep preview-only</strong></span>
+              </label>
+            </div>
+            <label class="field-label">Linked AI replies</label>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="R07-replies"
+                  type="radio"
+                  value="A versioned AI-reply policy may free-draft from the authorized assigned-ticket thread; it must show source context, may not invent facts or commitments, and a human must review and exactly confirm every send"
+                />
+                <span>
+                  <strong>Policy-governed AI free-draft</strong>
+                  <small
+                    >Matches C06; a named stock template is not required for every
+                    reply.</small
+                  >
+                </span>
+              </label>
+              <label class="option">
+                <input
+                  name="R07-replies"
+                  type="radio"
+                  value="Every linked AI reply must derive from a named approved response pattern; free-drafting is not allowed"
+                />
+                <span><strong>Named response patterns only</strong></span>
+              </label>
+            </div>
+            <label class="field-label" for="R07-note">Template/reply exceptions</label>
+            <textarea id="R07-note" data-label="R07 template notes"></textarea>
+          </article>
+
+          <article class="decision" data-clarification="R08">
+            <div class="decision-head">
+              <div>
+                <h3>R08 · Console message detail and test-data separation</h3>
+                <p class="muted">
+                  Full property/tenant/rent/workflow detail is already locked. This asks
+                  only where raw message bodies render and whether production can ever
+                  fall back to fixture data.
+                </p>
+              </div>
+              <span class="decision-id">R08</span>
+            </div>
+            <label class="field-label">Communication detail on Console</label>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="R08-message"
+                  type="radio"
+                  value="Console shows sender, recipients, timestamp, subject, and bounded snippet; opening the authorized workflow communication panel shows the full body"
+                />
+                <span>
+                  <strong>Full metadata + snippet; body one click away</strong>
+                  <small
+                    >Recommended. Still provides full authorized detail without making the
+                    home feed a wall of email bodies.</small
+                  >
+                </span>
+              </label>
+              <label class="option">
+                <input
+                  name="R08-message"
+                  type="radio"
+                  value="Console renders the complete authorized email body inline with property, tenant, rent, and workflow details"
+                />
+                <span><strong>Full email body inline</strong></span>
+              </label>
+            </div>
+            <label class="field-label">Test data</label>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="R08-test"
+                  type="radio"
+                  value="Production Console uses live sources only and fails visibly when unavailable; fixture/test data exists only in local, emulator, and explicit non-production test environments with an obvious badge"
+                />
+                <span>
+                  <strong>Environment-separated test data</strong>
+                  <small
+                    >Recommended. Production never silently falls back to sample
+                    data.</small
+                  >
+                </span>
+              </label>
+              <label class="option">
+                <input
+                  name="R08-test"
+                  type="radio"
+                  value="Production includes an Admin-only switch between live and clearly labeled fixture data"
+                />
+                <span><strong>Admin test-data switch in production</strong></span>
+              </label>
+              <label class="option">
+                <input
+                  name="R08-test"
+                  type="radio"
+                  value="Production may include specially tagged test properties, tenants, tickets, and messages alongside live records"
+                />
+                <span><strong>Tagged test records in production</strong></span>
+              </label>
+            </div>
+            <label class="field-label" for="R08-note"
+              >Console field or test exception</label
+            >
+            <textarea id="R08-note" data-label="R08 Console notes"></textarea>
+          </article>
+
+          <article class="decision" data-clarification="R09">
+            <div class="decision-head">
+              <div>
+                <h3>R09 · How should the expanded external V1 be released?</h3>
+                <p class="muted">
+                  This does not ask whether the vendor portal is V1; that is locked. It
+                  defines whether intermediate internal builds may be reviewed before the
+                  complete V1 gate.
+                </p>
+              </div>
+              <span class="decision-id">R09</span>
+            </div>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="R09"
+                  type="radio"
+                  value="Build and validate in staged slices, label intermediate deployments pre-V1, and call the release V1 only after every action marked App executes in V1 plus the external Vendor portal passes end-to-end acceptance"
+                />
+                <span>
+                  <strong>Staged validation; one complete V1 gate</strong>
+                  <small
+                    >Recommended. Gives browser-review points without weakening the final
+                    contract.</small
+                  >
+                </span>
+              </label>
+              <label class="option">
+                <input
+                  name="R09"
+                  type="radio"
+                  value="Do not deploy any intermediate candidate; deploy only once the entire expanded V1 contract is complete"
+                />
+                <span><strong>Single deployment at completion</strong></span>
+              </label>
+              <label class="option">
+                <input
+                  name="R09"
+                  type="radio"
+                  value="Ship the internal application as V1 first and add the external Vendor portal and newly named writes afterward"
+                />
+                <span
+                  ><strong>Internal V1 first</strong
+                  ><small>This would replace C10.</small></span
+                >
+              </label>
+            </div>
+            <label class="field-label" for="R09-note"
+              >Required acceptance users or sequencing exception</label
+            >
+            <textarea
+              id="R09-note"
+              data-label="R09 release notes"
+              placeholder="Example: Dan accepts internal workflows; one designated vendor accepts the external queue; Josiah accepts technical go-live."
+            ></textarea>
+          </article>
+        </div>
+      </section>
+
+      <section id="templates">
+        <p class="eyebrow">Code-backed artifact review</p>
+        <h2>What must change before the three scaffolds become V1 templates</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Candidate</th>
+              <th>What is good</th>
+              <th>Required before v1.0</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Candidate"><strong>Owner renewal</strong></td>
+              <td data-label="What is good">
+                Address/current rent are source-tagged; missing market inputs visibly
+                block confidence.
+              </td>
+              <td data-label="Required before v1.0">
+                Resolve the verified owner recipient, use the signed-in user's approved
+                signature, retain the comp-source references, and refuse send while any
+                <code>Needs Verification</code> value remains.
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Candidate"><strong>Tenant renewal</strong></td>
+              <td data-label="What is good">
+                Lease date/offered rent are explicit; email, portal-chat, and SMS variants
+                exist.
+              </td>
+              <td data-label="Required before v1.0">
+                Do not claim “we've also emailed and messaged” until those channels
+                actually succeed; verify recipient and consent/channel rules; use an
+                approved sender signature; keep portal/SMS execution tied to R02.
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Candidate"><strong>Maintenance owner notice</strong></td>
+              <td data-label="What is good">
+                Property, issue, priority, photo count, and owner are source-tagged with
+                visible gaps.
+              </td>
+              <td data-label="Required before v1.0">
+                Resolve owner recipient from an authoritative system, require a verified
+                unit, use the signed-in user's signature, and avoid promising “we'll
+                coordinate” unless the work order/assignee state proves that commitment.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="response">
+        <p class="eyebrow">Return to the project</p>
+        <h2>Generate the final Round 3 response</h2>
+        <p class="lede">
+          Review the defaults, change only what should differ, then generate and copy the
+          structured response back into Codex.
+        </p>
+        <div class="button-row">
+          <button id="generate-response" type="button">Generate and copy response</button>
+          <button class="secondary" id="preview-response" type="button">
+            Refresh preview only
+          </button>
+          <button class="secondary" id="print-audit" type="button">
+            Print / save as PDF
+          </button>
+        </div>
+        <p id="copy-status" class="muted" aria-live="polite">
+          No response generated yet.
+        </p>
+        <pre id="response-preview">
+Your structured Round 3 response will appear here.</pre
+        >
+      </section>
+
+      <p class="footer">
+        <strong>Boundary:</strong> Round 3 closes product ambiguity and produces the
+        implementation contract. It does not by itself connect a mailbox, invite a vendor,
+        read customer data, enable an external action, deploy, send, or mutate a system of
+        record.
+      </p>
+    </main>
+
+    <script>
+      function buildResponse() {
+        const lines = [
+          "# PMI KC V1 audit — Final Round 3 response",
+          "",
+          "Generated from docs/v1-readiness-audit-round-3-2026-07-14.html",
+          "",
+          "## Final clarifications",
+        ];
+
+        for (const article of document.querySelectorAll("[data-clarification]")) {
+          const id = article.getAttribute("data-clarification");
+          const heading = article.querySelector("h3")?.textContent?.trim() || id;
+          const values = [];
+
+          for (const selected of article.querySelectorAll(
+            "input[type='radio']:checked",
+          )) {
+            values.push(selected.value);
+          }
+
+          for (const select of article.querySelectorAll("select")) {
+            values.push(`${select.dataset.label}: ${select.value}`);
+          }
+
+          for (const field of article.querySelectorAll("textarea, input[type='text']")) {
+            if (field.value.trim())
+              values.push(`${field.dataset.label}: ${field.value.trim()}`);
+          }
+
+          lines.push(
+            `- **${heading}**: ${values.length ? values.join(" | ") : "No response yet"}`,
+          );
+        }
+
+        lines.push("", "## Anything else", "- ");
+        return lines.join("\n");
+      }
+
+      function refreshPreview() {
+        const response = buildResponse();
+        document.getElementById("response-preview").textContent = response;
+        return response;
+      }
+
+      async function generateAndCopy() {
+        const response = refreshPreview();
+        const status = document.getElementById("copy-status");
+        try {
+          await navigator.clipboard.writeText(response);
+          status.textContent = "Response generated and copied.";
+        } catch {
+          status.textContent =
+            "Response generated. Select the preview and copy it manually.";
+        }
+        document.getElementById("response").scrollIntoView({ behavior: "smooth" });
+      }
+
+      document
+        .getElementById("generate-response")
+        .addEventListener("click", generateAndCopy);
+      document.getElementById("preview-response").addEventListener("click", () => {
+        refreshPreview();
+        document.getElementById("copy-status").textContent =
+          "Preview refreshed. Nothing was copied.";
+      });
+      document
+        .getElementById("print-audit")
+        .addEventListener("click", () => window.print());
+    </script>
+  </body>
+</html>

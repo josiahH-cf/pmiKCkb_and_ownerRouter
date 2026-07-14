@@ -87,6 +87,10 @@ export function validateProductionCutoverConfig(env) {
     errors.push("ASK_DEMO_MODE must be false for client-production.");
   }
 
+  if (readString(env.CONSOLE_TEST_DEPLOYMENT_NAME)) {
+    errors.push("CONSOLE_TEST_DEPLOYMENT_NAME must be empty for client-production.");
+  }
+
   if (readBoolean(env.LOCAL_DEMO_AUTH, false)) {
     errors.push("LOCAL_DEMO_AUTH must be false for client-production.");
   }

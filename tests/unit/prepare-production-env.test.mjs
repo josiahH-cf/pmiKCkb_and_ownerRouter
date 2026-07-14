@@ -53,6 +53,7 @@ describe("prepare production env", () => {
     expect(result.output).toMatchObject({
       APP_BASE_URL: "https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app",
       ASK_DEMO_MODE: "false",
+      CONSOLE_TEST_DEPLOYMENT_NAME: "",
       CLOUD_RUN_SERVICE_ACCOUNT:
         "pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com",
       IMAGE_STORE: "drive",

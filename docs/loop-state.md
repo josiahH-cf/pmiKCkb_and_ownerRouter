@@ -1,124 +1,130 @@
 # Loop State
 
-Single-read resume pointer for the unattended feature loop. Read `docs/facts.md` (the solidified
-Tier-0 spine) and this file first. This file is the always-current pointer; `docs/status.md` is the
-append-only history. If the two disagree, `docs/status.md` wins and this file is corrected.
-
-Keep this file short, non-secret, and current — a pointer, not a changelog. `npm run
-verify:context-freshness` caps its length so the changelog never regrows here; the full narrative
-history lives in `docs/status.md`. Update it at the start of a cycle, at each slice boundary, and
-whenever a blocker, approval gate, or stop-and-reset condition changes. See
-`docs/autonomous-agent-runner.md` for the loop, verification/falsification, continuation, and
-stop-and-reset rules.
+Single-read resume pointer for the unattended feature loop. Read `docs/facts.md` first. If this file
+conflicts with the newest `docs/status.md` entry, correct this file from status. Keep history in status
+and this pointer under 140 lines. The runner is `docs/autonomous-agent-runner.md`.
 
 ## Snapshot
 
-- Last updated: 2026-07-13
-- **PRODUCTION RELEASE + WEDNESDAY DEMO VERIFIED:** the QA-001..QA-011 remediation is committed and pushed as
-  `b24c67d` on `main`, then owner-authorized and deployed 2026-07-13 as Cloud Run revision
-  `pmi-kc-kb-demo-00013-gm4` (100% traffic). Direct production checks passed for pmikcmetro.com Admin auth, the
-  phone renewal decider, Console/Notifications count parity, Gmail Hub drafting + summary, anticipated work,
-  Maintenance readiness guards, and cited Ask; see `docs/wednesday-demo-runbook-2026-07-15.html`. No decision,
-  ticket, assignment, external send, SoR write, or fixture cleanup executed. The browser-only simulator was
-  subsequently deployed as `pmi-kc-kb-demo-00014-cwq`; S19 is local-only and not in that revision.
-- Where we are: the multi-process operations console is the north star (lease-renewal = process #1). The
-  2026-06-29 cycle shipped + merged R1–R5 (spine+IA, golden harness+labeling, renewal math, action console +
-  intent-detect, and the full Maintenance Work Order Intake incl. live Drive photo sync). Full detail is in
-  `docs/status.md` + `docs/facts.md` (`F-*` rows). All gates green on every merge.
-- Production-plane fence verified (`F-PROD-CLOUD-MODEL`): prod forces Gemini + Drive; the local model,
-  demo auth, and the STT/image stubs are dev/test-only (NODE_ENV-fenced), never a prod dependency.
-- Earlier context (full history in `docs/status.md`): client beta deployed on the `pmi-kc-kb-demo` Cloud
-  Run service (`pmi-kc-kb-prod`); real Google auth locked to `pmikcmetro.com`; live RentVine (25 leases) +
-  Sheet (DWD) reads work; non-Gmail external execution remains gated.
-- Operating mode: normal owner-present; Remote Away Mode INACTIVE (`docs/away-mode.md`); hard $10 budget cap.
-- **S19 GMAIL PRODUCTION ACTIVATION (2026-07-13):** the owner approved read, draft,
-  exact-confirmed send/reply, labels, Pub/Sub/watch, deployment, and repository publication. DWD client
-  `104374162913177846911` now includes readonly, compose, labels, and modify. The rollout-only mailbox
-  allowlist is removed; each server-verified `pmikcmetro.com` user remains bound to their own mailbox.
-  All five Inbox 0 registry actions are executable. Exact confirmation, one-attempt idempotency,
-  ambiguous-outcome reconciliation, bodyless audit, and no-autonomous-send remain mandatory. Production
-  Production revision `pmi-kc-kb-demo-00020-24d` serves 100% traffic; synthetic self-send/reply/label,
-  future watch, five authenticated push deliveries, and Firestore cursor/audit proof all passed. Evidence
-  is in `docs/evidence/gmail-production-activation-2026-07-13.md`.
+- Last updated: 2026-07-14
+- **ROUND 3 CLOSED; IMPLEMENTATION LOOP READY.** The owner answered R01–R09. No remaining Round 3
+  product ambiguity blocks implementation. `F-V1-AUDIT-ROUND3` and the resolved `Q-V1-*` rows are the
+  authoritative contract.
+- **Active goal:** implement the decision-complete final-V1 gaps through staged local slices, keep
+  facts/plan/specs/status/loop synchronized, verify adversarially and end to end, and produce a
+  deployment-ready handoff. No live send, external mutation, Vendor invite, mailbox connection,
+  configuration, deploy, or smoke is authorized by the goal.
+- **Program:** `docs/v1-gap-implementation-program-2026-07-14.md`; executable specs S20–S27 in
+  `docs/feature-suites/`. Final V1 includes every R02 Lease and R03 Maintenance action plus the external
+  Vendor portal. Intermediate releases are pre-V1.
+- **S20 Local green:** immutable action-instance risk/authority, preview-hashed one-attempt execution
+  ledger, atomic High Approval Queue linkage, bodyless audit, and Firestore denial are built. Internal
+  Editors may exact-confirm already-enabled Medium workflow Gmail actions. Generic send and all
+  Registry-closed non-Gmail actions remain closed; no Registry value changed.
+- **S21 Local green:** Admin-owned connector/root/Space/scanner policies, bounded file/folder/process
+  validation, fail-closed scanners, immutable versions/Active pointers/rollback, bodyless audit,
+  authority firewall, direct process publication, and Space/Admin UI are built. The default approval
+  detour is removed from the active process-publish surface. Production roots/scanner/import/indexing
+  remain gated and no live policy was created.
+- **S23 Local green:** server-selected live/test provider mode, scope-filtered operational fields with
+  provenance/freshness, visible per-source failure, bounded inert Gmail snippets, on-demand authorized
+  full-body fetch, persistent test-data badge, and production cutover refusal of test mode are built.
+  Production provider wiring/browser acceptance and every live customer/Gmail read remain gated.
+- **Remaining runtime is narrower than final V1:** no exact retention cleanup/v1.0 artifact activation,
+  Vendor principal/OAuth, R02/R03 executor set, or staged final-acceptance ledger is built.
+- **Existing local candidate:** the July 14 workflow-linked Communications slice is fully locally
+  verified but uncommitted/unpromoted. Preserve its dirty-worktree changes. Prior complete verification:
+  1,600 unit tests, typecheck, build, formatting, routing, redaction, traceability, freshness, and
+  falsification; lint zero errors/eight existing warnings; clean install eleven known audit findings.
+- No live read, Gmail/customer content access, account creation, OAuth consent, source import, external
+  write, send, cloud configuration, deploy, or production smoke occurred during the audit/spec rewrite.
 
-## Next Safe Slice — stop/reset
+## Next Safe Slice — S24 Communications policy and v1.0 artifacts
 
-The authorized Gmail activation is complete. No further live Gmail action is implied. The next work must
-come from a new owner request or an already-documented non-Gmail slice; the Drive photo action and QA-007
-production cleanup remain separate owner-only actions.
+Run S24 from `docs/feature-suites/communications-policy.md` end to end. Build the approved retention
+schema/cleanup planner/legal-hold override, immutable owner-renewal/tenant-renewal/maintenance-owner
+`v1.0` artifacts, verified value replacement, and source-visible/no-invention/human-exact-confirmed AI
+reply policy using synthetic linked threads only. Stop before TTL deployment, live Gmail/customer reads,
+or any send. Then continue automatically: S22 → S25 → S26 → S27. Within S25/S26, one provider is one
+slice.
 
-## Active Blockers And Exact Client Asks
+At every slice boundary:
 
-Tracked owner/client/vendor gates (in `docs/client-checklist.md` and `docs/research-backlog.md`):
+1. Run focused tests and the suite's adversarial checks; run `bash scripts/verify.sh` at program
+   milestones.
+2. Update `docs/facts.md`, `docs/status.md`, `docs/plan.md`, and this pointer with actual evidence.
+3. Keep new/existing Action Registry entries false until the action's documented contract, focused
+   acceptance, code review, and exact live authority are present.
+4. Continue to the next safe local slice without routine owner review. Stop only on a gate below, a
+   repeated quality failure, context reset, or genuine missing external contract/credential/mapping.
 
-- Approved production sources and source-folder scope; explicit per-step approval for each cost-bearing
-  import/deploy/smoke step. `pmi-kc-kb-prod`, billing, the project-scoped budgets, and the hard $10 kill
-  switch are already provisioned and verified.
-- Lease Renewal acceptance scenarios (the walkthrough was HELD 2026-06-19; source notes captured; signed-lease/lease-end RESOLVED).
-- Google Sheets exact in-scope sheet list and owner confirmation.
-- QuickBooks access status/location (blank in the returned tool-access spreadsheet).
-- RentVine lease-renewal-write endpoint confirmation — undocumented in the public API; vendor
-  confirmation required before any renewal writeback (`docs/integration-architecture.md`).
-- Source-vocabulary normalization — freeze canonical stage/system/record-ID/approval names before any
-  live connector work.
-- Gmail production proof is complete in the S19 evidence artifact; no follow-up Gmail action is pending.
-- Approval sender (`kb-automation@pmikcmetro.com`) and launch approver defaults (Dan + Josiah).
-- Owner to define the term "ABC" (`Q-ABC-1`).
+## Locked Product Contract
 
-Resolved and kept as facts: RentVine credential used as-is, not rotated (load from env/Secret
-Manager); signed leases live in Dotloop, lease-end reads from the RentVine lease record.
+- Editor direct: enabled Low/Medium. Consequential High: Admin approval. Admin may self-approve every
+  risk. Technical Blocked conditions cannot be approved away. Exact-confirmed workflow email/portal/SMS
+  is Medium; SoR/document/account/accounting writes are High.
+- Immediate publication: configured root/connector + Editor scope + type/size + malware/sensitivity +
+  immutable version/rollback + audit; content cannot grant authority.
+- Vendor: Admin invite, one-time password setup, verified-email TOTP before detail, assigned-ticket-only,
+  own Gmail/Workspace through per-vendor OAuth, no DWD, every send exactly confirmed by Vendor/Admin.
+- Retention: confirmation usable 10m/delete 30d; dedupe 7d; sync 90d; link 365d; bodyless audit 7y; no
+  persisted V1 AI/extracted Gmail facts; Admin legal hold/later written policy overrides deletion.
+- Artifacts: exact current owner-renewal, tenant-renewal, maintenance-owner base generators are v1.0.
+  AI may source-visible free-draft from authorized context, invent no facts/commitments, and every send
+  is exact-confirmed.
+- Console: metadata + bounded snippet inline; full body only in authorized workflow panel; production
+  live-only and visibly unavailable; fixtures only local/emulator/explicit non-production with badge.
+- Release: staged/pre-V1 until every R02/R03 action and Vendor portal pass E2E; Dan business acceptance,
+  Josiah technical go-live/monitoring/rollback/Gmail-OAuth watch.
 
-## Pending Approval Gates
+## Active Implementation Dependencies
 
-The two 2026-07-13 code-only deploys plus their bounded production checks were explicitly owner-authorized and are
-complete, including the synthetic-chain revision `pmi-kc-kb-demo-00014-cwq`.
-The 2026-07-13 Gmail activation deploy/Pub/Sub/synthetic self-proof is complete. Other
-future cost-bearing steps stay behind explicit per-step approval (each must also pass
-`npm run check:budget-guard` and stay under the $10 cap): any live Ask rerun, approved-source import,
-future deployment, and production smoke. Firestore rules/index deployment is also owner-auth gated even when it
-has no material cloud cost. Hard stops still require explicit approval and will not be
-performed autonomously:
-billing/cap changes, Pro model usage, autonomous sends, destructive changes, raw client
-data/secrets, cross-mailbox Gmail access, autonomous send, or unapproved system-of-record writes.
+These are not unanswered product questions. Build local contracts/fakes first, then stop at the exact
+external gate:
+
+- Admin-configured production source roots/Space mappings and malware/sensitivity provider.
+- Identity Platform TOTP, Firebase invitation delivery, Google OAuth consent/client/redirect, token
+  vault, and first approved Vendor acceptance identity/ticket.
+- Authoritative recipient/value mappings for renewal and maintenance instances.
+- Documented/account-specific contracts, plan/permissions, and non-secret mappings for Rentvine renewal
+  writeback/portal, Dotloop, SMS, Boom, LeadSimple, QuickBooks, Drive, and operating Sheet writes.
+- Per-action Action Registry promotion, first live proof, monitoring, and rollback/correction.
+- Browser acceptance of seven internal tabs plus Vendor portal; final Dan/Josiah acceptance.
+- `Q-ABC-1` remains undefined but must not be used by S20–S27.
+
+## Live And External Hard Gates
+
+Product inclusion is not standing operational authority. Stop and issue a separate exact packet before:
+
+- cloud/Firebase/Workspace/OAuth/Secret Manager/TTL/scheduler/Drive/root/role configuration;
+- any live Google/Gmail/Rentvine/Sheet/Drive/Dotloop/Boom/LeadSimple/QuickBooks/SMS/portal read that the
+  current session has not explicitly authorized;
+- any external account invite, mailbox consent/token, source import/index, write, upload, label, draft,
+  send, status change, document/accounting action, deploy, smoke, or traffic change.
+
+The packet names action key/environment/data, permission/credential, cost, evidence, one-attempt plan,
+rollback/correction, owner, and safe remaining work. Run `npm run check:budget-guard` before authorized
+cost-bearing work. Before live Google reads run `npm run preflight:adc`; if stale, ask the owner to run
+`npm run auth:session` in their own terminal. Never use a personal account.
 
 ## Stop-Condition State
 
-- 2026-07-13: the additive browser-only synthetic-chain slice is fully verified and deployed as
-  `pmi-kc-kb-demo-00014-cwq`; the Wednesday request is complete and no safe in-scope slice remains.
-- 2026-07-13: Gmail production activation is fully verified and deployed as
-  `pmi-kc-kb-demo-00020-24d`; the authorized live slice is complete and no further Gmail action is pending.
-- 2026-07-13: the prior S19 read-only stop is superseded by the owner's explicit production activation request.
-- 2026-07-10: S14 + S16 + S17 + S15 + S18 all passed their adversarial boundaries (`F-RENEWAL-DECIDER-MOBILE`,
-  `F-RBAC-SUBUSERS`, `F-UNIFIED-ATTENTION`, `F-GMAIL-HUB`, `F-ANTICIPATION-LANE`). The S14–S18 overhaul is COMPLETE;
-  "No safe slice remains" now fires — external writes, deploy, Gmail read scope, live feeds, and cost-bearing actions are owner/vendor-gated.
-- 2026-07-09: the 7-slice deferred cycle shipped + merged (PRs #56-#62); superseded as the active stop by the
-  2026-07-10 cycle above.
-- Prior stop-conditions (2026-06-30 migration-readiness / "no safe slice"; 2026-07-01 owner-present cycles) are
-  cleared and archived in `docs/status.md` (2026-07-09 entry).
-
-## Security Note
-
-`docs/client_docs/` is gitignored and must never be committed (client spreadsheets, ledgers,
-invoices, tool-access records). The returned tool-access spreadsheet holds live RentVine credentials
-in a notes cell; per owner decision 2026-06-20 they are used as-is, not rotated, and must be loaded
-only from env/Secret Manager, never committed. Record only non-secret references in tracked docs.
+- **GO for safe local implementation.** No owner-decision stop remains. `/loop`, “run the loop,”
+  “continue,” or “implement” should start S24 and continue in the program order.
+- Stop at a specific live/provider gate, not at the existence of eventual external work; continue other
+  safe slices when dependencies permit.
+- Stop if the same root issue survives two repair cycles, required checks stay red, scope would be
+  invented, context drifts, or no safe readiness-improving slice remains. Record exact next action here.
+- Do not mark the active goal complete until S20–S27 are actually accepted and no required work remains.
 
 ## Resume Here
 
-1. Read `docs/facts.md`, then this file, then `docs/autonomous-agent-runner.md` and the latest
-   `docs/status.md` entry.
-2. **Auth first (org reauth is interactive-only):** the OWNER runs `npm run auth:session` at session start to
-   refresh the gcloud CLI login + ADC when stale. Before any live Sheets/Firestore/Vertex read the agent runs the
-   read-only `npm run preflight:adc`; if it fails, ask the owner to run `auth:session` (`F-SESSION-AUTH`) — a stale token stalls mid-step.
-3. If the trigger is "plan the next feature cycle", produce a decision-complete packet and stop. If
-   the trigger authorizes running the loop, proceed unattended.
-4. For Gmail, start at S19 and its completed activation evidence. Never accept a mailbox identity from the
-   browser; preserve exact confirmation and the signed-in From binding. All five separately governed Inbox 0
-   actions are approved, deployed, and live-proven.
-5. Review the completed QA-001..QA-011 worktree and evidence. If the owner separately authorizes the QA-007
-   production incident response, authenticate interactively with `npm run auth:session`, define the exact
-   collection/document scope and backup/rollback plan, then run a read-only inspection before requesting any
-   cleanup authorization. Do not infer that authority from this remediation. For lease-renewal writeback
-   specifically, stay in discovery until the team validates process, columns, and golden data.
-6. Preserve the executable allowlist exactly; no non-Gmail external action is newly approved. Honor all gates + cap.
-7. Update `docs/facts.md` and this file at each slice boundary; run `npm run verify:context-freshness`.
+1. Read `AGENTS.md`, `docs/facts.md`, this file, `docs/autonomous-agent-runner.md`, the newest status
+   entry, and `docs/v1-gap-implementation-program-2026-07-14.md`. A copy-ready outside-window handoff
+   also lives at `docs/fresh-context-v1-implementation-prompt-2026-07-14.md`.
+2. Inspect `git status`; preserve the existing dirty Workflow Communications candidate and user work.
+3. Run `npm run verify:context-freshness`, then execute S24's ordered prompt sequence using the S20
+   authority, S21 source boundary, and S23 Console boundary rather than reopening decisions.
+4. Continue safe local slices without asking again; update the spine at every boundary.
+5. Never infer live action authority from R01–R09, the active goal, `/loop`, a green fake-provider test,
+   an existing OAuth/DWD grant, or a prior deployment.

@@ -109,7 +109,7 @@ The KB and the Owner Router are aligned but separate. Spec 3 (north star) govern
 
 ### 3.2 V1.5 hook (specified now, not built in v1)
 
-When an SOP enters the KB Approval Queue, Approvers receive a Gmail message labeled `KB Approval` (a separate label from the `Owner Router / *` tree). Each notification email includes a one-click "Approve" link that requires Google sign-in. **This is not built in v1**, but the email template, label, OAuth scope, and forward-compatible schema are defined here so the v1 implementer leaves room. See §17 D-10.
+When an item enters the KB Approval Queue, the assigned actor/required approver receives in-app attention through Console/Notifications. The legacy event-driven Gmail sender is hard-disabled. A future human-confirmed notification-draft lane requires a new approved spec; no automatic email or approve-by-email path is reserved as V1 authority. See §17 D-10.
 
 ---
 
@@ -338,12 +338,14 @@ The target capture budget is "under 5 minutes per item."
 
 ### 10.5 Approval Queue flow
 
-1. Editor saves an SOP / template / resolved placeholder with status `In Review`.
-2. Item appears in the Approval Queue, visible to everyone, color-coded by item type.
-3. Approver opens the item, reviews diff vs. previous version, clicks Approve or Reject with a note.
-4. Approve → status changes to Approved; Vertex AI Search re-indexes within minutes.
-5. Reject → item returns to Editor with the rejection note.
-6. On any state change, Approvers receive a Gmail notification labeled `KB Approval` (see §11.7 F-29).
+1. Editor saves an SOP / template / source / process change inside their Space and configured root.
+2. S21 validates root/scope/type/size/malware/sensitivity and structure. A passing save creates an
+   immutable version, atomically becomes Active, writes audit, and creates no routine approval item.
+3. Validation failure/Blocked state, an approval package, external-action readiness, automation failure,
+   or source/fact conflict creates an Approval Queue item for the permitted assignee/approver.
+4. The actor reviews source/diff/preview and uses the server-derived S20 action. Editor executes enabled
+   Low/Medium; consequential High requires Admin, who may self-approve; technical Blocked stays closed.
+5. State changes write append-only Activity and in-app attention. No event-driven Gmail notification is sent.
 
 ### 10.6 Admin / Setup flow
 
@@ -430,10 +432,10 @@ Each requirement has an ID. Each is testable; acceptance is in §15.
 
 ### 11.7 Approval Queue
 
-- **F-26.** Server-created `approval_queue_items` appear in the Approval Queue for approval packages, process-definition changes, failed/blocked automation, external-action readiness, and source/fact conflicts. SOP/template/placeholder review appears only when a queue producer creates a corresponding queue item.
+- **F-26.** Server-created `approval_queue_items` appear for approval packages, validation-failed or blocked process-definition changes, failed/blocked automation, external-action readiness, and source/fact conflicts. Under S21, validation-passing Editor content/process changes publish immediately with immutable version/rollback/audit rather than creating an approval item. SOP/template/placeholder review appears only when a queue producer creates a corresponding queue item.
 - **F-27.** Admins can view all queue items. Non-Admins can view only queue items where they are the assignee or required approver.
 - **F-28.** Queue transitions use server-side actions and append `approval_queue_activity` entries with actor, timestamp, previous/new state, source trigger, and required reasons.
-- **F-29.** Queue notification and email behavior follows the active Approval Queue plan: routine email is configurable and deferred from the v1 UI slice; unresolved important `Blocked` or overdue escalation remains a future approved notification path.
+- **F-29.** Queue notification behavior follows the active Approval Queue plan: V1 delivery is in-app through Console/Notifications. The legacy event-driven Gmail sender is hard-disabled; unresolved important `Blocked` or overdue items escalate in-app. Any future email lane is separately approved and human-confirmed.
 
 ### 11.8 Integrations (v1)
 
@@ -761,7 +763,7 @@ Each lists the question, v1 default, and what changes if different. These supers
 | D-7 | Which SOPs need Dan approval vs. Bailey or Chastity? | Screening, Vendor Assignment, Move-Out Deposit Disposition, Owner Onboarding, Bookkeeping → Dan. All others → any of Dan, Bailey, Chastity. | Per-SOP field; reassignable. |
 | D-8 | Who owns ongoing maintenance after Bailey's leave or transition? | Dan, Bailey, and Chastity remain Approvers; Chastity is the in-office Editor primary. | Reassign by changing the SOP `owner_uid` field; role changes via Admin. |
 | D-9 | Does v1 create Gmail drafts directly? | No. Copy-to-clipboard only. | Phase 2 via opt-in OAuth scope. |
-| **D-10** | **Email-based approval (V1.5)** | **V1 sends a one-way Gmail notification to Approvers with a `KB Approval` label. Approve-by-reply is not built in v1, but the forward-compatible pieces are reserved:** (a) `change_log.actor_via_email_token` field exists; (b) `KB Approval` label is created at setup; (c) the `gmail.send` scope is already in OAuth grants; (d) the notification email template is structured so V1.5 only needs to add a signed approval URL block. | **In V1.5, the notification email includes a signed approval token URL; tapping it (in any device's Gmail) signs in via Google and approves. Schema is ready — `change_log` already supports `actor_via_email`. The `gmail.send` scope is sufficient for v1; V1.5 adds nothing new server-side, only frontend + a new API route.** |
+| **D-10** | **Email-based approval (post-V1 only)** | **Superseded for V1:** Approval Queue delivery is in-app; the legacy event-driven Gmail sender is hard-disabled. Existing forward-compatible fields are inert and grant no authority. | Any later email notification or approval-link lane needs a new human-confirmed spec, artifact, action key, exact permission, tests, audit, and explicit activation. It cannot inherit authority from S19/S24 workflow communication. |
 | D-11 | Color tokens from `bluespringspropertymanagementinc.com` | Default PMI navy + gold palette; verified by implementer during setup. | Hex updates in `tokens.css`. |
 | D-12 | Test enterprise vs. production cutover | Build and pilot on implementer's enterprise (set `ALLOWED_HD=[implementer_enterprise_domain]`). At cutover, change one env var to `pmikcmetro.com`, update domain mapping, re-deploy. | If multi-tenant testing is needed, two Cloud Run services with two env configs. |
 | D-13 | Should Chastity be Editor or Approver? | **Approver in v1.** | One-field downgrade post-pilot if Dan + Bailey disagree after observation. |

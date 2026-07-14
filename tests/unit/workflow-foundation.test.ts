@@ -131,9 +131,15 @@ describe("workflow foundation repository", () => {
 
     expect(active.status).toBe("Active");
     expect(active.active_version_id).toBeTruthy();
-    await expect(
-      updateProcessDefinition(editor, active.id, { name: "Changed after active" }, db),
-    ).rejects.toThrow(/Active or retired/);
+    const nextDraft = await updateProcessDefinition(
+      editor,
+      active.id,
+      { name: "Changed after active" },
+      db,
+    );
+    expect(nextDraft.status).toBe("Draft");
+    expect(nextDraft.active_version_id).toBe(active.active_version_id);
+    expect(nextDraft.pending_queue_item_id).toBeUndefined();
 
     const fake = db as unknown as FakeFirestore;
     const version = fake.store.get(

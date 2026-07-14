@@ -38,6 +38,8 @@ const DEFAULT_EVENT_SEVERITY: AttentionSeverity = "medium";
 export interface BuildNotificationFeedInput {
   approval: readonly ApprovalQueueNotificationRecord[];
   maintenance: readonly MaintenanceTicketNotificationRecord[];
+  /** Bodyless, already-authorized Gmail workflow attention assembled server-side. */
+  gmail?: readonly UnifiedNotification[];
   /** B2 standing setup signals (connections_setup, space_coverage) — true-now state, no read_at. */
   standing?: readonly AttentionSignal[];
   /** B5 Admin-only review digest, already gated to an Admin viewer by the caller. */
@@ -80,6 +82,7 @@ export function buildNotificationFeed(
   const events = [
     ...input.approval.map(toUnifiedFromApproval),
     ...input.maintenance.map(toUnifiedFromMaintenance),
+    ...(input.gmail ?? []),
   ]
     .filter((notification) => !muted.has(notification.family))
     .sort((left, right) => right.created_at.localeCompare(left.created_at));

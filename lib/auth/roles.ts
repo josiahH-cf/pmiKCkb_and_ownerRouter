@@ -12,6 +12,9 @@ export type Capability =
   | "softDelete";
 
 const permissions: Record<Role, ReadonlySet<Capability>> = {
+  // R01: internal Editors may directly execute enabled Low/Medium work. `sendEmail`
+  // remains usable only through workflow-linked, exact-confirmed Gmail routes; it is
+  // not generic compose/send authority.
   Editor: new Set(["read", "edit", "sendEmail"]),
   Approver: new Set(["read", "edit", "approve", "sendEmail", "resolvePlaceholder"]),
   Admin: new Set([

@@ -8,7 +8,7 @@ import {
 } from "@/lib/integrations/action-gate";
 import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 
-const GMAIL_KEY = "gmail.renewal_notice.draft_create"; // flipped executable 2026-07-09 (committed DWD grant)
+const GMAIL_KEY = "gmail.draft.create";
 const GATED_KEY = "google_sheets.renewal_checklist.writeback"; // documented capability, still Planned/false
 
 function seedEntry(key: string): CreateActionRegistryInput {
@@ -18,9 +18,13 @@ function seedEntry(key: string): CreateActionRegistryInput {
 }
 
 describe("action-gate", () => {
-  it("executes the allow-listed renewal-notice draft (Approved+Documented in the committed seed)", () => {
+  it("executes the allow-listed workflow reply-draft transport", () => {
     expect(isActionExecutable(GMAIL_KEY)).toBe(true);
     expect(() => assertActionExecutable(GMAIL_KEY)).not.toThrow();
+  });
+
+  it("keeps sample-backed renewal draft initiation gated", () => {
+    expect(isActionExecutable("gmail.renewal_notice.draft_create")).toBe(false);
   });
 
   it("still refuses a gated entry with no runtime (Planned/false)", () => {

@@ -70,7 +70,7 @@ describe("approval notifications", () => {
     );
   });
 
-  it("sends through Gmail send-only boundary and records success", async () => {
+  it("cannot send when the legacy event-triggered setting is enabled", async () => {
     const logWriter = { write: vi.fn(async () => {}) };
     const sender = {
       send: vi.fn(async (input: SendInput) => {
@@ -89,20 +89,14 @@ describe("approval notifications", () => {
       sender,
     });
 
-    expect(sender.send).toHaveBeenCalledWith(
-      expect.objectContaining({
-        recipients: ["bailey@example.com", "dan@example.com"],
-        sender: "kb@example.com",
-        subject: "[KB Approval] Lease Renewals: Lease Renewal SOP",
-      }),
-    );
-    const sentInput = sender.send.mock.calls.at(0)?.[0];
-
-    expect(sentInput?.html).toContain(
-      "The KB does not send owner, tenant, vendor, or applicant email.",
-    );
+    expect(sender.send).not.toHaveBeenCalled();
     expect(logWriter.write).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "Sent" }),
+      expect.objectContaining({
+        status: "Skipped",
+        error: expect.stringContaining(
+          "Automatic Gmail approval notifications are disabled",
+        ),
+      }),
     );
   });
 

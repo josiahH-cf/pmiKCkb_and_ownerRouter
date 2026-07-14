@@ -5,15 +5,17 @@ Use it before older demo docs or preserved specs.
 
 ## Active Lanes
 
-| Product lane        | Read first               | Current state                                                                |
-| ------------------- | ------------------------ | ---------------------------------------------------------------------------- |
-| PMI KC KB           | `pmi-kc-kb.md`           | Existing source-backed web app runtime and demo                              |
-| Lease Renewal Agent | `lease-renewal-agent.md` | Separate product track; discovery required before runtime work               |
-| Gmail Inbox 0       | `gmail-inbox-zero.md`    | Dan-email-first Gmail workflow, successor to Owner Router/Dan's AI Assistant |
+| Product lane            | Read first               | Current state                                                   |
+| ----------------------- | ------------------------ | --------------------------------------------------------------- |
+| PMI KC KB               | `pmi-kc-kb.md`           | Deployed shared runtime; S20–S27 external-V1 gaps remain        |
+| Lease Renewal Agent     | `lease-renewal-agent.md` | Read/reconcile/review built; every S25 action is final-V1 scope |
+| Workflow Communications | `gmail-inbox-zero.md`    | Workflow-linked Gmail adapter built; S22/S24/S25/S26 remain     |
 
 ### Lease Renewal lane — sub-docs
 
-- [`lease-renewal-build-plan.md`](lease-renewal-build-plan.md) — **build-ready roadmap / "continue with feature development" entry point**: done-state, the zero-cost Phase-1 units, the open-questions & blockers register, and the two-track prod-cutover plan.
+- [`lease-renewal-build-plan.md`](lease-renewal-build-plan.md) — historical Phase-1 engine design;
+  its old status/test counts/blocker register are not the current resume point. Start from
+  `docs/loop-state.md`, `docs/plan.md`, and the current product/spec docs.
 - [`lease-renewal-discovery-reference.md`](lease-renewal-discovery-reference.md) — sanitized renewal process reference (end-to-end).
 - [`move-in-move-out-process.md`](move-in-move-out-process.md) — tenant move-in / move-out lifecycles + how they connect.
 - [`lease-renewal-connector-design.md`](lease-renewal-connector-design.md) — read-only sheet connector + conflict reconciliation + admin-enabled, suggest-then-button-press write-back (§4.0).
@@ -30,8 +32,12 @@ Use it before older demo docs or preserved specs.
   lease-renewal writeback is undocumented and stays gated.
 - Preserve original specs in `docs/specs/`, but do not let older repo-boundary language
   override the monorepo governance in `docs/north-star.md`.
-- Do not build runtime code for Lease Renewal Agent or Gmail Inbox 0 until their
-  requirements, permissions, and acceptance gates are confirmed in the product doc.
+- Do not add a new runtime action or widen an existing one for Lease Renewal Agent or Workflow
+  Communications until that exact action's requirements, permissions, and acceptance gates are
+  confirmed. Preserve the already-built, separately gated app-plane/runtime foundations.
+- The final owner contract is R01–R09. Run implementation from
+  `docs/v1-gap-implementation-program-2026-07-14.md` and S20–S27; do not reopen resolved product
+  choices or treat them as standing live-action authority.
 - Stop local product-surface expansion once the remaining blockers are client-owned
   migration, production setup, approved sources, or real product decisions; keep only
   readiness, verification, docs, and regression-fix work moving.

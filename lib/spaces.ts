@@ -50,7 +50,11 @@ export const launchSpaces: readonly LaunchSpace[] = [
     name: "Vendor Assignment Handoff",
     processCategory: "Maintenance",
   },
-  { id: "daily-inbox-triage", name: "Daily Inbox Triage", processCategory: "Inbox" },
+  {
+    id: "daily-inbox-triage",
+    name: "Daily Workflow Communication Review",
+    processCategory: "Communications",
+  },
   { id: "fathom-training", name: "Fathom Training", processCategory: "Training" },
   { id: "escalation-rules", name: "Escalation Rules", processCategory: "Escalation" },
   {
@@ -68,8 +72,8 @@ export const launchSpaces: readonly LaunchSpace[] = [
   { id: "owner-onboarding", name: "Owner Onboarding", processCategory: "Onboarding" },
   {
     id: "owner-email",
-    name: "Owner Email",
-    processCategory: "Owner Email",
+    name: "Workflow Communications",
+    processCategory: "Communications",
     readOnly: true,
   },
 ] as const;

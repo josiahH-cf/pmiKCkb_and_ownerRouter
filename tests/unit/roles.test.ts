@@ -7,6 +7,11 @@ describe("role permissions", () => {
     expect(can("Approver", "approve")).toBe(true);
   });
 
+  it("allows Editor human-confirmed workflow communication without approval authority", () => {
+    expect(can("Editor", "sendEmail")).toBe(true);
+    expect(can("Editor", "approve")).toBe(false);
+  });
+
   it("limits admin-only capabilities", () => {
     expect(can("Approver", "manageAdmin")).toBe(false);
     expect(can("Admin", "manageAdmin")).toBe(true);

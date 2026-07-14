@@ -13,6 +13,7 @@ interface QueueBulkPanelProps {
   bulkAssigneeUid: string;
   bulkPreview: {
     highRiskApprovals: number;
+    linkedHighRiskApprovals: number;
     knownSkipped: number;
     ready: number;
   };
@@ -115,7 +116,8 @@ export function QueueBulkPanel({
             />
           </label>
         ) : null}
-        {requiresBulkReason(bulkAction) ? (
+        {requiresBulkReason(bulkAction) ||
+        (bulkAction === "approve" && bulkPreview.linkedHighRiskApprovals > 0) ? (
           <label className="queue-bulk-reason">
             Reason
             <textarea

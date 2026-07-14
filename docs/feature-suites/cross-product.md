@@ -1,13 +1,13 @@
-# S7 — Cross-product integration (Gmail Inbox 0 + cross-lane glue)
+# S7 — Cross-product integration (Workflow Communications + cross-lane glue)
 
-**Goal.** Connect the processes: Gmail labels / zero-inbox routing; auto-assign maintenance for
+**Goal.** Connect the processes: workflow-linked Gmail labels/attention; auto-assign maintenance for
 move-outs/walkthroughs; lease-renewal non-response notifications that offer to draft an email; and
 improving the connections themselves — all under human-send authority and per-action gates.
 
 **What it is / how it functions.** Four thin, gated threads:
 
-- **Gmail labels / Inbox 0** — route owner-relevant mail to labeled folders (read/label, not autonomous
-  send). Builds on the existing send-only notification path; reading/labeling is new and gated.
+- **Workflow Gmail labels/attention** — label only an explicitly linked renewal/maintenance thread and
+  create value-free attention for a linked reply. The legacy notification sender is disabled.
 - **Auto-assign maintenance for move-outs/walkthroughs** — when a move-out/walkthrough is detected,
   propose a maintenance work order (ties to S4); human approves.
 - **Renewal non-response notifications** — when a renewal gets no tenant response in the window, notify
@@ -32,7 +32,7 @@ improving the connections themselves — all under human-send authority and per-
 3. _Build:_ Connection Center Phase-2b read-only verification + honest status copy.
 4. _Build:_ renewal non-response detection → notify → offer-to-draft (compose via S5).
 5. _Build:_ move-out/walkthrough → propose maintenance work order (via S4).
-6. _Build (gated):_ Gmail labeling / zero-inbox behind approval.
+6. _Build (gated):_ approved Gmail labeling and linked-reply attention behind workflow authorization.
 7. _Context update:_ register each capability + gate in `docs/facts.md` and the Action Registry.
 
 **Deletion/merge recommendation.** KEEP. No merge (distinct flows). Strictly gate every external action.

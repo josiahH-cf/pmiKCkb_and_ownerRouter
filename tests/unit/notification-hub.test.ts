@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   listApprovalQueueNotifications: vi.fn(),
   listMaintenanceTicketNotifications: vi.fn(),
+  listGmailWorkflowNotifications: vi.fn(async () => []),
   getNotificationPreferences: vi.fn(),
   resolveConnectionsState: vi.fn(() => ({
     query: "connections",
@@ -34,6 +35,9 @@ vi.mock("@/lib/firestore/approval-queue-notifications", () => ({
 }));
 vi.mock("@/lib/firestore/maintenance-ticket-notifications", () => ({
   listMaintenanceTicketNotifications: mocks.listMaintenanceTicketNotifications,
+}));
+vi.mock("@/lib/gmail-hub/notifications", () => ({
+  listGmailWorkflowNotifications: mocks.listGmailWorkflowNotifications,
 }));
 vi.mock("@/lib/firestore/notification-preferences", async (importOriginal) => {
   const actual = await importOriginal<object>();
@@ -88,6 +92,7 @@ describe("loadNotificationHub — Admin-only review digest (AC-S17-6)", () => {
   function seedReviewData() {
     mocks.listApprovalQueueNotifications.mockResolvedValue([]);
     mocks.listMaintenanceTicketNotifications.mockResolvedValue([]);
+    mocks.listGmailWorkflowNotifications.mockResolvedValue([]);
     mocks.getNotificationPreferences.mockResolvedValue(prefs());
     // One High corrected_value override + two returned write-backs → a non-empty digest.
     mocks.listAllLeaseRenewalResolutions.mockResolvedValue([
@@ -190,11 +195,12 @@ describe("notification hub source guards", () => {
     return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   }
 
-  it("hub.ts imports no RentVine, Sheet, or Gmail client", () => {
+  it("hub.ts imports no RentVine, Sheet, or Gmail transport client", () => {
     const source = stripComments(read("../../lib/notifications/hub.ts"));
     expect(source).not.toMatch(/rentvine/i);
     expect(source).not.toMatch(/google-sheets|googleapis|sheets-read/i);
-    expect(source).not.toMatch(/gmail/i);
+    expect(source).not.toMatch(/gmail-runtime|GmailRuntimeClient|gmailapis/i);
+    expect(source).toMatch(/gmail-hub\/notifications/);
   });
 
   // AC-S17-1 (page hardening): the hub page authenticates BEFORE it loads any data, and renders under a

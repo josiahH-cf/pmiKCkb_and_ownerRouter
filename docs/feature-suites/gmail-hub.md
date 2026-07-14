@@ -3,9 +3,10 @@
 # S15 — Gmail hub (drafts, templates, summaries) built to-the-gate
 
 > Historical shipped scope. S19 (`docs/feature-suites/gmail-live-per-user.md`) supersedes D3 as the
-> Gmail Hub final-state direction on 2026-07-13. Keep S15's pasted-text tools and browser-only chain as
-> the clearly separated fallback; do not use this historical no-read cycle fence to block the S19 local
-> runtime build or to authorize any live Gmail action.
+> live transport direction on 2026-07-13, and the 2026-07-14 S19 re-scope supersedes the general
+> mailbox-workspace/product-surface direction. Keep S15's pasted-text tools and browser-only chain as
+> an Admin-only synthetic fallback. Its sample “Approved” rules/templates are demonstration data, not
+> production-approved workflow artifacts and cannot authorize a live Gmail action.
 >
 > New 2026-07-10 (operator note). Owner decision **D3 (2026-07-10)**: build the Gmail workflow HUB
 > app-plane **TO-THE-GATE** now, and do NOT request any Gmail READ scope this cycle. Every

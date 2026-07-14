@@ -55,28 +55,33 @@ describe("notification preferences", () => {
     expect(prefs.uid).toBe("editor-1");
   });
 
-  it("writes only to the actor's own doc, keeps only available family mutes, and pins email off", async () => {
+  it("writes only to the actor's own doc, accepts workflow families, and pins email off", async () => {
     const { db, store } = fakeDb();
     const saved = await updateNotificationPreferences(
       actor,
-      { muted_families: ["maintenance_tickets", "rentvine_replies"] },
+      { muted_families: ["maintenance_tickets", "maintenance_communications"] },
       db,
     );
 
-    // Stubbed Gmail-dependent family is dropped; the available one is kept.
-    expect(saved.muted_families).toEqual(["maintenance_tickets"]);
+    expect(saved.muted_families).toEqual([
+      "maintenance_tickets",
+      "maintenance_communications",
+    ]);
     expect(saved.email_enabled).toBe(false);
 
     const bucket = store.get(COLLECTION)!;
     expect([...bucket.keys()]).toEqual(["editor-1"]);
     expect(bucket.get("editor-1")).toMatchObject({
       uid: "editor-1",
-      muted_families: ["maintenance_tickets"],
+      muted_families: ["maintenance_tickets", "maintenance_communications"],
       email_enabled: false,
     });
 
     const readBack = await getNotificationPreferences(actor, db);
-    expect(readBack.muted_families).toEqual(["maintenance_tickets"]);
+    expect(readBack.muted_families).toEqual([
+      "maintenance_tickets",
+      "maintenance_communications",
+    ]);
   });
 
   it("preserves created_at and bumps updated_at on a second update", async () => {

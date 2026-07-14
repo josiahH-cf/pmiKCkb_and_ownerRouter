@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { isActionExecutable } from "@/lib/integrations/action-gate";
 
-describe("S19 Gmail action gate (AC-S19-2, AC-S19-8)", () => {
-  it("opens the owner-approved Gmail actions", () => {
-    expect(isActionExecutable("gmail.renewal_notice.draft_create")).toBe(true);
+describe("Workflow Communications action gate (AC-GW-4, AC-GW-5)", () => {
+  it("opens only workflow-bounded Gmail transport actions", () => {
+    expect(isActionExecutable("gmail.renewal_notice.draft_create")).toBe(false);
     expect(isActionExecutable("gmail.label.apply")).toBe(true);
     expect(isActionExecutable("gmail.draft.create")).toBe(true);
     expect(isActionExecutable("gmail.mailbox.read")).toBe(true);
-    expect(isActionExecutable("gmail.message.send")).toBe(true);
+    expect(isActionExecutable("gmail.message.send")).toBe(false);
     expect(isActionExecutable("gmail.thread.reply")).toBe(true);
   });
 

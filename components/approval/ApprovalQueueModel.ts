@@ -5,7 +5,7 @@ import type {
   ApprovalQueueItemRecord,
 } from "@/lib/firestore/types";
 
-export type QueueActionMode = "assign" | "disable" | "return" | "snooze";
+export type QueueActionMode = "approve" | "assign" | "disable" | "return" | "snooze";
 export type BulkActionMode =
   | "approve"
   | "assign"
@@ -70,9 +70,16 @@ export function previewBulkAction(
     action === "approve"
       ? selectedItems.filter((item) => item.risk === "High").length
       : 0;
+  const linkedHighRiskApprovals =
+    action === "approve"
+      ? selectedItems.filter(
+          (item) => item.risk === "High" && Boolean(item.action_execution_id),
+        ).length
+      : 0;
 
   return {
     highRiskApprovals,
+    linkedHighRiskApprovals,
     knownSkipped,
     ready: selectedItems.length - knownSkipped,
   };

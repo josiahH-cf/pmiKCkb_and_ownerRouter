@@ -145,6 +145,7 @@ describe("cheap live setup scripts", () => {
     expect(command.args).toContain("--allow-unauthenticated");
     expect(command.args).toContain("--memory=512Mi");
     expect(command.args.join(" ")).toContain("ASK_DEMO_MODE=false");
+    expect(command.args.join(" ")).toContain("CONSOLE_TEST_DEPLOYMENT_NAME=");
     expect(command.args.join(" ")).toContain(`GEMINI_MODEL_ANSWER=${CHEAP_LIVE_MODEL}`);
     expect(command.args.join(" ")).toContain("VERTEX_SEARCH_LOCATION=us");
     expect(command.args.join(" ")).toContain("LOCAL_DEMO_AUTH=false");
@@ -480,6 +481,7 @@ describe("cheap live setup scripts", () => {
       ALLOWED_HD: "pmikcmetro.com",
       APP_BASE_URL: "http://localhost:3000",
       ASK_DEMO_MODE: "true",
+      CONSOLE_TEST_DEPLOYMENT_NAME: "test-staging-1",
       FIREBASE_PROJECT_ID: "pmikckb-test",
       GCP_PROJECT_ID: "pmikckb-test",
       LOCAL_DEMO_AUTH: "true",
@@ -500,6 +502,9 @@ describe("cheap live setup scripts", () => {
       "GCP_PROJECT_ID must not point at demo project pmikckb-test.",
     );
     expect(result.errors).toContain("ASK_DEMO_MODE must be false for client-production.");
+    expect(result.errors).toContain(
+      "CONSOLE_TEST_DEPLOYMENT_NAME must be empty for client-production.",
+    );
     expect(result.errors).toContain(
       "LOCAL_DEMO_AUTH must be false for client-production.",
     );

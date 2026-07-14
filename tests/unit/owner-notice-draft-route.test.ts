@@ -80,36 +80,37 @@ describe("owner-notice-draft route", () => {
     expect(GmailRuntimeClient).not.toHaveBeenCalled();
   });
 
-  it("gate closed → typed 'needs_gmail_access' refusal with the draft, no Gmail client", async () => {
+  it("returns a sample-data preview and never constructs Gmail", async () => {
     setEditor();
     vi.mocked(isActionExecutable).mockReturnValue(false);
     const response = await POST(req({ leaseId: "lease-known" }));
     expect(response.status).toBe(200);
     const payload = await response.json();
     expect(payload.enabled).toBe(false);
-    expect(payload.status).toBe("needs_gmail_access");
+    expect(payload.status).toBe("preview_only");
+    expect(payload.execution_allowed).toBe(false);
     expect(payload.request.to).toBe("owner@example.com");
     expect(GmailRuntimeClient).not.toHaveBeenCalled();
   });
 
-  it("gate open → creates the unsent draft via the Gmail client", async () => {
+  it("cannot be activated by opening the historical Action Registry gate", async () => {
     setEditor();
     vi.mocked(isActionExecutable).mockReturnValue(true);
     const response = await POST(req({ leaseId: "lease-known" }));
     expect(response.status).toBe(200);
     const payload = await response.json();
-    expect(payload.enabled).toBe(true);
-    expect(payload.status).toBe("draft_created");
-    expect(payload.draftId).toBe("draft_1");
-    expect(GmailRuntimeClient).toHaveBeenCalledTimes(1);
-    // Impersonate the SIGNED-IN user (never a fixed mailbox), and pass the composed draft verbatim.
-    expect(GmailRuntimeClient).toHaveBeenCalledWith({
-      subject: "josiah@pmikcmetro.com",
-    });
-    expect(createDraftMock).toHaveBeenCalledWith({
-      to: "owner@example.com",
-      subject: "Renewal notice",
-      body: "Draft — Review before sending\n\nHello",
-    });
+    expect(payload.enabled).toBe(false);
+    expect(payload.status).toBe("preview_only");
+    expect(GmailRuntimeClient).not.toHaveBeenCalled();
+    expect(createDraftMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a browser-supplied owner recipient", async () => {
+    setEditor();
+    const response = await POST(
+      req({ leaseId: "lease-known", ownerEmail: "owner@example.com" }),
+    );
+    expect(response.status).toBe(400);
+    expect(GmailRuntimeClient).not.toHaveBeenCalled();
   });
 });

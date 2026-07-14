@@ -98,7 +98,7 @@ describe("NotificationMenu", () => {
     );
   });
 
-  it("renders Gmail-dependent families as awaiting event rules, not mailbox access", async () => {
+  it("renders workflow-specific Gmail attention as available in-app families", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
       "fetch",
@@ -110,11 +110,11 @@ describe("NotificationMenu", () => {
 
     expect(screen.getByText("No unread event notifications.")).toBeInTheDocument();
     expect(
-      screen.getByText("RentVine replies: Mailbox event rules not configured"),
-    ).toBeInTheDocument();
+      screen.getByRole("checkbox", { name: "Renewal communications" }),
+    ).toBeChecked();
     expect(
-      screen.getByText("Owner replies: Mailbox event rules not configured"),
-    ).toBeInTheDocument();
+      screen.getByRole("checkbox", { name: "Maintenance communications" }),
+    ).toBeChecked();
   });
 
   it("mutes an available family through the preferences endpoint", async () => {
@@ -231,21 +231,20 @@ function familyViews(): NotificationFamilyView[] {
       muted: false,
     },
     {
-      key: "rentvine_replies",
-      label: "RentVine replies",
-      description: "Replies on RentVine conversations you are working.",
-      available: false,
+      key: "renewal_communications",
+      label: "Renewal communications",
+      description: "Value-free attention for replies on linked renewal communication.",
+      available: true,
       lane: "decision",
-      unavailableReason: "Mailbox event rules not configured",
       muted: false,
     },
     {
-      key: "owner_process_replies",
-      label: "Owner replies",
-      description: "Owner replies to process emails you sent.",
-      available: false,
+      key: "maintenance_communications",
+      label: "Maintenance communications",
+      description:
+        "Value-free attention for replies on linked maintenance communication.",
+      available: true,
       lane: "decision",
-      unavailableReason: "Mailbox event rules not configured",
       muted: false,
     },
   ];

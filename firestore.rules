@@ -218,6 +218,17 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // S20 execution authority is server-only. The browser receives bounded projections through
+    // authenticated workflow routes; it can never forge risk, approval, preview hash, attempt count,
+    // outcome, or append-only Activity by writing Firestore directly.
+    match /action_executions/{executionId} {
+      allow read, write: if false;
+    }
+
+    match /action_execution_activity/{activityId} {
+      allow read, write: if false;
+    }
+
     // Workflow-control foundation records are written server-side only. Client
     // writes stay denied so simulation-only and activation gates cannot be bypassed.
     match /process_definitions/{definitionId} {
@@ -382,6 +393,41 @@ service cloud.firestore {
     }
 
     match /gmail_sync_audit/{auditId} {
+      allow read, write: if false;
+    }
+
+    // Bodyless Gmail-to-workflow links and their append-only audit are also server-only. Route-level
+    // authorization checks the referenced renewal/maintenance entity before returning a projection.
+    match /gmail_workflow_communications/{communicationId} {
+      allow read, write: if false;
+    }
+
+    match /gmail_workflow_communication_audit/{auditId} {
+      allow read, write: if false;
+    }
+
+    // S21 trusted publication is entirely server-owned. Policy changes require the
+    // route-level manageAdmin gate; validated versions, Active pointers, and bodyless
+    // audits are one transaction that no browser client may forge or rewrite.
+    match /publication_policies/{policyId} {
+      allow read: if signedIn() && admin();
+      allow create, update, delete: if false;
+    }
+
+    match /publication_policy_audit/{auditId} {
+      allow read: if signedIn() && admin();
+      allow create, update, delete: if false;
+    }
+
+    match /publication_resources/{resourceId} {
+      allow read, write: if false;
+    }
+
+    match /publication_versions/{versionId} {
+      allow read, write: if false;
+    }
+
+    match /publication_audit/{auditId} {
       allow read, write: if false;
     }
 

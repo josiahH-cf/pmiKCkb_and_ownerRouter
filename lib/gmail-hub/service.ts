@@ -1,18 +1,28 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
+import { v7 as uuidv7 } from "uuid";
 
-import type { AuthenticatedUser } from "@/lib/auth/session";
+import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
+import { DRAFT_BANNER } from "@/lib/constants";
 import {
+  ApplyGmailLabelSchema,
   assertAuthenticatedSender,
   GmailOutgoingMessageSchema,
   hashConfirmationToken,
   hashGmailPayload,
-  PrepareGmailMessageSchema,
   type PrepareGmailMessageInput,
+  WorkflowPrepareGmailMessageSchema,
+  type WorkflowPrepareGmailMessageInput,
 } from "@/lib/gmail-hub/contracts";
 import type {
   GmailConfirmationRecord,
   GmailStateStore,
 } from "@/lib/gmail-hub/state-store";
+import { gmailMailboxKey } from "@/lib/gmail-hub/state-store";
+import {
+  workflowActionContextKey,
+  type WorkflowCommunicationContext,
+  type WorkflowCommunicationLink,
+} from "@/lib/gmail-hub/workflow-context";
 import {
   createRfcMessageId,
   GmailRuntimeClient,
@@ -21,9 +31,10 @@ import {
 import type {
   GmailOutgoingMessage,
   GmailSendResult,
-  GmailThreadList,
   GmailThreadView,
 } from "@/lib/gmail-runtime/types";
+import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
+import { validatePreviewPayload } from "@/lib/integrations/preview-payload";
 
 export const GMAIL_HUB_ACTIONS = {
   read: "gmail.mailbox.read",
@@ -39,6 +50,8 @@ export interface GmailHubServiceDependencies {
   isActionExecutable(action: string): boolean;
   now?(): number;
   createToken?(): string;
+  workflowLinkTtlDays?: number;
+  isApprovedWorkflowTemplate?(context: WorkflowCommunicationContext): boolean;
 }
 
 export class GmailHubService {
@@ -96,33 +109,78 @@ export class GmailHubService {
     };
   }
 
-  async listThreads(
-    options: {
-      pageToken?: string;
-      q?: string;
-    } = {},
-  ): Promise<GmailThreadList> {
+  async listCommunications(): Promise<WorkflowCommunicationLink[]> {
     this.assertExecutable(GMAIL_HUB_ACTIONS.read);
-    return this.dependencies.client.listThreads({
-      maxResults: 20,
-      labelIds: ["INBOX"],
-      q: options.q?.trim() || "in:inbox newer_than:30d",
-      ...(options.pageToken ? { pageToken: options.pageToken } : {}),
-    });
+    const nowMs = this.now();
+    return (
+      await this.dependencies.store.listCommunicationLinks(this.mailboxEmail)
+    ).filter(
+      (link) =>
+        link.actor_uid === this.actor.uid &&
+        hasSpaceAccess(this.actor, link.lane) &&
+        link.expires_at_ms > nowMs,
+    );
   }
 
-  async getThread(threadId: string): Promise<GmailThreadView> {
+  async linkExistingThread(input: {
+    context: WorkflowCommunicationContext;
+    threadId: string;
+    reason: string;
+  }) {
     this.assertExecutable(GMAIL_HUB_ACTIONS.read);
+    this.assertContextAction(input.context, GMAIL_HUB_ACTIONS.read);
+    if (!input.reason.trim()) {
+      throw new GmailHubError("A reason is required to link a Gmail thread.", 409);
+    }
+    // The targeted read proves the opaque id belongs to this signed-in mailbox. Its content is returned
+    // transiently by Gmail but is neither logged nor persisted by the link operation.
+    const thread = await this.dependencies.client.getThread(input.threadId);
+    await this.saveCommunicationLink(input.context, {
+      threadId: thread.id,
+      status: "linked",
+      reasonHash: hashOperationalReason(input.reason),
+    });
+    return { status: "linked" as const, threadId: thread.id };
+  }
+
+  async getThread(
+    threadId: string,
+    context: WorkflowCommunicationContext,
+  ): Promise<GmailThreadView> {
+    this.assertExecutable(GMAIL_HUB_ACTIONS.read);
+    this.assertContextAction(context, GMAIL_HUB_ACTIONS.read);
+    await this.assertLinkedThread(threadId, context);
     return this.dependencies.client.getThread(threadId);
   }
 
-  async createDraft(input: PrepareGmailMessageInput) {
+  async createDraft(input: WorkflowPrepareGmailMessageInput) {
     this.assertExecutable(GMAIL_HUB_ACTIONS.draft);
-    const payload = await this.buildOutgoingPayload(
-      PrepareGmailMessageSchema.parse(input),
-    );
+    const parsed = WorkflowPrepareGmailMessageSchema.parse(input);
+    this.assertContextAction(parsed.context, GMAIL_HUB_ACTIONS.draft);
+    if (parsed.message.kind !== "reply" || !parsed.context.templateRef) {
+      throw new GmailHubError(
+        "Workflow Gmail drafts require a linked thread and approved template reference.",
+        409,
+      );
+    }
+    this.assertApprovedTemplate(parsed.context);
+    await this.assertLinkedThread(parsed.message.threadId, parsed.context);
+    assertRegistryPreview(GMAIL_HUB_ACTIONS.draft, {
+      thread_ref: parsed.message.threadId,
+      workflow_context: workflowActionContextKey(parsed.context),
+      template_ref: parsed.context.templateRef,
+      draft_body: parsed.message.body,
+      draft_banner_present: parsed.message.body.startsWith(DRAFT_BANNER),
+    });
+    const payload = await this.buildOutgoingPayload(parsed.message, parsed.context);
     assertAuthenticatedSender(payload, this.mailboxEmail);
     const result = await this.dependencies.client.createDraft(payload);
+    await this.saveCommunicationLink(parsed.context, {
+      draftId: result.draftId,
+      messageId: result.messageId,
+      threadId: result.threadId ?? parsed.message.threadId,
+      status: "draft_created",
+    });
     return {
       status: "draft_created" as const,
       draftId: result.draftId,
@@ -131,13 +189,29 @@ export class GmailHubService {
     };
   }
 
-  async prepareSendConfirmation(input: PrepareGmailMessageInput) {
-    const parsed = PrepareGmailMessageSchema.parse(input);
-    this.assertExecutable(
-      parsed.kind === "reply" ? GMAIL_HUB_ACTIONS.reply : GMAIL_HUB_ACTIONS.send,
-    );
-    const payload = await this.buildOutgoingPayload(parsed);
+  async prepareSendConfirmation(input: WorkflowPrepareGmailMessageInput) {
+    const parsed = WorkflowPrepareGmailMessageSchema.parse(input);
+    if (parsed.message.kind !== "reply" || !parsed.context.templateRef) {
+      throw new GmailHubError(
+        "New-message sending is not exposed by Workflow Communications; use an approved unsent workflow draft.",
+        409,
+      );
+    }
+    this.assertExecutable(GMAIL_HUB_ACTIONS.reply);
+    this.assertContextAction(parsed.context, GMAIL_HUB_ACTIONS.reply);
+    this.assertApprovedTemplate(parsed.context);
+    const payload = await this.buildOutgoingPayload(parsed.message, parsed.context);
     assertAuthenticatedSender(payload, this.mailboxEmail);
+    assertRegistryPreview(GMAIL_HUB_ACTIONS.reply, {
+      workflow_context: workflowActionContextKey(parsed.context),
+      template_ref: parsed.context.templateRef,
+      from: payload.from,
+      recipients: [...payload.to, ...payload.cc, ...payload.bcc].join(", "),
+      subject: payload.subject,
+      body: payload.body,
+      thread_ref: payload.threadId,
+      rfc_message_id: payload.messageId,
+    });
     const confirmationToken = this.createToken();
     const id = hashConfirmationToken(confirmationToken);
     const nowMs = this.now();
@@ -147,7 +221,13 @@ export class GmailHubService {
       mailbox_email: this.mailboxEmail,
       payload_hash: hashGmailPayload(payload),
       message_id: payload.messageId,
-      message_kind: parsed.kind,
+      message_kind: parsed.message.kind,
+      workflow_context_key: workflowActionContextKey(parsed.context),
+      workflow_lane: parsed.context.lane,
+      workflow_entity_type: parsed.context.entityType,
+      workflow_entity_id: parsed.context.entityId,
+      workflow_purpose: parsed.context.purpose,
+      template_ref: parsed.context.templateRef,
       state: "pending",
       expires_at_ms: nowMs + 10 * 60 * 1000,
       created_at_ms: nowMs,
@@ -155,6 +235,7 @@ export class GmailHubService {
     };
     await this.dependencies.store.createConfirmation(record);
     return {
+      context: parsed.context,
       confirmationToken,
       expiresAt: new Date(record.expires_at_ms).toISOString(),
       payload,
@@ -162,20 +243,25 @@ export class GmailHubService {
   }
 
   async sendConfirmed(input: {
+    context: WorkflowCommunicationContext;
     confirmationToken: string;
     payload: GmailOutgoingMessage;
   }): Promise<{ status: "sent"; result: GmailSendResult; duplicate: boolean }> {
     const payload = GmailOutgoingMessageSchema.parse(input.payload);
     assertAuthenticatedSender(payload, this.mailboxEmail);
-    this.assertExecutable(
-      payload.threadId ? GMAIL_HUB_ACTIONS.reply : GMAIL_HUB_ACTIONS.send,
-    );
+    if (!payload.threadId) {
+      throw new GmailHubError("Workflow Communications sends linked replies only.", 409);
+    }
+    this.assertExecutable(GMAIL_HUB_ACTIONS.reply);
+    this.assertContextAction(input.context, GMAIL_HUB_ACTIONS.reply);
+    const linked = await this.assertLinkedThread(payload.threadId, input.context);
     const id = hashConfirmationToken(input.confirmationToken);
     const nowMs = this.now();
     const claim = await this.dependencies.store.claimConfirmation({
       id,
       actorUid: this.actor.uid,
       payloadHash: hashGmailPayload(payload),
+      workflowContextKey: workflowActionContextKey(input.context),
       nowMs,
     });
 
@@ -202,6 +288,13 @@ export class GmailHubService {
         result,
         nowMs: this.now(),
       });
+      await this.dependencies.store.saveCommunicationLink({
+        ...linked,
+        status: "sent",
+        gmail_message_id: result.messageId,
+        gmail_thread_id: result.threadId,
+        updated_at_ms: this.now(),
+      });
       return { status: "sent", result, duplicate: false };
     } catch (error) {
       const ambiguous = !(error instanceof GmailRuntimeError) || error.ambiguous;
@@ -223,11 +316,16 @@ export class GmailHubService {
     }
   }
 
-  async reconcileSend(confirmationToken: string) {
+  async reconcileSend(confirmationToken: string, context: WorkflowCommunicationContext) {
     this.assertExecutable(GMAIL_HUB_ACTIONS.read);
+    this.assertContextAction(context, GMAIL_HUB_ACTIONS.reply);
     const id = hashConfirmationToken(confirmationToken);
     const record = await this.dependencies.store.getConfirmation(id);
-    if (!record || record.actor_uid !== this.actor.uid) {
+    if (
+      !record ||
+      record.actor_uid !== this.actor.uid ||
+      record.workflow_context_key !== workflowActionContextKey(context)
+    ) {
       throw new GmailHubError("Gmail confirmation was not found for this user.", 403);
     }
     if (record.state === "sent" && record.gmail_message_id && record.gmail_thread_id) {
@@ -278,28 +376,58 @@ export class GmailHubService {
     return watch;
   }
 
-  async applyThreadLabel(threadId: string, labelName: string) {
+  async applyThreadLabel(
+    threadId: string,
+    input: {
+      context: WorkflowCommunicationContext;
+      label: string;
+      reason: string;
+      ruleRef: string;
+    },
+  ) {
+    const parsed = ApplyGmailLabelSchema.parse(input);
     this.assertExecutable(GMAIL_HUB_ACTIONS.label);
-    return this.dependencies.client.applyThreadLabel(threadId, labelName);
+    this.assertContextAction(parsed.context, GMAIL_HUB_ACTIONS.label);
+    const linked = await this.assertLinkedThread(threadId, parsed.context);
+    assertRegistryPreview(GMAIL_HUB_ACTIONS.label, {
+      thread_ref: threadId,
+      workflow_context: workflowActionContextKey(parsed.context),
+      suggested_label: parsed.label,
+      rule_ref: parsed.ruleRef,
+      reason: parsed.reason,
+    });
+    const result = await this.dependencies.client.applyThreadLabel(
+      threadId,
+      parsed.label,
+    );
+    await this.dependencies.store.appendWorkflowActionAudit({
+      actorUid: this.actor.uid,
+      mailboxEmail: this.mailboxEmail,
+      communicationId: linked.id,
+      context: parsed.context,
+      action: "label_applied",
+      threadId,
+      label: parsed.label,
+      ruleRef: parsed.ruleRef,
+      reasonHash: hashOperationalReason(parsed.reason),
+      nowMs: this.now(),
+    });
+    return result;
   }
 
   private async buildOutgoingPayload(
     input: PrepareGmailMessageInput,
+    context: WorkflowCommunicationContext,
   ): Promise<GmailOutgoingMessage> {
     if (input.kind === "new") {
-      return GmailOutgoingMessageSchema.parse({
-        from: this.mailboxEmail,
-        to: input.to,
-        cc: input.cc,
-        bcc: input.bcc,
-        subject: input.subject,
-        body: input.body,
-        messageId: createRfcMessageId(this.mailboxEmail),
-        references: [],
-      });
+      throw new GmailHubError(
+        "Generic new-message compose is outside the Workflow Communications boundary.",
+        409,
+      );
     }
 
     this.assertExecutable(GMAIL_HUB_ACTIONS.read);
+    await this.assertLinkedThread(input.threadId, context);
     const thread = await this.dependencies.client.getThread(input.threadId);
     const parent = thread.messages.at(-1);
     if (!parent?.messageId || !parent.subject) {
@@ -333,6 +461,98 @@ export class GmailHubService {
       throw new GmailHubGateError(action);
     }
   }
+
+  private assertContextAction(context: WorkflowCommunicationContext, expected: string) {
+    if (context.actionKey !== expected) {
+      throw new GmailHubError(
+        `Workflow Gmail context must declare action ${expected}.`,
+        409,
+      );
+    }
+    if (!hasSpaceAccess(this.actor, context.lane)) {
+      throw new GmailHubError(
+        "This user cannot access the referenced workflow space.",
+        403,
+      );
+    }
+  }
+
+  private assertApprovedTemplate(context: WorkflowCommunicationContext) {
+    if (!this.dependencies.isApprovedWorkflowTemplate?.(context)) {
+      throw new GmailHubError(
+        "That workflow reply template is not approved for production use.",
+        409,
+      );
+    }
+  }
+
+  private async assertLinkedThread(
+    threadId: string,
+    context: WorkflowCommunicationContext,
+  ): Promise<WorkflowCommunicationLink> {
+    const link = await this.dependencies.store.findCommunicationLink({
+      mailboxEmail: this.mailboxEmail,
+      threadId,
+      context,
+    });
+    if (!link || link.expires_at_ms <= this.now()) {
+      throw new GmailHubError(
+        "That Gmail thread is not linked to the authorized workflow context.",
+        403,
+      );
+    }
+    return link;
+  }
+
+  private async saveCommunicationLink(
+    context: WorkflowCommunicationContext,
+    result: {
+      draftId?: string;
+      messageId?: string;
+      threadId?: string;
+      status: WorkflowCommunicationLink["status"];
+      reasonHash?: string;
+    },
+  ) {
+    const ttlDays = this.requireWorkflowLinkTtlDays();
+    const nowMs = this.now();
+    await this.dependencies.store.saveCommunicationLink({
+      id: uuidv7(),
+      actor_uid: this.actor.uid,
+      mailbox_key: gmailMailboxKey(this.mailboxEmail),
+      lane: context.lane,
+      entity_type: context.entityType,
+      entity_id: context.entityId,
+      purpose: context.purpose,
+      origin_action_key: context.actionKey,
+      source_refs: context.sourceRefs,
+      reason_hash: result.reasonHash,
+      template_ref: context.templateRef,
+      draft_id: result.draftId,
+      gmail_message_id: result.messageId,
+      gmail_thread_id: result.threadId,
+      status: result.status,
+      created_at_ms: nowMs,
+      updated_at_ms: nowMs,
+      expires_at_ms: nowMs + ttlDays * 24 * 60 * 60 * 1000,
+    });
+  }
+
+  private requireWorkflowLinkTtlDays(): number {
+    const days = this.dependencies.workflowLinkTtlDays;
+    if (days && Number.isInteger(days) && days > 0 && days <= 3_650) return days;
+    if (process.env.NODE_ENV === "production") {
+      throw new GmailHubError(
+        "Workflow communication retention must be approved before Gmail linkage can run.",
+        503,
+      );
+    }
+    return 30;
+  }
+}
+
+function hashOperationalReason(reason: string) {
+  return createHash("sha256").update(reason.trim(), "utf8").digest("hex");
 }
 
 function resolveReplyRecipient(
@@ -379,6 +599,7 @@ export async function processGmailPushNotification(input: {
     let pageToken: string | undefined;
     let cursor = mailboxState.history_id;
     let addedCount = 0;
+    const addedRefs = new Map<string, { id: string; threadId: string }>();
     for (let page = 0; page < maxHistoryPages; page += 1) {
       const result = await input.client.listHistory({
         startHistoryId: mailboxState.history_id,
@@ -386,6 +607,8 @@ export async function processGmailPushNotification(input: {
         maxResults: 100,
       });
       addedCount += result.messagesAdded.length;
+      for (const ref of result.messagesAdded)
+        addedRefs.set(`${ref.threadId}:${ref.id}`, ref);
       cursor = result.historyId;
       pageToken = result.nextPageToken;
       if (!pageToken) break;
@@ -393,15 +616,42 @@ export async function processGmailPushNotification(input: {
     if (pageToken) {
       return await boundedMailboxResync(input, now);
     }
+    const linked = await input.store.findCommunicationLinksByThreadIds({
+      mailboxEmail: input.mailboxEmail,
+      threadIds: [...new Set([...addedRefs.values()].map((ref) => ref.threadId))],
+    });
+    let matchedCount = 0;
+    for (const link of linked) {
+      const newest = [...addedRefs.values()].find(
+        (ref) => ref.threadId === link.gmail_thread_id,
+      );
+      if (!newest) continue;
+      if (newest.id === link.gmail_message_id) continue;
+      if (
+        (await input.store.markCommunicationAttention({
+          linkId: link.id,
+          messageId: newest.id,
+          nowMs: now(),
+        })) === "updated"
+      ) {
+        matchedCount += 1;
+      }
+    }
     await input.store.completePush({
       messageId: input.messageId,
       mailboxEmail: input.mailboxEmail,
       historyId: cursor,
       addedCount,
+      matchedCount,
       mode: "history",
       nowMs: now(),
     });
-    return { status: "processed" as const, addedCount, historyId: cursor };
+    return {
+      status: "processed" as const,
+      addedCount,
+      matchedCount,
+      historyId: cursor,
+    };
   } catch (error) {
     if (error instanceof GmailRuntimeError && error.status === 404) {
       try {
@@ -425,25 +675,22 @@ async function boundedMailboxResync(
   },
   now: () => number,
 ) {
-  const [profile, list] = await Promise.all([
-    input.client.getProfile(),
-    input.client.listThreads({
-      maxResults: 20,
-      labelIds: ["INBOX"],
-      q: "in:inbox newer_than:30d",
-    }),
-  ]);
+  // Expired history cannot justify scanning the recent inbox. Advance to the current cursor and
+  // surface zero workflow attention; linked threads will be checked by subsequent incremental events.
+  const profile = await input.client.getProfile();
   await input.store.completePush({
     messageId: input.messageId,
     mailboxEmail: input.mailboxEmail,
     historyId: profile.historyId,
-    addedCount: list.threads.length,
+    addedCount: 0,
+    matchedCount: 0,
     mode: "bounded_resync",
     nowMs: now(),
   });
   return {
     status: "bounded_resync" as const,
-    addedCount: list.threads.length,
+    addedCount: 0,
+    matchedCount: 0,
     historyId: profile.historyId,
   };
 }
@@ -480,4 +727,20 @@ function claimMessage(status: "expired" | "mismatch" | "in_progress" | "failed")
     failed: "This Gmail confirmation was already consumed by a failed attempt.",
   } as const;
   return messages[status];
+}
+
+function assertRegistryPreview(actionKey: string, payload: Record<string, unknown>) {
+  const entry = ACTION_REGISTRY_SEED.find((candidate) => candidate.key === actionKey);
+  const fields = entry?.preview_payload_schema;
+  if (!entry || !fields) {
+    throw new GmailHubError(
+      `Gmail action ${actionKey} has no governed preview schema.`,
+      409,
+    );
+  }
+  const result = validatePreviewPayload(
+    fields.map((field) => ({ ...field, required: field.required ?? false })),
+    payload,
+  );
+  if (!result.ok) throw new GmailHubError(result.errors.join(" "), 409);
 }

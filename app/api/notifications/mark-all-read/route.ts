@@ -9,6 +9,10 @@ import {
   listMaintenanceTicketNotifications,
   markMaintenanceTicketNotificationRead,
 } from "@/lib/firestore/maintenance-ticket-notifications";
+import {
+  listGmailWorkflowNotifications,
+  markGmailWorkflowNotificationRead,
+} from "@/lib/gmail-hub/notifications";
 
 // POST mark-all-read (S17 B6). Flips every UNREAD EVENT notification for the caller (approvals +
 // maintenance) to read, honoring the same self-scoped, space-scoped reads as the feed. The STANDING
@@ -41,6 +45,16 @@ export async function POST() {
       await Promise.all(
         unread.map((notification) =>
           markMaintenanceTicketNotificationRead(user, notification.id),
+        ),
+      );
+      marked += unread.length;
+    }
+
+    if (canReadRenewals || canReadMaintenance) {
+      const unread = await listGmailWorkflowNotifications(user, { unreadOnly: true });
+      await Promise.all(
+        unread.map((notification) =>
+          markGmailWorkflowNotificationRead(user, notification.id),
         ),
       );
       marked += unread.length;

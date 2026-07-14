@@ -8,15 +8,12 @@ import {
   type ConsoleProcessItem,
 } from "@/components/console/ConsoleProcessStrip";
 import { ConsoleAnticipatedWork } from "@/components/console/ConsoleAnticipatedWork";
+import { ConsoleLiveDataPanel } from "@/components/console/ConsoleLiveDataPanel";
 import type { ConnectionStatus } from "@/components/ui";
 import {
   buildAnticipatedWork,
   type AnticipatedWorkGroup,
 } from "@/lib/anticipation/projection";
-import {
-  getRenewalDeskView,
-  SAMPLE_NOTICE_REFERENCE_DATE,
-} from "@/lib/lease-renewal/sample-desk";
 import { gatherDecisionAttention } from "@/lib/attention/decision-backlog";
 import {
   resolveConnectionsState,
@@ -33,6 +30,8 @@ import {
   type SpaceCardState,
 } from "@/lib/space-card-state";
 import { launchSpaces, spaceHref } from "@/lib/spaces";
+import { resolveConsoleDataMode } from "@/lib/console/environment";
+import { loadConsoleProjection } from "@/lib/console/live-data";
 
 // Map the read-only Space card state onto a connection-style dot. Slice A keeps this dot palette
 // (connected / action / none); the richer green/red/amber/purple card-color scheme lands in Slice B.
@@ -54,6 +53,8 @@ function toDotStatus(state: SpaceCardState): ConnectionStatus {
  * stay on their own gated surfaces, reached via each card's deep link.
  */
 export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
+  const consoleMode = resolveConsoleDataMode();
+  const liveProjection = await loadConsoleProjection(user, consoleMode);
   const canStartSimulation = can(user.role, "edit");
   const canApprove = can(user.role, "approve");
   const canSeeRenewals = hasSpaceAccess(user, "renewals");
@@ -187,10 +188,13 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
 
   // Anticipated work — a read-only, request-computed projection of coming-up / due process work, each
   // one click from starting the existing human-run process. Renewals-scoped like the approvals gather;
-  // pure + non-fatal (getRenewalDeskView is deterministic sample data, never a live read this cycle).
+  // pure + non-fatal. The sample module is dynamically imported only in server-selected test mode;
+  // ordinary production never constructs it and renders live-provider failure state instead.
   let anticipatedGroups: AnticipatedWorkGroup[] = [];
-  if (canSeeRenewals) {
+  if (canSeeRenewals && consoleMode.kind === "test") {
     try {
+      const { getRenewalDeskView, SAMPLE_NOTICE_REFERENCE_DATE } =
+        await import("@/lib/lease-renewal/sample-desk");
       anticipatedGroups = buildAnticipatedWork({
         referenceDateIso: SAMPLE_NOTICE_REFERENCE_DATE,
         deskView: getRenewalDeskView(),
@@ -208,6 +212,7 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
         test run. Answers cite approved sources, and a test run never touches a system of
         record.
       </p>
+      <ConsoleLiveDataPanel projection={liveProjection} />
       <ConsoleActionDeck canApprove={canApprove} cards={cards} />
       <AskForm canStartSimulation={canStartSimulation} processes={processes} />
       <ConsoleAnticipatedWork

@@ -12,11 +12,13 @@ the `OQ-*` lease-renewal items live in the lease-renewal discovery docs (`lease-
 `lease-renewal-discovery-packet.md`); the move-in/move-out answers become new `F-MOVEIN-*` / `F-MOVEOUT-*`
 facts when their desks are specced. The build does not invent answers.
 
-Governance floor (applies to every answer): no autonomous send and no non-Gmail system-of-record
-write. The five separately governed Gmail Inbox 0 actions plus the renewal unsent-draft action are
-allowlisted; send/reply require exact human confirmation. Other Action Registry entries stay
-`production_allowed:false`. Missing facts render visible
-`Needs Verification:` markers, never invented values; identity stays `pmikcmetro.com`.
+Current execution floor (updated by the 2026-07-14 audit): no autonomous send and no newly enabled
+non-Gmail system-of-record write yet. R01–R09 make every S25/S26 Lease/Maintenance action and the S22
+external Vendor portal final-V1 scope, with risk-bounded Editor authority, TOTP/per-vendor OAuth,
+trusted publication, exact retention/artifacts, Console boundary, and staged release locked. Gmail transport retains four
+approved scopes and stays workflow-bounded. Missing facts render visible `Needs Verification:`
+markers, never invented values. Internal cloud/admin identities stay `pmikcmetro.com`; any Vendor-owned
+mailbox OAuth requires the narrow separately specified exception.
 
 ---
 
@@ -24,8 +26,10 @@ allowlisted; send/reply require exact human confirmation. Other Action Registry 
 
 1. **Q-PREC-1 — per-case manual precedence override?** _Default:_ YES, via the existing resolve flow
    (pick source / enter corrected value / "sheet is already right"); High-severity overrides need an
-   Admin approver; a plain-English reason is mandatory + logged; no self-approval; never auto-applied.
-   _Owner: client._ — **✅ ANSWERED 2026-07-01: confirmed the default (yes, via the resolve flow). Recorded as Q-PREC-1 Verified in `docs/facts.md`.**
+   Admin; a plain-English reason is mandatory + logged; never auto-applied. R01 permits Editor direct
+   Low/Medium execution, keeps consequential High work Admin-approved, and permits Admin self-approval
+   at every risk without bypassing technical Blocked conditions. _Owner: client._ —
+   **✅ ANSWERED 2026-07-01 and finalized by R01 on 2026-07-14.**
 2. **Q-WRITEBACK-METHOD — write-back method + "the math"?** (a) append-only proposal column,
    (b) cell-anchored compare-and-set, (c) RentVine-first. _**No safe default — owner must decide.**_
    Recommendation: start with (a) to earn trust at zero risk to existing cells, graduate to (b) once
@@ -48,17 +52,18 @@ allowlisted; send/reply require exact human confirmation. Other Action Registry 
    capability model; `queueActionAvailability` gates approve to Approver/Admin). Dan's nuanced per-scope
    approver delegation ("who can approve what, where") is a FUTURE admin surface, not V1. Both-out → HOLD
    stands. Recorded in `docs/facts.md` (F-RENEWAL-REVIEW-SUBTAB).**
-6. **OQ-TMPL-1 — approved owner/tenant/build-out email templates.** _Default:_ keep building against the
-   transcript scaffold; swap approved templates in on arrival (content swap, no re-architecture).
-   _Owner: client (deliver files)._ — **✅ ANSWERED 2026-07-01: confirmed the default — build against the
-   transcript scaffold for now; swap approved templates in later as a content swap. No approved template
-   files exist in the repo yet.**
+6. **OQ-TMPL-1 — approved owner/tenant/build-out email templates.** **✅ ANSWERED by R07 on
+   2026-07-14:** exact current owner-renewal, tenant-renewal, and maintenance-owner generator behavior is
+   approved as v1.0 base artifacts. S24 permits authorized verified value replacement and source-visible
+   AI rewrite that invents no fact/commitment; every send is exact-confirmed. Runtime registry/wiring is
+   not built merely because the product artifact is approved.
 7. **OQ-UI-1 — renewal review surface: extend the Approval Queue, or build a renewal run page?**
    _**No safe default — product call.**_ This is the gate where Dan reviews Phase-1 accuracy. _Owner:
    owner/design._ — **✅ ANSWERED 2026-07-01: renewal review lives _inside_ the Approval Queue (the built approve/return/assign machinery, its own logically-organized view for Dan, NOT a standalone run page and NOT un-organized into the general queue). Presentation evolved 2026-07-09 (F-APPROVAL-QUEUE-UNIFIED, Slice 4a): it moved from a peer "Renewals" tab to one of the "Other views" behind the unified urgent-first "Needs your decision" list; the value-free-triage and resolve-on-the-run-page invariants are unchanged.**
-8. **OQ-RV-1 — RentVine renewal/field-write endpoint.** _**No safe default — vendor-gated.**_ V1 ends at
-   "approved renewal package + non-executable RentVine flag"; the RentVine entry stays a human step.
-   _Owner: vendor._
+8. **OQ-RV-1 — RentVine renewal/field-write endpoint.** **Product decision answered by R02:** the app
+   must execute it in final V1; it cannot remain tracked-manual. **Implementation remains vendor-gated:**
+   S25 requires documented endpoint/payload/idempotency/read-after-write/correction evidence before any
+   registry promotion or live mutation. No endpoint guessing/browser automation. _Owner: vendor._
 
 ## Move-In (Space scaffold only — no desk; greenfield V1 definition)
 
@@ -151,20 +156,20 @@ Verification:` pointer for it; the ledger location is a genuine Dan question (ro
    _Owner: owner._ — **✅ ANSWERED 2026-07-01 (self-resolved): not a question — the folder already exists;
    this folds into the owner/budget-gated redeploy (set the env var at deploy; the S12 deploy forwards it
    and the cutover preflight requires it).**
-3. **RentVine work-order create — vendor/spec.** _**No safe default — owner/vendor.**_ Needs a
-   work-order-write-role key, the create payload + priority enum, and an approved per-action spec before
-   `production_allowed` flips. _Owner: vendor._
+3. **RentVine work-order create — vendor/spec.** **Product decision answered by R03:** the app executes
+   create plus assignment/update/close in final V1. S26 still requires the work-order-write-role key,
+   exact payload/enums/transitions, preview, idempotency, read-after-write/correction, tests, registry
+   review, and explicit live approval before `production_allowed` flips. _Owner: vendor._
 4. **Emergency-keyword list + location→unit matcher validation.** _Default:_ auto-priority stays a
    human-overridable suggestion; the team reviews the keyword list once; build the read-only RentVine
    unit matcher before enabling the create (so unit confidence is real, not user-typed). _Owner: owner._
    — **✅ ANSWERED 2026-07-01: confirmed the default (human-overridable priority suggestion; build the read-only
    RentVine unit matcher BEFORE enabling any work-order create).**
-5. **Owner-notice + Vendor-assignment stages in V1 scope?** _Default:_ V1 = human-reviewed work-order draft
-   (photos in Drive); Owner notice + Vendor assignment stay non-executable planned stages, clearly marked
-   "planned, not built." _Owner: owner._ — **✅ ANSWERED 2026-07-01 (overrides the default): BUILD both stages
-   in V1 as draft/suggest surfaces — an owner-notice DRAFT and a vendor-assignment SUGGESTION. Governance floor
-   still binds: both stay non-executable (no autonomous send, no system-of-record write); the RentVine
-   work-order create + any owner send remain human-approved/gated.**
+5. **Owner-notice + Vendor-assignment stages in V1 scope?** **✅ FINALIZED by R03/R04/R07:** both execute
+   in final V1. S22 uses Admin invite, one-time setup, verified-email TOTP, assigned-ticket-only access,
+   and the same Vendor Gmail/Workspace address via per-vendor OAuth. S24 versions the exact current
+   owner-notice base as v1.0; Vendor/Admin exactly confirms every AI-assisted send. S26 implements the
+   action chain before any gate changes.
 
 ---
 

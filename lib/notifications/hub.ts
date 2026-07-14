@@ -23,6 +23,7 @@ import { can } from "@/lib/auth/roles";
 import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { listApprovalQueueNotifications } from "@/lib/firestore/approval-queue-notifications";
 import { listMaintenanceTicketNotifications } from "@/lib/firestore/maintenance-ticket-notifications";
+import { listGmailWorkflowNotifications } from "@/lib/gmail-hub/notifications";
 import {
   getNotificationPreferences,
   toLowAlarmPreferences,
@@ -53,19 +54,23 @@ export async function loadNotificationHub(
   const canReadMaintenance = hasSpaceAccess(user, "maintenance");
   const isAdmin = can(user.role, "manageAdmin");
 
-  const [preferences, approval, maintenance, coverage, decision] = await Promise.all([
-    getNotificationPreferences(user),
-    canReadRenewals
-      ? listApprovalQueueNotifications(user, { recipientOnly: true, unreadOnly })
-      : Promise.resolve([]),
-    canReadMaintenance
-      ? listMaintenanceTicketNotifications(user, { unreadOnly })
-      : Promise.resolve([]),
-    full ? resolveCoverageState(user) : Promise.resolve(null),
-    full && canReadRenewals
-      ? gatherDecisionAttention(user)
-      : Promise.resolve({ attention: EMPTY_DECISION_ATTENTION }),
-  ]);
+  const [preferences, approval, maintenance, gmail, coverage, decision] =
+    await Promise.all([
+      getNotificationPreferences(user),
+      canReadRenewals
+        ? listApprovalQueueNotifications(user, { recipientOnly: true, unreadOnly })
+        : Promise.resolve([]),
+      canReadMaintenance
+        ? listMaintenanceTicketNotifications(user, { unreadOnly })
+        : Promise.resolve([]),
+      canReadRenewals || canReadMaintenance
+        ? listGmailWorkflowNotifications(user, { unreadOnly })
+        : Promise.resolve([]),
+      full ? resolveCoverageState(user) : Promise.resolve(null),
+      full && canReadRenewals
+        ? gatherDecisionAttention(user)
+        : Promise.resolve({ attention: EMPTY_DECISION_ATTENTION }),
+    ]);
 
   const standing: AttentionSignal[] =
     full && coverage
@@ -81,6 +86,7 @@ export async function loadNotificationHub(
   const feed = buildNotificationFeed({
     approval,
     maintenance,
+    gmail,
     standing,
     review,
     decisions: decision.attention,
@@ -96,6 +102,8 @@ export async function loadNotificationHub(
       (family) =>
         (family.key !== "approval_queue" || canReadRenewals) &&
         (family.key !== "maintenance_tickets" || canReadMaintenance) &&
+        (family.key !== "renewal_communications" || canReadRenewals) &&
+        (family.key !== "maintenance_communications" || canReadMaintenance) &&
         (family.key !== "team_review" || isAdmin),
     ),
   };

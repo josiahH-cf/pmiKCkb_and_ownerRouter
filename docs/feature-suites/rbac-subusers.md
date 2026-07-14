@@ -8,6 +8,12 @@
 > encoding; it is backward-compatible (no live re-claiming of Dan/Josiah) and fails safe to today's
 > behavior. This suite is F-ADMIN-USERS-adjacent and preserves the route-auth-boundary invariant
 > (`F-MAINT-INTAKE-PUBLIC`) by EXTENDING it, never weakening it.
+>
+> **2026-07-14 Round 2 owner direction:** final V1 includes a separate external Vendor app identity,
+> assigned-ticket-only frontend, and vendor-owned external mailbox; every AI-assisted send is
+> human-confirmed. This suite still governs managed-domain staff sub-users and must not widen `hd` by
+> inference. R04 selects Admin invite, one-time setup, verified-email TOTP, and same-address Gmail/
+> Workspace per-vendor OAuth. S22 is the separate external-Vendor suite.
 
 **Goal.** The owner wants to hand a maintenance worker a sub-user login that opens ONLY the
 Maintenance Work Order Intake surface and cannot reach lease renewal, the approval queue, or the
@@ -105,11 +111,12 @@ today's reach with zero migration.
   - Live claim assignment: minting each real maintenance sub-user is owner-run — create the
     `pmikcmetro.com` Firebase Auth account, then set `{ role, scopes }` via the manageAdmin scope
     editor (or the break-glass `firebase:set-role`-style path). The loop never assigns a live claim.
-  - The EXTERNAL-worker "Submitter" identity/onboarding — a CLIENT-owned access/identity decision. The
+  - The EXTERNAL Vendor identity/onboarding — R04 requires an authenticated, assigned-ticket-only
+    V1 portal, one-time setup, TOTP, and same-address Gmail/Workspace per-vendor OAuth. The
     `hd === pmikcmetro.com` boundary (`lib/auth/session.ts:213`) forbids outside Google accounts, so a
     third-party vendor cannot be a scoped sub-user under the current policy; outside reporters keep using
-    the anonymous HMAC public intake (`F-MAINT-INTAKE-PUBLIC`). Widening identity to admit external
-    workers is out of scope here and needs the client's decision.
+    the anonymous HMAC public intake (`F-MAINT-INTAKE-PUBLIC`). Do not widen identity outside S22's
+    narrow external-Vendor exception.
   - Deploy stays owner-run.
 
 **Open questions & assumptions.**
@@ -132,10 +139,10 @@ today's reach with zero migration.
   (`primarySpaceHref`, the default encoded here) or a dedicated "not available for your access" page.
   Default chosen; revisit only if the owner wants an explicit denial screen. (Record as `Q-RBAC-1` in
   `docs/facts.md` "## Open Questions".)
-- _Client-owned:_ the external-worker "Submitter" identity model — whether/how a non-`pmikcmetro.com`
-  worker ever gets an authenticated login vs. staying on the anonymous public intake. Route to
-  `docs/client-checklist.md` as confirm-with-default (default: no outside logins; the HMAC intake
-  remains the only external ingress). Tracked alongside the existing intake access asks.
+- _Answered 2026-07-14:_ R04/S22 requires the external Vendor portal in V1 with Admin invite, one-time
+  setup, TOTP, same-address Gmail/Workspace OAuth, assigned-ticket-only visibility, and exact human-
+  confirmed sends. The HMAC public intake remains the separate
+  reporter/tenant ingress; it is not the vendor-worker portal.
 - _Assumption:_ hard gates unchanged this cycle — no autonomous send, no SoR write, no new Google
   scope, no Cloud Scheduler, no client data on GitHub, no Action Registry flip, existing executable
   allowlist preserved, ~$10 cap; deploy owner-run.
@@ -215,8 +222,8 @@ allowlist exactly and flip no entry (this suite adds NO registry entry — it is
 F-ADMIN-USERS); no autonomous send; no system-of-record write (RentVine / Sheet / QuickBooks / bank /
 client Drive); no new Google scope; no Cloud Scheduler; no client data on GitHub; ~$10 budget cap;
 deploy stays owner-run. Suite-specific hard stops, each a falsification if violated: (1) the
-`hd === pmikcmetro.com` boundary must NOT be widened to admit outside accounts — the external
-"Submitter" stays gated and outside reporters keep the anonymous HMAC intake. (2) scopes may only
+`hd === pmikcmetro.com` boundary must NOT be widened under this suite — the vendor-worker portal needs
+its own approved identity design and outside reporters keep the anonymous HMAC intake. (2) scopes may only
 NARROW reach; a scope check must never grant a capability the `role` lattice denies. (3) the missing
 `scopes` wildcard fails safe to CURRENT behavior (ALL spaces, still bounded by role) — it must never
 fail open to MORE than role allows. (4) the route-auth-boundary invariant is EXTENDED, never weakened:
@@ -247,9 +254,9 @@ assigns a LIVE scope claim — real sub-user minting is owner-run behind `manage
    external-Submitter gate; add `Q-RBAC-1` to `docs/facts.md` Open Questions.
 8. _Verify:_ run the full command list above; falsification pass (attempt each denial and each
    backward-compat path); confirm every named sentinel stays green.
-9. _Gate / Owner:_ STOP. Hand back for owner-run live claim assignment (mint one real maintenance
-   sub-user account + set `{ role:"Editor", scopes:["maintenance"] }`) and the client decision on the
-   external Submitter; deploy owner-run.
+9. _Gate / Owner:_ STOP. Hand back for owner-run live managed-domain claim assignment (mint one real
+   maintenance sub-user account + set `{ role:"Editor", scopes:["maintenance"] }`) and the separate
+   S22 external-Vendor provider/auth implementation and live gates; deploy owner-run.
 10. _Context update:_ promote the shipped app-plane work to a `docs/facts.md` `F-RBAC-SUBUSERS` row
     citing AC-S16-1..9, and update `docs/loop-state.md` (Next Safe Slice + Stop-Condition State) at the
     slice boundary; run `npm run verify:context-freshness` and `npm run verify:spec-traceability`.

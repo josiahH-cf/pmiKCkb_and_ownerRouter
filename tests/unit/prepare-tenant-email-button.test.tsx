@@ -21,15 +21,16 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 describe("PrepareTenantEmailButton (AC-S15-6)", () => {
-  it("posts the lease id to the tenant route and renders the draft in a copyable box with no Send control", async () => {
+  it("posts only the lease id and renders a non-executable preview with no Copy or Send control", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       jsonResponse({
         enabled: false,
-        status: "needs_gmail_access",
-        reason: "Gmail access is not enabled yet.",
+        execution_allowed: false,
+        status: "preview_only",
+        reason: "Sample renewal data is an internal preview only. Do not send.",
         request: {
-          to: "tenant@example.com",
+          to: "",
           subject: "Your lease renewal",
           body: "Draft — Review before sending\n\nHere is your renewal offer.",
           missingInputs: [],
@@ -50,8 +51,7 @@ describe("PrepareTenantEmailButton (AC-S15-6)", () => {
     });
 
     expect(await screen.findByText(/Here is your renewal offer\./)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy draft" })).toBeInTheDocument();
-    // The ceiling is a review-before-send draft: there is no send control.
+    expect(screen.queryByRole("button", { name: "Copy draft" })).toBeNull();
     expect(screen.queryByRole("button", { name: /send/i })).toBeNull();
   });
 });

@@ -2,6 +2,10 @@ import { createHash } from "node:crypto";
 
 import { z } from "zod";
 
+import { DRAFT_BANNER } from "@/lib/constants";
+import { GMAIL_INBOX_ZERO_LABELS } from "@/lib/gmail-inbox-zero/constants";
+import { GMAIL_MANUAL_LABEL_RULE_REF } from "@/lib/gmail-hub/governed-artifacts";
+import { WorkflowCommunicationContextSchema } from "@/lib/gmail-hub/workflow-context";
 import type { GmailOutgoingMessage } from "@/lib/gmail-runtime/types";
 
 const EmailSchema = z
@@ -50,6 +54,16 @@ export const PrepareGmailMessageSchema = z.discriminatedUnion("kind", [
 ]);
 export type PrepareGmailMessageInput = z.output<typeof PrepareGmailMessageSchema>;
 
+export const WorkflowPrepareGmailMessageSchema = z
+  .object({
+    context: WorkflowCommunicationContextSchema,
+    message: PrepareGmailMessageSchema,
+  })
+  .strict();
+export type WorkflowPrepareGmailMessageInput = z.output<
+  typeof WorkflowPrepareGmailMessageSchema
+>;
+
 export const GmailOutgoingMessageSchema: z.ZodType<GmailOutgoingMessage> = z
   .object({
     from: EmailSchema,
@@ -67,6 +81,7 @@ export const GmailOutgoingMessageSchema: z.ZodType<GmailOutgoingMessage> = z
 
 export const ConfirmedGmailSendSchema = z
   .object({
+    context: WorkflowCommunicationContextSchema,
     confirmationToken: z
       .string()
       .min(32)
@@ -78,6 +93,7 @@ export const ConfirmedGmailSendSchema = z
 
 export const ReconcileGmailSendSchema = z
   .object({
+    context: WorkflowCommunicationContextSchema,
     confirmationToken: z
       .string()
       .min(32)
@@ -86,16 +102,59 @@ export const ReconcileGmailSendSchema = z
   })
   .strict();
 
-export const CreateGmailDraftSchema = PrepareGmailMessageSchema;
+export const CreateGmailDraftSchema = WorkflowPrepareGmailMessageSchema.superRefine(
+  (input, issue) => {
+    if (input.message.kind !== "reply") {
+      issue.addIssue({
+        code: "custom",
+        message:
+          "The shared Gmail draft action creates workflow-linked reply drafts only.",
+      });
+    }
+    if (!input.context.templateRef) {
+      issue.addIssue({
+        code: "custom",
+        message: "An approved reply template reference is required.",
+      });
+    }
+    if (!input.message.body.startsWith(DRAFT_BANNER)) {
+      issue.addIssue({
+        code: "custom",
+        message: "An unsent Gmail draft must carry the review-before-sending banner.",
+      });
+    }
+  },
+);
 
 export const ApplyGmailLabelSchema = z
   .object({
-    label: z
-      .string()
-      .trim()
-      .min(1)
-      .max(225)
-      .refine((value) => !/[\u0000-\u001f\u007f]/.test(value)),
+    context: WorkflowCommunicationContextSchema,
+    label: z.enum(GMAIL_INBOX_ZERO_LABELS),
+    reason: z.string().trim().min(1).max(500),
+    ruleRef: z.literal(GMAIL_MANUAL_LABEL_RULE_REF),
+  })
+  .strict();
+
+export const WorkflowThreadContextQuerySchema = z
+  .string()
+  .trim()
+  .min(2)
+  .max(4_000)
+  .transform((value, issue) => {
+    try {
+      return JSON.parse(value) as unknown;
+    } catch {
+      issue.addIssue({ code: "custom", message: "Invalid Gmail workflow context." });
+      return z.NEVER;
+    }
+  })
+  .pipe(WorkflowCommunicationContextSchema);
+
+export const LinkWorkflowCommunicationSchema = z
+  .object({
+    context: WorkflowCommunicationContextSchema,
+    threadId: GmailIdSchema,
+    reason: z.string().trim().min(1).max(500),
   })
   .strict();
 

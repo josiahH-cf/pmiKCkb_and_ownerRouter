@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { apiErrorResponse, parseOptionalJsonBody } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
 import { ActivateProcessDefinitionInputSchema } from "@/lib/firestore/schemas";
-import { activateProcessDefinition, listWorkflowRuns } from "@/lib/firestore/workflows";
+import {
+  activateProcessDefinition,
+  getProcessDefinition,
+  listWorkflowRuns,
+} from "@/lib/firestore/workflows";
+import { assertProcessDefinitionRecordAccess } from "@/lib/space-scope-resources";
 import { assertProcessDefinitionAccess } from "@/lib/space-scope-resources";
 
 interface RouteContext {
@@ -13,7 +18,12 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const user = await requireCapability("manageAdmin");
     const { definitionId } = await context.params;
-    assertProcessDefinitionAccess(user, definitionId);
+    if (user.scopes === undefined) {
+      assertProcessDefinitionAccess(user, definitionId);
+    } else {
+      const current = await getProcessDefinition(user, definitionId);
+      assertProcessDefinitionRecordAccess(user, current);
+    }
     const input = await parseOptionalJsonBody(
       request,
       ActivateProcessDefinitionInputSchema,

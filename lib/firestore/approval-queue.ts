@@ -3,6 +3,11 @@ import { v7 as uuidv7 } from "uuid";
 import { canViewApprovalQueueItem, isQueueItemTerminal } from "@/lib/approval/queue";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import {
+  approveActionExecutionInTransaction,
+  returnActionExecutionInTransaction,
+  revokeActionExecutionInTransaction,
+} from "@/lib/firestore/action-executions";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { appendApprovalQueueNotificationsForActivity } from "@/lib/firestore/approval-queue-notifications";
 import { EditableLayerError } from "@/lib/firestore/errors";
@@ -40,6 +45,8 @@ const BULK_UNAVAILABLE_ITEM_MESSAGE = "Queue item is not available for this bulk
 const APPROVAL_CRITICAL_FIELDS = [
   "status",
   "risk",
+  "action_execution_id",
+  "action_execution_preview_hash",
   "assignee_uid",
   "required_approver_uid",
   "due_date",
@@ -279,6 +286,8 @@ export async function transitionApprovalQueueItem(
 
     const { updates, action, reason, newState } = planTransition(actor, current, parsed);
 
+    await syncLinkedActionExecution(transaction, db, actor, current, parsed);
+
     transaction.update(itemRef(db, itemId), {
       ...updates,
       updated_at: FieldValue.serverTimestamp(),
@@ -503,6 +512,14 @@ async function bulkTransitionApprovalQueueItem(
       try {
         const transition = planTransition(actor, current, transitionInputFromBulk(input));
 
+        await syncLinkedActionExecution(
+          transaction,
+          db,
+          actor,
+          current,
+          transitionInputFromBulk(input),
+        );
+
         transaction.update(itemRef(db, itemId), {
           ...transition.updates,
           updated_at: FieldValue.serverTimestamp(),
@@ -669,6 +686,66 @@ function assertCanApprove(actor: AuthenticatedUser, item: ApprovalQueueItemRecor
       "Only the required approver or an Admin can approve this queue item.",
       403,
     );
+  }
+}
+
+async function syncLinkedActionExecution(
+  transaction: Transaction,
+  db: Firestore,
+  actor: AuthenticatedUser,
+  item: ApprovalQueueItemRecord,
+  input: ParsedTransitionApprovalQueueItemInput,
+) {
+  const executionId = item.action_execution_id;
+  if (!executionId) return;
+
+  switch (input.action) {
+    case "approve": {
+      if (!item.action_execution_preview_hash) {
+        throw new EditableLayerError(
+          "The linked execution is missing its immutable preview hash.",
+          409,
+        );
+      }
+      await approveActionExecutionInTransaction(transaction, db, actor, executionId, {
+        previewHash: item.action_execution_preview_hash,
+        reason: requireReason(input.reason, "High-risk approval"),
+      });
+      return;
+    }
+    case "return": {
+      await returnActionExecutionInTransaction(
+        transaction,
+        db,
+        actor,
+        executionId,
+        requireReason(input.reason, "Return for Revision"),
+      );
+      return;
+    }
+    case "disable": {
+      await revokeActionExecutionInTransaction(
+        transaction,
+        db,
+        actor,
+        executionId,
+        requireReason(input.reason, "Disable Action"),
+      );
+      return;
+    }
+    case "close": {
+      await revokeActionExecutionInTransaction(
+        transaction,
+        db,
+        actor,
+        executionId,
+        requireReason(input.reason, "Close"),
+      );
+      return;
+    }
+    case "assign":
+    case "snooze":
+      return;
   }
 }
 

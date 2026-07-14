@@ -80,12 +80,12 @@ const skeletonDefinitions = [
   },
   {
     id: "daily-inbox-triage",
-    name: "Daily Inbox Triage",
+    name: "Daily Workflow Communication Review",
     prompt:
-      "Approved LeadSimple/Gmail triage ownership, daily assignment rules, and escalation timing still need source confirmation.",
+      "Approved workflow-communication ownership, daily attention rules, and escalation timing still need source confirmation.",
     sourceHint:
-      "Transcript context supports LeadSimple unassigned inbox review, Gmail overload, and team assignment friction.",
-    templateName: "Daily Inbox Triage Placeholder",
+      "Transcript context supports communication overload and team assignment friction, but not a general inbox replacement.",
+    templateName: "Daily Workflow Communication Review Placeholder",
   },
   {
     id: "fathom-training",
@@ -130,12 +130,12 @@ export const launchEditableSeedsBySpaceId: Readonly<Record<string, LaunchEditabl
       ]),
   );
 
-// Owner Email is per-user domain-wide (console overhaul Slice F): each pmikcmetro.com user works
-// their own Gmail, not a single owner mailbox. The legacy Owner Router artifact framing is retired.
+// Gmail authorization is per-user domain-wide, but the product surface is workflow-linked rather
+// than a mailbox. Legacy general-inbox framing is retired.
 export const ownerEmailReadOnlySources = [
-  "Per-user Gmail: each pmikcmetro.com user works their own mailbox",
-  "Approved reply patterns",
-  "Routing rules",
+  "Per-user Gmail authorization bound to the signed-in pmikcmetro.com identity",
+  "Bodyless links to authorized renewal and maintenance entities",
+  "Approved labels and reviewed, versioned communication artifacts",
 ] as const;
 
 export function launchApprovalQueueItems() {

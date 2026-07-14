@@ -2,46 +2,60 @@
 
 ## Current State
 
-PMI KC KB is the existing source-backed web app runtime in this repository. It supports
+PMI KC KB is the deployed source-backed web app runtime in this repository. It supports
 Google sign-in boundaries, editable Spaces, SOP/template/tool/placeholder records,
 Approval Queue behavior, Ask logging, source-state handling, citation validation,
 Gemini answer validation, Admin observability, and demo/deploy scripts.
 
-The current working demo is not production cutover. Production requires client-owned
-Google resources, approved sources, and acceptance testing.
+The client-owned Cloud Run/Firebase/GCP foundation, canonical auth host, first Admin path, live
+Rentvine/renewal-Sheet reads, and bounded production smoke are established. Round 1 approved the tab
+visions and named Dan for business acceptance and Josiah for technical go-live/monitoring/rollback.
+Round 3 locks final V1 as an external-user release with risk-bounded Editor execution, all-risk Admin
+self-approval, immediate trusted publication, live-only production Console data, every R02/R03 workflow
+action, and an MFA/assigned-ticket/per-vendor-Gmail-OAuth Vendor portal. S20–S27 are decision-complete;
+their implementation, provider/source readiness, action-by-action proof, and browser acceptance remain.
+The 2026-07-14 Workflow Communications boundary is verified locally but not committed/deployed.
 
 Production Approval Queue views should not fall back to fake/demo queue items. An empty
 production queue should plainly say nothing is currently waiting for review. Demo/test
 items can appear only when the run is clearly marked as a test/demo run.
 
-Approval Queue permissions follow the simple product-facing role model. Normal users can
-act only on assigned or otherwise relevant items. Admins can see and manage all queue
-items, high-risk approvals, disabled actions, health, email settings, and expanded
-Activity/audit details. Permission errors should explain the missing role or action and
-route to a safe next step.
+Approval Queue permissions remain explicit by role/action. S20's target lets internal Editors directly
+execute enabled Low/Medium instances, routes consequential High work to Admin, permits Admin self-
+approval at every risk, and never lets approval waive a technical Blocked condition.
+External Vendors are a separate assigned-ticket-only role, not Editors. Admins manage all queue
+items, disabled actions, health, and expanded Activity/audit details. Permission errors explain the
+missing role or action and route to a safe next step.
 
 ## Confirmed Product Direction
 
-PMI KC KB should launch first as the production source-backed app while the backend
-automation layer is scoped and added in phases. The first production launch is internal
-only and uses a simple product-facing role model:
+PMI KC KB remains the production source-backed app while expanded workflow automation is specified
+and added in staged slices. Intermediate candidates may remain internal/pre-V1, but final V1 includes
+external Vendor users and named system-of-record actions. Internal roles remain optionally narrowed
+by renewals/maintenance scopes:
 
-- `Admin`: manages sources, approvals, settings, and backend action approvals.
-- `User`: asks questions, starts workflows, and suggests edits, but cannot approve final
-  source changes or backend actions.
+- `Editor`: asks questions, edits app-plane records, starts safe test workflows, and directly
+  executes enabled Low/Medium actions within scope. Consequential High work goes to Admin. S20 is
+  Local green; Registry-closed later adapters remain non-executable until their own suites pass.
+- `Approver`: has Editor capabilities plus app-plane approval and exact-confirmed linked-reply
+  authority where the relevant action and workflow context are approved.
+- `Admin`: has Approver capabilities plus user/access, readiness, settings, high-risk approval,
+  and action-governance administration; Round 2 explicitly permits all-risk self-approval/execution.
+- `Vendor` (new for V1): Admin-invited external account with one-time password setup and verified-email
+  TOTP before detail; sees only assigned Maintenance tickets and connects the same Gmail/Workspace
+  address through per-vendor OAuth. It never grants internal Console/Spaces/Approval Queue/Connections/
+  Admin or DWD reach.
 
 Initial Admins are Josiah and Dan. Admins may grant the Admin role to additional users
 they choose.
 
-The first launch does not need separate `User` accounts beyond Josiah and Dan. The
-`User` role remains available for later delegation.
+Dan and Josiah remain initial internal Admins. Final V1 additionally requires at least one external
+Vendor acceptance user; internal delegation continues to use Editor or Approver plus optional space
+scopes and does not introduce a generic `User` role.
 
-Gmail send-only approval notifications should be enabled for production launch and
-incorporated into the Gmail Inbox 0 vision. Launch recipients are Dan and Josiah's PMI
-KC account. Notifications should come from `kb-automation@pmikcmetro.com`, use a clear
-approval subject line, and apply the `KB Approval` Gmail label. If delivery fails, the
-system should create an in-app alert, retry email once, and then escalate to Dan/Josiah
-Admins in-app and by email if the retry fails.
+Approval notifications are in-app for the first release. The legacy event-driven Gmail sender is
+hard-disabled and must not be treated as an approved delivery lane. S25/S26 authorize only workflow-
+specific human-confirmed communications; automatic approval-notification email remains outside V1.
 
 The first production Spaces are:
 
@@ -111,10 +125,13 @@ processes:
 2. Maintenance Work Order Intake end to end.
 3. Move-Out + Deposit Disposition end to end.
 
-Owner Onboarding remains the likely fourth/fallback workflow. Automation means actual
-backend actions in connected systems, not only checklists or drafts. Current
-implementation still has no approved external write paths; every write/send/update path
-requires a future per-process spec, permissions, tests, audit logging, and rollback.
+Owner Onboarding remains the likely fourth/fallback workflow. Automation means actual backend
+actions in connected systems, not only checklists or drafts. Current implementation has four
+narrowly scoped workflow Gmail actions but no approved non-Gmail system-of-record write path. R02/R03
+make every S25/S26 action app-executed final-V1 scope; none is silently tracked-manual/later. Every
+executable write/send/update still needs its own documented endpoint,
+per-action spec, least-privilege permission, preview, idempotency, tests, audit, failure behavior,
+and rollback before its Action Registry gate may open.
 Each external action type must be individually approved before it becomes executable.
 Approval is scoped by target system and action type, not blanket system access.
 External action readiness states should be `Planned`, `Needs Connection`,
@@ -130,18 +147,15 @@ undocumented in the public API and stays non-executable until vendor confirmatio
 approved per-action spec. Each external action type is catalogued in the Action Registry
 (`action_registry` collection, seeded by `npm run seed:action-registry`), which records
 target system, documented evidence, required permissions and plan, readiness, preview,
-rollback, and whether production execution is allowed; every registry entry is
-`production_allowed: false` until an approved spec changes it.
+rollback, and whether production execution is allowed. Four narrowly scoped Gmail workflow
+transport actions are currently allowlisted; generic send and every non-Gmail external
+system-of-record write remain non-executable.
 
-The first workflow-management layer should be loosely editable for process definitions.
-The whole team should be able to propose or edit process templates, steps, source links,
-and documentation pointers as new processes are discovered. Those changes should go
-through approval before becoming active. That editability is for the KB and workflow
-configuration layer; it does not by itself approve writes into external systems of
-record.
-
-Dan and Josiah should be the default Admin approvers for process-definition changes
-until they delegate that approval authority to someone else.
+The first workflow-management layer is loosely editable. S21 now makes every validation-passing in-scope
+Editor-added process template, step, source link, file, or folder Active immediately after configured-
+root/scope/type/size/malware/sensitivity checks, with immutable version/rollback/audit. A
+published content/process change can never enable an external action, grant a role, or widen a
+credential; those remain Admin/action-governance operations.
 
 The KB should own the first workflow-run record so context stays in one central,
 non-technical place. External systems should be referenced with backlinks and action
@@ -161,17 +175,13 @@ Workflow run statuses should be `Not Started`, `In Progress`, `Waiting on Team`,
 necessarily the person who started the run. Due dates should use the source process due
 date when one exists; otherwise, they should default to today.
 
-Workflow notifications should fire for `Ready for Approval`, `Blocked`, failed
-automation, and overdue due dates. Notifications should include internal email
-notifications and in-app notifications first; other channels remain future/TBD. The
+Workflow notifications should fire in-app for `Ready for Approval`, `Blocked`, failed
+automation, and overdue due dates. Other delivery channels remain future/TBD. The
 default recipients are the workflow owner/final approver and the person assigned the
 next action. The workflow starter receives notifications only when their action is
-needed or when the run completes or fails. Email subjects should include product/process
-name, run status, property/context when available, and required action. This does not
-authorize customer-facing sends.
-
-Failed internal notifications should create an in-app alert and retry email once. If
-that retry fails, the failure escalates to Dan/Josiah Admins in-app and by email.
+needed or when the run completes or fails. This does not authorize customer-facing sends.
+Failed internal notification processing creates an Admin-visible in-app health warning; it never
+triggers an automatic email retry.
 
 Test runs should be visually separate from real operational runs and excluded from
 production metrics unless an Admin explicitly includes them.
@@ -188,11 +198,10 @@ Minimum v1 fields for a startable process definition:
   executable action.
 - Success condition, stop condition, or escalation condition.
 
-Process definition statuses should be `Draft`, `Testing`, `Pending Approval`, `Active`,
-`Needs Revision`, and `Retired`. Draft or Testing definitions may be started for test
-runs, but test runs must be clearly marked and simulation-only: no external writes, no
-sends, and no live system updates. Active definitions are required for real operational
-runs.
+Current code retains `Pending Approval`/`Needs Revision` for legacy queued records alongside `Draft`,
+`Testing`, `Active`, and `Retired`. S21 no longer routes validation-passing Editor content/process saves through
+`Pending Approval`: they create an audited, versioned Active update immediately. Test runs remain
+clearly marked and simulation-only; publication never makes a referenced external action executable.
 
 Future automation steps should remain visible as pending automation. The AI can describe
 how the automation is expected to work, but the app must show the action as pending and
@@ -206,15 +215,16 @@ change, where it will change, and why. Every executable external action should h
 rollback or correction note before approval. Admins should be able to disable any action
 type immediately without deleting the process definition.
 
-Every approved process definition should create a versioned Active copy with history
-and rollback. Activating a process definition should require source/documentation links
-and at least one successful test run unless Dan or Josiah explicitly override the gate.
+Every validation-passing Editor save should create a versioned Active copy with history and rollback
+under S21. External-action enablement remains separate.
 
-Initial automation should use explicit per-action approval:
+Initial automation authority follows S20:
 
 - AI prepares proposed workflow actions.
-- An Admin or process-specific approver reviews each write/send/update for that run.
-- The system executes only approved actions.
+- Admins may self-approve at every risk; internal Editors directly execute enabled Low/Medium actions;
+  consequential High work requires Admin; technical Blocked conditions remain closed.
+- The system executes only actions whose type, actor/scope, workflow context, preview, and production
+  gate are all valid.
 - Each executed action records who approved it, what changed, source facts used,
   before/after values, target system, and timestamp.
 - Each AI-generated recommendation keeps source links, confidence, and reasoning visible
@@ -237,42 +247,40 @@ proven reliable.
 
 ## What Can Proceed Now
 
-- Keep verification green.
-- Prepare source manifests and production preflight inputs.
-- Improve docs, tests, and demo safety.
-- Add production-hardening code only when it maps to the KB spec and current milestone.
-- Scope workflow-run pages and action-approval models without adding external writes
-  until the relevant process spec is approved.
-- Apply the migration-readiness stop gate before starting another local workflow or
-  Approval Queue slice. If the next change does not improve cutover readiness,
-  verification, handoff, or a known quality issue, defer it until client-owned
-  production context or approved product scope is available.
+- Run `docs/v1-gap-implementation-program-2026-07-14.md` from S20 through S27 with fake providers/
+  emulators, keeping current live gates closed.
+- Preserve the current Workflow Communications worktree and keep verification green at each slice.
+- Build one provider/action adapter per slice with preview, authority, idempotency, reconciliation,
+  audit, rollback/correction, and tests.
+- Prepare source/provider manifests and exact live approval packets; stop before credentials, live
+  reads/writes/sends, configuration, deploy, or smoke.
 
 ## Current Blockers
 
-- PMI KC-owned GCP/Firebase project access and billing.
-- Production Firebase Auth authorized domains and role assignments.
-- Approved production source folders/files by Space.
-- Source sensitivity review and `sources_meta` decisions.
-- Agent Search data-store IDs and source/data-store maps.
-- Gmail notification failure-escalation details: channel, owner, retry behavior, and
-  alert surface.
-- Final smoke users and acceptance reviewers.
-- Approved write specs and integration permissions for any backend automation action.
-- Process-specific approvers beyond the Admin default.
-- Later User list, when Josiah or Dan choose to delegate access.
+- S20–S27 implementation and action-by-action external provider proof.
+- Approved production source folders/files, sensitivity decisions, `sources_meta`, and
+  source/data-store maps for the launch Spaces.
+- Named acceptance, go-live, monitoring/support, and rollback owners plus the final operator roster.
+- Browser acceptance of the release candidate, followed by explicit deploy/smoke approval.
+
+R01–R09 remove the prior assumption that the Vendor portal or non-Gmail workflow outputs are post-V1.
+Every S25/S26 action blocks the final V1 label until implemented and accepted. Product inclusion still
+does not authorize a live action.
 
 ## Acceptance Gates
 
 - `npm run preflight:production` passes against client-owned settings.
-- Sign-in works for allowed-domain users and rejects wrong-domain users.
+- Managed internal sign-in remains `pmikcmetro.com`-only. The separate Vendor sign-in accepts only
+  Admin-invited external accounts and enforces assigned-ticket-only authorization.
 - At least one approved production Space returns cited answers from approved sources.
 - Unsupported questions return `No Reliable Source Found`.
-- Users cannot approve; Admins can approve/return/resolve.
+- Admins may self-approve at every risk; internal Editors directly execute enabled Low/Medium actions
+  under S20. External Vendors remain assigned-ticket-only and use only S22/S26 actions.
 - No writes occur to external systems or client Drive folders outside explicitly allowed
   production setup.
-- Users can start workflows and suggest edits, while Admins approve source changes and
-  backend actions.
-- Gmail send-only approval notifications are enabled with approved sender, recipient,
-  subject-line, and label settings.
-- Failed approval notifications surface for escalation instead of failing silently.
+- Editors can start safe test workflows, immediately publish S21-validated content/process changes,
+  and execute enabled Low/Medium actions under S20; each backend action remains separately gated by its
+  documented Action Registry contract.
+- In-app approval notifications and Admin-visible delivery health are enabled; the legacy Gmail
+  sender remains disabled.
+- Failed notification processing surfaces for in-app escalation instead of failing silently.

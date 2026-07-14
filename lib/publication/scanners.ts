@@ -1,0 +1,37 @@
+import type { PublicationScanResult, PublicationScanner } from "@/lib/publication/types";
+
+/** Production deliberately has no fallback scanner. An unavailable provider fails closed. */
+export class UnavailablePublicationScanner implements PublicationScanner {
+  constructor(public readonly key: string) {}
+
+  async scanMalware(): Promise<PublicationScanResult> {
+    return { code: "scanner_unavailable" };
+  }
+
+  async scanSensitivity(): Promise<PublicationScanResult> {
+    return { code: "scanner_unavailable" };
+  }
+}
+
+/** Safe deterministic test provider; construction outside test is forbidden. */
+export class FakePublicationScanner implements PublicationScanner {
+  constructor(
+    public readonly key = "fake-clean-v1",
+    private readonly options: {
+      malware?: PublicationScanResult;
+      sensitivity?: PublicationScanResult;
+    } = {},
+  ) {
+    if (process.env.NODE_ENV !== "test") {
+      throw new Error("Fake publication scanners are test-only.");
+    }
+  }
+
+  async scanMalware(): Promise<PublicationScanResult> {
+    return this.options.malware ?? { code: "clean" };
+  }
+
+  async scanSensitivity(): Promise<PublicationScanResult> {
+    return this.options.sensitivity ?? { code: "clean", sensitivity: "Low" };
+  }
+}

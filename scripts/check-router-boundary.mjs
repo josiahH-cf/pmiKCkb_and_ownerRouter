@@ -46,7 +46,7 @@ const constants = readFileSync(join(root, "lib/constants.ts"), "utf8");
 for (const expected of [
   "PMI KC KB",
   "Lease Renewal Agent",
-  "Gmail Inbox 0",
+  "Workflow Communications",
   "Owner Router",
   "Owner Router - PMI KC Metro",
   "Draft — Review before sending",
@@ -59,28 +59,28 @@ for (const expected of [
 
 assertIncludes("docs/router-repo.md", [
   "Superseded",
-  "Gmail Inbox 0",
+  "Workflow Communications",
   "docs/products/gmail-inbox-zero.md",
   "docs/legacy/owner-router-separate-repo.md",
 ]);
 
 assertIncludes("docs/products/gmail-inbox-zero.md", [
-  "Dan's Gmail",
-  "Human send",
+  "Workflow Communications Product Lane",
+  "workflow communication adapter",
   "No autonomous send",
   "docs/feature-suites/gmail-live-per-user.md",
   "gmail.readonly",
-  "explicitly confirms",
+  "exact-confirmed",
   "docs/legacy/owner-router-artifact-source.md",
 ]);
 
 const productReadme = assertIncludes("docs/products/README.md", [
-  "Dan-email-first Gmail workflow",
+  "Workflow-linked Gmail adapter",
 ]);
 
-if (productReadme.includes("Owner-email-first Gmail workflow")) {
+if (productReadme.includes("Dan-email-first Gmail workflow")) {
   throw new Error(
-    "docs/products/README.md still describes Gmail Inbox 0 as owner-email-first.",
+    "docs/products/README.md still describes Workflow Communications as a Dan-mailbox product.",
   );
 }
 

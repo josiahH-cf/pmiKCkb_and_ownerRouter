@@ -58,16 +58,21 @@ describe("classifyConnector", () => {
     expect(classifyConnector(rentvine, {}, true).state).toBe("connected");
   });
 
-  it("keeps the per-user Gmail inbox connector honestly gated (no config, no probe)", () => {
+  it("keeps workflow Gmail honest until every non-secret runtime detail is present", () => {
     const gmailInbox = CONNECTORS.find((c) => c.id === "gmail_inbox")!;
-    // Empty requiredConfig + no health-check ref means it is never wired to a live verify path, so its
-    // card reads "Not connected" until the access model + DWD scopes are authorized (Slice F).
-    expect(gmailInbox.requiredConfig).toEqual([]);
+    expect(gmailInbox.requiredConfig).toEqual([
+      "GMAIL_DWD_SA",
+      "GMAIL_PUBSUB_TOPIC",
+      "GMAIL_PUBSUB_AUDIENCE",
+      "GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT",
+      "GMAIL_WORKFLOW_LINK_TTL_DAYS",
+    ]);
     expect(gmailInbox.healthCheckRef).toBeUndefined();
     expect(classifyConnector(gmailInbox, {}).state).toBe("none");
-    // The real "can never show Connected" safeguard: gmail_inbox has no live verification probe, so it
-    // is never added to verifiedIds. (classifyConnector checks `verified` before requiredCount, so the
-    // empty requiredConfig alone would not stop a Connected state.)
+    expect(classifyConnector(gmailInbox, { GMAIL_DWD_SA: true }).label).toBe(
+      "Needs attention",
+    );
+    // Transport presence is not a product-health proof, so this connector has no live Verify control.
     expect(LIVE_VERIFIABLE_CONNECTOR_IDS).not.toContain("gmail_inbox");
   });
 });

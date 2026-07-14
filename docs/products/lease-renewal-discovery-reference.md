@@ -139,6 +139,19 @@ tracking spreadsheet (§A). Observed end-to-end flow:
     Track signers by required party (tenant / owner / admin); color-coded sheet status
     (green = all signed); hide the row when complete (@01:14:39, @01:17:38).
 
+### Gmail integration interpretation (2026-07-14)
+
+The observed Gmail steps above define workflow communication purposes; they do not authorize a general
+mailbox UI. The app may link only an authorized renewal run to the intended owner, tenant, or build-out
+thread. Pub/Sub is only a change signal for an already-linked thread. A linked reply produces value-free
+attention, and an authorized user may then request bounded, transient analysis. Extracted owner direction,
+tenant intent, questions, and tasks remain `Needs Review` until a human confirms them.
+
+Gmail delivery is evidence of one channel, not proof that tenant outreach or agreement is complete. The
+portal-chat and SMS requirements in steps 6 and 15 remain separate checklist evidence. No Gmail-derived
+interpretation writes the tracking sheet, Rentvine, LeadSimple, or Dotloop. Approved recipients and current
+template versions remain open source dependencies; transcript wording is not a production template.
+
 ### Cadence (anchored to lease end date) — **(JH 2026-06-20)**
 
 For a lease due for renewal in **~2 months** (ends on the last day of a month):

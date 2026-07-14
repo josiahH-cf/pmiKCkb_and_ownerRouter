@@ -58,7 +58,7 @@ describe("AppShell space-scoped navigation", () => {
       "Console",
       "Spaces",
       "Approval Queue",
-      "Gmail Hub",
+      "Communications",
       "Connections",
       "Admin",
     ]) {

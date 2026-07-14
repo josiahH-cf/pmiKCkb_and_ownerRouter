@@ -348,6 +348,8 @@ export interface ApprovalQueueItemRecord {
   id: string;
   process_run_ref: QueueProcessRunRef;
   space_id?: string;
+  action_execution_id?: string;
+  action_execution_preview_hash?: string;
   item_type: QueueItemType;
   // Stable key for the originating run/action used to merge duplicates and relink
   // superseding items.
@@ -435,6 +437,7 @@ export interface ApprovalQueueNotificationHealth {
 
 export interface ProcessDefinitionRecord {
   id: string;
+  space_id?: string;
   name: string;
   short_outcome: string;
   trigger: string;

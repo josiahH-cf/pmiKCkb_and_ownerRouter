@@ -22,6 +22,10 @@ import {
   updateNotificationPreferences,
 } from "@/lib/firestore/notification-preferences";
 import type { ApprovalQueueNotificationRecord } from "@/lib/firestore/types";
+import {
+  listGmailWorkflowNotifications,
+  markGmailWorkflowNotificationRead,
+} from "@/lib/gmail-hub/notifications";
 
 // Mock the data layer so the routes never reach the Admin SDK; the pure feed builder stays real.
 vi.mock("@/lib/firestore/approval-queue-notifications", () => ({
@@ -31,6 +35,10 @@ vi.mock("@/lib/firestore/approval-queue-notifications", () => ({
 vi.mock("@/lib/firestore/maintenance-ticket-notifications", () => ({
   listMaintenanceTicketNotifications: vi.fn(),
   markMaintenanceTicketNotificationRead: vi.fn(),
+}));
+vi.mock("@/lib/gmail-hub/notifications", () => ({
+  listGmailWorkflowNotifications: vi.fn(async () => []),
+  markGmailWorkflowNotificationRead: vi.fn(),
 }));
 vi.mock("@/lib/firestore/notification-preferences", () => ({
   getNotificationPreferences: vi.fn(),
@@ -124,7 +132,7 @@ function maintenanceRecord(
 }
 
 describe("notifications routes", () => {
-  it("GET serves the six non-admin families for a wildcard editor (team_review dropped, two stubbed)", async () => {
+  it("GET serves six available non-admin families for a wildcard editor", async () => {
     setAuthResolverForTest(() => editor);
     vi.mocked(listApprovalQueueNotifications).mockResolvedValue([]);
     vi.mocked(listMaintenanceTicketNotifications).mockResolvedValue([]);
@@ -146,10 +154,10 @@ describe("notifications routes", () => {
     // Catalog is 7; a non-admin editor is served 6 (team_review is Admin-only, AC-S17-6).
     expect(body.families).toHaveLength(6);
     expect(body.families.map((f: { key: string }) => f.key)).not.toContain("team_review");
-    // The two Gmail-dependent families stay stubbed (available:false).
+    // Workflow communication families are available but carry no content without linked attention.
     expect(
       body.families.filter((f: { available: boolean }) => !f.available),
-    ).toHaveLength(2);
+    ).toHaveLength(0);
   });
 
   it("GET returns 401 when unauthenticated, without reading the data layer", async () => {
@@ -158,6 +166,7 @@ describe("notifications routes", () => {
     expect(response.status).toBe(401);
     expect(listApprovalQueueNotifications).not.toHaveBeenCalled();
     expect(listMaintenanceTicketNotifications).not.toHaveBeenCalled();
+    expect(listGmailWorkflowNotifications).not.toHaveBeenCalled();
   });
 
   it("GET rejects an invalid limit with 400", async () => {
@@ -194,6 +203,9 @@ describe("notifications routes", () => {
       unreadOnly: true,
     });
     expect(listMaintenanceTicketNotifications).toHaveBeenCalledWith(editor, {
+      unreadOnly: true,
+    });
+    expect(listGmailWorkflowNotifications).toHaveBeenCalledWith(editor, {
       unreadOnly: true,
     });
 
@@ -351,6 +363,7 @@ describe("notifications routes", () => {
     expect(markApprovalQueueNotificationRead).toHaveBeenCalledWith(editor, "a-1");
     expect(markApprovalQueueNotificationRead).toHaveBeenCalledWith(editor, "a-2");
     expect(markMaintenanceTicketNotificationRead).toHaveBeenCalledWith(editor, "m-1");
+    expect(markGmailWorkflowNotificationRead).not.toHaveBeenCalled();
   });
 
   it("mark-all-read only touches the caller's in-scope sources", async () => {

@@ -118,6 +118,7 @@ export function buildProductionEnv({
 
   output.APP_BASE_URL = appBaseUrl ?? "";
   output.ASK_DEMO_MODE = "false";
+  output.CONSOLE_TEST_DEPLOYMENT_NAME = "";
   output.IMAGE_STORE = "drive";
   output.KB_APPROVAL_NOTIFICATIONS_ENABLED = notificationsEnabled ? "true" : "false";
   output.LOCAL_DEMO_AUTH = "false";

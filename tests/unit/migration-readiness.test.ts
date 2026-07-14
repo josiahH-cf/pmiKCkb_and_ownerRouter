@@ -173,11 +173,9 @@ describe("buildMigrationReadinessReport", () => {
     expect(report.action_registry.note).toMatch(/static seed catalog/);
     expect(report.action_registry.production_allowed_keys).toEqual([
       "gmail.mailbox.read",
-      "gmail.message.send",
       "gmail.thread.reply",
       "gmail.label.apply",
       "gmail.draft.create",
-      "gmail.renewal_notice.draft_create",
     ]);
     expect(report.rollup.blockers.join(" ")).not.toMatch(/governance violation/);
     expect(
@@ -300,11 +298,9 @@ describe("buildMigrationReadinessReport", () => {
     expect(report.action_registry.total).toBeGreaterThanOrEqual(14);
     expect(report.action_registry.production_allowed_keys).toEqual([
       "gmail.mailbox.read",
-      "gmail.message.send",
       "gmail.thread.reply",
       "gmail.label.apply",
       "gmail.draft.create",
-      "gmail.renewal_notice.draft_create",
     ]);
     expect(report.rollup.ok).toBe(false);
     expect(report.owner_actions.length).toBeGreaterThan(0);

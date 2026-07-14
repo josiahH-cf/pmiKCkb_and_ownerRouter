@@ -32,6 +32,12 @@ describe("server config", () => {
     expect(readServerConfig({ MODEL_PROVIDER: "local" }).modelProvider).toBe("gemini");
   });
 
+  it("forces Ask fixture data off in ordinary production", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const config = readServerConfig({ ASK_DEMO_MODE: "true" });
+    expect(config.askDemoMode).toBe(false);
+  });
+
   it("defaults the STT + image-store providers to the free dev/test stubs", () => {
     expect(readServerConfig({}).speechProvider).toBe("stub");
     expect(readServerConfig({}).imageStore).toBe("stub");

@@ -13,6 +13,9 @@ lighter task-triage entry point and does not repeat a divergent order.
    product shape, or follow-up questions are part of the task, and the rest of the Route Table.
 4. Check the git worktree and preserve user changes.
 
+For the active final-V1 goal, then read `docs/v1-gap-implementation-program-2026-07-14.md` and S20–S27.
+`/loop` starts at the suite named in `docs/loop-state.md` and continues through safe local slices.
+
 ## Local Demo Firestore Writes
 
 `npm run seed:demo`, `npm run demo:reset`, and any `npm run demo:operator` mode that resets data
@@ -41,19 +44,23 @@ unless an active product doc preserves a specific safety rule.
 Default priority:
 
 1. Keep the existing PMI KC KB verification/demo path healthy.
-2. Clear P0/P1 governance and discovery blockers from `docs/plan.md`.
-3. Use `docs/product-definition-gap-plan.md` to close product-definition gaps before
+2. Clear the audited internal-V1 owner decisions in
+   `docs/v1-readiness-audit-2026-07-14.html`; do not treat every open research item as a launch
+   blocker.
+3. Use `docs/product-definition-gap-plan.md` to close real product-definition gaps before
    treating plans, demos, or legacy artifacts as build scope.
 4. Convert client answers into product-lane scope and acceptance gates.
 5. Prepare KB production cutover only from approved client-owned resources.
-6. Scope Lease Renewal Agent before implementation.
-7. Operate Gmail Inbox 0 only through the approved S19 per-user scopes/actions and evidence workflow.
+6. Finish Lease Renewal operational source/acceptance alignment before widening its built
+   read/reconcile/review runtime to any external action.
+7. Operate Workflow Communications only through S19's server-authorized workflow contexts, governed
+   artifacts, exact confirmation, bodyless audit, and targeted-receive rules.
 
 ## While Waiting On Client Replies
 
 The current outbound client asks are tracked in `docs/client-checklist.md`. They still
 block unknown-cost work, raw client data handling, unapproved Gmail expansion, external-system writes,
-and Lease Renewal runtime execution, but they do not block reversible product work,
+and Lease Renewal operational mutation, but they do not block reversible product work,
 API-backed setup, or migration preparation when Remote Away Mode allows it.
 
 Safe local development is not unlimited. Before starting another local feature cycle,
@@ -66,21 +73,25 @@ unblock, approved production setup, migration, or cutover prep.
 
 Continue iterating on:
 
+- The decision-complete S20–S27 program in dependency order, one external provider/action per slice,
+  using fake providers/emulators and preserving current Action Registry values until the exact live gate.
+
 - KB demo/runtime health, tests, preflights, dry-runs, Admin visibility, and source
   manifest templates.
 - Reversible GCP/Firebase/API setup and migration helpers when `docs/away-mode.md` is
   ACTIVE, `npm run check:budget-guard` passes, and non-secret identifiers are recorded in
   `docs/environment-handoff.md`.
-- Approval Queue and workflow-control primitives that do not require live integrations
-  or client data.
-- Lease Renewal discovery artifacts, workflow-run/process-definition modeling,
-  acceptance scenarios, read/gather fact models, and non-executable fixtures.
-- Action Registry catalog/schema modeling (metadata only, `production_allowed: false`)
+- S24 retention/artifact policy; S20 risk/authority/ledger, S21 trusted publication, and S23 Console
+  live/test-data boundary are Local green and remain shared boundaries.
+- Then S22 Vendor auth/OAuth app-plane, S25/S26
+  orchestrators/adapters and S27 integrated release acceptance.
+- Action Registry catalog/schema modeling (metadata only; do not widen `production_allowed`)
   and integration architecture per `docs/integration-architecture.md`, with Maintenance
   Work Order Intake as the first executable-write target and the Rentvine lease-renewal
   writeback gated as undocumented.
-- Gmail Inbox 0 label/rule/prompt planning, legacy artifact mining, and safe-thread
-  scenario design; production Gmail actions follow S19's exact-confirmation and identity boundaries.
+- S24's approved v1.0 workflow artifacts/AI policy and synthetic linked-thread scenarios; production
+  Gmail actions also require entity scope, authoritative runtime values, exact confirmation, and the
+  approved retention implementation.
 - Tool access templates and integration capability classification using placeholders
   until Dan/team provide the spreadsheet answers.
 
@@ -97,9 +108,8 @@ approved storage path, client Drive write, or
 RentVine/LeadSimple/DotLoop/QuickBooks/Boom/Sheets write unless the active docs and
 `docs/away-mode.md` explicitly allow that exact bounded action.
 
-When running product-definition follow-up loops, group related questions into small
-batches. Include a recommended default answer for each question based on the active
-context so the client can answer "yes" or provide targeted edits.
+R01–R09 need no further product-definition batch. Ask only for irreducible production mappings,
+provider contracts/credentials, or exact live authority after repo/code research is exhausted.
 
 When the user asks to plan the next feature run cycle, route through
 `docs/autonomous-agent-runner.md`. Read the trigger literally: "plan" produces a
@@ -112,18 +122,20 @@ condition fires.
 Use `docs/temp/` for scratch cycle packets and draft client communications. Promote only
 durable decisions, blockers, client asks, and research questions into active docs.
 
-If the user asks for runtime work in Lease Renewal Agent or Gmail Inbox 0, first confirm
-that the relevant product doc contains approved v1 scope, permissions, and acceptance
-criteria. If not, document the blocker and prepare the missing checklist instead of
-building speculative features.
+If the user asks for a new runtime action or a wider Lease Renewal/Workflow Communications
+capability, first confirm that the relevant product doc contains approved scope, permissions, and
+acceptance criteria for that exact action. Preserve and test existing runtime boundaries without
+reopening settled discovery.
 
 ## Keep Changes Scoped
 
 - KB runtime changes belong in the existing Next.js/Firebase/Firestore/Vertex/Gemini
   boundaries.
-- Lease Renewal Agent changes are docs/discovery only until scope is locked.
-- Gmail Inbox 0's five S19 actions are approved; automatic processing, historical scans, and
-  cross-mailbox behavior still require separate product scope and permission.
+- Lease Renewal Agent already has read/reconcile/review runtime. Keep new work app-plane/read-only
+  until the exact operational action is scoped and approved.
+- Gmail's four technical scopes are approved, but product authorization is narrower: workflow-linked
+  read, governed draft/label, and exact-confirmed reply only. Generic send, automatic processing,
+  historical scans, unrelated inbox access, and cross-mailbox behavior remain disabled or out of scope.
 - Do not add a dependency or integration unless the active product lane needs it.
 - Do not add product behavior not present in confirmed direction or approved sources.
 

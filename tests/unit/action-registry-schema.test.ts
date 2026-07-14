@@ -135,14 +135,12 @@ describe("Action Registry seed catalog", () => {
     }
   });
 
-  it("keeps every entry non-executable except the approved Gmail actions", () => {
+  it("keeps every entry non-executable except the workflow-bounded Gmail actions", () => {
     const EXECUTABLE = new Set([
       "gmail.mailbox.read",
-      "gmail.message.send",
       "gmail.thread.reply",
       "gmail.label.apply",
       "gmail.draft.create",
-      "gmail.renewal_notice.draft_create",
     ]);
     for (const entry of ACTION_REGISTRY_SEED) {
       const parsed = CreateActionRegistryInputSchema.parse(entry);
@@ -164,8 +162,8 @@ describe("Action Registry seed catalog", () => {
     expect(writeback?.production_allowed).toBe(false);
   });
 
-  it("contains the expanded 22-entry catalog", () => {
-    expect(ACTION_REGISTRY_SEED).toHaveLength(22);
+  it("contains the expanded 23-entry catalog", () => {
+    expect(ACTION_REGISTRY_SEED).toHaveLength(23);
     expect(ACTION_REGISTRY_SEED.map((entry) => entry.key)).toEqual(
       expect.arrayContaining([
         "rentvine.lease.read",
@@ -177,6 +175,7 @@ describe("Action Registry seed catalog", () => {
         "gmail.message.send",
         "gmail.thread.reply",
         "gmail.renewal_notice.draft_create",
+        "gmail.maintenance_owner_notice.draft_create",
         "google_sheets.renewal_checklist.read",
         "google_sheets.renewal_checklist.reconcile",
         "google_sheets.renewal_checklist.writeback",
@@ -185,31 +184,39 @@ describe("Action Registry seed catalog", () => {
     );
   });
 
-  it("opens the documented Gmail actions while other integrations remain gated", () => {
+  it("opens only the workflow transport actions while workflow initiations stay gated", () => {
     const gmailEntries = ACTION_REGISTRY_SEED.filter(
       (entry) => entry.target_system === "Gmail",
     );
-    expect(gmailEntries).toHaveLength(6);
+    expect(gmailEntries).toHaveLength(7);
 
-    // Flipped 2026-07-09 on the committed DWD grant (gmail.compose proven live; no send scope, no send
-    // call). The ceiling stays an unsent draft.
     const renewalNotice = gmailEntries.find(
       (entry) => entry.key === "gmail.renewal_notice.draft_create",
     );
     expect(renewalNotice?.product_lane).toBe("Lease Renewal Agent");
-    expect(renewalNotice?.readiness).toBe("Approved for Execution");
+    expect(renewalNotice?.readiness).toBe("Planned");
     expect(renewalNotice?.evidence_status).toBe("Documented");
-    expect(renewalNotice?.production_allowed).toBe(true);
+    expect(renewalNotice?.production_allowed).toBe(false);
 
-    const inboxZero = gmailEntries.filter(
-      (entry) => entry.product_lane === "Gmail Inbox 0",
+    const workflowTransport = gmailEntries.filter(
+      (entry) => entry.product_lane === "Workflow Communications",
     );
-    expect(inboxZero).toHaveLength(5);
-    for (const entry of inboxZero) {
-      expect(entry.readiness, entry.key).toBe("Approved for Execution");
-      expect(entry.evidence_status, entry.key).toBe("Documented");
-      expect(entry.production_allowed, entry.key).toBe(true);
-    }
+    expect(workflowTransport).toHaveLength(5);
+    expect(
+      workflowTransport
+        .filter((entry) => entry.production_allowed)
+        .map((entry) => entry.key),
+    ).toEqual([
+      "gmail.mailbox.read",
+      "gmail.thread.reply",
+      "gmail.label.apply",
+      "gmail.draft.create",
+    ]);
+    expect(
+      gmailEntries.find(
+        (entry) => entry.key === "gmail.maintenance_owner_notice.draft_create",
+      )?.production_allowed,
+    ).toBe(false);
   });
 
   it("keeps LeadSimple task creation behind vendor confirmation", () => {

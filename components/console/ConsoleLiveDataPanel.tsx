@@ -1,0 +1,116 @@
+import Link from "next/link";
+import type {
+  ConsoleField,
+  ConsoleMessageMetadata,
+  ConsoleProjection,
+} from "@/lib/console/live-data";
+
+export function ConsoleLiveDataPanel({
+  projection,
+}: Readonly<{ projection: ConsoleProjection }>) {
+  return (
+    <section aria-label="Current operations" className="panel">
+      <div className="panel-heading">
+        <div>
+          <h2>Current operations</h2>
+          <p className="muted">
+            Live facts show their source and observation time. Message bodies load only
+            inside an authorized workflow communication panel.
+          </p>
+        </div>
+        {projection.mode.kind === "test" ? (
+          <span className="review-pill" data-testid="console-test-data-badge">
+            Test data
+          </span>
+        ) : null}
+      </div>
+
+      {projection.rows.length === 0 ? (
+        <div className="workflow-record-list">
+          {projection.sourceHealth.map((health) => (
+            <article className="compact-record" key={health.source}>
+              <strong>{health.source} unavailable</strong>
+              <p className="muted">{health.guidance}</p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="workflow-record-list">
+          {projection.rows.map((row) => (
+            <article className="compact-record" key={row.rowKey}>
+              <div className="workflow-record-heading">
+                <div>
+                  <strong>{displayValue(row.property)}</strong>
+                  <p className="muted">{displayValue(row.tenant)}</p>
+                </div>
+                <Link className="text-link" href={row.workflowHref}>
+                  Open workflow
+                </Link>
+              </div>
+              <div className="grid three">
+                <Field label="Current rent" field={row.currentRent} />
+                <Field label="Lease end" field={row.leaseEnd} />
+                <Field label="Workflow" field={row.workflow} />
+              </div>
+              {row.message ? <MessageMetadata field={row.message} /> : null}
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function Field<T>({ label, field }: Readonly<{ field: ConsoleField<T>; label: string }>) {
+  return (
+    <div>
+      <strong>{label}</strong>
+      <p>{displayValue(field)}</p>
+      <Provenance field={field} />
+    </div>
+  );
+}
+
+function MessageMetadata({
+  field,
+}: Readonly<{ field: ConsoleField<ConsoleMessageMetadata> }>) {
+  if (!field.value) {
+    return (
+      <div className="notice">
+        <strong>Gmail {field.state}</strong>
+        <Provenance field={field} />
+      </div>
+    );
+  }
+  const message = field.value;
+  return (
+    <div className="notice">
+      <strong>{message.subject || "No subject"}</strong>
+      <p className="muted">
+        From {message.sender || "Unknown sender"} to{" "}
+        {message.recipients.join(", ") || "Unknown recipient"} · {message.timestamp}
+      </p>
+      <p className="console-message-snippet">{message.snippet || "No snippet."}</p>
+      <Provenance field={field} />
+    </div>
+  );
+}
+
+function Provenance<T>({ field }: Readonly<{ field: ConsoleField<T> }>) {
+  return (
+    <p className="muted">
+      {field.source} · {field.state}
+      {field.observedAt
+        ? ` · observed ${field.observedAt}`
+        : " · observation unavailable"}
+    </p>
+  );
+}
+
+function displayValue<T>(field: ConsoleField<T>) {
+  if (field.state === "unavailable") return "Unavailable";
+  if (field.value === undefined || field.value === null || field.value === "") {
+    return "Needs review";
+  }
+  return String(field.value);
+}

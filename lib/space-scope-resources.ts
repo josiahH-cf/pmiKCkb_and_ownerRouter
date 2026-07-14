@@ -21,6 +21,18 @@ export function mappedScopeForProcessDefinitionId(
   )?.scope;
 }
 
+export function mappedSpaceIdForProcessDefinitionId(
+  definitionId: string,
+): string | undefined {
+  return launchSpaces.find((space) => space.processDefinitionId === definitionId)?.id;
+}
+
+export function spaceIdForProcessDefinition(
+  definition: Pick<ProcessDefinitionRecord, "id" | "space_id">,
+): string | undefined {
+  return definition.space_id ?? mappedSpaceIdForProcessDefinitionId(definition.id);
+}
+
 export function defaultSpaceIdForScope(scope: SpaceScope): string {
   const spaceId = launchSpaces.find((space) => space.scope === scope)?.id;
   if (!spaceId) {
@@ -57,6 +69,16 @@ export function canAccessProcessDefinitionId(
   return canAccessMappedScope(user, mappedScopeForProcessDefinitionId(definitionId));
 }
 
+export function canAccessProcessDefinition(
+  user: AuthenticatedUser,
+  definition: Pick<ProcessDefinitionRecord, "id" | "space_id">,
+): boolean {
+  const spaceId = spaceIdForProcessDefinition(definition);
+  return spaceId
+    ? canAccessSpaceId(user, spaceId)
+    : canAccessProcessDefinitionId(user, definition.id);
+}
+
 export function canAccessWorkflowRun(
   user: AuthenticatedUser,
   run: Pick<WorkflowRunRecord, "definition_id">,
@@ -82,6 +104,13 @@ export function assertProcessDefinitionAccess(
   }
 }
 
+export function assertProcessDefinitionRecordAccess(
+  user: AuthenticatedUser,
+  definition: Pick<ProcessDefinitionRecord, "id" | "space_id">,
+): void {
+  if (!canAccessProcessDefinition(user, definition)) throwScopeDenied();
+}
+
 export function assertWorkflowRunAccess(
   user: AuthenticatedUser,
   run: Pick<WorkflowRunRecord, "definition_id">,
@@ -102,9 +131,9 @@ export function filterProcessDefinitionsForUser(
   user: AuthenticatedUser,
   definitions: readonly ProcessDefinitionRecord[],
 ): ProcessDefinitionRecord[] {
-  return definitions.filter((definition) =>
-    canAccessProcessDefinitionId(user, definition.id),
-  );
+  return definitions.filter((definition) => {
+    return canAccessProcessDefinition(user, definition);
+  });
 }
 
 export function filterWorkflowRunsForUser(

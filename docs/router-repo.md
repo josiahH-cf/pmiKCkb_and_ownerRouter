@@ -3,7 +3,8 @@
 This path is kept only so historical links do not break.
 
 The separate Owner Router repo plan is no longer active governance. The current
-client-facing product lane is Gmail Inbox 0:
+client-facing product lane is Workflow Communications, a workflow-linked Gmail adapter rather than
+a general inbox:
 
 - Active lane: `docs/products/gmail-inbox-zero.md`
 - Current north star: `docs/north-star.md`

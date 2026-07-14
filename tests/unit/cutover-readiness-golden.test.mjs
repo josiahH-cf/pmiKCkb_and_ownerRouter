@@ -131,6 +131,15 @@ describe("production env preflight rejects broken configs", () => {
     ).toBe(true);
   });
 
+  it("rejects an explicitly named Console test deployment", () => {
+    expect(
+      hasError(
+        withEnv({ CONSOLE_TEST_DEPLOYMENT_NAME: "test-staging-1" }),
+        "CONSOLE_TEST_DEPLOYMENT_NAME must be empty",
+      ),
+    ).toBe(true);
+  });
+
   it("rejects a non-https APP_BASE_URL", () => {
     expect(
       hasError(

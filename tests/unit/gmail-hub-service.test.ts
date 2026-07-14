@@ -7,7 +7,8 @@ import {
   GmailHubError,
   GmailHubService,
 } from "@/lib/gmail-hub/service";
-import { MemoryGmailStateStore } from "@/lib/gmail-hub/state-store";
+import { gmailMailboxKey, MemoryGmailStateStore } from "@/lib/gmail-hub/state-store";
+import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
 import { GmailRuntimeClient, GmailRuntimeError } from "@/lib/gmail-runtime/client";
 import { isActionExecutable } from "@/lib/integrations/action-gate";
 import type {
@@ -23,8 +24,23 @@ const actor: AuthenticatedUser = {
   role: "Approver",
 };
 
-function newMessage(subject: string, body: string, to = [actor.email]) {
-  return { kind: "new" as const, to, cc: [], bcc: [], subject, body };
+function context(actionKey: string): WorkflowCommunicationContext {
+  return {
+    lane: "maintenance",
+    entityType: "maintenance_ticket",
+    entityId: "ticket-synthetic-1",
+    purpose: "maintenance_owner",
+    actionKey,
+    sourceRefs: ["maintenance_ticket:ticket-synthetic-1"],
+    templateRef: "template:maintenance-owner-reply:v1",
+  };
+}
+
+function reply(body: string) {
+  return {
+    context: context("gmail.thread.reply"),
+    message: { kind: "reply" as const, threadId: "thread-1", body },
+  };
 }
 
 class FakeGmailClient extends GmailRuntimeClient {
@@ -43,7 +59,7 @@ class FakeGmailClient extends GmailRuntimeClient {
         id: "message-parent",
         threadId: "thread-1",
         labelIds: ["INBOX"],
-        from: actor.email,
+        from: "Dan Example <dan@example.com>",
         to: [actor.email],
         cc: [],
         bcc: [],
@@ -118,10 +134,28 @@ function service(
     now?: () => number;
     token?: string;
     gates?: readonly string[];
+    approveTemplates?: boolean;
   } = {},
 ) {
   const client = options.client ?? new FakeGmailClient();
   const store = options.store ?? new MemoryGmailStateStore();
+  store.communicationLinks.set("link-1", {
+    id: "link-1",
+    actor_uid: actor.uid,
+    mailbox_key: gmailMailboxKey(actor.email),
+    lane: "maintenance",
+    entity_type: "maintenance_ticket",
+    entity_id: "ticket-synthetic-1",
+    purpose: "maintenance_owner",
+    origin_action_key: "gmail.mailbox.read",
+    source_refs: ["maintenance_ticket:ticket-synthetic-1"],
+    template_ref: "template:maintenance-owner-reply:v1",
+    gmail_thread_id: "thread-1",
+    status: "linked",
+    created_at_ms: 1,
+    updated_at_ms: 1,
+    expires_at_ms: Number.MAX_SAFE_INTEGER,
+  });
   const gates = new Set(
     options.gates ?? [
       "gmail.mailbox.read",
@@ -140,6 +174,7 @@ function service(
       isActionExecutable: (action) => gates.has(action),
       now: options.now,
       createToken: () => options.token ?? "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG",
+      isApprovedWorkflowTemplate: () => options.approveTemplates ?? true,
     }),
   };
 }
@@ -160,48 +195,64 @@ describe("GmailHubService connection", () => {
       sync: { health: "manual" },
     });
     expect(client.profileCalls).toBe(1);
-    expect(isActionExecutable("gmail.message.send")).toBe(true);
+    expect(isActionExecutable("gmail.message.send")).toBe(false);
     expect(isActionExecutable("gmail.thread.reply")).toBe(true);
   });
 });
 
-describe("GmailHubService exact-message sending (AC-S19-4, AC-S19-5)", () => {
-  it("binds a one-time confirmation to the authenticated user's reviewed recipients", async () => {
+describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
+  it("links one targeted thread and stores only a reason hash", async () => {
     const { hub, store } = service();
-    const prepared = await hub.prepareSendConfirmation(
-      newMessage("External recipient proof", "Synthetic test body", ["dan@example.com"]),
+    await hub.linkExistingThread({
+      context: context("gmail.mailbox.read"),
+      threadId: "thread-1",
+      reason: "Synthetic owner response for ticket review",
+    });
+    const saved = [...store.communicationLinks.values()].find(
+      (link) => link.id !== "link-1",
     );
+    expect(saved?.reason_hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(JSON.stringify(saved)).not.toContain("Synthetic owner response");
+  });
+
+  it("binds a one-time confirmation to one linked workflow reply", async () => {
+    const { hub, store } = service();
+    const prepared = await hub.prepareSendConfirmation(reply("Synthetic test body"));
 
     expect(prepared.payload).toMatchObject({
       from: actor.email,
       to: ["dan@example.com"],
       cc: [],
       bcc: [],
-      subject: "External recipient proof",
+      subject: "Self thread proof",
       body: "Synthetic test body",
     });
     const record = store.confirmations.get(
       hashConfirmationToken(prepared.confirmationToken),
     );
-    expect(record).toMatchObject({ actor_uid: actor.uid, state: "pending" });
+    expect(record).toMatchObject({
+      actor_uid: actor.uid,
+      state: "pending",
+      workflow_entity_id: "ticket-synthetic-1",
+    });
     expect(JSON.stringify(record)).not.toContain("Synthetic test body");
     expect(JSON.stringify(store.audit)).not.toContain("Synthetic test body");
   });
 
   it("rejects a missing confirmation or any changed exact payload before Gmail", async () => {
     const { hub, client } = service();
-    const prepared = await hub.prepareSendConfirmation(
-      newMessage("Self proof", "Exact body"),
-    );
+    const prepared = await hub.prepareSendConfirmation(reply("Exact body"));
 
     await expect(
       hub.sendConfirmed({
+        context: prepared.context,
         confirmationToken: "different-token-abcdefghijklmnopqrstuvwxyz012345",
         payload: prepared.payload,
       }),
     ).rejects.toBeInstanceOf(GmailHubError);
     await expect(
       hub.sendConfirmed({
+        context: prepared.context,
         confirmationToken: prepared.confirmationToken,
         payload: { ...prepared.payload, body: "Changed body" },
       }),
@@ -212,10 +263,11 @@ describe("GmailHubService exact-message sending (AC-S19-4, AC-S19-5)", () => {
   it("cannot use a valid confirmation to change the authenticated From mailbox", async () => {
     const { hub, client } = service();
     const prepared = await hub.prepareSendConfirmation(
-      newMessage("Boundary proof", "Authenticated sender only", ["dan@example.com"]),
+      reply("Authenticated sender only"),
     );
     await expect(
       hub.sendConfirmed({
+        context: prepared.context,
         confirmationToken: prepared.confirmationToken,
         payload: {
           ...prepared.payload,
@@ -229,9 +281,7 @@ describe("GmailHubService exact-message sending (AC-S19-4, AC-S19-5)", () => {
   it("consumes no expired confirmation", async () => {
     let now = 1_000;
     const { hub, client } = service({ now: () => now });
-    const prepared = await hub.prepareSendConfirmation(
-      newMessage("Expiry proof", "Synthetic body"),
-    );
+    const prepared = await hub.prepareSendConfirmation(reply("Synthetic body"));
     now += 10 * 60 * 1000 + 1;
 
     await expect(hub.sendConfirmed(prepared)).rejects.toThrow("expired");
@@ -246,9 +296,7 @@ describe("GmailHubService exact-message sending (AC-S19-4, AC-S19-5)", () => {
     const client = new FakeGmailClient();
     client.sendDelay = blocker;
     const { hub } = service({ client });
-    const prepared = await hub.prepareSendConfirmation(
-      newMessage("Double-click proof", "One attempt only"),
-    );
+    const prepared = await hub.prepareSendConfirmation(reply("One attempt only"));
 
     const first = hub.sendConfirmed(prepared);
     const second = hub.sendConfirmed(prepared);
@@ -267,9 +315,7 @@ describe("GmailHubService exact-message sending (AC-S19-4, AC-S19-5)", () => {
     const client = new FakeGmailClient();
     client.sendError = new GmailRuntimeError("unclear", undefined, true);
     const { hub, store } = service({ client });
-    const prepared = await hub.prepareSendConfirmation(
-      newMessage("Ambiguity proof", "Do not retry"),
-    );
+    const prepared = await hub.prepareSendConfirmation(reply("Do not retry"));
 
     await expect(hub.sendConfirmed(prepared)).rejects.toBeInstanceOf(
       GmailAmbiguousSendError,
@@ -284,7 +330,9 @@ describe("GmailHubService exact-message sending (AC-S19-4, AC-S19-5)", () => {
       threadId: "reconciled-thread",
       labelIds: ["SENT"],
     };
-    await expect(hub.reconcileSend(prepared.confirmationToken)).resolves.toMatchObject({
+    await expect(
+      hub.reconcileSend(prepared.confirmationToken, prepared.context),
+    ).resolves.toMatchObject({
       status: "sent",
       result: { messageId: "reconciled-message", threadId: "reconciled-thread" },
     });
@@ -296,11 +344,7 @@ describe("GmailHubService exact-message sending (AC-S19-4, AC-S19-5)", () => {
 
   it("builds a reply from the live parent with matching subject and RFC thread headers", async () => {
     const { hub } = service();
-    const prepared = await hub.prepareSendConfirmation({
-      kind: "reply",
-      threadId: "thread-1",
-      body: "Synthetic reply",
-    });
+    const prepared = await hub.prepareSendConfirmation(reply("Synthetic reply"));
 
     expect(prepared.payload).toMatchObject({
       threadId: "thread-1",
@@ -311,8 +355,15 @@ describe("GmailHubService exact-message sending (AC-S19-4, AC-S19-5)", () => {
   });
 
   it("applies a bounded user label through its separately gated action", async () => {
-    const { hub, client } = service();
-    await expect(hub.applyThreadLabel("thread-1", "Waiting on Team")).resolves.toEqual({
+    const { hub, client, store } = service();
+    await expect(
+      hub.applyThreadLabel("thread-1", {
+        context: context("gmail.label.apply"),
+        label: "Waiting on Team",
+        reason: "Waiting for staff review",
+        ruleRef: "manual-human-review:v1",
+      }),
+    ).resolves.toEqual({
       threadId: "thread-1",
       labelId: "Label_1",
       labelName: "Waiting on Team",
@@ -321,6 +372,74 @@ describe("GmailHubService exact-message sending (AC-S19-4, AC-S19-5)", () => {
     expect(client.labelsApplied).toEqual([
       { threadId: "thread-1", labelName: "Waiting on Team" },
     ]);
+    expect(store.audit).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: "label_applied",
+          label: "Waiting on Team",
+          rule_ref: "manual-human-review:v1",
+        }),
+      ]),
+    );
+    expect(JSON.stringify(store.audit)).not.toContain("Waiting for staff review");
+  });
+
+  it("rejects generic compose and unlinked reads before Gmail mutation", async () => {
+    const { hub, client } = service();
+    await expect(
+      hub.prepareSendConfirmation({
+        context: context("gmail.thread.reply"),
+        message: {
+          kind: "new",
+          to: ["dan@example.com"],
+          cc: [],
+          bcc: [],
+          subject: "Outside boundary",
+          body: "Synthetic",
+        },
+      }),
+    ).rejects.toThrow("New-message sending is not exposed");
+    await expect(
+      hub.getThread("unlinked-thread", context("gmail.mailbox.read")),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(client.sendCalls).toBe(0);
+  });
+
+  it("rejects an unapproved template before reading or sending Gmail", async () => {
+    const { hub, client } = service({ approveTemplates: false });
+    await expect(hub.prepareSendConfirmation(reply("Synthetic"))).rejects.toThrow(
+      "not approved for production use",
+    );
+    expect(client.sendCalls).toBe(0);
+  });
+
+  it("rejects arbitrary labels, rules, and missing reasons before Gmail mutation", async () => {
+    const { hub, client } = service();
+    for (const input of [
+      {
+        context: context("gmail.label.apply"),
+        label: "Arbitrary label",
+        reason: "Human reviewed",
+        ruleRef: "manual-human-review:v1",
+      },
+      {
+        context: context("gmail.label.apply"),
+        label: "Waiting on Team",
+        reason: "",
+        ruleRef: "manual-human-review:v1",
+      },
+      {
+        context: context("gmail.label.apply"),
+        label: "Waiting on Team",
+        reason: "Human reviewed",
+        ruleRef: "invented-rule:v1",
+      },
+    ]) {
+      await expect(
+        hub.applyThreadLabel("thread-1", input as never),
+      ).rejects.toBeInstanceOf(Error);
+    }
+    expect(client.labelsApplied).toEqual([]);
   });
 
   it("refuses a Gmail client for any mailbox other than the authenticated actor", () => {

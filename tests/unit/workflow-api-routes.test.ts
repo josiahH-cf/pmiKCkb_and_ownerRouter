@@ -137,7 +137,7 @@ describe("workflow API routes", () => {
     );
   });
 
-  it("submits, activates, and starts simulation test runs through definition routes", async () => {
+  it("retires approval submission while preserving legacy activation and test routes", async () => {
     setAdmin();
     vi.mocked(submitProcessDefinitionForApproval).mockResolvedValue(
       definition({ status: "Pending Approval" }),
@@ -161,14 +161,10 @@ describe("workflow API routes", () => {
       definitionContext("def-1"),
     );
 
-    expect(submitResponse.status).toBe(200);
+    expect(submitResponse.status).toBe(409);
     expect(activateResponse.status).toBe(200);
     expect(testRunResponse.status).toBe(201);
-    expect(submitProcessDefinitionForApproval).toHaveBeenCalledWith(
-      expect.objectContaining({ uid: "admin-1" }),
-      "def-1",
-      { note: "Ready." },
-    );
+    expect(submitProcessDefinitionForApproval).not.toHaveBeenCalled();
     expect(activateProcessDefinition).toHaveBeenCalledWith(
       expect.objectContaining({ uid: "admin-1" }),
       "def-1",
@@ -262,6 +258,7 @@ function createPayload() {
     owner_uid: "editor-1",
     required_starting_inputs: [],
     short_outcome: "Prepare a renewal package.",
+    space_id: "lease-renewals",
     source_links: [],
     steps: [{ title: "Gather facts" }],
     success_condition: "Package is ready.",

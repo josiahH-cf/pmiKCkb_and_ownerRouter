@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server";
-import { apiErrorResponse, parseOptionalJsonBody } from "@/lib/api/editable";
+import { apiErrorResponse } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
-import { SubmitProcessDefinitionInputSchema } from "@/lib/firestore/schemas";
-import {
-  listWorkflowRuns,
-  submitProcessDefinitionForApproval,
-} from "@/lib/firestore/workflows";
-import { assertProcessDefinitionAccess } from "@/lib/space-scope-resources";
 
 interface RouteContext {
   params: Promise<{ definitionId: string }>;
@@ -14,21 +8,16 @@ interface RouteContext {
 
 export async function POST(request: Request, context: RouteContext) {
   try {
-    const user = await requireCapability("edit");
-    const { definitionId } = await context.params;
-    assertProcessDefinitionAccess(user, definitionId);
-    const input = await parseOptionalJsonBody(
-      request,
-      SubmitProcessDefinitionInputSchema,
+    await requireCapability("edit");
+    await context.params;
+    await request.text();
+    return NextResponse.json(
+      {
+        error:
+          "Approval Queue submission is retired for content publication. Use the validated publish action.",
+      },
+      { status: 409 },
     );
-    const definition = await submitProcessDefinitionForApproval(
-      user,
-      definitionId,
-      input,
-    );
-    const runs = await listWorkflowRuns(user, { definitionId });
-
-    return NextResponse.json({ definition, runs });
   } catch (error) {
     return apiErrorResponse(error);
   }

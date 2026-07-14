@@ -5,9 +5,11 @@ import { requirePageCapability } from "@/lib/auth/page-guards";
 import { listProcessDefinitions, listWorkflowRuns } from "@/lib/firestore/workflows";
 import type { ProcessDefinitionRecord, WorkflowRunRecord } from "@/lib/firestore/types";
 import {
+  canAccessLaunchSpace,
   filterProcessDefinitionsForUser,
   filterWorkflowRunsForUser,
 } from "@/lib/space-scope-resources";
+import { launchSpaces } from "@/lib/spaces";
 
 export default async function ProcessesPage() {
   const user = await requirePageCapability("read");
@@ -41,6 +43,9 @@ export default async function ProcessesPage() {
       <section className="content">
         <h1 className="section-title">Processes</h1>
         <ProcessDefinitionListClient
+          availableSpaces={launchSpaces.filter((space) =>
+            canAccessLaunchSpace(user, space),
+          )}
           canEdit={can(user.role, "edit")}
           currentUserUid={user.uid}
           initialDefinitions={definitions}

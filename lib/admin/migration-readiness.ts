@@ -148,18 +148,14 @@ const defaultDeps: MigrationReadinessDeps = {
 // ids, a reviewed production manifest); they cannot be cleared from the remote container.
 const OWNER_SIDE_SECTIONS = ["gcp:", "env:", "corpus:"];
 
-// Action Registry keys that are intentionally production_allowed, each backed by a committed
-// owner-approved grant artifact (Section 3). A production_allowed key NOT in this set is a surprise
-// flip the cutover must flag. Grows only when a new grant artifact is committed.
-//   - gmail.renewal_notice.draft_create: docs/evidence/gmail-dwd-grant-2026-07.md (gmail.compose; no send)
-//   - Gmail Inbox 0 actions: docs/evidence/gmail-production-activation-2026-07-13.md
+// Action Registry keys intentionally allowed by the workflow product. Transport proof alone does not
+// authorize generic send or sample-backed workflow drafts. A production_allowed key NOT in this set is
+// a surprise flip the cutover must flag.
 const EXECUTABLE_ALLOWLIST = new Set<string>([
   "gmail.mailbox.read",
   "gmail.draft.create",
-  "gmail.message.send",
   "gmail.thread.reply",
   "gmail.label.apply",
-  "gmail.renewal_notice.draft_create",
 ]);
 
 export function classifyOwnerActions(rollup: ReadinessRollup): string[] {

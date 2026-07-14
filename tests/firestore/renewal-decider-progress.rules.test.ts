@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
 import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
 import {
   assertFails,
@@ -17,8 +18,7 @@ const ADMIN_PROGRESS = "renewal_decider_progress/admin-marker";
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
     firestore: {
-      host: "127.0.0.1",
-      port: 8080,
+      ...FIRESTORE_EMULATOR_TARGET,
       rules: readFileSync("firestore.rules", "utf8"),
     },
     projectId: "pmi-kc-kb-renewal-decider-progress-test",

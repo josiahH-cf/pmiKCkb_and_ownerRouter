@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { apiErrorResponse } from "@/lib/api/editable";
 import { GmailBoundaryError } from "@/lib/gmail-hub/contracts";
@@ -9,6 +10,12 @@ import { GmailRuntimeError } from "@/lib/gmail-runtime/client";
 import { GmailSubjectError } from "@/lib/gmail-runtime/subject";
 
 export function gmailHubErrorResponse(error: unknown) {
+  if (error instanceof z.ZodError) {
+    return NextResponse.json(
+      { error: "Invalid Gmail workflow context." },
+      { status: 400 },
+    );
+  }
   if (
     error instanceof GmailHubError ||
     error instanceof GmailStateError ||

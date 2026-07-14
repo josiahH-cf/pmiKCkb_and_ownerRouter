@@ -9,7 +9,7 @@ export const PMI_TAGLINE = "the property management people";
 export const PMI_COMPANY = "Property Management Inc.";
 
 export const LEASE_RENEWAL_AGENT_NAME = "Lease Renewal Agent";
-export const GMAIL_INBOX_ZERO_NAME = "Gmail Inbox 0";
+export const WORKFLOW_COMMUNICATIONS_NAME = "Workflow Communications";
 export const OWNER_ROUTER_NAME = "Owner Router";
 export const OWNER_ROUTER_REPO_NAME = "pmi-kc-owner-router";
 export const OWNER_ROUTER_FOLDER_NAME = "Owner Router - PMI KC Metro";

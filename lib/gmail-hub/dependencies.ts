@@ -5,6 +5,8 @@ import {
   type GmailStateStore,
 } from "@/lib/gmail-hub/state-store";
 import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
+import { isApprovedWorkflowReplyTemplate } from "@/lib/gmail-hub/governed-artifacts";
+import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
 import { isActionExecutable } from "@/lib/integrations/action-gate";
 
 export interface GmailHubRuntimeDependencies {
@@ -13,6 +15,8 @@ export interface GmailHubRuntimeDependencies {
   isActionExecutable(action: string): boolean;
   now?(): number;
   createToken?(): string;
+  workflowLinkTtlDays?: number;
+  isApprovedWorkflowTemplate?(context: WorkflowCommunicationContext): boolean;
 }
 
 let testDependencies: GmailHubRuntimeDependencies | null = null;
@@ -32,6 +36,10 @@ export function getGmailHubDependencies(): GmailHubRuntimeDependencies {
       createClient: (subject) => new GmailRuntimeClient({ subject }),
       store: new FirestoreGmailStateStore(),
       isActionExecutable,
+      workflowLinkTtlDays: parseWorkflowLinkTtlDays(
+        process.env.GMAIL_WORKFLOW_LINK_TTL_DAYS,
+      ),
+      isApprovedWorkflowTemplate: isApprovedWorkflowReplyTemplate,
     }
   );
 }
@@ -44,5 +52,13 @@ export function createGmailHubService(actor: AuthenticatedUser) {
     isActionExecutable: dependencies.isActionExecutable,
     now: dependencies.now,
     createToken: dependencies.createToken,
+    workflowLinkTtlDays: dependencies.workflowLinkTtlDays,
+    isApprovedWorkflowTemplate: dependencies.isApprovedWorkflowTemplate,
   });
+}
+
+function parseWorkflowLinkTtlDays(value: string | undefined) {
+  if (!value) return undefined;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 && parsed <= 3_650 ? parsed : undefined;
 }

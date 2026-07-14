@@ -6,10 +6,10 @@
 > decisions are in `docs/products/v1-process-qa.md`. Use this file as the lease-renewal ENGINE design
 > reference, not the current status.
 
-Status: **Active build plan** (authored 2026-06-20 by a multi-agent map → synthesize → adversarial
-falsify workflow; the review's corrections are folded in). This is the "continue with feature
-development" entry point: the next loop reads [`../loop-state.md`](../loop-state.md) → this file →
-the design docs, then builds the next zero-cost Phase-1 unit.
+Status: **Historical Phase-1 engine design; not the current resume plan.** The deterministic units,
+live reads, renewal review, and later app-plane slices described as missing below have since shipped.
+Continue from [`../loop-state.md`](../loop-state.md) → [`../plan.md`](../plan.md) → the current product
+doc/spec. Keep this file only for the original engine rationale and falsification cases.
 
 > ▶ **The §3 deterministic Phase-1 units are BUILT + merged, and both live reads are proven
 > (2026-06-24).** The active next cycle is **[`lease-renewal-next-phase-plan.md`](lease-renewal-next-phase-plan.md)**
@@ -146,9 +146,9 @@ readiness-improving Phase-1 unit from §3, build it as pure functions, validate 
 against the **Action Registry** schema (`lib/firestore/action-registry.ts`, governed read-only),
 test deterministically through the runner's Verification-and-Falsification phase, and update
 `loop-state.md` at the boundary. The registry is the spine: an action is executable only when its
-entry is `Approved for Execution` + `Documented` + `production_allowed` — and **every entry is
-`production_allowed:false` today**, so the loop builds and tests against the catalog with zero write
-risk. Stop at any Approval Gate (cost, keys, Gmail, SoR write) or when only client-owned blockers
+entry is `Approved for Execution` + `Documented` + `production_allowed`. Four workflow-targeted
+Gmail transport actions now satisfy that gate; every non-Gmail system-of-record write remains false.
+Stop at any Approval Gate (cost, keys, Gmail, SoR write) or when only client-owned blockers
 remain → route to client-unblock.
 
 ## 6. Dependencies not yet built (flag before promising the Phase-1 milestone)
@@ -187,8 +187,10 @@ reconciliation finalization, live reads, write-back, or prod completion.
 - **OQ-MO-1** — Move-out specifics (Dotloop set, "4265" trigger, deposit/lock/collections/relisting,
   SLAs). _Blocks:_ move-out recommender (low priority vs renewal).
 - **OQ-QB-1** — QuickBooks access status/location. _Blocks:_ QuickBooks integration completeness.
-- **OQ-GMAIL-1** — Gmail Inbox 0 safe test-thread protocol + approval sender/recipients. _Blocks:_
-  Gmail Inbox 0 live runtime.
+- **OQ-GMAIL-1** — Partially resolved: workflow communication uses fake transport or a synthetic
+  self-addressed thread and applies S20 exact-confirmed internal Editor/Admin send. Still open: authoritative
+  owner/tenant recipient sources, approved template versions, and retention periods. _Blocks:_ real-run
+  Gmail draft/reply promotion, not the deterministic Phase-1 engine.
 - **OQ-PERM-1** — Which internal updates may execute pre-Dan-approval vs require Admin review; and
   the product success definition for renewal-team cutover. _Blocks:_ approval-queue permission model.
 

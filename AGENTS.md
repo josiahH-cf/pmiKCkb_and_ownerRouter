@@ -38,8 +38,8 @@ Govern and build the PMI KC three-product workstream:
 
 - PMI KC KB: source-backed knowledge and handoff web app.
 - Lease Renewal Agent: separate renewal workflow product lane; discovery before runtime.
-- Gmail Inbox 0: Dan-email-first Gmail workflow, successor to Owner Router/Dan's AI
-  Assistant.
+- Workflow Communications: Gmail-backed communication adapter and evidence source for
+  renewal and maintenance workflows; compatibility routes retain the old Gmail Hub name.
 
 The old KB-only/separate-Owner-Router direction is legacy. Preserve useful history, but
 route new work through the three-product docs.
@@ -54,6 +54,15 @@ route new work through the three-product docs.
 | Approval Queue mobile redesign (S14)  | `docs/feature-suites/approval-queue-mobile.md`                                                                         |
 | Gmail hub — drafts/templates (S15)    | `docs/feature-suites/gmail-hub.md`                                                                                     |
 | Live Gmail per user (S19)             | `docs/feature-suites/gmail-live-per-user.md`                                                                           |
+| V1 gap implementation program         | `docs/v1-gap-implementation-program-2026-07-14.md`, then S20–S27                                                       |
+| V1 execution authority (S20)          | `docs/feature-suites/execution-authority.md`                                                                           |
+| Immediate trusted publication (S21)   | `docs/feature-suites/trusted-publication.md`                                                                           |
+| External Vendor + Gmail OAuth (S22)   | `docs/feature-suites/vendor-portal-and-mailbox.md`                                                                     |
+| Console live/test boundary (S23)      | `docs/feature-suites/console-live-data.md`                                                                             |
+| Communications policy (S24)           | `docs/feature-suites/communications-policy.md`                                                                         |
+| Lease external execution (S25)        | `docs/feature-suites/lease-renewal-execution.md`                                                                       |
+| Maintenance external execution (S26)  | `docs/feature-suites/maintenance-execution.md`                                                                         |
+| V1 staged acceptance (S27)            | `docs/feature-suites/v1-release-acceptance.md`                                                                         |
 | Role-scoped sub-users / scopes (S16)  | `docs/feature-suites/rbac-subusers.md`                                                                                 |
 | Unified Console + notifications (S17) | `docs/feature-suites/unified-console-and-attention.md`                                                                 |
 | Process auto-initiation (S18)         | `docs/feature-suites/process-auto-initiation.md`                                                                       |
@@ -61,7 +70,7 @@ route new work through the three-product docs.
 | Audience profile and copy voice       | `docs/voice-and-audience.md`                                                                                           |
 | North star and product direction      | `docs/north-star.md`                                                                                                   |
 | Product lane routing                  | `docs/products/README.md`, then the relevant product doc                                                               |
-| Continue feature development          | `docs/products/lease-renewal-build-plan.md`                                                                            |
+| Continue feature development          | `docs/loop-state.md`, `docs/plan.md`, then the relevant current product/spec doc                                       |
 | Renewal / move-in / move-out flow     | `docs/products/lease-renewal-discovery-reference.md`, `docs/products/move-in-move-out-process.md`                      |
 | Renewal sheet connector + conflicts   | `docs/products/lease-renewal-connector-design.md`, `docs/products/lease-renewal-spreadsheet-map.md`                    |
 | V1 process Q&A and owner decisions    | `docs/products/v1-process-qa.md`                                                                                       |
@@ -76,11 +85,13 @@ route new work through the three-product docs.
 | How to work next                      | `docs/implement.md`                                                                                                    |
 | Autonomous feature-cycle runner       | `docs/autonomous-agent-runner.md`                                                                                      |
 | Plan, run, or continue the loop       | `docs/loop-state.md`, then `docs/autonomous-agent-runner.md`                                                           |
+| Fresh-context final-V1 continuation   | `docs/fresh-context-v1-implementation-prompt-2026-07-14.md`                                                            |
 | Cost ceiling and budget policy        | `docs/budget-and-cost-policy.md`                                                                                       |
 | Vacation / away-mode overlay          | `docs/away-mode.md`                                                                                                    |
 | Local-dev stop/cutover gate           | `docs/autonomous-agent-runner.md`, `docs/implement.md`                                                                 |
 | Current status and blockers           | `docs/status.md`                                                                                                       |
 | Loop resume state and next slice      | `docs/loop-state.md`                                                                                                   |
+| V1 blocker + tab audit                | `docs/v1-readiness-audit-2026-07-14.html`, Round 2, then `docs/v1-readiness-audit-round-3-2026-07-14.html`             |
 | Client asks                           | `docs/client-checklist.md`                                                                                             |
 | Client unblock and parallel work      | `docs/status.md`, `docs/client-checklist.md`, `docs/implement.md`                                                      |
 | Engineering checklist                 | `docs/engineering-checklist.md`                                                                                        |
@@ -104,13 +115,16 @@ route new work through the three-product docs.
   `TEMPLATE.md` is the shape for new/overhaul specs; the 2026-07-10 overhaul suites are S14
   (approval-queue-mobile), S15 (gmail-hub), S16 (rbac-subusers), S17 (unified-console-and-attention),
   and S18 (process-auto-initiation), plus S19 (`gmail-live-per-user`) for the 2026-07-13
-  owner-approved live-per-user Gmail direction — sentinel-gated by
+  owner-approved live-per-user Gmail direction. The final 2026-07-14 V1 contract is executable as
+  S20–S27 (execution authority, trusted publication, Vendor portal/OAuth, Console data, communications
+  policy, Lease actions, Maintenance actions, and release acceptance) through
+  `docs/v1-gap-implementation-program-2026-07-14.md`. All overhaul specs are sentinel-gated by
   `feature-suite-spec-shape.test.mjs` + `verify:spec-traceability`.
 - `docs/meta-prompts/`: governance-first scaffold, golden next-step set, and the re-scaffold/cleanup
   meta-prompt.
 - `docs/voice-and-audience.md`: audience profile and client-facing copy voice rules.
-- `docs/products/`: active product-lane docs for KB, Lease Renewal Agent, and Gmail
-  Inbox 0.
+- `docs/products/`: active product-lane docs for KB, Lease Renewal Agent, and Workflow
+  Communications.
 - `docs/integration-architecture.md`: verified tool-role map, event model, build order,
   and the Action Registry model for external integrations.
 - `docs/research/`: durable, citable research findings (e.g. integration capability).
@@ -122,7 +136,7 @@ route new work through the three-product docs.
   registry.
 - `docs/legacy/`: retired or superseded context kept for history.
 - `docs/legacy/owner-router-artifact-source.md`: local sibling Owner Router package
-  map for Gmail Inbox 0 source-material mining only.
+  map for historical source-material mining only.
 - `docs/specs/`: preserved original spec set.
 - `docs/temp/`: disposable planning packets and draft communications only.
 - `tests/`: unit, eval, Firestore, and future e2e tests.
@@ -170,10 +184,10 @@ route new work through the three-product docs.
   `docs/integration-architecture.md`; Maintenance Work Order Intake is the first
   executable write, and Rentvine lease-renewal writeback stays gated as undocumented.
 - Add tests with any behavior change.
-- Do not build Lease Renewal Agent or Gmail Inbox 0 runtime behavior until their
-  product docs define scope, permissions, and acceptance gates. S19 defines and activates the
-  per-user Gmail runtime; its approved actions, scopes, Pub/Sub resources, and exact-confirmation
-  boundary live in the Action Registry, product spec, and production evidence artifact.
+- Do not build Lease Renewal or Workflow Communications behavior beyond its product
+  docs, permissions, and acceptance gates. S19 preserves the proven per-user Gmail transport but
+  restricts product use to authorized workflow-linked communications. Generic compose/send and
+  unrelated mailbox browsing are not product capabilities.
 
 ## Working Order
 
@@ -225,20 +239,31 @@ answer ourselves.
   still requires a per-action spec.
 - Use `.env.example` for names only.
 - Preserve human send authority; no autonomous send.
-- Do not add system-of-record write paths to RentVine, LeadSimple, DotLoop, QuickBooks,
-  Boom, operating Sheets, banks, or client Drive folders without a future approved spec.
+- Do not execute or promote a system-of-record write path to RentVine, LeadSimple, DotLoop,
+  QuickBooks, Boom, operating Sheets, banks, or client Drive folders without its current approved
+  S25/S26 action contract, documented provider evidence, required permissions, green adversarial
+  acceptance, an Action Registry code review, and explicit per-action live authority. Final-V1 product
+  inclusion is not blanket execution approval.
 - Missing sources produce visible uncertainty, not generic property-management answers.
 
 ## Identity Rules
 
-- This project always uses a `pmikcmetro.com` Google identity. The personal
-  `josiah.abernathy@gmail.com` account must never appear in any auth path.
+- PMI KC staff, agent, connector, cloud, admin, runtime, build, and delegated-Workspace access always
+  use a `pmikcmetro.com` or `pmi-kc-kb-prod` identity. The personal
+  `josiah.abernathy@gmail.com` account must never appear in any auth path. Round 3 requires a separately
+  scoped external Vendor V1 principal: Admin invite, one-time password-setup link, verified-email TOTP
+  MFA before ticket detail, assigned-ticket-only authorization, and the Vendor's own Gmail/Google
+  Workspace mailbox through per-vendor server-side OAuth. It never uses DWD or gains PMI KC cloud,
+  admin, connector, internal Space, or general/cross-mailbox authority. S22 is the implementation
+  contract; the principal is not active in current code.
 - Six identity systems are separate and do NOT cascade: (a) the agent runner's file/Drive
   connector (Claude Code's MCP Drive/Workspace connector today; not applicable under Codex),
   (b) local gcloud/ADC, (c) the Cloud Run runtime service account, (d) Firebase
   end-user auth, (e) the Firebase CLI login, (f) the Cloud Build/buildpack identity. All must be
-  `pmikcmetro.com` (human/connector/firebase-CLI) or a `pmi-kc-kb-prod` service identity
-  (runtime/build). `gcloud auth` does NOT change the runner's file/Drive connector, and vice-versa.
+  `pmikcmetro.com` (internal human/connector/firebase-CLI) or a `pmi-kc-kb-prod` service identity
+  (runtime/build). The S22 external Vendor Firebase/OAuth principal is the only scoped exception
+  and cannot be reused for any of those six systems. `gcloud auth` does NOT change the runner's
+  file/Drive connector, and vice-versa.
 - No `cherrybridge.ai` / `pmikckb-test` (legacy demo) in any production path. No downloadable
   key files — ADC (local human) and attached service account (runtime) only. The legacy demo
   cloud lane is being retired (repo pointers neutralized 2026-06-20; GCP teardown is owner-side) —
@@ -252,10 +277,11 @@ answer ourselves.
   the pmikcmetro.com domain boundary, writes an append-only `admin_role_changes` audit, and has a best-effort last-Admin
   guard (NOT concurrency-safe; the break-glass script recovers). Per-user domain-wide Gmail
   (`F-GMAIL-PER-USER`, evolved by S19) acts AS each signed-in user's own mailbox via DWD. The
-  production runtime uses the four approved Gmail scopes and five separately governed Inbox 0 actions;
-  the rollout-only pilot allowlist is removed. Every send remains
-  exact-message, human-confirmed, action-gated, and audited. Firebase authentication
-  and Gmail DWD authorization are separate systems.
+  production transport uses the four approved Gmail scopes and separately governed actions;
+  the rollout-only pilot allowlist is removed. The application exposes only workflow-linked reads,
+  governed labels, approved drafts, and exact-confirmed replies. Generic new-message sending is disabled.
+  Every permitted reply remains exact-message, human-confirmed, action-gated, and audited. Firebase
+  authentication and Gmail DWD authorization are separate systems.
 - Full strategy, per-surface mechanisms, and migration plan:
   `docs/auth-identity-and-access-strategy.md`.
 

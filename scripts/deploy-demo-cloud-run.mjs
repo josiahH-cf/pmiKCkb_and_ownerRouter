@@ -205,6 +205,7 @@ function readRuntimeEnv(env, project, region, searchLocation) {
     APP_BASE_URL: withDefault("APP_BASE_URL", ""),
     ASK_DEMO_MODE: "false",
     AUTH_SESSION_COOKIE: withDefault("AUTH_SESSION_COOKIE", "__session"),
+    CONSOLE_TEST_DEPLOYMENT_NAME: "",
     FIREBASE_PROJECT_ID: withDefault("FIREBASE_PROJECT_ID", project),
     FIRESTORE_DATABASE_ID: withDefault("FIRESTORE_DATABASE_ID", "(default)"),
     GCP_PROJECT_ID: project,

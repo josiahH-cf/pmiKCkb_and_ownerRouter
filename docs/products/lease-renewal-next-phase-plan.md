@@ -1,15 +1,16 @@
 # Lease Renewal — Next Phase: Live Calibration + First Draft Outputs
 
-> ⚠️ **Predates the R1–R5 operations-console cycle (2026-06-29) and the 2026-06-30 recalibration.** Its
+> ⚠️ **Historical design record — not an active build plan.** This predates the R1–R5
+> operations-console cycle (2026-06-29), the 2026-06-30 recalibration, and the later S14–S19 work. Its
 > test counts / "where we are" are STALE (cites 638; the repo is at 806). The authoritative spine is
 > `docs/facts.md` + `docs/loop-state.md`; current process decisions are in `docs/products/v1-process-qa.md`
-> and the recalibrated roadmap is in `docs/loop-state.md` Next Safe Slice Candidates. Use this for the
-> lease-renewal lane DESIGN, not the current status.
+> and the current roadmap is in `docs/plan.md`. Use this only for historical lease-renewal design
+> rationale, not status, routing, or approval state.
 
-Status: **Active build plan for the next cycle** (authored 2026-06-24 after a transcript-grounded
-realignment of the in-flight calibration work). This is the new "continue with feature development"
-entry point for the Lease Renewal lane: a fresh session reads [`../loop-state.md`](../loop-state.md)
-→ this file → the design docs, then builds the next zero-cost slice below.
+Status: **Historical / superseded as an execution plan** (authored 2026-06-24 after a
+transcript-grounded realignment of the then-current calibration work). Current sessions route through
+[`../loop-state.md`](../loop-state.md), [`../plan.md`](../plan.md), and the relevant current product or
+feature-suite spec.
 
 > ✅ **Slices A–E BUILT + tested (2026-06-24), $0, read-only / draft-only.** All five §3 slices landed
 > as pure, deterministic, unit-tested modules (full suite **638 green**; +20 new tests):

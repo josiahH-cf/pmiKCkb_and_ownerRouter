@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
 import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
 import {
   assertFails,
@@ -15,13 +16,14 @@ const PATHS = [
   "gmail_mailbox_state/mailbox-1",
   "gmail_push_dedupe/message-1",
   "gmail_sync_audit/sync-1",
+  "gmail_workflow_communications/communication-1",
+  "gmail_workflow_communication_audit/audit-1",
 ] as const;
 
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
     firestore: {
-      host: "127.0.0.1",
-      port: 8080,
+      ...FIRESTORE_EMULATOR_TARGET,
       rules: readFileSync("firestore.rules", "utf8"),
     },
     projectId: "pmi-kc-kb-gmail-hub-test",

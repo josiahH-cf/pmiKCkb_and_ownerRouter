@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { EditableLayerError, editableLayerErrorResponse } from "@/lib/firestore/errors";
+import { PublicationValidationError } from "@/lib/publication/validation";
 
 export async function parseJsonBody<T>(request: Request, schema: z.ZodType<T>) {
   const payload = await request.json().catch(() => {
@@ -51,6 +52,13 @@ export function noContent() {
 export function apiErrorResponse(error: unknown) {
   if (error instanceof SyntaxError) {
     return NextResponse.json({ error: "Invalid JSON request body." }, { status: 400 });
+  }
+
+  if (error instanceof PublicationValidationError) {
+    return NextResponse.json(
+      { code: error.code, error: error.message },
+      { status: error.status },
+    );
   }
 
   return editableLayerErrorResponse(error);

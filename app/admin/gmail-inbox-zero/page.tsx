@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { TemplateWorkspace } from "@/components/gmail-hub/TemplateWorkspace";
-import { GMAIL_INBOX_ZERO_NAME } from "@/lib/constants";
+import { WORKFLOW_COMMUNICATIONS_NAME } from "@/lib/constants";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { readServerConfig } from "@/lib/config/server";
 
 /**
- * Admin-only Gmail Inbox 0 management surface. The static read-only v1 placeholder is retired: this
- * page now renders the Template & triage workspace beside the activated per-user Gmail status. The
- * live hub remains the place where a user checks their own connection and exact-confirms a send.
+ * Compatibility route for Admin workflow-communication governance. Samples below are not persisted
+ * approved artifacts and cannot authorize live Gmail actions.
  */
 export default async function GmailInboxZeroAdminPage() {
   const user = await requirePageCapability("manageAdmin");
@@ -18,12 +17,13 @@ export default async function GmailInboxZeroAdminPage() {
     <AppShell user={user}>
       <section className="content ui-stack">
         <div>
-          <h1 className="section-title">{`${GMAIL_INBOX_ZERO_NAME} Management`}</h1>
+          <h1 className="section-title">{`${WORKFLOW_COMMUNICATIONS_NAME} Governance`}</h1>
           <p className="muted">
-            Manage the approved rules and reply patterns and evaluate them over pasted,
-            sanitized facts. Per-user mailbox read, draft, exact-confirmed send/reply,
-            labels, and push sync are active; human send authority is preserved.{" "}
-            <Link href="/gmail-hub">Open the Gmail hub</Link> ·{" "}
+            Review synthetic rule and reply-pattern examples over pasted, sanitized facts.
+            These examples are not persisted or production-approved. Live Gmail is limited
+            to authorized workflow links, approved labels, targeted reads, and
+            exact-confirmed replies; human send authority is preserved.{" "}
+            <Link href="/gmail-hub">Open Workflow Communications</Link> ·{" "}
             <Link href="/admin">Back to Admin</Link>
           </p>
         </div>
@@ -37,9 +37,9 @@ export default async function GmailInboxZeroAdminPage() {
               </span>
             </p>
             <p className="muted">
-              Open the Gmail hub to verify the signed-in user&apos;s own mailbox
-              connection, start or renew its push watch, and use the reviewed mail
-              actions.
+              Open Workflow Communications to verify the signed-in user&apos;s own Gmail
+              authorization, inspect bodyless workflow attention, and start or renew the
+              targeted reply watch. Unrelated inbox content is not shown.
             </p>
           </article>
           <article className="panel">
@@ -52,7 +52,14 @@ export default async function GmailInboxZeroAdminPage() {
           </article>
         </div>
 
-        <TemplateWorkspace />
+        <article className="panel ui-stack">
+          <h2>Synthetic rule/template evaluator</h2>
+          <p className="muted">
+            Admin demonstration only. Production rules and reply templates require a
+            future persisted, versioned approval surface.
+          </p>
+          <TemplateWorkspace />
+        </article>
       </section>
     </AppShell>
   );

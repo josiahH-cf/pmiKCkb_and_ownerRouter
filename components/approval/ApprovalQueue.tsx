@@ -280,14 +280,16 @@ export function ApprovalQueue({
     setRequiredApproverUid(selectedItem?.required_approver_uid ?? "");
   }
 
-  function submitReasonedAction(action: "disable" | "return") {
+  function submitReasonedAction(action: "approve" | "disable" | "return") {
     const trimmedReason = reason.trim();
 
     if (!trimmedReason) {
       setMessage(
-        action === "return"
-          ? "Return for Revision requires a reason."
-          : "Disable Action requires a reason.",
+        action === "approve"
+          ? "High-risk approval requires a reason."
+          : action === "return"
+            ? "Return for Revision requires a reason."
+            : "Disable Action requires a reason.",
       );
       return;
     }
@@ -380,6 +382,15 @@ export function ApprovalQueue({
 
     if (validationMessage) {
       setMessage(validationMessage);
+      return;
+    }
+
+    if (
+      bulkAction === "approve" &&
+      bulkPreview.linkedHighRiskApprovals > 0 &&
+      !bulkReason.trim()
+    ) {
+      setMessage("High-risk bulk approval requires a reason.");
       return;
     }
 
@@ -595,7 +606,13 @@ export function ApprovalQueue({
                 assigneeUid={assigneeUid}
                 busyAction={busyAction}
                 loadingDetailId={loadingDetailId}
-                onApprove={() => void transitionSelectedItem({ action: "approve" })}
+                onApprove={() => {
+                  if (selectedItem?.action_execution_id) {
+                    startAction("approve");
+                    return;
+                  }
+                  void transitionSelectedItem({ action: "approve" });
+                }}
                 onCancelAction={() => setActionMode(null)}
                 onStartAction={startAction}
                 onSubmitAssign={submitAssign}

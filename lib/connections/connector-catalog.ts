@@ -71,28 +71,24 @@ export const CONNECTORS: readonly ConnectorDef[] = [
   },
   {
     id: "gmail_sender",
-    name: "Gmail (notifications sender)",
-    powers:
-      "Sends the approval notification emails the app queues. The app never reads any inbox.",
+    name: "Gmail (legacy notification sender)",
+    powers: "Disabled. Approval notifications are in-app for the first release.",
     method: "google",
-    // The send-only notifier that already works (S13 D4). Per-user inbox access is the separate,
-    // gated gmail_inbox card below; this card is send-only.
-    requiredConfig: ["KB_APPROVAL_SENDER", "KB_APPROVAL_RECIPIENTS"],
+    requiredConfig: [],
   },
   {
     id: "gmail_inbox",
-    name: "Gmail (per-user inbox)",
+    name: "Gmail (workflow communications)",
     powers:
-      "Will read and draft replies in each user's own mailbox once the access model is approved. The app never sends a message on its own.",
+      "Links pertinent renewal and maintenance threads, drafts, replies, labels, and review attention. Gmail stays the message system of record.",
     method: "google",
-    // Per-user, domain-wide Gmail read + draft (console overhaul Slice F). Gated: no runtime exists. It
-    // reads "Not connected" because it is deliberately absent from the live verification probes
-    // (lib/connections/verification.ts), so it is never in verifiedIds and classifyConnector never
-    // returns "Connected" for it (classifyConnector checks `verified` first, so an empty requiredConfig
-    // alone would NOT prevent Connected — the probe omission is the real safeguard). Empty
-    // requiredConfig also keeps it from ever reading "Ready to verify". Stays gated until the
-    // client-approved access model + the domain-wide-delegation Gmail scopes are authorized.
-    requiredConfig: [],
+    requiredConfig: [
+      "GMAIL_DWD_SA",
+      "GMAIL_PUBSUB_TOPIC",
+      "GMAIL_PUBSUB_AUDIENCE",
+      "GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT",
+      "GMAIL_WORKFLOW_LINK_TTL_DAYS",
+    ],
   },
   {
     id: "quickbooks",

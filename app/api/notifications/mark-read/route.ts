@@ -3,6 +3,7 @@ import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { AuthError, hasSpaceAccess, requireCapability } from "@/lib/auth/session";
 import { markApprovalQueueNotificationRead } from "@/lib/firestore/approval-queue-notifications";
 import { markMaintenanceTicketNotificationRead } from "@/lib/firestore/maintenance-ticket-notifications";
+import { markGmailWorkflowNotificationRead } from "@/lib/gmail-hub/notifications";
 import { MarkNotificationReadInputSchema } from "@/lib/firestore/schemas";
 
 // POST a source-dispatched mark-read. A single static route (no dynamic segment): the body names the
@@ -17,11 +18,13 @@ export async function POST(request: Request) {
         throw new AuthError("This user is not authorized for the requested space.", 403);
       }
       await markApprovalQueueNotificationRead(user, input.id);
-    } else {
+    } else if (input.source === "maintenance_ticket") {
       if (!hasSpaceAccess(user, "maintenance")) {
         throw new AuthError("This user is not authorized for the requested space.", 403);
       }
       await markMaintenanceTicketNotificationRead(user, input.id);
+    } else {
+      await markGmailWorkflowNotificationRead(user, input.id);
     }
 
     return NextResponse.json({ ok: true });

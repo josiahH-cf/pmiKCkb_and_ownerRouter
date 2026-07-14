@@ -76,12 +76,14 @@ export function queueActionAvailability(
   actor: ApprovalQueueActor,
   item: Pick<
     ApprovalQueueItemRecord,
-    "assignee_uid" | "required_approver_uid" | "status"
+    "action_execution_id" | "assignee_uid" | "required_approver_uid" | "status"
   >,
 ): ApprovalQueueActionAvailability {
   const terminal = isQueueItemTerminal(item.status);
-  const canApproveByRole = actor.role === "Approver" || actor.role === "Admin";
   const isAdmin = actor.role === "Admin";
+  const linkedExecutionRequiresAdmin = Boolean(item.action_execution_id);
+  const canApproveByRole =
+    isAdmin || (actor.role === "Approver" && !linkedExecutionRequiresAdmin);
   const isRequiredApprover = item.required_approver_uid === actor.uid;
   const isOwnAssignedItem = item.assignee_uid === actor.uid;
 
@@ -103,7 +105,9 @@ export function queueActionAvailability(
     approve = false;
     approveReason = "Only Ready for Approval items can be approved.";
   } else if (!canApproveByRole) {
-    approveReason = "Approver or Admin role is required.";
+    approveReason = linkedExecutionRequiresAdmin
+      ? "Admin role is required for this consequential execution."
+      : "Approver or Admin role is required.";
   } else if (!isAdmin && isOwnAssignedItem) {
     approve = false;
     approveReason = "You cannot approve your own assigned item.";

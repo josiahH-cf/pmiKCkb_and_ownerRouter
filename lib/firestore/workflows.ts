@@ -115,6 +115,15 @@ export async function updateProcessDefinition(
 
     const updates = stripUndefined({
       ...normalizeDefinitionUpdateFields(parsed),
+      ...(current.status === "Active"
+        ? {
+            activated_at: FieldValue.delete(),
+            activated_by_uid: FieldValue.delete(),
+            activation_override_reason: FieldValue.delete(),
+            pending_queue_item_id: FieldValue.delete(),
+            status: "Draft" as const,
+          }
+        : {}),
       updated_by_uid: actor.uid,
       updated_at: FieldValue.serverTimestamp(),
     });
@@ -125,6 +134,7 @@ export async function updateProcessDefinition(
   return getProcessDefinition(actor, definitionId, db);
 }
 
+/** @deprecated Historical queue migration helper. New process publication uses S21 validation. */
 export async function submitProcessDefinitionForApproval(
   actor: AuthenticatedUser,
   definitionId: string,
@@ -529,11 +539,8 @@ function assertDefinitionEditable(definition: ProcessDefinitionRecord) {
     );
   }
 
-  if (definition.status === "Active" || definition.status === "Retired") {
-    throw new EditableLayerError(
-      "Active or retired process definitions cannot be edited in this cycle.",
-      409,
-    );
+  if (definition.status === "Retired") {
+    throw new EditableLayerError("Retired process definitions cannot be edited.", 409);
   }
 }
 

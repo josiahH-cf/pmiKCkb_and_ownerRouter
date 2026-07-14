@@ -6,50 +6,43 @@ create, and what still needs to be decided?"
 
 ## Current Reality
 
-| Product             | What exists now                                                                                               | What is not proven yet                                                                                                   |
-| ------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| PMI KC KB           | A working source-backed web app runtime and demo path.                                                        | Client production cutover, approved production sources, and approved backend automation write specs.                     |
-| Lease Renewal Agent | First confirmed backend automation target after KB production.                                                | Signed-lease system, central workflow record, live integrations, write permissions, and acceptance tests.                |
-| Gmail Inbox 0       | A Gmail-native Dan-email pilot lane with legacy Owner Router/Dan's AI Assistant artifacts as source material. | Dan mailbox access, historical scan protocol, Gmail/Gemini scopes, draft/reply spec, and management page implementation. |
+| Product                 | What exists now                                                                                                                 | What is not proven yet                                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| PMI KC KB               | Deployed source-backed runtime with auth, Console, Spaces, approvals, Admin, notifications, and connected read seams.           | S20–S27 implementation, approved launch/provider mappings, action proof, and release-candidate acceptance.            |
+| Lease Renewal Agent     | Built deterministic read/reconcile/review runtime with live Rentvine/Sheet reads and app-plane decision controls.               | S25 operational-run wiring and every R02 provider action/proof.                                                       |
+| Workflow Communications | Proven managed-user Gmail transport plus a locally verified workflow-linked UI/API boundary; external Vendor mail is not built. | S20/S22/S24/S25/S26 implementation, recipients/provider setup, and release promotion. Josiah owns watch/OAuth health. |
 
 ## Answered Direction
 
-- PMI KC KB and Gmail Inbox 0 move forward in tandem. KB is the main development and
-  production-lift lane; Gmail Inbox 0 is an ongoing Dan workflow project.
+- PMI KC KB and Workflow Communications move forward in one application. Communications is a
+  workflow adapter, not a separate Dan-mailbox or general-inbox product.
 - KB should launch first as the source-backed app, then add backend automation in
   phases.
 - KB success means at least three client-defined processes can be started with AI and
   carried through backend automation after explicit approval.
 - The first three automation processes are Lease Renewal, Maintenance Work Order Intake,
   and Move-Out + Deposit Disposition. Owner Onboarding is the fourth/fallback process.
-- Backend automation means actual actions in connected systems, but initial execution
-  requires per-action human approval.
-- Production KB is internal-only with a simple `Admin` / `User` product-facing role
-  model. Users can ask, suggest edits, and start workflows; Admins approve source
-  changes and backend actions.
+- Backend automation means actual actions in connected systems. S20 lets internal Editors directly
+  execute enabled Low/Medium instances, routes consequential High work to Admin, permits Admin self-
+  approval, and keeps technical Blocked conditions non-executable.
+- Current production KB is internal-only with the implemented `Editor` / `Approver` / `Admin`
+  tiers. Final V1 adds S22's assigned-ticket-only TOTP/per-vendor-OAuth Vendor and every S25/S26 action.
 - Initial Admins are Josiah and Dan, with the ability for Admins to grant Admin access
   to additional users they choose.
-- The first launch does not need separate User accounts beyond Josiah and Dan; the User
-  role remains available for later delegation.
+- Dan and Josiah remain initial internal Admins; final V1 also needs an external Vendor acceptance
+  user. Internal delegation uses Editor/Approver and optional space scopes.
 - The first production KB Spaces are Lease Renewals, Maintenance Work Order Intake,
   Move-Out + Deposit Disposition, and Owner Onboarding.
-- Gmail Inbox 0 starts with Dan's whole mailbox, not owner-email-only. It begins with
-  `Waiting on Outside` and `Waiting on Team`, then later adds `Dan Decision` and
-  `Draft Ready`.
-- Gmail Inbox 0 suggests labels by default and auto-applies labels only for exact
-  matches or repeated Dan-approved patterns.
-- Dan manually presses Send for now. Draft/reply automation can be added in layers after
-  approval, testing, and a scoped Gmail spec.
-- Gmail Inbox 0 needs a minimal Admin-only management page inside the KB app for labels,
-  rules, approved replies, change history, and Gmail/Gemini status.
-- KB Gmail send-only approval notifications should be enabled at launch and incorporated
-  into the Gmail Inbox 0 vision.
-- Launch recipients for KB approval notifications are Dan and Josiah's PMI KC account.
-- Notification sender identity is `kb-automation@pmikcmetro.com`.
-- KB approval notifications should use a clear approval subject line and apply the
-  `KB Approval` Gmail label.
-- KB approval notification failures should create an in-app alert, retry email once,
-  and then escalate to Dan/Josiah Admins in-app and by email if the retry fails.
+- Workflow Communications starts from an authorized renewal run, maintenance ticket, or linked-reply
+  attention item. It does not scan or display a user's whole mailbox.
+- Only the four approved workflow labels may be applied, with an approved rule reference and reason.
+- S20 now lets internal Editors exact-confirm enabled Medium workflow communication through the same
+  strict linked-context route; generic compose and autonomous, scheduled, event-triggered,
+  model-triggered, or bulk sends remain disabled. Consequential High work routes to Admin.
+- The Admin page governs synthetic fallback tools and future approved rule/template versions; model
+  output cannot approve or activate an artifact.
+- Approval notifications are in-app for the first release. The legacy event-driven Gmail sender is
+  hard-disabled; later human-confirmed notification drafts require a separate spec.
 
 ## Definition Targets
 
@@ -57,7 +50,8 @@ create, and what still needs to be decided?"
 
 The KB should be defined as the source-backed operating knowledge app. It answers
 approved operational questions, shows citations, exposes uncertainty, supports editable
-SOP/template/tool/placeholder records, and routes changes through human approval.
+SOP/template/tool/placeholder records, and routes authority-bearing changes through human approval
+while S21 validation-passing content publishes through its automated trust boundary.
 
 The KB should also become the workflow-control layer for approved backend automations.
 It may start workflows, show workflow-run pages, propose backend actions, capture
@@ -65,14 +59,10 @@ feedback, and execute approved writes/sends/updates once a process-specific spec
 It should not silently take over email, renewal, maintenance, move-out, or
 system-of-record workflows without explicit approval.
 
-The first workflow-control layer should be loosely editable for process definitions.
-The whole team should be able to propose or edit process templates, steps, source links,
-and documentation pointers as new processes are discovered. Those changes should go
-through approval before becoming active. That is configuration editability, not automatic
-permission to write into external systems of record.
-
-Dan and Josiah should be the default Admin approvers for process-definition changes
-until they delegate that authority.
+The first workflow-control layer is loosely editable. S21 now makes validation-passing in-scope Editor
+process templates, steps, source links, files, and folders Active immediately after configured root/
+scope/type/size/malware/sensitivity checks, with immutable version/rollback/audit. Publication never enables an external action, grants a role,
+or widens a credential.
 
 The KB should own the first workflow-run record and keep context in one central,
 non-technical place. Other systems can be referenced through backlinks and action
@@ -91,15 +81,11 @@ Workflow run statuses should be `Not Started`, `In Progress`, `Waiting on Team`,
 `Cancelled`, and `Failed`. The workflow run owner should be the final approver, not
 necessarily the starter. Due dates should use the source process due date when one
 exists; otherwise, they should default to today. Workflow notifications should fire for
-`Ready for Approval`, `Blocked`, failed automation, and overdue due dates, including
-internal email and in-app notifications first. Other channels remain future/TBD. Default
+`Ready for Approval`, `Blocked`, failed automation, and overdue due dates, using in-app
+notifications. Other channels remain future/TBD. Default
 recipients are the workflow owner/final approver and the person assigned the next
 action. The starter receives notifications only when their action is needed or when the
-run completes or fails. Email subjects should include product/process name, run status,
-property/context when available, and required action.
-
-Failed internal notifications should create an in-app alert and retry email once. If
-that retry fails, the failure escalates to Dan/Josiah Admins in-app and by email. Failed
+run completes or fails. Failed notification processing creates Admin-visible in-app health. Failed
 automation should mark the run `Failed` only when the failure blocks the run; otherwise,
 the step is marked `Failed` and the run moves to `Blocked`. Any external action failure
 should preserve attempted payload, error message, target system, timestamp, and retry
@@ -110,24 +96,18 @@ manual start condition, process owner/default approver, source/documentation lin
 required starting inputs, initial steps, action references with execution status, and a
 success, stop, or escalation condition.
 
-Process definition statuses should be `Draft`, `Testing`, `Pending Approval`, `Active`,
-`Needs Revision`, and `Retired`. Draft or Testing definitions may be started for clearly
-marked simulation-only test runs, but Active definitions are required for real
-operational runs. Simulation-only means no external writes, no sends, and no live system
-updates.
-
-Every approved process definition should create a versioned Active copy with history
-and rollback. Activating a process definition should require source/documentation links
-and at least one successful test run unless Dan or Josiah explicitly override the gate.
+Current code uses `Draft`, `Testing`, `Pending Approval`, `Active`, `Needs Revision`, and `Retired`.
+S21 no longer puts validation-passing Editor content/process saves into `Pending Approval`; each creates
+a versioned Active update with history/rollback under the automated trust boundary. Simulation-only
+runs remain marked and cannot write/send/update externally.
 Pending automation steps should show target system, expected action, missing permission
 or connection, and approval owner.
 
 Each external action type must be individually approved before it becomes executable.
 Approval should be scoped by target system and action type, not blanket system access.
-The first executable external actions should still require per-run human approval even
-after the target-system/action-type approval exists. Planned actions should remain
-visible while non-executable so the team can keep refining workflows before integrations
-are live.
+Per-run authority follows S20: Editor direct Low/Medium, Admin-approved High, no technical Blocked
+override, and all-risk Admin self-approval. Current gates stay unchanged until implemented. Planned actions remain visible while non-executable so the team can
+keep refining workflows before integrations are live.
 
 External action readiness states should be `Planned`, `Needs Connection`,
 `Needs Permission`, `Ready for Test`, `Approved for Execution`, and `Disabled`. Before
@@ -142,11 +122,11 @@ The Lease Renewal Agent is the first full backend automation target. A team memb
 starts it, but the system should anticipate renewal timing from the signed lease or
 lease-term record and remind the team. The target end state is a full workflow: gather
 facts, update approved internal systems with backlinks, prepare a review package and
-owner email, route Dan approval, and send after approval.
+owner communication, route Dan approval, and prepare an approved unsent draft or separately
+exact-confirmed linked reply. No autonomous send is part of V1.
 
-The signed lease or lease-term record should be treated as the first authoritative
-renewal trigger source, pending client system confirmation. Manual workflow start should
-also remain available.
+The Rentvine lease record is read-authoritative for lease timing and Dotloop holds executed signed
+leases. Manual workflow start also remains available.
 
 The first Lease Renewal planned actions should be read/gather actions before write
 actions. Initial planned reads should include signed lease and lease dates,
@@ -222,8 +202,7 @@ high-risk confirmation rules.
 
 Approval queue notifications should appear in the app console when an item is created,
 assigned, returned for revision, unsnoozed, blocked, unblocked, overdue, or closed.
-These queue events should not all send email by default; email delivery can be
-configured separately. Queue notifications should go to the current assignee and
+V1 delivery is in-app only. Queue notifications should go to the current assignee and
 required approver. Creators or editors should be notified only when their action is
 needed or their item closes. Reminders should start as a single console notification,
 not a repeating reminder sequence; there should be no default 24-hour follow-up or
@@ -231,21 +210,17 @@ Admin escalation sequence for queue reminders unless configured later. Each queu
 notification should include the plain-English action needed, due date, risk level,
 affected process/run, and a direct link to the queue item.
 
-Routine approval queue email delivery should be off by default and configurable by
-Admins per event type and recipient role. The built-in exception is unresolved important
-`Blocked` or overdue escalation, which should send portal and email notifications to
-assigned and/or Admin-selected recipients. Email settings should show event type,
-enabled state, recipient roles, trigger condition, frequency/cooldown, subject preview,
-and last send/error status. Email should never replace console notifications; the app
-console remains the default source of truth. Email delivery failure should not block the
-queue item, but should create an Admin-visible health warning and audit entry.
+The legacy approval email sender is hard-disabled. Historical email preferences may remain visible
+for audit but cannot activate delivery. Any future human-confirmed notification-draft lane requires
+a separate approved spec. Console/Notifications remains the source of truth, and failed in-app
+notification processing creates Admin-visible health rather than an automatic email retry.
 
-Approval queue Admin health should show queue email status, failed delivery count, last
-failure, disabled event types, stale overdue count, and blocked item count. Health status
+Approval queue Admin health should show in-app processing status, stale overdue count, and blocked
+item count, with historical email state explicitly labeled inactive. Health status
 should use `Healthy`, `Needs Attention`, and `Action Required`. `Action Required` means
-something is broken or blocking work, such as failed notification delivery, disconnected
-email config, or unresolved blocked high-risk items. Admins should be able to open health
-details directly into the affected queue items, email settings, or audit records.
+something is broken or blocking work, such as failed notification processing or unresolved blocked
+high-risk items. Admins should be able to open health details directly into the affected queue
+items or audit records.
 
 Approval queue audit/history should stay simple. The app should maintain one automatic,
 append-only Activity log per queue item rather than multiple audit modes or toggle-heavy
@@ -297,14 +272,11 @@ create or route to a `Blocked` queue item instead of appearing as a vague broken
 Production queue views should never show demo/test items unless the run is clearly marked
 as a test/demo run.
 
-Approval Queue permissions should stay role-simple. Normal users can view assigned or
-otherwise relevant queue items, open details, take assigned actions, add comments or
-reasons, and return items for revision when they are the assignee. Admins can view all
-queue items, approve high-risk items, disable actions, manage email settings, view
-health, and expand full Activity/audit details. Users cannot approve their own proposed
-process, source, or fact change unless they are Admin and explicitly acting as the
-approver. Permission errors should explain the missing role or action and route to a
-safe next step instead of showing a generic failure.
+Approval Queue permissions stay explicit by role/action. S20 allows internal Editors to directly
+execute enabled Low/Medium instances, routes consequential High work to Admin, permits Admin self-
+approval, and preserves technical Blocked conditions. Admins can view all queue items, disable actions, view health,
+and expand full Activity/audit details. Permission errors explain the missing role/action and route
+to a safe next step instead of showing a generic failure.
 
 Process-specific approvers beyond Dan and Josiah remain TBD, but the app should make
 them easy to add and manage through an Admin console rather than hardcoding people into
@@ -323,17 +295,16 @@ or external actions. If a comment identifies a needed source/process/fact change
 should create the appropriate proposed update or queue item instead of treating the
 comment itself as the update.
 
-For unresolved important `Blocked` or overdue queue items, the v1 escalation path should
-be a portal notification and email notification for now. Recipients should be assigned
-and/or Admin-selected rather than inferred broadly. This escalation email is the
-exception to routine queue email being off by default.
+For unresolved important `Blocked` or overdue queue items, the V1 escalation path is in-app
+attention plus Admin health. Recipients are assigned and/or Admin-selected rather than inferred
+broadly. There is no automatic email exception.
 
-Approval risk levels should be `Low`, `Medium`, `High`, and `Blocked`. `High` means an
-item is owner/tenant-facing, has legal/financial/timing impact, or writes to an external
-system. `Medium` means an internal process/state update or fact correction affects a
-workflow but does not touch an external system. `Low` means internal note, assignment,
-snooze, or non-executable process cleanup. `Blocked` means the item cannot proceed until
-a missing fact, conflict, connection, permission, or approver issue is resolved.
+Approval risk levels are `Low`, `Medium`, `High`, and `Blocked`. `Low` covers read/health/local draft/
+governed reversible label and internal cleanup. `Medium` covers exact-confirmed workflow email/portal/
+SMS, S21 trusted publication, and S26 validated append-only assigned-ticket photo. `High` covers SoR
+value/status, document, account/role/OAuth, accounting, and unbounded/overwrite/delete Drive mutation.
+`Blocked` means missing fact, validation, documented contract, connection, permission, scope, or
+approver; Admin owns remediable review but cannot waive a technical blocker.
 
 The default approval queue view should put `Ready for Approval`, `Blocked`, `Failed`,
 and overdue items first. Queue filters should include process, owner/final approver,
@@ -359,12 +330,10 @@ process update so the same conflict is less likely next time. If a conflict affe
 legal, financial, or notice-timing facts, Dan/Josiah Admin approval is required even
 when another user proposes the resolution.
 
-Missing-fact links should offer two first actions: `Add process note` and
-`Add source document`. `Add process note` creates a proposed process-definition or
-source update that requires approval before becoming active. `Add source document`
-points to the approved Drive/source folder and relies on the approved source
-sync/indexing path. When a missing fact is filled, the run should re-check only affected
-facts and steps rather than restarting the whole run.
+Missing-fact links should offer two first actions: `Add process note` and `Add source document`.
+Under S21, a validation-passing process note/source update becomes Active immediately with audit and
+rollback; `Add source document` uses the approved root/connector trust boundary. When a
+missing fact is filled, the run re-checks only affected facts and steps rather than restarting.
 
 The write/update side should still be AI-assisted during design and refinement. As a
 process is entered and edited, AI should suggest write actions to add or remove,
@@ -433,18 +402,19 @@ new process definitions that can point to new documentation. Process definitions
 reference future external actions so they can be refined before integrations exist, but
 those references should show as pending future automation and are not executable until
 approved. The AI can explain how pending automation is expected to work while preserving
-that non-executable boundary. It still needs client discovery for the signed-lease
-system, integration ownership, and external write permissions.
+that non-executable boundary. The signed-lease/lease-end sources are resolved (Dotloop/Rentvine);
+it still needs final source ownership, operational acceptance, and separately approved external
+write permissions.
 
-### Gmail Inbox 0
+### Workflow Communications
 
-Gmail Inbox 0 should be defined as a Gmail-native triage, drafting, and learning
-workflow for Dan's email. It should keep Gmail as the front door, use visible state
-labels, rely on approved reply patterns and routing rules, and preserve Dan's manual
-send authority in the base layer.
+Workflow Communications is a Gmail-backed adapter and evidence source for renewal and maintenance.
+The KB starts from workflow context, stores bodyless linkage and reviewed operational meaning, and
+uses value-free attention for linked replies. Gmail remains the message system of record.
 
-Do not define it as a new inbox, autonomous sender, Gmail content ingestion service, or
-system-of-record updater unless a later approved spec explicitly changes that boundary.
+Do not define it as a new inbox, generic compose client, autonomous sender, historical mailbox
+classifier, Gmail content warehouse, or system-of-record updater unless a later approved privacy and
+governance spec explicitly changes that boundary.
 
 ## Gap-Closing Loop
 
@@ -456,8 +426,8 @@ system-of-record updater unless a later approved spec explicitly changes that bo
 4. Record the answer in the product lane doc when it changes scope, in
    `docs/research-backlog.md` when it remains open, and in `docs/client-checklist.md`
    when the client must act.
-5. Do not create runtime work for Lease Renewal Agent or Gmail Inbox 0 until the v1
-   definition target for that lane is answered well enough to write acceptance tests.
+5. Do not add a new runtime action or widen an existing one for Lease Renewal Agent or Workflow
+   Communications until that exact target is answered well enough to write acceptance tests.
 
 ## Continuous Follow-Up Questions
 
@@ -465,20 +435,20 @@ Use these questions repeatedly until each product lane has a testable v1 definit
 They are not a script; they are the minimum decision set needed to avoid building the
 wrong thing.
 
-| Product             | Question                                                                           | Why it matters                                                                                     |
-| ------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| All                 | Which product launches first, and what client pain proves it worked?               | Prevents demo order, engineering order, and sales language from diverging.                         |
-| All                 | Who owns final wording, source approval, user acceptance, and post-launch support? | Prevents AI sessions from treating unowned assumptions as approved requirements.                   |
-| PMI KC KB           | Which production Spaces launch first, and which approved source folders feed them? | Defines the first real retrieval/citation surface.                                                 |
-| PMI KC KB           | What should escalation mean when approval notification delivery fails?             | Turns the enabled notification decision into production configuration.                             |
-| Lease Renewal Agent | Where do signed leases live, and which system exposes lease timing?                | Determines the source of truth for anticipatory renewal reminders.                                 |
-| Lease Renewal Agent | Which demo, client-context, and team materials are approved as starter sources?    | Prevents observed or informal context from being treated as final authority too early.             |
-| Lease Renewal Agent | Which systems may be read or updated, and what requires approval?                  | Prevents unsafe write paths across RentVine, DotLoop, LeadSimple, Drive, Sheets, Gmail, and tasks. |
-| Maintenance         | Where do maintenance requests and phone notes live?                                | Determines the source for tenant request and call-note triggers.                                   |
-| Maintenance         | Which common issue templates and escalation rules are approved?                    | Determines when tenant-facing replies can be automated.                                            |
-| Move-Out            | Which natural triggers are authoritative?                                          | Determines event sources for email notice, lease date, forms, inspections, and related events.     |
-| Gmail Inbox 0       | What Gmail access, historical scan, and back-labeling permissions are approved?    | Determines safe rollout for Dan's whole mailbox.                                                   |
-| Gmail Inbox 0       | How should Gmail drafts/replies be created and audited?                            | Determines the future scoped spec for draft/reply automation while Dan still sends manually.       |
+| Product                 | Question                                                                                                  | Why it matters                                                                                     |
+| ----------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| All                     | Which product launches first, and what client pain proves it worked?                                      | Prevents demo order, engineering order, and sales language from diverging.                         |
+| All                     | Who owns final wording, source approval, user acceptance, and post-launch support?                        | Prevents AI sessions from treating unowned assumptions as approved requirements.                   |
+| PMI KC KB               | Which production Spaces launch first, and which approved source folders feed them?                        | Defines the first real retrieval/citation surface.                                                 |
+| PMI KC KB               | Which final acceptance/support/rollback owners sign off the expanded external V1?                         | Turns the deployed foundation into an operated release.                                            |
+| Lease Renewal Agent     | Which exact Sheet scope and safe scenarios prove the operational V1?                                      | Locks production acceptance without reopening resolved source discovery.                           |
+| Lease Renewal Agent     | Which demo, client-context, and team materials are approved as starter sources?                           | Prevents observed or informal context from being treated as final authority too early.             |
+| Lease Renewal Agent     | Which systems may be read or updated, and what requires approval?                                         | Prevents unsafe write paths across RentVine, DotLoop, LeadSimple, Drive, Sheets, Gmail, and tasks. |
+| Maintenance             | Where do maintenance requests and phone notes live?                                                       | Determines the source for tenant request and call-note triggers.                                   |
+| Maintenance             | Which common issue templates and escalation rules are approved?                                           | Determines when tenant-facing replies can be automated.                                            |
+| Move-Out                | Which natural triggers are authoritative?                                                                 | Determines event sources for email notice, lease date, forms, inspections, and related events.     |
+| Workflow Communications | Which configured runtime adapters resolve renewal/maintenance recipients and values?                      | Gates source-backed initiation; R06/R07 retention/artifact/AI policy is already settled.           |
+| External providers      | Which non-secret account/plan/template/stage/folder mappings and credentials support each S25/S26 action? | Converts the locked action matrix into documented, testable provider contracts.                    |
 
 ## Decision Complete Means
 

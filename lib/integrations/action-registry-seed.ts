@@ -3,15 +3,12 @@ import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
 /**
  * Verified Action Registry catalog. One entry per external action type from the integration
  * research (docs/research/integration-capability-2026-06.md), the tool-role architecture
- * (docs/integration-architecture.md), and the Gmail Inbox 0 connective architecture
- * (docs/products/gmail-inbox-zero.md).
+ * (docs/integration-architecture.md), and the workflow-communication architecture.
  *
- * Safety invariant: exactly two entries are production-eligible today: the bounded readonly
- * Gmail Inbox 0 per-user actions and `gmail.renewal_notice.draft_create`, the owner-approved
- * draft-only path. The latter creates an UNSENT draft. Google documents gmail.compose as
- * send-capable, so its no-send ceiling is the route/method contract, not the scope itself. Every
- * send/reply/mutation and other entry is `production_allowed: false`; the schema permits a true
- * value only for `Approved for Execution` entries with `Documented` evidence.
+ * Safety invariant: only the self-mailbox, workflow-linked read/reply/label/reply-draft transport
+ * actions are production-eligible. Generic new-message send and sample-backed renewal or
+ * maintenance initiations stay false. Google documents gmail.compose as send-capable, so every
+ * no-send/draft-only ceiling is enforced by route, action, confirmation, and audit contracts.
  *
  * Each entry's `connection_health_check_ref` points at the matching per-system contract in
  * lib/integrations/health-checks.ts. Maintenance-chain entries carry a structured
@@ -559,19 +556,19 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     label: "Read signed-in user's Gmail mailbox",
     target_system: "Gmail",
     expected_action:
-      "Read a bounded list of recent threads, one selected thread, mailbox profile, and incremental history for the signed-in user's own mailbox.",
-    product_lane: "Gmail Inbox 0",
+      "Read mailbox profile and incremental history, and read only a thread already linked to an authorized workflow entity in the signed-in user's own mailbox.",
+    product_lane: "Workflow Communications",
     readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
-      "Gmail API documents users.getProfile, users.threads.list/get, users.watch, and users.history.list under gmail.readonly. On 2026-07-13 the owner approved the per-user Gmail connection, and a keyless DWD users.getProfile call matched the signed-in pmikcmetro.com user. The runtime binds each request to that server-verified user and keeps reads bounded. Evidence: docs/evidence/gmail-production-activation-2026-07-13.md.",
+      "Gmail API documents users.getProfile, users.threads.get, users.watch, and users.history.list under gmail.readonly. On 2026-07-13 the owner approved the per-user Gmail connection, and a keyless DWD users.getProfile call matched the signed-in pmikcmetro.com user. The workflow surface additionally requires an authorized bodyless workflow link before a thread read. Evidence: docs/evidence/gmail-production-activation-2026-07-13.md.",
     required_permissions: [
       "Owner-approved per-user DWD access model restricted to server-verified pmikcmetro.com users",
       "Verified https://www.googleapis.com/auth/gmail.readonly on DWD client 104374162913177846911",
     ],
     event_ingestion_mode: "Webhook",
     preview_schema_note:
-      "Show the signed-in mailbox identity and bounded query/label/page limits; no cross-mailbox access and no mutation.",
+      "Show the signed-in mailbox identity and authorized workflow context; no arbitrary inbox query, cross-mailbox access, or mutation.",
     rollback_note:
       "Set production_allowed false, remove gmail.readonly from the DWD client, stop watches, and redeploy the prior revision.",
     connection_health_check_ref: "health.gmail.workspace_api",
@@ -579,26 +576,26 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
   },
   {
     key: "gmail.message.send",
-    label: "Send confirmed Gmail message",
+    label: "Generic Gmail new-message send (not exposed)",
     target_system: "Gmail",
     expected_action:
-      "Attempt exactly one send of a new message to the reviewed recipients after the signed-in user confirms its exact payload.",
-    product_lane: "Gmail Inbox 0",
-    readiness: "Approved for Execution",
+      "Transport capability retained for evidence only; the workflow product does not expose generic new-message sending.",
+    product_lane: "Workflow Communications",
+    readiness: "Disabled",
     evidence_status: "Documented",
     documented_evidence:
-      "Gmail API documents users.messages.send under gmail.compose. The owner approved production send on 2026-07-13. The runtime requires an unconsumed exact-payload confirmation, idempotency transaction, bodyless audit, and no retry of ambiguous outcomes. Evidence: docs/evidence/gmail-production-activation-2026-07-13.md.",
+      "Gmail API documents users.messages.send under gmail.compose and the transport was proven on 2026-07-13, but generic new-message compose is outside the workflow-adapter product boundary. Workflow initiations create unsent drafts instead.",
     required_permissions: [
       "Existing gmail.compose DWD grant",
       "Owner-approved production send activation (2026-07-13)",
     ],
-    event_ingestion_mode: "Manual",
+    event_ingestion_mode: "None",
     preview_schema_note:
-      "Show exact From, To, Cc, Bcc, Subject, body, RFC Message-ID, and new-message status before one-time confirmation and send.",
+      "Not exposed. A future use would require a workflow-specific action and preview schema.",
     rollback_note:
       "Disable this action and redeploy. A delivered email is not retractable; ambiguous outcomes are reconciled by RFC Message-ID and never automatically retried.",
     connection_health_check_ref: "health.gmail.workspace_api",
-    production_allowed: true,
+    production_allowed: false,
   },
   {
     key: "gmail.thread.reply",
@@ -606,7 +603,7 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     target_system: "Gmail",
     expected_action:
       "Attempt exactly one user-confirmed reply in the signed-in user's selected Gmail thread with matching Subject, threadId, In-Reply-To, and References.",
-    product_lane: "Gmail Inbox 0",
+    product_lane: "Workflow Communications",
     readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
@@ -618,7 +615,65 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     ],
     event_ingestion_mode: "Manual",
     preview_schema_note:
-      "Show exact From, To, Cc, Bcc, matching Subject, body, thread id, In-Reply-To, References, and RFC Message-ID before confirmation.",
+      "Show workflow context, approved template, exact From/recipients/Subject/body, thread id, In-Reply-To, References, and RFC Message-ID before confirmation.",
+    preview_payload_schema: [
+      {
+        name: "workflow_context",
+        label: "Workflow context",
+        type: "reference",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "template_ref",
+        label: "Approved reply template",
+        type: "reference",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "from",
+        label: "From",
+        type: "string",
+        required: true,
+        source_system: "Gmail",
+      },
+      {
+        name: "recipients",
+        label: "Recipients",
+        type: "string",
+        required: true,
+        source_system: "Gmail",
+      },
+      {
+        name: "subject",
+        label: "Subject",
+        type: "string",
+        required: true,
+        source_system: "Gmail",
+      },
+      {
+        name: "body",
+        label: "Exact body",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "thread_ref",
+        label: "Thread",
+        type: "reference",
+        required: true,
+        source_system: "Gmail",
+      },
+      {
+        name: "rfc_message_id",
+        label: "RFC Message-ID",
+        type: "reference",
+        required: true,
+        source_system: "KB Internal",
+      },
+    ],
     rollback_note:
       "Disable this action and redeploy. A delivered reply is not retractable; ambiguous outcomes are reconciled before any new attempt.",
     connection_health_check_ref: "health.gmail.workspace_api",
@@ -630,7 +685,7 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     target_system: "Gmail",
     expected_action:
       "Apply a visible user label to a selected thread in the signed-in user's mailbox.",
-    product_lane: "Gmail Inbox 0",
+    product_lane: "Workflow Communications",
     readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
@@ -651,6 +706,13 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
         source_system: "Gmail",
       },
       {
+        name: "workflow_context",
+        label: "Workflow context",
+        type: "reference",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
         name: "suggested_label",
         label: "Suggested label",
         type: "enum",
@@ -659,8 +721,15 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
         note: "One of: Waiting on Outside, Waiting on Team, Dan Decision, Draft Ready.",
       },
       {
+        name: "rule_ref",
+        label: "Approved label rule",
+        type: "reference",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
         name: "reason",
-        label: "Rule match / reason",
+        label: "Human reason",
         type: "string",
         required: true,
         source_system: "KB Internal",
@@ -676,7 +745,7 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     target_system: "Gmail",
     expected_action:
       "Create an unsent reply draft in a thread from an approved reply pattern; Dan presses Send manually.",
-    product_lane: "Gmail Inbox 0",
+    product_lane: "Workflow Communications",
     readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
@@ -695,6 +764,13 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
         type: "reference",
         required: true,
         source_system: "Gmail",
+      },
+      {
+        name: "workflow_context",
+        label: "Workflow context",
+        type: "reference",
+        required: true,
+        source_system: "KB Internal",
       },
       {
         name: "template_ref",
@@ -732,10 +808,10 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "Create an unsent Gmail draft in the approval sender's mailbox from an owner-approved renewal notice (owner email or tenant offer email), with the verbatim DRAFT_BANNER in the body; the operator opens it in Gmail and clicks Send. Code never calls send.",
     product_lane: "Lease Renewal Agent",
-    readiness: "Approved for Execution",
+    readiness: "Planned",
     evidence_status: "Documented",
     documented_evidence:
-      "Gmail API documents draft creation via the send-capable gmail.compose scope (users.drafts.create); this action's route calls only createDraft, preserving human send authority (decision 3, 2026-07-02, F-PRECUST-CYCLE). Owner-approved DWD evidence is committed: docs/evidence/gmail-dwd-grant-2026-07.md (SA client id 104374162913177846911; smoke created + deleted an unsent draft 2026-07-09). The action ceiling is an unsent draft a human presses Send on.",
+      "The Gmail transport and draft-only ceiling are proven, but the current renewal route is backed by sample workspaces rather than an authorized real renewal run. It remains preview-only until authoritative workflow facts and recipient sources are connected.",
     required_permissions: [
       "Committed DWD grant for the signed-in pmikcmetro.com user (docs/evidence/gmail-dwd-grant-2026-07.md)",
       "gmail.compose scope (this action's route calls only createDraft; separate gmail.send scope absent)",
@@ -775,10 +851,86 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
       },
     ],
     test_notes:
-      "The draft REQUEST is built by buildOwnerNoticeDraftRequest / buildTenantNoticeDraftRequest; the edit-gated POST /api/lease-renewal/owner-notice-draft route checks isActionExecutable and, now that the gate is open, creates the UNSENT draft via GmailRuntimeClient.createDraft (gmail.compose). No send method exists; the route maps a closed gate to a typed needs-Gmail-access refusal.",
+      "The draft request builders remain deterministic preview artifacts. Runtime creation is blocked while the visible renewal run is simulation/sample data.",
     rollback_note: "Delete the unsent draft; nothing was sent.",
     connection_health_check_ref: "health.gmail.workspace_api",
-    production_allowed: true,
+    production_allowed: false,
+  },
+  {
+    key: "gmail.maintenance_owner_notice.draft_create",
+    label: "Create maintenance owner-notice Gmail draft (unsent)",
+    target_system: "Gmail",
+    expected_action:
+      "Create an unsent owner-notice draft from an authorized maintenance ticket and verified owner contact.",
+    product_lane: "Maintenance Intake",
+    readiness: "Planned",
+    evidence_status: "Undocumented",
+    documented_evidence:
+      "The repository has a deterministic maintenance owner-notice preview, but the ticket record does not yet carry a verified owner-email source. No executable Gmail route is approved.",
+    required_permissions: [
+      "Authorized maintenance ticket access",
+      "Client-confirmed authoritative owner-contact source",
+      "Approved owner-notice template and recipient policy",
+    ],
+    event_ingestion_mode: "Manual",
+    preview_schema_note:
+      "Before promotion, show ticket reference, verified recipient source, subject, full body with DRAFT_BANNER, and approved template reference.",
+    preview_payload_schema: [
+      {
+        name: "ticket_ref",
+        label: "Maintenance ticket",
+        type: "reference",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "recipient_source_ref",
+        label: "Verified owner-contact source",
+        type: "reference",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "to",
+        label: "Recipient",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "template_ref",
+        label: "Approved template",
+        type: "reference",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "subject",
+        label: "Subject",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "draft_body",
+        label: "Draft body",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "draft_banner_present",
+        label: "Draft banner present",
+        type: "boolean",
+        required: true,
+        source_system: "KB Internal",
+      },
+    ],
+    test_notes:
+      "Planned only. Falsification must prove missing/conflicting owner facts reject before Gmail client construction.",
+    rollback_note: "Delete the unsent draft; nothing was sent.",
+    connection_health_check_ref: "health.gmail.workspace_api",
+    production_allowed: false,
   },
   {
     key: "rentvine.lease.renewal_writeback",

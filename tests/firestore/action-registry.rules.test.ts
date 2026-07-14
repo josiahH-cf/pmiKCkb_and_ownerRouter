@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
 import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
 import {
   assertFails,
@@ -15,8 +16,7 @@ const ENTRY_PATH = "action_registry/rentvine.work_order.create";
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
     firestore: {
-      host: "127.0.0.1",
-      port: 8080,
+      ...FIRESTORE_EMULATOR_TARGET,
       rules: readFileSync("firestore.rules", "utf8"),
     },
     // Distinct projectId isolates this file's emulator data from other Firestore test

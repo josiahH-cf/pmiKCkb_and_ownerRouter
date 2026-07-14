@@ -134,8 +134,8 @@ export function ApprovalQueueAdminPanel({
       <section className="queue-settings-section" aria-label="Queue email settings">
         <h3>Queue Email Settings</h3>
         <p className="muted">
-          Console notifications stay on. Email is off for routine events unless an Admin
-          enables it here.
+          Historical preferences are shown for audit. Gmail delivery is hard-disabled;
+          configuration cannot activate the legacy sender. Console notifications stay on.
         </p>
         <div className="queue-settings-list">
           {settings.map((setting) => (
@@ -158,15 +158,11 @@ export function ApprovalQueueAdminPanel({
                 <label className="queue-toggle">
                   <input
                     checked={setting.email_enabled}
-                    disabled={busySettingId === setting.id}
-                    onChange={() =>
-                      void updateSetting(setting, {
-                        email_enabled: !setting.email_enabled,
-                      })
-                    }
+                    disabled
+                    readOnly
                     type="checkbox"
                   />
-                  Email
+                  Historical email preference
                 </label>
                 <div className="queue-role-checks" aria-label="Recipients">
                   {RECIPIENT_ROLES.map((role) => (

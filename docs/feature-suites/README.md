@@ -26,6 +26,11 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 > `tests/unit/feature-suite-spec-shape.test.mjs` + `npm run verify:spec-traceability`. Four owner
 > decisions are locked (D1–D4, 2026-07-10; see `docs/facts.md`). Implementation is NOT started — the
 > loop stops after specs for owner review.
+>
+> **Final V1 contract 2026-07-14.** Round 3 locks R01–R09 and replaces the remaining owner-question
+> phase with S20–S27. The dependency-ordered outside-session packet is
+> `docs/v1-gap-implementation-program-2026-07-14.md`. S20–S27 are final-V1 product contracts, not
+> standing authorization for live accounts, OAuth, reads, sends, writes, configuration, or deploys.
 
 | Suite                                      | File                                                   | Status                                        |
 | ------------------------------------------ | ------------------------------------------------------ | --------------------------------------------- |
@@ -43,8 +48,16 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 | S12 Dev↔prod parity                        | `docs/feature-suites/dev-prod-parity.md`               | Built + live-verified (F-DEVPROD-PARITY)      |
 | S13 Pre-customer refinement                | `docs/feature-suites/pre-customer-refinement.md`       | Spec — decided 2026-07-02, ready to run       |
 | S14 Approval Queue mobile redesign         | `docs/feature-suites/approval-queue-mobile.md`         | Spec — owner #1 target (D1 locked 2026-07-10) |
-| S15 Gmail hub (drafts/templates/summaries) | `docs/feature-suites/gmail-hub.md`                     | Spec — decided 2026-07-10 (D3), to-the-gate   |
+| S15 Gmail synthetic fallback tools         | `docs/feature-suites/gmail-hub.md`                     | Historical fallback; Admin/demo only          |
 | S16 Role-scoped sub-users (space scopes)   | `docs/feature-suites/rbac-subusers.md`                 | Spec — app-plane; live claim mint owner-gated |
 | S17 Unified Console + attention hub        | `docs/feature-suites/unified-console-and-attention.md` | Spec — decided 2026-07-10 (D2)                |
 | S18 Process auto-initiation (anticipation) | `docs/feature-suites/process-auto-initiation.md`       | Spec — app-plane, ready to run                |
-| S19 Live Gmail per authenticated user      | `docs/feature-suites/gmail-live-per-user.md`           | Local build authorized; live actions gated    |
+| S19 Workflow-bounded Gmail per user        | `docs/feature-suites/gmail-live-per-user.md`           | Built locally; promotion gates remain         |
+| S20 Risk-bounded execution authority       | `docs/feature-suites/execution-authority.md`           | Local green — 2026-07-14                      |
+| S21 Trusted immediate publication          | `docs/feature-suites/trusted-publication.md`           | Local green — 2026-07-14                      |
+| S22 External Vendor portal + Gmail OAuth   | `docs/feature-suites/vendor-portal-and-mailbox.md`     | Spec — Round 3 R03/R04 locked                 |
+| S23 Console live/test-data boundary        | `docs/feature-suites/console-live-data.md`             | Local green — 2026-07-14                      |
+| S24 Communications policy + artifacts      | `docs/feature-suites/communications-policy.md`         | Spec — Round 3 R06/R07 locked                 |
+| S25 Lease Renewal external execution       | `docs/feature-suites/lease-renewal-execution.md`       | Spec — every R02 action required for V1       |
+| S26 Maintenance external execution         | `docs/feature-suites/maintenance-execution.md`         | Spec — every R03 action required for V1       |
+| S27 Staged pre-V1 + final acceptance       | `docs/feature-suites/v1-release-acceptance.md`         | Spec — Round 3 R09 release gate               |

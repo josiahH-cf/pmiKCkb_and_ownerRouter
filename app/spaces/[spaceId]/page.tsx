@@ -12,6 +12,7 @@ import { SpaceDesk } from "@/components/desk/SpaceDesk";
 import { WelcomeDraftCard } from "@/components/desk/WelcomeDraftCard";
 import { ProcessSummaryPanel } from "@/components/spaces/ProcessSummaryPanel";
 import { SpaceDetailClient } from "@/components/spaces/SpaceDetailClient";
+import { TrustedPublicationPanel } from "@/components/spaces/TrustedPublicationPanel";
 import { can } from "@/lib/auth/roles";
 import { primarySpaceHref, requirePageCapability } from "@/lib/auth/page-guards";
 import { hasSpaceAccess } from "@/lib/auth/session";
@@ -198,13 +199,12 @@ export default async function SpaceDetailPage({
           />
         ) : space.readOnly ? (
           <div className="panel">
-            <h2>Read-only Gmail sources</h2>
+            <h2>Workflow communication reference</h2>
             <p className="muted">
-              Owner Email now applies per user: each pmikcmetro.com user works their own
-              Gmail. The app can index and cite the approved reply patterns and routing
-              rules after read-only retrieval is configured; it never edits or sends live
-              Gmail. Per-user reading and drafting stays gated until the access model is
-              approved.
+              Gmail authorization applies per user, but the app is not a general inbox. It
+              reads only deliberately linked renewal or maintenance threads and stores
+              only bodyless workflow/audit metadata. Gmail remains the message system of
+              record.
             </p>
             <ul className="compact-list">
               {ownerEmailReadOnlySources.map((source) => (
@@ -212,8 +212,9 @@ export default async function SpaceDetailPage({
               ))}
             </ul>
             <p className="muted">
-              Draft replies, manage reply patterns, and summarize threads in the{" "}
-              <Link href="/gmail-hub">Gmail hub</Link> — no mailbox access required.
+              Review value-free communication attention in{" "}
+              <Link href="/gmail-hub">Workflow Communications</Link>, then open the
+              authorized workflow entity for targeted reading or review.
             </p>
           </div>
         ) : hasProcess && space.processDefinitionId ? (
@@ -248,6 +249,9 @@ export default async function SpaceDetailPage({
             </p>
           </div>
         )}
+        {!space.readOnly ? (
+          <TrustedPublicationPanel canEdit={can(user.role, "edit")} spaceId={space.id} />
+        ) : null}
       </section>
     </AppShell>
   );

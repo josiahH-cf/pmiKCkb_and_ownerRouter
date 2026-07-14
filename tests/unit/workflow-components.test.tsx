@@ -20,28 +20,18 @@ afterEach(() => {
 });
 
 describe("workflow components", () => {
-  it("submits and activates process definitions through workflow API routes", async () => {
+  it("publishes validated process definitions without an approval detour", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
 
-      if (url.endsWith("/submit")) {
-        return jsonResponse({
-          definition: definition({
-            pending_queue_item_id: "queue-1",
-            status: "Pending Approval",
-          }),
-          runs: [],
-        });
-      }
-
-      if (url.endsWith("/activate")) {
+      if (url.endsWith("/publish")) {
         return jsonResponse({
           definition: definition({
             active_version_id: "version-1",
-            pending_queue_item_id: "queue-1",
             status: "Active",
           }),
+          publicationVersion: { id: "version-1", versionNumber: 1 },
           runs: [],
         });
       }
@@ -59,30 +49,19 @@ describe("workflow components", () => {
       />,
     );
 
-    await user.type(screen.getByLabelText("Submission note"), "Ready for review.");
-    await user.click(screen.getByRole("button", { name: "Submit" }));
+    await user.type(screen.getByLabelText("Publication note"), "Ready to publish.");
+    await user.click(screen.getByRole("button", { name: "Publish" }));
 
     await waitFor(() =>
-      expect(screen.getByText("Submitted to Approval Queue.")).toBeInTheDocument(),
+      expect(
+        screen.getByText("Validated process version published and active."),
+      ).toBeInTheDocument(),
     );
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/process-definitions/def-1/submit",
+      "/api/process-definitions/def-1/publish",
       expect.objectContaining({ method: "POST" }),
     );
-
-    await user.type(
-      screen.getByLabelText("Admin override reason"),
-      "Dan approved activation before test run.",
-    );
-    await user.click(screen.getByRole("button", { name: "Activate" }));
-
-    await waitFor(() =>
-      expect(screen.getByText("Process definition activated.")).toBeInTheDocument(),
-    );
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/process-definitions/def-1/activate",
-      expect.objectContaining({ method: "POST" }),
-    );
+    expect(screen.queryByText(/Approval Queue/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /execute/i })).not.toBeInTheDocument();
   });
 

@@ -6,30 +6,38 @@ This repo governs three purchased PMI KC products:
 
 - PMI KC KB: existing source-backed web app runtime and future workflow-control layer.
 - Lease Renewal Agent: first backend automation target after KB production lift.
-- Gmail Inbox 0: Dan-email-first Gmail workflow, successor to Owner Router/Dan's AI
-  Assistant.
+- Workflow Communications: workflow-linked Gmail communication and evidence for renewal
+  and maintenance, with Gmail remaining the message system of record.
 
 Older KB-only and separate Owner Router repo plans are legacy unless this plan or a
 product doc explicitly preserves a safety boundary.
 
 ## Current Audit Snapshot
 
-- PMI KC KB has a working demo/runtime foundation: auth boundaries, editable API/UI
-  paths, Approval Queue behavior, Admin observability, live retrieval boundaries, Gemini
-  answer validation, Ask logging/capture, source-state handling, tests, demo scripts,
-  and deployment helpers.
-- The KB is not client-production complete. It still needs PMI KC-owned resources,
-  approved production sources, auth/domain/role setup, source/data-store maps, Gmail
-  notification decision, and final acceptance.
-- The KB target state now includes AI-started backend automation for Lease Renewal,
-  Maintenance Work Order Intake, and Move-Out + Deposit Disposition. Production launch
-  should happen before these external write paths are built.
-- Lease Renewal Agent is the first automation build after the KB is stood up in
-  production. Existing Lease Renewals KB material is reference material; signed-lease
-  storage, central workflow record, integrations, and write permissions remain TBD.
-- Gmail Inbox 0 is the active client-facing name for the Owner Router/Dan's AI
-  Assistant direction. The pilot starts with Dan's whole mailbox, two low-disruption
-  labels, manual send authority, and a minimal KB-hosted management page.
+- The client-owned Cloud Run application is deployed and its auth, cited Ask, Console,
+  Notifications, renewal review, Maintenance desk, and Gmail transport have direct production
+  evidence. The 2026-07-14 Workflow Communications boundary is fully verified locally but is not
+  committed or deployed.
+- PMI KC-owned GCP/Firebase, billing, domain auth, the $10 kill switch, Rentvine reads, renewal-Sheet
+  DWD reads, Gmail DWD transport, and the first Admin path are established. They are not current V1
+  blockers.
+- Round 3 locks the expanded external-user V1 contract. Internal Editors directly execute enabled
+  Low/Medium instances; Admin approves consequential High work and may self-approve at every risk;
+  every named Lease Renewal and Maintenance output is final-V1 app execution scope; trusted Editor
+  publication is immediate; Console is live-only in production; exact retention/artifact/AI policies
+  are approved; and the MFA/assigned-ticket/per-vendor-Gmail-OAuth Vendor portal is required. S20–S27
+  and `docs/v1-gap-implementation-program-2026-07-14.md` are the implementation contract.
+- Lease Renewal has a deterministic read/reconcile/flag engine, live read capability, app-plane
+  review/resolution/writeback-approval controls, and simulation/test-run surfaces. No Sheet or
+  Rentvine writeback executes today. Final V1 requires app-executed Gmail, Sheet, Rentvine, Dotloop,
+  portal chat, SMS, and conditional Boom actions under S25. Undocumented/provider-gated actions block
+  final V1 rather than becoming tracked-manual fallbacks.
+- Workflow Communications is the active Gmail product boundary. The KB-hosted surface exposes
+  only authorized workflow links, value-free attention, governed labels, approved drafts, and
+  exact-confirmed replies; it does not expose a recent inbox, arbitrary search, or generic compose.
+- The evidence map starts at `docs/v1-readiness-audit-2026-07-14.html`; the final owner contract is
+  `docs/v1-readiness-audit-round-3-2026-07-14.html`, and implementation starts from
+  `docs/v1-gap-implementation-program-2026-07-14.md`.
 - The old sibling Owner Router artifact repo exists locally and may be mined for Gmail
   Inbox 0 source material, but active governance now lives in this monorepo.
 
@@ -74,7 +82,8 @@ git diff --check
 
 ### P1 - Discovery And Source Inventory
 
-Status: in progress — owners named; some concrete asks in `docs/client-checklist.md` still open.
+Status: in progress — default approvers are named; final acceptance, support, rollback, source, and
+workflow-artifact owners still need confirmation.
 
 Acceptance criteria:
 
@@ -93,15 +102,15 @@ npm run format:check
 
 ### P2 - Access And Account Setup
 
-Status: in progress — GCP/Firebase project + billing and Gmail Inbox 0 authority confirmed;
-Drive source ownership and approved KB sources still pending.
+Status: in progress — GCP/Firebase, billing, domain auth, Rentvine/Sheets reads, and Gmail transport
+are confirmed; approved launch-Space sources/sensitivity and final operator roster remain.
 
 Acceptance criteria:
 
 - PMI KC-owned GCP/Firebase project and billing path are confirmed.
 - Workspace domains, test users, and authorized domains are approved.
 - Drive folder/source ownership is known.
-- Gmail Inbox 0 setup authority and safe test approach are approved.
+- Gmail transport setup authority and safe synthetic test approach are approved.
 - No secrets or raw client data are committed.
 
 Validation:
@@ -113,15 +122,16 @@ npm run preflight:production -- --env-file=.env.production.local
 
 ### P3 - Integration Capability Verification
 
-Status: in progress — integration classification complete in `docs/integration-architecture.md`;
-verification against client-owned/staging resources pending.
+Status: in progress — Rentvine lease reads, renewal-Sheet reads, Drive DWD capability, and Gmail
+transport are live-proven; workflow-boundary promotion and every non-Gmail external write remain
+separately gated.
 
 Acceptance criteria:
 
 - KB production integrations are verified against client-owned or approved staging
   resources.
-- Gmail Inbox 0 label/filter/Gem or prompt-pack capability is verified without touching
-  live client mail unsafely.
+- Workflow Communications label, draft, targeted-read, reply, and on-demand analysis boundaries
+  are verified without exposing unrelated live mail.
 - Lease Renewal Agent candidate integrations are classified as read-only, write-capable,
   unsupported, or blocked. The verified starting classification and per-vendor evidence
   live in `docs/integration-architecture.md`; client confirmation can still change it.
@@ -136,36 +146,38 @@ npm run test:firestore
 
 ### P4 - Product V1 Scope Lock
 
-Status: in progress — KB automation/Approval-Queue model locked and built; Lease Renewal v1 scope
-still has open client confirmations (OQ-PREC-1 precedence, in-scope sheets, walkthrough).
+Status: done — R01–R09 lock the expanded external-user V1, risk-bounded Editor authority, all-risk
+Admin self-approval, every Lease/Maintenance action, immediate trusted publication, Vendor invite/TOTP/
+Gmail OAuth, exact retention/artifacts/AI policy, Console live/test boundary, and staged final release.
+S20–S27 turn those decisions into falsifiable implementation contracts.
 
 Acceptance criteria:
 
 - PMI KC KB production cutover scope is locked.
 - Lease Renewal Agent has approved v1 inputs, outputs, trigger model, permissions,
   source requirements, and acceptance scenarios.
-- Gmail Inbox 0 has approved label names, owner-email sender rules, human send model,
-  source files, and live testing plan.
+- Workflow Communications has approved workflow-context, human-confirmation, sender-binding, safe
+  testing, per-item authority, Vendor OAuth identity, three v1.0 base artifacts, source-visible AI reply
+  policy, and exact retention values. S22/S24 implement them before promotion.
 - KB automation has approved workflow-run framework, per-action approval model, and the
   first Lease Renewal integration/source map.
-- Process-definition activation gates are approved: Draft/Testing runs are
-  simulation-only, Active definitions are versioned with history/rollback, activation
-  requires source links plus a successful test run unless Dan/Josiah override, and
-  pending automations show their missing permissions or connections.
+- Source/process publication becomes Active immediately after S21's configured-root/scope/type/size/
+  malware/sensitivity validation, immutable version/rollback, and audit. Publishing content never
+  enables an external action, changes configuration/system prompt, or widens a role.
 - Workflow-run UX/audit model is approved: top summary, timeline, visually separate test
   runs, production-metric exclusion for test runs unless included by an Admin, and
   visible source links, confidence, and reasoning for AI recommendations.
 - Workflow-run status and notification model is approved: standard run statuses,
-  final-approver ownership, source due date or today default, and internal email
-  plus in-app notifications for approval-ready, blocked, failed automation, and overdue
-  events. Recipients and subject structure are approved for v1.
+  final-approver ownership, source due date or today default, and in-app notifications for
+  approval-ready, blocked, failed automation, and overdue events.
 - Escalation/failure model is approved: blocking automation failures fail the run,
   non-blocking automation failures fail the step and block the run, failed notification
-  email retries once then escalates to Dan/Josiah Admins, and external action failures
-  keep attempted payload, error, target system, timestamp, and retry status.
-- External-action approval model is approved: every executable external action type is
-  approved by target system plus action type, first executable actions still require
-  per-run human approval, and planned actions remain visible while non-executable.
+  processing creates Admin-visible in-app health, and external action failures keep attempted
+  payload, error, target system, timestamp, and retry status.
+- External-action type governance is approved by target system plus action type. S20 makes enabled
+  Low/Medium instances direct for internal Editors, routes consequential High work to Admin, permits
+  Admin self-approval, and keeps technical Blocked conditions non-executable. Planned actions remain
+  visible while non-executable.
 - External-action readiness model is approved: readiness states are `Planned`,
   `Needs Connection`, `Needs Permission`, `Ready for Test`, `Approved for Execution`,
   and `Disabled`; execution requires a change preview and rollback/correction note; and
@@ -191,14 +203,15 @@ npm run format:check
 ### P5 - Build And Migration Preparation
 
 Status: in progress — dry-runs for imports/setup/seeders/preflights exist (`npm run cutover:dry-run`);
-KB production source manifests await approved client sources.
+KB production source manifests await approved client sources, and the verified local Workflow
+Communications boundary awaits owner review before commit/deploy.
 
 Acceptance criteria:
 
 - KB production source manifests are prepared from approved PMI KC sources.
 - Lease Renewal Agent implementation tickets and tests are created only after P4.
-- Gmail Inbox 0 management-page tickets and Gmail/Gemini integration tickets are created
-  only after the Dan mailbox access and safe-scan model are approved.
+- Workflow Communications tickets require workflow entity authorization, approved artifacts, and
+  targeted-read acceptance criteria; general mailbox scans are not a prerequisite or product goal.
 - Dry-runs exist for imports, setup scripts, seeders, and preflights.
 - The migration-readiness stop gate is evaluated before any additional local feature
   slice; nonessential local expansion is deferred once migration/client unblock is the
@@ -213,15 +226,18 @@ npm run seed:launch-skeletons -- --dry-run
 
 ### P6 - Testing, Training, And Acceptance
 
-Status: in progress — automated test coverage is broad; production smoke, acceptance scenarios, and
-operator training are pending runtime/cutover.
+Status: in progress — the final Round 3 contract and S20–S27 specs are locked. S20 execution authority,
+S21 trusted publication, and S23 Console live/test boundary are Local green; S22/S24–S27 implementation,
+provider/live-action acceptance, release-candidate browser review, and internal plus Vendor operator
+training/signoff remain.
 
 Acceptance criteria:
 
 - KB production smoke covers auth, Ask, citations, no-source behavior, edits,
   approvals, and Admin visibility.
 - Lease Renewal Agent acceptance scenarios pass once runtime exists.
-- Gmail Inbox 0 test scenarios pass against approved safe threads or sanitized threads.
+- Workflow Communications tests prove unrelated threads cannot be fetched and use only fake
+  transports, approved synthetic threads, or sanitized fallback text.
 - S19 fake-transport tests prove per-user subject isolation, bounded/safe MIME reads,
   exact-payload confirmation, one-attempt idempotency, ambiguous-send reconciliation,
   reply headers/thread ID, authenticated push replay/cursor handling, and the simulator
@@ -229,15 +245,26 @@ Acceptance criteria:
 - Dan, Bailey, and named operators complete training and signoff tasks.
 - Backend automation tests prove explicit approval, audit fields, rollback/error
   handling, and no unapproved external writes.
+- S20 tests prove immutable server risk floors, Editor direct enabled Low/Medium work, exact-preview
+  Admin-approved High work (including self-approval), technical Blocked non-bypass, one attempt,
+  ambiguity reconciliation, atomic queue/ledger transitions, and server-only bodyless audit.
+- S21 tests prove root/Space/path/type/size/MIME/scanner/sensitivity refusal before persistence,
+  immutable ordered versions, one Active pointer, additive rollback, bodyless rejection audit,
+  Admin-only tightening policy, process action-reference validation, authority-field inertness, and
+  no routine Approval Queue item for validation-passing publication.
+- S23 tests prove server-only live/test mode selection, wrong-Space omission, value provenance and
+  freshness, visible source outage without fixture fallback, persistent non-production test badge,
+  bounded inert metadata/snippet, zero initial body/attachment calls, and one targeted authorized
+  full-body call only after opening the workflow communication panel.
 - Process-definition tests prove simulation-only behavior for Draft/Testing runs,
   versioned Active copies, activation gates, and pending automation visibility.
 - Workflow-run tests prove the summary, timeline, test-run separation, production-metric
   exclusion, and reviewer-visible AI evidence.
-- Workflow-run notification tests prove status-triggered notifications, email inclusion,
-  in-app inclusion, final-approver ownership, next-action recipient routing, starter
-  routing limits, subject structure, and due-date defaulting.
-- Failure-handling tests prove run-vs-step failure behavior, one notification retry,
-  Dan/Josiah escalation after retry failure, and external-action failure audit fields.
+- Workflow-run notification tests prove status-triggered in-app notifications,
+  final-approver ownership, next-action recipient routing, starter routing limits, and due-date
+  defaulting. Any future out-of-app delivery requires a separate approved spec.
+- Failure-handling tests prove run-vs-step failure behavior, Admin-visible in-app health, and
+  external-action failure audit fields; the legacy event-driven Gmail sender remains hard-disabled.
 - External-action approval tests prove target-system/action-type scoping, no blanket
   system access, per-run approval for first executable actions, and visible
   non-executable planned actions.
@@ -258,16 +285,14 @@ Acceptance criteria:
   plain-English preview and confirmation; clear ineligible-item handling; per-item
   Activity entries; and no bypass of external-action approval, send authority, or
   high-risk confirmation.
-- Approval queue notification tests prove console-only default delivery, configurable
-  email delivery, recipient routing, single console reminders, and required notification
-  content, plus portal/email escalation for unresolved important `Blocked` or overdue
-  items.
-- Approval queue email-configuration tests prove Admin-only configuration by event type
-  and recipient role, assigned/Admin-selected email recipients, settings visibility,
-  console source-of-truth behavior, and non-blocking email failure health/audit records.
+- Approval queue notification tests prove in-app delivery, recipient routing, single reminders,
+  required notification content, and Admin-visible health for unresolved important `Blocked` or
+  overdue items.
+- Approval queue legacy-email tests prove configuration cannot activate the hard-disabled sender;
+  historical preferences remain audit-only and Console/Notifications remains the source of truth.
 - Approval queue Admin-health tests prove visible health fields, health-state
   classification, `Action Required` conditions, and direct links into affected queue
-  items, email settings, or audit records.
+  items or audit records, with any historical email state labeled inactive.
 - Approval queue audit/history tests prove the single append-only Activity log,
   required audit fields, staff/Admin visibility, prior-version preservation, correction
   entries, collapsed low-level system entries by default, and best-practice
@@ -309,9 +334,12 @@ bash scripts/verify.sh
 
 ### P7 - Production Cutover And Monitoring
 
-Status: in progress — the client-owned service has the current app release and its bounded production smoke is
-green; full cutover still needs named go-live/rollback/monitoring owners, approved source scope, and the remaining
-owner/vendor gates.
+Status: in progress — production revision `pmi-kc-kb-demo-00020-24d` proves the S19 transport
+baseline; the locally verified workflow-boundary candidate is not deployed. Dan/Josiah release
+ownership and tab direction are resolved. S20/S21/S23 are Local green; the external Vendor portal and
+named workflow writes now expand V1. R01–R09 and S22/S24–S27 are decision-complete but unbuilt; final release needs their implementation,
+approved production source/provider mappings, action-by-action proof, integrated browser acceptance,
+and explicit deploy/smoke/final-acceptance approval.
 
 Acceptance criteria:
 
@@ -334,27 +362,36 @@ bash scripts/verify.sh
 
 ### PMI KC KB
 
-Current state: commit `b24c67d` is deployed + directly demo-verified on production; full production cutover remains.
+Current state: the client-owned service is live and directly verified; the 2026-07-14 local candidate
+adds the narrower workflow-communication product boundary. Round 3 defines final V1 as an external-user
+release with S20–S27 risk, publication, Vendor, Console, communications, workflow-action, and staged
+acceptance contracts. S20/S21/S23 are Local green; S22/S24–S27 are not built merely because their
+product scope is approved. S23's live adapters and browser acceptance remain gated despite its local contract being green.
 
 Key gates:
 
 - Approved production sources and source-state metadata.
-- Client-owned GCP/Firebase/Auth/Firestore/Agent Search setup.
-- Production `APP_BASE_URL`, source maps, data-store maps, and role assignments.
-- KB approval Gmail notification enabled only after sender/recipient approval, or
-  explicitly disabled.
-- Internal-only launch with `Admin` and `User` as the product-facing roles.
+- Approved source files, sensitivity decisions, source maps, and data-store maps for the launch
+  Spaces. The underlying GCP/Firebase/Auth service and canonical URL already exist.
+- Final operator roles plus named go-live, acceptance, support, monitoring, and rollback owners.
+- In-app approval notifications remain the V1 delivery path; legacy event-driven Gmail delivery is
+  disabled and is not a launch dependency.
+- Internal staff retain `Editor`, `Approver`, and `Admin` capability tiers, optionally narrowed by
+  renewals/maintenance scopes. V1 adds a separate external Vendor role with assigned-ticket-only
+  access; it never inherits internal Editor/Admin/Connections/cross-Space reach.
 - First launch Spaces: Lease Renewals, Maintenance Work Order Intake, Move-Out +
   Deposit Disposition, and Owner Onboarding.
-- Backend automation write paths added only after approved per-process specs.
+- Backend automation write paths are built through S25/S26 and become live only after documented
+  provider evidence, focused acceptance, Action Registry review, and explicit per-action authority.
 
 ### Lease Renewal Agent
 
-Current state: first backend automation target, but integration/source discovery remains
-required. RentVine read-connection readiness scaffold + plain-language setup checklist now exist
-(`npm run preflight:rentvine`, `docs/products/rentvine-connection-setup.md`); the live read is
-blocked only on RentVine's API doc (base URL, auth scheme, endpoint paths, lease response shape).
-RentVine reads do not bill the GCP cap.
+Current state: deterministic Phase-1 read/reconcile/review is built; one live Rentvine export and the
+renewal Sheet DWD read are proven. App-plane resolution and writeback authorization exist, while
+every Sheet/Rentvine/Dotloop/LeadSimple/QuickBooks/Boom write remains non-executable. R02 makes
+the named end-to-end outputs V1 product scope; Round 3 classifies every R02 Gmail/Sheet/Rentvine/
+Dotloop/portal/SMS/conditional-Boom group as app-executed final-V1 work under S25. None is silently
+manual/later, and provider-contract gaps block release.
 
 Key gates:
 
@@ -403,8 +440,10 @@ Key gates:
   editor. `Snooze` requires a date and reason, then returns the item to the active queue
   on that date or if risk/status changes. `Disable Action` is Admin-only, requires a
   reason, and preserves the disabled action in history.
-- Approval queue items are created from approval packages, process-definition changes,
-  failed/blocked automation, external-action readiness, and source/fact conflicts.
+- Approval queue items are created from approval packages, failed/blocked automation, external-action
+  readiness, and source/fact conflicts. S21 publication failures instead create a safe bodyless audit
+  and no Active pointer; validation-passing Editor content/process changes publish immediately under
+  its configured-root, scope, type/size, malware/sensitivity, version/rollback, and audit boundary.
   Duplicate items for the same run/action merge into one open item with history. When
   the underlying fact, draft, action, or preview changes, the queue item refreshes and
   preserves the prior version. Queue items close automatically when approved, completed,
@@ -422,27 +461,22 @@ Key gates:
   confirmation rules.
 - Approval queue notifications appear in the app console for item created, assigned,
   returned for revision, unsnoozed, blocked, unblocked, overdue, and closed events.
-  These events do not all send email by default; email delivery is configurable. Queue
-  notifications go to the current assignee and required approver. Creators/editors are
+  V1 delivery is in-app only. Queue notifications go to the current assignee and required
+  approver. Creators/editors are
   notified only when their action is needed or their item closes. Reminders start as a
   single console notification, not a repeating sequence, with no default 24-hour
   follow-up or Admin escalation sequence unless configured later. Each notification
   includes the plain-English action needed, due date, risk level, affected process/run,
   and direct queue-item link.
-- Routine approval queue email delivery is off by default and configurable by Admins per
-  event type and recipient role. The built-in exception is unresolved important
-  `Blocked` or overdue escalation, which sends portal and email notifications to
-  assigned and/or Admin-selected recipients. Email settings show event type, enabled
-  state, recipient roles, trigger condition, frequency/cooldown, subject preview, and
-  last send/error status. Email never replaces console notifications; the app console
-  remains the default source of truth. Email delivery failure does not block the queue
-  item, but creates an Admin-visible health warning and audit entry.
-- Approval queue Admin health shows queue email status, failed delivery count, last
-  failure, disabled event types, stale overdue count, and blocked item count. Health
+- Approval queue delivery is in-app for V1. Historical email settings may remain visible for audit,
+  but configuration cannot activate the hard-disabled legacy sender. Any future human-confirmed
+  notification-draft lane requires its own approved spec, preview, tests, and audit.
+- Approval queue Admin health shows in-app processing status, stale overdue count, and blocked item
+  count, with historical email state labeled inactive. Health
   status uses `Healthy`, `Needs Attention`, and `Action Required`. `Action Required`
-  means something is broken or blocking work, such as failed notification delivery,
-  disconnected email config, or unresolved blocked high-risk items. Admins can open
-  health details directly into affected queue items, email settings, or audit records.
+  means something is broken or blocking work, such as failed notification processing or an
+  unresolved blocked high-risk item. Admins can open health details directly into affected queue
+  items or audit records.
 - Approval queue audit/history stays simple: one automatic, append-only Activity log per
   queue item rather than multiple audit modes or toggle-heavy options. Each meaningful
   queue state change records actor, timestamp, action, previous state, new state, reason
@@ -482,14 +516,12 @@ Key gates:
   open action. Missing evidence, permissions, or connections create or route to a
   `Blocked` queue item instead of appearing as a vague broken screen. Production queue
   views never show demo/test items unless the run is clearly marked as a test/demo run.
-- Approval Queue permissions stay role-simple. Normal users can view assigned or
-  otherwise relevant items, open details, take assigned actions, add comments/reasons,
-  and return items for revision when they are the assignee. Admins can view all queue
-  items, approve high-risk items, disable actions, manage email settings, view health,
-  and expand full Activity/audit details. Users cannot approve their own proposed
-  process, source, or fact change unless they are Admin and explicitly acting as
-  approver. Permission errors explain the missing role/action and route to a safe next
-  step.
+- Approval Queue permissions remain explicit by role and action. S20 lets internal Editors directly
+  execute enabled Low/Medium instances, routes consequential High work to Admin, permits Admin
+  self-approval at every risk, and never lets approval bypass a technical Blocked condition. The
+  separate external Vendor role sees only assigned Maintenance tickets and never inherits Editor,
+  Approval Queue, Admin, Connections, or cross-Space reach. Permission errors explain the missing
+  role/action and route to a safe next step.
 - Process-specific approvers beyond Dan and Josiah remain TBD, but the app makes them
   easy to add and manage through an Admin console rather than hardcoding people into
   workflow definitions.
@@ -503,15 +535,15 @@ Key gates:
   directly change facts, drafts, previews, process definitions, source records, or
   external actions. If a comment identifies a needed source/process/fact change, the app
   creates the appropriate proposed update or queue item.
-- Unresolved important `Blocked` or overdue queue items escalate through portal
-  notification and email notification for now. Recipients are assigned and/or
-  Admin-selected rather than inferred broadly. This escalation email is the exception to
-  routine queue email being off by default.
-- Approval queue risk levels are `Low`, `Medium`, `High`, and `Blocked`, with `High`
-  for owner/tenant-facing, legal/financial/timing impact, or external writes; `Medium`
-  for internal workflow-affecting updates/corrections; `Low` for internal notes,
-  assignments, snoozes, or non-executable cleanup; and `Blocked` for items waiting on
-  missing facts, conflicts, connection, permission, or approver issues.
+- Unresolved important `Blocked` or overdue queue items escalate through the in-app attention and
+  Admin-health surfaces. No automatic email exception exists in V1.
+- Approval queue risk levels are `Low`, `Medium`, `High`, and `Blocked`. `Low` covers reads, health,
+  local drafts, governed reversible labels, notes, assignments, and cleanup. `Medium` covers exact-
+  confirmed workflow email/portal/SMS, S21 trusted publication, and S26's validated append-only
+  assigned-ticket photo. `High` covers system-of-record values/status, documents, accounts/roles/
+  OAuth lifecycle, accounting, and unbounded/overwrite/delete Drive mutations. `Blocked` means missing
+  facts, validation, documented contract, connection, permission, scope, or approver; Admin may own the
+  decision but cannot waive a technical blocker.
 - Approval queue default view puts `Ready for Approval`, `Blocked`, `Failed`, and
   overdue items first. Filters include process, owner/final approver, assignee, risk
   level, status, due date, and audience group.
@@ -534,34 +566,44 @@ Key gates:
 - No executable external write/send action until the read/gather flow and approval
   package are tested and scope, permissions, and tests are locked.
 
-### Gmail Inbox 0
+### Workflow Communications
 
-Current state: S19 is the owner-approved per-authenticated-user Gmail production workspace;
-the S15 simulator/pasted-text workspace remains a separate fallback. DWD carries readonly,
-compose, labels, and modify; all five Inbox 0 actions are allowlisted. Production resource,
-deploy, watch, and synthetic proof results are recorded in the S19 activation evidence.
+Current state: S19 retains the owner-approved per-authenticated-user Gmail transport and its
+production proof, but the application is now workflow-bounded. DWD still carries readonly,
+compose, labels, and modify. The Action Registry exposes workflow-targeted read, governed draft,
+exact-confirmed reply, and approved-label actions; generic send is disabled, and renewal and
+maintenance notice drafts remain Planned in current code. R07 approves the exact current three base
+generators as v1.0 plus the S24 AI policy; S25/S26 must still wire authoritative runtime recipients and
+values before those actions can be promoted.
 
 Key gates:
 
-- Start with `Waiting on Outside` and `Waiting on Team`; later add `Dan Decision` and
-  `Draft Ready`.
-- Stage 1: bounded per-user reads plus reviewed drafts/send/reply and user-label application.
-- Stage 2: authenticated Pub/Sub push, transactional history cursor/dedupe, and bounded resync.
-- Production proof uses a synthetic self-addressed message/reply, label, and watch; identifiers only.
-- `mail.google.com`, cross-mailbox browsing, automatic processing, and autonomous send remain absent.
+- Enter through an authorized renewal run or maintenance ticket, or a value-free linked-reply
+  attention item; no recent-inbox entry point exists.
+- Store only opaque Gmail identifiers, workflow references, state, timestamps, version references,
+  and bodyless audit. S24 policy is confirmation usable 10 minutes/delete 30 days, dedupe 7 days, sync
+  90 days, workflow link 365 days from last authorized update, bodyless action audit 7 years, no
+  persisted V1 AI/extracted Gmail facts, with Admin legal hold/later written policy overriding deletion.
+- Pub/Sub is a change signal only: match already-linked thread IDs and create deduplicated,
+  value-free attention without fetching unrelated message content or invoking AI.
+- AI analysis is on demand over one linked thread and returns `Needs Review` proposals only.
+- `mail.google.com`, cross-mailbox browsing, automatic processing, generic compose, and autonomous
+  send remain absent.
 - Preserve human send authority. No autonomous/background/model-triggered/scheduled
   send, automatic retry of an ambiguous result, cross-mailbox Admin access, persisted
   mailbox body, or system-of-record write.
 
 ## Risks And Unknowns
 
-- Client production resources and admin access are not yet available.
+- Client production resources, domain auth, and the initial Admin path are available; approved
+  content scope and final operational ownership remain incomplete.
 - Lease Renewal Agent requires integrations and permissions not yet known; the full
   system list remains TBD until scoped with the client.
 - Maintenance automation requires further chatbot/phone-system product alignment; tools,
   services, and connections remain TBD until scoped with the client.
-- Gmail Inbox 0 derives the mailbox only from the server-verified session and uses bounded
-  on-demand reads so no other domain mailbox is scanned merely because DWD could impersonate it.
+- Workflow Communications derives the mailbox only from the server-verified session and requires
+  an authorized workflow context before a targeted thread read, so no other domain mailbox or
+  unrelated thread is scanned merely because DWD could impersonate or read it.
 - Some historical demo/status/spec material still mentions Bailey Brain, Dan's AI
   Assistant, and Owner Router; those names must be read as demo/legacy context unless
   updated by product docs.
@@ -573,8 +615,9 @@ Key gates:
 
 1. Keep the KB demo and verification path green.
 2. Stand up PMI KC KB production with the first four internal Spaces.
-3. Operate Gmail Inbox 0 through S19's approved per-user runtime; scope Dan-specific automatic
-   workflow and historical processing only after the live connection is stable.
+3. Operate Workflow Communications through S19's workflow-linked boundary; keep historical
+   processing and general mailbox automation out of scope unless a later privacy/governance spec
+   explicitly reopens them.
 4. Scope and build Lease Renewal as the first full backend automation with connected
    apps and explicit approval.
 5. Scope Maintenance automation after chatbot/phone intake behavior is aligned and

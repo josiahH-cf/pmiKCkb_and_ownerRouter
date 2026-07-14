@@ -94,10 +94,10 @@ are the real ones read for this spec.
     filter.**
 
 - **Follow-ons.**
-  - **G1 — classify Gmail-dependent event families.** S19 activated the per-user mailbox connection and
-    authenticated push on 2026-07-13. `rentvine_replies` + `owner_process_replies` remain
-    `available:false` with "Mailbox event rules not configured" until their product-specific,
-    source-backed classification rules are defined; mailbox access is no longer their blocker.
+  - **G1 — workflow-linked Gmail attention (built 2026-07-14).** `renewal_communications` and
+    `maintenance_communications` are available, value-free families. Authenticated push matches only
+    already-linked thread IDs and creates deduplicated attention without fetching unrelated content,
+    invoking AI, or interpreting operational meaning.
   - **G2 — any email/push DELIVERY.** The framework is in-app ONLY; email is hard-off
     (`KB_APPROVAL_NOTIFICATIONS_ENABLED` false, `email_enabled` literal-false). Turning on any out-of-app
     delivery is an autonomous-send decision and stays gated.
@@ -116,11 +116,10 @@ are the real ones read for this spec.
   fixing the underlying state (setting up the connector / adding the process), not by reading a row.
 - _Assumption:_ the B5 review digest thresholds are `corrected_value`-at-High (override) and
   stale/re-resolved (self-correction), computed on READ from already-fetched Activity — no new Firestore
-  collection, no new index, mirroring `property-repository.ts`. The exact numeric window (e.g. "this
-  week") is a display default, flagged `Needs Verification:` until Dan confirms his review cadence.
-- _Open:_ Dan's preferred review cadence and whether the review lane should also cover Maintenance
-  overrides (not just renewals). Default: renewals-only digest, weekly window. Recorded as a `Q-` row in
-  `docs/facts.md` "## Open Questions" at authoring time; confirm-with-default, not a blocker.
+  collection, no new index, mirroring `property-repository.ts`. Round 1 safe-default approval on
+  2026-07-14 confirms the weekly window and renewals-only scope for V1 (`F-DAN-REVIEW-CADENCE`).
+- _Answered 2026-07-14:_ weekly, renewals-only for V1. Maintenance-review expansion remains a later
+  feature decision, not a launch blocker.
 - _Product-owned:_ the source-backed classification rules that would flip G1's two families available;
   mailbox access is active under S19. Any decision to deliver notifications out of app remains
   client-owned. Default: stay in-app until the client says otherwise.
@@ -155,10 +154,10 @@ are the real ones read for this spec.
   list under a "Notifications" heading; unauthenticated `GET /notifications` redirects to sign-in (307);
   the bell popover shows a "See all notifications" link whose href is `/notifications`. _Verify:_
   `npm run test -- tests/unit/notification-menu-component.test.tsx`; keep `tests/unit/notifications-route.test.ts` green.
-- **AC-S17-2** — the family catalog exposes exactly SEVEN families: `approval_queue`,
-  `maintenance_tickets`, `connections_setup` (available), `space_coverage` (available), `team_review`
-  (available, but Admin-gated at SERVE time per AC-S17-6), and `rentvine_replies` +
-  `owner_process_replies` still `available:false` with detail "Mailbox event rules not configured". _Verify:_
+- **AC-S17-2** — the family catalog exposes exactly SEVEN available families: `approval_queue`,
+  `maintenance_tickets`, `connections_setup`, `space_coverage`, `team_review` (Admin-gated at SERVE
+  time per AC-S17-6), `renewal_communications`, and `maintenance_communications`. The two communication
+  families carry value-free attention from already-linked Gmail threads only. _Verify:_
   `npm run test -- tests/unit/notification-feed.test.ts`; keep the families enum invariant green.
 - **AC-S17-3** — for one fixture the "Needs your decision" integer is byte-identical on the Console deck,
   the bell badge, and `/approval-queue`, and each reads `gatherNeedsDecisionInbox(user).counts.total`
@@ -202,12 +201,11 @@ Full-suite gate for every slice: `npm test`, `npm run typecheck`, `npm run lint`
 `npm run verify:copy-voice`, `npm run verify:context-freshness`, `npm run verify:spec-traceability`,
 `npm run test:firestore`, then `bash scripts/verify.sh`.
 
-**Forbidden actions / hard gates.** App-plane only. Every Action Registry entry stays
-`production_allowed:false` and this suite adds none. No autonomous send — the notification framework is
+**Forbidden actions / hard gates.** This suite adds no Action Registry entry. No autonomous send — the notification framework is
 in-app ONLY, email stays hard-off (`KB_APPROVAL_NOTIFICATIONS_ENABLED` false, `email_enabled`
 literal-false), and any out-of-app delivery is a gated autonomous-send decision (G2). No system-of-record
-write (RentVine / Sheet / QuickBooks / bank / client Drive). No new Google scope — the two Gmail-dependent
-families stay `available:false` until the client access model + a Gmail READ scope land (G1). No Cloud
+write (RentVine / Sheet / QuickBooks / bank / client Drive). The Gmail communication families are
+bodyless app attention only and do not authorize thread fetch, classification, send, or workflow mutation. No Cloud
 Scheduler / cron — the B5 digest is computed on read, not on a schedule (G3). No client data on GitHub —
 the review lane is value-free by construction (counts + lane only; a sentinel pins the key set) and the
 `verify:redaction` gate still forbids any `golden-data/` / `docs/client_docs/` file. ~$10 budget cap

@@ -47,8 +47,6 @@ describe("Action Registry repository", () => {
       "gmail.draft.create",
       "gmail.label.apply",
       "gmail.mailbox.read",
-      "gmail.message.send",
-      "gmail.renewal_notice.draft_create",
       "gmail.thread.reply",
     ]);
   });

@@ -1,73 +1,47 @@
 "use client";
 
-import { NOTIFICATION_FAMILIES, WAITING_ON_GMAIL } from "@/lib/notifications/families";
-
 import { AnticipatoryDraftComposer } from "@/components/gmail-hub/AnticipatoryDraftComposer";
 import { LiveGmailWorkspace } from "@/components/gmail-hub/LiveGmailWorkspace";
 import { SimulatedEmailChain } from "@/components/gmail-hub/SimulatedEmailChain";
 import { TemplateWorkspace } from "@/components/gmail-hub/TemplateWorkspace";
 import { ThreadSummaryPanel } from "@/components/gmail-hub/ThreadSummaryPanel";
 
-/** Gmail live workspace plus a clearly separated browser-only/pasted-text fallback. */
+/** Workflow-bounded Gmail status plus an Admin-only pasted/synthetic fallback. */
 export function GmailHubHome({
   authenticatedEmail = "signed-in user",
-  canCompose = false,
-  canSend = false,
-  canLabel = false,
+  canManageAdmin = false,
 }: {
   authenticatedEmail?: string;
-  canCompose?: boolean;
-  canSend?: boolean;
-  canLabel?: boolean;
+  canManageAdmin?: boolean;
 }) {
   return (
     <section className="content ui-stack gmail-hub">
       <div>
-        <h1 className="section-title">Gmail hub</h1>
+        <h1 className="section-title">Workflow Communications</h1>
         <p className="muted">
-          Work in your own live mailbox after its approved connection succeeds. Every send
-          shows the exact message and requires your one-time confirmation. Pasted-text and
-          browser-only tools remain available as a separate fallback.
+          Review Gmail evidence in the renewal or maintenance workflow it supports. This
+          is not a replacement inbox: unrelated mail, generic compose, and mailbox
+          management stay in Gmail.
         </p>
       </div>
 
-      <LiveGmailWorkspace
-        authenticatedEmail={authenticatedEmail}
-        canCompose={canCompose}
-        canSend={canSend}
-        canLabel={canLabel}
-      />
+      <LiveGmailWorkspace authenticatedEmail={authenticatedEmail} />
 
-      <h2>Offline and demo fallback</h2>
-      <SimulatedEmailChain />
-      <AnticipatoryDraftComposer />
-      <TemplateWorkspace />
-      <ThreadSummaryPanel />
-
-      <article className="panel ui-stack">
-        <h2>Notifications</h2>
-        <p className="muted">
-          The same in-app notification families as the Console and the bell. The mailbox
-          connection is active; reply-event categories appear after their product-specific
-          classification rules are configured.
-        </p>
-        <ul className="compact-list">
-          {NOTIFICATION_FAMILIES.map((family) => (
-            <li key={family.key}>
-              <strong>{family.label}</strong> — {family.description}{" "}
-              {family.available ? (
-                <span className="queue-pill" data-value="Available">
-                  Available
-                </span>
-              ) : (
-                <span className="queue-pill" data-value="Action Required">
-                  {family.unavailableReason ?? WAITING_ON_GMAIL}
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </article>
+      {canManageAdmin ? (
+        <section className="ui-stack" aria-label="Admin fallback tools">
+          <div>
+            <h2>Admin-only pasted and synthetic fallback</h2>
+            <p className="muted">
+              These tools do not read the live mailbox. Pasted input must be sanitized and
+              outputs remain drafts or proposals for human review.
+            </p>
+          </div>
+          <SimulatedEmailChain />
+          <AnticipatoryDraftComposer />
+          <TemplateWorkspace />
+          <ThreadSummaryPanel />
+        </section>
+      ) : null}
     </section>
   );
 }

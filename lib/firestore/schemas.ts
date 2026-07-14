@@ -358,6 +358,8 @@ const queueRiskSignalsSchema = z
 export const CreateApprovalQueueItemInputSchema = z.object({
   process_run_ref: queueProcessRunRefSchema,
   space_id: optionalTextSchema,
+  action_execution_id: optionalTextSchema,
+  action_execution_preview_hash: optionalTextSchema,
   item_type: QueueItemTypeSchema,
   source_trigger_key: requiredTextSchema,
   audience_group: QueueAudienceGroupSchema.optional(),
@@ -435,7 +437,7 @@ export const UpdateNotificationPreferencesInputSchema = z.object({
 });
 
 export const MarkNotificationReadInputSchema = z.object({
-  source: z.enum(["approval_queue", "maintenance_ticket"]),
+  source: z.enum(["approval_queue", "maintenance_ticket", "gmail_workflow"]),
   id: requiredTextSchema,
 });
 
@@ -463,6 +465,7 @@ const processDefinitionActionReferenceInputSchema = z.object({
 });
 
 export const CreateProcessDefinitionInputSchema = z.object({
+  space_id: optionalTextSchema,
   name: requiredTextSchema,
   short_outcome: requiredTextSchema,
   trigger: requiredTextSchema,
@@ -479,6 +482,7 @@ export const CreateProcessDefinitionInputSchema = z.object({
 
 export const UpdateProcessDefinitionInputSchema = z
   .object({
+    space_id: optionalTextSchema,
     name: requiredTextSchema.optional(),
     short_outcome: requiredTextSchema.optional(),
     trigger: requiredTextSchema.optional(),

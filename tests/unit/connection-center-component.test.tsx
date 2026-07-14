@@ -31,9 +31,14 @@ describe("ConnectionCenter", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("RentVine")).toBeInTheDocument();
     expect(screen.getByText("Dotloop")).toBeInTheDocument();
-    // The working send-only notifier is honestly represented (D4) — sender only, no inbox.
-    expect(screen.getByText("Gmail (notifications sender)")).toBeInTheDocument();
-    expect(document.body.textContent).toContain("The app never reads any inbox.");
+    expect(screen.getByText("Gmail (legacy notification sender)")).toBeInTheDocument();
+    expect(document.body.textContent).toContain(
+      "Approval notifications are in-app for the first release.",
+    );
+    expect(screen.getByText("Gmail (workflow communications)")).toBeInTheDocument();
+    expect(document.body.textContent).toContain(
+      "Gmail stays the message system of record.",
+    );
 
     // RentVine fully configured → ready to verify; the OAuth connectors read Not connected.
     expect(screen.getByText("Ready to verify")).toBeInTheDocument();

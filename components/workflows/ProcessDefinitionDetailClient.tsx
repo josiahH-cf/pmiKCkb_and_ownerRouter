@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import type {
   ExternalActionReadiness,
@@ -29,7 +29,6 @@ interface ProcessDefinitionDetailClientProps {
 
 export function ProcessDefinitionDetailClient({
   canEdit,
-  canManageAdmin,
   initialDefinition,
   initialRuns,
 }: Readonly<ProcessDefinitionDetailClientProps>) {
@@ -38,28 +37,10 @@ export function ProcessDefinitionDetailClient({
   const [message, setMessage] = useState("Process definition loaded.");
   const [isBusy, setIsBusy] = useState(false);
   const [form, setForm] = useState(() => definitionToForm(initialDefinition));
-  const [submitNote, setSubmitNote] = useState("");
-  const [overrideReason, setOverrideReason] = useState("");
+  const [publicationNote, setPublicationNote] = useState("");
   const [testRunForm, setTestRunForm] = useState({ due_date: "", note: "" });
   const canMutate =
-    canEdit &&
-    !isBusy &&
-    !["Pending Approval", "Active", "Retired"].includes(definition.status);
-  const hasSuccessfulTest = Boolean(definition.last_successful_test_run_id);
-  const hasSourceLink = definition.source_links.length > 0;
-
-  const activationState = useMemo(() => {
-    if (!definition.pending_queue_item_id) {
-      return "Needs Approval Queue submission.";
-    }
-    if (!hasSourceLink) {
-      return "Needs at least one source link.";
-    }
-    if (!hasSuccessfulTest) {
-      return "Needs a successful test run or Admin override reason.";
-    }
-    return "Ready for Admin activation after queue approval.";
-  }, [definition.pending_queue_item_id, hasSourceLink, hasSuccessfulTest]);
+    canEdit && !isBusy && !["Pending Approval", "Retired"].includes(definition.status);
 
   async function saveDefinition() {
     if (!canMutate) {
@@ -82,47 +63,25 @@ export function ProcessDefinitionDetailClient({
     });
   }
 
-  async function submitForApproval() {
+  async function publishDefinition() {
     if (!canEdit || isBusy) {
       return;
     }
 
-    await runMutation("Submitting for Approval Queue review.", async () => {
+    await runMutation("Running publication validation.", async () => {
       const { definition: updated, runs: updatedRuns } = await fetchWorkflow<{
         definition: ProcessDefinitionRecord;
         runs: WorkflowRunRecord[];
-      }>(`/api/process-definitions/${definition.id}/submit`, {
-        body: JSON.stringify({ note: submitNote }),
+      }>(`/api/process-definitions/${definition.id}/publish`, {
+        body: JSON.stringify({ note: publicationNote }),
         method: "POST",
       });
 
       setDefinition(updated);
       setRuns(updatedRuns);
       setForm(definitionToForm(updated));
-      setSubmitNote("");
-      setMessage("Submitted to Approval Queue.");
-    });
-  }
-
-  async function activateDefinition() {
-    if (!canManageAdmin || isBusy) {
-      return;
-    }
-
-    await runMutation("Activating process definition.", async () => {
-      const { definition: updated, runs: updatedRuns } = await fetchWorkflow<{
-        definition: ProcessDefinitionRecord;
-        runs: WorkflowRunRecord[];
-      }>(`/api/process-definitions/${definition.id}/activate`, {
-        body: JSON.stringify({ override_reason: overrideReason }),
-        method: "POST",
-      });
-
-      setDefinition(updated);
-      setRuns(updatedRuns);
-      setForm(definitionToForm(updated));
-      setOverrideReason("");
-      setMessage("Process definition activated.");
+      setPublicationNote("");
+      setMessage("Validated process version published and active.");
     });
   }
 
@@ -253,6 +212,10 @@ export function ProcessDefinitionDetailClient({
               rows={4}
               value={form.action_references}
             />
+            <span className="muted">
+              One per line: label | system | action | readiness | missing setup | approval
+              owner | rollback note | Action Registry key
+            </span>
           </label>
           <label>
             Success condition
@@ -300,52 +263,33 @@ export function ProcessDefinitionDetailClient({
           <button
             className="secondary-button"
             disabled={!canEdit || isBusy || definition.status === "Retired"}
-            onClick={submitForApproval}
+            onClick={publishDefinition}
             type="button"
           >
-            Submit
+            Publish
           </button>
         </div>
         <label className="workflow-note-field">
-          Submission note
+          Publication note
           <textarea
             disabled={!canEdit || isBusy}
-            onChange={(event) => setSubmitNote(event.target.value)}
+            onChange={(event) => setPublicationNote(event.target.value)}
             rows={2}
-            value={submitNote}
+            value={publicationNote}
           />
         </label>
       </section>
 
       <aside className="workflow-side">
         <section className="panel">
-          <h2>Activation</h2>
-          <p className="muted">{activationState}</p>
-          {definition.pending_queue_item_id ? (
-            <Link
-              className="text-link"
-              href={`/approval-queue?item_id=${definition.pending_queue_item_id}`}
-            >
-              Open Approval Queue item
-            </Link>
-          ) : null}
-          <label className="workflow-note-field">
-            Admin override reason
-            <textarea
-              disabled={!canManageAdmin || isBusy}
-              onChange={(event) => setOverrideReason(event.target.value)}
-              rows={3}
-              value={overrideReason}
-            />
-          </label>
-          <button
-            className="primary-button"
-            disabled={!canManageAdmin || isBusy || definition.status === "Active"}
-            onClick={activateDefinition}
-            type="button"
-          >
-            Activate
-          </button>
+          <h2>Publication</h2>
+          <p className="muted">
+            A version becomes Active immediately only after root, scope, type, size,
+            malware, sensitivity, source, graph, and action-reference checks pass.
+          </p>
+          <p className="muted">
+            Publication does not enable an external action or widen any role.
+          </p>
         </section>
 
         <section className="panel">
@@ -494,6 +438,7 @@ function parseActionReferences(value: string): ProcessDefinitionActionReference[
       missingConnectionOrPermission,
       approvalOwnerUid,
       rollbackOrCorrectionNote,
+      actionRegistryKey,
     ] = splitFields(line);
 
     return {
@@ -509,6 +454,7 @@ function parseActionReferences(value: string): ProcessDefinitionActionReference[
       ...(rollbackOrCorrectionNote
         ? { rollback_or_correction_note: rollbackOrCorrectionNote }
         : {}),
+      ...(actionRegistryKey ? { action_registry_key: actionRegistryKey } : {}),
     };
   });
 }
@@ -524,6 +470,7 @@ function formatActionReferences(actions: ProcessDefinitionActionReference[]) {
         action.missing_connection_or_permission ?? "",
         action.approval_owner_uid ?? "",
         action.rollback_or_correction_note ?? "",
+        action.action_registry_key ?? "",
       ].join(" | "),
     )
     .join("\n");

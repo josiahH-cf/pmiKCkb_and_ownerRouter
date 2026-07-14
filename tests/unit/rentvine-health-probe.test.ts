@@ -115,11 +115,9 @@ describe("Action Registry stays non-executable for the live read paths", () => {
       ),
     ).toEqual([
       "gmail.mailbox.read",
-      "gmail.message.send",
       "gmail.thread.reply",
       "gmail.label.apply",
       "gmail.draft.create",
-      "gmail.renewal_notice.draft_create",
     ]);
   });
 });

@@ -35,7 +35,7 @@ function stripComments(src: string): string {
 // A combined capability+space guard still proves the base auth invariant. A space-only guard does
 // not: scoped routes must keep their role/capability boundary as well as the new scope boundary.
 const AUTH_GUARD =
-  /require(Capability(?:InSpace)?|User|Role)\b|verifyPubSubPushRequest\b/;
+  /require(Capability(?:InSpace)?|WorkflowCommunicationContext|User|Role)\b|verifyPubSubPushRequest\b/;
 
 const SCOPED_ROUTE_SCOPE = {
   "approval-queue/": "renewals",

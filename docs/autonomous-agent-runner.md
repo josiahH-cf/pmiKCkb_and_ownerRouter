@@ -63,12 +63,16 @@ doc explicitly preserves a safety rule.
 
 ## Product Lane Selection
 
-- PMI KC KB is the only current app runtime and the first production-lift lane.
-- Lease Renewal Agent is the first backend automation target after the KB production
-  lift, but runtime behavior waits for approved scope, permissions, and acceptance
-  gates.
-- Gmail Inbox 0 is the Dan-email-first Gmail lane. It preserves human send authority
-  and does not add live Gmail read/modify runtime until approved.
+- PMI KC KB is the shared application runtime. Final V1 is an external-user release under R01–R09,
+  S20–S27, and `docs/v1-gap-implementation-program-2026-07-14.md`; intermediate deployments are pre-V1.
+- Lease Renewal Agent already has a deterministic read/reconcile/review runtime and app-plane
+  decision surfaces. It remains the first backend automation target, while every external write
+  waits for its own approved scope, permission, and acceptance gate.
+- Workflow Communications is the Gmail-backed adapter for authorized renewal and maintenance
+  entities. Per-user transport is proven, but the product does not expose a general inbox,
+  arbitrary compose, cross-mailbox access, or autonomous send.
+- The external Vendor lane is separate from managed staff: Admin invite, one-time setup, verified-
+  email TOTP, assigned tickets, and same-address Gmail/Workspace per-vendor OAuth under S22.
 - Cross-product work is allowed only when the active docs define the shared governance,
   source, approval, or handoff behavior.
 
@@ -111,7 +115,7 @@ surface. Record the state as migration-ready but client-blocked, move speculativ
 to backlog/status, and make the next recommended task client unblock, production setup,
 approved migration, or cutover prep.
 
-Defer work that would expand workflow, Approval Queue, Lease Renewal, Gmail Inbox 0, or
+Defer work that would expand workflow, Approval Queue, Lease Renewal, Workflow Communications, or
 demo-only behavior without a direct migration-readiness reason. This is not a hard stop
 on useful prep; it is a stop on local feature loops that substitute for customer
 unblock, production migration, or real application decisions.
@@ -154,6 +158,11 @@ Read the trigger literally to avoid re-prompting:
   explicit instruction authorizing implementation: proceed through the unattended
   implementation loop and into the multi-slice continuation loop without asking again
   between internal phases or between safe slices.
+
+For the active 2026-07-14 V1 goal, the decision-complete packet already exists. `/loop` or any run/
+continue/implement trigger starts the first non-green suite (currently S24), then follows the dependency order in
+`docs/v1-gap-implementation-program-2026-07-14.md`. Do not regenerate Round 3 questions. Continue
+safe fake-provider/emulator slices; stop before each exact live/config/provider gate.
 
 After an implementation packet is locked, do not ask the user to review every internal
 phase. Only stop for an approval gate, a stop-and-reset condition, or a genuine blocker.
@@ -441,7 +450,7 @@ Do not delete preserved history solely because direction changed. Instead:
 - keep original specs in `docs/specs/` as historical preserved specs;
 - keep superseded material in `docs/legacy/` or explicitly label it as demo/history;
 - treat `docs/router-repo-template/` as a legacy template and do not use it to start
-  new work unless the active Gmail Inbox 0 product doc requests historical artifact
+  new work unless the active Workflow Communications product doc requests historical artifact
   migration;
 - treat the local sibling Owner Router repo as source material through
   `docs/legacy/owner-router-artifact-source.md`, not as active governance;

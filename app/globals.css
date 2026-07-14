@@ -2118,3 +2118,10 @@ button {
   max-height: calc(100vh - 2rem);
   overflow: auto;
 }
+.console-message-snippet {
+  display: -webkit-box;
+  overflow: hidden;
+  white-space: pre-line;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}

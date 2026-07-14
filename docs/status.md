@@ -11,6 +11,271 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## S23 Console live/test-data boundary is Local green
+
+- Date: 2026-07-14
+- Added a server-only Console data-mode boundary. Local, emulator, test, and an explicitly named
+  non-production test deployment load guarded synthetic providers and show a persistent `Test data`
+  badge. Ordinary production never constructs fixtures: it selects the live-provider seam and renders
+  named Rentvine, PMI KC workflow, and Gmail unavailable states until those separately gated adapters
+  are configured.
+- Added a scope-filtered operational projection for authorized property/unit, tenant, rent/lease,
+  workflow, and bounded communication metadata. Every value-bearing field carries source, observed-at,
+  freshness, and unavailable state. Wrong-Space rows disappear; Vendor users remain outside the
+  internal Console. URLs, bodyless attention/audit, and serialized Console state carry no customer or
+  message-body values.
+- Inline Gmail context is sender, recipients, timestamp, subject, and an inert snippet capped at 240
+  Unicode characters and three nonempty lines after HTML/control/bidi stripping. Body, attachments,
+  raw MIME, and thread identifiers never enter the Console projection. The existing workflow panel
+  performs exactly one targeted full-thread read only after Open and after workflow/Space/mailbox
+  authorization.
+- Hardened production preparation: `ASK_DEMO_MODE` is ineffective in ordinary production,
+  `CONSOLE_TEST_DEPLOYMENT_NAME` must use an explicit `test-*` name for a production-mode test
+  deployment, client-production preflight rejects any such name, and deploy/production-env tooling
+  clears it.
+- Verification passed: 96 focused S23/config/cutover tests, the complete 1,696-test unit suite, the
+  no-Firestore core E2E flow (31 passed/18 intentionally skipped), clean install, formatting, typecheck,
+  production build, routing, redaction, freshness, falsification, and traceability (124 IDs). Lint has
+  zero errors and the eight existing warnings; clean install retains the known eleven dependency-audit
+  findings. No live provider, customer/Gmail read, production config, deployment, send, or external
+  mutation occurred.
+- Exact remaining S23 live gate: wire the approved Rentvine/workflow/Gmail read adapters, select
+  approved test records, and perform browser acceptance under separate live-read/deploy authority.
+  Next safe slice: S24 Communications retention, v1.0 artifacts, and AI-reply policy.
+
+## S21 trusted immediate publication is Local green
+
+- Date: 2026-07-14
+- Implemented Admin-owned publication trust policies with exact connector/root IDs, known launch
+  Spaces, launch-safe detected MIME/type caps, sensitivity ceiling, required scanner key, plain-
+  English reason, append-only policy audit, and a hard “tighten only” update rule. Browser clients
+  cannot write policy, content, version, pointer, or audit collections.
+- Implemented bounded file/folder/process publication. The server validates actor/Space/root/path,
+  extension and declared type before loading, actual byte length, server-detected MIME, citation/source
+  state, process graph and pre-registered action keys, malware, and sensitivity. Scanner outage,
+  traversal, absolute path, denied/archive/executable type, disguised PDF, oversize body, wrong scope,
+  credential/sensitivity finding, or authority-field injection writes only a safe bodyless rejection
+  audit and creates no Active pointer.
+- Passing content creates an immutable version, append-only audit, and one Active pointer atomically.
+  Concurrent transaction saves order versions; rollback creates a new audited version pointing to
+  prior validated content and never deletes later history. Retrieval reads only the current validated
+  Active version. Authority-looking prose remains inert; structured claim/role/Registry/policy/env/
+  executor/system-prompt fields cannot cross the firewall.
+- Replaced the active process editor’s Submit/Admin Activate detour with validated Publish; the
+  compatibility `/submit` route now refuses with directions to Publish and cannot create a queue row.
+  Process Action Registry keys are preserved explicitly, scoped process creation now records a Space,
+  and editing an Active process creates a new Draft while retaining its prior immutable Active version.
+  Space pages expose file/folder selection and visible failures; Admin exposes policy creation/disable.
+- Verification passed: 25 focused S21 tests, the complete 1,680-test unit suite, 47 Firestore rules
+  tests on a temporary local port, clean install, formatting, typecheck, production build, routing,
+  redaction, freshness, falsification, and traceability (124 IDs). Lint has zero errors and the eight
+  existing warnings. The clean install retains the known eleven dependency-audit findings. No existing
+  Action Registry value changed.
+- No production root/policy/scanner was configured; no source was imported/indexed; no Drive or cloud
+  state changed; and no live/customer/Gmail read, external write/send, deploy, or smoke occurred. The
+  exact remaining S21 live gate is an Admin-approved production connector/root/Space mapping plus a
+  real malware/sensitivity scanner provider.
+
+## S20 risk-bounded execution authority is Local green
+
+- Date: 2026-07-14
+- Implemented the immutable server-owned action-instance policy in `lib/execution/`: every current
+  Registry key and approved future S21/S25/S26 key has a fixed risk floor; missing technical evidence,
+  endpoint, permission, connection, values, source validation, role/scope, or a closed Registry blocks
+  every role. Generic `gmail.message.send` remains permanently forbidden even under a fake Registry flip.
+- Implemented the bodyless `action_executions` / append-only `action_execution_activity` ledger with a
+  deterministic idempotency ID, canonical preview hash, exact one-attempt claim, Admin reason/hash
+  approval including self-approval, returned/revoked states, definitive failure, and ambiguity routed to
+  `Needs reconciliation`. Direct Firestore access is denied for every client role.
+- High preparation now creates a linked Approval Queue row. Admin approve/return/disable updates the
+  queue and execution ledger in the same Firestore transaction; stale hashes, missing reasons,
+  Approver/Editor approval, duplicate claims, terminal state, and idempotency drift fail before an
+  executor call. The UI labels linked work “Approve and execute” and captures the required reason.
+- Implemented R01's current-runtime role change: an internal Editor has `sendEmail` only through the
+  existing workflow-context-authorized, exact-confirmed Gmail routes. The simulation, wrong-space,
+  wrong-mailbox, artifact, confirmation, Action Registry, idempotency, and no-autonomous-send gates
+  remain intact. No generic compose/send surface was added.
+- Verification passed: 225 focused authority/queue/Gmail/registry/route tests; the complete 1,655-test
+  unit suite; 45 Firestore rules tests; typecheck; production build; formatting; routing; redaction;
+  traceability (124 IDs); freshness; and falsification. Lint has zero errors and, after removing the one
+  S20 warning, the eight pre-existing warnings. The occupied default emulator port was preserved and
+  the rules suite passed on a temporary local port. Clean install continues to report the known eleven
+  dependency-audit findings.
+- No Registry value, provider credential, external account, OAuth connection, live/customer/Gmail read,
+  external write/send, cloud configuration, deploy, smoke, or production state changed. Next safe slice:
+  S21 trusted publication.
+
+## V1 audit Round 3 finalized; implementation program and active goal ready
+
+- Date: 2026-07-14
+- Recorded the owner's final R01–R09 contract. Internal Editors directly execute enabled Low/Medium
+  instances; consequential High work requires Admin; Admin may self-approve every risk; technical
+  Blocked conditions cannot be approved away. Every R02 Lease and R03 Maintenance row is final-V1 app
+  execution scope.
+- Locked immediate trusted Editor publication, Admin-invited external Vendor identity with one-time
+  setup + verified-email TOTP + assigned-ticket-only authorization + same-address Gmail/Workspace
+  per-vendor OAuth, the exact operational retention defaults/legal-hold override, the three exact
+  current generators as v1.0 base artifacts, the source-visible human-confirmed AI reply policy,
+  Console body/test separation, and staged pre-V1/final release acceptance.
+- Replaced the Round 3 question phase with `docs/v1-gap-implementation-program-2026-07-14.md` and eight
+  executable/falsifiable specs: S20 execution authority, S21 trusted publication, S22 Vendor portal/
+  OAuth, S23 Console live/test boundary, S24 Communications policy, S25 Lease actions, S26 Maintenance
+  actions, and S27 release acceptance. The program starts S20 and continues safe local slices in
+  dependency order; one external provider/action is one slice.
+- Created the active Codex `/goal`: implement S20–S27 comprehensively through staged local slices,
+  synchronized docs and adversarial/E2E verification, ending in a deployment-ready handoff. The goal
+  explicitly excludes live sends, external mutations, Vendor provisioning, mailbox connections, and
+  deployment without separate authority.
+- Rewrote `docs/loop-state.md` so an outside `/loop` session starts S20 instead of reopening audit
+  questions, preserves the dirty July 14 Workflow Communications candidate, continues fake-provider/
+  emulator work automatically, and stops at exact live/provider gates.
+- Reconciled the Tier-0 fact ledger and supersede log, router/security/identity rules, phase plan,
+  autonomous runner, implementation/AI workflow, active spec, product lanes/Q&A/gap plan, integration
+  and identity architecture, environment handoff, client checklist, research backlog, and existing
+  S14/S16/S19/Maintenance overlays. R01–R09 are Verified; remaining asks are implementation mappings,
+  provider contracts/credentials, action-by-action live approvals, and final acceptance—not product
+  ambiguity.
+- This slice changes documentation/governance only. Current role code, Action Registry values,
+  executable Gmail allowlist, external providers, Firebase/Workspace/cloud state, and deployed revision
+  are unchanged. No customer/Gmail read, source import, account creation, OAuth consent, write, send,
+  deploy, or production smoke occurred.
+- Governance verification passed: 60 feature-suite-shape/plan-status tests; 124 unique acceptance IDs
+  across 14 overhaul specs with complete fact traceability; facts-ledger tests; formatting; router
+  boundary; context freshness/supersede checks; diff check; and falsification. Falsification's large-
+  worktree warning reflects the preserved pre-existing July 14 candidate (855 committable files), not a
+  cleanup/stage/commit action.
+
+## V1 audit Round 2 owner response reconciled; final Round 3 prepared
+
+- Date: 2026-07-14
+- Recorded the Round 2 product direction: internal Editors may directly execute every enabled
+  action; Admins may self-approve/execute at every risk; named Lease Renewal and Maintenance
+  workflows must operate end to end including their external outputs; Editor source/process
+  additions publish immediately with a log; full authorized property/tenant/rent/message detail
+  belongs on Console; and the external assigned-ticket-only Vendor portal/own mailbox is required for
+  V1. AI may draft assigned-ticket replies, but a Vendor or Admin confirms every send.
+- This supersedes the earlier internal/no-non-Gmail-write contract as product scope. It does not
+  itself enable a live action or grant standing approval to connect a mailbox, invite an account,
+  write Rentvine/Sheets/Drive/other systems, send, deploy, or run production smoke.
+- Evidence review found the remaining implementation ambiguity: “current workflows” spans Gmail,
+  Sheets, Rentvine, Dotloop, Rentvine portal chat, SMS, Drive, LeadSimple, QuickBooks, and conditional
+  Boom actions; “enabled” does not yet say whether every Editor instance bypasses per-item review;
+  external mailbox support still needs provider/OAuth/invite/MFA choices; and immediate publishing
+  still needs its automated trust boundary.
+- Reviewed the three current communication scaffolds. Owner renewal needs authoritative recipient,
+  approved sender signature, and unresolved-fact refusal; tenant renewal must not claim other channels
+  succeeded until they did; maintenance owner notice needs authoritative recipient/unit/signature and
+  cannot promise coordination without supporting workflow state. No artifact or linked AI-reply policy
+  was silently promoted.
+- Added `docs/v1-readiness-audit-round-3-2026-07-14.html`, a final nine-block packet with exact Lease
+  Renewal/Maintenance execution matrices, Vendor provider/security choices, immediate-publication
+  containment, concrete operational retention defaults, reviewed artifact/reply-policy choices,
+  Console body/test-data behavior, and release sequencing.
+- Updated Tier-0 facts, phase plan, product lanes, feature-suite direction, identity/integration
+  governance, client checklist, research backlog, loop state, and router. Current runtime/Action
+  Registry permissions remain unchanged pending Round 3 and decision-complete replacement specs.
+- Documentation/audit work only: no live read, customer/Gmail content access, account creation,
+  mailbox authorization, external write, send, deploy, or production smoke occurred.
+- Documentation verification passed: formatting, diff check, router boundary, context freshness,
+  spec traceability, and falsification. Static DOM validation found nine Round 3 blocks, 16 action
+  selectors, 11 selected defaults, no duplicate IDs or nested interactive controls, and generated
+  output containing R01–R09 plus the Rentvine/provider selections. The falsification preflight's
+  large-worktree warning reflects the already-dirty local workflow slice; no unrelated files were
+  cleaned, staged, committed, or overwritten.
+
+## V1 audit Round 1 owner response reconciled
+
+- Date: 2026-07-14
+- Recorded owner approval of the internal V1 without non-Gmail writes, workflow-linked-only
+  Communications, all seven tab visions, conditional promotion after test/validation, current V1 AI
+  exclusions, and safe defaults.
+- Recorded Dan as business-acceptance owner and Josiah as technical go-live, monitoring, rollback,
+  and manual Gmail-watch/degraded-watch owner.
+- Recorded the direction that Editors and Admins contribute processes/files/folders with minimal
+  friction, Console should use real connected data, Approval Queue should prove end-to-end behavior,
+  Communications should send per user/workflow and AI-assist replies, connection status/checks should
+  be broadly visible, and a restricted vendor-worker portal/mailbox is desired.
+- Evidence review found material ambiguities: Editor “Send” could mean submit or transmit; D01 conflicts
+  with non-Gmail execution language; existing scaffolds are not approved production templates; exact
+  retention periods remain unset; and external vendor-owned identities/mailboxes are incompatible with
+  the current managed-domain Firebase/DWD boundary.
+- Added `docs/v1-readiness-audit-round-2-2026-07-14.html`, which asks only the ten decisions needed to
+  disambiguate execution, self-approval, V1 action scope, publication, vendor identity/mail/auto-reply,
+  retention, templates, Console live-data detail, and vendor-portal sequencing.
+- Updated Tier-0 facts, plan, product docs, client checklist, research backlog, loop state, and router.
+  D01 remains binding until Round 2 explicitly replaces it: approved workflow Gmail actions may execute;
+  non-Gmail proposals stop before external execution. No runtime permission or Action Registry entry was
+  changed.
+- This was a local documentation/audit slice only: no live read, account creation, Gmail action, deploy,
+  external mutation, or system-of-record write occurred.
+- Documentation verification passed: formatting, diff check, router boundary, falsification, context
+  freshness, and spec traceability. Static DOM validation found all 10 clarification cards, all six
+  locked-decision cards, no duplicate IDs or nested interactive controls, and a generated response
+  containing C01–C10. The in-app browser refused direct navigation to the new local `file://` artifact
+  under its URL policy, so no browser-policy workaround was attempted.
+
+## V1 blocker and product-surface audit completed locally
+
+- Date: 2026-07-14
+- Audited Tier-0 facts, the active plans/checklists, current navigation and page code, tests, deployment
+  evidence, Action Registry state, and the already-modified Workflow Communications worktree.
+- Produced `docs/v1-readiness-audit-2026-07-14.html`, a self-contained owner review packet with the
+  production/local split, nine decision prompts, a blocker register, all seven primary surface contracts,
+  workflow-depth notes, evidence, and a generated copyable response.
+- Found that the app is substantially built and is not broadly blocked. The final internal-V1 gates are
+  owner/tab contract, approved launch sources/sensitivity, any Communications promotion artifacts and
+  retention, named release owners, browser acceptance, and explicit promotion/deploy approval.
+- Reclassified vendor endpoints, non-Gmail writes, autonomous scheduling, extra delegated users, and
+  event-driven approval email as later separately approved work under the recommended V1 boundary.
+- Reconciled active product/plan/checklist/router guidance, marked stale Lease Renewal build plans
+  historical, and corrected the role summary to the implemented Editor/Approver/Admin plus optional scopes.
+- The audit was local and read-only with respect to client/cloud systems: no Google/Gmail/customer-data
+  read, deploy, send, source import, Pub/Sub change, external mutation, or system-of-record write occurred.
+- Full local verification passed: formatting, lint (zero errors; eight pre-existing warnings), typecheck,
+  228 unit files / 1,600 tests, router boundary, falsification, context freshness, spec traceability,
+  redaction, and the production build. The clean install again reported the already-recorded 11 dependency
+  audit findings (1 low, 7 moderate, 3 high); the verifier does not currently fail on them.
+
+## Workflow Communications boundary implemented locally
+
+- Date: 2026-07-14
+- Reframed Gmail as a workflow communication adapter and evidence source for authorized renewal and
+  maintenance entities. Gmail remains the message system of record; the app no longer exposes recent
+  inbox browsing, arbitrary search, generic compose/recipients, or arbitrary labels.
+- Added strict `WorkflowCommunicationContext`, server-side entity/space authorization before Gmail
+  construction, bodyless expiring workflow links/action audit, context-bound confirmations, and actor-only
+  link/attention visibility.
+- Narrowed permissions: Editors read/link/label/prepare governed drafts; only Approver/Admin has
+  `sendEmail`. Generic new-message send is Disabled. Linked replies retain exact-message review,
+  transactional single-use idempotency, authenticated From, no ambiguous retry, and bodyless audit.
+- Action Registry now has 23 entries. Four workflow Gmail actions are executable; renewal and maintenance
+  notice drafts are Planned pending authoritative recipients/templates/triggers. The sample-backed renewal
+  routes are unaddressed preview-only and cannot construct Gmail even if a registry value is toggled.
+- Pub/Sub matches additions only to already-linked thread IDs and creates deduplicated, value-free in-app
+  attention. Unrelated/overflow/resync events fetch no thread content and create no model call, task, or
+  notification. Watch renewal remains manual.
+- Added on-demand analysis for one authorized linked thread. Exclusions refuse before Gmail/model
+  construction; output is transient, unpersisted, unapplied `Needs Review` with Gmail provenance.
+- Replaced the primary Gmail UI with connection/watch health plus workflow communication attention, and
+  embedded nonmutating/linking panels in renewal/maintenance context. S15 pasted/synthetic tools remain
+  Admin/demo fallback only.
+- Hard-disabled the legacy event-driven approval Gmail sender; in-app notifications are the first-release
+  default. No autonomous send, external system write, live Gmail/customer read, deploy, Pub/Sub resource
+  change, or scheduler occurred.
+- Updated S19, product lanes, renewal/maintenance docs, integration architecture, identity strategy,
+  Action Registry, connector copy, environment handoff, client checklist, facts, plan, and tests. Production
+  promotion remains gated by retention periods, approved workflow templates/recipient sources, maintenance
+  owner-notice rules, no-model categories, and a manual watch owner.
+- Verification passed: format, typecheck, router boundary, context freshness, spec traceability, copy voice,
+  redaction, falsification, 228 unit files / 1,600 tests, 31 core e2e tests (18 Firestore-dependent cases
+  skipped in no-emulator mode), 10 Firestore rules files / 43 tests, production build, and
+  `bash scripts/verify.sh`. Lint has zero errors and eight pre-existing unused-parameter warnings.
+- The standard Firestore runner could not bind port 8080 because a user-owned WSL relay was already
+  listening. Firestore test targets now honor `FIRESTORE_EMULATOR_HOST`; the same suite passed with the
+  repository's `firebase.e2e.json` on port 8090 without interrupting that process.
+- The all-in-one verifier's clean install reported 11 dependency audit findings (1 low, 7 moderate, 3 high);
+  the verifier does not currently fail on those findings. No dependency upgrade was attempted in this slice.
+
 ## Gmail Inbox 0 production activation complete
 
 - Date: 2026-07-13

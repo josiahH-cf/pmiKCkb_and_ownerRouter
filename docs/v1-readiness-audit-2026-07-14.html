@@ -1,0 +1,1801 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PMI KC V1 Readiness and Product Surface Audit</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #172039;
+        --muted: #5f6b82;
+        --paper: #f5f7fb;
+        --card: #ffffff;
+        --line: #dce2ec;
+        --navy: #101b3b;
+        --blue: #155eef;
+        --cyan: #dff3ff;
+        --green: #0b7a53;
+        --green-bg: #e8f7f0;
+        --amber: #9a5b00;
+        --amber-bg: #fff5d9;
+        --red: #a12b2b;
+        --red-bg: #ffeded;
+        --purple: #6441a5;
+        --purple-bg: #f0eaff;
+        --shadow: 0 18px 50px rgba(16, 27, 59, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 10% 0%, rgba(21, 94, 239, 0.11), transparent 34rem),
+          var(--paper);
+        color: var(--ink);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        line-height: 1.55;
+      }
+
+      a {
+        color: var(--blue);
+      }
+
+      code {
+        padding: 0.1rem 0.32rem;
+        border: 1px solid var(--line);
+        border-radius: 0.35rem;
+        background: #f8fafc;
+        font-size: 0.9em;
+      }
+
+      .page {
+        width: min(1180px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .hero {
+        margin: 24px auto 18px;
+        padding: clamp(28px, 5vw, 60px);
+        overflow: hidden;
+        border-radius: 28px;
+        background:
+          linear-gradient(135deg, rgba(19, 32, 73, 0.98), rgba(21, 94, 239, 0.88)),
+          var(--navy);
+        color: white;
+        box-shadow: var(--shadow);
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: #bcd7ff;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 860px;
+        margin-bottom: 14px;
+        font-size: clamp(2rem, 6vw, 4.4rem);
+        line-height: 1;
+        letter-spacing: -0.045em;
+      }
+
+      h2 {
+        margin-bottom: 12px;
+        font-size: clamp(1.4rem, 3vw, 2.1rem);
+        letter-spacing: -0.025em;
+      }
+
+      h3 {
+        margin-bottom: 8px;
+        font-size: 1.08rem;
+      }
+
+      .hero-copy {
+        max-width: 840px;
+        margin: 0;
+        color: #e7efff;
+        font-size: 1.06rem;
+      }
+
+      .stamp {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        margin-top: 24px;
+        padding: 8px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 0.86rem;
+      }
+
+      .quick-nav {
+        position: sticky;
+        z-index: 5;
+        top: 10px;
+        display: flex;
+        gap: 8px;
+        margin: 0 auto 18px;
+        padding: 10px;
+        overflow-x: auto;
+        border: 1px solid rgba(220, 226, 236, 0.9);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 8px 30px rgba(16, 27, 59, 0.08);
+        backdrop-filter: blur(12px);
+      }
+
+      .quick-nav a {
+        flex: 0 0 auto;
+        padding: 7px 11px;
+        border-radius: 10px;
+        color: var(--ink);
+        font-size: 0.86rem;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .quick-nav a:hover,
+      .quick-nav a:focus-visible {
+        background: var(--cyan);
+        outline: none;
+      }
+
+      .metrics,
+      .grid-2,
+      .grid-3 {
+        display: grid;
+        gap: 14px;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-bottom: 18px;
+      }
+
+      .grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .metric,
+      .card,
+      .decision,
+      .tab-card,
+      .blocker {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--card);
+        box-shadow: 0 8px 28px rgba(16, 27, 59, 0.05);
+      }
+
+      .metric {
+        padding: 20px;
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 1.7rem;
+        line-height: 1.1;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      section.audit-section {
+        margin: 18px 0;
+        padding: clamp(22px, 4vw, 38px);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: var(--shadow);
+      }
+
+      .lede {
+        max-width: 900px;
+        color: var(--muted);
+        font-size: 1rem;
+      }
+
+      .callout {
+        margin: 18px 0 0;
+        padding: 18px 20px;
+        border-left: 5px solid var(--green);
+        border-radius: 12px;
+        background: var(--green-bg);
+      }
+
+      .callout strong {
+        display: block;
+        margin-bottom: 5px;
+      }
+
+      .release-layer {
+        position: relative;
+        padding: 20px;
+      }
+
+      .release-layer::before {
+        position: absolute;
+        top: 24px;
+        left: -8px;
+        width: 15px;
+        height: 15px;
+        border: 4px solid white;
+        border-radius: 50%;
+        background: var(--blue);
+        box-shadow: 0 0 0 1px var(--line);
+        content: "";
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 9px;
+        border-radius: 999px;
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .tag.ready {
+        background: var(--green-bg);
+        color: var(--green);
+      }
+
+      .tag.local {
+        background: var(--purple-bg);
+        color: var(--purple);
+      }
+
+      .tag.blocked {
+        background: var(--amber-bg);
+        color: var(--amber);
+      }
+
+      .tag.later {
+        background: #edf0f5;
+        color: #526079;
+      }
+
+      .decision-list,
+      .blocker-list,
+      .tab-list {
+        display: grid;
+        gap: 14px;
+      }
+
+      .decision,
+      .blocker,
+      .tab-card {
+        padding: 22px;
+      }
+
+      .decision-head,
+      .tab-head,
+      .blocker-head {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .decision-id {
+        display: inline-flex;
+        min-width: 42px;
+        height: 30px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        background: var(--navy);
+        color: white;
+        font-size: 0.76rem;
+        font-weight: 800;
+      }
+
+      .why {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .options {
+        display: grid;
+        gap: 8px;
+        margin: 14px 0;
+      }
+
+      .option {
+        display: flex;
+        gap: 9px;
+        align-items: flex-start;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        background: #fbfcfe;
+        cursor: pointer;
+      }
+
+      .option:hover {
+        border-color: #9ebcff;
+      }
+
+      .option input {
+        margin-top: 4px;
+      }
+
+      .option em {
+        display: block;
+        color: var(--green);
+        font-size: 0.8rem;
+        font-style: normal;
+        font-weight: 800;
+      }
+
+      label.field-label {
+        display: block;
+        margin: 13px 0 6px;
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      textarea,
+      select {
+        width: 100%;
+        border: 1px solid #bdc7d7;
+        border-radius: 11px;
+        background: white;
+        color: var(--ink);
+        font: inherit;
+      }
+
+      textarea {
+        min-height: 88px;
+        padding: 12px;
+        resize: vertical;
+      }
+
+      select {
+        padding: 10px;
+      }
+
+      .blocker-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+      }
+
+      .blocker-table th,
+      .blocker-table td {
+        padding: 12px 10px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .blocker-table th {
+        color: var(--muted);
+        font-size: 0.76rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .tab-card {
+        border-left: 6px solid var(--blue);
+      }
+
+      .tab-card[data-state="local"] {
+        border-left-color: var(--purple);
+      }
+
+      .tab-card[data-state="tune"] {
+        border-left-color: var(--amber);
+      }
+
+      .tab-summary {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr 1fr;
+        gap: 16px;
+      }
+
+      .tab-summary > div {
+        min-width: 0;
+      }
+
+      .tab-summary strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--muted);
+        font-size: 0.76rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      ul.compact {
+        margin: 8px 0 0;
+        padding-left: 20px;
+      }
+
+      ul.compact li + li {
+        margin-top: 5px;
+      }
+
+      .evidence {
+        margin-top: 13px;
+        padding-top: 12px;
+        border-top: 1px dashed var(--line);
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .response-bar {
+        position: sticky;
+        z-index: 4;
+        bottom: 12px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        margin: 20px 0;
+        padding: 12px 14px;
+        border: 1px solid #c8d4e7;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 10px 34px rgba(16, 27, 59, 0.14);
+        backdrop-filter: blur(10px);
+      }
+
+      .button-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      button,
+      .button-link {
+        min-height: 42px;
+        padding: 9px 14px;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        background: var(--blue);
+        color: white;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .button-link {
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+      }
+
+      button.secondary,
+      .button-link.secondary {
+        border-color: var(--line);
+        background: white;
+        color: var(--ink);
+      }
+
+      button:hover,
+      button:focus-visible {
+        filter: brightness(0.96);
+        outline: 3px solid rgba(21, 94, 239, 0.23);
+        outline-offset: 2px;
+      }
+
+      #copy-status {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      #response-preview {
+        min-height: 190px;
+        padding: 16px;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #11182c;
+        color: #eaf0ff;
+        white-space: pre-wrap;
+      }
+
+      .footer {
+        padding: 20px 0 42px;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      @media (max-width: 880px) {
+        .metrics,
+        .grid-3 {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .grid-2,
+        .tab-summary {
+          grid-template-columns: 1fr;
+        }
+
+        .blocker-table,
+        .blocker-table tbody,
+        .blocker-table tr,
+        .blocker-table td {
+          display: block;
+        }
+
+        .blocker-table thead {
+          display: none;
+        }
+
+        .blocker-table tr {
+          padding: 12px 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .blocker-table td {
+          padding: 4px 0;
+          border: 0;
+        }
+
+        .blocker-table td::before {
+          display: block;
+          color: var(--muted);
+          content: attr(data-label);
+          font-size: 0.72rem;
+          font-weight: 800;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .page {
+          width: min(100% - 18px, 1180px);
+        }
+
+        .hero {
+          margin-top: 9px;
+          border-radius: 20px;
+        }
+
+        .metrics {
+          grid-template-columns: 1fr;
+        }
+
+        section.audit-section {
+          padding: 18px;
+          border-radius: 18px;
+        }
+
+        .decision-head,
+        .tab-head,
+        .blocker-head,
+        .response-bar {
+          align-items: stretch;
+          flex-direction: column;
+        }
+      }
+
+      @media print {
+        body {
+          background: white;
+        }
+
+        .page {
+          width: 100%;
+        }
+
+        .quick-nav,
+        .response-bar,
+        button,
+        .button-link {
+          display: none !important;
+        }
+
+        .hero,
+        section.audit-section,
+        .metric,
+        .decision,
+        .tab-card,
+        .blocker {
+          box-shadow: none;
+        }
+
+        section.audit-section,
+        .decision,
+        .tab-card {
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <p class="eyebrow">PMI KC · Owner review packet · 14 July 2026</p>
+        <h1>V1 readiness and product surface audit</h1>
+        <p class="hero-copy">
+          A decision-oriented audit of what is built, what is live, what is only local,
+          what is actually blocking V1, and what each primary app surface is supposed to
+          do. Fill in the decisions and notes, then copy the response at the bottom.
+        </p>
+        <span class="stamp"
+          >Evidence basis: Tier-0 facts · current code · tests · deployment records</span
+        >
+      </header>
+
+      <nav class="quick-nav" aria-label="Audit sections">
+        <a href="#bottom-line">Bottom line</a>
+        <a href="#release-state">Release state</a>
+        <a href="#decisions">Owner decisions</a>
+        <a href="#blockers">Blocker register</a>
+        <a href="#tabs">Tab audit</a>
+        <a href="#workflows">Workflow depth</a>
+        <a href="#evidence">Evidence</a>
+        <a href="#response">Copy response</a>
+      </nav>
+
+      <section class="metrics" aria-label="Key audit metrics">
+        <article class="metric">
+          <strong>7</strong><span>primary user surfaces, including Notifications</span>
+        </article>
+        <article class="metric">
+          <strong>1,600</strong
+          ><span>unit tests in the last complete local verification</span>
+        </article>
+        <article class="metric">
+          <strong>4</strong><span>workflow-targeted Gmail actions allowlisted</span>
+        </article>
+        <article class="metric">
+          <strong>0</strong><span>non-Gmail system-of-record writes enabled</span>
+        </article>
+      </section>
+
+      <section class="audit-section" id="bottom-line">
+        <p class="eyebrow">Executive conclusion</p>
+        <h2>The app is not broadly blocked.</h2>
+        <p class="lede">
+          The core internal operations application is built and heavily verified. Several
+          old blocker statements were stale: the client cloud project, billing, domain
+          auth, Rentvine read, renewal-Sheet read, signed-lease location, renewal
+          walkthrough, Gmail scopes, and Gmail transport have already been resolved or
+          proven. The remaining release gates are concentrated in owner decisions,
+          approved launch content, operating ownership, and final acceptance.
+        </p>
+        <div class="callout">
+          <strong>Recommended V1 contract</strong>
+          Launch the internal app with app-plane decisions, source-backed Ask, read
+          integrations, test/simulation runs, Maintenance tickets, and workflow-linked
+          communication. Keep every non-Gmail external system mutation behind a later
+          per-action approval. Existing plans already say production launch should precede
+          those write paths.
+        </div>
+      </section>
+
+      <section class="audit-section" id="release-state">
+        <p class="eyebrow">What “current” means</p>
+        <h2>Two release states must not be conflated</h2>
+        <div class="grid-2">
+          <article class="card release-layer">
+            <span class="tag ready">Production baseline</span>
+            <h3>Deployed and transport-proven</h3>
+            <p>
+              The client-owned Cloud Run service is live. Revision
+              <code>pmi-kc-kb-demo-00020-24d</code> proved per-user Gmail DWD, four
+              scopes, synthetic self-send/reply, labels, authenticated push/watch, cursor,
+              and bodyless audit. Earlier production checks covered auth, cited Ask,
+              Console/Notifications, renewal review, Maintenance readiness, and responsive
+              layouts.
+            </p>
+          </article>
+          <article class="card release-layer">
+            <span class="tag local">Local release candidate</span>
+            <h3>Verified, but not committed or deployed</h3>
+            <p>
+              The July 14 worktree removes the general inbox/compose product surface and
+              replaces it with workflow-linked renewal/maintenance communication, strict
+              entity authorization, bodyless links, governed labels/drafts,
+              exact-confirmed linked replies, targeted attention, and on-demand “Needs
+              Review” analysis. Full local verification passed.
+            </p>
+          </article>
+        </div>
+        <p class="why" style="margin-top: 14px">
+          Audit rule: a feature can be built, tested, transport-proven, and still not be
+          deployed or product-authorized. This packet labels those states separately.
+        </p>
+      </section>
+
+      <section class="audit-section" id="decisions">
+        <p class="eyebrow">Reply here</p>
+        <h2>Owner decisions that unlock finalization</h2>
+        <p class="lede">
+          Recommended defaults are preselected where the repository already supports a
+          safe answer. Change them or add a note. Blank free-text items remain open.
+        </p>
+
+        <div class="decision-list">
+          <article class="decision" data-decision="D01">
+            <div class="decision-head">
+              <div>
+                <h3>D01 · V1 release contract</h3>
+                <p class="why">
+                  Determines whether later vendor/system writes delay the internal
+                  release.
+                </p>
+              </div>
+              <span class="decision-id">D01</span>
+            </div>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="D01"
+                  type="radio"
+                  value="Approve internal V1 without non-Gmail external writes"
+                />
+                <span
+                  ><strong>Approve the internal V1 boundary</strong
+                  ><em>Recommended</em>External writes stay later and separately
+                  gated.</span
+                >
+              </label>
+              <label class="option">
+                <input
+                  name="D01"
+                  type="radio"
+                  value="Make named external writes launch-blocking"
+                />
+                <span
+                  ><strong>Make specific external writes launch-blocking</strong>List the
+                  exact actions in the note.</span
+                >
+              </label>
+              <label class="option">
+                <input name="D01" type="radio" value="Needs discussion" />
+                <span><strong>Needs discussion</strong></span>
+              </label>
+            </div>
+            <label class="field-label" for="D01-note">Owner note</label>
+            <textarea
+              id="D01-note"
+              data-label="D01 note"
+              placeholder="Name any external action that must be in V1, or leave blank to accept the default."
+            ></textarea>
+          </article>
+
+          <article class="decision" data-decision="D02">
+            <div class="decision-head">
+              <div>
+                <h3>D02 · Workflow Communications boundary</h3>
+                <p class="why">
+                  Locks privacy scope and prevents a drift back to a general Gmail
+                  replacement.
+                </p>
+              </div>
+              <span class="decision-id">D02</span>
+            </div>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="D02"
+                  type="radio"
+                  value="Approve workflow-linked communications only"
+                />
+                <span
+                  ><strong>Approve workflow-linked communications only</strong
+                  ><em>Recommended</em>Gmail stays the message system of record; no recent
+                  inbox or generic compose.</span
+                >
+              </label>
+              <label class="option">
+                <input name="D02" type="radio" value="Reopen a general inbox product" />
+                <span
+                  ><strong>Reopen general inbox management</strong>This requires a new
+                  privacy/governance spec.</span
+                >
+              </label>
+              <label class="option">
+                <input
+                  name="D02"
+                  type="radio"
+                  value="Exclude Communications from initial V1"
+                />
+                <span><strong>Exclude Communications from the initial V1</strong></span>
+              </label>
+            </div>
+            <label class="field-label" for="D02-note">Owner note</label>
+            <textarea
+              id="D02-note"
+              data-label="D02 note"
+              placeholder="Any change to the workflow-linked boundary or product label."
+            ></textarea>
+          </article>
+
+          <article class="decision" data-decision="D03">
+            <div class="decision-head">
+              <div>
+                <h3>D03 · Launch Space sources</h3>
+                <p class="why">
+                  The remaining source-backed KB gate: Lease Renewals, Maintenance,
+                  Move-Out, and Owner Onboarding.
+                </p>
+              </div>
+              <span class="decision-id">D03</span>
+            </div>
+            <label class="field-label" for="D03-note"
+              >Approve or identify the source folders/files and sensitivity owner</label
+            >
+            <textarea
+              id="D03-note"
+              data-label="D03 launch sources"
+              placeholder="Example structure: Space → approved folder/files → source owner → excluded/high-sensitivity material."
+            ></textarea>
+          </article>
+
+          <article class="decision" data-decision="D04">
+            <div class="decision-head">
+              <div>
+                <h3>D04 · Promote the July 14 local candidate</h3>
+                <p class="why">
+                  Determines whether final browser acceptance uses the narrowed workflow
+                  product or the older production UI.
+                </p>
+              </div>
+              <span class="decision-id">D04</span>
+            </div>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="D04"
+                  type="radio"
+                  value="Review and promote the workflow-boundary candidate"
+                />
+                <span
+                  ><strong>Review, then promote the workflow-boundary candidate</strong
+                  ><em>Recommended</em>Commit/deploy remains a later explicit
+                  action.</span
+                >
+              </label>
+              <label class="option">
+                <input name="D04" type="radio" value="Hold the current production UI" />
+                <span><strong>Hold the current production UI</strong></span>
+              </label>
+              <label class="option">
+                <input name="D04" type="radio" value="Narrow the candidate further" />
+                <span
+                  ><strong>Narrow the candidate further</strong>Describe what should be
+                  removed.</span
+                >
+              </label>
+            </div>
+            <label class="field-label" for="D04-note">Owner note</label>
+            <textarea
+              id="D04-note"
+              data-label="D04 release note"
+              placeholder="Specific acceptance concerns or changes before promotion."
+            ></textarea>
+          </article>
+
+          <article class="decision" data-decision="D05">
+            <div class="decision-head">
+              <div>
+                <h3>D05 · Communications retention</h3>
+                <p class="why">
+                  A hard production gate: new workflow links fail closed until a TTL is
+                  approved/configured.
+                </p>
+              </div>
+              <span class="decision-id">D05</span>
+            </div>
+            <label class="field-label" for="D05-note"
+              >Approved deletion/TTL periods</label
+            >
+            <textarea
+              id="D05-note"
+              data-label="D05 retention"
+              placeholder="Workflow links: __ days; confirmations: __; dedupe: __; sync/action audit: __; confirmed derived facts: __. Or name who must approve the policy."
+            ></textarea>
+          </article>
+
+          <article class="decision" data-decision="D06">
+            <div class="decision-head">
+              <div>
+                <h3>D06 · Authoritative communication artifacts</h3>
+                <p class="why">
+                  Gates real renewal/maintenance initiation drafts; linked read/label can
+                  stay separately available.
+                </p>
+              </div>
+              <span class="decision-id">D06</span>
+            </div>
+            <label class="field-label" for="D06-note"
+              >Recipient sources, template versions, and maintenance trigger</label
+            >
+            <textarea
+              id="D06-note"
+              data-label="D06 artifacts"
+              placeholder="Renewal owner contact system + template; tenant contact system + template; maintenance owner-notice trigger + recipient source + template."
+            ></textarea>
+          </article>
+
+          <article class="decision" data-decision="D07">
+            <div class="decision-head">
+              <div>
+                <h3>D07 · Operating owners</h3>
+                <p class="why">
+                  Closes acceptance, support, monitoring, rollback, and manual Gmail-watch
+                  ownership.
+                </p>
+              </div>
+              <span class="decision-id">D07</span>
+            </div>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="D07"
+                  type="radio"
+                  value="Dan business acceptance; Josiah technical go-live, monitoring, rollback, and Gmail watch"
+                />
+                <span
+                  ><strong
+                    >Dan: business acceptance · Josiah: technical
+                    go-live/monitoring/rollback/watch</strong
+                  ><em>Recommended default</em></span
+                >
+              </label>
+              <label class="option">
+                <input name="D07" type="radio" value="Use different owners" />
+                <span><strong>Use different owners</strong>List them below.</span>
+              </label>
+            </div>
+            <label class="field-label" for="D07-note">Owner note</label>
+            <textarea
+              id="D07-note"
+              data-label="D07 operating owners"
+              placeholder="Acceptance reviewer(s), go-live owner, support/monitoring owner, rollback owner, Gmail watch owner."
+            ></textarea>
+          </article>
+
+          <article class="decision" data-decision="D08">
+            <div class="decision-head">
+              <div>
+                <h3>D08 · AI exclusions for linked Gmail</h3>
+                <p class="why">
+                  Current hard exclusions refuse before Gmail/model construction: owner
+                  money, legal/notices, tenant disputes.
+                </p>
+              </div>
+              <span class="decision-id">D08</span>
+            </div>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="D08"
+                  type="radio"
+                  value="Keep current exclusions; add none for V1"
+                />
+                <span
+                  ><strong>Keep the current three exclusions</strong
+                  ><em>Recommended default</em></span
+                >
+              </label>
+              <label class="option">
+                <input name="D08" type="radio" value="Add more no-model categories" />
+                <span><strong>Add more no-model categories</strong>List them below.</span>
+              </label>
+              <label class="option">
+                <input
+                  name="D08"
+                  type="radio"
+                  value="Disable Gmail AI assistance for V1"
+                />
+                <span><strong>Disable linked-thread AI assistance for V1</strong></span>
+              </label>
+            </div>
+            <label class="field-label" for="D08-note">Owner note</label>
+            <textarea
+              id="D08-note"
+              data-label="D08 AI exclusions"
+              placeholder="Additional categories or policy notes."
+            ></textarea>
+          </article>
+
+          <article class="decision" data-decision="D09">
+            <div class="decision-head">
+              <div>
+                <h3>D09 · Non-blocking defaults</h3>
+                <p class="why">
+                  These already have safe built defaults and should not hold the release
+                  unless you object.
+                </p>
+              </div>
+              <span class="decision-id">D09</span>
+            </div>
+            <div class="options">
+              <label class="option">
+                <input
+                  checked
+                  name="D09"
+                  type="radio"
+                  value="Approve all safe defaults"
+                />
+                <span
+                  ><strong>Approve all safe defaults</strong
+                  ><em>Recommended</em>Dan/Josiah launch approvers; in-app notifications
+                  only; scope-denied redirect; weekly renewals-only review digest; outside
+                  Maintenance intake stays tokenized/no login.</span
+                >
+              </label>
+              <label class="option">
+                <input name="D09" type="radio" value="Change one or more safe defaults" />
+                <span
+                  ><strong>Change one or more defaults</strong>Identify them below.</span
+                >
+              </label>
+            </div>
+            <label class="field-label" for="D09-note">Owner note</label>
+            <textarea
+              id="D09-note"
+              data-label="D09 default changes"
+              placeholder="Only needed if a default should change."
+            ></textarea>
+          </article>
+        </div>
+      </section>
+
+      <section class="audit-section" id="blockers">
+        <p class="eyebrow">Audited register</p>
+        <h2>What is truly blocking, what can default, and what is later</h2>
+        <div style="overflow-x: auto">
+          <table class="blocker-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Audit result</th>
+                <th>V1 treatment</th>
+                <th>Exact unblock</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-label="Item">Tab/V1 product contract</td>
+                <td data-label="Audit result">
+                  <span class="tag blocked">Real blocker</span>
+                </td>
+                <td data-label="V1 treatment">
+                  Must clear before final UI tuning and release acceptance.
+                </td>
+                <td data-label="Exact unblock">
+                  Answer D01, D02, D04 and each tab disposition.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Item">Launch-Space sources and sensitivity</td>
+                <td data-label="Audit result">
+                  <span class="tag blocked">Real blocker</span>
+                </td>
+                <td data-label="V1 treatment">
+                  Blocks a credible multi-Space source-backed launch.
+                </td>
+                <td data-label="Exact unblock">
+                  Provide D03 folder/file/owner/exclusion map.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Item">
+                  Acceptance, support, rollback, monitoring owners
+                </td>
+                <td data-label="Audit result">
+                  <span class="tag blocked">Real blocker</span>
+                </td>
+                <td data-label="V1 treatment">
+                  Needed to operate the release, not to write more code.
+                </td>
+                <td data-label="Exact unblock">Confirm D07.</td>
+              </tr>
+              <tr>
+                <td data-label="Item">Workflow-link retention</td>
+                <td data-label="Audit result">
+                  <span class="tag blocked">Hard product gate</span>
+                </td>
+                <td data-label="V1 treatment">
+                  Blocks creation of new production workflow links.
+                </td>
+                <td data-label="Exact unblock">Approve/configure D05 periods.</td>
+              </tr>
+              <tr>
+                <td data-label="Item">Renewal/Maintenance recipients and templates</td>
+                <td data-label="Audit result">
+                  <span class="tag blocked">Feature gate</span>
+                </td>
+                <td data-label="V1 treatment">
+                  Blocks real initiation drafts, not linked read/label transport.
+                </td>
+                <td data-label="Exact unblock">
+                  Answer D06 with authoritative sources/versions.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Item">
+                  Exact renewal Sheet scope and safe acceptance scenarios
+                </td>
+                <td data-label="Audit result">
+                  <span class="tag blocked">Acceptance gate</span>
+                </td>
+                <td data-label="V1 treatment">
+                  Needed for operational renewal acceptance; live reads already work.
+                </td>
+                <td data-label="Exact unblock">
+                  Confirm exact sheet/tab list and reviewed scenarios.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Item">GCP/Firebase/billing/domain auth</td>
+                <td data-label="Audit result"><span class="tag ready">Resolved</span></td>
+                <td data-label="V1 treatment">Not a current blocker.</td>
+                <td data-label="Exact unblock">None; retain per-step deploy approval.</td>
+              </tr>
+              <tr>
+                <td data-label="Item">Rentvine and renewal-Sheet reads</td>
+                <td data-label="Audit result">
+                  <span class="tag ready">Live-proven</span>
+                </td>
+                <td data-label="V1 treatment">Not a transport blocker.</td>
+                <td data-label="Exact unblock">Only final scope/acceptance remains.</td>
+              </tr>
+              <tr>
+                <td data-label="Item">
+                  Signed leases, lease-end source, initial walkthrough, precedence
+                </td>
+                <td data-label="Audit result"><span class="tag ready">Resolved</span></td>
+                <td data-label="V1 treatment">Do not reopen as discovery blockers.</td>
+                <td data-label="Exact unblock">None.</td>
+              </tr>
+              <tr>
+                <td data-label="Item">
+                  QuickBooks, LeadSimple, Dotloop, Boom, Sheets/Rentvine writes
+                </td>
+                <td data-label="Audit result">
+                  <span class="tag later">Later action gates</span>
+                </td>
+                <td data-label="V1 treatment">
+                  Not blockers under D01 recommended contract.
+                </td>
+                <td data-label="Exact unblock">
+                  Future per-action specs, permissions, tests, and approvals.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Item">
+                  General Gmail inbox, historical scan, generic compose, scheduler
+                </td>
+                <td data-label="Audit result">
+                  <span class="tag later">Out of scope</span>
+                </td>
+                <td data-label="V1 treatment">
+                  Do not build unless D02 deliberately changes.
+                </td>
+                <td data-label="Exact unblock">
+                  New privacy/governance spec, not an ordinary approval.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Item">
+                  “ABC”, RBAC redirect default, weekly digest cadence, extra users
+                </td>
+                <td data-label="Audit result">
+                  <span class="tag later">Non-blocking</span>
+                </td>
+                <td data-label="V1 treatment">
+                  Safe defaults stand unless D09 changes them.
+                </td>
+                <td data-label="Exact unblock">None required for launch.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="audit-section" id="tabs">
+        <p class="eyebrow">Product surface map</p>
+        <h2>What each tab does, how we know, and what remains</h2>
+        <p class="lede">
+          “Works” means the intended app-plane behavior exists and has code/test or
+          direct-browser evidence. It does not imply that a gated external action is
+          enabled.
+        </p>
+
+        <div class="tab-list">
+          <article class="tab-card" data-state="ready">
+            <div class="tab-head">
+              <div>
+                <h3>Console · <code>/</code> and <code>/ask</code></h3>
+                <span class="tag ready">Built and verified</span>
+              </div>
+              <select data-label="Tab · Console">
+                <option selected>Approve vision</option>
+                <option>Revise vision</option>
+                <option>Remove from V1</option>
+              </select>
+            </div>
+            <div class="tab-summary">
+              <div>
+                <strong>Purpose</strong>At-a-glance front door: decisions,
+                connection/setup gaps, grounded Ask/Dictate, anticipated work, process
+                status, and safe test-run starts.
+              </div>
+              <div>
+                <strong>What works</strong>One value-free decision gather feeds
+                Console/Queue/Notifications; cited answers and no-source behavior are
+                enforced; process starts are simulation-only.
+              </div>
+              <div>
+                <strong>Known gap / tune-up</strong>Anticipated work still uses
+                deterministic sample renewal data. A stale code comment says Console never
+                approves even though safe inline app-plane approval exists.
+              </div>
+            </div>
+            <p class="evidence">
+              Evidence: <a href="../components/console/ConsoleView.tsx">ConsoleView</a> ·
+              <a href="../tests/unit/console-view.test.tsx">console tests</a> · production
+              smoke in <a href="status.md">status</a>
+            </p>
+            <label class="field-label" for="tab-console-note">Owner note</label
+            ><textarea
+              id="tab-console-note"
+              data-label="Tab note · Console"
+              placeholder="What should be added, removed, or renamed?"
+            ></textarea>
+          </article>
+
+          <article class="tab-card" data-state="ready">
+            <div class="tab-head">
+              <div>
+                <h3>Spaces · <code>/spaces</code></h3>
+                <span class="tag ready">Built; content-gated</span>
+              </div>
+              <select data-label="Tab · Spaces">
+                <option selected>Approve vision</option>
+                <option>Revise vision</option>
+                <option>Remove from V1</option>
+              </select>
+            </div>
+            <div class="tab-summary">
+              <div>
+                <strong>Purpose</strong>Directory of business areas. Each card shows real
+                process/connection readiness and opens its operator desk or reference
+                space. Processes live under Spaces, not as a peer tab.
+              </div>
+              <div>
+                <strong>What works</strong>Cards are clickable, role/scope-filtered,
+                status-colored with text, and share the renewal waiting count with the
+                Approval Queue.
+              </div>
+              <div>
+                <strong>Known gap / tune-up</strong>Twelve launch-space records exist,
+                while the planned first release names four. Several remain placeholders or
+                lack approved production sources/process definitions.
+              </div>
+            </div>
+            <p class="evidence">
+              Evidence: <a href="../app/spaces/page.tsx">Spaces page</a> ·
+              <a href="../lib/spaces.ts">Space registry</a> ·
+              <a href="../tests/unit/space-card-state.test.ts">state tests</a>
+            </p>
+            <label class="field-label" for="tab-spaces-note">Owner note</label
+            ><textarea
+              id="tab-spaces-note"
+              data-label="Tab note · Spaces"
+              placeholder="Confirm the four launch Spaces and what should be hidden/deferred."
+            ></textarea>
+          </article>
+
+          <article class="tab-card" data-state="ready">
+            <div class="tab-head">
+              <div>
+                <h3>Approval Queue · <code>/approval-queue</code></h3>
+                <span class="tag ready">Built and verified</span>
+              </div>
+              <select data-label="Tab · Approval Queue">
+                <option selected>Approve vision</option>
+                <option>Revise vision</option>
+                <option>Remove from V1</option>
+              </select>
+            </div>
+            <div class="tab-summary">
+              <div>
+                <strong>Purpose</strong>Urgent-first, value-free triage for decisions.
+                Safe Low/Medium queue items may approve inline; renewal flags and
+                writeback proposals deep-link to value-bearing run pages.
+              </div>
+              <div>
+                <strong>What works</strong>Permissions, self-approval prevention, mobile
+                decider, activity, bulk app-plane decisions, renewal review, writeback
+                authorization, metrics, and graceful errors are tested.
+              </div>
+              <div>
+                <strong>Known gap / tune-up</strong>External execution remains
+                intentionally off. Operational usefulness depends on real queue-producing
+                workflows rather than demo/test records.
+              </div>
+            </div>
+            <p class="evidence">
+              Evidence: <a href="../app/approval-queue/page.tsx">Queue page</a> ·
+              <a href="../components/approval/ApprovalQueue.tsx">Queue UI</a> ·
+              <a href="../tests/unit/approval-queue-component.test.tsx"
+                >component tests</a
+              >
+            </p>
+            <label class="field-label" for="tab-queue-note">Owner note</label
+            ><textarea
+              id="tab-queue-note"
+              data-label="Tab note · Approval Queue"
+              placeholder="What should an operator be able to decide here versus on the run page?"
+            ></textarea>
+          </article>
+
+          <article class="tab-card" data-state="local">
+            <div class="tab-head">
+              <div>
+                <h3>Communications · <code>/gmail-hub</code></h3>
+                <span class="tag local">Local candidate only</span>
+              </div>
+              <select data-label="Tab · Communications">
+                <option selected>Approve direction; finish inputs</option>
+                <option>Revise vision</option>
+                <option>Exclude from initial V1</option>
+              </select>
+            </div>
+            <div class="tab-summary">
+              <div>
+                <strong>Purpose</strong>Connection/watch health and bodyless attention for
+                Gmail threads deliberately linked to renewal or Maintenance workflows.
+                Detailed reading/action starts from the workflow entity.
+              </div>
+              <div>
+                <strong>What works</strong>Per-user transport, strict context
+                authorization, link/read, four governed labels, targeted reply attention,
+                on-demand review proposal, route-level draft/reply confirmation,
+                idempotency, and audit.
+              </div>
+              <div>
+                <strong>Known gap / tune-up</strong>Not deployed. New links need retention
+                TTL. Renewal initiation is preview-only; Maintenance notice needs
+                trigger/contact/template. The workflow panel currently exposes
+                link/read/label/analyze, not an end-user draft/reply sequence.
+              </div>
+            </div>
+            <p class="evidence">
+              Evidence:
+              <a href="../components/gmail-hub/GmailHubHome.tsx">Communications home</a> ·
+              <a href="../components/gmail-hub/WorkflowCommunicationPanel.tsx"
+                >workflow panel</a
+              >
+              · <a href="../tests/unit/gmail-hub-service.test.ts">service tests</a>
+            </p>
+            <label class="field-label" for="tab-comms-note">Owner note</label
+            ><textarea
+              id="tab-comms-note"
+              data-label="Tab note · Communications"
+              placeholder="Should V1 include link/read/label/analyze only, or also the governed draft/reply UI after artifacts are approved?"
+            ></textarea>
+          </article>
+
+          <article class="tab-card" data-state="ready">
+            <div class="tab-head">
+              <div>
+                <h3>Connections · <code>/connections</code></h3>
+                <span class="tag ready">Built and read-only</span>
+              </div>
+              <select data-label="Tab · Connections">
+                <option selected>Approve vision</option>
+                <option>Revise vision</option>
+                <option>Remove from V1</option>
+              </select>
+            </div>
+            <div class="tab-summary">
+              <div>
+                <strong>Purpose</strong>Shared truth surface for systems the app reads or
+                may later act through. Everyone sees status; Admins receive setup/refresh
+                controls. Secret values never render.
+              </div>
+              <div>
+                <strong>What works</strong>Configuration presence plus cached read-only
+                verification; Rentvine and Sheets/Drive seams have live evidence;
+                connector cards distinguish connected/action/not connected.
+              </div>
+              <div>
+                <strong>Known gap / tune-up</strong>The Action Registry still labels some
+                proven read capabilities “Needs Connection” because registry readiness and
+                connector health are separate models. UI language should distinguish
+                transport health from action permission.
+              </div>
+            </div>
+            <p class="evidence">
+              Evidence: <a href="../app/connections/page.tsx">Connections page</a> ·
+              <a href="../lib/connections/connector-catalog.ts">catalog</a> ·
+              <a href="../tests/unit/connection-status.test.ts">status tests</a>
+            </p>
+            <label class="field-label" for="tab-connections-note">Owner note</label
+            ><textarea
+              id="tab-connections-note"
+              data-label="Tab note · Connections"
+              placeholder="Which connection states should normal users see, and which setup details stay Admin-only?"
+            ></textarea>
+          </article>
+
+          <article class="tab-card" data-state="tune">
+            <div class="tab-head">
+              <div>
+                <h3>Admin · <code>/admin</code></h3>
+                <span class="tag blocked">Built; copy tune-up</span>
+              </div>
+              <select data-label="Tab · Admin">
+                <option selected>Approve vision; clean stale copy</option>
+                <option>Revise vision</option>
+                <option>Remove from V1</option>
+              </select>
+            </div>
+            <div class="tab-summary">
+              <div>
+                <strong>Purpose</strong>People and access, activity/logs, app readiness,
+                migration, communication governance, role/scope changes, and
+                break-glass-aware administration.
+              </div>
+              <div>
+                <strong>What works</strong>Admin-only guards, role/scope management,
+                domain/last-Admin checks, append-only audit, observability, readiness
+                report, and inactive legacy notification history.
+              </div>
+              <div>
+                <strong>Known gap / tune-up</strong>The migration page still describes all
+                allowlisted actions as “unsent draft only,” which is stale now that linked
+                read/reply/label are allowlisted. Historical recipient-role controls
+                remain editable even though delivery is disabled.
+              </div>
+            </div>
+            <p class="evidence">
+              Evidence: <a href="../app/admin/page.tsx">Admin page</a> ·
+              <a href="../app/admin/migration/page.tsx">migration page</a> ·
+              <a href="../tests/unit/migration-readiness.test.ts">readiness tests</a>
+            </p>
+            <label class="field-label" for="tab-admin-note">Owner note</label
+            ><textarea
+              id="tab-admin-note"
+              data-label="Tab note · Admin"
+              placeholder="Which readiness and audit details are actually useful to an Admin?"
+            ></textarea>
+          </article>
+
+          <article class="tab-card" data-state="ready">
+            <div class="tab-head">
+              <div>
+                <h3>Notifications · bell and <code>/notifications</code></h3>
+                <span class="tag ready">Built and verified</span>
+              </div>
+              <select data-label="Tab · Notifications">
+                <option selected>Approve vision</option>
+                <option>Revise vision</option>
+                <option>Remove from V1</option>
+              </select>
+            </div>
+            <div class="tab-summary">
+              <div>
+                <strong>Purpose</strong>Full time-ordered attention hub. It is a superset
+                of the Console, not a replacement: decisions, recent events,
+                connection/setup gaps, space coverage, and Admin review digest.
+              </div>
+              <div>
+                <strong>What works</strong>Shared decision count, value-free lanes,
+                per-user preferences, mark-read/all-read, scope filtering, Maintenance
+                events, and linked-reply attention.
+              </div>
+              <div>
+                <strong>Known gap / tune-up</strong>The bell badge intentionally counts
+                unread events, not the full decision backlog; this distinction needs to
+                remain clear in copy and acceptance.
+              </div>
+            </div>
+            <p class="evidence">
+              Evidence: <a href="../app/notifications/page.tsx">Notifications page</a> ·
+              <a href="../lib/notifications/hub.ts">hub gather</a> ·
+              <a href="../tests/unit/notification-hub.test.ts">hub tests</a>
+            </p>
+            <label class="field-label" for="tab-notifications-note">Owner note</label
+            ><textarea
+              id="tab-notifications-note"
+              data-label="Tab note · Notifications"
+              placeholder="Which signals should create a badge, appear only in the hub, or remain on Console?"
+            ></textarea>
+          </article>
+        </div>
+      </section>
+
+      <section class="audit-section" id="workflows">
+        <p class="eyebrow">Below the tabs</p>
+        <h2>Core workflow depth</h2>
+        <div class="grid-2">
+          <article class="blocker">
+            <div class="blocker-head">
+              <h3>Lease Renewal</h3>
+              <span class="tag local">Strong app-plane</span>
+            </div>
+            <ul class="compact">
+              <li>
+                Built: deterministic ingest/reconcile/flag, live Rentvine + Sheet reads,
+                precedence, mobile/desktop decisions, resolution audit, writeback
+                proposal/authorization.
+              </li>
+              <li>
+                Not built as real operation: production run creation from authoritative
+                candidates, real recipient-backed initiation, any
+                Sheet/Rentvine/Dotloop/LeadSimple write.
+              </li>
+              <li>
+                Audit verdict: do not call it “discovery only”; do not call it end-to-end
+                automation yet.
+              </li>
+            </ul>
+          </article>
+          <article class="blocker">
+            <div class="blocker-head">
+              <h3>Maintenance Intake</h3>
+              <span class="tag local">Strong app-plane</span>
+            </div>
+            <ul class="compact">
+              <li>
+                Built: typed/voice capture, live unit match, blocker-free ticket creation,
+                public quarantine intake/review, queue, assignment, status, notes,
+                activity, workflow communication panel.
+              </li>
+              <li>
+                Gated: Drive photo execution, Rentvine work-order create/read/update,
+                owner-notice initiation, vendor selection/communication.
+              </li>
+              <li>
+                Audit verdict: useful internal ticket workflow now; external completion is
+                later under D01.
+              </li>
+            </ul>
+          </article>
+          <article class="blocker">
+            <div class="blocker-head">
+              <h3>Processes and workflow runs</h3>
+              <span class="tag ready">Framework built</span>
+            </div>
+            <ul class="compact">
+              <li>
+                Built: Draft/Testing definitions, process pages, simulation-only test-run
+                starts, workflow-run detail, version/readiness concepts.
+              </li>
+              <li>
+                Not yet a production automation engine: test runs do not touch external
+                systems; operational Active definitions need approved sources and action
+                gates.
+              </li>
+            </ul>
+          </article>
+          <article class="blocker">
+            <div class="blocker-head">
+              <h3>Source-backed KB</h3>
+              <span class="tag blocked">Content gate</span>
+            </div>
+            <ul class="compact">
+              <li>
+                Built/live-proven: auth, grounded Ask, citations, source-state
+                uncertainty, no-reliable-source behavior, Admin/source tooling.
+              </li>
+              <li>
+                Remaining: approve the launch-Space source scope, sensitivity, corpus
+                manifest, and acceptance questions.
+              </li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="audit-section" id="evidence">
+        <p class="eyebrow">Verification basis</p>
+        <h2>Why these conclusions are credible</h2>
+        <div class="grid-3">
+          <article class="card" style="padding: 20px">
+            <h3>Repository truth</h3>
+            <p>
+              Tier-0 facts, loop state, latest status, current plan/product docs, route
+              map, role/scope guards, Action Registry, and connector catalog were
+              cross-checked.
+            </p>
+          </article>
+          <article class="card" style="padding: 20px">
+            <h3>Automated evidence</h3>
+            <p>
+              The July 14 candidate records 1,600 unit tests, 31 core E2E tests, 43
+              Firestore rules tests, typecheck, lint, falsification,
+              context/spec/redaction/copy gates, and production build.
+            </p>
+          </article>
+          <article class="card" style="padding: 20px">
+            <h3>Observed evidence</h3>
+            <p>
+              Prior localhost and production browser passes verified primary surfaces,
+              phone containment, auth, cited Ask, decision parity, renewal review,
+              Maintenance readiness, and Gmail transport.
+            </p>
+          </article>
+        </div>
+        <div
+          class="callout"
+          style="border-left-color: var(--amber); background: var(--amber-bg)"
+        >
+          <strong>Residual audit risk</strong>
+          This pass did not read live customer Gmail, Sheets, Firestore, or other client
+          data, and it did not deploy. The next browser pass should run against the final
+          local release candidate, then against production only after explicit
+          deploy/smoke approval.
+        </div>
+      </section>
+
+      <section class="audit-section" id="response">
+        <p class="eyebrow">Return to the project</p>
+        <h2>Owner response</h2>
+        <p class="lede">
+          Choose the options and add notes above. Generate the response, copy it, and send
+          it back in the project conversation. Do not include secrets or customer records.
+        </p>
+        <div class="button-row" style="margin-bottom: 12px">
+          <button id="generate-response" type="button">Generate and copy response</button>
+          <button class="secondary" id="preview-response" type="button">
+            Refresh preview only
+          </button>
+          <button class="secondary" id="print-audit" type="button">
+            Print / save as PDF
+          </button>
+        </div>
+        <p id="copy-status" aria-live="polite">No response generated yet.</p>
+        <pre id="response-preview">Your structured response will appear here.</pre>
+      </section>
+
+      <div class="response-bar" aria-label="Audit response actions">
+        <p id="bar-copy" style="margin: 0">
+          <strong>Ready to reply?</strong> Your notes stay in this page until you copy
+          them.
+        </p>
+        <div class="button-row">
+          <button type="button" id="bar-generate">Generate response</button
+          ><a class="button-link secondary" href="#response">Go to preview</a>
+        </div>
+      </div>
+
+      <footer class="footer">
+        <p>
+          <strong>Scope note:</strong> This audit changed documentation/governance only.
+          It authorized no live read, send, deploy, source import, external mutation, or
+          system-of-record write.
+        </p>
+        <p>
+          Primary sources: <a href="facts.md">facts.md</a> ·
+          <a href="loop-state.md">loop-state.md</a> · <a href="plan.md">plan.md</a> ·
+          <a href="status.md">status.md</a> ·
+          <a href="integration-architecture.md">integration-architecture.md</a>
+        </p>
+      </footer>
+    </main>
+
+    <script>
+      function buildResponse() {
+        const lines = [
+          "# PMI KC V1 audit response",
+          "",
+          "Generated from docs/v1-readiness-audit-2026-07-14.html",
+          "",
+          "## Decisions",
+        ];
+
+        for (const article of document.querySelectorAll("[data-decision]")) {
+          const id = article.getAttribute("data-decision");
+          const heading = article.querySelector("h3")?.textContent?.trim() || id;
+          const selected = article.querySelector("input[type='radio']:checked");
+          const values = [];
+          if (selected) values.push(selected.value);
+          for (const field of article.querySelectorAll("textarea, select")) {
+            const value = field.value.trim();
+            if (value) values.push(`${field.dataset.label || "Note"}: ${value}`);
+          }
+          lines.push(
+            `- **${heading}**: ${values.length ? values.join(" | ") : "No response yet"}`,
+          );
+        }
+
+        lines.push("", "## Tab dispositions");
+        for (const field of document.querySelectorAll("#tabs select")) {
+          lines.push(`- **${field.dataset.label}**: ${field.value}`);
+        }
+
+        const tabNotes = Array.from(document.querySelectorAll("#tabs textarea"))
+          .map((field) => ({ label: field.dataset.label, value: field.value.trim() }))
+          .filter((entry) => entry.value);
+        if (tabNotes.length) {
+          lines.push("", "## Tab notes");
+          for (const entry of tabNotes)
+            lines.push(`- **${entry.label}**: ${entry.value}`);
+        }
+
+        lines.push("", "## Anything else", "- ");
+        return lines.join("\n");
+      }
+
+      function refreshPreview() {
+        const response = buildResponse();
+        document.getElementById("response-preview").textContent = response;
+        return response;
+      }
+
+      async function generateAndCopy() {
+        const response = refreshPreview();
+        const status = document.getElementById("copy-status");
+        try {
+          await navigator.clipboard.writeText(response);
+          status.textContent = "Response copied. Paste it into the project conversation.";
+        } catch {
+          status.textContent =
+            "Preview generated. Clipboard access was unavailable; select and copy the preview manually.";
+        }
+        document.getElementById("response").scrollIntoView({ behavior: "smooth" });
+      }
+
+      document
+        .getElementById("generate-response")
+        .addEventListener("click", generateAndCopy);
+      document.getElementById("bar-generate").addEventListener("click", generateAndCopy);
+      document.getElementById("preview-response").addEventListener("click", () => {
+        refreshPreview();
+        document.getElementById("copy-status").textContent =
+          "Preview refreshed. Nothing was copied.";
+      });
+      document
+        .getElementById("print-audit")
+        .addEventListener("click", () => window.print());
+    </script>
+  </body>
+</html>

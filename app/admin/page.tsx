@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { ApprovalQueueAdminPanel } from "@/components/admin/ApprovalQueueAdminPanel";
+import { PublicationPolicyAdminPanel } from "@/components/admin/PublicationPolicyAdminPanel";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import {
   type AdminObservability,
@@ -15,6 +16,9 @@ import {
   readDefaultApprovalQueueEmailSettings,
 } from "@/lib/firestore/approval-queue-notifications";
 import type { ApprovalQueueNotificationHealth } from "@/lib/firestore/types";
+import { listPublicationPolicies } from "@/lib/publication/policy";
+import type { PublicationPolicyRecord } from "@/lib/publication/types";
+import { launchSpaces } from "@/lib/spaces";
 
 // Admin is re-sectioned (console overhaul Slice D) into three clearly-labeled areas so the operator
 // knows what the tab is for: People & Access (who can use the app), Activity & Logs (usage +
@@ -27,6 +31,8 @@ export default async function AdminPage() {
   let queueEmailSettings = readDefaultApprovalQueueEmailSettings();
   let queueHealth: ApprovalQueueNotificationHealth | undefined;
   let queueAdminNote: string | undefined;
+  let publicationPolicies: PublicationPolicyRecord[] = [];
+  let publicationPolicyNote: string | undefined;
 
   try {
     observability = await readAdminObservability({ config });
@@ -35,6 +41,12 @@ export default async function AdminPage() {
     observability = config.askDemoMode
       ? readDemoAdminObservability({ config })
       : undefined;
+  }
+  try {
+    publicationPolicies = await listPublicationPolicies(user);
+  } catch {
+    publicationPolicyNote =
+      "Publication policies are unavailable. No source can publish until Firestore and a required scanner are configured.";
   }
   try {
     [queueEmailSettings, queueHealth] = await Promise.all([
@@ -182,9 +194,8 @@ export default async function AdminPage() {
               <h2>Approval Label</h2>
               <p>{config.kbApprovalLabel}</p>
               <p className="muted">
-                {config.kbApprovalNotificationsEnabled
-                  ? "Gmail send-only notifications are enabled."
-                  : "Gmail notifications are disabled until sender and recipients are configured."}
+                Gmail delivery is disabled by governance. Approval attention stays in-app;
+                configuration cannot activate the legacy sender.
               </p>
             </article>
             <article className="panel">
@@ -205,13 +216,19 @@ export default async function AdminPage() {
             </article>
           </div>
           <article className="panel">
-            <h2>Gmail Inbox 0</h2>
+            <h2>Workflow Communications</h2>
             <p className="muted">
-              Read-only management view: labels, rules, approved replies, and connection
-              status. Gmail runtime stays client-gated.
+              Governance view for workflow-linked Gmail status, the approved label
+              taxonomy, and synthetic rule/template examples. Gmail runtime stays
+              action-gated.
             </p>
-            <Link href="/admin/gmail-inbox-zero">Open Gmail Inbox 0 management</Link>
+            <Link href="/admin/gmail-inbox-zero">Open communication governance</Link>
           </article>
+          <PublicationPolicyAdminPanel
+            initialPolicies={publicationPolicies}
+            spaces={launchSpaces.filter((space) => !space.readOnly)}
+            unavailableNote={publicationPolicyNote}
+          />
         </section>
       </section>
     </AppShell>

@@ -1,182 +1,190 @@
 <!-- spec-shape: overhaul-v1 -->
 
-# S19 — Live Gmail per authenticated user
+# S19 — Workflow-linked Gmail per authenticated user
 
-> Owner decision 2026-07-13. This suite supersedes S15/D3 as the Gmail Hub final-state direction,
-> while preserving S15 as the shipped pasted-text and browser-only fallback. The owner has now approved
-> read, draft, exact-confirmed send/reply, label application, Pub/Sub/watch, deployment, and production
-> proof. These are production capabilities, not autonomous-send authority.
+> Re-scoped 2026-07-14. The proven per-user DWD transport and exact-confirmation controls remain;
+> the former general mailbox-workspace direction is superseded by a workflow-communication adapter.
+> `/gmail-hub` remains as a compatibility URL and is titled “Workflow Communications.”
 
-**Goal.** Gmail Hub becomes a real, per-user mailbox workspace for the signed-in
-`pmikcmetro.com` operator: bounded recent threads, safe thread detail, unsent drafts, and an exact
-review-confirm-send flow for a new message or reply. Gmail remains the message system of record and
-the authenticated user remains the sender. Sending is never autonomous: one exact payload gets one
-short-lived confirmation and at most one Gmail send attempt. The S15 pasted-text tools and synthetic
-thread remain clearly separated offline/demo fallbacks.
+**Goal.** Gmail supports authorized lease-renewal and maintenance work without becoming a second
+inbox. Gmail remains the message system of record. PMI KC stores bodyless links, reviewed workflow
+meaning, attention state, and audit context; it does not own mailbox management or infer operational
+truth from email without human review.
 
 **What it is / how it functions.**
 
-- **Per-user authorization — `lib/gmail-runtime/dwd-token.ts` + `lib/auth/session.ts`.** Every Gmail
-  token uses the server-verified Firebase session email as the DWD `sub`. A browser cannot provide a
-  mailbox, subject user, or impersonation target. Non-`pmikcmetro.com` subjects fail before token mint
-  or transport work. There is no rollout-only mailbox allowlist: every server-verified
-  `pmikcmetro.com` app user operates only their own mailbox. Firebase sign-in and Gmail DWD
-  authorization remain separate identity systems.
-- **Least-privilege client — `lib/gmail-runtime/*`.** Read methods (`getProfile`, bounded
-  `listThreads`, `getThread`, `watchMailbox`, `listHistory`, and RFC Message-ID reconciliation) mint
-  `gmail.readonly`; draft/send methods mint `gmail.compose`; user-label discovery/creation uses
-  `gmail.labels`; bounded thread-label application uses `gmail.modify`. Safety is enforced by the
-  action registry, role capability, exact-message confirmation, idempotency transaction, and
-  append-only audit. The client exposes no delete, trash, forwarding, filter, delegate, settings,
-  attachment-fetch, or broad `mail.google.com` method.
-- **Bounded MIME projection — `lib/gmail-runtime/mime.ts` + `types.ts`.** Message/thread DTOs expose
-  only required headers, bounded text, opaque Gmail ids, labels, and attachment metadata. Inline
-  `text/plain` is preferred; HTML is converted to inert text. Active HTML is never rendered,
-  attachments are never fetched in v1, response/message/thread/part/page limits are deterministic,
-  and mailbox content is never sent to Gemini automatically.
-- **Authenticated API — `app/api/gmail-hub/*`.** Connection, thread-list, thread-detail, draft,
-  confirmation, send, reconciliation, and watch routes derive the subject from `requireUser` /
-  capability guards. Strict request schemas reject unknown mailbox/impersonation fields. Read, edit,
-  send, and label capabilities are explicit; user-facing routes return 401 before constructing a Gmail
-  client. The service-authenticated Pub/Sub route validates signature, audience, verified email, and
-  the dedicated push service account before decoding a notification.
-- **Human-confirmed send — `lib/gmail-hub/service.ts` + `state-store.ts`.** The server derives From
-  and accepts only schema-validated recipients that appear in the exact preview. Reply previews are
-  rebuilt from the live Gmail thread, resolve the other participant, and preserve its Subject, `threadId`, `In-Reply-To`, and
-  `References`. A random one-time token is stored only as a hash and bound to a hash of the exact
-  From/To/Cc/Bcc/Subject/thread/body/RFC-Message-ID payload. A Firestore transaction consumes it once;
-  double-clicks, retries, concurrent requests, expiry, payload drift, and cross-user use cannot make a
-  second send call. Ambiguous failures are marked for reconciliation and never automatically retried.
-- **Minimal state — server-only Firestore collections.** Mailbox watch/cursor health,
-  confirmation/idempotency state, Pub/Sub dedupe state, and append-only send/sync audit store ids,
-  hashes, counts, timestamps, and statuses only. They never store bodies, MIME, attachments, complete
-  threads, model prompts, or bearer tokens. Direct client writes are denied; confirmation consumption,
-  cursor advancement, and push dedupe use transactions.
-- **Two-stage receive path.** Stage 1 is bounded on-demand `INBOX` reading and works without Pub/Sub.
-  Stage 2 uses `users.watch` filtered with `labelFilterBehavior: INCLUDE` + `INBOX`, authenticated
-  Pub/Sub push, `history.list`, transactional cursor advance, replay dedupe, and a bounded full resync
-  on history 404. Watch renewal is explicit and observable; no email send is coupled to a push event.
-- **Live/fallback UI — `components/gmail-hub/LiveGmailWorkspace.tsx`.** Connection identity, bounded
-  thread list/detail, compose/reply editor, exact preview, explicit confirmation, send/reconcile
-  outcome, and degraded states sit under a visible “Live Gmail” heading. S15 pasted-text tools and
-  `SimulatedEmailChain` remain under explicit fallback/demo labels and make no Gmail call.
+- **Identity and delegation — `lib/auth/session.ts`, `lib/gmail-runtime/dwd-token.ts`.** Firebase
+  authenticates a verified `pmikcmetro.com` app user. A separate keyless DWD exchange acts as that
+  same server-verified email. No body/query parameter may choose a mailbox, and Admin does not gain
+  cross-mailbox access. The approved scopes remain `gmail.readonly`, `gmail.compose`, `gmail.labels`,
+  and `gmail.modify`.
+- **Workflow authorization — `lib/gmail-hub/workflow-context.ts` and
+  `workflow-authorization.ts`.** Every thread read, link, label, draft, confirmation, reply, and
+  reconciliation carries a strict workflow context. The route checks the actor’s space capability
+  and referenced entity before constructing the Gmail service. Test/simulation renewal runs are
+  read-only and cannot execute Gmail mutations.
+- **Bodyless linkage — `lib/gmail-hub/state-store.ts`.** A link stores actor/mailbox keys, workflow
+  entity, purpose, Gmail identifiers, template/source references, status, timestamps, expiry, and
+  hashes only. Bodies, raw MIME, attachment content, prompts, tokens, and free-text reasons are not
+  retained. Direct Firestore access is denied.
+- **Targeted reading — `lib/gmail-hub/service.ts`.** The product surface cannot list/search recent
+  inbox mail. An operator may deliberately link one opaque Gmail thread ID to an authorized workflow
+  with a reason; subsequent reads require the matching link. MIME parsing remains bounded, prefers
+  plain text, converts HTML to inert text, and returns attachment metadata only.
+- **Governed mutations — `lib/gmail-hub/contracts.ts`, `governed-artifacts.ts`, and the Action
+  Registry.** Labels are limited to the four approved values and a fixed manual-review rule plus
+  reason. Drafts/replies require a linked thread and an approved versioned template. No production
+  workflow reply template exists yet, so those routes fail closed even though the proven transport
+  actions remain registered. Generic new-message compose/send is disabled.
+- **Human send — `lib/gmail-hub/service.ts`.** Approver/Admin only. The exact reply payload is bound
+  to a short-lived one-time confirmation hash and one transaction claim. Payload drift, expiry,
+  cross-user reuse, double-clicks, and concurrency make at most one send attempt. Ambiguous outcomes
+  are never retried and require RFC Message-ID reconciliation.
+- **Targeted receive — `processGmailPushNotification`.** Authenticated Pub/Sub is a mailbox-change
+  signal only. Incremental message IDs are matched against existing linked thread IDs; unrelated
+  additions cause no thread fetch, model call, task, or notification. History expiry/overflow advances
+  via profile cursor only and never scans the inbox. Linked duplicates create one value-free attention
+  state.
+- **Attention and AI — `lib/gmail-hub/notifications.ts` and
+  `app/api/gmail-hub/workflow-analysis/route.ts`.** A linked addition produces a bodyless in-app
+  “communication needs review” item. AI runs only when an authorized operator opens one linked thread
+  and requests help. Unknown or excluded owner-money/legal/dispute categories refuse before model
+  construction; obvious excluded content is checked before the model call. Output is an unpersisted
+  `Needs Review` proposal and cannot alter workflow or external state.
+- **UI — `components/gmail-hub/LiveGmailWorkspace.tsx` and
+  `WorkflowCommunicationPanel.tsx`.** The compatibility hub shows connection/watch health and
+  bodyless attention. Thread content and actions live inside the authorized maintenance ticket or
+  renewal entity. The primary UI has no recent-inbox list, arbitrary query, generic compose, arbitrary
+  label, delete, archive, or settings control. S15 pasted/synthetic tools are Admin-only fallbacks.
+- **Renewal and maintenance initiation.** Current visible renewal runs are simulation/sample data,
+  so owner/tenant routes are preview-only, unaddressed, and say “do not send.” Maintenance tickets do
+  not yet have a verified owner-contact source, so maintenance owner-notice draft creation is Planned.
 
-- **Approved production surface.** `gmail.mailbox.read`, `gmail.draft.create`, `gmail.message.send`,
-  `gmail.thread.reply`, and `gmail.label.apply` are separately documented and executable. Live proof
-  remains synthetic/self-addressed, but the product supports reviewed third-party recipients.
-- **Still prohibited.** Autonomous/background/model-triggered send, cross-mailbox browsing,
-  attachment fetch, delete/trash, forwarding/settings mutation, broad `mail.google.com`, and any
-  customer-content evidence in git or logs.
+- **Buildable now (app-plane).** Maintain workflow context/link authorization, targeted reads,
+  approved manual labels, bodyless attention, on-demand proposal-only analysis, exact-confirmation
+  infrastructure, and negative tests. No live customer or mailbox content is required for verification.
+- **Gated (owner / vendor).** R01–R09 are settled; S20/S22/S24/S25/S26 implement risk authority,
+  retention/artifacts/AI policy, authoritative workflow values, multichannel actions, and external
+  Vendor TOTP/OAuth. Live configuration, mailbox access, sends, and any scheduler remain separately gated.
 
 **Open questions & assumptions.**
 
-- _Answered 2026-07-13:_ Gmail Hub's final state is live-connected per authenticated
-  `pmikcmetro.com` user. It may read that user's mailbox and may send only after that same user
-  reviews and confirms the exact message. It never autonomously sends. S15 remains fallback/history.
-- _Answered 2026-07-13:_ continue keyless DWD; Firebase authentication identifies the app user while
-  Workspace DWD separately authorizes Gmail access as that user.
-- _Answered 2026-07-13:_ production compose supports reviewed To/Cc/Bcc recipients; the activation
-  proof remains self-addressed so no third party receives a test message.
-- _Answered 2026-07-13:_ DWD client `104374162913177846911` carries `gmail.readonly`,
-  `gmail.compose`, `gmail.labels`, and `gmail.modify`; no broad mail/settings/delete scope is present.
-- _Answered 2026-07-13:_ Editors, Approvers, and Admins may send from their own mailbox after exact
-  confirmation. Viewer-only access does not gain compose authority.
-- _Answered 2026-07-13:_ Pub/Sub uses a dedicated no-key push service account, exact OIDC audience,
-  and Gmail's documented publisher principal. Resource identifiers are non-secret handoff data.
+- _Answered 2026-07-14:_ the product boundary is workflow-linked Gmail, not “all of Dan’s email” or a
+  general Gmail-native inbox.
+- _Answered 2026-07-14:_ S20 target gives internal Editors direct enabled Low/Medium execution,
+  including exact-confirmed workflow communication; consequential High work requires Admin; Admin may
+  self-approve every risk. S20 is now Local green: internal Editors have `sendEmail` only through the
+  strict workflow-context/exact-confirmation routes; generic compose/send remains forbidden.
+- _Answered 2026-07-14:_ the legacy event-triggered approval Gmail sender is disabled; approval
+  attention is in-app only.
+- _Answered 2026-07-14:_ S24 retention is 10m/30d confirmation, 7d dedupe, 90d sync, 365d link, 7y
+  bodyless audit, no persisted V1 AI facts, with legal hold/later policy override. Production link
+  creation remains closed until cleanup/hold/config are implemented.
+- _Answered 2026-07-14:_ exact current owner-renewal, tenant-renewal, and maintenance-owner generators
+  are v1.0 base artifacts; S24 governs verified value replacement/source-visible AI rewrite. Runtime
+  authoritative recipient/value adapters still must be configured in S25/S26.
+- _Open:_ define when email + portal chat + SMS count as renewal outreach/agreement complete. Email
+  alone is not assumed sufficient.
+- _Open:_ identify the maintenance owner-contact source and when an owner notice is required.
+- _Answered 2026-07-14:_ Josiah owns manual Gmail watch renewal and degraded-watch response. No
+  scheduler is assumed.
+- _Answered for V1 2026-07-14:_ add no AI exclusions; keep owner money, legal/notices, and tenant
+  disputes excluded before model construction.
+- _Answered 2026-07-14:_ S22 uses Admin invite, one-time password setup, verified-email TOTP,
+  assigned-ticket-only frontend, and the same Vendor Gmail/Workspace address through per-vendor OAuth,
+  never DWD. Vendor/Admin exactly confirms every AI-assisted send.
 
-**Cross-product impacts.** Touches `lib/gmail-runtime/`, new `lib/gmail-hub/`, `app/api/gmail-hub/`,
-`components/gmail-hub/`, `lib/auth/roles.ts`, `.env.example`, `firestore.rules`,
-`lib/integrations/action-registry-seed.ts`, and Gmail/cutover docs. It preserves the renewal-only
-`gmail.renewal_notice.draft_create` approval exactly. It supersedes S15/D3 only as final-state
-direction; S15's shipped pasted/synthetic tools remain valid fallback behavior. Delete-on-supersede is
-recorded as `GMAIL-HUB-SIMULATOR-FINAL` in `docs/facts.md`.
+**Cross-product impacts.** This suite governs `app/api/gmail-hub/`, `components/gmail-hub/`,
+`lib/gmail-hub/`, `lib/gmail-runtime/`, notification feed/mark-read paths, `lib/auth/roles.ts`,
+`firestore.rules`, the Action Registry, renewal sample-draft routes, maintenance tickets, and the
+Workflow Communications compatibility/admin pages. Lease Renewal and maintenance retain their own
+status/source-state gates. No email interpretation writes Rentvine, Sheets, LeadSimple, Dotloop,
+QuickBooks, Boom, Drive, or another system of record. Supersede marker:
+`GMAIL-GENERAL-INBOX-TO-WORKFLOW-ADAPTER` in `docs/facts.md`.
 
 **Adversarial acceptance checks.**
 
-- **AC-S19-1** — Every user-facing Gmail route returns 401 before token mint, transport, or state work;
-  a wrong-domain session returns 403; strict schemas reject `userEmail`, `mailbox`, `subjectUser`, and
-  `impersonationSubject`. _Verify:_ `npm test`; keep `tests/unit/gmail-hub-live-routes.test.ts` and
-  `tests/unit/auth-session.test.ts` green.
-- **AC-S19-2** — Read methods request `gmail.readonly`, compose/send requests `gmail.compose`, label
-  discovery/creation requests `gmail.labels`, label application requests `gmail.modify`, and no exported delete/trash/settings/forwarding/attachment-fetch method or
-  `mail.google.com` scope exists. _Verify:_ `npm test`, `npm run verify:router-boundary`; keep
-  `tests/unit/gmail-runtime-client.test.ts` green.
-- **AC-S19-3** — Bounded parsing prefers text/plain, converts HTML to inert text, strips active content,
-  caps body/thread/parts/attachments, and never fetches an attachment. _Verify:_ `npm test`; keep
-  `tests/unit/gmail-runtime-mime.test.ts` green.
-- **AC-S19-4** — One signed-in user cannot read, draft, confirm, reconcile, or send as another; From is
-  server-derived and every To/Cc/Bcc value is schema-validated and bound to the exact confirmation.
-  Read, edit, and `sendEmail` capability denials are independently observable. _Verify:_ `npm test`; keep
-  `tests/unit/gmail-hub-service.test.ts` and `tests/unit/auth-session.test.ts` green.
-- **AC-S19-5** — Send requires one unexpired, unconsumed confirmation bound to the exact payload hash;
-  payload drift, stale tokens, double-clicks, retries, and concurrent requests result in at most one
-  `sendMessage` call. The audit stores no body/MIME/token. _Verify:_ `npm test`; keep
-  `tests/unit/gmail-hub-service.test.ts` green.
-- **AC-S19-6** — A Gmail/network outcome that could be ambiguous records `ambiguous`, makes no automatic
-  retry, and exposes an explicit RFC Message-ID reconciliation step. A found message closes the audit;
-  no match leaves the send blocked. _Verify:_ `npm test`; keep
-  `tests/unit/gmail-hub-service.test.ts` green.
-- **AC-S19-7** — A reply preview contains the live thread id, exactly matching subject,
-  `In-Reply-To`, and accumulated `References`; the send result exposes Gmail message/thread ids without
-  exposing the body. _Verify:_ `npm test`; keep `tests/unit/gmail-hub-service.test.ts` green.
-- **AC-S19-8** — Pub/Sub rejects missing/invalid OIDC, wrong audience, wrong service-account email,
-  wrong-domain notifications, and malformed data before Gmail work. Replay is idempotent;
-  cursor advance + dedupe completion are transactional; history 404 triggers only a bounded resync.
-  _Verify:_ `npm test`; keep `tests/unit/gmail-hub-pubsub.test.ts` green.
-- **AC-S19-9** — Firestore rules deny direct client reads/writes to confirmation, idempotency, dedupe,
-  and audit collections. No stored record schema includes body, raw, MIME, attachment content, prompt,
-  or token fields. _Verify:_ `npm run test:firestore`, `npm run verify:redaction`.
-- **AC-S19-10** — Gmail Hub renders connected identity, bounded list/detail, new/reply editor, exact
-  preview, confirmation, send/reconciliation result, and honest gated/error states under “Live Gmail”; the
-  synthetic chain remains “Browser only” and makes no Gmail/app call. _Verify:_ `npm test`,
-  `npm run test:e2e:core`; keep `tests/unit/gmail-live-workspace.test.tsx` and
-  `tests/unit/gmail-hub-simulated-email-chain.test.tsx` green.
-- **AC-S19-11** — The registry separately governs `gmail.mailbox.read`, `gmail.draft.create`,
-  `gmail.message.send`, `gmail.thread.reply`, and `gmail.label.apply`; all five are Approved for
-  Execution and join the existing renewal draft allowlist. _Verify:_
-  `npm test`, `npm run verify:spec-traceability`; keep
-  `tests/unit/action-registry-schema.test.ts` and `tests/unit/action-gate.test.ts` green.
-- **AC-S19-12** — Full local verification is green. Production evidence records only non-secret
-  resource names, revision, statuses, counts, expirations, and synthetic Gmail identifiers. A
-  self-addressed new message and explicit reply share one Gmail thread id; a user label and mailbox
-  watch are observable without committing message content.
-  _Verify:_ `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`,
-  `npm run test:e2e:core`, `npm run verify:router-boundary`, `npm run verify:falsification`,
-  `npm run verify:context-freshness`, `npm run verify:spec-traceability`, `npm run verify:redaction`,
-  `npm run build`, `bash scripts/verify.sh`.
+- **AC-S19-1** — No workflow UI/API lists recent inbox mail, accepts an arbitrary Gmail query, or
+  exposes generic compose. A valid unrelated thread cannot be read until deliberately linked to an
+  authorized entity. _Verify:_ `npm test`; keep `gmail-hub-live-routes.test.ts`,
+  `gmail-live-workspace.test.tsx`, and `gmail-hub-home.test.tsx` green.
+- **AC-S19-2** — The Gmail subject equals the server-verified Firebase email and approved scopes stay
+  separate; body/query impersonation values fail closed. _Verify:_ `npm test`,
+  `npm run verify:router-boundary`; keep `auth-session.test.ts`, `gmail-runtime-client.test.ts`, and
+  `gmail-hub-live-routes.test.ts` green.
+- **AC-S19-3** — Workflow context/entity/space authorization occurs before Gmail construction;
+  maintenance-scoped users cannot access renewals and simulations cannot mutate Gmail. _Verify:_
+  `npm test`; keep `gmail-hub-live-routes.test.ts` green.
+- **AC-S19-4** — Only the four approved labels, fixed governed rule, non-empty human reason, and an
+  approved versioned template pass. Invalid artifacts cause zero Gmail mutations. _Verify:_ `npm test`;
+  keep `gmail-hub-service.test.ts` and `action-registry-schema.test.ts` green.
+- **AC-S19-5** — Historical baseline superseded only on role disposition by AC-S20-3: exact-confirmed
+  linked replies make at most one send attempt under drift, expiry, reuse, concurrency, and ambiguity.
+  S20 now also permits an internal Editor to perform that enabled Medium action; the same
+  route/artifact/confirmation gates remain. _Verify:_ `npm test`; keep `gmail-hub-service.test.ts`,
+  `gmail-hub-capabilities.test.ts`, and `execution-risk-policy.test.ts` green.
+- **AC-S19-6** — Unrelated push additions and cursor-only resync cause zero thread fetches, model
+  calls, tasks, and attention; a linked duplicate produces one bodyless attention state. _Verify:_
+  `npm test`; keep `gmail-hub-pubsub.test.ts` green.
+- **AC-S19-7** — Gmail-derived summaries/actions remain unpersisted `Needs Review` proposals with
+  provenance and cannot change a workflow or system of record. _Verify:_ `npm test`; keep
+  `gmail-workflow-analysis-route.test.ts` green.
+- **AC-S19-8** — Unknown/excluded category aliases refuse before Gmail/model construction, and
+  detected excluded content refuses before the model call. _Verify:_ `npm test`; keep
+  `gmail-workflow-analysis-route.test.ts` and `gmail-draft-safety.test.ts` green.
+- **AC-S19-9** — Persisted Gmail operational records contain no body, MIME, attachment content,
+  prompt, token, or free-text reason; Firestore clients cannot access them. _Verify:_
+  `npm run verify:redaction`, `npm run test:firestore`; keep `gmail-hub.rules.test.ts` and
+  `gmail-hub-service.test.ts` green.
+- **AC-S19-10** — Renewal sample routes never construct Gmail, accept browser recipients, or become
+  executable from a registry toggle; email alone cannot mark multichannel outreach/consent complete.
+  _Verify:_ `npm test`; keep `owner-notice-draft-route.test.ts` and
+  `tenant-notice-draft-route.test.ts` green.
+- **AC-S19-11** — A maintenance reply cannot choose a vendor, approve cost, transition a ticket, or
+  write Rentvine. Maintenance owner initiation remains Planned until recipient evidence exists.
+  _Verify:_ `npm test`, `npm run verify:spec-traceability`; keep Action Registry and maintenance tests
+  green.
+- **AC-S19-12** — Value-free Gmail attention is self-mailbox, space-scoped, deduplicated, and
+  mark-readable without exposing Gmail/message identifiers or content. _Verify:_ `npm test`; keep
+  `gmail-workflow-notifications.test.ts` and notification feed/menu tests green.
 
-**Forbidden actions / hard gates.** No autonomous, background, model-triggered,
-scheduled, or automatically retried send. No cross-mailbox Admin browsing. No client-supplied
-impersonation subject. No `mail.google.com`, delete/trash/settings/forwarding,
-attachment fetch, unbounded scan, raw MIME/body persistence or logs, or automatic Gemini processing.
-The five Inbox 0 actions are approved; exact-confirmation and action-specific scope boundaries remain.
-The existing renewal unsent-draft approval is unchanged.
-The ~$10 cap and budget guard bind every future cloud/live step.
+Full verification: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`,
+`npm run test:e2e:core`, `npm run verify:router-boundary`, `npm run verify:falsification`,
+`npm run verify:context-freshness`, `npm run verify:spec-traceability`, `npm run verify:redaction`,
+`npm run build`, and `bash scripts/verify.sh`.
+
+**Forbidden actions / hard gates.** No general inbox browsing/search/management; no cross-mailbox
+access; no browser-supplied recipient for workflow initiation; no autonomous, scheduled,
+event-triggered, model-triggered, bulk, or retry-on-ambiguity send; no attachment fetch; no
+delete/trash/settings/filter/delegate/forwarding; no historical scan/back-label; no automatic model
+processing or workflow status change; no raw Gmail/customer content in git/logs/notifications/state;
+no system-of-record or client Drive write; no outbound vendor communication; no new scope; no Cloud
+Scheduler; no deploy/live proof in an unattended loop; the ~$10 cap remains binding.
 
 **Ordered prompt sequence.**
 
-1. _Discovery:_ Read Tier 0, S15, Gmail product/auth/integration docs, runtime and adversarial tests;
-   verify Gmail API behavior from official Google documentation only.
-2. _Context update:_ Record the 2026-07-13 owner decision, correct `gmail.compose` send capability,
-   delete simulated-only final-state guidance, and register S19 without rewriting S15 history.
-3. _Build:_ Add explicit types, bounded transport/MIME parsing, read/compose client methods, subject
-   validation, and scope-placement sentinels with fake transports only.
-4. _Build:_ Add disabled read/send/reply registry records and distinct read/edit/send capability gates.
-5. _Build:_ Add strict authenticated connection/thread/draft/confirmation/send/reconcile routes. Build
-   the transaction-backed one-time confirmation and bodyless append-only audit.
-6. _Build:_ Add watch/history client behavior, authenticated Pub/Sub validation, dedupe/cursor
-   transactions, and bounded history-404 recovery; do not provision resources.
-7. _Build:_ Add the Live Gmail UI and retain the S15 pasted/synthetic fallback distinction.
-8. _Verify:_ Run focused adversarial tests, then the complete AC-S19-12 command list; repair supported
-   defects and update `docs/facts.md`, `docs/loop-state.md`, `docs/status.md`, and `docs/plan.md`.
-9. _Gate:_ COMPLETE 2026-07-13 — the owner approved the four exact Gmail scopes, five Inbox 0
-   actions, Pub/Sub/watch, deployment, production smoke, and repository publication.
-10. _Production:_ Provision the dedicated push identity/topic/subscription, deploy, seed registry
-    metadata, start the watch, and run a self-addressed new-message/reply/label proof.
-11. _Verify:_ Confirm the two synthetic messages share one Gmail thread id, label application is
-    visible, watch expiration is future, and push authentication rejects untrusted callers.
-12. _Context update:_ Record only non-secret resource names, ids, counts, statuses, and revision.
+1. _Discovery:_ Read Tier 0, S15/S19, Gmail product/auth/integration docs, renewal/maintenance docs,
+   runtime, Action Registry, rules, and adversarial tests.
+2. _Understanding:_ Verify identity/scope/transport controls separately from product authorization;
+   identify sample or missing authoritative workflow sources before any mutation path.
+3. _Build:_ Require strict workflow context/entity authorization, bodyless expiring links, and
+   targeted thread reads; remove recent-inbox/query/compose UI/API exposure.
+4. _Build:_ Enforce labels/rules/templates against machine schemas; apply S20's direct internal
+   Low/Medium and Admin-approved High decision; retire the legacy automatic approval sender.
+5. _Build:_ Match Pub/Sub IDs only against existing links and create value-free attention; use
+   cursor-only recovery and no background model/content fetch.
+6. _Build:_ Add explicit on-demand, exclusion-first, proposal-only analysis and keep results
+   unpersisted until a separately approved human-confirm workflow fact model exists.
+7. _Build:_ Integrate maintenance ticket context and simulation-only renewal containment; add no
+   owner/vendor initiation without verified recipient sources.
+8. _Verify:_ Run focused tests, then the complete verification list; scan stored/logged records for
+   prohibited content.
+9. _Gate:_ Stop before production linkage until retention and first approved templates/sources are
+   owner-confirmed. Stop before any vendor or system-of-record action.
+10. _Context update:_ Update product docs, Action Registry, facts/status/plan/loop state and record
+    superseded general-inbox direction once verification is green.
 
-**Deletion/merge recommendation.** KEEP S19 as the active live Gmail specification. KEEP S15 as the
-historical shipped pasted-text/simulator fallback spec, with a superseded-final-state note. Do not merge
-the two: their acceptance evidence and permission boundaries are intentionally different.
+**Deletion/merge recommendation.** KEEP S19 as the active workflow-linked Gmail specification. KEEP
+S15 as historical evidence for the Admin-only pasted/synthetic fallback. Retain `/gmail-hub` and the
+legacy product filename only as compatibility paths; active copy and requirements use Workflow
+Communications.

@@ -4,9 +4,10 @@ Status: Draft for review (2026-06-20). Produced by a multi-agent audit of every 
 in the repo + adversarial review, then reconciled against live findings this session.
 Owner action items are at the end.
 
-2026-07-13 Gmail update: S19 activates a per-user Gmail runtime whose Firebase user
+2026-07-14 Gmail update: S19 retains a per-user Gmail transport whose Firebase user
 identity, DWD authorization, and Pub/Sub service identity remain three separate checks.
-The four exact Gmail scopes and five Inbox 0 actions are owner-approved; see §2.3.
+The product surface is workflow-bounded: transport scope does not authorize general inbox
+browsing, generic compose, or background interpretation. See §2.3.
 
 > **Why this exists.** A "blocked on access" failure (Claude's Drive connector couldn't read
 > the `pmikcmetro.com` renewal sheet because it was authed to a personal Google account)
@@ -150,10 +151,14 @@ existing role claim, require a plain-English reason, stay inside `pmikcmetro.com
 behavior. Creating a real user or assigning a live scope remains owner-run; this implementation does
 not mint or alter any live account autonomously.
 
-The hosted-domain boundary is unchanged. A third-party maintenance vendor is not eligible for this
-Firebase sub-user model without a later client-approved identity-policy change. Outside reporters keep
-using the HMAC-token public maintenance intake; it remains the only scoped-prefix route that is both
-unauthenticated and intentionally outside the staff scope guard.
+The hosted-domain boundary is unchanged in current code and remains binding for internal staff and
+every PMI KC cloud/admin/runtime identity. R04 creates one narrow V1 exception: an Admin-invited external
+Vendor receives a one-time password-setup link, completes email verification and TOTP MFA before ticket
+detail, sees only tickets joined to their `vendor_id`, and connects the same verified Gmail/Google
+Workspace address through server-side per-vendor OAuth. It never uses DWD or receives staff roles,
+Spaces, cloud/admin/connector authority, shared/alias mailbox inference, or general inbox access. S22 is
+the executable contract; no Vendor principal exists in current code. Outside reporters continue using
+the separate HMAC-token public maintenance intake; it is not the authenticated Vendor portal.
 
 ### 2.2 App-side Drive access — decide before any direct app Drive read
 
@@ -187,22 +192,30 @@ access.
   `gmail.compose` grant is send-capable; S19 safety is implemented by separate capability
   and Action Registry gates, authenticated-From enforcement, an exact-payload one-time
   confirmation, transactional idempotency, bodyless audit, and no ambiguous retry.
-- Read/edit/send authority is separate: Editor can read/edit when the corresponding
-  registry actions are promoted; only Approver/Admin has `sendEmail`. Admin does not gain
-  cross-mailbox browsing.
+- Technical scope is not product authority. A route must validate a strict renewal or maintenance
+  workflow context and the actor's matching space access before constructing a Gmail client. Reads
+  target an already-linked opaque thread; the primary UI has no recent inbox or arbitrary search.
+- Current read/edit/send authority is separate: S20 gives an internal Editor `sendEmail` only for an
+  enabled Medium action that passed the strict workflow context, scope, artifact, exact preview, and
+  one-time confirmation route. Consequential High actions require Admin and Admin may self-approve with
+  a reason and current preview. Admin does not gain general/cross-mailbox browsing. Generic new-message
+  sending remains disabled and permanently blocked by the S20 policy; S25/S26 add only
+  workflow-specific initiation keys.
 - Pub/Sub push uses a dedicated no-key service account and OIDC audience validation before
   body decoding. The Gmail API publisher is only
   `gmail-api-push@system.gserviceaccount.com`; notification email must be a server-verified
-  domain mailbox with registered watch state.
-- Rollback: set the five S19 registry keys false,
+  domain mailbox with registered watch state. Push processing may match IDs against existing
+  workflow links and create value-free attention; it does not fetch unrelated bodies, invoke AI,
+  or send.
+- Rollback: disable the workflow-facing Gmail registry keys,
   remove the four Gmail scopes from DWD client `104374162913177846911` as
   appropriate, disable the push subscription/topic, and redeploy the prior revision. No
   Cloud Scheduler is authorized.
 
-The dedicated `kb-automation@pmikcmetro.com` notification sender described elsewhere is a
-different application identity and action lane. Its credentials/scopes do not authorize
-per-user Gmail Hub access and the per-user DWD grant does not authorize notification
-campaigns.
+The legacy `kb-automation@pmikcmetro.com` notification-sender design is a different application
+identity and action lane. That sender is hard-disabled in current code; in-app notifications are
+the default. Reintroducing email notification delivery requires a future human-confirmed draft or
+other separately approved spec. Per-user DWD never authorizes notification campaigns.
 
 ## 3. Migration Plan — Ordered, Per Surface
 
