@@ -11,6 +11,29 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Working-app V1 implementation and release verification are green; deployment is next
+
+- Date: 2026-07-15
+- Reframed the release around observed working application behavior: production carries separate
+  Live and visibly labeled isolated Test lanes; complete Test workflows write app/Firestore state
+  through Done with zero external provider calls; Live providers activate per exact action.
+- Built production Console dual projections, the Admin 29-action Test workspace, persistent
+  Maintenance Test tickets/lifecycle/receipts, and the Admin-provisioned Firebase password/TOTP
+  assigned-ticket Test Vendor with an app-only mailbox and exact disable/revoke.
+- Final adversarial audit closed S20/Test execution, dependency-lane, Maintenance replay, Admin
+  Vendor Gmail crossover, and concurrent Test mailbox lost-update paths. Focused regression suites
+  and the complete verification stack pass.
+- Production Identity Platform now has Email/Password enabled with password required and TOTP
+  enabled at adjacent interval `1`; canonical host authorization and Google sign-in remain enabled.
+  No OAuth, vault, Live Vendor mailbox, or new provider action was activated.
+- Final pre-deploy evidence: formatting/typecheck green; lint 0 errors/8 known warnings; 299 unit
+  files/2,046 tests; Firestore 16/56; core E2E 32 passed/18 intentional skips; 75-route build; full
+  clean-install verifier green; audit inventory exactly three Moderate dev-only findings and zero
+  High/Critical.
+- The local release inventory intentionally makes no deployment verdict and reports 33 grouped
+  placeholders, replacing the misleading 169-row app-readiness score. Next: commit/merge/push,
+  deploy with captured rollback, and run deployed browser acceptance.
+
 ## S20–S27 code is deployed as a Pre-V1 candidate; external acceptance remains Gated
 
 - Date: 2026-07-15

@@ -1,5 +1,6 @@
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { ConsoleDataMode } from "@/lib/console/environment";
+import { createRentvineConsoleProvider } from "@/lib/console/rentvine-live-provider";
 import { boundConsoleSnippet } from "@/lib/console/snippet";
 
 export type ConsoleFieldState = "fresh" | "stale" | "needs_review" | "unavailable";
@@ -82,16 +83,10 @@ export async function loadConsoleProjection(
   }
 }
 
-class LiveConsoleProvider implements ConsoleDataProvider {
-  async load() {
-    // Live adapters are intentionally not inferred from demo/sample modules. Until the separately
-    // approved Rentvine/Gmail reads are wired, production renders named unavailable states.
-    return { rows: [], sourceHealth: unavailableSourceHealth() };
-  }
-}
-
 const defaultFactories: ConsoleProviderFactories = {
-  createLive: () => new LiveConsoleProvider(),
+  // This module is server-only through ConsoleView. The provider performs one bounded,
+  // cached Rentvine read and never substitutes Test rows on failure.
+  createLive: () => createRentvineConsoleProvider(),
   createTest: async (mode) => {
     const { createConsoleFixtureProvider } =
       await import("@/lib/console/test-data-provider");

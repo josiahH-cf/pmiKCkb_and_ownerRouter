@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { VendorTestMailboxPanel } from "@/components/vendor/VendorTestMailboxPanel";
 import { FirestoreVendorStore } from "@/lib/firestore/vendors";
 import { requireAssignedTicket } from "@/lib/vendor/assignment";
 import { getVendorSession } from "@/lib/vendor/auth";
@@ -32,13 +33,17 @@ export default async function VendorTicketPage({
       </p>
       <h1>{ticket.summary}</h1>
       <p>{ticket.unitLabel ?? "Unit details unavailable"}</p>
-      <article className="panel">
-        <h2>Communication</h2>
-        <p>
-          Assigned-thread communication appears only after the separately approved Vendor
-          OAuth connection is active.
-        </p>
-      </article>
+      {(principal.dataMode ?? "live") === "test" ? (
+        <VendorTestMailboxPanel ticketId={ticket.id} />
+      ) : (
+        <article className="panel">
+          <h2>Assigned-ticket Gmail</h2>
+          <p>
+            Live communication is restricted to this assigned ticket, the connected
+            same-address mailbox, approved labels and drafts, and exact-confirmed replies.
+          </p>
+        </article>
+      )}
     </main>
   );
 }

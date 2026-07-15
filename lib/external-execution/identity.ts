@@ -2,12 +2,18 @@ import { createHash } from "node:crypto";
 
 import type { ExternalActionInput } from "@/lib/external-execution/types";
 
+export function externalActionDataMode(action: Pick<ExternalActionInput, "dataMode">) {
+  return action.dataMode === "test" ? "test" : "live";
+}
+
 /** Canonical identity shared by the S20 ledger and every provider idempotency key. */
 export function externalActionIdempotencyKey(
-  action: Pick<ExternalActionInput, "workflowId" | "actionId" | "actionKey">,
+  action: Pick<ExternalActionInput, "workflowId" | "actionId" | "actionKey" | "dataMode">,
 ) {
   return createHash("sha256")
-    .update(`${action.workflowId}\u0000${action.actionId}\u0000${action.actionKey}`)
+    .update(
+      `${externalActionDataMode(action)}\u0000${action.workflowId}\u0000${action.actionId}\u0000${action.actionKey}`,
+    )
     .digest("hex");
 }
 
@@ -21,6 +27,7 @@ export function externalActionContextHash(
     | "contractRef"
     | "mappingRef"
     | "sourceRefs"
+    | "dataMode"
   >,
 ) {
   return createHash("sha256")
@@ -28,6 +35,7 @@ export function externalActionContextHash(
       JSON.stringify({
         actionId: action.actionId,
         actionKey: action.actionKey,
+        dataMode: externalActionDataMode(action),
         connectionRef: action.connectionRef,
         contractRef: action.contractRef,
         mappingRef: action.mappingRef,
@@ -39,7 +47,7 @@ export function externalActionContextHash(
 }
 
 export function externalActionRecordId(
-  action: Pick<ExternalActionInput, "workflowId" | "actionId" | "actionKey">,
+  action: Pick<ExternalActionInput, "workflowId" | "actionId" | "actionKey" | "dataMode">,
 ) {
   return `external_${externalActionIdempotencyKey(action).slice(0, 48)}`;
 }

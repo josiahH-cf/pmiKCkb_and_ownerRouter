@@ -23,6 +23,7 @@ function action(key: string, index: number): ExternalActionInput {
     ? ({ role: "Vendor" as const, uid: "vendor-synthetic" } as const)
     : ({ role: "Admin" as const, uid: "admin-synthetic" } as const);
   const base: ExternalActionInput = {
+    dataMode: "test",
     workflowId: "maintenance-e2e-synthetic",
     actionId: `action-${index}`,
     actionKey: key,

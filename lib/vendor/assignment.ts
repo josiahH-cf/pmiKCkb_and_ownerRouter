@@ -1,8 +1,14 @@
+import type { DataMode } from "@/lib/data-mode";
 import type { VendorPrincipal, VendorTicketProjection } from "@/lib/vendor/model";
-import { VendorBoundaryError } from "@/lib/vendor/model";
+import { VendorBoundaryError, vendorPrincipalDataMode } from "@/lib/vendor/model";
 
 export interface VendorAssignmentRepository {
-  isVendorActive(vendorId: string, uid: string, email: string): Promise<boolean>;
+  isVendorActive(
+    vendorId: string,
+    uid: string,
+    email: string,
+    dataMode?: DataMode,
+  ): Promise<boolean>;
   listAssignedTickets(vendorId: string): Promise<VendorTicketProjection[]>;
   getAssignedTicket(
     vendorId: string,
@@ -20,7 +26,12 @@ export async function assertActiveVendor(
   repository: Pick<VendorAssignmentRepository, "isVendorActive">,
 ) {
   if (
-    !(await repository.isVendorActive(principal.vendorId, principal.uid, principal.email))
+    !(await repository.isVendorActive(
+      principal.vendorId,
+      principal.uid,
+      principal.email,
+      vendorPrincipalDataMode(principal),
+    ))
   ) {
     throw new VendorBoundaryError("Vendor account is unavailable.", 404);
   }

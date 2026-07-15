@@ -151,15 +151,15 @@ existing role claim, require a plain-English reason, stay inside `pmikcmetro.com
 behavior. Creating a real user or assigning a live scope remains owner-run; this implementation does
 not mint or alter any live account autonomously.
 
-The hosted-domain boundary is unchanged in current code and remains binding for internal staff and
-every PMI KC cloud/admin/runtime identity. R04 creates one narrow V1 exception: an Admin-invited external
-Vendor receives a one-time password-setup link, completes email verification and TOTP MFA before ticket
-detail, sees only tickets joined to their `vendor_id`, and connects the same verified Gmail/Google
-Workspace address through server-side per-vendor OAuth. It never uses DWD or receives staff roles,
-Spaces, cloud/admin/connector authority, shared/alias mailbox inference, or general inbox access. S22 is
-Local green in code with separate session, TOTP UI, assigned-ticket joins, OAuth/token-vault seams, and
-fake-provider acceptance; no live Vendor principal, Identity Platform setting, OAuth grant, or token
-resource exists. Outside reporters continue using
+The hosted-domain boundary remains binding for internal staff and every PMI KC cloud/admin/runtime
+identity. The narrow V1 exception is an Admin-invited external Vendor with one-time password setup,
+verified-email TOTP before ticket detail, and assigned-ticket-only authorization. The canonical
+`.invalid` Test Vendor uses the real Firebase password/TOTP lifecycle plus an app-only mailbox; it is
+bound to Test assignments and rejected before OAuth/Gmail construction. A Live Vendor connects the
+same verified routable Gmail/Google Workspace address through server-side per-vendor OAuth. Neither
+uses DWD or receives staff roles, Spaces, cloud/admin/connector authority, shared/alias mailbox
+inference, or general inbox access. Production Test setup requires Firebase Email/Password, TOTP MFA,
+and the deployed Auth domain; Live OAuth/token-vault resources activate separately. Outside reporters continue using
 the separate HMAC-token public maintenance intake; it is not the authenticated Vendor portal.
 
 ### 2.2 App-side Drive access — decide before any direct app Drive read

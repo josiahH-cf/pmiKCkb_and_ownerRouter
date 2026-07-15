@@ -112,4 +112,98 @@ describe("Vendor assigned-ticket boundary", () => {
       ),
     ).resolves.toBe(false);
   });
+
+  it("binds a Test Vendor assignment to Test assignment and ticket records", async () => {
+    const fake = new FakeFirestore();
+    fake.seed(`${VENDOR_COLLECTIONS.vendors}/vendor:test-summit-plumbing`, {
+      id: "vendor:test-summit-plumbing",
+      uid: "uid-test-summit",
+      email: "service@summit-plumbing.example.invalid",
+      status: "active",
+      inviteVersion: 1,
+      data_mode: "test",
+      createdAt: "2026-07-15T00:00:00.000Z",
+      updatedAt: "2026-07-15T00:00:00.000Z",
+    });
+    fake.seed(`${VENDOR_COLLECTIONS.assignments}/ticket:test-maple-leak`, {
+      ticket_id: "ticket:test-maple-leak",
+      vendor_id: "vendor:test-summit-plumbing",
+      active: true,
+      data_mode: "test",
+    });
+    fake.seed("maintenance_tickets/ticket:test-maple-leak", {
+      id: "ticket:test-maple-leak",
+      data_mode: "test",
+      status: "Waiting on Vendor",
+      priority: "Normal",
+      priority_provenance: "operator-set",
+      summary: "Invented leak at Maple 204",
+      description: "Invented test data",
+      unit: { unitId: "unit:test-maple-204", label: "Maple 204 · Test unit" },
+      photo_refs: [],
+      reporter: { kind: "staff" },
+      labels: [],
+      space_id: "maintenance",
+      created_at: "2026-07-15T00:00:00.000Z",
+      updated_at: "2026-07-15T00:00:00.000Z",
+    });
+    fake.seed(
+      `${VENDOR_COLLECTIONS.threadLinks}/vendor:test-summit-plumbing:ticket:test-maple-leak:thread:test-maple-leak`,
+      {
+        ticket_id: "ticket:test-maple-leak",
+        vendor_id: "vendor:test-summit-plumbing",
+        thread_id: "thread:test-maple-leak",
+        active: true,
+        data_mode: "test",
+      },
+    );
+    const store = new FirestoreVendorStore(fake as unknown as Firestore);
+
+    await expect(
+      store.isVendorActive(
+        "vendor:test-summit-plumbing",
+        "uid-test-summit",
+        "service@summit-plumbing.example.invalid",
+        "test",
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      store.isVendorActive(
+        "vendor:test-summit-plumbing",
+        "uid-test-summit",
+        "service@summit-plumbing.example.invalid",
+        "live",
+      ),
+    ).resolves.toBe(false);
+    await expect(
+      store.getAssignedTicket("vendor:test-summit-plumbing", "ticket:test-maple-leak"),
+    ).resolves.toMatchObject({ id: "ticket:test-maple-leak", dataMode: "test" });
+    await expect(
+      store.getGmailLaneContext({
+        vendorId: "vendor:test-summit-plumbing",
+        ticketId: "ticket:test-maple-leak",
+        threadId: "thread:test-maple-leak",
+      }),
+    ).resolves.toEqual({
+      vendor: "test",
+      assignment: "test",
+      ticket: "test",
+      thread: "test",
+    });
+
+    fake.seed("maintenance_tickets/ticket:test-maple-leak", {
+      ...(fake.store.get("maintenance_tickets/ticket:test-maple-leak") ?? {}),
+      data_mode: "live",
+    });
+    await expect(
+      store.getAssignedTicket("vendor:test-summit-plumbing", "ticket:test-maple-leak"),
+    ).resolves.toBeNull();
+    await expect(
+      store.getGmailLaneContext({
+        vendorId: "vendor:test-summit-plumbing",
+        ticketId: "ticket:test-maple-leak",
+        threadId: "thread:test-maple-leak",
+      }),
+    ).resolves.toMatchObject({ vendor: "test", ticket: "live", thread: "test" });
+  });
 });

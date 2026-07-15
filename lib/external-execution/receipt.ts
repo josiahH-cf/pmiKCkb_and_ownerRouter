@@ -1,10 +1,13 @@
 import type { ExternalActionReceipt } from "@/lib/external-execution/types";
+import type { DataMode } from "@/lib/data-mode";
+import { executionEvidenceMarker } from "@/lib/data-mode";
 
 /** Strict bodyless receipt boundary shared by the S20 and S22 execution ledgers. */
 export function parseExternalReceipt(
   value: unknown,
   expectedActionKey: string,
   reconciliation: boolean,
+  dataMode: DataMode = "live",
 ): Readonly<ExternalActionReceipt> {
   if (!value || typeof value !== "object") {
     throw new Error("Provider receipt is not an object.");
@@ -29,6 +32,7 @@ export function parseExternalReceipt(
   }
   return Object.freeze({
     actionKey: receipt.actionKey,
+    ...executionEvidenceMarker(dataMode),
     providerRef: receipt.providerRef.trim(),
     resultHash: receipt.resultHash.toLowerCase(),
     reconciled: receipt.reconciled,

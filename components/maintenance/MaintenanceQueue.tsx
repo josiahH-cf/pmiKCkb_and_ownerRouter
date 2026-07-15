@@ -9,6 +9,14 @@ import {
   type MaintenanceTicketRecord,
   type MaintenanceTicketStatus,
 } from "@/lib/maintenance/ticket-model";
+import {
+  MAINTENANCE_TEST_ACTIONS,
+  MAINTENANCE_TEST_ACTION_TARGETS,
+  MAINTENANCE_TEST_CONFIRMATION,
+  MAINTENANCE_TEST_VENDOR,
+  type MaintenanceTestActionKey,
+  type MaintenanceTestActionReceipt,
+} from "@/lib/maintenance/test-workflow";
 
 // The staff ticket queue (console overhaul Slice E). Lists persisted tickets grouped Open-first, with
 // one-change-per-action lifecycle transitions (status / note / close-with-reason). Closed tickets
@@ -30,16 +38,21 @@ export function MaintenanceQueue({
   unavailableNote,
   assignees = [],
   currentUid,
+  initialTestReceipts = [],
 }: Readonly<{
   initialTickets: MaintenanceTicketRecord[];
   unavailableNote?: string;
   assignees?: AssignableUser[];
   currentUid?: string;
+  initialTestReceipts?: MaintenanceTestActionReceipt[];
 }>) {
   const [tickets, setTickets] = useState(initialTickets);
+  const [testReceipts, setTestReceipts] = useState(initialTestReceipts);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const [assignedToMe, setAssignedToMe] = useState(false);
+  const [dataFilter, setDataFilter] = useState<"all" | "live" | "test">("all");
+  const [seedPending, setSeedPending] = useState(false);
 
   if (unavailableNote) {
     return (
@@ -96,29 +109,103 @@ export function MaintenanceQueue({
     void patch(ticket.id, { op: "assign", assigneeUid });
   }
 
+  function assignVendor(ticket: MaintenanceTicketRecord, vendorId: string | null) {
+    if ((ticket.vendor_id ?? null) === vendorId) return;
+    void patch(ticket.id, { op: "vendor-assign", vendorId });
+  }
+
+  async function createTestTicket() {
+    setSeedPending(true);
+    setStatus("");
+    try {
+      const response = await fetch("/api/maintenance/tickets/test-seed", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ scenario: "plumbing" }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        ticket?: MaintenanceTicketRecord;
+        error?: string;
+      };
+      if (response.ok && payload.ticket) {
+        setTickets((previous) => [payload.ticket!, ...previous]);
+        setDataFilter("test");
+        setStatus(
+          "Test ticket created. It is stored in this app and clearly labeled TEST DATA.",
+        );
+      } else {
+        setStatus(payload.error ?? "Could not create the Test ticket.");
+      }
+    } catch {
+      setStatus("Could not reach the Test ticket service.");
+    } finally {
+      setSeedPending(false);
+    }
+  }
+
   // "Assigned to me" is an app-plane view filter (there is no per-user security rule for maintenance
   // tickets); it hides tickets not assigned to the signed-in user. Disabled when we don't know the uid.
+  const modeVisible =
+    dataFilter === "all"
+      ? tickets
+      : tickets.filter((ticket) => ticket.data_mode === dataFilter);
   const visible =
     assignedToMe && currentUid
-      ? tickets.filter((ticket) => ticket.assignee_uid === currentUid)
-      : tickets;
+      ? modeVisible.filter((ticket) => ticket.assignee_uid === currentUid)
+      : modeVisible;
   const open = visible.filter((ticket) => ticket.status !== "Closed");
   const closed = visible.filter((ticket) => ticket.status === "Closed");
 
   return (
     <section aria-label="Ticket queue" className="ui-stack">
+      <section className="ui-callout ui-stack" aria-label="Maintenance Test workspace">
+        <div className="ui-spread">
+          <div>
+            <h2 className="section-subtitle">Production Test workspace</h2>
+            <p className="muted">
+              Create an invented plumbing ticket, assign the invented Test Vendor, move it
+              through the full lifecycle, and issue internal simulation receipts. No Test
+              action contacts an external provider or counts as Live proof.
+            </p>
+          </div>
+          <button
+            className="secondary-button"
+            disabled={seedPending}
+            onClick={() => void createTestTicket()}
+            type="button"
+          >
+            {seedPending ? "Creating Test ticket…" : "Create Test ticket"}
+          </button>
+        </div>
+      </section>
       <div className="ui-spread">
         <h2 className="section-subtitle">Ticket queue</h2>
-        {currentUid ? (
-          <label className="ui-row">
-            <input
-              checked={assignedToMe}
-              onChange={(event) => setAssignedToMe(event.target.checked)}
-              type="checkbox"
-            />
-            Assigned to me
+        <div className="ui-row">
+          <label className="select-field" htmlFor="maintenance-data-filter">
+            Data
+            <select
+              id="maintenance-data-filter"
+              onChange={(event) =>
+                setDataFilter(event.target.value as "all" | "live" | "test")
+              }
+              value={dataFilter}
+            >
+              <option value="all">All data</option>
+              <option value="live">Live only</option>
+              <option value="test">Test only</option>
+            </select>
           </label>
-        ) : null}
+          {currentUid ? (
+            <label className="ui-row">
+              <input
+                checked={assignedToMe}
+                onChange={(event) => setAssignedToMe(event.target.checked)}
+                type="checkbox"
+              />
+              Assigned to me
+            </label>
+          ) : null}
+        </div>
       </div>
       {tickets.length === 0 ? (
         <p className="muted">
@@ -133,9 +220,17 @@ export function MaintenanceQueue({
           key={ticket.id}
           assignees={assignees}
           onAssign={(assigneeUid) => assign(ticket, assigneeUid)}
+          onVendorAssign={(vendorId) => assignVendor(ticket, vendorId)}
           onNote={(text) => patch(ticket.id, { op: "note", text })}
           onStatus={(next) => changeStatus(ticket, next)}
           pending={pendingId === ticket.id}
+          receipts={testReceipts.filter((receipt) => receipt.ticket_id === ticket.id)}
+          onReceipt={(receipt) =>
+            setTestReceipts((previous) => [
+              ...previous.filter((existing) => existing.id !== receipt.id),
+              receipt,
+            ])
+          }
           ticket={ticket}
         />
       ))}
@@ -147,9 +242,17 @@ export function MaintenanceQueue({
               key={ticket.id}
               assignees={assignees}
               onAssign={(assigneeUid) => assign(ticket, assigneeUid)}
+              onVendorAssign={(vendorId) => assignVendor(ticket, vendorId)}
               onNote={(text) => patch(ticket.id, { op: "note", text })}
               onStatus={(next) => changeStatus(ticket, next)}
               pending={pendingId === ticket.id}
+              receipts={testReceipts.filter((receipt) => receipt.ticket_id === ticket.id)}
+              onReceipt={(receipt) =>
+                setTestReceipts((previous) => [
+                  ...previous.filter((existing) => existing.id !== receipt.id),
+                  receipt,
+                ])
+              }
               ticket={ticket}
             />
           ))}
@@ -166,14 +269,20 @@ function TicketCard({
   assignees,
   onStatus,
   onAssign,
+  onVendorAssign,
   onNote,
+  receipts,
+  onReceipt,
 }: Readonly<{
   ticket: MaintenanceTicketRecord;
   pending: boolean;
   assignees: AssignableUser[];
   onStatus: (next: MaintenanceTicketStatus) => void;
   onAssign: (assigneeUid: string | null) => void;
+  onVendorAssign: (vendorId: string | null) => void;
   onNote: (text: string) => void;
+  receipts: MaintenanceTestActionReceipt[];
+  onReceipt: (receipt: MaintenanceTestActionReceipt) => void;
 }>) {
   const [note, setNote] = useState("");
   // The current assignee may be a real user not in the (demo) roster; show a value-free "outside roster"
@@ -196,6 +305,14 @@ function TicketCard({
           {ticket.status}
         </span>
       </div>
+      <p>
+        <span
+          className="queue-pill"
+          data-value={ticket.data_mode === "test" ? "Needs Attention" : "Scheduled"}
+        >
+          {ticket.data_mode === "test" ? "TEST DATA" : "LIVE DATA"}
+        </span>
+      </p>
       {ticket.labels.length > 0 ? (
         <p className="muted">Labels: {ticket.labels.join(", ")}</p>
       ) : null}
@@ -240,6 +357,34 @@ function TicketCard({
           </select>
         </label>
       </div>
+      {ticket.data_mode === "test" ? (
+        <section className="ui-callout ui-stack" aria-label="Test Vendor assignment">
+          <p>
+            <strong>Test Vendor:</strong>{" "}
+            {ticket.vendor_id === MAINTENANCE_TEST_VENDOR.id
+              ? `${MAINTENANCE_TEST_VENDOR.label} (${MAINTENANCE_TEST_VENDOR.email})`
+              : "Unassigned"}
+          </p>
+          <button
+            className="secondary-button"
+            disabled={pending}
+            onClick={() =>
+              onVendorAssign(
+                ticket.vendor_id === MAINTENANCE_TEST_VENDOR.id
+                  ? null
+                  : MAINTENANCE_TEST_VENDOR.id,
+              )
+            }
+            type="button"
+          >
+            {ticket.vendor_id === MAINTENANCE_TEST_VENDOR.id
+              ? "Unassign Test Vendor"
+              : `Assign ${MAINTENANCE_TEST_VENDOR.label}`}
+          </button>
+        </section>
+      ) : ticket.vendor_id ? (
+        <p className="muted">A Live Vendor is assigned.</p>
+      ) : null}
       <div className="field-row">
         <input
           aria-label={`Note for ${ticket.summary}`}
@@ -261,6 +406,21 @@ function TicketCard({
         </button>
       </div>
       <TicketHistory ticketId={ticket.id} />
+      {ticket.data_mode === "test" ? (
+        <MaintenanceTestActions
+          onReceipt={onReceipt}
+          receipts={receipts}
+          ticket={ticket}
+        />
+      ) : (
+        <section className="ui-callout" aria-label="Live write boundary">
+          <p>
+            <strong>Live write boundary:</strong> each external action must show its exact
+            action and target, then receive human confirmation through its configured
+            provider gate. Test simulation is unavailable for this record.
+          </p>
+        </section>
+      )}
       <WorkflowCommunicationPanel
         canLink
         entityId={ticket.id}
@@ -269,6 +429,131 @@ function TicketCard({
         purpose="maintenance_owner"
       />
     </article>
+  );
+}
+
+function MaintenanceTestActions({
+  ticket,
+  receipts,
+  onReceipt,
+}: Readonly<{
+  ticket: MaintenanceTicketRecord;
+  receipts: MaintenanceTestActionReceipt[];
+  onReceipt: (receipt: MaintenanceTestActionReceipt) => void;
+}>) {
+  const [actionKey, setActionKey] = useState<MaintenanceTestActionKey>(
+    MAINTENANCE_TEST_ACTIONS[0],
+  );
+  const [confirmed, setConfirmed] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState("");
+  const completedReceipt = receipts.find((receipt) => receipt.action_key === actionKey);
+
+  async function simulate() {
+    if (!confirmed || pending || completedReceipt) return;
+    setPending(true);
+    setMessage("");
+    try {
+      const response = await fetch(
+        `/api/maintenance/tickets/${encodeURIComponent(ticket.id)}/test-actions`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            actionKey,
+            confirmation: MAINTENANCE_TEST_CONFIRMATION,
+          }),
+        },
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        receipt?: MaintenanceTestActionReceipt;
+        error?: string;
+      };
+      if (response.ok && payload.receipt) {
+        onReceipt(payload.receipt);
+        setConfirmed(false);
+        setMessage("Internal Test receipt recorded. No external provider was contacted.");
+      } else {
+        setMessage(payload.error ?? "Could not record the Test action.");
+      }
+    } catch {
+      setMessage("Could not reach the Test action service.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <section className="ui-callout ui-stack" aria-label="Test external action simulator">
+      <h4>Explicit Test action</h4>
+      <label className="select-field" htmlFor={`test-action-${ticket.id}`}>
+        Action
+        <select
+          id={`test-action-${ticket.id}`}
+          onChange={(event) =>
+            setActionKey(event.target.value as MaintenanceTestActionKey)
+          }
+          value={actionKey}
+        >
+          {MAINTENANCE_TEST_ACTIONS.map((action) => (
+            <option key={action} value={action}>
+              {action}
+              {receipts.some((receipt) => receipt.action_key === action)
+                ? " — recorded"
+                : ""}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p>
+        <strong>Target:</strong> {MAINTENANCE_TEST_ACTION_TARGETS[actionKey]}
+      </p>
+      <p className="muted">
+        Result: internal simulated-success receipt only. Provider contacted: No. Live
+        proof eligible: No.
+      </p>
+      <label className="ui-row">
+        <input
+          checked={confirmed}
+          disabled={Boolean(completedReceipt)}
+          onChange={(event) => setConfirmed(event.target.checked)}
+          type="checkbox"
+        />
+        I confirm this exact Test action and target.
+      </label>
+      <button
+        className="secondary-button"
+        disabled={!confirmed || pending || Boolean(completedReceipt)}
+        onClick={() => void simulate()}
+        type="button"
+      >
+        {completedReceipt
+          ? "Test action recorded"
+          : pending
+            ? "Recording…"
+            : "Run Test action"}
+      </button>
+      {completedReceipt ? (
+        <p className="muted">
+          This exact Test action already has its one idempotent receipt. Repeating it
+          cannot create another simulated effect.
+        </p>
+      ) : null}
+      {message ? <p className="muted">{message}</p> : null}
+      {receipts.length > 0 ? (
+        <details>
+          <summary>Test receipts ({receipts.length})</summary>
+          <ul>
+            {receipts.map((receipt) => (
+              <li key={receipt.id}>
+                {receipt.action_key} → {receipt.target_label} — simulated; no provider
+                contacted; not Live proof
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+    </section>
   );
 }
 
@@ -353,6 +638,10 @@ function describeActivity(entry: MaintenanceTicketActivityRecord): string {
       return entry.text && entry.text !== "unassigned"
         ? "Assignment updated"
         : "Unassigned";
+    case "vendor-assign":
+      return entry.text === "assigned" ? "Vendor assigned" : "Vendor unassigned";
+    case "test-action":
+      return entry.text ? `Test action recorded: ${entry.text}` : "Test action recorded";
     case "label":
       return entry.text ? `Label ${entry.text}` : "Label updated";
     case "note":

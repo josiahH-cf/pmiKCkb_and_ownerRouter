@@ -47,10 +47,11 @@ not fetch unrelated content, invoke AI, create a task, change workflow state, or
 
 ## Build order and process chains
 
-1. Maintenance Work Order Intake remains the first candidate external write because Rentvine
-   documents work-order APIs. Its write action is still gated by the registry and approved spec.
-2. Renewal preparation proceeds read/gather/reconcile/draft-only. Rentvine renewal writeback remains
-   undocumented and non-executable.
+1. Maintenance Work Order Intake is a working in-app write workflow with a complete persistent Test
+   path. Activate each Live Rentvine/LeadSimple/QuickBooks action independently as its exact contract
+   and mapping become configured.
+2. Renewal read/gather/reconcile/review is Live-capable and the complete action graph is Test-ready.
+   Rentvine renewal mutation remains unavailable until its actual supported contract is known.
 3. Workflow Communications supplies evidence and reviewed communication steps inside those products;
    it is not a standalone inbox lane and creates no external-system authority.
 
@@ -90,8 +91,9 @@ undeclared fields fail. `production_allowed:true` requires `Approved for Executi
 evidence. Runtime routes must also enforce identity, entity authorization, roles, governed artifacts,
 confirmation, and audit. A true transport entry alone never authorizes arbitrary end-user behavior.
 
-The catalog has 38 entries. No non-Gmail external system-of-record write is executable. S22/S25/S26
-add closed account/OAuth/Vendor-mail/renewal-send/portal/SMS/assignment/maintenance-owner-send entries.
+The catalog has 38 entries. Activation is per action and does not define whether the application is
+V1. S22/S25/S26 include account/OAuth/Vendor-mail/renewal-send/portal/SMS/assignment and
+maintenance-owner actions with independent states.
 Current internal Gmail transport subset (new closed S25/S26 and external Vendor Gmail keys are listed
 in their suite matrices):
 
@@ -108,29 +110,43 @@ in their suite matrices):
 The four approved Gmail scopes are unchanged. `gmail.compose` is send-capable, so the no-send and
 workflow-only boundaries come from route/action/role/template/exact-confirmation code and tests.
 
-### Final Round 3 target contract (not current execution authority)
+### Working V1 contract
 
 R01–R09 settle product scope. S20 gives internal Editors enabled Low/Medium execution, routes
 consequential High work to Admin, permits Admin self-approval, and preserves technical Blocked gates.
 S25 requires app-executed Lease Gmail, Sheet, Rentvine, Dotloop, portal-chat, SMS, and conditional Boom.
 S26 requires Vendor account/mailbox, Drive photo, Rentvine create/assign/update/close, owner/vendor mail,
 LeadSimple, and QuickBooks draft-bill execution. S22 adds an assigned-ticket-only external Vendor using
-verified-email TOTP and per-vendor Gmail/Workspace OAuth, never DWD. Product inclusion never flips
-`production_allowed`; each action still needs documented evidence, exact permission/identity, preview,
-idempotency, audit, reconciliation/rollback, tests, registry code review, and explicit live authority.
-Undocumented/vendor-confirmation-required actions block final V1 rather than becoming manual fallbacks.
+verified-email TOTP and per-vendor Gmail/Workspace OAuth, never DWD. The Test Vendor uses the same real
+Firebase password/TOTP boundary with an app-only mailbox and no OAuth/provider construction.
 
-The safe-local implementation now runs all 11 S25 and 19 S26 action adapters plus the complete S22
-Vendor identity/OAuth/mail journey against invented aliases and typed fake provider state. Those paths
+The production app is ready when these workflows work in Live/Test lanes. A Live provider action is
+enabled only with documented evidence, exact permission/identity/mapping, target/effect preview,
+human confirmation, idempotency, audit, reconciliation/rollback, tests, and monitoring. An
+undocumented action remains unavailable without relabeling the application.
+
+The production Test workspace runs all 11 S25 and 19 S26 action adapters plus the complete S22
+Vendor identity/mail journey against invented aliases and typed Test provider state. Those paths
 use exact Registry preview schemas, immutable S20 risk/authority, same-workflow dependency receipts,
-one-attempt execution, readback, and reconciliation. The execution boundary rejects production fake
-providers, synthetic escape flags, Registry overrides, and schema/risk lowering. This proves the local
-architecture, not an account-specific provider contract or live action.
+one-attempt execution, readback, and reconciliation. Test execution is memory-only for typed adapters,
+accepts only branded no-client executors, writes `dataMode:test`/non-Live receipts, and rejects Live
+records. Live orchestration rejects Test records/adapters, Registry overrides, and schema/risk lowering.
+This proves application behavior, not an account-specific provider contract or Live action.
 
 Promote one action only after its row in `docs/v1-client-unblock-checklist-2026-07-14.md` has the named
 official/account evidence, authoritative mapping, credential-owner/location label, separately permitted
 bounded proof, bodyless receipt/readback, monitor, correction path, code review, and exact authority.
-No synthetic receipt can satisfy a production release manifest.
+Test receipts can satisfy application-workflow acceptance and can never satisfy Live-provider proof.
+
+## Data-lane boundary
+
+- Missing legacy mode resolves to Live.
+- Reserved Test unit/Vendor/email aliases cannot be assigned to Live records.
+- Browser state cannot select a provider lane.
+- Console renders a bounded Live provider projection and a separate Test projection at once.
+- External action identity, idempotency key, context hash, record, receipt, and audit bind the lane.
+- Persistent Maintenance/Vendor Test state lives in Firestore through authenticated server routes;
+  typed external Test adapters contain no provider client.
 
 ## Gmail-to-workflow source and write model
 
@@ -152,14 +168,14 @@ trigger them.
 ## Connection health and retention
 
 Each registry entry points to a deterministic health-check contract in
-`lib/integrations/health-checks.ts`. Gmail watch renewal is manual and observable; no scheduler is
-approved. S24 locally encodes confirmation usable 10 minutes/delete 30 days, dedupe 7 days, sync audit
+`lib/integrations/health-checks.ts`. Gmail watch renewal is manual and observable. S24 encodes
+confirmation usable 10 minutes/delete 30 days, dedupe 7 days, sync audit
 90 days, workflow link 365 days from last authorized update, bodyless send/write/workflow audit 7
 years, and no persisted V1 AI/extracted Gmail facts. Admin legal hold and a later written policy
-override deletion. Cleanup planning/worker and hold/release are Local green; production Firestore TTL
-must target canonical Date/Timestamp `expires_at` (the worker queries matching numeric
-`expires_at_ms`), and scheduler configuration remains separately gated. A bodyless run ledger makes
-deletion counts crash-resumable; no mutable environment TTL can widen policy.
+override deletion. The V1 safe default is bounded on-demand cleanup plus health reporting. Firestore
+TTL (canonical Date/Timestamp `expires_at`), extra indexes, and Scheduler automation are optional
+volume-driven optimizations. A bodyless run ledger makes deletion counts crash-resumable; no mutable
+environment value can widen policy.
 
 ## Vendor-confirmation matrix
 

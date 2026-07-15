@@ -4,13 +4,20 @@ import { describe, expect, it } from "vitest";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
   MAINTENANCE_TICKET_COLLECTIONS,
+  createCanonicalMaintenanceTestTicket,
   createMaintenanceTicket,
   getMaintenanceTicket,
   listMaintenanceTicketActivity,
+  listMaintenanceTestActionReceipts,
   listMaintenanceTickets,
+  simulateMaintenanceTestAction,
   transitionMaintenanceTicket,
 } from "@/lib/firestore/maintenance-tickets";
 import { MAINTENANCE_TICKET_NOTIFICATION_COLLECTION } from "@/lib/firestore/maintenance-ticket-notifications";
+import {
+  MAINTENANCE_TEST_CONFIRMATION,
+  MAINTENANCE_TEST_VENDOR,
+} from "@/lib/maintenance/test-workflow";
 
 // Minimal in-memory Firestore matching the Admin-SDK surface the writer uses (doc get/set, collection
 // get). The writer stores plain ISO-string records (no serverTimestamp), so this fake is faithful.
@@ -142,6 +149,7 @@ describe("maintenance tickets", () => {
     const ticket = await createMaintenanceTicket(editor, baseInput, db);
 
     expect(ticket.status).toBe("Open");
+    expect(ticket.data_mode).toBe("live");
     expect(ticket.priority).toBe("Emergency");
     expect(ticket.reporter).toEqual({ kind: "staff", uid: "editor-1" });
     expect(store.get(MAINTENANCE_TICKET_COLLECTIONS.tickets)?.size).toBe(1);
@@ -262,6 +270,153 @@ describe("maintenance tickets", () => {
     const tickets = await listMaintenanceTickets(editor, db);
     expect(tickets).toHaveLength(2);
     expect(tickets.map((t) => t.summary).sort()).toEqual(["A", "B"]);
+  });
+
+  it("normalizes a legacy ticket without data_mode to Live", async () => {
+    const { db, store } = fakeDb();
+    store.set(
+      MAINTENANCE_TICKET_COLLECTIONS.tickets,
+      new Map([
+        [
+          "legacy",
+          {
+            id: "legacy",
+            status: "Open",
+            priority: "Normal",
+            priority_provenance: "operator-set",
+            summary: "Legacy ticket",
+            description: "Predates explicit lanes",
+            unit: null,
+            photo_refs: [],
+            reporter: { kind: "staff", uid: "editor-1" },
+            labels: [],
+            space_id: "maintenance",
+            created_at: "2026-07-01T00:00:00.000Z",
+            updated_at: "2026-07-01T00:00:00.000Z",
+          },
+        ],
+      ]),
+    );
+
+    const record = await getMaintenanceTicket(editor, "legacy", db);
+    expect(record?.data_mode).toBe("live");
+
+    await transitionMaintenanceTicket(
+      editor,
+      "legacy",
+      { op: "note", text: "Legacy record normalized" },
+      db,
+    );
+    expect(
+      store.get(MAINTENANCE_TICKET_COLLECTIONS.tickets)?.get("legacy")?.data_mode,
+    ).toBe("live");
+  });
+
+  it("creates a reserved Test ticket and atomically mirrors its Test Vendor assignment", async () => {
+    const { db, store } = fakeDb();
+    const ticket = await createCanonicalMaintenanceTestTicket(editor, {}, db);
+
+    expect(ticket).toMatchObject({
+      data_mode: "test",
+      unit: { unitId: "unit:test-maple-204" },
+      labels: ["TEST DATA"],
+    });
+
+    const assigned = await transitionMaintenanceTicket(
+      editor,
+      ticket.id,
+      { op: "vendor-assign", vendorId: MAINTENANCE_TEST_VENDOR.id },
+      db,
+    );
+    expect(assigned.vendor_id).toBe(MAINTENANCE_TEST_VENDOR.id);
+    expect(
+      store.get(MAINTENANCE_TICKET_COLLECTIONS.vendorAssignments)?.get(ticket.id),
+    ).toMatchObject({
+      ticket_id: ticket.id,
+      vendor_id: MAINTENANCE_TEST_VENDOR.id,
+      active: true,
+      data_mode: "test",
+    });
+  });
+
+  it("records a bodyless internal Test receipt that cannot qualify as Live proof", async () => {
+    const { db } = fakeDb();
+    const ticket = await createCanonicalMaintenanceTestTicket(editor, {}, db);
+    await transitionMaintenanceTicket(
+      editor,
+      ticket.id,
+      { op: "vendor-assign", vendorId: MAINTENANCE_TEST_VENDOR.id },
+      db,
+    );
+
+    const receipt = await simulateMaintenanceTestAction(
+      editor,
+      ticket.id,
+      {
+        actionKey: "vendor.assignment.change",
+        confirmation: MAINTENANCE_TEST_CONFIRMATION,
+      },
+      db,
+    );
+    expect(receipt).toMatchObject({
+      data_mode: "test",
+      provider_contacted: false,
+      live_proof_eligible: false,
+      outcome: "simulated_success",
+    });
+    expect(await listMaintenanceTestActionReceipts(editor, ticket.id, db)).toEqual([
+      receipt,
+    ]);
+
+    const duplicate = await simulateMaintenanceTestAction(
+      editor,
+      ticket.id,
+      {
+        actionKey: "vendor.assignment.change",
+        confirmation: MAINTENANCE_TEST_CONFIRMATION,
+      },
+      db,
+    );
+    expect(duplicate).toEqual(receipt);
+    expect(await listMaintenanceTestActionReceipts(editor, ticket.id, db)).toEqual([
+      receipt,
+    ]);
+  });
+
+  it("rejects Test simulation for a Live ticket before writing a receipt", async () => {
+    const { db, store } = fakeDb();
+    const liveTicket = await createMaintenanceTicket(editor, baseInput, db);
+
+    await expect(
+      simulateMaintenanceTestAction(
+        editor,
+        liveTicket.id,
+        {
+          actionKey: "rentvine.work_order.create",
+          confirmation: MAINTENANCE_TEST_CONFIRMATION,
+        },
+        db,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(store.get(MAINTENANCE_TICKET_COLLECTIONS.testActionReceipts)).toBeUndefined();
+  });
+
+  it("rejects reserved Test aliases in the Live lane", async () => {
+    const { db } = fakeDb();
+    await expect(
+      createMaintenanceTicket(
+        editor,
+        {
+          ...baseInput,
+          unit: {
+            unitId: "unit:test-maple-204",
+            label: "TEST — 204 Maple Court Unit 2",
+            confidence: "Verified",
+          },
+        },
+        db,
+      ),
+    ).rejects.toThrow(/reserved Test unit/);
   });
 
   it("notifies the assignee on assign + status, and never on create/label/note or unassigned", async () => {

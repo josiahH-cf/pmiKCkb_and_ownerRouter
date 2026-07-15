@@ -7,8 +7,10 @@ import {
   externalActionRecordId,
 } from "@/lib/external-execution/identity";
 import {
+  createIsolatedTestExternalActionOrchestrator,
   externalPreviewHash,
   ExternalActionOrchestrator,
+  markIsolatedTestExecutor,
   validateExternalInput,
 } from "@/lib/external-execution/orchestrator";
 import type {
@@ -68,6 +70,54 @@ afterEach(() => {
 });
 
 describe("external execution fail-closed boundary", () => {
+  it("binds production Test receipts to no-client adapters and rejects cross-lane execution", async () => {
+    const definition = LEASE_EXECUTION_DEFINITION_MAP.get(
+      "gmail.renewal_notice.draft_create",
+    )!;
+    const input = synthetic(definition);
+    const store = new MemoryExternalExecutionStore();
+    const rawExecutor = receiptExecutor();
+    const isolated = createIsolatedTestExternalActionOrchestrator(
+      new Map([[definition.key, definition]]),
+      store,
+      new Map([[definition.key, markIsolatedTestExecutor(rawExecutor)]]),
+    );
+
+    const prepared = await isolated.prepare(input);
+    expect(prepared).toMatchObject({ dataMode: "test", state: "ready" });
+    await expect(isolated.execute(input, prepared.previewHash)).resolves.toMatchObject({
+      receipt: { dataMode: "test", liveEvidenceEligible: false },
+    });
+
+    await expect(
+      isolated.prepare({
+        ...input,
+        dataMode: "live",
+        workflowId: "renewal-live-cross-lane",
+      }),
+    ).rejects.toThrow(/cannot execute a Live record/i);
+
+    const memory = new MemoryExternalExecutionStore();
+    const durable = {
+      persistence: "firestore" as const,
+      get: memory.get.bind(memory),
+      create: memory.create.bind(memory),
+      claim: memory.claim.bind(memory),
+      finish: memory.finish.bind(memory),
+      fail: memory.fail.bind(memory),
+    } satisfies ExternalExecutionStore;
+    vi.stubEnv("NODE_ENV", "production");
+    const liveBoundary = new ExternalActionOrchestrator(
+      new Map([[definition.key, definition]]),
+      durable,
+      new Map([[definition.key, rawExecutor]]),
+    );
+    await expect(liveBoundary.prepare(input)).rejects.toThrow(
+      /Test records must use the isolated Test workspace/i,
+    );
+    expect(rawExecutor.execute).toHaveBeenCalledTimes(1);
+  });
+
   it("blocks synthetic references by default and cannot enable them in production", async () => {
     const definition = LEASE_EXECUTION_DEFINITION_MAP.get(
       "gmail.renewal_notice.draft_create",
@@ -92,6 +142,7 @@ describe("external execution fail-closed boundary", () => {
   it("fences production staff to S20 while retaining only the durable scoped Vendor seam", async () => {
     const definition = MAINTENANCE_EXECUTION_DEFINITION_MAP.get("vendor.gmail.health")!;
     const vendor = synthetic(definition);
+    vendor.dataMode = "live";
     vendor.contractRef = "documented:vendor-gmail:v1";
     vendor.connectionRef = "vendor-gmail-connection-v1";
     vendor.mappingRef = "vendor-mailbox-mapping-v1";
@@ -178,6 +229,20 @@ describe("external execution fail-closed boundary", () => {
     };
     record = await boundary.prepare(nextInput, [wrongReceipt]);
     expect(record.state).toBe("blocked");
+
+    const laneInput = synthetic(definition, 2);
+    const crossLane = {
+      ...dependencyRecord(laneInput, "gmail.renewal_notice.send"),
+      dataMode: "live" as const,
+      receipt: {
+        ...dependencyRecord(laneInput, "gmail.renewal_notice.send").receipt!,
+        dataMode: "live" as const,
+        liveEvidenceEligible: true,
+      },
+    };
+    record = await boundary.prepare(laneInput, [crossLane]);
+    expect(record.state).toBe("blocked");
+    expect(record.blocker).toContain("gmail.renewal_notice.send");
   });
 
   it("marks a wrong-action provider receipt ambiguous after exactly one claim", async () => {
@@ -269,6 +334,7 @@ describe("external execution fail-closed boundary", () => {
   it("lets a production Vendor reconcile a consumed read while new execution stays Registry-closed", async () => {
     const definition = MAINTENANCE_EXECUTION_DEFINITION_MAP.get("vendor.gmail.health")!;
     const value = synthetic(definition);
+    value.dataMode = "live";
     value.workflowId = "vendor-workflow-placeholder-1";
     value.actionId = "vendor-health-placeholder-1";
     value.contractRef = "documented:vendor-gmail:v1";
@@ -297,6 +363,7 @@ describe("external execution fail-closed boundary", () => {
     } satisfies ExternalExecutionStore;
     await memory.create({
       id: externalActionRecordId(value),
+      dataMode: "live",
       workflowId: value.workflowId,
       actionId: value.actionId,
       actionKey: value.actionKey,
@@ -381,6 +448,7 @@ function dependencyRecord(
 ): ExternalExecutionRecord {
   return {
     id: `${input.workflowId}:dependency`,
+    dataMode: input.dataMode ?? "live",
     workflowId: input.workflowId,
     actionId: "dependency",
     actionKey,
@@ -391,6 +459,8 @@ function dependencyRecord(
     attemptCount: 1,
     receipt: {
       actionKey,
+      dataMode: input.dataMode ?? "live",
+      liveEvidenceEligible: (input.dataMode ?? "live") === "live",
       providerRef: "provider:dependency",
       resultHash: "f".repeat(64),
       reconciled: false,

@@ -1,164 +1,123 @@
-# Client Checklist
+# Client checklist
 
-This checklist names what PMI KC must purchase, provision, answer, or approve before
-engineering can complete production work. Do not put credentials or customer records in
-this repo; record only names, owners, decisions, and non-secret identifiers.
+Updated: 2026-07-15.
 
-Use `docs/environment-handoff.md` to track non-secret environment identifiers, secret
-ownership, manual setup status, and verification evidence after these asks are answered.
+This is the client-facing list of inputs that improve content or activate a specific Live provider.
+It is **not** a list of conditions that must all be answered before the production application can be
+V1. The stable app includes side-by-side Live and isolated Test workflows; Test Maintenance and Test
+Vendor journeys write to Firestore, reach Done, and contact no external providers.
 
-For final-V1 external gates, use
-`docs/v1-client-unblock-checklist-2026-07-14.md` as the recommendation-first system of record. It
-names every exact action key, acceptable non-secret response, credential-owner label, bounded first
-proof, and correction path. The summaries below route work; they do not replace that checklist or
-authorize a live action.
+Use `docs/v1-client-unblock-checklist-2026-07-14.md` for the exact process and recommended default,
+and `docs/environment-handoff.md` for non-secret project/owner/location records. Do not place
+credentials, customer records, Gmail bodies, setup links, passwords, TOTP secrets, OAuth codes, or
+tokens in this repository.
 
-## Current Outbound Asks
+## What we can finish without another client decision
 
-R01–R09 are answered. These are the remaining operational/provider inputs after the final Round 3
-contract. Implementation runs from `docs/v1-gap-implementation-program-2026-07-14.md`; do not ask the
-owner to reclassify settled actions. Do not paste credentials, source records, live Gmail content,
-leases, or tool secrets into this repo.
+- Deploy and verify the production Live/Test application.
+- Firebase Email/Password, TOTP, and the authorized production domain were verified/enabled on
+  2026-07-15; run the deployed Vendor acceptance after release.
+- Seed and complete the canonical Test Maintenance workflow:
+  `unit:test-maple-204` (`TEST — 204 Maple Court Unit 2`).
+- Provision and disable the canonical Test Vendor:
+  `vendor:test-summit-plumbing` (`Summit Plumbing Test Vendor`,
+  `service@summit-plumbing.example.invalid`).
+- Exercise app/Firestore writes and receipts through Done with zero provider calls.
+- Use bounded manual retention cleanup; native TTL, extra indexes, and scheduling are optional.
+- Accept the documented three Moderate dev-only dependency findings for V1 and recheck them by
+  2026-08-15.
 
-| Ask                         | Exact client action                                                                                                                                                                                                                                      | Needed for                                          | Status                                                                                                                            | Verification after unblock                                                                                                                                   |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Source drop zone fill       | Add process docs, notes, examples, templates, screenshots, and useful context to the shared Drive source drop zone created by Josiah.                                                                                                                    | KB production source readiness and product scoping. | Folder created/shared: <https://drive.google.com/drive/folders/1arXww32LaPcIbFx_oONshbR62imiC8kq>; awaiting team content.         | Convert approved source material into source manifests/readiness checks.                                                                                     |
-| Tool access spreadsheet     | Fill in tool, available access type, location, and notes for RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Google Sheets including which sheets, and any missing tools.                                                                               | Integration capability classification.              | Partially received: RentVine both/API; LeadSimple, DotLoop, Boom, and Sheets admin/location; QuickBooks blank; Sheets scope open. | Update research backlog and environment handoff with non-secret locations/owners.                                                                            |
-| Production source policy    | For each policy, provide connector ID, exact root/folder ID, allowed launch Space IDs, sensitivity ceiling, scanner provider/key + owner, and any reductions from the built-in launch type/size defaults; do not paste content/secrets.                  | S21 production publication.                         | S21 app-plane is Local green; no production policy/root/scanner/import/index is configured.                                       | Create the reasoned Admin policy, prove every negative check and rollback with synthetic content, then request a separate approved-source import/index gate. |
-| Vendor auth/OAuth setup     | Approve Identity Platform TOTP, invitation delivery, Google OAuth consent/client/redirect, and token vault; first use a dedicated non-customer external test mailbox/synthetic ticket, then separately authorize client-selected real-Vendor acceptance. | S22 external Vendor portal.                         | Local app-plane/fake/emulator acceptance is green; no live Vendor principal/OAuth app is configured.                              | Prove invite→MFA→assigned ticket→OAuth→revoke, active invited-email rechecks, and mid-flight secret cleanup before first send or final Vendor acceptance.    |
-| Workflow recipient mappings | Identify the authoritative runtime adapters/fields for renewal owner/tenant and maintenance owner/vendor recipients and required values.                                                                                                                 | S25/S26 initiation.                                 | S24 artifacts/AI policy and missing/drift blocking are Local green; browser-entered addresses remain non-authoritative.           | Wire each mapped source in its provider slice and prove missing/drifted values block before Registry promotion.                                              |
-| R02/R03 provider contracts  | Work one exact row from `docs/v1-client-unblock-checklist-2026-07-14.md`; provide only its named account/plan/mapping evidence and credential-owner/location label.                                                                                      | Every final-V1 external action.                     | Product membership and typed local adapters are settled; account-specific contracts/mappings remain independently closed.         | Run that row's bounded proof with exact preview, one attempt, receipt/readback, monitor, and correction evidence before Registry review.                     |
-| Staged acceptance approvals | Approve each exact cloud config/deploy/live proof, then complete Dan business and Josiah technical acceptance only after S20–S27 pass.                                                                                                                   | Pre-V1 stages and final V1.                         | R09 sequencing/owners are settled; no new deploy or production proof is authorized by the response.                               | Manifest stays pre-V1 until every required action and Vendor portal are accepted.                                                                            |
+## Current client inputs
 
-## Resolved Client Foundations
+| Input                                                                                                                                           | Why it helps                                                  | Current safe default                                                                         | Does absence block app V1? |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------- |
+| Add approved SOPs/templates/examples to the [shared source drop zone](https://drive.google.com/drive/folders/1arXww32LaPcIbFx_oONshbR62imiC8kq) | Improves KB coverage and workflow wording                     | Keep existing approved sources; unsupported questions show `No Reliable Source Found`        | No                         |
+| Finish the tool-access sheet for QuickBooks and exact in-scope Sheets                                                                           | Enables account-specific Live integration planning            | Leave only the dependent provider actions unavailable                                        | No                         |
+| Name authoritative tenant/owner/Vendor recipient fields                                                                                         | Activates new Live renewal/maintenance communications         | Use non-routable Test aliases in Test mode; no browser-entered address becomes authoritative | No                         |
+| Provide a real Vendor mailbox when Live Vendor mail is wanted                                                                                   | Enables that Vendor's same-address OAuth connection           | Use Test Vendor password/TOTP and app-only mailbox                                           | No                         |
+| Provide account API contracts/mappings for a selected provider action                                                                           | Allows that exact Live read/write to be configured and proven | Keep that action unavailable; complete the workflow in Test mode                             | No                         |
+| Add approved source root/scanner policy when immediate publication is wanted                                                                    | Enables new production source publication                     | Existing approved KB remains usable; new publication fails closed                            | No                         |
+| Confirm later staff roster/Space scopes                                                                                                         | Expands delegation beyond initial operators                   | Manage roles later from Admin                                                                | No                         |
 
-- Production cloud: `pmi-kc-kb-prod` is provisioned under `pmikcmetro.com`; billing, the
-  project-scoped $10 budgets, the hard kill switch, Firebase/Firestore, and the canonical Cloud Run
-  service are verified. Remaining spend-bearing deploy/import/smoke steps still need explicit
-  per-step approval.
-- Renewal source: executed signed leases live in Dotloop; renewal timing and lease-end read from the
-  RentVine lease record (`lib/integrations/rentvine/lease-mapper.ts` → `lease_end_date`).
-- Renewal walkthrough: HELD 2026-06-19 by live screen-share; source questions are captured in
-  `docs/products/lease-renewal-discovery-reference.md`. A short supervised view of the exact
-  RentVine renewal/rent-increase clicks is optional, not a prerequisite to repeat discovery.
-- V1/tab direction: R01–R09 finalize risk-bounded Editor execution, all-risk Admin self-approval,
-  every S25/S26 action, S21 trusted publication, S23 live-provider/browser acceptance, S22 external Vendor, S24
-  retention/artifacts/AI policy, all seven tab visions, no-autonomous-send, and staged acceptance.
-- Operating owners: Dan owns business acceptance; Josiah owns technical go-live, monitoring, rollback,
-  and manual Gmail watch/degraded-watch response.
+R01–R09, the signed-lease location, lease-end source, renewal discovery walkthrough, risk-based
+authority, human-confirmed sends, Vendor identity model, and product tab direction are already decided.
+Do not ask the client to decide them again.
 
-## Josiah-Owned Follow-Ups
+## Completed foundations
 
-| Item                         | Action                                                                                                                                                                           | Needed for                          | Status                                                                                                 |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| RentVine credential rotation | RESOLVED (owner decision 2026-06-20): the RentVine API key/secret that appeared in ignored local spreadsheet notes is used as-is, NOT rotated. No client action; do not ask Dan. | Future RentVine integration safety. | Josiah-owned follow-up; do not record replacement secret values in git, email drafts, or tracked docs. |
-| Gmail transport activation   | COMPLETE 2026-07-13: DWD readonly/compose/labels/modify, Pub/Sub/watch, deployment, and self-addressed transport proof.                                                          | Workflow Communications foundation. | Evidence proves transport, not authorization for a general inbox product.                              |
-| Gmail self-thread proof      | Authorized: one synthetic self-addressed message and one exact-confirmed reply; Dan/third-party delivery excluded.                                                               | Safe proof of send and threading.   | Execution/result is recorded in the S19 activation evidence.                                           |
+| Foundation                | State                                                                                                                                                                |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Production cloud          | `pmi-kc-kb-prod`, billing, project-scoped budget controls, Firebase/Firestore, Cloud Run, runtime identity, and canonical host exist under `pmikcmetro.com`          |
+| Internal Firebase sign-in | Managed-domain Google sign-in and initial Admin path are working; canonical host is the intended authorized domain                                                   |
+| Gmail transport           | DWD readonly/compose/labels/modify, watch/Pub/Sub, and a synthetic self-thread reply were proven 2026-07-13; product use remains workflow-linked and exact-confirmed |
+| Renewal system facts      | Executed leases are in Dotloop; lease timing/end date reads from RentVine `lease_end_date`                                                                           |
+| Renewal discovery         | Live walkthrough held 2026-06-19; an exact-click follow-up is optional, not rediscovery                                                                              |
+| Source collaboration      | Shared Drive drop zone exists and is shared; the team may add approved material over time                                                                            |
+| Notifications             | In-app notifications are the V1 delivery path; legacy event-driven approval email stays disabled                                                                     |
 
-## Decisions To Confirm
+## Provider activation requests
 
-| Ask                                                            | Why it matters                                                            | Needed for |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------- | ---------- |
-| Confirm later Editor/Approver roster and space scopes.         | Determines internal delegation; it does not change settled S20 authority. | All lanes  |
-| Confirm initial delegated approvers beyond Dan/Josiah, if any. | Later approver changes should be manageable in the Admin console.         | All lanes  |
+Ask only for the provider the client wants to turn on next. Each request should name one exact action,
+not ask for broad or unnecessary access.
 
-## Access And Accounts
+| Provider            | Ask for                                                                                                 | Never ask for or infer                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| RentVine            | Account endpoint/permission, exact property/unit/lease/Vendor/status mapping, conflict/version behavior | Guessed write endpoint or unconditional overwrite          |
+| Google Sheets       | Sheet/tab, stable row key/column, DWD subject/permission, atomic conflict strategy                      | Customer rows in git or read-then-unconditional-write      |
+| Gmail               | Authoritative linked recipient/thread fields, sender mailbox, exact approved artifact/label             | General inbox browsing, free-form compose, autonomous send |
+| Vendor Google OAuth | Web client/redirect, exact four scopes, vault label, same routable Vendor mailbox                       | DWD, shared PMI mailbox, Admin consent on Vendor's behalf  |
+| Dotloop             | Official/account API, profile/template/participant/document mapping, OAuth plan                         | UI/RPA endpoint inference                                  |
+| LeadSimple          | Account endpoint/plan, process/stage/assignee mapping, conditional update contract                      | Guessed stages or unconditional stage overwrite            |
+| QuickBooks          | OAuth/company/Vendor/account mapping and draft-only permission                                          | Post, approve, pay, bank, or ledger authority              |
+| Boom/SMS            | Existing account/plan, mapping/consent/applicability and correction contract                            | Purchasing/selecting a provider by inference               |
+| Drive               | Approved in-boundary photo folder, runtime permission, file/scanner policy                              | Replace/delete behavior or source-folder overreach         |
 
-| Ask                        | Exact client action                                                                                                                                                                                                 |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Google Workspace admin     | COMPLETE: DWD client `104374162913177846911` has readonly, compose, labels, and modify; `mail.google.com` remains absent.                                                                                           |
-| GCP/Firebase project       | COMPLETE: `pmi-kc-kb-prod`, billing, budgets/kill switch, Firebase/Firestore, and Cloud Run exist under the managed domain.                                                                                         |
-| Firebase Auth              | COMPLETE for the managed domain and initial Admin path; confirm only the final operator roster/roles.                                                                                                               |
-| External Vendor Auth       | S22 is Local green; it still needs approved Identity Platform TOTP, invite delivery, OAuth app/redirect, token vault, a non-customer external test mailbox proof, and separately authorized real-Vendor acceptance. |
-| Drive source folders       | Source drop zone is created and shared; add source material and confirm which folders/files are approved for KB and renewal material.                                                                               |
-| Gmail workflow test access | Use fake transport or a synthetic self-addressed thread linked to an authorized test workflow; never scan an inbox for acceptance.                                                                                  |
-| Approval notifications     | Use in-app notifications. Do not provision an event-driven sender unless a future approved spec replaces the disabled legacy lane.                                                                                  |
-| Deployment domain          | COMPLETE: the canonical Cloud Run URL is the authorized production host.                                                                                                                                            |
-| Secret ownership           | Name who owns production and staging Secret Manager access, API-key custody, key rotation, break-glass access, and revocation for each approved environment when integrations are approved.                         |
-| Tool credential rotation   | Josiah-owned follow-up for now; do not include in Dan's current source/walkthrough email thread.                                                                                                                    |
-| Signed lease system        | COMPLETE: executed leases are in Dotloop; lease end reads from the Rentvine lease record.                                                                                                                           |
-| Renewal walkthrough        | COMPLETE for initial discovery: live walkthrough held 2026-06-19; an exact-click follow-up is optional, not a rediscovery blocker.                                                                                  |
-| Renewal source location    | Use the shared `Lease Renewals` source-drop-zone folder for captured workflow notes unless setup identifies a better client-accessible app-connected source.                                                        |
-| Renewal source access      | Grant the whole PMI KC team direct edit access to the initial Lease Renewal source-of-truth folder.                                                                                                                 |
-| Renewal source curation    | Let Dan set the review cadence and test the simplest low-cost copy path for all useful source file types from Drive into Cloud Storage plus Agent Search periodic ingestion.                                        |
-| Renewal source hygiene     | Move non-sources-of-truth out of the Lease Renewal source folder and identify where non-source, reference, or archive material should live.                                                                         |
-| Maintenance intake source  | Identify where tenant maintenance requests and phone notes live.                                                                                                                                                    |
+The first Live proof is one bounded, explicit, human-confirmed action with an idempotency key,
+bodyless receipt, provider readback, and documented correction. A failed or ambiguous result is
+reconciled before any second attempt.
 
-## Source Material
+## Vendor activation
 
-| Ask                            | Exact client action                                                                                                                                                         |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Approved KB sources            | Add approved SOPs, templates, checklists, and policies by Space to the shared source drop zone.                                                                             |
-| Lease renewal sources          | Add the walkthrough recording, client context, team notes, renewal notices, timing rules, communication examples, exception rules, and approval owners to `Lease Renewals`. |
-| Workflow communication sources | Add approved renewal/maintenance recipient sources, templates, label rules, unsupported categories, and review owners.                                                      |
-| Sensitivity review             | Mark high-sensitivity sources that must not be indexed or committed.                                                                                                        |
-| Missing facts                  | Answer open questions or explicitly approve placeholders.                                                                                                                   |
+The Test Vendor is part of V1 and needs only project-level Email/Password and TOTP. Admin provisioning
+returns a password-setup link once, the Test user enrolls TOTP, and assigned-ticket/app-only mailbox
+behavior is proved without invitation delivery or OAuth.
 
-## Product Definition Follow-Ups
+A **Live** Vendor additionally requires:
 
-| Product                 | Exact client answer needed                                                                                                                                                                                                                                    |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PMI KC KB               | Which source folders feed Lease Renewals, Maintenance Work Order Intake, Move-Out + Deposit Disposition, and Owner Onboarding?                                                                                                                                |
-| Lease Renewal Agent     | Which starter renewal materials should go into the source-of-truth folder first?                                                                                                                                                                              |
-| Lease Renewal Agent     | Which Google Drive folder should captured Lease Renewal workflow notes live in first, unless setup selects a better source?                                                                                                                                   |
-| Lease Renewal Agent     | Which people are included in the initial whole-team edit group for the Lease Renewal source-of-truth folder?                                                                                                                                                  |
-| Lease Renewal Agent     | Which systems expose signed lease/dates, tenant/property facts, owner information, current rent/terms, and renewal timeline when integration scoping begins?                                                                                                  |
-| Lease Renewal Agent     | Which approved edit/add-resource path should missing facts link to: in-place process edit, Drive/source folder add, or another source path?                                                                                                                   |
-| Lease Renewal Agent     | Does a simple low-cost copy automation handle all useful source file types from Drive, with conversion or visible skips when needed?                                                                                                                          |
-| Lease Renewal Agent     | Where should non-source, reference, or archive material live outside the Lease Renewal source folder?                                                                                                                                                         |
-| Lease Renewal Agent     | Which target-system/action-type pairs can be approved for future executable external actions?                                                                                                                                                                 |
-| Lease Renewal Agent     | Which external systems later need mirrored workflow-run state from the KB-owned central workflow record?                                                                                                                                                      |
-| Lease Renewal Agent     | Who, if anyone, should be added as an initial delegated approver beyond Dan and Josiah in the Admin console?                                                                                                                                                  |
-| Lease Renewal Agent     | Which people should receive in-app workflow attention beyond the default owner/final approver and next-action assignee? Out-of-app delivery is deferred.                                                                                                      |
-| Maintenance             | Which tools, services, connections, and chatbot/phone system should support intake when Maintenance scoping begins?                                                                                                                                           |
-| Maintenance             | Who approves common issue templates and escalation rules?                                                                                                                                                                                                     |
-| Move-Out                | Where does the security-deposit ledger of record live (Move-Out Q4)? The V1 desk surfaces a `Needs Verification:` pointer for it until Dan confirms; deposit postings stay manual (QuickBooks read-only-at-most).                                             |
-| Move-Out                | What dollar threshold requires owner approval for a repair/bid before it is deducted (Move-Out Q5)? The V1 evidence packet renders it as a `Needs Verification:` placeholder; no number is invented and the suggested deduction is owner-approval-gated.      |
-| Workflow Communications | S24 Local green: 10m/30d confirmation, 7d dedupe, 90d sync, 365d link, 7y bodyless audit, no persisted V1 AI facts, legal hold, three v1.0 artifacts, and transient source-backed AI reply. Separately approve TTL/scheduler activation and S25/S26 mappings. |
-| Workflow Communications | Which configured runtime adapters/fields supply authoritative owner/tenant/maintenance recipients and required values? Base templates are already approved v1.0.                                                                                              |
-| Workflow Communications | When is a maintenance owner notice required, and which system supplies the verified owner recipient?                                                                                                                                                          |
-| Workflow Communications | RESOLVED for V1: keep the current exclusions—owner money, legal/notices, and tenant disputes—with no additions.                                                                                                                                               |
-| Workflow Communications | RESOLVED: Josiah manually renews mailbox watches and responds to degraded watch health; no scheduler is assumed.                                                                                                                                              |
-| Workflow Communications | RESOLVED identity: Admin invite, one-time setup, verified-email TOTP, assigned-ticket-only, same Gmail/Workspace address via per-vendor OAuth, exact Vendor/Admin send confirmation. Implement S22.                                                           |
+- a routable real Vendor mailbox and assignment;
+- delivery of the one-time setup link through an approved one-time channel;
+- verified email and TOTP;
+- a Google OAuth client with the exact redirect/four scopes;
+- Secret Manager-backed token vault; and
+- one same-address connect/read/exact-confirm/revoke proof.
 
-## Testing And Training
+These items activate that Vendor's Live mailbox. They do not hold the Test Vendor or the application
+V1 state open.
 
-| Ask                       | Exact client action                                                                                                                 |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Test users                | Use Josiah and Dan as initial Admin smoke users; add scoped Editor/Approver tests when delegated.                                   |
-| Acceptance scenarios      | Provide real but safe scenarios for KB, renewals, and owner-email workflows.                                                        |
-| Training attendees        | Name who must be trained for each product.                                                                                          |
-| Production support window | Josiah owns technical monitoring/rollback; name the dated support window, escalation contact, operator roster, and test identities. |
+## Source and training follow-ups
 
-## Current Blockers
+These are normal post-launch content/operations tasks:
 
-- **Use the exact unblock checklist.**
-  `docs/v1-client-unblock-checklist-2026-07-14.md` is the complete recommendation-first packet for
-  S21, S22, S24, every S25/S26 action, and S27. Do not replace it with a generic request for
-  "provider access" or repeat R01–R09.
-- **No product-decision blocker remains from the audit.** The safe local path uses invented
-  `example.invalid` aliases, exact Registry previews, typed S22/S25/S26 adapters, one-attempt
-  receipts, and zero provider calls. Production rejects fake providers and never treats that
-  synthetic result as provider proof.
-- **Launch content:** approve production files/folders, sensitivity, and source/data-store maps for
-  the first launch Spaces. Cloud/Firebase/billing/domain setup is already complete.
-- **Workflow Communications promotion:** separately activate the Local-green S24 TTL/cleanup policy,
-  then configure authoritative S25/S26 recipient/value adapters. AI exclusions and watch ownership are resolved.
-- **Lease Renewal operational acceptance:** confirm the exact production Sheet scope and safe
-  acceptance/golden scenarios. Signed-lease location, lease-end source, precedence, read transport,
-  and the initial walkthrough are resolved.
-- **External provider gates:** account-specific contracts/mappings/credentials plus separate approvals
-  for TOTP/OAuth/token vault, first Vendor invite/consent/send, and each S25/S26 first live action.
-- **Release action gate:** the local candidate and later pre-V1 stages need explicit deploy/smoke
-  approval. Final V1 also requires every action/Vendor E2E plus Dan/Josiah acceptance.
+- add approved KB, Lease Renewal, Maintenance, Move-Out, and Owner Onboarding material;
+- identify the exact in-scope operating Sheets and archive/reference folder;
+- name later Editors/approvers and training attendees;
+- identify the production Maintenance intake sources when connecting them; and
+- choose the next provider action to activate based on actual usage.
 
-Final-V1 remains blocked until the exact checklist rows have real-provider/configuration evidence and
-named acceptance. That includes trusted-publication production resources, S24 production cleanup/TTL,
-Vendor identity/OAuth/mail, each S25/S26 action, a captured prior revision and rollback rehearsal,
-desktop/phone deployed acceptance, dependency disposition, a dated support window/operator roster,
-and Dan/Josiah signatures. Their local
-typed synthetic journeys are built; none of that opens a production gate. Generic Gmail inbox/compose,
-autonomous send, extra delegated approvers, and event-driven approval email remain outside V1.
+Missing material remains visibly missing; the application must not invent property-management policy.
 
-- Any request involving raw customer records, ledgers, bank data, SSNs, full lease
-  packets, or live Gmail content must be handled outside git.
+## Genuine blocker checklist
+
+- [ ] If managed Google auth is stale, owner completes `npm run auth:session` interactively.
+- [x] Email/Password is enabled with password required; TOTP is enabled with adjacent interval `1`.
+- [x] The production host is present in Firebase authorized domains; Google sign-in remains enabled.
+- [ ] If a selected Live action lacks credentials/contract/mapping, leave only that action unavailable
+      and request the exact missing input.
+- [ ] If a real Vendor Live mailbox is selected, obtain that Vendor's consent and vault configuration.
+
+Everything else should continue with the recommended Test or unavailable-provider default. No named
+acceptance signature, TTL/index/scheduler activation, or all-provider activation requirement blocks
+the working production V1 application.
+
+Any request involving raw customer records, ledgers, bank data, SSNs, full lease packets, or live
+Gmail content must be handled outside git.

@@ -1,97 +1,121 @@
-# PMI KC V1 gap implementation program
+# PMI KC V1 working-app implementation program
 
-Decision source: the owner's 2026-07-14 Round 3 response in
-`docs/v1-readiness-audit-round-3-2026-07-14.html`. This is the durable, runner-neutral packet for an
-outside session triggered with `/loop`, “run the loop,” or “implement the V1 gaps.” It replaces the
-Round 3 question-gathering phase. It does not authorize a live send, external mutation, account
-provisioning, mailbox connection, deploy, or production smoke.
+Decision source: the owner's 2026-07-14 Round 3 answers, clarified by the 2026-07-15 working-app
+direction. This is the durable, runner-neutral packet for `/loop`, “run the loop,” or “implement the
+V1 gaps.” It replaces the former all-providers-live/pre-V1 interpretation. It does not weaken
+authorization, confirmation, identity, redaction, or provider-contract boundaries.
 
 ## End state
 
-The release may be called **V1** only when all S20–S27 acceptance checks pass, every R02/R03 action is
-implemented and proven end to end in its permitted environment, the external Vendor portal passes
-assigned-ticket acceptance, and Dan/Josiah complete their business/technical acceptance. Intermediate
-deployments are **pre-V1**.
+**V1 is the stable production application PMI KC can use now.** S20–S27 application acceptance must
+pass, the internal and Vendor user journeys must work, and the production UI must expose visibly
+isolated **Live** and **Test** record lanes. Invented Test records may be written to app-owned
+Firestore collections, progress through the real workflow to `Done`, and count as evidence that the
+application works. They must never contact an external provider or count as Live-provider evidence.
 
-## Locked decisions
+A configured Live action may read or write its real provider only after the action-specific health and
+authority checks pass. Every Live write/send shows the exact target and effect, requires the authorized
+human's exact confirmation (and Admin approval where S20 classifies it High), makes at most one
+attempt, and leaves a bodyless receipt plus reconciliation/correction state. An unavailable provider
+action is an explicit activation item, not a reason to label the whole application Pre-V1.
 
-- Internal Editors directly execute enabled Low/Medium instances. High/consequential writes require
-  Admin approval. Admin may approve and execute their own proposal at every risk. A technical
-  `Blocked` state cannot be waived merely by approval.
-- Every Lease Renewal action in R02 and Maintenance action in R03 is final-V1 scope.
-- Validation-passing Editor source/process additions publish immediately inside the configured trust
-  boundary, with version, rollback, and audit. Content can never grant a role or enable an action.
-- Vendors are external, assigned-ticket-only Firebase users. Admin invites; the Vendor receives a
-  one-time setup link; verified-email TOTP MFA gates ticket details and Gmail OAuth. V1 supports
-  vendor-owned Gmail/Google Workspace through per-vendor OAuth only.
-- The listed retention defaults and legal-hold override are approved. The current three scaffold
-  generators become version `v1.0`; AI may rewrite only from authorized context and verified value
-  replacements, and every send is exact-confirmed by a human.
-- Console shows bounded message metadata/snippet inline and full body only in an authorized workflow
-  communication panel. Production has no fixture fallback.
+## Locked working-app decisions
+
+- Every record and receipt has a server-owned `live|test` mode. Missing legacy mode resolves to
+  `live`; a browser flag cannot change it. Live and Test records are visibly labeled and never share
+  an executor, idempotency identity, evidence claim, or provider side effect.
+- The canonical invented Test identities are unit `unit:test-maple-204`, displayed as
+  `TEST — 204 Maple Court Unit 2`, and Vendor `vendor:test-summit-plumbing`, displayed as
+  `Summit Plumbing Test Vendor`, with non-routable email
+  `service@summit-plumbing.example.invalid`.
+- Test app/Firestore writes are real application behavior. Test provider receipts always say
+  `provider_contacted:false` / `liveEvidenceEligible:false`; they can close a Test workflow but cannot
+  activate a Live provider.
+- Live provider activation is per action: `unavailable → test_ready → live_configured → live_proven →
+enabled`, with `suspended` available as a kill state. Application readiness and provider activation
+  are reported separately.
+- Internal Editors directly execute enabled Low/Medium instances. High/consequential Live writes
+  require Admin approval. A technical blocker cannot be waived by approval, and Test mode cannot be
+  used to route around a Live blocker.
+- Maintenance intake-through-close and external Vendor password/TOTP/assigned-ticket access are V1
+  application features. Vendor Test identity uses Firebase password setup plus TOTP and an app-only
+  assigned-ticket mailbox. A Live Vendor additionally requires a verified routable email and
+  same-address per-vendor Gmail/Workspace OAuth. Vendors never receive DWD, internal roles, or
+  cross-ticket access.
+- All human messages remain proposal-first and exact-confirmed. No generic compose, autonomous send,
+  scheduled send, bulk send/write, guessed endpoint, browser-selected recipient, or blind retry is
+  introduced by V1.
+- TTL, composite indexes, and a scheduled cleanup worker are optional operational optimizations. The
+  canonical retention fields, legal-hold semantics, bounded cleanup code, and manual runbook remain;
+  absence of cloud TTL/index/scheduler configuration is not an application-release gate.
+
+## Live and Test execution contract
+
+| Concern         | Production Test lane                                                   | Production Live lane                                                                 |
+| --------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Records         | Invented aliases only; app-owned Firestore records can reach `Done`    | Authorized PMI KC records from configured sources                                    |
+| External calls  | Always zero; only explicitly isolated Test adapters                    | Only the exact enabled action's configured provider adapter                          |
+| Confirmation    | Exact effect and Test target shown before simulated write              | Exact effect, real target, source context, risk, and expiry shown before one attempt |
+| Receipts        | Persisted Test receipt; `liveEvidenceEligible:false`                   | Provider/bodyless receipt plus readback or reconciliation evidence                   |
+| Release meaning | Proves application workflow, roles, state, audit, and failure handling | Proves only that particular provider action is configured and works                  |
+| Failure         | Visible Test failure/reconciliation; never fall through to Live        | Visible unavailable/blocked/ambiguous state; never fall back to Test                 |
 
 ## Dependency order for `/loop`
 
-| Slice | Suite | Safe unattended outcome                                                                                                                         | Stop before                                                                    |
-| ----- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| 1     | S20   | Risk classification, Editor/Admin authority, proposal/execution state machine, audit, tests                                                     | Any Registry flip or live action                                               |
-| 2     | S21   | Bounded stream/chunk storage, trusted validator, fenced local scanner, version/ref reuse/rollback/audit                                         | Production connector/root/scanner changes                                      |
-| 3     | S23   | Live-only Console contracts, scoped detail panel, fixture fencing, failure states                                                               | Live customer/Gmail read                                                       |
-| 4     | S24   | Date/Timestamp TTL plus numeric query schema, bounded crash-resumable emulator-only cleanup worker, dual-null legal hold, v1.0 artifacts/policy | Live index/TTL/scheduler deployment, legacy migration, or Gmail send           |
-| 5     | S22   | Vendor auth/assignment/MFA/OAuth app-plane and emulator paths                                                                                   | Real invite, OAuth client/secret, mailbox connection                           |
-| 6     | S25   | Exact schemas/S20 bridge plus typed synthetic executors for all 11 R02 action keys, closed by default                                           | Vendor credentials, Registry promotion, SoR writes, or sends                   |
-| 7     | S26   | Exact schemas/S20 bridge plus typed synthetic executors for all 19 R03 action keys, closed by default                                           | Credentials, account creation, Registry promotion, Drive/SoR writes            |
-| 8     | S27   | Actual-adapter synthetic E2E, hardened manifest/report, pre-V1 labels, local browser render, safe rollback/cutover rehearsal                    | Deploy, deployed browser/live/rollback acceptance, or bounded production proof |
+| Slice | Suite | Working-app outcome                                                                                                    |
+| ----- | ----- | ---------------------------------------------------------------------------------------------------------------------- |
+| 1     | S20   | Risk, authority, exact preview/confirmation, one-attempt claim, audit, and correction/reconciliation                   |
+| 2     | S21   | Bounded trusted publication with version, rollback, source-state, and production connector health                      |
+| 3     | S23   | Side-by-side Live and Test Console projections, scoped detail, provenance, and explicit source failure                 |
+| 4     | S24   | Workflow-bounded communication artifacts, retention/legal hold, and exact-confirmed sends; cleanup automation optional |
+| 5     | S22   | Firebase Vendor password/TOTP, assignment boundary, Test mailbox, and optional per-Vendor Live OAuth                   |
+| 6     | S25   | All 11 renewal actions executable in the isolated Test workspace; Live actions activate independently                  |
+| 7     | S26   | Maintenance capture → ticket → assignment → activity/receipts → close in Test; Live actions activate independently     |
+| 8     | S27   | Working-app manifest/report, role/mobile/failure browser acceptance, deploy, monitoring, and rollback validation       |
 
-Within S25/S26, implement one external system per slice. Each slice must ship preview, idempotency,
-read-after-write or reconciliation, rollback/correction, audit, failure typing, and tests before the
-next adapter starts. Vendor-confirmation-required or undocumented APIs may receive a typed disabled
-adapter and contract tests, but the action is not “implemented” and V1 cannot close until the real
-contract is documented and proven.
-
-The safe local adapter slices are complete as of 2026-07-14: the integrated invented-alias harness
-invokes the actual typed executor for all 11 S25 and all 19 S26 action keys, with one attempt and one
-bodyless receipt per key, plus the full synthetic S22 Vendor journey and zero live provider calls. This
-is local boundary evidence only. The same one-system order now applies to provider contract capture,
-exact Registry promotion, sandbox/reversible proof, and bounded production proof; none may be inferred
-from the synthetic result.
+Within S25/S26, every provider action still ships preview, idempotency, receipt/read-after-write or
+reconciliation, correction/rollback, audit, failure typing, and tests. An undocumented provider may
+remain `unavailable` while its complete Test action works. It may not be presented as Live, enabled
+against a guessed contract, or allowed to prevent unrelated application workflows from reaching V1.
 
 ## Outside-session operating contract
 
 1. Read `AGENTS.md`, `docs/facts.md`, `docs/loop-state.md`, this packet, then S20–S27.
-2. Inspect and preserve the dirty worktree. The July 14 Workflow Communications changes are user work.
+2. Preserve user work and use the canonical invented aliases whenever customer/provider input is not
+   required to prove application behavior.
 3. Run `npm run verify:context-freshness` and the focused baseline for the selected suite.
-4. Continue through safe local slices without asking again. Update facts/status/plan/loop at every
-   slice boundary.
-5. Before a live Google read, run `npm run preflight:adc`; if stale, stop and ask the owner to run
-   `npm run auth:session` in their terminal.
-6. Stop and provide an exact approval packet before any live action named above. Product inclusion is
-   not operational authorization.
-7. Use fake providers/emulators for customer data and mutations. Commit no Gmail body, customer data,
-   token, secret, raw vendor payload, or live identifier.
-8. Run focused checks per suite and `bash scripts/verify.sh` at each completed program milestone. Extend
-   sentinels; never weaken them.
+4. Build through application completion without pausing for a blanket approval. Stop only at the
+   exact external action that requires a real account, credential, authoritative mapping, or
+   consequential human confirmation; keep other slices moving.
+5. Before a live Google read, run `npm run preflight:adc`; if stale, ask the owner to run
+   `npm run auth:session` in their terminal. Before a cost-bearing cloud action, run the budget guard.
+6. Keep Test records in their production Test lane. Never copy a token, secret, Gmail body, customer
+   value, or raw provider payload into git, logs, audit, or Test fixtures.
+7. For a Live write/send, display its provider, account/record target, exact effect, risk, source,
+   expiry, and correction path; require exact human confirmation and produce a receipt.
+8. Run focused checks per suite and `bash scripts/verify.sh` at completed milestones. Extend sentinels;
+   never weaken them to make a provider look active.
 
 ## Completion ledger
 
-Track each row as `Not started`, `Local green`, `Gated`, `Live-proven`, or `Accepted`. A release row is
-`Accepted` only with evidence and rollback.
+Track application coverage separately from provider activation. `App green` means the production code
+and Test lane implement the contract; `Live configured/proven/enabled` applies only to a named action.
 
-| Suite | State       | Evidence / next boundary                                                                                                                                                                                                                                                                                                   |
-| ----- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S20   | Local green | Shared risk/authority policy, bodyless one-attempt ledger, exact S25/S26 preparation bridge, atomic High queue, Editor Medium Gmail capability; no Registry flip                                                                                                                                                           |
-| S21   | Local green | Bounded request stream, 384 KiB integrity chunks, immutable refs/version/rollback reuse/audit, local-demo scanner fence; production root/scanner/import/deploy proof gated                                                                                                                                                 |
-| S22   | Local green | Verified-email TOTP Vendor session, assigned-ticket UI/join, invite/OAuth/vault/revoke/fake Gmail; live setup gated                                                                                                                                                                                                        |
-| S23   | Local green | Server mode, scoped/provenanced projection, bounded Gmail metadata, test badge/cutover fence; live wiring gated                                                                                                                                                                                                            |
-| S24   | Local green | Indexed bounded worker with atomic bodyless run progress, canonical Date/Timestamp TTL, dual-null hold, emulator-only CLI, three immutable artifacts, transient source-backed AI reply; production migration/TTL/mappings gated                                                                                            |
-| S25   | Gated       | Exact schemas and actual typed adapters for all 11 keys pass invented-alias one-attempt/receipt acceptance; real contracts/mappings/proofs/promotion/acceptance pending                                                                                                                                                    |
-| S26   | Gated       | Exact schemas and actual typed adapters for all 19 keys pass invented-alias one-attempt/receipt acceptance; live identity/provider mappings/proofs/promotion pending                                                                                                                                                       |
-| S27   | Gated       | Hardened manifest/bodyless report, route-wide pre-V1 labels, synthetic S22/S25/S26 acceptance, local desktop/phone render, notifications-off cutover and prior-revision rollback guard are local green; deploy, pinned role/failure-path browser/live/rollback proof, dependency disposition, and named acceptance pending |
+| Suite | Application state                                                                                                                          | Provider/operations state                                                                              |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| S20   | App green                                                                                                                                  | Authority applies whenever an action is enabled                                                        |
+| S21   | App green                                                                                                                                  | Production sources/scanners activate per configured source                                             |
+| S22   | App green locally: staff provision/disable preview, Firebase Test Vendor, password/TOTP gate, assigned-ticket UI and app-only Test mailbox | Live Vendor OAuth activates per Vendor after routable-email/TOTP/same-address consent and vault health |
+| S23   | App green locally: production Live and Test panels, scoped provenance, bounded message metadata, explicit source failures                  | Rentvine/Gmail reads show `unavailable` until configured; no Test fallback                             |
+| S24   | App green                                                                                                                                  | TTL/index/scheduler optional; Live communication transports activate per action                        |
+| S25   | App green/Test-ready for all 11 typed actions                                                                                              | Each Live provider action retains its own activation state and evidence                                |
+| S26   | App green/Test-ready, including persistent invented Maintenance ticket/assignment/receipt/close and Vendor Test access                     | Each Drive/Rentvine/Gmail/LeadSimple/QuickBooks action activates independently                         |
+| S27   | Working-app release model built locally; production deploy/browser/rollback evidence must be refreshed for the candidate                   | Provider activation summary is informational and cannot downgrade app readiness                        |
 
-## Hard stop packet format
+## Exact activation/blocker packet
 
-When a gate is reached, report: exact action key and environment; account/data affected; evidence and
-tests already green; permission/credential/provider requirement; expected cost; one-attempt/idempotency
-plan; rollback/correction; owner who must approve; and what safe work remains. Do not collapse multiple
-systems into a blanket approval request. The current exact rows and recommended closed-by-default
-decisions are maintained in `docs/v1-client-unblock-checklist-2026-07-14.md`.
+When one Live action cannot activate, report only that row: action key and provider; configured/tested
+state; missing account, contract, credential, mapping, or human-confirmed record; expected cost;
+one-attempt/idempotency plan; monitoring; reconciliation/correction; recommended next command or owner
+step; and what remains usable now. Do not turn an unavailable provider row, optional TTL/index/
+scheduler optimization, or missing blanket approval into an application-wide blocker.

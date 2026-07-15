@@ -119,6 +119,46 @@ beforeEach(() => {
 });
 
 describe("S25/S26 external execution to S20 preparation bridge", () => {
+  it("rejects Test actions unless the explicit local synthetic harness owns the bridge", async () => {
+    const action = externalAction("gmail.label.apply", labelValues, "lane-fence");
+
+    await expect(
+      prepareExternalActionWithS20(
+        editor,
+        {
+          action,
+          definition: leaseDefinition(action.actionKey),
+          trustedContext: trustedExternalContext(action, labelContext),
+          validate: () => null,
+        },
+        { db },
+      ),
+    ).rejects.toThrow(/accepts Live actions only/i);
+    expect(fakeDb.store.size).toBe(0);
+  });
+
+  it("makes zero provider or ledger calls for a Test action in the production S20 seam", async () => {
+    const action = externalAction("gmail.label.apply", labelValues, "production-lane");
+    vi.stubEnv("NODE_ENV", "production");
+    try {
+      await expect(
+        prepareExternalActionWithS20(
+          editor,
+          {
+            action,
+            definition: leaseDefinition(action.actionKey),
+            trustedContext: trustedExternalContext(action, labelContext),
+            validate: () => null,
+          },
+          { db },
+        ),
+      ).rejects.toThrow(/production S20 provider bridge accepts Live actions only/i);
+      expect(fakeDb.store.size).toBe(0);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("blocks a Registry-closed production action before any ledger or queue write", async () => {
     const action = externalAction("gmail.renewal_notice.send", sendValues, "closed");
 
@@ -175,7 +215,7 @@ describe("S25/S26 external execution to S20 preparation bridge", () => {
         action_key: action.actionKey,
         preview_hash: hashExecutionPreview({ ...action.values }),
         risk: expectedRisk,
-        scope_ref: `external-workflow:${action.workflowId}`,
+        scope_ref: `external-workflow:test:${action.workflowId}`,
         state: "Ready",
       });
       expect(
@@ -797,6 +837,7 @@ function externalAction(
   return {
     actionId: `synthetic-action-${suffix}`,
     actionKey,
+    dataMode: "test",
     connectionRef: "synthetic:connection:provider",
     contractRef: "documented:synthetic:contract",
     mappingRef: "synthetic:mapping:account",

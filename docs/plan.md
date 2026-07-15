@@ -1,650 +1,181 @@
-# PMI KC Three-Product Plan
+# PMI KC Working-App V1 Plan
 
-## Product Summary
+Last updated: 2026-07-15
 
-This repo governs three purchased PMI KC products:
+## Release Contract
 
-- PMI KC KB: existing source-backed web app runtime and future workflow-control layer.
-- Lease Renewal Agent: first backend automation target after KB production lift.
-- Workflow Communications: workflow-linked Gmail communication and evidence for renewal
-  and maintenance, with Gmail remaining the message system of record.
+V1 is the stable production application with complete, visible Live and isolated Test
+workflows. Test records use reserved aliases, make real app/Firestore writes, may reach Done,
+and cannot contact an external provider or count as Live evidence. Provider activation is
+reported independently per action. Live writes are explicit, target-labeled, human-confirmed,
+idempotent, receipted, reconcilable, monitored, and reversible.
 
-Older KB-only and separate Owner Router repo plans are legacy unless this plan or a
-product doc explicitly preserves a safety boundary.
+The following are not application release gates:
 
-## Current Audit Snapshot
+- activation of every optional provider action;
+- Firestore TTL, extra composite indexes, or Scheduler automation;
+- named stakeholder signoff metadata;
+- replacing safe invented Test data with customer data.
 
-- The client-owned Cloud Run application is deployed and its auth, cited Ask, Console,
-  Notifications, renewal review, Maintenance desk, and Gmail transport have direct production
-  evidence. The broader S20–S27 candidate is deployed as Pre-V1 revision
-  `pmi-kc-kb-demo-00021-bj8`: its hardening includes bounded/chunked S21 content,
-  indexed/emulator-only S24 cleanup, exact S20-bridged S25/S26 adapters, and a production-only S27
-  manifest. Deployment and public/auth-boundary smoke do not make those newer seams Live-proven.
-- PMI KC-owned GCP/Firebase, billing, domain auth, the $10 kill switch, Rentvine reads, renewal-Sheet
-  DWD reads, Gmail DWD transport, and the first Admin path are established. They are not current V1
-  blockers.
-- Round 3 locks the expanded external-user V1 contract. Internal Editors directly execute enabled
-  Low/Medium instances; Admin approves consequential High work and may self-approve at every risk;
-  every named Lease Renewal and Maintenance output is final-V1 app execution scope; trusted Editor
-  publication is immediate; Console is live-only in production; exact retention/artifact/AI policies
-  are approved; and the MFA/assigned-ticket/per-vendor-Gmail-OAuth Vendor portal is required. S20–S27
-  and `docs/v1-gap-implementation-program-2026-07-14.md` are the implementation contract.
-- Lease Renewal has a deterministic read/reconcile/flag engine, live read capability, app-plane
-  review/resolution/writeback-approval controls, and simulation/test-run surfaces. No Sheet or
-  Rentvine writeback executes today. Final V1 requires app-executed Gmail, Sheet, Rentvine, Dotloop,
-  portal chat, SMS, and conditional Boom actions under S25. Undocumented/provider-gated actions block
-  final V1 rather than becoming tracked-manual fallbacks.
-- Workflow Communications is the active Gmail product boundary. The KB-hosted surface exposes
-  only authorized workflow links, value-free attention, governed labels, approved drafts, and
-  exact-confirmed replies; it does not expose a recent inbox, arbitrary search, or generic compose.
-- Safe local acceptance uses canonical non-routable `example.invalid` aliases plus invented lease,
-  ticket, unit, Vendor, folder, thread, process, work-order, account, and document references. The
-  harness traverses the real S22 domain services and all 11 S25 plus 19 S26 typed adapters with zero
-  live provider calls; this is Local-green evidence only and cannot satisfy a production proof.
-- The evidence map starts at `docs/v1-readiness-audit-2026-07-14.html`; the final owner contract is
-  `docs/v1-readiness-audit-round-3-2026-07-14.html`, and implementation starts from
-  `docs/v1-gap-implementation-program-2026-07-14.md`.
-- The old sibling Owner Router artifact repo exists locally and may be mined for Gmail
-  Inbox 0 source material, but active governance now lives in this monorepo.
-
-## Local Development Exhaustion Gate
-
-Local development should continue while it moves the products closer to a clean
-client-owned production cutover. It should stop producing new local product surface
-when the remaining blockers are client-owned access, approved sources, production
-configuration, migration approval, or real product decisions.
-
-Allowed work after that point is readiness work: verification, regression fixes,
-preflight/dry-run improvements, source manifest templates, cutover docs, acceptance
-scenarios, handoff notes, client asks, and research backlog updates. Defer speculative
-workflow, Approval Queue, Lease Renewal, Gmail, or demo-only expansion unless it
-directly satisfies a migration, acceptance, or approved quality gate.
+They remain tracked operational/provider work where useful.
 
 ## Cross-Product Phases
 
-Each phase carries a `Status:` line — `done`, `in progress`, `blocked`, or `not started`,
-kept current as work lands (a `blocked` phase names what it waits on). The Status line is the
-at-a-glance answer to "where are we"; `docs/status.md` holds the narrative history and
-`docs/loop-state.md` the active resume pointer. `tests/unit/plan-status-sync.test.mjs` enforces
-that every phase keeps a valid Status.
+Phase statuses must start with `done`, `in progress`, `blocked`, or `not started`.
 
-### P0 - Governance Realignment
+### P0 - Governance and Context Spine
 
-Status: done
+Status: done — runner-neutral routing, facts, loop state, safety, budget, and source rules exist.
 
-Acceptance criteria:
+Acceptance:
 
-- `AGENTS.md` routes to the three product lanes.
-- `docs/north-star.md`, `docs/products/`, and cross-product checklists exist.
-- Legacy separate-Owner-Router docs are moved or marked as superseded.
-- `docs/status.md` records the realignment and next step.
-
-Validation:
-
-```bash
-npm run format:check
-git diff --check
-```
-
-### P1 - Discovery And Source Inventory
-
-Status: in progress — Dan business acceptance and Josiah technical go-live/monitoring/rollback are
-resolved; the final support window/operator roster and source/workflow-artifact owners remain.
-
-Acceptance criteria:
-
-- Product owners and acceptance reviewers are named.
-- Client answers the concrete asks in `docs/client-checklist.md`.
-- `docs/research-backlog.md` is updated with answered, open, and blocked items.
-- Each product lane distinguishes confirmed facts from assumptions.
-- Confirmed facts, labeled assumptions, and open questions are tracked in `docs/facts.md` and gated
-  by `npm run verify:context-freshness`.
-
-Validation:
-
-```bash
-npm run format:check
-```
-
-### P2 - Access And Account Setup
-
-Status: in progress — GCP/Firebase, billing, domain auth, Rentvine/Sheets reads, and Gmail transport
-are confirmed; approved launch-Space sources/sensitivity and final operator roster remain.
-
-Acceptance criteria:
-
-- PMI KC-owned GCP/Firebase project and billing path are confirmed.
-- Workspace domains, test users, and authorized domains are approved.
-- Drive folder/source ownership is known.
-- Gmail transport setup authority and safe synthetic test approach are approved.
-- No secrets or raw client data are committed.
-
-Validation:
-
-```bash
-npm run host:check
-npm run preflight:production -- --env-file=.env.production.local
-```
-
-### P3 - Integration Capability Verification
-
-Status: in progress — Rentvine lease reads, renewal-Sheet reads, Drive DWD capability, and Gmail
-transport are live-proven; workflow-boundary promotion and every non-Gmail external write remain
-separately gated.
-
-Acceptance criteria:
-
-- KB production integrations are verified against client-owned or approved staging
-  resources.
-- Workflow Communications label, draft, targeted-read, reply, and on-demand analysis boundaries
-  are verified without exposing unrelated live mail.
-- Lease Renewal Agent candidate integrations are classified as read-only, write-capable,
-  unsupported, or blocked. The verified starting classification and per-vendor evidence
-  live in `docs/integration-architecture.md`; client confirmation can still change it.
-- Unverified capabilities remain in `docs/research-backlog.md`.
-
-Validation:
-
-```bash
-npm test
-npm run test:firestore
-```
-
-### P4 - Product V1 Scope Lock
-
-Status: done — R01–R09 lock the expanded external-user V1, risk-bounded Editor authority, all-risk
-Admin self-approval, every Lease/Maintenance action, immediate trusted publication, Vendor invite/TOTP/
-Gmail OAuth, exact retention/artifacts/AI policy, Console live/test boundary, and staged final release.
-S20–S27 turn those decisions into falsifiable implementation contracts.
-
-Acceptance criteria:
-
-- PMI KC KB production cutover scope is locked.
-- Lease Renewal Agent has approved v1 inputs, outputs, trigger model, permissions,
-  source requirements, and acceptance scenarios.
-- Workflow Communications has approved workflow-context, human-confirmation, sender-binding, safe
-  testing, per-item authority, Vendor OAuth identity, three v1.0 base artifacts, source-visible AI reply
-  policy, and exact retention values. S24 policy is Local green; S22 implements Vendor identity/OAuth
-  before promotion.
-- KB automation has approved workflow-run framework, per-action approval model, and the
-  first Lease Renewal integration/source map.
-- Source/process publication becomes Active immediately after S21's configured-root/scope/type/size/
-  malware/sensitivity validation, immutable version/rollback, and audit. Publishing content never
-  enables an external action, changes configuration/system prompt, or widens a role.
-- Workflow-run UX/audit model is approved: top summary, timeline, visually separate test
-  runs, production-metric exclusion for test runs unless included by an Admin, and
-  visible source links, confidence, and reasoning for AI recommendations.
-- Workflow-run status and notification model is approved: standard run statuses,
-  final-approver ownership, source due date or today default, and in-app notifications for
-  approval-ready, blocked, failed automation, and overdue events.
-- Escalation/failure model is approved: blocking automation failures fail the run,
-  non-blocking automation failures fail the step and block the run, failed notification
-  processing creates Admin-visible in-app health, and external action failures keep only bodyless
-  preview/context/result hashes, provider/target identifiers, a safe error code, timestamp, attempt
-  count, and reconciliation status—never the attempted payload.
-- External-action type governance is approved by target system plus action type. S20 makes enabled
-  Low/Medium instances direct for internal Editors, routes consequential High work to Admin, permits
-  Admin self-approval, and keeps technical Blocked conditions non-executable. Planned actions remain
-  visible while non-executable.
-- External-action readiness model is approved: readiness states are `Planned`,
-  `Needs Connection`, `Needs Permission`, `Ready for Test`, `Approved for Execution`,
-  and `Disabled`; execution requires a change preview and rollback/correction note; and
-  Admins can disable an action type without deleting the process definition.
-- Action Registry is the acceptance artifact for the model above: one record per external
-  action type carrying target system, documented evidence, required permissions, plan
-  tier, readiness, preview, rollback, and a `production_allowed` gate that stays false
-  until an approved spec changes it. See `docs/integration-architecture.md`.
-- Integration build order is approved: Maintenance Work Order Intake is the first
-  executable-write target (documented Rentvine work-order writes plus the LeadSimple
-  Rentvine maintenance sync); the Rentvine lease-renewal writeback stays non-executable
-  until vendor-confirmed and approved.
-- Source-vocabulary normalization is a gate before any live connector work: canonical
-  stage, system, record-ID, and approval names are frozen so authoritative field meaning
-  is unambiguous across legacy and current systems.
-
-Validation:
-
-```bash
-npm run format:check
-```
-
-### P5 - Build And Migration Preparation
-
-Status: in progress — dry-runs for imports/setup/seeders/preflights exist (`npm run cutover:dry-run`);
-KB production source manifests await approved client sources. The S20–S27 candidate is current-verifier
-green and code-deployed; source manifests, approved external setup, and exact provider proofs remain
-gated by the external checklist.
-
-Acceptance criteria:
-
-- KB production source manifests are prepared from approved PMI KC sources.
-- Lease Renewal Agent implementation tickets and tests are created only after P4.
-- Workflow Communications tickets require workflow entity authorization, approved artifacts, and
-  targeted-read acceptance criteria; general mailbox scans are not a prerequisite or product goal.
-- Dry-runs exist for imports, setup scripts, seeders, and preflights.
-- The migration-readiness stop gate is evaluated before any additional local feature
-  slice; nonessential local expansion is deferred once migration/client unblock is the
-  next real dependency.
-
-Validation:
-
-```bash
-npm run corpus:plan -- --manifest=<approved-manifest> --project=<client-project-id> --location=us --dry-run
-npm run seed:launch-skeletons -- --dry-run
-```
-
-### P6 - Testing, Training, And Acceptance
-
-Status: in progress — the final Round 3 contract and S20–S27 specs are locked. S20–S24 are Local green
-(including the S21 bounded content store, S22 Vendor app-plane journey, and S24 bounded emulator cleanup).
-S25/S26 have exact Registry schemas, the S20 queue bridge, action-level readiness, and all 11 + 19 typed
-synthetic adapter proofs. S27 has a production-only manifest and exact release/unblock artifacts. These
-remain Gated on real provider contracts/mappings, permitted proofs, deployed role/failure-path browser
-and rollback evidence, dependency disposition, and Dan/Josiah signoff. The emulator-backed local
-desktop/phone render and overflow regression is green. Internal plus Vendor operator training also remains.
-
-Acceptance criteria:
-
-- KB production smoke covers auth, Ask, citations, no-source behavior, edits,
-  approvals, and Admin visibility.
-- Lease Renewal Agent acceptance scenarios pass once runtime exists.
-- Workflow Communications tests prove unrelated threads cannot be fetched and use only fake
-  transports, approved synthetic threads, or sanitized fallback text.
-- S19 fake-transport tests prove per-user subject isolation, bounded/safe MIME reads,
-  exact-payload confirmation, one-attempt idempotency, ambiguous-send reconciliation,
-  reply headers/thread ID, authenticated push replay/cursor handling, and the simulator
-  no-Gmail fallback before any live test.
-- Dan, Bailey, and named operators complete training and signoff tasks.
-- Backend automation tests prove explicit approval, audit fields, rollback/error
-  handling, and no unapproved external writes.
-- S20 tests prove immutable server risk floors, Editor direct enabled Low/Medium work, exact-preview
-  Admin-approved High work (including self-approval), technical Blocked non-bypass, one attempt,
-  ambiguity reconciliation, atomic queue/ledger transitions, and server-only bodyless audit.
-- S21 tests prove root/Space/path/type/size/MIME/scanner/sensitivity refusal before persistence,
-  immutable ordered versions, one Active pointer, additive rollback, bodyless rejection audit,
-  Admin-only tightening policy, process action-reference validation, authority-field inertness, and
-  no routine Approval Queue item for validation-passing publication.
-- S23 tests prove server-only live/test mode selection, wrong-Space omission, value provenance and
-  freshness, visible source outage without fixture fallback, persistent non-production test badge,
-  bounded inert metadata/snippet, zero initial body/attachment calls, and one targeted authorized
-  full-body call only after opening the workflow communication panel.
-- Process-definition tests prove simulation-only behavior for Draft/Testing runs,
-  versioned Active copies, activation gates, and pending automation visibility.
-- Workflow-run tests prove the summary, timeline, test-run separation, production-metric
-  exclusion, and reviewer-visible AI evidence.
-- Workflow-run notification tests prove status-triggered in-app notifications,
-  final-approver ownership, next-action recipient routing, starter routing limits, and due-date
-  defaulting. Any future out-of-app delivery requires a separate approved spec.
-- Failure-handling tests prove run-vs-step failure behavior, Admin-visible in-app health, and
-  external-action failure audit fields; the legacy event-driven Gmail sender remains hard-disabled.
-- External-action approval tests prove target-system/action-type scoping, no blanket
-  system access, per-run approval for first executable actions, and visible
-  non-executable planned actions.
-- External-action readiness tests prove readiness state transitions, execution preview,
-  rollback/correction notes, and Admin disable without process deletion.
-- Approval queue tests prove risk-level classification, confirm-popup behavior for
-  high-risk items, default queue ordering, filters, and staff/Admin view differences.
-- Approval queue lifecycle tests prove assignee/approver ownership, return-reason
-  capture, snooze date/reason and reactivation behavior, and Admin-only disable history.
-- Approval queue creation/cleanup tests prove source event creation, duplicate merging,
-  refresh with prior-version history, and automatic closure when approval or blocking
-  conditions are resolved.
-- Approval queue closed-item tests prove changed underlying facts/drafts/actions create a
-  new linked queue item instead of silently reopening or editing closed records, and
-  prove direct links remain stable.
-- Approval queue bulk-action tests prove selected-item bulk approve, return, disable,
-  execute, assign, and snooze paths; per-item permission/risk/readiness enforcement;
-  plain-English preview and confirmation; clear ineligible-item handling; per-item
-  Activity entries; and no bypass of external-action approval, send authority, or
-  high-risk confirmation.
-- Approval queue notification tests prove in-app delivery, recipient routing, single reminders,
-  required notification content, and Admin-visible health for unresolved important `Blocked` or
-  overdue items.
-- Approval queue legacy-email tests prove configuration cannot activate the hard-disabled sender;
-  historical preferences remain audit-only and Console/Notifications remains the source of truth.
-- Approval queue Admin-health tests prove visible health fields, health-state
-  classification, `Action Required` conditions, and direct links into affected queue
-  items or audit records, with any historical email state labeled inactive.
-- Approval queue audit/history tests prove the single append-only Activity log,
-  required audit fields, staff/Admin visibility, prior-version preservation, correction
-  entries, collapsed low-level system entries by default, and best-practice
-  retention/export behavior.
-- Approval queue simplicity tests prove limited user-facing controls, Admin-only
-  settings placement, fixed structured fields for AI/automation, and new-setting gates
-  for owner, default, disable path, and test coverage.
-- Approval queue fixed-field tests prove the v1 field set, source-link/preview/Activity
-  evidence attachment, AI-readable state boundaries, no custom fields, and new-field
-  guardrail enforcement.
-- Approval queue MVP-screen tests prove one-list/detail-view layout, limited list
-  columns, detail content, and Admin-only health/settings separation.
-- Approval queue mobile/responsive tests prove same model on desktop/mobile, stacked
-  mobile readability, limited mobile list fields, visible primary actions, and shared
-  fixed-field/Activity source.
-- Approval queue empty/error-state tests prove production-safe empty states, no fake/demo
-  production queue items, plain loading/error messages, `Blocked` routing for missing
-  evidence/permissions/connections, and clear test/demo run marking.
-- Approval queue permission tests prove normal user/Admin boundaries, block non-Admin or ineligible
-  self-assigned inline approval, preserve reasoned exact-preview Admin self-approval for High work,
-  show safe permission-error messages, and route missing assignee or approver to Admin triage.
-- Approval queue AI-boundary tests prove AI can suggest fixed-field values but cannot
-  approve, disable, close, execute, override permissions, or make suggestions effective
-  outside the normal action/approval path.
-- Approval queue comment/reason tests prove comments and reasons are Activity entries,
-  not direct fact/draft/process/source/action mutations, and that proposed updates are
-  created when comments identify needed changes.
-- Testing focuses on production readiness and accepted behavior. New local-only
-  workflow, queue, Lease Renewal, Gmail, or demo surfaces are deferred unless they are
-  required for cutover, acceptance, or a known quality issue.
-
-Validation:
-
-```bash
-npm run typecheck
-npm test
-bash scripts/verify.sh
-```
-
-### P7 - Production Cutover And Monitoring
-
-Status: in progress — Pre-V1 revision `pmi-kc-kb-demo-00021-bj8` deploys the S20–S27 candidate at 100%
-traffic; prior revision `pmi-kc-kb-demo-00020-24d` remains the only S19 Live-proven transport baseline
-and the captured rollback target. Dan/Josiah release ownership and tab direction are resolved.
-Safe-local implementation is exhausted through typed S22/S25/S26 acceptance and a production-only S27
-manifest, but every unresolved row in
-`docs/v1-client-unblock-checklist-2026-07-14.md` remains Gated. Final release still needs approved
-production source/provider mappings, action-by-action Live-proven evidence, eight-surface browser and
-rollback records, dependency disposition, candidate-bound signed-in smoke evidence, and both named
-acceptances.
-
-Acceptance criteria:
-
-- Dan is the business-acceptance owner and Josiah is the technical go-live/monitoring/rollback owner;
-  the support window, escalation contact, operator roster, and test identities are recorded before
-  cutover.
-- Production deploy/setup steps are executed from client-owned resources.
-- Smoke tests pass after cutover.
-- Exceptions and next iteration work are recorded in `docs/status.md`.
-- Post-cutover iteration decisions are based on production smoke, user acceptance,
-  client-approved scope, and recorded blockers rather than pre-cutover local feature
-  loops.
-
-Validation:
-
-```bash
-npm run preflight:production -- --env-file=.env.production.local
-bash scripts/verify.sh
-```
-
-## Product Lane Gates
-
-### PMI KC KB
-
-Current state: the client-owned service is live and directly verified; the deployed Pre-V1 candidate
-adds the narrower workflow-communication product boundary and the Round 3 S20–S27 contract. S20–S24 are
-Local green, including bounded/hash-chunked S21 publication, S22's external Vendor app-plane, and bounded
-indexed emulator-only S24 cleanup. S25/S26 now have exact Registry schemas, same-workflow dependency
-receipts, a real S20 queue bridge, complete typed 11 + 19 adapter graphs, action-level readiness, and
-canonical non-routable synthetic acceptance. S27 rejects local/synthetic promotion and requires exact
-production pins/evidence. All external rows remain Gated, not Live-proven or Accepted, until the detailed
-client-unblock checklist closes. S22 live identity/OAuth/vault/invite, S23 live adapters, S24 indexes/
-held-record migration/TTL/scheduler, and all S25/S26 provider actions remain separately gated.
-
-Key gates:
-
-- Approved production sources and source-state metadata.
-- Approved source files, sensitivity decisions, source maps, and data-store maps for the launch
-  Spaces. The underlying GCP/Firebase/Auth service and canonical URL already exist.
-- Final support window, escalation contact, operator roles/test identities, and source/artifact owners;
-  Dan business acceptance and Josiah technical go-live/monitoring/rollback ownership are resolved.
-- In-app approval notifications remain the V1 delivery path; legacy event-driven Gmail delivery is
-  disabled and is not a launch dependency.
-- Internal staff retain `Editor`, `Approver`, and `Admin` capability tiers, optionally narrowed by
-  renewals/maintenance scopes. V1 adds a separate external Vendor role with assigned-ticket-only
-  access; it never inherits internal Editor/Admin/Connections/cross-Space reach.
-- First launch Spaces: Lease Renewals, Maintenance Work Order Intake, Move-Out +
-  Deposit Disposition, and Owner Onboarding.
-- Backend automation write paths are built through S25/S26 and become live only after documented
-  provider evidence, focused acceptance, Action Registry review, and explicit per-action authority.
-
-### Lease Renewal Agent
-
-Current state: deterministic Phase-1 read/reconcile/review is built; one live Rentvine export and the
-renewal Sheet DWD read are proven. The S25 local graph now exercises all 11 governed Gmail, Sheet CAS,
-Rentvine, Dotloop, portal, SMS, and conditional-Boom typed adapters with exact synthetic inputs and zero
-live calls. That does not widen authority: every S25 production action remains closed, and real provider
-contracts/mappings/proofs still block final V1 rather than becoming tracked-manual fallbacks.
-
-Key gates:
-
-- Confirm signed-lease storage, source systems, allowed reads/writes, central workflow
-  record, human review points, and acceptance scenarios.
-- Treat signed lease or lease-term record as the first authoritative renewal trigger
-  source, pending client system confirmation, while preserving manual start.
-- Build read/gather actions before write actions: signed lease and dates,
-  tenant/property facts, owner information, current rent/terms, and renewal timeline.
-- Keep the Rentvine lease-renewal writeback non-executable: the renewal-write endpoint is
-  undocumented in the public API, so it stays vendor-confirmation-required and gated
-  behind an approved per-action spec even after reads are working.
-- Show imported fact source, timestamp, and confidence before approval; block conflicting
-  facts until a human chooses the correct source; and maintain a missing-facts list with
-  AI-suggested locations plus links to add the missing resource or description.
-- Display imported fact confidence as `Verified`, `Likely`, `Needs Review`, or
-  `Conflict`; only facts that are both `Verified` and approved flow into owner-facing
-  drafts without visible warning, drafts always show traceable links/sources/supporting
-  facts, `Likely` facts require review before approval, and `Conflict` facts block
-  owner-facing drafts and executable actions until resolved.
-- Resolve conflicts by human source selection or corrected value, recording resolver,
-  reason, chosen source/corrected value, and timestamp. Corrected values create proposed
-  source/process updates. Legal, financial, and notice-timing conflicts require
-  Dan/Josiah Admin approval.
-- Missing-fact links offer `Add process note` and `Add source document`; process notes
-  create approval-gated proposed updates, source documents point to the approved
-  Drive/source folder and source sync, and filled facts trigger targeted re-checks of
-  only affected facts/steps.
-- Build first outputs as workflow summary, owner communication draft, internal update
-  preview, and approval package.
-- Approval packages include workflow summary, relevant draft/output/action, verified
-  fact list, unresolved warnings, planned internal updates, pending automation notes,
-  and send/update preview.
-- Dan approval covers the owner communication and facts used by it. Explicit external
-  write approvals can be included as separate actions, while unrelated external writes
-  are not silently approved.
-- Internal update previews remain separately approvable by action through an obvious,
-  low-friction approval queue for client and staff review.
-- Approval queue items are grouped by audience: Dan/Admin decisions, team follow-up,
-  outside waiting, and failed/blocked automation. Items show plain-English action, risk,
-  source evidence, affected system, before/after preview, and required approver.
-- Approval queue actions are `Approve`, `Return for Revision`, `Assign`, `Snooze`,
-  `Disable Action`, and `Open Run`.
-- Approval queue items have one current assignee and one required approver. The return
-  action requires a plain-English reason and sends the item back to the creator or last
-  editor. `Snooze` requires a date and reason, then returns the item to the active queue
-  on that date or if risk/status changes. `Disable Action` is Admin-only, requires a
-  reason, and preserves the disabled action in history.
-- Approval queue items are created from approval packages, failed/blocked automation, external-action
-  readiness, and source/fact conflicts. S21 publication failures instead create a safe bodyless audit
-  and no Active pointer; validation-passing Editor content/process changes publish immediately under
-  its configured-root, scope, type/size, malware/sensitivity, version/rollback, and audit boundary.
-  Duplicate items for the same run/action merge into one open item with history. When
-  the underlying fact, draft, action, or preview changes, the queue item refreshes and
-  preserves the prior version. Queue items close automatically when approved, completed,
-  cancelled, disabled, or when the blocker is resolved and no approval remains.
-- When a fact, draft, action, or preview changes after a queue item is closed, the app
-  creates a new queue item linked to prior Activity history instead of silently reopening
-  or editing the closed record. Queue item direct links remain stable after status
-  changes.
-- Approval Queue v1 includes bulk approve, bulk return, bulk disable, bulk execute,
-  bulk assign, and bulk snooze for selected visible items. Bulk actions respect every
-  selected item's individual permissions, risk level, required approver, and readiness state. Bulk
-  actions show a plain-English preview, require confirmation, skip or block ineligible
-  items with a clear reason, and write per-item Activity entries. Bulk execute does not
-  bypass external-action approval, owner/tenant-facing send authority, or high-risk
-  confirmation rules.
-- Approval queue notifications appear in the app console for item created, assigned,
-  returned for revision, unsnoozed, blocked, unblocked, overdue, and closed events.
-  V1 delivery is in-app only. Queue notifications go to the current assignee and required
-  approver. Creators/editors are
-  notified only when their action is needed or their item closes. Reminders start as a
-  single console notification, not a repeating sequence, with no default 24-hour
-  follow-up or Admin escalation sequence unless configured later. Each notification
-  includes the plain-English action needed, due date, risk level, affected process/run,
-  and direct queue-item link.
-- Approval queue delivery is in-app for V1. Historical email settings may remain visible for audit,
-  but configuration cannot activate the hard-disabled legacy sender. Any future human-confirmed
-  notification-draft lane requires its own approved spec, preview, tests, and audit.
-- Approval queue Admin health shows in-app processing status, stale overdue count, and blocked item
-  count, with historical email state labeled inactive. Health
-  status uses `Healthy`, `Needs Attention`, and `Action Required`. `Action Required`
-  means something is broken or blocking work, such as failed notification processing or an
-  unresolved blocked high-risk item. Admins can open health details directly into affected queue
-  items or audit records.
-- Approval queue audit/history stays simple: one automatic, append-only Activity log per
-  queue item rather than multiple audit modes or toggle-heavy options. Each meaningful
-  queue state change records actor, timestamp, action, previous state, new state, reason
-  when supplied or required, and source trigger. Staff see a plain-English Activity
-  summary only when it affects what they need to do. Admins can expand the same Activity
-  feed for full audit fields when needed. The log automatically preserves prior versions
-  of approval-critical facts, drafts, previews, notification settings, and disabled
-  actions. Corrections create new entries instead of editing or deleting old entries, and
-  low-level system entries can collapse by default to avoid clutter.
-- Activity/audit retention and export follow standard SaaS audit best practices until a
-  client/legal policy overrides them: append-only records, Admin-readable history,
-  reasonable export for support/review, and no unnecessary sensitive raw data in audit
-  payloads.
-- Approval Queue v1 avoids extra user-facing toggles, per-user customization, and
-  complex settings unless they solve an observed workflow problem. Normal users see only
-  the core queue actions and one plain `Activity` view. Admin-only details and settings
-  live behind obvious Admin surfaces. AI and automation rely on a small fixed set of
-  structured fields, not many optional UI settings. Any new setting requires an owner, a
-  plain-English default, a disable path, and test coverage before it is added.
-- Approval Queue v1 item fields are limited to process/run, item type/source trigger,
-  status, risk, audience group, assignee, required approver, due date, action needed,
-  affected system/action, direct link, created timestamp, and updated timestamp.
-  Evidence and details attach through source links, previews, and the `Activity` log
-  instead of extra toggles or custom fields. AI-readable queue state comes from these
-  fixed fields plus `Activity`, not user-specific settings. V1 has no custom queue
-  fields; any new field goes through the new-setting guardrail.
-- Renewal-flag decisions use S14's phone-first, one-card-at-a-time decider over the same
-  `RenewalRunView` as the established desktop cards. Low/Medium suggested-source choices
-  are one tap; High/Blocked and manual overrides keep the full audited form. The desktop
-  list and run-page bulk bar remain available as the alternate review mode.
-- The unified Approval Queue remains an urgent-first, value-free triage list. A safe
-  Low/Medium `queue_item` may expose one inline app-plane approval; renewal-flag and
-  write-back rows remain deep links to their value-bearing run page.
-- Approval Queue empty, loading, and error states are plain and production-safe. Empty
-  queues say nothing is currently waiting for review and do not show fake/demo queue
-  items. Loading and error states use plain-English messages with one obvious retry or
-  open action. Missing evidence, permissions, or connections create or route to a
-  `Blocked` queue item instead of appearing as a vague broken screen. Production queue
-  views never show demo/test items unless the run is clearly marked as a test/demo run.
-- Approval Queue permissions remain explicit by role and action. S20 lets internal Editors directly
-  execute enabled Low/Medium instances, routes consequential High work to Admin, permits Admin
-  self-approval at every risk, and never lets approval bypass a technical Blocked condition. The
-  separate external Vendor role sees only assigned Maintenance tickets and never inherits Editor,
-  Approval Queue, Admin, Connections, or cross-Space reach. Permission errors explain the missing
-  role/action and route to a safe next step.
-- Process-specific approvers beyond Dan and Josiah remain TBD, but the app makes them
-  easy to add and manage through an Admin console rather than hardcoding people into
-  workflow definitions.
-- Missing required assignee or required approver moves the queue item to `Blocked` and
-  routes it to Admin triage rather than guessing from the starter, creator, or last
-  editor. AI can suggest assignee, approver, risk, status, and action-needed values from
-  fixed fields, source evidence, and `Activity`, but AI cannot approve, disable, close,
-  execute, or override permission checks. AI suggestions become effective only through
-  the normal queue action or approval path.
-- Queue comments and reasons are stored as `Activity` entries. Comments/reasons do not
-  directly change facts, drafts, previews, process definitions, source records, or
-  external actions. If a comment identifies a needed source/process/fact change, the app
-  creates the appropriate proposed update or queue item.
-- Unresolved important `Blocked` or overdue queue items escalate through the in-app attention and
-  Admin-health surfaces. No automatic email exception exists in V1.
-- Approval queue risk levels are `Low`, `Medium`, `High`, and `Blocked`. `Low` covers reads, health,
-  local drafts, governed reversible labels, notes, assignments, and cleanup. `Medium` covers exact-
-  confirmed workflow email/portal/SMS, S21 trusted publication, and S26's validated append-only
-  assigned-ticket photo. `High` covers system-of-record values/status, documents, accounts/roles/
-  OAuth lifecycle, accounting, and unbounded/overwrite/delete Drive mutations. `Blocked` means missing
-  facts, validation, documented contract, connection, permission, scope, or approver; Admin may own the
-  decision but cannot waive a technical blocker.
-- Approval queue default view puts `Ready for Approval`, `Blocked`, `Failed`, and
-  overdue items first. Filters include process, owner/final approver, assignee, risk
-  level, status, due date, and audience group.
-- Staff approval queue view hides technical details by default and shows what happened,
-  why it matters, and what to do next. Admin view can expand technical details, source
-  evidence, API/connection status, and audit trail.
-- Approval queue clarification, next steps, errors, and messaging assume non-technical,
-  new users. High-risk items use a simple confirm popup; low-risk internal updates can
-  be one-click after review.
-- Approval package history preserves every revision Dan reviewed and supports
-  correction-style rollback where APIs allow it by storing/re-entering previous values.
-- Use AI to suggest write actions to add/remove and explain future write/update/send
-  behavior during process refinement, while deterministic API checks verify app
-  connections before execution readiness.
-- Build a workflow-run page model that tracks steps, statuses, approvals, backlinks,
-  connected app actions, imported facts, owner draft/send status, and audit details.
-- Dan can edit any generated or prepared document as Admin. Owner communication sends
-  only after Dan approves the package; later send automation can be layered only after
-  testing and a future approved spec.
-- No executable external write/send action until the read/gather flow and approval
-  package are tested and scope, permissions, and tests are locked.
-
-### Workflow Communications
-
-Current state: S19 retains the owner-approved per-authenticated-user Gmail transport and its
-production proof, but the application is now workflow-bounded. DWD still carries readonly,
-compose, labels, and modify. The Action Registry exposes workflow-targeted read, governed draft,
-exact-confirmed reply, and approved-label actions; generic send is disabled, and renewal and
-maintenance notice initiation remains closed. S24's exact artifacts, retention policy, indexed
-bounded crash-resumable cleanup, Date/Timestamp TTL, dual-null legal hold, and emulator-only worker are Local green. S25/S26 must still
-wire authoritative runtime recipients/values and obtain per-action Live-proven evidence before
-promotion; production indexes/held-record migration/TTL/scheduler remain separate S24 gates.
-
-Key gates:
-
-- Enter through an authorized renewal run or maintenance ticket, or a value-free linked-reply
-  attention item; no recent-inbox entry point exists.
-- Store only opaque Gmail identifiers, workflow references, state, timestamps, version references,
-  and bodyless audit. S24 policy is confirmation usable 10 minutes/delete 30 days, dedupe 7 days, sync
-  90 days, workflow link 365 days from last authorized update, bodyless action audit 7 years, no
-  persisted V1 AI/extracted Gmail facts, with Admin legal hold/later written policy overriding deletion.
-- Pub/Sub is a change signal only: match already-linked thread IDs and create deduplicated,
-  value-free attention without fetching unrelated message content or invoking AI.
-- AI analysis is on demand over one linked thread and returns `Needs Review` proposals only.
-- `mail.google.com`, cross-mailbox browsing, automatic processing, generic compose, and autonomous
-  send remain absent.
-- Preserve human send authority. No autonomous/background/model-triggered/scheduled
-  send, automatic retry of an ambiguous result, cross-mailbox Admin access, persisted
-  mailbox body, or system-of-record write.
-
-## Risks And Unknowns
-
-- Client production resources, domain auth, and the initial Admin path are available; approved
-  content scope and final operational ownership remain incomplete.
-- Lease and Maintenance action membership is no longer ambiguous. Exact provider contracts,
-  account/plan permissions, authoritative field mappings, credential ownership, and correction proofs
-  remain unknown per row in `docs/v1-client-unblock-checklist-2026-07-14.md`.
-- Maintenance chatbot/phone intake cannot be inferred as an external execution provider. The approved
-  S26 action list is implemented locally; any additional tool or behavior needs a separate contract.
-- Workflow Communications derives the mailbox only from the server-verified session and requires
-  an authorized workflow context before a targeted thread read, so no other domain mailbox or
-  unrelated thread is scanned merely because DWD could impersonate or read it.
-- Some historical demo/status/spec material still mentions Bailey Brain, Dan's AI
-  Assistant, and Owner Router; those names must be read as demo/legacy context unless
-  updated by product docs.
-- Raw client source material must stay out of git.
-- Google credentials on this host have recently required reauth for Google-backed demo
-  paths.
-
-## Recommended Development Sequence
-
-1. Keep the deployed KB/S19 baseline and current local verification path green.
-2. Work `docs/v1-client-unblock-checklist-2026-07-14.md` one row at a time; retain the recommended
-   closed default until exact evidence and separate authority exist.
-3. Close S21 production root/scanner and S24 indexes/held-record migration/TTL/scheduler only through
-   their bounded proof packets; never treat local fakes as production evidence.
-4. Close S22 identity/OAuth/Vendor-mail evidence before depending on an external Vendor principal.
-5. Prove each S25/S26 provider action independently with authoritative mappings, one attempt,
-   reconciliation, monitoring, correction, code-reviewed Registry promotion, and exact authority.
-6. Complete S27 manifest-bound deployment/smoke evidence, pinned eight-surface desktop/phone
-   role/failure-path browser record, rollback rehearsal to captured revision
-   `pmi-kc-kb-demo-00020-24d`, dependency disposition, and Dan/Josiah acceptance before changing the
-   Pre-V1 label. The code-only deployment does not satisfy those acceptance gates.
+- `AGENTS.md`, `docs/facts.md`, `docs/loop-state.md`, and current specs agree.
+- Superseded Pre-V1/every-provider/mandatory-TTL language is deleted from active guidance.
+- Live/Test and per-action provider activation vocabulary is stable.
+
+### P1 - Application Foundation
+
+Status: done — production Next.js/Cloud Run, Firebase staff auth, roles/scopes, Firestore,
+source-backed Ask, Spaces/processes, approvals, Console, Admin, and observability are built.
+
+Acceptance:
+
+- Authenticated staff use the app through `pmikcmetro.com` identities.
+- Missing sources are visible; secrets/customer data do not enter repository evidence.
+- App-plane decisions and audit/activity state persist.
+
+### P2 - Lease Renewal Workflow
+
+Status: done — source reconciliation, run/property review, decisions, approvals, and the full
+typed Lease action graph are available; production Test evidence covers provider-shaped work.
+
+Acceptance:
+
+- Live Rentvine/Sheet reads degrade visibly without Test fallback.
+- Test actions use invented values and bodyless non-Live receipts.
+- Each Live Lease provider action has an independent activation state/checklist.
+
+### P3 - Workflow Communications
+
+Status: done — workflow-linked Gmail transport, scoped reads, governed labels/drafts,
+exact-confirmed replies, Pub/Sub attention, retention policy, and legal hold are built.
+
+Acceptance:
+
+- No general inbox, generic compose, autonomous send, or cross-mailbox Admin access.
+- Confirmation binds actor, mailbox, recipient, thread, exact content, artifact, and sources.
+- Bounded manual cleanup is sufficient for V1; automation is optional.
+
+### P4 - Execution Authority and Trusted Publication
+
+Status: done — S20 authority/ledger and S21 validated publication/version/rollback boundaries
+are implemented.
+
+Acceptance:
+
+- Low/Medium/High/Blocked behavior is immutable and role-scoped.
+- High approval binds the exact preview; technical blockers cannot be waived.
+- Published content cannot alter roles, prompts, Registry state, or execution authority.
+
+### P5 - Production Live/Test Data Model
+
+Status: done — record lane, Console dual projection, action identity, receipts, aliases, and
+Test-adapter isolation are implemented.
+
+Acceptance:
+
+- Legacy missing lane resolves to Live.
+- Production displays Live and Test simultaneously with persistent labels.
+- Test identities/records/adapters/receipts cannot cross into Live.
+- The Admin full Test workspace completes Vendor, 11 Lease, and 19 Maintenance typed actions
+  with zero Live-provider calls.
+
+### P6 - Maintenance Working Workflow
+
+Status: done — Live in-app tickets and the persistent canonical Maintenance Test workflow are
+implemented.
+
+Acceptance:
+
+- Canonical Test ticket uses `unit:test-maple-204` only.
+- It supports assignment, Summit Plumbing Test Vendor, statuses, notes/activity, explicit
+  simulated actions, close, and reopen.
+- Each Test action shows target/effect confirmation and writes a no-provider/non-Live receipt.
+- Live tickets reject Test aliases and Test simulation.
+
+### P7 - External Vendor Authentication and Work
+
+Status: done — canonical Test Vendor provisioning, password setup, mandatory TOTP, assignment
+scope, app-only mailbox, exact-confirmed reply, and disable/revoke are implemented.
+
+Acceptance:
+
+- Admin uses exact preview then one-time setup link; the link is never stored or emailed.
+- TOTP enrollment requires a fresh password+TOTP sign-in before server session creation.
+- Test principal and ticket/assignment lanes must match.
+- Test principals are rejected before OAuth/Gmail construction.
+- Live Vendor OAuth/vault remains a separately activated Live-provider capability.
+
+### P8 - Production Release and Human Walkthrough
+
+Status: in progress — code/docs are being verified, committed, merged, pushed, deployed, and
+validated on the client-owned Cloud Run service.
+
+Acceptance:
+
+- Clean install/audit inventory, format, lint, typecheck, unit, Firestore, core E2E, build,
+  governance, redaction, and falsification checks pass.
+- Firebase Email/Password, TOTP MFA, and the deployed Auth domain support the Test Vendor.
+- Serving revision and rollback revision are captured; traffic rollback is rehearsed or its
+  exact command is verified.
+- Signed-in desktop/phone walkthrough covers every primary tab plus Maintenance Test and Vendor
+  Test journeys.
+- The final HTML report explains features, tabs, evidence, provider activation, genuine
+  remaining activations, and the historical verification language in plain English.
+- Commit is merged to `main`, pushed, deployed, and production smoke/browser checks pass.
+
+## Per-Action Provider Activation
+
+Use these states without changing the application label:
+
+| State           | Meaning                                                                         |
+| --------------- | ------------------------------------------------------------------------------- |
+| unavailable     | No usable provider contract/client is configured; Test workflow may still work. |
+| test_ready      | Complete isolated Test adapter and workflow evidence exist.                     |
+| live_configured | Exact Live contract, identity, mapping, and credential are configured.          |
+| live_proven     | One authorized Live action/readback has durable evidence.                       |
+| enabled         | Registry permits normal Live use with monitoring and rollback.                  |
+| suspended       | Kill switch is active; prior evidence is retained.                              |
+
+Activation checklist for a Live write/send:
+
+1. documented endpoint and expected-state semantics;
+2. authoritative account/template/stage/folder/recipient mapping;
+3. least-privilege credential/vault reference;
+4. exact target/effect preview and role decision;
+5. one attempt, idempotency, bodyless receipt, readback/reconciliation;
+6. monitoring, kill switch, and correction/rollback.
+
+## Safe Operational Defaults
+
+- Keep test data alongside Live records with persistent labels and reserved IDs.
+- Use bounded on-demand communications cleanup until measured volume justifies automation.
+- Do not create optional indexes without a query that requires them.
+- Preserve in-app notifications as the default; no event-driven approval email.
+- Keep external sends human-initiated and exact-confirmed.
+- Treat the three Moderate `firebase-tools`-chain audit findings as documented dev-only
+  dependency inventory unless severity or runtime reachability changes.
+
+## Genuine Remaining Activations
+
+These do not prevent code/documentation/deployment completion:
+
+- Firebase Email/Password, TOTP MFA, and deployed hostname authorization are complete as of
+  2026-07-15; only deployed Vendor enrollment/challenge acceptance remains in P8.
+- Live external Vendor mailbox: routable Vendor, same-address OAuth client/redirect, secret vault.
+- Live provider actions: exact provider-specific contracts, credentials, and mappings where not
+  already documented/configured.
+- Optional operations: TTL, Scheduler, or additional indexes if later volume warrants them.
+
+Each item must be reported with the exact action affected, recommended setup process, verification
+evidence, and the Test workflow that remains available meanwhile.

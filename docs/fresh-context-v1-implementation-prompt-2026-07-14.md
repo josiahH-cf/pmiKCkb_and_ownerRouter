@@ -1,107 +1,80 @@
-# Fresh-context prompt — finish PMI KC V1 gaps
+# Fresh-context prompt — operate and extend the working PMI KC V1
 
-Use the following prompt in a new Codex window rooted at this repository. It is intentionally
-self-contained, but the repository's Tier-0 facts and loop pointer remain authoritative if code has
-moved forward.
+> Rewritten 2026-07-15. This file supersedes the 2026-07-14 all-providers-live/Pre-V1 continuation
+> prompt. Tier-0 facts and `docs/loop-state.md` remain authoritative when the repository advances.
 
----
+Continue the PMI KC stable working-application V1 goal. Do not reopen Round 1–3 or ask the owner to
+re-answer R01–R09. The choices are settled: production contains separate Live and visibly labeled
+Test lanes; Test records make real application/Firestore writes and may reach Done; Test never calls
+an external provider or proves Live; Maintenance and the external Vendor experience are V1 features;
+and each Live provider action is activated independently.
 
-Continue the active PMI KC final-V1 implementation goal comprehensively. Do not reopen the completed
-Round 1–3 audit and do not ask me to re-answer R01–R09. The owner decisions are locked in
-`docs/facts.md`, `docs/v1-gap-implementation-program-2026-07-14.md`, and S20–S27 under
-`docs/feature-suites/`.
-
-First read, in order:
+Read, in order:
 
 1. `AGENTS.md`
 2. `docs/facts.md`
 3. `docs/loop-state.md`
-4. `docs/autonomous-agent-runner.md`
-5. the newest entry in `docs/status.md`
-6. `docs/v1-gap-implementation-program-2026-07-14.md`
-7. this fresh-context prompt
-8. `docs/v1-client-unblock-checklist-2026-07-14.md`
+4. the newest entry in `docs/status.md`
+5. `docs/v1-gap-implementation-program-2026-07-14.md`
+6. the relevant S20–S27 feature suites
+7. `docs/client-checklist.md` and `docs/environment-handoff.md` for the exact remaining activation
+   item, if any
 
-Then inspect `git status`, the current branch, and recent commits. Preserve all user work. Confirm the
-starting point from the repository rather than this prompt: as written on 2026-07-14, S20–S24 are
-Local green; S22 and all 11 S25 plus 19 S26 typed action adapters run through the invented-alias
-synthetic journey; and S27's production-only manifest/report, pre-V1 UI, and release runbooks are
-built. Every external/configuration/provider/deploy row remains Gated. Confirm local `main` equals
-`origin/main`, then run `npm run verify:context-freshness` before acting.
+Then inspect the current branch, worktree, recent commits, and deployed revision. Preserve user work.
+Run `npm run verify:context-freshness`, and run `npm run preflight:adc` before any live Google read or
+cloud change. If managed reauthentication is stale, ask the owner to run the exact Windows command in
+`docs/environment-handoff.md`; never substitute a personal account.
 
-Treat the safe local implementation as complete unless current code or verification falsifies it:
+## Working V1 contract
 
-- S22 — external Vendor app-plane: typed invite, one-time setup, verified-email TOTP gate,
-  assigned-ticket-only authorization, PKCE per-vendor Gmail/Workspace OAuth, token-vault boundary,
-  governed mail, disable/revoke, and emulator/fake-provider acceptance are built.
-- S25 — Lease Renewal orchestrator and every R02 action: all 11 typed adapters run through exact
-  previews, the S20 bridge, one attempt, readback, dependency, and reconciliation tests.
-- S26 — Maintenance orchestrator and every R03 action: all 19 typed adapters run through the same
-  guarded kernel, including Vendor lifecycle/mail, Drive photo, Rentvine, Gmail, LeadSimple, and
-  QuickBooks draft bill.
-- S27 — integrated synthetic/emulator E2E, production-only manifest/report, acceptance ledger,
-  pre-V1 report, monitoring and captured-prior-revision rollback plan, tab/browser plan, and final
-  Dan/Josiah gates are built locally.
+- The app is V1 when the deployed authenticated product and its complete isolated Test workflows are
+  stable. A missing optional provider credential does not rename the app Pre-V1.
+- Production carries Live and Test together. Every record, identity, adapter, idempotency key, audit,
+  and receipt is lane-bound. Legacy or malformed records resolve Live and never gain Test privileges.
+- Test may persist realistic records and complete full workflows. Canonical aliases use
+  `example.invalid`; Test adapters are branded no-client adapters; every receipt says no provider was
+  contacted and is structurally ineligible for Live evidence.
+- Live reads use real configured sources and fail visibly when unavailable; they never fall back to
+  Test fixtures.
+- Every Live external effect names the exact action, target, connection/account, and material values;
+  requires the permitted human confirmation or approval; makes one idempotent attempt; captures a
+  bodyless receipt/readback; reconciles ambiguity before correction; and has an action-level disable
+  and rollback path.
+- No autonomous, scheduled, bulk, or model-triggered send is permitted. No guessed recipient, value,
+  contract, endpoint, mailbox, or provider success may be presented as Live.
+- Vendor access is separate from internal access: Admin-provisioned Email/Password, verified email,
+  TOTP, recent auth, immutable Vendor/email/mode join, assigned-ticket-only authorization, and exact
+  disable/session revocation. The canonical Test Vendor uses an app-only mailbox; a real Vendor uses
+  that Vendor's own OAuth mailbox only when separately activated.
+- Native TTL, extra indexes, and Scheduler automation are optional operational improvements. The V1
+  default is bounded manual cleanup, holds, counts-only audit, and bodyless/minimized storage.
+- Dan/Josiah signoff is useful advisory metadata. It does not determine whether observed application
+  behavior works.
 
-Treat S24 as a shared completed boundary, not work to repeat: retention periods are versioned in code;
-cleanup/hold are Local green; exactly three immutable v1.0 artifacts exist; AI reply output is transient
-and supported only by approved base copy plus verified workflow sources; exact confirmation binds
-artifact/policy/sources. Do not configure live TTL/scheduling or infer authoritative S25/S26 values.
+## How to continue
 
-Follow the dependency order in the program and `docs/loop-state.md`; treat one row in
-`docs/v1-client-unblock-checklist-2026-07-14.md` as one independently verified external slice. Do not
-mark an adapter or V1 complete because its local typed fake is green: every action marked “App executes
-in V1” still requires the named real provider contract/mapping, separately permitted proof, bodyless
-readback, monitor/correction evidence, Registry code review, and exact authority. When a row is absent,
-retain its recommended closed default and use the invented aliases for regression; do not add another
-generic fake or infer an endpoint.
+Choose the smallest falsifiable slice from `docs/loop-state.md`. Use invented aliases and persistent
+production Test data whenever a real provider is unavailable. For code changes, add boundary and
+cross-lane negative tests, run focused tests, then run the full verification stack. For an external
+activation, use the exact row in `docs/v1-client-unblock-checklist-2026-07-14.md`: configure one real
+contract/credential/mapping, check health, preview exact effect, perform one human-confirmed bounded
+proof, capture bodyless readback/monitor/correction evidence, and enable only that action.
 
-At every approved external slice boundary:
+Do not turn these into whole-app blockers:
 
-- verify that the existing typed adapter matches the supplied official/account contract before any
-  provider call; change code only when that evidence proves the current boundary incomplete;
-- add focused unit, rules/emulator, integration, and E2E tests proportionate to risk;
-- falsify wrong role/scope/mailbox/ticket, stale preview, duplicate/concurrent attempt, unavailable
-  provider, malformed input, data leakage, ambiguous outcome, and rollback/correction paths;
-- keep existing Action Registry values closed unless the exact action has its documented contract,
-  focused acceptance, code review, and separately authorized live activation;
-- update `docs/facts.md` with dated evidence and acceptance IDs;
-- delete superseded active guidance and add the unique marker to the facts Supersede Log;
-- update `docs/status.md`, `docs/plan.md` phase status/criteria, `docs/loop-state.md`, the suite status,
-  `docs/feature-suites/README.md`, `docs/v1-gap-implementation-program-2026-07-14.md`, and every affected
-  product, identity, integration, environment, client-checklist, implementation, AI-workflow, and
-  autonomous-runner document;
-- keep `/goal` active until all S20–S27 requirements are actually accepted, and always leave `/loop`
-  with an exact next action that another context can execute without reconstructing history;
-- run focused checks, then `bash scripts/verify.sh` at each completed program milestone. Also run
-  Firestore emulator/rules tests and `npm run test:e2e:core` when the suite requires them.
+- an inactive or future provider;
+- optional source expansion;
+- native TTL, unused composite indexes, or Scheduler;
+- pending named signatures; or
+- the three documented Moderate dev-only `firebase-tools` dependency-chain findings while their
+  time-bounded disposition remains current and no High/Critical/runtime-reachable finding appears.
 
-Hard boundaries remain in force. This prompt authorizes safe repository implementation and the final
-Git commit/merge/push described below. It does not authorize any live/customer Gmail read, live Google/
-Rentvine/Sheet/Drive/Dotloop/Boom/LeadSimple/QuickBooks/SMS/portal action, external Vendor invite, OAuth
-consent/token, source import, TTL/cloud/Secret Manager/Firebase/Workspace configuration, send, system-
-of-record write, deploy, production smoke, or traffic change. Product inclusion is not operational
-authority. Never use a personal Google identity. Before a separately authorized live Google read, run
-`npm run preflight:adc`; if stale, stop and ask the owner to run `npm run auth:session` in their terminal.
+When finishing a slice, update `docs/facts.md` for verified or superseded context,
+`docs/loop-state.md`, the newest `docs/status.md` entry, `docs/plan.md`, the affected product/spec docs,
+and the human V1 HTML report when the deployed state changed. Commit intentionally, merge/push only
+after verification, deploy only with captured rollback and managed identity, and validate the actual
+deployed desktop/phone application rather than treating a local render as production proof.
 
-Do not stop before completing any independent safe local verification or regression-repair slice.
-Stop local feature expansion when verification is green and only external rows remain. Select another
-independent checklist row only when its evidence/authority exists; otherwise leave the repo
-migration-ready and externally blocked. Record each real blocker through the existing exact checklist,
-not a vague “waiting on approval” and not a duplicate client note.
-
-When the safe implementation run is complete:
-
-1. inspect the complete diff and ensure no secret, customer record, Gmail content, generated test log,
-   or unrelated artifact will be committed;
-2. run the full required verification and repair all regressions;
-3. ensure facts/status/plan/loop/specs/program ledger accurately distinguish Local green, Gated,
-   Live-proven, and Accepted;
-4. commit all intended repository changes with an accurate message;
-5. if work occurred on a feature branch, merge it into local `main` non-destructively;
-6. push `main` to `origin` and verify local `main` matches `origin/main`;
-7. report the commit SHA, verification evidence, what is complete, every exact remaining live gate,
-   and the next executable `/loop` step. Do not claim final V1 if required real-provider proof or
-   Dan/Josiah acceptance is still gated.
-
----
+Stop only when the selected outcome is complete or when a genuine blocker remains. A genuine blocker
+must name the exact failed step, evidence, owner, smallest safe default, exact command or information
+needed, and the independently useful work completed meanwhile.

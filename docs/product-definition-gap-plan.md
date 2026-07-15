@@ -6,11 +6,11 @@ create, and what still needs to be decided?"
 
 ## Current Reality
 
-| Product                 | What exists now                                                                                                | What is not proven yet                                                                                                                                        |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PMI KC KB               | Deployed source-backed runtime plus S20–S24 Local green and S25–S27 safe local boundaries Gated.               | Approved launch/provider mappings, per-action proofs, browser/rollback/deploy evidence, and named final acceptance.                                           |
-| Lease Renewal Agent     | Deterministic read/reconcile/review plus S25's complete local 11-action graph/orchestration/fakes.             | Real account contracts, authoritative mappings, every R02 permitted proof/promotion, and acceptance.                                                          |
-| Workflow Communications | Proven managed-user transport, S22/S24 Local green, and S25/S26 internal/Vendor communication fake boundaries. | Live Vendor identity/OAuth, authoritative recipients/provider setup, TTL activation, per-action proof, and release promotion. Josiah owns watch/OAuth health. |
+| Product                 | What exists now                                                                                                                     | What remains per-action or operational                                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| PMI KC KB               | Working production app with roles, sources, approvals, Live/Test data, execution authority, Maintenance, and Vendor Test workflows. | Final deploy/browser/rollback evidence for the current revision; individual Live provider activations.                    |
+| Lease Renewal Agent     | Live read/reconcile/review plus the complete isolated eleven-action Test journey.                                                   | Exact contracts/mappings/credentials and Live proof only for provider actions the team wants enabled.                     |
+| Workflow Communications | Proven staff Gmail transport, workflow-only boundary, retention/legal hold, and app-only Test Vendor mailbox.                       | Live Vendor same-address OAuth/vault and any additional Live communication action activation. TTL/Scheduler are optional. |
 
 ## Answered Direction
 
@@ -25,12 +25,12 @@ create, and what still needs to be decided?"
 - Backend automation means actual actions in connected systems. S20 lets internal Editors directly
   execute enabled Low/Medium instances, routes consequential High work to Admin, permits Admin self-
   approval, and keeps technical Blocked conditions non-executable.
-- Current production KB is internal-only with the implemented `Editor` / `Approver` / `Admin`
-  tiers. Final V1 adds S22's assigned-ticket-only TOTP/per-vendor-OAuth Vendor and every S25/S26 action.
+- The app has `Editor` / `Approver` / `Admin` staff tiers and a separate assigned-ticket-only Vendor.
+  The canonical Test Vendor uses password/TOTP and an app-only mailbox; Live OAuth activates separately.
 - Initial Admins are Josiah and Dan, with the ability for Admins to grant Admin access
   to additional users they choose.
-- Dan and Josiah remain initial internal Admins; final V1 also needs an external Vendor acceptance
-  user. Internal delegation uses Editor/Approver and optional space scopes.
+- Dan and Josiah remain initial internal Admins. Internal delegation uses Editor/Approver and optional
+  space scopes; named signoffs are release metadata rather than application truth.
 - The first production KB Spaces are Lease Renewals, Maintenance Work Order Intake,
   Move-Out + Deposit Disposition, and Owner Onboarding.
 - Workflow Communications starts from an authorized renewal run, maintenance ticket, or linked-reply

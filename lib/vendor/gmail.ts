@@ -1,10 +1,15 @@
 import { createHash, randomBytes } from "node:crypto";
 
 import {
-  requireAssignedThread,
+  assertActiveVendor,
   type VendorAssignmentRepository,
 } from "@/lib/vendor/assignment";
-import { VendorBoundaryError, type VendorPrincipal } from "@/lib/vendor/model";
+import {
+  VendorBoundaryError,
+  vendorPrincipalDataMode,
+  type VendorPrincipal,
+} from "@/lib/vendor/model";
+import type { DataMode } from "@/lib/data-mode";
 
 export interface VendorGmailClient {
   getLinkedThread(
@@ -59,9 +64,34 @@ export interface VendorMailboxProvider {
   }): Promise<VendorGmailClient>;
 }
 
+export interface VendorGmailLaneContext {
+  vendor: DataMode;
+  assignment: DataMode;
+  ticket: DataMode;
+  thread: DataMode;
+}
+
+/**
+ * Gmail requires the persisted lane of every joined record, rather than a boolean-only
+ * assignment result, so a Live actor cannot accidentally open a Test mailbox.
+ */
+export interface VendorGmailAssignmentRepository extends VendorAssignmentRepository {
+  getGmailLaneContext(input: {
+    vendorId: string;
+    ticketId: string;
+    threadId: string;
+  }): Promise<VendorGmailLaneContext | null>;
+}
+
 export type VendorGmailActor =
   | VendorPrincipal
-  | { uid: string; email: string; vendorId: string; isAdmin: true };
+  | {
+      uid: string;
+      email: string;
+      vendorId: string;
+      isAdmin: true;
+      dataMode: "live";
+    };
 
 const CONFIRMATION_MS = 10 * 60 * 1000;
 
@@ -90,12 +120,21 @@ export class VendorGmailService {
     private readonly principal: VendorGmailActor,
     private readonly mailboxEmail: string,
     private readonly dependencies: {
-      assignments: VendorAssignmentRepository;
+      assignments: VendorGmailAssignmentRepository;
       provider: VendorMailboxProvider;
       confirmations: VendorGmailStateStore;
       now?: () => number;
     },
   ) {
+    if (
+      ("isAdmin" in principal && principal.dataMode !== "live") ||
+      (!("isAdmin" in principal) && vendorPrincipalDataMode(principal) !== "live")
+    ) {
+      throw new VendorBoundaryError(
+        "Live Vendor Gmail cannot run from the Test workspace.",
+        403,
+      );
+    }
     if (
       !("isAdmin" in principal) &&
       mailboxEmail.trim().toLowerCase() !== principal.email
@@ -112,25 +151,23 @@ export class VendorGmailService {
   }
 
   private async client(ticketId: string, threadId: string) {
-    if ("isAdmin" in this.principal) {
-      const ticket = await this.dependencies.assignments.getAssignedTicket(
-        this.principal.vendorId,
-        ticketId,
-      );
-      const linked = await this.dependencies.assignments.isThreadLinked({
-        vendorId: this.principal.vendorId,
-        ticketId,
-        threadId,
-      });
-      if (!ticket || !linked) {
-        throw new VendorBoundaryError("Ticket communication not found.", 404);
-      }
-    } else {
-      await requireAssignedThread(
-        this.principal,
-        { ticketId, threadId },
-        this.dependencies.assignments,
-      );
+    if (!("isAdmin" in this.principal)) {
+      await assertActiveVendor(this.principal, this.dependencies.assignments);
+    }
+    const lanes = await this.dependencies.assignments.getGmailLaneContext({
+      vendorId: this.principal.vendorId,
+      ticketId,
+      threadId,
+    });
+    if (
+      !lanes ||
+      lanes.vendor !== "live" ||
+      lanes.assignment !== lanes.vendor ||
+      lanes.ticket !== lanes.vendor ||
+      lanes.thread !== lanes.vendor
+    ) {
+      // Hide whether an exact id exists or merely belongs to the isolated Test lane.
+      throw new VendorBoundaryError("Ticket communication not found.", 404);
     }
     return this.dependencies.provider.getClient({
       vendorId: this.principal.vendorId,

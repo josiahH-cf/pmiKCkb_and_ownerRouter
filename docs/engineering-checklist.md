@@ -1,93 +1,61 @@
 # Engineering Checklist
 
-Use this after client admin access or confirmed non-secret identifiers are available.
+## Start
 
-## Shared Setup
+- Check branch/worktree and preserve user changes.
+- Read `AGENTS.md`, `docs/facts.md`, `docs/loop-state.md`, and the relevant spec.
+- Before live Google/GCP work: `npm run preflight:adc` and `npm run check:budget-guard`.
+- Keep secrets in `.env.local`, Secret Manager, or the active shell only.
 
-- Confirm the working branch and preserve existing uncommitted work.
-- Before starting new local product work, confirm it still improves production
-  readiness, cutover prep, verification, handoff, or a known quality issue.
-- Run the repo validation baseline:
+## Behavior
 
-```bash
-npm install
-npm run format:check
-npm run typecheck
-npm test
-```
+- Mark every new operational record Live or Test; legacy absence resolves to Live.
+- Use reserved `.invalid` aliases for Test and render an always-visible Test badge.
+- Prove Test paths cannot import/construct/call a Live provider.
+- Let Test app records traverse the full lifecycle and reach Done.
+- Keep Live failures visible; never substitute Test data.
+- Show exact action, target, effect, role decision, and confirmation before a Live external write.
+- Enforce one attempt, idempotency, bodyless receipt, reconciliation, and rollback.
+- Never add autonomous/scheduled/bulk/model-triggered sends.
 
-- Keep real secrets in `.env.local`, Secret Manager, or the active shell only.
-- Record decisions and blockers in `docs/status.md`.
+## Maintenance and Vendor
 
-## PMI KC KB
+- Create canonical Test ticket through the strict server-owned seed route.
+- Verify only Summit Plumbing Test Vendor can attach to a Test ticket and cannot attach to Live.
+- Exercise status, assignment, note/activity, simulated actions, close, and reopen.
+- Provision the canonical Test Vendor through exact preview, one-time password link, TOTP enrollment,
+  fresh password+TOTP sign-in, assigned-ticket view, Test mailbox, and disable/revoke.
+- Confirm Test Vendor is rejected before OAuth/Gmail construction.
 
-- Verify the PMI KC-owned GCP/Firebase project and billing.
-- Enable required Google APIs in the client project.
-- Configure Firebase web app values and authorized production domains.
-- Deploy Firestore rules and indexes.
-- Seed Spaces and launch skeletons only after project confirmation.
-- Seed the Action Registry catalog with `npm run seed:action-registry` (Admin SDK only);
-  confirm every entry stays `production_allowed: false` until an approved per-action spec
-  changes it.
-- Build approved production source manifests from client-provided sources.
-- Import sources to Agent Search and seed `sources_meta`.
-- Configure `SPACE_DRIVE_FOLDER_IDS`, `SPACE_VERTEX_DATA_STORE_IDS`, `APP_BASE_URL`, and
-  `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` (the maintenance photo Drive folder — prod forces the Drive
-  image store, so the preflight requires it; see `docs/client-production-cutover.md`).
-- Run `npm run preflight:production -- --env-file=.env.production.local`.
-- Deploy with `ASK_DEMO_MODE=false` and `LOCAL_DEMO_AUTH=false`.
-- Assign Firebase roles from a trusted Admin SDK context.
-- Smoke sign-in, Ask, source citation, no-source behavior, editable saves, approvals,
-  and Admin observability.
+## Provider Activation
 
-## Lease Renewal Agent
+- Keep action state independent from app V1.
+- For each Live action verify contract, mapping, credential, target preview, authority, receipt,
+  readback/reconciliation, monitoring, and kill switch.
+- Do not guess undocumented endpoints; keep that action unavailable and use Test evidence meanwhile.
 
-- Do not build external write/send runtime until the product doc has approved source
-  systems, permissions, approval model, and acceptance tests.
-- Inventory renewal source systems, allowed source documents, trigger events, review
-  owners, notification channels, and prohibited write paths.
-- Identify which current KB Lease Renewals artifacts can be reused as source material.
-- Draft acceptance scenarios before selecting integration architecture.
+## Production Setup
 
-## Maintenance Work Order Intake
+- Verify `pmi-kc-kb-prod` identities, Firebase project, Cloud Run service, Secret Manager refs,
+  Firestore, and canonical URL.
+- Enable Firebase Email/Password and TOTP MFA; authorize the deployed hostname for Firebase Auth.
+- Seed/update Action Registry and process definitions only against the canonical project.
+- Deploy Firestore rules when they changed; add indexes only for actual required queries.
+- Capture the current serving revision before deployment.
 
-- Treat this as the first executable-write target per `docs/integration-architecture.md`,
-  ahead of any Rentvine lease-renewal writeback.
-- Inventory the Rentvine work-order fields, statuses, vendor trades, and inspection
-  objects the intake will read and create.
-- Confirm the LeadSimple Rentvine maintenance sync availability and Operations plan tier,
-  and map LeadSimple stages to Rentvine work-order statuses before building.
-- Keep QuickBooks downstream: preserve the Rentvine work-order number and property/unit
-  context on any accounting artifact, and do not originate workflow there.
-- Catalog each action in the Action Registry with documented evidence, readiness,
-  preview, and rollback before requesting any executable approval.
-- Add tests only after an implementation boundary is approved.
-
-## Gmail Inbox 0
-
-- Treat existing Owner Router/Dan's AI Assistant artifacts as source material to migrate
-  or rename, not as final production setup by themselves.
-- Start the pilot with Dan's mailbox and the `Waiting on Outside` / `Waiting on Team`
-  labels.
-- Verify Gmail labels, filters, and historical-scan behavior manually or with approved
-  setup scripts only.
-- Ensure optional Apps Script remains setup/health-only unless a future approved spec
-  expands scope.
-- Do not add autonomous send, Gmail draft creation, Gmail read/modify runtime code, or
-  system-of-record writes without a new approved spec and tests.
-- Test with sanitized, historical-read-only, or client-approved safe threads before
-  touching live Dan email.
-
-## Final Verification
-
-Run the smallest relevant checks while working, then before handoff run:
+## Verification
 
 ```bash
 npm run format:check
+npm run lint
 npm run typecheck
 npm test
+npm run test:firestore
+npm run test:e2e:core
+npm run build
 bash scripts/verify.sh
 ```
 
-Run `npm run test:firestore` whenever Firestore rules or persistence behavior changes
-and Java is available.
+Then run signed-in desktop/phone browser acceptance, production Test workspace, Maintenance Test to
+Done, Vendor password/TOTP/assigned-ticket flow, endpoint smoke, observability check, and rollback
+command verification. Record non-secret evidence in `docs/status.md` and the V1 HTML walkthrough.

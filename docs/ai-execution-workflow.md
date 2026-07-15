@@ -1,118 +1,94 @@
 # AI Execution Workflow
 
-This workflow keeps daily AI sessions aligned with the three purchased products.
+This is the human/AI collaboration contract for delivering and operating the working V1.
 
-## Start Of Session
+## 1. Establish Truth
 
-Read in tiers; `docs/autonomous-agent-runner.md` holds the full tiered context-intake order for
-feature cycles, and this section does not repeat a divergent one.
+- Read `docs/facts.md` and `docs/loop-state.md` first.
+- Verify repository, environment, and cloud state before declaring a blocker.
+- Resolve ambiguity from code/docs/transcripts and use the recommended safe default.
+- Ask the developer before escalating an answerable implementation question to the client.
 
-1. Tier 0: `docs/facts.md` (solidified facts, assumptions, open questions), then `docs/loop-state.md`
-   (resume pointer).
-2. Tier 1: `AGENTS.md`, `docs/north-star.md`, the relevant product lane in `docs/products/`, and
-   `docs/plan.md`.
-3. On demand: `docs/status.md` from the latest entry backward for history, and the rest of the
-   `AGENTS.md` Route Table.
-4. Check the git worktree before edits and preserve user changes.
+## 2. Separate Application Readiness from Provider Activation
 
-## Autonomous Feature Run Cycle
+The app is V1 when the pinned production revision, authentication, primary tabs, complete
+workflows, safety boundaries, monitoring, and rollback work. Provider activation is a separate
+per-action inventory.
 
-When the user asks to plan the next feature run cycle, use
-`docs/autonomous-agent-runner.md`. "Plan" produces a decision-complete packet and stops;
-"run the loop", "continue", "build", or "implement" authorizes unattended execution.
+- Production Test evidence may close app-workflow acceptance when it uses reserved aliases,
+  zero external calls, explicit Test labels, and non-Live receipts.
+- Only Live-lane evidence may claim a provider is Live-proven or enabled.
+- A missing provider contract/credential blocks that action's Live activation, not development
+  or acceptance of the stable application.
+- Stakeholder signoff is tracked and useful but does not override observed application state.
 
-The target loop is: gather context starting from `docs/loop-state.md`, create a
-decision-complete cycle packet in `docs/temp/`, ask planning-phase questions in one batch
-when needed, build unattended, run the verification-and-falsification phase, repair clear
-issues, align docs and `docs/loop-state.md`, prepare a commit queue, and continue into the
-next safe slice until a stop-and-reset condition fires. The user verifies at the
-end-of-run review point, not after every internal phase.
+## 3. Build a Complete Slice
 
-For the active 2026-07-14 final-V1 goal, the permanent packet already exists at
-`docs/v1-gap-implementation-program-2026-07-14.md`. S20–S24 are Local green; S22 and every S25/S26
-typed adapter run through the invented-alias synthetic journey; S27 local release-readiness artifacts
-are built. All external/provider/configuration/deploy rows remain Gated. `/loop` now selects one exact
-row from `docs/v1-client-unblock-checklist-2026-07-14.md`; it does not create another Round 3 packet,
-reuse synthetic evidence as provider proof, or infer provider contracts. Stop before each unauthorized
-live/config/provider gate.
+For each slice, define:
 
-Before choosing a local feature, run the migration-readiness stop gate in
-`docs/autonomous-agent-runner.md`. If the proposed work does not improve production
-readiness, migration/cutover prep, verification, handoff, or an approved product
-quality issue, defer it and move the session toward client unblock or cutover prep.
+- user and desired outcome;
+- Live or Test lane;
+- exact role/scope;
+- source of every value;
+- app write and any external effect;
+- preview/confirmation requirement;
+- receipt, failure, reconciliation, and rollback behavior;
+- unit, Firestore, E2E, and browser evidence;
+- documentation/fact updates.
 
-When Remote Away Mode is active, do not stop merely because work uses APIs, migration
-setup, or client-environment setup. Proceed when the action is reversible/idempotent,
-budget-guarded, documented, and does not hit a Hard Stop in `docs/away-mode.md`. Stop
-before unbounded cost, breaking/destructive change, key creation without an approved
-storage plan, Gmail send/live mailbox access, external communication, or unapproved
-system-of-record write.
+Use invented aliases and Test providers whenever Live setup is unavailable. Test records may
+write real Firestore/application state and reach Done. They must be structurally unable to
+construct a Live provider client.
 
-Use `docs/autonomous-feature-cycle-packet-template.md` when a packet or handoff template
-is useful. Treat `docs/agent-runner/` as the scaffold prompt pack that created the
-runner, not as active production routing.
+## 4. Live Action Promotion
 
-## Work AI Can Do Now
+Activate one action at a time after verifying:
 
-- Maintain governance, plans, checklists, and status.
-- Convert confirmed client answers into product docs and acceptance gates.
-- Maintain `docs/integration-architecture.md` and the Action Registry catalog
-  (`action_registry`); registry entries are metadata only, stay `production_allowed:
-false`, and execute no external action.
-- Prepare source manifests and templates without committing source content.
-- Draft non-secret setup runbooks and validation checklists.
-- Add or improve tests for existing KB behavior when implementation changes.
-- Audit docs for stale KB-only or separate-Owner-Router assumptions.
-- While an exact checklist row is pending, continue only regression repair, verification,
-  dry-run/preflight, handoff, and evidence work that improves readiness and does not touch raw client
-  data or systems of record. Use the canonical invented aliases for blocked-work tests.
-- Once local readiness is green and the remaining blockers are client-owned access,
-  sources, billing, production setup, migration, or real product decisions, stop
-  selecting new local product-surface work and record the migration-ready blocked state.
+1. canonical action key and immutable risk;
+2. documented endpoint/contract and authoritative mapping;
+3. least-privilege identity/credential storage;
+4. exact target/effect preview;
+5. role-specific confirmation or Admin decision;
+6. one-attempt/idempotency behavior;
+7. bodyless receipt and readback/reconciliation;
+8. monitoring and kill switch;
+9. correction/rollback rehearsal.
 
-## Work Humans Or Client Can Do In Parallel
+Never infer a provider endpoint or use a Test receipt as Live proof.
 
-- Choose one row from `docs/v1-client-unblock-checklist-2026-07-14.md` and return only its named
-  non-secret official/account contract, mapping, identifiers, and credential-owner/location label.
-- Approve production source roots and sensitivity/scanner policy for the exact launch Spaces.
-- Approve only the bounded first proof named by that row; a setup approval does not authorize the
-  action, deploy, send, write, or another row.
-- Capture the exact prior revision before any approved deploy and name Dan/Josiah acceptance evidence
-  only after deployed business/technical outcomes are green.
+## 5. Retention and Operations
 
-## Work Blocked On Access Or Missing Information
+Bodyless persistence, explicit legal hold, bounded on-demand cleanup, and health reporting are
+the working V1 default. TTL, additional indexes, and Scheduler automation are improvements to
+consider when volume/operational evidence justifies them.
 
-- S21 production root/scanner/import/index evidence and S24 production index/held-record/TTL/worker
-  activation evidence.
-- S22 Identity Platform/TOTP, invitation delivery, OAuth client/redirect/vault, same-mailbox, and
-  first assigned-ticket Vendor proof.
-- Each S25/S26 production action's official/account contract, authoritative mapping, credential
-  location, bounded proof, readback, monitor, correction, Registry review, and explicit authority.
-- S27 captured prior revision, approved deploy/smoke, deployed desktop/phone evidence, dependency
-  disposition, rollback rehearsal, and named Dan/Josiah acceptance.
+Before cloud work, run ADC, identity, budget, and production preflights. Capture the prior
+serving revision. After deployment, verify signed-in roles, Live/Test labels, complete Test
+journeys, provider activation labels, observability, and traffic rollback.
 
-The exact fields, recommended closed default, responsible role, and first proof are in
-`docs/v1-client-unblock-checklist-2026-07-14.md`. Do not expand these into generic access asks.
+## 6. Evidence and Documentation
 
-## Blocked-Work Protocol
+- Put exact acceptance checks in the relevant feature-suite spec.
+- Put verified dated claims in `docs/facts.md`.
+- Append implementation evidence to `docs/status.md`.
+- Keep `docs/loop-state.md` as the current resume pointer.
+- Update `docs/plan.md` in the same slice as any phase change.
+- Keep secrets, customer values, Gmail bodies, and setup links out of evidence.
 
-When blocked, record:
+## 7. Blocker Format
 
-- Product lane.
-- Missing item.
-- Why it blocks work.
-- Exact client ask.
-- Work AI can do while waiting.
-- Verification command or manual check once unblocked.
+A genuine blocker names:
 
-Do not write vague blockers such as "coordinate with client" when a concrete ask can be
-named.
+- the exact action/surface affected;
+- the missing external value or authority;
+- what was already checked;
+- the safest recommended default;
+- a command or UI process to resolve it;
+- the evidence that closes it;
+- work that can continue using Test data meanwhile.
 
-## Documentation Maintenance
+Do not write “coordinate with client” when a concrete recommendation can be made.
 
-- Update `docs/status.md` after meaningful work.
-- Update `docs/plan.md` only when phases, milestones, or acceptance criteria change.
-- Update `docs/implement.md` when the operating workflow changes.
-- Update the relevant `docs/products/*.md` when product scope changes.
-- Preserve original specs in `docs/specs/`.
-- Move or mark stale docs as legacy before adding new contradictory guidance.
+Runner-neutral execution details live in `docs/autonomous-agent-runner.md`. Draft cycle packets use
+`docs/autonomous-feature-cycle-packet-template.md` and belong under `docs/temp/` until a durable
+decision is promoted into the governed docs.

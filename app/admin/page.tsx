@@ -3,6 +3,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { ApprovalQueueAdminPanel } from "@/components/admin/ApprovalQueueAdminPanel";
 import { CommunicationsRetentionAdminPanel } from "@/components/admin/CommunicationsRetentionAdminPanel";
 import { PublicationPolicyAdminPanel } from "@/components/admin/PublicationPolicyAdminPanel";
+import { V1ProductionTestWorkspacePanel } from "@/components/admin/V1ProductionTestWorkspacePanel";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import {
   type AdminObservability,
@@ -190,6 +191,7 @@ export default async function AdminPage() {
           <p className="muted">
             Configuration, migration readiness, and connected-service consoles.
           </p>
+          <V1ProductionTestWorkspacePanel />
           <div className="grid three">
             <article className="panel">
               <h2>Approval Label</h2>

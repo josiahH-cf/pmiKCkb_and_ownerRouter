@@ -155,9 +155,24 @@ export const PRODUCTION_SMOKE_CHECKLIST = [
       "Admin can run Approval Queue bulk actions against real or explicitly approved test queue items, with per-item skipped reasons visible. Do not seed demo queue records in production just to test this path.",
   },
   {
-    id: "no-system-of-record-writes",
+    id: "dual-data-lanes",
     description:
-      "The app does not write to RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Sheets, Gmail inboxes, Drive folders, or Gmail Inbox 0/legacy Owner Router source artifacts.",
+      "Console shows separate Live and visibly labeled Test records; Test never falls back into Live or counts as Live evidence.",
+  },
+  {
+    id: "maintenance-test-workflow",
+    description:
+      "The canonical Maintenance Test journey persists intake, assignment, status, activity, notes, simulated receipts, and Done with zero external-provider calls.",
+  },
+  {
+    id: "vendor-test-workflow",
+    description:
+      "The canonical Test Vendor completes password setup and TOTP, sees only its assigned Test ticket, uses the app-only Test mailbox, and loses access after deassignment or disable.",
+  },
+  {
+    id: "explicit-live-writes",
+    description:
+      "Every enabled Live write names the exact action, target, and material values; requires the permitted human confirmation; emits a bodyless receipt and readback; and an unavailable action makes no provider call.",
   },
 ];
 

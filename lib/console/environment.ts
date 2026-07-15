@@ -23,10 +23,30 @@ export function resolveConsoleDataMode(env: Environment = process.env): ConsoleD
   return { kind: "live" };
 }
 
+/**
+ * The production app deliberately carries two server-owned workspaces. Live never falls
+ * back to fixtures; Test is a separate, permanently labeled lane. No request, cookie,
+ * query, header, or browser flag can change either provider selection.
+ */
+export function resolveConsoleDataModes(
+  env: Environment = process.env,
+): readonly ConsoleDataMode[] {
+  const nodeEnvironment = env.NODE_ENV ?? process.env.NODE_ENV ?? "development";
+  if (nodeEnvironment !== "production") return [resolveConsoleDataMode(env)];
+  return [
+    { kind: "live" },
+    {
+      badge: "Test data",
+      deploymentName: "production-test-workspace",
+      kind: "test",
+    },
+  ];
+}
+
 export function assertFixtureMode(
   mode: ConsoleDataMode,
 ): asserts mode is Extract<ConsoleDataMode, { kind: "test" }> {
   if (mode.kind !== "test") {
-    throw new Error("Console fixture providers are forbidden in live mode.");
+    throw new Error("A Test provider requires the explicit Test workspace.");
   }
 }

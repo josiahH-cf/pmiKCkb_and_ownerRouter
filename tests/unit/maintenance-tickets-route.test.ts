@@ -63,6 +63,30 @@ describe("maintenance tickets API route", () => {
     expect(await response.json()).toEqual({ tickets: [] });
   });
 
+  it("GET supports an explicit Test-only queue address", async () => {
+    setEditor();
+    vi.mocked(listMaintenanceTickets).mockResolvedValue([
+      { id: "live", data_mode: "live" },
+      { id: "test", data_mode: "test" },
+    ] as never);
+    const response = await GET(
+      new Request("http://localhost/api/maintenance/tickets?data_mode=test"),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      tickets: [{ id: "test", data_mode: "test" }],
+    });
+  });
+
+  it("GET rejects an unknown data mode", async () => {
+    setEditor();
+    vi.mocked(listMaintenanceTickets).mockResolvedValue([]);
+    const response = await GET(
+      new Request("http://localhost/api/maintenance/tickets?data_mode=demo"),
+    );
+    expect(response.status).toBe(400);
+  });
+
   it("POST creates a ticket from a valid draft", async () => {
     setEditor();
     vi.mocked(createMaintenanceTicket).mockResolvedValue({
@@ -90,6 +114,25 @@ describe("maintenance tickets API route", () => {
       jsonRequest("http://localhost/api/maintenance/tickets", "POST", { summary: "" }),
     );
     expect(response.ok).toBe(false);
+    expect(createMaintenanceTicket).not.toHaveBeenCalled();
+  });
+
+  it("POST rejects browser-created Test data in favor of the canonical seed route", async () => {
+    setEditor();
+    const response = await POST(
+      jsonRequest("http://localhost/api/maintenance/tickets", "POST", {
+        data_mode: "test",
+        summary: "Attempted Test ticket",
+        description: "Browser-supplied scenario",
+        priority: "High",
+        unit: {
+          unitId: "unit:test-maple-204",
+          label: "TEST — 204 Maple Court Unit 2",
+          confidence: "Verified",
+        },
+      }),
+    );
+    expect(response.status).toBe(400);
     expect(createMaintenanceTicket).not.toHaveBeenCalled();
   });
 

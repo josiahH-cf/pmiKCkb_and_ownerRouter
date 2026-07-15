@@ -5,6 +5,7 @@ import {
   TotpMultiFactorGenerator,
   getMultiFactorResolver,
   multiFactor,
+  signOut,
   signInWithEmailAndPassword,
   type MultiFactorResolver,
   type TotpSecret,
@@ -97,7 +98,18 @@ export function VendorSignIn() {
           code.trim(),
         );
         await multiFactor(enrollment.current.user).enroll(assertion, "Authenticator app");
-        await finish(enrollment.current.user);
+        // Enrollment proves possession for registration, but the current Firebase sign-in
+        // did not itself use TOTP. Sign out and require a fresh password + TOTP challenge so
+        // the server receives firebase.sign_in_second_factor=totp before issuing a session.
+        await signOut(getFirebaseClientAuth());
+        enrollment.current = null;
+        setMode("credentials");
+        setPassword("");
+        setCode("");
+        setSetupKey("");
+        setMessage(
+          "TOTP enrolled. Sign in again and complete the authenticator challenge.",
+        );
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "The TOTP code was rejected.");

@@ -64,8 +64,8 @@ doc explicitly preserves a safety rule.
 
 ## Product Lane Selection
 
-- PMI KC KB is the shared application runtime. Final V1 is an external-user release under R01–R09,
-  S20–S27, and `docs/v1-gap-implementation-program-2026-07-14.md`; intermediate deployments are pre-V1.
+- PMI KC KB is the shared working V1 runtime under R01–R09 and S20–S27. Application readiness is
+  established by the stable production Live/Test workflows; provider activation is tracked per action.
 - Lease Renewal Agent already has a deterministic read/reconcile/review runtime and app-plane
   decision surfaces. It remains the first backend automation target, while every external write
   waits for its own approved scope, permission, and acceptance gate.
@@ -110,16 +110,16 @@ these:
   environment; or
 - records product decisions, blockers, and setup evidence without inventing scope.
 
-If the repo already has green local verification, current cutover/preflight artifacts,
-clear client asks, and no known migration-relevant bug, stop adding new local product
-surface. Record the state as migration-ready but client-blocked, move speculative work
-to backlog/status, and make the next recommended task client unblock, production setup,
-approved migration, or cutover prep.
+If local verification is green, finish the requested production Test workflow, documentation,
+cutover, and deployed acceptance before stopping. Do not add speculative surface area, but do not
+rename a working app blocked because an optional Live provider lacks a credential.
 
-For the final-V1 program, use the exact recommendation-first row in
-`docs/v1-client-unblock-checklist-2026-07-14.md`. Invented aliases and typed fake providers remain the
-default for blocked-work regression, but production must reject fake providers, Registry overrides,
-synthetic escapes, and schema/risk lowering. A local receipt never closes an external evidence row.
+For the working-V1 program, use the exact recommendation-first row in
+`docs/v1-client-unblock-checklist-2026-07-14.md`. Invented aliases and typed Test providers are the
+default for blocked work. Production permits only the branded, no-client isolated Test workspace;
+Live orchestration rejects Test references/adapters, Registry overrides, synthetic escapes, and
+schema/risk lowering. A production Test receipt may close app-workflow evidence, never Live-provider
+evidence.
 
 Defer work that would expand workflow, Approval Queue, Lease Renewal, Workflow Communications, or
 demo-only behavior without a direct migration-readiness reason. This is not a hard stop
@@ -165,12 +165,10 @@ Read the trigger literally to avoid re-prompting:
   implementation loop and into the multi-slice continuation loop without asking again
   between internal phases or between safe slices.
 
-For the active 2026-07-14 V1 goal, the decision-complete packet already exists. `/loop` or any run/
-continue/implement trigger starts the recommended exact open proof packet (currently trusted
-publication / `app.content.publish` in `docs/v1-client-unblock-checklist-2026-07-14.md`) and follows the
-dependency order in `docs/v1-gap-implementation-program-2026-07-14.md`. S25/S26/S27 local boundaries
-are built but Gated; do not regenerate Round 3 questions or infer a provider contract. Continue
-safe fake-provider/emulator slices; stop before each exact live/config/provider gate.
+For the active working-V1 goal, `/loop` or any run/continue/implement trigger follows
+`docs/loop-state.md` and the dependency order in the V1 program. Do not regenerate Round 3 questions
+or infer a Live provider contract. Complete isolated Test workflows and app/Firestore writes, then
+activate only the exact Live actions currently authorized by the owner and Registry contract.
 
 After an implementation packet is locked, do not ask the user to review every internal
 phase. Only stop for an approval gate, a stop-and-reset condition, or a genuine blocker.
@@ -416,9 +414,8 @@ next action in `docs/loop-state.md`.
   unapproved/unbounded cloud/API cost, key creation or use, Gmail access, external
   communication, destructive client-environment change, or an external system write. Stop
   and raise or queue the exact approval request.
-- Migration readiness reached: local verification is green, cutover/preflight artifacts
-  are current, client asks are clear, and the remaining blockers are client-owned. Stop
-  adding local product surface and recommend client unblock or cutover prep.
+- Requested release complete: verification, docs, commit/push/deploy, production acceptance, and
+  rollback evidence are complete; remaining provider activations are specifically inventoried.
 - Quality degrading: the same root issue survives two repair cycles, checks that were
   green turn red and do not recover, or new lint/type/test failures are introduced and
   not fixed in the same slice. Stop, record the regression, and recommend a focused fix

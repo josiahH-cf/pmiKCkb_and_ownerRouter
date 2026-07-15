@@ -15,6 +15,7 @@ export default async function VendorPage() {
       principal.uid,
       principal.email,
       new Date().toISOString(),
+      principal.dataMode ?? "live",
     ))
   ) {
     redirect("/vendor/sign-in?error=unavailable");
@@ -22,6 +23,7 @@ export default async function VendorPage() {
   return (
     <VendorPortal
       email={principal.email}
+      dataMode={principal.dataMode ?? "live"}
       tickets={await listVendorTickets(principal, store)}
     />
   );

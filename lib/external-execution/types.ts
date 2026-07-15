@@ -3,6 +3,7 @@ import type {
   ExecutionTechnicalGates,
   WorkflowCommunicationGates,
 } from "@/lib/execution/risk-policy";
+import type { DataMode } from "@/lib/data-mode";
 
 export type ExternalExecutionRisk = "Low" | "Medium" | "High";
 export type ExternalExecutionState =
@@ -24,6 +25,8 @@ export interface ExternalActionDefinition {
 }
 
 export interface ExternalActionInput {
+  /** Missing legacy values resolve to Live; production Test callers must set this explicitly. */
+  dataMode?: DataMode;
   workflowId: string;
   actionId: string;
   actionKey: string;
@@ -60,6 +63,9 @@ export interface ExternalAuthorityContext {
 
 export interface ExternalActionReceipt {
   actionKey: string;
+  dataMode?: DataMode;
+  /** Test receipts are useful workflow evidence, but can never prove a Live provider. */
+  liveEvidenceEligible?: boolean;
   providerRef: string;
   resultHash: string;
   reconciled: boolean;
@@ -69,6 +75,7 @@ export interface ExternalActionReceipt {
 
 export interface ExternalExecutionRecord {
   id: string;
+  dataMode: DataMode;
   workflowId: string;
   actionId: string;
   actionKey: string;

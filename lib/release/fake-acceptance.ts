@@ -1,10 +1,9 @@
 import { MemoryExternalExecutionStore } from "@/lib/external-execution/memory-store";
-import { ExternalActionOrchestrator } from "@/lib/external-execution/orchestrator";
+import { createIsolatedTestExternalActionOrchestrator } from "@/lib/external-execution/orchestrator";
 import type {
   ExternalActionDefinition,
   ExternalExecutor,
 } from "@/lib/external-execution/types";
-import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 import {
   LEASE_EXECUTION_ACTIONS,
   LEASE_EXECUTION_DEFINITION_MAP,
@@ -29,11 +28,11 @@ async function runLane(
   providerCallCount: () => number,
 ) {
   const store = new MemoryExternalExecutionStore();
-  const orchestrator = new ExternalActionOrchestrator(definitions, store, executors, {
-    isExecutable: () => true,
-    allowFakeContracts: true,
-    registry: ACTION_REGISTRY_SEED,
-  });
+  const orchestrator = createIsolatedTestExternalActionOrchestrator(
+    definitions,
+    store,
+    executors,
+  );
   const callsBefore = providerCallCount();
   for (const [index, key] of order.entries()) {
     const action = buildSyntheticActionInput(lane, key, index, definitions.get(key)!);
@@ -63,7 +62,10 @@ async function runLane(
 export async function runIntegratedFakeV1Acceptance() {
   const harness = createSyntheticExecutorHarness();
   return {
-    mode: "synthetic-fake-only" as const,
+    mode: "production-test-workspace" as const,
+    dataMode: "test" as const,
+    liveEvidenceEligible: false,
+    liveProviderCallCount: 0,
     vendorBoundary: {
       ...(await runSyntheticVendorJourney()),
       typedProviderBoundary: true,

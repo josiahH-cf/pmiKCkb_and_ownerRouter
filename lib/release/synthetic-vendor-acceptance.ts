@@ -190,6 +190,21 @@ export async function runSyntheticVendorJourney() {
       input.vendorId === vendorId &&
       input.ticketId === ticketId &&
       input.threadId === threadId,
+    getGmailLaneContext: async (input: {
+      vendorId: string;
+      ticketId: string;
+      threadId: string;
+    }) =>
+      input.vendorId === vendorId &&
+      input.ticketId === ticketId &&
+      input.threadId === threadId
+        ? {
+            vendor: "live" as const,
+            assignment: "live" as const,
+            ticket: "live" as const,
+            thread: "live" as const,
+          }
+        : null,
   };
   const client = {
     getLinkedThread: async () => ({

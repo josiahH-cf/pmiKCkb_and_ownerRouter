@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import VendorLayout from "@/app/vendor/layout";
 
-describe("Vendor pre-V1 release label", () => {
+describe("Vendor V1 application release label", () => {
   it("wraps every Vendor route in the release-stage banner", () => {
     render(
       <VendorLayout>
@@ -13,7 +13,10 @@ describe("Vendor pre-V1 release label", () => {
       </VendorLayout>,
     );
 
-    expect(screen.getByRole("status").textContent).toContain("Pre-V1 candidate");
+    expect(screen.getByRole("status").textContent).toContain("V1 application");
+    expect(screen.getByRole("status").textContent).toContain(
+      "provider status and signoffs are advisory",
+    );
     expect(screen.getByText("Invented Vendor fixture")).toBeTruthy();
   });
 });

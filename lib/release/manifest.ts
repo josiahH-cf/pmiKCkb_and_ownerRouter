@@ -14,6 +14,17 @@ export const V1_REQUIRED_ACTION_KEYS = Object.freeze(
   [...new Set([...LEASE_EXECUTION_ACTIONS, ...MAINTENANCE_EXECUTION_ACTIONS])].sort(),
 );
 
+export const PROVIDER_ACTIVATION_STATES = Object.freeze([
+  "unavailable",
+  "test_ready",
+  "live_configured",
+  "live_proven",
+  "enabled",
+  "suspended",
+] as const);
+
+export type ProviderActivationState = (typeof PROVIDER_ACTIVATION_STATES)[number];
+
 function acceptanceIds(suite: number, last: number) {
   return Object.freeze(
     Array.from({ length: last }, (_, index) => `AC-S${suite}-${index + 1}`),
@@ -35,12 +46,14 @@ type V1RequiredSuite = keyof typeof V1_REQUIRED_SUITE_ACCEPTANCE_IDS;
 const ProofStateSchema = z.enum([
   "Local green",
   "Gated",
-  "Sandbox proven",
-  "Production allowed",
-  "Bounded production proven",
+  "Production test passed",
+  "Live passed",
   "Accepted",
 ]);
 
+const EvidenceLaneSchema = z.enum(["production_test", "live"]);
+const WorkflowCoverageSchema = z.enum(["unverified", "production_test", "live"]);
+const ProviderActivationStateSchema = z.enum(PROVIDER_ACTIVATION_STATES);
 const DurableReferenceSchema = z.string().trim().min(1).max(500);
 
 const PendingAcceptanceSchema = z
@@ -59,15 +72,11 @@ const AcceptedAcceptanceSchema = z
   })
   .strict();
 
-const AcceptanceSchema = z.discriminatedUnion("status", [
-  PendingAcceptanceSchema,
-  AcceptedAcceptanceSchema,
-]);
-
 const SuiteProofSchema = z
   .object({
     state: ProofStateSchema,
     acceptanceIds: z.array(z.string().regex(/^AC-S2[0-6]-\d+$/)).min(1),
+    evidenceLane: EvidenceLaneSchema.optional(),
     evidenceRef: DurableReferenceSchema.optional(),
   })
   .strict();
@@ -75,17 +84,28 @@ const SuiteProofSchema = z
 const ActionProofSchema = z
   .object({
     key: z.string().trim().min(1),
-    state: ProofStateSchema,
-    productionAllowed: z.boolean(),
-    evidenceRef: DurableReferenceSchema.optional(),
+    applicationCoverage: WorkflowCoverageSchema,
+    activation: ProviderActivationStateSchema,
+    workflowEvidenceRef: DurableReferenceSchema.optional(),
+    oneAttemptVerified: z.boolean(),
+    idempotencyVerified: z.boolean(),
+    correctionVerified: z.boolean(),
+    liveEvidenceRef: DurableReferenceSchema.optional(),
     monitoringRef: DurableReferenceSchema.optional(),
     rollbackRef: DurableReferenceSchema.optional(),
   })
   .strict();
 
+const SmokeCaseSchema = z
+  .object({
+    lane: EvidenceLaneSchema,
+    evidenceRef: DurableReferenceSchema,
+  })
+  .strict();
+
 export const V1ReleaseManifestSchema = z
   .object({
-    schemaVersion: z.literal("v1-release-manifest:1.0"),
+    schemaVersion: z.literal("v1-release-manifest:2.0"),
     stage: z.enum([
       "pre-v1-foundation",
       "pre-v1-data-comms",
@@ -115,13 +135,19 @@ export const V1ReleaseManifestSchema = z
       })
       .strict(),
     actions: z.array(ActionProofSchema),
-    migrations: z.array(z.string()),
-    smokeCases: z.array(z.string().trim().min(1)).min(1),
+    migrations: z.array(DurableReferenceSchema),
+    smokeCases: z.array(SmokeCaseSchema).min(1),
+    deploymentEvidenceRef: DurableReferenceSchema,
+    buildEvidenceRef: DurableReferenceSchema,
+    authenticationEvidenceRef: DurableReferenceSchema,
+    safetyEvidenceRef: DurableReferenceSchema,
     monitoringRef: DurableReferenceSchema,
     rollbackRef: DurableReferenceSchema,
     browserAcceptanceRef: DurableReferenceSchema,
-    danBusinessAcceptance: AcceptanceSchema,
-    josiahTechnicalAcceptance: AcceptanceSchema,
+    // Signoffs are advisory metadata. Their inner shape is validated separately so a
+    // malformed or stale supplied signoff can never demote an otherwise-ready V1 app.
+    danBusinessAcceptance: z.unknown(),
+    josiahTechnicalAcceptance: z.unknown(),
   })
   .strict();
 
@@ -133,10 +159,8 @@ export interface V1EvidenceResolution {
 }
 
 /**
- * Trusted observations supplied by the release command, never by the manifest
- * being verified. Keeping this dependency explicit lets the local Pre-V1
- * report stay pure while making a final V1 verdict impossible from self-
- * asserted JSON alone.
+ * Trusted observations supplied by the release command, never by the manifest.
+ * The authority proves immutable pins and that referenced evidence really exists.
  */
 export interface V1ReleaseVerificationAuthority {
   commit: string;
@@ -145,6 +169,23 @@ export interface V1ReleaseVerificationAuthority {
   indexesVersion: string;
   registryHash: string;
   resolveEvidence: (reference: string) => V1EvidenceResolution;
+}
+
+export interface ProviderActivationSummary {
+  ok: boolean;
+  issues: string[];
+  counts: Record<ProviderActivationState, number>;
+}
+
+export type AdvisorySignoffStatus = "pending" | "accepted" | "invalid";
+
+export interface AdvisorySignoffSummary {
+  complete: boolean;
+  issues: string[];
+  statuses: {
+    danBusiness: AdvisorySignoffStatus;
+    josiahTechnical: AdvisorySignoffStatus;
+  };
 }
 
 function stableValue(value: unknown): unknown {
@@ -167,23 +208,21 @@ function normalizedRegistry(
     .sort((left, right) => left.key.localeCompare(right.key));
 }
 
-/** Hash every operational Registry field after schema defaults, not only gate booleans. */
+/** Hash every operational Registry field after schema defaults. */
 export function actionRegistryHash(registry: readonly CreateActionRegistryInput[]) {
   return createHash("sha256")
     .update(JSON.stringify(stableValue(normalizedRegistry(registry))))
     .digest("hex");
 }
 
-const unresolvedMarker =
-  /(?:\bfake\b|\bfixture\b|\bsynthetic\b|\bsample\b|\bexample\b|\bplaceholder\b|\bpending\b|\btodo\b|\btbd\b|\bunreleased\b|\blocal\b|undocumented|not documented|vendor[- ]confirmation[- ]required|<[^>]+>)/i;
+const pendingMarker =
+  /(?:\bplaceholder\b|\bpending\b|\btodo\b|\btbd\b|\bunreleased\b|\blocal\b|undocumented|not documented|vendor[- ]confirmation[- ]required|<[^>]+>)/i;
+const nonLiveMarker =
+  /(?:\bfake\b|\bfixture\b|\bsynthetic\b|\bsample\b|\bexample\b|\bemulator\b|\bsandbox\b|production[-_ ]test|test[-_ ]lane|(?:^|[/#_.-])test(?:[/#_.-]|$))/i;
 
-function isProductionEvidenceRef(value: string | undefined): value is string {
-  return productionEvidenceIdentity(value) !== null;
-}
-
-/** Case-folded identity prevents filesystem/path aliases from satisfying two release gates. */
-function productionEvidenceIdentity(value: string | undefined) {
-  if (!value || unresolvedMarker.test(value) || value.includes("\\")) return null;
+/** Durable application evidence may describe either the production Test lane or Live lane. */
+function durableEvidenceIdentity(value: string | undefined) {
+  if (!value || pendingMarker.test(value) || value.includes("\\")) return null;
   const match =
     /^(docs\/evidence\/[A-Za-z0-9._/-]+\.(?:md|json|html))#([A-Za-z0-9._-]+)$/.exec(
       value,
@@ -202,8 +241,25 @@ function productionEvidenceIdentity(value: string | undefined) {
   return `${match[1].toLowerCase()}#${match[2].toLowerCase()}`;
 }
 
+/** A Test/synthetic/fake marker can never be accepted as proof of a Live provider. */
+function liveEvidenceIdentity(value: string | undefined) {
+  const identity = durableEvidenceIdentity(value);
+  return identity && !nonLiveMarker.test(value ?? "") ? identity : null;
+}
+
+function evidenceMatchesLane(
+  value: string | undefined,
+  lane: "production_test" | "live" | undefined,
+) {
+  if (lane === "live") return liveEvidenceIdentity(value) !== null;
+  if (lane === "production_test") return durableEvidenceIdentity(value) !== null;
+  return false;
+}
+
 function isProductionPin(value: string) {
-  return value.trim().length >= 7 && !unresolvedMarker.test(value);
+  return (
+    value.trim().length >= 7 && !pendingMarker.test(value) && !nonLiveMarker.test(value)
+  );
 }
 
 function hasExactValues(actual: readonly string[], expected: readonly string[]) {
@@ -214,31 +270,50 @@ function hasExactValues(actual: readonly string[], expected: readonly string[]) 
   return actual.every((value) => expectedSet.has(value));
 }
 
-function validateNamedAcceptance(
+interface NamedSignoffValidation {
+  status: AdvisorySignoffStatus;
+  evidenceRef?: string;
+}
+
+function validateNamedSignoff(
   label: string,
   expectedName: "Dan" | "Josiah",
-  acceptance: V1ReleaseManifest["danBusinessAcceptance"],
+  acceptance: unknown,
   expectedReleaseIdentityHash: string,
   issues: string[],
-) {
-  if (acceptance.status !== "accepted") {
-    issues.push(`${label} acceptance is pending.`);
-    return;
+): NamedSignoffValidation {
+  if (PendingAcceptanceSchema.safeParse(acceptance).success) {
+    return { status: "pending" };
   }
-  if (acceptance.acceptedBy !== expectedName) {
-    issues.push(`${label} acceptance must be recorded by ${expectedName}.`);
+
+  const parsed = AcceptedAcceptanceSchema.safeParse(acceptance);
+  if (!parsed.success) {
+    issues.push(`${label} advisory signoff is malformed.`);
+    return { status: "invalid" };
   }
-  if (!isProductionEvidenceRef(acceptance.evidenceRef)) {
-    issues.push(`${label} acceptance lacks durable production evidence.`);
+
+  let valid = true;
+  if (parsed.data.acceptedBy !== expectedName) {
+    issues.push(`${label} advisory signoff must be recorded by ${expectedName}.`);
+    valid = false;
   }
-  if (acceptance.releaseIdentityHash !== expectedReleaseIdentityHash) {
-    issues.push(`${label} acceptance does not match this release identity.`);
+  if (!liveEvidenceIdentity(parsed.data.evidenceRef)) {
+    issues.push(`${label} advisory signoff lacks durable production evidence.`);
+    valid = false;
   }
+  if (parsed.data.releaseIdentityHash !== expectedReleaseIdentityHash) {
+    issues.push(`${label} advisory signoff does not match this release identity.`);
+    valid = false;
+  }
+  return {
+    status: valid ? "accepted" : "invalid",
+    evidenceRef: parsed.data.evidenceRef,
+  };
 }
 
 /**
- * Non-circular candidate identity signed by Dan and Josiah. It binds every immutable release pin,
- * proof, and operational reference while deliberately excluding the two acceptance objects.
+ * Non-circular identity signed by Dan and Josiah. It binds application readiness and the
+ * independently reported provider activation snapshot, excluding only the signatures.
  */
 export function v1ReleaseIdentityHash(manifest: V1ReleaseManifest) {
   const suites = Object.fromEntries(
@@ -264,7 +339,13 @@ export function v1ReleaseIdentityHash(manifest: V1ReleaseManifest) {
     suites,
     actions,
     migrations: [...manifest.migrations].sort(),
-    smokeCases: [...manifest.smokeCases].sort(),
+    smokeCases: [...manifest.smokeCases].sort((left, right) =>
+      left.evidenceRef.localeCompare(right.evidenceRef),
+    ),
+    deploymentEvidenceRef: manifest.deploymentEvidenceRef,
+    buildEvidenceRef: manifest.buildEvidenceRef,
+    authenticationEvidenceRef: manifest.authenticationEvidenceRef,
+    safetyEvidenceRef: manifest.safetyEvidenceRef,
     monitoringRef: manifest.monitoringRef,
     rollbackRef: manifest.rollbackRef,
     browserAcceptanceRef: manifest.browserAcceptanceRef,
@@ -272,6 +353,107 @@ export function v1ReleaseIdentityHash(manifest: V1ReleaseManifest) {
   return createHash("sha256")
     .update(JSON.stringify(stableValue(identity)))
     .digest("hex");
+}
+
+function emptyActivationCounts(): Record<ProviderActivationState, number> {
+  return {
+    unavailable: 0,
+    test_ready: 0,
+    live_configured: 0,
+    live_proven: 0,
+    enabled: 0,
+    suspended: 0,
+  };
+}
+
+function registryHasConfiguredProvider(entry: ParsedActionRegistryInput | undefined) {
+  return (
+    !!entry &&
+    (entry.readiness === "Ready for Test" ||
+      entry.readiness === "Approved for Execution") &&
+    entry.evidence_status === "Documented" &&
+    !!entry.connection_health_check_ref &&
+    !pendingMarker.test(entry.connection_health_check_ref) &&
+    !pendingMarker.test(entry.rollback_note)
+  );
+}
+
+function validateLiveActivation(
+  action: V1ReleaseManifest["actions"][number],
+  registryEntry: ParsedActionRegistryInput | undefined,
+  issues: string[],
+) {
+  const requiresConfiguredProvider = [
+    "live_configured",
+    "live_proven",
+    "enabled",
+  ].includes(action.activation);
+  const requiresLiveProof = ["live_proven", "enabled", "suspended"].includes(
+    action.activation,
+  );
+
+  if (requiresConfiguredProvider && !registryHasConfiguredProvider(registryEntry)) {
+    issues.push(
+      `${action.key} claims ${action.activation} without a configured, documented Registry provider contract.`,
+    );
+  }
+
+  if (requiresLiveProof) {
+    if (!liveEvidenceIdentity(action.liveEvidenceRef)) {
+      issues.push(
+        `${action.key} claims ${action.activation} without durable Live execution evidence.`,
+      );
+    }
+    if (!liveEvidenceIdentity(action.monitoringRef)) {
+      issues.push(
+        `${action.key} claims ${action.activation} without durable Live monitoring evidence.`,
+      );
+    }
+    if (!liveEvidenceIdentity(action.rollbackRef)) {
+      issues.push(
+        `${action.key} claims ${action.activation} without durable Live rollback evidence.`,
+      );
+    }
+    const identities = [
+      liveEvidenceIdentity(action.liveEvidenceRef),
+      liveEvidenceIdentity(action.monitoringRef),
+      liveEvidenceIdentity(action.rollbackRef),
+    ];
+    if (identities.every(Boolean) && new Set(identities).size !== 3) {
+      issues.push(
+        `${action.key} conflates Live execution, monitoring, and rollback evidence.`,
+      );
+    }
+  }
+
+  if (action.activation === "enabled") {
+    if (
+      !registryEntry?.production_allowed ||
+      registryEntry.readiness !== "Approved for Execution" ||
+      registryEntry.evidence_status !== "Documented"
+    ) {
+      issues.push(
+        `${action.key} claims enabled while the pinned Action Registry does not allow production execution.`,
+      );
+    }
+  }
+
+  if (action.activation === "suspended") {
+    if (registryEntry?.production_allowed || registryEntry?.readiness !== "Disabled") {
+      issues.push(
+        `${action.key} claims suspended while the pinned Action Registry is not disabled.`,
+      );
+    }
+  }
+
+  if (
+    ["unavailable", "test_ready", "live_configured"].includes(action.activation) &&
+    (action.liveEvidenceRef || action.monitoringRef || action.rollbackRef)
+  ) {
+    issues.push(
+      `${action.key} includes Live proof fields while claiming ${action.activation}.`,
+    );
+  }
 }
 
 export function verifyV1ReleaseManifest(
@@ -287,11 +469,27 @@ export function verifyV1ReleaseManifest(
       issues: parsed.error.issues.map(
         (issue) => `${issue.path.join(".")}: ${issue.message}`,
       ),
+      activation: {
+        ok: false,
+        issues: ["Provider activation snapshot does not satisfy the manifest schema."],
+        counts: emptyActivationCounts(),
+      } satisfies ProviderActivationSummary,
+      signoff: {
+        complete: false,
+        issues: [],
+        statuses: {
+          danBusiness: "invalid",
+          josiahTechnical: "invalid",
+        },
+      } satisfies AdvisorySignoffSummary,
     };
   }
 
   const manifest = parsed.data;
   const issues: string[] = [];
+  const activationIssues: string[] = [];
+  const signoffIssues: string[] = [];
+  const activationCounts = emptyActivationCounts();
   const releaseIdentityHash = v1ReleaseIdentityHash(manifest);
 
   if (manifest.stage !== "v1") {
@@ -312,6 +510,7 @@ export function verifyV1ReleaseManifest(
   if (!isProductionPin(manifest.indexesVersion)) {
     issues.push("Firestore indexes are not pinned to a production version.");
   }
+
   let parsedRegistry: ParsedActionRegistryInput[] = [];
   let computedRegistryHash: string | undefined;
   try {
@@ -323,11 +522,11 @@ export function verifyV1ReleaseManifest(
   } catch {
     issues.push("Action Registry does not satisfy its schema.");
   }
-
   const registryKeys = parsedRegistry.map((entry) => entry.key);
   if (new Set(registryKeys).size !== registryKeys.length) {
     issues.push("Action Registry contains duplicate action keys.");
   }
+  const registryMap = new Map(parsedRegistry.map((entry) => [entry.key, entry]));
 
   for (const suite of Object.keys(
     V1_REQUIRED_SUITE_ACCEPTANCE_IDS,
@@ -339,8 +538,8 @@ export function verifyV1ReleaseManifest(
     if (row.state !== "Accepted") {
       issues.push(`${suite} is ${row.state}, not Accepted.`);
     }
-    if (!isProductionEvidenceRef(row.evidenceRef)) {
-      issues.push(`${suite} lacks durable production acceptance evidence.`);
+    if (!evidenceMatchesLane(row.evidenceRef, row.evidenceLane)) {
+      issues.push(`${suite} lacks durable ${row.evidenceLane ?? "workflow"} evidence.`);
     }
   }
 
@@ -351,134 +550,123 @@ export function verifyV1ReleaseManifest(
       "Manifest actions do not exactly match the unique required V1 action set.",
     );
   }
-  const actionMap = new Map(manifest.actions.map((action) => [action.key, action]));
-  const registryMap = new Map(parsedRegistry.map((entry) => [entry.key, entry]));
-
   for (const action of manifest.actions) {
     if (!requiredActionSet.has(action.key)) {
       issues.push(`Unexpected manifest action ${action.key}.`);
     }
+    activationCounts[action.activation] += 1;
+    validateLiveActivation(action, registryMap.get(action.key), activationIssues);
   }
 
+  const actionMap = new Map(manifest.actions.map((action) => [action.key, action]));
+  const unverifiedCoverage: string[] = [];
+  const missingWorkflowEvidence: string[] = [];
+  const unavailableActions: string[] = [];
+  const missingOneAttempt: string[] = [];
+  const missingIdempotency: string[] = [];
+  const missingCorrection: string[] = [];
   for (const key of V1_REQUIRED_ACTION_KEYS) {
     const action = actionMap.get(key);
-    const registryEntry = registryMap.get(key);
-    if (!action) {
-      issues.push(`Required action ${key} is missing.`);
-      continue;
-    }
+    if (!action) continue;
+    if (action.applicationCoverage === "unverified") unverifiedCoverage.push(key);
     if (
-      action.state !== "Accepted" ||
-      !action.productionAllowed ||
-      !registryEntry?.production_allowed ||
-      registryEntry.readiness !== "Approved for Execution" ||
-      registryEntry.evidence_status !== "Documented"
+      action.applicationCoverage !== "unverified" &&
+      !evidenceMatchesLane(action.workflowEvidenceRef, action.applicationCoverage)
     ) {
-      issues.push(`Required action ${key} lacks accepted production proof.`);
+      missingWorkflowEvidence.push(key);
     }
-    if (!isProductionEvidenceRef(action.evidenceRef)) {
-      issues.push(`Required action ${key} lacks durable execution evidence.`);
-    }
-    if (!isProductionEvidenceRef(action.monitoringRef)) {
-      issues.push(`Required action ${key} lacks durable monitoring evidence.`);
-    }
-    if (!isProductionEvidenceRef(action.rollbackRef)) {
-      issues.push(`Required action ${key} lacks durable rollback evidence.`);
-    }
-    if (
-      action.evidenceRef &&
-      action.monitoringRef &&
-      action.rollbackRef &&
-      new Set(
-        [action.evidenceRef, action.monitoringRef, action.rollbackRef].map(
-          productionEvidenceIdentity,
-        ),
-      ).size !== 3
-    ) {
+    if (action.activation === "unavailable") unavailableActions.push(key);
+    if (!action.oneAttemptVerified) missingOneAttempt.push(key);
+    if (!action.idempotencyVerified) missingIdempotency.push(key);
+    if (!action.correctionVerified) missingCorrection.push(key);
+  }
+  if (unverifiedCoverage.length) {
+    issues.push(
+      `${unverifiedCoverage.length} required actions lack production Test or Live workflow coverage.`,
+    );
+  }
+  if (missingWorkflowEvidence.length) {
+    issues.push(
+      `${missingWorkflowEvidence.length} covered actions lack lane-correct durable workflow evidence.`,
+    );
+  }
+  if (unavailableActions.length) {
+    issues.push(
+      `${unavailableActions.length} required actions are unavailable instead of at least test_ready.`,
+    );
+  }
+  if (missingOneAttempt.length) {
+    issues.push(
+      `${missingOneAttempt.length} required actions lack one-attempt verification.`,
+    );
+  }
+  if (missingIdempotency.length) {
+    issues.push(
+      `${missingIdempotency.length} required actions lack idempotency verification.`,
+    );
+  }
+  if (missingCorrection.length) {
+    issues.push(
+      `${missingCorrection.length} required actions lack correction/rollback verification.`,
+    );
+  }
+
+  // Invalid Live claims are release-integrity failures; merely being test_ready is not.
+  issues.push(...activationIssues);
+
+  for (const smokeCase of manifest.smokeCases) {
+    if (!evidenceMatchesLane(smokeCase.evidenceRef, smokeCase.lane)) {
       issues.push(
-        `Required action ${key} conflates execution, monitor, and rollback evidence.`,
+        `Release smoke case lacks durable ${smokeCase.lane} workflow evidence.`,
       );
-    }
-    if (
-      !registryEntry?.documented_evidence.includes("docs/evidence/") ||
-      unresolvedMarker.test(registryEntry.documented_evidence)
-    ) {
-      issues.push(`Required action ${key} has unresolved Registry evidence.`);
-    }
-    if (
-      !registryEntry?.connection_health_check_ref ||
-      unresolvedMarker.test(registryEntry.connection_health_check_ref)
-    ) {
-      issues.push(`Required action ${key} lacks a resolved Registry health monitor.`);
-    }
-    if (
-      !registryEntry?.rollback_note ||
-      unresolvedMarker.test(registryEntry.rollback_note)
-    ) {
-      issues.push(`Required action ${key} lacks a resolved Registry rollback contract.`);
-    }
-    if (
-      action.evidenceRef &&
-      registryEntry &&
-      !registryEntry.documented_evidence.includes(action.evidenceRef)
-    ) {
-      issues.push(`Required action ${key} Registry evidence does not match its proof.`);
     }
   }
 
-  const globalEvidence = [
+  const coreEvidence = [
+    ["Production deployment", manifest.deploymentEvidenceRef],
+    ["Production build", manifest.buildEvidenceRef],
+    ["Production authentication", manifest.authenticationEvidenceRef],
+    ["Production safety", manifest.safetyEvidenceRef],
     ["Release monitoring", manifest.monitoringRef],
     ["Release rollback", manifest.rollbackRef],
     ["Browser acceptance", manifest.browserAcceptanceRef],
   ] as const;
-  for (const [label, reference] of globalEvidence) {
-    if (!isProductionEvidenceRef(reference)) {
+  for (const [label, reference] of coreEvidence) {
+    if (!liveEvidenceIdentity(reference)) {
       issues.push(`${label} lacks durable production evidence.`);
     }
   }
   if (
-    new Set(globalEvidence.map(([, reference]) => productionEvidenceIdentity(reference)))
-      .size !== 3
+    liveEvidenceIdentity(manifest.monitoringRef) ===
+    liveEvidenceIdentity(manifest.rollbackRef)
   ) {
-    issues.push("Release monitoring, rollback, and browser evidence must be distinct.");
-  }
-  const evidenceReferences = releaseEvidenceReferences(manifest);
-  const seenEvidence = new Set<string>();
-  for (const [, reference] of evidenceReferences) {
-    const evidenceIdentity = productionEvidenceIdentity(reference);
-    if (!evidenceIdentity) continue;
-    if (seenEvidence.has(evidenceIdentity)) {
-      issues.push(`Release evidence reference is reused across gates: ${reference}.`);
-    }
-    seenEvidence.add(evidenceIdentity);
-  }
-  if (manifest.smokeCases.some((smokeCase) => !isProductionEvidenceRef(smokeCase))) {
-    issues.push("Release smoke cases still reference local or synthetic evidence.");
+    issues.push("Release monitoring and rollback evidence must be distinct.");
   }
   if (manifest.stage === "v1" && manifest.migrations.length === 0) {
     issues.push(
       "Release migrations require durable evidence, including an explicit none-required proof.",
     );
   }
-  if (manifest.migrations.some((migration) => !isProductionEvidenceRef(migration))) {
-    issues.push("Release migrations still reference local or synthetic artifacts.");
+  if (manifest.migrations.some((migration) => !liveEvidenceIdentity(migration))) {
+    issues.push("Release migrations still reference non-production artifacts.");
   }
 
-  validateNamedAcceptance(
+  const danSignoff = validateNamedSignoff(
     "Dan business",
     "Dan",
     manifest.danBusinessAcceptance,
     releaseIdentityHash,
-    issues,
+    signoffIssues,
   );
-  validateNamedAcceptance(
+  const josiahSignoff = validateNamedSignoff(
     "Josiah technical",
     "Josiah",
     manifest.josiahTechnicalAcceptance,
     releaseIdentityHash,
-    issues,
+    signoffIssues,
   );
 
+  const evidenceReferences = releaseEvidenceReferences(manifest);
   if (manifest.stage === "v1") {
     if (!authority) {
       issues.push(
@@ -504,16 +692,39 @@ export function verifyV1ReleaseManifest(
         issues.push("Action Registry does not match the authoritative Registry pin.");
       }
 
+      const resolved = new Map<string, V1EvidenceResolution | undefined>();
       for (const [label, reference] of evidenceReferences) {
-        if (!isProductionEvidenceRef(reference)) continue;
+        if (!reference || !durableEvidenceIdentity(reference)) continue;
+        let resolution = resolved.get(reference);
+        if (!resolved.has(reference)) {
+          try {
+            resolution = authority.resolveEvidence(reference);
+          } catch {
+            resolution = undefined;
+          }
+          resolved.set(reference, resolution);
+        }
+        if (!resolution?.fileExists || !resolution.anchorExists) {
+          issues.push(
+            `${label} does not resolve to an existing evidence file and anchor.`,
+          );
+        }
+      }
+
+      for (const [label, signoff] of [
+        ["Dan business advisory signoff", danSignoff],
+        ["Josiah technical advisory signoff", josiahSignoff],
+      ] as const) {
+        if (signoff.status !== "accepted" || !signoff.evidenceRef) continue;
         let resolution: V1EvidenceResolution | undefined;
         try {
-          resolution = authority.resolveEvidence(reference);
+          resolution = authority.resolveEvidence(signoff.evidenceRef);
         } catch {
           resolution = undefined;
         }
         if (!resolution?.fileExists || !resolution.anchorExists) {
-          issues.push(
+          signoff.status = "invalid";
+          signoffIssues.push(
             `${label} does not resolve to an existing evidence file and anchor.`,
           );
         }
@@ -522,12 +733,30 @@ export function verifyV1ReleaseManifest(
   }
 
   if (manifest.stage === "v1" && issues.length) {
-    issues.push("The V1 label is forbidden while acceptance gates remain open.");
+    issues.push(
+      "The V1 application label is forbidden while readiness gates remain open.",
+    );
   }
   return {
     ok: issues.length === 0,
     state: issues.length === 0 ? ("v1" as const) : ("pre-v1" as const),
     issues,
+    activation: {
+      ok: activationIssues.length === 0,
+      issues: activationIssues,
+      counts: activationCounts,
+    } satisfies ProviderActivationSummary,
+    signoff: {
+      complete:
+        danSignoff.status === "accepted" &&
+        josiahSignoff.status === "accepted" &&
+        signoffIssues.length === 0,
+      issues: signoffIssues,
+      statuses: {
+        danBusiness: danSignoff.status,
+        josiahTechnical: josiahSignoff.status,
+      },
+    } satisfies AdvisorySignoffSummary,
     manifest,
   };
 }
@@ -540,43 +769,40 @@ function releaseEvidenceReferences(
     references.push([`${suite} acceptance evidence`, proof.evidenceRef]);
   }
   for (const action of manifest.actions) {
-    references.push(
-      [`${action.key} execution evidence`, action.evidenceRef],
-      [`${action.key} monitoring evidence`, action.monitoringRef],
-      [`${action.key} rollback evidence`, action.rollbackRef],
-    );
+    references.push([`${action.key} workflow evidence`, action.workflowEvidenceRef]);
+    if (action.liveEvidenceRef) {
+      references.push([`${action.key} Live execution evidence`, action.liveEvidenceRef]);
+    }
+    if (action.monitoringRef) {
+      references.push([`${action.key} Live monitoring evidence`, action.monitoringRef]);
+    }
+    if (action.rollbackRef) {
+      references.push([`${action.key} Live rollback evidence`, action.rollbackRef]);
+    }
   }
   references.push(
+    ["Production deployment evidence", manifest.deploymentEvidenceRef],
+    ["Production build evidence", manifest.buildEvidenceRef],
+    ["Production authentication evidence", manifest.authenticationEvidenceRef],
+    ["Production safety evidence", manifest.safetyEvidenceRef],
     ["Release monitoring evidence", manifest.monitoringRef],
     ["Release rollback evidence", manifest.rollbackRef],
     ["Browser acceptance evidence", manifest.browserAcceptanceRef],
     ...manifest.smokeCases.map(
-      (reference, index) => [`Release smoke evidence ${index + 1}`, reference] as const,
+      (row, index) => [`Release smoke evidence ${index + 1}`, row.evidenceRef] as const,
     ),
     ...manifest.migrations.map(
       (reference, index) =>
         [`Release migration evidence ${index + 1}`, reference] as const,
     ),
   );
-  if (manifest.danBusinessAcceptance.status === "accepted") {
-    references.push([
-      "Dan business acceptance evidence",
-      manifest.danBusinessAcceptance.evidenceRef,
-    ]);
-  }
-  if (manifest.josiahTechnicalAcceptance.status === "accepted") {
-    references.push([
-      "Josiah technical acceptance evidence",
-      manifest.josiahTechnicalAcceptance.evidenceRef,
-    ]);
-  }
   return references;
 }
 
-export function buildCurrentPreV1Manifest(commit = "0000000"): V1ReleaseManifest {
+export function buildCurrentV1CandidateManifest(commit = "0000000"): V1ReleaseManifest {
   return {
-    schemaVersion: "v1-release-manifest:1.0",
-    stage: "pre-v1-maintenance",
+    schemaVersion: "v1-release-manifest:2.0",
+    stage: "v1-candidate",
     commit,
     revision: "local-unreleased",
     environment: "local",
@@ -606,21 +832,41 @@ export function buildCurrentPreV1Manifest(commit = "0000000"): V1ReleaseManifest
         state: "Local green",
         acceptanceIds: [...V1_REQUIRED_SUITE_ACCEPTANCE_IDS.S24],
       },
-      S25: { state: "Gated", acceptanceIds: [...V1_REQUIRED_SUITE_ACCEPTANCE_IDS.S25] },
-      S26: { state: "Gated", acceptanceIds: [...V1_REQUIRED_SUITE_ACCEPTANCE_IDS.S26] },
+      S25: {
+        state: "Gated",
+        acceptanceIds: [...V1_REQUIRED_SUITE_ACCEPTANCE_IDS.S25],
+      },
+      S26: {
+        state: "Gated",
+        acceptanceIds: [...V1_REQUIRED_SUITE_ACCEPTANCE_IDS.S26],
+      },
     },
     actions: V1_REQUIRED_ACTION_KEYS.map((key) => ({
       key,
-      state: "Gated",
-      productionAllowed: false,
-      rollbackRef: "docs/v1-monitoring-and-rollback-plan-2026-07-14.md",
+      applicationCoverage: "unverified",
+      activation: "unavailable",
+      oneAttemptVerified: false,
+      idempotencyVerified: false,
+      correctionVerified: false,
     })),
     migrations: [],
-    smokeCases: ["integrated synthetic fake-provider acceptance"],
-    monitoringRef: "docs/v1-monitoring-and-rollback-plan-2026-07-14.md",
-    rollbackRef: "docs/v1-monitoring-and-rollback-plan-2026-07-14.md",
-    browserAcceptanceRef: "docs/v1-tab-browser-acceptance-plan-2026-07-14.md",
+    smokeCases: [
+      {
+        lane: "production_test",
+        evidenceRef: "docs/evidence/pending-production-test.md#workflow",
+      },
+    ],
+    deploymentEvidenceRef: "docs/evidence/pending-production-deploy.md#revision",
+    buildEvidenceRef: "docs/evidence/pending-production-build.md#verification",
+    authenticationEvidenceRef: "docs/evidence/pending-production-auth.md#roles",
+    safetyEvidenceRef: "docs/evidence/pending-production-safety.md#boundaries",
+    monitoringRef: "docs/evidence/pending-production-operations.md#monitoring",
+    rollbackRef: "docs/evidence/pending-production-operations.md#rollback",
+    browserAcceptanceRef: "docs/evidence/pending-production-browser.md#tabs",
     danBusinessAcceptance: { status: "pending" },
     josiahTechnicalAcceptance: { status: "pending" },
   };
 }
+
+/** @deprecated Use buildCurrentV1CandidateManifest; retained for existing callers. */
+export const buildCurrentPreV1Manifest = buildCurrentV1CandidateManifest;

@@ -1,92 +1,78 @@
-# PMI KC Three-Product North Star
+# PMI KC Working-App North Star
 
-## Current Direction
+## Outcome
 
-PMI KC has purchased three related products that should now be governed from this
-repository as one coordinated workstream:
+PMI KC V1 is the stable production application people can use now. It is not a demo shell,
+a read-only preview, or a promise that every optional vendor integration is already active.
 
-| Product                 | Purpose                                                                                                      | Current implementation posture                                                                                                     |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| PMI KC KB               | Source-backed knowledge, approval, and workflow-control app for operational Q&A and automation.              | S20–S24 Local green; S25/S26/S27 safe local boundaries Gated; final external-user V1 requires every live/browser/owner acceptance. |
-| Lease Renewal Agent     | Dedicated agent track for lease renewal workflows and handoffs.                                              | Read/reconcile/review exists; every S25 R02 action is required for final V1.                                                       |
-| Workflow Communications | Workflow-linked Gmail evidence, approved labels, drafts, replies, and attention for renewal and maintenance. | Gmail remains the message system of record; PMI KC is not a general inbox client.                                                  |
+| Product lane            | What V1 does                                                                                                                                                                                 |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PMI KC KB               | Source-backed answers, Spaces/processes, approvals, roles, attention, administration, trusted publication, and explicit execution controls.                                                  |
+| Lease Renewal Agent     | Reconciles renewal sources, supports review and decisions, and exercises the complete action graph through production Test records; configured Live actions activate independently.          |
+| Workflow Communications | Works only from authorized renewal or maintenance context for linked-thread reads, governed labels, drafts, and exact-confirmed replies. It is not a general inbox.                          |
+| Maintenance + Vendor    | Creates and manages Live in-app tickets, runs a complete invented Test ticket to Done, and includes Firebase password/TOTP Vendor access, assigned-ticket authorization, and a Test mailbox. |
 
-The end state is a coordinated operating system for PMI KC Metro: source-backed answers,
-approved backend workflow automation, repeatable renewal handoffs, and a visible Gmail
-queue that keeps humans in control of approvals, sends, and system-of-record actions.
+The Console is the front door. Each Space carries its process. Operators should see what
+needs attention, understand the effect of a button, and complete work without learning the
+underlying provider architecture.
 
-The operator-facing shape (recalibrated 2026-06-30, owner-directed — `A-IA-V2`): the **Console is the
-front door**, each **Space carries its process** (Processes is not a separate tab), and every Space has
-real "teeth" — built for a non-technical, process-oriented operator (simple, elegant, workflow-first,
-less reading). Detail: `docs/feature-suites/ui-ia.md` and the V1 process Q&A
-(`docs/products/v1-process-qa.md`).
+## Live and Test
 
-## Decision Rules
+Production deliberately contains two server-owned data lanes:
 
-- Current product routing lives in `AGENTS.md`, this file, `docs/products/`, and
-  `docs/plan.md`.
-- Verified external-tool roles, event model, build order, and the Action Registry model
-  live in `docs/integration-architecture.md`, backed by
-  `docs/research/integration-capability-2026-06.md`. Tools are not interchangeable: each
-  has a distinct role, and Google Sheets is not a primary source of truth.
-- Older "KB-only" and "separate Owner Router repo" language is legacy unless a product
-  doc explicitly preserves it as a runtime safety boundary.
-- Preserve original specs in `docs/specs/`; mark conflicts instead of silently merging
-  them into the new direction.
-- Distinguish confirmed facts from discovery questions. Do not invent endpoints,
-  credentials, permissions, timelines, sender lists, data stores, or client workflows.
-- Human/client work and AI/engineering work should proceed in parallel whenever
-  possible.
+- **Live** records use authoritative app/provider data. Any external write shows the exact
+  action, target, effect, actor requirement, and confirmation before one idempotent attempt.
+- **Test** records use reserved invented aliases, are always visibly labeled, write real
+  app/Firestore workflow state, and may progress to Done. Their adapters contain no Live
+  client, make zero external calls, and cannot produce Live-provider evidence.
+- A missing Live provider connection affects only that action's activation state. It does
+  not make the rest of the application unfinished.
 
-## Non-Negotiable Safety Boundaries
+Provider activation is reported per action as unavailable, Test-ready, Live-configured,
+Live-proven, enabled, or suspended. Test workflow success proves the app; only a lane-correct
+receipt proves a Live provider.
 
-- No secrets, tokens, customer data, raw screening records, ledgers, bank data, SSNs,
-  full lease packets, or live Gmail thread contents in git.
-- No autonomous send.
-- No system-of-record writes to RentVine, LeadSimple, DotLoop, QuickBooks, Boom,
-  operating Sheets, banks, ledgers, or client Drive folders except through its exact approved S25/S26
-  action contract after documented evidence, least privilege, preview, authority, idempotency,
-  reconciliation, tests, rollback/correction, registry review, and explicit live approval. Product
-  inclusion alone never permits execution.
-- Missing or weak sources produce visible uncertainty such as
-  `Needs Verification: <fact>` or `No Reliable Source Found`, not generic property
-  management answers.
-- Drafts that may be sent externally must preserve the human-review boundary:
-  `Draft — Review before sending`.
+## Product and Execution Rules
 
-## Product Relationship
+- Rentvine is the operating system of record; LeadSimple orchestrates work; Dotloop holds
+  document packages; QuickBooks is accounting; Boom is auxiliary; Sheets is an
+  exception/control surface. The app owns workflow state and references provider records.
+- No guessed endpoint, credential, source value, or customer fact may be used for a Live
+  action. An unknown provider contract leaves that one action unavailable while its Test
+  workflow remains usable.
+- Low/Medium enabled work follows role and exact-confirmation policy. Consequential High
+  work requires the exact Admin decision. Technical blockers cannot be approved away.
+- Sends are always human-initiated and exact-confirmed. No background, scheduled, bulk,
+  or model-triggered send is a V1 capability.
+- Every external execution has one claim, idempotency, a bodyless receipt, safe error state,
+  reconciliation before correction, and a documented kill switch.
 
-- PMI KC KB is the current web app runtime and remains the first lane to production hardening. Staged
-  intermediate deployments are pre-V1; the release is called V1 only after every S25/S26 action and
-  S22 Vendor portal pass S27 end-to-end acceptance.
-- Rentvine is the operational system of record; LeadSimple is workflow orchestration;
-  Dotloop is the document-package layer; QuickBooks is the accounting layer downstream;
-  Boom is an auxiliary resident rent-reporting/screening service; Google Sheets is an
-  exception/control surface. The KB owns the central workflow-run record and references
-  external systems through backlinks and Action Registry action records.
-- Maintenance Work Order Intake is the first executable-write integration target, because
-  Rentvine work-order writes and the LeadSimple Rentvine maintenance sync are documented.
-  It is built inside the KB automation surface before lease-renewal writeback.
-- Lease Renewal Agent is the first backend automation product lane. The
-  KB Lease Renewals Space is useful source material and a demo reference, not enough by
-  itself to identify external systems or write permissions. Renewal preparation can proceed
-  read-only, but the Rentvine lease-renewal writeback is undocumented in the public API and
-  stays non-executable until vendor confirmation and S25's per-action acceptance/live gate; because
-  R02 requires it, that vendor gap blocks final V1 rather than becoming a manual fallback.
-- Workflow Communications supersedes the active Gmail Inbox 0 / Owner Router / Dan's AI
-  Assistant product framing. Existing artifacts remain source material, but the active product
-  surface starts from authorized renewal or maintenance context and never scans or presents a
-  user's whole mailbox as an inbox replacement.
-- Cross-product integrations may be implemented locally through S20–S27 fake-provider contracts, but
-  must be explicitly documented before registry promotion/live use. Product lanes share governance,
-  vocabulary, and source discipline, not hidden runtime dependencies.
+## Safety Boundaries
 
-## Success Criteria
+- No secrets, tokens, customer records, Gmail bodies, bank data, SSNs, or full leases in git,
+  logs, URLs, manifests, or bodyless audits.
+- Missing or weak sources produce visible uncertainty, not generic property-management
+  answers.
+- Live/Test identities, records, assignments, adapters, and receipts cannot cross lanes.
+- Personal Google identities never enter staff, connector, build, runtime, Firebase CLI, or
+  cloud paths.
+- Test aliases use `.invalid` email addresses and reserved IDs; they cannot be mistaken for
+  a customer or contacted externally.
 
-- A future AI session can identify the next task without rediscovering the repo.
-- Client blockers are listed as concrete asks with an owner and a verification method.
-- Engineering work after admin access is executable from checklists and runbooks.
-- Legacy docs are marked or moved so stale direction cannot override the three-lane
-  plan.
-- Every production cutover gate includes source approval, permission review, smoke
-  tests, rollback notes, and status updates.
+## Operational Defaults
+
+- Bodyless retention records, legal hold, bounded on-demand cleanup, and visible cleanup
+  health are the V1 default. TTL, extra composite indexes, and Scheduler automation are
+  optional optimizations when volume justifies them.
+- Application readiness is established by green verification, a pinned production deploy,
+  signed-in browser coverage, rollback readiness, and complete Live/Test workflow behavior.
+  Stakeholder signoffs remain visible metadata, not a switch that changes application truth.
+- Preserve original specs in `docs/specs/`; put current execution truth in `docs/facts.md`,
+  `docs/loop-state.md`, `docs/plan.md`, and the active feature-suite specifications.
+
+## Success
+
+V1 succeeds when staff and the canonical Test Vendor can sign in, understand every primary
+tab, create and finish work, see source and data-lane state, safely exercise provider-shaped
+actions, and recover from failures without hidden external effects. Live integrations can then
+be activated one action at a time without redesigning the app.

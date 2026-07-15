@@ -1,0 +1,2665 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      name="description"
+      content="Human-readable current-state report for the PMI KC working application V1."
+    />
+    <title>PMI KC Working App V1 · Current State · July 15, 2026</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #18243d;
+        --muted: #5c6980;
+        --navy: #152b55;
+        --navy-2: #23477f;
+        --blue: #1469d2;
+        --blue-soft: #eaf3ff;
+        --cyan: #dff6f8;
+        --green: #16744a;
+        --green-soft: #e9f8f0;
+        --amber: #996313;
+        --amber-soft: #fff5de;
+        --purple: #7148a8;
+        --purple-soft: #f4edff;
+        --red: #a23737;
+        --red-soft: #fff0ef;
+        --line: #dce3ee;
+        --paper: #f4f7fb;
+        --card: #ffffff;
+        --shadow: 0 18px 46px rgba(19, 37, 72, 0.09);
+        --radius: 20px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 12% 0%, rgba(38, 112, 208, 0.09), transparent 32rem),
+          radial-gradient(circle at 90% 12%, rgba(57, 176, 158, 0.08), transparent 28rem),
+          var(--paper);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        font-size: 15px;
+        line-height: 1.58;
+      }
+
+      a {
+        color: var(--blue);
+        text-underline-offset: 3px;
+      }
+
+      code {
+        padding: 0.1em 0.38em;
+        border-radius: 6px;
+        background: #eef2f7;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.88em;
+        overflow-wrap: anywhere;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 900px;
+        margin-bottom: 18px;
+        font-size: clamp(2.5rem, 7vw, 5.4rem);
+        line-height: 0.97;
+        letter-spacing: -0.055em;
+      }
+
+      h2 {
+        margin-bottom: 10px;
+        font-size: clamp(1.55rem, 3vw, 2.35rem);
+        line-height: 1.13;
+        letter-spacing: -0.035em;
+      }
+
+      h3 {
+        margin-bottom: 8px;
+        font-size: 1.08rem;
+        line-height: 1.28;
+      }
+
+      h4 {
+        margin-bottom: 6px;
+        font-size: 0.96rem;
+      }
+
+      .report {
+        width: min(1220px, calc(100% - 34px));
+        margin: 0 auto;
+        padding: 20px 0 50px;
+      }
+
+      .hero {
+        position: relative;
+        margin: 10px 0 16px;
+        padding: clamp(32px, 7vw, 76px);
+        overflow: hidden;
+        border-radius: 30px;
+        color: white;
+        background:
+          linear-gradient(
+            120deg,
+            rgba(21, 43, 85, 0.98),
+            rgba(27, 79, 139, 0.95) 58%,
+            rgba(25, 111, 105, 0.93)
+          ),
+          var(--navy);
+        box-shadow: var(--shadow);
+      }
+
+      .hero::after {
+        position: absolute;
+        top: -180px;
+        right: -140px;
+        width: 500px;
+        height: 500px;
+        border: 1px solid rgba(255, 255, 255, 0.17);
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 56px rgba(255, 255, 255, 0.035),
+          0 0 0 112px rgba(255, 255, 255, 0.025);
+        content: "";
+      }
+
+      .eyebrow {
+        position: relative;
+        z-index: 1;
+        margin-bottom: 14px;
+        color: #bfe8f3;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .hero h1,
+      .hero-copy,
+      .hero-meta {
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero-copy {
+        max-width: 900px;
+        margin-bottom: 0;
+        color: #e9f1ff;
+        font-size: clamp(1rem, 2vw, 1.18rem);
+      }
+
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 24px;
+      }
+
+      .hero-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 7px 11px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 0.83rem;
+        overflow-wrap: anywhere;
+      }
+
+      .hero-chip code {
+        background: rgba(255, 255, 255, 0.14);
+        color: white;
+      }
+
+      .quick-nav {
+        position: sticky;
+        z-index: 20;
+        top: 9px;
+        display: flex;
+        gap: 7px;
+        margin-bottom: 16px;
+        padding: 9px;
+        overflow-x: auto;
+        border: 1px solid rgba(220, 227, 238, 0.96);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 8px 28px rgba(16, 38, 75, 0.08);
+        backdrop-filter: blur(10px);
+      }
+
+      .quick-nav a {
+        flex: 0 0 auto;
+        padding: 6px 10px;
+        border-radius: 9px;
+        color: var(--ink);
+        font-size: 0.8rem;
+        font-weight: 750;
+        text-decoration: none;
+      }
+
+      .quick-nav a:hover,
+      .quick-nav a:focus-visible {
+        background: var(--cyan);
+        outline: none;
+      }
+
+      .report-section {
+        margin: 16px 0;
+        padding: clamp(22px, 4vw, 40px);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.93);
+        box-shadow: var(--shadow);
+      }
+
+      .lede {
+        max-width: 940px;
+        color: var(--muted);
+        font-size: 1rem;
+      }
+
+      .metrics,
+      .grid-2,
+      .grid-3,
+      .surface-grid,
+      .steps,
+      .status-grid {
+        display: grid;
+        gap: 13px;
+      }
+
+      .metrics {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        margin: 20px 0;
+      }
+
+      .grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .surface-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .status-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .metric,
+      .card,
+      .surface-card,
+      .callout,
+      .lane,
+      .step,
+      .activation-card {
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--card);
+      }
+
+      .metric {
+        min-height: 112px;
+        padding: 16px;
+        border-top-width: 4px;
+      }
+
+      .metric strong {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 1.55rem;
+        line-height: 1.1;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .metric.green {
+        border-top-color: var(--green);
+      }
+
+      .metric.blue {
+        border-top-color: var(--blue);
+      }
+
+      .metric.purple {
+        border-top-color: var(--purple);
+      }
+
+      .metric.amber {
+        border-top-color: var(--amber);
+      }
+
+      .card,
+      .surface-card,
+      .activation-card {
+        padding: 19px;
+      }
+
+      .card p:last-child,
+      .surface-card p:last-child,
+      .activation-card p:last-child {
+        margin-bottom: 0;
+      }
+
+      .callout {
+        margin-top: 15px;
+        padding: 17px 19px;
+        border-left-width: 5px;
+      }
+
+      .callout strong:first-child {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .callout.good {
+        border-left-color: var(--green);
+        background: var(--green-soft);
+      }
+
+      .callout.info {
+        border-left-color: var(--blue);
+        background: var(--blue-soft);
+      }
+
+      .callout.warn {
+        border-left-color: var(--amber);
+        background: var(--amber-soft);
+      }
+
+      .callout.danger {
+        border-left-color: var(--red);
+        background: var(--red-soft);
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 0.73rem;
+        font-weight: 800;
+        line-height: 1.25;
+        white-space: nowrap;
+      }
+
+      .status::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: currentColor;
+        content: "";
+      }
+
+      .status.working {
+        color: var(--green);
+        background: var(--green-soft);
+      }
+
+      .status.test {
+        color: var(--purple);
+        background: var(--purple-soft);
+      }
+
+      .status.live {
+        color: var(--blue);
+        background: var(--blue-soft);
+      }
+
+      .status.activation {
+        color: var(--amber);
+        background: var(--amber-soft);
+      }
+
+      .status.optional {
+        color: var(--muted);
+        background: #eff2f6;
+      }
+
+      .status.pending {
+        color: var(--red);
+        background: var(--red-soft);
+      }
+
+      .table-wrap {
+        margin-top: 16px;
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: white;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.89rem;
+      }
+
+      th,
+      td {
+        padding: 12px 13px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: #f2f5fa;
+        color: #35435c;
+        font-size: 0.72rem;
+        letter-spacing: 0.045em;
+        text-transform: uppercase;
+      }
+
+      tr:last-child td {
+        border-bottom: 0;
+      }
+
+      td:first-child {
+        font-weight: 720;
+      }
+
+      .lane-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr);
+        gap: 12px;
+        align-items: stretch;
+        margin-top: 19px;
+      }
+
+      .lane {
+        padding: 21px;
+      }
+
+      .lane.live-lane {
+        border-top: 5px solid var(--blue);
+        background: linear-gradient(180deg, var(--blue-soft), white 50%);
+      }
+
+      .lane.test-lane {
+        border-top: 5px solid var(--purple);
+        background: linear-gradient(180deg, var(--purple-soft), white 50%);
+      }
+
+      .lane-arrow {
+        display: grid;
+        place-items: center;
+        color: var(--muted);
+        font-size: 1.7rem;
+        font-weight: 800;
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .flow span {
+        position: relative;
+        padding: 10px 9px;
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        background: white;
+        font-size: 0.78rem;
+        text-align: center;
+      }
+
+      .flow span:not(:last-child)::after {
+        position: absolute;
+        top: 50%;
+        right: -8px;
+        z-index: 2;
+        color: var(--muted);
+        content: "›";
+        transform: translate(50%, -50%);
+      }
+
+      .surface-head {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+
+      .surface-head > div {
+        min-width: 0;
+      }
+
+      .route {
+        color: var(--muted);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.78rem;
+        overflow-wrap: anywhere;
+      }
+
+      .surface-card dl {
+        display: grid;
+        grid-template-columns: 105px minmax(0, 1fr);
+        gap: 7px 10px;
+        margin: 14px 0 0;
+      }
+
+      .surface-card dt {
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .surface-card dd {
+        min-width: 0;
+        margin: 0;
+        font-size: 0.88rem;
+        overflow-wrap: anywhere;
+      }
+
+      .steps {
+        counter-reset: step;
+        margin-top: 17px;
+      }
+
+      .step {
+        position: relative;
+        padding: 17px 18px 17px 58px;
+        counter-increment: step;
+      }
+
+      .step::before {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        display: grid;
+        place-items: center;
+        width: 29px;
+        height: 29px;
+        border-radius: 9px;
+        background: var(--navy);
+        color: white;
+        font-size: 0.8rem;
+        font-weight: 800;
+        content: counter(step);
+      }
+
+      .step p {
+        margin-bottom: 0;
+        color: var(--muted);
+        font-size: 0.89rem;
+      }
+
+      .bars {
+        margin-top: 17px;
+        padding: 19px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: white;
+      }
+
+      .bar-row {
+        display: grid;
+        grid-template-columns: 180px minmax(0, 1fr) 58px;
+        gap: 12px;
+        align-items: center;
+        margin: 12px 0;
+      }
+
+      .bar-track {
+        height: 18px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #edf1f6;
+      }
+
+      .bar-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--blue), var(--purple));
+      }
+
+      .bar-fill.lease {
+        width: 57.9%;
+      }
+
+      .bar-fill.maintenance {
+        width: 100%;
+      }
+
+      .bar-fill.vendor {
+        width: 36.8%;
+        background: linear-gradient(90deg, var(--green), #46b292);
+      }
+
+      .bar-row strong:last-child {
+        text-align: right;
+      }
+
+      .historic-bar {
+        display: flex;
+        width: 100%;
+        height: 30px;
+        margin: 18px 0 11px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #edf1f6;
+      }
+
+      .historic-bar span:nth-child(1) {
+        width: 2.96%;
+        background: #155eef;
+      }
+
+      .historic-bar span:nth-child(2) {
+        width: 8.28%;
+        background: #5d8df2;
+      }
+
+      .historic-bar span:nth-child(3) {
+        width: 84.62%;
+        background: #7148a8;
+      }
+
+      .historic-bar span:nth-child(4) {
+        width: 2.96%;
+        background: #d28a12;
+      }
+
+      .historic-bar span:nth-child(5) {
+        width: 1.18%;
+        background: #a23737;
+      }
+
+      .legend {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .legend-item {
+        display: flex;
+        gap: 7px;
+        align-items: flex-start;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+
+      .swatch {
+        flex: 0 0 10px;
+        width: 10px;
+        height: 10px;
+        margin-top: 5px;
+        border-radius: 3px;
+      }
+
+      .quote {
+        margin: 15px 0;
+        padding: 18px 20px;
+        border-left: 4px solid var(--navy-2);
+        border-radius: 0 14px 14px 0;
+        background: #f3f6fb;
+        color: #2b3a55;
+        font-size: 0.94rem;
+        font-weight: 650;
+      }
+
+      .translation-grid {
+        display: grid;
+        grid-template-columns: 190px minmax(0, 1fr);
+        gap: 0;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        background: white;
+      }
+
+      .translation-grid dt,
+      .translation-grid dd {
+        margin: 0;
+        padding: 11px 13px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .translation-grid dt {
+        background: #f5f7fb;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .translation-grid dd {
+        color: var(--muted);
+        font-size: 0.87rem;
+      }
+
+      .translation-grid dt:last-of-type,
+      .translation-grid dd:last-of-type {
+        border-bottom: 0;
+      }
+
+      .activation-list {
+        display: grid;
+        gap: 11px;
+        margin-top: 16px;
+      }
+
+      .activation-card {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 10px;
+      }
+
+      .check {
+        display: grid;
+        place-items: center;
+        width: 27px;
+        height: 27px;
+        border: 2px solid var(--amber);
+        border-radius: 8px;
+        color: var(--amber);
+        font-weight: 900;
+      }
+
+      .recommendation {
+        color: var(--green);
+        font-weight: 720;
+      }
+
+      .fine-print {
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .evidence-pending {
+        display: inline-flex;
+        padding: 3px 7px;
+        border: 1px dashed var(--red);
+        border-radius: 7px;
+        color: var(--red);
+        background: var(--red-soft);
+        font-size: 0.75rem;
+        font-weight: 800;
+      }
+
+      .report-footer {
+        padding: 22px 5px 0;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .report-footer p {
+        margin-bottom: 7px;
+      }
+
+      @media (max-width: 1000px) {
+        .metrics {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .status-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .legend {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 860px) {
+        .table-wrap {
+          border: 0;
+          overflow: visible;
+          background: transparent;
+        }
+
+        table,
+        tbody,
+        tr,
+        td {
+          display: block;
+          width: 100%;
+        }
+
+        thead {
+          display: none;
+        }
+
+        tr {
+          margin-bottom: 11px;
+          padding: 9px;
+          border: 1px solid var(--line);
+          border-radius: 14px;
+          background: white;
+        }
+
+        td {
+          display: grid;
+          grid-template-columns: 120px minmax(0, 1fr);
+          gap: 9px;
+          padding: 7px;
+          border: 0;
+          overflow-wrap: anywhere;
+        }
+
+        td::before {
+          color: var(--muted);
+          font-size: 0.7rem;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          content: attr(data-label);
+        }
+      }
+
+      @media (max-width: 720px) {
+        .report {
+          width: min(100% - 20px, 1220px);
+        }
+
+        .hero {
+          border-radius: 22px;
+        }
+
+        .metrics,
+        .grid-2,
+        .grid-3,
+        .surface-grid,
+        .status-grid,
+        .lane-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .lane-arrow {
+          min-height: 32px;
+          transform: rotate(90deg);
+        }
+
+        .flow {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .flow span:not(:last-child)::after {
+          top: auto;
+          right: 50%;
+          bottom: -10px;
+          transform: translate(50%, 50%) rotate(90deg);
+        }
+
+        .surface-card dl,
+        .translation-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .translation-grid dt,
+        .translation-grid dd {
+          border-bottom: 1px solid var(--line);
+        }
+
+        .bar-row {
+          grid-template-columns: 105px minmax(0, 1fr) 38px;
+          gap: 8px;
+          font-size: 0.82rem;
+        }
+
+        .legend {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        td {
+          grid-template-columns: 94px minmax(0, 1fr);
+        }
+      }
+
+      @media print {
+        body {
+          background: white;
+        }
+
+        .report {
+          width: 100%;
+        }
+
+        .hero,
+        .report-section {
+          box-shadow: none;
+        }
+
+        .quick-nav {
+          display: none;
+        }
+
+        .report-section,
+        .card,
+        .surface-card,
+        .activation-card {
+          break-inside: avoid;
+        }
+
+        a {
+          color: inherit;
+          text-decoration: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      FINAL_RELEASE_EVIDENCE:
+      Replace every data-release-placeholder span after the final verifier and Cloud Run deploy.
+      Historical verifier numbers below are intentionally retained as historical explanations.
+    -->
+    <main class="report">
+      <header class="hero" id="top">
+        <p class="eyebrow">PMI KC Operations Console · Working Application V1</p>
+        <h1>The app is the proof.</h1>
+        <p class="hero-copy">
+          V1 is defined as the stable production application people can use: Live and
+          isolated Test records coexist visibly, Test workflows make real application
+          writes and reach Done, Maintenance and external Vendor work are complete user
+          journeys, and every Live external effect remains explicit. A provider that is
+          not activated limits only its own Live action; it does not push the whole
+          application back into “proof of concept” or “Pre-V1.”
+        </p>
+        <div class="hero-meta">
+          <span class="hero-chip">Report date · July 15, 2026</span>
+          <span class="hero-chip">Application state · Working V1</span>
+          <span class="hero-chip">Data model · Live + isolated Test</span>
+          <span class="hero-chip">
+            Release commit ·
+            <span class="evidence-pending" data-release-placeholder="final-git-commit"
+              >final commit pending</span
+            >
+          </span>
+          <span class="hero-chip">
+            Cloud Run revision ·
+            <span
+              class="evidence-pending"
+              data-release-placeholder="final-cloud-run-revision"
+              >final revision pending</span
+            >
+          </span>
+        </div>
+      </header>
+
+      <nav class="quick-nav" aria-label="Report sections">
+        <a href="#summary">Summary</a>
+        <a href="#lanes">Live + Test</a>
+        <a href="#features">Feature sets</a>
+        <a href="#tabs">Tabs</a>
+        <a href="#roles">Roles</a>
+        <a href="#maintenance">Maintenance</a>
+        <a href="#vendor">Vendor</a>
+        <a href="#activation">Activation</a>
+        <a href="#verification">Verification</a>
+        <a href="#old-language">Old language</a>
+        <a href="#remaining">What remains</a>
+        <a href="#deployment">Deployment</a>
+      </nav>
+
+      <section class="report-section" id="summary">
+        <h2>Executive state</h2>
+        <p class="lede">
+          The application feature set is V1. The important change is conceptual as well as
+          technical: application readiness is measured separately from optional provider
+          activation. Staff can use the real application, exercise complete workflows with
+          invented Test records, and keep those records alongside Live work without
+          creating external side effects.
+        </p>
+        <div class="metrics">
+          <div class="metric green">
+            <strong>Working V1</strong><span>application state</span>
+          </div>
+          <div class="metric blue">
+            <strong>2</strong><span>server-enforced data lanes</span>
+          </div>
+          <div class="metric purple">
+            <strong>30</strong><span>typed Lease + Maintenance action paths</span>
+          </div>
+          <div class="metric green">
+            <strong>0</strong><span>Live provider calls permitted from Test</span>
+          </div>
+          <div class="metric blue">
+            <strong>6</strong><span>explicit persistent Maintenance Test actions</span>
+          </div>
+          <div class="metric amber">
+            <strong
+              ><span
+                class="evidence-pending"
+                data-release-placeholder="final-unit-test-count"
+                >final count pending</span
+              ></strong
+            ><span>unit verification on release commit</span>
+          </div>
+        </div>
+        <div class="callout good">
+          <strong>What “done” means now</strong>
+          A signed-in user can navigate the application, create or operate an explicitly
+          labeled Test workflow, persist app state, complete approvals and work, receive
+          non-Live receipts, and reach Done. Live actions use the same product workflow
+          but may contact a provider only after the exact provider action is configured
+          and enabled.
+        </div>
+        <div class="callout info">
+          <strong>What is no longer a release gate</strong>
+          Enabling every provider, configuring TTL/Scheduler/extra indexes, replacing
+          invented Test records with customer data, or collecting named acceptance
+          metadata. Those are independent operations and activation tasks. They remain
+          visible, but they no longer redefine whether the application itself is V1.
+        </div>
+      </section>
+
+      <section class="report-section" id="lanes">
+        <h2>One production app, two unmistakable data lanes</h2>
+        <p class="lede">
+          Live and Test are record properties enforced by server boundaries—not a cosmetic
+          browser switch. Missing legacy mode resolves conservatively to Live. Test must
+          be explicit and use reserved aliases.
+        </p>
+        <div class="lane-grid">
+          <article class="lane live-lane">
+            <span class="status live">Live lane</span>
+            <h3 style="margin-top: 12px">Real operational records</h3>
+            <p>
+              Live reads use configured provider projections and never fall back to
+              fixtures. A Live write or send shows the exact target and effect, requires
+              the correct human decision, uses one-attempt/idempotency protection, and
+              records a bodyless receipt plus readback or reconciliation.
+            </p>
+            <div class="flow" aria-label="Live action flow">
+              <span>Live record</span><span>Exact preview</span><span>Human confirm</span
+              ><span>Provider + receipt</span>
+            </div>
+          </article>
+          <div class="lane-arrow" aria-hidden="true">≠</div>
+          <article class="lane test-lane">
+            <span class="status test">Test lane</span>
+            <h3 style="margin-top: 12px">Invented records in the real app</h3>
+            <p>
+              Test records use canonical <code>.invalid</code> identities and reserved
+              IDs. They write real Firestore/application state, can complete the workflow,
+              and receive receipts marked <code>provider_contacted:false</code> and
+              <code>liveEvidenceEligible:false</code>.
+            </p>
+            <div class="flow" aria-label="Test action flow">
+              <span>Test record</span><span>Exact preview</span><span>Human confirm</span
+              ><span>App receipt + Done</span>
+            </div>
+          </article>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Boundary</th>
+                <th>Live</th>
+                <th>Test</th>
+                <th>Enforcement</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-label="Boundary">Record identity</td>
+                <td data-label="Live">Actual provider/customer record IDs</td>
+                <td data-label="Test">
+                  Reserved IDs such as <code>unit:test-maple-204</code>
+                </td>
+                <td data-label="Enforcement">
+                  Mode is bound into action identity, ledger, audit, and receipt.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Boundary">Persistence</td>
+                <td data-label="Live">Application state plus enabled provider state</td>
+                <td data-label="Test">Real app/Firestore state</td>
+                <td data-label="Enforcement">Test is not ephemeral browser demo data.</td>
+              </tr>
+              <tr>
+                <td data-label="Boundary">External effect</td>
+                <td data-label="Live">Only an independently enabled exact action</td>
+                <td data-label="Test">Always zero provider calls</td>
+                <td data-label="Enforcement">
+                  Production Test accepts only branded no-client adapters.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Boundary">Evidence</td>
+                <td data-label="Live">May prove Live after readback/reconciliation</td>
+                <td data-label="Test">Proves the app workflow only</td>
+                <td data-label="Enforcement">
+                  Receipt explicitly marks Live-evidence ineligibility.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Boundary">Crossing lanes</td>
+                <td data-label="Live">
+                  Rejects Test aliases, records, adapters, and receipts
+                </td>
+                <td data-label="Test">Rejects Live records and clients</td>
+                <td data-label="Enforcement">
+                  Mismatch fails before external execution.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="report-section" id="features">
+        <h2>Feature sets developed for V1</h2>
+        <p class="lede">
+          S14–S27 are now one coherent application contract. “Provider activation” below
+          means a particular Live effect may still need account-specific configuration; it
+          does not mean the corresponding app workflow is absent.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Suite</th>
+                <th>What users get</th>
+                <th>Application state</th>
+                <th>Independent Live activation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-label="Suite">S14 · Mobile Approval Queue</td>
+                <td data-label="What users get">
+                  Focused phone decision cards, suggested-source acceptance, reason
+                  defaults, desktop and bulk views.
+                </td>
+                <td data-label="Application state">
+                  <span class="status working">Working V1</span>
+                </td>
+                <td data-label="Live activation">
+                  Only a linked external effect needs its own activation.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Suite">S15 · Communications workspace</td>
+                <td data-label="What users get">
+                  Workflow templates, triage, summaries, and visibly synthetic Admin
+                  fallback tools.
+                </td>
+                <td data-label="Application state">
+                  <span class="status working">Working V1</span>
+                </td>
+                <td data-label="Live activation">
+                  New send families stay unavailable until recipient/artifact authority is
+                  known.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Suite">S16 · Roles and scopes</td>
+                <td data-label="What users get">
+                  Editor, Approver, Admin roles plus independent Renewals/Maintenance
+                  space access.
+                </td>
+                <td data-label="Application state">
+                  <span class="status working">Working V1</span>
+                </td>
+                <td data-label="Live activation">
+                  None; this is application authorization.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Suite">S17 · Unified attention</td>
+                <td data-label="What users get">
+                  Console work signals, notification bell/log, connection and approval
+                  attention in one language.
+                </td>
+                <td data-label="Application state">
+                  <span class="status working">Working V1</span>
+                </td>
+                <td data-label="Live activation">
+                  Provider health reflects actual configured connections.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Suite">S18 · Process initiation</td>
+                <td data-label="What users get">
+                  Safe anticipated-work suggestions and explicit process starts; no
+                  autonomous external effect.
+                </td>
+                <td data-label="Application state">
+                  <span class="status working">Working V1</span>
+                </td>
+                <td data-label="Live activation">
+                  Any later external step retains its own confirmation.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Suite">S19 · Per-user Gmail</td>
+                <td data-label="What users get">
+                  Workflow-linked reads, governed labels/drafts, and exact-confirmed
+                  replies from the signed-in user's mailbox.
+                </td>
+                <td data-label="Application state">
+                  <span class="status working">Working V1</span>
+                </td>
+                <td data-label="Live activation">
+                  Existing proven actions remain scoped; no general inbox or free-form
+                  send.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Suite">S20 · Execution authority</td>
+                <td data-label="What users get">
+                  Risk floors, immutable previews, role decisions, one-attempt ledger,
+                  receipts, reconciliation, kill switch.
+                </td>
+                <td data-label="Application state">
+                  <span class="status working">Working V1</span>
+                </td>
+                <td data-label="Live activation">
+                  Registry enables one exact action at a time.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Suite">S21 · Trusted publication</td>
+                <td data-label="What users get">
+                  Validated files, immutable versions, active pointers, rollback, and an
+                  authority firewall.
+                </td>
+                <td data-label="Application state">
+                  <span class="status working">Working V1</span>
+                </td>
+                <td data-label="Live activation">
+                  A new source root needs an approved root and scanner; existing approved
+                  sources remain usable.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Suite">S22 · External Vendor</td>
+                <td data-label="What users get">
+                  Admin provision, password/TOTP, assigned-ticket portal, Test mailbox,
+                  exact reply, disable/revoke.
+                </td>
+                <td data-label="Application state">
+                  <span class="status working">Working V1</span>
+                </td>
+                <td data-label="Live activation">
+                  A real Vendor's Gmail requires same-address OAuth and a token vault.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Suite">S23 · Console Live/Test</td>
+                <td data-label="What users get">
+                  Separate visible Live and Test projections with no fallback or mode
+                  confusion.
+                </td>
+                <td data-label="Application state">
+                  <span class="status working">Working V1</span>
+                </td>
+                <td data-label="Live activation">
+                  Live data displays unavailable/stale honestly if its scoped read is not
+                  configured.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Suite">S24 · Communications policy</td>
+                <td data-label="What users get">
+                  Exact-message authority, retention/legal hold, bodyless audit, and human
+                  send control.
+                </td>
+                <td data-label="Application state">
+                  <span class="status working">Working V1</span>
+                </td>
+                <td data-label="Live activation">
+                  Each new recipient/action mapping is independent.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Suite">S25 · Lease execution</td>
+                <td data-label="What users get">
+                  Eleven typed action paths and complete isolated Test evidence in the
+                  production app.
+                </td>
+                <td data-label="Application state">
+                  <span class="status working">Working V1</span>
+                </td>
+                <td data-label="Live activation">
+                  RentVine, Sheets, Dotloop, SMS, Boom, and related keys activate
+                  separately.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Suite">S26 · Maintenance execution</td>
+                <td data-label="What users get">
+                  Persistent tickets, assignment/status/activity, six visible Test
+                  actions, and nineteen typed paths.
+                </td>
+                <td data-label="Application state">
+                  <span class="status working">Working V1</span>
+                </td>
+                <td data-label="Live activation">
+                  Drive, RentVine, Gmail, LeadSimple, and QuickBooks keys activate
+                  separately.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Suite">S27 · Working-app acceptance</td>
+                <td data-label="What users get">
+                  One production V1 label, deploy/rollback evidence, and separate
+                  provider-state reporting.
+                </td>
+                <td data-label="Application state">
+                  <span class="status working">Working V1 contract</span>
+                </td>
+                <td data-label="Live activation">
+                  Provider status and stakeholder notes are advisory to the app label.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="bars" aria-label="Typed workflow coverage chart">
+          <h3>Typed workflow depth</h3>
+          <div class="bar-row">
+            <span>Lease actions</span>
+            <div class="bar-track"><div class="bar-fill lease"></div></div>
+            <strong>11</strong>
+          </div>
+          <div class="bar-row">
+            <span>Maintenance actions</span>
+            <div class="bar-track"><div class="bar-fill maintenance"></div></div>
+            <strong>19</strong>
+          </div>
+          <div class="bar-row">
+            <span>Vendor lifecycle stages</span>
+            <div class="bar-track"><div class="bar-fill vendor"></div></div>
+            <strong>7</strong>
+          </div>
+          <p class="fine-print">
+            Bar length is relative to the largest typed workflow family; it is not a
+            percentage readiness score.
+          </p>
+        </div>
+      </section>
+
+      <section class="report-section" id="tabs">
+        <h2>What to expect from every application surface</h2>
+        <p class="lede">
+          The internal shell has six primary text tabs plus Notifications. Lease,
+          Maintenance, Processes, and Vendor are full desks or separate role surfaces
+          reached from that shell.
+        </p>
+        <div class="surface-grid">
+          <article class="surface-card">
+            <div class="surface-head">
+              <div>
+                <h3>Console</h3>
+                <div class="route">/ and /ask</div>
+              </div>
+              <span class="status working">Working</span>
+            </div>
+            <dl>
+              <dt>Purpose</dt>
+              <dd>
+                Home, source-backed Ask, and the next operational work that needs
+                attention.
+              </dd>
+              <dt>Expect</dt>
+              <dd>
+                Separate Live/Test panels, citations and visible uncertainty, anticipated
+                work, actionable attention, and safe process starts.
+              </dd>
+              <dt>Boundary</dt>
+              <dd>
+                Live read failures stay visible; Test never fills a missing Live panel.
+              </dd>
+            </dl>
+          </article>
+          <article class="surface-card">
+            <div class="surface-head">
+              <div>
+                <h3>Spaces</h3>
+                <div class="route">/spaces and /spaces/[spaceId]</div>
+              </div>
+              <span class="status working">Working</span>
+            </div>
+            <dl>
+              <dt>Purpose</dt>
+              <dd>Organize knowledge, process definitions, and product desks.</dd>
+              <dt>Expect</dt>
+              <dd>
+                Role/scope-filtered cards, readiness, waiting counts, overview/process
+                views, publication/version controls.
+              </dd>
+              <dt>Boundary</dt>
+              <dd>
+                New publication fails closed until the selected root and scanner policy
+                exist.
+              </dd>
+            </dl>
+          </article>
+          <article class="surface-card">
+            <div class="surface-head">
+              <div>
+                <h3>Approval Queue</h3>
+                <div class="route">/approval-queue</div>
+              </div>
+              <span class="status working">Working</span>
+            </div>
+            <dl>
+              <dt>Purpose</dt>
+              <dd>
+                Make decisions on renewal and execution work without losing context.
+              </dd>
+              <dt>Expect</dt>
+              <dd>
+                Phone-first cards, desktop queue, assignments, reason codes, exact
+                previews, approve/return/revise paths.
+              </dd>
+              <dt>Boundary</dt>
+              <dd>
+                Consequential linked execution remains Admin-only and bound to the
+                reviewed preview.
+              </dd>
+            </dl>
+          </article>
+          <article class="surface-card">
+            <div class="surface-head">
+              <div>
+                <h3>Communications</h3>
+                <div class="route">/gmail-hub</div>
+              </div>
+              <span class="status working">Working</span>
+            </div>
+            <dl>
+              <dt>Purpose</dt>
+              <dd>
+                Handle only mail linked to an authorized renewal or maintenance workflow.
+              </dd>
+              <dt>Expect</dt>
+              <dd>
+                Governed labels, drafts, summaries, exact reply review/confirmation, and
+                Admin-only synthetic fallback tools.
+              </dd>
+              <dt>Boundary</dt>
+              <dd>
+                No generic inbox browsing, free-form compose, autonomous send, or
+                cross-mailbox Admin access.
+              </dd>
+            </dl>
+          </article>
+          <article class="surface-card">
+            <div class="surface-head">
+              <div>
+                <h3>Connections</h3>
+                <div class="route">/connections</div>
+              </div>
+              <span class="status working">Working</span>
+            </div>
+            <dl>
+              <dt>Purpose</dt>
+              <dd>
+                Show which provider connections are usable, unavailable, or need
+                attention.
+              </dd>
+              <dt>Expect</dt>
+              <dd>
+                Everyone sees read-only status; Admins receive setup/verify controls where
+                a safe check exists.
+              </dd>
+              <dt>Boundary</dt>
+              <dd>
+                A connection never grants blanket write authority; Registry keys remain
+                independent.
+              </dd>
+            </dl>
+          </article>
+          <article class="surface-card">
+            <div class="surface-head">
+              <div>
+                <h3>Admin</h3>
+                <div class="route">/admin and /admin/users</div>
+              </div>
+              <span class="status working">Working</span>
+            </div>
+            <dl>
+              <dt>Purpose</dt>
+              <dd>
+                Operate people, scopes, governance, migration/readiness, retention,
+                publication, Vendor access, and Test evidence.
+              </dd>
+              <dt>Expect</dt>
+              <dd>
+                User roles/scopes, last-Admin guard, V1 Test workspace, exact Vendor
+                provision/disable, observability, and policy controls.
+              </dd>
+              <dt>Boundary</dt>
+              <dd>
+                Reasons and append-only audits accompany privilege and Vendor lifecycle
+                changes.
+              </dd>
+            </dl>
+          </article>
+          <article class="surface-card">
+            <div class="surface-head">
+              <div>
+                <h3>Notifications</h3>
+                <div class="route">Bell and /notifications</div>
+              </div>
+              <span class="status working">Working</span>
+            </div>
+            <dl>
+              <dt>Purpose</dt>
+              <dd>
+                Keep the full attention history without turning email into the product's
+                control plane.
+              </dd>
+              <dt>Expect</dt>
+              <dd>
+                Decision, connection, coverage, review, and workflow signals with deep
+                links.
+              </dd>
+              <dt>Boundary</dt>
+              <dd>
+                In-app notification is the default; no inferred event-driven approval
+                email.
+              </dd>
+            </dl>
+          </article>
+          <article class="surface-card">
+            <div class="surface-head">
+              <div>
+                <h3>Lease Renewal desk</h3>
+                <div class="route">
+                  /lease-renewal, runs, lease, property, reconciliation
+                </div>
+              </div>
+              <span class="status working">Working</span>
+            </div>
+            <dl>
+              <dt>Purpose</dt>
+              <dd>
+                Review lease timing/source conflicts, decide renewal work, approve, and
+                execute typed steps.
+              </dd>
+              <dt>Expect</dt>
+              <dd>
+                Live and simulation lanes, run history, property context, reconciliation,
+                proposals, and 11 typed action paths.
+              </dd>
+              <dt>Boundary</dt>
+              <dd>
+                Each Live provider key activates separately; Test completes with non-Live
+                receipts.
+              </dd>
+            </dl>
+          </article>
+          <article class="surface-card">
+            <div class="surface-head">
+              <div>
+                <h3>Maintenance desk</h3>
+                <div class="route">/maintenance</div>
+              </div>
+              <span class="status working">Working</span>
+            </div>
+            <dl>
+              <dt>Purpose</dt>
+              <dd>Capture, route, assign, update, communicate, and close work orders.</dd>
+              <dt>Expect</dt>
+              <dd>
+                Typed/voice intake, Live/Test filtering, unit match, quarantine,
+                assignment, activity, six Test actions, close/reopen.
+              </dd>
+              <dt>Boundary</dt>
+              <dd>
+                Live tickets reject Test aliases and simulation; Test contacts no
+                provider.
+              </dd>
+            </dl>
+          </article>
+          <article class="surface-card">
+            <div class="surface-head">
+              <div>
+                <h3>Processes and runs</h3>
+                <div class="route">/processes and /workflow-runs/[runId]</div>
+              </div>
+              <span class="status working">Working</span>
+            </div>
+            <dl>
+              <dt>Purpose</dt>
+              <dd>Define and run repeatable work behind each Space or desk.</dd>
+              <dt>Expect</dt>
+              <dd>
+                Definitions, versions, simulation starts, run steps, approvals,
+                return/revision, and audit.
+              </dd>
+              <dt>Boundary</dt>
+              <dd>Processes do not silently widen execution authority.</dd>
+            </dl>
+          </article>
+          <article class="surface-card">
+            <div class="surface-head">
+              <div>
+                <h3>External Vendor portal</h3>
+                <div class="route">
+                  /vendor/sign-in, /vendor, /vendor/tickets/[ticketId]
+                </div>
+              </div>
+              <span class="status working">Working</span>
+            </div>
+            <dl>
+              <dt>Purpose</dt>
+              <dd>
+                Give a separately authenticated Vendor only its assigned maintenance work
+                and linked mailbox.
+              </dd>
+              <dt>Expect</dt>
+              <dd>
+                Password + TOTP, assigned-ticket list/detail, and Test or same-address
+                Live mailbox behavior.
+              </dd>
+              <dt>Boundary</dt>
+              <dd>
+                No internal role, cross-Vendor ticket, DWD, PMI mailbox, or cloud/Admin
+                authority.
+              </dd>
+            </dl>
+          </article>
+        </div>
+      </section>
+
+      <section class="report-section" id="roles">
+        <h2>Who can do what</h2>
+        <p class="lede">
+          Role controls authority. Renewals/Maintenance scope independently limits where
+          an internal user can enter. The external Vendor is not an internal role and
+          never inherits staff access.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Principal</th>
+                <th>Can do</th>
+                <th>Cannot do</th>
+                <th>Typical use</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-label="Principal">Editor</td>
+                <td data-label="Can do">
+                  Read/edit scoped work; start processes; execute enabled Low/Medium work;
+                  exact-confirm workflow-linked email.
+                </td>
+                <td data-label="Cannot do">
+                  Approve, manage users, change Admin policy, or execute Admin-only
+                  consequential work.
+                </td>
+                <td data-label="Typical use">
+                  Daily operations in all or selected spaces.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Principal">Approver</td>
+                <td data-label="Can do">
+                  Everything an Editor can, plus approve normal work and resolve
+                  placeholders.
+                </td>
+                <td data-label="Cannot do">
+                  Manage Admin settings/users or approve an execution explicitly requiring
+                  Admin.
+                </td>
+                <td data-label="Typical use">
+                  Operational review and exception resolution.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Principal">Admin</td>
+                <td data-label="Can do">
+                  All internal capabilities; roles/scopes; high-consequence decisions;
+                  Test workspace; Vendor provision/disable; governance and connection
+                  operations.
+                </td>
+                <td data-label="Cannot do">
+                  Bypass technical blockers, invent provider mappings, read another
+                  mailbox generally, or send autonomously.
+                </td>
+                <td data-label="Typical use">
+                  System owner and controlled production operation.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Principal">External Vendor</td>
+                <td data-label="Can do">
+                  Password/TOTP sign-in; see assigned tickets only; use its ticket-linked
+                  Test or same-address Live mailbox.
+                </td>
+                <td data-label="Cannot do">
+                  See unassigned/cross-Vendor tickets, internal Spaces, PMI mailboxes,
+                  cloud resources, DWD, or Admin controls.
+                </td>
+                <td data-label="Typical use">
+                  Assigned maintenance completion and exact thread updates.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Principal">Scope overlay</td>
+                <td data-label="Can do">
+                  All spaces when no restrictive claim exists, or only selected
+                  Renewals/Maintenance spaces.
+                </td>
+                <td data-label="Cannot do">
+                  Use role authority outside the assigned product scope.
+                </td>
+                <td data-label="Typical use">
+                  Maintenance-only Editor or Renewals-only Approver.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="report-section" id="maintenance">
+        <h2>Maintenance V1 walkthrough</h2>
+        <p class="lede">
+          The canonical scenario is deliberately invented but operates the real production
+          application and Firestore workflow. It demonstrates the app without risking a
+          customer or provider side effect.
+        </p>
+        <div class="grid-2">
+          <div>
+            <div class="steps">
+              <article class="step">
+                <h3>Seed the canonical Test ticket</h3>
+                <p>
+                  An authorized user creates the server-owned plumbing scenario for
+                  <code>TEST — 204 Maple Court Unit 2</code>. Arbitrary aliases are
+                  refused.
+                </p>
+              </article>
+              <article class="step">
+                <h3>Route and assign</h3>
+                <p>
+                  Assign staff, then assign <code>Summit Plumbing Test Vendor</code>.
+                  Ticket, unit, Vendor, and assignment all remain Test.
+                </p>
+              </article>
+              <article class="step">
+                <h3>Work the ticket</h3>
+                <p>
+                  Change status, add notes, and review the activity trail. These are
+                  durable application writes.
+                </p>
+              </article>
+              <article class="step">
+                <h3>Preview and simulate exact actions</h3>
+                <p>
+                  Choose the target/effect, enter the exact Test confirmation, and create
+                  a bodyless simulated-success receipt.
+                </p>
+              </article>
+              <article class="step">
+                <h3>Reach Done—and reopen if needed</h3>
+                <p>
+                  Close the ticket as a completed Test workflow. Reopen remains available
+                  and audited.
+                </p>
+              </article>
+            </div>
+          </div>
+          <div>
+            <article class="card">
+              <h3>Six explicit Test actions</h3>
+              <ol>
+                <li><code>rentvine.work_order.create</code></li>
+                <li><code>vendor.assignment.change</code></li>
+                <li><code>gmail.maintenance_owner_notice.send</code></li>
+                <li><code>leadsimple.process.update_stage</code></li>
+                <li><code>rentvine.work_order.update_status</code></li>
+                <li><code>quickbooks.bill.create_draft</code></li>
+              </ol>
+              <p class="fine-print">
+                Every target is visibly a Test target. The email uses
+                <code>example.invalid</code>; QuickBooks remains draft-shaped; no real
+                client is constructed.
+              </p>
+            </article>
+            <div class="callout good">
+              <strong>Expected receipt</strong>
+              <code>data_mode:test</code>, <code>outcome:simulated_success</code>,
+              <code>provider_contacted:false</code>, and
+              <code>live_proof_eligible:false</code>. This proves the workflow,
+              confirmation, audit, and persistence—not a provider account.
+            </div>
+            <div class="callout warn">
+              <strong>Cross-lane behavior</strong>
+              A Live ticket cannot use the Test unit, Test Vendor, or Test simulator. A
+              Test ticket cannot enter the normal Live external executor.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="report-section" id="vendor">
+        <h2>External Vendor V1 walkthrough</h2>
+        <p class="lede">
+          Vendor authentication is part of V1. The canonical Test Vendor uses the real
+          Firebase password/TOTP flow and assigned-ticket authorization, while its mailbox
+          is app-only and rejected before OAuth or Gmail client construction.
+        </p>
+        <div class="steps">
+          <article class="step">
+            <h3>Admin previews the exact identity change</h3>
+            <p>
+              The fixed alias is <code>vendor:test-summit-plumbing</code> at
+              <code>service@summit-plumbing.example.invalid</code>. The Admin supplies a
+              plain-English reason and reviews the effect.
+            </p>
+          </article>
+          <article class="step">
+            <h3>Admin confirms once</h3>
+            <p>
+              Firebase creates the Test user, claims bind <code>vendor_id</code> and
+              <code>data_mode:test</code>, and the setup link is returned once. It is
+              never stored, emailed, or written to audit.
+            </p>
+          </article>
+          <article class="step">
+            <h3>Vendor sets a password and enrolls TOTP</h3>
+            <p>
+              The first sign-in enrolls an authenticator factor. The app then signs out
+              deliberately; enrollment alone is not treated as an authenticated Vendor
+              session.
+            </p>
+          </article>
+          <article class="step">
+            <h3>Vendor signs in again with password + TOTP</h3>
+            <p>
+              The server requires a fresh sign-in whose Firebase token records TOTP as the
+              second factor before issuing the one-hour Vendor session.
+            </p>
+          </article>
+          <article class="step">
+            <h3>Vendor sees only the assigned Test ticket</h3>
+            <p>
+              Vendor mode, assignment mode, and ticket mode must match. Unassigned and
+              cross-Vendor tickets remain invisible and inaccessible.
+            </p>
+          </article>
+          <article class="step">
+            <h3>Vendor operates the app-only Test mailbox</h3>
+            <p>
+              Read the ticket thread, draft, apply approved Waiting/Complete labels,
+              review the exact reply, confirm once, and receive an idempotent non-external
+              receipt.
+            </p>
+          </article>
+          <article class="step">
+            <h3>Admin disables and revokes</h3>
+            <p>
+              The Admin previews the exact account, confirms with a reason, disables the
+              Firebase principal, and revokes active sessions.
+            </p>
+          </article>
+        </div>
+        <div class="grid-2" style="margin-top: 14px">
+          <article class="card">
+            <h3>Test Vendor needs</h3>
+            <p>
+              Firebase Email/Password enabled, Identity Platform TOTP enabled, and the
+              deployed host authorized. No Gmail OAuth, DWD, routable mailbox, or token
+              vault is required.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Live Vendor adds</h3>
+            <p>
+              A real routable Vendor mailbox, the Vendor's own consent, same-address
+              server-side Google OAuth, the exact approved Gmail scopes, redirect URI, and
+              Secret Manager refresh-token vault.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="report-section" id="activation">
+        <h2>Provider activation: exact, independent, and not an app blocker</h2>
+        <p class="lede">
+          A missing credential or contract blocks only the named Live action. The
+          recommended default is always to keep that action visibly unavailable and use
+          its Test workflow—not to guess a provider endpoint, field, account, recipient,
+          or status.
+        </p>
+        <div class="status-grid">
+          <article class="card">
+            <span class="status optional">unavailable</span>
+            <h3 style="margin-top: 10px">No Live client</h3>
+            <p>Test remains usable.</p>
+          </article>
+          <article class="card">
+            <span class="status test">test_ready</span>
+            <h3 style="margin-top: 10px">App workflow proven</h3>
+            <p>No provider claim.</p>
+          </article>
+          <article class="card">
+            <span class="status activation">live_configured</span>
+            <h3 style="margin-top: 10px">Contract + identity present</h3>
+            <p>Still needs bounded proof.</p>
+          </article>
+          <article class="card">
+            <span class="status live">live_proven / enabled</span>
+            <h3 style="margin-top: 10px">Readback accepted</h3>
+            <p>Monitored and reversible.</p>
+          </article>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Capability / action family</th>
+                <th>Main constraint</th>
+                <th>Simple process?</th>
+                <th>Recommended default now</th>
+                <th>What activates it</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-label="Capability">Vendor Test authentication</td>
+                <td data-label="Constraint">
+                  Project Email/Password, TOTP MFA, authorized host
+                </td>
+                <td data-label="Simple process?">Yes · project configuration</td>
+                <td data-label="Default">
+                  Enable for Admin-provisioned users; no public sign-up.
+                </td>
+                <td data-label="Activation">
+                  Configure three settings, provision canonical alias, prove fresh
+                  password+TOTP sign-in.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">Live Vendor Gmail</td>
+                <td data-label="Constraint">
+                  Real mailbox/consent, OAuth web client/redirect, vault
+                </td>
+                <td data-label="Simple process?">
+                  Mostly · one-time setup plus Vendor consent
+                </td>
+                <td data-label="Default">
+                  Keep Test mailbox active; Live mailbox unavailable.
+                </td>
+                <td data-label="Activation">
+                  Same-address Vendor OAuth, exact scopes, Secret Manager token reference,
+                  linked-thread proof.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">Trusted publication</td>
+                <td data-label="Constraint">
+                  Approved connector/root/Space IDs and scanner policy
+                </td>
+                <td data-label="Simple process?">Yes once IDs/scanner are named</td>
+                <td data-label="Default">
+                  Use existing approved sources; keep new root publication closed.
+                </td>
+                <td data-label="Activation">
+                  Harmless approved file; reject wrong root/type/size/scanner; prove
+                  pointer rollback.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">Console Live reads</td>
+                <td data-label="Constraint">
+                  Scoped RentVine/workflow mapping and credential
+                </td>
+                <td data-label="Simple process?">
+                  Yes if existing read credential covers fields
+                </td>
+                <td data-label="Default">
+                  Show unavailable/stale honestly; keep separate Test panel.
+                </td>
+                <td data-label="Activation">
+                  Bounded read, staleness/outage UI, and proof that fixtures never appear
+                  as Live.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">Gmail renewal/maintenance</td>
+                <td data-label="Constraint">
+                  Authoritative recipient/source mapping and approved artifact
+                </td>
+                <td data-label="Simple process?">Per workflow</td>
+                <td data-label="Default">
+                  Keep already proven linked actions scoped; no new generic initiation.
+                </td>
+                <td data-label="Activation">
+                  Self-safe exact thread/payload proof, readback, and correction reply or
+                  draft deletion.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">Google Sheets writeback</td>
+                <td data-label="Constraint">
+                  Exact sheet/tab/row key/columns and atomic conflict strategy
+                </td>
+                <td data-label="Simple process?">Moderate</td>
+                <td data-label="Default">Test receipt; Live writeback unavailable.</td>
+                <td data-label="Activation">
+                  Invented approved-test row, concurrent-change refusal, exact
+                  readback/correction.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">Dotloop create/upload</td>
+                <td data-label="Constraint">
+                  Official account API/OAuth and profile/template/participant/document
+                  mapping
+                </td>
+                <td data-label="Simple process?">Contract-specific</td>
+                <td data-label="Default">Unavailable; never infer UI/RPA behavior.</td>
+                <td data-label="Activation">
+                  Synthetic loop/document, idempotency reconcile, archive/supersede
+                  correction.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">RentVine renewal writes</td>
+                <td data-label="Constraint">
+                  Write endpoints, permissions, expected-state/version semantics, portal
+                  thread
+                </td>
+                <td data-label="Simple process?">Contract-specific</td>
+                <td data-label="Default">
+                  Keep reads; leave dependent writes unavailable.
+                </td>
+                <td data-label="Activation">
+                  Concurrent-drift refusal, exact readback, provider-supported correction.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">SMS renewal send</td>
+                <td data-label="Constraint">
+                  Provider/account, sender, consent/opt-out source, receipt
+                </td>
+                <td data-label="Simple process?">Client provider choice required</td>
+                <td data-label="Default">
+                  Unavailable; do not select or purchase a provider by inference.
+                </td>
+                <td data-label="Activation">
+                  Provider-approved test number and consent-bound exact message.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">Boom enrollment</td>
+                <td data-label="Constraint">
+                  Account API/plan, resident mapping, applicability rule
+                </td>
+                <td data-label="Simple process?">Contract-specific</td>
+                <td data-label="Default">
+                  Explicit <code>not_applicable</code> when the rule says so.
+                </td>
+                <td data-label="Activation">
+                  Applicable/non-applicable proof and documented de-enrollment.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">Maintenance Drive photo</td>
+                <td data-label="Constraint">
+                  In-boundary folder, ticket mapping, permission, MIME/size/scanner policy
+                </td>
+                <td data-label="Simple process?">Moderate</td>
+                <td data-label="Default">
+                  App metadata in Test; Live upload unavailable.
+                </td>
+                <td data-label="Activation">
+                  Harmless image plus wrong ticket/path/type/size/scanner refusal and
+                  additive correction.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">RentVine work orders</td>
+                <td data-label="Constraint">
+                  Write endpoints, property/unit/Vendor/status maps, conflict token
+                </td>
+                <td data-label="Simple process?">Contract-specific</td>
+                <td data-label="Default">
+                  Complete Maintenance Test; leave dependent Live keys unavailable.
+                </td>
+                <td data-label="Activation">
+                  Create → assign → close in provider test context, drift refusal,
+                  readback/reconcile.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">LeadSimple stage/task</td>
+                <td data-label="Constraint">
+                  Endpoint/plan, process/stage/assignee map, conditional update
+                </td>
+                <td data-label="Simple process?">Contract-specific</td>
+                <td data-label="Default">Test receipts; Live unavailable.</td>
+                <td data-label="Activation">
+                  Concurrent-stage refusal, idempotent readback, corrective stage/task.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">QuickBooks draft Bill</td>
+                <td data-label="Constraint">
+                  OAuth/company/Vendor/account/property map and draft-only permission
+                </td>
+                <td data-label="Simple process?">Contract-specific</td>
+                <td data-label="Default">
+                  Test draft receipt only; never post/pay/bank.
+                </td>
+                <td data-label="Activation">
+                  One Bill stays Draft; documented void/delete correction.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout good">
+          <strong>Universal Live-write checklist</strong>
+          Documented endpoint and expected-state semantics → authoritative
+          account/field/recipient mapping → least-privilege identity/vault reference →
+          exact target/effect preview → correct human confirmation → one attempt and
+          idempotency → bodyless receipt and readback → monitoring, kill switch, and
+          correction/rollback.
+        </div>
+      </section>
+
+      <section class="report-section" id="verification">
+        <h2>Release evidence</h2>
+        <p class="lede">
+          These placeholders are intentionally visible until the final merged commit
+          completes the verifier and production deployment. They prevent historical counts
+          from being mislabeled as evidence for a new revision.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Gate</th>
+                <th>Final release result</th>
+                <th>What it proves</th>
+                <th>What it does not prove</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-label="Gate">Format / typecheck / lint</td>
+                <td data-label="Result">
+                  <span
+                    class="evidence-pending"
+                    data-release-placeholder="final-static-gates"
+                    >final run pending</span
+                  >
+                </td>
+                <td data-label="Proves">
+                  Consistent source formatting, strict TypeScript compilation, and no lint
+                  errors.
+                </td>
+                <td data-label="Limit">
+                  Does not exercise behavior or provider accounts.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Gate">Unit suite</td>
+                <td data-label="Result">
+                  <span
+                    class="evidence-pending"
+                    data-release-placeholder="final-unit-results"
+                    >final file/test counts pending</span
+                  >
+                </td>
+                <td data-label="Proves">
+                  Application logic, boundaries, schemas, permissions, Test isolation, UI
+                  states, and governance invariants.
+                </td>
+                <td data-label="Limit">
+                  Mocks/Test aliases do not claim Live provider proof.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Gate">Firestore suite</td>
+                <td data-label="Result">
+                  <span
+                    class="evidence-pending"
+                    data-release-placeholder="final-firestore-results"
+                    >final file/test counts pending</span
+                  >
+                </td>
+                <td data-label="Proves">Rules and emulator data-access behavior.</td>
+                <td data-label="Limit">
+                  Server Admin SDK boundaries and cloud configuration are checked
+                  separately.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Gate">Core E2E</td>
+                <td data-label="Result">
+                  <span
+                    class="evidence-pending"
+                    data-release-placeholder="final-e2e-results"
+                    >final passed/skipped counts pending</span
+                  >
+                </td>
+                <td data-label="Proves">
+                  Integrated local user flows and explicit conditional scenarios.
+                </td>
+                <td data-label="Limit">
+                  An intentional prerequisite skip is not a Live provider test.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Gate">Production build</td>
+                <td data-label="Result">
+                  <span
+                    class="evidence-pending"
+                    data-release-placeholder="final-build-results"
+                    >final routes/build result pending</span
+                  >
+                </td>
+                <td data-label="Proves">The production route graph compiles.</td>
+                <td data-label="Limit">
+                  Runtime and auth behavior require deployed smoke/browser checks.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Gate">Governance / falsification</td>
+                <td data-label="Result">
+                  <span
+                    class="evidence-pending"
+                    data-release-placeholder="final-governance-results"
+                    >final run pending</span
+                  >
+                </td>
+                <td data-label="Proves">
+                  Docs/specs, security fences, redaction, context, traceability, and
+                  adversarial boundaries agree.
+                </td>
+                <td data-label="Limit">Cannot invent external provider facts.</td>
+              </tr>
+              <tr>
+                <td data-label="Gate">Cloud Run / browser</td>
+                <td data-label="Result">
+                  <span
+                    class="evidence-pending"
+                    data-release-placeholder="final-production-results"
+                    >final revision and walkthrough pending</span
+                  >
+                </td>
+                <td data-label="Proves">
+                  The merged release actually serves, authenticates, and supports
+                  desktop/phone workflows.
+                </td>
+                <td data-label="Limit">
+                  Only explicitly exercised provider actions become Live-proven.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout warn">
+          <strong>Evidence rule</strong>
+          “Green locally,” “deployed,” “Test-complete,” and “Live-proven” are four
+          different facts. This report keeps them separate so the app can be honestly V1
+          without overstating any provider.
+        </div>
+      </section>
+
+      <section class="report-section" id="old-language">
+        <h2>What the earlier verifier language meant</h2>
+        <p class="lede">
+          Both quoted updates were accurate snapshots of an earlier release process. Their
+          terminology was easy to misread, and the old governance model over-counted
+          repeated evidence rows.
+        </p>
+        <div class="quote">
+          “All pre-wrapper gates are green: formatting, typecheck, lint (0 errors; 8 known
+          warnings), 286 unit files/1,984 tests, Firestore 16/56, core E2E 32 passed/18
+          intentionally skipped, cutover rehearsal fully green, and the release report
+          correctly remains Pre‑V1 with 169 open external gates. Dependency audit is
+          limited to three Moderate dev-only firebase-tools-chain findings already held
+          for named disposition.”
+        </div>
+        <dl class="translation-grid">
+          <dt>“Pre-wrapper gates”</dt>
+          <dd>
+            The checks run individually before the final all-in-one shell wrapper had
+            passed. It did not mean the production deployment or signed-in browser
+            walkthrough was complete.
+          </dd>
+          <dt>Formatting / typecheck / lint</dt>
+          <dd>
+            Source formatting had no drift, strict TypeScript compiled, and lint had zero
+            errors. The eight warnings were known non-blocking warnings at that commit—not
+            eight failures.
+          </dd>
+          <dt>286 files / 1,984 tests</dt>
+          <dd>
+            That historical commit passed 1,984 unit assertions distributed across 286
+            test files. Those numbers are not reused as the final count for a later
+            commit.
+          </dd>
+          <dt>Firestore 16/56</dt>
+          <dd>
+            This meant 16 Firestore test files and 56 passing checks. It was not “16
+            passed out of 56,” nor a 29% score.
+          </dd>
+          <dt>32 passed / 18 skipped</dt>
+          <dd>
+            Thirty-two core end-to-end scenarios passed. Eighteen were intentionally
+            conditional on an emulator, Live account, or another named prerequisite; they
+            were visible skips, not hidden failures.
+          </dd>
+          <dt>Cutover rehearsal green</dt>
+          <dd>
+            A synthetic production-like manifest generated safe import/deploy/rollback
+            plans and rejected malformed input. A rehearsal was never a claim that a
+            deployment or rollback occurred.
+          </dd>
+          <dt>“Pre-V1”</dt>
+          <dd>
+            The old report required every external-evidence row and named acceptance to
+            close before it would label the whole app V1. That definition has been
+            superseded by working-app V1 plus independent provider activation.
+          </dd>
+          <dt>169 external gates</dt>
+          <dd>
+            These were checklist/evidence rows, not 169 missing features, screens, bugs,
+            or client decisions. Most repeated the same provider-proof requirements across
+            many typed actions.
+          </dd>
+          <dt>Three Moderate findings</dt>
+          <dd>
+            All three traced to one development-only Firebase CLI dependency chain. No
+            High or Critical finding appeared, and the affected packages were absent from
+            the production runtime tree.
+          </dd>
+        </dl>
+
+        <div class="bars" aria-label="Historical 169-gate accounting">
+          <h3>Historical 169-row accounting—now retired as an app-readiness score</h3>
+          <div
+            class="historic-bar"
+            role="img"
+            aria-label="5 identity pins, 14 suite gates, 143 repeated action proofs, 5 release evidence items, 2 named acceptances"
+          >
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="legend">
+            <div class="legend-item">
+              <span class="swatch" style="background: #155eef"></span
+              ><span><strong>5</strong> identity/pin rows</span>
+            </div>
+            <div class="legend-item">
+              <span class="swatch" style="background: #5d8df2"></span
+              ><span><strong>14</strong> suite rows</span>
+            </div>
+            <div class="legend-item">
+              <span class="swatch" style="background: #7148a8"></span
+              ><span><strong>143</strong> repeated action-proof rows</span>
+            </div>
+            <div class="legend-item">
+              <span class="swatch" style="background: #d28a12"></span
+              ><span><strong>5</strong> release-evidence rows</span>
+            </div>
+            <div class="legend-item">
+              <span class="swatch" style="background: #a23737"></span
+              ><span><strong>2</strong> named acceptance rows</span>
+            </div>
+          </div>
+          <p class="fine-print">
+            The safety requirements themselves remain where relevant. What changed is
+            their classification: an unavailable provider key no longer demotes unrelated
+            working application features.
+          </p>
+        </div>
+
+        <div class="quote">
+          “The all-in-one verifier has completed clean install, audit inventory,
+          formatting, lint, and typecheck; it is now in the full unit/build/governance
+          phase. The only dependency output remains the documented three Moderate dev-only
+          findings—no High or Critical issue appeared.”
+        </div>
+        <div class="grid-2">
+          <article class="card">
+            <h3>This was a progress update, not a final result</h3>
+            <p>
+              <strong>Clean install</strong> meant dependencies could be reproduced from
+              the lockfile. <strong>Audit inventory</strong> catalogued security
+              advisories. Format, lint, and typecheck had passed. The slower unit,
+              production build, and governance/falsification phases were still running at
+              the time of the sentence; their later output was needed before completion.
+            </p>
+          </article>
+          <article class="card">
+            <h3>The audit finding is bounded, not ignored</h3>
+            <p>
+              The chain is
+              <code
+                >firebase-tools → @google-cloud/pubsub → @opentelemetry/core@1.30.1</code
+              >. It is development/deployment tooling, absent from
+              <code>npm ls --omit=dev</code>. V1 accepts it with a recheck on August 15,
+              2026, the next compatible current-line update, or immediately if
+              severity/reachability changes. A forced Firebase CLI downgrade solely to
+              make the count zero is not recommended.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="report-section" id="remaining">
+        <h2>What remains—and what does not</h2>
+        <p class="lede">
+          Product choices R01–R09 are settled. The application does not need another broad
+          approval cycle or another rewrite of what V1 means. Remaining work is deployment
+          evidence and provider-specific activation when the business wants a particular
+          Live effect.
+        </p>
+        <div class="grid-3">
+          <article class="card">
+            <span class="status pending">Release execution</span>
+            <h3 style="margin-top: 11px">Complete this release run</h3>
+            <ul>
+              <li>Final verifier on the merged commit.</li>
+              <li>Confirm Firebase Email/Password, TOTP, and authorized host.</li>
+              <li>
+                Commit, merge, push, deploy, smoke, signed-in desktop/phone walkthrough.
+              </li>
+              <li>Capture serving and rollback revisions.</li>
+            </ul>
+          </article>
+          <article class="card">
+            <span class="status activation">Independent Live activation</span>
+            <h3 style="margin-top: 11px">Supply only real external facts</h3>
+            <ul>
+              <li>Provider account/API contract and credential location.</li>
+              <li>Authoritative field/status/recipient mapping.</li>
+              <li>Real Vendor mailbox and consent for Live Vendor Gmail.</li>
+              <li>One safe proof plus readback/correction per action key.</li>
+            </ul>
+          </article>
+          <article class="card">
+            <span class="status optional">Optional later</span>
+            <h3 style="margin-top: 11px">Add when measured need appears</h3>
+            <ul>
+              <li>Firestore TTL rather than bounded manual cleanup.</li>
+              <li>Extra composite indexes for actual query demand.</li>
+              <li>Scheduler automation if volume justifies it.</li>
+              <li>Additional providers or workflow families.</li>
+            </ul>
+          </article>
+        </div>
+        <div class="activation-list">
+          <article class="activation-card">
+            <div class="check">1</div>
+            <div>
+              <h3>If Google requires interactive reauthentication</h3>
+              <p>
+                Run <code>npm run auth:session</code> from the Windows repository shell,
+                then rerun the read-only ADC/identity preflight. This is a real
+                human-gated session constraint, not a product decision.
+              </p>
+              <p class="recommendation">
+                Recommended default: use only the managed
+                <code>pmikcmetro.com</code> identity; never work around it with a personal
+                account.
+              </p>
+            </div>
+          </article>
+          <article class="activation-card">
+            <div class="check">2</div>
+            <div>
+              <h3>If a Live provider action is wanted</h3>
+              <p>
+                Return the exact account/endpoint contract, credential/vault label,
+                authoritative mappings, and supported correction behavior for that
+                action—not customer contents or secrets in the repository.
+              </p>
+              <p class="recommendation">
+                Recommended default: activate one low-risk action at a time; keep the rest
+                Test-ready and visibly unavailable.
+              </p>
+            </div>
+          </article>
+          <article class="activation-card">
+            <div class="check">3</div>
+            <div>
+              <h3>If a real Vendor mailbox is wanted</h3>
+              <p>
+                Name the routable Vendor mailbox and assignment, obtain that Vendor's
+                consent, and configure same-address OAuth plus the vault. Admin never
+                consents on the Vendor's behalf.
+              </p>
+              <p class="recommendation">
+                Recommended default: operate the canonical Test Vendor until one real
+                Vendor is ready.
+              </p>
+            </div>
+          </article>
+        </div>
+        <div class="callout good">
+          <strong>Open product-direction questions</strong>
+          None. Provider facts that cannot be invented are requests for configuration
+          data, not a reason to reopen the working-app V1 design.
+        </div>
+        <div class="callout danger">
+          <strong>Intentionally outside V1</strong>
+          Generic mailbox browsing, free-form compose/send,
+          autonomous/scheduled/bulk/model-triggered external sends, guessed provider
+          writes, QuickBooks post/pay/bank access, and destructive Drive
+          replacement/deletion. These are safety exclusions, not unfinished screens.
+        </div>
+      </section>
+
+      <section class="report-section" id="deployment">
+        <h2>Final deployment record</h2>
+        <p class="lede">
+          Populate only from the final merged commit and the Cloud Run service after
+          production verification. The previous serving baseline before this release was
+          <code>pmi-kc-kb-demo-00021-bj8</code> with rollback predecessor
+          <code>pmi-kc-kb-demo-00020-24d</code>.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+              <tr>
+                <td data-label="Field">Application endpoint</td>
+                <td data-label="Value">
+                  <a href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app"
+                    >https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app</a
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Field">Merged commit</td>
+                <td data-label="Value">
+                  <span
+                    class="evidence-pending"
+                    data-release-placeholder="final-git-commit-table"
+                    >pending final merge</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Field">Cloud Build</td>
+                <td data-label="Value">
+                  <span
+                    class="evidence-pending"
+                    data-release-placeholder="final-cloud-build-id"
+                    >pending deploy</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Field">Serving revision</td>
+                <td data-label="Value">
+                  <span
+                    class="evidence-pending"
+                    data-release-placeholder="final-cloud-run-revision-table"
+                    >pending deploy</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Field">Rollback revision</td>
+                <td data-label="Value">
+                  <span
+                    class="evidence-pending"
+                    data-release-placeholder="final-rollback-revision"
+                    >capture immediately before traffic shift</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Field">Traffic</td>
+                <td data-label="Value">
+                  <span class="evidence-pending" data-release-placeholder="final-traffic"
+                    >pending 100% serving check</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Field">Public/auth smoke</td>
+                <td data-label="Value">
+                  <span
+                    class="evidence-pending"
+                    data-release-placeholder="final-auth-smoke"
+                    >pending final endpoint checks</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Field">Signed-in walkthrough</td>
+                <td data-label="Value">
+                  <span
+                    class="evidence-pending"
+                    data-release-placeholder="final-browser-walkthrough"
+                    >pending desktop/phone evidence</span
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Field">Application label</td>
+                <td data-label="Value">
+                  <strong>Working V1</strong>; provider activation reported independently.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="report-footer">
+        <p>
+          <strong>Evidence basis:</strong> repository implementation and machine evidence
+          on July 15, 2026. Final-release placeholders must be replaced from the merged
+          commit/deployment, not inferred. No customer records, Gmail bodies, credentials,
+          or secret values are included.
+        </p>
+        <p>
+          Companion records: <a href="plan.md">working-app plan</a> ·
+          <a href="loop-state.md">loop state</a> ·
+          <a href="status.md">status history</a> ·
+          <a href="client-checklist.md">client checklist</a> ·
+          <a href="v1-client-unblock-checklist-2026-07-14.md"
+            >provider activation checklist</a
+          >
+          · <a href="v1-dependency-disposition-2026-07-14.md">dependency disposition</a> ·
+          <a href="feature-suites/README.md">feature suites</a>.
+        </p>
+        <p><a href="#top">Back to top</a></p>
+      </footer>
+    </main>
+  </body>
+</html>

@@ -61,7 +61,7 @@ describe("MaintenanceCapture", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("builds a clean draft after matching the unit, marked simulation-only", async () => {
+  it("builds a clean Live in-app draft after matching the unit", async () => {
     const user = userEvent.setup();
     // The unit now comes from the type-ahead (real confidence), not the typed text — branch on URL.
     vi.stubGlobal(
@@ -92,7 +92,7 @@ describe("MaintenanceCapture", () => {
     expect(
       screen.getByRole("heading", { name: "Dishwasher won't drain" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Test run only/)).toBeInTheDocument();
+    expect(screen.getByText(/Live in-app ticket preview/)).toBeInTheDocument();
     expect(screen.getByText(/No blockers/)).toBeInTheDocument();
 
     // The non-executable M-5 stages surface alongside the draft.

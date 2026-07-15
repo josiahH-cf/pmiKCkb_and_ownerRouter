@@ -1,52 +1,63 @@
-# Final-V1 tab and browser acceptance plan
+# V1 tab and browser acceptance plan
 
-Date: 2026-07-14. Status: **pre-V1; local synthetic and deployed owner evidence are separate**. Local
-component, core E2E, or browser checks do not substitute for owner acceptance against a pinned deployed
-revision.
+Date: 2026-07-15. Status: **working-app acceptance plan**.
 
-For local regression, use only the invented aliases from `lib/release/synthetic-execution.ts`; the
-production boundary must refuse fake providers and fixture fallback. For deployed acceptance, resolve
-the exact prerequisites in `docs/v1-client-unblock-checklist-2026-07-14.md`, pin the commit/revision and
-Registry hash, and capture bodyless evidence only.
+V1 acceptance proves that the deployed application can be used end to end. It does not require every
+future external provider to be Live. Provider activation is inventoried independently, and an
+unconfigured provider must appear honestly as unavailable while the production Test workspace proves
+the corresponding application workflow without contacting that provider.
 
-Run every surface at desktop (1440×900) and phone (390×844) widths. Verify keyboard focus, readable
-source/failure state, no horizontal dead end, no customer/message content in URL or audit, and a visible
-`Pre-V1` label until the release manifest accepts every gate.
+Run each applicable surface at desktop (1440×900) and phone (390×844). Verify keyboard focus,
+readable state, no horizontal dead end, no secret/customer content in URLs or audit, and an always-
+visible `Live` or `Test` marker wherever a record or action can write.
 
-## Local synthetic regression record
+## Acceptance identities and records
 
-On 2026-07-14, all eight surfaces rendered in the in-app browser at both required widths against an
-isolated loopback Firestore emulator and demo project. Each showed the Pre-V1 label; checked phone
-documents had no horizontal overflow; Lease and Maintenance showed their action-level provider
-readiness lists; and fresh page logs were clean. The run found and fixed one boundary defect: an
-internal demo/staff cookie on `/vendor` now fails closed to `/vendor/sign-in` instead of exposing a
-Firebase decode error. No live read, write, invite, OAuth, send, deployment, or traffic change occurred.
+- Internal Admin and scoped Editor accounts use `pmikcmetro.com` Firebase sign-in.
+- Test Maintenance uses unit `unit:test-maple-204`, displayed as
+  `TEST — 204 Maple Court Unit 2`.
+- Test Vendor uses `vendor:test-summit-plumbing`, displayed as
+  `Summit Plumbing Test Vendor`, with the non-routable address
+  `service@summit-plumbing.example.invalid`.
+- Test records persist in production Firestore and may reach Done. Every Test receipt says no provider
+  was contacted and is not eligible as Live-provider proof.
+- A Live action requires an exact target-labeled preview and human confirmation. Exercise a Live write
+  only when that exact provider action is enabled and configured.
 
-This record is `Local` only. It does not satisfy the required keyboard, role, unavailable-provider,
-failure/recovery, approved-record, or pinned deployed-revision checks below; capture those separately
-before Josiah's technical acceptance.
+## Surface walkthrough
 
-| Surface                 | Roles/scopes                                                  | Success case                                                                                               | Required failure/recovery case                                                                           |
-| ----------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Console                 | Admin, scoped Editor; Vendor denied                           | Live-only operational fields show provenance/freshness; targeted communication opens in its governed panel | Missing/stale provider is visibly unavailable; no fixture fallback or full body inline                   |
-| Spaces                  | Admin, scoped Editor; Vendor denied                           | Trusted publication respects connector/root/Space/scanner policy and immutable version                     | Wrong root/type/size/scope/scanner fails closed with correction path                                     |
-| Approval Queue          | Admin; Editor sees only permitted work                        | Exact preview/reason/linked execution is clear on desktop/phone                                            | Stale/returned/revoked/technical Blocked cannot execute or self-heal                                     |
-| Workflow Communications | authorized internal mailbox/workflow scope                    | Linked thread, governed artifact, source-visible proposal, exact confirmation                              | Wrong mailbox/thread/recipient/source, expired confirmation, duplicate or ambiguous send refuses         |
-| Connections             | Admin and appropriately scoped user                           | Each provider shows named health, readiness, and environment                                               | Missing contract/credential/mapping or scope drift stays Blocked, never simulated green                  |
-| Admin                   | Admin only                                                    | User/Vendor/policy/hold/release controls require reason and show bounded state                             | Editor/Vendor denied; duplicate invite, last-Admin risk, and partial failure show recovery               |
-| Notifications           | signed-in internal roles by scope                             | Relevant attention/decision state opens the exact governed workflow                                        | Cross-Space, stale, missing target, and read-state failure do not leak or dead-end                       |
-| Vendor portal           | assigned verified-email+TOTP Vendor; authorized Admin support | Assigned ticket and assigned linked mailbox thread only; exact-confirmed reply                             | Guessed/deassigned/disabled ticket is indistinguishable 404; wrong mailbox/scope/revocation stops access |
+| Surface                 | Working V1 path                                                                                                                                             | Required failure/recovery path                                                                                              |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Console                 | Show Live operational data and the isolated Test workspace together, with freshness/provenance and a clear mode badge                                       | Provider outage is visibly unavailable; no Test fallback is presented as Live                                               |
+| Spaces / Ask            | Open an authorized Space; return a cited source-backed answer; show `No Reliable Source Found` when unsupported                                             | Wrong Space or missing source fails closed without a generic property-management answer                                     |
+| Approval Queue          | Open an item, review exact action/target/reason, and approve/return/snooze within role                                                                      | Stale, revoked, returned, or blocked work cannot execute or silently self-heal                                              |
+| Workflow Communications | Open a workflow-linked thread/artifact, review source-visible content, and exact-confirm a permitted action                                                 | Wrong mailbox/thread/recipient, expired confirmation, duplicate click, or ambiguous send refuses                            |
+| Lease Renewal           | Run the production Test journey through the typed actions and receipts; show each separately activated Live provider                                        | Unavailable provider stays named/unavailable; Test completion never marks that provider Live-proven                         |
+| Maintenance             | Seed the canonical Test ticket, move intake through assignment/status/activity/notes/receipts to Done                                                       | Cross-mode assignment, stale state, invalid file, or unavailable Live provider refuses with correction guidance             |
+| Connections             | Show each provider's independent state and the action keys it enables                                                                                       | Missing contract, credential, mapping, health, or scope closes only the dependent Live action                               |
+| Admin                   | Manage staff roles, source policy, Test Vendor provision/disable, Test workspace, and release/provider status with reasons                                  | Editor/Vendor denied; duplicate provision and partial identity failure expose reconciliation/cleanup                        |
+| Notifications           | Open a relevant item into its exact governed workflow                                                                                                       | Cross-Space, stale, missing target, or read-state failure does not leak or dead-end                                         |
+| Vendor portal           | Complete Test password setup and TOTP, then view only the assigned Test ticket and app-only mailbox; for Live, use same-address OAuth only after activation | Guessed/deassigned/disabled/cross-mode ticket is indistinguishable 404; Test identity cannot start OAuth or send externally |
 
-For S25 and S26, exercise preview, role/risk, approval or exact confirmation, receipt/read-after-write,
-provider unavailability, drift, duplicate click, ambiguous result reconciliation, and correction on the
-relevant surface. Dan records business acceptance only after the business/source/template outcomes are
-correct. Josiah records technical acceptance only after desktop/phone, monitoring, rollback, OAuth/Gmail
-watch, and every per-action proof are green.
+## Write acceptance
 
-Evidence must be non-secret and bodyless: commit/revision, action key, role, browser/viewport, timestamp,
-expected/actual state, result/receipt hash, monitor/rollback references, and named acceptor. Do not store
-screenshots containing customer records, mail bodies, tokens, or credentials in git.
+For both Lease and Maintenance, exercise preview, role/risk, exact confirmation or approval,
+one-attempt receipt, duplicate click, stale-state refusal, ambiguous-result reconciliation, and
+correction. For Test mode, assert `provider_contacted=false` and `live_proof_eligible=false` on every
+receipt. For a Live action, assert the named target, provider reference, and read-after-write result.
 
-Record local synthetic results as `Local` only. Record a deployed result only when it names the exact
-production revision and environment; neither result is `Accepted` until every action proof, rollback
-rehearsal, dependency disposition, and Dan/Josiah signature is present in the release manifest.
+No acceptance step permits generic inbox browsing, free-form compose, autonomous/scheduled/bulk/
+model-triggered sends, a guessed provider endpoint, QuickBooks post/pay, or destructive photo
+replacement/deletion.
+
+## Completion record
+
+Capture bodyless evidence: commit/revision, route, role, viewport, mode, action key, timestamp,
+expected/actual state, receipt hash, provider contacted yes/no, and rollback result. A business or
+technical owner may record observations, but a missing named signature does not make a working app
+unready.
+
+Application acceptance is complete when the deployed core surfaces and production Test journeys pass
+and rollback is rehearsed. Each Live provider advances separately from unavailable/test-ready to
+live-configured/live-proven/enabled after its own bounded proof; inactive future providers do not reopen
+V1 application readiness.

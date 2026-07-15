@@ -20,6 +20,7 @@ export interface VendorAuthClaims {
   vendor_id?: unknown;
   auth_time?: unknown;
   firebase?: unknown;
+  data_mode?: unknown;
 }
 
 type ClaimsVerifier = (value: string) => VendorAuthClaims | Promise<VendorAuthClaims>;
@@ -50,6 +51,11 @@ export function validateVendorClaims(
   const email = requiredString(claims.email, "email").toLowerCase();
   const vendorId = requiredString(claims.vendor_id, "vendor id");
   const authTime = claims.auth_time;
+  const dataMode = claims.data_mode === "test" ? "test" : "live";
+
+  if (claims.data_mode !== undefined && claims.data_mode !== dataMode) {
+    throw new VendorBoundaryError("Vendor data mode is invalid.", 403);
+  }
 
   if (claims.vendor !== true) {
     throw new VendorBoundaryError("This account is not a Vendor account.", 403);
@@ -76,6 +82,7 @@ export function validateVendorClaims(
     emailVerified: true,
     totpVerified: true,
     sessionIssuedAt: authTime,
+    dataMode,
   };
 }
 

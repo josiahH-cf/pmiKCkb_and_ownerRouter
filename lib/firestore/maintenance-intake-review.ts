@@ -127,6 +127,7 @@ export async function promoteUnverifiedIntake(
     const ticketId = uuidv7();
     const ticket: MaintenanceTicketRecord = {
       id: ticketId,
+      data_mode: "live",
       status: "Open",
       priority,
       priority_provenance: provenance,

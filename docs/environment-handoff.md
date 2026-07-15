@@ -1,230 +1,191 @@
-# Environment Handoff
+# Environment handoff
 
-Use this as the non-secret handoff registry for local, demo, staging, and production
-environments. It should tell a future agent or team where values live, who owns setup,
-what still requires manual approval, and how to verify the environment.
+Updated: 2026-07-15.
 
-Do not put secrets, tokens, service-account key files, raw customer data, raw Gmail
-content, leases, ledgers, bank data, SSNs, or full source packets in this document.
+This is the non-secret handoff registry for the PMI KC production application and development
+environments. Record project IDs, service identities, domains, resource IDs, setup status, and
+verification evidence only. Never record secrets, tokens, password/setup links, TOTP material, OAuth
+codes, raw customer data, Gmail bodies, leases, ledgers, bank data, SSNs, or full source packets.
+Do not put secrets in this document, source control, command output, or release evidence.
 
-## How To Use
+## Environment model
 
-- Record names, owners, project IDs, domains, service-account emails, bucket names,
-  data-store IDs, and status only.
-- Put variable names in `.env.example`.
-- Put local real values in ignored `.env.local`, `.env.production.local`, or the active
-  shell.
-- Put staging/production real secrets in client-approved Secret Manager, workload
-  identity, impersonation, or equivalent managed secret storage.
-- Prefer no downloadable service-account keys. If a key is unavoidable, record the
-  owner, storage location, rotation path, and revocation path without recording the key.
-- Every setup row should have a verification command or manual check before it is marked
-  complete.
-- For final-V1 external setup, route one exact row at a time through
-  `docs/v1-client-unblock-checklist-2026-07-14.md`. Record only its named identifiers, evidence
-  references, owners, and secret-location labels; never replace it with a generic access request.
+Production contains two explicit data lanes:
 
-### Local emulator mutation boundary
+- **Live** — customer/provider-backed records. Every write identifies the exact action and target and
+  requires the current human preview/confirmation.
+- **Test** — reserved invented records persisted in production Firestore. Test workflows may reach
+  Done but use only isolated app executors, never contact providers, and never count as Live-provider
+  proof.
 
-Demo seed/reset/operator writes require a reachable process-level loopback Firestore emulator target before
-Firebase Admin initialization. Use explicit `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080` plus a non-secret emulator
-namespace project id; `.env.local` may supply the same values, but the guard normalizes and propagates them before
-child processes. An absent, malformed, non-local, or stopped target fails closed. Demo commands have no live mode,
-do not require ADC, and must never be redirected to production. Local-demo auth also forces `IMAGE_STORE=stub`;
-the Maintenance Drive action remains closed by the Action Registry even when a folder id exists.
+Legacy records without a mode resolve to Live. A Test badge must be visible wherever Test data can be
+read or written. A provider can be unavailable while the application and Test workflow remain healthy.
 
-The final-V1 synthetic acceptance harness likewise uses invented `example.invalid` identities and typed fake
-provider state. Production rejects fake providers, synthetic escape flags, Registry overrides, and schema/risk
-lowering. A local receipt is regression evidence only and must never be entered as provider proof in a release
-manifest.
+Canonical Test records:
 
-## Non-Secret Source Artifact Registry
+| Type         | Identifier                    | Display / address                         |
+| ------------ | ----------------------------- | ----------------------------------------- |
+| Unit         | `unit:test-maple-204`         | `TEST — 204 Maple Court Unit 2`           |
+| Vendor       | `vendor:test-summit-plumbing` | `Summit Plumbing Test Vendor`             |
+| Vendor email | —                             | `service@summit-plumbing.example.invalid` |
 
-| Artifact source                    | Path or location                                                           | Product lane  | Status                          | Handoff note                                                                                                                                                                    |
-| ---------------------------------- | -------------------------------------------------------------------------- | ------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Legacy Owner Router source package | `C:\Users\josia\Documents\github-windows\pmi-kc-owner-router`              | Gmail Inbox 0 | Exists locally; no commits yet. | Source material only; map lives in `docs/legacy/owner-router-artifact-source.md`.                                                                                               |
-| PMI KC source drop zone            | <https://drive.google.com/drive/folders/1arXww32LaPcIbFx_oONshbR62imiC8kq> | All lanes     | Created and shared with Dan.    | Source folders for Lease Renewals, Maintenance, Move-Out, Owner Onboarding, Gmail Inbox 0, unsure, and reference material.                                                      |
-| Shared Google Sheets in Drive home | Google Drive home for `josiah@pmikcmetro.com`                              | All lanes     | Metadata visible only.          | Visible sheet names include `Tenant Move In/Out/Renewal Checklist`, `24/25/26 Rents Received 2`, and `2026 Invoices`; exact in-scope Sheets still need confirmation before use. |
+## Handling values
+
+- Put variable names only in `.env.example`.
+- Put local values in ignored `.env.local`, `.env.production.local`, or the active shell.
+- Put production secrets in Secret Manager or an attached/workload identity path.
+- Avoid downloadable service-account keys. Record owner, location label, rotation, and revocation—not
+  key material.
+- Every setup row needs a repeatable command or manual verification before it is marked complete.
+- Use `docs/v1-client-unblock-checklist-2026-07-14.md` for a selected provider's exact activation
+  inputs. Do not turn that inventory into an all-provider application gate.
+
+### Local emulator boundary
+
+Local demo seed/reset/operator writes require
+`FIRESTORE_EMULATOR_HOST=127.0.0.1:8080` and a non-secret emulator project namespace before Firebase
+Admin initialization. An absent, malformed, non-local, or stopped target fails closed. Local demo
+commands never target production and force the stub image store.
+
+The deployed production Test workspace is different: its records intentionally persist in production,
+but every Test executor is branded and isolated. It rejects Live input, synthetic aliases cannot enter
+Live, and receipts state `provider_contacted=false` and `live_proof_eligible=false`.
 
 ## Environment Registry
 
-| Environment       | Purpose                                    | Non-secret identifiers                                                                                        | Secret storage                          | Owner                    | Status                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Verification                                      |
-| ----------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| Local development | Run and test the repo on this workstation. | `localhost:3000`, approved test domain.                                                                       | `.env.local` or active shell.           | Implementer              | Available.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | `npm run dev`, `npm run format:check`, `npm test` |
-| Demo              | Safe demo and smoke environment.           | Demo GCP/Firebase project and demo URL.                                                                       | `.env.local`, demo ADC, demo IAM.       | Josiah (cherrybridge.ai) | cherrybridge.ai-owned (auth-locked to cherrybridge.ai); not reusable for pmikcmetro.com.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | `npm run check:live-cost`, demo smoke scripts.    |
-| Staging           | Client-approved pre-production testing.    | TBD client project/domain/users.                                                                              | Client Secret Manager or impersonation. | Client/Josiah TBD        | Not provisioned.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | `npm run preflight:production -- --env-file=...`  |
-| Production        | PMI KC-owned live product environment.     | pmi-kc-kb-prod (#558870356522); bucket pmi-kc-kb-prod-sources-558870356522; data store kb-lease-renewals-txt. | Client Secret Manager or workload ID.   | Client TBD               | Provisioned 2026-06-19 under org pmikcmetro.com: billing linked + $10 budget alert, 19 APIs, Firestore + 12 spaces, Firebase web app 1:558870356522:web:c1b2473b886a6edd889953, bucket pmi-kc-kb-prod-sources-558870356522, Agent Search kb-lease-renewals-txt (3 docs). Live smoke:ask-live PASS. DEPLOYED to Cloud Run https://pmi-kc-kb-demo-558870356522.us-central1.run.app (sign-in locked to pmikcmetro.com). Auth loop fixed 2026-06-19 (build NEXT_PUBLIC_FIREBASE_PROJECT_ID corrected; dedicated runtime SA pmi-kc-kb-runtime@ least-privilege; sign-in via signInWithPopup; authorized the canonical Cloud Run host in Firebase). Canonical URL https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app (both run.app hosts authorized). Pending: Firestore rules deploy (needs firebase login). | Production preflight and cutover smoke.           |
+| Environment       | Purpose                                  | Non-secret identifiers                                                                                                                                                                                                                                                                            | Secret storage                       | Owner                             | State / verification                                                                                                                                                                                          |
+| ----------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local development | Build, unit/E2E/emulator verification    | `localhost:3000`, loopback emulator                                                                                                                                                                                                                                                               | `.env.local` / active shell          | Implementer                       | `npm run dev`; `npm run format:check`; `npm run typecheck`; `npm test`; `npm run test:firestore`                                                                                                              |
+| Legacy demo       | Historical local/cloud evidence only     | Legacy project values                                                                                                                                                                                                                                                                             | Legacy ignored config                | Josiah                            | Not reusable for production; no `cherrybridge.ai` identity/resource in the production path                                                                                                                    |
+| Separate staging  | Optional future provider sandbox         | Not provisioned                                                                                                                                                                                                                                                                                   | Client Secret Manager/identity       | Future                            | Not required for V1 because production has an isolated Test lane; provision only when a provider requires its own sandbox                                                                                     |
+| Production        | Stable PMI KC app with Live + Test lanes | Project `pmi-kc-kb-prod` (#558870356522); Cloud Run `pmi-kc-kb-demo`, `us-central1`; canonical URL `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`; bucket `pmi-kc-kb-prod-sources-558870356522`; search store `kb-lease-renewals-txt`; Firebase app `1:558870356522:web:c1b2473b886a6edd889953` | Secret Manager / attached identities | Josiah technical; PMI KC business | Billing, budget controls, Firebase/Firestore, runtime SA, Cloud Run, source bucket/search, and managed-domain sign-in exist. Verify candidate revision, rules, Test workflows, and rollback after each deploy |
 
-Latest deployed Pre-V1 candidate: commit `0dc0c7aa7be600e1097e80de448227917dc9101a`, Cloud Build
-`9ae6958b-ec8c-48ef-bf0b-46dbe8194880`, revision `pmi-kc-kb-demo-00021-bj8`, serving 100% traffic as of
-2026-07-15. Revision `pmi-kc-kb-demo-00020-24d` is the captured rollback target and remains the revision
-that proved the 2026-07-13 S19 transport. S20–S27 code is deployed but is not thereby Live-proven or
-Accepted; public/auth-boundary smoke does not authorize or attest to external actions.
+The serving baseline captured before the 2026-07-15 working-app change is commit
+`0dc0c7aa7be600e1097e80de448227917dc9101a`, Cloud Build
+`9ae6958b-ec8c-48ef-bf0b-46dbe8194880`, revision `pmi-kc-kb-demo-00021-bj8` at 100% traffic.
+Revision `pmi-kc-kb-demo-00020-24d` is a known prior rollback target. Replace this paragraph with the
+new commit/build/revision and newly captured prior revision immediately after deployment.
 
-### Gmail S19 live handoff (production activation authorized 2026-07-13)
+## Production identity configuration
 
-| Item                     | Current state                                                                                                                                                                                                                                                                                 | Owner action before use                                                                                                                                                                          | Rollback                                                                                                                              |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Per-user DWD             | Client `104374162913177846911` has readonly, compose, labels, and modify; keyless mint remains domain-bound.                                                                                                                                                                                  | Set explicit `GMAIL_DWD_SA`; no rollout mailbox allowlist.                                                                                                                                       | Revoke only the scopes being rolled back.                                                                                             |
-| Workflow-targeted read   | `gmail.mailbox.read` is approved only for an authorized linked renewal/maintenance thread; the primary UI has no inbox query.                                                                                                                                                                 | S24 policy is Local green; separately activate Firestore TTL/scheduler and configure authoritative S25/S26 workflow sources before promotion.                                                    | Set the action false, revoke readonly, and redeploy.                                                                                  |
-| Exact-confirmation reply | Thread reply transport is proven; S20 permits an internal Editor to execute this enabled Medium action only with linked workflow, implemented approved artifact, exact confirmation, and all existing transport gates. Generic new-message send is Disabled and policy-forbidden.             | Preserve exact preview, one-time confirmation, and no ambiguous retry.                                                                                                                           | Flip reply false and redeploy; delivered email is not retractable.                                                                    |
-| Gmail labels             | Only the four registry-approved workflow labels may be applied with the fixed rule reference and a reason.                                                                                                                                                                                    | Store only label/thread identifiers and a reason hash.                                                                                                                                           | Flip label action false; remove applied labels if appropriate.                                                                        |
-| Gmail watch / Pub/Sub    | Topic, Gmail publisher, dedicated OIDC push identity/subscription, watch, and history processing are live-proven.                                                                                                                                                                             | Renew the watch before its expiration; retain identifiers-only evidence.                                                                                                                         | Stop watch and delete subscription/topic/push identity.                                                                               |
-| Production               | Revision `pmi-kc-kb-demo-00021-bj8` deploys the Pre-V1 candidate at 100%; prior revision `pmi-kc-kb-demo-00020-24d` remains the S19 transport proof and rollback target. S25/S26/S27 remain Gated. S23 ordinary production refuses fixture fallback and its live adapters are not configured. | Use the exact action packets in the pre-release report; separately configure/accept S22 identity/OAuth/vault, S23 reads, S24 TTL/scheduler, and each S25/S26 proof before promotion or live use. | Route traffic to `pmi-kc-kb-demo-00020-24d` only under the reviewed rollback procedure and close the affected exact Registry actions. |
+| Item                        | State to verify                                                                  | Setup / verification                                                                                                                             | Rollback                                                                                |
+| --------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| Internal Google sign-in     | Enabled; staff domain `pmikcmetro.com`                                           | `npm run firebase:setup-auth -- --project=pmi-kc-kb-prod --authorized-domain=pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`; allowed/wrong-domain smoke | Disable provider only for an Auth incident; preserve users/audit                        |
+| Authorized domains          | Firebase default hosts plus canonical Cloud Run host                             | Same repository command; inspect returned domain list                                                                                            | Remove only an obsolete host after traffic is gone                                      |
+| Vendor Email/Password       | Enabled; no app self-registration                                                | Firebase Console → Security → Authentication → Sign-in method → Email/Password → Enable                                                          | Disable new password sign-in only after Vendor sessions are revoked                     |
+| Vendor TOTP                 | Identity Platform project config enabled with adjacent interval `1`              | Use the official REST command in `docs/v1-client-unblock-checklist-2026-07-14.md`; complete enroll/challenge smoke                               | Disable only during an Auth incident; Vendors remain denied until a safe factor returns |
+| Runtime Auth administration | Runtime SA can create/revoke session cookies and Admin-provision Vendor identity | Attached `pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com`; no key file                                                                 | Remove the role and close Vendor provisioning/session routes                            |
 
-Tracked evidence may contain Gmail message/thread identifiers, counts, timestamps, and
-status only. It must never contain token values, subjects/bodies, raw MIME, attachment
-content, or mailbox thread content.
+The Test Vendor is Firebase password + TOTP with an app-only mailbox. Live Vendor OAuth is configured
+per real Vendor later and never uses DWD or an internal staff role.
 
-## Current Client-Side Setup Gates
+## Gmail live handoff
 
-These gates come from the current outbound Dan/team communications. Remote Away Mode is
-inactive as of 2026-06-15, so answered gates unblock normal owner-coordinated setup and
-migration prep when the budget guard passes and identifiers are recorded here. They are
-not approval for unbounded spend, autonomous sends, raw data handling, destructive
-changes, or system-of-record writes.
+| Item                | Current state                                                                                               | Operating action                                                                    | Rollback                                                                     |
+| ------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Per-user DWD        | Client `104374162913177846911` has readonly, compose, labels, and modify; keyless mint remains domain-bound | Keep explicit `GMAIL_DWD_SA`; never use a personal identity                         | Revoke only affected scopes and close dependent actions                      |
+| Workflow read/reply | Workflow-linked read and exact-confirmed reply transport are proven; no generic inbox/compose product       | Preserve exact target/thread/artifact confirmation, one attempt, and bodyless audit | Close exact Registry action; delivered mail cannot be retracted              |
+| Labels              | Four governed workflow labels only                                                                          | Record identifiers/reason hash, not content                                         | Close label action and remove an applied label if appropriate                |
+| Watch/Pub/Sub       | Topic, publisher, OIDC push identity/subscription, watch, and history processing are Live-proven            | Manually renew watch before expiry and monitor health                               | Stop watch; remove subscription/topic only after dependent traffic is closed |
 
-The cost ceiling and free-tier-first defaults behind these gates are governed by
-`docs/budget-and-cost-policy.md` (~$10 total, no spend without approval). Validate the
-current cost posture with `npm run check:budget-guard`.
+Native TTL, extra composite indexes, and a cleanup scheduler are optional. Legal holds and canonical
+expiry fields remain authoritative; the launch default is bounded manual cleanup with limit `500`, a
+unique run ID, counts-only audit, and no blind retry.
 
-| Gate                             | Owner        | Current status                                                                                                                                                                                                                                                                                                                                        | Record only these non-secret details after unblock                                          | Verification after unblock                                                |
-| -------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Google Cloud billing card        | Dan/PMI KC   | PROVISIONED 2026-06-19: production project `pmi-kc-kb-prod` (#558870356522), billing account 01A5A3-65CA5A-614D45 (org 584930494337), account budget id 82962d7e-b340-4253-8348-38caff16e88a, project-scoped $10 budgets, and hard kill switch are verified. Remaining: session auth when stale and explicit per-step approval for cost-bearing work. | Billing account/project names or IDs; budget/guard owner.                                   | Run the read-only budget/preflight checks before each approved live step. |
-| Tool access spreadsheet          | Dan/team     | Partially returned: RentVine both/API; LeadSimple, DotLoop, Boom, and Sheets admin/location; QuickBooks blank; Sheets scope unresolved.                                                                                                                                                                                                               | Tool names, access owner, login page/shared folder label, API availability.                 | Classify each tool as read-only, write-capable, unsupported, or blocked.  |
-| Lease Renewal walkthrough        | Dan/team     | HELD 2026-06-19 by live screen-share; the sanitized process reference is captured in `docs/products/lease-renewal-discovery-reference.md`. Optional remainder: a short supervised view of the exact RentVine renewal/rent-increase clicks.                                                                                                            | Optional click-path confirmation only; no raw client records in git.                        | Update the vendor/click-path notes if the optional view occurs.           |
-| Signed lease / lease-date source | Dan/team     | RESOLVED 2026-06-20: executed signed leases are in Dotloop; renewal timing and lease-end read from the RentVine lease record.                                                                                                                                                                                                                         | No further client value required for the read-only trigger.                                 | Mapper and discovery-reference remain the evidence.                       |
-| Gmail live self-thread proof     | Josiah/owner | Authorized 2026-07-13: one synthetic self-addressed message and one exact-confirmed reply; Dan and third parties excluded from proof.                                                                                                                                                                                                                 | DWD scope evidence, Gmail message/thread IDs, counts/statuses, rollback owner (no content). | Two messages share one thread id; label and watch status verified.        |
-| Approval notification delivery   | Dan/PMI KC   | In-app only. The legacy event-driven Gmail sender is hard-disabled. Open decision: remain disabled permanently or return later as human-confirmed drafts.                                                                                                                                                                                             | Decision owner and approved future delivery model only.                                     | No email smoke unless a future approved spec exists.                      |
+## Non-Secret Source Artifact Registry
 
-## Migration-Ready But Client-Blocked State
+| Source                      | Location                                                                                        | State / handoff                                                                                                                                                    |
+| --------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PMI KC source drop zone     | [Shared Drive folder](https://drive.google.com/drive/folders/1arXww32LaPcIbFx_oONshbR62imiC8kq) | Created/shared; the team adds approved content over time                                                                                                           |
+| Production source bucket    | `pmi-kc-kb-prod-sources-558870356522`                                                           | Only approved, client-safe source copies; never raw context/call packets                                                                                           |
+| Agent Search                | Location `us`; store `kb-lease-renewals-txt`                                                    | Existing approved corpus remains usable; add sources through reviewed manifest/import                                                                              |
+| Shared Sheets metadata      | Drive home for `josiah@pmikcmetro.com`                                                          | Visible names include `Tenant Move In/Out/Renewal Checklist`, `24/25/26 Rents Received 2`, `2026 Invoices`; exact operating Sheet is a per-action activation input |
+| Legacy Owner Router package | `C:\Users\josia\Documents\github-windows\pmi-kc-owner-router`                                   | Historical source material only; never a production runtime dependency                                                                                             |
 
-Use this state when local work is no longer the limiting factor. Record it before
-stopping local feature loops.
+Missing source content reduces answer coverage; it does not block the working app. Unsupported questions
+must remain visibly unsupported rather than receive a generic answer.
 
-Required evidence:
+## Provider activation registry
 
-- Latest relevant local checks pass, or failures are documented as environment-only or
-  client-blocked.
-- Production preflight, source manifest, cutover, and handoff inputs are either
-  prepared with placeholders or blocked only on client-owned values.
-- `docs/client-checklist.md` names the exact client actions needed next.
-- `docs/status.md` says what local feature ideas were deferred and why.
-- No secrets or client records were committed. The 2026-07-13 Gmail activation explicitly
-  authorizes its deploy, synthetic self-send/reply, label, watch, and Pub/Sub resources;
-  other deploys, imports, sends, or external writes remain separately gated.
+Record each provider/action independently as `unavailable`, `test_ready`, `live_configured`,
+`live_proven`, `enabled`, or `suspended`.
 
-Once recorded, future agents should keep readiness artifacts current and fix real
-regressions, but should not add new local product surface until a client answer,
-approved migration step, production smoke result, or accepted product decision creates a
-specific need.
+| System        | App role                                     | Non-secret activation anchors                                                       | Secret owner/location                         | Safe default                                                                   |
+| ------------- | -------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------ |
+| RentVine      | Operational reads; renewal/work-order writes | Tenant base URL, exact endpoints, property/unit/lease/Vendor/status/version mapping | Existing key/secret in Secret Manager; PMI KC | Reads when healthy; unsupported writes unavailable; Test completes internally  |
+| Gmail         | Workflow-linked communication                | DWD subject, linked recipient/thread fields, artifact/label rule                    | Keyless DWD / attached identity               | Existing enabled actions retain scope; new initiation unavailable until mapped |
+| Vendor Gmail  | Assigned-ticket Vendor communication         | OAuth client/redirect/four scopes, same Vendor address, vault reference             | Per-Vendor refresh token in Secret Manager    | Test mailbox app-only; Live OAuth off until that Vendor activates              |
+| Google Sheets | Renewal checklist read/write                 | Sheet/tab/row key/column, DWD subject, conflict contract                            | Keyless reader/writer identity                | Existing approved read may run; write unavailable until atomic conflict proof  |
+| Dotloop       | Lease/document package                       | Account/profile/template/participant/document mapping                               | OAuth client/secret in Secret Manager         | Unavailable; no UI endpoint inference                                          |
+| LeadSimple    | Process/task workflow                        | Account plan/endpoint, stages, assignee/due rule, conditional update                | API key in Secret Manager                     | Test receipts only until configured                                            |
+| QuickBooks    | Draft Bill downstream                        | OAuth/company/Vendor/account/property mapping, draft-only permission                | OAuth/vault in Secret Manager                 | Test draft receipt only; no post/pay path                                      |
+| Boom/SMS      | Auxiliary enrollment/outreach                | Account, applicability/consent/sender/delivery/correction                           | Provider secret only after selection          | Unavailable/not-applicable; do not select by inference                         |
+| Drive         | Maintenance photo append                     | In-boundary folder, ticket mapping, MIME/size/scanner policy                        | Attached Workspace/Drive identity             | Test metadata only until Live upload configured; no replace/delete             |
 
-## GCP Setup Preflight
-
-`npm run preflight:gcp -- --project=<client-project-id>` prints the full converge plan
-(required APIs, Firebase setup commands, Firestore create/rules-deploy commands, budget
-posture) without credentials. With Application Default Credentials, add `--live` for a
-read-only check of enabled APIs, Firestore database mode, and the Firebase project, and
-`--json` for a machine-readable readiness report (`readiness.ok` / `blockers` /
-`warnings`). Record the non-secret report output here after each owner-side run.
-
-- 2026-06-11: plan mode verified locally (no credentials in the remote container); live
-  mode degrades to a structured credentials blocker as designed. No owner-side live run
-  recorded yet.
-- 2026-06-19: client billing provisioned — account `01A5A3-65CA5A-614D45`, org
-  `584930494337`, budget id `82962d7e-b340-4253-8348-38caff16e88a` (PM-created). No owner-side
-  `--live` preflight run yet: gcloud is installed but `npm run host:check` reports
-  `pmikckb-test` not accessible, so `gcloud auth login` + `gcloud auth application-default login`
-  are required first. Keep the durable $10 guard; create a project-scoped $10 budget alert on
-  the production project before any deploy (`docs/budget-and-cost-policy.md`).
-
-## Setup Inventory
-
-### Non-Secret Tool-Access Snapshot
-
-Recorded from the ignored local tool-access spreadsheet on 2026-06-09. Do not copy
-spreadsheet notes or credentials into tracked files.
-
-| Tool          | Non-secret access answer                                                                                                                         | Remaining handoff gap                                                                                        |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| RentVine      | Both access/API location                                                                                                                         | Credential used as-is (owner decision 2026-06-20; not rotated) — load from env/Secret Manager, never commit. |
-| LeadSimple    | Admin account                                                                                                                                    | Confirm Operations plan and endpoint coverage.                                                               |
-| DotLoop       | Admin account                                                                                                                                    | Confirm signing/send lifecycle before runtime integration.                                                   |
-| QuickBooks    | Blank                                                                                                                                            | Client still needs to provide access status/location.                                                        |
-| Boom          | Admin account                                                                                                                                    | Vendor endpoint contract packet still required.                                                              |
-| Google Sheets | Admin account; visible shared Sheets metadata includes `Tenant Move In/Out/Renewal Checklist`, `24/25/26 Rents Received 2`, and `2026 Invoices`. | Confirm exact in-scope sheets and owner before use.                                                          |
-
-| Area                              | Environment                                                 | Non-secret values to record                                                                                                                                                                                                                                                                                           | Where real secrets live                                                                                                                                                      | Manual setup or approval required                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Verification                                                                                                                                       | Approval gate                                                                   |
-| --------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Firebase web app                  | Staging/Prod                                                | Project ID, auth domain, app ID.                                                                                                                                                                                                                                                                                      | Firebase config values in ignored env/Secret Manager.                                                                                                                        | Create web app and approved authorized domains.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | `npm run firebase:setup -- --project=<id>`                                                                                                         | Client project/domain approval.                                                 |
-| Firebase Auth / Identity          | Staging/Prod                                                | Allowed domain, OAuth client ID name.                                                                                                                                                                                                                                                                                 | OAuth client secret in Secret Manager/ignored env.                                                                                                                           | Enable Google provider, consent if Google requires it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Sign-in smoke; wrong-domain rejection.                                                                                                             | Client Workspace/domain approval.                                               |
-| Firestore                         | Staging/Prod                                                | Project ID, database ID, region.                                                                                                                                                                                                                                                                                      | None for rules/index identifiers.                                                                                                                                            | Create Native mode database and deploy rules/indexes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | `npm run test:firestore`; production smoke.                                                                                                        | Client project approval.                                                        |
-| Cloud Run                         | Staging/Prod                                                | Service name, region, runtime service account, URL. Live-connection non-secrets: `RENTVINE_API_BASE_URL` (pmikcmetro tenant), `RENEWAL_SHEET_ID`, `SHEETS_IMPERSONATE_SA`, `SHEETS_DWD_SUBJECT`.                                                                                                                      | Runtime env secrets in Secret Manager or shell. RentVine `RENTVINE_API_KEY`/`RENTVINE_API_SECRET` in Secret Manager (runtime SA needs `roles/secretmanager.secretAccessor`). | Remote Away Mode is inactive: no deploy or traffic change without explicit authority. Before an approved deploy, capture the exact prior revision; rollback uses `update-traffic` and never service deletion. Set `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` to the in-boundary Drive folder id (prod forces the Drive image store); the deploy forwards it and the production preflight requires it. Dev↔prod parity: the deploy forwards the four live-connection non-secrets and wires the RentVine key/secret via `--set-secrets` when the base URL is set; the preflight requires the four non-secrets. | `npm run preflight:production -- --env-file=...`                                                                                                   | Cost cap, explicit deploy authority, and captured-revision rollback gate.       |
-| Vertex AI / Gemini                | Staging/Prod                                                | Region, model names.                                                                                                                                                                                                                                                                                                  | ADC/workload identity only.                                                                                                                                                  | Enable API and confirm model/cost choice.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | `npm run check:live-cost`; Ask smoke.                                                                                                              | Cloud/API cost approval.                                                        |
-| Agent Search                      | Staging/Prod                                                | Location, data-store IDs, display names.                                                                                                                                                                                                                                                                              | ADC/workload identity only.                                                                                                                                                  | Create/import only approved source corpora; keep imports bounded by budget guard.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | `npm run corpus:plan -- --dry-run`; Ask smoke.                                                                                                     | Source, cost, and rollback gate.                                                |
-| Cloud Storage source buckets      | Staging/Prod                                                | Bucket names, prefixes, service-agent grants.                                                                                                                                                                                                                                                                         | IAM/workload identity only.                                                                                                                                                  | Create buckets and upload approved source copies when reversible and budget-bounded.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | `npm run corpus:plan`; import dry-run.                                                                                                             | Source and cloud cost gate.                                                     |
-| Drive source folders              | Staging/Prod                                                | Folder names, owners, access groups.                                                                                                                                                                                                                                                                                  | Workspace permissions, not repo secrets.                                                                                                                                     | Source drop zone created/shared; client/team adds approved source material and confirms scope.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Manual access check; source-sync test when scoped.                                                                                                 | Client Workspace approval.                                                      |
-| Gmail approval notification       | Future                                                      | No active sender configuration.                                                                                                                                                                                                                                                                                       | Future approved identity only.                                                                                                                                               | Legacy event-driven sender is disabled; any return requires a separate human-confirmed spec.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | In-app health tests; no email smoke currently.                                                                                                     | Owner product/governance decision.                                              |
-| Workflow Communications / S19/S24 | Prod transport; policy code deployed, live activation gated | DWD client `104374162913177846911`; `GMAIL_DWD_SA`; `GMAIL_PUBSUB_TOPIC`; `GMAIL_PUBSUB_AUDIENCE`; `GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT`. All four cutover values are required; the two named SAs and topic must match the canonical project, and audience must exactly equal `APP_BASE_URL` + `/api/gmail-hub/pubsub`. | Keyless attached-SA/DWD and IAM only; no key file or browser token.                                                                                                          | Four exact Gmail scopes are approved. Product actions are workflow-targeted; generic send is disabled. S24 versioned retention/artifacts/AI reply code is deployed and Local green; live legacy migration, all eight indexes/TTL-on-`expires_at`, scheduler, and authoritative S25/S26 values remain gated.                                                                                                                                                                                                                                                                                           | Full fake-transport/workflow-boundary/policy suite plus separately approved synthetic proof; identifiers only.                                     | Transport proven 2026-07-13; policy code deployed 2026-07-15, activation gated. |
-| Trusted publication / S21         | Code deployed; production setup/live proof gated            | Policy ID; connector ID; exact root/folder ID; allowed launch Space IDs; sensitivity ceiling; scanner provider/key and owner; any reductions from launch type/size defaults.                                                                                                                                          | Scanner/provider credentials in approved Secret Manager only; never in policy records.                                                                                       | Admin creates the reasoned policy only after root and scanner approval. Production fails closed while scanner resolution is unavailable. Import/index, Drive mutation, and live proof each remain separate gates.                                                                                                                                                                                                                                                                                                                                                                                     | Synthetic negative matrix + immutable version/rollback/audit, then one separately approved bounded source proof.                                   | No production policy/root/scanner/import/index configured.                      |
-| External Vendor / S22             | Code deployed; live setup/actions gated                     | Identity Platform/TOTP state; invitation continue URL; Google OAuth consent/client name and exact redirect URI; token-secret references; first acceptance Vendor/ticket references (identifiers only).                                                                                                                | OAuth client secret and Vendor refresh tokens in Secret Manager; never Firestore/browser/log/git.                                                                            | The typed invented-alias journey covers invite→TOTP→assigned ticket→OAuth/vault→mail→disable/revoke, including negative scope and changed/reverified-login-email cases. Active access plus OAuth start/callback/pre-vault/final-save remain bound to the immutable invited email; mid-flight drift destroys the new secret and saves no connection. Follow the staged S22 rows in the exact unblock checklist for external test-mailbox proof and separately authorized final real-Vendor acceptance; never reuse the fake result.                                                                    | Local typed journey plus isolated rules/emulator tests; next use one separately approved non-customer external test mailbox/synthetic ticket only. | Per setup/action approval; no DWD or self-registration.                         |
-| External systems / S25/S26        | Code deployed; all provider actions gated                   | Target system, canonical action key, account/plan/template/stage/folder mapping, readiness, owner, receipt, correction/rollback.                                                                                                                                                                                      | Per-system approved credential storage.                                                                                                                                      | All 11 Lease and 19 Maintenance typed adapters run locally through exact previews, S20 authority, one-attempt receipts, dependencies, and reconciliation. Follow the exact unblock checklist; production fake/Registry/schema/risk fences remain closed.                                                                                                                                                                                                                                                                                                                                              | Typed synthetic negative/integrated tests, then one separately permitted action proof with bodyless readback.                                      | Per target-system/action-key approval.                                          |
-
-### External System Integration Registry
-
-Per-vendor handoff detail for the future integrations, aligned with the verified roles in
-`docs/integration-architecture.md`. None are provisioned; all writes stay gated. Action
-types are catalogued in the `action_registry` collection (`production_allowed: false`).
-
-| System        | Role                          | Event mode                | Plan/tier note                                                                          | Credential owner (future)            |
-| ------------- | ----------------------------- | ------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------ |
-| Rentvine      | Operational system of record  | Polling / LeadSimple sync | Account API key + roles; credential used as-is (owner decision 2026-06-20, not rotated) | PMI KC; load from env/Secret Manager |
-| LeadSimple    | Workflow orchestration        | LeadSimple sync           | Operations plan for Rentvine sync                                                       | PMI KC admin-enabled REST key        |
-| Dotloop       | Document-package layer        | Webhook                   | OAuth2 approved app program                                                             | PMI KC approved app registration     |
-| QuickBooks    | Accounting (downstream)       | Webhook                   | Online Accounting API; blank in returned tool-access sheet                              | PMI KC; access status still needed   |
-| Boom          | Resident services (auxiliary) | Webhook (vendor-packet)   | Endpoint contract request-only                                                          | PMI KC; vendor packet required       |
-| Google Sheets | Exception / control plane     | Apps Script triggers      | Admin account/location returned; exact sheets still TBD                                 | PMI KC Workspace owner               |
-
-## Key And Secret Ownership
-
-| Secret or credential class       | Preferred storage                      | Repo record allowed                  | Owner needed before production? | Rotation/revocation note                                    |
-| -------------------------------- | -------------------------------------- | ------------------------------------ | ------------------------------- | ----------------------------------------------------------- |
-| Firebase/OAuth client secrets    | Secret Manager or ignored env.         | Variable name and OAuth client name. | Yes.                            | Rotate in Google Cloud/Firebase and update Secret Manager.  |
-| Service account runtime identity | Workload identity / attached account.  | Service account email and roles.     | Yes.                            | Remove IAM roles or disable service account.                |
-| Service account key file         | Avoid; approved secure storage only.   | Owner, purpose, storage path label.  | Yes, plus explicit exception.   | Rotate and revoke immediately after replacement.            |
-| Gmail sender authority           | Approved Google Workspace/Gmail setup. | Sender address and scope.            | Yes.                            | Revoke Gmail/API grant; disable notification config.        |
-| External-system API keys         | Client-approved secret store.          | Target system, action type, owner.   | Yes.                            | Rotate at provider; disable action type in Admin surface.   |
-| Local developer credentials      | `.env.local`, ADC, or active shell.    | Variable names only.                 | No for local; yes for handoff.  | Delete local file/session; reauth through approved account. |
+An inactive row does not make the production application unready. Its exact Live action remains closed
+and visibly unavailable while the Test workflow continues.
 
 ## Manual Setup And Web-App Testing
 
-Record manual setup here or in `docs/status.md` when it becomes concrete:
+Run session and budget checks before live Google/cloud work:
 
-| Manual step                                  | Why manual or supervised                     | Required evidence                                | Durable doc to update                        |
-| -------------------------------------------- | -------------------------------------------- | ------------------------------------------------ | -------------------------------------------- |
-| Firebase/Auth console consent                | Google may require browser consent.          | Command rerun passes or screenshot-free note.    | `docs/status.md`, this file.                 |
-| Production domain authorization              | Requires client-owned domain/project access. | Auth domain listed and sign-in smoke passes.     | `docs/client-production-cutover.md`, status. |
-| Historical Gmail scan / automatic processing | Exceeds bounded user-invoked mailbox use.    | Separate safe scan/model protocol.               | `docs/products/gmail-inbox-zero.md`, status. |
-| Source folder sharing                        | Client controls Workspace/Drive access.      | Folder owner/access group recorded.              | `docs/client-checklist.md`, this file.       |
-| Production source import                     | Indexes client data and may incur costs.     | Source approval, dry-run, import result.         | `docs/status.md`, source manifest notes.     |
-| Production smoke                             | Confirms real app behavior after deployment. | Sign-in, Ask, citations, no-source, queue smoke. | `docs/client-production-cutover.md`, status. |
+```bash
+npm run preflight:adc
+npm run check:budget-guard
+```
+
+If ADC is stale, the owner runs `npm run auth:session` interactively. Never substitute a personal
+account.
+
+Prepare/verify the ignored production environment:
+
+```bash
+npm run prepare:production-env -- \
+  --app-base-url=https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app \
+  --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com
+npm run preflight:production -- --env-file=.env.production.local
+```
+
+Deploy rules and application after capturing the prior revision:
+
+```bash
+gcloud run services describe pmi-kc-kb-demo --region=us-central1 \
+  --project=pmi-kc-kb-prod --format="value(status.traffic[0].revisionName)"
+npm exec firebase -- deploy --only firestore:rules --project pmi-kc-kb-prod
+npm run deploy -- --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo \
+  --region=us-central1 --search-location=us --budget-confirmed \
+  --allow-multiple-spaces \
+  --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com
+```
+
+Deploy `firestore:indexes` separately only when an actual production query requires one of the
+declared composite indexes. Unused index creation is not a V1 step.
+
+After deploy, record the candidate revision and prior revision, then verify internal sign-in,
+allowed/wrong-domain behavior, Live/Test Console, canonical Maintenance Test completion, Test Vendor
+password/TOTP/assignment/mailbox/disable, source-backed Ask/no-source behavior, and rollback.
+
+## Key And Secret Ownership
+
+| Credential class             | Preferred storage                            | Repo record allowed                  | Revocation                                                  |
+| ---------------------------- | -------------------------------------------- | ------------------------------------ | ----------------------------------------------------------- |
+| Firebase/OAuth client secret | Secret Manager / ignored env                 | Variable and client name only        | Rotate provider secret and update Secret Manager            |
+| Runtime/build identity       | Attached service account / workload identity | Service account email and role names | Remove IAM role or disable identity                         |
+| Vendor refresh token         | Secret Manager keyed per Vendor              | Vault reference/health only          | Revoke grant, destroy secret, disable Vendor session        |
+| External API key             | Secret Manager                               | System/action/owner/location label   | Close action; rotate at provider                            |
+| Local developer auth         | ADC / `.env.local` / active shell            | Variable names only                  | Revoke session/delete ignored value; reauth managed account |
 
 ## Handoff Checklist
 
-Before a handoff is considered simple enough for a new team:
+- Environment row has an owner and current revision/state.
+- Every Live secret has a location label, owner, rotation, and revocation path.
+- Firebase Email/Password, TOTP, and authorized-domain state are recorded.
+- Canonical Test Maintenance and Vendor journeys pass with zero provider calls.
+- Each provider's activation state is independent and visible in the app.
+- The current and prior Cloud Run revisions and rollback result are recorded.
+- `docs/client-checklist.md` contains only genuine client inputs, not already-settled decisions.
+- `docs/status.md` records verification and any exact dependent blocker.
 
-- `README.md` points to this file and the active runner.
-- `.env.example` contains names only for required variables.
-- Each environment row above has an owner and status.
-- Each live secret has a named storage location, owner, rotation path, and revocation
-  path.
-- Each manual setup item has a verification method and status note.
-- `docs/client-checklist.md` names client-owned asks that remain open.
-- `docs/research-backlog.md` names unresolved setup questions that are not yet client
-  asks.
-- `docs/status.md` records the latest successful verification and remaining blockers.
-
-If a required owner/client value is missing, a future agent should treat only the
-dependent step as blocked. Continue with planning, documentation, tests, dry-runs,
-regression fixes, and handoff work that improves readiness. Remote Away Mode is inactive;
-live/cloud/client actions need the normal approval path and budget guard.
+If a value is missing, block only the dependent Live action and continue with the Test or unavailable-
+provider default. Preserve no-autonomous-send, exact confirmation, one-attempt, reconciliation, and
+rollback controls.

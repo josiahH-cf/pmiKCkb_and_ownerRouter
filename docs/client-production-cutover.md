@@ -1,405 +1,254 @@
-# Client Production Cutover Runbook
+# Client production cutover runbook
 
-> Current governance note, 2026-06-03: this is the PMI KC KB production rebuild
-> runbook. Cross-product integration and cutover planning for PMI KC KB, Lease Renewal
-> Agent, and Workflow Communications lives in `docs/integration-cutover-plan.md`.
+Updated: 2026-07-15. Target: `pmi-kc-kb-prod`, Cloud Run service `pmi-kc-kb-demo` in
+`us-central1`, canonical host
+`https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`.
 
-This is the clean PMI KC-owned environment path. Do not copy demo Firestore exports,
-demo OAuth clients, demo service accounts, or demo Cloud Storage buckets into
-production.
+This runbook deploys the stable V1 application with both Live and isolated Test records. It does not
+wait for every possible provider integration. A provider without credentials/contracts/mappings is
+shown as unavailable; its Test workflow still works in production without contacting it.
 
-When an agent or operator says "cutover to the main app," treat that as this gated
-sequence: confirm local readiness, run production preflight against reviewed
-non-demo values, get explicit deploy/client-environment approval, deploy, assign roles,
-and complete the production smoke checklist. It does not mean seeding demo data,
-touching Gmail, importing live sources, or changing client resources without the
-specific approval gate named in this runbook.
+Never copy legacy demo Firebase/OAuth/service-account/bucket resources into production. Never put
+customer records, Gmail bodies, credentials, setup links, TOTP material, or OAuth tokens in the repo.
 
-## 1. Confirm Local Readiness
+## 1. Verify the candidate
 
-Run from the repo root:
+Run from the repository root:
 
 ```bash
 npm install
-npm run host:check
 npm run format:check
+npm run lint
 npm run typecheck
 npm test
 npm run test:firestore
+npm run test:e2e:core
+npm run build
 npm run verify
 ```
 
-If these checks pass and production-specific values are still missing, record the repo
-as migration-ready but client-blocked in `docs/status.md` and
-`docs/environment-handoff.md`. Do not keep adding local product features as a substitute
-for approved client-owned setup, production source approval, migration, or cutover.
+Known lint warnings or dev-only Moderate audit findings are acceptable only when they match the
+documented inventory. A new error, High/Critical finding, runtime-reachable finding, or failed
+Live/Test boundary test stops cutover.
 
-If `host:check` fails on Windows, repair local Google tooling with:
-
-```bash
-npm run host:setup -- -ProjectId <client-project-id>
-```
-
-## 1b. Dry-Run Readiness Rehearsal (No Cloud Cost)
-
-Before the client environment exists, rehearse the whole cutover-readiness chain against
-synthetic golden fixtures:
+The pure cutover rehearsal remains useful and makes no cloud calls:
 
 ```bash
-npm run cutover:dry-run            # human-readable gate summary
-npm run cutover:dry-run -- --json  # machine-readable result
+npm run cutover:dry-run
+npm run cutover:dry-run -- --json
 ```
 
-This runs the same `buildCutoverReport` that `npm run cutover:report` runs, but feeds it the
-fake `tests/fixtures/cutover/golden-production.env.fixture` and
-`tests/fixtures/cutover/golden-production-source-manifest.json` (every value is an obvious
-`sample-kb-fixture-*` placeholder). It is pure computation: no `gcloud`, no Application Default
-Credentials, no network, and no spend against the $10 cap. A green run prints:
+It proves command generation and rollback shape; it does not replace deployed application
+acceptance.
 
-```text
-  [ok] production env preflight
-  [ok] source corpus readiness
-  [ok] deploy command preview
-  [ok] captured-revision rollback plan
-  [ok] zero readiness blockers
-  corpus plan: 3 upload / 3 import / 3 seed commands
-Dry-run passed: every local cutover gate is green; notification delivery remains disabled.
-```
-
-The fixture keeps legacy approval email disabled, supplies a synthetic captured prior revision, and
-must return `ok:true` with no blockers. A notification residual is not expected. Event-driven approval
-email remains outside the product; do not enable it to exercise cutover. A real report must likewise
-be blocker-free and must name the exact currently serving revision captured before deployment.
-
-## 2. Create The Client Google Environment
-
-Create or select the PMI KC-owned GCP/Firebase project, then prepare the ignored production env
-from the already-configured `.env.local`. The helper copies only allowlisted production identifiers,
-forces the production fences, and excludes RentVine secrets, emulator configuration, and local-model
-configuration:
+Keep the required project APIs enabled (the command is intentionally one line because the setup
+preflight verifies it against the executable inventory):
 
 ```bash
-npm run prepare:production-env -- --app-base-url=https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com
+gcloud services enable aiplatform.googleapis.com discoveryengine.googleapis.com storage.googleapis.com firestore.googleapis.com datastore.googleapis.com firebase.googleapis.com identitytoolkit.googleapis.com securetoken.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com run.googleapis.com iam.googleapis.com iamcredentials.googleapis.com logging.googleapis.com monitoring.googleapis.com cloudresourcemanager.googleapis.com serviceusage.googleapis.com cloudbilling.googleapis.com speech.googleapis.com --project=pmi-kc-kb-prod
 ```
 
-It refuses to overwrite an existing file unless `--force` is passed. The resulting shape is:
+## 2. Refresh managed identity and budget posture
+
+```bash
+npm run preflight:adc
+npm run check:budget-guard
+```
+
+If the ADC check is stale, the owner runs this interactively from Windows PowerShell in the repo:
+
+```powershell
+npm run auth:session
+```
+
+PowerShell installed inside WSL is `pwsh`; it does not create the Windows executable
+`powershell.exe` that the npm script calls. If invoking from WSL, launch the Windows shell explicitly
+and run the command in the Windows repository path:
+
+```bash
+/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe \
+  -NoProfile -ExecutionPolicy Bypass \
+  -Command "Set-Location 'C:\Users\josia\Documents\github-windows\pmiKCkb_and_ownerRouter'; npm run auth:session"
+```
+
+Never work around managed-domain reauthentication with a personal Google account.
+
+## 3. Capture rollback before changing anything
+
+```bash
+gcloud run services describe pmi-kc-kb-demo \
+  --region=us-central1 --project=pmi-kc-kb-prod \
+  --format="value(status.traffic[0].revisionName)"
+```
+
+Record the exact serving revision in `docs/environment-handoff.md` and `docs/status.md`. Confirm this
+rollback command shape before continuing:
+
+```bash
+gcloud run services update-traffic pmi-kc-kb-demo \
+  --region=us-central1 --project=pmi-kc-kb-prod \
+  --to-revisions=<captured-prior-revision>=100
+```
+
+Rollback never deletes the Cloud Run service, revision history, source store, customer data, or audit.
+
+## 4. Verify production configuration
+
+Prepare the ignored production file only if it needs to be created/refreshed:
+
+```bash
+npm run prepare:production-env -- \
+  --app-base-url=https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app \
+  --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com
+```
+
+The file must keep these fences:
 
 ```dotenv
 ALLOWED_HD=pmikcmetro.com
 ASK_DEMO_MODE=false
 LOCAL_DEMO_AUTH=false
-GCP_PROJECT_ID=<client-project-id>
-FIREBASE_PROJECT_ID=<client-project-id>
+GCP_PROJECT_ID=pmi-kc-kb-prod
+FIREBASE_PROJECT_ID=pmi-kc-kb-prod
 FIRESTORE_DATABASE_ID=(default)
 VERTEX_AI_LOCATION=us-central1
 VERTEX_SEARCH_LOCATION=us
-GEMINI_MODEL_ANSWER=gemini-2.5-flash
-GEMINI_MODEL_CLASSIFY=gemini-2.5-flash
-NEXT_PUBLIC_FIREBASE_API_KEY=<from-client-firebase-web-app>
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<client-project-id>.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=<client-project-id>
-NEXT_PUBLIC_FIREBASE_APP_ID=<from-client-firebase-web-app>
-SPACE_DRIVE_FOLDER_IDS={}
-SPACE_VERTEX_DATA_STORE_IDS={}
-MAINTENANCE_PHOTO_DRIVE_FOLDER_ID=<maintenance-photo-drive-folder-id>
-APP_BASE_URL=<deployed-production-url>
+APP_BASE_URL=https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app
 KB_APPROVAL_NOTIFICATIONS_ENABLED=false
 ```
 
-Only after separate notification approval, regenerate with
-`--notifications-enabled --approval-sender=<approved@pmikcmetro.com>
---approval-recipients=<approved-list>`.
-
-Most repo scripts read process environment variables and ignored `.env.local`; only commands that
-explicitly accept `--env-file` read `.env.production.local` directly. The helper does not modify
-`.env.local`; deploy continues to use its production-connected identifiers while the deploy script
-forces `ASK_DEMO_MODE=false`, `LOCAL_DEMO_AUTH=false`, and the cloud model. Review both files before
-the live command and never copy raw secret values into the production preflight file.
-
-Print the full converge plan (API enablement, Firebase setup, Firestore create/deploy
-commands) and the budget posture without touching the project:
+Keep real secret values out of this file when the deploy can bind Secret Manager directly. Run:
 
 ```bash
-npm run preflight:gcp -- --project=<client-project-id>
+npm run preflight:production -- --env-file=.env.production.local
 ```
 
-With Application Default Credentials available, verify the live project state
-read-only (enabled APIs, Firestore database mode, Firebase project) before and after
-running setup commands:
+The preflight must reject legacy/demo project values, local URLs, emulator/demo flags, malformed
+cross-project identities, and an incorrect Gmail push audience. A provider intentionally not active
+may be absent only when the application represents its dependent actions as unavailable; it must not
+silently fall back to fixtures as Live.
+
+## 5. Enable the Vendor authentication prerequisites
+
+Internal staff use managed-domain Google sign-in. Vendors use separate Admin-provisioned
+Email/Password plus TOTP.
+
+Add/verify the canonical authorized domain and existing Google provider:
 
 ```bash
-npm run preflight:gcp -- --project=<client-project-id> --live --json
+npm run firebase:setup-auth -- \
+  --project=pmi-kc-kb-prod \
+  --authorized-domain=pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app
 ```
 
-Enable required APIs in the client project (`speech.googleapis.com` powers Dictate — the
-maintenance and Console voice capture; without it every Dictate click returns a 503 in prod):
+Enable Email/Password once in Firebase Console:
+
+1. Security → Authentication → Sign-in method.
+2. Open Email/Password, enable Email/Password, and save.
+3. Do not add app self-registration. Vendor identities remain Admin-provisioned.
+
+Enable project-level TOTP with a safe adjacent interval of `1` after managed reauthentication:
 
 ```bash
-gcloud services enable aiplatform.googleapis.com discoveryengine.googleapis.com storage.googleapis.com firestore.googleapis.com datastore.googleapis.com firebase.googleapis.com identitytoolkit.googleapis.com securetoken.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com run.googleapis.com iam.googleapis.com iamcredentials.googleapis.com logging.googleapis.com monitoring.googleapis.com cloudresourcemanager.googleapis.com serviceusage.googleapis.com cloudbilling.googleapis.com speech.googleapis.com --project=<client-project-id>
+PROJECT_ID=pmi-kc-kb-prod
+ACCESS_TOKEN="$(gcloud auth print-access-token)"
+curl -X PATCH \
+  "https://identitytoolkit.googleapis.com/admin/v2/projects/${PROJECT_ID}/config?updateMask=mfa" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -H "X-Goog-User-Project: ${PROJECT_ID}" \
+  -d '{"mfa":{"providerConfigs":[{"state":"ENABLED","totpProviderConfig":{"adjacentIntervals":1}}]}}'
 ```
 
-Attach Firebase and create/reuse the Firebase Web app:
+The Test Vendor flow now needs no external invitation provider or OAuth: Admin provisioning returns the
+password-setup link once, the Test operator completes password/TOTP, and the mailbox remains app-only.
+Live Vendor OAuth/vault is activated later for each real routable Vendor.
+
+## 6. Deploy Firestore rules and the application
+
+Deploy reviewed rules. Composite indexes that are not required by a selected production query remain
+absent; native TTL and a cleanup scheduler are not part of this command and are not V1 gates.
 
 ```bash
-npm run firebase:setup -- --project=<client-project-id> --web-app-name="PMI KC KB Production Web"
+npm exec firebase -- deploy --only firestore:rules \
+  --project pmi-kc-kb-prod
 ```
 
-Enable Firebase Auth / Identity Platform Google sign-in:
+If a production query later reports a required declared composite index, review that query and deploy
+indexes separately:
 
 ```bash
-npm run firebase:setup-auth -- --project=<client-project-id> --authorized-domain=<production-host>
+npm exec firebase -- deploy --only firestore:indexes --project pmi-kc-kb-prod
 ```
 
-If Google requires console consent, complete the Firebase/Auth console gate once, then
-rerun the same command.
-
-## 3. Create Firestore And Seed KB Records
-
-Create Firestore Native mode, deploy rules/indexes, and seed non-secret KB records:
+Inspect the code-only Cloud Run command without changing traffic:
 
 ```bash
-gcloud firestore databases create --database='(default)' --location=us-central1 --type=firestore-native --project=<client-project-id> --quiet
-npm exec firebase -- deploy --only firestore:rules,firestore:indexes --project <client-project-id>
+npm run deploy -- --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo \
+  --region=us-central1 --search-location=us --budget-confirmed \
+  --allow-multiple-spaces \
+  --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com \
+  --dry-run
+```
+
+Then deploy:
+
+```bash
+npm run deploy -- --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo \
+  --region=us-central1 --search-location=us --budget-confirmed \
+  --allow-multiple-spaces \
+  --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com
+```
+
+Record commit, Cloud Build ID, new revision, 100% traffic result, and captured prior revision. Rerun
+the production preflight after `APP_BASE_URL` or any identity/resource binding changes.
+
+## 7. Seed application records safely
+
+The existing spaces/process definitions/Action Registry may be seeded idempotently after confirming
+the active project and managed ADC:
+
+```bash
 npm run seed:spaces -- --dry-run
 npm run seed:spaces
-npm run seed:launch-skeletons -- --dry-run
+npm run seed:action-registry
+npm run seed:process-definitions
+npm run seed:notice-rules
 ```
 
-`seed:spaces` is idempotent: `--dry-run` prints the exact records without writing,
-reruns skip existing space documents, and `--force` updates existing documents while
-preserving their original `created_at`. Do not delete seeded records as an automatic rollback step;
-restore traffic/configuration first, preserve evidence, and use a separately reviewed correction only
-for records proven to have been introduced by the failed change.
+Do **not** run `npm run seed:demo` in production. Production Test data is created through the signed-in
+Test workspace controls so every record receives `data_mode=test`, a visible Test label, actor/reason,
+and an app audit trail.
 
-Only omit `--dry-run` after confirming the active project and ADC target are the client
-project:
+Use the canonical records only:
 
-```bash
-npm run seed:launch-skeletons
-```
+- unit `unit:test-maple-204` — `TEST — 204 Maple Court Unit 2`;
+- Vendor `vendor:test-summit-plumbing` — `Summit Plumbing Test Vendor`;
+- Vendor address `service@summit-plumbing.example.invalid`.
 
-Do not run `npm run seed:demo` in client production.
+## 8. Deployed application acceptance
 
-## 4. Prepare Production Sources
+Perform the detailed desktop/phone run in
+`docs/v1-tab-browser-acceptance-plan-2026-07-14.md`. At minimum:
 
-Use Cloud Storage `.txt` sources and Agent Search data stores as the default production
-path unless Drive service-account retrieval is intentionally revisited.
+- allowed-domain internal sign-in succeeds and wrong-domain sign-in fails;
+- Admin and scoped Editor authorization behaves correctly;
+- Console renders Live and Test panels together; unavailable providers never use fixture fallback;
+- Spaces/Ask returns a cited approved-source answer and `No Reliable Source Found` when unsupported;
+- Approval Queue, Workflow Communications, Connections, Notifications, and Admin have no dead ends;
+- canonical Maintenance Test intake → ticket → assignment → status/activity/notes/receipts → Done
+  persists to Firestore with zero provider calls;
+- canonical Test Vendor completes password setup and TOTP, sees only the assigned Test ticket, uses the
+  app-only Test mailbox, then loses access after deassign/disable;
+- each Test receipt states `provider_contacted=false` and `live_proof_eligible=false`;
+- any enabled Live write shows exact action/target/material values, requires human confirmation, and
+  produces a bodyless receipt/readback; and
+- rollback to the captured prior revision is rehearsed, followed by an intentional return to the
+  candidate if the candidate is healthy.
 
-For the Lease Renewal source-of-truth flow, the first automatic indexed-source
-candidate to test is Cloud Storage plus Agent Search periodic ingestion. Drive remains
-the team collaboration folder unless setup proves a stronger client-accessible source.
-Assume the first Drive-to-Cloud-Storage handoff is the simplest low-cost copy automation
-that works for users. Cloud costs are pass-through, so keep the first test small and do
-not add extra services, duplicate stores, or large indexed corpora without an explicit
-need.
-
-The Lease Renewal source folder may contain all useful source file types, not only
-Docs/text/PDF. For the first indexed test, map each useful type to direct ingestion,
-conversion/summary into an indexed format, or a visible skip reason.
-
-Keep the Lease Renewal source folder clean for production cutover. Non-sources-of-truth
-should be moved out of the source folder rather than left there for the copy or indexing
-path to skip. The non-source, reference, or archive destination remains TBD.
-
-1. Create one private production source bucket or separate buckets per policy.
-2. Grant the Discovery Engine service agent `roles/storage.objectViewer` on the source
-   bucket.
-3. Copy the manifest template to an ignored working file:
-
-```powershell
-New-Item -ItemType Directory -Force -Path temp
-Copy-Item docs/source-corpus/client-production-source-manifest.template.json temp/client-production-source-manifest.json
-```
-
-4. Replace every `<client-source-bucket>`, source path, `data_store_id`, and approval
-   status with approved PMI KC source details. Leave a Space out of the manifest until
-   an approved source exists.
-5. Run a dry plan:
-
-```bash
-npm run corpus:plan -- --manifest=temp/client-production-source-manifest.json --project=<client-project-id> --location=us --dry-run
-```
-
-Review the printed `readiness` object before continuing. `readiness.ok` must be
-`true`, `readiness.blockers` must be empty, and any `readiness.warnings` must be
-resolved or explicitly accepted in the cutover notes. The template is expected to
-report blockers until every placeholder bucket/source path is replaced and every
-source is marked `Approved`. The planner emits empty upload/import/seed command arrays until
-`readiness.ok` is true, and it rejects shell-unsafe identifiers, paths, URIs, project/location values,
-or temp paths outside the repository's `temp/` boundary.
-
-6. After human source approval, create `.txt` staging copies and review the printed
-   upload/import/metadata commands:
-
-```bash
-npm run corpus:plan -- --manifest=temp/client-production-source-manifest.json --project=<client-project-id> --location=us --write-temp
-```
-
-7. Upload the generated `.txt` copies, import them into Agent Search, and seed
-   `sources_meta` using the printed commands. For the Lease Renewal continuous-source
-   test, separately validate whether the team-editable Drive source folder can feed
-   Cloud Storage plus Agent Search periodic ingestion without manual refresh.
-
-Never upload or commit raw `docs/context_and_calls/` material. Production sources must
-be approved, client-safe summaries or approved client-owned operating documents.
-
-## 5. Configure Production Environment Maps
-
-After source prefixes and data stores exist, update the production env file:
-
-```dotenv
-SPACE_DRIVE_FOLDER_IDS={"lease-renewals":"gs://<client-source-bucket>/lease-renewals/"}
-SPACE_VERTEX_DATA_STORE_IDS={"lease-renewals":"kb-lease-renewals-txt"}
-MAINTENANCE_PHOTO_DRIVE_FOLDER_ID=<maintenance-photo-drive-folder-id>
-```
-
-Use one map entry per approved production Space. Leave unapproved Spaces as launch
-skeletons until source material exists.
-
-`MAINTENANCE_PHOTO_DRIVE_FOLDER_ID` is separate from the KB-source maps above: it is the
-in-boundary Drive folder the maintenance photo store uploads into (a write target, not an
-indexed corpus), created by `npm run maintenance:ensure-folder -- --live [--shared-drive <id>]`.
-Production forces the Drive image store, so this must be a real Drive folder id (never a
-`gs://` prefix). The deploy forwards it to Cloud Run; do not co-locate it in
-`SPACE_DRIVE_FOLDER_IDS` (that map cross-links 1:1 with a Vertex data store, which a
-photo-only folder does not need).
-
-### Live-connection config (dev↔prod parity)
-
-The deployed service must reach the same live connections as local — the RentVine read and
-the renewal-sheet read via keyless domain-wide delegation — so a green cutover guarantees prod
-connects instead of silently degrading to "not connected". Set the non-secret anchors in the
-production env file:
-
-```dotenv
-RENTVINE_API_BASE_URL=https://pmikcmetro.rentvine.com/api/manager
-RENEWAL_SHEET_ID=<renewal-sheet-id>
-SHEETS_IMPERSONATE_SA=<reader>@<client-project-id>.iam.gserviceaccount.com
-SHEETS_DWD_SUBJECT=<reader>@pmikcmetro.com
-GMAIL_DWD_SA=<gmail-dwd>@<client-project-id>.iam.gserviceaccount.com
-GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT=<gmail-pubsub-push>@<client-project-id>.iam.gserviceaccount.com
-GMAIL_PUBSUB_TOPIC=projects/<client-project-id>/topics/<approved-gmail-topic>
-GMAIL_PUBSUB_AUDIENCE=https://<canonical-production-host>/api/gmail-hub/pubsub
-```
-
-The RentVine **api key and secret are delivered via Secret Manager**, never as plaintext env.
-Before the redeploy, create the two secrets and grant the runtime service account access:
-
-```bash
-printf %s "$RENTVINE_API_KEY"    | gcloud secrets create RENTVINE_API_KEY    --data-file=- --project=<client-project-id>
-printf %s "$RENTVINE_API_SECRET" | gcloud secrets create RENTVINE_API_SECRET --data-file=- --project=<client-project-id>
-gcloud secrets add-iam-policy-binding RENTVINE_API_KEY    --member="serviceAccount:<runtime-service-account-email>" --role="roles/secretmanager.secretAccessor" --project=<client-project-id>
-gcloud secrets add-iam-policy-binding RENTVINE_API_SECRET --member="serviceAccount:<runtime-service-account-email>" --role="roles/secretmanager.secretAccessor" --project=<client-project-id>
-```
-
-The deploy wires them via `--set-secrets` automatically when `RENTVINE_API_BASE_URL` is set.
-The Secret Manager secret id defaults to the env var name; override with `RENTVINE_API_KEY_SECRET_ID`
-/ `RENTVINE_API_SECRET_SECRET_ID` (and `*_SECRET_VERSION`, default `latest`) if the secrets are
-named differently. To deploy without RentVine, leave `RENTVINE_API_BASE_URL` unset.
-
-Run the production preflight:
-
-```bash
-npm run preflight:production -- --env-file=.env.production.local
-```
-
-The preflight must pass before deploy. It rejects demo project IDs, demo buckets,
-unreplaced placeholders, non-HTTPS or local `APP_BASE_URL`, `ASK_DEMO_MODE=true`,
-`LOCAL_DEMO_AUTH=true`, missing source/data-store maps, missing `APP_BASE_URL`, missing
-Firebase public config, a missing or `gs://`-typed maintenance photo Drive folder, and — for
-dev↔prod parity — a missing/wrong-tenant `RENTVINE_API_BASE_URL`, missing `RENEWAL_SHEET_ID`,
-a non-service-account `SHEETS_IMPERSONATE_SA`, a non-`pmikcmetro.com` `SHEETS_DWD_SUBJECT`, any
-missing/malformed/cross-project Gmail DWD or Pub/Sub value, or a Pub/Sub audience that is not exactly
-the production `/api/gmail-hub/pubsub` endpoint.
-
-## 6. Deploy Cloud Run
-
-Before any deploy, capture the exact currently serving Cloud Run revision, then generate the
-consolidated machine-readable cutover report and confirm every section is green with no residual blocker
-(it composes the GCP setup plan, production env preflight, budget posture, corpus
-readiness, deploy command preview, rollback plan, and the §7 smoke checklist; blockers are
-prefixed with their failing section). Keep `KB_APPROVAL_NOTIFICATIONS_ENABLED=false`; event-driven
-approval email is outside this release and is not a cutover prerequisite:
-
-```bash
-npm run cutover:report -- --manifest=temp/client-production-source-manifest.json --env-file=.env.production.local --prior-revision=<captured-serving-revision> --json
-```
-
-If `--project` is supplied, it may only confirm the reviewed environment project. The report compares it
-with `GCP_PROJECT_ID`, both Firebase project IDs, the runtime/Sheets/Gmail service-account projects, and
-the Gmail Pub/Sub topic project. It also requires the exact `us` search location and audience-bound Gmail
-quartet. Any malformed or conflicting value blocks readiness and emits no setup, corpus, deploy, or
-rollback command until every reviewed binding agrees.
-
-The report refuses rollback readiness when the revision is absent or does not match the service's
-revision shape. Do not deploy until the generated rollback step restores 100% traffic to that exact
-revision with `gcloud run services update-traffic`.
-
-That consolidated report is the gate for initial cutover, source imports, source-map changes, or
-other migration work. For a code-only redeploy that preserves the already-live source and data-store
-maps, do not invent a manifest or reuse `demo-live-source-manifest.json`. Instead, pass the production
-env preflight above, then inspect the deploy command itself without changing Cloud Run:
-
-```bash
-npm run deploy -- --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo --region=us-central1 --search-location=us --budget-confirmed --allow-multiple-spaces --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com --dry-run
-```
-
-The Admin migration console at `/admin/migration` mirrors this report read-only in-app
-(environment, production env, corpus-template, budget, Action Registry, and notification
-posture with owner-side blocker labeling); the deploy gate above still requires the CLI
-report against the real manifest and env file.
-
-Create or choose the runtime service account, then grant only the roles needed by the
-KB runtime:
-
-- `roles/datastore.user`
-- `roles/discoveryengine.user`
-- `roles/aiplatform.user`
-- `roles/firebaseauth.admin` (Identity Platform session-cookie create + revocation lookup)
-- `roles/iam.serviceAccountTokenCreator` on the runtime SA itself (sign session cookies via ADC
-  `signBlob`; required when the runtime SA has no downloadable key)
-- `roles/secretmanager.secretAccessor` on the `RENTVINE_API_KEY` + `RENTVINE_API_SECRET` secrets
-  (the deploy wires them via `--set-secrets`; see the live-connection config in §5)
-- `roles/iam.serviceAccountTokenCreator` on the DWD **reader** SA (`SHEETS_IMPERSONATE_SA`, e.g.
-  `lease-renewal-reader@<project>.iam.gserviceaccount.com`) — REQUIRED for the live renewal review's keyless
-  Sheet read: the runtime SA impersonates the reader SA via `iamcredentials.signJwt`. This is a SEPARATE grant
-  from the self-`signBlob` binding above and from `secretAccessor`; without it the deployed live review fails
-  with `auth_error` even though RentVine + the env are correct (verified live 2026-07-01 — a local reader works
-  because the human ADC already holds Token Creator on the reader SA; the runtime SA needs the same in prod):
-  `gcloud iam service-accounts add-iam-policy-binding <SHEETS_IMPERSONATE_SA> --member="serviceAccount:<runtime-sa>" --role="roles/iam.serviceAccountTokenCreator" --project=<project>`
-- Grant each launch operator the **Admin** role AFTER their first sign-in: `npm run firebase:set-role --
---email=<user@pmikcmetro.com> --role=Admin` (targets `FIREBASE_PROJECT_ID`/`GCP_PROJECT_ID`). A Firebase user
-  with no `role` custom claim defaults to **Editor** (`lib/auth/session.ts` `readFirebaseRole`), so Admin-gated
-  surfaces (the live renewal review, the write-back approval decisions) redirect to home until the claim is set.
-  Custom claims only refresh on a fresh sign-in, so the operator must sign out + back in after the grant.
-
-Deploy with production flags:
-
-```bash
-npm run deploy -- --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo --region=us-central1 --search-location=us --budget-confirmed --allow-multiple-spaces --service-account=<runtime-service-account-email>
-```
-
-Add the generated Cloud Run host or custom production domain to Firebase Auth
-authorized domains:
-
-```bash
-npm run firebase:setup-auth -- --project=<client-project-id> --authorized-domain=<production-host>
-```
-
-Set `APP_BASE_URL` to the final deployed URL and rerun:
-
-```bash
-npm run preflight:production -- --env-file=.env.production.local
-```
-
-## 7. Assign Roles And Smoke Production
-
-After the first allowed-domain user signs in, assign roles from a trusted Admin SDK
-context:
-
-```bash
-npm run firebase:set-role -- --email=<admin@pmikcmetro.com> --role=Admin
-```
+No acceptance step sends to Dan, a tenant, owner, or third party unless that exact Live action and
+target were explicitly selected and confirmed. No autonomous/scheduled/bulk/model-triggered send is
+permitted.
 
 Production smoke checklist:
 
@@ -411,36 +260,73 @@ Production smoke checklist:
 - Ask returns `No Reliable Source Found` for an unsupported question.
 - User can save or suggest editable records but cannot approve.
 - Admin can approve, return, assign, snooze, and disable eligible queue items.
-- Admin can run Approval Queue bulk actions against real or explicitly approved test
-  queue items, with per-item skipped reasons visible. Do not seed demo queue records in
-  production just to test this path.
-- The app does not write to RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Sheets,
-  Gmail inboxes, Drive folders, or Gmail Inbox 0/legacy Owner Router source artifacts.
+- Admin can run Approval Queue bulk actions against real or explicitly approved test queue items,
+  with per-item skipped reasons visible. Do not seed demo queue records in production just to test
+  this path.
+- Console shows separate Live and visibly labeled Test records; Test never falls back into Live or
+  counts as Live evidence.
+- The canonical Maintenance Test journey persists intake, assignment, status, activity, notes,
+  simulated receipts, and Done with zero external-provider calls.
+- The canonical Test Vendor completes password setup and TOTP, sees only its assigned Test ticket,
+  uses the app-only Test mailbox, and loses access after deassignment or disable.
+- Every enabled Live write names the exact action, target, and material values; requires the permitted
+  human confirmation; emits a bodyless receipt and readback; and an unavailable action makes no
+  provider call.
+
+## 9. Optional content and provider activation
+
+Additional source ingestion and external integrations happen independently after the stable app is
+available.
+
+For source additions, use an ignored copy of the manifest and dry-run first:
+
+```powershell
+New-Item -ItemType Directory -Force -Path temp
+Copy-Item docs/source-corpus/client-production-source-manifest.template.json temp/client-production-source-manifest.json
+```
+
+```bash
+npm run corpus:plan -- \
+  --manifest=temp/client-production-source-manifest.json \
+  --project=pmi-kc-kb-prod --location=us --dry-run
+```
+
+Import only approved, client-safe source copies. Existing sources remain usable and missing sources
+produce visible uncertainty.
+
+For providers, activate one exact action using
+`docs/v1-client-unblock-checklist-2026-07-14.md`: configure its contract/credential/mapping, verify
+health, run one bounded human-confirmed proof, capture bodyless readback and correction, then mark that
+action enabled. Missing inputs close only that action.
+
+## Retention safe default
+
+Keep legal holds authoritative and run bounded cleanup manually with limit `500` and a unique run ID.
+Capture counts only. A failed run resumes with a new run after reconciliation; it never overwrites the
+prior audit. Native TTL, extra composite indexes, and scheduling can be added later as operational
+optimizations when actual volume/query evidence warrants them.
 
 ## Rollback
 
-`npm run cutover:report -- --manifest=<reviewed-manifest-path> --env-file=<reviewed-production-env-path> --prior-revision=<captured-serving-revision> --json`
-emits the immediate rollback command only when the reviewed inputs pass and the exact prior Cloud Run
-revision is valid. Roll back by closing affected
-Action Registry entries, preserving bodyless audit, and routing 100% of traffic to that captured
-revision with `gcloud run services update-traffic`; preserve the Cloud Run service and revision history. Restore the
-pinned rules/indexes, Registry hash, policies, and configuration only from reviewed prior versions.
+1. Close the affected exact Action Registry entry; close the whole Test executor for a mode-isolation
+   defect.
+2. Preserve execution/audit and reconcile any ambiguous external result; never blind-retry.
+3. Revoke the affected OAuth/session/credential/watch when relevant.
+4. Route 100% traffic to the captured prior revision with `gcloud run services update-traffic`.
+5. Restore reviewed prior rules/configuration/Registry/policy versions.
+6. Verify sign-in, Live/Test isolation, no-source behavior, Vendor assignment denial, and provider
+   unavailable state. Record the incident/result in `docs/status.md`.
 
-Resource cleanup is not immediate rollback. Any later removal of a newly imported data store, staging
-copy, or app-owned seed record requires its own dry-run, proof that no active map references it, and a
-separately reviewed correction. Original client sources are never modified or deleted by this path.
+## Genuine production blockers
 
-## Production Blockers
+Only these conditions stop the dependent cutover step:
 
-Production cannot be declared complete until:
+- managed-domain interactive reauthentication is required;
+- Firebase Email/Password, TOTP, or the authorized domain is not configured for Vendor/sign-in smoke;
+- candidate verification, Firestore rules deploy, Cloud Run deploy, signed-in Test workflows, or
+  rollback rehearsal fails; or
+- an enabled Live action lacks its real credential/contract/mapping or fails its bounded proof.
 
-- PMI KC-approved production source files are uploaded/imported and seeded in
-  `sources_meta`.
-- The source/data-store maps point only at client-owned resources.
-- The exact external gates in `docs/v1-client-unblock-checklist-2026-07-14.md` are resolved one row at
-  a time; a synthetic alias or local fake result does not satisfy them.
-- The release manifest pins the exact commit/candidate revision, rules/indexes/Registry hashes, proof
-  and monitor/correction references, desktop/phone deployed acceptance, dependency disposition, and
-  named Dan/Josiah acceptance. The cutover report separately requires the captured service-matching
-  prior revision before it can report rollback ready. Until then the release remains `Pre-V1`.
-- Final smoke results and any exceptions are recorded in `docs/status.md`.
+Additional client sources, inactive future providers, named acceptance signatures, native TTL,
+unused composite indexes, scheduler activation, and the three documented Moderate dev-only findings
+do not block the stable working-app V1 release.

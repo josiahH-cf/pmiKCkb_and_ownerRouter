@@ -17,6 +17,7 @@ import { syntheticExternalTechnicalGates } from "@/tests/helpers/external-execut
 function input(actionKey: string, index: number): ExternalActionInput {
   const definition = LEASE_EXECUTION_DEFINITION_MAP.get(actionKey)!;
   const base: ExternalActionInput = {
+    dataMode: "test",
     workflowId: "renewal-e2e-synthetic",
     actionId: `action-${index}`,
     actionKey,

@@ -1,5 +1,6 @@
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
+  externalActionDataMode,
   externalActionContextHash,
   externalActionIdempotencyKey,
   externalActionRecordId,
@@ -18,6 +19,29 @@ import type {
   ExternalExecutor,
 } from "@/lib/external-execution/types";
 import { ExternalExecutionError } from "@/lib/external-execution/types";
+
+const ISOLATED_TEST_WORKSPACE_TOKEN = Symbol("isolated-production-test-workspace");
+const ISOLATED_TEST_EXECUTOR = Symbol("isolated-test-executor");
+
+type BrandedTestExecutor = ExternalExecutor & {
+  readonly [ISOLATED_TEST_EXECUTOR]: true;
+};
+
+/** Wrap an executor whose providers are in-memory/app-only and contain no live client. */
+export function markIsolatedTestExecutor(executor: ExternalExecutor): ExternalExecutor {
+  const wrapped: BrandedTestExecutor = {
+    [ISOLATED_TEST_EXECUTOR]: true,
+    ...(executor.validate ? { validate: executor.validate.bind(executor) } : {}),
+    execute: executor.execute.bind(executor),
+    reconcile: executor.reconcile.bind(executor),
+    ...(executor.correct ? { correct: executor.correct.bind(executor) } : {}),
+  };
+  return Object.freeze(wrapped);
+}
+
+function isIsolatedTestExecutor(executor: ExternalExecutor) {
+  return (executor as Partial<BrandedTestExecutor>)[ISOLATED_TEST_EXECUTOR] === true;
+}
 
 export function externalPreviewHash(input: ExternalActionInput) {
   // S20 stores the exact value-bearing preview only. Workflow/action identity,
@@ -62,7 +86,10 @@ export function validateExternalReadiness(
     (value) =>
       typeof value === "string" && /(?:^|:)(?:fake|synthetic)(?:[:_-]|$)/i.test(value),
   );
-  if ((fakeContract || syntheticReference) && !allowFakeContracts) {
+  if (
+    (fakeContract || syntheticReference) &&
+    (!allowFakeContracts || externalActionDataMode(input) !== "test")
+  ) {
     return "Synthetic contracts, mappings, connections, and sources are test-only.";
   }
   if (!validReference(input.connectionRef))
@@ -101,6 +128,8 @@ export function validateExternalInput(
 }
 
 export class ExternalActionOrchestrator {
+  private readonly isolatedTestWorkspace: boolean;
+
   constructor(
     private readonly definitions: ReadonlyMap<string, ExternalActionDefinition>,
     private readonly store: ExternalExecutionStore,
@@ -110,18 +139,32 @@ export class ExternalActionOrchestrator {
       isExecutable?: (actionKey: string) => boolean;
       allowFakeContracts?: boolean;
       registry?: readonly CreateActionRegistryInput[];
+      isolatedTestWorkspaceToken?: symbol;
     } = {},
   ) {
+    const isolatedTestWorkspace =
+      options.isolatedTestWorkspaceToken === ISOLATED_TEST_WORKSPACE_TOKEN;
     if (process.env.NODE_ENV === "production") {
-      if (Object.keys(options).length > 0) {
+      if (isolatedTestWorkspace) {
+        if (
+          store.persistence !== "memory" ||
+          options.allowFakeContracts !== true ||
+          options.registry !== ACTION_REGISTRY_SEED ||
+          ![...executors.values()].every(isIsolatedTestExecutor)
+        ) {
+          throw new Error(
+            "The production Test workspace requires memory-only state and branded Test adapters.",
+          );
+        }
+      } else if (Object.keys(options).length > 0) {
         throw new Error("Production external execution forbids test option overrides.");
-      }
-      if (store.persistence !== "firestore") {
+      } else if (store.persistence !== "firestore") {
         throw new Error(
           "Production Vendor execution requires the durable Firestore store.",
         );
       }
     }
+    this.isolatedTestWorkspace = isolatedTestWorkspace;
   }
 
   async prepare(
@@ -129,6 +172,7 @@ export class ExternalActionOrchestrator {
     dependencyRecords: readonly ExternalExecutionRecord[] = [],
   ) {
     input = snapshotExternalInput(input);
+    this.assertExecutionLane(input);
     this.assertProductionDirectActor(input);
     const definition = this.definitions.get(input.actionKey);
     if (!definition)
@@ -148,16 +192,18 @@ export class ExternalActionOrchestrator {
       ? `Action ${input.actionKey} remains Registry-closed.`
       : !executor
         ? "Provider adapter is unavailable."
-        : executor.validate?.(input);
+        : (this.executorLaneBlocker(input, executor) ?? executor.validate?.(input));
     const missingDependency = await this.findMissingDependency(
       definition.dependsOn,
       input.workflowId,
+      externalActionDataMode(input),
       dependencyRecords,
     );
     const previewHash = externalPreviewHash(input);
     const now = (this.options.now ?? (() => new Date()))().toISOString();
     const record: ExternalExecutionRecord = {
       id: externalActionRecordId(input),
+      dataMode: externalActionDataMode(input),
       workflowId: input.workflowId,
       actionId: input.actionId,
       actionKey: input.actionKey,
@@ -187,6 +233,7 @@ export class ExternalActionOrchestrator {
 
   async execute(input: ExternalActionInput, confirmedPreviewHash: string) {
     input = snapshotExternalInput(input);
+    this.assertExecutionLane(input);
     this.assertProductionDirectActor(input);
     const recordId = externalActionRecordId(input);
     const record = await this.store.get(recordId);
@@ -207,6 +254,7 @@ export class ExternalActionOrchestrator {
       record.workflowId !== input.workflowId ||
       record.actionId !== input.actionId ||
       record.actionKey !== input.actionKey ||
+      record.dataMode !== externalActionDataMode(input) ||
       record.contextHash !== externalActionContextHash(input)
     ) {
       throw new ExternalExecutionError(
@@ -243,7 +291,8 @@ export class ExternalActionOrchestrator {
     const executor = this.executors.get(input.actionKey);
     if (!executor)
       throw new ExternalExecutionError("Provider adapter is unavailable.", "blocked");
-    const actionBlocker = executor.validate?.(input);
+    const actionBlocker =
+      this.executorLaneBlocker(input, executor) ?? executor.validate?.(input);
     if (actionBlocker) {
       throw new ExternalExecutionError(actionBlocker, "blocked");
     }
@@ -267,6 +316,7 @@ export class ExternalActionOrchestrator {
         await executor.execute(input),
         input.actionKey,
         false,
+        externalActionDataMode(input),
       );
       await this.store.finish(recordId, receipt);
       return { receipt, duplicate: false };
@@ -285,6 +335,7 @@ export class ExternalActionOrchestrator {
 
   async reconcile(input: ExternalActionInput) {
     input = snapshotExternalInput(input);
+    this.assertExecutionLane(input);
     this.assertProductionDirectActor(input);
     const recordId = externalActionRecordId(input);
     const record = await this.store.get(recordId);
@@ -298,6 +349,7 @@ export class ExternalActionOrchestrator {
       record.workflowId !== input.workflowId ||
       record.actionId !== input.actionId ||
       record.actionKey !== input.actionKey ||
+      record.dataMode !== externalActionDataMode(input) ||
       record.previewHash !== externalPreviewHash(input) ||
       record.contextHash !== externalActionContextHash(input)
     ) {
@@ -323,11 +375,17 @@ export class ExternalActionOrchestrator {
     const executor = this.executors.get(input.actionKey);
     if (!executor)
       throw new ExternalExecutionError("Provider adapter is unavailable.", "blocked");
-    const actionBlocker = executor.validate?.(input);
+    const actionBlocker =
+      this.executorLaneBlocker(input, executor) ?? executor.validate?.(input);
     if (actionBlocker) throw new ExternalExecutionError(actionBlocker, "blocked");
     const rawReceipt = await executor.reconcile(input);
     if (!rawReceipt) return { status: "not_found" as const };
-    const receipt = parseExternalReceipt(rawReceipt, input.actionKey, true);
+    const receipt = parseExternalReceipt(
+      rawReceipt,
+      input.actionKey,
+      true,
+      externalActionDataMode(input),
+    );
     await this.store.finish(recordId, receipt);
     return { status: "succeeded" as const, receipt };
   }
@@ -335,6 +393,7 @@ export class ExternalActionOrchestrator {
   private assertProductionDirectActor(input: ExternalActionInput) {
     if (
       process.env.NODE_ENV === "production" &&
+      !this.isolatedTestWorkspace &&
       input.authority?.actor.role !== "Vendor"
     ) {
       throw new ExternalExecutionError(
@@ -344,14 +403,56 @@ export class ExternalActionOrchestrator {
     }
   }
 
+  private assertExecutionLane(input: ExternalActionInput) {
+    const dataMode = externalActionDataMode(input);
+    if (this.isolatedTestWorkspace && dataMode !== "test") {
+      throw new ExternalExecutionError(
+        "The isolated Test workspace cannot execute a Live record.",
+        "blocked",
+      );
+    }
+    if (
+      !this.isolatedTestWorkspace &&
+      process.env.NODE_ENV === "production" &&
+      dataMode === "test"
+    ) {
+      throw new ExternalExecutionError(
+        "Test records must use the isolated Test workspace, never the Live provider path.",
+        "blocked",
+      );
+    }
+  }
+
+  private executorLaneBlocker(input: ExternalActionInput, executor: ExternalExecutor) {
+    // Unit/integration harnesses deliberately use lightweight adapters. Production
+    // still has two hard barriers: normal orchestration rejects Test records and the
+    // isolated Test factory accepts only branded, memory-only adapters.
+    if (!this.isolatedTestWorkspace && process.env.NODE_ENV !== "production") {
+      return null;
+    }
+    const dataMode = externalActionDataMode(input);
+    const testExecutor = isIsolatedTestExecutor(executor);
+    if (dataMode === "test" && !testExecutor) {
+      return "Test data cannot use a Live provider adapter.";
+    }
+    if (dataMode === "live" && testExecutor) {
+      return "A Test provider adapter cannot execute a Live record.";
+    }
+    return null;
+  }
+
   private async findMissingDependency(
     dependencyKeys: readonly string[],
     workflowId: string,
+    dataMode: "live" | "test",
     dependencyRecords: readonly ExternalExecutionRecord[],
   ) {
     for (const key of dependencyKeys) {
       const candidate = dependencyRecords.find(
-        (record) => record.workflowId === workflowId && record.actionKey === key,
+        (record) =>
+          record.workflowId === workflowId &&
+          record.actionKey === key &&
+          record.dataMode === dataMode,
       );
       if (!candidate) return key;
       const persisted = await this.store.get(candidate.id);
@@ -360,9 +461,14 @@ export class ExternalActionOrchestrator {
         persisted.id !== candidate.id ||
         persisted.workflowId !== workflowId ||
         persisted.actionKey !== key ||
+        persisted.dataMode !== dataMode ||
         persisted.attemptCount !== 1 ||
         (persisted.state !== "succeeded" && persisted.state !== "not_applicable") ||
-        persisted.receipt?.actionKey !== key
+        persisted.receipt?.actionKey !== key ||
+        externalActionDataMode(persisted.receipt) !== dataMode ||
+        (dataMode === "test"
+          ? persisted.receipt.liveEvidenceEligible !== false
+          : persisted.receipt.liveEvidenceEligible === false)
       ) {
         return key;
       }
@@ -409,8 +515,26 @@ function snapshotExternalInput(input: ExternalActionInput): ExternalActionInput 
     : undefined;
   return Object.freeze({
     ...input,
+    dataMode: externalActionDataMode(input),
     values: Object.freeze({ ...input.values }),
     sourceRefs: Object.freeze([...input.sourceRefs]),
     ...(authority ? { authority } : {}),
+  });
+}
+
+/**
+ * Creates the only production-safe Test execution workspace. It is intentionally
+ * memory-only and accepts only branded adapters that contain no external client.
+ */
+export function createIsolatedTestExternalActionOrchestrator(
+  definitions: ReadonlyMap<string, ExternalActionDefinition>,
+  store: ExternalExecutionStore,
+  executors: ReadonlyMap<string, ExternalExecutor>,
+) {
+  return new ExternalActionOrchestrator(definitions, store, executors, {
+    allowFakeContracts: true,
+    isExecutable: () => true,
+    registry: ACTION_REGISTRY_SEED,
+    isolatedTestWorkspaceToken: ISOLATED_TEST_WORKSPACE_TOKEN,
   });
 }

@@ -30,6 +30,7 @@ function ticket(
 ): MaintenanceTicketRecord {
   return {
     id: "t1",
+    data_mode: "live",
     status: "Open",
     priority: "Normal",
     priority_provenance: "operator-set",

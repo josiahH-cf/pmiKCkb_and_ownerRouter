@@ -3,6 +3,8 @@
 // the status list with the server writer without pulling the Admin SDK (or next/headers) into the
 // client bundle. The Firestore writer (lib/firestore/maintenance-tickets.ts) re-exports these.
 
+import type { DataMode } from "@/lib/data-mode";
+
 export const MAINTENANCE_TICKET_STATUSES = [
   "Open",
   "Waiting on Response",
@@ -18,6 +20,8 @@ export type MaintenanceTicketActivityAction =
   | "close"
   | "reopen"
   | "assign"
+  | "vendor-assign"
+  | "test-action"
   | "label"
   | "note";
 
@@ -30,6 +34,8 @@ export interface MaintenanceTicketReporter {
 
 export interface MaintenanceTicketRecord {
   id: string;
+  /** Explicit record lane. Legacy records without this field normalize to Live at read time. */
+  data_mode: DataMode;
   status: MaintenanceTicketStatus;
   priority: string;
   /** "auto-inferred" (emergency-keyword scan) or "operator-set" — transparent + overridable. */
@@ -41,6 +47,7 @@ export interface MaintenanceTicketRecord {
   reporter: MaintenanceTicketReporter;
   labels: string[];
   assignee_uid?: string;
+  vendor_id?: string;
   space_id: string;
   source_trigger_key?: string;
   created_at: string;

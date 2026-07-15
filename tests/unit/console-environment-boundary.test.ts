@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import { resolveConsoleDataMode } from "@/lib/console/environment";
+import {
+  resolveConsoleDataMode,
+  resolveConsoleDataModes,
+} from "@/lib/console/environment";
 import { loadConsoleProjection, type ConsoleDataProvider } from "@/lib/console/live-data";
 
 const actor: AuthenticatedUser = {
@@ -35,6 +38,33 @@ describe("Console environment boundary", () => {
         NODE_ENV: "production",
       }),
     ).toEqual({ kind: "live" });
+  });
+
+  it("serves separate Live and Test workspaces in ordinary production", () => {
+    expect(resolveConsoleDataModes({ NODE_ENV: "production" })).toEqual([
+      { kind: "live" },
+      {
+        badge: "Test data",
+        deploymentName: "production-test-workspace",
+        kind: "test",
+      },
+    ]);
+    expect(resolveConsoleDataModes({ NODE_ENV: "development" })).toEqual([
+      { badge: "Test data", deploymentName: "local", kind: "test" },
+    ]);
+    expect(
+      resolveConsoleDataModes({
+        CONSOLE_TEST_DEPLOYMENT_NAME: "test-staging-1",
+        NODE_ENV: "production",
+      }),
+    ).toEqual([
+      { kind: "live" },
+      {
+        badge: "Test data",
+        deploymentName: "production-test-workspace",
+        kind: "test",
+      },
+    ]);
   });
 
   it("never constructs the fixture provider in production and fails visibly", async () => {

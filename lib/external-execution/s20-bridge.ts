@@ -28,6 +28,7 @@ import { ExternalExecutionError } from "@/lib/external-execution/types";
 import { validateExternalAuthority } from "@/lib/external-execution/authority";
 import {
   EXTERNAL_ACTION_IDEMPOTENCY_PRINCIPAL,
+  externalActionDataMode,
   externalActionContextHash,
   externalActionIdempotencyKey,
 } from "@/lib/external-execution/identity";
@@ -124,6 +125,7 @@ export async function prepareExternalActionWithS20(
   assertTestOnlyOptions(options);
   const action = snapshotExternalAction(request.action);
   const trustedContext = snapshotTrustedExternalContext(request.trustedContext);
+  assertS20BridgeDataMode(action, options);
   assertAuthorityFree(action);
   assertSyntheticAliasesAreTestOnly(action, options.allowSyntheticAliases);
   assertStableExternalIdentity(request.definition, action);
@@ -157,7 +159,7 @@ export async function prepareExternalActionWithS20(
       idempotencyKey: externalActionIdempotencyKey(action),
       idempotencyPrincipal: EXTERNAL_ACTION_IDEMPOTENCY_PRINCIPAL,
       preview,
-      scopeRef: `external-workflow:${action.workflowId}`,
+      scopeRef: externalS20ScopeRef(action),
       trustedContext,
     },
     {
@@ -179,6 +181,7 @@ export async function executeExternalActionWithS20(
   assertTestOnlyOptions(options);
   const action = snapshotExternalAction(request.action);
   const trustedContext = snapshotTrustedExternalContext(request.trustedContext);
+  assertS20BridgeDataMode(action, options);
   assertAuthorityFree(action);
   assertSyntheticAliasesAreTestOnly(action, options.allowSyntheticAliases);
   assertStableExternalIdentity(request.definition, action);
@@ -237,6 +240,7 @@ export async function executeExternalActionWithS20(
           await request.executor.execute(providerInput),
           action.actionKey,
           false,
+          externalActionDataMode(action),
         );
         if (receipt.actionKey !== action.actionKey) {
           throw new AmbiguousExecutionError(
@@ -276,6 +280,7 @@ export async function reconcileExternalActionWithS20(
   assertTestOnlyOptions(options);
   const action = snapshotExternalAction(request.action);
   const trustedContext = snapshotTrustedExternalContext(request.trustedContext);
+  assertS20BridgeDataMode(action, options);
   assertAuthorityFree(action);
   assertSyntheticAliasesAreTestOnly(action, options.allowSyntheticAliases);
   assertStableExternalIdentity(request.definition, action);
@@ -320,7 +325,12 @@ export async function reconcileExternalActionWithS20(
   if (!rawReceipt) {
     return { status: "not_found" as const, duplicate: false, execution: current };
   }
-  const receipt = parseExternalReceipt(rawReceipt, action.actionKey, true);
+  const receipt = parseExternalReceipt(
+    rawReceipt,
+    action.actionKey,
+    true,
+    externalActionDataMode(action),
+  );
   const execution = await resolveActionReconciliation(
     actor,
     request.executionId,
@@ -342,6 +352,21 @@ function assertTestOnlyOptions(options: ExternalS20BridgeOptions) {
   ) {
     throw new Error(
       "External-action Registry overrides and synthetic aliases are test-only.",
+    );
+  }
+}
+
+function assertS20BridgeDataMode(
+  action: ExternalActionPreparationInput,
+  options: ExternalS20BridgeOptions,
+) {
+  if (
+    externalActionDataMode(action) === "test" &&
+    !(process.env.NODE_ENV === "test" && options.allowSyntheticAliases === true)
+  ) {
+    throw new EditableLayerError(
+      "Test S20 execution is restricted to the test harness; the production S20 provider bridge accepts Live actions only and Test records use the isolated no-client executor.",
+      409,
     );
   }
 }
@@ -383,7 +408,7 @@ async function assertExternalDependencies(
     const dependency = await getActionExecution(actor, executionId, db);
     if (
       dependency.action_key !== key ||
-      dependency.scope_ref !== `external-workflow:${action.workflowId}` ||
+      dependency.scope_ref !== externalS20ScopeRef(action) ||
       dependency.state !== "Succeeded" ||
       dependency.attempt_count !== 1 ||
       !dependency.result_code
@@ -421,7 +446,7 @@ function assertS20RecordMatchesAction(
 ) {
   if (
     current.action_key !== action.actionKey ||
-    current.scope_ref !== `external-workflow:${action.workflowId}` ||
+    current.scope_ref !== externalS20ScopeRef(action) ||
     current.preview_hash !== hashExternalValues(action) ||
     current.context_hash !== externalContextHash(action)
   ) {
@@ -548,8 +573,13 @@ function externalContextHash(action: ExternalActionPreparationInput) {
   return externalActionContextHash(action);
 }
 
+function externalS20ScopeRef(action: ExternalActionPreparationInput) {
+  return `external-workflow:${externalActionDataMode(action)}:${action.workflowId}`;
+}
+
 function externalReviewTarget(action: ExternalActionPreparationInput) {
   return [
+    `data_mode=${externalActionDataMode(action)}`,
     `workflow=${action.workflowId}`,
     `connection=${action.connectionRef}`,
     `mapping=${action.mappingRef}`,

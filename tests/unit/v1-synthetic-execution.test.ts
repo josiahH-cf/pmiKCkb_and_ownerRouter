@@ -8,7 +8,10 @@ describe("typed integrated V1 synthetic acceptance", () => {
   it("runs every S25/S26 adapter with exact schemas and bodyless evidence", async () => {
     const result = await runIntegratedFakeV1Acceptance();
 
-    expect(result.mode).toBe("synthetic-fake-only");
+    expect(result.mode).toBe("production-test-workspace");
+    expect(result.dataMode).toBe("test");
+    expect(result.liveEvidenceEligible).toBe(false);
+    expect(result.liveProviderCallCount).toBe(0);
     expect(result.vendorBoundary).toEqual({
       assignedTicketOnly: true,
       disabled: true,

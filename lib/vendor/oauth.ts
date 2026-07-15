@@ -3,6 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import {
   VENDOR_OAUTH_SCOPES,
   VendorBoundaryError,
+  assertLiveVendorPrincipal,
   type VendorMailboxConnection,
   type VendorOAuthScope,
   type VendorPrincipal,
@@ -78,6 +79,7 @@ export async function beginVendorOAuth(
   store: VendorOAuthStore,
   nowMs = Date.now(),
 ) {
+  assertLiveVendorPrincipal(input.principal, "Vendor OAuth");
   if (!input.clientId.trim())
     throw new VendorBoundaryError("Vendor OAuth is unavailable.", 503);
   if (input.redirectUri !== input.expectedRedirectUri) {
@@ -124,6 +126,7 @@ export async function completeVendorOAuth(
     now?: () => number;
   },
 ) {
+  assertLiveVendorPrincipal(input.principal, "Vendor OAuth");
   const nowMs = (dependencies.now ?? Date.now)();
   if (!input.state || !input.code) {
     throw new VendorBoundaryError("Vendor OAuth callback is incomplete.", 400);

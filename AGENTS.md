@@ -62,7 +62,7 @@ route new work through the three-product docs.
 | Communications policy (S24)           | `docs/feature-suites/communications-policy.md`                                                                         |
 | Lease external execution (S25)        | `docs/feature-suites/lease-renewal-execution.md`                                                                       |
 | Maintenance external execution (S26)  | `docs/feature-suites/maintenance-execution.md`                                                                         |
-| V1 staged acceptance (S27)            | `docs/feature-suites/v1-release-acceptance.md`                                                                         |
+| V1 working-app acceptance (S27)       | `docs/feature-suites/v1-release-acceptance.md`                                                                         |
 | Role-scoped sub-users / scopes (S16)  | `docs/feature-suites/rbac-subusers.md`                                                                                 |
 | Unified Console + notifications (S17) | `docs/feature-suites/unified-console-and-attention.md`                                                                 |
 | Process auto-initiation (S18)         | `docs/feature-suites/process-auto-initiation.md`                                                                       |
@@ -91,7 +91,7 @@ route new work through the three-product docs.
 | Local-dev stop/cutover gate           | `docs/autonomous-agent-runner.md`, `docs/implement.md`                                                                 |
 | Current status and blockers           | `docs/status.md`                                                                                                       |
 | Loop resume state and next slice      | `docs/loop-state.md`                                                                                                   |
-| V1 blocker + tab audit                | `docs/v1-readiness-audit-2026-07-14.html`, Round 2, then `docs/v1-readiness-audit-round-3-2026-07-14.html`             |
+| V1 state + tab walkthrough            | `docs/pmi-kc-v1-working-app-state-2026-07-15.html`; prior decision audits remain historical context                    |
 | Client asks                           | `docs/client-checklist.md`                                                                                             |
 | Client unblock and parallel work      | `docs/status.md`, `docs/client-checklist.md`, `docs/implement.md`                                                      |
 | Engineering checklist                 | `docs/engineering-checklist.md`                                                                                        |
@@ -115,7 +115,7 @@ route new work through the three-product docs.
   `TEMPLATE.md` is the shape for new/overhaul specs; the 2026-07-10 overhaul suites are S14
   (approval-queue-mobile), S15 (gmail-hub), S16 (rbac-subusers), S17 (unified-console-and-attention),
   and S18 (process-auto-initiation), plus S19 (`gmail-live-per-user`) for the 2026-07-13
-  owner-approved live-per-user Gmail direction. The final 2026-07-14 V1 contract is executable as
+  owner-approved live-per-user Gmail direction. The working V1 contract is executable as
   S20–S27 (execution authority, trusted publication, Vendor portal/OAuth, Console data, communications
   policy, Lease actions, Maintenance actions, and release acceptance) through
   `docs/v1-gap-implementation-program-2026-07-14.md`. All overhaul specs are sentinel-gated by
@@ -181,9 +181,9 @@ route new work through the three-product docs.
 - Source states and shared vocabulary are constants; do not rename them casually.
 - Enforce anti-hallucination in code before model calls.
 - Keep runtime changes scoped to the relevant product lane.
-- External-tool roles and per-action readiness live in the Action Registry and
-  `docs/integration-architecture.md`; Maintenance Work Order Intake is the first
-  executable write, and Rentvine lease-renewal writeback stays gated as undocumented.
+- External-tool roles and per-action activation live in the Action Registry and
+  `docs/integration-architecture.md`. Production includes separate Live and Test lanes: Test records
+  may complete app/Firestore workflows but cannot contact a provider or prove Live activation.
 - Add tests with any behavior change.
 - Do not build Lease Renewal or Workflow Communications behavior beyond its product
   docs, permissions, and acceptance gates. S19 preserves the proven per-user Gmail transport but
@@ -240,23 +240,24 @@ answer ourselves.
   still requires a per-action spec.
 - Use `.env.example` for names only.
 - Preserve human send authority; no autonomous send.
-- Do not execute or promote a system-of-record write path to RentVine, LeadSimple, DotLoop,
-  QuickBooks, Boom, operating Sheets, banks, or client Drive folders without its current approved
-  S25/S26 action contract, documented provider evidence, required permissions, green adversarial
-  acceptance, an Action Registry code review, and explicit per-action live authority. Final-V1 product
-  inclusion is not blanket execution approval.
+- A Live system-of-record write to RentVine, LeadSimple, DotLoop, QuickBooks, Boom, operating
+  Sheets, banks, or client Drive must use its exact S25/S26 action contract, documented provider
+  semantics, least-privilege identity, authoritative mapping, target/effect preview, human
+  confirmation, one-attempt/idempotency guard, receipt/readback, monitoring, and rollback. An
+  unavailable contract blocks that Live action only. The isolated Test lane may complete the same
+  app workflow with reserved aliases and a non-Live receipt.
 - Missing sources produce visible uncertainty, not generic property-management answers.
 
 ## Identity Rules
 
 - PMI KC staff, agent, connector, cloud, admin, runtime, build, and delegated-Workspace access always
   use a `pmikcmetro.com` or `pmi-kc-kb-prod` identity. The personal
-  `josiah.abernathy@gmail.com` account must never appear in any auth path. Round 3 requires a separately
-  scoped external Vendor V1 principal: Admin invite, one-time password-setup link, verified-email TOTP
-  MFA before ticket detail, assigned-ticket-only authorization, and the Vendor's own Gmail/Google
-  Workspace mailbox through per-vendor server-side OAuth. It never uses DWD or gains PMI KC cloud,
-  admin, connector, internal Space, or general/cross-mailbox authority. S22 is the implementation
-  contract; the principal is not active in current code.
+  `josiah.abernathy@gmail.com` account must never appear in any auth path. V1 has a separately scoped
+  external Vendor principal: Admin invite, one-time password setup, verified-email TOTP before ticket
+  detail, and assigned-ticket-only authorization. The canonical `.invalid` Test Vendor uses the
+  app-only Test mailbox and is rejected before OAuth/Gmail construction. A Live Vendor uses the
+  Vendor's own same-address Gmail/Google Workspace mailbox through per-vendor server-side OAuth. It
+  never uses DWD or gains PMI KC cloud, admin, connector, internal Space, or cross-mailbox authority.
 - Six identity systems are separate and do NOT cascade: (a) the agent runner's file/Drive
   connector (Claude Code's MCP Drive/Workspace connector today; not applicable under Codex),
   (b) local gcloud/ADC, (c) the Cloud Run runtime service account, (d) Firebase
@@ -321,6 +322,7 @@ answer ourselves.
 
 - Do not preserve KB-only or separate-Owner-Router assumptions as active guidance.
 - Do not produce generic property-management answers for missing PMI KC sources.
-- Do not add autonomous send or system-of-record writes.
+- Do not add autonomous sends or Live external writes that bypass the exact action preview,
+  confirmation, receipt, reconciliation, and rollback boundary.
 - Do not commit secrets, customer records, or raw Gmail/customer source material.
 - Do not skip tests for source-state, citation, permission, prompt, or cutover behavior.

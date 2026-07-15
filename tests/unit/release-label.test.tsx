@@ -5,10 +5,15 @@ import { describe, expect, it } from "vitest";
 
 import { ReleaseStageBanner } from "@/components/layout/ReleaseStageBanner";
 
-describe("pre-V1 release label", () => {
-  it("never renders an unqualified V1 success label", () => {
+describe("V1 application release label", () => {
+  it("makes provider status and signoffs informational", () => {
     render(<ReleaseStageBanner />);
-    expect(screen.getByRole("status").textContent).toContain("Pre-V1 candidate");
-    expect(screen.getByRole("status").textContent).toContain("remain individually gated");
+    expect(screen.getByRole("status").textContent).toContain("V1 application");
+    expect(screen.getByRole("status").textContent).toContain(
+      "Live and Test records are clearly labeled",
+    );
+    expect(screen.getByRole("status").textContent).toContain(
+      "provider status and signoffs are advisory",
+    );
   });
 });

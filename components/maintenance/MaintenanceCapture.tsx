@@ -22,8 +22,8 @@ import type { MaintenancePhotoActionView } from "@/lib/maintenance/photo-action"
 
 // Maintenance capture desk (S4): a field worker reports an issue — typed note + tap-to-record voice
 // (transcribed via the STT seam) + the unit — and gets a structured work-order DRAFT preview. The draft
-// is simulation-only: the RentVine create stays gated (readyForExecution is always false). Photo storage
-// (Drive) is a follow-up sub-slice; the draft builder already treats photos as optional.
+// persists as a Live in-app ticket after review. External provider writes remain separate, explicit,
+// target-labeled, human-confirmed actions. Photo storage is independently action-gated.
 
 async function blobToBase64(blob: Blob): Promise<string> {
   const buffer = await blob.arrayBuffer();
@@ -168,6 +168,7 @@ export function MaintenanceCapture({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          data_mode: "live",
           summary: draft.summary,
           description: draft.description,
           priority: draft.priority,
@@ -348,8 +349,8 @@ export function MaintenanceCapture({
           <>
             <h2>Work-order draft</h2>
             <p className="muted">
-              Test run only. The RentVine work-order create is gated, so a human reviews
-              and approves.
+              Live in-app ticket preview. Creating it writes this app only; any provider
+              write is a separate exact action with its own target and confirmation.
             </p>
             <h3>{draft.summary}</h3>
             <p>{draft.description || <em>No description captured.</em>}</p>
@@ -407,7 +408,8 @@ export function MaintenanceCapture({
               <section aria-label="Vendor assignment suggestion">
                 <h3>Vendor assignment — suggestion</h3>
                 <p className="muted">
-                  Suggestion only — not assigned; no system-of-record write.
+                  Trade suggestion only. Assign a roster-backed Vendor from the ticket
+                  after creation; any provider write remains a separate confirmed action.
                 </p>
                 <p>
                   <strong>Trade:</strong> {vendorSuggestion.trade}

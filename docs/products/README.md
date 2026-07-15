@@ -1,45 +1,43 @@
 # Product Lanes
 
-This directory is the active product routing layer for the purchased PMI KC workstream.
-Use it before older demo docs or preserved specs.
+Use this directory for product scope and `docs/loop-state.md` for the exact resume point.
 
-## Active Lanes
+| Lane                          | Read first                   | Working V1 state                                                                                                                             |
+| ----------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| PMI KC KB                     | `pmi-kc-kb.md`               | Production application for Console, source-backed Ask, Spaces/processes, approvals, roles, administration, attention, and execution control. |
+| Lease Renewal Agent           | `lease-renewal-agent.md`     | Live read/reconcile/review plus a complete isolated Test action journey; each Live provider action activates independently.                  |
+| Workflow Communications       | `gmail-inbox-zero.md`        | Workflow-linked Gmail adapter for reads, labels, drafts, and exact-confirmed replies; no general inbox or autonomous send.                   |
+| Maintenance + external Vendor | `pmi-kc-kb.md`, then S22/S26 | Live in-app tickets plus a complete persistent Test workflow and password/TOTP assigned-ticket Vendor portal.                                |
 
-| Product lane            | Read first               | Current state                                                     |
-| ----------------------- | ------------------------ | ----------------------------------------------------------------- |
-| PMI KC KB               | `pmi-kc-kb.md`           | S20–S24 green; S25–S27 local boundaries Gated                     |
-| Lease Renewal Agent     | `lease-renewal-agent.md` | Read/review plus S25 local graph/fakes; real proofs pending       |
-| Workflow Communications | `gmail-inbox-zero.md`    | Workflow-linked Gmail adapter; S22/S24 green; S25/S26 fakes Gated |
+## Live/Test Contract
 
-### Lease Renewal lane — sub-docs
+- Live and Test records coexist in production and are always labeled.
+- Test records use reserved invented aliases, make real app/Firestore writes, and can reach
+  Done. Test adapters contain no Live client and cannot call an external provider.
+- Provider activation is a per-action operational state, not a condition for calling the
+  stable application V1.
+- A Live write must show the exact target/effect and require the role-specific human
+  confirmation or Admin decision before its single idempotent attempt.
 
-- [`lease-renewal-build-plan.md`](lease-renewal-build-plan.md) — historical Phase-1 engine design;
-  its old status/test counts/blocker register are not the current resume point. Start from
-  `docs/loop-state.md`, `docs/plan.md`, and the current product/spec docs.
-- [`lease-renewal-discovery-reference.md`](lease-renewal-discovery-reference.md) — sanitized renewal process reference (end-to-end).
-- [`move-in-move-out-process.md`](move-in-move-out-process.md) — tenant move-in / move-out lifecycles + how they connect.
-- [`lease-renewal-connector-design.md`](lease-renewal-connector-design.md) — read-only sheet connector + conflict reconciliation + admin-enabled, suggest-then-button-press write-back (§4.0).
-- [`lease-renewal-spreadsheet-map.md`](lease-renewal-spreadsheet-map.md) — semantic map of the operational tracking sheet (credential tabs 4 & 7 hard-excluded).
+## Lease Renewal References
 
-## Rules
+- `lease-renewal-discovery-reference.md` — sanitized process reference.
+- `move-in-move-out-process.md` — connected move-in/move-out lifecycles.
+- `lease-renewal-connector-design.md` — connector and compare-and-set writeback design.
+- `lease-renewal-spreadsheet-map.md` — semantic map; credential tabs remain excluded.
+- `lease-renewal-build-plan.md` — historical design, not the current status source.
 
-- Treat these docs as the current client-purchased direction.
-- For external-tool roles, event model, build order, and the Action Registry, read
-  `docs/integration-architecture.md`. Tools are not interchangeable: Rentvine is the
-  system of record, LeadSimple orchestrates, Dotloop holds documents, QuickBooks is
-  downstream accounting, Boom is auxiliary resident services, and Sheets is an exception
-  surface. Maintenance Work Order Intake is the first executable-write target; Rentvine
-  lease-renewal writeback is undocumented and stays gated.
-- Preserve original specs in `docs/specs/`, but do not let older repo-boundary language
-  override the monorepo governance in `docs/north-star.md`.
-- Do not add a new runtime action or widen an existing one for Lease Renewal Agent or Workflow
-  Communications until that exact action's requirements, permissions, and acceptance gates are
-  confirmed. Preserve the already-built, separately gated app-plane/runtime foundations.
-- The final owner contract is R01–R09. Run implementation from
-  `docs/v1-gap-implementation-program-2026-07-14.md` and S20–S27; do not reopen resolved product
-  choices or treat them as standing live-action authority.
-- Stop local product-surface expansion once the remaining blockers are client-owned
-  migration, production setup, approved sources, or real product decisions; keep only
-  readiness, verification, docs, and regression-fix work moving.
-- Keep all three lanes free of secrets, raw customer records, and unsupported
-  system-of-record writes.
+## Routing Rules
+
+- Rentvine is the system of record; LeadSimple orchestrates; Dotloop holds documents;
+  QuickBooks is accounting; Boom is auxiliary; Sheets is an exception/control surface.
+- Implement provider-shaped behavior with the isolated Test lane when a Live contract,
+  mapping, or credential is unavailable. Never invent those values for Live.
+- Keep Test/Live identities, assignments, actions, adapters, and receipts structurally
+  separate.
+- Do not add autonomous sends, unreviewed external writes, secrets, or customer records to
+  repository artifacts.
+- TTL, extra indexes, and Scheduler automation are optional operational improvements; bounded
+  manual cleanup is the initial safe default.
+- Current acceptance truth lives in S20–S27 and the working-app program. Older specs remain
+  preserved history and cannot override `docs/facts.md` or `docs/north-star.md`.

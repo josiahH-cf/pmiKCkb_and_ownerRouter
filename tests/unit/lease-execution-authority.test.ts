@@ -10,6 +10,7 @@ import { syntheticExternalTechnicalGates } from "@/tests/helpers/external-execut
 
 function input(actionKey: string): ExternalActionInput {
   return {
+    dataMode: "test",
     workflowId: "renewal-1",
     actionId: "action-1",
     actionKey,

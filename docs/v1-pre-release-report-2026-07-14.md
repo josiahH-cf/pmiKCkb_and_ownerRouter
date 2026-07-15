@@ -1,4 +1,9 @@
-# Final-V1 pre-release report
+# Historical Final-V1 pre-release report (superseded)
+
+> Historical snapshot from 2026-07-14. Its all-providers-live, mandatory TTL/scheduler,
+> named-signoff, `Pre-V1`, and 169-gate conclusions are superseded by `F-WORKING-APP-V1` and the
+> 2026-07-15 working-application report. Retain this file only to explain the earlier verifier output;
+> do not use it as current release governance.
 
 Date: 2026-07-14. Release state: **pre-V1 / local candidate**. This report is a readiness artifact, not
 live authority and not final V1 acceptance.

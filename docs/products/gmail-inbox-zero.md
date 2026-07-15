@@ -1,129 +1,106 @@
 # Workflow Communications Product Lane
 
-> Compatibility filename. The 2026-07-14 workflow-adapter boundary supersedes the former “Gmail
-> Inbox 0,” “all of Dan’s email,” and general Gmail-native workspace direction. Historical Owner
-> Router artifacts remain source material only; see
-> `docs/legacy/owner-router-artifact-source.md`.
+> The filename is retained for compatibility. The product is not a general Gmail inbox.
 
-## Product boundary
+## Working V1 Boundary
 
-Gmail is PMI KC’s workflow communication adapter and evidence source, not an inbox replacement.
-Gmail owns messages, native threads, and unsent drafts. PMI KC owns authorized workflow linkage,
-bodyless communication attention, proposed tasks/decisions, reviewed workflow meaning, and audit
-context. Rentvine and other external systems retain their existing authority.
+Gmail is a workflow communication adapter and evidence source for authorized renewal and
+maintenance entities. Gmail owns messages, threads, and native drafts. PMI KC owns bodyless
+workflow links, attention, reviewed meaning, exact action confirmation, and audit context.
 
-The application exposes only:
+The app exposes only:
 
-- bodyless attention for messages on already-linked renewal/maintenance threads;
-- targeted reading of a deliberately linked thread inside an authorized workflow entity;
-- the four approved labels after explicit human review and a governed rule/reason;
-- unsent workflow drafts and exact-confirmed linked replies after an approved versioned template or
-  versioned AI-reply policy exists;
-- explicit on-demand AI-assisted understanding that returns an unpersisted `Needs Review` proposal.
+- bodyless attention for a message on an already-linked workflow thread;
+- targeted read inside an authorized renewal/maintenance entity;
+- approved labels after human review and a governed rule/reason;
+- governed unsent drafts and exact-confirmed linked replies;
+- explicit, transient, source-visible AI understanding marked `Needs Review`.
 
-It does not expose recent-inbox browsing, arbitrary Gmail queries, free-form compose/recipients,
-delete/archive/settings/filter operations, attachment retrieval, cross-mailbox access, historical
-classification/back-labeling, or automatic model processing.
+It does not expose recent-inbox browsing, arbitrary queries/recipients/compose, delete/archive,
+settings/filters, attachment content, cross-mailbox Admin access, back-labeling, or automatic model
+processing.
 
-## Verified foundation
+## Identity and Transport
 
-- Firebase end-user authentication and Gmail DWD authorization are separate. DWD acts only as the
-  server-verified signed-in `pmikcmetro.com` email; Admin gains no mailbox impersonation.
-- The approved scopes remain `gmail.readonly`, `gmail.compose`, `gmail.labels`, and `gmail.modify`.
-  Product/action authorization narrows these send-capable technical scopes.
-- MIME parsing is bounded, prefers plain text, converts HTML to inert text, and exposes attachment
-  metadata only.
-- Exact-confirmed linked replies use a short-lived hashed token, exact-payload hash, transaction
-  claim, authenticated From, at-most-one attempt, bodyless audit, and no ambiguous retry.
-- Authenticated Pub/Sub/history processing is deduplicated and cursor-based. It matches opaque IDs
-  only against existing workflow links; it does not fetch unrelated content or invoke AI.
-- Firestore Gmail operational collections are server-only and bodyless.
+- Staff Firebase authentication and Gmail DWD are separate. DWD acts only as the server-verified
+  signed-in `pmikcmetro.com` user; Admin cannot impersonate another mailbox.
+- Exact technical scopes are `gmail.readonly`, `gmail.compose`, `gmail.labels`, and `gmail.modify`;
+  workflow/role/action authorization narrows them.
+- MIME parsing is bounded and inert; attachments are metadata-only.
+- Authenticated Pub/Sub/history advances cursor/dedupe state and matches opaque IDs only against
+  active links. It fetches no unrelated content and invokes no model.
+- Gmail operational Firestore collections are server-only and bodyless.
 
-S24 is Local green: the 365-day link period and all other retention classes are versioned in code;
-cleanup/hold boundaries exist; exactly three immutable generator-backed v1.0 artifacts are registered;
-and `workflow-reply:v1.0` produces only transient, source-visible human-review proposals. Production
-Firestore TTL/scheduler activation remains gated. Reply/initiation paths also remain closed until
-S25/S26 supply authoritative runtime recipients/values and each action is separately promoted.
+## Human-Confirmed Effects
 
-## Permissions
+Every send/reply is initiated by a permitted human from an authorized workflow. Confirmation binds
+actor, mailbox, recipient, thread, exact content, artifact/policy, source context, expiry, and one
+attempt. Drift, reuse, concurrency, or ambiguity cannot cause an automatic retry.
 
-- Editor: S20 permits read/link, approved labels, governed drafts, and an exact-confirmed linked reply
-  when the action, space, workflow context, and approved artifact are enabled. This is Medium
-  workflow action authority, not generic compose/send access.
-- Approver/Admin: the Editor communication capabilities; Admin additionally approves consequential
-  High work and may self-approve with an exact preview and reason.
-- Admin: governance/configuration authority with all-risk self-approval; never cross-mailbox access
-  outside a separately authorized mailbox connection.
-- Vendor (new V1 role): Admin invite + one-time password setup + verified-email TOTP, assigned
-  Maintenance tickets only, and the same Gmail/Workspace address through per-vendor OAuth. It never
-  receives internal Editor/Admin, DWD, or general inbox access.
-- Pub/Sub principal: advance bodyless sync/dedupe state and mark linked attention only; never read
-  content, invoke a model, create a task, or send.
-- Model: one selected linked thread on explicit request only; output is a proposal, never an action.
+No V1 capability sends on a schedule, in bulk, from a model, from a background event, or as an
+approval notification. In-app attention is the default notification lane.
 
-## Lease-renewal integration
+## Staff and Vendor
 
-Owner outreach must originate from a real authorized renewal run and authoritative owner contact.
-Owner replies may be read only on the linked run and may yield a proposed owner direction requiring
-human confirmation. Tenant email is available only after confirmed owner direction and a verified
-tenant recipient. Email never by itself completes portal-chat/SMS outreach, tenant consent, document
-buildout, or external writeback.
+- Editor/Approver/Admin may use enabled workflow actions within role and Space scope.
+- Admin manages governance and High decisions but gains no cross-mailbox content authority.
+- A Live Vendor uses a separate verified-email/TOTP principal and the same-address OAuth mailbox,
+  limited to assigned-ticket threads.
+- The canonical Test Vendor uses Firebase password/TOTP but an app-only Firestore mailbox. The Test
+  principal is rejected before OAuth/Gmail client construction. Draft, label, and exact-confirmed
+  simulated reply receipts say `externalEffect:false` and `liveEvidenceEligible:false`.
 
-The current visible renewal desk uses sample/simulation workspaces. Its owner/tenant routes return
-unaddressed `preview_only` results, import no Gmail runtime, and explicitly say not to send.
+## Lease and Maintenance Context
 
-## Maintenance integration
+Renewal outreach begins from authoritative run facts and recipient sources. A Gmail receipt does not
+claim portal/SMS/document/writeback success.
 
-Maintenance-scoped staff may manually link/read an existing owner thread from a ticket they can
-access. A linked addition creates value-free in-app attention. On-demand analysis may propose a
-summary/waiting party/next action, but current code cannot approve cost, select a vendor, transition
-a ticket, or write Rentvine. S22/S26 make an external Vendor's assigned-ticket Gmail workflow a V1
-requirement while preserving Vendor/Admin exact confirmation for every AI-assisted send.
+Maintenance communication begins from a persisted in-scope ticket and authoritative assignment.
+AI may propose a summary/waiting party/next action but cannot approve cost, select a Vendor, change
+ticket state, or write a provider.
 
-The current ticket model does not contain an authoritative owner email. Therefore
-`gmail.maintenance_owner_notice.draft_create` is Planned and non-executable. Round 2 selects the
-maintenance owner scaffold and requires outbound vendor messaging. The v1.0 artifact/AI policy is
-Local green; S22 now supplies the local TOTP/per-vendor OAuth boundary and S26 supplies authoritative runtime
-recipients/execution before either path may open.
+## Retention
 
-## Source state and governance
+Versioned V1 policy uses:
 
-Email evidence begins as `Needs Review` with Gmail/workflow provenance. It is not automatically a
-Verified Source or authoritative operational fact. Current AI output is transient and unpersisted.
-A later confirmed-fact/task/status model requires its own reviewed commit path and must remain inside
-PMI KC app state; it cannot directly write an external system of record.
+- confirmation: usable 10 minutes, bodyless record deletion at 30 days;
+- Pub/Sub dedupe: 7 days;
+- sync audit: 90 days;
+- workflow link: 365 days from last authorized update;
+- bodyless action audit: 7 years;
+- no persisted V1 AI output or extracted Gmail facts;
+- Admin legal hold overriding deletion.
 
-Stored links carry actor/mailbox keys, workflow entity/purpose, Gmail identifiers, approved artifact
-references, hashes, status, timestamps, and expiry only. Free-text link/label reasons are hashed for
-audit and not retained. S24 retention is confirmation usable 10 minutes/delete 30 days, dedupe 7 days,
-sync audit 90 days, link 365 days from last authorized update, bodyless action audit 7 years, and no
-persisted V1 AI/extracted Gmail facts, with Admin legal hold/later written policy overriding deletion.
-Cleanup/hold are implemented locally; production TTL/scheduler activation remains closed until
-separately configured and approved.
+The production safe default is bounded on-demand cleanup with visible health. Firestore TTL and a
+Scheduler job are optional optimizations, not conditions for using the product.
 
-## Current implementation dependencies
+## Provider Activation
 
-- Build S25/S26 workflow-specific communication actions on the Local-green S20/S22/S24
-  boundaries; current routes remain narrower even though the decisions are settled.
-- Configure authoritative renewal owner/tenant and maintenance owner/vendor recipient/value adapters;
-  a browser-supplied address is never authoritative.
-- Separately approve Identity Platform/TOTP, OAuth app/client/redirect/token vault, first Vendor invite/
-  consent/read/send, retention TTL/scheduler activation, registry promotions, deploy, and bounded
-  production proof.
-- Josiah owns manual watch/OAuth degraded response; no scheduler is authorized.
+Existing configured workflow Gmail actions keep their exact Live activation evidence. New renewal,
+maintenance-owner, or Live Vendor communication activates per action only after authoritative
+recipient/mailbox values, exact provider identity/scopes, confirmation, one-attempt receipt,
+monitoring, and rollback are verified.
 
-## Hard boundaries
+Test communications can close application workflow evidence but cannot claim a Live Gmail action.
 
-- No autonomous send, scheduled send, event-triggered send, model-triggered send, bulk send, or
-  retry-on-ambiguity send.
-- No automatic Gmail-to-workflow status/task/fact commit.
-- No external system-of-record or client Drive write except through the exact S25/S26 action contract
-  after it is implemented, tested, registry-reviewed, and explicitly enabled for that live action.
-- No raw Gmail/customer content in git, logs, notifications, or persistent Gmail operational state.
-- No cross-mailbox browsing or generic inbox management.
-- Current runtime has no outbound Vendor communication. S22 is locally built and S26 must bind it to Maintenance; live use remains
-  separately gated and assigned-ticket/exact-confirmation-only.
+## Hard Boundaries
 
-The active transport specification is `docs/feature-suites/gmail-live-per-user.md`; S20/S24 are Local
-green while S22/S25/S26 govern the remaining final-V1 Vendor and workflow execution. S15 remains historical
-fallback evidence.
+- No autonomous send. Every send/reply is an exact, permitted, human-confirmed workflow action.
+- No autonomous/scheduled/event/model/bulk send or retry on ambiguity.
+- No automatic email-to-workflow fact/status/task commit.
+- No raw Gmail/customer content in git, logs, notifications, URLs, or bodyless audit.
+- No generic inbox, cross-mailbox browsing, or arbitrary compose.
+- No Live external effect outside the exact S20/S22/S24/S25/S26 action contract and preview.
+
+## Acceptance
+
+- Wrong role/Space/mailbox/workflow/recipient/source/confirmation fails before Gmail construction or
+  provider claim.
+- One exact-confirmed reply produces at most one transport attempt and a bodyless receipt.
+- Test Vendor mailbox runs fully without OAuth/Gmail and cannot produce Live evidence.
+- Legal hold and bounded cleanup preserve bodyless policy.
+- Signed-in desktop/phone surfaces make workflow context and Test/Live state obvious.
+
+Durable supporting contracts: `docs/feature-suites/gmail-live-per-user.md` governs the staff
+per-user transport boundary. `docs/legacy/owner-router-artifact-source.md` is historical source
+material only and grants no current mailbox or send authority.

@@ -30,7 +30,7 @@ import {
   type SpaceCardState,
 } from "@/lib/space-card-state";
 import { launchSpaces, spaceHref } from "@/lib/spaces";
-import { resolveConsoleDataMode } from "@/lib/console/environment";
+import { resolveConsoleDataModes } from "@/lib/console/environment";
 import { loadConsoleProjection } from "@/lib/console/live-data";
 
 // Map the read-only Space card state onto a connection-style dot. Slice A keeps this dot palette
@@ -53,8 +53,11 @@ function toDotStatus(state: SpaceCardState): ConnectionStatus {
  * stay on their own gated surfaces, reached via each card's deep link.
  */
 export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
-  const consoleMode = resolveConsoleDataMode();
-  const liveProjection = await loadConsoleProjection(user, consoleMode);
+  const consoleModes = resolveConsoleDataModes();
+  const consoleProjections = await Promise.all(
+    consoleModes.map((mode) => loadConsoleProjection(user, mode)),
+  );
+  const hasTestWorkspace = consoleModes.some((mode) => mode.kind === "test");
   const canStartSimulation = can(user.role, "edit");
   const canApprove = can(user.role, "approve");
   const canSeeRenewals = hasSpaceAccess(user, "renewals");
@@ -191,7 +194,7 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
   // pure + non-fatal. The sample module is dynamically imported only in server-selected test mode;
   // ordinary production never constructs it and renders live-provider failure state instead.
   let anticipatedGroups: AnticipatedWorkGroup[] = [];
-  if (canSeeRenewals && consoleMode.kind === "test") {
+  if (canSeeRenewals && hasTestWorkspace) {
     try {
       const { getRenewalDeskView, SAMPLE_NOTICE_REFERENCE_DATE } =
         await import("@/lib/lease-renewal/sample-desk");
@@ -212,7 +215,9 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
         test run. Answers cite approved sources, and a test run never touches a system of
         record.
       </p>
-      <ConsoleLiveDataPanel projection={liveProjection} />
+      {consoleProjections.map((projection) => (
+        <ConsoleLiveDataPanel key={projection.mode.kind} projection={projection} />
+      ))}
       <ConsoleActionDeck canApprove={canApprove} cards={cards} />
       <AskForm canStartSimulation={canStartSimulation} processes={processes} />
       <ConsoleAnticipatedWork

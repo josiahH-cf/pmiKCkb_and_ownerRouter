@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
 
 import { DRAFT_BANNER } from "@/lib/constants";
-import { externalPreviewHash } from "@/lib/external-execution/orchestrator";
+import {
+  externalPreviewHash,
+  markIsolatedTestExecutor,
+} from "@/lib/external-execution/orchestrator";
 import type {
   ExternalActionDefinition,
   ExternalActionInput,
@@ -137,6 +140,7 @@ export function buildSyntheticActionInput(
     : ({ role: "Admin" as const, uid: SYNTHETIC_V1_ALIASES.adminUid } as const);
   const actionId = `action-${index}`;
   const base: ExternalActionInput = {
+    dataMode: "test",
     workflowId,
     actionId,
     actionKey: key,
@@ -859,12 +863,21 @@ export function createSyntheticExecutorHarness() {
   ]);
 
   return {
-    leaseExecutors,
-    maintenanceExecutors,
+    leaseExecutors: brandTestExecutors(leaseExecutors),
+    maintenanceExecutors: brandTestExecutors(maintenanceExecutors),
     providerCallCount: () =>
       [...callCounts.values()].reduce((total, count) => total + count, 0),
     providerOperations: () => [...callCounts.keys()].sort(),
   };
+}
+
+function brandTestExecutors(executors: ReadonlyMap<string, ExternalExecutor>) {
+  return new Map(
+    [...executors.entries()].map(([key, executor]) => [
+      key,
+      markIsolatedTestExecutor(executor),
+    ]),
+  );
 }
 
 function sha256(value: string) {

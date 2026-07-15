@@ -15,6 +15,7 @@ export async function POST(request: Request) {
         email: principal.email,
         emailVerified: true,
         totpVerified: true,
+        dataMode: principal.dataMode ?? "live",
       },
     });
     response.cookies.set(getSessionCookieName(), sessionCookie, {

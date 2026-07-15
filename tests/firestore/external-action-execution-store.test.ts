@@ -114,6 +114,7 @@ function executionRecord(
 ): ExternalExecutionRecord {
   return {
     id: `external-execution-${suffix}`,
+    dataMode: "live",
     workflowId: "workflow-placeholder-1",
     actionId: `action-${suffix}`,
     actionKey: "vendor.gmail.health",

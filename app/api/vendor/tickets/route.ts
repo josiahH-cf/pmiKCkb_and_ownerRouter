@@ -13,6 +13,7 @@ export async function GET() {
       principal.uid,
       principal.email,
       new Date().toISOString(),
+      principal.dataMode ?? "live",
     );
     return NextResponse.json({ tickets: await listVendorTickets(principal, store) });
   } catch (error) {

@@ -136,6 +136,8 @@ function isReceiptTerminalState(state: ExternalExecutionRecord["state"]) {
 function sameReceipt(left: ExternalActionReceipt, right: ExternalActionReceipt) {
   return (
     left.actionKey === right.actionKey &&
+    left.dataMode === right.dataMode &&
+    left.liveEvidenceEligible === right.liveEvidenceEligible &&
     left.providerRef === right.providerRef &&
     left.resultHash === right.resultHash &&
     left.reconciled === right.reconciled &&
@@ -147,6 +149,8 @@ function sameReceipt(left: ExternalActionReceipt, right: ExternalActionReceipt) 
 function audit(record: ExternalExecutionRecord, action: string) {
   return {
     execution_id: record.id,
+    data_mode: record.dataMode,
+    live_evidence_eligible: record.receipt?.liveEvidenceEligible ?? false,
     workflow_id: record.workflowId,
     action_id: record.actionId,
     action_key: record.actionKey,

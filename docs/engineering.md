@@ -1,89 +1,71 @@
 # Engineering Guidance
 
-## Active Product Boundaries
+## Stack and Ownership
 
-- PMI KC KB is the only current web app runtime in this repo.
-- PMI KC KB is also the future workflow-control surface for approved backend
-  automations.
-- Lease Renewal Agent is the first backend automation target after KB production, but
-  integration architecture and write permissions are not approved yet.
-- External-tool roles, event model, build order, and the Action Registry are defined in
-  `docs/integration-architecture.md`: Rentvine is the system of record, LeadSimple
-  orchestrates, Dotloop holds documents, QuickBooks is downstream accounting, Boom is
-  auxiliary, and Sheets is an exception surface. Maintenance Work Order Intake is the
-  first executable-write target; the Rentvine lease-renewal writeback is undocumented and
-  stays gated. Resulting state changes use webhooks where documented (Dotloop,
-  QuickBooks) and polling or LeadSimple sync for Rentvine.
-- Gmail Inbox 0 is Dan-email-first and Gmail-native for v1; it supersedes the
-  client-facing Owner Router/Dan's AI Assistant naming and starts with Dan's mailbox.
-- Older KB-only and separate-Owner-Router repository instructions are legacy unless
-  preserved in `docs/north-star.md` or a product lane doc as a safety boundary.
+- Next.js App Router, React, strict TypeScript, npm.
+- Firestore Native mode for app/workflow state.
+- Firebase Auth/Identity Platform for staff Google auth and external Vendor password/TOTP.
+- Vertex AI Search/Gemini for grounded retrieval and proposals.
+- Gmail API for workflow-linked communication only.
+- Cloud Run for production.
 
-## Current KB Stack
+`app/` owns routes, `components/` owns UI, `lib/auth/` owns identity/roles,
+`lib/firestore/` owns persistence, `lib/retrieval/` and `lib/citations/` own grounding,
+`lib/llm/` owns model seams, and `lib/external-execution/` owns typed external action
+identity/preview/claim/receipt/reconciliation.
 
-- Next.js App Router, React, TypeScript, npm.
-- Firestore Native mode for editable KB data.
-- Vertex AI Search for source-backed retrieval.
-- Vertex AI Gemini for grounded answers and drafts.
-- Firebase Auth / Identity Platform with Google hosted-domain enforcement.
-- Gmail API send-only for internal `KB Approval` notifications.
-- Cloud Run for deployment.
+## Working-App Boundary
 
-## Current KB Architecture Boundaries
+- Production contains explicit Live and Test records.
+- Legacy missing mode resolves to Live.
+- Test uses reserved aliases, always-visible labels, and no-client adapters. It may write app/
+  Firestore state and reach Done but cannot contact a provider or produce Live evidence.
+- Live provider activation is per action. Missing configuration degrades that action visibly and
+  never falls back to Test.
+- Browser input cannot select or override a provider lane, authority object, Registry state, risk,
+  or evidence.
 
-- `app/` owns routes and API entry points.
-- `components/` owns presentational UI.
-- `lib/auth/` owns roles and permission checks.
-- `lib/retrieval/` owns Vertex AI Search boundaries.
-- `lib/llm/` owns prompt assembly and model contracts.
-- `lib/citations/` owns citation validation.
-- `lib/firestore/` owns KB data model types and data access.
-- `lib/firestore/action-registry.ts` owns read-only access to the `action_registry`
-  catalog; it holds metadata only and executes no external action.
+## External Execution
 
-## Testing Expectations
+Every Live effect requires a documented contract/mapping, least-privilege identity, exact
+target/effect preview, role-specific human confirmation or Admin decision, deterministic
+idempotency, one atomic claim, bodyless receipt/readback, reconciliation, monitoring, and
+rollback/correction. Ambiguous outcomes do not retry.
 
-- Unit tests for source state, citation filtering, prompt contracts, role permissions,
-  Firestore validators, and cutover guards.
-- Integration tests for API routes, Firestore rules, and retrieval adapters when
-  services are wired.
-- Eval tests must preserve hallucination and citation behavior.
-- Playwright e2e tests are added when auth and external-service mocks exist.
-- Lease Renewal Agent and Gmail Inbox 0 tests should be added only after implementation
-  scope exists.
+No autonomous, scheduled, bulk, event-triggered, or model-triggered send is permitted. Workflow
+Gmail actions start from an authorized renewal/maintenance entity; there is no general inbox.
 
-## Security And Secrets
+## Testing
 
-- Store no secrets in git.
-- Put local names in `.env.example`; put real values in `.env.local`, Secret Manager,
-  or the active shell.
-- Avoid service account keys; prefer workload identity or impersonation.
-- Exclude high-sensitivity source material from retrieval.
-- Do not log PII, raw owner/tenant financial facts, live Gmail contents, or LLM prompt
-  payloads containing sensitive data.
-- Do not add autonomous send.
-- Do not add system-of-record writes without a future approved product spec, explicit
-  approval flow, audit record, tests, and rollback/error handling.
+- Unit: data-lane resolution, source/citation, permissions, schemas, preview/receipt, UI states,
+  and negative imports.
+- Firestore: server/client boundaries, transaction state, lane mismatch, and idempotency.
+- E2E: roles, Live/Test journeys, action confirmations, failure states, and zero provider calls in
+  Test.
+- Browser: desktop/phone, signed-in primary tabs, Vendor password/TOTP, Maintenance Test to Done,
+  monitoring, and rollback target.
+- Falsify cross-lane identity/assignment/adapter/receipt, duplicate claims, stale preview, changed
+  source, wrong mailbox, guessed ticket, and ambiguous provider results.
 
-## Product Constants
+## Security and Secrets
 
-Do not rename casually:
+- No secrets, setup links, customer values, Gmail bodies, prompt payloads, or sensitive records in
+  git/logs/URLs/audit.
+- Prefer ADC, attached service accounts, DWD, OAuth vault references, and workload identity; never
+  download service-account keys.
+- Personal Google identities are prohibited.
+- Test emails end in `.invalid`; Live recipients must come from authoritative workflow sources.
 
-- `PMI KC KB`
-- `Lease Renewal Agent`
-- `Gmail Inbox 0`
-- `Owner Router` as legacy/internal source context only
-- `Admin`
-- `User`
-- `Draft — Review before sending`
-- `Needs Verification: <fact>`
-- `No Reliable Source Found`
-- `KB Approval`
+## Retention
 
-## Definition Of Done
+Bodyless state, legal hold, bounded on-demand cleanup, and visible health are the V1 baseline.
+TTL policies, additional indexes, and Scheduler automation are optional volume-driven changes.
 
-- The change maps to `docs/north-star.md`, `docs/plan.md`, and the relevant product doc.
-- Tests cover behavior or the gap is documented.
-- Relevant verification passes.
-- `docs/status.md` is current.
-- Legacy context is updated or retired when direction changes.
+## Definition of Done
+
+- Behavior maps to `docs/facts.md`, `docs/plan.md`, product/spec docs, and the Live/Test contract.
+- Tests cover happy, failure, and cross-lane abuse paths.
+- Focused checks and full verification pass.
+- Production deployment, signed-in browser acceptance, monitoring, and rollback are verified when
+  the task is a release.
+- `docs/status.md` and `docs/loop-state.md` name the exact resulting state.

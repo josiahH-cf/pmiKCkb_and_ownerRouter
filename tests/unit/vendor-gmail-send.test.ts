@@ -9,6 +9,7 @@ const principal = {
   emailVerified: true as const,
   totpVerified: true as const,
   sessionIssuedAt: 1,
+  dataMode: "live" as const,
 };
 
 function harness(sendResult: "success" | "ambiguous" = "success") {
@@ -58,6 +59,12 @@ function harness(sendResult: "success" | "ambiguous" = "success") {
         updatedAt: "2026-07-14T00:00:00.000Z",
       }),
       isThreadLinked: async () => true,
+      getGmailLaneContext: async () => ({
+        vendor: "live",
+        assignment: "live",
+        ticket: "live",
+        thread: "live",
+      }),
     },
     provider: { getClient: vi.fn().mockResolvedValue(client) },
     confirmations: state,
@@ -154,6 +161,7 @@ describe("Vendor exact-confirmed reply", () => {
         email: "admin@pmikcmetro.com",
         vendorId: "vendor-a",
         isAdmin: true,
+        dataMode: "live",
       },
       "trade@example.com",
       {
@@ -169,6 +177,12 @@ describe("Vendor exact-confirmed reply", () => {
             updatedAt: "2026-07-14T00:00:00.000Z",
           }),
           isThreadLinked: async () => true,
+          getGmailLaneContext: async () => ({
+            vendor: "live",
+            assignment: "live",
+            ticket: "live",
+            thread: "live",
+          }),
         },
         provider: {
           getClient: vi.fn().mockResolvedValue({

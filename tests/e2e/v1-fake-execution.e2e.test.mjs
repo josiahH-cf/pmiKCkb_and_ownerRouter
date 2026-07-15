@@ -15,7 +15,10 @@ describe("integrated final-V1 fake-provider acceptance", () => {
     });
     const json = await response.json();
     expect(response.status).toBe(200);
-    expect(json.mode).toBe("synthetic-fake-only");
+    expect(json.mode).toBe("production-test-workspace");
+    expect(json.dataMode).toBe("test");
+    expect(json.liveEvidenceEligible).toBe(false);
+    expect(json.liveProviderCallCount).toBe(0);
     expect(json.vendorBoundary).toEqual({
       verifiedEmailTotp: true,
       assignedTicketOnly: true,

@@ -7,12 +7,14 @@ import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-g
 import { listUnverifiedIntake } from "@/lib/firestore/maintenance-intake-review";
 import {
   type MaintenanceTicketRecord,
+  listMaintenanceTestActionReceipts,
   listMaintenanceTickets,
 } from "@/lib/firestore/maintenance-tickets";
 import type { AssignableUser } from "@/lib/maintenance/assignee-model";
 import { listAssignableUsers } from "@/lib/maintenance/assignees";
 import type { UnverifiedIntakeRecord } from "@/lib/maintenance/intake-model";
 import { getMaintenancePhotoActionView } from "@/lib/maintenance/photo-action";
+import type { MaintenanceTestActionReceipt } from "@/lib/maintenance/test-workflow";
 
 export default async function MaintenancePage() {
   await requirePageSpaceAccess("maintenance");
@@ -22,9 +24,11 @@ export default async function MaintenancePage() {
   // The persisted ticket queue (console overhaul Slice E) + the public-intake triage queue (2d).
   // Read-only + non-fatal: a Firestore hiccup degrades each to a clear note rather than 500-ing the desk.
   let tickets: MaintenanceTicketRecord[] = [];
+  let testReceipts: MaintenanceTestActionReceipt[] = [];
   let unavailableNote: string | undefined;
   try {
     tickets = await listMaintenanceTickets(user);
+    testReceipts = await listMaintenanceTestActionReceipts(user);
   } catch {
     unavailableNote =
       "The ticket queue is unavailable in this session. Refresh Google credentials (npm run auth:session) or check the Firestore setup, then reload.";
@@ -54,10 +58,11 @@ export default async function MaintenancePage() {
         <h1 className="section-title">Maintenance Work Order Intake</h1>
         <p className="muted">
           Capture a maintenance issue (type or record the problem and the unit), build a
-          work-order draft, then create a tracked ticket. Nothing is sent or written to a
-          system of record. RentVine and every other external action remain blocked until
-          the exact provider contract, mapping, Registry review, and Admin approval are
-          ready.
+          work-order draft, then create a tracked Live ticket. The production Test
+          workspace below uses reserved invented aliases and supports the same in-app
+          lifecycle plus internal simulation receipts. Every Live external write remains
+          an explicit, target-labeled, human-confirmed action through its configured
+          provider gate.
         </p>
         <MaintenanceCapture
           reporterUid={user.uid}
@@ -72,6 +77,7 @@ export default async function MaintenancePage() {
           unavailableNote={unavailableNote}
           assignees={assignees}
           currentUid={user.uid}
+          initialTestReceipts={testReceipts}
         />
         <MaintenanceExecutionReadiness />
       </section>
