@@ -59,6 +59,9 @@ export const SYNTHETIC_V1_ALIASES = Object.freeze({
 
 export type SyntheticLane = "lease" | "maintenance";
 
+const SYNTHETIC_VENDOR_OAUTH_REDIRECT_URI =
+  "https://example.invalid/vendor/oauth/callback";
+
 const tenantArtifact = renderGovernedArtifactInstance({
   artifactRef: "tenant-renewal:v1.0",
   mailbox: {
@@ -344,7 +347,7 @@ function syntheticValues(
         vendor_ref: a.vendorRef,
         mailbox_email: a.vendorEmail,
         oauth_scopes: VENDOR_OAUTH_SCOPES.join(" "),
-        redirect_uri: "https://example.invalid/vendor/oauth/callback",
+        redirect_uri: SYNTHETIC_VENDOR_OAUTH_REDIRECT_URI,
       };
     case "vendor.gmail.revoke":
       return {
@@ -837,7 +840,11 @@ export function createSyntheticExecutorHarness() {
   ]);
 
   const lifecycle = new VendorLifecycleExecutor(lifecycleProvider);
-  const vendorMailbox = new VendorMailboxExecutor(vendorMailboxProvider);
+  const vendorMailbox = new VendorMailboxExecutor(vendorMailboxProvider, {
+    // Production rejects arbitrary OAuth callbacks. The isolated Test workspace still
+    // supplies one exact, non-routable callback so it exercises the production validator.
+    expectedRedirectUri: SYNTHETIC_VENDOR_OAUTH_REDIRECT_URI,
+  });
   const rentvineWorkOrder = new RentvineWorkOrderExecutor(workOrderProvider);
   const leadSimple = new LeadSimpleMaintenanceExecutor(leadSimpleProvider);
   const maintenanceExecutors = new Map<string, ExternalExecutor>([

@@ -1,10 +1,14 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { LEASE_EXECUTION_ACTIONS } from "@/lib/lease-renewal/execution/matrix";
 import { MAINTENANCE_EXECUTION_ACTIONS } from "@/lib/maintenance/execution/matrix";
 import { runIntegratedFakeV1Acceptance } from "@/lib/release/fake-acceptance";
 
 describe("typed integrated V1 synthetic acceptance", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("runs every S25/S26 adapter with exact schemas and bodyless evidence", async () => {
     const result = await runIntegratedFakeV1Acceptance();
 
@@ -46,5 +50,15 @@ describe("typed integrated V1 synthetic acceptance", () => {
     const serialized = JSON.stringify(result);
     expect(serialized).not.toContain("Synthetic kitchen sink leak");
     expect(serialized).not.toContain("Exact body");
+  });
+
+  it("runs the isolated Test workspace under the production environment guard", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+
+    const result = await runIntegratedFakeV1Acceptance();
+
+    expect(result.mode).toBe("production-test-workspace");
+    expect(result.liveProviderCallCount).toBe(0);
+    expect(result.maintenance.receiptCount).toBe(result.maintenance.actionCount);
   });
 });
