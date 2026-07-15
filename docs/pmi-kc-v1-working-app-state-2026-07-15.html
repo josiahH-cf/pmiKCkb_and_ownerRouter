@@ -951,10 +951,10 @@
           <span class="hero-chip">Application state · Working V1</span>
           <span class="hero-chip">Data model · Live + isolated Test</span>
           <span class="hero-chip">
-            Candidate · local hardening; final deploy pending
+            Release · <code>38ebcf5</code>; build successful
           </span>
           <span class="hero-chip">
-            Serving checkpoint · <code>7ccd9f2 / pmi-kc-kb-demo-00026-cxk</code>
+            Production · <code>rmrm9mp6v-04c897acee28</code> at 100%
           </span>
         </div>
       </header>
@@ -1001,7 +1001,7 @@
             <strong>6</strong><span>explicit persistent Maintenance Test actions</span>
           </div>
           <div class="metric green">
-            <strong>2,178</strong
+            <strong>2,179</strong
             ><span>unit tests passed in the final release-candidate verifier</span>
           </div>
         </div>
@@ -2338,12 +2338,12 @@
         <h2>Release evidence</h2>
         <p class="lede">
           The automated figures below are the completed full-verifier result for the
-          current local hardening candidate. Its commit/build/image/revision pins are
-          intentionally pending until deployment. Production currently serves the prior
-          checkpoint
-          <code>7ccd9f213d51d6723d1a6467fe656f3b4724d6a5</code> as
-          <code>pmi-kc-kb-demo-00026-cxk</code>. Component gates are reported separately
-          from serving-checkpoint browser evidence and Live provider proof.
+          deployed hardening release. Commit
+          <code>38ebcf530e3fe193547806bace91246ccea20c0b</code> built successfully as
+          <code>f106ceb4-02d0-497c-b147-f716e04c0149</code>, and production serves
+          <code>pmi-kc-kb-demo-rmrm9mp6v-04c897acee28</code> at 100%. Component gates
+          remain reported separately from deployed browser evidence and Live provider
+          proof.
         </p>
         <div class="table-wrap">
           <table>
@@ -2391,7 +2391,7 @@
                 <td data-label="Gate">Unit suite</td>
                 <td data-label="Result">
                   <span class="status working">Passed</span>
-                  <strong>306 files / 2,178 tests</strong> in the final release-candidate
+                  <strong>306 files / 2,179 tests</strong> in the final release-candidate
                   verifier.
                 </td>
                 <td data-label="Proves">
@@ -2455,17 +2455,17 @@
                 <td data-label="Gate">Cloud Run / browser</td>
                 <td data-label="Result">
                   <span class="status working">Deployed</span>
-                  Prior checkpoint <code>pmi-kc-kb-demo-00026-cxk</code> serves 100% of
-                  traffic. The current local claim/reset hardening is not represented by
-                  that revision; its exact deploy and human Vendor acceptance are itemized
-                  separately.
+                  <code>pmi-kc-kb-demo-rmrm9mp6v-04c897acee28</code> serves 100% of
+                  traffic. Delayed checks of all eight signed-in routes passed on desktop
+                  and an actual 375px phone client width with the correct H1, no
+                  horizontal overflow, and zero captured errors.
                 </td>
                 <td data-label="Proves">
                   The merged release actually serves, authenticates, and supports
                   desktop/phone workflows.
                 </td>
                 <td data-label="Limit">
-                  Only explicitly exercised provider actions become Live-proven.
+                  Human Vendor password/TOTP acceptance remains separately itemized.
                 </td>
               </tr>
             </tbody>
@@ -2478,13 +2478,15 @@
           without overstating any provider.
         </div>
         <div class="callout good">
-          <strong>The last full local-candidate verifier completed</strong>
-          The automated rows above record that completed baseline; the Cloud Run row
-          records the separate prior serving checkpoint. Reliability was improved by
-          capping Vitest at eight workers and replacing a costly 393,233-byte deep
+          <strong>Production acceptance found and closed a real defect</strong>
+          Approval Queue initially hydrated with different server and browser timestamp
+          text because its formatter inherited the Cloud Run host and browser time zones.
+          The release now formats explicitly in <code>America/Chicago</code>; a regression
+          test pins <code>Jul 15, 2026, 10:00 AM CDT</code>. The final delayed desktop and
+          phone route sweeps produced zero captured errors. Reliability was also improved
+          by capping Vitest at eight workers and replacing a costly 393,233-byte deep
           structural assertion with exact byte-length and byte comparison. No test timeout
-          was widened or relaxed. The final candidate rerun will replace the baseline
-          counts before deploy.
+          was widened or relaxed.
         </div>
       </section>
 
@@ -2520,7 +2522,7 @@
           <dd>
             That historical commit passed 1,984 unit assertions distributed across 286
             test files. The final release-candidate result is larger and is reported
-            separately as 306 files / 2,178 tests.
+            separately as 306 files / 2,179 tests.
           </dd>
           <dt>Firestore 16/56</dt>
           <dd>
@@ -2618,7 +2620,7 @@
               The wrapper runs these groups sequentially, so “now in the full
               unit/build/governance phase” described its position in the pipeline, not a
               new defect or blocker. That wrapper later completed cleanly with the
-              306-file/2,178-test, 17-file/59-Firestore-test, 32-pass/18-skip core E2E,
+              306-file/2,179-test, 17-file/59-Firestore-test, 32-pass/18-skip core E2E,
               76-route, and governance result shown above.
             </p>
           </article>
@@ -2642,31 +2644,28 @@
         <h2>What remains—and what does not</h2>
         <p class="lede">
           Product choices R01–R09 are settled. The application does not need another broad
-          approval cycle or another rewrite of what V1 means. A working-app checkpoint is
-          deployed; the current hardening candidate has passed its final verifier and
-          still needs exact commit/build/revision pins and deploy. One secret-bearing
+          approval cycle or another rewrite of what V1 means. The hardening release is
+          verified and deployed with exact commit/build/image/revision pins, and its
+          bounded rollback/restore rehearsal is complete. One secret-bearing Vendor
           acceptance record remains open, while provider-specific activation proceeds only
           when the business wants a particular Live effect.
         </p>
         <div class="grid-3">
           <article class="card">
             <span class="status pending">Evidence closeout</span>
-            <h3 style="margin-top: 11px">Two operational closeouts remain</h3>
+            <h3 style="margin-top: 11px">One human closeout remains</h3>
             <ul>
-              <li>
-                Run the final all-in-one verifier, commit/push, and deploy the current
-                hardening candidate; then replace every pending release pin and baseline
-                count in this report.
-              </li>
               <li>
                 Have the canonical Test Vendor complete its private password/TOTP setup
                 and assigned-ticket production walkthrough.
               </li>
               <li>
-                Historical rollback evidence remains valid: the earlier
-                <code>f02112d / 00025-mhw</code> checkpoint moved to
-                <code>00024-6b2</code>, stayed healthy, and was restored. Rehearse the new
-                candidate against its own captured prior revision after deploy.
+                The exact
+                <code
+                  >rmrm9mp6v-04c897acee28 → rmrm8t6y7-d250f83ddfee →
+                  rmrm9mp6v-04c897acee28</code
+                >
+                rollback/restore rehearsal is complete; repeat it after a future release.
               </li>
             </ul>
           </article>
@@ -2754,17 +2753,17 @@
       </section>
 
       <section class="report-section" id="deployment">
-        <h2>Release candidate and serving checkpoint</h2>
+        <h2>Serving release and production evidence</h2>
         <p class="lede">
-          The current hardening candidate is locally verified and deliberately has pending
-          release pins until its commit, build, and deployment complete. Production
-          currently serves checkpoint
-          <code>7ccd9f2 / pmi-kc-kb-demo-00026-cxk</code> at 100%. The earlier
+          Production serves commit <code>38ebcf5</code> as
+          <code>pmi-kc-kb-demo-rmrm9mp6v-04c897acee28</code> at 100% traffic. Its exact
+          build, digest, creation time, and predecessor are recorded below. The earlier
           <code>f02112d / 00025-mhw → 00024-6b2 → 00025-mhw</code> rollback rehearsal is
-          retained as historical evidence, not relabeled as the upcoming candidate's
-          rehearsal. The Cloud Run resource retains its historical <code>demo</code> name,
-          but it runs in <code>pmi-kc-kb-prod</code> with the production runtime identity;
-          it is not a fixture-only deployment.
+          retained as historical evidence. The exact
+          <code>rmrm9 → rmrm8 → rmrm9</code> rehearsal is also complete for this release.
+          The Cloud Run resource retains its historical <code>demo</code> name, but it
+          runs in <code>pmi-kc-kb-prod</code> with the production runtime identity; it is
+          not a fixture-only deployment.
         </p>
         <div class="table-wrap">
           <table>
@@ -2778,38 +2777,37 @@
                 </td>
               </tr>
               <tr>
-                <td data-label="Field">Candidate commit</td>
+                <td data-label="Field">Serving commit</td>
                 <td data-label="Value">
-                  <span class="evidence-pending">Verifier complete; pending commit</span>
+                  <code>38ebcf530e3fe193547806bace91246ccea20c0b</code>
                 </td>
               </tr>
               <tr>
-                <td data-label="Field">Candidate Cloud Build</td>
+                <td data-label="Field">Cloud Build</td>
                 <td data-label="Value">
-                  <span class="evidence-pending">Pending deployment</span>
+                  <code>f106ceb4-02d0-497c-b147-f716e04c0149</code> —
+                  <strong>SUCCESS</strong>
                 </td>
               </tr>
               <tr>
-                <td data-label="Field">Candidate container image</td>
+                <td data-label="Field">Container image</td>
                 <td data-label="Value">
-                  <span class="evidence-pending">Pending deployment digest</span>
-                </td>
-              </tr>
-              <tr>
-                <td data-label="Field">Candidate serving revision</td>
-                <td data-label="Value">
-                  <span class="evidence-pending">Pending exact-revision promotion</span>
-                </td>
-              </tr>
-              <tr>
-                <td data-label="Field">Current serving checkpoint</td>
-                <td data-label="Value">
-                  Commit <code>7ccd9f213d51d6723d1a6467fe656f3b4724d6a5</code>; build
-                  <code>840e3b52-ae0e-43b8-bcbf-a25045d5705a</code>; revision
-                  <code>pmi-kc-kb-demo-00026-cxk</code>; image
                   <code
-                    >sha256:1012dde4878af0c582c5c00f6fc1d5ad3374391ebfc1e2ae2e0747453b03a1ac</code
-                  >.
+                    >sha256:25358a99d6f4890da64db6d3cb17b0ca7d3725c7f0251390b7c6dc8b12ba8103</code
+                  >
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Field">Serving revision</td>
+                <td data-label="Value">
+                  <code>pmi-kc-kb-demo-rmrm9mp6v-04c897acee28</code>; created
+                  <code>2026-07-15T16:02:59.106405Z</code>.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Field">Captured predecessor</td>
+                <td data-label="Value">
+                  <code>pmi-kc-kb-demo-rmrm8t6y7-d250f83ddfee</code>
                 </td>
               </tr>
               <tr>
@@ -2826,37 +2824,45 @@
                 </td>
               </tr>
               <tr>
-                <td data-label="Field">Historical rollback evidence</td>
+                <td data-label="Field">Rollback evidence</td>
                 <td data-label="Value">
                   Earlier checkpoint <code>f02112d / 00025-mhw</code> moved to
                   <code>pmi-kc-kb-demo-00024-6b2</code>, passed the bounded health checks,
-                  and restored <code>00025-mhw</code>. Capture and rehearse the upcoming
-                  candidate's own prior revision after deploy.
+                  and restored <code>00025-mhw</code>. The current release then completed
+                  <code
+                    >rmrm9mp6v-04c897acee28 → rmrm8t6y7-d250f83ddfee →
+                    rmrm9mp6v-04c897acee28</code
+                  >. Both sign-in surfaces returned 200, protected Ask redirected to staff
+                  sign-in, the existing signed-in Console stayed healthy, and the restored
+                  final-revision ERROR-log query was empty.
                 </td>
               </tr>
               <tr>
                 <td data-label="Field">Traffic</td>
                 <td data-label="Value">
-                  <strong>100%</strong> to <code>pmi-kc-kb-demo-00026-cxk</code>; latest
-                  ready revision matches.
+                  <strong>100%</strong> to
+                  <code>pmi-kc-kb-demo-rmrm9mp6v-04c897acee28</code>.
                 </td>
               </tr>
               <tr>
                 <td data-label="Field">Public/auth smoke</td>
                 <td data-label="Value">
-                  Prior serving-checkpoint evidence shows staff routes returning 307 to
-                  <code>/sign-in</code>, Vendor routes returning 307 to
-                  <code>/vendor/sign-in</code>, and the protected Lease Test API returning
-                  401 without a session. Repeat these checks against the upcoming
-                  candidate revision.
+                  The deployed production lineage has confirmed public sign-in surfaces,
+                  staff redirects to <code>/sign-in</code>, Vendor redirects to
+                  <code>/vendor/sign-in</code>, and protected-API rejection without a
+                  session. The exact final revision's signed-in route checks are recorded
+                  separately below.
                 </td>
               </tr>
               <tr>
                 <td data-label="Field">Signed-in walkthrough</td>
                 <td data-label="Value">
-                  Prior production Admin evidence covers the isolated Test workspace,
-                  Maintenance persistence/actions, and zero Live calls. The upcoming
-                  candidate needs the same signed-in smoke plus the
+                  All eight internal routes passed delayed desktop and actual 375px phone
+                  checks with the correct H1, no horizontal overflow, and zero captured
+                  errors. A generic signed-in lease-renewal question returned a
+                  source-backed answer with two approved-source citations. The Approval
+                  Queue hydration mismatch found during acceptance is fixed and
+                  regression-tested. Still pending:
                   <span class="evidence-pending"
                     >password/TOTP/assigned-ticket/disable/reset human acceptance</span
                   >.
@@ -2876,10 +2882,10 @@
       <footer class="report-footer">
         <p>
           <strong>Evidence basis:</strong> repository implementation, the last completed
-          final local verifier, and the separately identified serving checkpoint on July
-          15, 2026. Candidate deploy pins and human Vendor acceptance are labeled pending
-          rather than inferred. No customer records, Gmail bodies, credentials, or secret
-          values are included.
+          final verifier, exact Cloud Build/Cloud Run release pins, and signed-in
+          production route acceptance and the exact release's rollback/restore on July 15,
+          2026. Human Vendor acceptance remains labeled pending rather than inferred. No
+          customer records, Gmail bodies, credentials, or secret values are included.
         </p>
         <p>
           Companion records: <a href="plan.md">working-app plan</a> ·

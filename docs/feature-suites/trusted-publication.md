@@ -2,12 +2,13 @@
 
 # S21 — Trusted immediate source and process publication
 
-> **Status: Local green (2026-07-14).** App-plane policy, bounded request streaming, integrity-checked
+> **Status: Deployed Working V1 boundary (2026-07-15).** App-plane policy, bounded request streaming, integrity-checked
 > 384 KiB Firestore content chunks, immutable content references/version/Active pointer/rollback/audit,
 > process and Space UI, Firestore denial, and a fail-closed scanner provider boundary are implemented.
 > Deterministic clean/malicious scanners are fenced to explicit local-demo auth in a non-production
-> process with a loopback Firestore emulator. Production roots, a real scanner, import/indexing, Drive
-> changes, deploy, and live proof remain gated.
+> process with a loopback Firestore emulator. Existing approved sources remain usable. A new
+> production root/scanner/import connection activates independently when configured; its absence does
+> not block the working application, and deterministic Test publication never claims a Live scan.
 
 > New 2026-07-14. Implements R05. Validation-passing Editor additions become Active immediately; the
 > old default approval detour is superseded for content publication only.

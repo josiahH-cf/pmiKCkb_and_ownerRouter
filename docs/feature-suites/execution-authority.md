@@ -3,8 +3,9 @@
 # S20 — Risk-bounded execution authority
 
 > New 2026-07-14. Implements R01 and the Round 2 Admin self-approval decision. This supersedes the
-> former “Editor always prepares; Approver/Admin always sends” product rule. **Status: Local green on
-> 2026-07-14**; all Registry values and live/external gates remain unchanged.
+> former “Editor always prepares; Approver/Admin always sends” product rule. **Status: Deployed
+> Working V1 on 2026-07-15.** The shared authority/ledger/Approval Queue boundary is active; every Live
+> provider action still activates independently from its explicit Registry state and provider proof.
 
 **Goal.** Internal Editors directly complete enabled Low/Medium work without an approval detour, while
 consequential High actions remain Admin-approved and invalid or technically blocked actions remain

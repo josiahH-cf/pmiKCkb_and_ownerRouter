@@ -6,7 +6,7 @@
 > as an application/Test action in V1; each real provider action activates independently after its
 > documented contract and configuration are healthy.
 
-**Implementation status (2026-07-15): Working app/Test-ready.** The normal Renewals experience creates
+**Implementation status (2026-07-15): Deployed working app/Test journey accepted.** The normal Renewals experience creates
 a canonical invented Firestore Test run, persists `Created → Reviewed → Approved → Executing → Done`,
 and exposes all 11 exact actions with target/risk/effect, matrix dependencies, fresh confirmation,
 deterministic one-attempt/bodyless receipts, refresh-safe progress, and zero provider construction.

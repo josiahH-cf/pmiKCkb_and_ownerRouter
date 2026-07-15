@@ -60,30 +60,40 @@ Live, and receipts state `provider_contacted=false` and `live_proof_eligible=fal
 
 ## Environment Registry
 
-| Environment       | Purpose                                  | Non-secret identifiers                                                                                                                                                                                                                                                                            | Secret storage                       | Owner                             | State / verification                                                                                                                                                                                                                                              |
-| ----------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Local development | Build, unit/E2E/emulator verification    | `localhost:3000`, loopback emulator                                                                                                                                                                                                                                                               | `.env.local` / active shell          | Implementer                       | `npm run dev`; `npm run format:check`; `npm run typecheck`; `npm test`; `npm run test:firestore`                                                                                                                                                                  |
-| Legacy demo       | Historical local/cloud evidence only     | Legacy project values                                                                                                                                                                                                                                                                             | Legacy ignored config                | Josiah                            | Not reusable for production; no `cherrybridge.ai` identity/resource in the production path                                                                                                                                                                        |
-| Separate staging  | Optional future provider sandbox         | Not provisioned                                                                                                                                                                                                                                                                                   | Client Secret Manager/identity       | Future                            | Not required for V1 because production has an isolated Test lane; provision only when a provider requires its own sandbox                                                                                                                                         |
-| Production        | Stable PMI KC app with Live + Test lanes | Project `pmi-kc-kb-prod` (#558870356522); Cloud Run `pmi-kc-kb-demo`, `us-central1`; canonical URL `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`; bucket `pmi-kc-kb-prod-sources-558870356522`; search store `kb-lease-renewals-txt`; Firebase app `1:558870356522:web:c1b2473b886a6edd889953` | Secret Manager / attached identities | Josiah technical; PMI KC business | Commit `7ccd9f213d51d6723d1a6467fe656f3b4724d6a5`, revision `pmi-kc-kb-demo-00026-cxk`, and ruleset `63b31613-59ba-495c-9ef3-455a5c593f51` are deployed. The current hardening candidate still needs final verifier/deploy pins and human Test Vendor acceptance. |
+| Environment       | Purpose                                  | Non-secret identifiers                                                                                                                                                                                                                                                                            | Secret storage                       | Owner                             | State / verification                                                                                                                                                                                                                                        |
+| ----------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local development | Build, unit/E2E/emulator verification    | `localhost:3000`, loopback emulator                                                                                                                                                                                                                                                               | `.env.local` / active shell          | Implementer                       | `npm run dev`; `npm run format:check`; `npm run typecheck`; `npm test`; `npm run test:firestore`                                                                                                                                                            |
+| Legacy demo       | Historical local/cloud evidence only     | Legacy project values                                                                                                                                                                                                                                                                             | Legacy ignored config                | Josiah                            | Not reusable for production; no `cherrybridge.ai` identity/resource in the production path                                                                                                                                                                  |
+| Separate staging  | Optional future provider sandbox         | Not provisioned                                                                                                                                                                                                                                                                                   | Client Secret Manager/identity       | Future                            | Not required for V1 because production has an isolated Test lane; provision only when a provider requires its own sandbox                                                                                                                                   |
+| Production        | Stable PMI KC app with Live + Test lanes | Project `pmi-kc-kb-prod` (#558870356522); Cloud Run `pmi-kc-kb-demo`, `us-central1`; canonical URL `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`; bucket `pmi-kc-kb-prod-sources-558870356522`; search store `kb-lease-renewals-txt`; Firebase app `1:558870356522:web:c1b2473b886a6edd889953` | Secret Manager / attached identities | Josiah technical; PMI KC business | Commit `38ebcf530e3fe193547806bace91246ccea20c0b`, revision `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28`, and ruleset `63b31613-59ba-495c-9ef3-455a5c593f51` are deployed. Desktop and 375px phone acceptance are green; the human Test Vendor ceremony remains. |
 
-The current 2026-07-15 production checkpoint is commit
-`7ccd9f213d51d6723d1a6467fe656f3b4724d6a5`, Cloud Build
-`840e3b52-ae0e-43b8-bcbf-a25045d5705a`, revision `pmi-kc-kb-demo-00026-cxk` at 100% traffic,
-and image digest
-`sha256:1012dde4878af0c582c5c00f6fc1d5ad3374391ebfc1e2ae2e0747453b03a1ac`. Its serving
-predecessor is `pmi-kc-kb-demo-00025-mhw`. Firestore ruleset
+The current 2026-07-15 production release is commit
+`38ebcf530e3fe193547806bace91246ccea20c0b`, Cloud Build
+`f106ceb4-02d0-497c-b147-f716e04c0149` (`SUCCESS`), revision
+`pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` at 100% traffic, and image digest
+`sha256:25358a99d6f4890da64db6d3cb17b0ca7d3725c7f0251390b7c6dc8b12ba8103`. Its serving
+predecessor is `pmi-kc-kb-demo-rmrm8t6y7-d250f83ddfee`. Firestore ruleset
 `63b31613-59ba-495c-9ef3-455a5c593f51` is released.
 
-Historical rollback evidence remains scoped to the earlier `f02112d / 00025-mhw` checkpoint: traffic
-moved to `pmi-kc-kb-demo-00024-6b2`, the auth boundary and signed-in Console remained healthy, and
-traffic returned to `00025-mhw`. The local hardening candidate must capture and rehearse its own prior
-revision after deployment; its final commit/build/image/revision/prior fields are currently pending.
+The final release rollback rehearsal moved 100% traffic from
+`pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` to captured predecessor
+`pmi-kc-kb-demo-rmrm8t6y7-d250f83ddfee`. Staff and Vendor sign-in returned 200, unauthenticated
+`/ask` redirected to `/sign-in`, and the existing signed-in Console remained healthy. Traffic was
+restored 100% to the final revision, the same boundaries remained healthy, and the final-revision
+ERROR-level log query returned no entries. The earlier `f02112d / 00025-mhw` rehearsal remains
+historical evidence only.
 
-The final hardening candidate's clean-install verifier passed 306 unit files/2,178 tests, Firestore 17/59, core E2E 32
-passed/18 intentional prerequisite skips, all governance gates, `cutover:dry-run`, and 76/76 build
-pages/routes. `npm audit --omit=dev` reports zero runtime findings; the full audit's three Moderate
-findings are confined to the documented development-only Firebase CLI chain.
+The deployed release's clean-install verifier passed 306 unit files/2,179 tests, Firestore 17/59,
+core E2E 32 passed/18 intentional prerequisite skips, all governance gates, `cutover:dry-run`, and
+76/76 build pages/routes. `npm audit --omit=dev` reports zero runtime findings; the full audit's three
+Moderate findings are confined to the documented development-only Firebase CLI chain.
+
+Production browser acceptance loaded Ask, Spaces, Approval Queue, Gmail Hub, Connections, Admin,
+Lease Renewal, and Maintenance directly at desktop and 375px phone widths. Every route showed the
+expected H1, no horizontal overflow, and zero console errors after a delayed per-route check. This
+acceptance found an Approval Queue hydration mismatch caused by implicit server/browser time zones;
+the deployed formatter now explicitly uses `America/Chicago`, with a regression test pinning the
+rendered result.
 
 ## Production identity configuration
 
@@ -217,15 +227,16 @@ checks passed; never retain setup links, passwords, TOTP material, or session va
 - [x] Firebase Email/Password, global MFA/TOTP, and authorized-domain state are recorded.
 - [x] Canonical Test Lease reached refresh-safe Done with eleven receipts/attempts and zero Live calls.
 - [x] Automated Test Vendor 11/11 and Maintenance 19/19 journeys pass with zero Live calls.
-- [x] Canonical Test Vendor reset/re-enable and internal-roster separation are locally verified.
+- [x] Canonical Test Vendor reset/re-enable and internal-roster separation are verified and deployed.
 - [x] Each provider's activation state is independent and visible in the app.
-- [x] Rewalk signed-in desktop/phone routes, including Workflow Communications, on the historical
-      `f02112d / 00025-mhw` checkpoint.
+- [x] Rewalk signed-in desktop/375px routes on final revision
+      `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28`, including the fixed Approval Queue hydration path.
 - [ ] Complete the human Test Vendor password/TOTP/assigned-ticket/mailbox/disable/reset/re-enrollment
-      journey on the deployed candidate.
+      journey on the deployed release.
 - [x] Rehearse historical `00025-mhw → 00024-6b2 → 00025-mhw` traffic rollback/restore.
-- [ ] Repeat signed-in desktop/phone acceptance and bounded rollback/restore against the deployed
-      current candidate and its own captured predecessor.
+- [x] Rehearse bounded rollback/restore between final revision
+      `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` and its captured predecessor
+      `pmi-kc-kb-demo-rmrm8t6y7-d250f83ddfee`.
 - [x] `docs/client-checklist.md` contains only genuine client inputs, not already-settled decisions.
 - [x] `docs/status.md` records verification and any exact dependent blocker.
 

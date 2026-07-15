@@ -12,8 +12,9 @@ source unavailable states instead of crossing lanes. Scoped/provenanced projecti
 metadata, on-demand body boundary, environment tests, and live-provider mapping tests exist. The
 historical `f02112d / 00025-mhw` checkpoint passed signed-in desktop/phone acceptance; the Admin Test
 workspace passed Vendor 11/11, Lease 11/11, and Maintenance 19/19 with zero Live calls. Current
-production serves `7ccd9f2 / 00026-cxk`; a missing Live connection does not make the application
-Pre-V1.
+production serves `38ebcf5 / pmi-kc-kb-demo-rmrm9mp6v-04c897acee28`; its fresh desktop and 375px
+phone sweeps covered all eight internal routes with correct headings, no horizontal overflow, and zero
+console errors. A missing Live connection does not make the application Pre-V1.
 
 **Goal.** Console is a trustworthy operational front door where authorized users can see both current
 Live operations and invented Test workflow records without confusing them. Live panels use only

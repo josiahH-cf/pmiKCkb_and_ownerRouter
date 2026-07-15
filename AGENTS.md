@@ -37,7 +37,8 @@ differences when they matter, and never let a runner's local defaults silently w
 Govern and build the PMI KC three-product workstream:
 
 - PMI KC KB: source-backed knowledge and handoff web app.
-- Lease Renewal Agent: separate renewal workflow product lane; discovery before runtime.
+- Lease Renewal Agent: working renewal workflow product lane; the production Test journey is
+  complete and each Live provider action activates independently.
 - Workflow Communications: Gmail-backed communication adapter and evidence source for
   renewal and maintenance workflows; compatibility routes retain the old Gmail Hub name.
 

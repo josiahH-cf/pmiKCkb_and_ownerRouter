@@ -77,10 +77,9 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 | S24 Communications policy + artifacts      | `docs/feature-suites/communications-policy.md`         | Working V1; TTL/scheduler optional              |
 | S25 Lease Renewal external execution       | `docs/feature-suites/lease-renewal-execution.md`       | Working Test journey; Live per action           |
 | S26 Maintenance external execution         | `docs/feature-suites/maintenance-execution.md`         | Working Test journey; Live per action           |
-| S27 Working-app release + activation       | `docs/feature-suites/v1-release-acceptance.md`         | Working V1; evidence refresh in progress        |
+| S27 Working-app release + activation       | `docs/feature-suites/v1-release-acceptance.md`         | Working V1 deployed and machine-accepted        |
 
-The only release-candidate follow-through still pending across S19–S27 is operational: deploy the
-current local hardening candidate, replace its placeholder commit/build/revision/digest/count fields,
-and record the secret-free outcome of the human Test Vendor password/TOTP/assigned-ticket/disable/reset
-ceremony. Live Vendor OAuth and other provider integrations remain optional activations per exact Live
-action; they do not reopen the completed Test application workflow.
+The final hardening revision is deployed and machine-accepted. The only remaining S19–S27 acceptance
+item is the secret-free outcome of the private human Test Vendor password/TOTP/assigned-ticket/
+disable/reset ceremony. Live Vendor OAuth and other provider integrations remain optional activations
+per exact Live action; they do not reopen the completed Test application workflow.

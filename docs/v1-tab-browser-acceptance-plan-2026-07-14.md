@@ -1,7 +1,7 @@
 # V1 tab and browser acceptance plan
 
-Date: 2026-07-15. Status: **historical core acceptance retained; current hardening candidate deploy/
-re-smoke and human Test Vendor walkthrough pending**.
+Date: 2026-07-15. Status: **final revision deployed and machine-accepted; private human Test Vendor
+walkthrough pending**.
 
 V1 acceptance proves that the deployed application can be used end to end. It does not require every
 future external provider to be Live. Provider activation is inventoried independently, and an
@@ -69,24 +69,25 @@ V1 application readiness.
 
 ## 2026-07-15 execution record
 
-- Current production serves `7ccd9f213d51d6723d1a6467fe656f3b4724d6a5` as
-  `pmi-kc-kb-demo-00026-cxk` at 100% traffic. The current local hardening candidate has no final
-  commit/build/revision pin until its closeout deploy.
-- The browser and rollback observations below are historical evidence captured on
-  `f02112d / 00025-mhw`; they are not silently attributed to `00026-cxk` or the local candidate.
-- All eight internal surfaces loaded signed-in on the historical serving `00025-mhw` revision.
-- Clean direct 390x844 loads showed the expected headings, no horizontal overflow, no visible alerts,
-  and no reproducible console error. A single hydration warning seen during an artificial rapid-route
-  loop did not reproduce on clean direct loads and also appeared once on a different route.
+- Current production serves `38ebcf530e3fe193547806bace91246ccea20c0b` as
+  `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` at 100% traffic.
+- Fresh delayed desktop and 375px-phone loads covered Ask, Spaces, Approval Queue, Workflow
+  Communications, Connections, Admin, Lease Renewal, and Maintenance with the expected headings, no
+  horizontal overflow, and zero console errors.
+- The acceptance sweep caught a real Approval Queue hydration mismatch: an implicit server/browser
+  time-zone formatter emitted different initial text. The application now formats timestamps
+  explicitly in `America/Chicago`; its regression test and the final fresh-route sweep are green.
+- Signed-in Ask returned a Verified Source answer with citations on the exact final revision.
 - The normal Lease Test journey reached refresh-safe Done with 11 receipts/attempts and zero provider
   calls; the persistent Maintenance Test ticket reached Closed; the Admin workspace passed Vendor
   11/11, Lease 11/11, and Maintenance 19/19 with zero Live calls.
-- Historical traffic rollback to `00024-6b2` and restoration to `00025-mhw` kept the unauthenticated
-  and signed-in boundaries healthy. Capture and rehearse the local candidate's own prior revision
-  after deploy.
-- The locally verified candidate adds canonical Test Vendor reset/re-enable and rejects any
+- Traffic was moved 100% from `rmrm9mp6v-04c897acee28` to its captured predecessor
+  `rmrm8t6y7-d250f83ddfee`, then restored 100% to the final revision. Both public sign-in surfaces,
+  the protected unauthenticated redirect, and the existing signed-in Console boundary stayed healthy;
+  the restored final-revision ERROR-log query was empty.
+- The deployed revision adds canonical Test Vendor reset/re-enable and rejects any
   `vendor`, `vendor_id`, or `data_mode` claim evidence from internal People/Access and staff sessions,
-  even when a value is false/empty/malformed. It still needs deployment.
+  even when a value is false/empty/malformed.
 - The canonical Test Vendor's private password/TOTP/assigned-ticket/mailbox/disable/reset/fresh-
   enrollment walkthrough is the only remaining human browser scenario. It must prove that the stable
   Vendor id, Test tickets/assignments/mailbox/receipts survive UID rotation while old authentication

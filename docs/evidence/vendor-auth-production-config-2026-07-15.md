@@ -23,11 +23,13 @@ and Google provider were already correct and were not broadly reconfigured. `ENA
 available; the application still requires enrollment and challenge only at the external Vendor
 boundary.
 
-## Locally verified Test Vendor recovery boundary
+## Deployed Test Vendor recovery boundary
 
-The exact current local candidate adds a repeatable authentication reset/re-enable action without
-changing the production Identity Platform configuration above. It is pending deployment and human
-secret-bearing acceptance.
+Production revision `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` from commit
+`38ebcf530e3fe193547806bace91246ccea20c0b` includes the repeatable authentication reset/re-enable
+action without changing the Identity Platform configuration above. Its automated behavior is verified;
+the private human password/TOTP lifecycle ceremony remains pending and no secret-bearing evidence is
+retained.
 
 - Only an Admin can initiate it, with a plain-English reason and an exact preview bound to the
   canonical `.invalid` Test Vendor's current Firebase UID, status, and invite version.

@@ -6,6 +6,11 @@
 > the former general mailbox-workspace direction is superseded by a workflow-communication adapter.
 > `/gmail-hub` remains as a compatibility URL and is titled “Workflow Communications.”
 
+**Status: Deployed Working V1 — 2026-07-15.** Workflow-linked reads, approved labels, and
+exact-confirmed replies use the authenticated user's own PMI KC mailbox through the proven DWD
+transport. Generic inbox browsing, free-form compose, and autonomous send are intentionally absent;
+unused or separately activated actions remain visible without making the application incomplete.
+
 **Goal.** Gmail supports authorized lease-renewal and maintenance work without becoming a second
 inbox. Gmail remains the message system of record. PMI KC stores bodyless links, reviewed workflow
 meaning, attention state, and audit context; it does not own mailbox management or infer operational

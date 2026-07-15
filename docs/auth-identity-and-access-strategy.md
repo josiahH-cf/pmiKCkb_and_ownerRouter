@@ -23,7 +23,7 @@ browsing, generic compose, or background interpretation. See §2.3.
 | (a) Claude Drive connector | ✅ Historical connector is `pmikcmetro.com`; renewal source was readable. Codex does not reuse that connector token.                                                                   | Revoke any obsolete personal connector grant if it still exists; this is account hygiene, not a V1 gate.                                       |
 | (b) Human gcloud / ADC     | ✅ `josiah@pmikcmetro.com` on `pmi-kc-kb-prod`; managed-domain ADC and session preflights are implemented.                                                                             | Run `npm run auth:session` only when the read-only freshness check reports stale interactive credentials.                                      |
 | (c) Runtime SA             | ✅ Keyless `pmi-kc-kb-runtime@…` is attached to Cloud Run and its production identity/configuration is recorded in `environment-handoff.md`.                                           | Add only the least-privilege permission or secret reference required by a separately activated Live provider action.                           |
-| (d) Firebase end-user auth | ✅ Staff Google auth plus Admin-provisioned Vendor Email/Password and TOTP are configured; production demo flags are fenced, and internal/Vendor claim classes fail closed separately. | Deploy the current reset/claim-hardening candidate, then record the human Test Vendor password/TOTP/assigned-ticket/disable/reset ceremony.    |
+| (d) Firebase end-user auth | ✅ Staff Google auth plus Admin-provisioned Vendor Email/Password and TOTP are configured; production demo flags are fenced, and internal/Vendor claim classes fail closed separately. | Record the human Test Vendor password/TOTP/assigned-ticket/disable/reset ceremony; the reset/claim hardening is already deployed.              |
 | (e) Firebase CLI           | ✅ Firestore rules are deployed as ruleset `63b31613-59ba-495c-9ef3-455a5c593f51`.                                                                                                     | Composite indexes are optional and deployed only when an actual production query requires one; unused index creation is not a working-V1 step. |
 | (f) Cloud Build SA         | ✅ The project-bound source build succeeds under `558870356522-compute@developer.gserviceaccount.com`; build/revision identity is observable from Cloud Build and Cloud Run.           | Periodically review its documented build-only IAM inventory; this does not block the already working application.                              |
 
@@ -402,19 +402,17 @@ stop:** the $10 budget alert is a warning, not a cap — treat unexpected spend 
 
 ## Immediate next actions for Josiah
 
-1. **Deploy the verified local release candidate** after the final all-in-one verifier, then replace
-   the pending commit/build/image/revision fields in the working-app evidence with the exact outputs.
-2. **Run the human Test Vendor ceremony:** password setup, TOTP enrollment, fresh password+TOTP
+1. **Run the human Test Vendor ceremony:** password setup, TOTP enrollment, fresh password+TOTP
    sign-in, assigned-ticket-only access, disable/revoke, and reset/re-enrollment. Record only bodyless
    outcomes; never retain the setup link, password, TOTP seed, or recovery code.
-3. **Use session auth only when needed:** run `npm run preflight:adc` before a live Google read and
+2. **Use session auth only when needed:** run `npm run preflight:adc` before a live Google read and
    `npm run auth:session` in the owner's Windows shell only when that check reports stale credentials.
-4. **Activate Live providers per exact action:** add the documented identity, mapping, credential,
+3. **Activate Live providers per exact action:** add the documented identity, mapping, credential,
    preview/confirmation, receipt/readback, monitoring, and rollback evidence for that action. Missing
    activation inputs leave only that Live action unavailable; they do not make the Test workflow or
    application incomplete.
-5. **Keep optional operations proportional:** add a composite index, native TTL, or Scheduler only
+4. **Keep optional operations proportional:** add a composite index, native TTL, or Scheduler only
    when a measured query/volume/operations need justifies it. The current rules and bounded on-demand
    cleanup are the working-V1 defaults.
-6. **Finish non-blocking account hygiene:** revoke any obsolete personal connector grant if present,
+5. **Finish non-blocking account hygiene:** revoke any obsolete personal connector grant if present,
    periodically review runtime/build IAM, and maintain a backup managed-domain operator.

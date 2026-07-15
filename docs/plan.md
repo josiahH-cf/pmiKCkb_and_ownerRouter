@@ -149,12 +149,11 @@ Acceptance:
 
 ### P8 - Production Release and Human Walkthrough
 
-Status: in progress — commit `7ccd9f213d51d6723d1a6467fe656f3b4724d6a5` is the current serving
-checkpoint at 100% traffic on `pmi-kc-kb-demo-00026-cxk`. Signed-in desktop/phone and rollback/restore
-evidence remains attached to the explicitly historical `f02112d / 00025-mhw` checkpoint. The current
-reset/re-enable, partial-claim, and deploy-wrapper hardening is locally green but still needs final
-verification, commit/push/deploy, refreshed production smoke/rollback pins, and human Test Vendor
-acceptance.
+Status: in progress — Working-App V1 commit `38ebcf530e3fe193547806bace91246ccea20c0b` is
+serving 100% traffic on `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28`. Clean verification,
+commit/push/deploy, production logs, and signed-in desktop/375px browser acceptance are complete. The
+captured-prior traffic rollback/restore rehearsal is also complete. The human Test Vendor
+password/TOTP lifecycle ceremony is the sole remaining acceptance.
 
 Acceptance:
 
@@ -172,27 +171,34 @@ Acceptance:
   password/TOTP access after reset without exposing secret-bearing values.
 - Commit is merged to `main`, pushed, deployed, and production smoke/browser checks pass.
 
-Current serving checkpoint and local candidate, 2026-07-15:
+Current serving release, 2026-07-15:
 
-- Cloud Build `840e3b52-ae0e-43b8-bcbf-a25045d5705a` produced serving revision
-  `pmi-kc-kb-demo-00026-cxk` and digest
-  `sha256:1012dde4878af0c582c5c00f6fc1d5ad3374391ebfc1e2ae2e0747453b03a1ac`; its serving
-  predecessor is `pmi-kc-kb-demo-00025-mhw`. Firestore ruleset
+- Successful Cloud Build `f106ceb4-02d0-497c-b147-f716e04c0149` produced serving revision
+  `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` and digest
+  `sha256:25358a99d6f4890da64db6d3cb17b0ca7d3725c7f0251390b7c6dc8b12ba8103`; its captured
+  serving predecessor is `pmi-kc-kb-demo-rmrm8t6y7-d250f83ddfee`. Firestore ruleset
   `63b31613-59ba-495c-9ef3-455a5c593f51` is released.
-- The local hardening candidate has no final commit/build/image/revision/prior pins yet; populate them
-  only after the final verifier and deploy.
 - Production Test Lease run `test-renewal-019f6599-af50-7451-88ea-e2592fc001a2` reached Done with
   eleven receipts, eleven attempts, zero Live calls, and refresh-safe persisted state.
 - The Admin Test workspace passed Vendor 11/11, Lease 11/11, and Maintenance 19/19 with zero Live
-  calls. All eight internal surfaces loaded signed-in; direct phone loads had no overflow, visible
-  alerts, or reproducible console errors.
+  calls.
+- Delayed direct signed-in loads of Ask, Spaces, Approval Queue, Gmail Hub, Connections, Admin, Lease
+  Renewal, and Maintenance showed the expected H1, no horizontal overflow, and zero console errors at
+  desktop and 375px phone widths. Production acceptance found Approval Queue's implicit
+  server/browser time-zone hydration mismatch; the deployed formatter now explicitly uses
+  `America/Chicago`, with a regression test pinning stable output.
 - Global MFA and the TOTP provider are enabled. Human Test Vendor password/TOTP/assigned-ticket/
   mailbox/disable/reset acceptance remains explicit P8 work.
 - Historical `f02112d / 00025-mhw` traffic was routed 100% to
   `pmi-kc-kb-demo-00024-6b2`, the auth boundary and signed-in Console were verified, and traffic was
-  restored to `00025-mhw`. Rehearse the new candidate against its own captured prior revision.
-- The final hardening candidate's clean-install all-in-one verifier passed format, lint (0 errors/8 known warnings), typecheck,
-  unit (306 files/2,178 tests), Firestore (17/59), core E2E (32 passed/18 intentional prerequisite
+  restored to `00025-mhw`. The final release separately moved 100% traffic from
+  `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` to captured predecessor
+  `pmi-kc-kb-demo-rmrm8t6y7-d250f83ddfee`; staff and Vendor sign-in returned 200,
+  unauthenticated `/ask` redirected to `/sign-in`, and the signed-in Console worked. Traffic was
+  restored 100% to the final revision with the same healthy boundaries and no final-revision ERROR
+  log entries.
+- The deployed release's clean-install all-in-one verifier passed format, lint (0 errors/8 known
+  warnings), typecheck, unit (306 files/2,179 tests), Firestore (17/59), core E2E (32 passed/18 intentional prerequisite
   skips), governance/redaction/falsification, spec traceability (124 acceptance criteria/14 specs),
   `cutover:dry-run`, and the 76-of-76 production build. Full audit: three Moderate dev-only findings,
   zero High/Critical; runtime audit: zero findings.

@@ -6,22 +6,21 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 ## Snapshot
 
 - Last updated: 2026-07-15.
-- Active branch: `main` with a locally verified, uncommitted Test Vendor reset/re-enable,
-  internal-roster separation, and deployment-wrapper hardening slice on top of the recorded
-  production checkpoint. Do not treat the working-tree candidate as deployed.
-- Goal: finish the stable working V1 on the client-owned Cloud Run service and deliver the final human
-  HTML walkthrough. Core production/browser/rollback evidence is complete; the hardened candidate is
-  locally verified and needs commit/push/deploy before the human Test Vendor secret-bearing acceptance.
+- Active branch: `main`; the Test Vendor reset/re-enable, internal-roster separation,
+  deployment-wrapper hardening, and Approval Queue time-zone fix are committed, pushed, and deployed.
+- Goal: close the stable working V1 on the client-owned Cloud Run service and deliver the final human
+  HTML walkthrough. Deployment, desktop/phone browser acceptance, and current-revision
+  rollback/restore rehearsal are complete. The Test Vendor secret-bearing ceremony is the sole
+  remaining acceptance.
 - V1 truth: application readiness and provider activation are separate. Production carries Live
   records and visibly isolated persistent Test records. Test workflows may write app/Firestore
   state and reach Done, but their executors make zero external calls and never prove Live.
-- Current serving checkpoint: commit `7ccd9f213d51d6723d1a6467fe656f3b4724d6a5`, Cloud Build
-  `840e3b52-ae0e-43b8-bcbf-a25045d5705a`, revision `pmi-kc-kb-demo-00026-cxk` at 100% traffic,
-  image digest `sha256:1012dde4878af0c582c5c00f6fc1d5ad3374391ebfc1e2ae2e0747453b03a1ac`,
-  and Firestore ruleset `63b31613-59ba-495c-9ef3-455a5c593f51`. Its serving predecessor is
-  `pmi-kc-kb-demo-00025-mhw`.
-- Current local release candidate: uncommitted hardening on top of `7ccd9f2`; final verifier counts,
-  commit, build, image, serving revision, and captured prior revision remain pending until closeout.
+- Current serving release: commit `38ebcf530e3fe193547806bace91246ccea20c0b`, successful Cloud
+  Build `f106ceb4-02d0-497c-b147-f716e04c0149`, revision
+  `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` at 100% traffic, image digest
+  `sha256:25358a99d6f4890da64db6d3cb17b0ca7d3725c7f0251390b7c6dc8b12ba8103`, and Firestore
+  ruleset `63b31613-59ba-495c-9ef3-455a5c593f51`. Its captured serving predecessor is
+  `pmi-kc-kb-demo-rmrm8t6y7-d250f83ddfee`.
 
 ## Deployed and Proven
 
@@ -33,15 +32,22 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
   attempts, zero Live calls, and state preserved after reload.
 - The Admin Test workspace passed Vendor 11/11, Lease 11/11, and Maintenance 19/19 with zero Live
   calls. Maintenance and Vendor lane isolation remain enforced.
-- All eight internal surfaces loaded signed-in. Clean direct phone loads at 390x844 showed no
-  horizontal overflow, visible alerts, or reproducible console errors. Cloud Run logs showed zero
-  ERROR entries for the checked candidate window.
-- Historical rollback evidence on `f02112d / 00025-mhw` moved traffic to
-  `pmi-kc-kb-demo-00024-6b2` and restored `00025-mhw`; unauthenticated and signed-in boundaries stayed
-  healthy. Capture and rehearse the current candidate's own prior revision after its deploy.
+- The final serving revision passed delayed direct signed-in loads for Ask, Spaces, Approval Queue,
+  Gmail Hub, Connections, Admin, Lease Renewal, and Maintenance at desktop and 375px phone widths.
+  Every route showed the expected H1, no horizontal overflow, and zero console errors; final-revision
+  Cloud Run logs showed no checked ERROR-level entries.
+- Production acceptance found a real Approval Queue hydration mismatch: the initial activity time used
+  the Cloud Run host time zone while Chrome used Kansas City. The formatter now explicitly uses
+  `America/Chicago`, and a regression test pins the server/browser-stable output.
+- The final rollback rehearsal moved 100% traffic from
+  `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` to
+  `pmi-kc-kb-demo-rmrm8t6y7-d250f83ddfee`. Staff and Vendor sign-in returned 200,
+  unauthenticated `/ask` redirected to `/sign-in`, and the existing signed-in Console worked. Traffic
+  returned 100% to the final revision with the same healthy boundaries and no ERROR entries in the
+  final-revision log query. The earlier `f02112d / 00025-mhw` rehearsal remains historical evidence.
 - Identity Platform global MFA and the TOTP provider are enabled with adjacent interval `1`.
-- The final hardening candidate's clean-install all-in-one verifier is green: 306 unit files/2,178 tests, Firestore
-  17/59, core E2E 32 passed/18 intentional prerequisite skips, 76/76 production pages/routes, and all
+- The deployed release's clean-install all-in-one verifier is green: 306 unit files/2,179 tests,
+  Firestore 17/59, core E2E 32 passed/18 intentional prerequisite skips, 76/76 production pages/routes, and all
   governance gates. The dependency audit is three Moderate dev-only findings and zero runtime
   findings; the cutover dry-run is fully green.
 - The canonical `.invalid` Test Vendor can now be reset/re-enabled from `pending_setup`, `active`, or
@@ -69,14 +75,11 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 
 ## Next Exact Actions
 
-1. Commit/push and deploy the locally verified reset/re-enable candidate; confirm the wrapper promotes
-   exact named revision, record the new build/revision/digest/prior, and rerun boundary smoke/log
-   checks.
-2. Complete the human Test Vendor password/TOTP/assigned-ticket/mailbox journey, disable it, reset it,
+1. Complete the human Test Vendor password/TOTP/assigned-ticket/mailbox journey, disable it, reset it,
    prove UID rotation plus preserved Test workflow data, and complete a fresh password/TOTP sign-in.
    Automated Vendor 11/11 evidence is not a substitute for this secret-bearing flow.
-3. Synchronize final evidence and the human HTML walkthrough, commit/push the closeout, then complete
-   the goal.
+2. Synchronize the human-ceremony evidence into the final HTML walkthrough, commit/push
+   the closeout, then complete the goal.
 
 ## Advisory Post-V1 Activations
 

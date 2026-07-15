@@ -11,7 +11,7 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
-## Canonical Test Vendor reset/re-enable and deployment recovery are locally green
+## Working-App V1 hardening is deployed and production browser acceptance is green
 
 - Date: 2026-07-15
 - Closed the one-shot Test Vendor authentication gap with an Admin-only, reasoned exact-preview
@@ -59,20 +59,33 @@ two disagree, this status log wins and `docs/loop-state.md` is corrected.
   pin left by rollback without a floating-`LATEST` race. The public sign-in
   shell uses the supported `--no-invoker-iam-check` flag; no `allUsers` IAM binding or application auth
   widening is introduced.
-- The final hardening candidate's clean-install verifier passed 306 unit
-  files/2,178 tests, Firestore 17/59, core E2E 32 passed/18 intentional prerequisite skips, 76/76
+- The deployed release's clean-install verifier passed 306 unit
+  files/2,179 tests, Firestore 17/59, core E2E 32 passed/18 intentional prerequisite skips, 76/76
   production routes, traceability 124 acceptance criteria/14 specs, and all formatting/type/lint/
   governance/redaction/falsification gates. Lint had 0 errors/8 known warnings; the audit had three
-  Moderate dev-only findings with no High/Critical or runtime finding. These are the final
-  current-candidate counts; only commit and deployment pins remain pending.
-- Current production serves commit `7ccd9f213d51d6723d1a6467fe656f3b4724d6a5`, build
-  `840e3b52-ae0e-43b8-bcbf-a25045d5705a`, revision `pmi-kc-kb-demo-00026-cxk`, and digest
-  `sha256:1012dde4878af0c582c5c00f6fc1d5ad3374391ebfc1e2ae2e0747453b03a1ac` at 100% traffic.
-  The `f02112d / 00025-mhw` entry below is historical browser/rollback evidence. This local slice does
-  not replace `00026-cxk` until commit and deployment.
-- Next: commit/push/deploy the candidate, verify automatic exact-revision promotion and production
-  boundaries, then complete the human password/TOTP/assigned-ticket/mailbox/disable/reset journey
-  without retaining secret-bearing evidence.
+  Moderate dev-only findings with no High/Critical or runtime finding.
+- Production serves commit `38ebcf530e3fe193547806bace91246ccea20c0b` from successful Cloud
+  Build `f106ceb4-02d0-497c-b147-f716e04c0149` as revision
+  `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28`, digest
+  `sha256:25358a99d6f4890da64db6d3cb17b0ca7d3725c7f0251390b7c6dc8b12ba8103`, at 100% traffic.
+  Its captured predecessor is `pmi-kc-kb-demo-rmrm8t6y7-d250f83ddfee`; Firestore ruleset
+  `63b31613-59ba-495c-9ef3-455a5c593f51` remains current.
+- Delayed direct signed-in browser sweeps covered Ask, Spaces, Approval Queue, Gmail Hub,
+  Connections, Admin, Lease Renewal, and Maintenance at desktop and 375px phone widths. Every route
+  showed the correct H1, no horizontal overflow, and zero console errors. Final-revision Cloud Run
+  logs contained no checked ERROR-level entries.
+- That acceptance caught a real Approval Queue hydration mismatch: initial activity timestamps used
+  the Cloud Run host time zone during server rendering and the browser time zone after hydration. The
+  final deployed formatter explicitly uses `America/Chicago`, and a focused regression test pins the
+  resulting `CDT` rendering before the clean verifier and browser sweep.
+- The exact-revision deployment wrapper promoted the revision created by its own invocation to 100%
+  traffic as designed. The final rollback rehearsal then moved 100% traffic to predecessor
+  `pmi-kc-kb-demo-rmrm8t6y7-d250f83ddfee`: staff and Vendor sign-in returned 200, unauthenticated
+  `/ask` redirected to `/sign-in`, and the existing signed-in Console worked. Traffic returned 100%
+  to `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28`; the same boundaries remained healthy and the final
+  revision ERROR-level log query returned no entries.
+- Next: complete the sole remaining acceptance—the human password/TOTP/assigned-ticket/mailbox/
+  disable/reset/re-enrollment journey—without retaining secret-bearing evidence.
 
 ## Historical f021/00025 working-app browser and rollback evidence
 
@@ -88,9 +101,10 @@ two disagree, this status log wins and `docs/loop-state.md` is corrected.
   reload. This is production app/Firestore Test-lane proof, not Live-provider proof.
 - The Admin Test workspace passed Vendor 11/11, Lease 11/11, and Maintenance 19/19 with zero Live
   calls. All eight internal surfaces loaded signed-in; clean direct phone loads at 390x844 showed no
-  horizontal overflow, visible alerts, or reproducible console errors. A one-off React hydration
-  warning during an artificial rapid-navigation loop did not reproduce on clean direct loads and was
-  not attributable to an application route.
+  horizontal overflow or visible alerts. A React hydration warning observed in this historical pass
+  was initially non-reproducible under clean direct loads; the later delayed per-route final-release
+  sweep isolated it to Approval Queue's implicit server/browser time-zone formatting and verified the
+  explicit `America/Chicago` fix described in the current entry above.
 - Identity Platform global MFA and the TOTP provider are enabled with adjacent interval `1`. The
   human Test Vendor password/TOTP/assigned-ticket/mailbox journey remains pending; automated Vendor
   11/11 coverage does not replace that secret-bearing acceptance path.

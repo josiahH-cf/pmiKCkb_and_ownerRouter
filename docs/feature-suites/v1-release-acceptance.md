@@ -7,16 +7,18 @@
 > activation.
 
 **Implementation status (2026-07-15): The working application serves from
-`7ccd9f2 / pmi-kc-kb-demo-00026-cxk`; the current hardening candidate still needs final verification,
-commit/deploy pins, refreshed smoke/rollback evidence, and human Test Vendor acceptance.** Manifest schema/verifier `2.0`, bodyless report `2.1`, V1 application banner, application-
+`38ebcf530e3fe193547806bace91246ccea20c0b / pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` at 100% traffic.
+The final verifier, authenticated Ask, desktop/phone tab sweep, public auth boundaries, ERROR-log check,
+and exact predecessor rollback/restore rehearsal are green; only the private human Test Vendor
+password/TOTP/assigned-ticket/disable/reset ceremony remains.** Manifest schema/verifier `2.0`, bodyless report `2.1`, V1 application banner, application-
 workflow coverage, isolated production Test workspace, provider activation summary, optional advisory
 Dan/Josiah signoffs, role/mobile/failure browser plan, monitoring/rollback plan, and cutover rehearsal
 are built. The old 169 repeated external gates are replaced by grouped application-readiness gates
 plus a separate per-action provider snapshot. The local report is advisory inventory because no
-production-manifest loader exists. The canonical bodyless production evidence separates the current
-serving `00026-cxk` checkpoint from historical browser/rollback proof captured on
-`f02112d / 00025-mhw → 00024-6b2 → 00025-mhw` and from the unpinned local candidate. The remaining
-private Vendor password/TOTP walkthrough does not require all providers to be Live.
+production-manifest loader exists. The canonical bodyless production evidence pins the current
+serving revision and its bounded rollback from `rmrm9mp6v-04c897acee28` to
+`rmrm8t6y7-d250f83ddfee` and back. The remaining private Vendor password/TOTP walkthrough does not
+require all providers to be Live.
 
 **Goal.** PMI KC can deploy a stable V1 application whose internal and Vendor workflows work with
 visibly isolated Live and Test records. Production Test journeys prove application state, roles,

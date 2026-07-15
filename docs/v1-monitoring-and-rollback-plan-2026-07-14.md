@@ -130,7 +130,7 @@ work. Native TTL or scheduling can be enabled later after a normal dry run and m
 Record commit, revision, timestamp, mode, action key, status, receipt hash, and rollback result only.
 Do not store screenshots or logs containing customer records, Gmail bodies, credentials, or tokens.
 
-## Historical 2026-07-15 rehearsal result
+## 2026-07-15 rehearsal results
 
 This evidence belongs to the earlier `f02112d / 00025-mhw` checkpoint. Traffic was moved 100% from
 serving revision `pmi-kc-kb-demo-00025-mhw` to captured prior revision
@@ -140,7 +140,10 @@ the existing signed-in session loaded Console successfully. Traffic was immediat
 expected traffic target, and the checked candidate window contained no ERROR-level logs. The service,
 revision history, Firestore data, rules, and provider state were preserved.
 
-Current production serves `7ccd9f213d51d6723d1a6467fe656f3b4724d6a5` as
-`pmi-kc-kb-demo-00026-cxk` at 100% traffic. The current local hardening candidate must capture its exact
-serving predecessor and repeat the bounded rollback/restore check after deployment; do not reuse the
-historical `00024/00025` result as that candidate's rehearsal.
+The final working-app rehearsal used commit `38ebcf530e3fe193547806bace91246ccea20c0b` and serving
+revision `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28`. Traffic moved 100% to the exact captured predecessor
+`pmi-kc-kb-demo-rmrm8t6y7-d250f83ddfee`. Staff and Vendor sign-in returned 200, unauthenticated Ask
+redirected to staff sign-in, and the existing signed-in Console session remained usable. Traffic then
+returned 100% to `rmrm9mp6v-04c897acee28`; the same public/authenticated boundaries remained healthy
+and an ERROR-level log query for the restored revision returned no entries. The service, history,
+Firestore data, rules, and provider state were preserved.

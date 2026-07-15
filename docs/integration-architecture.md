@@ -187,15 +187,15 @@ environment value can widen policy.
 
 ## Vendor-confirmation matrix
 
-| Capability                          | Status                                 | Action                                                                                                                        |
-| ----------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Rentvine maintenance writes         | Documented capability; execution gated | First external-write candidate after approved action gate                                                                     |
-| Rentvine lease-renewal writeback    | Undocumented                           | Keep non-executable; request vendor docs                                                                                      |
-| Rentvine webhooks                   | None found                             | Polling / LeadSimple sync                                                                                                     |
-| LeadSimple endpoint coverage        | Vendor confirmation required           | Confirm endpoints and Operations plan                                                                                         |
-| Dotloop signing lifecycle           | Vendor confirmation required           | Confirm signature-state semantics                                                                                             |
-| Boom endpoint contract              | Vendor confirmation required           | Request API/vendor packet                                                                                                     |
-| Gmail outbound vendor communication | S22 Local green; live resources gated  | Configure/approve TOTP, OAuth client/vault, first invite/consent/read/send separately; assigned-ticket fake boundary is green |
+| Capability                          | Status                                 | Action                                                                                                                                                  |
+| ----------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rentvine maintenance writes         | Documented capability; execution gated | First external-write candidate after approved action gate                                                                                               |
+| Rentvine lease-renewal writeback    | Undocumented                           | Keep non-executable; request vendor docs                                                                                                                |
+| Rentvine webhooks                   | None found                             | Polling / LeadSimple sync                                                                                                                               |
+| LeadSimple endpoint coverage        | Vendor confirmation required           | Confirm endpoints and Operations plan                                                                                                                   |
+| Dotloop signing lifecycle           | Vendor confirmation required           | Confirm signature-state semantics                                                                                                                       |
+| Boom endpoint contract              | Vendor confirmation required           | Request API/vendor packet                                                                                                                               |
+| Gmail outbound vendor communication | Deployed Test mailbox; Live per Vendor | Test assigned-ticket drafts/labels/exact replies persist with zero provider calls; activate a Live Vendor's same-address OAuth/vault/consent separately |
 
 ## Source normalization
 
