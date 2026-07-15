@@ -1,8 +1,8 @@
 # Authentication-Identity & Migration Strategy — PMI KC Monorepo
 
-Status: Draft for review (2026-06-20). Produced by a multi-agent audit of every auth surface
-in the repo + adversarial review, then reconciled against live findings this session.
-Owner action items are at the end.
+Status: Current working-V1 identity strategy (reconciled 2026-07-15). This began as the
+2026-06-20 multi-agent auth-surface audit and now records the implemented and deployed boundary;
+remaining operations are called out explicitly instead of being treated as application blockers.
 
 2026-07-14 Gmail update: S19 retains a per-user Gmail transport whose Firebase user
 identity, DWD authorization, and Pub/Sub service identity remain three separate checks.
@@ -16,16 +16,16 @@ browsing, generic compose, or background interpretation. See §2.3.
 > silently. See also [`environment-handoff.md`](environment-handoff.md) and
 > [`client-production-cutover.md`](client-production-cutover.md).
 
-## 0. Current State (2026-06-20)
+## 0. Current State (2026-07-15)
 
-| Surface                    | State                                                                                                                                                                        | Remaining                                                                                  |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| (a) Claude Drive connector | ✅ `pmikcmetro.com` — renewal sheet readable                                                                                                                                 | Revoke the old personal grant at `myaccount.google.com/permissions` (Google-side)          |
-| (b) Human gcloud / ADC     | ✅ `josiah@pmikcmetro.com` active on `pmi-kc-kb-prod`; ADC present + pmikcmetro; **legacy `cherrybridge.ai` gcloud credential REVOKED 2026-06-20** (only pmikcmetro remains) | Confirm `billing/quota_project`; overwrite stale registry vars via `host:setup`            |
-| (c) Runtime SA             | ✅ `pmi-kc-kb-runtime@…` attached, no keys                                                                                                                                   | Pin role inventory in handoff; add `storage.objectViewer`; Secret-Manager `kb-automation@` |
-| (d) Firebase end-user auth | ✅ pmikcmetro-locked; **`NODE_ENV=production` demo-flag footgun fix landed** in `deploy-demo-cloud-run.mjs`                                                                  | Add a runtime startup demo-flag assertion (§5.3)                                           |
-| (e) Firebase CLI           | ⛔ not logged in                                                                                                                                                             | `firebase login` as pmikcmetro → deploy `firestore:rules`/`:indexes`                       |
-| (f) Cloud Build SA         | ❓ unaudited                                                                                                                                                                 | Identify + record the `--source=.` build SA                                                |
+| Surface                    | State                                                                                                                                                                                  | Remaining                                                                                                                                      |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| (a) Claude Drive connector | ✅ Historical connector is `pmikcmetro.com`; renewal source was readable. Codex does not reuse that connector token.                                                                   | Revoke any obsolete personal connector grant if it still exists; this is account hygiene, not a V1 gate.                                       |
+| (b) Human gcloud / ADC     | ✅ `josiah@pmikcmetro.com` on `pmi-kc-kb-prod`; managed-domain ADC and session preflights are implemented.                                                                             | Run `npm run auth:session` only when the read-only freshness check reports stale interactive credentials.                                      |
+| (c) Runtime SA             | ✅ Keyless `pmi-kc-kb-runtime@…` is attached to Cloud Run and its production identity/configuration is recorded in `environment-handoff.md`.                                           | Add only the least-privilege permission or secret reference required by a separately activated Live provider action.                           |
+| (d) Firebase end-user auth | ✅ Staff Google auth plus Admin-provisioned Vendor Email/Password and TOTP are configured; production demo flags are fenced, and internal/Vendor claim classes fail closed separately. | Deploy the current reset/claim-hardening candidate, then record the human Test Vendor password/TOTP/assigned-ticket/disable/reset ceremony.    |
+| (e) Firebase CLI           | ✅ Firestore rules are deployed as ruleset `63b31613-59ba-495c-9ef3-455a5c593f51`.                                                                                                     | Composite indexes are optional and deployed only when an actual production query requires one; unused index creation is not a working-V1 step. |
+| (f) Cloud Build SA         | ✅ The project-bound source build succeeds under `558870356522-compute@developer.gserviceaccount.com`; build/revision identity is observable from Cloud Build and Cloud Run.           | Periodically review its documented build-only IAM inventory; this does not block the already working application.                              |
 
 **Legacy demo cloud lane** (`pmikckb-test` project / `pmi-kc-kb-demo` service, in the
 `cherrybridge.ai` org) is **retired**. Repo pointers to the dead project were neutralized
@@ -61,14 +61,14 @@ places and do **not** cascade. The most dangerous misconception is that
 
 ## 2. Target Auth Mechanism — Per Surface (Six Distinct Identity Systems)
 
-| #   | Identity system                          | Authenticates                                           | Configured at                                                                        | Changing it affects                                                                      |
-| --- | ---------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| (a) | **Claude MCP Drive/Workspace connector** | _Claude_, reading Drive/Sheets for you                  | claude.ai → Settings → Connectors (OAuth)                                            | Only what Claude can read in Drive. Nothing else.                                        |
-| (b) | **Human gcloud user / ADC**              | _You_, at a terminal/scripts                            | `gcloud auth login` / `application-default login`; ADC at `%APPDATA%/gcloud/...json` | Local CLI, deploys, seed scripts, `preflight:gcp`.                                       |
-| (c) | **App runtime service account**          | _The deployed Cloud Run app_                            | `--service-account=` on `gcloud run deploy`                                          | Prod reads of Firestore, Discovery Engine, Storage, Gmail-send.                          |
-| (d) | **Firebase end-user auth**               | _Your end users_ signing into the web app               | Firebase Google OAuth + `ALLOWED_HD`, validated at `/api/auth/session`               | Who may log into the web UI.                                                             |
-| (e) | **Firebase CLI auth**                    | _You_, deploying Firestore rules/indexes                | `npm exec firebase login`                                                            | `firebase deploy --only firestore:rules`/`:indexes`. Currently **blocking** per handoff. |
-| (f) | **Cloud Build / buildpack identity**     | _The buildpack build_ on `gcloud run deploy --source=.` | Cloud Build default/per-project build SA                                             | Whether source builds; which registry/image it writes.                                   |
+| #   | Identity system                          | Authenticates                                           | Configured at                                                                        | Changing it affects                                                                           |
+| --- | ---------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| (a) | **Claude MCP Drive/Workspace connector** | _Claude_, reading Drive/Sheets for you                  | claude.ai → Settings → Connectors (OAuth)                                            | Only what Claude can read in Drive. Nothing else.                                             |
+| (b) | **Human gcloud user / ADC**              | _You_, at a terminal/scripts                            | `gcloud auth login` / `application-default login`; ADC at `%APPDATA%/gcloud/...json` | Local CLI, deploys, seed scripts, `preflight:gcp`.                                            |
+| (c) | **App runtime service account**          | _The deployed Cloud Run app_                            | `--service-account=` on `gcloud run deploy`                                          | Prod reads of Firestore, Discovery Engine, Storage, Gmail-send.                               |
+| (d) | **Firebase end-user auth**               | _Your end users_ signing into the web app               | Firebase Google OAuth + `ALLOWED_HD`, validated at `/api/auth/session`               | Who may log into the web UI.                                                                  |
+| (e) | **Firebase CLI auth**                    | _You_, deploying Firestore rules/indexes                | `npm exec firebase login`                                                            | Rules are deployed independently; indexes are added only for a demonstrated production query. |
+| (f) | **Cloud Build / buildpack identity**     | _The buildpack build_ on `gcloud run deploy --source=.` | Cloud Build default/per-project build SA                                             | Whether source builds; which registry/image it writes.                                        |
 
 > **Load-bearing rule for every agent and human: these systems share no token, no consent
 > grant, and no config file.** gcloud auth (b) is separate from the Claude connector (a);
@@ -124,8 +124,9 @@ places and do **not** cascade. The most dangerous misconception is that
   `localDemoAuth = LOCAL_DEMO_AUTH && NODE_ENV !== "production"`. `scripts/deploy-demo-cloud-run.mjs`
   `readRuntimeEnv` now sets **`NODE_ENV: "production"` explicitly** (alongside `ASK_DEMO_MODE`/
   `LOCAL_DEMO_AUTH` false), so the prod demo-auth lockout no longer depends solely on the
-  `LOCAL_DEMO_AUTH=false` override surviving every deploy. Remaining hardening: a **runtime startup
-  assertion** that fails fast if a demo flag is truthy while `NODE_ENV==="production"` (§5.3).
+  `LOCAL_DEMO_AUTH=false` override surviving every deploy. A future fail-fast startup assertion would
+  add defense in depth, but the deploy wrapper, production preflight, and runtime mode resolution
+  already fail closed; that optional assertion is not a working-V1 blocker.
 
 ### 2.1 Role-scoped sub-users — orthogonal space access
 
@@ -152,15 +153,64 @@ behavior. Creating a real user or assigning a live scope remains owner-run; this
 not mint or alter any live account autonomously.
 
 The hosted-domain boundary remains binding for internal staff and every PMI KC cloud/admin/runtime
-identity. The narrow V1 exception is an Admin-invited external Vendor with one-time password setup,
+identity. The narrow V1 exception is an Admin-invited external Vendor with password setup,
 verified-email TOTP before ticket detail, and assigned-ticket-only authorization. The canonical
 `.invalid` Test Vendor uses the real Firebase password/TOTP lifecycle plus an app-only mailbox; it is
-bound to Test assignments and rejected before OAuth/Gmail construction. A Live Vendor connects the
-same verified routable Gmail/Google Workspace address through server-side per-vendor OAuth. Neither
-uses DWD or receives staff roles, Spaces, cloud/admin/connector authority, shared/alias mailbox
-inference, or general inbox access. Production Test setup requires Firebase Email/Password, TOTP MFA,
-and the deployed Auth domain; Live OAuth/token-vault resources activate separately. Outside reporters continue using
-the separate HMAC-token public maintenance intake; it is not the authenticated Vendor portal.
+bound to Test assignments and rejected before OAuth/Gmail construction. Its Admin-only auth reset is
+repeatable from `pending_setup`, `active`, or `disabled`. The exact preview is reason-bound and hashes
+the current Firebase UID, status, and `inviteVersion`; execution revokes and deletes the old identity,
+creates a different disabled UID with canonical Test claims, transactionally advances the app record
+to `pending_setup`, and only then re-enables it and returns one response-only `no-store` setup link.
+Old UID sessions and confirmations fail, while stable Vendor-id Test tickets, mailbox state, receipts,
+and bodyless audit history remain. A transactional per-request claim and two-minute lease fence every
+Firebase mutation and link mint; the initial winner atomically records
+`test_vendor_authentication_reset_claimed`, successful invite-increment commit records one canonical
+`test_vendor_authentication_reset`, and a failed post-claim/pre-commit attempt retains only the honest
+claim event. Each event stores actor UID, Vendor id, reason hash, and time, never a target/replacement
+Firebase UID, link, secret, or plaintext reason. Overlap/completed replay stops before auth mutation,
+and an expired claim is recoverable only
+after the 60-second deployed request lifetime. Partial failure re-hardens the staged
+identity only while the caller still owns that claim (random unreturned password, no MFA factors,
+revoked sessions) and then permits the confirmed reset to resume. If a browser reloads after
+`prepared`, the Admin preview derives its binding from the server-only marker's original source
+UID/status/`inviteVersion` and never returns the UID. While the lease is live, re-entering the original
+reason returns the same exact confirmation hash/effect; a different reason and every takeover attempt
+remain generically unavailable. After expiry, the Admin may submit a fresh plain-English reason; the
+server rebinds only the reason/hash to the validated original source tuple, so lost browser state does
+not require manual Firestore repair. Each successful expired takeover atomically appends one distinct
+bodyless `test_vendor_authentication_reset_recovery_claimed` audit with recovery actor UID, fresh
+reason hash, and timestamp—never plaintext reason, target/replacement Firebase UID, link, or secret. An
+expired-claim takeover
+never adopts an abandoned generation, even if its Firebase claims are exact: it quarantines that
+generation by hardening, revoking, and deleting it, then requires a newly allocated UID distinct from
+the original source UID, current Firestore record UID, and email-resolved Auth UID. A forbidden UID
+allocation is deleted and refused. A claimed recovery then creates the normal single canonical
+`test_vendor_authentication_reset` audit when it first commits the invite increment. If the abandoned
+request already committed `prepared`, takeover repairs only the UID, preserving that one canonical
+invite increment/reset audit without creating a duplicate; its separate recovery-claim audit records
+the takeover itself. The old owner must renew after external enable and before link/completion work;
+once its lease is lost it cannot mint another link, complete the winner, or compensate against the
+winner. Setup-link regeneration uses the same truth-in-audit split: the winning claim records
+`test_vendor_setup_link_regeneration_claimed`, successful completion records
+`test_vendor_setup_link_regenerated`, and a failed pre-completion attempt retains only its claim event.
+Disable and reset
+also serialize through this same lifecycle state: `claimed` or `prepared` makes disable fail with a
+generic conflict before Firebase/audit even if the lease is stale, so recovery completes first. If
+disable wins first, the old status-bound reset confirmation is stale and a fresh disabled-state
+preview works; `completed` does not prevent later disable. This is race containment, not another
+approval. Reset never contacts OAuth/Gmail or creates a Live effect. A Live Vendor connects the same verified routable
+Gmail/Google Workspace address through server-side per-vendor OAuth. Neither uses DWD or receives
+staff roles, Spaces, cloud/admin/connector authority, shared/alias mailbox inference, or general inbox
+access. Production Test setup requires Firebase Email/Password, TOTP MFA, and the deployed Auth
+domain; Live OAuth client, consent, redirect, and token-vault resources are optional per-Vendor
+activations. Identity class takes precedence over domain. Internal roster, last-Admin accounting,
+role/scope mutation, ID-token validation, and session-cookie validation fail closed when **any**
+`vendor`, `vendor_id`, or `data_mode` custom-claim key is present—even `vendor:false`, an empty id, or
+a malformed mode—so partial claim drift cannot turn an external identity into staff. Canonical Vendor
+auth is the separate positive path and still requires the exact valid `vendor:true` + canonical
+`vendor_id` + matching `data_mode` triple, verified email, TOTP, and the active Vendor-record join.
+Outside reporters continue using the separate HMAC-token public maintenance intake; it is not the
+authenticated Vendor portal.
 
 ### 2.2 App-side Drive access — decide before any direct app Drive read
 
@@ -232,16 +282,17 @@ readable. Remaining: revoke old personal grant at `myaccount.google.com/permissi
 stale registry env vars via `npm run host:setup`; `npm run host:check`. The `cherrybridge.ai`
 gcloud credential is **revoked locally (done 2026-06-20)**, after ADC was confirmed under pmikcmetro.
 
-**(c) Runtime SA & ingestion:** confirm/trim `pmi-kc-kb-runtime@` roles to the least-privilege
-list and **document bindings** in `environment-handoff.md`. Build the missing **Drive → Cloud
-Storage** copy stage — note the GCS → Agent Search importer **already exists**
-(`scripts/import-agent-search-documents.mjs`, consumes `--gcs-uri=gs://...`); only the Drive→GCS
-half is missing, and `SPACE_DRIVE_FOLDER_IDS` is **misnamed** (it consumes `gs://` URIs, not
-Drive folder IDs — rename/clarify). Move `kb-automation@` send creds to Secret Manager; scope
-`gmail.send` only.
+**(c) Runtime SA & ingestion:** the keyless `pmi-kc-kb-runtime@` attachment and production source
+configuration are recorded in `environment-handoff.md`. The client-production Ask corpus intentionally
+uses reviewed Cloud Storage `.txt` prefixes; `SPACE_DRIVE_FOLDER_IDS` is a legacy variable name for
+those source prefixes, while maintenance photos use the dedicated Drive-folder setting. A future
+automated Drive-to-corpus copy is an operations convenience, not a working-V1 dependency. Add a
+provider credential or Secret Manager reference only for the exact Live action being activated.
 
-**(e) Firebase CLI:** log in as `josiah@pmikcmetro.com`, then deploy `firestore:rules` /
-`firestore:indexes` via `npm exec firebase` — handoff lists this as the pending blocker.
+**(e) Firebase CLI — DONE for current rules:** ruleset
+`63b31613-59ba-495c-9ef3-455a5c593f51` is released to `cloud.firestore`. Deploy a composite index
+separately only when an actual production query requires it; TTL, unused indexes, and Scheduler are
+optional operations improvements under the working-V1 policy.
 
 **(f) Cloud Build:** audit the build SA used by `gcloud run deploy --source=.`; confirm it's a
 `pmi-kc-kb-prod` machine identity with only build/push roles; record in `environment-handoff.md`.
@@ -330,9 +381,11 @@ three options, each touching a **different** identity system:
   → wrong project. Mitigation: overwrite registry via `host:setup`; `DEMO_VALUE_PATTERNS` reject.
 - **Runtime SA over/under-privilege** (bindings only in console). Mitigation: pin in docs; verify
   via `preflight:gcp --live`.
-- **Cloud Build identity unaudited.** Mitigation: §3 (f) audit + record.
-- **Ingestion half-missing** (Drive→GCS copy; misnamed env var). Mitigation: gate real imports
-  behind the `AGENTS.md` approval rule; record approved file list in `status.md`.
+- **Cloud Build privilege drift.** The source-build identity is known; mitigation is a periodic
+  least-privilege IAM review against its build/push duties and the recorded successful build.
+- **Manual source-corpus promotion.** The working V1 intentionally uses reviewed Cloud Storage source
+  prefixes. If volume later justifies a Drive→GCS automation, retain the same approved-file manifest,
+  source-state, and no-customer-data-in-git boundaries.
 - **Single-person dependency** on `josiah@pmikcmetro.com`. Mitigation: backup ops account.
 - **Authorized-domain breakage on redeploy** → `signInWithPopup` fails. Mitigation: post-deploy
   domain check (safe failure: "users can't sign in," no data exposure).
@@ -349,21 +402,19 @@ stop:** the $10 budget alert is a warning, not a cap — treat unexpected spend 
 
 ## Immediate next actions for Josiah
 
-1. **Revoke the old Claude grant** from the personal account at `myaccount.google.com/permissions`
-   (connector already reconnected to pmikcmetro — done).
-2. **Confirm ADC + finish cleanup:** ADC is present + pmikcmetro (verified via
-   `npm run preflight:identity`); set project + quota project to `pmi-kc-kb-prod` and run
-   `npm run host:setup` / `host:check`. The `cherrybridge.ai` gcloud credential is already
-   **revoked (2026-06-20)**.
-3. **Demo-mode footgun — NODE_ENV part DONE:** `readRuntimeEnv` now sets `NODE_ENV=production`
-   explicitly. Remaining: add a runtime demo-flag startup assertion (fail fast if a demo flag is
-   truthy while `NODE_ENV==="production"`).
-4. **Log in the Firebase CLI** as pmikcmetro and deploy `firestore:rules`/`firestore:indexes`
-   (pending blocker).
-5. **Move the spreadsheet's plaintext credentials** out of the shared sheet into a password
-   manager / Secret Manager (security finding above).
-6. **After the next deploy:** confirm the live host is in Firebase Auth authorized domains.
-7. **Pin the runtime SA role inventory + audit the Cloud Build SA** in `environment-handoff.md`;
-   stand up a backup `pmikcmetro.com` ops account.
-8. **Optional hardening I can implement:** the `preflight:identity` probe and the positive-allowlist
-   `assertIdentity` extension to the production preflight.
+1. **Deploy the verified local release candidate** after the final all-in-one verifier, then replace
+   the pending commit/build/image/revision fields in the working-app evidence with the exact outputs.
+2. **Run the human Test Vendor ceremony:** password setup, TOTP enrollment, fresh password+TOTP
+   sign-in, assigned-ticket-only access, disable/revoke, and reset/re-enrollment. Record only bodyless
+   outcomes; never retain the setup link, password, TOTP seed, or recovery code.
+3. **Use session auth only when needed:** run `npm run preflight:adc` before a live Google read and
+   `npm run auth:session` in the owner's Windows shell only when that check reports stale credentials.
+4. **Activate Live providers per exact action:** add the documented identity, mapping, credential,
+   preview/confirmation, receipt/readback, monitoring, and rollback evidence for that action. Missing
+   activation inputs leave only that Live action unavailable; they do not make the Test workflow or
+   application incomplete.
+5. **Keep optional operations proportional:** add a composite index, native TTL, or Scheduler only
+   when a measured query/volume/operations need justifies it. The current rules and bounded on-demand
+   cleanup are the working-V1 defaults.
+6. **Finish non-blocking account hygiene:** revoke any obsolete personal connector grant if present,
+   periodically review runtime/build IAM, and maintain a backup managed-domain operator.

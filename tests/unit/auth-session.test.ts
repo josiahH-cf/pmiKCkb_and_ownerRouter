@@ -74,6 +74,36 @@ describe("auth hosted-domain enforcement", () => {
       }),
     ).toThrow(AuthError);
   });
+
+  it("rejects a Vendor principal even when its email and hosted domain look internal", () => {
+    process.env.ALLOWED_HD = "pmikcmetro.com";
+
+    expect(() =>
+      validateAuthClaims({
+        uid: "vendor-same-domain",
+        email: "vendor@pmikcmetro.com",
+        hd: "pmikcmetro.com",
+        role: "Admin",
+        vendor: true,
+      }),
+    ).toThrow(expect.objectContaining({ status: 403 }));
+  });
+
+  it.each([{ vendor_id: "vendor:drifted" }, { vendor: false }, { data_mode: "test" }])(
+    "rejects partial Vendor claim drift before the internal Editor default: %j",
+    (vendorClaims) => {
+      process.env.ALLOWED_HD = "pmikcmetro.com";
+
+      expect(() =>
+        validateAuthClaims({
+          uid: "vendor-drifted",
+          email: "vendor-drifted@pmikcmetro.com",
+          hd: "pmikcmetro.com",
+          ...vendorClaims,
+        }),
+      ).toThrow(expect.objectContaining({ status: 403 }));
+    },
+  );
 });
 
 describe("auth space-scope claims", () => {
@@ -336,6 +366,40 @@ describe("Firebase session-cookie verification", () => {
     });
   });
 
+  it("rejects a same-domain Google-backed Vendor session cookie", async () => {
+    setSessionCookieVerifierForTest(() =>
+      makeFirebaseClaims({
+        uid: "vendor-same-domain",
+        email: "vendor@pmikcmetro.com",
+        vendor: true,
+        vendor_id: "vendor:external",
+      }),
+    );
+
+    await expect(authenticateSessionCookie("vendor-session")).rejects.toMatchObject({
+      status: 403,
+    });
+  });
+
+  it.each([{ vendor_id: "vendor:drifted" }, { vendor: false }, { data_mode: "test" }])(
+    "rejects a same-domain session cookie with partial Vendor claim drift: %j",
+    async (vendorClaims) => {
+      setSessionCookieVerifierForTest(() =>
+        makeFirebaseClaims({
+          uid: "vendor-drifted",
+          email: "vendor-drifted@pmikcmetro.com",
+          ...vendorClaims,
+        }),
+      );
+
+      await expect(
+        authenticateSessionCookie("vendor-drifted-session"),
+      ).rejects.toMatchObject({
+        status: 403,
+      });
+    },
+  );
+
   it("rejects missing or invalid role claims", async () => {
     setSessionCookieVerifierForTest(() => makeFirebaseClaims({ role: "Viewer" }));
 
@@ -456,6 +520,38 @@ describe("Firebase ID-token verification", () => {
       status: 401,
     });
   });
+
+  it("rejects a same-domain Google-backed Vendor ID token", async () => {
+    setIdTokenVerifierForTest(() =>
+      makeFirebaseClaims({
+        uid: "vendor-same-domain",
+        email: "vendor@pmikcmetro.com",
+        vendor: true,
+        vendor_id: "vendor:external",
+      }),
+    );
+
+    await expect(authenticateIdToken("vendor-token")).rejects.toMatchObject({
+      status: 403,
+    });
+  });
+
+  it.each([{ vendor_id: "vendor:drifted" }, { vendor: false }, { data_mode: "test" }])(
+    "rejects a same-domain ID token with partial Vendor claim drift: %j",
+    async (vendorClaims) => {
+      setIdTokenVerifierForTest(() =>
+        makeFirebaseClaims({
+          uid: "vendor-drifted",
+          email: "vendor-drifted@pmikcmetro.com",
+          ...vendorClaims,
+        }),
+      );
+
+      await expect(authenticateIdToken("vendor-drifted-token")).rejects.toMatchObject({
+        status: 403,
+      });
+    },
+  );
 });
 
 function makeFirebaseClaims(

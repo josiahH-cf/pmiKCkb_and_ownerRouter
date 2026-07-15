@@ -118,7 +118,11 @@ S25 requires app-executed Lease Gmail, Sheet, Rentvine, Dotloop, portal-chat, SM
 S26 requires Vendor account/mailbox, Drive photo, Rentvine create/assign/update/close, owner/vendor mail,
 LeadSimple, and QuickBooks draft-bill execution. S22 adds an assigned-ticket-only external Vendor using
 verified-email TOTP and per-vendor Gmail/Workspace OAuth, never DWD. The Test Vendor uses the same real
-Firebase password/TOTP boundary with an app-only mailbox and no OAuth/provider construction.
+Firebase password/TOTP boundary with an app-only mailbox and no OAuth/provider construction. Its
+repeatable reset/re-enable path is an app identity operation, not a provider action: an exact preview
+binds current UID/status/`inviteVersion`, the UID rotates, old sessions/confirmations fail, and its
+stable Test records remain. A partial reset keeps the replacement identity disabled and resumable; it
+never falls through to Live.
 
 The production app is ready when these workflows work in Live/Test lanes. A Live provider action is
 enabled only with documented evidence, exact permission/identity/mapping, target/effect preview,
@@ -147,6 +151,10 @@ Test receipts can satisfy application-workflow acceptance and can never satisfy 
 - External action identity, idempotency key, context hash, record, receipt, and audit bind the lane.
 - Persistent Maintenance/Vendor Test state lives in Firestore through authenticated server routes;
   typed external Test adapters contain no provider client.
+- Test Vendor authentication reset preserves the stable Vendor id, assignments, ticket/mailbox state,
+  receipts, and bodyless audit while rotating the Firebase UID and incrementing `inviteVersion`.
+  Response-only setup links use `no-store`; stale UID sessions/confirmations and drifted previews are
+  rejected before mailbox or provider construction.
 
 ## Gmail-to-workflow source and write model
 

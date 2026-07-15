@@ -9,16 +9,35 @@ export interface VendorAssignmentRepository {
     email: string,
     dataMode?: DataMode,
   ): Promise<boolean>;
-  listAssignedTickets(vendorId: string): Promise<VendorTicketProjection[]>;
+  listAssignedTickets(
+    authority: VendorAssignmentAuthority,
+  ): Promise<VendorTicketProjection[]>;
   getAssignedTicket(
-    vendorId: string,
-    ticketId: string,
+    authority: VendorAssignmentAuthority & { ticketId: string },
   ): Promise<VendorTicketProjection | null>;
-  isThreadLinked(input: {
-    vendorId: string;
-    ticketId: string;
-    threadId: string;
-  }): Promise<boolean>;
+  isThreadLinked(
+    input: VendorAssignmentAuthority & {
+      vendorId: string;
+      ticketId: string;
+      threadId: string;
+    },
+  ): Promise<boolean>;
+}
+
+export interface VendorAssignmentAuthority {
+  vendorId: string;
+  uid: string;
+  email: string;
+  dataMode: DataMode;
+}
+
+function authorityFor(principal: VendorPrincipal): VendorAssignmentAuthority {
+  return {
+    vendorId: principal.vendorId,
+    uid: principal.uid,
+    email: principal.email,
+    dataMode: vendorPrincipalDataMode(principal),
+  };
 }
 
 export async function assertActiveVendor(
@@ -42,7 +61,7 @@ export async function listVendorTickets(
   repository: VendorAssignmentRepository,
 ) {
   await assertActiveVendor(principal, repository);
-  return repository.listAssignedTickets(principal.vendorId);
+  return repository.listAssignedTickets(authorityFor(principal));
 }
 
 export async function requireAssignedTicket(
@@ -51,7 +70,10 @@ export async function requireAssignedTicket(
   repository: VendorAssignmentRepository,
 ) {
   await assertActiveVendor(principal, repository);
-  const ticket = await repository.getAssignedTicket(principal.vendorId, ticketId);
+  const ticket = await repository.getAssignedTicket({
+    ...authorityFor(principal),
+    ticketId,
+  });
   if (!ticket) {
     // Deliberately hide whether the guessed ticket exists.
     throw new VendorBoundaryError("Ticket not found.", 404);
@@ -67,7 +89,7 @@ export async function requireAssignedThread(
   await requireAssignedTicket(principal, input.ticketId, repository);
   if (
     !(await repository.isThreadLinked({
-      vendorId: principal.vendorId,
+      ...authorityFor(principal),
       ticketId: input.ticketId,
       threadId: input.threadId,
     }))

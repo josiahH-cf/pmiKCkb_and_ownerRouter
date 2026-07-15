@@ -23,9 +23,50 @@
 - Create canonical Test ticket through the strict server-owned seed route.
 - Verify only Summit Plumbing Test Vendor can attach to a Test ticket and cannot attach to Live.
 - Exercise status, assignment, note/activity, simulated actions, close, and reopen.
-- Provision the canonical Test Vendor through exact preview, one-time password link, TOTP enrollment,
-  fresh password+TOTP sign-in, assigned-ticket view, Test mailbox, and disable/revoke.
+- Provision the canonical Test Vendor through exact preview, response-only `no-store` password link,
+  TOTP enrollment, fresh password+TOTP sign-in, assigned-ticket view, Test mailbox, and
+  disable/revoke.
+- From `pending_setup`, `active`, and `disabled`, exact-preview a reset bound to current UID/status/
+  `inviteVersion`; confirm UID rotation, fresh password/TOTP requirement, old-session and stale-mailbox-
+  confirmation denial, preserved Test tickets/mailbox/receipts, and zero provider/Live effects.
+- Interrupt reset at each Firebase/Firestore/link-completion boundary; verify the replacement remains
+  disabled with an unreturned password, factors cleared, and sessions revoked. Verify initial winning
+  claim writes bodyless `test_vendor_authentication_reset_claimed`; successful invite commit writes
+  one canonical `test_vendor_authentication_reset`; failed pre-commit work retains only the claim event
+  and creates no invite increment/canonical reset audit.
+- Overlap two same-preview reset requests; verify one transactional lease owner performs all Firebase
+  work and mints the only link, while the loser fails before auth mutation and cannot compensate the
+  winner. Verify expired takeover only after the lease exceeds the deployed request timeout.
+- Crash at `prepared` and reload the normal Admin page. While the lease is live, verify the original
+  reason returns the same UID-free confirmation and a different reason/takeover refuses. After expiry,
+  enter a fresh reason and verify the server rebinds only its hash to the validated original source
+  UID/status/`inviteVersion` tuple without manual Firestore repair.
+- For expired `claimed` and `prepared` takeover, verify any exact-claims abandoned Auth principal is
+  hardened/revoked/deleted rather than adopted; the winner UID differs from the source UID, current
+  Firestore record UID, and resolved Auth UID. Reject and delete a forbidden UID allocation. Every
+  successful takeover atomically writes bodyless `test_vendor_authentication_reset_recovery_claimed`
+  with actor UID/Vendor id/fresh reason hash/time. A prepared repair keeps its one invite-version increment
+  and canonical reset audit without duplicating either; the recovery-claim audit is separate.
+  Releasing delayed old-owner enable/completion cannot mint another link or alter/disable/delete the
+  winner.
+- For setup-link recovery, verify the winning claim writes bodyless
+  `test_vendor_setup_link_regeneration_claimed`, successful completion writes
+  `test_vendor_setup_link_regenerated`, and failed pre-completion work retains only the claim event.
+  No lifecycle audit stores plaintext reason, target/replacement Firebase UID, setup link, password, or
+  secret; the actor UID remains the authorized audit principal.
+- Interleave Admin disable with reset. Claimed/prepared (including expired) must return 409 before
+  Firebase/audit and direct the operator to recover reset first; disable-first must stale the old reset
+  confirmation while a fresh disabled-state preview/reset succeeds; completed reset must not block
+  disable.
+- For every Test mailbox read, draft/label write, confirmation creation, and reply commit, atomically
+  revalidate the current active Vendor UID, active Test assignment, Test ticket/thread/mailbox join,
+  and no claimed/prepared reset. Disable, deassignment, UID rotation, or reset claim must revoke stale
+  read/write authority before state changes or receipts.
 - Confirm Test Vendor is rejected before OAuth/Gmail construction.
+- Confirm any present `vendor`, `vendor_id`, or `data_mode` custom-claim key—even false, empty, or
+  malformed—fails closed from the internal roster/Admin count, role/scope mutation, staff session,
+  internal ID token, and absent-scope/all-Spaces fallback. Separately prove that Vendor auth accepts
+  only the exact valid `vendor:true` + canonical `vendor_id` + matching `data_mode` triple.
 
 ## Provider Activation
 
@@ -57,5 +98,6 @@ bash scripts/verify.sh
 ```
 
 Then run signed-in desktop/phone browser acceptance, production Test workspace, Maintenance Test to
-Done, Vendor password/TOTP/assigned-ticket flow, endpoint smoke, observability check, and rollback
-command verification. Record non-secret evidence in `docs/status.md` and the V1 HTML walkthrough.
+Done, Vendor password/TOTP/assigned-ticket/reset/re-enable flow, endpoint smoke, observability check,
+and rollback command verification. Record non-secret evidence in `docs/status.md` and the V1 HTML
+walkthrough.

@@ -11,7 +11,70 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
-## Working-app V1 is deployed and fully verified; only human Test Vendor acceptance remains
+## Canonical Test Vendor reset/re-enable and deployment recovery are locally green
+
+- Date: 2026-07-15
+- Closed the one-shot Test Vendor authentication gap with an Admin-only, reasoned exact-preview
+  action available only for the canonical `.invalid` Vendor from `pending_setup`, `active`, or
+  `disabled`. The preview binds current Firebase UID, status, and invite version. Confirmation rotates
+  the UID, increments the invite version, revokes the old authentication generation, and returns the
+  Vendor to `pending_setup` with one response-only HTTPS setup link.
+- Reset preserves the stable Vendor id, Test ticket assignments, mailbox history, and completed
+  receipts. The old password, TOTP factors, sessions, action links, and UID-bound confirmations no
+  longer authorize the replacement principal. A random per-request transactional claim and two-minute
+  lease fence `claimed → prepared → completed`; overlap/completed replay stops before auth mutation,
+  expired takeover starts only beyond the deployed request lifetime, and compensation re-hardens only
+  while still owned. Duplicate, concurrent, or partially failed resets therefore remain fail-closed.
+- A normal Admin reload after a `prepared` crash re-previews from the marker's original source UID/
+  status/invite-version tuple without displaying UID. While the lease is live, only the original reason
+  returns the same confirmation and a different reason/takeover refuses. After expiry, a fresh reason
+  may bind that validated source and atomically records a distinct bodyless recovery-claim audit.
+  Expired recovery never adopts an abandoned exact-claims Auth or Firestore UID: it quarantines the
+  resolved generation and requires a fresh UID distinct from source, record, and resolved UIDs.
+- A prepared takeover swaps only the staged UID, preserving exactly one invite-version increment and
+  canonical reset audit; its recovery-claim audit separately records actor UID/Vendor id/fresh reason
+  hash/time. The stale owner rechecks lease ownership after external enable and therefore cannot mint a
+  second link, complete the winner, or compensate against the winning UID when its delayed call
+  returns.
+- Reset and setup-link regeneration persist bodyless winning-claim events separately from successful
+  commit/completion events. Failed post-claim work retains the claim event only, and no lifecycle audit
+  stores UID, setup link, plaintext reason, password, TOTP material, or secret.
+- Disable and reset now serialize on the same Vendor lifecycle state. Claimed/prepared reset makes
+  disable return a generic 409 before Firebase/audit even when the lease is stale, so reset recovery
+  comes first. If disable commits first, the old status-bound reset confirmation is stale and a fresh
+  disabled-state reset works; completed reset state permits later disable. No new approval is involved.
+- Test mailbox read/write/confirmation/reply transactions revalidate active current UID, active Test
+  assignment, ticket/thread/mailbox join, and no claimed/prepared reset. Disable, deassignment, UID
+  rotation, or reset claim therefore revokes stale reads and writes before state/receipt changes.
+- Reset refuses a Live, arbitrary, drifted, wrong-email/claim/mode, privileged, or provider-connected
+  identity before mutation. It performs no external delivery, OAuth/Gmail/token-vault construction,
+  provider call, Registry promotion, or Live evidence change.
+- The internal People and Access boundary now requires both the configured hosted domain and a clean
+  internal claim class. Any present `vendor`, `vendor_id`, or `data_mode` key—even false, empty, or
+  malformed—fails closed from the internal roster/Admin count, role/scope mutation, absent-scope/
+  all-Spaces display, ID-token path, and session cookie. The separate Vendor path still requires the
+  exact valid three-claim tuple plus its record/TOTP checks.
+- Hardened deployment recovery: after a successful Cloud Run revision creation the wrapper explicitly
+  promotes the exact revision created by that invocation to 100% traffic, clearing a named-revision
+  pin left by rollback without a floating-`LATEST` race. The public sign-in
+  shell uses the supported `--no-invoker-iam-check` flag; no `allUsers` IAM binding or application auth
+  widening is introduced.
+- The final hardening candidate's clean-install verifier passed 306 unit
+  files/2,178 tests, Firestore 17/59, core E2E 32 passed/18 intentional prerequisite skips, 76/76
+  production routes, traceability 124 acceptance criteria/14 specs, and all formatting/type/lint/
+  governance/redaction/falsification gates. Lint had 0 errors/8 known warnings; the audit had three
+  Moderate dev-only findings with no High/Critical or runtime finding. These are the final
+  current-candidate counts; only commit and deployment pins remain pending.
+- Current production serves commit `7ccd9f213d51d6723d1a6467fe656f3b4724d6a5`, build
+  `840e3b52-ae0e-43b8-bcbf-a25045d5705a`, revision `pmi-kc-kb-demo-00026-cxk`, and digest
+  `sha256:1012dde4878af0c582c5c00f6fc1d5ad3374391ebfc1e2ae2e0747453b03a1ac` at 100% traffic.
+  The `f02112d / 00025-mhw` entry below is historical browser/rollback evidence. This local slice does
+  not replace `00026-cxk` until commit and deployment.
+- Next: commit/push/deploy the candidate, verify automatic exact-revision promotion and production
+  boundaries, then complete the human password/TOTP/assigned-ticket/mailbox/disable/reset journey
+  without retaining secret-bearing evidence.
+
+## Historical f021/00025 working-app browser and rollback evidence
 
 - Date: 2026-07-15
 - Synchronized `main` commit `f02112d9f5ea3dd5a223a46bcc76a96a5c314b97` was built by Cloud

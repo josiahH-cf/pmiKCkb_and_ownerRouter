@@ -23,7 +23,7 @@ function repository(): VendorAssignmentRepository {
   return {
     isVendorActive: async (vendorId, uid, email) =>
       vendorId === "vendor-a" && uid === "uid-a" && email === "a@example.com",
-    listAssignedTickets: async (vendorId) =>
+    listAssignedTickets: async ({ vendorId }) =>
       vendorId === "vendor-a"
         ? [
             {
@@ -36,9 +36,9 @@ function repository(): VendorAssignmentRepository {
             },
           ]
         : [],
-    getAssignedTicket: async (vendorId, ticketId) =>
+    getAssignedTicket: async ({ vendorId, ticketId, ...authority }) =>
       vendorId === "vendor-a" && ticketId === "ticket-a"
-        ? (await repository().listAssignedTickets(vendorId))[0]
+        ? (await repository().listAssignedTickets({ vendorId, ...authority }))[0]
         : null,
     isThreadLinked: async ({ vendorId, ticketId, threadId }) =>
       vendorId === "vendor-a" && ticketId === "ticket-a" && threadId === "thread-a",
@@ -176,13 +176,23 @@ describe("Vendor assigned-ticket boundary", () => {
       ),
     ).resolves.toBe(false);
     await expect(
-      store.getAssignedTicket("vendor:test-summit-plumbing", "ticket:test-maple-leak"),
+      store.getAssignedTicket({
+        vendorId: "vendor:test-summit-plumbing",
+        uid: "uid-test-summit",
+        email: "service@summit-plumbing.example.invalid",
+        dataMode: "test",
+        ticketId: "ticket:test-maple-leak",
+      }),
     ).resolves.toMatchObject({ id: "ticket:test-maple-leak", dataMode: "test" });
     await expect(
       store.getGmailLaneContext({
         vendorId: "vendor:test-summit-plumbing",
         ticketId: "ticket:test-maple-leak",
         threadId: "thread:test-maple-leak",
+        actorUid: "uid-test-summit",
+        actorEmail: "service@summit-plumbing.example.invalid",
+        actorDataMode: "test",
+        actorIsAdmin: false,
       }),
     ).resolves.toEqual({
       vendor: "test",
@@ -191,19 +201,90 @@ describe("Vendor assigned-ticket boundary", () => {
       thread: "test",
     });
 
+    const vendorPath = `${VENDOR_COLLECTIONS.vendors}/vendor:test-summit-plumbing`;
+    const authority = {
+      vendorId: "vendor:test-summit-plumbing",
+      uid: "uid-test-summit",
+      email: "service@summit-plumbing.example.invalid",
+      dataMode: "test" as const,
+    };
+    for (const status of ["claimed", "prepared"] as const) {
+      fake.seed(vendorPath, {
+        ...(fake.store.get(vendorPath) ?? {}),
+        authenticationReset: { status },
+      });
+      await expect(
+        store.isVendorActive(
+          authority.vendorId,
+          authority.uid,
+          authority.email,
+          authority.dataMode,
+        ),
+      ).resolves.toBe(false);
+      await expect(store.listAssignedTickets(authority)).resolves.toEqual([]);
+      await expect(
+        store.getAssignedTicket({ ...authority, ticketId: "ticket:test-maple-leak" }),
+      ).resolves.toBeNull();
+      await expect(
+        store.isThreadLinked({
+          ...authority,
+          ticketId: "ticket:test-maple-leak",
+          threadId: "thread:test-maple-leak",
+        }),
+      ).resolves.toBe(false);
+      await expect(
+        store.getGmailLaneContext({
+          vendorId: authority.vendorId,
+          ticketId: "ticket:test-maple-leak",
+          threadId: "thread:test-maple-leak",
+          actorUid: authority.uid,
+          actorEmail: authority.email,
+          actorDataMode: authority.dataMode,
+          actorIsAdmin: false,
+        }),
+      ).resolves.toBeNull();
+    }
+
+    fake.seed(vendorPath, {
+      ...(fake.store.get(vendorPath) ?? {}),
+      authenticationReset: { status: "completed" },
+    });
+    await expect(
+      store.isVendorActive(
+        authority.vendorId,
+        authority.uid,
+        authority.email,
+        authority.dataMode,
+      ),
+    ).resolves.toBe(true);
+    await expect(store.listAssignedTickets(authority)).resolves.toHaveLength(1);
+    await expect(
+      store.getAssignedTicket({ ...authority, ticketId: "ticket:test-maple-leak" }),
+    ).resolves.toMatchObject({ id: "ticket:test-maple-leak" });
+
     fake.seed("maintenance_tickets/ticket:test-maple-leak", {
       ...(fake.store.get("maintenance_tickets/ticket:test-maple-leak") ?? {}),
       data_mode: "live",
     });
     await expect(
-      store.getAssignedTicket("vendor:test-summit-plumbing", "ticket:test-maple-leak"),
+      store.getAssignedTicket({
+        vendorId: "vendor:test-summit-plumbing",
+        uid: "uid-test-summit",
+        email: "service@summit-plumbing.example.invalid",
+        dataMode: "test",
+        ticketId: "ticket:test-maple-leak",
+      }),
     ).resolves.toBeNull();
     await expect(
       store.getGmailLaneContext({
         vendorId: "vendor:test-summit-plumbing",
         ticketId: "ticket:test-maple-leak",
         threadId: "thread:test-maple-leak",
+        actorUid: "uid-test-summit",
+        actorEmail: "service@summit-plumbing.example.invalid",
+        actorDataMode: "test",
+        actorIsAdmin: false,
       }),
-    ).resolves.toMatchObject({ vendor: "test", ticket: "live", thread: "test" });
+    ).resolves.toBeNull();
   });
 });

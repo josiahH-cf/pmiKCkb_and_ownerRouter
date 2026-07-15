@@ -6,8 +6,10 @@ import { requireCapability } from "@/lib/auth/session";
 import {
   disableProductionTestVendor,
   listProductionTestVendors,
+  previewProductionTestVendorAuthenticationReset,
   provisionProductionTestVendor,
   regenerateProductionTestVendorSetupLink,
+  resetProductionTestVendorAuthentication,
 } from "@/lib/vendor/admin-runtime";
 import { VendorBoundaryError } from "@/lib/vendor/model";
 import {
@@ -35,6 +37,17 @@ const bodySchema = z.discriminatedUnion("operation", [
   }),
   z.object({
     operation: z.literal("regenerate_setup"),
+    vendorId: z.string().min(1),
+    reason: z.string(),
+    confirmedPreviewHash: z.string().min(1),
+  }),
+  z.object({
+    operation: z.literal("preview_reset_authentication"),
+    vendorId: z.string().min(1),
+    reason: z.string(),
+  }),
+  z.object({
+    operation: z.literal("reset_authentication"),
     vendorId: z.string().min(1),
     reason: z.string(),
     confirmedPreviewHash: z.string().min(1),
@@ -89,6 +102,25 @@ export async function POST(request: Request) {
     if (body.operation === "regenerate_setup") {
       return NextResponse.json(
         await regenerateProductionTestVendorSetupLink({
+          actor,
+          vendorId: body.vendorId,
+          reason: body.reason,
+          confirmedPreviewHash: body.confirmedPreviewHash,
+        }),
+        { headers: { "cache-control": "no-store" } },
+      );
+    }
+    if (body.operation === "preview_reset_authentication") {
+      return NextResponse.json({
+        preview: await previewProductionTestVendorAuthenticationReset({
+          vendorId: body.vendorId,
+          reason: body.reason,
+        }),
+      });
+    }
+    if (body.operation === "reset_authentication") {
+      return NextResponse.json(
+        await resetProductionTestVendorAuthentication({
           actor,
           vendorId: body.vendorId,
           reason: body.reason,

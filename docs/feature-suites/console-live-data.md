@@ -10,9 +10,10 @@ Live and Test projections in production, renders persistent mode badges, uses th
 read provider when configured, keeps the production Test workspace provider-free, and shows named
 source unavailable states instead of crossing lanes. Scoped/provenanced projection, bounded message
 metadata, on-demand body boundary, environment tests, and live-provider mapping tests exist. The
-serving `00025-mhw` revision passed signed-in desktop/phone acceptance; the Admin Test workspace passed
-Vendor 11/11, Lease 11/11, and Maintenance 19/19 with zero Live calls. A missing Live connection does
-not make the application Pre-V1.
+historical `f02112d / 00025-mhw` checkpoint passed signed-in desktop/phone acceptance; the Admin Test
+workspace passed Vendor 11/11, Lease 11/11, and Maintenance 19/19 with zero Live calls. Current
+production serves `7ccd9f2 / 00026-cxk`; a missing Live connection does not make the application
+Pre-V1.
 
 **Goal.** Console is a trustworthy operational front door where authorized users can see both current
 Live operations and invented Test workflow records without confusing them. Live panels use only

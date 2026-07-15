@@ -253,11 +253,21 @@ answer ourselves.
 - PMI KC staff, agent, connector, cloud, admin, runtime, build, and delegated-Workspace access always
   use a `pmikcmetro.com` or `pmi-kc-kb-prod` identity. The personal
   `josiah.abernathy@gmail.com` account must never appear in any auth path. V1 has a separately scoped
-  external Vendor principal: Admin invite, one-time password setup, verified-email TOTP before ticket
-  detail, and assigned-ticket-only authorization. The canonical `.invalid` Test Vendor uses the
-  app-only Test mailbox and is rejected before OAuth/Gmail construction. A Live Vendor uses the
-  Vendor's own same-address Gmail/Google Workspace mailbox through per-vendor server-side OAuth. It
+  external Vendor principal: Admin invite, password setup, verified-email TOTP before ticket detail,
+  and assigned-ticket-only authorization. The canonical `.invalid` Test Vendor additionally has a
+  repeatable Admin-confirmed authentication reset/re-enable lifecycle: its exact preview binds the
+  current Firebase UID, status, and invite version; execution rotates the UID, revokes stale sessions
+  and confirmations, clears TOTP, increments the invite version, preserves isolated Test workflow
+  data, and returns one response-only, `no-store` setup link. Any partial failure remains disabled and
+  fail-closed. This Test lifecycle performs no external delivery, OAuth/provider construction, or
+  Live effect. A Live Vendor uses the Vendor's own same-address Gmail/Google Workspace mailbox through
+  per-vendor server-side OAuth; its OAuth client/vault is an optional per-Vendor Live activation. It
   never uses DWD or gains PMI KC cloud, admin, connector, internal Space, or cross-mailbox authority.
+  Identity class wins over email domain: any Firebase principal carrying a `vendor`, `vendor_id`, or
+  `data_mode` custom-claim key is excluded from internal People/Access and last-Admin accounting,
+  cannot receive internal role/scope claims, and cannot establish an internal staff session even when
+  a claim is false/empty/malformed or the address uses `pmikcmetro.com`. The separate Vendor path
+  requires the exact valid `vendor:true` + canonical `vendor_id` + matching `data_mode` tuple.
 - Six identity systems are separate and do NOT cascade: (a) the agent runner's file/Drive
   connector (Claude Code's MCP Drive/Workspace connector today; not applicable under Codex),
   (b) local gcloud/ADC, (c) the Cloud Run runtime service account, (d) Firebase

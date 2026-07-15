@@ -24,6 +24,11 @@ identity/preview/claim/receipt/reconciliation.
   never falls back to Test.
 - Browser input cannot select or override a provider lane, authority object, Registry state, risk,
   or evidence.
+- The canonical Test Vendor auth lifecycle is repeatable without deleting its Test workspace. Reset
+  preview binds current UID/status/`inviteVersion`; execution rotates UID, clears factors, revokes
+  sessions and stale confirmations, preserves Test tickets/mailbox/receipts, and produces no provider/
+  Live effect. Partial failure leaves the replacement disabled and recoverable only through the exact
+  confirmed reset.
 
 ## External Execution
 
@@ -42,15 +47,21 @@ Gmail actions start from an authorized renewal/maintenance entity; there is no g
 - Firestore: server/client boundaries, transaction state, lane mismatch, and idempotency.
 - E2E: roles, Live/Test journeys, action confirmations, failure states, and zero provider calls in
   Test.
-- Browser: desktop/phone, signed-in primary tabs, Vendor password/TOTP, Maintenance Test to Done,
-  monitoring, and rollback target.
+- Browser: desktop/phone, signed-in primary tabs, Vendor password/TOTP/reset/re-enable, Maintenance
+  Test to Done, monitoring, and rollback target.
 - Falsify cross-lane identity/assignment/adapter/receipt, duplicate claims, stale preview, changed
-  source, wrong mailbox, guessed ticket, and ambiguous provider results.
+  source, wrong mailbox, guessed ticket, old Vendor UID/session/confirmation after reset, partial
+  auth-reset failure, prepared-crash Admin reload/re-preview, live-lease different-reason refusal,
+  post-expiry fresh-reason rebinding, claim-versus-completion bodyless audit ordering, abandoned UID
+  reuse, forbidden replacement allocation, delayed old-owner completion against a takeover winner,
+  disable/reset lifecycle interleaving, stale mailbox reads/writes after disable/deassignment/UID
+  rotation/reset claim, and ambiguous provider results.
 
 ## Security and Secrets
 
 - No secrets, setup links, customer values, Gmail bodies, prompt payloads, or sensitive records in
-  git/logs/URLs/audit.
+  git/logs/URLs/audit. A Test Vendor setup link exists only in the `no-store` Admin response that
+  created it; the random reset password is never returned.
 - Prefer ADC, attached service accounts, DWD, OAuth vault references, and workload identity; never
   download service-account keys.
 - Personal Google identities are prohibited.

@@ -11,6 +11,48 @@ const admin = {
 };
 
 describe("Vendor lifecycle", () => {
+  it.each(["reset_in_progress", "stale"] as const)(
+    "maps a %s conflict before Firebase, revocation, or audit effects",
+    async (conflict) => {
+      const updateUser = vi.fn();
+      const revokeRefreshTokens = vi.fn();
+      const getConnection = vi.fn();
+      const markConnectionRevocationPending = vi.fn();
+      const appendAudit = vi.fn();
+      const enqueue = vi.fn();
+
+      await expect(
+        disableVendor(
+          {
+            actor: admin,
+            vendorId: "vendor:test-summit-plumbing",
+            vendorUid: "uid-reset-owner",
+            reason: "Disable only after reset recovery",
+          },
+          {
+            store: {
+              disableVendor: vi.fn().mockResolvedValue(conflict),
+              getConnection,
+              markConnectionRevocationPending,
+              appendAudit,
+            },
+            auth: { updateUser, revokeRefreshTokens },
+            revocations: { enqueue },
+          },
+        ),
+      ).rejects.toMatchObject({
+        status: 409,
+        message: "Vendor lifecycle change is unavailable.",
+      });
+      expect(updateUser).not.toHaveBeenCalled();
+      expect(revokeRefreshTokens).not.toHaveBeenCalled();
+      expect(getConnection).not.toHaveBeenCalled();
+      expect(markConnectionRevocationPending).not.toHaveBeenCalled();
+      expect(enqueue).not.toHaveBeenCalled();
+      expect(appendAudit).not.toHaveBeenCalled();
+    },
+  );
+
   it("disables once, revokes sessions, and queues token destruction without token material", async () => {
     let disabled = false;
     const revokeRefreshTokens = vi.fn();

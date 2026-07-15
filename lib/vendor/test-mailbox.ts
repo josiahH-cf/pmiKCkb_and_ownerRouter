@@ -66,12 +66,17 @@ export type VendorTestMailboxReplyCommitResult =
     };
 
 export interface VendorTestMailboxStore {
-  getTestMailbox(
-    vendorId: string,
-    ticketId: string,
-  ): Promise<VendorTestMailboxRecord | null>;
-  saveTestMailbox(record: VendorTestMailboxRecord): Promise<void>;
-  createTestMailboxConfirmation(record: VendorTestMailboxConfirmation): Promise<void>;
+  getTestMailbox(input: {
+    actorUid: string;
+    vendorId: string;
+    ticketId: string;
+  }): Promise<VendorTestMailboxRecord | null>;
+  saveTestMailbox(input: {
+    actorUid: string;
+    record: VendorTestMailboxRecord;
+    expectedUpdatedAt: string | null;
+  }): Promise<VendorTestMailboxRecord | null>;
+  createTestMailboxConfirmation(record: VendorTestMailboxConfirmation): Promise<boolean>;
   commitTestMailboxReply(input: {
     confirmationId: string;
     actorUid: string;
@@ -135,10 +140,11 @@ export class VendorTestMailboxService {
       ticketId,
       this.dependencies.assignments,
     );
-    const existing = await this.dependencies.store.getTestMailbox(
-      this.principal.vendorId,
+    const existing = await this.dependencies.store.getTestMailbox({
+      actorUid: this.principal.uid,
+      vendorId: this.principal.vendorId,
       ticketId,
-    );
+    });
     if (existing) {
       if (
         resolveDataMode(existing) !== "test" ||
@@ -168,8 +174,15 @@ export class VendorTestMailboxService {
       createdAt,
       updatedAt: createdAt,
     };
-    await this.dependencies.store.saveTestMailbox(record);
-    return record;
+    const created = await this.dependencies.store.saveTestMailbox({
+      actorUid: this.principal.uid,
+      record,
+      expectedUpdatedAt: null,
+    });
+    if (!created) {
+      throw new VendorBoundaryError("Test mailbox write is unavailable.", 409);
+    }
+    return created;
   }
 
   async read(ticketId: string) {
@@ -183,9 +196,16 @@ export class VendorTestMailboxService {
       draftBody: boundedBody(body),
       updatedAt: new Date(this.now()).toISOString(),
     };
-    await this.dependencies.store.saveTestMailbox(updated);
+    const saved = await this.dependencies.store.saveTestMailbox({
+      actorUid: this.principal.uid,
+      record: updated,
+      expectedUpdatedAt: record.updatedAt,
+    });
+    if (!saved) {
+      throw new VendorBoundaryError("Test mailbox write is unavailable.", 409);
+    }
     return {
-      mailbox: updated,
+      mailbox: saved,
       receipt: testReceipt("vendor.test_mailbox.draft", ticketId, record.threadId),
     };
   }
@@ -200,9 +220,16 @@ export class VendorTestMailboxService {
       label,
       updatedAt: new Date(this.now()).toISOString(),
     };
-    await this.dependencies.store.saveTestMailbox(updated);
+    const saved = await this.dependencies.store.saveTestMailbox({
+      actorUid: this.principal.uid,
+      record: updated,
+      expectedUpdatedAt: record.updatedAt,
+    });
+    if (!saved) {
+      throw new VendorBoundaryError("Test mailbox write is unavailable.", 409);
+    }
     return {
-      mailbox: updated,
+      mailbox: saved,
       receipt: testReceipt("vendor.test_mailbox.label", ticketId, record.threadId),
     };
   }
@@ -233,7 +260,9 @@ export class VendorTestMailboxService {
       data_mode: "test",
       liveEvidenceEligible: false,
     };
-    await this.dependencies.store.createTestMailboxConfirmation(confirmation);
+    if (!(await this.dependencies.store.createTestMailboxConfirmation(confirmation))) {
+      throw new VendorBoundaryError("Test mailbox confirmation is unavailable.", 409);
+    }
     return {
       confirmationToken,
       ticketId,

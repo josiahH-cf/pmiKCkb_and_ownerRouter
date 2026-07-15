@@ -167,7 +167,7 @@ export const PRODUCTION_SMOKE_CHECKLIST = [
   {
     id: "vendor-test-workflow",
     description:
-      "The canonical Test Vendor completes password setup and TOTP, sees only its assigned Test ticket, uses the app-only Test mailbox, and loses access after deassignment or disable.",
+      "The canonical Test Vendor completes password setup and TOTP, sees only its assigned Test ticket, uses the app-only Test mailbox, and loses access after deassignment or disable. Admin then resets that canonical identity, proves UID rotation plus preserved Test workflow state, and repeats a fresh password/TOTP sign-in without retaining a setup link or TOTP material.",
   },
   {
     id: "explicit-live-writes",

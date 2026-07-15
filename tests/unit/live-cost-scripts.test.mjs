@@ -3,7 +3,12 @@ import {
   CHEAP_LIVE_MODEL,
   validateLiveCostConfig,
 } from "../../scripts/check-live-cost.mjs";
-import { buildDemoDeployCommand } from "../../scripts/deploy-demo-cloud-run.mjs";
+import {
+  buildDemoDeployCommand,
+  buildRevisionTrafficCommand,
+  createDeployRevisionSuffix,
+  executeDemoDeployPlan,
+} from "../../scripts/deploy-demo-cloud-run.mjs";
 import {
   buildSourceMetaRecord,
   cloudStorageContentDocumentId,
@@ -44,6 +49,8 @@ const gmailCutoverEnv = (project, appBaseUrl) => ({
   GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT: `gmail-pubsub-push@${project}.iam.gserviceaccount.com`,
   GMAIL_PUBSUB_TOPIC: `projects/${project}/topics/gmail-workflow-events`,
 });
+const revisionSuffix = "rm123456789-abcdef123456";
+const revision = `pmi-kc-kb-demo-${revisionSuffix}`;
 
 describe("cheap live setup scripts", () => {
   it("accepts the one-Space Flash live config", () => {
@@ -143,12 +150,16 @@ describe("cheap live setup scripts", () => {
         SPACE_VERTEX_DATA_STORE_IDS: oneSpaceMap,
       },
       localEnv: {},
+      revisionSuffix,
     });
 
     expect(command.ok).toBe(true);
     expect(command.args).toContain("--min-instances=0");
     expect(command.args).toContain("--max-instances=1");
-    expect(command.args).toContain("--allow-unauthenticated");
+    expect(command.args).toContain("--no-invoker-iam-check");
+    expect(command.args).toContain(`--revision-suffix=${revisionSuffix}`);
+    expect(command.revision).toBe(revision);
+    expect(command.args).not.toContain("--allow-unauthenticated");
     expect(command.args).toContain("--memory=512Mi");
     expect(command.args.join(" ")).toContain("ASK_DEMO_MODE=false");
     expect(command.args.join(" ")).toContain("CONSOLE_TEST_DEPLOYMENT_NAME=");
@@ -182,7 +193,7 @@ describe("cheap live setup scripts", () => {
     expect(command.command).toBe("custom-gcloud");
   });
 
-  it("can skip unauthenticated invoker binding when org policy blocks allUsers", () => {
+  it("can preserve an existing invoker configuration when explicitly requested", () => {
     const command = buildDemoDeployCommand({
       argv: ["--budget-confirmed", "--dry-run", "--skip-allow-unauthenticated"],
       env: {
@@ -201,6 +212,134 @@ describe("cheap live setup scripts", () => {
 
     expect(command.ok).toBe(true);
     expect(command.args).not.toContain("--allow-unauthenticated");
+    expect(command.args).not.toContain("--no-invoker-iam-check");
+  });
+
+  it("promotes only the exact Cloud Run revision created by the deploy invocation", () => {
+    const command = buildRevisionTrafficCommand({
+      argv: [
+        "--project=pmi-kc-kb-prod",
+        "--region=us-central1",
+        "--service=pmi-kc-kb-demo",
+        "--skip-allow-unauthenticated",
+      ],
+      env: { GCLOUD_BIN: "custom-gcloud" },
+      localEnv: {},
+      revision,
+    });
+
+    expect(command).toEqual({
+      command: "custom-gcloud",
+      args: [
+        "run",
+        "services",
+        "update-traffic",
+        "pmi-kc-kb-demo",
+        "--project=pmi-kc-kb-prod",
+        "--region=us-central1",
+        `--to-revisions=${revision}=100`,
+        "--quiet",
+      ],
+    });
+    expect(command.args.join(" ")).not.toContain("--to-latest");
+    expect(command.args).not.toContain("--allow-unauthenticated");
+    expect(command.args).not.toContain("--no-invoker-iam-check");
+  });
+
+  it("promotes the matching exact revision only after the deploy command succeeds", async () => {
+    const calls = [];
+    const deploy = {
+      command: "gcloud",
+      args: ["run", "deploy", "service", `--revision-suffix=${revisionSuffix}`],
+    };
+    const promote = {
+      command: "gcloud",
+      args: [
+        "run",
+        "services",
+        "update-traffic",
+        "service",
+        `--to-revisions=service-${revisionSuffix}=100`,
+      ],
+    };
+
+    await executeDemoDeployPlan(deploy, promote, async (command, args) => {
+      calls.push([command, ...args]);
+    });
+
+    expect(calls).toEqual([
+      ["gcloud", "run", "deploy", "service", `--revision-suffix=${revisionSuffix}`],
+      [
+        "gcloud",
+        "run",
+        "services",
+        "update-traffic",
+        "service",
+        `--to-revisions=service-${revisionSuffix}=100`,
+      ],
+    ]);
+    expect(calls.flat().join(" ")).not.toContain("--to-latest");
+
+    const failedCalls = [];
+    await expect(
+      executeDemoDeployPlan(deploy, promote, async (command, args) => {
+        failedCalls.push([command, ...args]);
+        throw new Error("deploy failed");
+      }),
+    ).rejects.toThrow("deploy failed");
+    expect(failedCalls).toEqual([
+      ["gcloud", "run", "deploy", "service", `--revision-suffix=${revisionSuffix}`],
+    ]);
+  });
+
+  it("creates deterministic collision-resistant Cloud Run-valid revision suffixes", () => {
+    const first = createDeployRevisionSuffix({
+      nowMs: 1_752_595_200_000,
+      entropy: "abcdef123456",
+    });
+    const repeated = createDeployRevisionSuffix({
+      nowMs: 1_752_595_200_000,
+      entropy: "abcdef123456",
+    });
+    const concurrent = createDeployRevisionSuffix({
+      nowMs: 1_752_595_200_000,
+      entropy: "abcdef123457",
+    });
+
+    expect(first).toBe(repeated);
+    expect(concurrent).not.toBe(first);
+    expect(first).toMatch(/^[a-z][a-z0-9-]*[a-z0-9]$/);
+    expect(`pmi-kc-kb-demo-${first}`.length).toBeLessThanOrEqual(63);
+  });
+
+  it("fails preflight when service plus exact revision suffix exceeds Cloud Run's limit", () => {
+    const command = buildDemoDeployCommand({
+      argv: [
+        "--budget-confirmed",
+        "--dry-run",
+        "--service=this-service-name-is-far-too-long-for-the-required-revision-suffix",
+      ],
+      env: {
+        ASK_DEMO_MODE: "false",
+        GCP_PROJECT_ID: "pmikckb-test",
+        GEMINI_MODEL_ANSWER: CHEAP_LIVE_MODEL,
+        NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
+        NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmikckb-test.firebaseapp.com",
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmikckb-test",
+        SPACE_DRIVE_FOLDER_IDS: oneSpaceMap,
+        SPACE_VERTEX_DATA_STORE_IDS: oneSpaceMap,
+      },
+      localEnv: {},
+      revisionSuffix,
+    });
+
+    expect(command.ok).toBe(false);
+    expect(
+      command.errors.some((error) =>
+        error.includes("Cloud Run revision name must be at most 63 characters"),
+      ),
+    ).toBe(true);
   });
 
   it("allows explicit multi-Space Cloud Run deploy commands", () => {

@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -18,6 +19,44 @@ const DEFAULT_PROJECT_ID = "pmi-kc-kb-prod";
 const DEFAULT_REGION = "us-central1";
 const DEFAULT_SERVICE = "pmi-kc-kb-demo";
 const DEFAULT_SEARCH_LOCATION = "us";
+const CLOUD_RUN_MAX_REVISION_NAME_LENGTH = 63;
+const CLOUD_RUN_NAME_PATTERN = /^[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
+export function createDeployRevisionSuffix({
+  nowMs = Date.now(),
+  entropy = randomBytes(6).toString("hex"),
+} = {}) {
+  if (!Number.isSafeInteger(nowMs) || nowMs < 0) {
+    throw new Error("Revision timestamp must be a non-negative safe integer.");
+  }
+  if (!/^[0-9a-f]{12}$/i.test(entropy)) {
+    throw new Error("Revision entropy must contain exactly 12 hexadecimal characters.");
+  }
+
+  // The timestamp makes the suffix operationally sortable; 48 random bits prevent two deploy
+  // invocations in the same millisecond from silently targeting the same revision.
+  return `r${nowMs.toString(36)}-${entropy.toLowerCase()}`;
+}
+
+function buildRevisionIdentity(service, revisionSuffix, errors) {
+  if (!CLOUD_RUN_NAME_PATTERN.test(service)) {
+    errors.push(
+      "Cloud Run service must use lowercase letters, digits, and hyphens, start with a letter, and end with a letter or digit.",
+    );
+  }
+  if (!CLOUD_RUN_NAME_PATTERN.test(revisionSuffix)) {
+    errors.push("Cloud Run revision suffix is invalid.");
+  }
+
+  const revision = `${service}-${revisionSuffix}`;
+  if (revision.length > CLOUD_RUN_MAX_REVISION_NAME_LENGTH) {
+    errors.push(
+      `Cloud Run revision name must be at most ${CLOUD_RUN_MAX_REVISION_NAME_LENGTH} characters; got ${revision.length}.`,
+    );
+  }
+
+  return { revision, revisionSuffix };
+}
 
 export function parseDeployArgs(argv = process.argv.slice(2)) {
   const readArg = (name) => {
@@ -45,6 +84,7 @@ export function buildDemoDeployCommand({
   argv = [],
   env = process.env,
   localEnv = readLocalEnv(),
+  revisionSuffix = createDeployRevisionSuffix(),
 } = {}) {
   const args = parseDeployArgs(argv);
   const readEnv = (name) => env[name] ?? localEnv[name];
@@ -54,6 +94,7 @@ export function buildDemoDeployCommand({
     args.searchLocation ?? readEnv("VERTEX_SEARCH_LOCATION") ?? DEFAULT_SEARCH_LOCATION;
   const service = args.service ?? DEFAULT_SERVICE;
   const errors = [];
+  const revisionIdentity = buildRevisionIdentity(service, revisionSuffix, errors);
   const publicBuildEnv = resolvePublicBuildEnv(localEnv, env, errors);
   const mergedEnv = {
     ...localEnv,
@@ -81,6 +122,7 @@ export function buildDemoDeployCommand({
     "--source=.",
     `--project=${project}`,
     `--region=${region}`,
+    `--revision-suffix=${revisionIdentity.revisionSuffix}`,
     "--min-instances=0",
     "--max-instances=1",
     "--memory=512Mi",
@@ -102,7 +144,10 @@ export function buildDemoDeployCommand({
   }
 
   if (!args.skipAllowUnauthenticated) {
-    commandArgs.push("--allow-unauthenticated");
+    // This managed project intentionally exposes the sign-in shell by disabling Cloud Run's
+    // invoker IAM check. That is the supported org-policy-safe path when an allUsers IAM binding
+    // is unavailable; application authentication and authorization still protect every route.
+    commandArgs.push("--no-invoker-iam-check");
   }
 
   return {
@@ -110,7 +155,52 @@ export function buildDemoDeployCommand({
     command: resolveGcloudCommand(env),
     errors,
     ok: errors.length === 0,
+    ...revisionIdentity,
   };
+}
+
+export function buildRevisionTrafficCommand({
+  argv = [],
+  env = process.env,
+  localEnv = readLocalEnv(),
+  revision,
+} = {}) {
+  const args = parseDeployArgs(argv);
+  const readEnv = (name) => env[name] ?? localEnv[name];
+  const project = args.project ?? readEnv("GCP_PROJECT_ID") ?? DEFAULT_PROJECT_ID;
+  const region = args.region ?? readEnv("VERTEX_AI_LOCATION") ?? DEFAULT_REGION;
+  const service = args.service ?? DEFAULT_SERVICE;
+  if (
+    typeof revision !== "string" ||
+    !CLOUD_RUN_NAME_PATTERN.test(revision) ||
+    revision.length > CLOUD_RUN_MAX_REVISION_NAME_LENGTH ||
+    !revision.startsWith(`${service}-`)
+  ) {
+    throw new Error("Exact Cloud Run revision does not match the deploy target service.");
+  }
+
+  return {
+    args: [
+      "run",
+      "services",
+      "update-traffic",
+      service,
+      `--project=${project}`,
+      `--region=${region}`,
+      `--to-revisions=${revision}=100`,
+      "--quiet",
+    ],
+    command: resolveGcloudCommand(env),
+  };
+}
+
+export async function executeDemoDeployPlan(
+  deployCommand,
+  revisionTrafficCommand,
+  runCommand = run,
+) {
+  await runCommand(deployCommand.command, deployCommand.args);
+  await runCommand(revisionTrafficCommand.command, revisionTrafficCommand.args);
 }
 
 export async function main(argv = process.argv.slice(2), env = process.env) {
@@ -128,12 +218,24 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     throw new Error(`Demo deploy preflight failed:\n- ${command.errors.join("\n- ")}`);
   }
 
+  // A rollback can leave traffic pinned to a named revision. Promote only the collision-resistant
+  // revision created by this invocation; a floating LATEST target could race another deployment.
+  // This traffic-only command does not change the service's invoker/IAM configuration.
+  const revisionTrafficCommand = buildRevisionTrafficCommand({
+    argv,
+    env,
+    revision: command.revision,
+  });
+
   if (args.dryRun) {
     console.log([command.command, ...command.args].join(" "));
+    console.log(
+      [revisionTrafficCommand.command, ...revisionTrafficCommand.args].join(" "),
+    );
     return;
   }
 
-  await run(command.command, command.args);
+  await executeDemoDeployPlan(command, revisionTrafficCommand);
 }
 
 export function formatGcloudMapFlag(flagName, values) {

@@ -619,7 +619,7 @@
       }
 
       .bar-fill.vendor {
-        width: 36.8%;
+        width: 42.1%;
         background: linear-gradient(90deg, var(--green), #46b292);
       }
 
@@ -950,9 +950,11 @@
           <span class="hero-chip">Report date · July 15, 2026</span>
           <span class="hero-chip">Application state · Working V1</span>
           <span class="hero-chip">Data model · Live + isolated Test</span>
-          <span class="hero-chip"> Release commit · <code>f02112d</code> </span>
           <span class="hero-chip">
-            Cloud Run revision · <code>pmi-kc-kb-demo-00025-mhw</code>
+            Candidate · local hardening; final deploy pending
+          </span>
+          <span class="hero-chip">
+            Serving checkpoint · <code>7ccd9f2 / pmi-kc-kb-demo-00026-cxk</code>
           </span>
         </div>
       </header>
@@ -998,8 +1000,9 @@
           <div class="metric blue">
             <strong>6</strong><span>explicit persistent Maintenance Test actions</span>
           </div>
-          <div class="metric amber">
-            <strong>2,089</strong><span>passing unit tests across 304 files</span>
+          <div class="metric green">
+            <strong>2,178</strong
+            ><span>unit tests passed in the final release-candidate verifier</span>
           </div>
         </div>
         <div class="callout good">
@@ -1244,7 +1247,7 @@
                 <td data-label="Suite">S22 · External Vendor</td>
                 <td data-label="What users get">
                   Admin provision, password/TOTP, assigned-ticket portal, Test mailbox,
-                  exact reply, disable/revoke.
+                  exact reply, disable/revoke, and repeatable authentication reset.
                 </td>
                 <td data-label="Application state">
                   <span class="status working">Working V1</span>
@@ -1339,7 +1342,7 @@
           <div class="bar-row">
             <span>Vendor lifecycle stages</span>
             <div class="bar-track"><div class="bar-fill vendor"></div></div>
-            <strong>7</strong>
+            <strong>8</strong>
           </div>
           <p class="fine-print">
             Bar length is relative to the largest typed workflow family; it is not a
@@ -1497,7 +1500,11 @@
               <dt>Expect</dt>
               <dd>
                 User roles/scopes, last-Admin guard, V1 Test workspace, exact Vendor
-                provision/disable, observability, and policy controls.
+                provision/disable/reset, observability, and policy controls. Any identity
+                carrying a <code>vendor</code>, <code>vendor_id</code>, or
+                <code>data_mode</code> claim key stays out of the internal People
+                roster—even when a value is false or malformed and even if the address
+                uses the staff domain.
               </dd>
               <dt>Boundary</dt>
               <dd>
@@ -1640,7 +1647,10 @@
         <p class="lede">
           Role controls authority. Renewals/Maintenance scope independently limits where
           an internal user can enter. The external Vendor is not an internal role and
-          never inherits staff access.
+          never inherits staff access. Internal identity checks fail closed on any partial
+          Vendor-claim evidence; the Vendor portal separately requires the exact valid
+          <code>vendor:true</code>, canonical <code>vendor_id</code>, and matching
+          <code>data_mode</code> tuple.
         </p>
         <div class="table-wrap">
           <table>
@@ -1685,8 +1695,8 @@
                 <td data-label="Principal">Admin</td>
                 <td data-label="Can do">
                   All internal capabilities; roles/scopes; high-consequence decisions;
-                  Test workspace; Vendor provision/disable; governance and connection
-                  operations.
+                  Test workspace; exact-previewed Vendor provision, disable, and canonical
+                  Test authentication reset; governance and connection operations.
                 </td>
                 <td data-label="Cannot do">
                   Bypass technical blockers, invent provider mappings, read another
@@ -1908,7 +1918,9 @@
         <p class="lede">
           Vendor authentication is part of V1. The canonical Test Vendor uses the real
           Firebase password/TOTP flow and assigned-ticket authorization, while its mailbox
-          is app-only and rejected before OAuth or Gmail client construction.
+          is app-only and rejected before OAuth or Gmail client construction. Its stable
+          Vendor record and invented work survive an authentication reset; the replaceable
+          Firebase UID and every credential bound to it do not.
         </p>
         <div class="steps">
           <article class="step">
@@ -1964,11 +1976,45 @@
             <h3>Admin disables and revokes</h3>
             <p>
               The Admin previews the exact account, confirms with a reason, disables the
-              Firebase principal, and revokes active sessions.
+              Firebase principal, and revokes active sessions. If a reset is already
+              claimed or prepared, disable stops before Firebase or audit—even after the
+              reset lease expires—so the Admin recovers that reset first. A completed
+              reset does not prevent a later disable.
+            </p>
+          </article>
+          <article class="step">
+            <h3>Admin can reset and safely start again</h3>
+            <p>
+              From pending setup, active, or disabled, an Admin supplies a reason and
+              reviews the bound status/invite-version transition. Confirmation deletes the
+              old Firebase principal, creates a new UID, increments the invite version,
+              returns the stable Vendor record to <code>pending_setup</code>, and returns
+              one new no-store setup link. A concurrent or stale confirmation fails closed
+              and cannot disable a reset another Admin just completed. If the browser
+              reloads after the app record reached <code>prepared</code>, the normal Admin
+              preview binds the original reset generation without displaying its UID.
+              While the two-minute owner lease is live, re-entering the original reason
+              returns the same confirmation and a different reason or takeover refuses.
+              After expiry, the Admin may enter a fresh reason; the server safely rebinds
+              only that reason to the validated original lifecycle and records the
+              takeover without requiring manual database repair. If disable finished
+              before reset claimed the lifecycle record, the old active-state confirmation
+              is rejected; a fresh disabled-state preview can reset normally.
             </p>
           </article>
         </div>
         <div class="grid-2" style="margin-top: 14px">
+          <article class="card">
+            <h3>Stable work, replaceable authentication</h3>
+            <p>
+              Reset preserves <code>vendor:test-summit-plumbing</code>, its assigned Test
+              tickets, app-only mailbox history, labels, completed receipts, and current
+              assignment state. It invalidates the old Firebase UID, password, TOTP
+              factors, sessions, password-action links, and UID-bound activation or reply
+              confirmations. Removed assignments stay removed; reset never silently
+              reassigns work.
+            </p>
+          </article>
           <article class="card">
             <h3>Test Vendor production configuration</h3>
             <p>
@@ -1979,11 +2025,49 @@
             </p>
           </article>
           <article class="card">
-            <h3>Live Vendor adds</h3>
+            <h3>An expired reset never inherits abandoned credentials</h3>
+            <p>
+              Recovery quarantines the abandoned Firebase generation by disabling it,
+              clearing factors, revoking sessions, and deleting it—even when its claims
+              look exactly right. The winner must receive a fresh UID distinct from the
+              original source, the staged Firestore record, and the Auth user found at the
+              Test address. A prepared recovery keeps the original single invite-version
+              increment and canonical reset audit. It adds a separate bodyless
+              recovery-claim event—who recovered, which Test Vendor, a hash of the fresh
+              reason, and when—so recovery is visible without being mistaken for a second
+              reset. If the old request finishes late, it cannot mint a second link, mark
+              the winner complete, disable it, or delete it.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Audit shows attempts and outcomes honestly</h3>
+            <p>
+              Reset and setup-link recovery record a bodyless claim event when one Admin
+              wins the lifecycle lease, then a separate completion event only after the
+              state change succeeds. A failed post-claim attempt therefore leaves an
+              honest claim trail without falsely claiming completion. Audit stores actor,
+              Test Vendor, reason hash, action, and time—never the plaintext reason,
+              Firebase UID, password, setup link, TOTP material, or mailbox content.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Revocation closes reads and writes</h3>
+            <p>
+              Every Test mailbox read, draft/label change, confirmation, and reply commit
+              rechecks the current active Vendor UID, active Test assignment,
+              ticket/thread join, and reset state in the same transaction. Disable,
+              deassignment, UID rotation, or a claimed/prepared reset therefore stops
+              stale reads and writes before mailbox state or a receipt can change.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Optional Live Vendor activation adds</h3>
             <p>
               A real routable Vendor mailbox, the Vendor's own consent, same-address
               server-side Google OAuth, the exact approved Gmail scopes, redirect URI, and
-              Secret Manager refresh-token vault.
+              Secret Manager refresh-token vault. Those inputs activate Live Gmail for
+              that Vendor; they are not prerequisites for the required working Test
+              authentication/reset lifecycle.
             </p>
           </article>
         </div>
@@ -1992,9 +2076,15 @@
           <span class="evidence-pending">Pending</span> — the canonical Test Vendor must
           finish its one-time password setup, enroll TOTP, sign in again with the fresh
           second factor, and confirm assigned-ticket-only access in the production
-          browser. This step necessarily stays with the human holding the password and
-          authenticator; no password, setup key, or TOTP code belongs in this report or
-          repository.
+          browser. The production check also exercises disable → reset/re-enable → fresh
+          setup so UID rotation and preserved Test work are proven without exposing
+          secrets. Automated UI acceptance separately forces a prepared interruption,
+          reloads the Admin page, confirms that only the original reason reproduces the
+          UID-free preview while the lease is live, then uses a fresh reason after expiry
+          to prove the fresh-UID takeover and its separate bodyless recovery audit. The
+          secret-bearing step necessarily stays with the human holding the password and
+          authenticator; no password, setup key, reset link, or TOTP code belongs in this
+          report or repository.
         </div>
       </section>
 
@@ -2247,17 +2337,20 @@
       <section class="report-section" id="verification">
         <h2>Release evidence</h2>
         <p class="lede">
-          The figures below belong to release commit
-          <code>f02112d9f5ea3dd5a223a46bcc76a96a5c314b97</code> and its deployed build—not
-          the smaller historical snapshot explained later. Component gates are reported
-          separately from production browser evidence and Live provider proof.
+          The automated figures below are the completed full-verifier result for the
+          current local hardening candidate. Its commit/build/image/revision pins are
+          intentionally pending until deployment. Production currently serves the prior
+          checkpoint
+          <code>7ccd9f213d51d6723d1a6467fe656f3b4724d6a5</code> as
+          <code>pmi-kc-kb-demo-00026-cxk</code>. Component gates are reported separately
+          from serving-checkpoint browser evidence and Live provider proof.
         </p>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>Gate</th>
-                <th>Final release result</th>
+                <th>Candidate/checkpoint result</th>
                 <th>What it proves</th>
                 <th>What it does not prove</th>
               </tr>
@@ -2298,7 +2391,8 @@
                 <td data-label="Gate">Unit suite</td>
                 <td data-label="Result">
                   <span class="status working">Passed</span>
-                  <strong>304 files / 2,089 tests</strong>.
+                  <strong>306 files / 2,178 tests</strong> in the final release-candidate
+                  verifier.
                 </td>
                 <td data-label="Proves">
                   Application logic, boundaries, schemas, permissions, Test isolation, UI
@@ -2361,9 +2455,10 @@
                 <td data-label="Gate">Cloud Run / browser</td>
                 <td data-label="Result">
                   <span class="status working">Deployed</span>
-                  <code>pmi-kc-kb-demo-00025-mhw</code> serves 100% of traffic. Staff
-                  routes redirect unauthenticated users to sign-in; the protected Lease
-                  Test API returns 401. Human Vendor acceptance is itemized separately.
+                  Prior checkpoint <code>pmi-kc-kb-demo-00026-cxk</code> serves 100% of
+                  traffic. The current local claim/reset hardening is not represented by
+                  that revision; its exact deploy and human Vendor acceptance are itemized
+                  separately.
                 </td>
                 <td data-label="Proves">
                   The merged release actually serves, authenticates, and supports
@@ -2383,11 +2478,13 @@
           without overstating any provider.
         </div>
         <div class="callout good">
-          <strong>The all-in-one verifier completed</strong>
-          Every row above is the completed wrapper result. Reliability was improved by
+          <strong>The last full local-candidate verifier completed</strong>
+          The automated rows above record that completed baseline; the Cloud Run row
+          records the separate prior serving checkpoint. Reliability was improved by
           capping Vitest at eight workers and replacing a costly 393,233-byte deep
           structural assertion with exact byte-length and byte comparison. No test timeout
-          was widened or relaxed.
+          was widened or relaxed. The final candidate rerun will replace the baseline
+          counts before deploy.
         </div>
       </section>
 
@@ -2422,14 +2519,14 @@
           <dt>286 files / 1,984 tests</dt>
           <dd>
             That historical commit passed 1,984 unit assertions distributed across 286
-            test files. The release in this report is larger and is reported separately as
-            304 files / 2,089 tests.
+            test files. The final release-candidate result is larger and is reported
+            separately as 306 files / 2,178 tests.
           </dd>
           <dt>Firestore 16/56</dt>
           <dd>
             This meant 16 Firestore test files and 56 passing checks. It was not “16
-            passed out of 56,” nor a 29% score. The current release result is 17 files /
-            59 tests.
+            passed out of 56,” nor a 29% score. The later full local-candidate baseline is
+            17 files / 59 tests.
           </dd>
           <dt>32 passed / 18 skipped</dt>
           <dd>
@@ -2520,9 +2617,9 @@
               the time of the sentence; their later output was needed before completion.
               The wrapper runs these groups sequentially, so “now in the full
               unit/build/governance phase” described its position in the pipeline, not a
-              new defect or blocker. The wrapper later completed cleanly with the final
-              304-file/2,089-test, 17-file/59-Firestore-test, 32-pass/18-skip core E2E,
-              76-route, and governance results shown above.
+              new defect or blocker. That wrapper later completed cleanly with the
+              306-file/2,178-test, 17-file/59-Firestore-test, 32-pass/18-skip core E2E,
+              76-route, and governance result shown above.
             </p>
           </article>
           <article class="card">
@@ -2545,22 +2642,31 @@
         <h2>What remains—and what does not</h2>
         <p class="lede">
           Product choices R01–R09 are settled. The application does not need another broad
-          approval cycle or another rewrite of what V1 means. The release is deployed; one
-          secret-bearing acceptance record remains open, while provider-specific
-          activation proceeds only when the business wants a particular Live effect.
+          approval cycle or another rewrite of what V1 means. A working-app checkpoint is
+          deployed; the current hardening candidate has passed its final verifier and
+          still needs exact commit/build/revision pins and deploy. One secret-bearing
+          acceptance record remains open, while provider-specific activation proceeds only
+          when the business wants a particular Live effect.
         </p>
         <div class="grid-3">
           <article class="card">
             <span class="status pending">Evidence closeout</span>
-            <h3 style="margin-top: 11px">One human check remains</h3>
+            <h3 style="margin-top: 11px">Two operational closeouts remain</h3>
             <ul>
+              <li>
+                Run the final all-in-one verifier, commit/push, and deploy the current
+                hardening candidate; then replace every pending release pin and baseline
+                count in this report.
+              </li>
               <li>
                 Have the canonical Test Vendor complete its private password/TOTP setup
                 and assigned-ticket production walkthrough.
               </li>
               <li>
-                Rollback is complete: traffic moved to <code>00024-6b2</code>, the auth
-                boundary stayed healthy, and <code>00025-mhw</code> was restored to 100%.
+                Historical rollback evidence remains valid: the earlier
+                <code>f02112d / 00025-mhw</code> checkpoint moved to
+                <code>00024-6b2</code>, stayed healthy, and was restored. Rehearse the new
+                candidate against its own captured prior revision after deploy.
               </li>
             </ul>
           </article>
@@ -2648,14 +2754,17 @@
       </section>
 
       <section class="report-section" id="deployment">
-        <h2>Final deployment record</h2>
+        <h2>Release candidate and serving checkpoint</h2>
         <p class="lede">
-          Release commit <code>f02112d</code> is built and serving. The immediately prior
-          serving revision is <code>pmi-kc-kb-demo-00024-6b2</code>; the bounded rehearsal
-          moved traffic there, verified health, and restored <code>00025-mhw</code>. The
-          Cloud Run resource retains its historical <code>demo</code> name, but it runs in
-          <code>pmi-kc-kb-prod</code> with the production runtime identity; it is not a
-          fixture-only deployment.
+          The current hardening candidate is locally verified and deliberately has pending
+          release pins until its commit, build, and deployment complete. Production
+          currently serves checkpoint
+          <code>7ccd9f2 / pmi-kc-kb-demo-00026-cxk</code> at 100%. The earlier
+          <code>f02112d / 00025-mhw → 00024-6b2 → 00025-mhw</code> rollback rehearsal is
+          retained as historical evidence, not relabeled as the upcoming candidate's
+          rehearsal. The Cloud Run resource retains its historical <code>demo</code> name,
+          but it runs in <code>pmi-kc-kb-prod</code> with the production runtime identity;
+          it is not a fixture-only deployment.
         </p>
         <div class="table-wrap">
           <table>
@@ -2669,29 +2778,38 @@
                 </td>
               </tr>
               <tr>
-                <td data-label="Field">Merged commit</td>
+                <td data-label="Field">Candidate commit</td>
                 <td data-label="Value">
-                  <code>f02112d9f5ea3dd5a223a46bcc76a96a5c314b97</code>
+                  <span class="evidence-pending">Verifier complete; pending commit</span>
                 </td>
               </tr>
               <tr>
-                <td data-label="Field">Cloud Build</td>
+                <td data-label="Field">Candidate Cloud Build</td>
                 <td data-label="Value">
-                  <code>0be21660-bfe6-47e7-8e33-ff1b5b21bd10</code>
+                  <span class="evidence-pending">Pending deployment</span>
                 </td>
               </tr>
               <tr>
-                <td data-label="Field">Container image</td>
+                <td data-label="Field">Candidate container image</td>
                 <td data-label="Value">
+                  <span class="evidence-pending">Pending deployment digest</span>
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Field">Candidate serving revision</td>
+                <td data-label="Value">
+                  <span class="evidence-pending">Pending exact-revision promotion</span>
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Field">Current serving checkpoint</td>
+                <td data-label="Value">
+                  Commit <code>7ccd9f213d51d6723d1a6467fe656f3b4724d6a5</code>; build
+                  <code>840e3b52-ae0e-43b8-bcbf-a25045d5705a</code>; revision
+                  <code>pmi-kc-kb-demo-00026-cxk</code>; image
                   <code
-                    >sha256:23e75a9dc7ee22258794814e986dece1ba8303609f7d516ca5d58148109e4625</code
-                  >
-                </td>
-              </tr>
-              <tr>
-                <td data-label="Field">Serving revision</td>
-                <td data-label="Value">
-                  <code>pmi-kc-kb-demo-00025-mhw</code>
+                    >sha256:1012dde4878af0c582c5c00f6fc1d5ad3374391ebfc1e2ae2e0747453b03a1ac</code
+                  >.
                 </td>
               </tr>
               <tr>
@@ -2708,34 +2826,40 @@
                 </td>
               </tr>
               <tr>
-                <td data-label="Field">Rollback revision</td>
+                <td data-label="Field">Historical rollback evidence</td>
                 <td data-label="Value">
-                  <code>pmi-kc-kb-demo-00024-6b2</code> · rehearsal passed; final revision
-                  restored immediately
+                  Earlier checkpoint <code>f02112d / 00025-mhw</code> moved to
+                  <code>pmi-kc-kb-demo-00024-6b2</code>, passed the bounded health checks,
+                  and restored <code>00025-mhw</code>. Capture and rehearse the upcoming
+                  candidate's own prior revision after deploy.
                 </td>
               </tr>
               <tr>
                 <td data-label="Field">Traffic</td>
                 <td data-label="Value">
-                  <strong>100%</strong> to <code>pmi-kc-kb-demo-00025-mhw</code>; latest
+                  <strong>100%</strong> to <code>pmi-kc-kb-demo-00026-cxk</code>; latest
                   ready revision matches.
                 </td>
               </tr>
               <tr>
                 <td data-label="Field">Public/auth smoke</td>
                 <td data-label="Value">
-                  Staff routes return 307 to <code>/sign-in</code>, Vendor routes return
-                  307 to <code>/vendor/sign-in</code>, and the protected Lease Test API
-                  returns 401 when no session is present.
+                  Prior serving-checkpoint evidence shows staff routes returning 307 to
+                  <code>/sign-in</code>, Vendor routes returning 307 to
+                  <code>/vendor/sign-in</code>, and the protected Lease Test API returning
+                  401 without a session. Repeat these checks against the upcoming
+                  candidate revision.
                 </td>
               </tr>
               <tr>
                 <td data-label="Field">Signed-in walkthrough</td>
                 <td data-label="Value">
-                  Production Admin evidence covers the isolated Test workspace,
-                  Maintenance persistence/actions, and zero Live calls. The final
-                  password/TOTP/assigned-ticket Vendor step remains
-                  <span class="evidence-pending">pending human acceptance</span>.
+                  Prior production Admin evidence covers the isolated Test workspace,
+                  Maintenance persistence/actions, and zero Live calls. The upcoming
+                  candidate needs the same signed-in smoke plus the
+                  <span class="evidence-pending"
+                    >password/TOTP/assigned-ticket/disable/reset human acceptance</span
+                  >.
                 </td>
               </tr>
               <tr>
@@ -2751,10 +2875,11 @@
 
       <footer class="report-footer">
         <p>
-          <strong>Evidence basis:</strong> repository implementation and machine evidence
-          on July 15, 2026. The remaining human Vendor acceptance is labeled rather than
-          inferred. No customer records, Gmail bodies, credentials, or secret values are
-          included.
+          <strong>Evidence basis:</strong> repository implementation, the last completed
+          final local verifier, and the separately identified serving checkpoint on July
+          15, 2026. Candidate deploy pins and human Vendor acceptance are labeled pending
+          rather than inferred. No customer records, Gmail bodies, credentials, or secret
+          values are included.
         </p>
         <p>
           Companion records: <a href="plan.md">working-app plan</a> ·

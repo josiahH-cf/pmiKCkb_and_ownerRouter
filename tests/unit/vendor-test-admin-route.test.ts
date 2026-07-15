@@ -2,8 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/vendor/admin-runtime", () => ({
   listProductionTestVendors: vi.fn(),
+  previewProductionTestVendorAuthenticationReset: vi.fn(),
   provisionProductionTestVendor: vi.fn(),
   regenerateProductionTestVendorSetupLink: vi.fn(),
+  resetProductionTestVendorAuthentication: vi.fn(),
   disableProductionTestVendor: vi.fn(),
 }));
 
@@ -12,8 +14,10 @@ import { setAuthResolverForTest } from "@/lib/auth/session";
 import {
   disableProductionTestVendor,
   listProductionTestVendors,
+  previewProductionTestVendorAuthenticationReset,
   provisionProductionTestVendor,
   regenerateProductionTestVendorSetupLink,
+  resetProductionTestVendorAuthentication,
 } from "@/lib/vendor/admin-runtime";
 
 function actor(role: "Editor" | "Admin") {
@@ -209,6 +213,101 @@ describe("Test Vendor Admin route", () => {
       vendorId: "vendor:test-summit-plumbing",
       reason: "Recover the interrupted setup",
       confirmedPreviewHash: "reviewed-recovery-hash",
+    });
+  });
+
+  it("previews an authentication reset through the current server lifecycle binding", async () => {
+    actor("Admin");
+    vi.mocked(previewProductionTestVendorAuthenticationReset).mockResolvedValue({
+      previewHash: "lifecycle-bound-hash",
+      artifact: "vendor-test-authentication-reset:v1.0",
+      vendorId: "vendor:test-summit-plumbing",
+      displayName: "Summit Plumbing Test Vendor",
+      email: "service@summit-plumbing.example.invalid",
+      currentStatus: "active",
+      currentInviteVersion: 3,
+      nextStatus: "pending_setup",
+      nextInviteVersion: 4,
+      action: "Reset Test Vendor authentication",
+      target: "Summit Plumbing Test Vendor (service@summit-plumbing.example.invalid)",
+      externalDelivery: false,
+      dataMode: "test",
+      liveEvidenceEligible: false,
+      exactEffect: "Rotate the exact canonical Test identity.",
+    });
+    const response = await POST(
+      request({
+        operation: "preview_reset_authentication",
+        vendorId: "vendor:test-summit-plumbing",
+        reason: "Rotate the canonical acceptance identity",
+      }),
+    );
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      preview: {
+        previewHash: "lifecycle-bound-hash",
+        currentStatus: "active",
+        currentInviteVersion: 3,
+        dataMode: "test",
+        liveEvidenceEligible: false,
+      },
+    });
+    expect(previewProductionTestVendorAuthenticationReset).toHaveBeenCalledWith({
+      vendorId: "vendor:test-summit-plumbing",
+      reason: "Rotate the canonical acceptance identity",
+    });
+    expect(resetProductionTestVendorAuthentication).not.toHaveBeenCalled();
+  });
+
+  it("returns the one-time reset link only in a no-store confirmed response", async () => {
+    actor("Admin");
+    vi.mocked(resetProductionTestVendorAuthentication).mockResolvedValue({
+      vendor: {
+        vendorId: "vendor:test-summit-plumbing",
+        uid: "uid-test-summit-rotated",
+        displayName: "Summit Plumbing Test Vendor",
+        email: "service@summit-plumbing.example.invalid",
+        status: "pending_setup",
+        dataMode: "test",
+        emailVerified: true,
+        totpVerified: false,
+        createdAt: "2026-07-15T00:00:00.000Z",
+      },
+      setup: {
+        artifact: "vendor-test-authentication-reset:v1.0",
+        setupLink: "https://auth.example.invalid/action?code=reset-once",
+        oneTime: true,
+        authenticationReset: true,
+        deliveredExternally: false,
+      },
+      callout: {
+        dataMode: "test",
+        externalEffect: false,
+        liveEvidenceEligible: false,
+      },
+    });
+    const response = await POST(
+      request({
+        operation: "reset_authentication",
+        vendorId: "vendor:test-summit-plumbing",
+        reason: "Rotate the canonical acceptance identity",
+        confirmedPreviewHash: "lifecycle-bound-hash",
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    await expect(response.json()).resolves.toMatchObject({
+      vendor: { uid: "uid-test-summit-rotated", status: "pending_setup" },
+      setup: {
+        setupLink: "https://auth.example.invalid/action?code=reset-once",
+        authenticationReset: true,
+      },
+    });
+    expect(resetProductionTestVendorAuthentication).toHaveBeenCalledWith({
+      actor: expect.objectContaining({ role: "Admin" }),
+      vendorId: "vendor:test-summit-plumbing",
+      reason: "Rotate the canonical acceptance identity",
+      confirmedPreviewHash: "lifecycle-bound-hash",
     });
   });
 

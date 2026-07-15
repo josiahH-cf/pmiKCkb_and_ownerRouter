@@ -59,6 +59,30 @@ function defaultAuth(): AdminAuthLike {
   return getAuth(getFirebaseAdminApp()) as unknown as AdminAuthLike;
 }
 
+function isExternalVendor(record: AdminUserRecordLike) {
+  const claims = record.customClaims;
+  if (!claims) return false;
+
+  // Vendor identity evidence is fail-closed. A partially drifted claim set
+  // (for example vendor_id without vendor:true, or vendor:false) must not fall
+  // through to the internal Editor default merely because its email is in the
+  // managed Workspace domain.
+  return (
+    Object.prototype.hasOwnProperty.call(claims, "vendor") ||
+    Object.prototype.hasOwnProperty.call(claims, "vendor_id") ||
+    Object.prototype.hasOwnProperty.call(claims, "data_mode")
+  );
+}
+
+function assertInternalUser(record: AdminUserRecordLike) {
+  if (isExternalVendor(record)) {
+    throw new UserManagementError(
+      "External Vendor identities cannot receive internal roles or space scopes.",
+      403,
+    );
+  }
+}
+
 // A brand-new signed-in user has no role claim and defaults to Editor (mirrors readFirebaseRole).
 function roleFromClaims(claims: Record<string, unknown> | null | undefined): Role {
   const role = claims?.role;
@@ -112,10 +136,19 @@ export async function listAppUsers(
   auth: AdminAuthLike = defaultAuth(),
 ): Promise<AppUser[]> {
   const result = await auth.listUsers(1000);
-  return result.users
-    .map(toAppUser)
-    .filter((user): user is AppUser => user !== null)
-    .sort((left, right) => left.email.localeCompare(right.email));
+  const allowedHd = readServerConfig().allowedHostedDomain.toLowerCase();
+  return (
+    result.users
+      // Identity class wins over email domain. A Vendor account remains external even if its
+      // address happens to use the managed Workspace domain.
+      .filter((record) => !isExternalVendor(record))
+      .map(toAppUser)
+      .filter((user): user is AppUser => user !== null)
+      // Firebase Auth also contains the separately scoped external Vendor principals. They are
+      // managed in the Vendor panel and must never look like internal Editors with All-spaces access.
+      .filter((user) => user.email.toLowerCase().endsWith(`@${allowedHd}`))
+      .sort((left, right) => left.email.localeCompare(right.email))
+  );
 }
 
 export interface SetAppUserRoleInput {
@@ -144,6 +177,7 @@ export async function setAppUserRole(
   }
 
   const target = await auth.getUser(targetUid);
+  assertInternalUser(target);
   if (!target.email) {
     throw new UserManagementError("The target user has no email address.", 400);
   }
@@ -260,6 +294,7 @@ export async function setAppUserScopes(
   const scopes = normalizeRequestedScopes(input.scopes);
 
   const target = await auth.getUser(targetUid);
+  assertInternalUser(target);
   if (!target.email) {
     throw new UserManagementError("The target user has no email address.", 400);
   }

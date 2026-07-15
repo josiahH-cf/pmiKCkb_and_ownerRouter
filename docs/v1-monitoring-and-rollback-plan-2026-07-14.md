@@ -29,6 +29,20 @@ ambiguous outcomes awaiting reconciliation, and Live/Test mode mismatch. Alert i
 - a Test record selects a Live adapter or produces a provider reference;
 - a Live record selects a Test adapter or synthetic alias;
 - a Vendor can see a guessed, deassigned, disabled, cross-mode, or cross-Vendor ticket;
+- any identity with a `vendor`, `vendor_id`, or `data_mode` claim key—even false/empty/malformed—appears
+  in internal People/Access, receives an internal role/scope, or establishes a staff token/session;
+- a canonical Test Vendor reset leaves the old UID/session/confirmation authorized, changes the
+  stable Vendor id, drops Test tickets/assignments/mailbox/receipts, or constructs a provider client;
+- a Test mailbox read/write/confirmation/reply succeeds after disable, deassignment, UID rotation, or
+  claimed/prepared reset, or without the current active Vendor/assignment/ticket/thread join;
+- an expired reset adopts an abandoned source/record/resolved UID, increments or canonically audits a
+  prepared repair twice, omits its distinct recovery-claim audit, or lets delayed old-owner work alter
+  the winning generation;
+- reset/setup-link audit order is false—completion without its winning claim, post-claim failure marked
+  completed, wrong action name—or any lifecycle audit contains a target/replacement Firebase UID, link,
+  secret, or plaintext reason;
+- disable mutates Firebase/audit while reset is claimed/prepared, or a completed reset marker blocks
+  a legitimate later disable;
 - a write executes without its current exact preview/confirmation; or
 - an audit path attempts to store a message body, file, token, secret, or customer value.
 
@@ -48,7 +62,18 @@ correction path. Closing one action must not disable unrelated actions.
 Gmail/OAuth additionally monitors watch expiry, refresh failure, granted-scope drift, exact mailbox
 binding, and revocation queue age. Live Vendor access rechecks verified email, TOTP, immutable invited
 email, active assignment, and same-address OAuth before every protected operation. Test Vendor mail
-is app-only and never starts OAuth.
+is app-only and never starts OAuth. A canonical Test Vendor reset is an app-auth recovery action, not
+a provider rollback: reasoned exact preview binds UID/status/invite version; completion rotates the
+UID, invalidates the old authentication generation, preserves Test workflow state, and leaves the
+record `pending_setup` until fresh password/TOTP authentication. Partial failure remains disabled. A
+prepared-crash Admin reload reuses the original marker source without displaying UID. While the lease
+is live, only the original reason reproduces the same confirmation and takeover refuses. After expiry,
+a fresh reason may bind that source and atomically records the distinct bodyless recovery-claim audit.
+The takeover quarantines abandoned exact-claims identity generations and keeps the original single
+prepared invite increment/canonical reset audit; losing requests cannot mint, complete, or compensate
+against the winner. Initial reset and setup-link winners record bodyless claim events; canonical reset
+or regenerated-link completion events appear only after success. Failed pre-completion work retains
+the claim event as operational truth.
 
 ## Retention operations
 
@@ -70,7 +95,9 @@ work. Native TTL or scheduling can be enabled later after a normal dry run and m
 2. Preserve immutable execution/audit records. Mark an ambiguous Live result for reconciliation and
    do not make a second provider attempt.
 3. Revoke or disable the affected OAuth grant, Vendor session/account, credential, Gmail watch, or
-   job when relevant. Preserve bodyless audit history.
+   job when relevant. Preserve bodyless audit history. For the canonical `.invalid` Test Vendor only,
+   use the reasoned Admin reset/re-enable action when a clean authentication generation is required;
+   do not manually delete its Test tickets, assignments, mailbox, or receipts.
 4. Route 100% of application traffic to the captured prior Cloud Run revision:
 
    ```bash
@@ -81,6 +108,11 @@ work. Native TTL or scheduling can be enabled later after a normal dry run and m
    Preserve the Cloud Run service and revision history. Restore reviewed rules, configuration, policy,
    and Registry versions; never use service deletion as rollback.
 
+   On a later forward deployment, the repository wrapper must create a collision-resistant named
+   revision and then route 100% traffic to that exact revision. Verify the resulting target
+   explicitly; floating `LATEST`, a different concurrent revision, or traffic still pinned to the
+   rollback revision is not a successful deployment.
+
 5. Reconcile provider state by idempotency key/provider reference and read-after-write. Apply only the
    documented correction operation; never blind-retry or erase history.
 6. Verify sign-in, Live/Test separation, Maintenance Test completion, Vendor assignment denial, and
@@ -88,21 +120,27 @@ work. Native TTL or scheduling can be enabled later after a normal dry run and m
 
 ## Required release rehearsal
 
-| Rehearsal                                                                            | V1 result expected                                                                   |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
-| Production Test Maintenance intake → assignment → activity/receipt → Done            | Firestore persists Test data; no provider call; receipt is not Live-proof eligible   |
-| Test Vendor provision → password/TOTP → assigned ticket → app-only mailbox → disable | Only the assigned Test ticket is visible; OAuth cannot start; disable revokes access |
-| Stale preview, duplicate click, ambiguous Live result                                | Refused, deduplicated, or held for reconciliation; never a blind second attempt      |
-| Prior-revision traffic restore                                                       | Exact captured revision receives 100% traffic; service/history remain intact         |
+| Rehearsal                                                                                               | V1 result expected                                                                   |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Production Test Maintenance intake → assignment → activity/receipt → Done                               | Firestore persists Test data; no provider call; receipt is not Live-proof eligible   |
+| Test Vendor provision → password/TOTP → assigned ticket/mailbox → disable → reset → fresh password/TOTP | Stable Test workflow state survives UID rotation; old auth fails; OAuth cannot start |
+| Stale preview, duplicate click, ambiguous Live result                                                   | Refused, deduplicated, or held for reconciliation; never a blind second attempt      |
+| Prior-revision traffic restore                                                                          | Exact captured revision receives 100% traffic; service/history remain intact         |
 
 Record commit, revision, timestamp, mode, action key, status, receipt hash, and rollback result only.
 Do not store screenshots or logs containing customer records, Gmail bodies, credentials, or tokens.
 
-## 2026-07-15 rehearsal result
+## Historical 2026-07-15 rehearsal result
 
-Traffic was moved 100% from serving revision `pmi-kc-kb-demo-00025-mhw` to captured prior revision
+This evidence belongs to the earlier `f02112d / 00025-mhw` checkpoint. Traffic was moved 100% from
+serving revision `pmi-kc-kb-demo-00025-mhw` to captured prior revision
 `pmi-kc-kb-demo-00024-6b2`. The unauthenticated `/ask` request continued to redirect to `/sign-in`, and
 the existing signed-in session loaded Console successfully. Traffic was immediately restored 100% to
 `00025-mhw`; Workflow Communications loaded signed-in with zero console errors, Cloud Run reported the
 expected traffic target, and the checked candidate window contained no ERROR-level logs. The service,
 revision history, Firestore data, rules, and provider state were preserved.
+
+Current production serves `7ccd9f213d51d6723d1a6467fe656f3b4724d6a5` as
+`pmi-kc-kb-demo-00026-cxk` at 100% traffic. The current local hardening candidate must capture its exact
+serving predecessor and repeat the bounded rollback/restore check after deployment; do not reuse the
+historical `00024/00025` result as that candidate's rehearsal.

@@ -4,16 +4,21 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/firestore/admin-role-changes", () => ({
   recordAdminRoleChange: vi.fn(async () => {}),
 }));
+vi.mock("@/lib/firestore/admin-scope-changes", () => ({
+  recordAdminScopeChange: vi.fn(async () => {}),
+}));
 
 import {
   type AdminAuthLike,
   UserManagementError,
   listAppUsers,
   setAppUserRole,
+  setAppUserScopes,
 } from "@/lib/admin/users";
 import type { Role } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { recordAdminRoleChange } from "@/lib/firestore/admin-role-changes";
+import { recordAdminScopeChange } from "@/lib/firestore/admin-scope-changes";
 
 interface FakeUser {
   uid: string;
@@ -50,14 +55,49 @@ const actor: AuthenticatedUser = {
 
 afterEach(() => {
   vi.mocked(recordAdminRoleChange).mockClear();
+  vi.mocked(recordAdminScopeChange).mockClear();
 });
 
 describe("listAppUsers", () => {
-  it("maps claims to roles (defaulting Editor), sorts by email, and drops users with no email", async () => {
+  it("maps internal claims, sorts by email, and excludes missing-email and external Vendor principals", async () => {
     const { auth } = fakeAuth([
       { uid: "b", email: "zed@pmikcmetro.com", customClaims: { role: "Approver" } },
       { uid: "a", email: "amy@pmikcmetro.com", customClaims: null },
       { uid: "c", email: undefined, customClaims: { role: "Admin" } },
+      {
+        uid: "vendor",
+        email: "service@summit-plumbing.example.invalid",
+        customClaims: { vendor: true, vendor_id: "vendor:test-summit-plumbing" },
+      },
+      {
+        uid: "same-domain-vendor",
+        email: "trade@pmikcmetro.com",
+        customClaims: {
+          vendor: true,
+          vendor_id: "vendor:same-domain",
+          role: "Admin",
+          scopes: ["renewals"],
+        },
+      },
+      {
+        uid: "same-domain-vendor-id-drift",
+        email: "trade-id-drift@pmikcmetro.com",
+        customClaims: { vendor_id: "vendor:same-domain-id-drift", role: "Admin" },
+      },
+      {
+        uid: "same-domain-vendor-flag-drift",
+        email: "trade-flag-drift@pmikcmetro.com",
+        customClaims: {
+          vendor: false,
+          vendor_id: "vendor:same-domain-flag-drift",
+          role: "Admin",
+        },
+      },
+      {
+        uid: "same-domain-vendor-mode-drift",
+        email: "trade-mode-drift@pmikcmetro.com",
+        customClaims: { data_mode: "test", role: "Admin" },
+      },
     ]);
 
     const users = await listAppUsers(auth);
@@ -101,6 +141,71 @@ describe("setAppUserRole", () => {
     expect(setSpy).not.toHaveBeenCalled();
   });
 
+  it("refuses a same-domain Vendor without merging or replacing its claims", async () => {
+    const originalClaims = {
+      vendor: true,
+      vendor_id: "vendor:same-domain",
+      role: "Admin",
+      scopes: ["renewals"],
+    };
+    const { auth, setSpy, store } = fakeAuth([
+      {
+        uid: "vendor-1",
+        email: "trade@pmikcmetro.com",
+        customClaims: structuredClone(originalClaims),
+      },
+    ]);
+
+    await expect(
+      setAppUserRole(
+        {
+          actor,
+          targetUid: "vendor-1",
+          role: "Editor",
+          reason: "Attempt internal role mutation",
+        },
+        auth,
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+
+    expect(setSpy).not.toHaveBeenCalled();
+    expect(store.get("vendor-1")?.customClaims).toEqual(originalClaims);
+    expect(recordAdminRoleChange).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { vendor_id: "vendor:id-only-drift", role: "Admin" },
+    { vendor: false, role: "Admin" },
+    { data_mode: "test", role: "Admin" },
+  ])(
+    "refuses partial Vendor claim drift without granting an internal role: %j",
+    async (originalClaims) => {
+      const { auth, setSpy, store } = fakeAuth([
+        {
+          uid: "vendor-drift",
+          email: "trade-drift@pmikcmetro.com",
+          customClaims: structuredClone(originalClaims),
+        },
+      ]);
+
+      await expect(
+        setAppUserRole(
+          {
+            actor,
+            targetUid: "vendor-drift",
+            role: "Editor",
+            reason: "Attempt internal role mutation",
+          },
+          auth,
+        ),
+      ).rejects.toMatchObject({ status: 403 });
+
+      expect(setSpy).not.toHaveBeenCalled();
+      expect(store.get("vendor-drift")?.customClaims).toEqual(originalClaims);
+      expect(recordAdminRoleChange).not.toHaveBeenCalled();
+    },
+  );
+
   it("blocks removing the last Admin", async () => {
     const { auth, setSpy } = fakeAuth([
       { uid: "u1", email: "only-admin@pmikcmetro.com", customClaims: { role: "Admin" } },
@@ -109,6 +214,38 @@ describe("setAppUserRole", () => {
     await expect(
       setAppUserRole(
         { actor, targetUid: "u1", role: "Editor", reason: "step down" },
+        auth,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(setSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not count a same-domain Vendor Admin claim toward the last-Admin guard", async () => {
+    const { auth, setSpy } = fakeAuth([
+      {
+        uid: "u1",
+        email: "only-internal-admin@pmikcmetro.com",
+        customClaims: { role: "Admin" },
+      },
+      {
+        uid: "vendor-1",
+        email: "trade@pmikcmetro.com",
+        customClaims: {
+          vendor: true,
+          vendor_id: "vendor:same-domain",
+          role: "Admin",
+        },
+      },
+    ]);
+
+    await expect(
+      setAppUserRole(
+        {
+          actor,
+          targetUid: "u1",
+          role: "Editor",
+          reason: "Attempt to remove the only internal Admin",
+        },
         auth,
       ),
     ).rejects.toMatchObject({ status: 409 });
@@ -152,4 +289,71 @@ describe("setAppUserRole", () => {
     expect(updated.role).toBe("Approver");
     expect(setSpy).toHaveBeenCalledWith("u1", { role: "Approver" });
   });
+});
+
+describe("setAppUserScopes", () => {
+  it("refuses a same-domain Vendor without preserving or merging internal scopes", async () => {
+    const originalClaims = {
+      vendor: true,
+      vendor_id: "vendor:same-domain",
+      role: "Approver",
+      scopes: ["renewals"],
+    };
+    const { auth, setSpy, store } = fakeAuth([
+      {
+        uid: "vendor-1",
+        email: "trade@pmikcmetro.com",
+        customClaims: structuredClone(originalClaims),
+      },
+    ]);
+
+    await expect(
+      setAppUserScopes(
+        {
+          actor,
+          targetUid: "vendor-1",
+          scopes: ["maintenance"],
+          reason: "Attempt internal scope mutation",
+        },
+        auth,
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+
+    expect(setSpy).not.toHaveBeenCalled();
+    expect(store.get("vendor-1")?.customClaims).toEqual(originalClaims);
+    expect(recordAdminScopeChange).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { vendor_id: "vendor:id-only-drift", role: "Approver" },
+    { vendor: false, role: "Approver" },
+    { data_mode: "test", role: "Approver" },
+  ])(
+    "refuses partial Vendor claim drift without granting internal scopes: %j",
+    async (originalClaims) => {
+      const { auth, setSpy, store } = fakeAuth([
+        {
+          uid: "vendor-drift",
+          email: "trade-drift@pmikcmetro.com",
+          customClaims: structuredClone(originalClaims),
+        },
+      ]);
+
+      await expect(
+        setAppUserScopes(
+          {
+            actor,
+            targetUid: "vendor-drift",
+            scopes: ["maintenance"],
+            reason: "Attempt internal scope mutation",
+          },
+          auth,
+        ),
+      ).rejects.toMatchObject({ status: 403 });
+
+      expect(setSpy).not.toHaveBeenCalled();
+      expect(store.get("vendor-drift")?.customClaims).toEqual(originalClaims);
+      expect(recordAdminScopeChange).not.toHaveBeenCalled();
+    },
+  );
 });

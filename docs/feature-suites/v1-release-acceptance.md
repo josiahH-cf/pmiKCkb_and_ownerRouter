@@ -6,16 +6,17 @@
 > falsifiable production application contract without conflating app readiness with every provider's
 > activation.
 
-**Implementation status (2026-07-15): Core production application, rollback, and final all-in-one
-verification evidence are green; only human Test Vendor acceptance remains pending.** Manifest schema/verifier `2.0`, bodyless report `2.1`, V1 application banner, application-
+**Implementation status (2026-07-15): The working application serves from
+`7ccd9f2 / pmi-kc-kb-demo-00026-cxk`; the current hardening candidate still needs final verification,
+commit/deploy pins, refreshed smoke/rollback evidence, and human Test Vendor acceptance.** Manifest schema/verifier `2.0`, bodyless report `2.1`, V1 application banner, application-
 workflow coverage, isolated production Test workspace, provider activation summary, optional advisory
 Dan/Josiah signoffs, role/mobile/failure browser plan, monitoring/rollback plan, and cutover rehearsal
 are built. The old 169 repeated external gates are replaced by grouped application-readiness gates
 plus a separate per-action provider snapshot. The local report is advisory inventory because no
-production-manifest loader exists. Revision `00025-mhw`, its Firestore rules, persistent Lease and
-Maintenance Test journeys, eight internal signed-in desktop/phone surfaces, and rollback/restore to
-`00024-6b2` are proven in the canonical bodyless production evidence document. The remaining private
-Vendor password/TOTP walkthrough does not require all providers to be Live.
+production-manifest loader exists. The canonical bodyless production evidence separates the current
+serving `00026-cxk` checkpoint from historical browser/rollback proof captured on
+`f02112d / 00025-mhw → 00024-6b2 → 00025-mhw` and from the unpinned local candidate. The remaining
+private Vendor password/TOTP walkthrough does not require all providers to be Live.
 
 **Goal.** PMI KC can deploy a stable V1 application whose internal and Vendor workflows work with
 visibly isolated Live and Test records. Production Test journeys prove application state, roles,
@@ -55,14 +56,20 @@ Live proof for every provider, optional TTL automation, or business/technical si
   never falls back to Test.
 - **Production Test acceptance.** The Admin workspace traverses all 11 S25 and 19 S26 typed executor
   selections, one attempt/receipt each, plus Vendor invite/password/TOTP/assignment/Test-mailbox/
-  disable behavior, using invented aliases and zero Live calls. Normal product tabs also persist the
-  full user journeys: Lease records all 11 explicit actions before Done; Maintenance uses
-  `unit:test-maple-204` and `vendor:test-summit-plumbing` and closes inside app-owned Firestore. The
+  disable/reset/re-enable behavior, using invented aliases and zero Live calls. Reset acceptance binds
+  the exact current UID/status/`inviteVersion`, rotates UID, denies stale sessions/confirmations,
+  preserves Test workflow data, and fails closed through partial interruption. Expired takeover never
+  adopts an abandoned UID; it preserves one prepared invite increment/canonical reset audit, records a
+  distinct bodyless recovery-claim audit, and fences delayed old-owner work from the winner. Normal
+  product tabs also persist the full user journeys: Lease records all 11
+  explicit actions before Done; Maintenance uses `unit:test-maple-204` and
+  `vendor:test-summit-plumbing` and closes inside app-owned Firestore. The
   Admin workspace is diagnostic typed-adapter evidence, not the primary user workflow.
 - **Tab acceptance.** Console, Spaces, Approval Queue, Workflow Communications, Connections, Admin,
   and Notifications each have purpose, source/failure state, role behavior, Live/Test behavior,
   desktop/phone scenario, and no-dead-end acceptance. Vendor portal is the eighth external surface and
-  proves password/TOTP, assignment, Test mailbox, disabled/revoked, and wrong-ticket behavior.
+  proves password/TOTP, assignment, Test mailbox, disabled/revoked, repeatable auth reset/re-enable,
+  stale-session denial, preserved Test records, and wrong-ticket behavior.
 - **Operations.** Cutover uses one reviewed GCP/Firebase/runtime identity set and captures the currently
   serving and prior Cloud Run revisions. Rollback restores traffic to the exact prior revision and
   never deletes the service. Ambiguous external effects use reconciliation/correction, not retry.
@@ -109,19 +116,45 @@ cutover:report -- --help`.
   completion. _Verify:_ `npm test -- release-label vendor-release-label execution-completion data-mode`.
 - **AC-S27-3** — Production Test acceptance invokes all 11 S25 and 19 S26 typed selections plus the
   Vendor password/TOTP/assignment/Test-mailbox lifecycle with exactly one attempt/receipt per action
-  and zero Live-provider calls. Persistent Lease Test data reaches Done only after 11 receipts;
-  persistent Maintenance Test data closes. Failure/timeout/drift/
+  and zero Live-provider calls. The canonical Test Vendor can be reset/re-enabled repeatedly from
+  `pending_setup`, `active`, or `disabled`; each exact preview binds current UID/status/
+  `inviteVersion`, each success rotates UID and preserves Test workflow data, and each staged failure
+  remains disabled and safely recoverable without a duplicate canonical reset audit/version. Initial
+  reset claim and successful reset completion are separately bodyless-audited; a failed pre-commit
+  attempt retains only its honest claim event. Expired recovery must re-preview through a normal Admin
+  reload using the original marker source without exposing UID. While the lease is live, only the
+  original reason reproduces its confirmation; after expiry a fresh reason may rebind that source and
+  must atomically record the distinct recovery-claim audit. It then quarantines every abandoned
+  source/record/Auth UID, allocates a distinct fresh UID, and makes delayed old-owner completion
+  harmless. Persistent Lease Test data
+  reaches Done only after 11 receipts; persistent Maintenance Test data closes. Disable/reset
+  interleaving refuses disable during claimed/prepared, stales reset when disable wins first, permits a
+  fresh disabled-state reset, and permits disable after completed reset. Failure/timeout/drift/
   revocation stops dependencies without duplicate attempt or cross-lane leak. _Verify:_ `npm test --
-v1-synthetic-execution v1-production-test-workspace-route lease-renewal-test-workflow maintenance-test-workflow
-vendor-test-mailbox`; `npm run test:e2e:core -- v1-fake-execution`.
+v1-synthetic-execution v1-production-test-workspace-route lease-renewal-test-workflow
+maintenance-test-workflow vendor-test-identity vendor-test-mailbox`; `npm run test:e2e:core --
+v1-fake-execution`.
 - **AC-S27-4** — Deployed browser acceptance covers Console, Spaces, Approval Queue, Workflow
   Communications, Connections, Admin, Notifications, and Vendor portal at desktop/phone widths, with
   role/scope, both lanes, provider unavailable, success/failure/reconciliation, and no-dead-end states.
-  _Verify:_ approved browser runbook/evidence against the pinned revision.
+  Admin browser coverage includes exact auth-reset preview/confirmation, one response-only setup link,
+  a prepared-crash reload where only the original reason returns the same UID-free confirmation before
+  lease expiry and a fresh reason safely claims recovery afterward, fresh password/TOTP enrollment,
+  and preserved assigned Test data after UID rotation. _Verify:_ approved browser runbook/evidence
+  against the pinned revision.
 - **AC-S27-5** — Security release check proves no secret/customer/mail body in git/log/audit, no Vendor
   cross-ticket/internal access, no generic/autonomous send, no unexpected Registry key, no lane
-  fallback, and no Test external provider construction. _Verify:_ `npm run verify:redaction`, router/
-  falsification/security/Firestore tests.
+  fallback, and no Test external provider construction. Any present `vendor`, `vendor_id`, or
+  `data_mode` claim key—including false/empty/malformed—must fail closed from internal roster,
+  role/scope, ID-token, and session authority; Vendor access requires the exact valid tuple. It also
+  proves a stale UID session or mailbox confirmation cannot act after reset, every Test mailbox read/
+  write revalidates current active UID/assignment/thread/reset state, setup links are response-only/
+  `no-store`, and partial failure stays disabled. Claim, recovery-claim, and completion audits must be
+  bodyless, correctly named, and ordered; no audit may contain a target/replacement Firebase UID, link,
+  plaintext reason, or secret. An
+  expired claimant cannot reuse an abandoned UID or mutate the takeover winner, and auth reset causes
+  zero provider/Live effects. Disable cannot bypass a claimed/prepared reset or create a Firebase/audit
+  race. _Verify:_ `npm run verify:redaction`, router/falsification/security/Firestore tests.
 - **AC-S27-6** — Every claimed Live-configured/proven/enabled action has its own documented Registry
   contract, exact authority/confirmation, budget preflight, bodyless evidence, monitoring,
   reconciliation/correction, and rollback. Test/synthetic evidence or another provider cannot satisfy
@@ -158,6 +191,8 @@ an unavailable provider. ~$10 cap and kill switches remain.
    and validate authentication, smoke, monitoring, and rollback with no provider activation changes.
 3. _Browser acceptance:_ exercise all eight surfaces with internal roles and Vendor Test identity at
    desktop/phone widths, including Live unavailable and Test completion/failure/reconciliation states.
+   Reset/re-enable the canonical Test Vendor, complete a fresh password/TOTP journey, prove old-session
+   denial, and confirm its assigned Test ticket/mailbox history survived the UID rotation.
 4. _Evidence acceptance:_ publish the bodyless production evidence record when grouped application
    gates pass. Run the local manifest report as advisory inventory; report provider activation and
    signoffs separately.

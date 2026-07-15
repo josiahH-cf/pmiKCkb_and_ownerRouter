@@ -21,9 +21,11 @@ tokens in this repository.
 - Seed and complete the canonical Test Maintenance workflow:
   `unit:test-maple-204` (`TEST — 204 Maple Court Unit 2`).
 - Create and complete a persistent Test Lease renewal with all 11 explicit action receipts and Done.
-- Provision and disable the canonical Test Vendor:
+- Provision, disable, and safely reset/re-enable the canonical Test Vendor:
   `vendor:test-summit-plumbing` (`Summit Plumbing Test Vendor`,
   `service@summit-plumbing.example.invalid`).
+- Keep external Vendor principals out of the internal People and Access roster; they never inherit an
+  internal role or the absent-scope/all-Spaces default.
 - Exercise app/Firestore writes and receipts through Done with zero provider calls.
 - Use bounded manual retention cleanup; native TTL, extra indexes, and scheduling are optional.
 - Accept the documented three Moderate dev-only dependency findings for V1 and recheck them by
@@ -85,6 +87,14 @@ returns the password-setup link only in its confirmed response. If that response
 Admin can exact-preview one replacement for the same reconciled `pending_setup` Test identity; neither
 link is stored, cached, emailed, or externally delivered. The Test user then enrolls TOTP, and
 assigned-ticket/app-only mailbox behavior is proved without invitation delivery or OAuth.
+
+No client decision or provider approval is needed to reset this canonical Test identity. From
+`pending_setup`, `active`, or `disabled`, an Admin supplies a reason and exact-confirms the current
+UID/status/invite-version preview. The app rotates the Firebase UID, invalidates the old password,
+TOTP factors, sessions, action links, and UID-bound confirmations, while preserving the stable Vendor
+id, Test tickets, assignments, mailbox history, and receipts. It returns one response-only setup link
+and leaves the Vendor `pending_setup` until a fresh password/TOTP journey succeeds. Any partial failure
+stays disabled; the reset makes no Live, delivery, OAuth, vault, provider, or Registry change.
 
 A **Live** Vendor additionally requires:
 

@@ -12,6 +12,9 @@ import {
 import {
   provisionTestVendor,
   regenerateTestVendorSetupLink,
+  resetTestVendorAuthentication,
+  TEST_VENDOR_ALIASES,
+  testVendorAuthenticationResetPreviewForRecord,
   testVendorDisablePreview,
   type TestVendorAliasKey,
 } from "@/lib/vendor/test-identity";
@@ -121,6 +124,104 @@ export async function regenerateProductionTestVendorSetupLink(input: {
     setup: result.setup,
     callout: result.callout,
   };
+}
+
+export async function previewProductionTestVendorAuthenticationReset(input: {
+  vendorId: string;
+  reason: string;
+}) {
+  const alias = TEST_VENDOR_ALIASES.find(
+    (candidate) => candidate.vendorId === input.vendorId,
+  );
+  if (!alias) {
+    throw new VendorBoundaryError(
+      "Only an approved Test Vendor can use this action.",
+      400,
+    );
+  }
+  const store = new FirestoreVendorStore();
+  const [record, connection] = await Promise.all([
+    store.getVendorById(input.vendorId),
+    store.getConnection(input.vendorId),
+  ]);
+  if (
+    !record ||
+    connection !== null ||
+    record.id !== alias.vendorId ||
+    record.uid.trim().length === 0 ||
+    record.email.trim().toLowerCase() !== alias.email ||
+    vendorRecordDataMode(record) !== "test" ||
+    !["pending_setup", "active", "disabled"].includes(record.status) ||
+    !Number.isSafeInteger(record.inviteVersion) ||
+    record.inviteVersion < 0
+  ) {
+    throw new VendorBoundaryError(
+      "Test Vendor authentication reset is unavailable.",
+      409,
+    );
+  }
+  return testVendorAuthenticationResetPreviewForRecord(
+    input.vendorId,
+    input.reason,
+    record,
+  );
+}
+
+export async function resetProductionTestVendorAuthentication(input: {
+  actor: AuthenticatedUser;
+  vendorId: string;
+  reason: string;
+  confirmedPreviewHash: string;
+}) {
+  const auth = getAuth(getFirebaseAdminApp());
+  const store = new FirestoreVendorStore();
+  try {
+    const result = await resetTestVendorAuthentication(input, {
+      auth: {
+        findUserByEmail: async (email) => {
+          try {
+            const user = await auth.getUserByEmail(email);
+            return {
+              uid: user.uid,
+              email: user.email ?? null,
+              emailVerified: user.emailVerified,
+              disabled: user.disabled,
+              customClaims: user.customClaims,
+            };
+          } catch (error) {
+            if (firebaseCode(error) === "auth/user-not-found") return null;
+            throw error;
+          }
+        },
+        createUser: (user) => auth.createUser(user),
+        setCustomUserClaims: (uid, claims) => auth.setCustomUserClaims(uid, claims),
+        updateUser: (uid, value) => auth.updateUser(uid, value).then(() => undefined),
+        revokeRefreshTokens: (uid) => auth.revokeRefreshTokens(uid),
+        deleteUser: (uid) => auth.deleteUser(uid),
+        generatePasswordResetLink: (email) => auth.generatePasswordResetLink(email),
+      },
+      store,
+    });
+    return {
+      vendor: projection(result.vendor),
+      setup: result.setup,
+      callout: result.callout,
+    };
+  } catch (error) {
+    if (
+      [
+        "auth/user-not-found",
+        "auth/email-already-exists",
+        "auth/uid-already-exists",
+      ].includes(firebaseCode(error) ?? "")
+    ) {
+      throw new VendorBoundaryError(
+        "Test Vendor authentication reset is unavailable.",
+        409,
+      );
+    }
+    throw error;
+  }
 }
 
 export async function disableProductionTestVendor(input: {

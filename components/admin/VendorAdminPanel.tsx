@@ -14,6 +14,10 @@ interface ExactPreview {
   externalDelivery: false;
   liveEvidenceEligible: false;
   exactEffect: string;
+  currentStatus?: "pending_setup" | "active" | "disabled";
+  currentInviteVersion?: number;
+  nextStatus?: "pending_setup";
+  nextInviteVersion?: number;
 }
 
 export function VendorAdminPanel({
@@ -25,6 +29,8 @@ export function VendorAdminPanel({
   const [vendors, setVendors] = useState<TestVendorAdminProjection[]>(initialVendors);
   const [regenerateReason, setRegenerateReason] = useState("");
   const [regeneratePreview, setRegeneratePreview] = useState<ExactPreview | null>(null);
+  const [resetReason, setResetReason] = useState("");
+  const [resetPreview, setResetPreview] = useState<ExactPreview | null>(null);
   const [disableReason, setDisableReason] = useState("");
   const [disablePreview, setDisablePreview] = useState<ExactPreview | null>(null);
   const [message, setMessage] = useState("");
@@ -108,10 +114,57 @@ export function VendorAdminPanel({
         reason: regenerateReason,
       });
       setRegeneratePreview(payload.preview as ExactPreview);
+      setResetPreview(null);
+      setDisablePreview(null);
       setSetupLink("");
       setMessage("Review the exact one-time setup-link write, then confirm once.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Preview failed.");
+    }
+  }
+
+  async function reviewResetAuthentication(vendor: TestVendorAdminProjection) {
+    try {
+      const payload = await post({
+        operation: "preview_reset_authentication",
+        vendorId: vendor.vendorId,
+        reason: resetReason,
+      });
+      setResetPreview(payload.preview as ExactPreview);
+      setRegeneratePreview(null);
+      setDisablePreview(null);
+      setSetupLink("");
+      setMessage("Review the exact Test Vendor authentication reset, then confirm once.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Preview failed.");
+    }
+  }
+
+  async function confirmResetAuthentication() {
+    if (!resetPreview) return;
+    try {
+      const payload = await post({
+        operation: "reset_authentication",
+        vendorId: resetPreview.vendorId,
+        reason: resetReason,
+        confirmedPreviewHash: resetPreview.previewHash,
+      });
+      const setup = payload.setup as { setupLink?: string } | undefined;
+      const resetVendor = payload.vendor as TestVendorAdminProjection;
+      setSetupLink(setup?.setupLink ?? "");
+      setVendors((current) =>
+        current.map((vendor) =>
+          vendor.vendorId === resetVendor.vendorId ? resetVendor : vendor,
+        ),
+      );
+      setResetPreview(null);
+      setDisablePreview(null);
+      setResetReason("");
+      setMessage(
+        "Test Vendor authentication reset. A new one-time setup link is shown below; the app did not deliver it externally.",
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Authentication reset failed.");
     }
   }
 
@@ -145,6 +198,9 @@ export function VendorAdminPanel({
         reason: disableReason,
       });
       setDisablePreview(payload.preview as ExactPreview);
+      setRegeneratePreview(null);
+      setResetPreview(null);
+      setSetupLink("");
       setMessage("Review the exact Test Vendor revocation, then confirm once.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Preview failed.");
@@ -273,6 +329,8 @@ export function VendorAdminPanel({
                   onChange={(event) => {
                     setRegenerateReason(event.target.value);
                     setRegeneratePreview(null);
+                    setResetPreview(null);
+                    setDisablePreview(null);
                     setSetupLink("");
                   }}
                   value={regenerateReason}
@@ -311,6 +369,68 @@ export function VendorAdminPanel({
               ) : null}
             </div>
           ) : null}
+          <div className="panel">
+            <h4>Reset Test Vendor authentication</h4>
+            <p>
+              Start the canonical Test Vendor sign-in lifecycle again. This deletes the
+              current Firebase principal and creates its replacement with a new Firebase
+              UID. Before replacement, it revokes all sessions, invalidates the old
+              password, and removes every enrolled TOTP factor.
+            </p>
+            <p>
+              Isolated Test tickets and app-only mailbox data are preserved. The reset
+              performs no external delivery or provider call and is never Live evidence.
+            </p>
+            <label>
+              Authentication-reset reason
+              <input
+                onChange={(event) => {
+                  setResetReason(event.target.value);
+                  setResetPreview(null);
+                  setRegeneratePreview(null);
+                  setDisablePreview(null);
+                  setSetupLink("");
+                }}
+                value={resetReason}
+              />
+            </label>
+            <button
+              className="secondary-button"
+              disabled={busy || resetReason.trim().length < 3}
+              onClick={() => reviewResetAuthentication(vendor)}
+              type="button"
+            >
+              Review authentication reset
+            </button>
+            {resetPreview?.vendorId === vendor.vendorId ? (
+              <div
+                className="panel"
+                aria-label="Exact Test Vendor authentication-reset confirmation"
+              >
+                <p className="eyebrow">Test identity reset · no external delivery</p>
+                <p>
+                  <strong>Action:</strong> {resetPreview.action}
+                </p>
+                <p>
+                  <strong>Target:</strong> {resetPreview.target}
+                </p>
+                <p>
+                  <strong>Bound transition:</strong> {resetPreview.currentStatus} · invite
+                  version {resetPreview.currentInviteVersion} → {resetPreview.nextStatus}{" "}
+                  · invite version {resetPreview.nextInviteVersion}
+                </p>
+                <p>{resetPreview.exactEffect}</p>
+                <button
+                  className="primary-button"
+                  disabled={busy}
+                  onClick={confirmResetAuthentication}
+                  type="button"
+                >
+                  Confirm authentication reset
+                </button>
+              </div>
+            ) : null}
+          </div>
           {vendor.status !== "disabled" ? (
             <>
               <label>
@@ -319,6 +439,9 @@ export function VendorAdminPanel({
                   onChange={(event) => {
                     setDisableReason(event.target.value);
                     setDisablePreview(null);
+                    setRegeneratePreview(null);
+                    setResetPreview(null);
+                    setSetupLink("");
                   }}
                   value={disableReason}
                 />

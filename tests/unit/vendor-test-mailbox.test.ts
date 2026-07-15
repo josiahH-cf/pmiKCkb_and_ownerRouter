@@ -20,14 +20,22 @@ const principal = {
 function harness(assigned = true) {
   let mailbox: VendorTestMailboxRecord | null = null;
   const confirmations = new Map<string, VendorTestMailboxConfirmation>();
-  const saveTestMailbox = vi.fn(async (record: VendorTestMailboxRecord) => {
-    mailbox = structuredClone(record);
-  });
+  const saveTestMailbox = vi.fn(
+    async (input: {
+      actorUid: string;
+      record: VendorTestMailboxRecord;
+      expectedUpdatedAt: string | null;
+    }) => {
+      mailbox = structuredClone(input.record);
+      return structuredClone(input.record);
+    },
+  );
   const store: VendorTestMailboxStore = {
     getTestMailbox: async () => (mailbox ? structuredClone(mailbox) : null),
     saveTestMailbox,
     createTestMailboxConfirmation: async (record) => {
       confirmations.set(record.id, structuredClone(record));
+      return true;
     },
     commitTestMailboxReply: async (input) => {
       const confirmation = confirmations.get(input.confirmationId);
@@ -80,7 +88,7 @@ function harness(assigned = true) {
       return { outcome: "sent", mailbox: structuredClone(mailbox) };
     },
   };
-  const getAssignedTicket = vi.fn(async (_vendorId: string, ticketId: string) =>
+  const getAssignedTicket = vi.fn(async ({ ticketId }: { ticketId: string }) =>
     assigned && ticketId === "ticket:test-maple-leak"
       ? {
           id: ticketId,

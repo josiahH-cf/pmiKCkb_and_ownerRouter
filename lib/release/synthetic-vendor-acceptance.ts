@@ -179,11 +179,24 @@ export async function runSyntheticVendorJourney() {
       email === vendorEmail &&
       records.get(id)?.email === email &&
       records.get(id)?.status === "active",
-    listAssignedTickets: async (id: string) => (id === vendorId ? [ticket] : []),
-    getAssignedTicket: async (id: string, requestedTicket: string) =>
-      id === vendorId && requestedTicket === ticketId ? ticket : null,
+    listAssignedTickets: async (input: {
+      vendorId: string;
+      uid: string;
+      email: string;
+      dataMode: "live" | "test";
+    }) => (input.vendorId === vendorId ? [ticket] : []),
+    getAssignedTicket: async (input: {
+      vendorId: string;
+      uid: string;
+      email: string;
+      dataMode: "live" | "test";
+      ticketId: string;
+    }) => (input.vendorId === vendorId && input.ticketId === ticketId ? ticket : null),
     isThreadLinked: async (input: {
       vendorId: string;
+      uid: string;
+      email: string;
+      dataMode: "live" | "test";
       ticketId: string;
       threadId: string;
     }) =>
@@ -194,6 +207,10 @@ export async function runSyntheticVendorJourney() {
       vendorId: string;
       ticketId: string;
       threadId: string;
+      actorUid: string;
+      actorEmail: string;
+      actorDataMode: "live" | "test";
+      actorIsAdmin: boolean;
     }) =>
       input.vendorId === vendorId &&
       input.ticketId === ticketId &&

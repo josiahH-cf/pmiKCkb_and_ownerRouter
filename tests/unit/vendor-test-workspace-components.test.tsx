@@ -164,6 +164,150 @@ describe("Vendor production Test workspace UI", () => {
     });
   });
 
+  it.each(["pending_setup", "active", "disabled"] as const)(
+    "offers the repeatable authentication reset when a Test Vendor is %s",
+    (status) => {
+      render(
+        <VendorAdminPanel
+          initialVendors={[
+            {
+              ...pendingSetupVendor,
+              status,
+              totpVerified: status === "active",
+            },
+          ]}
+        />,
+      );
+
+      expect(
+        screen.getByRole("heading", { name: "Reset Test Vendor authentication" }),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/revokes all sessions/i)).toBeInTheDocument();
+      expect(screen.getByText(/invalidates the old password/i)).toBeInTheDocument();
+      expect(screen.getByText(/removes every enrolled TOTP factor/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/deletes the current Firebase principal/i),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/replacement with a new Firebase UID/i),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/Test tickets and app-only mailbox data are preserved/i),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/no external delivery or provider call/i),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/never Live evidence/i)).toBeInTheDocument();
+    },
+  );
+
+  it("resets Test Vendor authentication only after exact reason-bound confirmation", async () => {
+    const user = userEvent.setup();
+    const activeVendor: TestVendorAdminProjection = {
+      ...pendingSetupVendor,
+      status: "active",
+      totpVerified: true,
+    };
+    const resetVendor: TestVendorAdminProjection = {
+      ...pendingSetupVendor,
+      createdAt: activeVendor.createdAt,
+    };
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (!init) return json({ vendors: [resetVendor] });
+      const body = JSON.parse(String(init.body)) as {
+        operation: string;
+        vendorId: string;
+        reason: string;
+        confirmedPreviewHash?: string;
+      };
+      if (body.operation === "preview_reset_authentication") {
+        return json({
+          preview: {
+            previewHash: "reset-preview-hash",
+            vendorId: activeVendor.vendorId,
+            displayName: activeVendor.displayName,
+            currentStatus: "active",
+            currentInviteVersion: 3,
+            nextStatus: "pending_setup",
+            nextInviteVersion: 4,
+            dataMode: "test",
+            action: "Reset Test Vendor authentication",
+            target: activeVendor.email,
+            externalDelivery: false,
+            liveEvidenceEligible: false,
+            exactEffect:
+              "Delete the current Firebase principal, create a replacement with a new Firebase UID, and move active invite version 3 to pending_setup invite version 4. No external provider is contacted.",
+          },
+        });
+      }
+      if (body.operation === "reset_authentication") {
+        return json({
+          vendor: resetVendor,
+          setup: {
+            setupLink: "https://auth.example.invalid/action?code=reset-once",
+          },
+        });
+      }
+      return new Response(JSON.stringify({ error: "Unexpected operation" }), {
+        status: 400,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<VendorAdminPanel initialVendors={[activeVendor]} />);
+    expect(
+      screen.queryByRole("button", { name: "Review new one-time setup link" }),
+    ).not.toBeInTheDocument();
+
+    await user.type(
+      screen.getByRole("textbox", { name: "Authentication-reset reason" }),
+      "Repeat the V1 password and TOTP acceptance journey",
+    );
+    await user.click(screen.getByRole("button", { name: "Review authentication reset" }));
+
+    const confirmation = await screen.findByLabelText(
+      "Exact Test Vendor authentication-reset confirmation",
+    );
+    expect(confirmation).toHaveTextContent("Test identity reset · no external delivery");
+    expect(confirmation).toHaveTextContent("Delete the current Firebase principal");
+    expect(confirmation).toHaveTextContent("replacement with a new Firebase UID");
+    expect(confirmation).toHaveTextContent(
+      "active · invite version 3 → pending_setup · invite version 4",
+    );
+    expect(confirmation).toHaveTextContent("No external provider is contacted");
+    expect(
+      screen.queryByRole("link", { name: "Open one-time Test Vendor setup" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Confirm authentication reset" }),
+    );
+
+    const setupLink = await screen.findByRole("link", {
+      name: "Open one-time Test Vendor setup",
+    });
+    expect(setupLink).toHaveAttribute(
+      "href",
+      "https://auth.example.invalid/action?code=reset-once",
+    );
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("shown only from the confirmed response");
+    expect(alert).toHaveTextContent("Never paste, share, copy, save, log, or send");
+    expect(await screen.findByText(/Test data · pending_setup/i)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      operation: "preview_reset_authentication",
+      vendorId: activeVendor.vendorId,
+      reason: "Repeat the V1 password and TOTP acceptance journey",
+    });
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
+      operation: "reset_authentication",
+      vendorId: activeVendor.vendorId,
+      reason: "Repeat the V1 password and TOTP acceptance journey",
+      confirmedPreviewHash: "reset-preview-hash",
+    });
+  });
+
   it("visibly labels Test tickets and never offers live Gmail connection", () => {
     render(
       <VendorPortal

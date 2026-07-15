@@ -39,7 +39,7 @@ function harness(linked = true, lanes: VendorGmailLaneContext = liveLanes) {
   const assignments: VendorGmailAssignmentRepository = {
     isVendorActive: async () => true,
     listAssignedTickets: async () => [],
-    getAssignedTicket: async (vendorId, ticketId) =>
+    getAssignedTicket: async ({ vendorId, ticketId }) =>
       vendorId === "vendor-a" && ticketId === "ticket-a"
         ? {
             id: ticketId,

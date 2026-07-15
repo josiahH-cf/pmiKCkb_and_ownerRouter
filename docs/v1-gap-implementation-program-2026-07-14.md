@@ -39,9 +39,13 @@ enabled`, with `suspended` available as a kill state. Application readiness and 
   used to route around a Live blocker.
 - Maintenance intake-through-close and external Vendor password/TOTP/assigned-ticket access are V1
   application features. Vendor Test identity uses Firebase password setup plus TOTP and an app-only
-  assigned-ticket mailbox. A Live Vendor additionally requires a verified routable email and
-  same-address per-vendor Gmail/Workspace OAuth. Vendors never receive DWD, internal roles, or
-  cross-ticket access.
+  assigned-ticket mailbox. Its repeatable Admin-confirmed reset/re-enable binds the exact current UID,
+  status, and `inviteVersion`, rotates the UID, denies stale sessions/confirmations, preserves the
+  stable Test workspace, and returns one response-only `no-store` setup link. Partial failures remain
+  disabled and recoverable with zero provider/Live effects. A Live Vendor additionally requires a
+  verified routable email and same-address per-vendor Gmail/Workspace OAuth; OAuth client/vault setup
+  is an optional per-Vendor activation. Vendors never receive DWD, internal roles, or cross-ticket
+  access.
 - All human messages remain proposal-first and exact-confirmed. No generic compose, autonomous send,
   scheduled send, bulk send/write, guessed endpoint, browser-selected recipient, or blind retry is
   introduced by V1.
@@ -62,16 +66,16 @@ enabled`, with `suspended` available as a kill state. Application readiness and 
 
 ## Dependency order for `/loop`
 
-| Slice | Suite | Working-app outcome                                                                                                    |
-| ----- | ----- | ---------------------------------------------------------------------------------------------------------------------- |
-| 1     | S20   | Risk, authority, exact preview/confirmation, one-attempt claim, audit, and correction/reconciliation                   |
-| 2     | S21   | Bounded trusted publication with version, rollback, source-state, and production connector health                      |
-| 3     | S23   | Side-by-side Live and Test Console projections, scoped detail, provenance, and explicit source failure                 |
-| 4     | S24   | Workflow-bounded communication artifacts, retention/legal hold, and exact-confirmed sends; cleanup automation optional |
-| 5     | S22   | Firebase Vendor password/TOTP, assignment boundary, Test mailbox, and optional per-Vendor Live OAuth                   |
-| 6     | S25   | All 11 renewal actions executable in the isolated Test workspace; Live actions activate independently                  |
-| 7     | S26   | Maintenance capture → ticket → assignment → activity/receipts → close in Test; Live actions activate independently     |
-| 8     | S27   | Working-app manifest/report, role/mobile/failure browser acceptance, deploy, monitoring, and rollback validation       |
+| Slice | Suite | Working-app outcome                                                                                                                   |
+| ----- | ----- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | S20   | Risk, authority, exact preview/confirmation, one-attempt claim, audit, and correction/reconciliation                                  |
+| 2     | S21   | Bounded trusted publication with version, rollback, source-state, and production connector health                                     |
+| 3     | S23   | Side-by-side Live and Test Console projections, scoped detail, provenance, and explicit source failure                                |
+| 4     | S24   | Workflow-bounded communication artifacts, retention/legal hold, and exact-confirmed sends; cleanup automation optional                |
+| 5     | S22   | Firebase Vendor password/TOTP, repeatable auth reset/re-enable, assignment boundary, Test mailbox, and optional per-Vendor Live OAuth |
+| 6     | S25   | All 11 renewal actions executable in the isolated Test workspace; Live actions activate independently                                 |
+| 7     | S26   | Maintenance capture → ticket → assignment → activity/receipts → close in Test; Live actions activate independently                    |
+| 8     | S27   | Working-app manifest/report, role/mobile/failure browser acceptance, deploy, monitoring, and rollback validation                      |
 
 Within S25/S26, every provider action still ships preview, idempotency, receipt/read-after-write or
 reconciliation, correction/rollback, audit, failure typing, and tests. An undocumented provider may
@@ -91,9 +95,12 @@ against a guessed contract, or allowed to prevent unrelated application workflow
    `npm run auth:session` in their terminal. Before a cost-bearing cloud action, run the budget guard.
 6. Keep Test records in their production Test lane. Never copy a token, secret, Gmail body, customer
    value, or raw provider payload into git, logs, audit, or Test fixtures.
-7. For a Live write/send, display its provider, account/record target, exact effect, risk, source,
+7. Treat canonical Test Vendor auth reset as a repeatable application lifecycle, not data teardown:
+   bind the preview to current UID/status/`inviteVersion`, rotate UID, preserve Test records, and keep
+   partial failures disabled. The action-link response is `no-store` and never persisted or delivered.
+8. For a Live write/send, display its provider, account/record target, exact effect, risk, source,
    expiry, and correction path; require exact human confirmation and produce a receipt.
-8. Run focused checks per suite and `bash scripts/verify.sh` at completed milestones. Extend sentinels;
+9. Run focused checks per suite and `bash scripts/verify.sh` at completed milestones. Extend sentinels;
    never weaken them to make a provider look active.
 
 ## Completion ledger

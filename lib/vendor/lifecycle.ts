@@ -7,8 +7,9 @@ import { VendorBoundaryError, type VendorMailboxConnection } from "@/lib/vendor/
 export interface VendorLifecycleStore {
   disableVendor(input: {
     vendorId: string;
+    expectedUid: string;
     nowIso: string;
-  }): Promise<"disabled" | "already_disabled">;
+  }): Promise<"disabled" | "already_disabled" | "reset_in_progress" | "stale">;
   getConnection(vendorId: string): Promise<VendorMailboxConnection | null>;
   markConnectionRevocationPending(vendorId: string, nowIso: string): Promise<void>;
   appendAudit(input: {
@@ -52,8 +53,12 @@ export async function disableVendor(
   const createdAt = (dependencies.now ?? (() => new Date()))().toISOString();
   const result = await dependencies.store.disableVendor({
     vendorId: input.vendorId,
+    expectedUid: input.vendorUid,
     nowIso: createdAt,
   });
+  if (result === "reset_in_progress" || result === "stale") {
+    throw new VendorBoundaryError("Vendor lifecycle change is unavailable.", 409);
+  }
   if (result === "already_disabled")
     return { status: "disabled" as const, duplicate: true };
 

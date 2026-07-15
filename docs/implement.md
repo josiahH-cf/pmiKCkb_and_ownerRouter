@@ -119,6 +119,12 @@ bash scripts/verify.sh
 
 Before deployment, also run identity, ADC, budget, production preflight, cutover report, and
 dependency inventory. Capture the currently serving revision before changing traffic.
+`npm run deploy:demo -- --budget-confirmed` creates a collision-resistant named revision, then
+explicitly routes 100% traffic to that exact revision. This prevents a named revision selected during
+a rollback rehearsal from remaining pinned and avoids a concurrent-deploy race through floating
+`LATEST`; the traffic step does not alter invoker/IAM configuration. The deploy uses Cloud Run's supported
+`--no-invoker-iam-check` service setting for the public sign-in shell, avoiding an org-blocked
+`allUsers` IAM binding while leaving application authentication and authorization unchanged.
 
 After deployment, use authenticated browser acceptance at desktop and phone widths across
 Console, Ask, Spaces, Approvals, Workflow Communications, Lease Renewals, Maintenance,

@@ -1,6 +1,7 @@
 # V1 tab and browser acceptance plan
 
-Date: 2026-07-15. Status: **core internal acceptance complete; human Test Vendor walkthrough pending**.
+Date: 2026-07-15. Status: **historical core acceptance retained; current hardening candidate deploy/
+re-smoke and human Test Vendor walkthrough pending**.
 
 V1 acceptance proves that the deployed application can be used end to end. It does not require every
 future external provider to be Live. Provider activation is inventoried independently, and an
@@ -19,6 +20,8 @@ visible `Live` or `Test` marker wherever a record or action can write.
 - Test Vendor uses `vendor:test-summit-plumbing`, displayed as
   `Summit Plumbing Test Vendor`, with the non-routable address
   `service@summit-plumbing.example.invalid`.
+- The Vendor id is stable workflow identity; the Firebase UID is a replaceable authentication
+  generation. Never capture either the password setup link or MFA material in evidence.
 - Test records persist in production Firestore and may reach Done. Every Test receipt says no provider
   was contacted and is not eligible as Live-provider proof.
 - A Live action requires an exact target-labeled preview and human confirmation. Exercise a Live write
@@ -26,18 +29,18 @@ visible `Live` or `Test` marker wherever a record or action can write.
 
 ## Surface walkthrough
 
-| Surface                 | Working V1 path                                                                                                                                             | Required failure/recovery path                                                                                              |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Console                 | Show Live operational data and the isolated Test workspace together, with freshness/provenance and a clear mode badge                                       | Provider outage is visibly unavailable; no Test fallback is presented as Live                                               |
-| Spaces / Ask            | Open an authorized Space; return a cited source-backed answer; show `No Reliable Source Found` when unsupported                                             | Wrong Space or missing source fails closed without a generic property-management answer                                     |
-| Approval Queue          | Open an item, review exact action/target/reason, and approve/return/snooze within role                                                                      | Stale, revoked, returned, or blocked work cannot execute or silently self-heal                                              |
-| Workflow Communications | Open a workflow-linked thread/artifact, review source-visible content, and exact-confirm a permitted action                                                 | Wrong mailbox/thread/recipient, expired confirmation, duplicate click, or ambiguous send refuses                            |
-| Lease Renewal           | Run the production Test journey through the typed actions and receipts; show each separately activated Live provider                                        | Unavailable provider stays named/unavailable; Test completion never marks that provider Live-proven                         |
-| Maintenance             | Seed the canonical Test ticket, move intake through assignment/status/activity/notes/receipts to Done                                                       | Cross-mode assignment, stale state, invalid file, or unavailable Live provider refuses with correction guidance             |
-| Connections             | Show each provider's independent state and the action keys it enables                                                                                       | Missing contract, credential, mapping, health, or scope closes only the dependent Live action                               |
-| Admin                   | Manage staff roles, source policy, Test Vendor provision/disable, Test workspace, and release/provider status with reasons                                  | Editor/Vendor denied; duplicate provision and partial identity failure expose reconciliation/cleanup                        |
-| Notifications           | Open a relevant item into its exact governed workflow                                                                                                       | Cross-Space, stale, missing target, or read-state failure does not leak or dead-end                                         |
-| Vendor portal           | Complete Test password setup and TOTP, then view only the assigned Test ticket and app-only mailbox; for Live, use same-address OAuth only after activation | Guessed/deassigned/disabled/cross-mode ticket is indistinguishable 404; Test identity cannot start OAuth or send externally |
+| Surface                 | Working V1 path                                                                                                                                                 | Required failure/recovery path                                                                                                                     |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Console                 | Show Live operational data and the isolated Test workspace together, with freshness/provenance and a clear mode badge                                           | Provider outage is visibly unavailable; no Test fallback is presented as Live                                                                      |
+| Spaces / Ask            | Open an authorized Space; return a cited source-backed answer; show `No Reliable Source Found` when unsupported                                                 | Wrong Space or missing source fails closed without a generic property-management answer                                                            |
+| Approval Queue          | Open an item, review exact action/target/reason, and approve/return/snooze within role                                                                          | Stale, revoked, returned, or blocked work cannot execute or silently self-heal                                                                     |
+| Workflow Communications | Open a workflow-linked thread/artifact, review source-visible content, and exact-confirm a permitted action                                                     | Wrong mailbox/thread/recipient, expired confirmation, duplicate click, or ambiguous send refuses                                                   |
+| Lease Renewal           | Run the production Test journey through the typed actions and receipts; show each separately activated Live provider                                            | Unavailable provider stays named/unavailable; Test completion never marks that provider Live-proven                                                |
+| Maintenance             | Seed the canonical Test ticket, move intake through assignment/status/activity/notes/receipts to Done                                                           | Cross-mode assignment, stale state, invalid file, or unavailable Live provider refuses with correction guidance                                    |
+| Connections             | Show each provider's independent state and the action keys it enables                                                                                           | Missing contract, credential, mapping, health, or scope closes only the dependent Live action                                                      |
+| Admin                   | Manage staff roles, source policy, Test Vendor provision/disable/reset, Test workspace, and release/provider status with reasons                                | Editor/Vendor denied; external Vendors stay out of People and Access; prepared-crash reload re-previews safely and remains busy until lease expiry |
+| Notifications           | Open a relevant item into its exact governed workflow                                                                                                           | Cross-Space, stale, missing target, or read-state failure does not leak or dead-end                                                                |
+| Vendor portal           | Complete Test password setup/TOTP, assigned-ticket mailbox, disable, Admin reset, UID rotation, and fresh password/TOTP access; Live OAuth activates separately | Old password/TOTP/session/action link/UID confirmation and guessed/deassigned/cross-mode access fail; Test cannot start OAuth                      |
 
 ## Write acceptance
 
@@ -53,9 +56,11 @@ replacement/deletion.
 ## Completion record
 
 Capture bodyless evidence: commit/revision, route, role, viewport, mode, action key, timestamp,
-expected/actual state, receipt hash, provider contacted yes/no, and rollback result. A business or
-technical owner may record observations, but a missing named signature does not make a working app
-unready.
+expected/actual state, receipt hash, provider contacted yes/no, rollback result, and for Vendor reset
+only `UID rotated: yes|no` plus preserved/invalidated state booleans. Never record either UID value,
+password/setup link, TOTP material, session cookie, confirmation token, mailbox body, or customer
+content. A business or technical owner may record observations, but a missing named signature does
+not make a working app unready.
 
 Application acceptance is complete when the deployed core surfaces and production Test journeys pass
 and rollback is rehearsed. Each Live provider advances separately from unavailable/test-ready to
@@ -64,14 +69,39 @@ V1 application readiness.
 
 ## 2026-07-15 execution record
 
-- All eight internal surfaces loaded signed-in on the serving `00025-mhw` revision.
+- Current production serves `7ccd9f213d51d6723d1a6467fe656f3b4724d6a5` as
+  `pmi-kc-kb-demo-00026-cxk` at 100% traffic. The current local hardening candidate has no final
+  commit/build/revision pin until its closeout deploy.
+- The browser and rollback observations below are historical evidence captured on
+  `f02112d / 00025-mhw`; they are not silently attributed to `00026-cxk` or the local candidate.
+- All eight internal surfaces loaded signed-in on the historical serving `00025-mhw` revision.
 - Clean direct 390x844 loads showed the expected headings, no horizontal overflow, no visible alerts,
   and no reproducible console error. A single hydration warning seen during an artificial rapid-route
   loop did not reproduce on clean direct loads and also appeared once on a different route.
 - The normal Lease Test journey reached refresh-safe Done with 11 receipts/attempts and zero provider
   calls; the persistent Maintenance Test ticket reached Closed; the Admin workspace passed Vendor
   11/11, Lease 11/11, and Maintenance 19/19 with zero Live calls.
-- Traffic rollback to `00024-6b2` and restoration to `00025-mhw` kept the unauthenticated and signed-in
-  boundaries healthy.
-- The canonical Test Vendor's private password/TOTP/assigned-ticket/mailbox/disable walkthrough is the
-  only remaining human browser scenario.
+- Historical traffic rollback to `00024-6b2` and restoration to `00025-mhw` kept the unauthenticated
+  and signed-in boundaries healthy. Capture and rehearse the local candidate's own prior revision
+  after deploy.
+- The locally verified candidate adds canonical Test Vendor reset/re-enable and rejects any
+  `vendor`, `vendor_id`, or `data_mode` claim evidence from internal People/Access and staff sessions,
+  even when a value is false/empty/malformed. It still needs deployment.
+- The canonical Test Vendor's private password/TOTP/assigned-ticket/mailbox/disable/reset/fresh-
+  enrollment walkthrough is the only remaining human browser scenario. It must prove that the stable
+  Vendor id, Test tickets/assignments/mailbox/receipts survive UID rotation while old authentication
+  artifacts fail and no Live/OAuth/provider path is constructed.
+- Automated browser/component acceptance must also interrupt at `prepared`, reload the normal Admin
+  page, and prove only the original reason returns the same UID-free preview while the lease is live.
+  After expiry, enter a fresh reason and prove it safely rebinds the validated original source, records
+  a distinct bodyless recovery-claim audit, and uses a fresh non-abandoned UID without duplicating the
+  prepared invite increment/canonical reset audit or allowing a delayed-old-owner effect.
+- Interleave Admin disable with reset: claimed/prepared returns a no-side-effect conflict and recovery
+  guidance; disable-first stales the old reset confirmation and a fresh disabled-state reset works;
+  completed reset does not block disable.
+- Force post-claim reset and setup-link failures. The bodyless claim event must remain, the completion
+  event must be absent, and no audit/UI/log may expose the target/replacement Firebase UID, setup link,
+  plaintext reason, password, TOTP material, or mailbox content.
+- After reset claim, UID rotation, disable, and deassignment, retry a stale Vendor mailbox read, draft/
+  label write, confirmation, and reply commit. Every operation must recheck current active UID,
+  assignment, Test ticket/thread/mailbox, and reset state before returning content or changing state.

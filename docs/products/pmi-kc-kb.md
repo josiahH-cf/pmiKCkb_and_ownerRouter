@@ -57,14 +57,20 @@ It covers ticket creation, staff/Vendor assignment, notes/activity, statuses, ex
 shaped Test actions, receipts, close, and reopen. Test actions show their target/effect, require
 the exact confirmation phrase, contact no provider, and write non-Live receipts.
 
-Admin can exact-preview and provision the canonical Test Vendor, show a one-response Firebase
-password setup link, and exact-preview disable/revoke. The Vendor enrolls TOTP, signs in again
-with password+TOTP, sees only matching Test assignments, and uses an app-only assigned-ticket
-mailbox for drafts, labels, and exact-confirmed simulated replies. A Test principal cannot reach
-OAuth or Gmail construction.
+Admin can exact-preview and provision the canonical Test Vendor, show a one-response `no-store`
+Firebase password setup link, and exact-preview disable/revoke. Admin can also repeatably reset and
+re-enable its authentication from `pending_setup`, `active`, or `disabled`: the preview binds the
+current UID/status/`inviteVersion`, execution rotates UID and clears password/TOTP/session access, and
+the Vendor must complete a fresh password+TOTP journey. Old sessions and mailbox confirmations are
+denied while the stable Vendor id, matching Test assignments, ticket history, mailbox, and receipts
+remain. Partial reset failure leaves the replacement disabled and safely resumable. The Vendor sees
+only matching Test assignments and uses an app-only assigned-ticket mailbox for drafts, labels, and
+exact-confirmed simulated replies. Reset and use of a Test principal cannot reach OAuth/Gmail/provider
+construction or create Live evidence.
 
-A Live Vendor additionally needs a routable verified email and same-address OAuth/vault before
-that Live mailbox action can be activated.
+A Live Vendor additionally needs a routable verified email and same-address OAuth/vault before that
+Live mailbox action can be activated. These resources are optional per-Vendor Live activations, not
+prerequisites for the canonical Test lifecycle or application V1.
 
 ## External Actions
 
@@ -111,7 +117,8 @@ optional volume-driven improvements.
 
 ## Acceptance
 
-- Staff and Test Vendor authentication work in production.
+- Staff authentication and the complete Test Vendor provision/password/TOTP/disable/reset/re-enable
+  lifecycle work in production.
 - Every primary tab has a real purpose, safe empty/failure state, and desktop/phone coverage.
 - Live/Test labels and structural isolation are visible and adversarially tested.
 - A complete Maintenance/Vendor Test journey and the full typed Lease/Maintenance action graph run

@@ -37,6 +37,7 @@ only the app's isolated Test executor, contact no provider, and record
 | Identity Platform TOTP             | Complete 2026-07-15         | Project-level TOTP enabled with adjacent interval `1`                     | Enroll/challenge the canonical Test Vendor after deployment                                        | Project config cleared; browser proof remains |
 | Firestore rules and app deployment | Yes                         | Deploy reviewed rules and the candidate revision                          | Run the deploy sequence below, preserving the prior revision                                       | Blocks only the new deployed behavior         |
 | Production Test data               | Yes, in app                 | Seed canonical Maintenance ticket and Test Vendor; complete both journeys | Use Admin Test workspace and Maintenance controls; verify zero provider calls                      | Required working-app acceptance               |
+| Test Vendor authentication reset   | Yes, in app                 | Locally complete; deploy and run the human disable/reset/re-enroll proof  | Admin reason + exact preview; rotate UID, preserve Test workflow data, retain no secret evidence   | Blocks only reset acceptance on the candidate |
 | Rollback                           | Yes                         | Capture the prior revision and rehearse traffic restoration               | Run exact `update-traffic`, then return to candidate after the check                               | Required working-app acceptance               |
 | TTL/index/scheduler                | No hard requirement         | Legal holds and bounded cleanup must work; native automation is optional  | Launch with manual cleanup limit `500`; add indexes only for actual query needs                    | Not a V1 blocker                              |
 | Three Moderate dev-only audit rows | Already disposed            | Keep outside runtime and recheck by 2026-08-15                            | Follow `docs/v1-dependency-disposition-2026-07-14.md`                                              | Not a V1 blocker                              |
@@ -91,6 +92,12 @@ npm run deploy -- --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo \
   --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com
 ```
 
+The deploy wrapper uses `--no-invoker-iam-check` for the public sign-in shell and, only after a
+successful revision creation, routes 100% traffic to the exact revision created by that invocation
+with `gcloud run services update-traffic ... --to-revisions=<revision>=100 --quiet`.
+That second step clears a named-revision traffic pin left by rollback without adding an `allUsers`
+binding or changing application authentication.
+
 ## Vendor V1 process
 
 ### Test Vendor — part of application V1
@@ -104,9 +111,18 @@ npm run deploy -- --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo \
    app-only Test mailbox.
 5. Exact-confirm a Test mailbox reply, verify a Firestore receipt and zero provider calls, then
    deassign/disable and confirm the session loses access.
+6. From the disabled state, Admin supplies a reason and exact-confirms the current UID/status/invite-
+   version reset preview. Record only that the Firebase UID rotated and that the stable Vendor id,
+   Test tickets, assignments, mailbox history, and completed receipts remained.
+7. Confirm the old password, TOTP factors, session, action links, and UID-bound confirmations no
+   longer authorize access. Use the new response-only setup link, set a fresh password, enroll a new
+   TOTP factor, sign out, and complete a fresh password+TOTP sign-in.
+8. Confirm the replacement sees only its preserved assigned Test ticket and app-only mailbox; it
+   cannot construct OAuth/Gmail/provider clients or appear in the internal People and Access roster.
 
 This flow needs Email/Password and TOTP project config, but needs no invitation provider, routable
-mailbox, OAuth client, or token vault.
+mailbox, OAuth client, or token vault. Reset works only for the canonical `.invalid` Test Vendor from
+`pending_setup`, `active`, or `disabled`; a partial failure remains disabled and fail-closed.
 
 ### Live Vendor — activate only when a real Vendor needs external mail
 

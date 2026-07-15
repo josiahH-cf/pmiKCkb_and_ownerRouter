@@ -28,6 +28,9 @@ export interface AuthClaims {
   hd?: unknown;
   role?: unknown;
   scopes?: unknown;
+  vendor?: unknown;
+  vendor_id?: unknown;
+  data_mode?: unknown;
 }
 
 interface FirebaseAuthClaims extends AuthClaims {
@@ -241,6 +244,20 @@ export function validateAuthClaims(claims: AuthClaims): AuthenticatedUser {
   const scopes = readSpaceScopes(claims.scopes);
   const allowedHd = getAllowedHostedDomain();
 
+  // External Vendor principals are authenticated and authorized by the separate
+  // Vendor boundary. Even a same-domain or Google-backed Vendor identity must
+  // never fall through to the internal Editor default or receive staff scopes.
+  if (
+    claims.vendor !== undefined ||
+    claims.vendor_id !== undefined ||
+    claims.data_mode !== undefined
+  ) {
+    throw new AuthError(
+      "Vendor identities cannot use the internal application session.",
+      403,
+    );
+  }
+
   if (hd !== allowedHd) {
     throw new AuthError("Google Workspace hosted domain is not allowed.", 403);
   }
@@ -274,6 +291,9 @@ function validateFirebaseAuthClaims(claims: FirebaseAuthClaims): AuthenticatedUs
     hd,
     role: readFirebaseRole(claims.role),
     scopes: claims.scopes,
+    vendor: claims.vendor,
+    vendor_id: claims.vendor_id,
+    data_mode: claims.data_mode,
   });
 }
 

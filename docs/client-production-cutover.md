@@ -163,9 +163,15 @@ curl -X PATCH \
 Read the project config back and require both top-level `mfa.state: ENABLED` and the TOTP provider
 `state: ENABLED`. Provider-only verification is insufficient.
 
-The Test Vendor flow now needs no external invitation provider or OAuth: Admin provisioning returns the
-password-setup link once, the Test operator completes password/TOTP, and the mailbox remains app-only.
-Live Vendor OAuth/vault is activated later for each real routable Vendor.
+The Test Vendor flow now needs no external invitation provider or OAuth: Admin provisioning returns
+the password-setup link once, the Test operator completes password/TOTP, and the mailbox remains
+app-only. If authentication needs to be restarted, an Admin enters a reason, reviews an exact preview,
+and resets only the canonical `.invalid` Test Vendor from `pending_setup`, `active`, or `disabled`.
+Reset rotates the Firebase UID, invalidates the old password/TOTP/sessions/action links and UID-bound
+confirmations, preserves the stable Vendor id plus Test tickets/assignments/mailbox/receipts, and
+returns one `no-store` setup link. A partial reset remains disabled. This action makes no provider,
+OAuth, vault, delivery, Registry, or Live change. Live Vendor OAuth/vault is activated later for each
+real routable Vendor.
 
 ## 6. Deploy Firestore rules and the application
 
@@ -202,6 +208,15 @@ npm run deploy -- --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo \
   --allow-multiple-spaces \
   --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com
 ```
+
+The wrapper generates one timestamp-plus-entropy revision suffix, passes it to revision creation, and
+then runs `gcloud run services update-traffic ... --to-revisions=<that-exact-revision>=100 --quiet`.
+This is required after a rollback has pinned traffic to a named revision, and it avoids a floating-
+`LATEST` race with another deployment. A successful deploy must not leave the new healthy revision
+unserved or promote code created by a different invocation. The default public sign-in shell uses
+`--no-invoker-iam-check`, the supported service setting in this managed project. It does not add an
+`allUsers` binding or bypass application authentication/authorization. If revision creation fails,
+the traffic-promotion command does not run.
 
 Record commit, Cloud Build ID, new revision, 100% traffic result, and captured prior revision. Rerun
 the production preflight after `APP_BASE_URL` or any identity/resource binding changes.
@@ -243,6 +258,11 @@ Perform the detailed desktop/phone run in
   persists to Firestore with zero provider calls;
 - canonical Test Vendor completes password setup and TOTP, sees only the assigned Test ticket, uses the
   app-only Test mailbox, then loses access after deassign/disable;
+- Admin resets that disabled canonical Test Vendor after a reasoned exact preview; record only that the
+  Firebase UID rotated, Test assignments/tickets/mailbox/receipts were preserved, old authentication
+  artifacts were denied, and a fresh password/TOTP sign-in restored only assigned Test access;
+- Admin People and Access lists internal hosted-domain users only; the external Test Vendor appears
+  only on the separate Vendor surfaces and never as an internal Editor/all-Spaces user;
 - each Test receipt states `provider_contacted=false` and `live_proof_eligible=false`;
 - any enabled Live write shows exact action/target/material values, requires human confirmation, and
   produces a bodyless receipt/readback; and
@@ -271,7 +291,9 @@ Production smoke checklist:
 - The canonical Maintenance Test journey persists intake, assignment, status, activity, notes,
   simulated receipts, and Done with zero external-provider calls.
 - The canonical Test Vendor completes password setup and TOTP, sees only its assigned Test ticket,
-  uses the app-only Test mailbox, and loses access after deassignment or disable.
+  uses the app-only Test mailbox, and loses access after deassignment or disable. Admin then resets
+  that canonical identity, proves UID rotation plus preserved Test workflow state, and repeats a fresh
+  password/TOTP sign-in without retaining a setup link or TOTP material.
 - Every enabled Live write names the exact action, target, and material values; requires the permitted
   human confirmation; emits a bodyless receipt and readback; and an unavailable action makes no
   provider call.
@@ -314,7 +336,9 @@ optimizations when actual volume/query evidence warrants them.
 1. Close the affected exact Action Registry entry; close the whole Test executor for a mode-isolation
    defect.
 2. Preserve execution/audit and reconcile any ambiguous external result; never blind-retry.
-3. Revoke the affected OAuth/session/credential/watch when relevant.
+3. Revoke the affected OAuth/session/credential/watch when relevant. For the canonical Test Vendor,
+   use the Admin reset/re-enable action when a clean authentication generation is needed; do not
+   delete its Test tickets, assignments, mailbox, or completed receipts.
 4. Route 100% traffic to the captured prior revision with `gcloud run services update-traffic`.
 5. Restore reviewed prior rules/configuration/Registry/policy versions.
 6. Verify sign-in, Live/Test isolation, no-source behavior, Vendor assignment denial, and provider

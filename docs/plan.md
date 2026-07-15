@@ -109,7 +109,8 @@ Acceptance:
 ### P7 - External Vendor Authentication and Work
 
 Status: done — canonical Test Vendor provisioning, password setup, mandatory TOTP, assignment
-scope, app-only mailbox, exact-confirmed reply, and disable/revoke are implemented.
+scope, app-only mailbox, exact-confirmed reply, disable/revoke, and repeatable authentication
+reset/re-enable are implemented.
 
 Acceptance:
 
@@ -119,14 +120,41 @@ Acceptance:
 - TOTP enrollment requires a fresh password+TOTP sign-in before server session creation.
 - Test principal and ticket/assignment lanes must match.
 - Test principals are rejected before OAuth/Gmail construction.
+- From `pending_setup`, `active`, or `disabled`, an Admin reason plus exact current preview can reset
+  only the canonical `.invalid` Test identity. Reset rotates the Firebase UID and invalidates its
+  password, TOTP factors, sessions, action links, and UID-bound confirmations while preserving the
+  stable Vendor id, Test tickets, assignments, mailbox history, and completed receipts.
+- A partial reset remains disabled/fail-closed; a successful reset returns one `no-store` setup link
+  and leaves the Vendor `pending_setup` until a fresh password/TOTP journey succeeds.
+- A prepared-crash Admin reload binds the original source without returning UID. While the lease is
+  live, only the original reason returns the same preview and takeover refuses. After expiry, a fresh
+  reason may rebind that source, atomically record the distinct recovery-claim audit, and recover
+  through a UID distinct from every abandoned source/record/Auth UID. Prepared repair retains one
+  invite increment/canonical reset audit, and delayed old-owner work cannot touch the winner.
+- Reset and setup-link regeneration record bodyless winning-claim events separately from successful
+  commit/completion events. A failed pre-completion attempt truthfully retains only its claim event;
+  actor UID/Vendor id/reason hash/time are allowed, but target/replacement Firebase UID, link, plaintext
+  reason, and secret are forbidden.
+- Disable cannot bypass claimed/prepared reset; reset recovery completes first. Disable-first stales
+  the old reset confirmation but permits a fresh disabled-state reset, and completed reset permits
+  later disable.
+- Every Test mailbox read/write/confirmation/reply commit transactionally revalidates active current
+  UID, assignment, Test ticket/thread/mailbox, and no claimed/prepared reset. Disable, deassignment,
+  rotation, and reset claim revoke stale access before content/state/receipt changes.
+- Identity class wins over email domain: any present `vendor`, `vendor_id`, or `data_mode` key—even
+  false/empty/malformed—fails closed from internal People/Access, Admin count, role/scope mutation,
+  ID-token/session authority, and absent-scope/all-Spaces. Vendor auth separately requires the exact
+  valid three-claim tuple.
 - Live Vendor OAuth/vault remains a separately activated Live-provider capability.
 
 ### P8 - Production Release and Human Walkthrough
 
-Status: in progress — commit `f02112d9f5ea3dd5a223a46bcc76a96a5c314b97` is deployed at 100%
-traffic on `pmi-kc-kb-demo-00025-mhw`; signed-in desktop/phone acceptance and rollback/restore are
-complete, and the final all-in-one verifier/HTML evidence is green. Human Test Vendor acceptance
-remains.
+Status: in progress — commit `7ccd9f213d51d6723d1a6467fe656f3b4724d6a5` is the current serving
+checkpoint at 100% traffic on `pmi-kc-kb-demo-00026-cxk`. Signed-in desktop/phone and rollback/restore
+evidence remains attached to the explicitly historical `f02112d / 00025-mhw` checkpoint. The current
+reset/re-enable, partial-claim, and deploy-wrapper hardening is locally green but still needs final
+verification, commit/push/deploy, refreshed production smoke/rollback pins, and human Test Vendor
+acceptance.
 
 Acceptance:
 
@@ -139,28 +167,39 @@ Acceptance:
   Test journeys.
 - The final HTML report explains features, tabs, evidence, provider activation, genuine
   remaining activations, and the historical verification language in plain English.
+- Human Vendor acceptance proves password/TOTP, assigned-ticket/mailbox isolation, disable denial,
+  reset from a terminal lifecycle state, UID rotation with Test workflow preservation, and fresh
+  password/TOTP access after reset without exposing secret-bearing values.
 - Commit is merged to `main`, pushed, deployed, and production smoke/browser checks pass.
 
-Current release checkpoint, 2026-07-15:
+Current serving checkpoint and local candidate, 2026-07-15:
 
-- Cloud Build `0be21660-bfe6-47e7-8e33-ff1b5b21bd10` produced digest
-  `sha256:23e75a9dc7ee22258794814e986dece1ba8303609f7d516ca5d58148109e4625`;
-  Firestore ruleset `63b31613-59ba-495c-9ef3-455a5c593f51` is released, and prior revision
-  `pmi-kc-kb-demo-00024-6b2` is captured.
+- Cloud Build `840e3b52-ae0e-43b8-bcbf-a25045d5705a` produced serving revision
+  `pmi-kc-kb-demo-00026-cxk` and digest
+  `sha256:1012dde4878af0c582c5c00f6fc1d5ad3374391ebfc1e2ae2e0747453b03a1ac`; its serving
+  predecessor is `pmi-kc-kb-demo-00025-mhw`. Firestore ruleset
+  `63b31613-59ba-495c-9ef3-455a5c593f51` is released.
+- The local hardening candidate has no final commit/build/image/revision/prior pins yet; populate them
+  only after the final verifier and deploy.
 - Production Test Lease run `test-renewal-019f6599-af50-7451-88ea-e2592fc001a2` reached Done with
   eleven receipts, eleven attempts, zero Live calls, and refresh-safe persisted state.
 - The Admin Test workspace passed Vendor 11/11, Lease 11/11, and Maintenance 19/19 with zero Live
   calls. All eight internal surfaces loaded signed-in; direct phone loads had no overflow, visible
   alerts, or reproducible console errors.
 - Global MFA and the TOTP provider are enabled. Human Test Vendor password/TOTP/assigned-ticket/
-  mailbox acceptance remains explicit P8 work.
-- Traffic was routed 100% to `pmi-kc-kb-demo-00024-6b2`, the auth boundary and signed-in Console were
-  verified, and traffic was restored 100% to `pmi-kc-kb-demo-00025-mhw`.
-- The clean-install all-in-one verifier passed format, lint (0 errors/8 known warnings), typecheck,
-  unit (304 files/2,089 tests), Firestore (17/59), core E2E (32 passed/18 intentional prerequisite
+  mailbox/disable/reset acceptance remains explicit P8 work.
+- Historical `f02112d / 00025-mhw` traffic was routed 100% to
+  `pmi-kc-kb-demo-00024-6b2`, the auth boundary and signed-in Console were verified, and traffic was
+  restored to `00025-mhw`. Rehearse the new candidate against its own captured prior revision.
+- The final hardening candidate's clean-install all-in-one verifier passed format, lint (0 errors/8 known warnings), typecheck,
+  unit (306 files/2,178 tests), Firestore (17/59), core E2E (32 passed/18 intentional prerequisite
   skips), governance/redaction/falsification, spec traceability (124 acceptance criteria/14 specs),
   `cutover:dry-run`, and the 76-of-76 production build. Full audit: three Moderate dev-only findings,
   zero High/Critical; runtime audit: zero findings.
+- The deploy wrapper now creates a collision-resistant named revision and then promotes that exact
+  revision to 100% traffic, so a prior
+  named-revision rollback pin cannot silently leave the new revision unserved. Its public sign-in
+  shell uses `--no-invoker-iam-check` without adding an `allUsers` IAM binding.
 
 ## Per-Action Provider Activation
 

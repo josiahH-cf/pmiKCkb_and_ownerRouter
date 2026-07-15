@@ -43,35 +43,44 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 > never contacts an external provider or proves Live activation. Real reads/writes activate per action
 > and remain explicit, target-labeled, exact-confirmed, one-attempt, receipted, and reconciled. Vendor
 > Firebase password/TOTP plus assigned-ticket Test mailbox and the Maintenance Test journey are V1.
-> Live Vendor OAuth and other providers activate independently. TTL/index/scheduler automation is an
-> optional operations improvement, not an application-release gate.
+> The canonical Test Vendor also has a required repeatable auth reset/re-enable lifecycle with
+> UID/status/`inviteVersion`-bound preview, UID rotation, stale-session denial, preserved Test records,
+> fail-closed recovery, one response-only `no-store` setup link, and zero provider effects. Live Vendor
+> OAuth/vault and other providers activate independently as optional per-provider capabilities. TTL/
+> index/scheduler automation is an optional operations improvement, not an application-release gate.
 
-| Suite                                      | File                                                   | Status                                           |
-| ------------------------------------------ | ------------------------------------------------------ | ------------------------------------------------ |
-| S1 Governance recalibration & routing      | `docs/feature-suites/governance.md`                    | Built this cycle (spine + gate)                  |
-| S2 Voice & Copy                            | `docs/feature-suites/voice-copy.md`                    | Built (S2)                                       |
-| S3 Lease-renewal maturation                | `docs/feature-suites/lease-renewal.md`                 | Spec — discovery-gated                           |
-| S4 Maintenance work-order intake           | `docs/feature-suites/maintenance-intake.md`            | Spec                                             |
-| S5 Ask portal rescope                      | `docs/feature-suites/ask-rescope.md`                   | Spec — folded into R4                            |
-| S6 UI / IA re-architecture                 | `docs/feature-suites/ui-ia.md`                         | Built (F-IA-CONSOLE-HOME)                        |
-| S7 Cross-product integration               | `docs/feature-suites/cross-product.md`                 | Spec                                             |
-| S8 TDD that mirrors behavior               | `docs/feature-suites/tdd.md`                           | Spec (cross-cutting)                             |
-| S9 Local-model live-data testing           | `docs/feature-suites/local-model.md`                   | Built (S9, cross-cutting)                        |
-| S10 Console app-state front door           | `docs/feature-suites/console-app-state.md`             | Built (F-CONSOLE-APP-STATE)                      |
-| S11 Per-Space "teeth"                      | `docs/feature-suites/space-teeth.md`                   | Spec — Q&A answered, runs via S13                |
-| S12 Dev↔prod parity                        | `docs/feature-suites/dev-prod-parity.md`               | Built + live-verified (F-DEVPROD-PARITY)         |
-| S13 Pre-customer refinement                | `docs/feature-suites/pre-customer-refinement.md`       | Spec — decided 2026-07-02, ready to run          |
-| S14 Approval Queue mobile redesign         | `docs/feature-suites/approval-queue-mobile.md`         | Spec — owner #1 target (D1 locked 2026-07-10)    |
-| S15 Gmail synthetic fallback tools         | `docs/feature-suites/gmail-hub.md`                     | Historical fallback; Admin/demo only             |
-| S16 Role-scoped sub-users (space scopes)   | `docs/feature-suites/rbac-subusers.md`                 | Spec — app-plane; live claim mint owner-gated    |
-| S17 Unified Console + attention hub        | `docs/feature-suites/unified-console-and-attention.md` | Spec — decided 2026-07-10 (D2)                   |
-| S18 Process auto-initiation (anticipation) | `docs/feature-suites/process-auto-initiation.md`       | Spec — app-plane, ready to run                   |
-| S19 Workflow-bounded Gmail per user        | `docs/feature-suites/gmail-live-per-user.md`           | Built locally; promotion gates remain            |
-| S20 Risk-bounded execution authority       | `docs/feature-suites/execution-authority.md`           | Local green — 2026-07-14                         |
-| S21 Trusted immediate publication          | `docs/feature-suites/trusted-publication.md`           | Local green — chunked/fenced; live setup gated   |
-| S22 External Vendor portal + Gmail OAuth   | `docs/feature-suites/vendor-portal-and-mailbox.md`     | App/Test built; Live OAuth per Vendor            |
-| S23 Console Live + Test lanes              | `docs/feature-suites/console-live-data.md`             | App built locally; deploy acceptance pending     |
-| S24 Communications policy + artifacts      | `docs/feature-suites/communications-policy.md`         | App green; TTL/scheduler optional                |
-| S25 Lease Renewal external execution       | `docs/feature-suites/lease-renewal-execution.md`       | App/Test-ready; Live activation per action       |
-| S26 Maintenance external execution         | `docs/feature-suites/maintenance-execution.md`         | Working Test journey; Live activation per action |
-| S27 Working-app release + activation       | `docs/feature-suites/v1-release-acceptance.md`         | Release model built; production evidence pending |
+| Suite                                      | File                                                   | Status                                          |
+| ------------------------------------------ | ------------------------------------------------------ | ----------------------------------------------- |
+| S1 Governance recalibration & routing      | `docs/feature-suites/governance.md`                    | Built this cycle (spine + gate)                 |
+| S2 Voice & Copy                            | `docs/feature-suites/voice-copy.md`                    | Built (S2)                                      |
+| S3 Lease-renewal maturation                | `docs/feature-suites/lease-renewal.md`                 | Spec — discovery-gated                          |
+| S4 Maintenance work-order intake           | `docs/feature-suites/maintenance-intake.md`            | Spec                                            |
+| S5 Ask portal rescope                      | `docs/feature-suites/ask-rescope.md`                   | Spec — folded into R4                           |
+| S6 UI / IA re-architecture                 | `docs/feature-suites/ui-ia.md`                         | Built (F-IA-CONSOLE-HOME)                       |
+| S7 Cross-product integration               | `docs/feature-suites/cross-product.md`                 | Spec                                            |
+| S8 TDD that mirrors behavior               | `docs/feature-suites/tdd.md`                           | Spec (cross-cutting)                            |
+| S9 Local-model live-data testing           | `docs/feature-suites/local-model.md`                   | Built (S9, cross-cutting)                       |
+| S10 Console app-state front door           | `docs/feature-suites/console-app-state.md`             | Built (F-CONSOLE-APP-STATE)                     |
+| S11 Per-Space "teeth"                      | `docs/feature-suites/space-teeth.md`                   | Spec — Q&A answered, runs via S13               |
+| S12 Dev↔prod parity                        | `docs/feature-suites/dev-prod-parity.md`               | Built + live-verified (F-DEVPROD-PARITY)        |
+| S13 Pre-customer refinement                | `docs/feature-suites/pre-customer-refinement.md`       | Spec — decided 2026-07-02, ready to run         |
+| S14 Approval Queue mobile redesign         | `docs/feature-suites/approval-queue-mobile.md`         | Spec — owner #1 target (D1 locked 2026-07-10)   |
+| S15 Gmail synthetic fallback tools         | `docs/feature-suites/gmail-hub.md`                     | Historical fallback; Admin/demo only            |
+| S16 Role-scoped sub-users (space scopes)   | `docs/feature-suites/rbac-subusers.md`                 | Spec — app-plane; live claim mint owner-gated   |
+| S17 Unified Console + attention hub        | `docs/feature-suites/unified-console-and-attention.md` | Spec — decided 2026-07-10 (D2)                  |
+| S18 Process auto-initiation (anticipation) | `docs/feature-suites/process-auto-initiation.md`       | Spec — app-plane, ready to run                  |
+| S19 Workflow-bounded Gmail per user        | `docs/feature-suites/gmail-live-per-user.md`           | Working V1; workflow-only transport             |
+| S20 Risk-bounded execution authority       | `docs/feature-suites/execution-authority.md`           | Working V1                                      |
+| S21 Trusted immediate publication          | `docs/feature-suites/trusted-publication.md`           | Working V1; chunked and fenced                  |
+| S22 External Vendor portal + Gmail OAuth   | `docs/feature-suites/vendor-portal-and-mailbox.md`     | Working Test portal/auth; Live OAuth per Vendor |
+| S23 Console Live + Test lanes              | `docs/feature-suites/console-live-data.md`             | Working V1 in production                        |
+| S24 Communications policy + artifacts      | `docs/feature-suites/communications-policy.md`         | Working V1; TTL/scheduler optional              |
+| S25 Lease Renewal external execution       | `docs/feature-suites/lease-renewal-execution.md`       | Working Test journey; Live per action           |
+| S26 Maintenance external execution         | `docs/feature-suites/maintenance-execution.md`         | Working Test journey; Live per action           |
+| S27 Working-app release + activation       | `docs/feature-suites/v1-release-acceptance.md`         | Working V1; evidence refresh in progress        |
+
+The only release-candidate follow-through still pending across S19–S27 is operational: deploy the
+current local hardening candidate, replace its placeholder commit/build/revision/digest/count fields,
+and record the secret-free outcome of the human Test Vendor password/TOTP/assigned-ticket/disable/reset
+ceremony. Live Vendor OAuth and other provider integrations remain optional activations per exact Live
+action; they do not reopen the completed Test application workflow.

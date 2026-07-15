@@ -80,6 +80,10 @@ export interface VendorGmailAssignmentRepository extends VendorAssignmentReposit
     vendorId: string;
     ticketId: string;
     threadId: string;
+    actorUid: string;
+    actorEmail: string;
+    actorDataMode: DataMode;
+    actorIsAdmin: boolean;
   }): Promise<VendorGmailLaneContext | null>;
 }
 
@@ -158,6 +162,13 @@ export class VendorGmailService {
       vendorId: this.principal.vendorId,
       ticketId,
       threadId,
+      actorUid: this.principal.uid,
+      actorEmail: this.principal.email,
+      actorDataMode:
+        "isAdmin" in this.principal
+          ? this.principal.dataMode
+          : vendorPrincipalDataMode(this.principal),
+      actorIsAdmin: "isAdmin" in this.principal,
     });
     if (
       !lanes ||
