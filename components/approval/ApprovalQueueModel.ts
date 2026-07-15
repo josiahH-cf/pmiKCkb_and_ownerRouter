@@ -200,6 +200,16 @@ export function displayValue(value: string | undefined) {
   return value?.trim() || "Not set";
 }
 
+const APPROVAL_QUEUE_DATE_TIME_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  month: "short",
+  timeZone: "America/Chicago",
+  timeZoneName: "short",
+  year: "numeric",
+});
+
 export function formatDateTime(value: string) {
   const date = new Date(value);
 
@@ -207,7 +217,7 @@ export function formatDateTime(value: string) {
     return value;
   }
 
-  return date.toLocaleString();
+  return APPROVAL_QUEUE_DATE_TIME_FORMATTER.format(date);
 }
 
 export function activityLabel(action: ApprovalQueueActivityRecord["action"]) {
