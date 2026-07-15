@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { MemoryExternalExecutionStore } from "@/lib/external-execution/memory-store";
 import { ExternalActionOrchestrator } from "@/lib/external-execution/orchestrator";
+import { externalPreviewHash } from "@/lib/external-execution/orchestrator";
 import type {
   ExternalActionInput,
   ExternalExecutor,
@@ -13,7 +14,7 @@ import {
 
 function input(actionKey: string, index: number): ExternalActionInput {
   const definition = LEASE_EXECUTION_DEFINITION_MAP.get(actionKey)!;
-  return {
+  const base: ExternalActionInput = {
     workflowId: "renewal-e2e-synthetic",
     actionId: `action-${index}`,
     actionKey,
@@ -22,11 +23,27 @@ function input(actionKey: string, index: number): ExternalActionInput {
     contractRef: "documented:fake:provider-v1",
     connectionRef: "connection:fake",
     mappingRef: "mapping:fake",
-    ...(definition.risk === "Medium"
-      ? { exactConfirmationHash: `confirmation-${index}` }
-      : {}),
-    ...(definition.risk === "High" ? { approvedByUid: "admin-synthetic" } : {}),
+    authority: {
+      actor: { role: "Admin", uid: "admin-synthetic" },
+      roleScopeAuthorized: true,
+    },
   };
+  const previewHash = externalPreviewHash(base);
+  base.authority = {
+    ...base.authority!,
+    ...(definition.risk === "Medium" ? { exactConfirmationHash: previewHash } : {}),
+    ...(definition.risk === "High"
+      ? {
+          approval: {
+            approvedByRole: "Admin",
+            approvedByUid: "admin-synthetic",
+            previewHash,
+            reason: "Synthetic Lease provider acceptance.",
+          },
+        }
+      : {}),
+  };
+  return base;
 }
 
 function fakeExecutor(): ExternalExecutor {

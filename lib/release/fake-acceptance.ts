@@ -1,5 +1,6 @@
 import { MemoryExternalExecutionStore } from "@/lib/external-execution/memory-store";
 import { ExternalActionOrchestrator } from "@/lib/external-execution/orchestrator";
+import { externalPreviewHash } from "@/lib/external-execution/orchestrator";
 import type {
   ExternalActionDefinition,
   ExternalActionInput,
@@ -33,7 +34,11 @@ function input(
   index: number,
   definition: ExternalActionDefinition,
 ): ExternalActionInput {
-  return {
+  const vendorMailboxAction = definition.key.startsWith("vendor.gmail.");
+  const actor = vendorMailboxAction
+    ? ({ role: "Vendor" as const, uid: "vendor-synthetic" } as const)
+    : ({ role: "Admin" as const, uid: "admin-synthetic" } as const);
+  const base: ExternalActionInput = {
     workflowId,
     actionId: `action-${index}`,
     actionKey: key,
@@ -42,11 +47,37 @@ function input(
     contractRef: "documented:fake:integrated-v1",
     connectionRef: "connection:fake",
     mappingRef: "mapping:fake",
-    ...(definition.risk === "Medium"
-      ? { exactConfirmationHash: `confirmation-${index}` }
-      : {}),
-    ...(definition.risk === "High" ? { approvedByUid: "admin-synthetic" } : {}),
+    authority: {
+      actor,
+      roleScopeAuthorized: true,
+      ...(vendorMailboxAction
+        ? {
+            vendor: {
+              assignedTicket: true,
+              sameMailbox: true,
+              selfConsent: true,
+              verifiedEmailTotp: true,
+            },
+          }
+        : {}),
+    },
   };
+  const previewHash = externalPreviewHash(base);
+  base.authority = {
+    ...base.authority!,
+    ...(definition.risk === "Medium" ? { exactConfirmationHash: previewHash } : {}),
+    ...(definition.risk === "High" && actor.role !== "Vendor"
+      ? {
+          approval: {
+            approvedByRole: "Admin",
+            approvedByUid: actor.uid,
+            previewHash,
+            reason: "Synthetic fake-provider acceptance.",
+          },
+        }
+      : {}),
+  };
+  return base;
 }
 
 async function runLane(

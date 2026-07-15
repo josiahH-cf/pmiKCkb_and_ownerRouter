@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { isActionExecutable } from "@/lib/integrations/action-gate";
+import { validateExternalAuthority } from "@/lib/external-execution/authority";
 import type {
   ExternalActionDefinition,
   ExternalActionInput,
@@ -35,6 +36,7 @@ export function externalPreviewHash(input: ExternalActionInput) {
           contractRef: input.contractRef,
           connectionRef: input.connectionRef,
           mappingRef: input.mappingRef,
+          actor: input.authority?.actor,
         }),
       ),
     )
@@ -73,13 +75,7 @@ export function validateExternalInput(
       ? "Blocked: vendor contract required."
       : "Documented provider contract is required.";
   }
-  if (definition.risk === "High" && !input.approvedByUid) {
-    return "Admin approval is required for this High action.";
-  }
-  if (definition.risk === "Medium" && !input.exactConfirmationHash) {
-    return "Exact human confirmation is required for this communication.";
-  }
-  return null;
+  return validateExternalAuthority(definition, input, externalPreviewHash(input));
 }
 
 export class ExternalActionOrchestrator {
@@ -154,6 +150,18 @@ export class ExternalActionOrchestrator {
         "The action preview changed. Prepare it again.",
         "stale_preview",
       );
+    }
+    const definition = this.definitions.get(input.actionKey);
+    if (!definition) {
+      throw new ExternalExecutionError("Unknown workflow action.", "blocked");
+    }
+    const freshBlocker = validateExternalInput(
+      definition,
+      input,
+      this.options.allowFakeContracts === true,
+    );
+    if (freshBlocker) {
+      throw new ExternalExecutionError(freshBlocker, "blocked");
     }
     const executable = this.options.isExecutable ?? isActionExecutable;
     if (!executable(input.actionKey)) {

@@ -17,8 +17,10 @@ two disagree, this status log wins and `docs/loop-state.md` is corrected.
 - Added a shared immutable external-action orchestrator/ledger with dependency receipts, authoritative
   input/contract/connection/mapping checks, S20 risk authority, preview hash, one provider attempt,
   idempotent duplicate result, ambiguity reconciliation, correction text, and bodyless Firestore state
-  denied to clients. Registry closure is the production default; fake contracts require an explicit
-  test seam.
+  denied to clients. A completion audit removed the weak bare-approver-uid seam: actor/scope, exact
+  Medium confirmation, exact-preview reasoned High approval, and S22 Vendor TOTP/mailbox/assignment/
+  self-consent are now revalidated immediately before the claim. Concurrent execution makes one
+  provider call. Registry closure is the production default; fake contracts require an explicit seam.
 - S25 now represents all eleven required Lease actions across Gmail, one-cell Sheet CAS, Rentvine
   renewal, Dotloop loop/documents, distinct portal/SMS channels, and conditional Boom. Each typed fake
   adapter falsifies missing values/contracts, drift, duplicates, unavailable providers, and ambiguous
@@ -31,8 +33,8 @@ two disagree, this status log wins and `docs/loop-state.md` is corrected.
   renders a pre-V1 banner, and exposes a production-disabled local Admin integrated-fake endpoint. A
   pre-release ledger, one packet per exact action, monitoring/rollback plan, and desktop/phone plan for
   seven internal tabs plus Vendor portal are recorded in `docs/v1-pre-release-report-2026-07-14.md`.
-- Verification passed: S25 11 files/45 focused tests; S26 13 files/52 focused tests; 275 unit files/
-  1,781 tests; 14 Firestore files/50 tests on an isolated port; core E2E 32 passed/18 intentionally
+- Verification passed: S25/S26 focused provider suites plus the shared authority/concurrency audit; 276
+  unit files/1,786 tests; 14 Firestore files/50 tests on an isolated port; core E2E 32 passed/18 intentionally
   skipped; and the complete `scripts/verify.sh` clean-install, formatting, lint, typecheck, unit, build,
   router, falsification, freshness, traceability, and redaction milestone. Lint retains eight existing
   warnings; clean install retains 11 known dependency findings (1 low, 7 moderate, 3 high).

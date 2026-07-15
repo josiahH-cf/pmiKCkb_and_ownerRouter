@@ -1,3 +1,5 @@
+import type { ExecutionActor, ExecutionApproval } from "@/lib/execution/types";
+
 export type ExternalExecutionRisk = "Low" | "Medium" | "High";
 export type ExternalExecutionState =
   | "ready"
@@ -26,8 +28,24 @@ export interface ExternalActionInput {
   contractRef?: string;
   connectionRef?: string;
   mappingRef?: string;
+  /** Server-constructed authorization context. No route accepts this object from browser JSON. */
+  authority?: ExternalAuthorityContext;
+}
+
+export interface ExternalAuthorityContext {
+  actor: ExecutionActor;
+  /** Exact S20 approval; High actions bind this to the current external preview hash. */
+  approval?: ExecutionApproval;
+  /** Medium actions bind the confirming actor to the current external preview hash. */
   exactConfirmationHash?: string;
-  approvedByUid?: string;
+  roleScopeAuthorized: boolean;
+  /** S22 checks supplied only after verified-email TOTP and the server-owned assignment join. */
+  vendor?: {
+    assignedTicket: boolean;
+    sameMailbox: boolean;
+    selfConsent: boolean;
+    verifiedEmailTotp: boolean;
+  };
 }
 
 export interface ExternalActionReceipt {

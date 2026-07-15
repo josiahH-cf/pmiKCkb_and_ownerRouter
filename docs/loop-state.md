@@ -42,10 +42,10 @@ and this pointer under 140 lines. The runner is `docs/autonomous-agent-runner.md
   Every Vendor Registry action remains false; no live identity, invite, OAuth app/token/vault, mailbox,
   send, Firebase/Identity Platform config, deploy, or acceptance occurred.
 - **S25/S26 Gated; safe local boundaries green:** the complete 11-action Lease and 19-action Maintenance
-  graphs, shared preview/authority/dependency/idempotency/one-attempt/receipt/reconciliation kernel,
-  typed fake providers, bodyless server ledger/rules, UI readiness, and focused integrated adversarial
-  tests are built. All newly added actions remain false; real account contracts, authoritative mappings,
-  credentials, permitted proofs, promotion, deployment, and acceptance are absent.
+  graphs and typed fakes use shared S20 exact-preview authority plus the narrow S22 Vendor scope, with
+  current role/scope/approval revalidation, atomic one-attempt claims, receipts, reconciliation, and
+  correction. All new actions remain false; real contracts, mappings, credentials, permitted proofs,
+  promotion, deployment, and acceptance are absent.
 - **S27 Gated; safe local readiness green:** Registry-pinned manifest/verifier, pre-V1 UI, local
   integrated fake E2E, action ledger, monitoring/rollback, and browser plans are built. Live/browser/
   rollback proofs, dependency disposition, and Dan/Josiah acceptance remain pending; V1 is forbidden.

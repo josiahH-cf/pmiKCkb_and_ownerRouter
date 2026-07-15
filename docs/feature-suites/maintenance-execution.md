@@ -10,6 +10,8 @@ shared one-attempt orchestrator, Vendor/Drive/Rentvine/mail/LeadSimple/QuickBook
 readiness state, server ledger/rules, and AC-S26-1..9 local tests are built. Every external action stays
 Registry-closed; live identity/folder/account contracts, authoritative mappings, permitted proofs,
 deployment, and Dan/Josiah acceptance are absent. See `docs/v1-pre-release-report-2026-07-14.md`.
+The shared kernel reuses S20 for staff and S22's verified-TOTP/same-mailbox/assigned-ticket/self-consent
+boundary for Vendor actions, and revalidates that authority immediately before its atomic provider claim.
 
 **Goal.** A maintenance request can move from intake through secure Vendor assignment, evidence,
 owner/vendor communication, Rentvine/LeadSimple state, QuickBooks draft-bill handoff, and closure while

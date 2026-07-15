@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { MemoryExternalExecutionStore } from "@/lib/external-execution/memory-store";
 import { ExternalActionOrchestrator } from "@/lib/external-execution/orchestrator";
+import { externalPreviewHash } from "@/lib/external-execution/orchestrator";
 import type {
   ExternalActionInput,
   ExternalExecutor,
@@ -14,7 +15,11 @@ import {
 
 function action(key: string, index: number): ExternalActionInput {
   const definition = MAINTENANCE_EXECUTION_DEFINITION_MAP.get(key)!;
-  return {
+  const vendorMailboxAction = key.startsWith("vendor.gmail.");
+  const actor = vendorMailboxAction
+    ? ({ role: "Vendor" as const, uid: "vendor-synthetic" } as const)
+    : ({ role: "Admin" as const, uid: "admin-synthetic" } as const);
+  const base: ExternalActionInput = {
     workflowId: "maintenance-e2e-synthetic",
     actionId: `action-${index}`,
     actionKey: key,
@@ -23,11 +28,37 @@ function action(key: string, index: number): ExternalActionInput {
     contractRef: "documented:fake:provider-v1",
     connectionRef: "connection:fake",
     mappingRef: "mapping:fake",
-    ...(definition.risk === "Medium"
-      ? { exactConfirmationHash: `confirmation-${index}` }
-      : {}),
-    ...(definition.risk === "High" ? { approvedByUid: "admin-synthetic" } : {}),
+    authority: {
+      actor,
+      roleScopeAuthorized: true,
+      ...(vendorMailboxAction
+        ? {
+            vendor: {
+              assignedTicket: true,
+              sameMailbox: true,
+              selfConsent: true,
+              verifiedEmailTotp: true,
+            },
+          }
+        : {}),
+    },
   };
+  const previewHash = externalPreviewHash(base);
+  base.authority = {
+    ...base.authority!,
+    ...(definition.risk === "Medium" ? { exactConfirmationHash: previewHash } : {}),
+    ...(definition.risk === "High" && actor.role !== "Vendor"
+      ? {
+          approval: {
+            approvedByRole: "Admin",
+            approvedByUid: "admin-synthetic",
+            previewHash,
+            reason: "Synthetic Maintenance provider acceptance.",
+          },
+        }
+      : {}),
+  };
+  return base;
 }
 
 function executor(): ExternalExecutor {

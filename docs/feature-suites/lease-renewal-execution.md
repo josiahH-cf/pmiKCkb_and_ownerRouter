@@ -10,6 +10,8 @@ shared one-attempt orchestrator, fake providers, UI readiness state, bodyless se
 AC-S25-1..9 local tests are built. Every external action remains Registry-closed; real account contracts,
 authoritative mappings, permitted-environment proofs, deployment, and Dan/Josiah acceptance are absent.
 See `docs/v1-pre-release-report-2026-07-14.md`; do not call this suite Accepted.
+The shared kernel reuses S20 exact-preview authority and revalidates role, scope, confirmation/approval,
+Registry, and preview immediately before its atomic claim; a bare approver identifier is never authority.
 
 **Goal.** One authorized renewal workflow can carry verified facts from identification and owner
 decision through tenant outreach, record correction, renewal record/document creation, and conditional
