@@ -6,15 +6,16 @@
 > falsifiable production application contract without conflating app readiness with every provider's
 > activation.
 
-**Implementation status (2026-07-15): Release model green; final production evidence refresh in
-progress.** Manifest schema/verifier `2.0`, bodyless report `2.1`, V1 application banner, application-
+**Implementation status (2026-07-15): Core production application, rollback, and final all-in-one
+verification evidence are green; only human Test Vendor acceptance remains pending.** Manifest schema/verifier `2.0`, bodyless report `2.1`, V1 application banner, application-
 workflow coverage, isolated production Test workspace, provider activation summary, optional advisory
 Dan/Josiah signoffs, role/mobile/failure browser plan, monitoring/rollback plan, and cutover rehearsal
 are built. The old 169 repeated external gates are replaced by grouped application-readiness gates
 plus a separate per-action provider snapshot. The local report is advisory inventory because no
-production-manifest loader exists. The canonical acceptance authority is the bodyless production
-evidence document with immutable pins and browser/rollback results; this does not require all providers
-to be Live.
+production-manifest loader exists. Revision `00025-mhw`, its Firestore rules, persistent Lease and
+Maintenance Test journeys, eight internal signed-in desktop/phone surfaces, and rollback/restore to
+`00024-6b2` are proven in the canonical bodyless production evidence document. The remaining private
+Vendor password/TOTP walkthrough does not require all providers to be Live.
 
 **Goal.** PMI KC can deploy a stable V1 application whose internal and Vendor workflows work with
 visibly isolated Live and Test records. Production Test journeys prove application state, roles,

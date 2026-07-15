@@ -7,11 +7,13 @@ import {
   disableProductionTestVendor,
   listProductionTestVendors,
   provisionProductionTestVendor,
+  regenerateProductionTestVendorSetupLink,
 } from "@/lib/vendor/admin-runtime";
 import { VendorBoundaryError } from "@/lib/vendor/model";
 import {
   testVendorDisablePreview,
   testVendorProvisionPreview,
+  testVendorSetupLinkRegenerationPreview,
 } from "@/lib/vendor/test-identity";
 
 const bodySchema = z.discriminatedUnion("operation", [
@@ -23,6 +25,17 @@ const bodySchema = z.discriminatedUnion("operation", [
   z.object({
     operation: z.literal("provision"),
     aliasKey: z.literal("summit-plumbing"),
+    reason: z.string(),
+    confirmedPreviewHash: z.string().min(1),
+  }),
+  z.object({
+    operation: z.literal("preview_regenerate_setup"),
+    vendorId: z.string().min(1),
+    reason: z.string(),
+  }),
+  z.object({
+    operation: z.literal("regenerate_setup"),
+    vendorId: z.string().min(1),
     reason: z.string(),
     confirmedPreviewHash: z.string().min(1),
   }),
@@ -65,7 +78,23 @@ export async function POST(request: Request) {
           reason: body.reason,
           confirmedPreviewHash: body.confirmedPreviewHash,
         }),
-        { status: 201 },
+        { status: 201, headers: { "cache-control": "no-store" } },
+      );
+    }
+    if (body.operation === "preview_regenerate_setup") {
+      return NextResponse.json({
+        preview: testVendorSetupLinkRegenerationPreview(body.vendorId, body.reason),
+      });
+    }
+    if (body.operation === "regenerate_setup") {
+      return NextResponse.json(
+        await regenerateProductionTestVendorSetupLink({
+          actor,
+          vendorId: body.vendorId,
+          reason: body.reason,
+          confirmedPreviewHash: body.confirmedPreviewHash,
+        }),
+        { headers: { "cache-control": "no-store" } },
       );
     }
     if (body.operation === "preview_disable") {

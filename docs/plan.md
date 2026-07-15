@@ -46,9 +46,9 @@ Acceptance:
 
 ### P2 - Lease Renewal Workflow
 
-Status: in progress — source reconciliation, run/property review, decisions, approvals, and the
-full typed Lease action graph are available; the normal Lease tab is gaining the persistent
-production Test run/receipt/Done journey required by the working-app contract.
+Status: done — source reconciliation, run/property review, decisions, approvals, the full typed
+Lease action graph, and the persistent production Test run/receipt/Done journey are available in
+the normal Lease tab.
 
 Acceptance:
 
@@ -113,7 +113,9 @@ scope, app-only mailbox, exact-confirmed reply, and disable/revoke are implement
 
 Acceptance:
 
-- Admin uses exact preview then one-time setup link; the link is never stored or emailed.
+- Admin uses exact preview then a response-only setup link; if that response is closed before use,
+  another exact preview can regenerate it only for the same reconciled pending Test identity. Links
+  are `no-store`, never persisted, and never emailed.
 - TOTP enrollment requires a fresh password+TOTP sign-in before server session creation.
 - Test principal and ticket/assignment lanes must match.
 - Test principals are rejected before OAuth/Gmail construction.
@@ -121,8 +123,10 @@ Acceptance:
 
 ### P8 - Production Release and Human Walkthrough
 
-Status: in progress — code/docs are being verified, committed, merged, pushed, deployed, and
-validated on the client-owned Cloud Run service.
+Status: in progress — commit `f02112d9f5ea3dd5a223a46bcc76a96a5c314b97` is deployed at 100%
+traffic on `pmi-kc-kb-demo-00025-mhw`; signed-in desktop/phone acceptance and rollback/restore are
+complete, and the final all-in-one verifier/HTML evidence is green. Human Test Vendor acceptance
+remains.
 
 Acceptance:
 
@@ -136,6 +140,27 @@ Acceptance:
 - The final HTML report explains features, tabs, evidence, provider activation, genuine
   remaining activations, and the historical verification language in plain English.
 - Commit is merged to `main`, pushed, deployed, and production smoke/browser checks pass.
+
+Current release checkpoint, 2026-07-15:
+
+- Cloud Build `0be21660-bfe6-47e7-8e33-ff1b5b21bd10` produced digest
+  `sha256:23e75a9dc7ee22258794814e986dece1ba8303609f7d516ca5d58148109e4625`;
+  Firestore ruleset `63b31613-59ba-495c-9ef3-455a5c593f51` is released, and prior revision
+  `pmi-kc-kb-demo-00024-6b2` is captured.
+- Production Test Lease run `test-renewal-019f6599-af50-7451-88ea-e2592fc001a2` reached Done with
+  eleven receipts, eleven attempts, zero Live calls, and refresh-safe persisted state.
+- The Admin Test workspace passed Vendor 11/11, Lease 11/11, and Maintenance 19/19 with zero Live
+  calls. All eight internal surfaces loaded signed-in; direct phone loads had no overflow, visible
+  alerts, or reproducible console errors.
+- Global MFA and the TOTP provider are enabled. Human Test Vendor password/TOTP/assigned-ticket/
+  mailbox acceptance remains explicit P8 work.
+- Traffic was routed 100% to `pmi-kc-kb-demo-00024-6b2`, the auth boundary and signed-in Console were
+  verified, and traffic was restored 100% to `pmi-kc-kb-demo-00025-mhw`.
+- The clean-install all-in-one verifier passed format, lint (0 errors/8 known warnings), typecheck,
+  unit (304 files/2,089 tests), Firestore (17/59), core E2E (32 passed/18 intentional prerequisite
+  skips), governance/redaction/falsification, spec traceability (124 acceptance criteria/14 specs),
+  `cutover:dry-run`, and the 76-of-76 production build. Full audit: three Moderate dev-only findings,
+  zero High/Critical; runtime audit: zero findings.
 
 ## Per-Action Provider Activation
 

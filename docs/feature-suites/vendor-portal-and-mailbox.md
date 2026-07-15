@@ -6,15 +6,19 @@
 > and R04. Vendor is a separate external identity lane and never weakens the `pmikcmetro.com`
 > boundary for staff, cloud, DWD, or Admin.
 
-**Implementation status — Working-app/Test lane built locally 2026-07-15.** The code includes separate
+**Implementation status — Deployed working-app/Test lane 2026-07-15; human secret-bearing acceptance
+pending.** The code includes separate
 Vendor claims/session guards, record/claim `data_mode` binding, Admin Test-Vendor preview/provision/
-disable actions, one-response Firebase password-setup links, TOTP-required access, assigned-ticket
+setup-link recovery/disable actions, response-only Firebase password-setup links, TOTP-required access, assigned-ticket
 list/detail authorization, an app-owned Firestore Test mailbox with exact preview/confirm reply,
 production OAuth state/PKCE/scope/same-address/vault boundaries, disable/revoke lifecycle, UI, rules,
-and adversarial tests. The canonical Test identity is
+and adversarial tests. Identity Platform global MFA and the TOTP provider are enabled in production
+with adjacent interval `1`. The automated production Test workspace passed all 11 Vendor boundary
+checks with zero Live-provider calls. The canonical Test identity is
 `vendor:test-summit-plumbing` / `service@summit-plumbing.example.invalid`. Production deployment and
-Identity Platform TOTP configuration must still be verified; no Live Vendor mailbox is activated by
-the Test journey.
+configuration are verified; the private password/TOTP enrollment, fresh challenge, assigned-ticket,
+app-only mailbox, and disable walkthrough still requires the human operator. No Live Vendor mailbox is
+activated by the Test journey.
 
 **Goal.** An Admin can provision and disable an external Vendor, the Vendor completes Firebase password
 setup plus TOTP, and the Vendor sees only assigned Maintenance tickets. The production app supports a
@@ -33,8 +37,11 @@ is healthy. Every reply is exact-confirmed; no generic inbox or autonomous send 
   `service@summit-plumbing.example.invalid`. The address is intentionally non-routable. Firebase marks
   that Test-only address verified during provisioning so the impossible email-delivery step does not
   block testing, but password setup and TOTP remain mandatory before portal detail. The setup link is
-  returned once to the provisioning Admin, is never delivered externally or persisted, and is never
-  Live evidence.
+  returned only to the provisioning Admin, is never delivered externally or persisted, and is never
+  Live evidence. If the Admin closes or loses that response before setup completes, an exact-previewed
+  recovery action may generate a replacement only for the same canonical `pending_setup` Test identity
+  after its Firestore and Firebase UID/email/verification/disabled state reconcile. The replacement is
+  HTTPS-only, `no-store`, response-only, reason-hash audited, and unavailable after activation or disable.
 - **Live Vendor identity.** Admin provisions the exact routable invited address; email verification,
   password setup, and enrolled TOTP are required before ticket detail, attachment, communication body,
   or mailbox-connect routes. Recovery/reset is audited and revokes sessions. Official basis:
@@ -94,9 +101,13 @@ environment handoff, and S26. Supersede markers: `MANAGED-DOMAIN-ONLY-END-USERS`
 **Adversarial acceptance checks.**
 
 - **AC-S22-1** — Admin preview and exact confirmation provision only the allowlisted Test alias, create
-  one Firebase user/record, return one password-setup link only in that Admin response, persist/deliver
-  no link or password, and mark all evidence Test/non-Live. Editor/Vendor/self-registration attempts
-  are denied. _Verify:_ `npm test -- vendor-test-identity vendor-test-admin-route vendor-invite`.
+  one Firebase user/record, and return its password-setup link only in that Admin response. While the
+  record is still `pending_setup`, a separately previewed recovery may return a replacement only after
+  canonical Firestore/Firebase UID, email, verification, enabled-state, and Test-lane reconciliation.
+  Both responses are `no-store`; no link or password is persisted/delivered, and all evidence remains
+  Test/non-Live. Active, disabled, mismatched, Editor, Vendor, and self-registration attempts are
+  denied. _Verify:_ `npm test -- vendor-test-identity vendor-test-admin-route vendor-test-admin-runtime
+vendor-invite`.
 - **AC-S22-2** — A Test Vendor must complete password setup and TOTP before detail; an unverified or
   non-TOTP Live Vendor is limited to setup/MFA. Changed email, claim/record mode mismatch, disabled
   state, and missing assignment fail before ticket/mail/OAuth provider construction. _Verify:_ `npm
@@ -133,8 +144,9 @@ confirmation exception is ticket-linked only, never general cross-mailbox author
 
 **Ordered prompt sequence.**
 
-1. _Build/verify Test identity:_ provision the canonical alias through Admin preview/confirmation,
-   complete Firebase password setup and TOTP, and prove claim/record/ticket mode isolation.
+1. _Build/verify Test identity:_ provision the canonical alias through Admin preview/confirmation;
+   if its response is closed before use, exact-preview one safe pending-setup link replacement. Complete
+   Firebase password setup and TOTP, and prove claim/record/ticket mode isolation.
 2. _Build/verify Test workflow:_ seed/assign the canonical Maintenance Test ticket and exercise
    assigned-ticket list/detail plus Test mailbox read/draft/label/reply and disable/revoke.
 3. _Configure application prerequisite:_ enable and verify Identity Platform TOTP in the production

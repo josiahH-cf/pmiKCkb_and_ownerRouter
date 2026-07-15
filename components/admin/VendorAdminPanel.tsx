@@ -23,6 +23,8 @@ export function VendorAdminPanel({
   const [preview, setPreview] = useState<ExactPreview | null>(null);
   const [setupLink, setSetupLink] = useState("");
   const [vendors, setVendors] = useState<TestVendorAdminProjection[]>(initialVendors);
+  const [regenerateReason, setRegenerateReason] = useState("");
+  const [regeneratePreview, setRegeneratePreview] = useState<ExactPreview | null>(null);
   const [disableReason, setDisableReason] = useState("");
   const [disablePreview, setDisablePreview] = useState<ExactPreview | null>(null);
   const [message, setMessage] = useState("");
@@ -95,6 +97,43 @@ export function VendorAdminPanel({
       );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Provisioning failed.");
+    }
+  }
+
+  async function reviewRegenerateSetup(vendor: TestVendorAdminProjection) {
+    try {
+      const payload = await post({
+        operation: "preview_regenerate_setup",
+        vendorId: vendor.vendorId,
+        reason: regenerateReason,
+      });
+      setRegeneratePreview(payload.preview as ExactPreview);
+      setSetupLink("");
+      setMessage("Review the exact one-time setup-link write, then confirm once.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Preview failed.");
+    }
+  }
+
+  async function confirmRegenerateSetup() {
+    if (!regeneratePreview) return;
+    try {
+      const payload = await post({
+        operation: "regenerate_setup",
+        vendorId: regeneratePreview.vendorId,
+        reason: regenerateReason,
+        confirmedPreviewHash: regeneratePreview.previewHash,
+      });
+      const setup = payload.setup as { setupLink?: string } | undefined;
+      setSetupLink(setup?.setupLink ?? "");
+      setRegeneratePreview(null);
+      setRegenerateReason("");
+      await refresh();
+      setMessage(
+        "A new one-time Test Vendor setup link is shown below. The app did not deliver it externally.",
+      );
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Regeneration failed.");
     }
   }
 
@@ -194,8 +233,15 @@ export function VendorAdminPanel({
           <div className="panel" role="alert">
             <h3>One-time password setup link</h3>
             <p>
-              This secret-bearing link is shown only in this response and is not stored or
-              emailed. Open it now; Firebase consumes the action code once.
+              This secret-bearing link is shown only from the confirmed response and is
+              not stored, emailed, or otherwise delivered by the app. Open it directly
+              now; Firebase consumes the action code once.
+            </p>
+            <p>
+              <strong>
+                Never paste, share, copy, save, log, or send this link. It disappears from
+                this page on refresh or when another setup action begins.
+              </strong>
             </p>
             <a href={setupLink} rel="noreferrer" target="_blank">
               Open one-time Test Vendor setup
@@ -213,6 +259,58 @@ export function VendorAdminPanel({
             Email verified: {vendor.emailVerified ? "yes" : "no"} · TOTP verified:{" "}
             {vendor.totpVerified ? "yes" : "not yet"}
           </p>
+          {vendor.status === "pending_setup" ? (
+            <div className="panel">
+              <h4>Replace an expired or closed setup link</h4>
+              <p>
+                Generate a new one-time Firebase password-setup link only after reviewing
+                the exact Test identity effect. The app does not email or deliver the
+                link.
+              </p>
+              <label>
+                Setup-link regeneration reason
+                <input
+                  onChange={(event) => {
+                    setRegenerateReason(event.target.value);
+                    setRegeneratePreview(null);
+                    setSetupLink("");
+                  }}
+                  value={regenerateReason}
+                />
+              </label>
+              <button
+                className="secondary-button"
+                disabled={busy || regenerateReason.trim().length < 3}
+                onClick={() => reviewRegenerateSetup(vendor)}
+                type="button"
+              >
+                Review new one-time setup link
+              </button>
+              {regeneratePreview?.vendorId === vendor.vendorId ? (
+                <div
+                  className="panel"
+                  aria-label="Exact Test Vendor setup-link regeneration confirmation"
+                >
+                  <p className="eyebrow">Test write · no external delivery</p>
+                  <p>
+                    <strong>Action:</strong> {regeneratePreview.action}
+                  </p>
+                  <p>
+                    <strong>Target:</strong> {regeneratePreview.target}
+                  </p>
+                  <p>{regeneratePreview.exactEffect}</p>
+                  <button
+                    className="primary-button"
+                    disabled={busy}
+                    onClick={confirmRegenerateSetup}
+                    type="button"
+                  >
+                    Confirm new one-time setup link
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {vendor.status !== "disabled" ? (
             <>
               <label>

@@ -3,7 +3,11 @@ import { createHash } from "node:crypto";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { assertNonRoutableTestEmail, executionEvidenceMarker } from "@/lib/data-mode";
-import { VendorBoundaryError, type VendorRecord } from "@/lib/vendor/model";
+import {
+  VendorBoundaryError,
+  vendorRecordDataMode,
+  type VendorRecord,
+} from "@/lib/vendor/model";
 
 export const TEST_VENDOR_ALIASES = [
   {
@@ -17,6 +21,10 @@ export const TEST_VENDOR_ALIASES = [
 export type TestVendorAliasKey = (typeof TEST_VENDOR_ALIASES)[number]["key"];
 
 export const TEST_VENDOR_SETUP_ARTIFACT = "vendor-test-setup:v1.0";
+export const TEST_VENDOR_SETUP_LINK_REGENERATION_ARTIFACT =
+  "vendor-test-setup-link-regeneration:v1.0";
+
+const TEST_VENDOR_SETUP_LINK_REGENERATION_ACTION = "Regenerate Test Vendor setup link";
 
 export interface TestVendorIdentityAuth {
   createUser(input: {
@@ -43,6 +51,27 @@ export interface TestVendorIdentityStore {
   }): Promise<void>;
 }
 
+export interface TestVendorSetupLinkRecoveryAuth {
+  findUserByEmail(email: string): Promise<{
+    uid: string;
+    email: string | null;
+    emailVerified: boolean;
+    disabled: boolean;
+  } | null>;
+  generatePasswordResetLink(email: string): Promise<string>;
+}
+
+export interface TestVendorSetupLinkRecoveryStore {
+  getVendorById(vendorId: string): Promise<VendorRecord | null>;
+  appendAudit(input: {
+    actorUid: string;
+    vendorId: string;
+    action: string;
+    reasonHash: string;
+    createdAt: string;
+  }): Promise<void>;
+}
+
 function reasonValue(reason: string) {
   const value = reason.trim();
   if (value.length < 3) {
@@ -57,6 +86,31 @@ export function getTestVendorAlias(key: string) {
     throw new VendorBoundaryError("Choose an approved Test Vendor alias.", 400);
   }
   return alias;
+}
+
+function getTestVendorAliasByVendorId(vendorId: string) {
+  const alias = TEST_VENDOR_ALIASES.find((candidate) => candidate.vendorId === vendorId);
+  if (!alias) {
+    throw new VendorBoundaryError(
+      "Only an approved Test Vendor can use this action.",
+      400,
+    );
+  }
+  return alias;
+}
+
+function normalizedEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+function assertHttpsSetupLink(setupLink: string) {
+  try {
+    if (new URL(setupLink).protocol === "https:") return;
+  } catch {
+    // The boundary below intentionally gives malformed and non-HTTPS links the
+    // same safe service error without reflecting the secret-bearing value.
+  }
+  throw new VendorBoundaryError("Firebase returned an invalid setup link.", 503);
 }
 
 export function testVendorProvisionPreview(aliasKey: string, reason: string) {
@@ -116,6 +170,117 @@ export function testVendorDisablePreview(vendorId: string, reason: string) {
     ...executionEvidenceMarker("test"),
     exactEffect:
       "Disable this Test Vendor user, revoke its Firebase sessions, and close its simulated mailbox access. No live provider is contacted.",
+  };
+}
+
+export function testVendorSetupLinkRegenerationPreview(vendorId: string, reason: string) {
+  const alias = getTestVendorAliasByVendorId(vendorId);
+  assertNonRoutableTestEmail(alias.email);
+  const normalizedReason = reasonValue(reason);
+  const previewHash = createHash("sha256")
+    .update(
+      JSON.stringify({
+        action: TEST_VENDOR_SETUP_LINK_REGENERATION_ACTION,
+        artifact: TEST_VENDOR_SETUP_LINK_REGENERATION_ARTIFACT,
+        vendorId: alias.vendorId,
+        email: alias.email,
+        reason: normalizedReason,
+      }),
+    )
+    .digest("hex");
+
+  return {
+    previewHash,
+    artifact: TEST_VENDOR_SETUP_LINK_REGENERATION_ARTIFACT,
+    vendorId: alias.vendorId,
+    displayName: alias.displayName,
+    email: alias.email,
+    action: TEST_VENDOR_SETUP_LINK_REGENERATION_ACTION,
+    target: `${alias.displayName} (${alias.email})`,
+    externalDelivery: false,
+    ...executionEvidenceMarker("test"),
+    exactEffect:
+      "Generate a new Firebase password-setup link for the existing pending Test Vendor and return it only in this Admin response. The user and Vendor record are not altered, and no external delivery occurs.",
+  };
+}
+
+export async function regenerateTestVendorSetupLink(
+  input: {
+    actor: AuthenticatedUser;
+    vendorId: string;
+    reason: string;
+    confirmedPreviewHash: string;
+  },
+  dependencies: {
+    auth: TestVendorSetupLinkRecoveryAuth;
+    store: TestVendorSetupLinkRecoveryStore;
+    now?: () => Date;
+  },
+) {
+  if (!can(input.actor.role, "manageAdmin")) {
+    throw new VendorBoundaryError("Admin access is required.", 403);
+  }
+  const preview = testVendorSetupLinkRegenerationPreview(input.vendorId, input.reason);
+  if (preview.previewHash !== input.confirmedPreviewHash) {
+    throw new VendorBoundaryError(
+      "The Test Vendor setup-link preview changed. Review it again.",
+      409,
+    );
+  }
+
+  const record = await dependencies.store.getVendorById(preview.vendorId);
+  const unavailable = () =>
+    new VendorBoundaryError("Test Vendor setup-link recovery is unavailable.", 409);
+  if (
+    !record ||
+    record.id !== preview.vendorId ||
+    record.status !== "pending_setup" ||
+    vendorRecordDataMode(record) !== "test" ||
+    normalizedEmail(record.email) !== normalizedEmail(preview.email) ||
+    record.uid.trim().length === 0
+  ) {
+    throw unavailable();
+  }
+
+  const user = await dependencies.auth.findUserByEmail(preview.email);
+  if (
+    !user ||
+    user.disabled ||
+    !user.emailVerified ||
+    user.uid !== record.uid ||
+    user.email === null ||
+    normalizedEmail(user.email) !== normalizedEmail(preview.email)
+  ) {
+    throw unavailable();
+  }
+
+  const setupLink = await dependencies.auth.generatePasswordResetLink(preview.email);
+  assertHttpsSetupLink(setupLink);
+
+  const createdAt = (dependencies.now ?? (() => new Date()))().toISOString();
+  await dependencies.store.appendAudit({
+    actorUid: input.actor.uid,
+    vendorId: preview.vendorId,
+    action: "test_vendor_setup_link_regenerated",
+    reasonHash: createHash("sha256").update(input.reason.trim()).digest("hex"),
+    createdAt,
+  });
+
+  // The Firebase action code exists only in this response. Neither the link nor
+  // any part of it is stored in the Vendor record or bodyless audit evidence.
+  return {
+    vendor: record,
+    setup: {
+      artifact: TEST_VENDOR_SETUP_LINK_REGENERATION_ARTIFACT,
+      setupLink,
+      oneTime: true as const,
+      regenerated: true as const,
+      deliveredExternally: false as const,
+    },
+    callout: {
+      ...executionEvidenceMarker("test"),
+      externalEffect: false as const,
+    },
   };
 }
 
@@ -179,10 +344,7 @@ export async function provisionTestVendor(
     await dependencies.store.saveVendor(record);
     vendorSaved = true;
     const setupLink = await dependencies.auth.generatePasswordResetLink(preview.email);
-    const parsedSetupLink = new URL(setupLink);
-    if (parsedSetupLink.protocol !== "https:") {
-      throw new VendorBoundaryError("Firebase returned an invalid setup link.", 503);
-    }
+    assertHttpsSetupLink(setupLink);
     await dependencies.store.appendAudit({
       actorUid: input.actor.uid,
       vendorId: preview.vendorId,

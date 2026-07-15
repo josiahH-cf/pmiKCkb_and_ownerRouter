@@ -11,6 +11,51 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Working-app V1 is deployed and fully verified; only human Test Vendor acceptance remains
+
+- Date: 2026-07-15
+- Synchronized `main` commit `f02112d9f5ea3dd5a223a46bcc76a96a5c314b97` was built by Cloud
+  Build `0be21660-bfe6-47e7-8e33-ff1b5b21bd10` and is serving as Cloud Run revision
+  `pmi-kc-kb-demo-00025-mhw` at 100% traffic. Its image digest is
+  `sha256:23e75a9dc7ee22258794814e986dece1ba8303609f7d516ca5d58148109e4625`; the
+  captured prior revision is `pmi-kc-kb-demo-00024-6b2`. Firestore ruleset
+  `63b31613-59ba-495c-9ef3-455a5c593f51` is released.
+- Production Test Lease run `test-renewal-019f6599-af50-7451-88ea-e2592fc001a2` reached Done with
+  eleven bodyless receipts, eleven attempts, zero Live/provider calls, and progress preserved after
+  reload. This is production app/Firestore Test-lane proof, not Live-provider proof.
+- The Admin Test workspace passed Vendor 11/11, Lease 11/11, and Maintenance 19/19 with zero Live
+  calls. All eight internal surfaces loaded signed-in; clean direct phone loads at 390x844 showed no
+  horizontal overflow, visible alerts, or reproducible console errors. A one-off React hydration
+  warning during an artificial rapid-navigation loop did not reproduce on clean direct loads and was
+  not attributable to an application route.
+- Identity Platform global MFA and the TOTP provider are enabled with adjacent interval `1`. The
+  human Test Vendor password/TOTP/assigned-ticket/mailbox journey remains pending; automated Vendor
+  11/11 coverage does not replace that secret-bearing acceptance path.
+- Traffic moved 100% to captured prior revision `pmi-kc-kb-demo-00024-6b2`; the unauthenticated sign-in
+  redirect and signed-in Console remained healthy. Traffic was immediately restored 100% to
+  `pmi-kc-kb-demo-00025-mhw`; Workflow Communications reloaded signed-in with zero console errors and
+  the candidate still had zero checked ERROR-level Cloud Run logs.
+- The final `bash scripts/verify.sh` completed cleanly after `npm ci` installed 1,130 packages and
+  audited 1,131: formatting passed; lint reported 0 errors/8 known warnings; typecheck passed; unit
+  passed 304 files/2,089 tests; router, falsification, context, spec traceability (124 acceptance
+  criteria/14 specs), redaction, and the 76-of-76 production build passed. Firestore passed 17
+  files/59 tests, core E2E passed 32 with 18 intentional prerequisite skips, and `cutover:dry-run`
+  was fully green. The full audit has three Moderate and zero High/Critical findings, all in the
+  dev-only `firebase-tools → @google-cloud/pubsub → @opentelemetry/core` chain;
+  `npm audit --omit=dev` reports zero runtime findings.
+- Verifier reliability now caps Vitest at eight workers and checks the 393,233-byte publication round trip
+  with exact byte length/comparison. No test timeout was widened or relaxed.
+- Closing the first Test Vendor setup response exposed and closed a real recovery gap: a pending
+  canonical Test identity now supports an Admin-only, exact-previewed setup-link replacement after
+  Firestore/Firebase UID, email, verification, enabled-state, and lane reconciliation. The HTTPS link
+  is returned only in a `no-store` response, is never persisted or delivered, and is unavailable for
+  active, disabled, mismatched, or non-Test identities.
+- Provider contracts, credentials, and mappings activate only their exact Live actions. Unavailable
+  provider actions, native TTL, extra indexes, and Scheduler remain advisory/post-V1 work rather than
+  an all-provider application-release gate.
+- Non-secret production checkpoint evidence:
+  `docs/evidence/working-app-v1-production-2026-07-15.md`.
+
 ## Working-app V1 implementation and release verification are green; deployment is next
 
 - Date: 2026-07-15

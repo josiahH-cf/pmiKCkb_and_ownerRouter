@@ -80,7 +80,9 @@ describe("Firestore publication content store", () => {
         1024 * 1024,
       );
     }
-    await expect(store.read(reference)).resolves.toEqual(content);
+    const restored = await store.read(reference);
+    expect(restored.byteLength).toBe(content.byteLength);
+    expect(Buffer.compare(Buffer.from(restored), Buffer.from(content))).toBe(0);
   });
 
   it("fails closed when a stored chunk is changed", async () => {

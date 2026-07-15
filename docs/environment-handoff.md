@@ -23,11 +23,13 @@ read or written. A provider can be unavailable while the application and Test wo
 
 Canonical Test records:
 
-| Type         | Identifier                    | Display / address                         |
-| ------------ | ----------------------------- | ----------------------------------------- |
-| Unit         | `unit:test-maple-204`         | `TEST — 204 Maple Court Unit 2`           |
-| Vendor       | `vendor:test-summit-plumbing` | `Summit Plumbing Test Vendor`             |
-| Vendor email | —                             | `service@summit-plumbing.example.invalid` |
+| Type               | Identifier                                          | Display / address                         |
+| ------------------ | --------------------------------------------------- | ----------------------------------------- |
+| Unit               | `unit:test-maple-204`                               | `TEST — 204 Maple Court Unit 2`           |
+| Vendor             | `vendor:test-summit-plumbing`                       | `Summit Plumbing Test Vendor`             |
+| Vendor email       | —                                                   | `service@summit-plumbing.example.invalid` |
+| Lease workflow run | `test-renewal-019f6599-af50-7451-88ea-e2592fc001a2` | `TEST — 204 Maple Court Unit 2`           |
+| Lease              | `lease:test-maple-204-2027`                         | `Taylor Test Resident`                    |
 
 ## Handling values
 
@@ -53,40 +55,49 @@ Live, and receipts state `provider_contacted=false` and `live_proof_eligible=fal
 
 ## Environment Registry
 
-| Environment       | Purpose                                  | Non-secret identifiers                                                                                                                                                                                                                                                                            | Secret storage                       | Owner                             | State / verification                                                                                                                                                                                          |
-| ----------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Local development | Build, unit/E2E/emulator verification    | `localhost:3000`, loopback emulator                                                                                                                                                                                                                                                               | `.env.local` / active shell          | Implementer                       | `npm run dev`; `npm run format:check`; `npm run typecheck`; `npm test`; `npm run test:firestore`                                                                                                              |
-| Legacy demo       | Historical local/cloud evidence only     | Legacy project values                                                                                                                                                                                                                                                                             | Legacy ignored config                | Josiah                            | Not reusable for production; no `cherrybridge.ai` identity/resource in the production path                                                                                                                    |
-| Separate staging  | Optional future provider sandbox         | Not provisioned                                                                                                                                                                                                                                                                                   | Client Secret Manager/identity       | Future                            | Not required for V1 because production has an isolated Test lane; provision only when a provider requires its own sandbox                                                                                     |
-| Production        | Stable PMI KC app with Live + Test lanes | Project `pmi-kc-kb-prod` (#558870356522); Cloud Run `pmi-kc-kb-demo`, `us-central1`; canonical URL `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`; bucket `pmi-kc-kb-prod-sources-558870356522`; search store `kb-lease-renewals-txt`; Firebase app `1:558870356522:web:c1b2473b886a6edd889953` | Secret Manager / attached identities | Josiah technical; PMI KC business | Billing, budget controls, Firebase/Firestore, runtime SA, Cloud Run, source bucket/search, and managed-domain sign-in exist. Verify candidate revision, rules, Test workflows, and rollback after each deploy |
+| Environment       | Purpose                                  | Non-secret identifiers                                                                                                                                                                                                                                                                            | Secret storage                       | Owner                             | State / verification                                                                                                                                                                                                                                                      |
+| ----------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Local development | Build, unit/E2E/emulator verification    | `localhost:3000`, loopback emulator                                                                                                                                                                                                                                                               | `.env.local` / active shell          | Implementer                       | `npm run dev`; `npm run format:check`; `npm run typecheck`; `npm test`; `npm run test:firestore`                                                                                                                                                                          |
+| Legacy demo       | Historical local/cloud evidence only     | Legacy project values                                                                                                                                                                                                                                                                             | Legacy ignored config                | Josiah                            | Not reusable for production; no `cherrybridge.ai` identity/resource in the production path                                                                                                                                                                                |
+| Separate staging  | Optional future provider sandbox         | Not provisioned                                                                                                                                                                                                                                                                                   | Client Secret Manager/identity       | Future                            | Not required for V1 because production has an isolated Test lane; provision only when a provider requires its own sandbox                                                                                                                                                 |
+| Production        | Stable PMI KC app with Live + Test lanes | Project `pmi-kc-kb-prod` (#558870356522); Cloud Run `pmi-kc-kb-demo`, `us-central1`; canonical URL `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`; bucket `pmi-kc-kb-prod-sources-558870356522`; search store `kb-lease-renewals-txt`; Firebase app `1:558870356522:web:c1b2473b886a6edd889953` | Secret Manager / attached identities | Josiah technical; PMI KC business | Commit `f02112d9f5ea3dd5a223a46bcc76a96a5c314b97`, revision `pmi-kc-kb-demo-00025-mhw`, and ruleset `63b31613-59ba-495c-9ef3-455a5c593f51` are deployed. Lease, internal browser, rollback, and final verifier evidence are proven; human Test Vendor acceptance remains. |
 
-The serving baseline captured before the 2026-07-15 working-app change is commit
-`0dc0c7aa7be600e1097e80de448227917dc9101a`, Cloud Build
-`9ae6958b-ec8c-48ef-bf0b-46dbe8194880`, revision `pmi-kc-kb-demo-00021-bj8` at 100% traffic.
-Revision `pmi-kc-kb-demo-00020-24d` is a known prior rollback target. Replace this paragraph with the
-new commit/build/revision and newly captured prior revision immediately after deployment.
+The 2026-07-15 production checkpoint is commit
+`f02112d9f5ea3dd5a223a46bcc76a96a5c314b97`, Cloud Build
+`0be21660-bfe6-47e7-8e33-ff1b5b21bd10`, revision `pmi-kc-kb-demo-00025-mhw` at 100% traffic,
+and image digest
+`sha256:23e75a9dc7ee22258794814e986dece1ba8303609f7d516ca5d58148109e4625`.
+Firestore ruleset `63b31613-59ba-495c-9ef3-455a5c593f51` is released. Revision
+`pmi-kc-kb-demo-00024-6b2` is the captured prior rollback target. The 2026-07-15 rehearsal routed 100%
+of traffic there, verified the auth boundary and signed-in Console, then restored 100% to `00025-mhw`.
+
+The final clean-install verifier passed 304 unit files/2,089 tests, Firestore 17/59, core E2E 32
+passed/18 intentional prerequisite skips, all governance gates, `cutover:dry-run`, and 76/76 build
+pages/routes. `npm audit --omit=dev` reports zero runtime findings; the full audit's three Moderate
+findings are confined to the documented development-only Firebase CLI chain.
 
 ## Production identity configuration
 
-| Item                        | State to verify                                                                  | Setup / verification                                                                                                                             | Rollback                                                                                |
-| --------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| Internal Google sign-in     | Enabled; staff domain `pmikcmetro.com`                                           | `npm run firebase:setup-auth -- --project=pmi-kc-kb-prod --authorized-domain=pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`; allowed/wrong-domain smoke | Disable provider only for an Auth incident; preserve users/audit                        |
-| Authorized domains          | Firebase default hosts plus canonical Cloud Run host                             | Same repository command; inspect returned domain list                                                                                            | Remove only an obsolete host after traffic is gone                                      |
-| Vendor Email/Password       | Enabled; no app self-registration                                                | Firebase Console → Security → Authentication → Sign-in method → Email/Password → Enable                                                          | Disable new password sign-in only after Vendor sessions are revoked                     |
-| Vendor TOTP                 | Identity Platform project config enabled with adjacent interval `1`              | Use the official REST command in `docs/v1-client-unblock-checklist-2026-07-14.md`; complete enroll/challenge smoke                               | Disable only during an Auth incident; Vendors remain denied until a safe factor returns |
-| Runtime Auth administration | Runtime SA can create/revoke session cookies and Admin-provision Vendor identity | Attached `pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com`; no key file                                                                 | Remove the role and close Vendor provisioning/session routes                            |
+| Item                        | State to verify                                                                                      | Setup / verification                                                                                                                             | Rollback                                                                                |
+| --------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| Internal Google sign-in     | Enabled; staff domain `pmikcmetro.com`                                                               | `npm run firebase:setup-auth -- --project=pmi-kc-kb-prod --authorized-domain=pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`; allowed/wrong-domain smoke | Disable provider only for an Auth incident; preserve users/audit                        |
+| Authorized domains          | Firebase default hosts plus canonical Cloud Run host                                                 | Same repository command; inspect returned domain list                                                                                            | Remove only an obsolete host after traffic is gone                                      |
+| Vendor Email/Password       | Enabled; no app self-registration                                                                    | Firebase Console → Security → Authentication → Sign-in method → Email/Password → Enable                                                          | Disable new password sign-in only after Vendor sessions are revoked                     |
+| Vendor TOTP                 | Global MFA enabled; TOTP provider enabled with adjacent interval `1`; human enroll/challenge pending | Complete the human Test Vendor password/TOTP enrollment, fresh challenge, assigned-ticket, and mailbox smoke                                     | Disable only during an Auth incident; Vendors remain denied until a safe factor returns |
+| Runtime Auth administration | Runtime SA can create/revoke session cookies and Admin-provision Vendor identity                     | Attached `pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com`; no key file                                                                 | Remove the role and close Vendor provisioning/session routes                            |
 
 The Test Vendor is Firebase password + TOTP with an app-only mailbox. Live Vendor OAuth is configured
 per real Vendor later and never uses DWD or an internal staff role.
 
 ## Gmail live handoff
 
-| Item                | Current state                                                                                               | Operating action                                                                    | Rollback                                                                     |
-| ------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Per-user DWD        | Client `104374162913177846911` has readonly, compose, labels, and modify; keyless mint remains domain-bound | Keep explicit `GMAIL_DWD_SA`; never use a personal identity                         | Revoke only affected scopes and close dependent actions                      |
-| Workflow read/reply | Workflow-linked read and exact-confirmed reply transport are proven; no generic inbox/compose product       | Preserve exact target/thread/artifact confirmation, one attempt, and bodyless audit | Close exact Registry action; delivered mail cannot be retracted              |
-| Labels              | Four governed workflow labels only                                                                          | Record identifiers/reason hash, not content                                         | Close label action and remove an applied label if appropriate                |
-| Watch/Pub/Sub       | Topic, publisher, OIDC push identity/subscription, watch, and history processing are Live-proven            | Manually renew watch before expiry and monitor health                               | Stop watch; remove subscription/topic only after dependent traffic is closed |
+| Item                | Current state                                                                                               | Operating action                                                                                          | Rollback                                                                     |
+| ------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Per-user DWD        | Client `104374162913177846911` has readonly, compose, labels, and modify; keyless mint remains domain-bound | Keep explicit `GMAIL_DWD_SA`; never use a personal identity                                               | Revoke only affected scopes and close dependent actions                      |
+| Workflow read/reply | Workflow-linked read and exact-confirmed reply transport are proven; no generic inbox/compose product       | Preserve exact target/thread/artifact confirmation, one attempt, and bodyless audit                       | Close exact Registry action; delivered mail cannot be retracted              |
+| Proposals/drafts    | Source-backed proposals are review-only; `gmail.draft.create` is production-closed                          | Keep proposal review separate from Gmail mutation; do not present an unsaved proposal as a provider draft | No provider rollback is needed because production creates no Gmail draft     |
+| Labels              | Four governed workflow labels only                                                                          | Record identifiers/reason hash, not content                                                               | Close label action and remove an applied label if appropriate                |
+| Watch/Pub/Sub       | Topic, publisher, OIDC push identity/subscription, watch, and history processing are Live-proven            | Manually renew watch before expiry and monitor health                                                     | Stop watch; remove subscription/topic only after dependent traffic is closed |
 
 Native TTL, extra composite indexes, and a cleanup scheduler are optional. Legal holds and canonical
 expiry fields remain authoritative; the launch default is bounded manual cleanup with limit `500`, a
@@ -162,8 +173,10 @@ Deploy `firestore:indexes` separately only when an actual production query requi
 declared composite indexes. Unused index creation is not a V1 step.
 
 After deploy, record the candidate revision and prior revision, then verify internal sign-in,
-allowed/wrong-domain behavior, Live/Test Console, canonical Maintenance Test completion, Test Vendor
-password/TOTP/assignment/mailbox/disable, source-backed Ask/no-source behavior, and rollback.
+allowed/wrong-domain behavior, Live/Test Console, canonical Maintenance Test completion, persistent
+Lease Test completion (`SIMULATE LEASE TEST ACTION`, eleven receipts/attempts, refresh-safe Done),
+Test Vendor password/TOTP/assignment/mailbox/disable, source-backed Ask/no-source behavior, Gmail
+hydration, and rollback.
 
 ## Key And Secret Ownership
 
@@ -177,14 +190,17 @@ password/TOTP/assignment/mailbox/disable, source-backed Ask/no-source behavior, 
 
 ## Handoff Checklist
 
-- Environment row has an owner and current revision/state.
-- Every Live secret has a location label, owner, rotation, and revocation path.
-- Firebase Email/Password, TOTP, and authorized-domain state are recorded.
-- Canonical Test Maintenance and Vendor journeys pass with zero provider calls.
-- Each provider's activation state is independent and visible in the app.
-- The current and prior Cloud Run revisions and rollback result are recorded.
-- `docs/client-checklist.md` contains only genuine client inputs, not already-settled decisions.
-- `docs/status.md` records verification and any exact dependent blocker.
+- [x] Environment row has an owner and current revision/state.
+- [x] Every configured Live secret has a location label, owner, rotation, and revocation path.
+- [x] Firebase Email/Password, global MFA/TOTP, and authorized-domain state are recorded.
+- [x] Canonical Test Lease reached refresh-safe Done with eleven receipts/attempts and zero Live calls.
+- [x] Automated Test Vendor 11/11 and Maintenance 19/19 journeys pass with zero Live calls.
+- [x] Each provider's activation state is independent and visible in the app.
+- [x] Rewalk signed-in desktop/phone routes, including Workflow Communications.
+- [ ] Complete the human Test Vendor password/TOTP/assigned-ticket/mailbox/disable journey.
+- [x] Rehearse traffic rollback to the captured prior revision and restore the final revision.
+- [x] `docs/client-checklist.md` contains only genuine client inputs, not already-settled decisions.
+- [x] `docs/status.md` records verification and any exact dependent blocker.
 
 If a value is missing, block only the dependent Live action and continue with the Test or unavailable-
 provider default. Preserve no-autonomous-send, exact confirmation, one-attempt, reconciliation, and

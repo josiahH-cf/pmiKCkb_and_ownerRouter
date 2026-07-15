@@ -6,15 +6,18 @@
 > Vendor workflow. Maintenance intake-through-close and Vendor authentication are application V1;
 > each real provider action activates independently.
 
-**Implementation status (2026-07-15): Working app/Test-ready locally.** Production code persists a
+**Implementation status (2026-07-15): Deployed working app/Test journey accepted.** Production code persists a
 canonical invented Maintenance ticket in Firestore, labels it Test, supports normal assignment,
 Vendor assignment, status/activity/note transitions, persists isolated Test action receipts, and can
 close the ticket. The canonical unit is `unit:test-maple-204` / `TEST — 204 Maple Court Unit 2`; the
 Vendor is `vendor:test-summit-plumbing` / `service@summit-plumbing.example.invalid`. The Admin
 integrated Test workspace also traverses all 19 typed S26 executors with one attempt/receipt each and
 zero Live-provider calls. S22 supplies Firebase password/TOTP and the assigned-ticket Test mailbox.
-Live Drive/Rentvine/Gmail/LeadSimple/QuickBooks actions retain separate activation states. Production
-deployment/browser acceptance remains to be refreshed; inactive providers do not make the app Pre-V1.
+Live Drive/Rentvine/Gmail/LeadSimple/QuickBooks actions retain separate activation states. The deployed
+ticket reached Closed with explicit bodyless Test receipts; the Admin workspace passed all 19 typed
+actions and clean desktop/phone loads showed the Test lane without Live Gmail controls. The human
+Vendor password/TOTP assigned-ticket walkthrough remains S22 evidence, while inactive providers do not
+make the app Pre-V1.
 
 **Goal.** A Maintenance request moves from intake through Test or Live ticket creation, assignment,
 activity/evidence, owner/Vendor communication, external-action receipts, and closure while a Vendor

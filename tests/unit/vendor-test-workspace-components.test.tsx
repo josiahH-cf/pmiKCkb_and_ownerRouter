@@ -5,8 +5,10 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { VendorAdminPanel } from "@/components/admin/VendorAdminPanel";
 import { VendorPortal } from "@/components/vendor/VendorPortal";
 import { VendorTestMailboxPanel } from "@/components/vendor/VendorTestMailboxPanel";
+import type { TestVendorAdminProjection } from "@/lib/vendor/admin-runtime";
 
 afterEach(() => {
   cleanup();
@@ -30,7 +32,138 @@ const mailbox = {
   updatedAt: "2026-07-15T12:00:00.000Z",
 };
 
+const pendingSetupVendor: TestVendorAdminProjection = {
+  vendorId: "vendor:test-summit-plumbing",
+  uid: "test-vendor-uid",
+  displayName: "Summit Plumbing Test Vendor",
+  email: "service@summit-plumbing.example.invalid",
+  status: "pending_setup",
+  dataMode: "test",
+  emailVerified: true,
+  totpVerified: false,
+  createdAt: "2026-07-15T12:00:00.000Z",
+};
+
 describe("Vendor production Test workspace UI", () => {
+  it.each(["active", "disabled"] as const)(
+    "does not offer setup-link regeneration when a Test Vendor is %s",
+    (status) => {
+      render(
+        <VendorAdminPanel
+          initialVendors={[
+            {
+              ...pendingSetupVendor,
+              status,
+              totpVerified: status === "active",
+            },
+          ]}
+        />,
+      );
+
+      expect(
+        screen.queryByRole("button", { name: "Review new one-time setup link" }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("heading", {
+          name: "Replace an expired or closed setup link",
+        }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it("regenerates a pending Test Vendor setup link only after exact confirmation", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      if (!init) return json({ vendors: [pendingSetupVendor] });
+      const body = JSON.parse(String(init.body)) as {
+        operation: string;
+        vendorId: string;
+        reason: string;
+        confirmedPreviewHash?: string;
+      };
+      if (body.operation === "preview_regenerate_setup") {
+        return json({
+          preview: {
+            previewHash: "regenerate-preview-hash",
+            vendorId: pendingSetupVendor.vendorId,
+            displayName: pendingSetupVendor.displayName,
+            dataMode: "test",
+            action: "Regenerate Test Vendor password setup",
+            target: pendingSetupVendor.email,
+            externalDelivery: false,
+            liveEvidenceEligible: false,
+            exactEffect:
+              "Issue one replacement password-setup action code to this Admin response only. No email or external provider is contacted.",
+          },
+        });
+      }
+      if (body.operation === "regenerate_setup") {
+        return json({
+          setup: {
+            setupLink: "https://auth.example.invalid/action?code=replacement-once",
+          },
+        });
+      }
+      return new Response(JSON.stringify({ error: "Unexpected operation" }), {
+        status: 400,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<VendorAdminPanel initialVendors={[pendingSetupVendor]} />);
+    expect(
+      screen.getByRole("heading", {
+        name: "Replace an expired or closed setup link",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText(/password|totp/i)).not.toBeInTheDocument();
+
+    await user.type(
+      screen.getByRole("textbox", { name: "Setup-link regeneration reason" }),
+      "Original action link was closed before password setup",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Review new one-time setup link" }),
+    );
+
+    const confirmation = await screen.findByLabelText(
+      "Exact Test Vendor setup-link regeneration confirmation",
+    );
+    expect(confirmation).toHaveTextContent("Test write · no external delivery");
+    expect(confirmation).toHaveTextContent("No email or external provider is contacted");
+    expect(
+      screen.queryByRole("link", { name: "Open one-time Test Vendor setup" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Confirm new one-time setup link" }),
+    );
+
+    const setupLink = await screen.findByRole("link", {
+      name: "Open one-time Test Vendor setup",
+    });
+    expect(setupLink).toHaveAttribute(
+      "href",
+      "https://auth.example.invalid/action?code=replacement-once",
+    );
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("shown only from the confirmed response");
+    expect(alert).toHaveTextContent("not stored, emailed, or otherwise delivered");
+    expect(alert).toHaveTextContent("Never paste, share, copy, save, log, or send");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
+      operation: "preview_regenerate_setup",
+      vendorId: pendingSetupVendor.vendorId,
+      reason: "Original action link was closed before password setup",
+    });
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
+      operation: "regenerate_setup",
+      vendorId: pendingSetupVendor.vendorId,
+      reason: "Original action link was closed before password setup",
+      confirmedPreviewHash: "regenerate-preview-hash",
+    });
+  });
+
   it("visibly labels Test tickets and never offers live Gmail connection", () => {
     render(
       <VendorPortal

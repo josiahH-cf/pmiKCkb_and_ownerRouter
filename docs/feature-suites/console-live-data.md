@@ -5,13 +5,14 @@
 > New 2026-07-14; working-app contract revised 2026-07-15. Implements R08 and the Round 2
 > full-authorized-detail direction.
 
-**Status — Working-app implementation green locally 2026-07-15.** The Console server loads distinct
+**Status — Deployed and browser-accepted 2026-07-15.** The Console server loads distinct
 Live and Test projections in production, renders persistent mode badges, uses the bounded Rentvine Live
 read provider when configured, keeps the production Test workspace provider-free, and shows named
 source unavailable states instead of crossing lanes. Scoped/provenanced projection, bounded message
-metadata, on-demand body boundary, environment tests, and live-provider mapping tests exist. Production
-deployment and browser acceptance must be refreshed for the candidate; a missing Live connection no
-longer makes the application Pre-V1.
+metadata, on-demand body boundary, environment tests, and live-provider mapping tests exist. The
+serving `00025-mhw` revision passed signed-in desktop/phone acceptance; the Admin Test workspace passed
+Vendor 11/11, Lease 11/11, and Maintenance 19/19 with zero Live calls. A missing Live connection does
+not make the application Pre-V1.
 
 **Goal.** Console is a trustworthy operational front door where authorized users can see both current
 Live operations and invented Test workflow records without confusing them. Live panels use only

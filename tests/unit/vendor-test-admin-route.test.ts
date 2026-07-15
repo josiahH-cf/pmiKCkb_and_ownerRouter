@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/vendor/admin-runtime", () => ({
   listProductionTestVendors: vi.fn(),
   provisionProductionTestVendor: vi.fn(),
+  regenerateProductionTestVendorSetupLink: vi.fn(),
   disableProductionTestVendor: vi.fn(),
 }));
 
@@ -12,6 +13,7 @@ import {
   disableProductionTestVendor,
   listProductionTestVendors,
   provisionProductionTestVendor,
+  regenerateProductionTestVendorSetupLink,
 } from "@/lib/vendor/admin-runtime";
 
 function actor(role: "Editor" | "Admin") {
@@ -107,12 +109,107 @@ describe("Test Vendor Admin route", () => {
       }),
     );
     expect(response.status).toBe(201);
+    expect(response.headers.get("cache-control")).toBe("no-store");
     expect(provisionProductionTestVendor).toHaveBeenCalledWith(
       expect.objectContaining({
         aliasKey: "summit-plumbing",
         confirmedPreviewHash: "reviewed-hash",
       }),
     );
+  });
+
+  it("previews setup-link regeneration only for the canonical Test Vendor", async () => {
+    actor("Admin");
+    const response = await POST(
+      request({
+        operation: "preview_regenerate_setup",
+        vendorId: "vendor:test-summit-plumbing",
+        reason: "Recover the interrupted setup",
+      }),
+    );
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      preview: {
+        artifact: "vendor-test-setup-link-regeneration:v1.0",
+        vendorId: "vendor:test-summit-plumbing",
+        email: "service@summit-plumbing.example.invalid",
+        action: "Regenerate Test Vendor setup link",
+        dataMode: "test",
+        externalDelivery: false,
+        liveEvidenceEligible: false,
+      },
+    });
+    expect(regenerateProductionTestVendorSetupLink).not.toHaveBeenCalled();
+
+    const arbitraryResponse = await POST(
+      request({
+        operation: "preview_regenerate_setup",
+        vendorId: "vendor:arbitrary",
+        reason: "Probe an arbitrary account",
+      }),
+    );
+    expect(arbitraryResponse.status).toBe(400);
+    await expect(arbitraryResponse.json()).resolves.toEqual({
+      error: "Only an approved Test Vendor can use this action.",
+    });
+    expect(regenerateProductionTestVendorSetupLink).not.toHaveBeenCalled();
+  });
+
+  it("returns a regenerated setup link only after exact Admin confirmation", async () => {
+    actor("Admin");
+    vi.mocked(regenerateProductionTestVendorSetupLink).mockResolvedValue({
+      vendor: {
+        vendorId: "vendor:test-summit-plumbing",
+        uid: "uid-test-summit",
+        displayName: "Summit Plumbing Test Vendor",
+        email: "service@summit-plumbing.example.invalid",
+        status: "pending_setup",
+        dataMode: "test",
+        emailVerified: true,
+        totpVerified: false,
+        createdAt: "2026-07-15T00:00:00.000Z",
+      },
+      setup: {
+        artifact: "vendor-test-setup-link-regeneration:v1.0",
+        setupLink: "https://auth.example.invalid/action?code=recovered-once",
+        oneTime: true,
+        regenerated: true,
+        deliveredExternally: false,
+      },
+      callout: {
+        dataMode: "test",
+        externalEffect: false,
+        liveEvidenceEligible: false,
+      },
+    });
+    const response = await POST(
+      request({
+        operation: "regenerate_setup",
+        vendorId: "vendor:test-summit-plumbing",
+        reason: "Recover the interrupted setup",
+        confirmedPreviewHash: "reviewed-recovery-hash",
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    await expect(response.json()).resolves.toMatchObject({
+      setup: {
+        setupLink: "https://auth.example.invalid/action?code=recovered-once",
+        regenerated: true,
+        deliveredExternally: false,
+      },
+      callout: {
+        dataMode: "test",
+        externalEffect: false,
+        liveEvidenceEligible: false,
+      },
+    });
+    expect(regenerateProductionTestVendorSetupLink).toHaveBeenCalledWith({
+      actor: expect.objectContaining({ role: "Admin" }),
+      vendorId: "vendor:test-summit-plumbing",
+      reason: "Recover the interrupted setup",
+      confirmedPreviewHash: "reviewed-recovery-hash",
+    });
   });
 
   it("lists and exact-disables only Test Vendor records", async () => {

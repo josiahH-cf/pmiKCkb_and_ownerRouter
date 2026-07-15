@@ -97,3 +97,12 @@ work. Native TTL or scheduling can be enabled later after a normal dry run and m
 
 Record commit, revision, timestamp, mode, action key, status, receipt hash, and rollback result only.
 Do not store screenshots or logs containing customer records, Gmail bodies, credentials, or tokens.
+
+## 2026-07-15 rehearsal result
+
+Traffic was moved 100% from serving revision `pmi-kc-kb-demo-00025-mhw` to captured prior revision
+`pmi-kc-kb-demo-00024-6b2`. The unauthenticated `/ask` request continued to redirect to `/sign-in`, and
+the existing signed-in session loaded Console successfully. Traffic was immediately restored 100% to
+`00025-mhw`; Workflow Communications loaded signed-in with zero console errors, Cloud Run reported the
+expected traffic target, and the checked candidate window contained no ERROR-level logs. The service,
+revision history, Firestore data, rules, and provider state were preserved.

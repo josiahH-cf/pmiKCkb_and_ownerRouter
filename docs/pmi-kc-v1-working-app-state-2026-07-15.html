@@ -934,11 +934,6 @@
     </style>
   </head>
   <body>
-    <!--
-      FINAL_RELEASE_EVIDENCE:
-      Replace every data-release-placeholder span after the final verifier and Cloud Run deploy.
-      Historical verifier numbers below are intentionally retained as historical explanations.
-    -->
     <main class="report">
       <header class="hero" id="top">
         <p class="eyebrow">PMI KC Operations Console · Working Application V1</p>
@@ -955,19 +950,9 @@
           <span class="hero-chip">Report date · July 15, 2026</span>
           <span class="hero-chip">Application state · Working V1</span>
           <span class="hero-chip">Data model · Live + isolated Test</span>
+          <span class="hero-chip"> Release commit · <code>f02112d</code> </span>
           <span class="hero-chip">
-            Release commit ·
-            <span class="evidence-pending" data-release-placeholder="final-git-commit"
-              >final commit pending</span
-            >
-          </span>
-          <span class="hero-chip">
-            Cloud Run revision ·
-            <span
-              class="evidence-pending"
-              data-release-placeholder="final-cloud-run-revision"
-              >final revision pending</span
-            >
+            Cloud Run revision · <code>pmi-kc-kb-demo-00025-mhw</code>
           </span>
         </div>
       </header>
@@ -978,6 +963,7 @@
         <a href="#features">Feature sets</a>
         <a href="#tabs">Tabs</a>
         <a href="#roles">Roles</a>
+        <a href="#lease">Lease</a>
         <a href="#maintenance">Maintenance</a>
         <a href="#vendor">Vendor</a>
         <a href="#activation">Activation</a>
@@ -1013,13 +999,7 @@
             <strong>6</strong><span>explicit persistent Maintenance Test actions</span>
           </div>
           <div class="metric amber">
-            <strong
-              ><span
-                class="evidence-pending"
-                data-release-placeholder="final-unit-test-count"
-                >final count pending</span
-              ></strong
-            ><span>unit verification on release commit</span>
+            <strong>2,089</strong><span>passing unit tests across 304 files</span>
           </div>
         </div>
         <div class="callout good">
@@ -1222,8 +1202,8 @@
               <tr>
                 <td data-label="Suite">S19 · Per-user Gmail</td>
                 <td data-label="What users get">
-                  Workflow-linked reads, governed labels/drafts, and exact-confirmed
-                  replies from the signed-in user's mailbox.
+                  Workflow-linked reads, governed labels, source-backed reply proposals,
+                  and exact-confirmed replies from the signed-in user's mailbox.
                 </td>
                 <td data-label="Application state">
                   <span class="status working">Working V1</span>
@@ -1303,8 +1283,8 @@
               <tr>
                 <td data-label="Suite">S25 · Lease execution</td>
                 <td data-label="What users get">
-                  Eleven typed action paths and complete isolated Test evidence in the
-                  production app.
+                  A persistent production Test journey from Created through Done, with
+                  eleven typed actions and eleven durable non-Live receipts.
                 </td>
                 <td data-label="Application state">
                   <span class="status working">Working V1</span>
@@ -1318,7 +1298,7 @@
                 <td data-label="Suite">S26 · Maintenance execution</td>
                 <td data-label="What users get">
                   Persistent tickets, assignment/status/activity, six visible Test
-                  actions, and nineteen typed paths.
+                  actions, a Done/reopen journey, and nineteen typed paths.
                 </td>
                 <td data-label="Application state">
                   <span class="status working">Working V1</span>
@@ -1464,8 +1444,8 @@
               </dd>
               <dt>Expect</dt>
               <dd>
-                Governed labels, drafts, summaries, exact reply review/confirmation, and
-                Admin-only synthetic fallback tools.
+                Governed labels, summaries, source-backed reply proposals, exact reply
+                review/confirmation, and Admin-only synthetic fallback tools.
               </dd>
               <dt>Boundary</dt>
               <dd>
@@ -1570,8 +1550,9 @@
               </dd>
               <dt>Expect</dt>
               <dd>
-                Live and simulation lanes, run history, property context, reconciliation,
-                proposals, and 11 typed action paths.
+                Separate Live and persistent Test lanes, run history, property context,
+                reconciliation, proposals, and 11 typed action paths. A Test run cannot
+                reach Done until all 11 receipts exist.
               </dd>
               <dt>Boundary</dt>
               <dd>
@@ -1747,6 +1728,100 @@
         </div>
       </section>
 
+      <section class="report-section" id="lease">
+        <h2>Lease Renewal V1 walkthrough</h2>
+        <p class="lede">
+          The Renewals desk now has a persistent Test journey in the normal production
+          application—not a temporary Admin-only harness. It uses reserved invented
+          identities, writes durable Firestore state, exercises every typed Lease action,
+          and can reach Done without contacting Gmail, RentVine, Sheets, Dotloop, SMS, or
+          Boom.
+        </p>
+        <div class="grid-2">
+          <div>
+            <div class="steps">
+              <article class="step">
+                <h3>Create the canonical Test run</h3>
+                <p>
+                  Start from <code>/lease-renewal/runs</code> with
+                  <code>TEST — 204 Maple Court Unit 2</code>,
+                  <code>Taylor Test Resident</code>, and
+                  <code>taylor.resident@example.invalid</code>. The record is visibly Test
+                  and persists after reload.
+                </p>
+              </article>
+              <article class="step">
+                <h3>Review and approve the work</h3>
+                <p>
+                  Move the run through
+                  <strong>Created → Reviewed → Approved</strong> using the same
+                  application status boundary staff will use for Live work.
+                </p>
+              </article>
+              <article class="step">
+                <h3>Execute eleven exact Test actions</h3>
+                <p>
+                  Each action shows its target, risk, effect, prerequisites, and a fresh
+                  human confirmation. Test execution constructs no external provider
+                  client.
+                </p>
+              </article>
+              <article class="step">
+                <h3>Receive durable, idempotent evidence</h3>
+                <p>
+                  Every action gets one deterministic attempt and one bodyless receipt.
+                  Repeating the action returns the existing evidence instead of creating a
+                  second attempt.
+                </p>
+              </article>
+              <article class="step">
+                <h3>Reach Done only when complete</h3>
+                <p>
+                  The server refuses Done until all eleven receipts exist. The finished
+                  run reloads with its status and evidence intact and remains available
+                  for reconciliation.
+                </p>
+              </article>
+            </div>
+          </div>
+          <div>
+            <article class="card">
+              <h3>Eleven typed action paths</h3>
+              <ol>
+                <li>Renewal email proposal</li>
+                <li>Exact-confirmed renewal send</li>
+                <li>Linked-thread reply</li>
+                <li>Governed Gmail label</li>
+                <li>RentVine portal message</li>
+                <li>Renewal SMS</li>
+                <li>Renewal Sheet writeback</li>
+                <li>Dotloop loop creation</li>
+                <li>Dotloop document upload</li>
+                <li>RentVine renewal writeback</li>
+                <li>Boom resident enrollment</li>
+              </ol>
+              <p class="fine-print">
+                This list is product coverage, not a claim that every corresponding Live
+                provider account is activated.
+              </p>
+            </article>
+            <div class="callout good">
+              <strong>Expected Test receipt</strong>
+              <code>data_mode:test</code>, <code>outcome:simulated_success</code>,
+              <code>provider_contacted:false</code>, and
+              <code>live_proof_eligible:false</code>. The production app and Firestore are
+              real; the external effect is deliberately simulated.
+            </div>
+            <div class="callout warn">
+              <strong>Live-write boundary</strong>
+              A Live action uses the same reviewed workflow, but its own Registry key must
+              have an authoritative provider contract, mapping, least-privilege identity,
+              receipt/readback, and correction path before the control becomes available.
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="report-section" id="maintenance">
         <h2>Maintenance V1 walkthrough</h2>
         <p class="lede">
@@ -1848,7 +1923,10 @@
             <h3>Admin confirms once</h3>
             <p>
               Firebase creates the Test user, claims bind <code>vendor_id</code> and
-              <code>data_mode:test</code>, and the setup link is returned once. It is
+              <code>data_mode:test</code>, and the setup link is returned only in the
+              confirmed Admin response. If that response closes before use, Admin can
+              exact-preview a replacement only for the same reconciled
+              <code>pending_setup</code> Test identity. Links are <code>no-store</code>,
               never stored, emailed, or written to audit.
             </p>
           </article>
@@ -1877,9 +1955,9 @@
           <article class="step">
             <h3>Vendor operates the app-only Test mailbox</h3>
             <p>
-              Read the ticket thread, draft, apply approved Waiting/Complete labels,
-              review the exact reply, confirm once, and receive an idempotent non-external
-              receipt.
+              Read the ticket thread, form a reply proposal, apply approved
+              Waiting/Complete labels, review the exact reply, confirm once, and receive
+              an idempotent non-external receipt.
             </p>
           </article>
           <article class="step">
@@ -1892,11 +1970,12 @@
         </div>
         <div class="grid-2" style="margin-top: 14px">
           <article class="card">
-            <h3>Test Vendor needs</h3>
+            <h3>Test Vendor production configuration</h3>
             <p>
-              Firebase Email/Password enabled, Identity Platform TOTP enabled, and the
-              deployed host authorized. No Gmail OAuth, DWD, routable mailbox, or token
-              vault is required.
+              Firebase Email/Password is enabled, the project-wide MFA state and TOTP
+              provider are both enabled, and the deployed host is authorized. No Gmail
+              OAuth, DWD, routable mailbox, or token vault is required for the Test
+              principal.
             </p>
           </article>
           <article class="card">
@@ -1907,6 +1986,15 @@
               Secret Manager refresh-token vault.
             </p>
           </article>
+        </div>
+        <div class="callout warn" data-evidence-pending="vendor-human-acceptance">
+          <strong>Human acceptance still to record</strong>
+          <span class="evidence-pending">Pending</span> — the canonical Test Vendor must
+          finish its one-time password setup, enroll TOTP, sign in again with the fresh
+          second factor, and confirm assigned-ticket-only access in the production
+          browser. This step necessarily stays with the human holding the password and
+          authenticator; no password, setup key, or TOTP code belongs in this report or
+          repository.
         </div>
       </section>
 
@@ -2022,8 +2110,8 @@
                   Keep already proven linked actions scoped; no new generic initiation.
                 </td>
                 <td data-label="Activation">
-                  Self-safe exact thread/payload proof, readback, and correction reply or
-                  draft deletion.
+                  Self-safe exact thread/payload proof, readback, ambiguity
+                  reconciliation, and a reviewed corrective linked reply when needed.
                 </td>
               </tr>
               <tr>
@@ -2159,9 +2247,10 @@
       <section class="report-section" id="verification">
         <h2>Release evidence</h2>
         <p class="lede">
-          These placeholders are intentionally visible until the final merged commit
-          completes the verifier and production deployment. They prevent historical counts
-          from being mislabeled as evidence for a new revision.
+          The figures below belong to release commit
+          <code>f02112d9f5ea3dd5a223a46bcc76a96a5c314b97</code> and its deployed build—not
+          the smaller historical snapshot explained later. Component gates are reported
+          separately from production browser evidence and Live provider proof.
         </p>
         <div class="table-wrap">
           <table>
@@ -2175,13 +2264,27 @@
             </thead>
             <tbody>
               <tr>
+                <td data-label="Gate">Clean install / dependency audit</td>
+                <td data-label="Result">
+                  <span class="status working">Passed</span> <code>npm ci</code> installed
+                  <strong>1,130 packages</strong> and audited 1,131. Full audit:
+                  <strong>3 Moderate / 0 High / 0 Critical</strong>; runtime-only audit:
+                  <strong>0 findings</strong>.
+                </td>
+                <td data-label="Proves">
+                  The lockfile reproduces and no known audited issue is present in the
+                  production dependency tree.
+                </td>
+                <td data-label="Limit">
+                  The three development-tool findings retain their August 15 recheck.
+                </td>
+              </tr>
+              <tr>
                 <td data-label="Gate">Format / typecheck / lint</td>
                 <td data-label="Result">
-                  <span
-                    class="evidence-pending"
-                    data-release-placeholder="final-static-gates"
-                    >final run pending</span
-                  >
+                  <span class="status working">Passed</span> Format and strict typecheck
+                  green; lint has <strong>0 errors</strong> and the same
+                  <strong>8 known warnings</strong>.
                 </td>
                 <td data-label="Proves">
                   Consistent source formatting, strict TypeScript compilation, and no lint
@@ -2194,11 +2297,8 @@
               <tr>
                 <td data-label="Gate">Unit suite</td>
                 <td data-label="Result">
-                  <span
-                    class="evidence-pending"
-                    data-release-placeholder="final-unit-results"
-                    >final file/test counts pending</span
-                  >
+                  <span class="status working">Passed</span>
+                  <strong>304 files / 2,089 tests</strong>.
                 </td>
                 <td data-label="Proves">
                   Application logic, boundaries, schemas, permissions, Test isolation, UI
@@ -2211,11 +2311,8 @@
               <tr>
                 <td data-label="Gate">Firestore suite</td>
                 <td data-label="Result">
-                  <span
-                    class="evidence-pending"
-                    data-release-placeholder="final-firestore-results"
-                    >final file/test counts pending</span
-                  >
+                  <span class="status working">Passed</span>
+                  <strong>17 files / 59 tests</strong>.
                 </td>
                 <td data-label="Proves">Rules and emulator data-access behavior.</td>
                 <td data-label="Limit">
@@ -2226,11 +2323,8 @@
               <tr>
                 <td data-label="Gate">Core E2E</td>
                 <td data-label="Result">
-                  <span
-                    class="evidence-pending"
-                    data-release-placeholder="final-e2e-results"
-                    >final passed/skipped counts pending</span
-                  >
+                  <span class="status working">Passed</span>
+                  <strong>32 passed / 18 intentionally skipped</strong>.
                 </td>
                 <td data-label="Proves">
                   Integrated local user flows and explicit conditional scenarios.
@@ -2242,11 +2336,8 @@
               <tr>
                 <td data-label="Gate">Production build</td>
                 <td data-label="Result">
-                  <span
-                    class="evidence-pending"
-                    data-release-placeholder="final-build-results"
-                    >final routes/build result pending</span
-                  >
+                  <span class="status working">Passed</span>
+                  <strong>76 routes</strong> compiled.
                 </td>
                 <td data-label="Proves">The production route graph compiles.</td>
                 <td data-label="Limit">
@@ -2256,11 +2347,9 @@
               <tr>
                 <td data-label="Gate">Governance / falsification</td>
                 <td data-label="Result">
-                  <span
-                    class="evidence-pending"
-                    data-release-placeholder="final-governance-results"
-                    >final run pending</span
-                  >
+                  <span class="status working">Green</span> Spec traceability covers
+                  <strong>124 acceptance criteria across 14 specs</strong>; context
+                  freshness and working-app boundary checks passed.
                 </td>
                 <td data-label="Proves">
                   Docs/specs, security fences, redaction, context, traceability, and
@@ -2271,11 +2360,10 @@
               <tr>
                 <td data-label="Gate">Cloud Run / browser</td>
                 <td data-label="Result">
-                  <span
-                    class="evidence-pending"
-                    data-release-placeholder="final-production-results"
-                    >final revision and walkthrough pending</span
-                  >
+                  <span class="status working">Deployed</span>
+                  <code>pmi-kc-kb-demo-00025-mhw</code> serves 100% of traffic. Staff
+                  routes redirect unauthenticated users to sign-in; the protected Lease
+                  Test API returns 401. Human Vendor acceptance is itemized separately.
                 </td>
                 <td data-label="Proves">
                   The merged release actually serves, authenticates, and supports
@@ -2293,6 +2381,13 @@
           “Green locally,” “deployed,” “Test-complete,” and “Live-proven” are four
           different facts. This report keeps them separate so the app can be honestly V1
           without overstating any provider.
+        </div>
+        <div class="callout good">
+          <strong>The all-in-one verifier completed</strong>
+          Every row above is the completed wrapper result. Reliability was improved by
+          capping Vitest at eight workers and replacing a costly 393,233-byte deep
+          structural assertion with exact byte-length and byte comparison. No test timeout
+          was widened or relaxed.
         </div>
       </section>
 
@@ -2327,13 +2422,14 @@
           <dt>286 files / 1,984 tests</dt>
           <dd>
             That historical commit passed 1,984 unit assertions distributed across 286
-            test files. Those numbers are not reused as the final count for a later
-            commit.
+            test files. The release in this report is larger and is reported separately as
+            304 files / 2,089 tests.
           </dd>
           <dt>Firestore 16/56</dt>
           <dd>
             This meant 16 Firestore test files and 56 passing checks. It was not “16
-            passed out of 56,” nor a 29% score.
+            passed out of 56,” nor a 29% score. The current release result is 17 files /
+            59 tests.
           </dd>
           <dt>32 passed / 18 skipped</dt>
           <dd>
@@ -2363,7 +2459,9 @@
           <dd>
             All three traced to one development-only Firebase CLI dependency chain. No
             High or Critical finding appeared, and the affected packages were absent from
-            the production runtime tree.
+            the production runtime tree. “Held for named disposition” means the owner,
+            bounded rationale, trigger conditions, and August 15 recheck are documented;
+            it does not mean the finding was ignored.
           </dd>
         </dl>
 
@@ -2420,6 +2518,11 @@
               advisories. Format, lint, and typecheck had passed. The slower unit,
               production build, and governance/falsification phases were still running at
               the time of the sentence; their later output was needed before completion.
+              The wrapper runs these groups sequentially, so “now in the full
+              unit/build/governance phase” described its position in the pipeline, not a
+              new defect or blocker. The wrapper later completed cleanly with the final
+              304-file/2,089-test, 17-file/59-Firestore-test, 32-pass/18-skip core E2E,
+              76-route, and governance results shown above.
             </p>
           </article>
           <article class="card">
@@ -2442,21 +2545,23 @@
         <h2>What remains—and what does not</h2>
         <p class="lede">
           Product choices R01–R09 are settled. The application does not need another broad
-          approval cycle or another rewrite of what V1 means. Remaining work is deployment
-          evidence and provider-specific activation when the business wants a particular
-          Live effect.
+          approval cycle or another rewrite of what V1 means. The release is deployed; one
+          secret-bearing acceptance record remains open, while provider-specific
+          activation proceeds only when the business wants a particular Live effect.
         </p>
         <div class="grid-3">
           <article class="card">
-            <span class="status pending">Release execution</span>
-            <h3 style="margin-top: 11px">Complete this release run</h3>
+            <span class="status pending">Evidence closeout</span>
+            <h3 style="margin-top: 11px">One human check remains</h3>
             <ul>
-              <li>Final verifier on the merged commit.</li>
-              <li>Confirm Firebase Email/Password, TOTP, and authorized host.</li>
               <li>
-                Commit, merge, push, deploy, smoke, signed-in desktop/phone walkthrough.
+                Have the canonical Test Vendor complete its private password/TOTP setup
+                and assigned-ticket production walkthrough.
               </li>
-              <li>Capture serving and rollback revisions.</li>
+              <li>
+                Rollback is complete: traffic moved to <code>00024-6b2</code>, the auth
+                boundary stayed healthy, and <code>00025-mhw</code> was restored to 100%.
+              </li>
             </ul>
           </article>
           <article class="card">
@@ -2545,10 +2650,12 @@
       <section class="report-section" id="deployment">
         <h2>Final deployment record</h2>
         <p class="lede">
-          Populate only from the final merged commit and the Cloud Run service after
-          production verification. The previous serving baseline before this release was
-          <code>pmi-kc-kb-demo-00021-bj8</code> with rollback predecessor
-          <code>pmi-kc-kb-demo-00020-24d</code>.
+          Release commit <code>f02112d</code> is built and serving. The immediately prior
+          serving revision is <code>pmi-kc-kb-demo-00024-6b2</code>; the bounded rehearsal
+          moved traffic there, verified health, and restored <code>00025-mhw</code>. The
+          Cloud Run resource retains its historical <code>demo</code> name, but it runs in
+          <code>pmi-kc-kb-prod</code> with the production runtime identity; it is not a
+          fixture-only deployment.
         </p>
         <div class="table-wrap">
           <table>
@@ -2564,69 +2671,71 @@
               <tr>
                 <td data-label="Field">Merged commit</td>
                 <td data-label="Value">
-                  <span
-                    class="evidence-pending"
-                    data-release-placeholder="final-git-commit-table"
-                    >pending final merge</span
-                  >
+                  <code>f02112d9f5ea3dd5a223a46bcc76a96a5c314b97</code>
                 </td>
               </tr>
               <tr>
                 <td data-label="Field">Cloud Build</td>
                 <td data-label="Value">
-                  <span
-                    class="evidence-pending"
-                    data-release-placeholder="final-cloud-build-id"
-                    >pending deploy</span
+                  <code>0be21660-bfe6-47e7-8e33-ff1b5b21bd10</code>
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Field">Container image</td>
+                <td data-label="Value">
+                  <code
+                    >sha256:23e75a9dc7ee22258794814e986dece1ba8303609f7d516ca5d58148109e4625</code
                   >
                 </td>
               </tr>
               <tr>
                 <td data-label="Field">Serving revision</td>
                 <td data-label="Value">
-                  <span
-                    class="evidence-pending"
-                    data-release-placeholder="final-cloud-run-revision-table"
-                    >pending deploy</span
-                  >
+                  <code>pmi-kc-kb-demo-00025-mhw</code>
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Field">Runtime identity</td>
+                <td data-label="Value">
+                  <code>pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com</code>
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Field">Firestore ruleset</td>
+                <td data-label="Value">
+                  <code>63b31613-59ba-495c-9ef3-455a5c593f51</code>; compiled with zero
+                  issues and released to <code>cloud.firestore</code>.
                 </td>
               </tr>
               <tr>
                 <td data-label="Field">Rollback revision</td>
                 <td data-label="Value">
-                  <span
-                    class="evidence-pending"
-                    data-release-placeholder="final-rollback-revision"
-                    >capture immediately before traffic shift</span
-                  >
+                  <code>pmi-kc-kb-demo-00024-6b2</code> · rehearsal passed; final revision
+                  restored immediately
                 </td>
               </tr>
               <tr>
                 <td data-label="Field">Traffic</td>
                 <td data-label="Value">
-                  <span class="evidence-pending" data-release-placeholder="final-traffic"
-                    >pending 100% serving check</span
-                  >
+                  <strong>100%</strong> to <code>pmi-kc-kb-demo-00025-mhw</code>; latest
+                  ready revision matches.
                 </td>
               </tr>
               <tr>
                 <td data-label="Field">Public/auth smoke</td>
                 <td data-label="Value">
-                  <span
-                    class="evidence-pending"
-                    data-release-placeholder="final-auth-smoke"
-                    >pending final endpoint checks</span
-                  >
+                  Staff routes return 307 to <code>/sign-in</code>, Vendor routes return
+                  307 to <code>/vendor/sign-in</code>, and the protected Lease Test API
+                  returns 401 when no session is present.
                 </td>
               </tr>
               <tr>
                 <td data-label="Field">Signed-in walkthrough</td>
                 <td data-label="Value">
-                  <span
-                    class="evidence-pending"
-                    data-release-placeholder="final-browser-walkthrough"
-                    >pending desktop/phone evidence</span
-                  >
+                  Production Admin evidence covers the isolated Test workspace,
+                  Maintenance persistence/actions, and zero Live calls. The final
+                  password/TOTP/assigned-ticket Vendor step remains
+                  <span class="evidence-pending">pending human acceptance</span>.
                 </td>
               </tr>
               <tr>
@@ -2643,9 +2752,9 @@
       <footer class="report-footer">
         <p>
           <strong>Evidence basis:</strong> repository implementation and machine evidence
-          on July 15, 2026. Final-release placeholders must be replaced from the merged
-          commit/deployment, not inferred. No customer records, Gmail bodies, credentials,
-          or secret values are included.
+          on July 15, 2026. The remaining human Vendor acceptance is labeled rather than
+          inferred. No customer records, Gmail bodies, credentials, or secret values are
+          included.
         </p>
         <p>
           Companion records: <a href="plan.md">working-app plan</a> ·

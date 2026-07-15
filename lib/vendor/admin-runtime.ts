@@ -11,6 +11,7 @@ import {
 } from "@/lib/vendor/model";
 import {
   provisionTestVendor,
+  regenerateTestVendorSetupLink,
   testVendorDisablePreview,
   type TestVendorAliasKey,
 } from "@/lib/vendor/test-identity";
@@ -85,6 +86,41 @@ export async function provisionProductionTestVendor(input: {
     }
     throw error;
   }
+}
+
+export async function regenerateProductionTestVendorSetupLink(input: {
+  actor: AuthenticatedUser;
+  vendorId: string;
+  reason: string;
+  confirmedPreviewHash: string;
+}) {
+  const auth = getAuth(getFirebaseAdminApp());
+  const store = new FirestoreVendorStore();
+  const result = await regenerateTestVendorSetupLink(input, {
+    auth: {
+      findUserByEmail: async (email) => {
+        try {
+          const user = await auth.getUserByEmail(email);
+          return {
+            uid: user.uid,
+            email: user.email ?? null,
+            emailVerified: user.emailVerified,
+            disabled: user.disabled,
+          };
+        } catch (error) {
+          if (firebaseCode(error) === "auth/user-not-found") return null;
+          throw error;
+        }
+      },
+      generatePasswordResetLink: (email) => auth.generatePasswordResetLink(email),
+    },
+    store,
+  });
+  return {
+    vendor: projection(result.vendor),
+    setup: result.setup,
+    callout: result.callout,
+  };
 }
 
 export async function disableProductionTestVendor(input: {

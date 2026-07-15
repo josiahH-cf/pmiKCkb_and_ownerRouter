@@ -1,6 +1,6 @@
 # V1 tab and browser acceptance plan
 
-Date: 2026-07-15. Status: **working-app acceptance plan**.
+Date: 2026-07-15. Status: **core internal acceptance complete; human Test Vendor walkthrough pending**.
 
 V1 acceptance proves that the deployed application can be used end to end. It does not require every
 future external provider to be Live. Provider activation is inventoried independently, and an
@@ -61,3 +61,17 @@ Application acceptance is complete when the deployed core surfaces and productio
 and rollback is rehearsed. Each Live provider advances separately from unavailable/test-ready to
 live-configured/live-proven/enabled after its own bounded proof; inactive future providers do not reopen
 V1 application readiness.
+
+## 2026-07-15 execution record
+
+- All eight internal surfaces loaded signed-in on the serving `00025-mhw` revision.
+- Clean direct 390x844 loads showed the expected headings, no horizontal overflow, no visible alerts,
+  and no reproducible console error. A single hydration warning seen during an artificial rapid-route
+  loop did not reproduce on clean direct loads and also appeared once on a different route.
+- The normal Lease Test journey reached refresh-safe Done with 11 receipts/attempts and zero provider
+  calls; the persistent Maintenance Test ticket reached Closed; the Admin workspace passed Vendor
+  11/11, Lease 11/11, and Maintenance 19/19 with zero Live calls.
+- Traffic rollback to `00024-6b2` and restoration to `00025-mhw` kept the unauthenticated and signed-in
+  boundaries healthy.
+- The canonical Test Vendor's private password/TOTP/assigned-ticket/mailbox/disable walkthrough is the
+  only remaining human browser scenario.

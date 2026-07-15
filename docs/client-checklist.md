@@ -4,21 +4,23 @@ Updated: 2026-07-15.
 
 This is the client-facing list of inputs that improve content or activate a specific Live provider.
 It is **not** a list of conditions that must all be answered before the production application can be
-V1. The stable app includes side-by-side Live and isolated Test workflows; Test Maintenance and Test
-Vendor journeys write to Firestore, reach Done, and contact no external providers.
+V1. The stable app includes side-by-side Live and isolated Test workflows; Test Lease, Maintenance,
+and Vendor journeys write app-owned state to Firestore, reach Done/Closed, and contact no external
+providers.
 
 Use `docs/v1-client-unblock-checklist-2026-07-14.md` for the exact process and recommended default,
 and `docs/environment-handoff.md` for non-secret project/owner/location records. Do not place
 credentials, customer records, Gmail bodies, setup links, passwords, TOTP secrets, OAuth codes, or
 tokens in this repository.
 
-## What we can finish without another client decision
+## Completed without another client decision
 
 - Deploy and verify the production Live/Test application.
 - Firebase Email/Password, TOTP, and the authorized production domain were verified/enabled on
   2026-07-15; run the deployed Vendor acceptance after release.
 - Seed and complete the canonical Test Maintenance workflow:
   `unit:test-maple-204` (`TEST — 204 Maple Court Unit 2`).
+- Create and complete a persistent Test Lease renewal with all 11 explicit action receipts and Done.
 - Provision and disable the canonical Test Vendor:
   `vendor:test-summit-plumbing` (`Summit Plumbing Test Vendor`,
   `service@summit-plumbing.example.invalid`).
@@ -79,8 +81,10 @@ reconciled before any second attempt.
 ## Vendor activation
 
 The Test Vendor is part of V1 and needs only project-level Email/Password and TOTP. Admin provisioning
-returns a password-setup link once, the Test user enrolls TOTP, and assigned-ticket/app-only mailbox
-behavior is proved without invitation delivery or OAuth.
+returns the password-setup link only in its confirmed response. If that response is closed before use,
+Admin can exact-preview one replacement for the same reconciled `pending_setup` Test identity; neither
+link is stored, cached, emailed, or externally delivered. The Test user then enrolls TOTP, and
+assigned-ticket/app-only mailbox behavior is proved without invitation delivery or OAuth.
 
 A **Live** Vendor additionally requires:
 
@@ -106,7 +110,7 @@ These are normal post-launch content/operations tasks:
 
 Missing material remains visibly missing; the application must not invent property-management policy.
 
-## Genuine blocker checklist
+## Conditional activation checklist
 
 - [ ] If managed Google auth is stale, owner completes `npm run auth:session` interactively.
 - [x] Email/Password is enabled with password required; TOTP is enabled with adjacent interval `1`.
@@ -115,7 +119,8 @@ Missing material remains visibly missing; the application must not invent proper
       and request the exact missing input.
 - [ ] If a real Vendor Live mailbox is selected, obtain that Vendor's consent and vault configuration.
 
-Everything else should continue with the recommended Test or unavailable-provider default. No named
+These are conditional operations, not current application blockers. Everything else continues with
+the recommended Test or unavailable-provider default. No named
 acceptance signature, TTL/index/scheduler activation, or all-provider activation requirement blocks
 the working production V1 application.
 

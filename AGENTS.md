@@ -281,7 +281,8 @@ answer ourselves.
   (`F-GMAIL-PER-USER`, evolved by S19) acts AS each signed-in user's own mailbox via DWD. The
   production transport uses the four approved Gmail scopes and separately governed actions;
   the rollout-only pilot allowlist is removed. The application exposes only workflow-linked reads,
-  governed labels, approved drafts, and exact-confirmed replies. Generic new-message sending is disabled.
+  governed labels, review-only source-backed proposals, and exact-confirmed replies. The weaker
+  `gmail.draft.create` mutation and generic new-message sending are disabled in production.
   Every permitted reply remains exact-message, human-confirmed, action-gated, and audited. Firebase
   authentication and Gmail DWD authorization are separate systems.
 - Full strategy, per-surface mechanisms, and migration plan:
