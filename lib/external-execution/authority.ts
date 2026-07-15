@@ -1,5 +1,9 @@
 import { decideExecutionAuthority } from "@/lib/execution/authority";
-import type { ExecutionClassification } from "@/lib/execution/types";
+import {
+  classifyExecutionRisk,
+  EXECUTION_ACTION_POLICIES,
+  type ExecutionActionKey,
+} from "@/lib/execution/risk-policy";
 import type {
   ExternalActionDefinition,
   ExternalActionInput,
@@ -39,11 +43,52 @@ export function validateExternalAuthority(
   definition: ExternalActionDefinition,
   input: ExternalActionInput,
   previewHash: string,
+  options: { readOnlyReconciliation?: boolean } = {},
 ) {
   const authority = input.authority;
   if (!authority) return "Server-verified execution authority is required.";
   if (!authority.roleScopeAuthorized)
     return "Actor role or workflow scope is not authorized.";
+
+  const policy = EXECUTION_ACTION_POLICIES[definition.key as ExecutionActionKey];
+  if (!policy || policy.defaultRisk !== definition.risk) {
+    return "Action risk does not match the immutable S20 policy.";
+  }
+  const executionClassification = classifyExecutionRisk({
+    actionKey: definition.key,
+    technical: {
+      ...authority.technical,
+      // A Registry kill switch prevents new writes but must not strand a consumed,
+      // ambiguous attempt. Reconciliation is a separately governed provider read.
+      ...(options.readOnlyReconciliation ? { productionAllowed: true } : {}),
+      roleScopeAuthorized: authority.roleScopeAuthorized,
+    },
+    ...(authority.communication
+      ? {
+          communication: {
+            ...authority.communication,
+            exactConfirmed: authority.exactConfirmationHash === previewHash,
+          },
+        }
+      : {}),
+    ...(policy.kind === "assigned_ticket_photo"
+      ? {
+          ticketPhoto: {
+            appendOnly: input.values.append_only === true,
+            assignedTicketFolder:
+              input.values.assigned_ticket === true && Boolean(input.mappingRef),
+            malwareCheckPassed: input.values.malware_scan_passed === true,
+            sensitivityCheckPassed: input.values.sensitivity_scan_passed === true,
+            typeAndSizeAllowed:
+              typeof input.values.mime_type === "string" &&
+              typeof input.values.size_bytes === "number",
+          },
+        }
+      : {}),
+  });
+  if (executionClassification.risk === "Blocked") {
+    return `Execution is blocked: ${executionClassification.blockers.join(", ")}.`;
+  }
 
   const vendorScopeBlocker = validateVendorScope(
     definition.key,
@@ -72,15 +117,12 @@ export function validateExternalAuthority(
     const decision = decideExecutionAuthority({
       actor: authority.actor,
       approval: authority.approval,
-      classification: classification(definition),
+      classification: executionClassification,
       previewHash,
     });
     if (!decision.canExecute) return decision.reason;
   }
 
-  if (definition.risk === "Medium" && authority.exactConfirmationHash !== previewHash) {
-    return "Exact human confirmation does not match the current preview.";
-  }
   return null;
 }
 
@@ -93,29 +135,25 @@ function validateVendorScope(
     VENDOR_MAIL_ACTIONS.has(actionKey) ||
     (actorRole === "Vendor" && VENDOR_ASSIGNED_TICKET_ACTIONS.has(actionKey));
   if (!needsVendorScope) return null;
-  if (!vendor?.verifiedEmailTotp)
-    return "Verified-email TOTP Vendor context is required.";
-  if (VENDOR_MAIL_ACTIONS.has(actionKey) && !vendor.sameMailbox) {
-    return "The Vendor mailbox does not match the verified Vendor identity.";
-  }
-  if (VENDOR_ASSIGNED_TICKET_ACTIONS.has(actionKey) && !vendor.assignedTicket) {
-    return "The Vendor is not assigned to this ticket.";
+  if (actorRole === "Vendor") {
+    if (!vendor?.verifiedEmailTotp)
+      return "Verified-email TOTP Vendor context is required.";
+    if (VENDOR_MAIL_ACTIONS.has(actionKey) && !vendor.sameMailbox) {
+      return "The Vendor mailbox does not match the verified Vendor identity.";
+    }
+    if (VENDOR_ASSIGNED_TICKET_ACTIONS.has(actionKey) && !vendor.assignedTicket) {
+      return "The Vendor is not assigned to this ticket.";
+    }
+  } else {
+    if (!vendor?.adminSupportAuthorized) {
+      return "Admin Vendor-mail support is not authorized for this exact context.";
+    }
+    if (VENDOR_MAIL_ACTIONS.has(actionKey) && !vendor.sameMailbox) {
+      return "The stored Vendor mailbox does not match the authorized Vendor connection.";
+    }
+    if (VENDOR_ASSIGNED_TICKET_ACTIONS.has(actionKey) && !vendor.assignedTicket) {
+      return "The Vendor is not assigned to this ticket.";
+    }
   }
   return null;
-}
-
-function classification(definition: ExternalActionDefinition): ExecutionClassification {
-  return {
-    actionKey: definition.key,
-    blockers: [],
-    defaultRisk: definition.risk,
-    kind:
-      definition.risk === "High"
-        ? "system_of_record_write"
-        : definition.risk === "Medium"
-          ? "workflow_communication"
-          : "read",
-    requiresActionRegistry: true,
-    risk: definition.risk,
-  };
 }

@@ -21,6 +21,7 @@ import { gmailMailboxKey } from "@/lib/gmail-hub/state-store";
 import {
   communicationsRetentionFields,
   GMAIL_CONFIRMATION_USABILITY_MS,
+  isCommunicationsRecordActive,
 } from "@/lib/gmail-hub/retention-policy";
 import {
   workflowActionContextKey,
@@ -122,7 +123,12 @@ export class GmailHubService {
       (link) =>
         link.actor_uid === this.actor.uid &&
         hasSpaceAccess(this.actor, link.lane) &&
-        link.expires_at_ms > nowMs,
+        isCommunicationsRecordActive(
+          "gmail_workflow_communications",
+          link.id,
+          link,
+          nowMs,
+        ),
     );
   }
 
@@ -500,7 +506,15 @@ export class GmailHubService {
       threadId,
       context,
     });
-    if (!link || link.expires_at_ms <= this.now()) {
+    if (
+      !link ||
+      !isCommunicationsRecordActive(
+        "gmail_workflow_communications",
+        link.id,
+        link,
+        this.now(),
+      )
+    ) {
       throw new GmailHubError(
         "That Gmail thread is not linked to the authorized workflow context.",
         403,

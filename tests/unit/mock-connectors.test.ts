@@ -111,6 +111,7 @@ describe("mock maintenance work-order chain", () => {
     const bill = chain.quickbooks.createBillDraft({
       vendor: "vendor-9",
       amount: 245,
+      currency: "USD",
       account: "repairs-and-maintenance",
       rentvine_work_order_number: workOrder.id,
       property_unit: "prop-12/unit-3",

@@ -11,6 +11,77 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Safe-local S21/S24/S25/S26/S27 hardening is complete; external evidence remains Gated
+
+- Date: 2026-07-15
+- Hardened S21 upload/storage so declared and actual length are enforced while streaming, content is
+  retained as hash-verified Firestore-safe 384 KiB chunks, and rollback reuses an immutable content
+  reference. Rollback transactionally rereads current policy/provenance and refuses a disabled or
+  tightened connector/root/Space/type/MIME/size/sensitivity/source boundary. The fake scanner is limited
+  to local non-production execution with a loopback emulator;
+  production connector/root/scanner/import/indexing remains closed.
+- Hardened S24 cleanup from full-collection behavior to bounded indexed expiry queries with
+  transactional candidate rechecks, an atomic bodyless run ledger, and counts-only audit. Records now
+  carry canonical Firestore Date/Timestamp `expires_at` plus numeric query `expires_at_ms`; legal hold
+  nulls both so native TTL cannot race it, and audit failure resumes without losing deletion counts.
+  Each run freezes its hashes/limit, cannot finalize until every hash is processed or failed, explicitly
+  accounts for a frozen candidate crowded out of the retry query, and retains its bodyless ledger under
+  the same seven-year policy as the eighth TTL target. The runnable worker requires explicit emulator acknowledgement,
+  non-production mode, and a loopback Firestore emulator. Production indexes, held-record migration,
+  TTL, scheduler/identity, monitoring, and retry convention remain external gates.
+- Added server-owned exact preview schemas for every S25/S26 action and closed production seams against
+  caller risk/schema lowering, Registry overrides, fake executors, synthetic references, cross-workflow
+  dependencies, wrong receipts, stale reconciliation, cross-actor duplicate actions, target drift, and
+  mutable-input TOCTOU. The bridge now uses the actual S20 atomic claim/reconciliation ledger, requires
+  exact Medium confirmation, binds High approval to the displayed target/account context, strips
+  provider receipts to a strict bodyless allowlist, refuses browser authority, and requires an explicit
+  test-only marker before invented aliases enter preparation. It resolves and exact-matches immutable
+  canonical action definitions; terminal Firestore receipt updates use compare-and-set semantics; Sheet,
+  Rentvine, and LeadSimple writes require provider-atomic expected state; and governed messages require
+  provider-fetched canonical payload readback rather than trusting an RFC Message-ID alone.
+- Completed the exact typed local execution graph: all 11 Lease and 19 Maintenance adapters run with
+  one bodyless receipt/attempt apiece using `example.invalid` people/mailboxes and invented lease,
+  ticket, unit, Vendor, thread, folder, work-order, process, account, and document references from
+  `SYNTHETIC_V1_ALIASES`. The harness calls the real typed provider adapters and makes zero live provider
+  calls. Shared Lease/Maintenance readiness UI labels each production gate separately from this alias run.
+- Replaced the generic Vendor fake with a real-domain S22 journey over in-memory providers: invite,
+  verified-email TOTP claims, PKCE/exact-scope/same-mailbox OAuth/vault boundary, assigned-ticket Gmail
+  read/draft/label/exact one-attempt reply plus wrong-ticket/mailbox negatives, then identity/session/token
+  revocation. Active access now also joins the verified token email to the immutable invited Vendor email,
+  so changing and reverifying Firebase email cannot retain ticket or OAuth authority. OAuth start,
+  callback, pre-vault persistence, and final connection save each recheck that join; mid-flight drift
+  destroys a just-created secret and saves no connection. No setup link, OAuth code/token, body, or
+  secret reference leaves bodyless evidence.
+- Hardened S27 so only exact production manifests can pass. Local/synthetic all-green manifests always
+  remain Pre-V1; canonical file+anchor evidence is globally unique, and both named acceptances bind to
+  the same non-circular hash over the candidate pins/proofs. Cutover requires matching reviewed GCP/
+  Firebase/runtime/Sheets/Gmail identities, a complete audience-bound Gmail DWD/Pub/Sub quartet, and
+  exact `us` search location. Any malformed/conflicting input emits no setup/corpus/deploy/rollback
+  command; source-corpus planning likewise emits no command for unsafe, placeholder, or non-ready
+  manifests. Fixtures keep notification email off, and rollback requires a captured prior revision plus
+  traffic restoration—never service deletion. `npm audit fix` made only a lockfile-safe update; three Moderate
+  dev-only findings in the `firebase-tools` dependency chain remain documented without force/downgrade.
+- Current-worktree verification is green: `bash scripts/verify.sh` completed clean install, formatting,
+  lint, typecheck, 286 unit files / 1,984 tests, router/falsification/context/traceability/redaction, and
+  the 73-page-route production build. Separate Firestore acceptance passed 16 files / 56 tests on an
+  isolated port; core E2E passed 8 files and 32 tests with 3 files / 18 scenarios intentionally skipped.
+  Lint has zero errors and eight existing test-mock warnings. Cutover rehearsal is all-green; the
+  machine report remains correctly Pre-V1 with 29 unique required action proofs, 0 accepted, 0
+  production-allowed, and 169 open gates. Dependency audit contains only the three documented Moderate
+  dev-only `firebase-tools`-chain findings, with no High or Critical result.
+- Local browser regression is green against an isolated loopback Firestore emulator and demo project:
+  all eight S27 surfaces rendered at 1440×900 and 390×844 with the Pre-V1 label, checked phone documents
+  had no horizontal overflow, Lease/Maintenance showed action-level readiness, and fresh page logs were
+  clean. The pass found and repaired the Vendor-cookie isolation path: an internal demo/staff, malformed,
+  or revoked cookie now redirects to Vendor sign-in instead of surfacing a Firebase decode error. This
+  is Local evidence only; deployed role/failure-path browser acceptance remains Gated.
+- No live/customer/Gmail read, source import, Vendor invite, Firebase/Identity Platform/OAuth/vault/
+  TTL/scheduler/cloud configuration, provider write/send/upload, Registry promotion, deployment, smoke,
+  traffic change, production browser record, rollback rehearsal, or Dan/Josiah acceptance occurred.
+  S20–S27 remain Pre-V1: Local green where stated, Gated externally, and neither Live-proven nor Accepted.
+  The exact remaining evidence, owners, secret-location labels, recommended closed defaults, first proofs,
+  and correction paths are in `docs/v1-client-unblock-checklist-2026-07-14.md`.
+
 ## S25/S26 local execution and S27 pre-release readiness are built but Gated
 
 - Date: 2026-07-14

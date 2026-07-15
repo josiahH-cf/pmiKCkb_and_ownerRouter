@@ -38,6 +38,12 @@ const multiSpaceMap = JSON.stringify({
   "move-out-deposit-disposition": "move-out-value",
   "owner-onboarding": "owner-onboarding-value",
 });
+const gmailCutoverEnv = (project, appBaseUrl) => ({
+  GMAIL_DWD_SA: `gmail-dwd@${project}.iam.gserviceaccount.com`,
+  GMAIL_PUBSUB_AUDIENCE: `${appBaseUrl}/api/gmail-hub/pubsub`,
+  GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT: `gmail-pubsub-push@${project}.iam.gserviceaccount.com`,
+  GMAIL_PUBSUB_TOPIC: `projects/${project}/topics/gmail-workflow-events`,
+});
 
 describe("cheap live setup scripts", () => {
   it("accepts the one-Space Flash live config", () => {
@@ -348,7 +354,7 @@ describe("cheap live setup scripts", () => {
     });
   });
 
-  it("plans demo source corpus uploads, metadata seeds, and imports by data store", () => {
+  it("withholds every source corpus command until all entries are production-ready", () => {
     const entries = validateSourceManifest([
       {
         approval_status: "Transcript-derived",
@@ -378,13 +384,9 @@ describe("cheap live setup scripts", () => {
       Approved: 1,
       "Transcript-derived": 1,
     });
-    expect(plan.uploadCommands[0]).toContain("gcloud storage cp");
-    expect(plan.seedCommands[0]).toContain("--approval-status=Transcript-derived");
-    expect(plan.importCommands).toHaveLength(1);
-    expect(plan.importCommands[0]).toContain("--data-store=kb-lease-renewals-txt");
-    expect(plan.importCommands[0]).toContain(
-      "--source-id=gs://bucket/lease-renewals/source-b.txt",
-    );
+    expect(plan.uploadCommands).toEqual([]);
+    expect(plan.seedCommands).toEqual([]);
+    expect(plan.importCommands).toEqual([]);
   });
 
   it("parameterizes source corpus import commands for client production", () => {
@@ -435,6 +437,57 @@ describe("cheap live setup scripts", () => {
     );
     expect(plan.readiness.blockers).toContain(
       "Manifest entry 0 (lease-renewals) approval_status is Unreviewed; production import requires Approved source metadata.",
+    );
+    expect(plan.uploadCommands).toEqual([]);
+    expect(plan.importCommands).toEqual([]);
+    expect(plan.seedCommands).toEqual([]);
+  });
+
+  it.each([
+    ["space_id", "lease-renewals;Write-Output-INJECTED"],
+    ["data_store_id", "kb-renewals;Write-Output-INJECTED"],
+    ["source_path", 'docs/source.md";Write-Output-INJECTED'],
+    ["gcs_uri", "gs://safe-bucket/source.txt;Write-Output-INJECTED"],
+  ])("rejects shell-unsafe source manifest field %s", (fieldName, value) => {
+    const entry = {
+      approval_status: "Approved",
+      data_store_id: "kb-lease-renewals-txt",
+      gcs_uri: "gs://safe-bucket/lease-renewals/source.txt",
+      sensitivity: "Low",
+      source_path: "docs/source.md",
+      space_id: "lease-renewals",
+      [fieldName]: value,
+    };
+
+    expect(() => validateSourceManifest([entry])).toThrow(
+      `Manifest entry 0 ${fieldName}`,
+    );
+  });
+
+  it.each([
+    ["project", "safe-project;Write-Output-INJECTED"],
+    ["location", "us;Write-Output-INJECTED"],
+    ["tempDir", 'temp/source";Write-Output-INJECTED'],
+  ])("rejects shell-unsafe source corpus option %s", (fieldName, value) => {
+    const entries = validateSourceManifest([
+      {
+        approval_status: "Approved",
+        data_store_id: "kb-lease-renewals-txt",
+        gcs_uri: "gs://safe-bucket/lease-renewals/source.txt",
+        sensitivity: "Low",
+        source_path: "docs/source.md",
+        space_id: "lease-renewals",
+      },
+    ]);
+    const options = {
+      location: "us",
+      project: "safe-project",
+      tempDir: "temp/source-corpus",
+      [fieldName]: value,
+    };
+
+    expect(() => buildSourceCorpusPlan(entries, options)).toThrow(
+      fieldName === "tempDir" ? "tempDir" : fieldName,
     );
   });
 
@@ -608,6 +661,7 @@ describe("cheap live setup scripts", () => {
       SHEETS_IMPERSONATE_SA:
         "kb-sheets-reader@pmikc-kb-production.iam.gserviceaccount.com",
       SHEETS_DWD_SUBJECT: "kb-reader@pmikcmetro.com",
+      ...gmailCutoverEnv("pmikc-kb-production", "https://kb.pmikcmetro.example"),
       SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
         "lease-renewals": "gs://pmikc-kb-production-sources/lease-renewals/",
       }),
@@ -639,6 +693,10 @@ describe("cheap live setup scripts", () => {
       SHEETS_IMPERSONATE_SA:
         "lease-renewal-reader@pmi-kc-kb-prod.iam.gserviceaccount.com",
       SHEETS_DWD_SUBJECT: "josiah@pmikcmetro.com",
+      ...gmailCutoverEnv(
+        "pmi-kc-kb-prod",
+        "https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app",
+      ),
       SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
         "lease-renewals": "gs://pmi-kc-kb-prod-sources/lease-renewals/",
       }),
@@ -704,6 +762,7 @@ describe("cheap live setup scripts", () => {
       SHEETS_IMPERSONATE_SA:
         "kb-sheets-reader@pmikc-kb-production.iam.gserviceaccount.com",
       SHEETS_DWD_SUBJECT: "kb-reader@pmikcmetro.com",
+      ...gmailCutoverEnv("pmikc-kb-production", "https://kb.pmikcmetro.example"),
       SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
         "lease-renewals": "gs://pmikc-kb-production-sources/lease-renewals/",
       }),

@@ -1,5 +1,7 @@
 import type { SourceState } from "@/lib/source-state";
 
+export const MAX_PUBLICATION_CONTENT_BYTES = 25 * 1024 * 1024;
+
 export const PUBLICATION_RESOURCE_TYPES = [
   "file",
   "folder",
@@ -48,8 +50,21 @@ export interface PublicationMetadata {
 }
 
 export interface PublicationEnvelope {
-  loadContent: () => Promise<Uint8Array>;
+  /**
+   * Load at most the supplied number of bytes. HTTP adapters must enforce this
+   * limit while streaming; validation still checks the returned buffer as a
+   * defense in depth for non-HTTP adapters.
+   */
+  loadContent: (maxBytes: number) => Promise<Uint8Array>;
   metadata: PublicationMetadata;
+}
+
+export interface PublicationContentReference {
+  byteSize: number;
+  chunkCount: number;
+  contentHash: string;
+  contentId: string;
+  storage: "firestore-chunks-v1";
 }
 
 export type PublicationScanCode =
@@ -104,8 +119,10 @@ export interface PublicationValidationResult {
 export interface PublicationVersionRecord {
   id: string;
   citationLabel?: string;
-  contentBase64: string;
+  connectorId: string;
+  contentByteSize: number;
   contentHash: string;
+  contentRef: PublicationContentReference;
   createdAt: string;
   createdByUid: string;
   detectedMimeType: string;
@@ -114,6 +131,7 @@ export interface PublicationVersionRecord {
   policyId: string;
   resourceId: string;
   resourceType: PublicationResourceType;
+  rootId: string;
   rollbackOfVersionId?: string;
   sensitivity: PublicationSensitivity;
   sourceState?: SourceState;
@@ -125,6 +143,8 @@ export interface PublicationVersionRecord {
 export interface PublicationResourceRecord {
   id: string;
   activeVersionId: string;
+  /** Monotonic sequence guarded by the resource-document transaction lock. */
+  lastVersionNumber: number;
   policyId: string;
   resourceType: PublicationResourceType;
   spaceId: string;

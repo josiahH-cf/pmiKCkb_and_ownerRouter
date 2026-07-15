@@ -110,8 +110,26 @@ export async function getVendorSession(
 ): Promise<VendorPrincipal | null> {
   const value = (await cookies()).get(getSessionCookieName())?.value;
   if (!value) return null;
+
+  return decodeVendorSessionCookie(value, verifier);
+}
+
+export async function decodeVendorSessionCookie(
+  value: string,
+  verifier: ClaimsVerifier = verifyFirebaseSessionCookie,
+): Promise<VendorPrincipal | null> {
+  let claims: VendorAuthClaims;
   try {
-    return validateVendorClaims(await verifier(value));
+    claims = await verifier(value);
+  } catch {
+    // Internal staff/demo cookies, malformed cookies, and revoked Vendor
+    // cookies are all unauthenticated at this separate external boundary.
+    // Fail closed without breaking the public Vendor sign-in surface.
+    return null;
+  }
+
+  try {
+    return validateVendorClaims(claims);
   } catch (error) {
     if (error instanceof VendorBoundaryError) return null;
     throw error;

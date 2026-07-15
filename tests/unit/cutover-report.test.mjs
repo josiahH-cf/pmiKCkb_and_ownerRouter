@@ -10,24 +10,41 @@ import {
 const normalize = (text) => text.replace(/\s+/g, " ").trim();
 
 describe("cutover report args", () => {
-  it("parses manifest, env-file, project, location, service, and json", () => {
+  it("parses manifest, env-file, project, location, prior revision, and json", () => {
     expect(
       parseCutoverReportArgs([
         "--manifest=temp/manifest.json",
         "--env-file=.env.production.local",
         "--project=pmikc-prod",
         "--location=us",
-        "--service=pmi-kc-kb",
+        "--prior-revision=pmi-kc-kb-demo-00041-prior",
         "--json",
       ]),
     ).toEqual({
       envFile: ".env.production.local",
+      help: false,
       json: true,
       location: "us",
       manifest: "temp/manifest.json",
+      priorRevision: "pmi-kc-kb-demo-00041-prior",
       project: "pmikc-prod",
-      service: "pmi-kc-kb",
     });
+  });
+
+  it("rejects unknown, duplicate, and empty arguments", () => {
+    expect(() => parseCutoverReportArgs(["--manfest=temp/manifest.json"])).toThrow(
+      "Unknown cutover report argument",
+    );
+    expect(() =>
+      parseCutoverReportArgs(["--manifest=one.json", "--manifest=two.json"]),
+    ).toThrow("Duplicate cutover report argument");
+    expect(() => parseCutoverReportArgs(["--manifest="])).toThrow("requires a value");
+    expect(() => parseCutoverReportArgs(["--service=pmi-kc-kb"])).toThrow(
+      "Unknown cutover report argument",
+    );
+    expect(() => parseCutoverReportArgs(["--region=europe-west1"])).toThrow(
+      "Unknown cutover report argument",
+    );
   });
 });
 
@@ -52,27 +69,36 @@ describe("rollback plan", () => {
   it("orders rollback steps from deploy back to rules", () => {
     const plan = buildRollbackPlan({
       project: "pmikc-prod",
+      priorRevision: "pmi-kc-kb-demo-00041-prior",
       dataStoreIds: ["kb-lease-renewals-txt"],
       uploadedUris: ["gs://bucket/lease-renewals/sop.txt"],
       seededSpaceIds: ["lease-renewals"],
     });
 
     expect(plan.map((step) => step.step)).toEqual([1, 2, 3, 4, 5]);
-    expect(plan[0].commands[0]).toContain("gcloud run services delete");
-    expect(plan[1].commands[0]).toContain("--dry-run");
-    expect(plan[1].commands[1]).toContain("--confirm-delete=kb-lease-renewals-txt");
-    expect(plan[2].commands[0]).toBe(
-      'gcloud storage rm "gs://bucket/lease-renewals/sop.txt"',
+    expect(plan[0].commands[0]).toContain("gcloud run services update-traffic");
+    expect(plan[0].commands[0]).toContain(
+      "--to-revisions=pmi-kc-kb-demo-00041-prior=100",
     );
+    expect(plan.slice(1).every((step) => step.commands.length === 0)).toBe(true);
+    expect(plan[1].note).toContain("kb-lease-renewals-txt");
+    expect(plan[2].note).toContain("gs://bucket/lease-renewals/sop.txt");
     expect(plan[3].note).toContain("spaces/lease-renewals");
-    expect(plan[4].commands[0]).toContain("firestore:rules");
+    expect(plan[4].note).toContain("immutable pre-deploy configuration reference");
+    expect(JSON.stringify(plan)).not.toContain("confirm-delete");
+    expect(JSON.stringify(plan)).not.toContain("gcloud storage rm");
+    expect(JSON.stringify(plan)).not.toContain("firebase -- deploy");
+    expect(JSON.stringify(plan)).not.toContain("gcloud run services delete");
   });
 
   it("uses placeholders when concrete identifiers are unknown", () => {
     const plan = buildRollbackPlan();
 
-    expect(plan[1].commands[0]).toContain("<data-store-id>");
-    expect(plan[2].commands[0]).toContain("gs://<client-source-bucket>");
+    expect(plan[0].commands).toEqual([]);
+    expect(plan[0].note).toContain("Capture the currently serving");
+    expect(plan.slice(1).every((step) => step.commands.length === 0)).toBe(true);
+    expect(plan[1].note).toContain("<data-store-id>");
+    expect(plan[2].note).toContain("gs://<client-source-bucket>");
   });
 });
 
@@ -99,11 +125,16 @@ describe("cutover report composition", () => {
       true,
     );
     expect(
-      report.readiness.warnings.some((warning) => warning.startsWith("corpus:")),
+      report.readiness.blockers.some((blocker) => blocker.startsWith("corpus:")),
     ).toBe(true);
     expect(report.smoke_checklist).toEqual(PRODUCTION_SMOKE_CHECKLIST);
     expect(report.rollback.length).toBe(5);
-    expect(report.deploy.command_preview).toContain("run deploy");
+    expect(report.rollback_ready).toBe(false);
+    expect(
+      report.readiness.blockers.some((blocker) => blocker.startsWith("rollback:")),
+    ).toBe(true);
+    expect(JSON.stringify(report.rollback)).not.toContain("services delete");
+    expect(report.deploy.command_preview).toBe("");
     expect(report.mode).toBe("dry-run");
   });
 
@@ -124,11 +155,12 @@ describe("cutover report composition", () => {
     expect(
       report.readiness.blockers.some((blocker) => blocker.startsWith("corpus:")),
     ).toBe(true);
-    expect(report.corpus.upload_commands.length).toBeGreaterThan(0);
-    expect(report.rollback[1].commands[0]).toContain("--data-store=");
+    expect(report.corpus.upload_commands).toEqual([]);
+    expect(report.rollback[1].commands).toEqual([]);
+    expect(report.rollback[1].note).toContain("Candidate data stores");
   });
 
-  it("treats a missing manifest path as a warning, not a crash", () => {
+  it("treats a missing manifest path as a blocker, not a crash", () => {
     const report = buildCutoverReport({
       argv: [
         HERMETIC_ENV_FILE,

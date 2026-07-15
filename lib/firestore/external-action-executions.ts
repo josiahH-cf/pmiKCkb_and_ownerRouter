@@ -14,6 +14,7 @@ export const EXTERNAL_EXECUTION_COLLECTIONS = {
 } as const;
 
 export class FirestoreExternalExecutionStore implements ExternalExecutionStore {
+  readonly persistence = "firestore" as const;
   constructor(private readonly db: Firestore = getAdminFirestore()) {}
 
   async get(id: string) {
@@ -70,6 +71,25 @@ export class FirestoreExternalExecutionStore implements ExternalExecutionStore {
       const snapshot = await transaction.get(ref);
       if (!snapshot.exists) throw new Error("Execution missing.");
       const record = snapshot.data() as ExternalExecutionRecord;
+      if (receipt.actionKey !== record.actionKey) {
+        throw new Error("Execution receipt action does not match the claimed action.");
+      }
+      if (
+        isReceiptTerminalState(record.state) &&
+        record.receipt &&
+        sameReceipt(record.receipt, receipt)
+      ) {
+        return;
+      }
+      if (isReceiptTerminalState(record.state)) {
+        throw new Error("Execution already has a conflicting terminal receipt.");
+      }
+      const allowedState = receipt.reconciled ? "ambiguous" : "running";
+      if (record.state !== allowedState || record.attemptCount !== 1) {
+        throw new Error(
+          `Execution receipt cannot transition from ${record.state}/${record.attemptCount}.`,
+        );
+      }
       const next: ExternalExecutionRecord = {
         ...record,
         state: receipt.outcome === "not_applicable" ? "not_applicable" : "succeeded",
@@ -90,6 +110,11 @@ export class FirestoreExternalExecutionStore implements ExternalExecutionStore {
       const snapshot = await transaction.get(ref);
       if (!snapshot.exists) throw new Error("Execution missing.");
       const record = snapshot.data() as ExternalExecutionRecord;
+      if (record.state !== "running" || record.attemptCount !== 1) {
+        throw new Error(
+          `Execution failure cannot transition from ${record.state}/${record.attemptCount}.`,
+        );
+      }
       const next: ExternalExecutionRecord = {
         ...record,
         state: ambiguous ? "ambiguous" : "failed",
@@ -104,12 +129,28 @@ export class FirestoreExternalExecutionStore implements ExternalExecutionStore {
   }
 }
 
+function isReceiptTerminalState(state: ExternalExecutionRecord["state"]) {
+  return state === "succeeded" || state === "not_applicable";
+}
+
+function sameReceipt(left: ExternalActionReceipt, right: ExternalActionReceipt) {
+  return (
+    left.actionKey === right.actionKey &&
+    left.providerRef === right.providerRef &&
+    left.resultHash === right.resultHash &&
+    left.reconciled === right.reconciled &&
+    left.outcome === right.outcome &&
+    left.createdAt === right.createdAt
+  );
+}
+
 function audit(record: ExternalExecutionRecord, action: string) {
   return {
     execution_id: record.id,
     workflow_id: record.workflowId,
     action_id: record.actionId,
     action_key: record.actionKey,
+    context_hash: record.contextHash,
     preview_hash: record.previewHash,
     state: record.state,
     attempt_count: record.attemptCount,

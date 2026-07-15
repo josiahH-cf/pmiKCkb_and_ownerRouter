@@ -5,13 +5,22 @@
 > New 2026-07-14. Implements R03 plus the Round 2 assigned-ticket Vendor workflow. Every row below is
 > required for final V1; provider/credential gaps are release blockers rather than manual substitutes.
 
-**Implementation status (2026-07-14): Gated — safe local boundary green.** The complete action graph,
-shared one-attempt orchestrator, Vendor/Drive/Rentvine/mail/LeadSimple/QuickBooks fake providers, UI
-readiness state, server ledger/rules, and AC-S26-1..9 local tests are built. Every external action stays
-Registry-closed; live identity/folder/account contracts, authoritative mappings, permitted proofs,
-deployment, and Dan/Josiah acceptance are absent. See `docs/v1-pre-release-report-2026-07-14.md`.
+**Implementation status (2026-07-15): Gated — safe local boundary green.** The complete 19-action
+graph, exact Action Registry preview schemas, typed Vendor/Drive/Rentvine/mail/LeadSimple/QuickBooks
+executors, UI readiness state, server ledger/rules, and AC-S26-1..10 local tests are built. Integrated
+synthetic acceptance invokes the actual typed executor selected for each of all 19 action keys and
+produces exactly one attempt and one bodyless receipt per action with zero live calls. Every new S26
+action stays Registry-closed; reused S19 linked reply transport remains enabled only inside its
+existing workflow/context/artifact/exact-confirmation gates and does not authorize initiation. Live
+identity/folder/account contracts, authoritative mappings, permitted
+proofs, deployment, and Dan/Josiah acceptance are absent. See
+`docs/v1-pre-release-report-2026-07-14.md`; do not call this suite Accepted.
 The shared kernel reuses S20 for staff and S22's verified-TOTP/same-mailbox/assigned-ticket/self-consent
-boundary for Vendor actions, and revalidates that authority immediately before its atomic provider claim.
+boundary for Vendor actions, and revalidates authority, Registry, exact schema, and preview immediately
+before its atomic provider claim and again before reconciliation. The S20 preparation bridge rejects
+browser-supplied authority/risk, binds High work to the exact Approval Queue preview and displayed
+target/source context, uses canonical cross-actor idempotency, and fences invented aliases/Registry
+overrides to tests.
 
 **Goal.** A maintenance request can move from intake through secure Vendor assignment, evidence,
 owner/vendor communication, Rentvine/LeadSimple state, QuickBooks draft-bill handoff, and closure while
@@ -34,23 +43,35 @@ usable; consequential operating/accounting changes remain Admin-approved and aud
 
 - **Orchestrator — `lib/maintenance/execution/`.** Immutable ticket/action dependency graph with exact
   preview, risk, approval, idempotency, one attempt, receipt/reconciliation, correction/rollback, and
-  bodyless audit. External state never becomes true merely because the app ticket advanced.
+  bodyless audit. A dependency must be a same-workflow receipt naming the expected action. External
+  state never becomes true merely because the app ticket advanced.
+- **S20 bridge and exact schemas.** `lib/external-execution/s20-bridge.ts` projects authority-free action
+  values into S20's server-owned preparation path. `lib/integrations/final-v1-action-contracts.ts`
+  defines the exact reviewed fields for every action, so missing or extra executor values block before
+  a provider attempt. Immutable server policy prevents callers from lowering risk.
 - **Account/mailbox.** S22 is the implementation contract. Assignment is explicit and audited; disable/
   deassign denies access immediately. Vendor OAuth is their own Gmail/Workspace mailbox only.
 - **Photos.** Authorized internal user or assigned MFA Vendor may append one validated image to the
   Admin-configured ticket folder after size/MIME/malware/sensitivity checks. Filename/path are server
   derived. Upload is Medium/reversible; replace/delete/move or different folder is High/Admin.
 - **Rentvine.** Create from verified unit/issue/priority/trade/vendor inputs. Assignment/status/close
-  validates allowed transition and current state, then reads after write. Unknown unit/vendor/status or
-  drift is Blocked. Close requires completion evidence and any configured financial/owner checks.
+  validates allowed transition and current state, passes exact current status/Vendor to a provider-
+  atomic conditional mutation, then reads every reviewed field after write. Unknown unit/vendor/status,
+  missing conditional provider support, or drift is Blocked. Close requires completion evidence and
+  configured financial/owner checks.
 - **Communication.** Owner recipient comes from authoritative property-owner source. Vendor mail is
-  linked to assigned ticket. S24 base artifact/AI policy/exact confirmation apply. No message chooses a
-  vendor, approves cost, or changes ticket status by itself.
-- **LeadSimple/QuickBooks.** Use documented account contracts only. LeadSimple mirrors/advances the
-  configured process; QuickBooks creates a draft bill with Vendor, amount/account, Rentvine work-order,
-  and property/unit references. Posting, payment, bank, and ledger mutation remain out of V1.
-- **Buildable now (app-plane).** Orchestrator, schemas/registry entries false, previews, fake providers,
-  transition policy, UI/queue/audit/reconciliation, and tests per row.
+  linked to assigned ticket. S24 base artifact/AI policy/exact confirmation apply; Gmail send/reply
+  requires the exact RFC Message-ID and authoritative provider-fetched canonical payload. A matching
+  Message-ID with recipient/body/thread/artifact drift remains ambiguous. No message chooses a Vendor,
+  approves cost, or changes ticket status by itself.
+- **LeadSimple/QuickBooks.** Use documented account contracts only. LeadSimple stage change requires an
+  atomic expected-stage mutation and exact readback; task/stage reconciliation uses the canonical
+  idempotency key. QuickBooks creates and reconciles by idempotency key a draft Bill with exact Vendor,
+  amount/account, Rentvine work-order, property/unit, currency, and `Draft` state. Posting, payment,
+  bank, and ledger mutation remain out of V1.
+- **Built locally (app-plane).** Orchestrator, exact schemas/Registry entries false, previews, typed
+  executors and synthetic providers, S20 queue bridge, transition policy, UI/queue/audit/reconciliation,
+  and tests per row.
 - **Gated (owner / vendor).** S22 live setup, folder/source mappings, provider contracts/plans/credentials,
   registry promotions, every first external mutation/send, deploy, and production acceptance.
 
@@ -78,33 +99,48 @@ store, Rentvine/LeadSimple/QuickBooks clients, environment handoff, and S27. Sup
 
 **Adversarial acceptance checks.**
 
-- **AC-S26-1** — Registry/catalog and ticket workflow expose every R03 group/action key with dependency,
-  risk, preview, health, receipt, correction, and `production_allowed:false` default. _Verify:_ `npm
-test -- maintenance-execution-matrix action-registry-schema`.
+- **AC-S26-1** — Registry/catalog and ticket workflow expose every R03 group/all 19 action keys with
+  exact preview schemas, dependency, risk, health, receipt, and correction. Every action newly
+  introduced by S26 defaults to `production_allowed:false`; reused S19 `gmail.thread.reply` retains
+  only its existing linked-workflow/artifact/exact-confirmation gates and cannot authorize owner-notice
+  initiation. _Verify:_ `npm test -- maintenance-execution-matrix action-registry-schema
+external-execution-boundary`.
 - **AC-S26-2** — Vendor assignment boundary and MFA precede all Vendor detail/mail/photo actions; Admin
-  account/assignment changes are High and immediately revoke access. _Verify:_ `npm test --
-vendor-lifecycle maintenance-execution-authority`.
+  account/assignment changes are High and bind to the exact S20 Approval Queue preview plus
+  target/source context. Disable or deassign immediately revokes access; assignment alone does not.
+  Browser authority/risk and synthetic aliases outside tests are rejected. _Verify:_ `npm test --
+vendor-lifecycle maintenance-execution-authority
+external-execution-s20-bridge`.
 - **AC-S26-3** — Assigned Vendor/internal Editor may append one validated ticket image to the configured
-  folder; wrong ticket/folder/path/MIME/size/scanner/sensitivity blocks before bytes/provider. Replace/
-  delete requires Admin High approval. _Verify:_ `npm test -- maintenance-photo-executor`.
+  folder; wrong ticket/folder/path/MIME/size/scanner/sensitivity blocks before bytes/provider. Exact
+  folder, server-derived filename, and content-hash readback/reconciliation are required. Replace/delete
+  requires Admin High approval. _Verify:_ `npm test -- maintenance-photo-executor`.
 - **AC-S26-4** — Rentvine create/assign/status/close uses authoritative IDs, allowed transition, Admin
-  approval, idempotency, and read-after-write; drift/unknown/ambiguity causes zero retry and visible
+  approval, canonical idempotency, provider-atomic expected current status/Vendor, exact post-read, and
+  idempotency-key reconciliation; drift/unknown/ambiguity causes zero overwrite/retry and visible
   reconciliation. _Verify:_ `npm test -- rentvine-work-order-executor`.
 - **AC-S26-5** — Owner initiation uses authoritative recipient and `maintenance-owner:v1.0`; missing
-  owner/unit/value blocks. Internal Editor exact confirmation is Medium and duplicate/drift makes at
-  most one Gmail attempt. _Verify:_ `npm test -- maintenance-owner-email`.
+  owner/unit/value blocks. Internal Editor exact confirmation is Medium; exact RFC Message-ID plus
+  provider-fetched canonical payload is required, and duplicate/drift makes at most one Gmail attempt.
+  _Verify:_ `npm test -- maintenance-owner-email`.
 - **AC-S26-6** — Vendor provider can access only assigned linked thread; Vendor/Admin exact confirmation
-  binds From/ticket/thread/body. AI/message cannot choose vendor, approve cost, or transition/close.
-  _Verify:_ `npm test -- vendor-gmail-boundary maintenance-ai-boundary`.
-- **AC-S26-7** — LeadSimple fake adapter updates only mapped process/stage/task under Admin approval and
-  reconciles result; undocumented endpoint/plan blocks with zero call. _Verify:_ `npm test --
+  binds From/ticket/thread/body, and reply requires exact provider Message-ID/payload readback.
+  AI/message cannot choose Vendor, approve cost, or transition/close. _Verify:_ `npm test --
+vendor-gmail-boundary maintenance-ai-boundary`.
+- **AC-S26-7** — LeadSimple fake adapter updates only mapped process/stage/task under Admin approval,
+  requires atomic expected-stage mutation, and reconciles exact fields by canonical idempotency key;
+  undocumented endpoint/plan blocks with zero call. _Verify:_ `npm test --
 leadsimple-maintenance-executor`.
 - **AC-S26-8** — QuickBooks fake adapter creates one draft Bill with exact required references after
-  Admin approval; post/pay/bank/ledger methods do not exist and amount/account/vendor drift blocks.
+  Admin approval and reconciles by canonical idempotency key only when every reviewed field and `Draft`
+  state match; post/pay/bank/ledger methods do not exist and amount/account/Vendor drift blocks.
   _Verify:_ `npm test -- quickbooks-draft-bill-executor`.
-- **AC-S26-9** — Fake-provider E2E completes invite/MFA/assignment/mailbox/photo/Rentvine/owner/vendor/
-  LeadSimple/QuickBooks/close in order; injected failure stops dependents and never leaks another ticket
-  or duplicates an external attempt. _Verify:_ `npm run test:e2e:core -- maintenance-execution`.
+- **AC-S26-9** — Integrated synthetic acceptance invokes the actual typed executor for all 19 actions,
+  covering invite/MFA/assignment/mailbox/photo/Rentvine/owner/vendor/LeadSimple/QuickBooks/close in
+  order with one attempt/receipt each; injected failure stops same-workflow dependents and never leaks
+  another ticket or duplicates an external attempt. This proves only the local provider boundary,
+  never a vendor contract or live result. _Verify:_ `npm test -- v1-synthetic-execution`; `npm run
+test:e2e:core -- maintenance-execution`.
 - **AC-S26-10** — Full checks pass: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm
 test`, `npm run test:e2e:core`, `npm run test:firestore`, `npm run verify:redaction`, `npm run build`,
   `bash scripts/verify.sh`.

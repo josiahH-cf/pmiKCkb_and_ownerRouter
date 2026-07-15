@@ -2,9 +2,11 @@
 
 # S21 — Trusted immediate source and process publication
 
-> **Status: Local green (2026-07-14).** App-plane policy, bounded validation, scanner interface/fail-
-> closed provider boundary, immutable version/Active pointer/rollback/audit, process and Space UI, and
-> Firestore denial are implemented. Production roots, scanner activation, import/indexing, Drive
+> **Status: Local green (2026-07-14).** App-plane policy, bounded request streaming, integrity-checked
+> 384 KiB Firestore content chunks, immutable content references/version/Active pointer/rollback/audit,
+> process and Space UI, Firestore denial, and a fail-closed scanner provider boundary are implemented.
+> Deterministic clean/malicious scanners are fenced to explicit local-demo auth in a non-production
+> process with a loopback Firestore emulator. Production roots, a real scanner, import/indexing, Drive
 > changes, deploy, and live proof remain gated.
 
 > New 2026-07-14. Implements R05. Validation-passing Editor additions become Active immediately; the
@@ -23,17 +25,25 @@ and no document can change runtime authority.
   25 MB, DOCX 25 MB, CSV 10 MB, common images 10 MB; executables, archives, macros, credential files,
   and unknown types are denied. Admin may tighten, never silently widen, a connector policy.
 - **Validation pipeline.** Server resolves the configured root and Editor scope; checks path/root,
-  extension plus detected MIME, size before buffering, malware result, credential/secret/PII
-  sensitivity result, schema/source-state/citation fields, and process graph validity. Any unavailable
-  required scanner is a visible failure, not a bypass.
-- **Atomic publication.** A passing save writes immutable version + append-only audit and atomically
-  updates the Active pointer. Rollback creates a new version pointing to the prior content; history is
-  never rewritten. Failed validation writes a bodyless failure audit and no Active pointer.
+  extension plus detected MIME, declared and streamed size, malware result, credential/secret/PII
+  sensitivity result, schema/source-state/citation fields, and process graph validity. The request
+  reader cancels at the first policy/declaration overrun and never retains the offending chunk. Any
+  unavailable required scanner is a visible failure, not a bypass.
+- **Content storage and atomic publication.** Validated bytes are hash-bound to a server ID and stored
+  in independently integrity-checked 384 KiB Firestore chunks, keeping each document below Firestore's
+  limit. A passing save writes an immutable content reference/version plus append-only audit and
+  atomically updates the Active pointer. Rollback creates a new version that reuses the selected prior
+  validated content reference; it never inlines or duplicates the prior bytes, and history is never
+  rewritten. Rollback also transactionally rereads the current policy and rechecks connector/root,
+  Space/type/MIME/size/sensitivity, safe path, and source metadata, so a disabled or tightened policy
+  cannot be bypassed by an older version. A failed metadata transaction best-effort removes its staged chunks. Failed validation
+  writes only a bodyless failure audit and no content/Active pointer.
 - **Authority firewall.** Imported content is data. It cannot write custom claims, Action Registry,
   connector policy, environment config, prompt/system instructions, or executor enablement. Process
   steps reference only pre-registered action keys and cannot make a disabled action executable.
-- **Buildable now (app-plane).** Policy/schema, validators, scanner interfaces/fakes, version/rollback,
-  audits, UI results, and emulator tests.
+- **Built locally (app-plane).** Policy/schema, bounded stream reader, chunk store/reference integrity,
+  scanner interfaces and fenced local fakes, version/rollback, audits, UI results, rules, and emulator
+  tests.
 - **Gated (owner / vendor).** Production root/connector configuration, malware provider activation,
   source import, Drive changes, indexing, deploy, and live proof.
 
@@ -57,18 +67,25 @@ actions. Supersede marker: `EDITOR-CONTENT-APPROVAL-DEFAULT`.
 
 **Adversarial acceptance checks.**
 
-- **AC-S21-1** — In-scope Editor content passing every check becomes Active in one transaction with an
-  immutable version and append-only audit; no Approval Queue item is created. _Verify:_ `npm test --
-trusted-publication`; `npm run test:firestore`.
-- **AC-S21-2** — Wrong root/Space, path traversal, MIME mismatch, oversize body, denied type, scanner
-  unavailable/malware, or sensitivity violation creates no Active pointer and exposes a specific safe
-  error without echoing detected content. _Verify:_ `npm test -- publication-validation`.
+- **AC-S21-1** — In-scope Editor content passing every check becomes Active in one metadata transaction
+  with an immutable integrity-checked content reference/version and append-only audit; no Approval
+  Queue item is created. _Verify:_ `npm test -- trusted-publication publication-content`; `npm run
+test:firestore`.
+- **AC-S21-2** — Wrong root/Space, path traversal, MIME mismatch, lying/oversize stream, denied type,
+  scanner unavailable/malware, or sensitivity violation creates no Active pointer and exposes a
+  specific safe error without echoing detected content. The deterministic scanner cannot run without
+  all local-demo/emulator fences. _Verify:_ `npm test -- publication-validation publication-content
+publication-provider`.
 - **AC-S21-3** — A process/source containing role, claim, registry, `production_allowed`, executor, or
   system-prompt instructions remains inert data and cannot change any authority record. _Verify:_
   `npm test -- publication-authority-firewall action-gate`.
 - **AC-S21-4** — Concurrent saves create ordered immutable versions; rollback creates a new audited
-  version and restores the selected content without deleting later history. _Verify:_ `npm test --
-publication-versioning`; `npm run test:firestore`.
+  version, reuses the selected version's validated content reference, and restores it without deleting
+  later history. Inside the rollback transaction, the current policy is reread and a disabled policy or
+  tightened connector/root, Space, type/MIME/size, sensitivity, path, or source-metadata constraint
+  refuses the older target without changing the Active pointer. A failed metadata transaction cannot
+  leave reachable staged content. _Verify:_ `npm test -- publication-versioning`; `npm run
+test:firestore`.
 - **AC-S21-5** — Admin policy changes require `manageAdmin`, a reason, append-only audit, and cannot be
   supplied in an Editor upload request. _Verify:_ `npm test -- publication-policy route-auth-boundary`.
 - **AC-S21-6** — Retrieval returns only the current Active validated version and preserves source
@@ -78,9 +95,10 @@ publication-versioning`; `npm run test:firestore`.
 test`, `npm run verify:redaction`, `npm run verify:router-boundary`, `npm run build`.
 
 **Forbidden actions / hard gates.** No live source read/import/index, Drive mutation, root creation,
-scanner subscription, or deploy. No raw rejected content in logs/audits/git. No content-driven role,
-scope, Action Registry, external execution, scheduled action, or prompt-authority change. Production
-must fail closed if required validation is unavailable. ~$10 cap applies.
+scanner subscription, or deploy. No local-demo/fake scanner in production or outside a loopback
+Firestore emulator. No raw rejected content in logs/audits/git. No content-driven role, scope, Action
+Registry, external execution, scheduled action, or prompt-authority change. Production must fail closed
+if required validation is unavailable. ~$10 cap applies.
 
 **Ordered prompt sequence.**
 

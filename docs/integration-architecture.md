@@ -3,7 +3,8 @@
 Verified tool-role architecture, event model, build order, and Action Registry model for PMI KC.
 
 - Evidence: `docs/research/integration-capability-2026-06.md`.
-- Client/vendor gaps: `docs/research-backlog.md` and `docs/client-checklist.md`.
+- Client/vendor gaps: `docs/research-backlog.md`, `docs/client-checklist.md`, and the exact
+  recommendation-first `docs/v1-client-unblock-checklist-2026-07-14.md`.
 - Safety: `AGENTS.md` and `docs/north-star.md`.
 
 ## Safety posture
@@ -91,17 +92,18 @@ confirmation, and audit. A true transport entry alone never authorizes arbitrary
 
 The catalog has 38 entries. No non-Gmail external system-of-record write is executable. S22/S25/S26
 add closed account/OAuth/Vendor-mail/renewal-send/portal/SMS/assignment/maintenance-owner-send entries.
-Gmail entries:
+Current internal Gmail transport subset (new closed S25/S26 and external Vendor Gmail keys are listed
+in their suite matrices):
 
-| Key                                           | State            | Product boundary                                                                                               |
-| --------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------- |
-| `gmail.mailbox.read`                          | Approved / true  | Profile/history/watch and a deliberately linked thread in the signed-in mailbox; no arbitrary inbox query/list |
-| `gmail.thread.reply`                          | Approved / true  | Linked reply transport only; Approver/Admin; approved template plus exact confirmation required                |
-| `gmail.draft.create`                          | Approved / true  | Linked unsent reply-draft transport; approved template required                                                |
-| `gmail.label.apply`                           | Approved / true  | One approved label plus fixed governed rule and human reason on a linked thread                                |
-| `gmail.message.send`                          | Disabled / false | Generic new-message compose/send is not exposed                                                                |
-| `gmail.renewal_notice.draft_create`           | Planned / false  | Sample desk is preview-only; needs real run, authoritative recipient, template                                 |
-| `gmail.maintenance_owner_notice.draft_create` | Planned / false  | Needs verified owner contact, trigger, and approved template                                                   |
+| Key                                           | State            | Product boundary                                                                                                  |
+| --------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `gmail.mailbox.read`                          | Approved / true  | Profile/history/watch and a deliberately linked thread in the signed-in mailbox; no arbitrary inbox query/list    |
+| `gmail.thread.reply`                          | Approved / true  | Linked reply transport only; internal Editor/Admin exact-confirms enabled Medium work; approved template required |
+| `gmail.draft.create`                          | Approved / true  | Linked unsent reply-draft transport; approved template required                                                   |
+| `gmail.label.apply`                           | Approved / true  | One approved label plus fixed governed rule and human reason on a linked thread                                   |
+| `gmail.message.send`                          | Disabled / false | Generic new-message compose/send is not exposed                                                                   |
+| `gmail.renewal_notice.draft_create`           | Planned / false  | Sample desk is preview-only; needs real run, authoritative recipient, template                                    |
+| `gmail.maintenance_owner_notice.draft_create` | Planned / false  | Needs verified owner contact, trigger, and approved template                                                      |
 
 The four approved Gmail scopes are unchanged. `gmail.compose` is send-capable, so the no-send and
 workflow-only boundaries come from route/action/role/template/exact-confirmation code and tests.
@@ -117,6 +119,18 @@ verified-email TOTP and per-vendor Gmail/Workspace OAuth, never DWD. Product inc
 `production_allowed`; each action still needs documented evidence, exact permission/identity, preview,
 idempotency, audit, reconciliation/rollback, tests, registry code review, and explicit live authority.
 Undocumented/vendor-confirmation-required actions block final V1 rather than becoming manual fallbacks.
+
+The safe-local implementation now runs all 11 S25 and 19 S26 action adapters plus the complete S22
+Vendor identity/OAuth/mail journey against invented aliases and typed fake provider state. Those paths
+use exact Registry preview schemas, immutable S20 risk/authority, same-workflow dependency receipts,
+one-attempt execution, readback, and reconciliation. The execution boundary rejects production fake
+providers, synthetic escape flags, Registry overrides, and schema/risk lowering. This proves the local
+architecture, not an account-specific provider contract or live action.
+
+Promote one action only after its row in `docs/v1-client-unblock-checklist-2026-07-14.md` has the named
+official/account evidence, authoritative mapping, credential-owner/location label, separately permitted
+bounded proof, bodyless receipt/readback, monitor, correction path, code review, and exact authority.
+No synthetic receipt can satisfy a production release manifest.
 
 ## Gmail-to-workflow source and write model
 
@@ -143,7 +157,9 @@ approved. S24 locally encodes confirmation usable 10 minutes/delete 30 days, ded
 90 days, workflow link 365 days from last authorized update, bodyless send/write/workflow audit 7
 years, and no persisted V1 AI/extracted Gmail facts. Admin legal hold and a later written policy
 override deletion. Cleanup planning/worker and hold/release are Local green; production Firestore TTL
-and scheduler configuration remain separately gated and no mutable environment TTL can widen policy.
+must target canonical Date/Timestamp `expires_at` (the worker queries matching numeric
+`expires_at_ms`), and scheduler configuration remains separately gated. A bodyless run ledger makes
+deletion counts crash-resumable; no mutable environment TTL can widen policy.
 
 ## Vendor-confirmation matrix
 

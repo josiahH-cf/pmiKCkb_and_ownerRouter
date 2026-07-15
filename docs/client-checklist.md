@@ -7,6 +7,12 @@ this repo; record only names, owners, decisions, and non-secret identifiers.
 Use `docs/environment-handoff.md` to track non-secret environment identifiers, secret
 ownership, manual setup status, and verification evidence after these asks are answered.
 
+For final-V1 external gates, use
+`docs/v1-client-unblock-checklist-2026-07-14.md` as the recommendation-first system of record. It
+names every exact action key, acceptable non-secret response, credential-owner label, bounded first
+proof, and correction path. The summaries below route work; they do not replace that checklist or
+authorize a live action.
+
 ## Current Outbound Asks
 
 R01–R09 are answered. These are the remaining operational/provider inputs after the final Round 3
@@ -14,15 +20,15 @@ contract. Implementation runs from `docs/v1-gap-implementation-program-2026-07-1
 owner to reclassify settled actions. Do not paste credentials, source records, live Gmail content,
 leases, or tool secrets into this repo.
 
-| Ask                         | Exact client action                                                                                                                                                                                                                     | Needed for                                          | Status                                                                                                                            | Verification after unblock                                                                                                                                   |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Source drop zone fill       | Add process docs, notes, examples, templates, screenshots, and useful context to the shared Drive source drop zone created by Josiah.                                                                                                   | KB production source readiness and product scoping. | Folder created/shared: <https://drive.google.com/drive/folders/1arXww32LaPcIbFx_oONshbR62imiC8kq>; awaiting team content.         | Convert approved source material into source manifests/readiness checks.                                                                                     |
-| Tool access spreadsheet     | Fill in tool, available access type, location, and notes for RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Google Sheets including which sheets, and any missing tools.                                                              | Integration capability classification.              | Partially received: RentVine both/API; LeadSimple, DotLoop, Boom, and Sheets admin/location; QuickBooks blank; Sheets scope open. | Update research backlog and environment handoff with non-secret locations/owners.                                                                            |
-| Production source policy    | For each policy, provide connector ID, exact root/folder ID, allowed launch Space IDs, sensitivity ceiling, scanner provider/key + owner, and any reductions from the built-in launch type/size defaults; do not paste content/secrets. | S21 production publication.                         | S21 app-plane is Local green; no production policy/root/scanner/import/index is configured.                                       | Create the reasoned Admin policy, prove every negative check and rollback with synthetic content, then request a separate approved-source import/index gate. |
-| Vendor auth/OAuth setup     | Approve Identity Platform TOTP, invitation-delivery lane, Google OAuth consent/client/redirect, token-vault resource, and one safe Vendor acceptance account/ticket.                                                                    | S22 external Vendor portal.                         | Local app-plane/fake/emulator acceptance is green; no live Vendor principal/OAuth app is configured.                              | Prove invite→MFA→assigned ticket→OAuth→revoke before first send.                                                                                             |
-| Workflow recipient mappings | Identify the authoritative runtime adapters/fields for renewal owner/tenant and maintenance owner/vendor recipients and required values.                                                                                                | S25/S26 initiation.                                 | S24 artifacts/AI policy and missing/drift blocking are Local green; browser-entered addresses remain non-authoritative.           | Wire each mapped source in its provider slice and prove missing/drifted values block before Registry promotion.                                              |
-| R02/R03 provider contracts  | Provide non-secret account/plan/template/stage/folder mappings and exact credential owners for Rentvine, Dotloop, SMS, Boom, LeadSimple, QuickBooks, Drive, and Sheets.                                                                 | Every final-V1 external action.                     | Product membership is settled; several account-specific/vendor contracts are not documented or connected.                         | One adapter/action proof with preview, receipt, reconciliation, rollback.                                                                                    |
-| Staged acceptance approvals | Approve each exact cloud config/deploy/live proof, then complete Dan business and Josiah technical acceptance only after S20–S27 pass.                                                                                                  | Pre-V1 stages and final V1.                         | R09 sequencing/owners are settled; no new deploy or production proof is authorized by the response.                               | Manifest stays pre-V1 until every required action and Vendor portal are accepted.                                                                            |
+| Ask                         | Exact client action                                                                                                                                                                                                                                      | Needed for                                          | Status                                                                                                                            | Verification after unblock                                                                                                                                   |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Source drop zone fill       | Add process docs, notes, examples, templates, screenshots, and useful context to the shared Drive source drop zone created by Josiah.                                                                                                                    | KB production source readiness and product scoping. | Folder created/shared: <https://drive.google.com/drive/folders/1arXww32LaPcIbFx_oONshbR62imiC8kq>; awaiting team content.         | Convert approved source material into source manifests/readiness checks.                                                                                     |
+| Tool access spreadsheet     | Fill in tool, available access type, location, and notes for RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Google Sheets including which sheets, and any missing tools.                                                                               | Integration capability classification.              | Partially received: RentVine both/API; LeadSimple, DotLoop, Boom, and Sheets admin/location; QuickBooks blank; Sheets scope open. | Update research backlog and environment handoff with non-secret locations/owners.                                                                            |
+| Production source policy    | For each policy, provide connector ID, exact root/folder ID, allowed launch Space IDs, sensitivity ceiling, scanner provider/key + owner, and any reductions from the built-in launch type/size defaults; do not paste content/secrets.                  | S21 production publication.                         | S21 app-plane is Local green; no production policy/root/scanner/import/index is configured.                                       | Create the reasoned Admin policy, prove every negative check and rollback with synthetic content, then request a separate approved-source import/index gate. |
+| Vendor auth/OAuth setup     | Approve Identity Platform TOTP, invitation delivery, Google OAuth consent/client/redirect, and token vault; first use a dedicated non-customer external test mailbox/synthetic ticket, then separately authorize client-selected real-Vendor acceptance. | S22 external Vendor portal.                         | Local app-plane/fake/emulator acceptance is green; no live Vendor principal/OAuth app is configured.                              | Prove invite→MFA→assigned ticket→OAuth→revoke, active invited-email rechecks, and mid-flight secret cleanup before first send or final Vendor acceptance.    |
+| Workflow recipient mappings | Identify the authoritative runtime adapters/fields for renewal owner/tenant and maintenance owner/vendor recipients and required values.                                                                                                                 | S25/S26 initiation.                                 | S24 artifacts/AI policy and missing/drift blocking are Local green; browser-entered addresses remain non-authoritative.           | Wire each mapped source in its provider slice and prove missing/drifted values block before Registry promotion.                                              |
+| R02/R03 provider contracts  | Work one exact row from `docs/v1-client-unblock-checklist-2026-07-14.md`; provide only its named account/plan/mapping evidence and credential-owner/location label.                                                                                      | Every final-V1 external action.                     | Product membership and typed local adapters are settled; account-specific contracts/mappings remain independently closed.         | Run that row's bounded proof with exact preview, one attempt, receipt/readback, monitor, and correction evidence before Registry review.                     |
+| Staged acceptance approvals | Approve each exact cloud config/deploy/live proof, then complete Dan business and Josiah technical acceptance only after S20–S27 pass.                                                                                                                   | Pre-V1 stages and final V1.                         | R09 sequencing/owners are settled; no new deploy or production proof is authorized by the response.                               | Manifest stays pre-V1 until every required action and Vendor portal are accepted.                                                                            |
 
 ## Resolved Client Foundations
 
@@ -58,25 +64,25 @@ leases, or tool secrets into this repo.
 
 ## Access And Accounts
 
-| Ask                        | Exact client action                                                                                                                                                                         |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Google Workspace admin     | COMPLETE: DWD client `104374162913177846911` has readonly, compose, labels, and modify; `mail.google.com` remains absent.                                                                   |
-| GCP/Firebase project       | COMPLETE: `pmi-kc-kb-prod`, billing, budgets/kill switch, Firebase/Firestore, and Cloud Run exist under the managed domain.                                                                 |
-| Firebase Auth              | COMPLETE for the managed domain and initial Admin path; confirm only the final operator roster/roles.                                                                                       |
-| External Vendor Auth       | S22 is Local green; it still needs approved Identity Platform TOTP, invite delivery, OAuth app/redirect, token vault, and first acceptance account.                                         |
-| Drive source folders       | Source drop zone is created and shared; add source material and confirm which folders/files are approved for KB and renewal material.                                                       |
-| Gmail workflow test access | Use fake transport or a synthetic self-addressed thread linked to an authorized test workflow; never scan an inbox for acceptance.                                                          |
-| Approval notifications     | Use in-app notifications. Do not provision an event-driven sender unless a future approved spec replaces the disabled legacy lane.                                                          |
-| Deployment domain          | COMPLETE: the canonical Cloud Run URL is the authorized production host.                                                                                                                    |
-| Secret ownership           | Name who owns production and staging Secret Manager access, API-key custody, key rotation, break-glass access, and revocation for each approved environment when integrations are approved. |
-| Tool credential rotation   | Josiah-owned follow-up for now; do not include in Dan's current source/walkthrough email thread.                                                                                            |
-| Signed lease system        | COMPLETE: executed leases are in Dotloop; lease end reads from the Rentvine lease record.                                                                                                   |
-| Renewal walkthrough        | COMPLETE for initial discovery: live walkthrough held 2026-06-19; an exact-click follow-up is optional, not a rediscovery blocker.                                                          |
-| Renewal source location    | Use the shared `Lease Renewals` source-drop-zone folder for captured workflow notes unless setup identifies a better client-accessible app-connected source.                                |
-| Renewal source access      | Grant the whole PMI KC team direct edit access to the initial Lease Renewal source-of-truth folder.                                                                                         |
-| Renewal source curation    | Let Dan set the review cadence and test the simplest low-cost copy path for all useful source file types from Drive into Cloud Storage plus Agent Search periodic ingestion.                |
-| Renewal source hygiene     | Move non-sources-of-truth out of the Lease Renewal source folder and identify where non-source, reference, or archive material should live.                                                 |
-| Maintenance intake source  | Identify where tenant maintenance requests and phone notes live.                                                                                                                            |
+| Ask                        | Exact client action                                                                                                                                                                                                 |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Google Workspace admin     | COMPLETE: DWD client `104374162913177846911` has readonly, compose, labels, and modify; `mail.google.com` remains absent.                                                                                           |
+| GCP/Firebase project       | COMPLETE: `pmi-kc-kb-prod`, billing, budgets/kill switch, Firebase/Firestore, and Cloud Run exist under the managed domain.                                                                                         |
+| Firebase Auth              | COMPLETE for the managed domain and initial Admin path; confirm only the final operator roster/roles.                                                                                                               |
+| External Vendor Auth       | S22 is Local green; it still needs approved Identity Platform TOTP, invite delivery, OAuth app/redirect, token vault, a non-customer external test mailbox proof, and separately authorized real-Vendor acceptance. |
+| Drive source folders       | Source drop zone is created and shared; add source material and confirm which folders/files are approved for KB and renewal material.                                                                               |
+| Gmail workflow test access | Use fake transport or a synthetic self-addressed thread linked to an authorized test workflow; never scan an inbox for acceptance.                                                                                  |
+| Approval notifications     | Use in-app notifications. Do not provision an event-driven sender unless a future approved spec replaces the disabled legacy lane.                                                                                  |
+| Deployment domain          | COMPLETE: the canonical Cloud Run URL is the authorized production host.                                                                                                                                            |
+| Secret ownership           | Name who owns production and staging Secret Manager access, API-key custody, key rotation, break-glass access, and revocation for each approved environment when integrations are approved.                         |
+| Tool credential rotation   | Josiah-owned follow-up for now; do not include in Dan's current source/walkthrough email thread.                                                                                                                    |
+| Signed lease system        | COMPLETE: executed leases are in Dotloop; lease end reads from the Rentvine lease record.                                                                                                                           |
+| Renewal walkthrough        | COMPLETE for initial discovery: live walkthrough held 2026-06-19; an exact-click follow-up is optional, not a rediscovery blocker.                                                                                  |
+| Renewal source location    | Use the shared `Lease Renewals` source-drop-zone folder for captured workflow notes unless setup identifies a better client-accessible app-connected source.                                                        |
+| Renewal source access      | Grant the whole PMI KC team direct edit access to the initial Lease Renewal source-of-truth folder.                                                                                                                 |
+| Renewal source curation    | Let Dan set the review cadence and test the simplest low-cost copy path for all useful source file types from Drive into Cloud Storage plus Agent Search periodic ingestion.                                        |
+| Renewal source hygiene     | Move non-sources-of-truth out of the Lease Renewal source folder and identify where non-source, reference, or archive material should live.                                                                         |
+| Maintenance intake source  | Identify where tenant maintenance requests and phone notes live.                                                                                                                                                    |
 
 ## Source Material
 
@@ -117,17 +123,23 @@ leases, or tool secrets into this repo.
 
 ## Testing And Training
 
-| Ask                      | Exact client action                                                                               |
-| ------------------------ | ------------------------------------------------------------------------------------------------- |
-| Test users               | Use Josiah and Dan as initial Admin smoke users; add scoped Editor/Approver tests when delegated. |
-| Acceptance scenarios     | Provide real but safe scenarios for KB, renewals, and owner-email workflows.                      |
-| Training attendees       | Name who must be trained for each product.                                                        |
-| Production support owner | Name who watches the products after launch and reports issues.                                    |
+| Ask                       | Exact client action                                                                                                                 |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Test users                | Use Josiah and Dan as initial Admin smoke users; add scoped Editor/Approver tests when delegated.                                   |
+| Acceptance scenarios      | Provide real but safe scenarios for KB, renewals, and owner-email workflows.                                                        |
+| Training attendees        | Name who must be trained for each product.                                                                                          |
+| Production support window | Josiah owns technical monitoring/rollback; name the dated support window, escalation contact, operator roster, and test identities. |
 
 ## Current Blockers
 
-- **No product-decision blocker remains from the audit.** S20–S27 safe local boundaries are built.
-  Use the pre-release ledger to unblock one exact provider/action proof at a time; do not repeat R01–R09.
+- **Use the exact unblock checklist.**
+  `docs/v1-client-unblock-checklist-2026-07-14.md` is the complete recommendation-first packet for
+  S21, S22, S24, every S25/S26 action, and S27. Do not replace it with a generic request for
+  "provider access" or repeat R01–R09.
+- **No product-decision blocker remains from the audit.** The safe local path uses invented
+  `example.invalid` aliases, exact Registry previews, typed S22/S25/S26 adapters, one-attempt
+  receipts, and zero provider calls. Production rejects fake providers and never treats that
+  synthetic result as provider proof.
 - **Launch content:** approve production files/folders, sensitivity, and source/data-store maps for
   the first launch Spaces. Cloud/Firebase/billing/domain setup is already complete.
 - **Workflow Communications promotion:** separately activate the Local-green S24 TTL/cleanup policy,
@@ -140,10 +152,12 @@ leases, or tool secrets into this repo.
 - **Release action gate:** the local candidate and later pre-V1 stages need explicit deploy/smoke
   approval. Final V1 also requires every action/Vendor E2E plus Dan/Josiah acceptance.
 
-Final-V1 blockers until real-provider proof and acceptance: QuickBooks draft bill, LeadSimple, Dotloop,
-Boom, Sheet writeback, Rentvine renewal/portal and Maintenance create/assign/update/close, Drive photo,
-SMS, workflow Gmail initiation, Vendor auth/OAuth/mail, and all other S25/S26 rows. Their local graphs
-and fakes are built; none is live-authorized. Generic Gmail inbox/compose,
+Final-V1 remains blocked until the exact checklist rows have real-provider/configuration evidence and
+named acceptance. That includes trusted-publication production resources, S24 production cleanup/TTL,
+Vendor identity/OAuth/mail, each S25/S26 action, a captured prior revision and rollback rehearsal,
+desktop/phone deployed acceptance, dependency disposition, a dated support window/operator roster,
+and Dan/Josiah signatures. Their local
+typed synthetic journeys are built; none of that opens a production gate. Generic Gmail inbox/compose,
 autonomous send, extra delegated approvers, and event-driven approval email remain outside V1.
 
 - Any request involving raw customer records, ledgers, bank data, SSNs, full lease

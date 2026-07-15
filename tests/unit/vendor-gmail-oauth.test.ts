@@ -21,6 +21,8 @@ describe("Vendor Gmail OAuth", () => {
   it("uses state, PKCE, offline access, exact scopes, and token-vault storage", async () => {
     let saved: VendorOAuthState | undefined;
     const store = {
+      isVendorActive: async (_vendorId: string, _uid: string, email: string) =>
+        email === principal.email,
       saveState: async (state: VendorOAuthState) => void (saved = state),
       claimState: async () => saved ?? null,
       saveConnection: vi.fn().mockResolvedValue(undefined),
@@ -96,6 +98,7 @@ describe("Vendor Gmail OAuth", () => {
         },
         {
           store: {
+            isVendorActive: vi.fn().mockResolvedValue(true),
             saveState: vi.fn(),
             claimState: vi.fn().mockResolvedValue({
               stateHash: "hash",
@@ -116,5 +119,106 @@ describe("Vendor Gmail OAuth", () => {
       ),
     ).rejects.toBeDefined();
     expect(vault).not.toHaveBeenCalled();
+  });
+
+  it("rejects a changed verified login email before saving OAuth state", async () => {
+    const saveState = vi.fn();
+    await expect(
+      beginVendorOAuth(
+        {
+          principal: { ...principal, email: "changed@example.com" },
+          clientId: "client-id",
+          redirectUri,
+          expectedRedirectUri: redirectUri,
+        },
+        {
+          isVendorActive: async (_vendorId, _uid, email) => email === principal.email,
+          saveState,
+          claimState: vi.fn(),
+          saveConnection: vi.fn(),
+        },
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+    expect(saveState).not.toHaveBeenCalled();
+  });
+
+  it("rejects invited-email drift at callback before state claim or provider exchange", async () => {
+    const claimState = vi.fn();
+    const exchange = vi.fn();
+    await expect(
+      completeVendorOAuth(
+        {
+          principal: { ...principal, email: "changed@example.com" },
+          state: "state",
+          code: "code",
+          redirectUri,
+          expectedRedirectUri: redirectUri,
+        },
+        {
+          store: {
+            isVendorActive: async (_vendorId, _uid, email) => email === principal.email,
+            saveState: vi.fn(),
+            claimState,
+            saveConnection: vi.fn(),
+          },
+          provider: { exchange },
+          vault: { storeRefreshToken: vi.fn(), destroySecret: vi.fn() },
+        },
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+    expect(claimState).not.toHaveBeenCalled();
+    expect(exchange).not.toHaveBeenCalled();
+  });
+
+  it("revalidates the invited email before exchange and connection persistence", async () => {
+    const state: VendorOAuthState = {
+      stateHash: "hash",
+      vendorId: principal.vendorId,
+      actorUid: principal.uid,
+      redirectUri,
+      pkceVerifier: "verifier",
+      expiresAtMs: 10_000,
+    };
+    const exchange = vi.fn().mockResolvedValue({
+      mailboxEmail: principal.email,
+      refreshToken: "refresh-secret",
+      scopes: VENDOR_OAUTH_SCOPES,
+      provider: "google",
+    });
+    const vault = vi.fn().mockResolvedValue("projects/p/secrets/vendor-a");
+    const destroySecret = vi.fn().mockResolvedValue(undefined);
+    const saveConnection = vi.fn();
+    const active = vi
+      .fn()
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+
+    await expect(
+      completeVendorOAuth(
+        {
+          principal,
+          state: "state",
+          code: "code",
+          redirectUri,
+          expectedRedirectUri: redirectUri,
+        },
+        {
+          store: {
+            isVendorActive: active,
+            saveState: vi.fn(),
+            claimState: vi.fn().mockResolvedValue(state),
+            saveConnection,
+          },
+          provider: { exchange },
+          vault: { storeRefreshToken: vault, destroySecret },
+          now: () => 2_000,
+        },
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+    expect(exchange).toHaveBeenCalledTimes(1);
+    expect(vault).toHaveBeenCalledTimes(1);
+    expect(destroySecret).toHaveBeenCalledWith("projects/p/secrets/vendor-a");
+    expect(saveConnection).not.toHaveBeenCalled();
   });
 });

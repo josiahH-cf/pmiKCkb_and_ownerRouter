@@ -1,4 +1,8 @@
 import type { ExecutionActor, ExecutionApproval } from "@/lib/execution/types";
+import type {
+  ExecutionTechnicalGates,
+  WorkflowCommunicationGates,
+} from "@/lib/execution/risk-policy";
 
 export type ExternalExecutionRisk = "Low" | "Medium" | "High";
 export type ExternalExecutionState =
@@ -39,8 +43,14 @@ export interface ExternalAuthorityContext {
   /** Medium actions bind the confirming actor to the current external preview hash. */
   exactConfirmationHash?: string;
   roleScopeAuthorized: boolean;
+  /** Server-derived Registry/provider readiness; browser JSON never supplies these gates. */
+  technical: ExecutionTechnicalGates;
+  /** Server-derived workflow/mailbox/automation facts; exact confirmation is hash-derived. */
+  communication?: Omit<WorkflowCommunicationGates, "exactConfirmed">;
   /** S22 checks supplied only after verified-email TOTP and the server-owned assignment join. */
   vendor?: {
+    /** Admin support was separately authorized for this exact Vendor/account/ticket context. */
+    adminSupportAuthorized?: boolean;
     assignedTicket: boolean;
     sameMailbox: boolean;
     selfConsent: boolean;
@@ -62,6 +72,7 @@ export interface ExternalExecutionRecord {
   workflowId: string;
   actionId: string;
   actionKey: string;
+  contextHash: string;
   previewHash: string;
   idempotencyKey: string;
   state: ExternalExecutionState;
@@ -73,12 +84,20 @@ export interface ExternalExecutionRecord {
 }
 
 export interface ExternalExecutor {
+  /**
+   * Pure, provider-free validation for action-specific fields. The orchestrator runs this
+   * during prepare and again immediately before the atomic claim so malformed or drifted
+   * input consumes zero external attempts.
+   */
+  validate?(input: ExternalActionInput): string | null;
   execute(input: ExternalActionInput): Promise<ExternalActionReceipt>;
   reconcile(input: ExternalActionInput): Promise<ExternalActionReceipt | null>;
   correct?(input: ExternalActionInput, receipt: ExternalActionReceipt): Promise<void>;
 }
 
 export interface ExternalExecutionStore {
+  /** Production S22 execution requires the durable Firestore implementation. */
+  readonly persistence?: "firestore" | "memory";
   get(id: string): Promise<ExternalExecutionRecord | null>;
   create(record: ExternalExecutionRecord): Promise<void>;
   claim(id: string, previewHash: string): Promise<"claimed" | "duplicate" | "blocked">;

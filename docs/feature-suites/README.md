@@ -3,8 +3,8 @@
 Executable specs for the discussed backlog. Each suite is self-contained: Goal · What it is / how it
 functions · Open questions & assumptions (labeled) · Cross-product impacts · Ordered prompt sequence ·
 Deletion/merge recommendation. **A suite's status column is authoritative; a spec alone is not a built
-feature.** Lease-renewal in particular
-stays discovery-gated until the team validates the process, column meanings, and golden data.
+feature.** Historical S3 Lease Renewal discovery remains evidence; S25 is the final-V1 execution
+contract and stays externally gated until its provider contracts, mappings, proofs, and acceptance pass.
 
 Order is deliberate — governance first, then audience/copy, then the per-process suites. Open design
 decisions are tracked in `docs/facts.md`; the golden next-step order is in
@@ -32,6 +32,10 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 > phase with S20–S27. The dependency-ordered outside-session packet is
 > `docs/v1-gap-implementation-program-2026-07-14.md`. S20–S27 are final-V1 product contracts, not
 > standing authorization for live accounts, OAuth, reads, sends, writes, configuration, or deploys.
+> Safe local hardening now includes bounded/chunked S21 publication, the bounded emulator-only S24
+> cleanup worker, exact typed adapters for all 11 S25 and 19 S26 action keys, an S20 preparation bridge,
+> and hardened S27 synthetic/manifest/cutover boundaries. Those results remain local or Gated; they are
+> not live proof or V1 acceptance.
 
 | Suite                                      | File                                                   | Status                                         |
 | ------------------------------------------ | ------------------------------------------------------ | ---------------------------------------------- |
@@ -55,10 +59,10 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 | S18 Process auto-initiation (anticipation) | `docs/feature-suites/process-auto-initiation.md`       | Spec — app-plane, ready to run                 |
 | S19 Workflow-bounded Gmail per user        | `docs/feature-suites/gmail-live-per-user.md`           | Built locally; promotion gates remain          |
 | S20 Risk-bounded execution authority       | `docs/feature-suites/execution-authority.md`           | Local green — 2026-07-14                       |
-| S21 Trusted immediate publication          | `docs/feature-suites/trusted-publication.md`           | Local green — 2026-07-14                       |
+| S21 Trusted immediate publication          | `docs/feature-suites/trusted-publication.md`           | Local green — chunked/fenced; live setup gated |
 | S22 External Vendor portal + Gmail OAuth   | `docs/feature-suites/vendor-portal-and-mailbox.md`     | Local green — 2026-07-14; live setup gated     |
 | S23 Console live/test-data boundary        | `docs/feature-suites/console-live-data.md`             | Local green — 2026-07-14                       |
-| S24 Communications policy + artifacts      | `docs/feature-suites/communications-policy.md`         | Local green — 2026-07-14                       |
-| S25 Lease Renewal external execution       | `docs/feature-suites/lease-renewal-execution.md`       | Gated — local boundary green; proofs pending   |
-| S26 Maintenance external execution         | `docs/feature-suites/maintenance-execution.md`         | Gated — local boundary green; proofs pending   |
-| S27 Staged pre-V1 + final acceptance       | `docs/feature-suites/v1-release-acceptance.md`         | Gated — local readiness green; acceptance open |
+| S24 Communications policy + artifacts      | `docs/feature-suites/communications-policy.md`         | Local green — bounded worker; live TTL gated   |
+| S25 Lease Renewal external execution       | `docs/feature-suites/lease-renewal-execution.md`       | Gated — all 11 typed local paths green         |
+| S26 Maintenance external execution         | `docs/feature-suites/maintenance-execution.md`         | Gated — all 19 typed local paths green         |
+| S27 Staged pre-V1 + final acceptance       | `docs/feature-suites/v1-release-acceptance.md`         | Gated — hardened local readiness; gates open   |

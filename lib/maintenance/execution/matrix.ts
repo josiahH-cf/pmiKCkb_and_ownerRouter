@@ -66,9 +66,9 @@ export const MAINTENANCE_EXECUTION_DEFINITIONS: readonly ExternalActionDefinitio
   def(MAINTENANCE_EXECUTION_ACTIONS[5], "Mailbox lifecycle", "Low", [
     MAINTENANCE_EXECUTION_ACTIONS[3],
   ]),
-  def(MAINTENANCE_EXECUTION_ACTIONS[6], "Drive photos", "Medium", [
-    MAINTENANCE_EXECUTION_ACTIONS[2],
-  ]),
+  // Internal Editors can append a scanned ticket photo without assigning an external Vendor.
+  // Vendor actors still need the S22 assigned-ticket authority check at execution time.
+  def(MAINTENANCE_EXECUTION_ACTIONS[6], "Drive photos", "Medium", []),
   def(MAINTENANCE_EXECUTION_ACTIONS[7], "Rentvine create", "High", []),
   def(MAINTENANCE_EXECUTION_ACTIONS[8], "Rentvine lifecycle", "High", [
     MAINTENANCE_EXECUTION_ACTIONS[7],
@@ -87,7 +87,7 @@ export const MAINTENANCE_EXECUTION_DEFINITIONS: readonly ExternalActionDefinitio
     MAINTENANCE_EXECUTION_ACTIONS[3],
     MAINTENANCE_EXECUTION_ACTIONS[2],
   ]),
-  def(MAINTENANCE_EXECUTION_ACTIONS[13], "Vendor email", "Low", [
+  def(MAINTENANCE_EXECUTION_ACTIONS[13], "Vendor email", "Medium", [
     MAINTENANCE_EXECUTION_ACTIONS[12],
   ]),
   def(MAINTENANCE_EXECUTION_ACTIONS[14], "Vendor email", "Medium", [

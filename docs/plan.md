@@ -16,8 +16,9 @@ product doc explicitly preserves a safety boundary.
 
 - The client-owned Cloud Run application is deployed and its auth, cited Ask, Console,
   Notifications, renewal review, Maintenance desk, and Gmail transport have direct production
-  evidence. The 2026-07-14 Workflow Communications boundary is fully verified locally but is not
-  committed or deployed.
+  evidence. The broader 2026-07-14 S20–S27 candidate is local only: its current hardening includes
+  bounded/chunked S21 content, indexed/emulator-only S24 cleanup, exact S20-bridged S25/S26 adapters,
+  and a production-only S27 manifest, but none of those newer seams is deployed or Live-proven.
 - PMI KC-owned GCP/Firebase, billing, domain auth, the $10 kill switch, Rentvine reads, renewal-Sheet
   DWD reads, Gmail DWD transport, and the first Admin path are established. They are not current V1
   blockers.
@@ -35,6 +36,10 @@ product doc explicitly preserves a safety boundary.
 - Workflow Communications is the active Gmail product boundary. The KB-hosted surface exposes
   only authorized workflow links, value-free attention, governed labels, approved drafts, and
   exact-confirmed replies; it does not expose a recent inbox, arbitrary search, or generic compose.
+- Safe local acceptance uses canonical non-routable `example.invalid` aliases plus invented lease,
+  ticket, unit, Vendor, folder, thread, process, work-order, account, and document references. The
+  harness traverses the real S22 domain services and all 11 S25 plus 19 S26 typed adapters with zero
+  live provider calls; this is Local-green evidence only and cannot satisfy a production proof.
 - The evidence map starts at `docs/v1-readiness-audit-2026-07-14.html`; the final owner contract is
   `docs/v1-readiness-audit-round-3-2026-07-14.html`, and implementation starts from
   `docs/v1-gap-implementation-program-2026-07-14.md`.
@@ -82,8 +87,8 @@ git diff --check
 
 ### P1 - Discovery And Source Inventory
 
-Status: in progress — default approvers are named; final acceptance, support, rollback, source, and
-workflow-artifact owners still need confirmation.
+Status: in progress — Dan business acceptance and Josiah technical go-live/monitoring/rollback are
+resolved; the final support window/operator roster and source/workflow-artifact owners remain.
 
 Acceptance criteria:
 
@@ -173,8 +178,9 @@ Acceptance criteria:
   approval-ready, blocked, failed automation, and overdue events.
 - Escalation/failure model is approved: blocking automation failures fail the run,
   non-blocking automation failures fail the step and block the run, failed notification
-  processing creates Admin-visible in-app health, and external action failures keep attempted
-  payload, error, target system, timestamp, and retry status.
+  processing creates Admin-visible in-app health, and external action failures keep only bodyless
+  preview/context/result hashes, provider/target identifiers, a safe error code, timestamp, attempt
+  count, and reconciliation status—never the attempted payload.
 - External-action type governance is approved by target system plus action type. S20 makes enabled
   Low/Medium instances direct for internal Editors, routes consequential High work to Admin, permits
   Admin self-approval, and keeps technical Blocked conditions non-executable. Planned actions remain
@@ -204,8 +210,8 @@ npm run format:check
 ### P5 - Build And Migration Preparation
 
 Status: in progress — dry-runs for imports/setup/seeders/preflights exist (`npm run cutover:dry-run`);
-KB production source manifests await approved client sources, and the verified local Workflow
-Communications boundary awaits owner review before commit/deploy.
+KB production source manifests await approved client sources. The safe-local S20–S27 candidate is
+current-verifier green; deployment remains separately gated by the exact external checklist.
 
 Acceptance criteria:
 
@@ -228,10 +234,12 @@ npm run seed:launch-skeletons -- --dry-run
 ### P6 - Testing, Training, And Acceptance
 
 Status: in progress — the final Round 3 contract and S20–S27 specs are locked. S20–S24 are Local green
-(including S22 Vendor app-plane). S25/S26 safe local execution boundaries and S27 local release
-readiness artifacts are built but remain Gated on real provider contracts/mappings, permitted proofs,
-deployment/browser/rollback acceptance, and Dan/Josiah signoff. Internal plus Vendor operator training
-also remains.
+(including the S21 bounded content store, S22 Vendor app-plane journey, and S24 bounded emulator cleanup).
+S25/S26 have exact Registry schemas, the S20 queue bridge, action-level readiness, and all 11 + 19 typed
+synthetic adapter proofs. S27 has a production-only manifest and exact release/unblock artifacts. These
+remain Gated on real provider contracts/mappings, permitted proofs, deployed role/failure-path browser
+and rollback evidence, dependency disposition, and Dan/Josiah signoff. The emulator-backed local
+desktop/phone render and overflow regression is green. Internal plus Vendor operator training also remains.
 
 Acceptance criteria:
 
@@ -313,9 +321,9 @@ Acceptance criteria:
 - Approval queue empty/error-state tests prove production-safe empty states, no fake/demo
   production queue items, plain loading/error messages, `Blocked` routing for missing
   evidence/permissions/connections, and clear test/demo run marking.
-- Approval queue permission tests prove normal user/Admin boundaries, self-approval
-  blocking, safe permission-error messages, and Admin triage routing for missing assignee
-  or approver.
+- Approval queue permission tests prove normal user/Admin boundaries, block non-Admin or ineligible
+  self-assigned inline approval, preserve reasoned exact-preview Admin self-approval for High work,
+  show safe permission-error messages, and route missing assignee or approver to Admin triage.
 - Approval queue AI-boundary tests prove AI can suggest fixed-field values but cannot
   approve, disable, close, execute, override permissions, or make suggestions effective
   outside the normal action/approval path.
@@ -336,17 +344,19 @@ bash scripts/verify.sh
 
 ### P7 - Production Cutover And Monitoring
 
-Status: in progress — production revision `pmi-kc-kb-demo-00020-24d` proves the S19 transport
-baseline; the locally verified workflow-boundary candidate is not deployed. Dan/Josiah release
-ownership and tab direction are resolved. S20/S21/S22/S23/S24 are Local green; the external Vendor
-live setup and named workflow writes now expand V1. R01–R09 are decision-complete; S25/S26 safe local
-execution boundaries and S27 local release artifacts are built but Gated. Final release still needs
-approved production source/provider mappings, action-by-action proof, integrated browser/rollback
-acceptance, dependency disposition, and explicit deploy/smoke/final-acceptance approval.
+Status: in progress — production revision `pmi-kc-kb-demo-00020-24d` proves only the S19 transport
+baseline; the newer S20–S27 candidate is not deployed. Dan/Josiah release ownership and tab direction
+are resolved. Safe-local implementation is exhausted through typed S22/S25/S26 acceptance and a
+production-only S27 manifest, but every unresolved row in
+`docs/v1-client-unblock-checklist-2026-07-14.md` remains Gated. Final release still needs approved
+production source/provider mappings, action-by-action Live-proven evidence, eight-surface browser and
+rollback records, dependency disposition, deployment/smoke evidence, and both named acceptances.
 
 Acceptance criteria:
 
-- Go-live owner, support window, rollback owner, and monitoring owner are named.
+- Dan is the business-acceptance owner and Josiah is the technical go-live/monitoring/rollback owner;
+  the support window, escalation contact, operator roster, and test identities are recorded before
+  cutover.
 - Production deploy/setup steps are executed from client-owned resources.
 - Smoke tests pass after cutover.
 - Exceptions and next iteration work are recorded in `docs/status.md`.
@@ -366,21 +376,22 @@ bash scripts/verify.sh
 ### PMI KC KB
 
 Current state: the client-owned service is live and directly verified; the 2026-07-14 local candidate
-adds the narrower workflow-communication product boundary. Round 3 defines final V1 as an external-user
-release with S20–S27 risk, publication, Vendor, Console, communications, workflow-action, and staged
-acceptance contracts. S20–S24 are Local green in dependency order (including S22's external Vendor
-app-plane). S25/S26 now have complete safe local action graphs, one-attempt orchestration, fake adapters,
-and adversarial tests; S27 has the pre-V1 manifest, integrated fake acceptance, ledger, and operations/
-browser plans. Those three suites remain Gated, not Accepted, until real account contracts/mappings,
-per-action proofs, deployment/browser/rollback evidence, and named acceptance exist. S22 live identity/
-OAuth/vault/invite, S23 live adapters, and S24 TTL/scheduler remain separately gated.
+adds the narrower workflow-communication product boundary and the Round 3 S20–S27 contract. S20–S24 are
+Local green, including bounded/hash-chunked S21 publication, S22's external Vendor app-plane, and bounded
+indexed emulator-only S24 cleanup. S25/S26 now have exact Registry schemas, same-workflow dependency
+receipts, a real S20 queue bridge, complete typed 11 + 19 adapter graphs, action-level readiness, and
+canonical non-routable synthetic acceptance. S27 rejects local/synthetic promotion and requires exact
+production pins/evidence. All external rows remain Gated, not Live-proven or Accepted, until the detailed
+client-unblock checklist closes. S22 live identity/OAuth/vault/invite, S23 live adapters, S24 indexes/
+held-record migration/TTL/scheduler, and all S25/S26 provider actions remain separately gated.
 
 Key gates:
 
 - Approved production sources and source-state metadata.
 - Approved source files, sensitivity decisions, source maps, and data-store maps for the launch
   Spaces. The underlying GCP/Firebase/Auth service and canonical URL already exist.
-- Final operator roles plus named go-live, acceptance, support, monitoring, and rollback owners.
+- Final support window, escalation contact, operator roles/test identities, and source/artifact owners;
+  Dan business acceptance and Josiah technical go-live/monitoring/rollback ownership are resolved.
 - In-app approval notifications remain the V1 delivery path; legacy event-driven Gmail delivery is
   disabled and is not a launch dependency.
 - Internal staff retain `Editor`, `Approver`, and `Admin` capability tiers, optionally narrowed by
@@ -394,11 +405,10 @@ Key gates:
 ### Lease Renewal Agent
 
 Current state: deterministic Phase-1 read/reconcile/review is built; one live Rentvine export and the
-renewal Sheet DWD read are proven. App-plane resolution and writeback authorization exist, while
-every Sheet/Rentvine/Dotloop/LeadSimple/QuickBooks/Boom write remains non-executable. R02 makes
-the named end-to-end outputs V1 product scope; Round 3 classifies every R02 Gmail/Sheet/Rentvine/
-Dotloop/portal/SMS/conditional-Boom group as app-executed final-V1 work under S25. None is silently
-manual/later, and provider-contract gaps block release.
+renewal Sheet DWD read are proven. The S25 local graph now exercises all 11 governed Gmail, Sheet CAS,
+Rentvine, Dotloop, portal, SMS, and conditional-Boom typed adapters with exact synthetic inputs and zero
+live calls. That does not widen authority: every S25 production action remains closed, and real provider
+contracts/mappings/proofs still block final V1 rather than becoming tracked-manual fallbacks.
 
 Key gates:
 
@@ -579,9 +589,10 @@ Current state: S19 retains the owner-approved per-authenticated-user Gmail trans
 production proof, but the application is now workflow-bounded. DWD still carries readonly,
 compose, labels, and modify. The Action Registry exposes workflow-targeted read, governed draft,
 exact-confirmed reply, and approved-label actions; generic send is disabled, and renewal and
-maintenance notice drafts remain Planned in current code. R07 approves the exact current three base
-generators as v1.0 plus the S24 AI policy; S25/S26 must still wire authoritative runtime recipients and
-values before those actions can be promoted.
+maintenance notice initiation remains closed. S24's exact artifacts, retention policy, indexed
+bounded crash-resumable cleanup, Date/Timestamp TTL, dual-null legal hold, and emulator-only worker are Local green. S25/S26 must still
+wire authoritative runtime recipients/values and obtain per-action Live-proven evidence before
+promotion; production indexes/held-record migration/TTL/scheduler remain separate S24 gates.
 
 Key gates:
 
@@ -604,10 +615,11 @@ Key gates:
 
 - Client production resources, domain auth, and the initial Admin path are available; approved
   content scope and final operational ownership remain incomplete.
-- Lease Renewal Agent requires integrations and permissions not yet known; the full
-  system list remains TBD until scoped with the client.
-- Maintenance automation requires further chatbot/phone-system product alignment; tools,
-  services, and connections remain TBD until scoped with the client.
+- Lease and Maintenance action membership is no longer ambiguous. Exact provider contracts,
+  account/plan permissions, authoritative field mappings, credential ownership, and correction proofs
+  remain unknown per row in `docs/v1-client-unblock-checklist-2026-07-14.md`.
+- Maintenance chatbot/phone intake cannot be inferred as an external execution provider. The approved
+  S26 action list is implemented locally; any additional tool or behavior needs a separate contract.
 - Workflow Communications derives the mailbox only from the server-verified session and requires
   an authorized workflow context before a targeted thread read, so no other domain mailbox or
   unrelated thread is scanned merely because DWD could impersonate or read it.
@@ -620,14 +632,14 @@ Key gates:
 
 ## Recommended Development Sequence
 
-1. Keep the KB demo and verification path green.
-2. Stand up PMI KC KB production with the first four internal Spaces.
-3. Operate Workflow Communications through S19's workflow-linked boundary; keep historical
-   processing and general mailbox automation out of scope unless a later privacy/governance spec
-   explicitly reopens them.
-4. Scope and build Lease Renewal as the first full backend automation with connected
-   apps and explicit approval.
-5. Scope Maintenance automation after chatbot/phone intake behavior is aligned and
-   tested.
-6. Scope Move-Out + Deposit Disposition automation after the workflow-run and approval
-   patterns mature.
+1. Keep the deployed KB/S19 baseline and current local verification path green.
+2. Work `docs/v1-client-unblock-checklist-2026-07-14.md` one row at a time; retain the recommended
+   closed default until exact evidence and separate authority exist.
+3. Close S21 production root/scanner and S24 indexes/held-record migration/TTL/scheduler only through
+   their bounded proof packets; never treat local fakes as production evidence.
+4. Close S22 identity/OAuth/Vendor-mail evidence before depending on an external Vendor principal.
+5. Prove each S25/S26 provider action independently with authoritative mappings, one attempt,
+   reconciliation, monitoring, correction, code-reviewed Registry promotion, and exact authority.
+6. Complete S27 production deployment/smoke, pinned eight-surface desktop/phone role/failure-path browser record, rollback
+   rehearsal to a captured prior revision, dependency disposition, and Dan/Josiah acceptance before
+   changing the Pre-V1 label.

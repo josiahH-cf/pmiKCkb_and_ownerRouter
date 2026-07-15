@@ -46,7 +46,8 @@ every-session reading is Tier 0 + Tier 1; everything else is reached on demand t
 
 - `docs/implement.md` / `docs/ai-execution-workflow.md` when the operating workflow is in question.
 - the latest entries in `docs/status.md` for the history behind a fact.
-- `docs/client-checklist.md` and `docs/research-backlog.md` when choosing client-unblock work.
+- `docs/client-checklist.md`, `docs/v1-client-unblock-checklist-2026-07-14.md`, and
+  `docs/research-backlog.md` when choosing client-unblock work.
 - `docs/engineering.md` and `docs/engineering-checklist.md` when writing code.
 - `docs/environment-handoff.md` when setup, keys, environments, manual tests, or handoff are
   relevant.
@@ -115,6 +116,11 @@ surface. Record the state as migration-ready but client-blocked, move speculativ
 to backlog/status, and make the next recommended task client unblock, production setup,
 approved migration, or cutover prep.
 
+For the final-V1 program, use the exact recommendation-first row in
+`docs/v1-client-unblock-checklist-2026-07-14.md`. Invented aliases and typed fake providers remain the
+default for blocked-work regression, but production must reject fake providers, Registry overrides,
+synthetic escapes, and schema/risk lowering. A local receipt never closes an external evidence row.
+
 Defer work that would expand workflow, Approval Queue, Lease Renewal, Workflow Communications, or
 demo-only behavior without a direct migration-readiness reason. This is not a hard stop
 on useful prep; it is a stop on local feature loops that substitute for customer
@@ -160,8 +166,8 @@ Read the trigger literally to avoid re-prompting:
   between internal phases or between safe slices.
 
 For the active 2026-07-14 V1 goal, the decision-complete packet already exists. `/loop` or any run/
-continue/implement trigger starts the first exact open proof packet (currently
-`gmail.renewal_notice.draft_create` in `docs/v1-pre-release-report-2026-07-14.md`) and follows the
+continue/implement trigger starts the recommended exact open proof packet (currently trusted
+publication / `app.content.publish` in `docs/v1-client-unblock-checklist-2026-07-14.md`) and follows the
 dependency order in `docs/v1-gap-implementation-program-2026-07-14.md`. S25/S26/S27 local boundaries
 are built but Gated; do not regenerate Round 3 questions or infer a provider contract. Continue
 safe fake-provider/emulator slices; stop before each exact live/config/provider gate.

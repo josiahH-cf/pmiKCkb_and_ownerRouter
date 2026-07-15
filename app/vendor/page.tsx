@@ -13,6 +13,7 @@ export default async function VendorPage() {
     !(await store.activateVendor(
       principal.vendorId,
       principal.uid,
+      principal.email,
       new Date().toISOString(),
     ))
   ) {

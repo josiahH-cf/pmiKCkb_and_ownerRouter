@@ -2,19 +2,19 @@ import { describe, expect, it } from "vitest";
 
 import { CreateProcessDefinitionInputSchema } from "@/lib/firestore/schemas";
 import {
+  TENANT_RENEWAL_NOTICE_ACTION_KEYS,
   TENANT_RENEWAL_NOTICE_STEP_TITLES,
   buildTenantRenewalNoticeProcessTemplate,
 } from "@/lib/lease-renewal/tenant-renewal-notice/process-template";
 
-// Tenant Renewal Notice template (space-teeth E3b): a valid Draft whose steps wrap the existing
-// buildTenantOfferDraft + the new buildDotloopFollowUpDraft; its two Dotloop action references stay
-// Needs Permission, none Approved for Execution.
+// Tenant Renewal Notice template: a valid Draft whose steps wrap the existing composers and expose
+// the complete channel/document subset of S25 without granting workflow-instance execution.
 
 const EXPECTED_TITLES = [
   "Gather facts",
   "Compose tenant offer draft",
   "Compose Dotloop follow-up draft",
-  "Human approval / send",
+  "Exact-confirmed execution",
 ];
 
 describe("buildTenantRenewalNoticeProcessTemplate", () => {
@@ -32,17 +32,32 @@ describe("buildTenantRenewalNoticeProcessTemplate", () => {
     expect([...TENANT_RENEWAL_NOTICE_STEP_TITLES]).toEqual(EXPECTED_TITLES);
   });
 
-  it("references the two EXISTING Dotloop keys, both Needs Permission, none Approved for Execution", () => {
+  it("references the complete tenant-channel and Dotloop S25 subset without instance promotion", () => {
     const refs = template.action_references ?? [];
     const keys = refs.map((ref) => ref.action_registry_key);
-    expect(keys).toEqual([
+    expect(TENANT_RENEWAL_NOTICE_ACTION_KEYS).toEqual([
+      "gmail.renewal_notice.draft_create",
+      "gmail.renewal_notice.send",
+      "gmail.thread.reply",
+      "gmail.label.apply",
+      "rentvine.renewal.portal_message.send",
+      "sms.renewal_message.send",
       "dotloop.loop.create_from_template",
       "dotloop.document.upload",
     ]);
+    expect(keys).toEqual(TENANT_RENEWAL_NOTICE_ACTION_KEYS);
     for (const ref of refs) {
-      expect(ref.readiness).toBe("Needs Permission");
       expect(ref.readiness).not.toBe("Approved for Execution");
     }
+  });
+
+  it("preserves exact human authority without stale manual-only or autonomous-send copy", () => {
+    const copy = JSON.stringify(template);
+    expect(copy).toContain("exact human confirmation");
+    expect(copy).toContain("No autonomous, bulk, scheduled, or model-triggered send");
+    expect(copy).not.toMatch(
+      /human sends|sent by a human|app never sends|sends them by hand/i,
+    );
   });
 
   it("names the composers it wraps in the step descriptions (surface, not execute)", () => {

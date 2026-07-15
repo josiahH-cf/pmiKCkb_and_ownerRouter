@@ -2,7 +2,7 @@ import type { VendorPrincipal, VendorTicketProjection } from "@/lib/vendor/model
 import { VendorBoundaryError } from "@/lib/vendor/model";
 
 export interface VendorAssignmentRepository {
-  isVendorActive(vendorId: string, uid: string): Promise<boolean>;
+  isVendorActive(vendorId: string, uid: string, email: string): Promise<boolean>;
   listAssignedTickets(vendorId: string): Promise<VendorTicketProjection[]>;
   getAssignedTicket(
     vendorId: string,
@@ -17,9 +17,11 @@ export interface VendorAssignmentRepository {
 
 export async function assertActiveVendor(
   principal: VendorPrincipal,
-  repository: VendorAssignmentRepository,
+  repository: Pick<VendorAssignmentRepository, "isVendorActive">,
 ) {
-  if (!(await repository.isVendorActive(principal.vendorId, principal.uid))) {
+  if (
+    !(await repository.isVendorActive(principal.vendorId, principal.uid, principal.email))
+  ) {
     throw new VendorBoundaryError("Vendor account is unavailable.", 404);
   }
 }

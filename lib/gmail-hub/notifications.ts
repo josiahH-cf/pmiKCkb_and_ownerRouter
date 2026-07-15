@@ -5,6 +5,7 @@ import {
   FirestoreGmailStateStore,
   type GmailStateStore,
 } from "@/lib/gmail-hub/state-store";
+import { isCommunicationsRecordActive } from "@/lib/gmail-hub/retention-policy";
 import { workflowEntityHref } from "@/lib/gmail-hub/workflow-context";
 import type { UnifiedNotification } from "@/lib/notifications/families";
 
@@ -22,7 +23,12 @@ export async function listGmailWorkflowNotifications(
       (link) =>
         link.status === "attention_required" &&
         Boolean(link.attention_at_ms) &&
-        link.expires_at_ms > nowMs,
+        isCommunicationsRecordActive(
+          "gmail_workflow_communications",
+          link.id,
+          link,
+          nowMs,
+        ),
     )
     .filter((link) => (options.unreadOnly ? !link.read_at_ms : true))
     .slice(0, options.limit ?? 25)

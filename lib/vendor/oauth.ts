@@ -7,6 +7,10 @@ import {
   type VendorOAuthScope,
   type VendorPrincipal,
 } from "@/lib/vendor/model";
+import {
+  assertActiveVendor,
+  type VendorAssignmentRepository,
+} from "@/lib/vendor/assignment";
 
 export interface VendorOAuthState {
   stateHash: string;
@@ -18,7 +22,10 @@ export interface VendorOAuthState {
   usedAtMs?: number;
 }
 
-export interface VendorOAuthStore {
+export interface VendorOAuthStore extends Pick<
+  VendorAssignmentRepository,
+  "isVendorActive"
+> {
   saveState(state: VendorOAuthState): Promise<void>;
   claimState(stateHash: string, nowMs: number): Promise<VendorOAuthState | null>;
   saveConnection(connection: VendorMailboxConnection): Promise<void>;
@@ -76,6 +83,7 @@ export async function beginVendorOAuth(
   if (input.redirectUri !== input.expectedRedirectUri) {
     throw new VendorBoundaryError("Vendor OAuth redirect URI is not approved.", 409);
   }
+  await assertActiveVendor(input.principal, store);
   const state = base64Url(randomBytes(32));
   const verifier = base64Url(randomBytes(48));
   const challenge = base64Url(createHash("sha256").update(verifier).digest());
@@ -123,6 +131,7 @@ export async function completeVendorOAuth(
   if (input.redirectUri !== input.expectedRedirectUri) {
     throw new VendorBoundaryError("Vendor OAuth redirect URI is not approved.", 409);
   }
+  await assertActiveVendor(input.principal, dependencies.store);
   const state = await dependencies.store.claimState(sha256(input.state), nowMs);
   if (
     !state ||
@@ -152,6 +161,7 @@ export async function completeVendorOAuth(
   if (!token.refreshToken) {
     throw new VendorBoundaryError("Vendor Gmail did not return offline access.", 409);
   }
+  await assertActiveVendor(input.principal, dependencies.store);
   const tokenSecretRef = await dependencies.vault.storeRefreshToken({
     vendorId: input.principal.vendorId,
     mailboxEmail,
@@ -169,6 +179,7 @@ export async function completeVendorOAuth(
     updatedAt: connectedAt,
   };
   try {
+    await assertActiveVendor(input.principal, dependencies.store);
     await dependencies.store.saveConnection(connection);
   } catch (error) {
     await dependencies.vault.destroySecret(tokenSecretRef).catch(() => undefined);

@@ -12,7 +12,8 @@ only for assigned-ticket communication, with AI assistance and exact human confi
 
 **Implementation status — Local green 2026-07-14.** The separate Vendor claims/session, TOTP
 enrollment/sign-in UI, exact-confirmed invite service and Admin preview, assigned-ticket list/detail
-and thread join, OAuth state/PKCE/exact-scope/same-address callback, token-vault seam, Vendor/Admin
+and thread join, OAuth state/PKCE/exact-scope/same-address callback with active invited-email
+revalidation at start/callback/persist, token-vault seam and mid-flight secret cleanup, Vendor/Admin
 one-attempt fake Gmail boundary, disable/session-revoke/token-revocation lifecycle, server-only
 Firestore collections/rules, and adversarial tests are built. No live principal, invite, Identity
 Platform setting, OAuth app/token, Gmail access/send, secret resource, deploy, or acceptance occurred.
@@ -20,9 +21,11 @@ Platform setting, OAuth app/token, Gmail access/send, secret resource, deploy, o
 **What it is / how it functions.**
 
 - **Identity type.** Add a Firebase `Vendor` principal separate from internal `Editor|Approver|Admin`.
-  A Vendor has no internal Space/capability inheritance. Server authorization joins `uid → vendor_id →
-ticket.vendor_id`; list, count, notification, attachment, communication, and direct-id routes all use
-  the same join and return 404 for unassigned records.
+  A Vendor has no internal Space/capability inheritance. Server authorization joins the verified token's
+  normalized email plus `uid → vendor_id → ticket.vendor_id`; the email must still equal the invited
+  Vendor record on activation and every active-access check. List, count, notification, attachment,
+  communication, and direct-id routes all use the same join and return 404 for unassigned or identity-
+  drifted records.
 - **Admin invite.** `manageAdmin` creates the email-only Firebase user/vendor record, assigns ticket
   boundary metadata, and generates a one-time Firebase password setup link. The approved invitation
   message is exact-confirmed by the Admin and sent to that address; no generated password is returned,
@@ -40,7 +43,10 @@ ticket.vendor_id`; list, count, notification, attachment, communication, and dir
 - **Scope and token boundary.** Request only `gmail.readonly`, `gmail.compose`, `gmail.labels`, and
   `gmail.modify`, in context. Bind the granted mailbox email to the signed-in Vendor email. Store refresh
   token material server-only in Secret Manager; Firestore stores non-secret connection metadata, scope
-  set, token-secret reference, status, and timestamps. Never emit tokens to browser/log/audit.
+  set, token-secret reference, status, and timestamps. OAuth start/callback, the pre-vault boundary, and
+  the final connection save each recheck that the active principal still matches the immutable invited
+  email. If identity drifts after vault creation, destroy that new secret and save no connection. Never
+  emit tokens to browser/log/audit.
 - **Communication boundary.** The OAuth client can read only an explicitly linked thread for an
   assigned ticket, draft from authorized context, apply approved labels, and exact-confirm reply. It
   cannot list/search an inbox or compose unrelated mail. Vendor or Admin may exactly confirm a send;
@@ -81,15 +87,19 @@ OAuth callbacks, token vault, Firestore rules/indexes, environment handoff, and 
 - **AC-S22-1** — Admin invite returns no password/token/link to ordinary UI/log/audit, creates one
   pending Vendor identity, and fake-delivers one single-use setup link; Editor/Vendor/self-registration
   attempts are denied. _Verify:_ `npm test -- vendor-invite`; `npm run test:firestore`.
-- **AC-S22-2** — Unverified or non-TOTP Vendor may access only setup/MFA pages; every ticket list/detail,
-  direct ID, attachment, body, notification, and OAuth route denies before repository/provider
-  construction. _Verify:_ `npm test -- vendor-auth vendor-routes`.
+- **AC-S22-2** — Unverified or non-TOTP Vendor may access only setup/MFA pages. A changed and reverified
+  Firebase email still fails the invited-record email join even when uid/vendor claims are unchanged;
+  every ticket list/detail, direct ID, attachment, body, notification, and OAuth route denies before
+  constructing a ticket/mail/OAuth provider or making an external call; only the active-Vendor
+  repository lookup runs. _Verify:_ `npm test -- vendor-auth vendor-assignment-boundary vendor-routes`.
 - **AC-S22-3** — Vendor A receives 404 and zero metadata for Vendor B's ticket across list/count/search,
   guessed URL, communication, photo, and notification paths; Admin access is audited. _Verify:_ `npm
 test -- vendor-assignment-boundary`; `npm run test:firestore`.
-- **AC-S22-4** — OAuth callback rejects wrong/expired/reused state, wrong session, missing PKCE, redirect
-  mismatch, extra scopes, non-Gmail provider, or mailbox-email mismatch; token-vault writes occur only
-  after all checks. _Verify:_ `npm test -- vendor-gmail-oauth`.
+- **AC-S22-4** — OAuth start and callback recheck active invited-email equality. Callback also rejects
+  wrong/expired/reused state, wrong session, missing PKCE, redirect mismatch, extra scopes, non-Gmail
+  provider, or mailbox-email mismatch; it rechecks before vault persistence and connection save. A
+  mid-flight identity drift destroys any just-created secret and saves no connection. _Verify:_ `npm
+test -- vendor-gmail-oauth`.
 - **AC-S22-5** — Browser/Firestore/log/audit snapshots contain no refresh/access token, client secret,
   raw body, or setup link. Disable/revoke denies future provider construction and is idempotent.
   _Verify:_ `npm test -- vendor-token-vault`; `npm run verify:redaction`.
@@ -106,7 +116,7 @@ test`, `npm run test:e2e:core`, `npm run test:firestore`, `npm run verify:redact
 
 **Forbidden actions / hard gates.** No self-registration; no password shown to Admin; no ticket detail
 before verified-email TOTP; no internal role/scope for Vendor; no DWD or Microsoft provider; no shared/
-alias mailbox; no general inbox/search/arbitrary compose; no token in browser/Firestore/log/git; no
+alias mailbox or changed-login-email continuation; no general inbox/search/arbitrary compose; no token in browser/Firestore/log/git; no
 autonomous send; no live invite/OAuth/mailbox access/token resource/config/deploy without exact approval.
 The Admin confirmation exception is ticket-linked only, never general cross-mailbox access. ~$10 cap.
 

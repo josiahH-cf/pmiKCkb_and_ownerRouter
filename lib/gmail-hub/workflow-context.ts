@@ -106,7 +106,7 @@ export interface WorkflowCommunicationLink extends CommunicationsRetentionFields
   read_at_ms?: number;
   created_at_ms: number;
   updated_at_ms: number;
-  expires_at_ms: number;
+  expires_at_ms: number | null;
 }
 
 export interface WorkflowCommunicationNotification {

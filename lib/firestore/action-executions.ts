@@ -25,11 +25,14 @@ export interface PrepareActionExecutionRecordInput {
     risk: Exclude<ExecutionClassification["risk"], "Blocked">;
   };
   idempotencyKey: string;
+  idempotencyPrincipal?: string;
+  contextHash?: string;
   previewHash: string;
   scopeRef?: string;
 }
 
 export interface ApproveActionExecutionInput {
+  contextHash?: string;
   previewHash: string;
   reason: string;
 }
@@ -39,6 +42,11 @@ export interface CompleteActionExecutionInput {
   resultCode: string;
 }
 
+export interface ResolveActionReconciliationInput {
+  definitiveErrorCode?: string;
+  resultCode?: string;
+}
+
 export async function prepareActionExecutionRecord(
   actor: AuthenticatedUser,
   input: PrepareActionExecutionRecordInput,
@@ -46,8 +54,14 @@ export async function prepareActionExecutionRecord(
 ) {
   const idempotencyKey = requireText(input.idempotencyKey, "Idempotency key");
   const previewHash = requireHash(input.previewHash, "Preview hash");
+  const contextHash = input.contextHash
+    ? requireHash(input.contextHash, "Execution context hash")
+    : undefined;
+  const idempotencyPrincipal = input.idempotencyPrincipal
+    ? requireText(input.idempotencyPrincipal, "Idempotency principal")
+    : actor.uid;
   const idempotencyHash = digest(
-    `${actor.uid}\u0000${input.classification.actionKey}\u0000${idempotencyKey}`,
+    `${idempotencyPrincipal}\u0000${input.classification.actionKey}\u0000${idempotencyKey}`,
   );
   const id = `exec_${idempotencyHash.slice(0, 40)}`;
 
@@ -58,7 +72,13 @@ export async function prepareActionExecutionRecord(
 
     if (existing) {
       const record = readRecord<ActionExecutionRecord>(snapshot.id, existing);
-      assertIdempotentMatch(record, actor, input.classification.actionKey, previewHash);
+      assertIdempotentMatch(
+        record,
+        actor,
+        input.classification.actionKey,
+        previewHash,
+        contextHash,
+      );
       return;
     }
 
@@ -71,6 +91,7 @@ export async function prepareActionExecutionRecord(
       actor_role: actor.role,
       actor_uid: actor.uid,
       attempt_count: 0,
+      context_hash: contextHash,
       idempotency_hash: idempotencyHash,
       preview_hash: previewHash,
       requires_action_registry: input.classification.requiresActionRegistry,
@@ -137,11 +158,15 @@ export async function approveActionExecution(
   }
 
   const previewHash = requireHash(input.previewHash, "Preview hash");
+  const contextHash = input.contextHash
+    ? requireHash(input.contextHash, "Approval context hash")
+    : undefined;
   const reason = requireText(input.reason, "High-risk approval reason");
 
   await db.runTransaction((transaction) =>
     approveActionExecutionInTransaction(transaction, db, actor, executionId, {
       previewHash,
+      ...(contextHash ? { contextHash } : {}),
       reason,
     }),
   );
@@ -181,10 +206,20 @@ export async function approveActionExecutionInTransaction(
       409,
     );
   }
+  const contextHash = input.contextHash
+    ? requireHash(input.contextHash, "Approval context hash")
+    : undefined;
+  if (current.context_hash !== contextHash) {
+    throw new EditableLayerError(
+      "The approval target or source context is stale; review the current target before approving.",
+      409,
+    );
+  }
 
   const approval = {
     approvedByRole: actor.role,
     approvedByUid: actor.uid,
+    ...(contextHash ? { contextHash } : {}),
     previewHash,
     reason,
   } as const;
@@ -255,8 +290,12 @@ export async function claimActionExecution(
   executionId: string,
   previewHashInput: string,
   db: Firestore = getAdminFirestore(),
+  contextHashInput?: string,
 ) {
   const previewHash = requireHash(previewHashInput, "Preview hash");
+  const contextHash = contextHashInput
+    ? requireHash(contextHashInput, "Execution context hash")
+    : undefined;
 
   await db.runTransaction(async (transaction) => {
     const ref = executionRef(db, executionId);
@@ -270,9 +309,33 @@ export async function claimActionExecution(
         409,
       );
     }
+    if (current.context_hash !== contextHash) {
+      throw new EditableLayerError(
+        "The execution target or source context changed after preparation.",
+        409,
+      );
+    }
     if (current.attempt_count !== 0) {
       throw new EditableLayerError(
         "This execution already has an attempt and cannot be retried automatically.",
+        409,
+      );
+    }
+    if (
+      current.context_hash !== current.approval?.contextHash &&
+      current.risk === "High"
+    ) {
+      throw new EditableLayerError(
+        "The High-risk approval does not bind the current execution target.",
+        409,
+      );
+    }
+    const requiredState = current.risk === "High" ? "Approved" : "Ready";
+    if (current.state !== requiredState) {
+      throw new EditableLayerError(
+        current.risk === "High"
+          ? "This High action requires current Admin approval; only an Approved execution can claim its provider attempt."
+          : "Only a Ready execution can claim its provider attempt.",
         409,
       );
     }
@@ -344,6 +407,66 @@ export async function failActionExecution(
     undefined,
     db,
   );
+  return getActionExecution(actor, executionId, db);
+}
+
+/** Resolve one already-consumed ambiguous attempt without creating a second provider mutation. */
+export async function resolveActionReconciliation(
+  actor: AuthenticatedUser,
+  executionId: string,
+  input: ResolveActionReconciliationInput,
+  db: Firestore = getAdminFirestore(),
+) {
+  const hasResult = input.resultCode !== undefined;
+  const hasFailure = input.definitiveErrorCode !== undefined;
+  if (hasResult === hasFailure) {
+    throw new EditableLayerError(
+      "Reconciliation must provide exactly one result or definitive error code.",
+      400,
+    );
+  }
+  const code = requireText(
+    hasResult ? input.resultCode! : input.definitiveErrorCode!,
+    hasResult ? "Reconciliation result code" : "Reconciliation error code",
+  );
+  const targetState = hasResult ? ("Succeeded" as const) : ("Failed" as const);
+
+  await db.runTransaction(async (transaction) => {
+    const ref = executionRef(db, executionId);
+    const snapshot = await transaction.get(ref);
+    const current = readRequiredExecution(snapshot.id, snapshot.data());
+    assertCanExecute(actor, current);
+
+    if (
+      current.attempt_count === 1 &&
+      current.state === targetState &&
+      (hasResult ? current.result_code === code : current.last_error_code === code)
+    ) {
+      return;
+    }
+    if (current.state !== "Needs reconciliation" || current.attempt_count !== 1) {
+      throw new EditableLayerError(
+        "Only a one-attempt ambiguous execution can be reconciled.",
+        409,
+      );
+    }
+
+    transaction.update(ref, {
+      last_error_code: hasResult ? FieldValue.delete() : code,
+      result_code: hasResult ? code : FieldValue.delete(),
+      state: targetState,
+      updated_at: FieldValue.serverTimestamp(),
+    });
+    appendActivity(transaction, db, {
+      action: hasResult ? "succeeded" : "failed",
+      actionKey: current.action_key,
+      actorUid: actor.uid,
+      executionId,
+      fromState: current.state,
+      toState: targetState,
+    });
+  });
+
   return getActionExecution(actor, executionId, db);
 }
 
@@ -442,6 +565,7 @@ async function transitionActionExecutionInTransaction(
     );
   }
   transaction.update(ref, {
+    approval: FieldValue.delete(),
     state: toState,
     updated_at: FieldValue.serverTimestamp(),
   });
@@ -533,11 +657,13 @@ function assertIdempotentMatch(
   actor: AuthenticatedUser,
   actionKey: string,
   previewHash: string,
+  contextHash: string | undefined,
 ) {
   if (
     record.actor_uid !== actor.uid ||
     record.action_key !== actionKey ||
-    record.preview_hash !== previewHash
+    record.preview_hash !== previewHash ||
+    record.context_hash !== contextHash
   ) {
     throw new EditableLayerError(
       "The idempotency key was already used for a different execution preview.",

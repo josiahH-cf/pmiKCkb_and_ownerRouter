@@ -1,18 +1,29 @@
 import type { CreateProcessDefinitionInput } from "@/lib/firestore/schemas";
 import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 import { DOTLOOP_FOLLOWUP_ACTION_KEYS } from "@/lib/lease-renewal/dotloop-followup-draft";
+import type { LeaseExecutionActionKey } from "@/lib/lease-renewal/execution/matrix";
 
 /**
  * Non-executable Tenant Renewal Notice + Dotloop follow-up process-definition template (S13 Wave 2 /
  * space-teeth E3). Mirrors the maintenance/lease-renewal templates: seeds as a Draft. The steps WRAP
  * the already-built pure composers — `buildTenantOfferDraft` and the new `buildDotloopFollowUpDraft`
- * — as read/draft surfaces the desk renders. The steps do NOT execute anything; a human reviews the
- * drafts and clicks Send.
+ * — as source-backed preview surfaces. Enabled channel actions execute only after exact human
+ * confirmation, and consequential Dotloop actions require exact-preview Admin approval.
  *
- * GOVERNANCE: the two Dotloop `action_references` point at the EXISTING registry keys
- * (dotloop.loop.create_from_template, dotloop.document.upload) sourced from ACTION_REGISTRY_SEED —
- * both stay `readiness: "Needs Permission"` (non-executable). No new registry metadata is authored.
+ * GOVERNANCE: every action reference points at an existing S25 Registry key. A globally promoted
+ * Gmail action is still Planned for this Draft workflow until the renewal-specific mapping and proof
+ * exist. No autonomous, bulk, scheduled, or model-triggered send is exposed.
  */
+
+export const TENANT_RENEWAL_NOTICE_ACTION_KEYS = [
+  "gmail.renewal_notice.draft_create",
+  "gmail.renewal_notice.send",
+  "gmail.thread.reply",
+  "gmail.label.apply",
+  "rentvine.renewal.portal_message.send",
+  "sms.renewal_message.send",
+  ...DOTLOOP_FOLLOWUP_ACTION_KEYS,
+] as const satisfies readonly LeaseExecutionActionKey[];
 
 const TENANT_RENEWAL_NOTICE_STEPS: ReadonlyArray<{
   title: string;
@@ -26,17 +37,17 @@ const TENANT_RENEWAL_NOTICE_STEPS: ReadonlyArray<{
   {
     title: "Compose tenant offer draft",
     description:
-      "Surfaces the output of the existing `buildTenantOfferDraft` composer (email + Portal Chat + text) on the desk for operator review. Draft only — a human sends.",
+      "Surface the output of `buildTenantOfferDraft` as separate email, Portal Chat, and SMS exact previews. A verified recipient and authoritative values are required for each channel.",
   },
   {
     title: "Compose Dotloop follow-up draft",
     description:
-      "Surfaces the output of `buildDotloopFollowUpDraft` (the signature-chase nudge). It references the Dotloop loop/upload actions, which stay Needs Permission — non-executable. Draft only.",
+      "Surface `buildDotloopFollowUpDraft` and the exact configured loop, participant, and document previews. Dotloop stays Blocked until its account contract, mapping, connection, and Admin approval are present.",
   },
   {
-    title: "Human approval / send",
+    title: "Exact-confirmed execution",
     description:
-      "A human reviews the offer + follow-up drafts and clicks Send in each channel. The app never sends and never writes to Dotloop or RentVine.",
+      "Execute only individually enabled actions: each communication needs its own exact human confirmation and receipt; Dotloop needs exact-preview Admin approval. No autonomous, bulk, scheduled, or model-triggered send.",
   },
 ];
 
@@ -56,7 +67,7 @@ export function buildTenantRenewalNoticeProcessTemplate(
   return {
     name: "Tenant Renewal Notice + Dotloop Follow-Up",
     short_outcome:
-      "Draft the tenant renewal offer (email + Portal Chat) and the Dotloop signature follow-up from source-tagged facts; a human reviews and sends. No app write to Dotloop/RentVine, no autonomous send.",
+      "Prepare source-backed email, Portal Chat, SMS, and Dotloop actions; execute only individually enabled, exact-confirmed or Admin-approved actions, never an autonomous send.",
     trigger:
       "Manual start by a team member when an owner-approved renewal offer is ready to send to the tenant.",
     owner_uid: options.ownerUid,
@@ -71,13 +82,13 @@ export function buildTenantRenewalNoticeProcessTemplate(
       title: step.title,
       description: step.description,
     })),
-    action_references: DOTLOOP_FOLLOWUP_ACTION_KEYS.map((key) =>
+    action_references: TENANT_RENEWAL_NOTICE_ACTION_KEYS.map((key) =>
       actionReferenceFromSeed(key, options.approverUid),
     ),
     success_condition:
-      "The operator reviews the offer + Dotloop follow-up drafts and sends them by hand; no external write or send executes from the app.",
+      "Every applicable enabled channel and document action has its own reconciled receipt after exact confirmation or Admin approval; one channel never claims success for another.",
     stop_condition:
-      "A missing fact (offered rent, lease end date, participant/template) surfaces as a Needs-Verification marker that a human resolves before sending.",
+      "A missing or conflicting recipient, offered rent, lease end date, participant, document, template, mapping, provider contract, connection, or authority blocks the affected action.",
     escalation_condition:
       "Signature stalls or disputes route to Dan/Josiah Admin triage.",
   };
@@ -92,7 +103,7 @@ function actionReferenceFromSeed(key: string, approverUid: string) {
     label: entry.label,
     target_system: entry.target_system,
     expected_action: entry.expected_action,
-    readiness: entry.readiness,
+    readiness: entry.production_allowed ? "Planned" : entry.readiness,
     missing_connection_or_permission: entry.required_permissions?.join("; "),
     approval_owner_uid: approverUid,
     rollback_or_correction_note: entry.rollback_note,

@@ -33,6 +33,9 @@ beforeEach(async () => {
       activeVersionId: "version-1",
     });
     await setDoc(doc(db, "publication_versions/version-1"), { validated: true });
+    await setDoc(doc(db, "publication_content_chunks/content-1_000"), {
+      chunkBase64: "c3ludGhldGlj",
+    });
     await setDoc(doc(db, "publication_audit/audit-1"), { eventType: "published" });
   });
 });
@@ -57,9 +60,15 @@ describe("S21 trusted-publication Firestore rules", () => {
     const admin = authedDb("Admin");
     await assertFails(getDoc(doc(admin, "publication_resources/source-1")));
     await assertFails(getDoc(doc(admin, "publication_versions/version-1")));
+    await assertFails(getDoc(doc(admin, "publication_content_chunks/content-1_000")));
     await assertFails(getDoc(doc(admin, "publication_audit/audit-1")));
     await assertFails(
       setDoc(doc(admin, "publication_versions/forged"), { validated: true }),
+    );
+    await assertFails(
+      setDoc(doc(admin, "publication_content_chunks/forged_000"), {
+        chunkBase64: "Zm9yZ2Vk",
+      }),
     );
   });
 });

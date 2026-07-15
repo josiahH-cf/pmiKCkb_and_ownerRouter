@@ -6,6 +6,7 @@ import {
 } from "@/lib/external-execution/orchestrator";
 import type { ExternalActionInput } from "@/lib/external-execution/types";
 import { MAINTENANCE_EXECUTION_DEFINITION_MAP } from "@/lib/maintenance/execution/matrix";
+import { syntheticExternalTechnicalGates } from "@/tests/helpers/external-execution";
 
 function input(actionKey: string): ExternalActionInput {
   return {
@@ -20,6 +21,7 @@ function input(actionKey: string): ExternalActionInput {
     authority: {
       actor: { role: "Admin", uid: "admin-1" },
       roleScopeAuthorized: true,
+      technical: syntheticExternalTechnicalGates(),
       ...(actionKey.startsWith("vendor.gmail.")
         ? {
             vendor: {
@@ -43,7 +45,9 @@ describe("Maintenance execution authority", () => {
       "quickbooks.bill.create_draft",
     ]) {
       const definition = MAINTENANCE_EXECUTION_DEFINITION_MAP.get(key)!;
-      expect(validateExternalInput(definition, input(key))).toContain("Admin approval");
+      expect(validateExternalInput(definition, input(key), true)).toContain(
+        "Admin approval",
+      );
     }
   });
 
@@ -53,7 +57,9 @@ describe("Maintenance execution authority", () => {
       "vendor.gmail.thread.reply",
     ]) {
       const definition = MAINTENANCE_EXECUTION_DEFINITION_MAP.get(key)!;
-      expect(validateExternalInput(definition, input(key))).toContain("confirmation");
+      expect(validateExternalInput(definition, input(key), true)).toContain(
+        "confirmation",
+      );
     }
   });
 
@@ -71,8 +77,8 @@ describe("Maintenance execution authority", () => {
         reason: "Create the reviewed synthetic draft Bill.",
       },
     };
-    expect(validateExternalInput(definition, value)).toBeNull();
+    expect(validateExternalInput(definition, value, true)).toBeNull();
     value.values = { value: "drifted" };
-    expect(validateExternalInput(definition, value)).toContain("stale");
+    expect(validateExternalInput(definition, value, true)).toContain("stale");
   });
 });

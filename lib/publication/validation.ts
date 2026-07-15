@@ -8,14 +8,15 @@ import {
   PublicationAuthorityError,
   safePublicationFailureMessage,
 } from "@/lib/publication/authority-firewall";
-import type {
-  PublicationEnvelope,
-  PublicationFailureCode,
-  PublicationMetadata,
-  PublicationPolicyRecord,
-  PublicationScanner,
-  PublicationSensitivity,
-  PublicationValidationResult,
+import {
+  MAX_PUBLICATION_CONTENT_BYTES,
+  type PublicationEnvelope,
+  type PublicationFailureCode,
+  type PublicationMetadata,
+  type PublicationPolicyRecord,
+  type PublicationScanner,
+  type PublicationSensitivity,
+  type PublicationValidationResult,
 } from "@/lib/publication/types";
 
 export class PublicationValidationError extends Error {
@@ -41,13 +42,14 @@ export async function validatePublication(
   // Type and declared size are checked before calling the loader. A streaming adapter can
   // therefore refuse an oversize body without buffering it.
   const allowedType = resolveAllowedType(policy, metadata);
-  if (metadata.declaredByteSize > allowedType.maxBytes) fail("oversize");
+  const maxBytes = Math.min(allowedType.maxBytes, MAX_PUBLICATION_CONTENT_BYTES);
+  if (metadata.declaredByteSize > maxBytes) fail("oversize");
 
-  const content = await envelope.loadContent();
+  const content = await envelope.loadContent(maxBytes);
   if (content.byteLength !== metadata.declaredByteSize) {
     fail("content_size_mismatch");
   }
-  if (content.byteLength > allowedType.maxBytes) fail("oversize");
+  if (content.byteLength > maxBytes) fail("oversize");
 
   const detectedMimeType = detectContentMime(metadata, content);
   if (

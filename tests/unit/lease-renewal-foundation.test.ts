@@ -17,8 +17,12 @@ import {
   LEASE_RENEWAL_STAGES,
   RENEWAL_FACT_CONFIDENCE,
 } from "@/lib/lease-renewal/constants";
+import { LEASE_EXECUTION_ACTIONS } from "@/lib/lease-renewal/execution/matrix";
 import { evaluateRenewalFactGates, type RenewalFact } from "@/lib/lease-renewal/facts";
-import { buildLeaseRenewalProcessTemplate } from "@/lib/lease-renewal/process-template";
+import {
+  LEASE_RENEWAL_ACTION_KEYS,
+  buildLeaseRenewalProcessTemplate,
+} from "@/lib/lease-renewal/process-template";
 import { FakeFirestore } from "../helpers/fake-firestore";
 
 function userWith(role: Role, uid: string): AuthenticatedUser {
@@ -99,7 +103,11 @@ describe("lease renewal process-definition template", () => {
   it("derives every action reference from the Action Registry seed without drift", () => {
     const parsed = CreateProcessDefinitionInputSchema.parse(template());
 
-    expect(parsed.action_references.length).toBeGreaterThanOrEqual(6);
+    const expectedKeys = ["rentvine.lease.read", ...LEASE_EXECUTION_ACTIONS];
+    expect(LEASE_RENEWAL_ACTION_KEYS).toEqual(expectedKeys);
+    expect(
+      parsed.action_references.map((reference) => reference.action_registry_key),
+    ).toEqual(expectedKeys);
 
     for (const reference of parsed.action_references) {
       const seed = ACTION_REGISTRY_SEED.find(
@@ -108,11 +116,22 @@ describe("lease renewal process-definition template", () => {
 
       expect(seed, reference.action_registry_key).toBeDefined();
       expect(reference.target_system).toBe(seed?.target_system);
-      expect(reference.readiness).toBe(seed?.readiness ?? "Planned");
+      expect(reference.readiness).toBe(
+        seed?.production_allowed ? "Planned" : (seed?.readiness ?? "Planned"),
+      );
       expect(reference.rollback_or_correction_note).toBe(seed?.rollback_note);
       expect(reference.approval_owner_uid).toBe("admin-dan");
       expect(reference.readiness).not.toBe("Approved for Execution");
     }
+  });
+
+  it("uses exact-confirmed execution copy without restoring the superseded manual-only path", () => {
+    const copy = JSON.stringify(template());
+    expect(copy).toContain("exact-confirmed");
+    expect(copy).toContain("no autonomous, bulk, scheduled, or model-triggered send");
+    expect(copy).not.toMatch(
+      /human sends|sent by a human|app never sends|sends them by hand/i,
+    );
   });
 
   it("keeps the Rentvine renewal writeback gated as a pending future automation step", () => {

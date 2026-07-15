@@ -1,11 +1,10 @@
 import { MemoryExternalExecutionStore } from "@/lib/external-execution/memory-store";
 import { ExternalActionOrchestrator } from "@/lib/external-execution/orchestrator";
-import { externalPreviewHash } from "@/lib/external-execution/orchestrator";
 import type {
   ExternalActionDefinition,
-  ExternalActionInput,
   ExternalExecutor,
 } from "@/lib/external-execution/types";
+import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 import {
   LEASE_EXECUTION_ACTIONS,
   LEASE_EXECUTION_DEFINITION_MAP,
@@ -14,118 +13,77 @@ import {
   MAINTENANCE_EXECUTION_DEFINITION_MAP,
   MAINTENANCE_EXECUTION_ORDER,
 } from "@/lib/maintenance/execution/matrix";
-
-function executor(): ExternalExecutor {
-  return {
-    execute: async (input) => ({
-      actionKey: input.actionKey,
-      providerRef: `fake:${input.actionId}`,
-      resultHash: `fake-hash:${input.actionId}`,
-      reconciled: false,
-      createdAt: "2026-07-14T00:00:00.000Z",
-    }),
-    reconcile: async () => null,
-  };
-}
-
-function input(
-  workflowId: string,
-  key: string,
-  index: number,
-  definition: ExternalActionDefinition,
-): ExternalActionInput {
-  const vendorMailboxAction = definition.key.startsWith("vendor.gmail.");
-  const actor = vendorMailboxAction
-    ? ({ role: "Vendor" as const, uid: "vendor-synthetic" } as const)
-    : ({ role: "Admin" as const, uid: "admin-synthetic" } as const);
-  const base: ExternalActionInput = {
-    workflowId,
-    actionId: `action-${index}`,
-    actionKey: key,
-    values: { value: `synthetic-${index}` },
-    sourceRefs: ["source:synthetic"],
-    contractRef: "documented:fake:integrated-v1",
-    connectionRef: "connection:fake",
-    mappingRef: "mapping:fake",
-    authority: {
-      actor,
-      roleScopeAuthorized: true,
-      ...(vendorMailboxAction
-        ? {
-            vendor: {
-              assignedTicket: true,
-              sameMailbox: true,
-              selfConsent: true,
-              verifiedEmailTotp: true,
-            },
-          }
-        : {}),
-    },
-  };
-  const previewHash = externalPreviewHash(base);
-  base.authority = {
-    ...base.authority!,
-    ...(definition.risk === "Medium" ? { exactConfirmationHash: previewHash } : {}),
-    ...(definition.risk === "High" && actor.role !== "Vendor"
-      ? {
-          approval: {
-            approvedByRole: "Admin",
-            approvedByUid: actor.uid,
-            previewHash,
-            reason: "Synthetic fake-provider acceptance.",
-          },
-        }
-      : {}),
-  };
-  return base;
-}
+import {
+  buildSyntheticActionInput,
+  createSyntheticExecutorHarness,
+  type SyntheticLane,
+} from "@/lib/release/synthetic-execution";
+import { runSyntheticVendorJourney } from "@/lib/release/synthetic-vendor-acceptance";
 
 async function runLane(
+  lane: SyntheticLane,
   workflowId: string,
   order: readonly string[],
   definitions: ReadonlyMap<string, ExternalActionDefinition>,
+  executors: ReadonlyMap<string, ExternalExecutor>,
+  providerCallCount: () => number,
 ) {
   const store = new MemoryExternalExecutionStore();
-  const orchestrator = new ExternalActionOrchestrator(
-    definitions,
-    store,
-    new Map(order.map((key) => [key, executor()])),
-    { isExecutable: () => true, allowFakeContracts: true },
-  );
+  const orchestrator = new ExternalActionOrchestrator(definitions, store, executors, {
+    isExecutable: () => true,
+    allowFakeContracts: true,
+    registry: ACTION_REGISTRY_SEED,
+  });
+  const callsBefore = providerCallCount();
   for (const [index, key] of order.entries()) {
-    const action = input(workflowId, key, index, definitions.get(key)!);
+    const action = buildSyntheticActionInput(lane, key, index, definitions.get(key)!);
+    if (action.workflowId !== workflowId) throw new Error("Synthetic workflow drifted.");
     const prepared = await orchestrator.prepare(action, [...store.records.values()]);
     if (prepared.state !== "ready") throw new Error(`${key}: ${prepared.blocker}`);
     await orchestrator.execute(action, prepared.previewHash);
   }
+  const records = [...store.records.values()];
   return {
     actionCount: order.length,
-    receiptCount: [...store.records.values()].filter((record) => record.receipt).length,
-    attemptCount: [...store.records.values()].reduce(
-      (total, record) => total + record.attemptCount,
-      0,
-    ),
+    receiptCount: records.filter((record) => record.receipt).length,
+    attemptCount: records.reduce((total, record) => total + record.attemptCount, 0),
+    typedAdapterCount: records.filter((record) => record.receipt).length,
+    providerCallCount: providerCallCount() - callsBefore,
     keys: [...order],
+    actions: records.map((record) => ({
+      key: record.actionKey,
+      state: record.state,
+      attemptCount: record.attemptCount,
+      outcome: record.receipt?.outcome ?? "succeeded",
+      receiptHash: record.receipt?.resultHash,
+    })),
   };
 }
 
 export async function runIntegratedFakeV1Acceptance() {
+  const harness = createSyntheticExecutorHarness();
   return {
     mode: "synthetic-fake-only" as const,
     vendorBoundary: {
-      verifiedEmailTotp: true,
-      assignedTicketOnly: true,
-      liveProviderCalls: 0,
+      ...(await runSyntheticVendorJourney()),
+      typedProviderBoundary: true,
     },
     lease: await runLane(
-      "lease-integrated-synthetic",
+      "lease",
+      "lease-synthetic-001",
       LEASE_EXECUTION_ACTIONS,
       LEASE_EXECUTION_DEFINITION_MAP,
+      harness.leaseExecutors,
+      harness.providerCallCount,
     ),
     maintenance: await runLane(
-      "maintenance-integrated-synthetic",
+      "maintenance",
+      "ticket-synthetic-001",
       MAINTENANCE_EXECUTION_ORDER,
       MAINTENANCE_EXECUTION_DEFINITION_MAP,
+      harness.maintenanceExecutors,
+      harness.providerCallCount,
     ),
+    providerOperations: harness.providerOperations(),
   };
 }

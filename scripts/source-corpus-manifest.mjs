@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { cloudStorageContentDocumentId } from "./source-doc-id.mjs";
 import {
@@ -18,6 +18,9 @@ const defaultManifest = join(
 );
 const DEFAULT_PROJECT = "pmi-kc-kb-prod";
 const DEFAULT_LOCATION = "us";
+const SAFE_PROJECT_PATTERN = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
+const SAFE_LOCATION_PATTERN = /^[a-z][a-z0-9-]{0,31}$/;
+const PLACEHOLDER_VALUE_PATTERN = /<[^>]+>|\b(change-me|changeme|replace-me|todo)\b/i;
 
 export function parseCorpusArgs(argv = process.argv.slice(2)) {
   const readArg = (name) => {
@@ -47,7 +50,16 @@ export function buildSourceCorpusPlan(entries, options = {}) {
   const tempDir = config.tempDir ?? "temp/source-corpus";
   const project = config.project ?? DEFAULT_PROJECT;
   const location = config.location ?? DEFAULT_LOCATION;
-  const preparedEntries = entries.map((entry) => {
+  assertSafePlanOption(project, "project", SAFE_PROJECT_PATTERN);
+  assertSafePlanOption(location, "location", SAFE_LOCATION_PATTERN);
+  assertSafeTempDir(tempDir);
+  const validatedEntries = validateSourceManifest(entries);
+  const commandInputsReady = !validatedEntries.some((entry) =>
+    [entry.space_id, entry.source_path, entry.gcs_uri, entry.data_store_id].some(
+      (value) => PLACEHOLDER_VALUE_PATTERN.test(value),
+    ),
+  );
+  const preparedEntries = validatedEntries.map((entry) => {
     const tempPath = join(tempDir, entry.space_id, basenameAsTxt(entry.source_path));
     return {
       ...entry,
@@ -56,34 +68,63 @@ export function buildSourceCorpusPlan(entries, options = {}) {
     };
   });
   const importsByDataStore = groupBy(preparedEntries, (entry) => entry.data_store_id);
+  const readiness = buildSourceCorpusReadiness(preparedEntries);
+  const commandsReady = commandInputsReady && readiness.ok;
 
   return {
     entries: preparedEntries,
-    readiness: buildSourceCorpusReadiness(preparedEntries),
-    importCommands: Array.from(importsByDataStore.entries()).map(
-      ([dataStoreId, dataStoreEntries]) =>
-        [
-          "npm run import:agent-search --",
-          `--project=${project}`,
-          `--location=${location}`,
-          `--data-store=${dataStoreId}`,
-          "--create-data-store",
-          ...dataStoreEntries.map((entry) => `--source-id=${entry.gcs_uri}`),
-        ].join(" "),
-    ),
-    seedCommands: preparedEntries.map((entry) =>
-      [
-        "npm run seed:source-meta --",
-        `--space-id=${entry.space_id}`,
-        `--source-id=${entry.gcs_uri}`,
-        `--approval-status=${entry.approval_status}`,
-        `--sensitivity=${entry.sensitivity}`,
-      ].join(" "),
-    ),
-    uploadCommands: preparedEntries.map(
-      (entry) => `gcloud storage cp "${entry.temp_path}" "${entry.gcs_uri}"`,
-    ),
+    readiness,
+    importCommands: commandsReady
+      ? Array.from(importsByDataStore.entries()).map(([dataStoreId, dataStoreEntries]) =>
+          [
+            "npm run import:agent-search --",
+            `--project=${project}`,
+            `--location=${location}`,
+            `--data-store=${dataStoreId}`,
+            "--create-data-store",
+            ...dataStoreEntries.map((entry) => `--source-id=${entry.gcs_uri}`),
+          ].join(" "),
+        )
+      : [],
+    seedCommands: commandsReady
+      ? preparedEntries.map((entry) =>
+          [
+            "npm run seed:source-meta --",
+            `--space-id=${entry.space_id}`,
+            `--source-id=${entry.gcs_uri}`,
+            `--approval-status=${entry.approval_status}`,
+            `--sensitivity=${entry.sensitivity}`,
+          ].join(" "),
+        )
+      : [],
+    uploadCommands: commandsReady
+      ? preparedEntries.map(
+          (entry) => `gcloud storage cp "${entry.temp_path}" "${entry.gcs_uri}"`,
+        )
+      : [],
   };
+}
+
+function assertSafePlanOption(value, name, pattern) {
+  if (typeof value !== "string" || !pattern.test(value)) {
+    throw new Error(`Source corpus ${name} is not a safe command value.`);
+  }
+}
+
+function assertSafeTempDir(value) {
+  const allowedRoot = resolve(root, "temp");
+  const resolved = typeof value === "string" ? resolve(root, value) : "";
+  const relativePath = resolved ? relative(allowedRoot, resolved) : "";
+  const segments = relativePath.split(/[\\/]/);
+  if (
+    !relativePath ||
+    relativePath === ".." ||
+    relativePath.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`) ||
+    isAbsolute(relativePath) ||
+    segments.some((segment) => !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(segment))
+  ) {
+    throw new Error("Source corpus tempDir must be a safe workspace-relative path.");
+  }
 }
 
 export async function main(argv = process.argv.slice(2)) {

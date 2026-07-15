@@ -51,6 +51,10 @@ class FakeDocument {
   async set(data: Record<string, unknown>) {
     this.db.store.set(this.path, resolveSentinels(data));
   }
+
+  async delete() {
+    this.db.store.delete(this.path);
+  }
 }
 
 class FakeQuery {

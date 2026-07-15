@@ -6,7 +6,11 @@ const base = {
   workflowId: "renewal-1",
   actionId: "boom-1",
   actionKey: "boom.resident.enroll",
-  values: { resident_ref: "resident-synthetic", applicable: false },
+  values: {
+    resident_ref: "resident-synthetic",
+    applicable: false,
+    rule_ref: "fixture:boom-applicability-v1",
+  },
   sourceRefs: ["source:synthetic"],
   mappingRef: "mapping:synthetic",
 };
@@ -25,10 +29,23 @@ describe("Boom renewal executor", () => {
     const enroll = vi.fn();
     const executor = new BoomRenewalExecutor({ enroll, reconcile: vi.fn() });
     await expect(
-      executor.execute({ ...base, values: { resident_ref: "resident-synthetic" } }),
+      executor.execute({
+        ...base,
+        values: {
+          resident_ref: "resident-synthetic",
+          rule_ref: "fixture:boom-applicability-v1",
+        },
+      }),
     ).rejects.toBeDefined();
     await expect(
-      executor.execute({ ...base, values: { resident_ref: "", applicable: true } }),
+      executor.execute({
+        ...base,
+        values: {
+          resident_ref: "",
+          applicable: true,
+          rule_ref: "fixture:boom-applicability-v1",
+        },
+      }),
     ).rejects.toBeDefined();
     expect(enroll).not.toHaveBeenCalled();
   });

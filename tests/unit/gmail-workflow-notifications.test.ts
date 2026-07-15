@@ -60,4 +60,33 @@ describe("Gmail workflow attention (AC-GW-10, AC-GW-12)", () => {
       listGmailWorkflowNotifications(actor, { unreadOnly: true }, store),
     ).resolves.toEqual([]);
   });
+
+  it("keeps a held active workflow link visible without letting hold extend its policy window", async () => {
+    const store = new MemoryGmailStateStore();
+    const nowMs = Date.now();
+    await store.saveCommunicationLink({
+      id: "communication-held",
+      actor_uid: actor.uid,
+      mailbox_key: gmailMailboxKey(actor.email),
+      lane: "maintenance",
+      entity_type: "maintenance_ticket",
+      entity_id: "ticket-held",
+      purpose: "maintenance_owner",
+      origin_action_key: "gmail.mailbox.read",
+      source_refs: ["maintenance_ticket:ticket-held"],
+      gmail_thread_id: "thread-held",
+      status: "attention_required",
+      attention_at_ms: nowMs,
+      created_at_ms: nowMs,
+      updated_at_ms: nowMs,
+      ...communicationsRetentionFields("workflow_link", nowMs),
+      legal_hold: true,
+      expires_at: null,
+      expires_at_ms: null,
+    });
+
+    await expect(
+      listGmailWorkflowNotifications(actor, { unreadOnly: true }, store),
+    ).resolves.toHaveLength(1);
+  });
 });

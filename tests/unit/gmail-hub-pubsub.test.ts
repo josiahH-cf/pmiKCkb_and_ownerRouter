@@ -104,7 +104,6 @@ async function seedLinkedCommunication(store: MemoryGmailStateStore) {
     created_at_ms: 1,
     updated_at_ms: 1,
     ...communicationsRetentionFields("workflow_link", 1),
-    expires_at_ms: Number.MAX_SAFE_INTEGER,
   });
 }
 

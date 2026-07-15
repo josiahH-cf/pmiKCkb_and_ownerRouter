@@ -5,6 +5,7 @@ import type {
 } from "@/lib/external-execution/types";
 
 export class MemoryExternalExecutionStore implements ExternalExecutionStore {
+  readonly persistence = "memory" as const;
   readonly records = new Map<string, ExternalExecutionRecord>();
 
   async get(id: string) {

@@ -13,25 +13,24 @@ import type {
 } from "@/lib/external-execution/types";
 import { LEASE_EXECUTION_DEFINITION_MAP } from "@/lib/lease-renewal/execution/matrix";
 import { MAINTENANCE_EXECUTION_DEFINITION_MAP } from "@/lib/maintenance/execution/matrix";
+import { buildSyntheticActionInput } from "@/lib/release/synthetic-execution";
+import { syntheticExternalTechnicalGates } from "@/tests/helpers/external-execution";
 
 function input(
   definition: ExternalActionDefinition,
   role: "Admin" | "Editor" | "Vendor" = "Admin",
 ): ExternalActionInput {
-  return {
-    workflowId: "synthetic-workflow",
-    actionId: "synthetic-action",
-    actionKey: definition.key,
-    values: { value: "synthetic" },
-    sourceRefs: ["source:synthetic"],
-    contractRef: "documented:fake:authority-v1",
-    connectionRef: "connection:fake",
-    mappingRef: "mapping:fake",
-    authority: {
-      actor: { role, uid: `${role.toLowerCase()}-1` },
-      roleScopeAuthorized: true,
-    },
+  const lane = LEASE_EXECUTION_DEFINITION_MAP.has(definition.key)
+    ? "lease"
+    : "maintenance";
+  const value = buildSyntheticActionInput(lane, definition.key, 0, definition);
+  value.authority = {
+    actor: { role, uid: `${role.toLowerCase()}-1` },
+    roleScopeAuthorized: true,
+    technical: syntheticExternalTechnicalGates(),
+    communication: value.authority?.communication,
   };
+  return value;
 }
 
 function approve(value: ExternalActionInput) {
@@ -75,7 +74,9 @@ describe("external execution authority integration", () => {
     confirmed.authority!.exactConfirmationHash = externalPreviewHash(confirmed);
     expect(validateExternalInput(send, confirmed, true)).toBeNull();
     confirmed.values = { value: "drifted" };
-    expect(validateExternalInput(send, confirmed, true)).toContain("current preview");
+    expect(validateExternalInput(send, confirmed, true)).toContain(
+      "exact_confirmation_missing",
+    );
 
     const sheet = LEASE_EXECUTION_DEFINITION_MAP.get(
       "google_sheets.renewal_checklist.writeback",
@@ -147,7 +148,7 @@ describe("external execution authority integration", () => {
       return {
         actionKey: request.actionKey,
         providerRef: "fake:concurrent",
-        resultHash: "hash:concurrent",
+        resultHash: "a".repeat(64),
         reconciled: false,
         createdAt: "2026-07-14T00:00:00.000Z",
       };

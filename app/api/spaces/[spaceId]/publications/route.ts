@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { apiErrorResponse } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
 import { EditableLayerError } from "@/lib/firestore/errors";
+import { readBoundedPublicationBody } from "@/lib/publication/content";
 import { resolvePublicationPolicyForSpace } from "@/lib/publication/policy";
 import { resolvePublicationScanner } from "@/lib/publication/provider";
 import { publishTrustedContent } from "@/lib/publication/service";
@@ -40,7 +41,8 @@ export async function POST(request: Request, context: RouteContext) {
       actor,
       policy,
       {
-        loadContent: async () => new Uint8Array(await request.arrayBuffer()),
+        loadContent: (maxBytes) =>
+          readBoundedPublicationBody(request.body, byteSize, maxBytes),
         metadata: {
           citationLabel,
           connectorId: policy.connectorId,
@@ -72,9 +74,16 @@ function requiredHeader(request: Request, name: string) {
 }
 
 function readByteSize(request: Request) {
-  const raw =
-    request.headers.get("content-length") ??
-    request.headers.get("x-publication-byte-size");
+  const contentLength = request.headers.get("content-length");
+  const publicationByteSize = request.headers.get("x-publication-byte-size");
+  if (
+    contentLength !== null &&
+    publicationByteSize !== null &&
+    contentLength.trim() !== publicationByteSize.trim()
+  ) {
+    throw new EditableLayerError("Publication byte-size headers do not match.", 400);
+  }
+  const raw = contentLength ?? publicationByteSize;
   const value = raw ? Number(raw) : Number.NaN;
   if (!Number.isSafeInteger(value) || value < 0) {
     throw new EditableLayerError("A valid publication byte size is required.", 400);

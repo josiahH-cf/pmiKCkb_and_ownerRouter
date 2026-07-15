@@ -48,13 +48,18 @@ export interface TrustedExecutionContext {
 export interface ExecutionApprovalQueueContext {
   directLink: string;
   processRunRef: { id: string; label: string };
+  /** Non-secret target/account projection shown to the approver. */
+  reviewTarget?: string;
   requiredAdminUid: string;
 }
 
 export interface PrepareActionExecutionInput {
   actionKey: string;
   approvalQueue?: ExecutionApprovalQueueContext;
+  contextHash?: string;
   idempotencyKey: string;
+  /** Server-owned namespace used when uniqueness must span preparers. */
+  idempotencyPrincipal?: string;
   preview: Record<string, unknown>;
   scopeRef?: string;
   trustedContext: TrustedExecutionContext;
@@ -62,6 +67,7 @@ export interface PrepareActionExecutionInput {
 
 export interface ExecutePreparedActionInput<T> {
   actor: AuthenticatedUser;
+  contextHash?: string;
   db?: Firestore;
   executionId: string;
   executor: () => Promise<T>;
@@ -131,7 +137,9 @@ export async function prepareActionExecution(
     actor,
     {
       classification,
+      contextHash: input.contextHash,
       idempotencyKey: input.idempotencyKey,
+      idempotencyPrincipal: input.idempotencyPrincipal,
       previewHash,
       scopeRef: input.scopeRef,
     },
@@ -143,7 +151,9 @@ export async function prepareActionExecution(
       actor,
       {
         action_execution_id: record.id,
+        action_execution_context_hash: record.context_hash,
         action_execution_preview_hash: record.preview_hash,
+        action_execution_target: input.approvalQueue.reviewTarget,
         action_needed: `Approve and execute ${record.action_key}.`,
         affected_system_action: record.action_key,
         assignee_uid: actor.uid,
@@ -189,7 +199,7 @@ export async function executePreparedAction<T>(
     assertActionExecutable(current.action_key, registry);
   }
 
-  await claimActionExecution(input.actor, current.id, previewHash, db);
+  await claimActionExecution(input.actor, current.id, previewHash, db, input.contextHash);
 
   try {
     const result = await input.executor();

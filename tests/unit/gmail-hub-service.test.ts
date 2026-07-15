@@ -142,6 +142,7 @@ function service(
 ) {
   const client = options.client ?? new FakeGmailClient();
   const store = options.store ?? new MemoryGmailStateStore();
+  const linkAnchorMs = options.now?.() ?? Date.now();
   store.communicationLinks.set("link-1", {
     id: "link-1",
     actor_uid: actor.uid,
@@ -156,10 +157,9 @@ function service(
     reply_policy_ref: WORKFLOW_REPLY_POLICY_REF,
     gmail_thread_id: "thread-1",
     status: "linked",
-    created_at_ms: 1,
-    updated_at_ms: 1,
-    ...communicationsRetentionFields("workflow_link", 1),
-    expires_at_ms: Number.MAX_SAFE_INTEGER,
+    created_at_ms: linkAnchorMs,
+    updated_at_ms: linkAnchorMs,
+    ...communicationsRetentionFields("workflow_link", linkAnchorMs),
   });
   const gates = new Set(
     options.gates ?? [

@@ -36,8 +36,9 @@ truth from email without human review.
   reason. Drafts/replies require a linked thread and an approved versioned template. No production
   workflow reply template exists yet, so those routes fail closed even though the proven transport
   actions remain registered. Generic new-message compose/send is disabled.
-- **Human send — `lib/gmail-hub/service.ts`.** Approver/Admin only. The exact reply payload is bound
-  to a short-lived one-time confirmation hash and one transaction claim. Payload drift, expiry,
+- **Human send — `lib/gmail-hub/service.ts`.** An authorized internal Editor/Admin may execute an
+  enabled Medium workflow reply under S20; consequential High work still requires Admin approval. The
+  exact reply payload is bound to a short-lived one-time confirmation hash and one transaction claim. Payload drift, expiry,
   cross-user reuse, double-clicks, and concurrency make at most one send attempt. Ambiguous outcomes
   are never retried and require RFC Message-ID reconciliation.
 - **Targeted receive — `processGmailPushNotification`.** Authenticated Pub/Sub is a mailbox-change

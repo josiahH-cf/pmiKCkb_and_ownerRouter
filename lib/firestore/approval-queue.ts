@@ -46,7 +46,9 @@ const APPROVAL_CRITICAL_FIELDS = [
   "status",
   "risk",
   "action_execution_id",
+  "action_execution_context_hash",
   "action_execution_preview_hash",
+  "action_execution_target",
   "assignee_uid",
   "required_approver_uid",
   "due_date",
@@ -708,6 +710,7 @@ async function syncLinkedActionExecution(
         );
       }
       await approveActionExecutionInTransaction(transaction, db, actor, executionId, {
+        contextHash: item.action_execution_context_hash,
         previewHash: item.action_execution_preview_hash,
         reason: requireReason(input.reason, "High-risk approval"),
       });

@@ -29,11 +29,12 @@ next safe slice until a stop-and-reset condition fires. The user verifies at the
 end-of-run review point, not after every internal phase.
 
 For the active 2026-07-14 final-V1 goal, the permanent packet already exists at
-`docs/v1-gap-implementation-program-2026-07-14.md`. S20–S24 are Local green; S25/S26 safe local
-execution boundaries and S27 local release-readiness artifacts are built but Gated. `/loop` now starts
-with the first exact per-action proof packet in `docs/v1-pre-release-report-2026-07-14.md`; it does not
-create another Round 3 packet or infer provider contracts. Stop before each unauthorized live/config/
-provider gate.
+`docs/v1-gap-implementation-program-2026-07-14.md`. S20–S24 are Local green; S22 and every S25/S26
+typed adapter run through the invented-alias synthetic journey; S27 local release-readiness artifacts
+are built. All external/provider/configuration/deploy rows remain Gated. `/loop` now selects one exact
+row from `docs/v1-client-unblock-checklist-2026-07-14.md`; it does not create another Round 3 packet,
+reuse synthetic evidence as provider proof, or infer provider contracts. Stop before each unauthorized
+live/config/provider gate.
 
 Before choosing a local feature, run the migration-readiness stop gate in
 `docs/autonomous-agent-runner.md`. If the proposed work does not improve production
@@ -62,37 +63,36 @@ false`, and execute no external action.
 - Draft non-secret setup runbooks and validation checklists.
 - Add or improve tests for existing KB behavior when implementation changes.
 - Audit docs for stale KB-only or separate-Owner-Router assumptions.
-- While Dan/team replies are pending, continue KB/workflow-control hardening, Lease
-  Renewal discovery/modeling, Gmail Inbox 0 planning, tool-access templates, and
-  dry-run/preflight/API setup work that is reversible, budget-guarded, and does not touch
-  raw client data or systems of record.
+- While an exact checklist row is pending, continue only regression repair, verification,
+  dry-run/preflight, handoff, and evidence work that improves readiness and does not touch raw client
+  data or systems of record. Use the canonical invented aliases for blocked-work tests.
 - Once local readiness is green and the remaining blockers are client-owned access,
   sources, billing, production setup, migration, or real product decisions, stop
   selecting new local product-surface work and record the migration-ready blocked state.
 
 ## Work Humans Or Client Can Do In Parallel
 
-- Provide admin access, non-secret project IDs, and authorized domains.
-- Approve source documents and mark sensitivity.
-- Confirm Lease Renewal Agent requirements and success criteria.
-- Confirm Gmail Inbox 0 label/filter/testing model.
-- Name users for roles, training, acceptance, and monitoring.
-- Approve production cutover date and rollback owner.
+- Choose one row from `docs/v1-client-unblock-checklist-2026-07-14.md` and return only its named
+  non-secret official/account contract, mapping, identifiers, and credential-owner/location label.
+- Approve production source roots and sensitivity/scanner policy for the exact launch Spaces.
+- Approve only the bounded first proof named by that row; a setup approval does not authorize the
+  action, deploy, send, write, or another row.
+- Capture the exact prior revision before any approved deploy and name Dan/Josiah acceptance evidence
+  only after deployed business/technical outcomes are green.
 
 ## Work Blocked On Access Or Missing Information
 
-- Client-owned KB production deploy.
-- Live Agent Search imports from PMI KC sources.
-- Firebase production role assignment.
-- Google Cloud billing/client-project migration until Dan adds billing and approves
-  exact cost-bearing actions.
-- Gmail Inbox 0 live mailbox read/modify/draft/send beyond documented safe-thread setup
-  until Dan approves the safe test-thread model.
-- Any Lease Renewal Agent runtime design.
-- Any integration with RentVine, LeadSimple, DotLoop, QuickBooks, Boom, Sheets, or live
-  Gmail beyond explicitly approved safe setup and tool-access answers.
-- The first authoritative Lease Renewal trigger source until Dan identifies where signed
-  leases and lease end dates live.
+- S21 production root/scanner/import/index evidence and S24 production index/held-record/TTL/worker
+  activation evidence.
+- S22 Identity Platform/TOTP, invitation delivery, OAuth client/redirect/vault, same-mailbox, and
+  first assigned-ticket Vendor proof.
+- Each S25/S26 production action's official/account contract, authoritative mapping, credential
+  location, bounded proof, readback, monitor, correction, Registry review, and explicit authority.
+- S27 captured prior revision, approved deploy/smoke, deployed desktop/phone evidence, dependency
+  disposition, rollback rehearsal, and named Dan/Josiah acceptance.
+
+The exact fields, recommended closed default, responsible role, and first proof are in
+`docs/v1-client-unblock-checklist-2026-07-14.md`. Do not expand these into generic access asks.
 
 ## Blocked-Work Protocol
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { validateVendorClaims } from "@/lib/vendor/auth";
+import { decodeVendorSessionCookie, validateVendorClaims } from "@/lib/vendor/auth";
 
 const now = 2_000_000;
 const valid = {
@@ -30,5 +30,24 @@ describe("Vendor verified-email TOTP session", () => {
     { ...valid, auth_time: now - 3_601 },
   ])("refuses missing Vendor/email/TOTP/freshness gates", (claims) => {
     expect(() => validateVendorClaims(claims, now)).toThrow();
+  });
+
+  it("treats an internal, malformed, or revoked cookie as no Vendor session", async () => {
+    await expect(
+      decodeVendorSessionCookie("local-demo-session", async () => {
+        throw new Error("Decoding Firebase session cookie failed.");
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it("treats valid non-Vendor claims as no Vendor session", async () => {
+    await expect(
+      decodeVendorSessionCookie("staff-session", async () => ({
+        uid: "staff-1",
+        email: "staff@pmikcmetro.com",
+        email_verified: true,
+        auth_time: now,
+      })),
+    ).resolves.toBeNull();
   });
 });

@@ -12,9 +12,12 @@ import {
   MAINTENANCE_EXECUTION_DEFINITION_MAP,
   MAINTENANCE_EXECUTION_ORDER,
 } from "@/lib/maintenance/execution/matrix";
+import { FINAL_V1_ACTION_PREVIEW_SCHEMAS } from "@/lib/integrations/final-v1-action-contracts";
+import { syntheticExternalTechnicalGates } from "@/tests/helpers/external-execution";
 
 function action(key: string, index: number): ExternalActionInput {
   const definition = MAINTENANCE_EXECUTION_DEFINITION_MAP.get(key)!;
+  const schema = FINAL_V1_ACTION_PREVIEW_SCHEMAS[key];
   const vendorMailboxAction = key.startsWith("vendor.gmail.");
   const actor = vendorMailboxAction
     ? ({ role: "Vendor" as const, uid: "vendor-synthetic" } as const)
@@ -23,7 +26,9 @@ function action(key: string, index: number): ExternalActionInput {
     workflowId: "maintenance-e2e-synthetic",
     actionId: `action-${index}`,
     actionKey: key,
-    values: { value: `synthetic-${index}` },
+    values: Object.fromEntries(
+      schema.map((field) => [field.name, syntheticValue(field.type, field.name, index)]),
+    ),
     sourceRefs: ["source:synthetic"],
     contractRef: "documented:fake:provider-v1",
     connectionRef: "connection:fake",
@@ -31,6 +36,18 @@ function action(key: string, index: number): ExternalActionInput {
     authority: {
       actor,
       roleScopeAuthorized: true,
+      technical: syntheticExternalTechnicalGates(),
+      communication: {
+        workflowLinked: true,
+        mailboxScopeAuthorized: true,
+        humanInitiated: true,
+        recipientMatchesPreview: true,
+        reversible: true,
+        governedLabel: true,
+        scheduled: false,
+        bulk: false,
+        modelTriggered: false,
+      },
       ...(vendorMailboxAction
         ? {
             vendor: {
@@ -61,12 +78,19 @@ function action(key: string, index: number): ExternalActionInput {
   return base;
 }
 
+function syntheticValue(type: string, name: string, index: number) {
+  if (type === "boolean") return true;
+  if (type === "number") return index + 1;
+  if (type === "date") return "2026-07-14";
+  return `${name}-synthetic-${index}`;
+}
+
 function executor(): ExternalExecutor {
   return {
     execute: vi.fn(async (input) => ({
       actionKey: input.actionKey,
       providerRef: `fake:${input.actionId}`,
-      resultHash: `hash:${input.actionId}`,
+      resultHash: "a".repeat(64),
       reconciled: false,
       createdAt: "2026-07-14T00:00:00.000Z",
     })),

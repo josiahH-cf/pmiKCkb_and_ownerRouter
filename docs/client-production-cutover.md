@@ -2,7 +2,7 @@
 
 > Current governance note, 2026-06-03: this is the PMI KC KB production rebuild
 > runbook. Cross-product integration and cutover planning for PMI KC KB, Lease Renewal
-> Agent, and Gmail Inbox 0 lives in `docs/integration-cutover-plan.md`.
+> Agent, and Workflow Communications lives in `docs/integration-cutover-plan.md`.
 
 This is the clean PMI KC-owned environment path. Do not copy demo Firestore exports,
 demo OAuth clients, demo service accounts, or demo Cloud Storage buckets into
@@ -60,21 +60,16 @@ Credentials, no network, and no spend against the $10 cap. A green run prints:
   [ok] production env preflight
   [ok] source corpus readiness
   [ok] deploy command preview
-  [ok] GCP infra ready (only the approval-gated notification send remains)
+  [ok] captured-revision rollback plan
+  [ok] zero readiness blockers
   corpus plan: 3 upload / 3 import / 3 seed commands
+Dry-run passed: every local cutover gate is green; notification delivery remains disabled.
 ```
 
-Expected residual (read this before §6): the synthetic rehearsal intentionally enables approval
-email so its aggregate `cutover:report` `readiness.ok` stays `false` with exactly one blocker:
-`gcp: KB approval Gmail notifications are enabled (...)`. Live Gmail sends are externally visible
-and stay approval-gated. The dry-run treats that single blocker as documented and confirms every
-OTHER gate is green; it fails loudly if any additional blocker appears. Do not "fix" it by routing
-`--allow-notifications` through the report — clearing it is a real send approval, not a dry-run step.
-
-For a real app-plane deployment, keep `KB_APPROVAL_NOTIFICATIONS_ENABLED=false` until sender,
-recipients, and delivery are explicitly approved. The production preflight passes with a warning
-that email delivery is excluded, and `cutover:report` should have no notification blocker. If email
-is explicitly enabled later, the lone notification-send blocker becomes the expected residual.
+The fixture keeps legacy approval email disabled, supplies a synthetic captured prior revision, and
+must return `ok:true` with no blockers. A notification residual is not expected. Event-driven approval
+email remains outside the product; do not enable it to exercise cutover. A real report must likewise
+be blocker-free and must name the exact currently serving revision captured before deployment.
 
 ## 2. Create The Client Google Environment
 
@@ -172,8 +167,9 @@ npm run seed:launch-skeletons -- --dry-run
 
 `seed:spaces` is idempotent: `--dry-run` prints the exact records without writing,
 reruns skip existing space documents, and `--force` updates existing documents while
-preserving their original `created_at`. Rollback for seeded spaces is deleting the
-listed `spaces/<space-id>` documents (they are app-owned metadata, not client data).
+preserving their original `created_at`. Do not delete seeded records as an automatic rollback step;
+restore traffic/configuration first, preserve evidence, and use a separately reviewed correction only
+for records proven to have been introduced by the failed change.
 
 Only omit `--dry-run` after confirming the active project and ADC target are the client
 project:
@@ -228,7 +224,9 @@ Review the printed `readiness` object before continuing. `readiness.ok` must be
 `true`, `readiness.blockers` must be empty, and any `readiness.warnings` must be
 resolved or explicitly accepted in the cutover notes. The template is expected to
 report blockers until every placeholder bucket/source path is replaced and every
-source is marked `Approved`.
+source is marked `Approved`. The planner emits empty upload/import/seed command arrays until
+`readiness.ok` is true, and it rejects shell-unsafe identifiers, paths, URIs, project/location values,
+or temp paths outside the repository's `temp/` boundary.
 
 6. After human source approval, create `.txt` staging copies and review the printed
    upload/import/metadata commands:
@@ -278,6 +276,10 @@ RENTVINE_API_BASE_URL=https://pmikcmetro.rentvine.com/api/manager
 RENEWAL_SHEET_ID=<renewal-sheet-id>
 SHEETS_IMPERSONATE_SA=<reader>@<client-project-id>.iam.gserviceaccount.com
 SHEETS_DWD_SUBJECT=<reader>@pmikcmetro.com
+GMAIL_DWD_SA=<gmail-dwd>@<client-project-id>.iam.gserviceaccount.com
+GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT=<gmail-pubsub-push>@<client-project-id>.iam.gserviceaccount.com
+GMAIL_PUBSUB_TOPIC=projects/<client-project-id>/topics/<approved-gmail-topic>
+GMAIL_PUBSUB_AUDIENCE=https://<canonical-production-host>/api/gmail-hub/pubsub
 ```
 
 The RentVine **api key and secret are delivered via Secret Manager**, never as plaintext env.
@@ -306,22 +308,32 @@ unreplaced placeholders, non-HTTPS or local `APP_BASE_URL`, `ASK_DEMO_MODE=true`
 `LOCAL_DEMO_AUTH=true`, missing source/data-store maps, missing `APP_BASE_URL`, missing
 Firebase public config, a missing or `gs://`-typed maintenance photo Drive folder, and — for
 dev↔prod parity — a missing/wrong-tenant `RENTVINE_API_BASE_URL`, missing `RENEWAL_SHEET_ID`,
-a non-service-account `SHEETS_IMPERSONATE_SA`, or a non-`pmikcmetro.com` `SHEETS_DWD_SUBJECT`.
+a non-service-account `SHEETS_IMPERSONATE_SA`, a non-`pmikcmetro.com` `SHEETS_DWD_SUBJECT`, any
+missing/malformed/cross-project Gmail DWD or Pub/Sub value, or a Pub/Sub audience that is not exactly
+the production `/api/gmail-hub/pubsub` endpoint.
 
 ## 6. Deploy Cloud Run
 
-Before any deploy, generate the consolidated machine-readable cutover report and confirm
-every section is green with only the expected notification-send residual described in §1b
+Before any deploy, capture the exact currently serving Cloud Run revision, then generate the
+consolidated machine-readable cutover report and confirm every section is green with no residual blocker
 (it composes the GCP setup plan, production env preflight, budget posture, corpus
 readiness, deploy command preview, rollback plan, and the §7 smoke checklist; blockers are
-prefixed with their failing section). For a compliant production env
-(`KB_APPROVAL_NOTIFICATIONS_ENABLED=true`) the budget guard holds back the approval-gated
-Gmail send, so that one `gcp:` blocker is expected; the live send is approved separately and
-is not a deploy blocker:
+prefixed with their failing section). Keep `KB_APPROVAL_NOTIFICATIONS_ENABLED=false`; event-driven
+approval email is outside this release and is not a cutover prerequisite:
 
 ```bash
-npm run cutover:report -- --manifest=temp/client-production-source-manifest.json --env-file=.env.production.local --json
+npm run cutover:report -- --manifest=temp/client-production-source-manifest.json --env-file=.env.production.local --prior-revision=<captured-serving-revision> --json
 ```
+
+If `--project` is supplied, it may only confirm the reviewed environment project. The report compares it
+with `GCP_PROJECT_ID`, both Firebase project IDs, the runtime/Sheets/Gmail service-account projects, and
+the Gmail Pub/Sub topic project. It also requires the exact `us` search location and audience-bound Gmail
+quartet. Any malformed or conflicting value blocks readiness and emits no setup, corpus, deploy, or
+rollback command until every reviewed binding agrees.
+
+The report refuses rollback readiness when the revision is absent or does not match the service's
+revision shape. Do not deploy until the generated rollback step restores 100% traffic to that exact
+revision with `gcloud run services update-traffic`.
 
 That consolidated report is the gate for initial cutover, source imports, source-map changes, or
 other migration work. For a code-only redeploy that preserves the already-live source and data-store
@@ -355,7 +367,6 @@ KB runtime:
   with `auth_error` even though RentVine + the env are correct (verified live 2026-07-01 — a local reader works
   because the human ADC already holds Token Creator on the reader SA; the runtime SA needs the same in prod):
   `gcloud iam service-accounts add-iam-policy-binding <SHEETS_IMPERSONATE_SA> --member="serviceAccount:<runtime-sa>" --role="roles/iam.serviceAccountTokenCreator" --project=<project>`
-- Gmail send-only authority for `kb-automation@pmikcmetro.com`
 - Grant each launch operator the **Admin** role AFTER their first sign-in: `npm run firebase:set-role --
 --email=<user@pmikcmetro.com> --role=Admin` (targets `FIREBASE_PROJECT_ID`/`GCP_PROJECT_ID`). A Firebase user
   with no `role` custom claim defaults to **Editor** (`lib/auth/session.ts` `readFirebaseRole`), so Admin-gated
@@ -365,7 +376,7 @@ KB runtime:
 Deploy with production flags:
 
 ```bash
-npm run deploy -- --project=<client-project-id> --service=pmi-kc-kb --region=us-central1 --search-location=us --budget-confirmed --allow-multiple-spaces --service-account=<runtime-service-account-email>
+npm run deploy -- --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo --region=us-central1 --search-location=us --budget-confirmed --allow-multiple-spaces --service-account=<runtime-service-account-email>
 ```
 
 Add the generated Cloud Run host or custom production domain to Firebase Auth
@@ -408,14 +419,16 @@ Production smoke checklist:
 
 ## Rollback
 
-`npm run cutover:report -- --json` emits the ordered rollback plan with concrete
-commands when a manifest is provided: (1) delete or re-route the Cloud Run service,
-(2) delete imported Agent Search data stores (the delete script refuses stores still
-mapped in `SPACE_VERTEX_DATA_STORE_IDS`), (3) remove uploaded `.txt` staging copies
-from Cloud Storage, (4) delete seeded app-owned Firestore metadata (`sources_meta`
-entries and `spaces/<id>` documents), and (5) redeploy the previous
-`firestore.rules`/`firestore.indexes.json` from git history if they changed. Original
-client sources are never modified by the pipeline, so rollback never touches them.
+`npm run cutover:report -- --manifest=<reviewed-manifest-path> --env-file=<reviewed-production-env-path> --prior-revision=<captured-serving-revision> --json`
+emits the immediate rollback command only when the reviewed inputs pass and the exact prior Cloud Run
+revision is valid. Roll back by closing affected
+Action Registry entries, preserving bodyless audit, and routing 100% of traffic to that captured
+revision with `gcloud run services update-traffic`; preserve the Cloud Run service and revision history. Restore the
+pinned rules/indexes, Registry hash, policies, and configuration only from reviewed prior versions.
+
+Resource cleanup is not immediate rollback. Any later removal of a newly imported data store, staging
+copy, or app-owned seed record requires its own dry-run, proof that no active map references it, and a
+separately reviewed correction. Original client sources are never modified or deleted by this path.
 
 ## Production Blockers
 
@@ -424,8 +437,10 @@ Production cannot be declared complete until:
 - PMI KC-approved production source files are uploaded/imported and seeded in
   `sources_meta`.
 - The source/data-store maps point only at client-owned resources.
-- `kb-automation@pmikcmetro.com` and Dan/Josiah notification recipients are configured.
-- Gmail Inbox 0 source package exists, with any reused legacy Owner Router artifacts
-  renamed or clearly mapped, and is indexed read-only by the KB Owner Email Space for
-  final owner-email verification.
+- The exact external gates in `docs/v1-client-unblock-checklist-2026-07-14.md` are resolved one row at
+  a time; a synthetic alias or local fake result does not satisfy them.
+- The release manifest pins the exact commit/candidate revision, rules/indexes/Registry hashes, proof
+  and monitor/correction references, desktop/phone deployed acceptance, dependency disposition, and
+  named Dan/Josiah acceptance. The cutover report separately requires the captured service-matching
+  prior revision before it can report rollback ready. Until then the release remains `Pre-V1`.
 - Final smoke results and any exceptions are recorded in `docs/status.md`.

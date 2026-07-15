@@ -1,6 +1,7 @@
 import type { CreateProcessDefinitionInput } from "@/lib/firestore/schemas";
 import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 import { LEASE_RENEWAL_STAGES } from "@/lib/lease-renewal/constants";
+import { LEASE_EXECUTION_ACTIONS } from "@/lib/lease-renewal/execution/matrix";
 
 /**
  * Non-executable Lease Renewal process-definition template. Converts the confirmed
@@ -9,40 +10,36 @@ import { LEASE_RENEWAL_STAGES } from "@/lib/lease-renewal/constants";
  * Testing -> Pending Approval lifecycle with simulation-only test runs.
  *
  * Every action reference is derived from the Action Registry seed catalog, so target
- * systems, readiness, and rollback notes cannot drift from the governed metadata. The
- * template authorizes nothing: the resulting definition starts as Draft, its references
- * stay pending future automation, and the Rentvine renewal writeback remains gated as
- * undocumented.
+ * systems and rollback notes cannot drift from governed metadata. The template authorizes
+ * nothing: the resulting definition starts as Draft, and a globally approved action type
+ * still becomes Planned in this renewal workflow until its instance mapping and proof exist.
  */
 
-// The renewal chain's registry actions: reads before writes, orchestration, candidate
-// document package, optional resident enrollment, and the gated writeback.
-const LEASE_RENEWAL_ACTION_KEYS = [
+// One read-authoritative intake plus the complete S25 action graph. The order after the
+// read is pinned to LEASE_EXECUTION_ACTIONS so the process surface cannot silently omit a
+// required final-V1 action or reintroduce the old manual-only path.
+export const LEASE_RENEWAL_ACTION_KEYS = [
   "rentvine.lease.read",
-  "leadsimple.process.update_stage",
-  "dotloop.loop.create_from_template",
-  "dotloop.document.upload",
-  "boom.resident.enroll",
-  "rentvine.lease.renewal_writeback",
+  ...LEASE_EXECUTION_ACTIONS,
 ] as const;
 
 const STAGE_DESCRIPTIONS: Record<(typeof LEASE_RENEWAL_STAGES)[number], string> = {
   "Candidate detection":
     "Identify due renewals from lease timing (Rentvine is read-authoritative for lease dates, tenant contacts, and property/owner context). Manual start remains allowed.",
   "Owner decision":
-    "Gather facts read-only, show source/timestamp/confidence per fact, and prepare the workflow summary, owner communication draft, internal update preview, and approval package for Dan's review.",
+    "Gather facts read-only, show source/timestamp/confidence per fact, and prepare exact channel previews plus the approval package. Missing or conflicting authority remains Blocked.",
   "Tenant intake":
-    "Capture the tenant-side renewal response and any negotiated terms as source-backed facts.",
+    "Capture the tenant-side renewal response and negotiated terms as source-backed facts. Email, portal, and SMS remain separate exact-confirmed actions with separate receipts.",
   "Document package":
-    "Prepare the renewal document package (Dotloop is the candidate document-package/signing layer).",
+    "Create the approved Dotloop renewal loop and upload only the configured document package after the required High-risk approval.",
   "Signature/confirmation":
-    "Track signature and confirmation state; exact Dotloop signature lifecycle is vendor-confirmation-required.",
+    "Track source-backed signature and confirmation evidence; exact Dotloop signature lifecycle remains vendor-confirmation-required.",
   "System-of-record update":
-    "Write the renewal back into Rentvine. Pending future automation: non-executable until the endpoint is vendor-confirmed and an approved per-action spec, tests, and rollback exist.",
+    "Write the signed renewal back into Rentvine only through the documented account contract, exact preview, Admin approval, and read-after-write receipt.",
   "Service/charge verification":
-    "Verify renewal charges and services against approved sources; optional Boom resident enrollment happens here.",
+    "Verify renewal charges and services against approved sources; record Boom as audited not-applicable or execute the approved High-risk enrollment contract.",
   Closeout:
-    "Close the run with the approved package history, backlinks, and audit detail preserved.",
+    "Close only when every applicable action has its own reconciled receipt; a failed channel or ambiguous provider outcome remains visible.",
 };
 
 export interface LeaseRenewalTemplateOptions {
@@ -57,7 +54,7 @@ export function buildLeaseRenewalProcessTemplate(
   return {
     name: "Lease Renewal",
     short_outcome:
-      "Prepare a source-backed renewal review package and owner communication draft for Dan's approval; a human sends the approved communication.",
+      "Carry a source-backed renewal through exact-confirmed outreach, the approved document package, renewal writeback, and conditional Boom enrollment with every external action individually gated.",
     trigger:
       "Manual start by a team member; the system anticipates due renewals from lease timing and reminds the team.",
     owner_uid: options.ownerUid,
@@ -75,9 +72,9 @@ export function buildLeaseRenewalProcessTemplate(
       actionReferenceFromSeed(key, options.approverUid),
     ),
     success_condition:
-      "Dan approves the approval package and the facts used by it; the approved owner communication is sent by a human; internal updates execute only through individually approved actions.",
+      "Every applicable enabled action has a reconciled receipt; communications were exact-confirmed, consequential writes were Admin-approved, and no autonomous, bulk, scheduled, or model-triggered send occurred.",
     stop_condition:
-      "Conflicting or missing facts block the run until a human resolves them; no external write or send occurs without per-action approval.",
+      "A missing or conflicting fact, source, mapping, contract, connection, Registry gate, role scope, confirmation, or approval blocks only the affected action and cannot be approved away.",
     escalation_condition:
       "Blocked or overdue items route to Dan/Josiah Admin triage through the Approval Queue.",
   };
@@ -94,7 +91,8 @@ function actionReferenceFromSeed(key: string, approverUid: string) {
     label: entry.label,
     target_system: entry.target_system,
     expected_action: entry.expected_action,
-    readiness: entry.readiness,
+    // Registry promotion is action-type authority, never blanket authority for a new workflow.
+    readiness: entry.production_allowed ? "Planned" : entry.readiness,
     missing_connection_or_permission: entry.required_permissions?.join("; "),
     approval_owner_uid: approverUid,
     rollback_or_correction_note: entry.rollback_note,

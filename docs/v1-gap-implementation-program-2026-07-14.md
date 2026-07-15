@@ -32,22 +32,29 @@ deployments are **pre-V1**.
 
 ## Dependency order for `/loop`
 
-| Slice | Suite | Safe unattended outcome                                                                       | Stop before                                                   |
-| ----- | ----- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| 1     | S20   | Risk classification, Editor/Admin authority, proposal/execution state machine, audit, tests   | Any registry flip or live action                              |
-| 2     | S21   | Trusted publication validator, version/rollback/audit, configured-root policy, negative tests | Production connector/root changes                             |
-| 3     | S23   | Live-only Console contracts, scoped detail panel, fixture fencing, failure states             | Live customer/Gmail read                                      |
-| 4     | S24   | Retention schemas/cleanup planner, legal hold, versioned v1.0 artifacts, AI-reply policy      | TTL deployment or live send                                   |
-| 5     | S22   | Vendor auth/assignment/MFA/OAuth app-plane and emulator paths                                 | Real invite, OAuth client/secret, mailbox connection          |
-| 6     | S25   | Lease orchestrator and one adapter slice per approved R02 action, all closed by default       | Vendor credentials, SoR writes, sends                         |
-| 7     | S26   | Maintenance orchestrator and one adapter slice per approved R03 action, all closed by default | Vendor credentials, account creation, Drive/SoR writes, sends |
-| 8     | S27   | Emulator/fake-provider E2E, acceptance ledger, pre-V1 release report and rollback plan        | Deploy and bounded production proof                           |
+| Slice | Suite | Safe unattended outcome                                                                                                                         | Stop before                                                                    |
+| ----- | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 1     | S20   | Risk classification, Editor/Admin authority, proposal/execution state machine, audit, tests                                                     | Any Registry flip or live action                                               |
+| 2     | S21   | Bounded stream/chunk storage, trusted validator, fenced local scanner, version/ref reuse/rollback/audit                                         | Production connector/root/scanner changes                                      |
+| 3     | S23   | Live-only Console contracts, scoped detail panel, fixture fencing, failure states                                                               | Live customer/Gmail read                                                       |
+| 4     | S24   | Date/Timestamp TTL plus numeric query schema, bounded crash-resumable emulator-only cleanup worker, dual-null legal hold, v1.0 artifacts/policy | Live index/TTL/scheduler deployment, legacy migration, or Gmail send           |
+| 5     | S22   | Vendor auth/assignment/MFA/OAuth app-plane and emulator paths                                                                                   | Real invite, OAuth client/secret, mailbox connection                           |
+| 6     | S25   | Exact schemas/S20 bridge plus typed synthetic executors for all 11 R02 action keys, closed by default                                           | Vendor credentials, Registry promotion, SoR writes, or sends                   |
+| 7     | S26   | Exact schemas/S20 bridge plus typed synthetic executors for all 19 R03 action keys, closed by default                                           | Credentials, account creation, Registry promotion, Drive/SoR writes            |
+| 8     | S27   | Actual-adapter synthetic E2E, hardened manifest/report, pre-V1 labels, local browser render, safe rollback/cutover rehearsal                    | Deploy, deployed browser/live/rollback acceptance, or bounded production proof |
 
 Within S25/S26, implement one external system per slice. Each slice must ship preview, idempotency,
 read-after-write or reconciliation, rollback/correction, audit, failure typing, and tests before the
 next adapter starts. Vendor-confirmation-required or undocumented APIs may receive a typed disabled
 adapter and contract tests, but the action is not “implemented” and V1 cannot close until the real
 contract is documented and proven.
+
+The safe local adapter slices are complete as of 2026-07-14: the integrated invented-alias harness
+invokes the actual typed executor for all 11 S25 and all 19 S26 action keys, with one attempt and one
+bodyless receipt per key, plus the full synthetic S22 Vendor journey and zero live provider calls. This
+is local boundary evidence only. The same one-system order now applies to provider contract capture,
+exact Registry promotion, sandbox/reversible proof, and bounded production proof; none may be inferred
+from the synthetic result.
 
 ## Outside-session operating contract
 
@@ -70,20 +77,21 @@ contract is documented and proven.
 Track each row as `Not started`, `Local green`, `Gated`, `Live-proven`, or `Accepted`. A release row is
 `Accepted` only with evidence and rollback.
 
-| Suite | State       | Evidence / next boundary                                                                                                            |
-| ----- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| S20   | Local green | Shared risk/authority policy, bodyless one-attempt ledger, atomic High queue, Editor Medium Gmail capability; no flip               |
-| S21   | Local green | Policy, bounded validation/scanners, immutable versions/rollback/audit, direct process + Space publish; live setup gated            |
-| S22   | Local green | Verified-email TOTP Vendor session, assigned-ticket UI/join, invite/OAuth/vault/revoke/fake Gmail; live setup gated                 |
-| S23   | Local green | Server mode, scoped/provenanced projection, bounded Gmail metadata, test badge/cutover fence; live wiring gated                     |
-| S24   | Local green | Retention/cleanup/legal hold, three immutable artifacts, transient source-backed AI reply; live TTL and mappings gated              |
-| S25   | Gated       | Local 11-action orchestration/fakes/negative tests green; real contracts, mappings, proofs, promotion and acceptance pending        |
-| S26   | Gated       | Local 19-action orchestration/fakes/negative tests green; live identity/provider mappings, proofs, promotion and acceptance pending |
-| S27   | Gated       | Manifest/pre-V1 label/integrated fake/ledger/runbooks built; deploy, browser/live/rollback proof and named acceptance pending       |
+| Suite | State       | Evidence / next boundary                                                                                                                                                                                                                                                                                                   |
+| ----- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S20   | Local green | Shared risk/authority policy, bodyless one-attempt ledger, exact S25/S26 preparation bridge, atomic High queue, Editor Medium Gmail capability; no Registry flip                                                                                                                                                           |
+| S21   | Local green | Bounded request stream, 384 KiB integrity chunks, immutable refs/version/rollback reuse/audit, local-demo scanner fence; production root/scanner/import/deploy proof gated                                                                                                                                                 |
+| S22   | Local green | Verified-email TOTP Vendor session, assigned-ticket UI/join, invite/OAuth/vault/revoke/fake Gmail; live setup gated                                                                                                                                                                                                        |
+| S23   | Local green | Server mode, scoped/provenanced projection, bounded Gmail metadata, test badge/cutover fence; live wiring gated                                                                                                                                                                                                            |
+| S24   | Local green | Indexed bounded worker with atomic bodyless run progress, canonical Date/Timestamp TTL, dual-null hold, emulator-only CLI, three immutable artifacts, transient source-backed AI reply; production migration/TTL/mappings gated                                                                                            |
+| S25   | Gated       | Exact schemas and actual typed adapters for all 11 keys pass invented-alias one-attempt/receipt acceptance; real contracts/mappings/proofs/promotion/acceptance pending                                                                                                                                                    |
+| S26   | Gated       | Exact schemas and actual typed adapters for all 19 keys pass invented-alias one-attempt/receipt acceptance; live identity/provider mappings/proofs/promotion pending                                                                                                                                                       |
+| S27   | Gated       | Hardened manifest/bodyless report, route-wide pre-V1 labels, synthetic S22/S25/S26 acceptance, local desktop/phone render, notifications-off cutover and prior-revision rollback guard are local green; deploy, pinned role/failure-path browser/live/rollback proof, dependency disposition, and named acceptance pending |
 
 ## Hard stop packet format
 
 When a gate is reached, report: exact action key and environment; account/data affected; evidence and
 tests already green; permission/credential/provider requirement; expected cost; one-attempt/idempotency
 plan; rollback/correction; owner who must approve; and what safe work remains. Do not collapse multiple
-systems into a blanket approval request.
+systems into a blanket approval request. The current exact rows and recommended closed-by-default
+decisions are maintained in `docs/v1-client-unblock-checklist-2026-07-14.md`.

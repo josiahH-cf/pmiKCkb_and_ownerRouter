@@ -63,6 +63,10 @@ block unknown-cost work, raw client data handling, unapproved Gmail expansion, e
 and Lease Renewal operational mutation, but they do not block reversible product work,
 API-backed setup, or migration preparation when Remote Away Mode allows it.
 
+For final-V1, `docs/v1-client-unblock-checklist-2026-07-14.md` is the exact
+recommendation-first packet. Choose one row, retain its closed default, and request only the named
+non-secret contract/mapping/owner evidence. Do not substitute a generic provider-access request.
+
 Safe local development is not unlimited. Before starting another local feature cycle,
 check whether the work still improves production readiness, migration/cutover prep,
 verification quality, handoff, or a known regression. If local verification is green,
@@ -73,8 +77,9 @@ unblock, approved production setup, migration, or cutover prep.
 
 Continue iterating on:
 
-- The decision-complete S20–S27 program in dependency order, one external provider/action per slice,
-  using fake providers/emulators and preserving current Action Registry values until the exact live gate.
+- The decision-complete S20–S27 program one external row at a time. All 11 Lease and 19 Maintenance
+  typed adapters plus the S22 Vendor journey already run locally with invented aliases; preserve the
+  production fake/Registry/schema/risk fences and current Action Registry values until the exact live gate.
 
 - KB demo/runtime health, tests, preflights, dry-runs, Admin visibility, and source
   manifest templates.
@@ -83,10 +88,10 @@ Continue iterating on:
   `docs/environment-handoff.md`.
 - S20 risk/authority/ledger, S21 trusted publication, S23 Console live/test-data, and S24 retention/
   artifact/AI-reply policy are Local green and remain shared boundaries.
-- S22 is Local green. S25/S26 safe local orchestrators, action graphs, fake adapters, and negative tests
-  plus S27's manifest/fake/ledger/runbooks are built but Gated. Continue with the exact per-action proof
-  packets in `docs/v1-pre-release-report-2026-07-14.md`; keep every live identity/provider/deploy step
-  separately gated.
+- S22 is Local green. S25/S26 typed orchestrators, exact action adapters, the S20 queue bridge,
+  integrated invented-alias acceptance, and negative tests plus S27's hardened production-only
+  manifest/report and runbooks are built but Gated. Continue with the exact rows in
+  `docs/v1-client-unblock-checklist-2026-07-14.md`; never use a local fake receipt as production proof.
 - Action Registry catalog/schema modeling (metadata only; do not widen `production_allowed`)
   and integration architecture per `docs/integration-architecture.md`, with Maintenance
   Work Order Intake as the first executable-write target and the Rentvine lease-renewal
@@ -110,8 +115,9 @@ approved storage path, client Drive write, or
 RentVine/LeadSimple/DotLoop/QuickBooks/Boom/Sheets write unless the active docs and
 `docs/away-mode.md` explicitly allow that exact bounded action.
 
-R01–R09 need no further product-definition batch. Ask only for irreducible production mappings,
-provider contracts/credentials, or exact live authority after repo/code research is exhausted.
+R01–R09 need no further product-definition batch. Ask only for the irreducible production mapping,
+official/account contract, credential-owner/location label, or exact authority named by one unblock
+row after repo/code research is exhausted.
 
 When the user asks to plan the next feature run cycle, route through
 `docs/autonomous-agent-runner.md`. Read the trigger literally: "plan" produces a

@@ -1,4 +1,69 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "gmail_send_confirmations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "legal_hold", "order": "ASCENDING" },
+        { "fieldPath": "expires_at_ms", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "gmail_send_audit",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "legal_hold", "order": "ASCENDING" },
+        { "fieldPath": "expires_at_ms", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "gmail_push_dedupe",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "legal_hold", "order": "ASCENDING" },
+        { "fieldPath": "expires_at_ms", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "gmail_sync_audit",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "legal_hold", "order": "ASCENDING" },
+        { "fieldPath": "expires_at_ms", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "gmail_workflow_communications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "legal_hold", "order": "ASCENDING" },
+        { "fieldPath": "expires_at_ms", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "gmail_workflow_communication_audit",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "legal_hold", "order": "ASCENDING" },
+        { "fieldPath": "expires_at_ms", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "gmail_retention_audit",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "legal_hold", "order": "ASCENDING" },
+        { "fieldPath": "expires_at_ms", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "gmail_retention_cleanup_runs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "legal_hold", "order": "ASCENDING" },
+        { "fieldPath": "expires_at_ms", "order": "ASCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

@@ -88,6 +88,10 @@ export function QueueDetailPanel({
               label="Affected action"
               value={displayValue(selectedItem.affected_system_action)}
             />
+            <DetailField
+              label="Execution target"
+              value={displayValue(selectedItem.action_execution_target)}
+            />
           </div>
 
           <div className="queue-detail-actions">

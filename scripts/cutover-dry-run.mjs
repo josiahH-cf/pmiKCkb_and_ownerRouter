@@ -1,6 +1,6 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { buildCutoverReport } from "./build-cutover-report.mjs";
+import { buildCutoverReport, DEFAULT_CUTOVER_SERVICE } from "./build-cutover-report.mjs";
 
 // Zero-cost rehearsal of the production cutover-readiness chain against synthetic golden
 // fixtures. It runs the SAME `buildCutoverReport` the real `npm run cutover:report` runs — only
@@ -10,16 +10,6 @@ import { buildCutoverReport } from "./build-cutover-report.mjs";
 // docs/client-production-cutover.md ("Dry-run readiness rehearsal").
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-
-// The production preflight REQUIRES KB_APPROVAL_NOTIFICATIONS_ENABLED=true, but the budget guard
-// inside the report evaluates without --allow-notifications, so it always emits this one blocker.
-// It is the documented, expected residual: live Gmail notification sends are externally visible
-// and stay approval-gated; a dry rehearsal intentionally does not clear them. Every OTHER gate
-// must be green. Keep this string byte-identical to scripts/check-budget-guard.mjs (prefixed
-// `gcp: ` by scripts/build-cutover-report.mjs); a unit test pins the interaction.
-export const EXPECTED_RESIDUAL_BLOCKER =
-  "gcp: KB approval Gmail notifications are enabled (KB_APPROVAL_NOTIFICATIONS_ENABLED=true). " +
-  "Gmail send is approval-gated; pass --allow-notifications only after explicit approval.";
 
 export const GOLDEN_ENV_FILE = join(
   root,
@@ -38,6 +28,7 @@ export function runCutoverDryRun({
   manifest = GOLDEN_MANIFEST_FILE,
   project = "sample-kb-fixture-prod",
   location = "us",
+  priorRevision = `${DEFAULT_CUTOVER_SERVICE}-00001-prior`,
 } = {}) {
   const report = buildCutoverReport({
     argv: [
@@ -45,28 +36,24 @@ export function runCutoverDryRun({
       `--manifest=${manifest}`,
       `--project=${project}`,
       `--location=${location}`,
+      `--prior-revision=${priorRevision}`,
     ],
     env: {},
     awayModeActive: false,
   });
 
-  const residualBlockers = report.readiness.blockers.filter(
-    (blocker) => blocker !== EXPECTED_RESIDUAL_BLOCKER,
-  );
-
   const gates = {
     productionEnv: report.production_env.ok,
     corpus: report.corpus.evaluated && report.corpus.readiness.ok,
     deploy: report.deploy.ok,
-    onlyExpectedResidual:
-      residualBlockers.length === 0 &&
-      report.readiness.blockers.includes(EXPECTED_RESIDUAL_BLOCKER),
+    rollback: report.rollback_ready === true,
+    noBlockers: report.readiness.blockers.length === 0,
   };
 
   return {
     ok: Object.values(gates).every(Boolean),
     gates,
-    residualBlockers,
+    blockers: report.readiness.blockers,
     report,
   };
 }
@@ -90,8 +77,7 @@ export async function main(argv = process.argv.slice(2)) {
         {
           ok: result.ok,
           gates: result.gates,
-          residual_blockers: result.residualBlockers,
-          expected_residual_blocker: EXPECTED_RESIDUAL_BLOCKER,
+          blockers: result.blockers,
           corpus_plan: corpusPlan,
         },
         null,
@@ -103,23 +89,19 @@ export async function main(argv = process.argv.slice(2)) {
     console.log(formatGate("production env preflight", result.gates.productionEnv));
     console.log(formatGate("source corpus readiness", result.gates.corpus));
     console.log(formatGate("deploy command preview", result.gates.deploy));
-    console.log(
-      formatGate(
-        "GCP infra ready (only the approval-gated notification send remains)",
-        result.gates.onlyExpectedResidual,
-      ),
-    );
+    console.log(formatGate("captured-revision rollback plan", result.gates.rollback));
+    console.log(formatGate("zero readiness blockers", result.gates.noBlockers));
     console.log(
       `  corpus plan: ${corpusPlan.upload_commands} upload / ${corpusPlan.import_commands} import / ${corpusPlan.seed_commands} seed commands`,
     );
 
     if (result.ok) {
       console.log(
-        "Dry-run passed: every cutover gate is green except the expected, approval-gated live notification send.",
+        "Dry-run passed: every local cutover gate is green; notification delivery remains disabled.",
       );
     } else {
-      console.error("Dry-run FAILED. Unexpected blockers:");
-      for (const blocker of result.residualBlockers) {
+      console.error("Dry-run FAILED. Blockers:");
+      for (const blocker of result.blockers) {
         console.error(`- ${blocker}`);
       }
       for (const error of report.production_env.errors) {

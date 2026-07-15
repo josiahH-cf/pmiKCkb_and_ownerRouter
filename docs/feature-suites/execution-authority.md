@@ -32,7 +32,16 @@ and audit all derive from one server-side decision so no surface can silently wi
   send remains forbidden. Vendor sends follow S22, not the internal Editor role.
 - **State machine.** `Draft → Ready → Executing → Succeeded|Failed|Needs reconciliation`; High inserts
   `Awaiting Admin → Approved|Returned|Revoked` before execution. One immutable execution id binds
-  action key, actor, risk, preview hash, approval, attempt, result, and correction/rollback reference.
+  action key, server-owned target/source-context hash, risk, preview hash, approval, attempt, result,
+  and correction/rollback reference. External-action idempotency is canonical per workflow/action/key,
+  not per requesting actor, so concurrent or cross-actor duplicates can make only one provider call.
+- **External bridge.** `lib/external-execution/s20-bridge.ts` accepts only authority-free prepared
+  values, snapshots them before asynchronous checks, derives risk/schema/target context on the server,
+  reloads same-workflow dependency receipts, and uses the S20 Firestore claim/reconciliation ledger.
+  Medium execution requires the exact current preview confirmation. High approval binds both preview
+  and displayed target/source context. Strict allowlisted receipts retain only provider reference,
+  result hash, outcome, reconciliation flag, and timestamp; malformed/ambiguous results require
+  read-only reconciliation and never a blind second attempt.
 - **Buildable now (app-plane).** Pure classifier/authority modules, proposal state, audit schema,
   server-derived UI availability, fake executor tests, and migration of existing queue decisions.
 - **Gated (owner / vendor).** Every real external action, registry promotion, live role claim change,
@@ -61,7 +70,8 @@ exact-confirmation, source-state, space-scope, and value-free inbox invariants a
   for Editor High; Editor Blocked is refused with named unmet conditions. _Verify:_ `npm test --
 execution-authority`.
 - **AC-S20-2** — Admin may approve their own High proposal with a non-empty reason and matching preview
-  hash; a stale hash, returned/revoked item, or second claim causes zero executor calls. _Verify:_
+  plus target/source-context hash; a stale hash, target drift, returned/revoked item, or second claim
+  causes zero executor calls. _Verify:_
   `npm test -- execution-authority approval-queue`.
 - **AC-S20-3** — Exact-confirmed workflow email/portal/SMS is Medium, but scheduled, model-triggered,
   bulk, recipient-drifted, or unconfirmed send is Blocked for every role. _Verify:_ `npm test --
@@ -74,8 +84,11 @@ route-auth-boundary`.
 - **AC-S20-5** — `production_allowed:false`, undocumented evidence, missing permission, failed source
   validation, or absent authoritative value prevents execution even after Admin approval. _Verify:_
   `npm test -- action-gate action-registry-schema execution-authority`.
-- **AC-S20-6** — One execution id yields at most one attempt and an append-only bodyless audit under
-  double-click, concurrency, timeout, and retry. Ambiguity becomes `Needs reconciliation`. _Verify:_
+- **AC-S20-6** — One execution identity yields at most one attempt and an append-only bodyless audit
+  under double-click, concurrency, timeout, and retry; S25/S26 external actions additionally use one
+  canonical workflow/action/idempotency identity across actors. Ambiguity becomes `Needs
+reconciliation`; read-only reconciliation revalidates current authority/context and resolves the
+  consumed attempt without reopening provider execution. _Verify:_
   `npm test -- execution-ledger`; `npm run test:firestore`.
 - **AC-S20-7** — UI affordances equal the server decision for Editor, Approver, Admin, wrong scope, and
   Vendor; direct API calls cannot exceed them. _Verify:_ `npm test`; keep role/scope/route sentinels green.
@@ -93,8 +106,8 @@ action gate. No new role claim is minted live. Deploy remains owner-run; ~$10 ca
    behavior with tests before editing.
 2. _Understanding:_ enumerate all current/future action keys and assign the immutable default risk
    above; add instance-risk elevation only, never browser-controlled lowering.
-3. _Build:_ implement pure classification/authority and shared denial reasons.
-4. _Build:_ implement execution/proposal ledger, preview hash, one-attempt claim, reconciliation state,
+3. _Build:_ implement pure classification/authority, server-owned target context, and shared denial reasons.
+4. _Build:_ implement execution/proposal ledger, preview/context hashes, canonical one-attempt claim, reconciliation state,
    and append-only audit with emulator tests.
 5. _Build:_ derive Approval Queue, Console, and route availability from the server decision; migrate
    internal Editor Low/Medium behavior without granting Vendor/internal-space crossover.

@@ -11,6 +11,7 @@ export async function GET() {
     await store.activateVendor(
       principal.vendorId,
       principal.uid,
+      principal.email,
       new Date().toISOString(),
     );
     return NextResponse.json({ tickets: await listVendorTickets(principal, store) });

@@ -15,6 +15,10 @@ const approvalStatuses = new Set([
 ]);
 const sensitivities = new Set(["Low", "Medium", "High"]);
 const PLACEHOLDER_VALUE_PATTERN = /<[^>]+>|\b(change-me|changeme|replace-me|todo)\b/i;
+const SAFE_RESOURCE_ID_PATTERN = /^[a-z][a-z0-9-]{0,62}$/;
+const SAFE_SOURCE_PATH_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/;
+const SAFE_GCS_URI_PATTERN =
+  /^gs:\/\/[a-z0-9][a-z0-9._-]{1,61}[a-z0-9]\/[A-Za-z0-9][A-Za-z0-9._/-]*$/;
 
 export function validateSourceManifest(value) {
   if (!Array.isArray(value)) {
@@ -111,6 +115,11 @@ function validateEntry(entry, index) {
     throw new Error(`Manifest entry ${index} gcs_uri must start with gs://.`);
   }
 
+  assertSafeResourceId(record.space_id, index, "space_id");
+  assertSafeResourceId(record.data_store_id, index, "data_store_id");
+  assertSafeSourcePath(record.source_path, index);
+  assertSafeGcsUri(record.gcs_uri, index);
+
   if (!approvalStatuses.has(record.approval_status)) {
     throw new Error(`Manifest entry ${index} has invalid approval_status.`);
   }
@@ -120,6 +129,50 @@ function validateEntry(entry, index) {
   }
 
   return record;
+}
+
+function assertSafeResourceId(value, index, fieldName) {
+  const normalized = normalizePlaceholders(value);
+  if (!SAFE_RESOURCE_ID_PATTERN.test(normalized)) {
+    throw new Error(
+      `Manifest entry ${index} ${fieldName} must be a lowercase letters/digits/hyphens resource id.`,
+    );
+  }
+}
+
+function assertSafeSourcePath(value, index) {
+  const normalized = normalizePlaceholders(value);
+  const segments = normalized.split("/");
+  if (
+    !SAFE_SOURCE_PATH_PATTERN.test(normalized) ||
+    segments.some((segment) => segment === "" || segment === "." || segment === "..")
+  ) {
+    throw new Error(
+      `Manifest entry ${index} source_path must be a safe workspace-relative path.`,
+    );
+  }
+}
+
+function assertSafeGcsUri(value, index) {
+  const normalized = normalizePlaceholders(value);
+  const objectPath = normalized
+    .slice(normalized.indexOf("/") + 2)
+    .split("/")
+    .slice(1);
+  if (
+    !SAFE_GCS_URI_PATTERN.test(normalized) ||
+    objectPath.some((segment) => segment === "" || segment === "." || segment === "..")
+  ) {
+    throw new Error(
+      `Manifest entry ${index} gcs_uri must be a shell-safe gs://bucket/object resource.`,
+    );
+  }
+}
+
+function normalizePlaceholders(value) {
+  return value
+    .replace(/<[^<>]+>/g, "placeholder")
+    .replace(/\b(change-me|changeme|replace-me|todo)\b/gi, "placeholder");
 }
 
 function duplicateValues(entries, valueFor) {

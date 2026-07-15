@@ -10,6 +10,7 @@ import {
   getActionExecution,
   listActionExecutionActivity,
   prepareActionExecutionRecord,
+  revokeActionExecution,
   returnActionExecution,
 } from "@/lib/firestore/action-executions";
 import { FakeFirestore } from "@/tests/helpers/fake-firestore";
@@ -138,6 +139,49 @@ describe("action execution ledger", () => {
     ).resolves.toMatchObject({ attempt_count: 1, state: "Executing" });
   });
 
+  it("passes the exact execution context hash through the approval wrapper", async () => {
+    const contextHash = "e".repeat(64);
+    const record = await prepareActionExecutionRecord(
+      editor,
+      {
+        classification: classification("High"),
+        contextHash,
+        idempotencyKey: "fixture-high-context-bound",
+        previewHash,
+      },
+      db,
+    );
+
+    await expect(
+      approveActionExecution(
+        admin,
+        record.id,
+        {
+          contextHash: "f".repeat(64),
+          previewHash,
+          reason: "Wrong execution target.",
+        },
+        db,
+      ),
+    ).rejects.toThrow(/target or source context is stale/i);
+
+    await expect(
+      approveActionExecution(
+        admin,
+        record.id,
+        {
+          contextHash,
+          previewHash,
+          reason: "The exact preview and execution target were reviewed.",
+        },
+        db,
+      ),
+    ).resolves.toMatchObject({
+      approval: { contextHash, previewHash },
+      state: "Approved",
+    });
+  });
+
   it("allows Admin self-approval and makes returned work non-executable", async () => {
     const self = await prepareActionExecutionRecord(
       admin,
@@ -167,6 +211,12 @@ describe("action execution ledger", () => {
       },
       db,
     );
+    await approveActionExecution(
+      admin,
+      returned.id,
+      { previewHash, reason: "Approved before a source correction arrived." },
+      db,
+    );
     await returnActionExecution(
       admin,
       returned.id,
@@ -176,6 +226,32 @@ describe("action execution ledger", () => {
     await expect(
       claimActionExecution(editor, returned.id, previewHash, db),
     ).rejects.toThrow();
+    const returnedRecord = await getActionExecution(admin, returned.id, db);
+    expect(returnedRecord.state).toBe("Returned");
+    expect(returnedRecord.approval).toBeUndefined();
+
+    const revoked = await prepareActionExecutionRecord(
+      editor,
+      {
+        classification: classification("High"),
+        idempotencyKey: "fixture-high-revoke",
+        previewHash,
+      },
+      db,
+    );
+    await approveActionExecution(
+      admin,
+      revoked.id,
+      { previewHash, reason: "Approved before the action was explicitly revoked." },
+      db,
+    );
+    await revokeActionExecution(admin, revoked.id, "Provider authority withdrawn.", db);
+    await expect(
+      claimActionExecution(admin, revoked.id, previewHash, db),
+    ).rejects.toThrow(/requires current Admin approval|Approved execution/i);
+    const revokedRecord = await getActionExecution(admin, revoked.id, db);
+    expect(revokedRecord).toMatchObject({ attempt_count: 0, state: "Revoked" });
+    expect(revokedRecord.approval).toBeUndefined();
   });
 
   it("writes bodyless append-only state activity", async () => {

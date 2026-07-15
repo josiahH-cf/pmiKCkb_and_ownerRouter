@@ -5,13 +5,22 @@
 > New 2026-07-14. Implements R02. Every row below is required for final V1; none is silently manual or
 > later. Undocumented/vendor-blocked actions remain release blockers, not permission to improvise.
 
-**Implementation status (2026-07-14): Gated — safe local boundary green.** The complete action graph,
-shared one-attempt orchestrator, fake providers, UI readiness state, bodyless server ledger/rules, and
-AC-S25-1..9 local tests are built. Every external action remains Registry-closed; real account contracts,
-authoritative mappings, permitted-environment proofs, deployment, and Dan/Josiah acceptance are absent.
-See `docs/v1-pre-release-report-2026-07-14.md`; do not call this suite Accepted.
+**Implementation status (2026-07-15): Gated — safe local boundary green.** The complete 11-action
+graph, exact Action Registry preview schemas, typed provider executors, shared one-attempt orchestrator,
+UI readiness state, bodyless server ledger/rules, and AC-S25-1..10 local tests are built. Integrated
+synthetic acceptance invokes the actual typed executor selected for each of all 11 action keys and
+produces exactly one attempt and one bodyless receipt per action with zero live calls. Every new S25
+action remains Registry-closed; reused S19 linked reply/label transports stay enabled only inside their
+existing workflow/context/artifact/exact-confirmation gates and do not authorize initiation. Real
+account contracts, authoritative mappings, permitted-environment
+proofs, deployment, and Dan/Josiah acceptance are absent. See
+`docs/v1-pre-release-report-2026-07-14.md`; do not call this suite Accepted.
 The shared kernel reuses S20 exact-preview authority and revalidates role, scope, confirmation/approval,
-Registry, and preview immediately before its atomic claim; a bare approver identifier is never authority.
+Registry, exact preview schema, and preview hash immediately before its atomic claim and again before
+reconciliation. The S20 preparation bridge rejects browser-supplied authority/risk, binds High work to
+the exact Approval Queue preview and displayed target/source context, uses canonical cross-actor
+idempotency, and fences invented aliases/Registry overrides to tests; a bare approver identifier is
+never authority.
 
 **Goal.** One authorized renewal workflow can carry verified facts from identification and owner
 decision through tenant outreach, record correction, renewal record/document creation, and conditional
@@ -33,23 +42,36 @@ communications, while Admin approves every High system-of-record/document/enroll
 - **Orchestrator — `lib/lease-renewal/execution/`.** Uses immutable workflow/action IDs and a dependency
   graph, never a blind batch. Every action has authoritative inputs, preview hash, risk, idempotency key,
   one attempt, receipt/reconciliation, correction/rollback, and append-only bodyless audit. A later step
-  cannot claim success until required receipts exist.
+  cannot claim success until a same-workflow dependency receipt exists and names its expected action.
+- **S20 bridge and exact schemas.** `lib/external-execution/s20-bridge.ts` projects authority-free action
+  values into S20's server-owned preparation path. `lib/integrations/final-v1-action-contracts.ts`
+  defines the exact reviewed fields for every action, so missing or extra executor values block before
+  a provider attempt. Immutable server policy prevents callers from lowering risk.
 - **Authoritative values.** Rentvine read-authoritative lease/tenant/contact/date/rent facts, approved
   owner decision, mapped renewal Sheet cells, approved templates/policy, configured Dotloop template,
   and explicit Boom applicability. Missing/conflicting values remain Blocked.
 - **Messages.** Recipient comes from approved source adapter, not browser. Owner/tenant base artifacts
-  and AI policy are S24. Email/portal/SMS each receive separate exact confirmation/receipt; tenant text
-  can claim other channels only after those receipts.
-- **Sheet.** Re-anchor row/cell, compare expected current value, write one cell, read it back, and record
-  before/after hashes. Drift creates a new proposal; no blind overwrite/bulk write.
-- **Rentvine.** No endpoint guessing, browser automation, or generic record update. Discovery must obtain
-  a documented renewal/rent/date/fee contract and preview/rollback semantics before implementation can
-  be marked complete.
-- **Dotloop/Boom/SMS/portal.** Each provider gets a typed adapter and fake contract tests first. Vendor
-  confirmation/approved app/credentials/plan are explicit gates. No email fallback counts as another
-  channel.
-- **Buildable now (app-plane).** Orchestrator, action schemas/registry entries false, previews, fake
-  adapters, UI/queue/audit/reconciliation, and tests per system.
+  and AI policy are S24. Gmail send/reply binds an exact RFC Message-ID and authoritative provider-
+  fetched canonical payload; recipient/sender/subject/body/thread/artifact/label/consent drift is
+  ambiguous even when the Message-ID matches. SMS also binds the exact recipient, sender, workflow,
+  and provider-verified consent reference. Email/portal/SMS each receive separate exact confirmation/
+  receipt; tenant text can claim other channels only after those receipts.
+- **Sheet.** Re-anchor row/cell, compare expected current value, require a provider-atomic conditional
+  write of one cell against that value, read it back, and record before/after hashes. A provider that
+  cannot supply a conditional/versioned operation remains closed. Drift creates a new proposal; no
+  blind overwrite/bulk write.
+- **Rentvine.** No endpoint guessing, browser automation, or generic record update. The typed boundary
+  performs an exact pre-write lease/current-rent read, requires a provider-atomic conditional renewal
+  against that state, verifies exact rent/effective/end/fee post-read, and reconciles by idempotency key;
+  any drift or mismatched readback makes zero additional mutation.
+  Discovery must still obtain the account's documented renewal/rent/date/fee contract and correction
+  semantics before production can be enabled.
+- **Dotloop/Boom/SMS/portal.** Each action is bound to a typed provider interface and deterministic fake
+  contract tests. Vendor confirmation/approved app/credentials/plan remain explicit gates. No email
+  fallback counts as another channel.
+- **Built locally (app-plane).** Orchestrator, exact action schemas/Registry entries false, previews,
+  typed executors and synthetic providers, S20 queue bridge, UI/queue/audit/reconciliation, and tests
+  per system.
 - **Gated (owner / vendor).** Provider contract/plan/app/credential setup, registry promotions, live
   reads where required, every first write/send, deploy, and production acceptance.
 
@@ -73,33 +95,45 @@ and release acceptance. Supersede marker: `LEASE-EXTERNAL-EXECUTION-LATER`.
 
 **Adversarial acceptance checks.**
 
-- **AC-S25-1** — Registry/catalog and workflow expose exactly the seven R02 groups/action keys with
-  dependency, risk, preview, receipt, correction, health, and `production_allowed:false` by default.
-  _Verify:_ `npm test -- lease-execution-matrix action-registry-schema`.
+- **AC-S25-1** — Registry/catalog and workflow expose exactly the seven R02 groups/all 11 action keys
+  with exact preview schemas, dependency, risk, receipt, correction, and health. Every action newly
+  introduced by S25 defaults to `production_allowed:false`; reused S19 `gmail.thread.reply` and
+  `gmail.label.apply` retain only their existing workflow/context/artifact/exact-confirmation gates and
+  cannot authorize notice initiation. _Verify:_ `npm test -- lease-execution-matrix
+action-registry-schema external-execution-boundary`.
 - **AC-S25-2** — Editor may exact-confirm valid email/portal/SMS Medium actions; High Sheet/Rentvine/
-  Dotloop/Boom enters Admin approval. Missing source, registry gate, connection, or contract is Blocked
-  for Admin too. _Verify:_ `npm test -- lease-execution-authority`.
-- **AC-S25-3** — Gmail initiation uses authoritative recipient and S24 artifact/policy; unrelated/
-  unconfirmed/drifted/duplicate send makes zero provider calls. _Verify:_ `npm test --
+  Dotloop/Boom enters Admin approval bound to the exact S20 preview and target/source-context hashes.
+  Browser authority/risk, synthetic aliases outside tests, missing source, Registry gate, connection,
+  or contract are Blocked for Admin too. _Verify:_ `npm test -- lease-execution-authority
+external-execution-s20-bridge`.
+- **AC-S25-3** — Gmail initiation uses authoritative recipient and S24 artifact/policy, and send/reply
+  requires exact RFC Message-ID plus provider-fetched canonical payload readback; unrelated,
+  unconfirmed, payload-drifted, or duplicate send cannot be accepted. _Verify:_ `npm test --
 lease-gmail-execution gmail-hub-service`.
-- **AC-S25-4** — Sheet executor re-anchors, compare-and-sets one cell, reads after write, and refuses row/
-  value drift with zero write; ambiguous result requires reconciliation. _Verify:_ `npm test --
+- **AC-S25-4** — Sheet executor re-anchors, passes the exact before value to a provider-atomic one-cell
+  conditional write, reads after write, and refuses row/value/concurrent drift without overwrite;
+  ambiguous result requires reconciliation. _Verify:_ `npm test --
 renewal-sheet-executor`.
 - **AC-S25-5** — Rentvine executor cannot exist behind a generic endpoint; undocumented/mismatched
-  contract returns `Blocked: vendor contract required` with zero mutation. Documented fake contract
-  proves preview/idempotency/read-after-write/correction. _Verify:_ `npm test -- rentvine-renewal-executor`.
+  contract returns `Blocked: vendor contract required` with zero mutation. The invented-alias contract
+  proves exact pre-read, provider-atomic expected-state mutation, preview/idempotency, full post-read,
+  idempotency-key reconciliation, and correction boundaries. _Verify:_ `npm test --
+rentvine-renewal-executor`.
 - **AC-S25-6** — Dotloop fake adapter creates one configured loop with exact participants/documents and
   reconciles duplicate/timeout; wrong template/participant/doc blocks before call. _Verify:_ `npm test --
 dotloop-renewal-executor`.
-- **AC-S25-7** — Portal and SMS have separate exact confirmations/receipts; text never claims email/
-  portal success before both receipts, and one channel failure cannot mark outreach complete. _Verify:_
+- **AC-S25-7** — Portal and SMS have separate exact confirmations/receipts; SMS requires provider-
+  verified consent bound to exact recipient/sender/workflow. Text never claims email/portal success
+  before both receipts, and one channel failure cannot mark outreach complete. _Verify:_
   `npm test -- renewal-channel-execution`.
 - **AC-S25-8** — Boom runs only on explicit applicable rule and Admin approval; not-applicable is
   terminal/audited, while missing rule/contract/identity blocks with zero call. _Verify:_ `npm test --
 boom-renewal-executor`.
-- **AC-S25-9** — E2E fake-provider scenario completes every applicable action in order and leaves
-  receipts; injected failure stops dependents and presents correction/retry policy without duplicate
-  attempts. _Verify:_ `npm run test:e2e:core -- lease-renewal-execution`.
+- **AC-S25-9** — Integrated synthetic acceptance invokes the actual typed executor for all 11 actions
+  in order and leaves one attempt/receipt each; injected failure stops same-workflow dependents and
+  presents correction/reconciliation without a duplicate attempt. This proves only the local provider
+  boundary, never a vendor contract or live result. _Verify:_ `npm test -- v1-synthetic-execution`;
+  `npm run test:e2e:core -- lease-renewal-execution`.
 - **AC-S25-10** — Full checks pass: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm
 test`, `npm run test:e2e:core`, `npm run verify:redaction`, `npm run build`, `bash scripts/verify.sh`.
 

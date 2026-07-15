@@ -61,6 +61,8 @@ export interface ExecutionActor {
 export interface ExecutionApproval {
   approvedByRole: Role;
   approvedByUid: string;
+  /** Exact external target/source context approved with the value preview, when present. */
+  contextHash?: string;
   previewHash: string;
   reason: string;
 }
@@ -101,6 +103,8 @@ export interface ActionExecutionRecord {
   approval?: ExecutionApproval;
   attempt_count: number;
   correction_reference?: string;
+  /** Bodyless hash of server-owned external target/source identity when applicable. */
+  context_hash?: string;
   created_at: string;
   idempotency_hash: string;
   last_error_code?: string;

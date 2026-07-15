@@ -58,6 +58,7 @@ describe("communications legal-hold transaction", () => {
     await expect(
       applyCommunicationsLegalHold(actor, input, db as never, 500),
     ).resolves.toEqual({ status: "changed", legalHold: true });
+    expect(record.expires_at).toBeNull();
     expect(record.expires_at_ms).toBeNull();
     await expect(
       applyCommunicationsLegalHold(actor, input, db as never, 600),
@@ -72,6 +73,16 @@ describe("communications legal-hold transaction", () => {
     await expect(
       applyCommunicationsLegalHold(
         actor,
+        { ...input, action: "release" },
+        db as never,
+        650,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(record.expires_at_ms).toBeNull();
+
+    await expect(
+      applyCommunicationsLegalHold(
+        actor,
         {
           ...input,
           action: "release",
@@ -81,6 +92,7 @@ describe("communications legal-hold transaction", () => {
         700,
       ),
     ).resolves.toEqual({ status: "changed", legalHold: false });
+    expect(record.expires_at).toBeInstanceOf(Date);
     expect(record.expires_at_ms).toBeGreaterThan(700);
   });
 });

@@ -7,10 +7,12 @@ import type {
   ExternalActionInput,
   ExternalExecutor,
 } from "@/lib/external-execution/types";
+import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 import {
   LEASE_EXECUTION_ACTIONS,
   LEASE_EXECUTION_DEFINITION_MAP,
 } from "@/lib/lease-renewal/execution/matrix";
+import { syntheticExternalTechnicalGates } from "@/tests/helpers/external-execution";
 
 function input(actionKey: string, index: number): ExternalActionInput {
   const definition = LEASE_EXECUTION_DEFINITION_MAP.get(actionKey)!;
@@ -18,7 +20,7 @@ function input(actionKey: string, index: number): ExternalActionInput {
     workflowId: "renewal-e2e-synthetic",
     actionId: `action-${index}`,
     actionKey,
-    values: { value: `synthetic-${index}` },
+    values: syntheticPreview(actionKey),
     sourceRefs: ["source:synthetic"],
     contractRef: "documented:fake:provider-v1",
     connectionRef: "connection:fake",
@@ -26,6 +28,18 @@ function input(actionKey: string, index: number): ExternalActionInput {
     authority: {
       actor: { role: "Admin", uid: "admin-synthetic" },
       roleScopeAuthorized: true,
+      technical: syntheticExternalTechnicalGates(),
+      communication: {
+        bulk: false,
+        governedLabel: true,
+        humanInitiated: true,
+        mailboxScopeAuthorized: true,
+        modelTriggered: false,
+        recipientMatchesPreview: true,
+        reversible: true,
+        scheduled: false,
+        workflowLinked: true,
+      },
     },
   };
   const previewHash = externalPreviewHash(base);
@@ -46,12 +60,32 @@ function input(actionKey: string, index: number): ExternalActionInput {
   return base;
 }
 
+function syntheticPreview(actionKey: string) {
+  const fields = ACTION_REGISTRY_SEED.find(
+    (entry) => entry.key === actionKey,
+  )?.preview_payload_schema;
+  if (!fields?.length)
+    throw new Error(`Missing synthetic preview schema for ${actionKey}.`);
+  return Object.fromEntries(
+    fields.map((field) => [
+      field.name,
+      field.type === "number"
+        ? 1_000
+        : field.type === "boolean"
+          ? true
+          : field.type === "date"
+            ? "2026-08-01"
+            : `synthetic-${field.name}`,
+    ]),
+  );
+}
+
 function fakeExecutor(): ExternalExecutor {
   return {
     execute: vi.fn(async (value) => ({
       actionKey: value.actionKey,
       providerRef: `fake:${value.actionId}`,
-      resultHash: `hash:${value.actionId}`,
+      resultHash: "a".repeat(64),
       reconciled: false,
       createdAt: "2026-07-14T00:00:00.000Z",
     })),
@@ -96,6 +130,7 @@ describe("Lease Renewal fake-provider E2E", () => {
     const executors = new Map<string, ExternalExecutor>([
       [LEASE_EXECUTION_ACTIONS[0], fakeExecutor()],
       [LEASE_EXECUTION_ACTIONS[1], failing],
+      ["google_sheets.renewal_checklist.writeback", fakeExecutor()],
     ]);
     const orchestrator = new ExternalActionOrchestrator(
       LEASE_EXECUTION_DEFINITION_MAP,
@@ -116,7 +151,7 @@ describe("Lease Renewal fake-provider E2E", () => {
     ).rejects.toBeDefined();
     expect(failing.execute).toHaveBeenCalledTimes(1);
 
-    const sheet = input(LEASE_EXECUTION_ACTIONS[4], 4);
+    const sheet = input("google_sheets.renewal_checklist.writeback", 6);
     const blocked = await orchestrator.prepare(sheet, [...store.records.values()]);
     expect(blocked.state).toBe("blocked");
     expect(blocked.blocker).toContain(LEASE_EXECUTION_ACTIONS[1]);

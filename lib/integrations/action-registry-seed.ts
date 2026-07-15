@@ -1,4 +1,5 @@
 import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
+import { FINAL_V1_ACTION_PREVIEW_SCHEMAS } from "@/lib/integrations/final-v1-action-contracts";
 
 /**
  * Verified Action Registry catalog. One entry per external action type from the integration
@@ -19,7 +20,7 @@ import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
  * marks their triggers, approvers, and target systems as TBD, so adding entries would
  * invent scope.
  */
-export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
+const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
   {
     key: "rentvine.work_order.create",
     label: "Create Rentvine work order",
@@ -1305,3 +1306,11 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     production_allowed: false,
   },
 ];
+
+export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] =
+  BASE_ACTION_REGISTRY_SEED.map((entry) => {
+    const schema = FINAL_V1_ACTION_PREVIEW_SCHEMAS[entry.key];
+    return schema
+      ? { ...entry, preview_payload_schema: schema.map((field) => ({ ...field })) }
+      : entry;
+  });

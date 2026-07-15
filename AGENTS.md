@@ -164,7 +164,8 @@ route new work through the three-product docs.
 - Prepare the ignored production preflight env safely from `.env.local` (allowlisted identifiers only;
   no secrets/emulator/local-model settings):
   `npm run prepare:production-env -- --app-base-url=<canonical-production-url> --service-account=<runtime-sa>`
-- Cutover report: `npm run cutover:report -- --manifest=<path> --env-file=<path> --json`
+- Cutover report:
+  `npm run cutover:report -- --manifest=<path> --env-file=<path> --prior-revision=<captured-serving-revision> --json`
 - Seed source metadata: `npm run seed:source-meta`
 - Live demo smoke: `npm run smoke:demo-live`
 - Live Ask smoke: `npm run smoke:ask-live`

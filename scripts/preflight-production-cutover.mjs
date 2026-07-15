@@ -20,6 +20,10 @@ const REQUIRED_FIREBASE_PUBLIC = [
   "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
   "NEXT_PUBLIC_FIREBASE_APP_ID",
 ];
+const NAMED_SERVICE_ACCOUNT_RE =
+  /^([a-z][a-z0-9-]{4,28}[a-z0-9])@([a-z][a-z0-9-]{4,28}[a-z0-9])\.iam\.gserviceaccount\.com$/;
+const PUBSUB_TOPIC_RE =
+  /^projects\/([a-z][a-z0-9-]{4,28}[a-z0-9])\/topics\/([a-z][a-z0-9-]{2,254})$/;
 
 export function parseProductionPreflightArgs(argv = process.argv.slice(2)) {
   const readArg = (name) => {
@@ -159,6 +163,12 @@ export function validateProductionCutoverConfig(env) {
     },
     errors,
   );
+  errors.push(
+    ...findGmailCutoverConfigErrors(env, {
+      appBaseUrl,
+      gcpProjectId,
+    }),
+  );
   assertNoDemoValues("SPACE_DRIVE_FOLDER_IDS", sourceTargets, errors);
   assertNoDemoValues("SPACE_VERTEX_DATA_STORE_IDS", dataStores, errors);
   assertNoPlaceholderValues("SPACE_DRIVE_FOLDER_IDS", sourceTargets, errors);
@@ -191,6 +201,77 @@ export function validateProductionCutoverConfig(env) {
     ok: errors.length === 0,
     warnings,
   };
+}
+
+export function findGmailCutoverConfigErrors(
+  env,
+  {
+    appBaseUrl = readString(env.APP_BASE_URL),
+    gcpProjectId = readString(env.GCP_PROJECT_ID),
+  } = {},
+) {
+  const errors = [];
+  const dwdServiceAccount = readString(env.GMAIL_DWD_SA);
+  const pushServiceAccount = readString(env.GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT);
+  const topic = readString(env.GMAIL_PUBSUB_TOPIC);
+  const audience = readString(env.GMAIL_PUBSUB_AUDIENCE);
+
+  requireValue(dwdServiceAccount, "GMAIL_DWD_SA", errors);
+  requireValue(pushServiceAccount, "GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT", errors);
+  requireValue(topic, "GMAIL_PUBSUB_TOPIC", errors);
+  requireValue(audience, "GMAIL_PUBSUB_AUDIENCE", errors);
+
+  for (const [name, value] of [
+    ["GMAIL_DWD_SA", dwdServiceAccount],
+    ["GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT", pushServiceAccount],
+    ["GMAIL_PUBSUB_TOPIC", topic],
+    ["GMAIL_PUBSUB_AUDIENCE", audience],
+  ]) {
+    assertNoPlaceholderString(name, value, errors);
+    assertNoDemoString(name, value, errors);
+  }
+
+  assertNamedProjectServiceAccount(
+    "GMAIL_DWD_SA",
+    dwdServiceAccount,
+    gcpProjectId,
+    errors,
+  );
+  assertNamedProjectServiceAccount(
+    "GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT",
+    pushServiceAccount,
+    gcpProjectId,
+    errors,
+  );
+
+  if (topic) {
+    const match = PUBSUB_TOPIC_RE.exec(topic);
+    if (!match) {
+      errors.push(
+        "GMAIL_PUBSUB_TOPIC must be a full projects/<project>/topics/<topic> resource with a lowercase safe topic id.",
+      );
+    } else if (gcpProjectId && match[1] !== gcpProjectId) {
+      errors.push(
+        `GMAIL_PUBSUB_TOPIC must belong to ${gcpProjectId}; got project ${match[1]}.`,
+      );
+    }
+  }
+
+  if (audience && appBaseUrl) {
+    let expectedAudience;
+    try {
+      expectedAudience = new URL("/api/gmail-hub/pubsub", appBaseUrl).toString();
+    } catch {
+      // APP_BASE_URL reports its own validation error in the main preflight.
+    }
+    if (expectedAudience && audience !== expectedAudience) {
+      errors.push(
+        `GMAIL_PUBSUB_AUDIENCE must exactly equal the production push endpoint ${expectedAudience}.`,
+      );
+    }
+  }
+
+  return errors;
 }
 
 export async function main(argv = process.argv.slice(2), env = process.env) {
@@ -429,6 +510,24 @@ function assertRuntimeServiceAccount(value, gcpProjectId, errors) {
     errors.push(
       `CLOUD_RUN_SERVICE_ACCOUNT must belong to ${gcpProjectId}; got project ${match[1]}.`,
     );
+  }
+}
+
+function assertNamedProjectServiceAccount(name, value, gcpProjectId, errors) {
+  if (!value) {
+    return;
+  }
+
+  const match = NAMED_SERVICE_ACCOUNT_RE.exec(value);
+  if (!match) {
+    errors.push(
+      `${name} must be a named GCP service account in the form account@project.iam.gserviceaccount.com.`,
+    );
+    return;
+  }
+
+  if (gcpProjectId && match[2] !== gcpProjectId) {
+    errors.push(`${name} must belong to ${gcpProjectId}; got project ${match[2]}.`);
   }
 }
 

@@ -479,6 +479,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /publication_content_chunks/{chunkId} {
+      allow read, write: if false;
+    }
+
     match /publication_audit/{auditId} {
       allow read, write: if false;
     }

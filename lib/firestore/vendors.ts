@@ -92,13 +92,19 @@ export class FirestoreVendorStore
     await this.db.collection(VENDOR_COLLECTIONS.audit).doc(uuidv7()).create(record);
   }
 
-  async activateVendor(vendorId: string, uid: string, nowIso: string) {
+  async activateVendor(vendorId: string, uid: string, email: string, nowIso: string) {
     const ref = this.db.collection(VENDOR_COLLECTIONS.vendors).doc(vendorId);
     return this.db.runTransaction(async (transaction) => {
       const snapshot = await transaction.get(ref);
       if (!snapshot.exists) return false;
       const record = snapshot.data() as VendorRecord;
-      if (record.uid !== uid || record.status === "disabled") return false;
+      if (
+        record.uid !== uid ||
+        record.email.trim().toLowerCase() !== email.trim().toLowerCase() ||
+        record.status === "disabled"
+      ) {
+        return false;
+      }
       if (record.status !== "active") {
         transaction.update(ref, { status: "active", updatedAt: nowIso });
       }
@@ -106,14 +112,18 @@ export class FirestoreVendorStore
     });
   }
 
-  async isVendorActive(vendorId: string, uid: string): Promise<boolean> {
+  async isVendorActive(vendorId: string, uid: string, email: string): Promise<boolean> {
     const snapshot = await this.db
       .collection(VENDOR_COLLECTIONS.vendors)
       .doc(vendorId)
       .get();
     if (!snapshot.exists) return false;
     const record = snapshot.data() as VendorRecord;
-    return record.uid === uid && record.status === "active";
+    return (
+      record.uid === uid &&
+      record.email.trim().toLowerCase() === email.trim().toLowerCase() &&
+      record.status === "active"
+    );
   }
 
   async listAssignedTickets(vendorId: string): Promise<VendorTicketProjection[]> {

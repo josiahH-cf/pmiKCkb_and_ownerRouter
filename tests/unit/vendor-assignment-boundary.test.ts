@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
+import type { Firestore } from "firebase-admin/firestore";
 
+import { FirestoreVendorStore, VENDOR_COLLECTIONS } from "@/lib/firestore/vendors";
 import {
   listVendorTickets,
   requireAssignedThread,
   requireAssignedTicket,
   type VendorAssignmentRepository,
 } from "@/lib/vendor/assignment";
+import { FakeFirestore } from "@/tests/helpers/fake-firestore";
 
 const principal = {
   uid: "uid-a",
@@ -18,7 +21,8 @@ const principal = {
 
 function repository(): VendorAssignmentRepository {
   return {
-    isVendorActive: async (vendorId, uid) => vendorId === "vendor-a" && uid === "uid-a",
+    isVendorActive: async (vendorId, uid, email) =>
+      vendorId === "vendor-a" && uid === "uid-a" && email === "a@example.com",
     listAssignedTickets: async (vendorId) =>
       vendorId === "vendor-a"
         ? [
@@ -64,5 +68,48 @@ describe("Vendor assigned-ticket boundary", () => {
         repository(),
       ),
     ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("rejects a changed verified email even when uid and Vendor claim are unchanged", async () => {
+    await expect(
+      listVendorTickets({ ...principal, email: "changed@example.com" }, repository()),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("binds Firestore activation and every active check to the invited email", async () => {
+    const fake = new FakeFirestore();
+    fake.seed(`${VENDOR_COLLECTIONS.vendors}/vendor-a`, {
+      id: "vendor-a",
+      uid: "uid-a",
+      email: "A@Example.com",
+      status: "pending_setup",
+      inviteVersion: 1,
+      createdAt: "2026-07-14T00:00:00.000Z",
+      updatedAt: "2026-07-14T00:00:00.000Z",
+    });
+    const store = new FirestoreVendorStore(fake as unknown as Firestore);
+
+    await expect(
+      store.activateVendor(
+        "vendor-a",
+        "uid-a",
+        "a@example.com",
+        "2026-07-14T01:00:00.000Z",
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      store.isVendorActive("vendor-a", "uid-a", "A@example.com"),
+    ).resolves.toBe(true);
+    await expect(
+      store.isVendorActive("vendor-a", "uid-a", "changed@example.com"),
+    ).resolves.toBe(false);
+    await expect(
+      store.activateVendor(
+        "vendor-a",
+        "uid-a",
+        "changed@example.com",
+        "2026-07-14T02:00:00.000Z",
+      ),
+    ).resolves.toBe(false);
   });
 });

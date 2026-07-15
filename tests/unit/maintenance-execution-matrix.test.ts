@@ -28,11 +28,27 @@ describe("Maintenance execution matrix", () => {
       MAINTENANCE_EXECUTION_ACTIONS,
     );
     for (const definition of MAINTENANCE_EXECUTION_DEFINITIONS) {
-      expect(EXECUTION_ACTION_POLICIES).toHaveProperty(definition.key);
+      const policy =
+        EXECUTION_ACTION_POLICIES[
+          definition.key as keyof typeof EXECUTION_ACTION_POLICIES
+        ];
+      expect(policy, definition.key).toBeDefined();
+      expect(definition.risk, definition.key).toBe(policy.defaultRisk);
       expect(ACTION_REGISTRY_SEED.some((entry) => entry.key === definition.key)).toBe(
         true,
       );
       expect(definition.correction).toBeTruthy();
     }
+  });
+
+  it("keeps staff photo capture independent while Vendor drafts stay Medium", () => {
+    const photo = MAINTENANCE_EXECUTION_DEFINITIONS.find(
+      (entry) => entry.key === "google_drive.maintenance_photo.store",
+    );
+    const vendorDraft = MAINTENANCE_EXECUTION_DEFINITIONS.find(
+      (entry) => entry.key === "vendor.gmail.draft.create",
+    );
+    expect(photo?.dependsOn).toEqual([]);
+    expect(vendorDraft?.risk).toBe("Medium");
   });
 });

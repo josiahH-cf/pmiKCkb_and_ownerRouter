@@ -12,6 +12,7 @@ import {
   buildReadiness as buildGcpReadiness,
 } from "./preflight-gcp-setup.mjs";
 import {
+  findGmailCutoverConfigErrors,
   readProductionPreflightEnv,
   validateProductionCutoverConfig,
 } from "./preflight-production-cutover.mjs";
@@ -20,6 +21,96 @@ import { buildSourceCorpusPlan, readSourceManifest } from "./source-corpus-manif
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 export const CUTOVER_RUNBOOK = "docs/client-production-cutover.md";
+export const DEFAULT_CUTOVER_REGION = "us-central1";
+export const DEFAULT_CUTOVER_SERVICE = "pmi-kc-kb-demo";
+const PROJECT_ID_PATTERN = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
+const SERVICE_ACCOUNT_PATTERN =
+  /^[a-z][a-z0-9-]{4,28}[a-z0-9]@([a-z][a-z0-9-]{4,28}[a-z0-9])\.iam\.gserviceaccount\.com$/;
+const CUTOVER_SEARCH_LOCATION = "us";
+
+function nonempty(value) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function serviceAccountProject(value) {
+  const email = nonempty(value);
+  if (!email) return undefined;
+  return SERVICE_ACCOUNT_PATTERN.exec(email)?.[1];
+}
+
+function requiredServiceAccountProject(value) {
+  const email = nonempty(value);
+  if (!email) return undefined;
+  return serviceAccountProject(email) ?? "<unparseable-service-account>";
+}
+
+function firebaseAuthDomainProject(value) {
+  const domain = nonempty(value);
+  if (!domain) return undefined;
+  return /^([a-z][a-z0-9-]{4,28}[a-z0-9])\.firebaseapp\.com$/i.exec(domain)?.[1];
+}
+
+function pubsubTopicProject(value) {
+  const topic = nonempty(value);
+  if (!topic) return undefined;
+  return (
+    /^projects\/([a-z][a-z0-9-]{4,28}[a-z0-9])\/topics\/[a-z][a-z0-9-]{2,254}$/.exec(
+      topic,
+    )?.[1] ?? "<unparseable-pubsub-topic>"
+  );
+}
+
+function reviewedProjectBindings(env) {
+  return [
+    ["GCP_PROJECT_ID", nonempty(env.GCP_PROJECT_ID)],
+    ["FIREBASE_PROJECT_ID", nonempty(env.FIREBASE_PROJECT_ID)],
+    ["NEXT_PUBLIC_FIREBASE_PROJECT_ID", nonempty(env.NEXT_PUBLIC_FIREBASE_PROJECT_ID)],
+    [
+      "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN project",
+      firebaseAuthDomainProject(env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN),
+    ],
+    [
+      "CLOUD_RUN_SERVICE_ACCOUNT project",
+      requiredServiceAccountProject(env.CLOUD_RUN_SERVICE_ACCOUNT),
+    ],
+    [
+      "SHEETS_IMPERSONATE_SA project",
+      requiredServiceAccountProject(env.SHEETS_IMPERSONATE_SA),
+    ],
+    ["GMAIL_DWD_SA project", requiredServiceAccountProject(env.GMAIL_DWD_SA)],
+    [
+      "GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT project",
+      requiredServiceAccountProject(env.GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT),
+    ],
+    ["GMAIL_PUBSUB_TOPIC project", pubsubTopicProject(env.GMAIL_PUBSUB_TOPIC)],
+  ].filter(([, project]) => project !== undefined);
+}
+
+function withoutProjectCommands(plan) {
+  return {
+    ...plan,
+    apis: { ...plan.apis, enable_command: "" },
+    firebase: { ...plan.firebase, setup_commands: [] },
+    firestore: {
+      ...plan.firestore,
+      create_command: "",
+      deploy_rules_command: "",
+      seed_commands: [],
+    },
+  };
+}
+
+const CUTOVER_VALUE_ARGS = new Map([
+  ["--env-file", "envFile"],
+  ["--location", "location"],
+  ["--manifest", "manifest"],
+  ["--prior-revision", "priorRevision"],
+  ["--project", "project"],
+]);
+const CUTOVER_FLAG_ARGS = new Map([
+  ["--help", "help"],
+  ["--json", "json"],
+]);
 
 // Keep in sync with the "Production smoke checklist" bullets in
 // docs/client-production-cutover.md §7. A doc-sync unit test enforces this.
@@ -93,26 +184,48 @@ export function readRunbookSmokeChecklist(runbookPath = join(root, CUTOVER_RUNBO
 }
 
 export function parseCutoverReportArgs(argv = process.argv.slice(2)) {
-  const readArg = (name) => {
-    const match = argv.find((arg) => arg.startsWith(`--${name}=`));
-    return match ? match.slice(name.length + 3) : undefined;
+  const parsed = {
+    envFile: undefined,
+    help: false,
+    json: false,
+    location: undefined,
+    manifest: undefined,
+    priorRevision: undefined,
+    project: undefined,
   };
+  const seen = new Set();
 
-  return {
-    envFile: readArg("env-file"),
-    json: argv.includes("--json"),
-    location: readArg("location"),
-    manifest: readArg("manifest"),
-    project: readArg("project"),
-    service: readArg("service"),
-  };
+  for (const arg of argv) {
+    const [name, ...valueParts] = arg.split("=");
+    const valueKey = CUTOVER_VALUE_ARGS.get(name);
+    const flagKey = CUTOVER_FLAG_ARGS.get(arg);
+    const key = valueKey ?? flagKey;
+
+    if (!key) {
+      throw new Error(`Unknown cutover report argument: ${arg}`);
+    }
+    if (seen.has(key)) {
+      throw new Error(`Duplicate cutover report argument: ${name}`);
+    }
+    if (valueKey && (valueParts.length === 0 || valueParts.join("=").trim() === "")) {
+      throw new Error(`Cutover report argument ${name} requires a value.`);
+    }
+    if (flagKey && valueParts.length > 0) {
+      throw new Error(`Cutover report flag ${name} does not accept a value.`);
+    }
+
+    seen.add(key);
+    parsed[key] = valueKey ? valueParts.join("=") : true;
+  }
+
+  return parsed;
 }
 
 export function buildRollbackPlan({
   project = "<client-project-id>",
-  service = "pmi-kc-kb",
-  region = "us-central1",
-  location = "us",
+  service = DEFAULT_CUTOVER_SERVICE,
+  region = DEFAULT_CUTOVER_REGION,
+  priorRevision,
   dataStoreIds = [],
   uploadedUris = [],
   seededSpaceIds = [],
@@ -121,44 +234,49 @@ export function buildRollbackPlan({
   const uris =
     uploadedUris.length > 0 ? uploadedUris : ["gs://<client-source-bucket>/<path>.txt"];
   const spaces = seededSpaceIds.length > 0 ? seededSpaceIds : ["<space-id>"];
+  const escapedService = service.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const capturedPriorRevision =
+    typeof priorRevision === "string" &&
+    new RegExp(`^${escapedService}-\\d{5}-[a-z0-9]{3,}$`).test(priorRevision.trim())
+      ? priorRevision.trim()
+      : undefined;
 
   return [
     {
       step: 1,
-      action: "Remove or roll back the Cloud Run service",
-      commands: [
-        `gcloud run services delete ${service} --project=${project} --region=${region} --quiet`,
-      ],
-      note: "Only delete a newly created service. For an existing service, redeploy the previous revision instead: `gcloud run services update-traffic`.",
+      action: "Restore traffic to the captured prior Cloud Run revision",
+      commands: capturedPriorRevision
+        ? [
+            `gcloud run services update-traffic ${service} --project=${project} --region=${region} --to-revisions=${capturedPriorRevision}=100`,
+          ]
+        : [],
+      note: capturedPriorRevision
+        ? `Restore 100% of traffic to the captured prior revision ${capturedPriorRevision}; preserve the service and revision history.`
+        : `Capture the currently serving ${service} revision before deployment. No traffic-restore command is generated without an exact revision in the form ${service}-00001-abc.`,
     },
     {
       step: 2,
-      action: "Delete imported Agent Search data stores",
-      commands: dataStores.flatMap((dataStoreId) => [
-        `npm run delete:agent-search-data-store -- --project=${project} --location=${location} --data-store=${dataStoreId} --dry-run`,
-        `npm run delete:agent-search-data-store -- --project=${project} --location=${location} --data-store=${dataStoreId} --confirm-delete=${dataStoreId}`,
-      ]),
-      note: "The delete script refuses data stores still mapped in SPACE_VERTEX_DATA_STORE_IDS; clear the env map first.",
+      action: "Inventory imported Agent Search data stores for separate cleanup review",
+      commands: [],
+      note: `No deletion command is generated. Candidate data stores: ${dataStores.join(", ")}. Verify provenance and active mappings, then obtain separate per-resource approval after service recovery.`,
     },
     {
       step: 3,
-      action: "Remove uploaded staging copies from Cloud Storage",
-      commands: uris.map((uri) => `gcloud storage rm "${uri}"`),
-      note: "Only removes the generated `.txt` staging copies; original client sources are never touched by the pipeline.",
+      action: "Inventory uploaded staging copies for separate cleanup review",
+      commands: [],
+      note: `No storage deletion command is generated. Candidate staging copies: ${uris.join(", ")}. Confirm each object is pipeline-generated and no longer referenced before a separate cleanup action.`,
     },
     {
       step: 4,
-      action: "Remove seeded app-owned metadata",
+      action: "Inventory seeded app-owned metadata for separate cleanup review",
       commands: [],
-      note: `Delete the seeded Firestore documents: sources_meta entries for the removed URIs and spaces/${spaces.join(", spaces/")} if they should not persist. These are app-owned metadata records, not client data.`,
+      note: `No Firestore deletion command is generated. Candidate records include sources_meta entries for the listed staging copies and spaces/${spaces.join(", spaces/")}. Verify ownership and references before a separate cleanup action.`,
     },
     {
       step: 5,
-      action: "Revert Firestore rules/indexes if they changed",
-      commands: [
-        `npm exec firebase -- deploy --only firestore:rules,firestore:indexes --project ${project}`,
-      ],
-      note: "Check out the previous firestore.rules / firestore.indexes.json from git history before redeploying.",
+      action: "Review whether Firestore rules or indexes require restoration",
+      commands: [],
+      note: "No unpinned configuration deploy command is generated. Restore only from a separately reviewed, immutable pre-deploy configuration reference.",
     },
   ];
 }
@@ -170,13 +288,62 @@ export function buildCutoverReport({
 } = {}) {
   const args = parseCutoverReportArgs(argv);
   const mergedEnv = readProductionPreflightEnv({ env, envFile: args.envFile });
-  const projectId =
-    args.project || mergedEnv.GCP_PROJECT_ID || mergedEnv.FIREBASE_PROJECT_ID;
   const blockers = [];
   const warnings = [];
+  const projectBindings = reviewedProjectBindings(mergedEnv);
+  const configuredProjectId =
+    nonempty(mergedEnv.GCP_PROJECT_ID) ||
+    nonempty(mergedEnv.FIREBASE_PROJECT_ID) ||
+    nonempty(mergedEnv.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+  // A CLI flag may confirm the reviewed environment project or fill an otherwise-empty draft, but it
+  // can never redirect commands away from the Firebase/runtime/service-account identity boundary.
+  const canonicalProjectId = configuredProjectId || args.project;
+  if (canonicalProjectId && !PROJECT_ID_PATTERN.test(canonicalProjectId)) {
+    blockers.push(`target: canonical project id ${canonicalProjectId} is invalid.`);
+  }
+  for (const [label, bindingProject] of projectBindings) {
+    if (!PROJECT_ID_PATTERN.test(bindingProject)) {
+      blockers.push(`target: ${label}=${bindingProject} is not a valid GCP project id.`);
+    } else if (canonicalProjectId && bindingProject !== canonicalProjectId) {
+      blockers.push(
+        `target: ${label}=${bindingProject} conflicts with canonical project ${canonicalProjectId}.`,
+      );
+    }
+  }
+  if (args.project && !PROJECT_ID_PATTERN.test(args.project)) {
+    blockers.push(`target: --project=${args.project} is not a valid GCP project id.`);
+  } else if (args.project && canonicalProjectId && args.project !== canonicalProjectId) {
+    blockers.push(
+      `target: --project=${args.project} conflicts with canonical project ${canonicalProjectId}; commands remain pinned to ${canonicalProjectId}.`,
+    );
+  }
+  const projectId =
+    canonicalProjectId && PROJECT_ID_PATTERN.test(canonicalProjectId)
+      ? canonicalProjectId
+      : undefined;
+  const projectIdentityOk = blockers.length === 0 && projectId !== undefined;
+  const searchLocation = nonempty(args.location) ?? CUTOVER_SEARCH_LOCATION;
+  const searchLocationOk = searchLocation === CUTOVER_SEARCH_LOCATION;
+  if (!searchLocationOk) {
+    blockers.push(
+      `target: --location must be exactly ${CUTOVER_SEARCH_LOCATION}; no commands were generated.`,
+    );
+  }
+  const gmailCommandErrors = findGmailCutoverConfigErrors(mergedEnv, {
+    appBaseUrl: nonempty(mergedEnv.APP_BASE_URL),
+    gcpProjectId: projectId,
+  });
+  const commandInputsOk =
+    projectIdentityOk && searchLocationOk && gmailCommandErrors.length === 0;
+  // This repository has one reviewed cutover target. A caller may select the
+  // project, but cannot redirect deploy/rollback commands to another service
+  // or region through report arguments.
+  const targetService = DEFAULT_CUTOVER_SERVICE;
+  const targetRegion = DEFAULT_CUTOVER_REGION;
 
-  const gcpPlan = buildGcpSetupPlan({ projectId, env: mergedEnv, awayModeActive });
-  const gcpReadiness = buildGcpReadiness(gcpPlan);
+  const rawGcpPlan = buildGcpSetupPlan({ projectId, env: mergedEnv, awayModeActive });
+  const gcpReadiness = buildGcpReadiness(rawGcpPlan);
+  const gcpPlan = commandInputsOk ? rawGcpPlan : withoutProjectCommands(rawGcpPlan);
   blockers.push(...gcpReadiness.blockers.map((blocker) => `gcp: ${blocker}`));
   warnings.push(...gcpReadiness.warnings.map((warning) => `gcp: ${warning}`));
 
@@ -202,15 +369,15 @@ export function buildCutoverReport({
       const entries = readSourceManifest(args.manifest);
       const plan = buildSourceCorpusPlan(entries, {
         project: projectId,
-        location: args.location,
+        location: searchLocationOk ? searchLocation : CUTOVER_SEARCH_LOCATION,
       });
       corpus = {
         evaluated: true,
         manifest: args.manifest,
         readiness: plan.readiness,
-        upload_commands: plan.uploadCommands,
-        import_commands: plan.importCommands,
-        seed_commands: plan.seedCommands,
+        upload_commands: commandInputsOk ? plan.uploadCommands : [],
+        import_commands: commandInputsOk ? plan.importCommands : [],
+        seed_commands: commandInputsOk ? plan.seedCommands : [],
       };
       blockers.push(...plan.readiness.blockers.map((blocker) => `corpus: ${blocker}`));
       warnings.push(...plan.readiness.warnings.map((warning) => `corpus: ${warning}`));
@@ -228,31 +395,45 @@ export function buildCutoverReport({
       reason:
         "No --manifest provided. Pass --manifest=temp/client-production-source-manifest.json once the reviewed manifest exists.",
     };
-    warnings.push(`corpus: ${corpus.reason}`);
+    blockers.push(`corpus: ${corpus.reason}`);
   }
 
-  const deployArgs = [
-    ...(projectId ? [`--project=${projectId}`] : []),
-    ...(args.service ? [`--service=${args.service}`] : []),
-    "--allow-multiple-spaces",
-  ];
-  const deploy = buildDemoDeployCommand({
-    argv: deployArgs,
-    env: mergedEnv,
-    localEnv: {},
-  });
-  const deployPlan = {
-    ok: deploy.ok,
-    errors: deploy.errors,
-    command_preview: [deploy.command, ...deploy.args].join(" "),
-  };
-  blockers.push(...deploy.errors.map((error) => `deploy: ${error}`));
+  const deployPlan = commandInputsOk
+    ? (() => {
+        const deploy = buildDemoDeployCommand({
+          argv: [
+            `--project=${projectId}`,
+            `--service=${targetService}`,
+            `--region=${targetRegion}`,
+            "--allow-multiple-spaces",
+          ],
+          env: mergedEnv,
+          localEnv: {},
+        });
+        blockers.push(...deploy.errors.map((error) => `deploy: ${error}`));
+        return {
+          ok: deploy.ok,
+          errors: deploy.errors,
+          command_preview: [deploy.command, ...deploy.args].join(" "),
+        };
+      })()
+    : {
+        ok: false,
+        errors: [
+          "Reviewed project, search-location, and Gmail transport inputs must be coherent before command generation.",
+        ],
+        command_preview: "",
+      };
+  if (!commandInputsOk) {
+    blockers.push(`deploy: ${deployPlan.errors[0]}`);
+  }
 
   const corpusEntries = corpus.evaluated ? corpus : undefined;
   const rollback = buildRollbackPlan({
-    project: projectId ?? undefined,
-    service: args.service ?? undefined,
-    location: args.location ?? undefined,
+    project: commandInputsOk ? projectId : undefined,
+    service: targetService,
+    region: targetRegion,
+    priorRevision: commandInputsOk ? args.priorRevision : undefined,
     dataStoreIds: corpusEntries
       ? [
           ...new Set(
@@ -264,6 +445,16 @@ export function buildCutoverReport({
       ? corpusEntries.upload_commands.map(extractUploadUri).filter(Boolean)
       : [],
   });
+  const rollbackReady = rollback[0].commands.length === 1;
+  if (!commandInputsOk) {
+    blockers.push(
+      "rollback: reviewed project, search-location, and Gmail transport inputs must be coherent before command generation.",
+    );
+  } else if (!rollbackReady) {
+    blockers.push(
+      `rollback: --prior-revision=<captured-revision> is required and must match ${targetService}-00001-abc before deployment.`,
+    );
+  }
 
   const readiness = {
     ok: blockers.length === 0,
@@ -275,12 +466,14 @@ export function buildCutoverReport({
     generated_at: new Date().toISOString(),
     mode: "dry-run",
     project: { id: projectId ?? null },
+    target: { region: targetRegion, service: targetService },
     budget,
     gcp_plan: gcpPlan,
     production_env: productionEnv,
     corpus,
     deploy: deployPlan,
     rollback,
+    rollback_ready: rollbackReady,
     smoke_checklist: PRODUCTION_SMOKE_CHECKLIST,
     readiness,
     next_steps: readiness.ok
@@ -307,6 +500,12 @@ function extractUploadUri(uploadCommand) {
 
 export async function main(argv = process.argv.slice(2), env = process.env) {
   const args = parseCutoverReportArgs(argv);
+
+  if (args.help) {
+    console.log(cutoverReportUsage());
+    return undefined;
+  }
+
   const report = buildCutoverReport({ argv, env });
 
   if (args.json) {
@@ -322,10 +521,18 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   return report;
 }
 
+function cutoverReportUsage() {
+  return [
+    "Usage: npm run cutover:report -- --env-file=<path> --manifest=<path> --prior-revision=<revision> [options]",
+    "Options: --project=<id> --location=<search-location> --json --help",
+  ].join("\n");
+}
+
 function printHumanReport(report) {
   console.log(
     `Cutover report (${report.mode}) for project: ${report.project.id ?? "<unset>"}`,
   );
+  console.log(`- Target: ${report.target.service} (${report.target.region})`);
   console.log(
     `- Budget posture: ${report.budget.posture}; away mode: ${report.budget.away_mode_active ? "active" : "inactive"}; cap: $${report.budget.cap_usd}`,
   );
@@ -336,7 +543,9 @@ function printHumanReport(report) {
     `- Corpus: ${report.corpus.evaluated ? `evaluated (${report.corpus.readiness.ok ? "ready" : "blocked"})` : `not evaluated — ${report.corpus.reason}`}`,
   );
   console.log(`- Deploy preflight: ${report.deploy.ok ? "ok" : "failing"}`);
-  console.log(`- Rollback steps: ${report.rollback.length}`);
+  console.log(
+    `- Rollback plan: ${report.rollback_ready ? "ready" : "missing captured prior revision"}; ${report.rollback.length} steps`,
+  );
   console.log(`- Smoke checklist items: ${report.smoke_checklist.length}`);
 
   for (const warning of report.readiness.warnings) {
