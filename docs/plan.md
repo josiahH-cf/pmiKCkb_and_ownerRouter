@@ -16,9 +16,10 @@ product doc explicitly preserves a safety boundary.
 
 - The client-owned Cloud Run application is deployed and its auth, cited Ask, Console,
   Notifications, renewal review, Maintenance desk, and Gmail transport have direct production
-  evidence. The broader 2026-07-14 S20–S27 candidate is local only: its current hardening includes
-  bounded/chunked S21 content, indexed/emulator-only S24 cleanup, exact S20-bridged S25/S26 adapters,
-  and a production-only S27 manifest, but none of those newer seams is deployed or Live-proven.
+  evidence. The broader S20–S27 candidate is deployed as Pre-V1 revision
+  `pmi-kc-kb-demo-00021-bj8`: its hardening includes bounded/chunked S21 content,
+  indexed/emulator-only S24 cleanup, exact S20-bridged S25/S26 adapters, and a production-only S27
+  manifest. Deployment and public/auth-boundary smoke do not make those newer seams Live-proven.
 - PMI KC-owned GCP/Firebase, billing, domain auth, the $10 kill switch, Rentvine reads, renewal-Sheet
   DWD reads, Gmail DWD transport, and the first Admin path are established. They are not current V1
   blockers.
@@ -210,8 +211,9 @@ npm run format:check
 ### P5 - Build And Migration Preparation
 
 Status: in progress — dry-runs for imports/setup/seeders/preflights exist (`npm run cutover:dry-run`);
-KB production source manifests await approved client sources. The safe-local S20–S27 candidate is
-current-verifier green; deployment remains separately gated by the exact external checklist.
+KB production source manifests await approved client sources. The S20–S27 candidate is current-verifier
+green and code-deployed; source manifests, approved external setup, and exact provider proofs remain
+gated by the external checklist.
 
 Acceptance criteria:
 
@@ -344,13 +346,15 @@ bash scripts/verify.sh
 
 ### P7 - Production Cutover And Monitoring
 
-Status: in progress — production revision `pmi-kc-kb-demo-00020-24d` proves only the S19 transport
-baseline; the newer S20–S27 candidate is not deployed. Dan/Josiah release ownership and tab direction
-are resolved. Safe-local implementation is exhausted through typed S22/S25/S26 acceptance and a
-production-only S27 manifest, but every unresolved row in
+Status: in progress — Pre-V1 revision `pmi-kc-kb-demo-00021-bj8` deploys the S20–S27 candidate at 100%
+traffic; prior revision `pmi-kc-kb-demo-00020-24d` remains the only S19 Live-proven transport baseline
+and the captured rollback target. Dan/Josiah release ownership and tab direction are resolved.
+Safe-local implementation is exhausted through typed S22/S25/S26 acceptance and a production-only S27
+manifest, but every unresolved row in
 `docs/v1-client-unblock-checklist-2026-07-14.md` remains Gated. Final release still needs approved
 production source/provider mappings, action-by-action Live-proven evidence, eight-surface browser and
-rollback records, dependency disposition, deployment/smoke evidence, and both named acceptances.
+rollback records, dependency disposition, candidate-bound signed-in smoke evidence, and both named
+acceptances.
 
 Acceptance criteria:
 
@@ -375,7 +379,7 @@ bash scripts/verify.sh
 
 ### PMI KC KB
 
-Current state: the client-owned service is live and directly verified; the 2026-07-14 local candidate
+Current state: the client-owned service is live and directly verified; the deployed Pre-V1 candidate
 adds the narrower workflow-communication product boundary and the Round 3 S20–S27 contract. S20–S24 are
 Local green, including bounded/hash-chunked S21 publication, S22's external Vendor app-plane, and bounded
 indexed emulator-only S24 cleanup. S25/S26 now have exact Registry schemas, same-workflow dependency
@@ -640,6 +644,7 @@ Key gates:
 4. Close S22 identity/OAuth/Vendor-mail evidence before depending on an external Vendor principal.
 5. Prove each S25/S26 provider action independently with authoritative mappings, one attempt,
    reconciliation, monitoring, correction, code-reviewed Registry promotion, and exact authority.
-6. Complete S27 production deployment/smoke, pinned eight-surface desktop/phone role/failure-path browser record, rollback
-   rehearsal to a captured prior revision, dependency disposition, and Dan/Josiah acceptance before
-   changing the Pre-V1 label.
+6. Complete S27 manifest-bound deployment/smoke evidence, pinned eight-surface desktop/phone
+   role/failure-path browser record, rollback rehearsal to captured revision
+   `pmi-kc-kb-demo-00020-24d`, dependency disposition, and Dan/Josiah acceptance before changing the
+   Pre-V1 label. The code-only deployment does not satisfy those acceptance gates.

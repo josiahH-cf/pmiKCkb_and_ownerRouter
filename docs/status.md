@@ -11,6 +11,33 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## S20–S27 code is deployed as a Pre-V1 candidate; external acceptance remains Gated
+
+- Date: 2026-07-15
+- Owner-managed reauthentication, ADC, identity, production-environment, and ~$10 budget preflights
+  passed as `josiah@pmikcmetro.com`; no personal identity or downloadable key was used.
+- Published `main` commit `0dc0c7aa7be600e1097e80de448227917dc9101a`. Cloud Build
+  `9ae6958b-ec8c-48ef-bf0b-46dbe8194880` succeeded and Cloud Run revision
+  `pmi-kc-kb-demo-00021-bj8` is Ready with 100% traffic at the canonical endpoint
+  `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`. The captured prior serving revision is
+  `pmi-kc-kb-demo-00020-24d`.
+- The deploy command warned that an `allUsers` invoker binding could not be set. This service instead
+  intentionally uses `run.googleapis.com/invoker-iam-disabled=true` with ingress `all`; direct checks
+  against both Cloud Run hosts confirmed public reachability, so no IAM workaround or policy mutation
+  was needed. A follow-up dry run validated `--skip-allow-unauthenticated` as the recommended flag for
+  future deploys while that service annotation remains enabled.
+- Post-deployment boundary smoke passed: `/` redirects to staff sign-in; staff and Vendor sign-in pages
+  return 200; protected `/ask` and `/vendor` routes redirect to their respective sign-in pages; and the
+  protected Ask and Vendor-ticket APIs return their expected unauthenticated 401 responses. Browser
+  inspection confirmed the staff managed-domain message, separate Vendor form, no self-registration,
+  and visible Pre-V1 label. This is public/auth-boundary evidence, not signed-in role or provider proof.
+- This was a code-only Pre-V1 deployment. No Action Registry key was promoted; no Gmail action, Vendor
+  invite, source import, external provider mutation, system-of-record write, Firestore rule/index/TTL,
+  scheduler, OAuth/vault setup, or rollback traffic change occurred. The release report therefore
+  remains correctly Pre-V1 with 29 required action proofs, 0 accepted, 0 production-allowed, and 169
+  open external gates.
+- Human current-state handoff: `docs/pmi-kc-v1-current-state-2026-07-15.html`.
+
 ## Safe-local S21/S24/S25/S26/S27 hardening is complete; external evidence remains Gated
 
 - Date: 2026-07-15

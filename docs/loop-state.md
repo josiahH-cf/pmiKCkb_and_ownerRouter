@@ -9,8 +9,8 @@ this file under 140 lines. The runner is `docs/autonomous-agent-runner.md`.
 - Last updated: 2026-07-15.
 - R01–R09 are decision-complete. S20–S27 and
   `docs/v1-gap-implementation-program-2026-07-14.md` are the final-V1 implementation contract.
-- The safe local/emulator implementation is exhausted through S27. No further local surface should be
-  invented merely to avoid an external proof gate.
+- Safe local/emulator implementation is exhausted through S27. Commit `0dc0c7aa` is deployed as Pre-V1
+  revision `pmi-kc-kb-demo-00021-bj8` at 100%; `pmi-kc-kb-demo-00020-24d` is the captured prior revision.
 - The release remains **Pre-V1**. Product inclusion is not operational authority, and no S20–S27 suite
   is Accepted.
 
@@ -20,7 +20,7 @@ this file under 140 lines. The runner is `docs/autonomous-agent-runner.md`.
 - **Gated:** a named external contract, mapping, permission, configuration, proof, or acceptance is
   missing; keep the production action closed.
 - **Live-proven:** the exact production behavior has bounded, durable evidence. The 2026-07-13 S19 Gmail
-  transport baseline is Live-proven; it is not proof of the newer S20–S27 candidate.
+  transport baseline is Live-proven; deploying the newer S20–S27 code is not proof of its gated actions.
 - **Accepted:** all suite evidence and named acceptance are complete. None of S20–S27 is Accepted.
 
 ## Safe-Local Completion
@@ -41,8 +41,8 @@ this file under 140 lines. The runner is `docs/autonomous-agent-runner.md`.
   are Gated.
 - **S23 Local green:** server-selected live/test mode, provenance/freshness, bounded inert snippets,
   authorized on-demand body fetch, persistent test badge, and production fixture refusal. The eight
-  surfaces render locally at desktop/phone widths against an isolated emulator; live adapters, approved
-  records, deployment, and deployed role/failure-path browser acceptance are Gated.
+  surfaces render locally at desktop/phone widths against an isolated emulator. Candidate code is
+  deployed; live adapters, approved records, and deployed role/failure-path browser acceptance are Gated.
 - **S24 Local green:** exact retention/artifact/AI policy, bounded indexed cleanup, transactional recheck,
   canonical Date/Timestamp TTL plus numeric query expiry, dual-null legal hold, crash-resumable bodyless
   frozen-run progress with complete processed/failed accounting, counts-only audit, seven-year cleanup-
@@ -59,8 +59,9 @@ this file under 140 lines. The runner is `docs/autonomous-agent-runner.md`.
   quartet, and exact `us` search location. Invalid/conflicting bindings or unsafe/non-ready corpus input
   emit no setup/corpus/deploy/rollback commands. Rollback requires a captured prior revision plus traffic
   restoration, never service deletion. Three Moderate dev-only
-  `firebase-tools` dependency findings require named disposition without force/downgrade. Local
-  desktop/phone rendering is green; pinned deployed browser and rollback evidence remains Gated.
+  `firebase-tools` dependency findings require named disposition without force/downgrade. Revision
+  `00021-bj8` passed public/auth-boundary smoke; signed-in role/failure-path browser, manifest-bound
+  deployment evidence, and rollback rehearsal to captured prior revision `00020-24d` remain Gated.
 
 ## Synthetic Acceptance Boundary
 
@@ -76,7 +77,7 @@ this file under 140 lines. The runner is `docs/autonomous-agent-runner.md`.
   format, lint (zero errors/eight existing warnings), typecheck, 286 unit files / 1,984 tests, production
   build, and all governance gates. Separate Firestore acceptance passed 16 files / 56 tests; core E2E
   passed 8 files / 32 tests with 3 files / 18 scenarios intentionally skipped. Cutover rehearsal is
-  green and the release report remains correctly Pre-V1 with 169 external gates.
+  green. The code-only deployment and boundary smoke are green; the release remains Pre-V1 with 169 gates.
 
 ## Next Exact Action
 
@@ -118,7 +119,7 @@ At each row boundary:
 
 ## Live And External Hard Gates
 
-The active goal and green aliases do not authorize cloud/Firebase/Workspace/OAuth/Secret Manager/TTL/
+The active goal and green aliases do not authorize further cloud/Firebase/Workspace/OAuth/Secret Manager/TTL/
 scheduler/Drive/root/role configuration; live client/provider reads; invites; mailbox consent/tokens;
 imports; writes; uploads; labels; drafts; sends; deployments; smokes; or traffic changes.
 

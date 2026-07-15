@@ -1,0 +1,1612 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>PMI KC V1 Current State · July 15, 2026</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        background: light-dark(rgb(255 255 255), rgb(24 24 24));
+      }
+      html,
+      body {
+        margin: 0;
+      }
+      body {
+        box-sizing: border-box;
+        padding: 1rem;
+        background: inherit;
+      }
+      iframe {
+        display: block;
+        width: 100%;
+        max-width: 736px;
+        height: calc(100vh - 2rem);
+        margin: 0 auto;
+        border: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <iframe
+      sandbox="allow-scripts"
+      referrerpolicy="no-referrer"
+      title="PMI KC V1 Current State · July 15, 2026"
+      srcdoc='&lt;!doctype html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+&lt;meta charset="utf-8"&gt;
+&lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+&lt;meta name="referrer" content="no-referrer"&gt;
+&lt;meta http-equiv="Content-Security-Policy" content="default-src &#x27;none&#x27;; script-src &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; &#x27;wasm-unsafe-eval&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src &#x27;unsafe-inline&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#x27;none&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;"&gt;
+&lt;title&gt;PMI KC V1 Current State · July 15, 2026&lt;/title&gt;
+&lt;style&gt;:root {
+  color-scheme: light dark;
+  background-color: var(--background) !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: light-dark(rgb(255 255 255), rgb(24 24 24));
+  --foreground: light-dark(rgb(26 28 31), rgb(255 255 255));
+  --card: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --card-foreground: var(--foreground);
+  --popover: light-dark(rgb(255 255 255), rgb(45 45 45));
+  --popover-foreground: var(--foreground);
+  --primary: light-dark(rgb(51 156 255), rgb(131 195 255));
+  --primary-foreground: light-dark(rgb(255 255 255), rgb(13 13 13));
+  --secondary: light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%));
+  --secondary-foreground: var(--foreground);
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: light-dark(
+    rgb(26 28 31 / 49.4%),
+    rgb(255 255 255 / 49.8%)
+  );
+  --accent: light-dark(rgb(229 242 255), rgb(13 39 63));
+  --accent-foreground: var(--primary);
+  --destructive: light-dark(rgb(226 85 7), rgb(255 133 73));
+  --border: light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%));
+  --input: light-dark(
+    rgb(26 28 31 / 11.8%),
+    color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+  );
+  --ring: light-dark(rgb(51 156 255), rgb(131 195 255 / 76%));
+  --font-size-base: 14px;
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, "Segoe UI", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --radius: 12.5px;
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url("data:image/svg+xml,%3Csvg xmlns=&#x27;http://www.w3.org/2000/svg&#x27; viewBox=&#x27;0 0 17 17&#x27;%3E%3Cpath d=&#x27;M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z&#x27;/%3E%3C/svg%3E");
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+  --color-background-primary: var(--background);
+  --color-text-primary: var(--foreground);
+  --color-border-secondary: var(--border);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html &gt; body {
+  margin: 0;
+  padding: 5px;
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: pointer;
+  font-weight: var(--viz-font-weight-medium);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: superellipse(1.5);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget &gt; :not(.card) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls &gt; .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls &gt; .form-label &gt; :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type="file"] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type="file"]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type="file"]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type="color"] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: superellipse(1.5);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: superellipse(1.5);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type="checkbox"] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(1.5);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type="checkbox"]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type="checkbox"]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: "";
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type="radio"] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type="radio"]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: "";
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+    [aria-pressed="true"],
+    [aria-selected="true"],
+    .is-selected
+  ) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed="true"], [aria-selected="true"], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget &gt; svg {
+  width: 100%;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+html&gt;body{padding:0}&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;style&gt;
+  :root {
+    color-scheme: light;
+    --ink: #172039;
+    --muted: #5f6b82;
+    --paper: #f5f7fb;
+    --card: #ffffff;
+    --line: #dce2ec;
+    --navy: #101b3b;
+    --blue: #155eef;
+    --blue-soft: #e8f0ff;
+    --cyan: #dff3ff;
+    --green: #0b7a53;
+    --green-bg: #e8f7f0;
+    --amber: #9a5b00;
+    --amber-bg: #fff5d9;
+    --red: #a12b2b;
+    --red-bg: #ffeded;
+    --purple: #6441a5;
+    --purple-bg: #f0eaff;
+    --slate-bg: #edf1f7;
+    --shadow: 0 18px 50px rgba(16, 27, 59, 0.08);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at 10% 0%, rgba(21, 94, 239, 0.11), transparent 34rem),
+      var(--paper);
+    color: var(--ink);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.55;
+  }
+  a { color: var(--blue); }
+  code {
+    padding: 0.1rem 0.32rem;
+    border: 1px solid var(--line);
+    border-radius: 0.35rem;
+    background: #f8fafc;
+    font-size: 0.9em;
+  }
+  .report {
+    width: min(1180px, calc(100% - 32px));
+    margin: 0 auto;
+    padding-bottom: 46px;
+  }
+  .hero {
+    margin: 24px auto 18px;
+    padding: clamp(28px, 5vw, 60px);
+    overflow: hidden;
+    border-radius: 28px;
+    background: linear-gradient(135deg, rgba(16, 27, 59, 0.99), rgba(21, 94, 239, 0.9));
+    color: white;
+    box-shadow: var(--shadow);
+  }
+  .eyebrow {
+    margin: 0 0 12px;
+    color: #bcd7ff;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+  h1, h2, h3, h4, p { margin-top: 0; }
+  h1 {
+    max-width: 920px;
+    margin-bottom: 14px;
+    font-size: clamp(2.25rem, 6vw, 4.6rem);
+    line-height: 0.98;
+    letter-spacing: -0.048em;
+  }
+  h2 {
+    margin-bottom: 12px;
+    font-size: clamp(1.45rem, 3vw, 2.15rem);
+    letter-spacing: -0.026em;
+  }
+  h3 { margin-bottom: 8px; font-size: 1.08rem; }
+  h4 { margin-bottom: 6px; font-size: 0.98rem; }
+  .hero-copy {
+    max-width: 880px;
+    margin: 0;
+    color: #e7efff;
+    font-size: 1.08rem;
+  }
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 24px;
+  }
+  .hero-chip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 0.86rem;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+  .quick-nav {
+    position: sticky;
+    z-index: 5;
+    top: 10px;
+    display: flex;
+    gap: 8px;
+    margin: 0 auto 18px;
+    padding: 10px;
+    overflow-x: auto;
+    border: 1px solid rgba(220, 226, 236, 0.9);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.93);
+    box-shadow: 0 8px 30px rgba(16, 27, 59, 0.08);
+    backdrop-filter: blur(12px);
+    max-width: 100%;
+  }
+  .quick-nav a {
+    flex: 0 0 auto;
+    padding: 7px 11px;
+    border-radius: 10px;
+    color: var(--ink);
+    font-size: 0.85rem;
+    font-weight: 750;
+    text-decoration: none;
+  }
+  .quick-nav a:hover, .quick-nav a:focus-visible { background: var(--cyan); outline: none; }
+  .metrics, .grid-2, .grid-3, .surface-grid, .remaining-grid { display: grid; gap: 14px; }
+  .metrics { grid-template-columns: repeat(6, minmax(0, 1fr)); margin-bottom: 18px; }
+  .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .surface-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .remaining-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .metric, .card, .surface-card, .callout, .blocker-card {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--card);
+    box-shadow: 0 8px 28px rgba(16, 27, 59, 0.05);
+  }
+  .metric { min-height: 118px; padding: 18px; }
+  .metric strong { display: block; margin-bottom: 4px; font-size: 1.6rem; line-height: 1.1; }
+  .metric span { color: var(--muted); font-size: 0.84rem; }
+  .metric[data-tone="green"] { border-top: 4px solid var(--green); }
+  .metric[data-tone="amber"] { border-top: 4px solid var(--amber); }
+  .metric[data-tone="blue"] { border-top: 4px solid var(--blue); }
+  .metric[data-tone="purple"] { border-top: 4px solid var(--purple); }
+  section.report-section {
+    margin: 18px 0;
+    padding: clamp(22px, 4vw, 38px);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: var(--shadow);
+  }
+  .lede { max-width: 920px; color: var(--muted); font-size: 1rem; }
+  .callout { margin-top: 16px; padding: 18px 20px; }
+  .callout.good { border-left: 5px solid var(--green); background: var(--green-bg); }
+  .callout.warn { border-left: 5px solid var(--amber); background: var(--amber-bg); }
+  .callout.info { border-left: 5px solid var(--blue); background: var(--blue-soft); }
+  .callout strong { display: block; margin-bottom: 5px; }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .status::before { width: 7px; height: 7px; border-radius: 50%; background: currentColor; content: ""; }
+  .status.built { color: var(--green); background: var(--green-bg); }
+  .status.deployed { color: var(--blue); background: var(--blue-soft); }
+  .status.gated { color: var(--amber); background: var(--amber-bg); }
+  .status.external { color: var(--purple); background: var(--purple-bg); }
+  .status.deferred { color: var(--muted); background: var(--slate-bg); }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+  .status-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
+  .status-step { padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+  .status-step strong { display: block; margin-bottom: 3px; }
+  .status-step span { color: var(--muted); font-size: 0.84rem; }
+  .surface-card { padding: 20px; }
+  .surface-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .surface-head &gt; div { min-width: 0; }
+  .route { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.82rem; overflow-wrap: anywhere; }
+  .surface-card dl { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px 12px; min-width: 0; margin: 16px 0 0; }
+  .surface-card dt { color: var(--muted); font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+  .surface-card dt, .surface-card dd { min-width: 0; overflow-wrap: anywhere; }
+  .surface-card dd { margin: 0; font-size: 0.92rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; background: white; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.91rem; }
+  th, td { padding: 13px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { background: #f3f6fb; color: #33405c; font-size: 0.76rem; letter-spacing: 0.045em; text-transform: uppercase; }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { font-weight: 750; }
+  .compact td, .compact th { padding: 11px 12px; }
+  .chart-card { padding: 20px; border: 1px solid var(--line); border-radius: 18px; background: #fff; }
+  .stacked-bar { display: flex; width: 100%; height: 30px; margin: 18px 0 12px; overflow: hidden; border-radius: 999px; background: var(--slate-bg); }
+  .stacked-bar span { min-width: 3px; }
+  .gate-pins { width: 2.96%; background: #155eef; }
+  .gate-suites { width: 8.28%; background: #5d8df2; }
+  .gate-actions { width: 84.62%; background: #6441a5; }
+  .gate-evidence { width: 2.96%; background: #d28a12; }
+  .gate-acceptance { width: 1.18%; background: #a12b2b; }
+  .chart-legend { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+  .chart-key { display: flex; gap: 8px; align-items: flex-start; font-size: 0.82rem; }
+  .swatch { flex: 0 0 10px; width: 10px; height: 10px; margin-top: 5px; border-radius: 3px; }
+  .bar-row { display: grid; grid-template-columns: 160px 1fr 60px; gap: 12px; align-items: center; margin: 13px 0; }
+  .bar-track { height: 18px; overflow: hidden; border-radius: 999px; background: var(--slate-bg); }
+  .bar-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--purple)); }
+  .bar-fill.lease { width: 36.67%; }
+  .bar-fill.maintenance { width: 63.33%; }
+  .bar-row strong:last-child { text-align: right; }
+  .proof-ring {
+    display: grid;
+    place-items: center;
+    width: 150px;
+    height: 150px;
+    margin: 6px auto 14px;
+    border-radius: 50%;
+    background: conic-gradient(var(--green) 0deg, var(--slate-bg) 0deg 360deg);
+    box-shadow: inset 0 0 0 20px white;
+    text-align: center;
+  }
+  .proof-ring strong { display: block; font-size: 1.9rem; }
+  .proof-ring span { color: var(--muted); font-size: 0.76rem; }
+  .card { padding: 19px; }
+  .card p:last-child, .surface-card p:last-child { margin-bottom: 0; }
+  .plain-list { margin: 10px 0 0; padding-left: 1.2rem; }
+  .plain-list li { margin: 6px 0; }
+  .remaining-card { padding: 19px; border: 1px solid var(--line); border-radius: 18px; background: #fff; }
+  .remaining-card h3 { display: flex; gap: 8px; align-items: center; }
+  .number {
+    display: inline-grid;
+    place-items: center;
+    min-width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    background: var(--navy);
+    color: white;
+    font-size: 0.82rem;
+  }
+  .blocker-list { display: grid; gap: 12px; margin-top: 18px; }
+  .blocker-card { display: grid; grid-template-columns: 34px 1fr; gap: 12px; padding: 17px; }
+  .check { color: var(--amber); font-size: 1.2rem; font-weight: 900; }
+  .blocker-card p { margin-bottom: 5px; }
+  .recommendation { color: var(--green); font-weight: 720; }
+  .fine-print { color: var(--muted); font-size: 0.82rem; }
+  .report-footer { padding: 24px 4px 0; color: var(--muted); font-size: 0.83rem; }
+  .report-footer p { margin-bottom: 8px; }
+
+  @media (max-width: 980px) {
+    .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .status-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .remaining-grid { grid-template-columns: minmax(0, 1fr); }
+    .chart-legend { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 900px) {
+    .table-wrap { min-width: 0; max-width: 100%; border: 0; overflow: visible; background: transparent; }
+    table, tbody, tr, td { display: block; width: 100%; min-width: 0; max-width: 100%; }
+    thead { display: none; }
+    tr { margin-bottom: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: white; }
+    td { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 10px; padding: 8px; border: 0; overflow-wrap: anywhere; }
+    td::before { color: var(--muted); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; content: attr(data-label); }
+    .status { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  }
+  @media (max-width: 720px) {
+    .report { width: min(100% - 20px, 1180px); }
+    .hero { margin-top: 10px; border-radius: 20px; }
+    .metrics, .surface-grid, .grid-2, .grid-3 { grid-template-columns: minmax(0, 1fr); }
+    .status-grid { grid-template-columns: 1fr; }
+    .chart-legend { grid-template-columns: 1fr 1fr; }
+    .surface-card dl { grid-template-columns: minmax(0, 1fr); gap: 3px; min-width: 0; }
+    .surface-card dt, .surface-card dd { min-width: 0; overflow-wrap: anywhere; }
+    .surface-card dd { margin-bottom: 9px; }
+    .bar-row { grid-template-columns: 110px 1fr 38px; gap: 8px; }
+    td { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px; padding: 8px; border: 0; overflow-wrap: anywhere; }
+  }
+  @media print {
+    body { background: white; }
+    .report { width: 100%; }
+    .hero, section.report-section { box-shadow: none; }
+    .quick-nav { display: none; }
+    section.report-section { break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+  }
+&lt;/style&gt;
+
+&lt;main class="report"&gt;
+  &lt;header class="hero" id="top"&gt;
+    &lt;p class="eyebrow"&gt;PMI KC Operations Console · V1 State Report&lt;/p&gt;
+    &lt;h1&gt;Substantial product, deliberately not yet final V1.&lt;/h1&gt;
+    &lt;p class="hero-copy"&gt;
+      The application plane is broad and well tested: the Console, Spaces, mobile approvals, scoped staff access,
+      workflow communications, Lease Renewal, Maintenance, Vendor boundaries, trusted publication, retention, and
+      typed external-action adapters are built. The remaining work is concentrated in production configuration,
+      provider-specific contracts and mappings, reversible external proofs, and named acceptance—not another round
+      of generic feature invention.
+    &lt;/p&gt;
+    &lt;div class="hero-meta"&gt;
+      &lt;span class="hero-chip"&gt;Report date · July 15, 2026&lt;/span&gt;
+      &lt;span class="hero-chip"&gt;Release label · Pre‑V1&lt;/span&gt;
+      &lt;span class="hero-chip"&gt;Git commit · &lt;code&gt;0dc0c7a&lt;/code&gt;&lt;/span&gt;
+      &lt;span class="hero-chip" id="deployment-chip"&gt;Revision · &lt;code&gt;pmi-kc-kb-demo-00021-bj8&lt;/code&gt;&lt;/span&gt;
+      &lt;span class="hero-chip"&gt;Traffic · 100%&lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/header&gt;
+
+  &lt;nav class="quick-nav" aria-label="Report sections"&gt;
+    &lt;a href="#summary"&gt;Summary&lt;/a&gt;
+    &lt;a href="#status-language"&gt;Status language&lt;/a&gt;
+    &lt;a href="#suites"&gt;Feature sets&lt;/a&gt;
+    &lt;a href="#tabs"&gt;Application tabs&lt;/a&gt;
+    &lt;a href="#workflows"&gt;Workflow depth&lt;/a&gt;
+    &lt;a href="#verification"&gt;Verification&lt;/a&gt;
+    &lt;a href="#release-gates"&gt;Release gates&lt;/a&gt;
+    &lt;a href="#remaining"&gt;What remains&lt;/a&gt;
+    &lt;a href="#questions"&gt;Open questions&lt;/a&gt;
+    &lt;a href="#deployment"&gt;Deployment&lt;/a&gt;
+  &lt;/nav&gt;
+
+  &lt;section class="report-section" id="summary"&gt;
+    &lt;h2&gt;Current state at a glance&lt;/h2&gt;
+    &lt;p class="lede"&gt;
+      “Pre‑V1” is a release-control label, not a statement that the app is empty. Most user-facing and safety-boundary
+      development is present. Final V1 requires the real external systems to prove each permitted action under their
+      exact contracts, permissions, mappings, monitoring, and correction paths.
+    &lt;/p&gt;
+    &lt;div class="metrics"&gt;
+      &lt;div class="metric" data-tone="green"&gt;&lt;strong&gt;286&lt;/strong&gt;&lt;span&gt;unit-test files green&lt;/span&gt;&lt;/div&gt;
+      &lt;div class="metric" data-tone="green"&gt;&lt;strong&gt;1,984&lt;/strong&gt;&lt;span&gt;unit tests passed&lt;/span&gt;&lt;/div&gt;
+      &lt;div class="metric" data-tone="blue"&gt;&lt;strong&gt;30&lt;/strong&gt;&lt;span&gt;typed Lease + Maintenance action paths&lt;/span&gt;&lt;/div&gt;
+      &lt;div class="metric" data-tone="purple"&gt;&lt;strong&gt;29&lt;/strong&gt;&lt;span&gt;unique external action proofs required&lt;/span&gt;&lt;/div&gt;
+      &lt;div class="metric" data-tone="amber"&gt;&lt;strong&gt;0&lt;/strong&gt;&lt;span&gt;external action proofs accepted&lt;/span&gt;&lt;/div&gt;
+      &lt;div class="metric" data-tone="amber"&gt;&lt;strong&gt;169&lt;/strong&gt;&lt;span&gt;open release-evidence gates&lt;/span&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="callout good"&gt;
+      &lt;strong&gt;Bottom line&lt;/strong&gt;
+      The safe local build program is complete and reproducible, and commit
+      &lt;code&gt;0dc0c7aa7be600e1097e80de448227917dc9101a&lt;/code&gt; is deployed as
+      &lt;code&gt;pmi-kc-kb-demo-00021-bj8&lt;/code&gt; with 100% traffic. The next value comes from verifying the
+      deployed workflow boundaries, configuring only approved production resources, and closing provider/action evidence
+      one bounded row at a time. Closed actions remain visibly unavailable; the app does not guess an endpoint or silently
+      fall back to demo data.
+    &lt;/div&gt;
+    &lt;div class="callout warn"&gt;
+      &lt;strong&gt;What this release does not authorize&lt;/strong&gt;
+      No generic inbox, free-form send, autonomous send, guessed Rentvine/LeadSimple/QuickBooks/Boom operation,
+      production Vendor invite, customer-data import, TTL/scheduler activation, or system-of-record mutation becomes
+      authorized merely because the code exists or is deployed.
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;section class="report-section" id="status-language"&gt;
+    &lt;h2&gt;How to read the status&lt;/h2&gt;
+    &lt;p class="lede"&gt;These five states prevent “built” from being mistaken for “safe to operate live.”&lt;/p&gt;
+    &lt;div class="status-grid"&gt;
+      &lt;div class="status-step"&gt;&lt;strong&gt;1 · Built and verified&lt;/strong&gt;&lt;span&gt;Code, safeguards, tests, and local behavior exist.&lt;/span&gt;&lt;/div&gt;
+      &lt;div class="status-step"&gt;&lt;strong&gt;2 · Deployed&lt;/strong&gt;&lt;span&gt;The exact commit is running on the application host.&lt;/span&gt;&lt;/div&gt;
+      &lt;div class="status-step"&gt;&lt;strong&gt;3 · Configured&lt;/strong&gt;&lt;span&gt;Approved production identities, roots, mappings, and policies are present.&lt;/span&gt;&lt;/div&gt;
+      &lt;div class="status-step"&gt;&lt;strong&gt;4 · Externally proven&lt;/strong&gt;&lt;span&gt;A permitted test proves one attempt, readback, reconciliation, and correction.&lt;/span&gt;&lt;/div&gt;
+      &lt;div class="status-step"&gt;&lt;strong&gt;5 · Accepted&lt;/strong&gt;&lt;span&gt;Named business and technical owners accept the pinned candidate.&lt;/span&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="legend" aria-label="Status legend"&gt;
+      &lt;span class="status built"&gt;Built and verified&lt;/span&gt;
+      &lt;span class="status deployed"&gt;Previously live-proven transport&lt;/span&gt;
+      &lt;span class="status gated"&gt;Implemented but gated&lt;/span&gt;
+      &lt;span class="status external"&gt;External proof required&lt;/span&gt;
+      &lt;span class="status deferred"&gt;Deliberately deferred&lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;section class="report-section" id="suites"&gt;
+    &lt;h2&gt;Feature-set map&lt;/h2&gt;
+    &lt;p class="lede"&gt;
+      S14–S19 cover the major user experience, access, attention, anticipation, and Gmail layers. S20–S27 add the
+      final-V1 safety and external-execution contracts. “Gated” below means the typed boundary exists while real
+      provider authority or evidence is still absent.
+    &lt;/p&gt;
+    &lt;div class="table-wrap"&gt;
+      &lt;table&gt;
+        &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Suite&lt;/th&gt;&lt;th&gt;Human summary&lt;/th&gt;&lt;th&gt;Current state&lt;/th&gt;&lt;th&gt;Next boundary&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+        &lt;tbody&gt;
+          &lt;tr&gt;&lt;td data-label="Suite"&gt;S14 · Mobile Approval Queue&lt;/td&gt;&lt;td data-label="Human summary"&gt;One renewal decision card at a time, suggested-source acceptance, reason-code defaults, safe inline approval, and preserved desktop/bulk views.&lt;/td&gt;&lt;td data-label="Current state"&gt;&lt;span class="status built"&gt;Built and verified&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Next boundary"&gt;Deployed role/phone acceptance with real authorized records.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Suite"&gt;S15 · Communications workspace&lt;/td&gt;&lt;td data-label="Human summary"&gt;Template, triage, summary, and clearly synthetic fallback tools; no general mailbox and no Send control.&lt;/td&gt;&lt;td data-label="Current state"&gt;&lt;span class="status built"&gt;Built and verified&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Next boundary"&gt;Keep fallback tools Admin/demo-only; use S19 for workflow-linked live mail.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Suite"&gt;S16 · Scoped staff users&lt;/td&gt;&lt;td data-label="Human summary"&gt;Role controls what a user can do; an independent scope limits which product lanes they can enter—for example, Maintenance-only Editor.&lt;/td&gt;&lt;td data-label="Current state"&gt;&lt;span class="status built"&gt;Built and verified&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Next boundary"&gt;Mint and validate approved live claims; retain break-glass Admin recovery.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Suite"&gt;S17 · Unified attention&lt;/td&gt;&lt;td data-label="Human summary"&gt;Console stays the home; Notifications is the full log; decision, connection, coverage, renewal, and review signals share one value-free language.&lt;/td&gt;&lt;td data-label="Current state"&gt;&lt;span class="status built"&gt;Built and verified&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Next boundary"&gt;Confirm Dan’s review cadence and the final self-correction definition.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Suite"&gt;S18 · Anticipated work&lt;/td&gt;&lt;td data-label="Human summary"&gt;The app proposes upcoming work and lets a person start an existing simulation or desk flow. It does not schedule or execute automatically.&lt;/td&gt;&lt;td data-label="Current state"&gt;&lt;span class="status built"&gt;Built and verified&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Next boundary"&gt;Wire approved live source feeds; cron auto-initiation remains deferred.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Suite"&gt;S19 · Workflow Gmail&lt;/td&gt;&lt;td data-label="Human summary"&gt;Keyless per-user Gmail transport, bounded thread reads, exact-confirmed replies, governed drafts/labels, watch and audit—only through a linked renewal or maintenance context.&lt;/td&gt;&lt;td data-label="Current state"&gt;&lt;span class="status deployed"&gt;Transport previously proven&lt;/span&gt; &lt;span class="status deployed"&gt;Candidate code deployed&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Next boundary"&gt;Verify the current workflow-scoped UI/API with an approved signed-in role; keep generic compose disabled.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Suite"&gt;S20 · Execution authority&lt;/td&gt;&lt;td data-label="Human summary"&gt;Fixed risk floors, Editor/Admin authority, immutable preview/approval binding, one-attempt ledger, reconciliation, and Approval Queue bridge.&lt;/td&gt;&lt;td data-label="Current state"&gt;&lt;span class="status built"&gt;Local green&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Next boundary"&gt;Promote only an exact action after its provider evidence and per-action authority pass.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Suite"&gt;S21 · Trusted publication&lt;/td&gt;&lt;td data-label="Human summary"&gt;Bounded streaming, verified file types, scanner fence, immutable versions, active pointer, rollback, and content-to-authority firewall.&lt;/td&gt;&lt;td data-label="Current state"&gt;&lt;span class="status built"&gt;Local green&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Next boundary"&gt;Approve production source roots, real malware/sensitivity scanner, import and indexing proof.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Suite"&gt;S22 · External Vendor&lt;/td&gt;&lt;td data-label="Human summary"&gt;Separate Vendor identity, verified-email TOTP, assigned-ticket-only access, per-vendor Google OAuth, token-vault seam, and exact-thread mail boundary.&lt;/td&gt;&lt;td data-label="Current state"&gt;&lt;span class="status built"&gt;Local green&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Next boundary"&gt;Configure Identity Platform/OAuth/vault; test a staged Vendor, then a real Vendor.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Suite"&gt;S23 · Live/test boundary&lt;/td&gt;&lt;td data-label="Human summary"&gt;Production cannot construct fixtures; every operational value is scoped and sourced; Gmail preview is bounded metadata until an authorized detail open.&lt;/td&gt;&lt;td data-label="Current state"&gt;&lt;span class="status built"&gt;Local green&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Next boundary"&gt;Wire approved live read adapters and test unavailable/failure states on deployment.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Suite"&gt;S24 · Communications policy&lt;/td&gt;&lt;td data-label="Human summary"&gt;Versioned retention, legal hold, bounded crash-resumable cleanup, three v1.0 communication artifacts, and source-visible human-reviewed AI replies.&lt;/td&gt;&lt;td data-label="Current state"&gt;&lt;span class="status built"&gt;Local green&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Next boundary"&gt;Deploy indexes/migration/TTL/scheduler only with separate production authority.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Suite"&gt;S25 · Lease execution&lt;/td&gt;&lt;td data-label="Human summary"&gt;Eleven exact typed paths across Gmail, Sheet, Rentvine, Dotloop, portal, SMS, and Boom with invented aliases and one-attempt test providers.&lt;/td&gt;&lt;td data-label="Current state"&gt;&lt;span class="status gated"&gt;Implemented but gated&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Next boundary"&gt;Capture each real contract/mapping; prove reversible behavior; promote one Registry key at a time.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Suite"&gt;S26 · Maintenance execution&lt;/td&gt;&lt;td data-label="Human summary"&gt;Nineteen typed paths across Vendor, Drive, Rentvine, Gmail, LeadSimple, and QuickBooks draft-Bill-only.&lt;/td&gt;&lt;td data-label="Current state"&gt;&lt;span class="status gated"&gt;Implemented but gated&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Next boundary"&gt;Same per-provider contract, mapping, proof, monitoring, correction, and Registry review.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Suite"&gt;S27 · Release acceptance&lt;/td&gt;&lt;td data-label="Human summary"&gt;Pinned manifest, synthetic acceptance, route-wide Pre‑V1 labels, browser plan, dependency disposition, cutover and rollback guards.&lt;/td&gt;&lt;td data-label="Current state"&gt;&lt;span class="status gated"&gt;Pre‑V1&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Next boundary"&gt;Authenticated role/failure-path evidence on &lt;code&gt;pmi-kc-kb-demo-00021-bj8&lt;/code&gt;, rollback rehearsal to &lt;code&gt;pmi-kc-kb-demo-00020-24d&lt;/code&gt;, and Dan/Josiah acceptance.&lt;/td&gt;&lt;/tr&gt;
+        &lt;/tbody&gt;
+      &lt;/table&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;section class="report-section" id="tabs"&gt;
+    &lt;h2&gt;What to expect from each application tab&lt;/h2&gt;
+    &lt;p class="lede"&gt;
+      The internal shell has six text tabs plus the notification bell. Lease, Maintenance, Processes, and Vendor are
+      deliberate desks or subordinate surfaces rather than extra top-level tabs.
+    &lt;/p&gt;
+    &lt;div class="surface-grid"&gt;
+      &lt;article class="surface-card"&gt;
+        &lt;div class="surface-head"&gt;&lt;div&gt;&lt;h3&gt;Console&lt;/h3&gt;&lt;div class="route"&gt;/ and /ask&lt;/div&gt;&lt;/div&gt;&lt;span class="status built"&gt;Built&lt;/span&gt;&lt;/div&gt;
+        &lt;dl&gt;&lt;dt&gt;Purpose&lt;/dt&gt;&lt;dd&gt;The at-a-glance home and grounded Ask entry point.&lt;/dd&gt;&lt;dt&gt;What exists&lt;/dt&gt;&lt;dd&gt;Decision/setup deck, process strip, value-free anticipated work, source-backed Ask, simulation starts, and clear test/live state.&lt;/dd&gt;&lt;dt&gt;What remains&lt;/dt&gt;&lt;dd&gt;Wire approved live projections and run deployed role/failure-path acceptance.&lt;/dd&gt;&lt;/dl&gt;
+      &lt;/article&gt;
+      &lt;article class="surface-card"&gt;
+        &lt;div class="surface-head"&gt;&lt;div&gt;&lt;h3&gt;Spaces&lt;/h3&gt;&lt;div class="route"&gt;/spaces&lt;/div&gt;&lt;/div&gt;&lt;span class="status built"&gt;Built&lt;/span&gt;&lt;/div&gt;
+        &lt;dl&gt;&lt;dt&gt;Purpose&lt;/dt&gt;&lt;dd&gt;Organizes knowledge, processes, and operational desks by product lane.&lt;/dd&gt;&lt;dt&gt;What exists&lt;/dt&gt;&lt;dd&gt;Scope-filtered cards, readiness state, waiting-on-you counts, Overview/Process sub-tabs, and trusted-publication controls.&lt;/dd&gt;&lt;dt&gt;What remains&lt;/dt&gt;&lt;dd&gt;Approve real source roots/scanner and prove production import/index retrieval.&lt;/dd&gt;&lt;/dl&gt;
+      &lt;/article&gt;
+      &lt;article class="surface-card"&gt;
+        &lt;div class="surface-head"&gt;&lt;div&gt;&lt;h3&gt;Approval Queue&lt;/h3&gt;&lt;div class="route"&gt;/approval-queue&lt;/div&gt;&lt;/div&gt;&lt;span class="status built"&gt;Built&lt;/span&gt;&lt;/div&gt;
+        &lt;dl&gt;&lt;dt&gt;Purpose&lt;/dt&gt;&lt;dd&gt;One place for decisions, review history, and high-risk execution approval.&lt;/dd&gt;&lt;dt&gt;What exists&lt;/dt&gt;&lt;dd&gt;Urgent-first queue, alternate views, mobile one-card renewal decider, safe inline approval, bulk tools, writeback proposals, activity, and metrics.&lt;/dd&gt;&lt;dt&gt;What remains&lt;/dt&gt;&lt;dd&gt;Real external actions remain closed until their own proofs and authority pass.&lt;/dd&gt;&lt;/dl&gt;
+      &lt;/article&gt;
+      &lt;article class="surface-card"&gt;
+        &lt;div class="surface-head"&gt;&lt;div&gt;&lt;h3&gt;Communications&lt;/h3&gt;&lt;div class="route"&gt;/gmail-hub&lt;/div&gt;&lt;/div&gt;&lt;span class="status built"&gt;Built&lt;/span&gt;&lt;/div&gt;
+        &lt;dl&gt;&lt;dt&gt;Purpose&lt;/dt&gt;&lt;dd&gt;Workflow Communications backed by Gmail—not a replacement inbox.&lt;/dd&gt;&lt;dt&gt;What exists&lt;/dt&gt;&lt;dd&gt;Linked renewal/maintenance attention, targeted thread panels, governed labels/drafts/replies, health, templates, and explicit synthetic tools.&lt;/dd&gt;&lt;dt&gt;What remains&lt;/dt&gt;&lt;dd&gt;The current workflow boundary is deployed on the pinned revision; verify its signed-in UI/API behavior and configure authoritative links/classification. Generic new-message sending stays disabled.&lt;/dd&gt;&lt;/dl&gt;
+      &lt;/article&gt;
+      &lt;article class="surface-card"&gt;
+        &lt;div class="surface-head"&gt;&lt;div&gt;&lt;h3&gt;Connections&lt;/h3&gt;&lt;div class="route"&gt;/connections&lt;/div&gt;&lt;/div&gt;&lt;span class="status built"&gt;Built&lt;/span&gt;&lt;/div&gt;
+        &lt;dl&gt;&lt;dt&gt;Purpose&lt;/dt&gt;&lt;dd&gt;Shows whether external transports and source connections are present and healthy.&lt;/dd&gt;&lt;dt&gt;What exists&lt;/dt&gt;&lt;dd&gt;Every internal role sees read-only status; Admin sees setup and safe verification where implemented.&lt;/dd&gt;&lt;dt&gt;What remains&lt;/dt&gt;&lt;dd&gt;Provider connection health does not grant action permission; missing provider contracts/mappings still block execution.&lt;/dd&gt;&lt;/dl&gt;
+      &lt;/article&gt;
+      &lt;article class="surface-card"&gt;
+        &lt;div class="surface-head"&gt;&lt;div&gt;&lt;h3&gt;Admin&lt;/h3&gt;&lt;div class="route"&gt;/admin&lt;/div&gt;&lt;/div&gt;&lt;span class="status built"&gt;Built&lt;/span&gt;&lt;/div&gt;
+        &lt;dl&gt;&lt;dt&gt;Purpose&lt;/dt&gt;&lt;dd&gt;People/access, activity/logs, governance, and operational readiness.&lt;/dd&gt;&lt;dt&gt;What exists&lt;/dt&gt;&lt;dd&gt;User roles/scopes, last-Admin guard, Vendor invite preview, queue health, migration console, retention/legal hold, publication policy, and communications governance.&lt;/dd&gt;&lt;dt&gt;What remains&lt;/dt&gt;&lt;dd&gt;Perform owner-gated live claims/configuration and complete real Vendor/provider evidence.&lt;/dd&gt;&lt;/dl&gt;
+      &lt;/article&gt;
+      &lt;article class="surface-card"&gt;
+        &lt;div class="surface-head"&gt;&lt;div&gt;&lt;h3&gt;Notifications&lt;/h3&gt;&lt;div class="route"&gt;Bell and /notifications&lt;/div&gt;&lt;/div&gt;&lt;span class="status built"&gt;Built&lt;/span&gt;&lt;/div&gt;
+        &lt;dl&gt;&lt;dt&gt;Purpose&lt;/dt&gt;&lt;dd&gt;The full attention log while Console remains the concise home.&lt;/dd&gt;&lt;dt&gt;What exists&lt;/dt&gt;&lt;dd&gt;Needs-decision count, recent events, setup/coverage gaps, low-alarm preferences, mark-all-read, and Admin review digest.&lt;/dd&gt;&lt;dt&gt;What remains&lt;/dt&gt;&lt;dd&gt;Confirm review cadence/self-correction wording; scheduled or emailed digest is deliberately not active.&lt;/dd&gt;&lt;/dl&gt;
+      &lt;/article&gt;
+      &lt;article class="surface-card"&gt;
+        &lt;div class="surface-head"&gt;&lt;div&gt;&lt;h3&gt;Vendor portal&lt;/h3&gt;&lt;div class="route"&gt;/vendor/sign-in and /vendor&lt;/div&gt;&lt;/div&gt;&lt;span class="status gated"&gt;Separate gated surface&lt;/span&gt;&lt;/div&gt;
+        &lt;dl&gt;&lt;dt&gt;Purpose&lt;/dt&gt;&lt;dd&gt;A separate external principal for only the Vendor’s assigned tickets and linked mailbox.&lt;/dd&gt;&lt;dt&gt;What exists&lt;/dt&gt;&lt;dd&gt;Invitation/session/TOTP/assignment/OAuth/vault/revocation boundaries and assigned-ticket UI.&lt;/dd&gt;&lt;dt&gt;What remains&lt;/dt&gt;&lt;dd&gt;Identity Platform, OAuth, secret vault, staged Vendor proof, then one real Vendor acceptance. It never becomes an internal tab.&lt;/dd&gt;&lt;/dl&gt;
+      &lt;/article&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;section class="report-section" id="workflows"&gt;
+    &lt;h2&gt;Workflow depth behind the tabs&lt;/h2&gt;
+    &lt;div class="grid-3"&gt;
+      &lt;article class="card"&gt;&lt;h3&gt;Lease Renewal desk&lt;/h3&gt;&lt;p&gt;Simulation and optional Admin live-review lanes, run history, lease/property detail, reconciliation, mobile decision flow, source decisions, writeback proposals, and eleven exact external-action contracts.&lt;/p&gt;&lt;p class="fine-print"&gt;Routes include &lt;code&gt;/lease-renewal&lt;/code&gt;, runs, lease detail, property history, and reconciliation detail.&lt;/p&gt;&lt;/article&gt;
+      &lt;article class="card"&gt;&lt;h3&gt;Maintenance desk&lt;/h3&gt;&lt;p&gt;Typed/voice intake, internal ticket queue, unit matching, quarantined public intake review, assignments/activity, photo boundary, Vendor workflow, and nineteen exact external-action contracts.&lt;/p&gt;&lt;p class="fine-print"&gt;The user needs Maintenance scope and edit capability.&lt;/p&gt;&lt;/article&gt;
+      &lt;article class="card"&gt;&lt;h3&gt;Processes and runs&lt;/h3&gt;&lt;p&gt;Editable process definitions, trusted publication, versioning, simulation starts, workflow runs, approvals, return/revision, and audit remain deep-linked from Spaces and desks.&lt;/p&gt;&lt;p class="fine-print"&gt;Processes intentionally are not a primary nav tab.&lt;/p&gt;&lt;/article&gt;
+    &lt;/div&gt;
+    &lt;div class="grid-2" style="margin-top:14px"&gt;
+      &lt;div class="chart-card"&gt;
+        &lt;h3&gt;Typed external-action coverage&lt;/h3&gt;
+        &lt;p class="fine-print"&gt;All 30 paths have exact local schemas/adapters and invented-alias test coverage. That is implementation coverage, not provider acceptance.&lt;/p&gt;
+        &lt;div class="bar-row"&gt;&lt;span&gt;Lease Renewal&lt;/span&gt;&lt;div class="bar-track"&gt;&lt;div class="bar-fill lease"&gt;&lt;/div&gt;&lt;/div&gt;&lt;strong&gt;11&lt;/strong&gt;&lt;/div&gt;
+        &lt;div class="bar-row"&gt;&lt;span&gt;Maintenance&lt;/span&gt;&lt;div class="bar-track"&gt;&lt;div class="bar-fill maintenance"&gt;&lt;/div&gt;&lt;/div&gt;&lt;strong&gt;19&lt;/strong&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class="chart-card"&gt;
+        &lt;div class="proof-ring"&gt;&lt;div&gt;&lt;strong&gt;0 / 29&lt;/strong&gt;&lt;span&gt;external proofs accepted&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;
+        &lt;p class="fine-print"&gt;There are 30 typed paths but 29 unique proof rows because one governed action contract is shared. Nothing is silently promoted just to improve this number.&lt;/p&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;section class="report-section" id="verification"&gt;
+    &lt;h2&gt;What the verification results mean&lt;/h2&gt;
+    &lt;p class="lede"&gt;The verifier checks different failure classes. A green row is meaningful, but no single row proves the whole product is ready for live external execution.&lt;/p&gt;
+    &lt;div class="table-wrap"&gt;
+      &lt;table class="compact"&gt;
+        &lt;thead&gt;&lt;tr&gt;&lt;th&gt;Gate&lt;/th&gt;&lt;th&gt;Result&lt;/th&gt;&lt;th&gt;Plain-language meaning&lt;/th&gt;&lt;th&gt;What it does not prove&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;
+        &lt;tbody&gt;
+          &lt;tr&gt;&lt;td data-label="Gate"&gt;Clean install&lt;/td&gt;&lt;td data-label="Result"&gt;&lt;span class="status built"&gt;Green&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Meaning"&gt;Dependencies reinstall from the lockfile, so success is reproducible rather than dependent on a stale local folder.&lt;/td&gt;&lt;td data-label="Limit"&gt;Does not remove the three documented dev-tool advisories.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Gate"&gt;Formatting&lt;/td&gt;&lt;td data-label="Result"&gt;&lt;span class="status built"&gt;Green&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Meaning"&gt;Tracked source follows the repo’s mechanical style rules, reducing noisy diffs and accidental malformed files.&lt;/td&gt;&lt;td data-label="Limit"&gt;Style consistency is not behavior correctness.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Gate"&gt;Typecheck&lt;/td&gt;&lt;td data-label="Result"&gt;&lt;span class="status built"&gt;Green&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Meaning"&gt;TypeScript’s data contracts agree across components, routes, stores, providers, and tests.&lt;/td&gt;&lt;td data-label="Limit"&gt;Cannot prove a provider’s undocumented real payload.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Gate"&gt;Lint&lt;/td&gt;&lt;td data-label="Result"&gt;&lt;strong&gt;0 errors · 8 warnings&lt;/strong&gt;&lt;/td&gt;&lt;td data-label="Meaning"&gt;No rule violation blocks release. The eight known warnings are unused mock parameters in tests, not runtime failures.&lt;/td&gt;&lt;td data-label="Limit"&gt;Warnings should remain tracked so the baseline does not quietly grow.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Gate"&gt;Unit suite&lt;/td&gt;&lt;td data-label="Result"&gt;&lt;strong&gt;286 files · 1,984 passed&lt;/strong&gt;&lt;/td&gt;&lt;td data-label="Meaning"&gt;Fast isolated checks cover authority, permissions, schemas, adapters, UI states, security fences, cutover logic, and governance invariants.&lt;/td&gt;&lt;td data-label="Limit"&gt;Mocks and invented aliases cannot establish a real provider contract.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Gate"&gt;Firestore suite&lt;/td&gt;&lt;td data-label="Result"&gt;&lt;strong&gt;16 files · 56 passed&lt;/strong&gt;&lt;/td&gt;&lt;td data-label="Meaning"&gt;Emulator tests exercise rules, transaction boundaries, client denials, retention state, and execution ledgers against Firestore behavior.&lt;/td&gt;&lt;td data-label="Limit"&gt;Production indexes/TTL/scheduler are still separately gated.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Gate"&gt;Core E2E&lt;/td&gt;&lt;td data-label="Result"&gt;&lt;strong&gt;32 passed · 18 intentionally skipped&lt;/strong&gt;&lt;/td&gt;&lt;td data-label="Meaning"&gt;Full local user flows work end to end. The skipped scenarios are explicitly conditional on emulator/live prerequisites rather than hidden failures.&lt;/td&gt;&lt;td data-label="Limit"&gt;Skipped live/provider scenarios still require their named environment and authority.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Gate"&gt;Production build&lt;/td&gt;&lt;td data-label="Result"&gt;&lt;strong&gt;73 page routes&lt;/strong&gt;&lt;/td&gt;&lt;td data-label="Meaning"&gt;Next.js successfully compiles the production application and its route graph.&lt;/td&gt;&lt;td data-label="Limit"&gt;Build success alone does not prove runtime behavior; the separately completed Cloud Run deployment is recorded below.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Gate"&gt;Governance checks&lt;/td&gt;&lt;td data-label="Result"&gt;&lt;span class="status built"&gt;Green&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Meaning"&gt;Router, falsification, context freshness, spec traceability, redaction, and forbidden-boundary checks agree with the documented product contract.&lt;/td&gt;&lt;td data-label="Limit"&gt;Human/provider evidence must still be supplied honestly.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Gate"&gt;Cutover rehearsal&lt;/td&gt;&lt;td data-label="Result"&gt;&lt;span class="status built"&gt;Green&lt;/span&gt;&lt;/td&gt;&lt;td data-label="Meaning"&gt;A synthetic production-like manifest produces safe setup/import/deploy/rollback plans, and malformed input produces no dangerous commands.&lt;/td&gt;&lt;td data-label="Limit"&gt;It is a rehearsal; it does not claim a deploy, traffic shift, source import, or rollback happened.&lt;/td&gt;&lt;/tr&gt;
+        &lt;/tbody&gt;
+      &lt;/table&gt;
+    &lt;/div&gt;
+    &lt;div class="callout info"&gt;
+      &lt;strong&gt;“The all-in-one verifier is now in the full unit/build/governance phase”&lt;/strong&gt;
+      That earlier sentence was a progress update: installation, dependency inventory, formatting, lint, and typecheck had already passed, and the slower behavior/build/governance checks were still running. Those later phases subsequently completed successfully on this release tree.
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;section class="report-section" id="release-gates"&gt;
+    &lt;h2&gt;Why the report still says Pre‑V1&lt;/h2&gt;
+    &lt;p class="lede"&gt;The 169 open gates are evidence checklist entries, not 169 missing screens or 169 software defects. Most are repeated proof requirements attached to exact external actions.&lt;/p&gt;
+    &lt;div class="chart-card"&gt;
+      &lt;div class="stacked-bar" role="img" aria-label="169 open gates: 5 identity pins, 14 suite gates, 143 action proofs, 5 release evidence items, and 2 named acceptances"&gt;
+        &lt;span class="gate-pins"&gt;&lt;/span&gt;&lt;span class="gate-suites"&gt;&lt;/span&gt;&lt;span class="gate-actions"&gt;&lt;/span&gt;&lt;span class="gate-evidence"&gt;&lt;/span&gt;&lt;span class="gate-acceptance"&gt;&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;div class="chart-legend"&gt;
+        &lt;div class="chart-key"&gt;&lt;span class="swatch" style="background:#155eef"&gt;&lt;/span&gt;&lt;span&gt;&lt;strong&gt;5&lt;/strong&gt; identity/pin gates&lt;/span&gt;&lt;/div&gt;
+        &lt;div class="chart-key"&gt;&lt;span class="swatch" style="background:#5d8df2"&gt;&lt;/span&gt;&lt;span&gt;&lt;strong&gt;14&lt;/strong&gt; suite gates&lt;/span&gt;&lt;/div&gt;
+        &lt;div class="chart-key"&gt;&lt;span class="swatch" style="background:#6441a5"&gt;&lt;/span&gt;&lt;span&gt;&lt;strong&gt;143&lt;/strong&gt; action-proof gates&lt;/span&gt;&lt;/div&gt;
+        &lt;div class="chart-key"&gt;&lt;span class="swatch" style="background:#d28a12"&gt;&lt;/span&gt;&lt;span&gt;&lt;strong&gt;5&lt;/strong&gt; release-evidence gates&lt;/span&gt;&lt;/div&gt;
+        &lt;div class="chart-key"&gt;&lt;span class="swatch" style="background:#a12b2b"&gt;&lt;/span&gt;&lt;span&gt;&lt;strong&gt;2&lt;/strong&gt; named acceptances&lt;/span&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="grid-2" style="margin-top:14px"&gt;
+      &lt;article class="card"&gt;&lt;h3&gt;What closes an action-proof row&lt;/h3&gt;&lt;p&gt;Authoritative non-secret provider contract and mappings; named credential owner/location; permission; one-attempt and idempotency behavior; exact readback or reconciliation; monitoring; correction/rollback; per-action authority; and evidence anchored to the pinned candidate.&lt;/p&gt;&lt;/article&gt;
+      &lt;article class="card"&gt;&lt;h3&gt;Why this is useful&lt;/h3&gt;&lt;p&gt;A provider being connected is not enough. The checklist prevents a working Gmail token or Rentvine read key from silently becoming blanket permission to send, overwrite, post, pay, assign, or close.&lt;/p&gt;&lt;/article&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;section class="report-section" id="dependency"&gt;
+    &lt;h2&gt;Dependency posture, in ordinary language&lt;/h2&gt;
+    &lt;div class="grid-2"&gt;
+      &lt;article class="card"&gt;
+        &lt;h3&gt;What the audit found&lt;/h3&gt;
+        &lt;p&gt;&lt;strong&gt;Three Moderate findings, zero High, zero Critical, zero Low.&lt;/strong&gt; All three rows trace to one development-only Firebase CLI chain: &lt;code&gt;firebase-tools → @google-cloud/pubsub → @opentelemetry/core&lt;/code&gt;.&lt;/p&gt;
+        &lt;p&gt;The affected packages are absent from the production dependency tree and application runtime bundle. This lowers reachability, but does not make the finding disappear.&lt;/p&gt;
+      &lt;/article&gt;
+      &lt;article class="card"&gt;
+        &lt;h3&gt;Why it is not auto-“fixed”&lt;/h3&gt;
+        &lt;p&gt;The package manager’s offered fix is a major downgrade of &lt;code&gt;firebase-tools&lt;/code&gt;. Taking it only to obtain a zero would introduce compatibility risk in emulator/deployment tooling.&lt;/p&gt;
+        &lt;p&gt;The recommended path is to track an upstream current-line fix, rerun the audit, and—if it remains at final acceptance—have a named technical owner record a time-bounded disposition and recheck date.&lt;/p&gt;
+      &lt;/article&gt;
+    &lt;/div&gt;
+    &lt;div class="callout warn"&gt;&lt;strong&gt;Release consequence&lt;/strong&gt;There is no hidden High or Critical dependency problem. The remaining Moderate dev-tool chain is documented and bounded, but final S27 acceptance stays open until it is either remediated upstream or explicitly accepted for a limited period by the technical owner.&lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;section class="report-section" id="remaining"&gt;
+    &lt;h2&gt;What still needs built or implemented&lt;/h2&gt;
+    &lt;p class="lede"&gt;The remaining work is best understood as four bounded programs, not a vague “finish the app” task.&lt;/p&gt;
+    &lt;div class="remaining-grid"&gt;
+      &lt;article class="remaining-card"&gt;&lt;h3&gt;&lt;span class="number"&gt;1&lt;/span&gt; Production configuration&lt;/h3&gt;&lt;ul class="plain-list"&gt;&lt;li&gt;Verify the pinned Pre‑V1 candidate on &lt;code&gt;pmi-kc-kb-demo-00021-bj8&lt;/code&gt; across approved roles, devices, unavailable states, and failure paths; code deployment is complete.&lt;/li&gt;&lt;li&gt;Approve production source roots and real scanner for trusted publication.&lt;/li&gt;&lt;li&gt;Deploy Firestore indexes/migration/TTL/cleanup schedule only with separate authority.&lt;/li&gt;&lt;li&gt;Configure Vendor Identity Platform, TOTP, OAuth consent/client, and token vault.&lt;/li&gt;&lt;/ul&gt;&lt;/article&gt;
+      &lt;article class="remaining-card"&gt;&lt;h3&gt;&lt;span class="number"&gt;2&lt;/span&gt; Provider contracts &amp; mappings&lt;/h3&gt;&lt;ul class="plain-list"&gt;&lt;li&gt;Rentvine renewal and work-order write semantics.&lt;/li&gt;&lt;li&gt;Dotloop, portal, SMS, Boom, LeadSimple, and QuickBooks account contracts.&lt;/li&gt;&lt;li&gt;Authoritative Sheet cells, recipients, properties/units, Vendors/trades, stages, accounts, and consent sources.&lt;/li&gt;&lt;li&gt;Never infer a provider endpoint or business field from its UI.&lt;/li&gt;&lt;/ul&gt;&lt;/article&gt;
+      &lt;article class="remaining-card"&gt;&lt;h3&gt;&lt;span class="number"&gt;3&lt;/span&gt; Reversible external proof&lt;/h3&gt;&lt;ul class="plain-list"&gt;&lt;li&gt;Use a permitted test environment or safe synthetic record first.&lt;/li&gt;&lt;li&gt;Prove one attempt, idempotency, exact readback, drift handling, reconciliation, and correction.&lt;/li&gt;&lt;li&gt;Record only bodyless IDs/hashes/status/timestamps.&lt;/li&gt;&lt;li&gt;Promote one reviewed Registry key at a time.&lt;/li&gt;&lt;/ul&gt;&lt;/article&gt;
+      &lt;article class="remaining-card"&gt;&lt;h3&gt;&lt;span class="number"&gt;4&lt;/span&gt; Release acceptance&lt;/h3&gt;&lt;ul class="plain-list"&gt;&lt;li&gt;Desktop/phone, role/scope, unavailable, provider-failure, and reconciliation browser evidence.&lt;/li&gt;&lt;li&gt;Rehearse traffic rollback to &lt;code&gt;pmi-kc-kb-demo-00020-24d&lt;/code&gt; without executing it unless required; record the result.&lt;/li&gt;&lt;li&gt;Close dependency disposition.&lt;/li&gt;&lt;li&gt;Dan business acceptance and Josiah technical acceptance on the same release identity.&lt;/li&gt;&lt;/ul&gt;&lt;/article&gt;
+      &lt;article class="remaining-card"&gt;&lt;h3&gt;&lt;span class="number"&gt;5&lt;/span&gt; Intentionally not being built&lt;/h3&gt;&lt;ul class="plain-list"&gt;&lt;li&gt;Generic mailbox browsing or free-form compose/send.&lt;/li&gt;&lt;li&gt;Autonomous, bulk, scheduled, or model-triggered external sends.&lt;/li&gt;&lt;li&gt;QuickBooks posting/payment/banking.&lt;/li&gt;&lt;li&gt;Guessed provider writes, Drive photo replace/delete, or cron auto-initiation.&lt;/li&gt;&lt;/ul&gt;&lt;/article&gt;
+      &lt;article class="remaining-card"&gt;&lt;h3&gt;&lt;span class="number"&gt;6&lt;/span&gt; Then repeat safely&lt;/h3&gt;&lt;ul class="plain-list"&gt;&lt;li&gt;Close the easiest authoritative action first.&lt;/li&gt;&lt;li&gt;Reuse the exact evidence format—not blanket permission.&lt;/li&gt;&lt;li&gt;Keep unavailable actions visible and explain why they are blocked.&lt;/li&gt;&lt;li&gt;Re-run the release manifest until all required evidence is accepted.&lt;/li&gt;&lt;/ul&gt;&lt;/article&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;section class="report-section" id="questions"&gt;
+    &lt;h2&gt;Genuine blockers and open questions&lt;/h2&gt;
+    &lt;p class="lede"&gt;Recommended defaults stay closed and test-first. Previously answered R01–R09 product decisions should not be reopened.&lt;/p&gt;
+    &lt;div class="callout good"&gt;&lt;strong&gt;Deployment checkpoint closed&lt;/strong&gt;Managed-account reauthentication and deployment completed: commit &lt;code&gt;0dc0c7aa7be600e1097e80de448227917dc9101a&lt;/code&gt; is running as &lt;code&gt;pmi-kc-kb-demo-00021-bj8&lt;/code&gt; with 100% traffic. Public sign-in and fail-closed authentication boundaries passed; this is no longer a blocker.&lt;/div&gt;
+    &lt;div class="blocker-list"&gt;
+      &lt;article class="blocker-card"&gt;&lt;div class="check"&gt;□&lt;/div&gt;&lt;div&gt;&lt;h3&gt;Exact source roots and scanner ownership&lt;/h3&gt;&lt;p&gt;S21 needs approved connector/root/Space mappings and a production malware/sensitivity scanner contract.&lt;/p&gt;&lt;p class="recommendation"&gt;Recommendation: return IDs and mapping rules only—no source files or customer content—and keep publication closed until the real scanner fails safely.&lt;/p&gt;&lt;/div&gt;&lt;/article&gt;
+      &lt;article class="blocker-card"&gt;&lt;div class="check"&gt;□&lt;/div&gt;&lt;div&gt;&lt;h3&gt;External Vendor production packet&lt;/h3&gt;&lt;p&gt;S22 needs Identity Platform/TOTP settings, OAuth consent/client, vault ownership, a controlled test Vendor, and later a real Vendor acceptance.&lt;/p&gt;&lt;p class="recommendation"&gt;Recommendation: test principal first, assigned-ticket-only; then repeat with one real Vendor. Never reuse DWD or an internal identity.&lt;/p&gt;&lt;/div&gt;&lt;/article&gt;
+      &lt;article class="blocker-card"&gt;&lt;div class="check"&gt;□&lt;/div&gt;&lt;div&gt;&lt;h3&gt;Provider action contracts and business mappings&lt;/h3&gt;&lt;p&gt;S25/S26 need official/account-specific endpoints, conditional mutation semantics, exact field/status mappings, permissions, readback, and correction for every action family.&lt;/p&gt;&lt;p class="recommendation"&gt;Recommendation: close one row at a time using the detailed client checklist; keep every unresolved Registry key false.&lt;/p&gt;&lt;/div&gt;&lt;/article&gt;
+      &lt;article class="blocker-card"&gt;&lt;div class="check"&gt;□&lt;/div&gt;&lt;div&gt;&lt;h3&gt;Dan review definition&lt;/h3&gt;&lt;p&gt;The Admin review digest currently uses returned writeback authorizations as the observable self-correction proxy; the desired cadence and broader “later stale/re-resolved” definition remain to confirm.&lt;/p&gt;&lt;p class="recommendation"&gt;Recommendation: retain the current value-free proxy and in-app default until Dan specifies cadence and inclusion rules; do not add scheduled delivery by inference.&lt;/p&gt;&lt;/div&gt;&lt;/article&gt;
+      &lt;article class="blocker-card"&gt;&lt;div class="check"&gt;□&lt;/div&gt;&lt;div&gt;&lt;h3&gt;Final support and acceptance roster&lt;/h3&gt;&lt;p&gt;S27 needs a dated support window, escalation contact, operator/test identities, and named business/technical acceptance on the exact deployed commit/revision.&lt;/p&gt;&lt;p class="recommendation"&gt;Recommendation: Josiah owns technical/dependency/rollback evidence; Dan owns business outcomes; use the test-first Vendor and approved internal role matrix.&lt;/p&gt;&lt;/div&gt;&lt;/article&gt;
+    &lt;/div&gt;
+    &lt;div class="callout info"&gt;&lt;strong&gt;Detailed client handoff&lt;/strong&gt;The exact action-by-action evidence, credential-location labels, recommended closed defaults, first proof, and correction path live in &lt;a href="v1-client-unblock-checklist-2026-07-14.md"&gt;the V1 client-unblock checklist&lt;/a&gt;.&lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;section class="report-section" id="deployment"&gt;
+    &lt;h2&gt;Deployment record&lt;/h2&gt;
+    &lt;div class="table-wrap"&gt;
+      &lt;table class="compact"&gt;
+        &lt;tbody&gt;
+          &lt;tr&gt;&lt;td data-label="Field"&gt;Git branch&lt;/td&gt;&lt;td data-label="Value"&gt;&lt;code&gt;main&lt;/code&gt;; already synchronized, so there was no separate branch merge.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Field"&gt;Published commit&lt;/td&gt;&lt;td data-label="Value"&gt;&lt;code&gt;0dc0c7aa7be600e1097e80de448227917dc9101a&lt;/code&gt;&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Field"&gt;Cloud Build&lt;/td&gt;&lt;td data-label="Value"&gt;&lt;code&gt;9ae6958b-ec8c-48ef-bf0b-46dbe8194880&lt;/code&gt; · succeeded&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Field"&gt;Application endpoint&lt;/td&gt;&lt;td data-label="Value"&gt;&lt;a href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app"&gt;https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Field"&gt;Cloud Run revision&lt;/td&gt;&lt;td data-label="Value" id="cloud-run-revision"&gt;&lt;code&gt;pmi-kc-kb-demo-00021-bj8&lt;/code&gt; (current); prior serving revision &lt;code&gt;pmi-kc-kb-demo-00020-24d&lt;/code&gt;&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Field"&gt;Traffic / smoke&lt;/td&gt;&lt;td data-label="Value" id="traffic-smoke"&gt;100% traffic to &lt;code&gt;pmi-kc-kb-demo-00021-bj8&lt;/code&gt;. Both service hosts returned the expected public sign-in pages; staff and Vendor protected UI routes redirected correctly, and both protected APIs returned their expected unauthenticated 401 responses. This proves the public/auth boundary only—not signed-in roles or provider execution.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Field"&gt;Cloud Run access&lt;/td&gt;&lt;td data-label="Value"&gt;Ingress is &lt;code&gt;all&lt;/code&gt; and the service intentionally disables the Cloud Run invoker IAM check; therefore the deploy command’s attempted &lt;code&gt;allUsers&lt;/code&gt; policy binding was unnecessary. Direct HTTP and browser checks confirmed reachability.&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td data-label="Field"&gt;Release stage&lt;/td&gt;&lt;td data-label="Value"&gt;&lt;strong&gt;Pre‑V1&lt;/strong&gt; until the release manifest’s external evidence and named acceptances close.&lt;/td&gt;&lt;/tr&gt;
+        &lt;/tbody&gt;
+      &lt;/table&gt;
+    &lt;/div&gt;
+    &lt;div class="callout warn"&gt;&lt;strong&gt;Deployment is not action promotion&lt;/strong&gt;A code deployment may make new screens and safety boundaries available while the action Registry continues to block unproven provider mutations. That is the intended Pre‑V1 posture.&lt;/div&gt;
+  &lt;/section&gt;
+
+  &lt;footer class="report-footer"&gt;
+    &lt;p&gt;&lt;strong&gt;Evidence basis:&lt;/strong&gt; repository state and machine reports on July 15, 2026. No customer records, Gmail bodies, credentials, or secret values are included.&lt;/p&gt;
+    &lt;p&gt;Companion records: &lt;a href="status.md"&gt;status history&lt;/a&gt; · &lt;a href="loop-state.md"&gt;resume state&lt;/a&gt; · &lt;a href="v1-pre-release-report-2026-07-14.md"&gt;pre-release report&lt;/a&gt; · &lt;a href="v1-dependency-disposition-2026-07-14.md"&gt;dependency disposition&lt;/a&gt; · &lt;a href="feature-suites/README.md"&gt;feature-suite catalog&lt;/a&gt;.&lt;/p&gt;
+    &lt;p&gt;&lt;a href="#top"&gt;Back to top&lt;/a&gt;&lt;/p&gt;
+  &lt;/footer&gt;
+&lt;/main&gt;
+
+&lt;script src="https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js"&gt;&lt;/script&gt;
+&lt;script src="https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set(["top", "right", "bottom", "left"]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+
+  const getTrigger = (target) =&gt;
+    target?.nodeType === Node.ELEMENT_NODE
+      ? target.closest("[data-tooltip]")
+      : null;
+  const containsTarget = (trigger, target) =&gt;
+    target?.nodeType != null &amp;&amp; trigger.contains(target);
+  const getContent = (trigger) =&gt;
+    trigger.getAttribute("data-tooltip")?.trim() ?? "";
+  const getPlacement = (trigger) =&gt; {
+    const placement = trigger.getAttribute("data-tooltip-placement");
+    return tooltipPlacements.has(placement) ? placement : "top";
+  };
+  const getTooltip = () =&gt; {
+    if (tooltip == null) {
+      tooltip = document.createElement("div");
+      tooltip.id = tooltipId;
+      tooltip.className = "tooltip";
+      tooltip.setAttribute("role", "tooltip");
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) =&gt; {
+    const ids = new Set(
+      (trigger.getAttribute("aria-describedby") ?? "")
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute("aria-describedby");
+    } else {
+      trigger.setAttribute("aria-describedby", [...ids].join(" "));
+    }
+  };
+  const clearOpenTimeout = () =&gt; {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) =&gt; {
+    clearOpenTimeout();
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) =&gt; {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              "--tooltip-available-width",
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              "--tooltip-available-height",
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: "fixed",
+    })
+      .then(({ x, y }) =&gt; {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = "visible";
+      })
+      .catch(() =&gt; {
+        if (activeTrigger === trigger &amp;&amp; request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) =&gt; {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = "hidden";
+    floating.style.transform = "translate(0, 0)";
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () =&gt; {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) =&gt; {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() &lt; skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() =&gt; {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) =&gt; {
+    if (event.pointerType === "touch") {
+      return;
+    }
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handleLeave = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (trigger?.matches(":focus-visible")) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) =&gt; {
+    if (event.key === "Escape") {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) =&gt; {
+    const trigger = getTrigger(event.target);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const destroy = () =&gt; {
+    closeTooltip(false);
+    document.removeEventListener("pointerover", handlePointerOpen);
+    document.removeEventListener("pointerout", handleLeave);
+    document.removeEventListener("focusin", handleFocusIn);
+    document.removeEventListener("focusout", handleLeave);
+    document.removeEventListener("keydown", handleKeyDown);
+    document.removeEventListener("contextmenu", handleContextMenu);
+    tooltip = null;
+  };
+
+  document.addEventListener("pointerover", handlePointerOpen);
+  document.addEventListener("pointerout", handleLeave);
+  document.addEventListener("focusin", handleFocusIn);
+  document.addEventListener("focusout", handleLeave);
+  document.addEventListener("keydown", handleKeyDown);
+  document.addEventListener("contextmenu", handleContextMenu);
+  window.addEventListener("pagehide", destroy, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id="codex-visualization-lucide" async src="https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  const initialize = () =&gt; {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById("codex-visualization-lucide")
+    ?.addEventListener("load", initialize, { once: true });
+})();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+'
+    ></iframe>
+  </body>
+</html>
