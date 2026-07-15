@@ -89,7 +89,9 @@ undeclared fields fail. `production_allowed:true` requires `Approved for Executi
 evidence. Runtime routes must also enforce identity, entity authorization, roles, governed artifacts,
 confirmation, and audit. A true transport entry alone never authorizes arbitrary end-user behavior.
 
-The catalog has 23 entries. No non-Gmail external system-of-record write is executable. Gmail entries:
+The catalog has 38 entries. No non-Gmail external system-of-record write is executable. S22/S25/S26
+add closed account/OAuth/Vendor-mail/renewal-send/portal/SMS/assignment/maintenance-owner-send entries.
+Gmail entries:
 
 | Key                                           | State            | Product boundary                                                                                               |
 | --------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------- |
@@ -145,15 +147,15 @@ and scheduler configuration remain separately gated and no mutable environment T
 
 ## Vendor-confirmation matrix
 
-| Capability                          | Status                                      | Action                                                                                        |
-| ----------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Rentvine maintenance writes         | Documented capability; execution gated      | First external-write candidate after approved action gate                                     |
-| Rentvine lease-renewal writeback    | Undocumented                                | Keep non-executable; request vendor docs                                                      |
-| Rentvine webhooks                   | None found                                  | Polling / LeadSimple sync                                                                     |
-| LeadSimple endpoint coverage        | Vendor confirmation required                | Confirm endpoints and Operations plan                                                         |
-| Dotloop signing lifecycle           | Vendor confirmation required                | Confirm signature-state semantics                                                             |
-| Boom endpoint contract              | Vendor confirmation required                | Request API/vendor packet                                                                     |
-| Gmail outbound vendor communication | R04 contract locked; implementation missing | Build S22 per-vendor OAuth/TOTP/assigned-ticket boundary; live OAuth/invite/send remain gated |
+| Capability                          | Status                                 | Action                                                                                                                        |
+| ----------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Rentvine maintenance writes         | Documented capability; execution gated | First external-write candidate after approved action gate                                                                     |
+| Rentvine lease-renewal writeback    | Undocumented                           | Keep non-executable; request vendor docs                                                                                      |
+| Rentvine webhooks                   | None found                             | Polling / LeadSimple sync                                                                                                     |
+| LeadSimple endpoint coverage        | Vendor confirmation required           | Confirm endpoints and Operations plan                                                                                         |
+| Dotloop signing lifecycle           | Vendor confirmation required           | Confirm signature-state semantics                                                                                             |
+| Boom endpoint contract              | Vendor confirmation required           | Request API/vendor packet                                                                                                     |
+| Gmail outbound vendor communication | S22 Local green; live resources gated  | Configure/approve TOTP, OAuth client/vault, first invite/consent/read/send separately; assigned-ticket fake boundary is green |
 
 ## Source normalization
 

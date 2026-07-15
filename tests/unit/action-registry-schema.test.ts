@@ -162,8 +162,8 @@ describe("Action Registry seed catalog", () => {
     expect(writeback?.production_allowed).toBe(false);
   });
 
-  it("contains the expanded 23-entry catalog", () => {
-    expect(ACTION_REGISTRY_SEED).toHaveLength(23);
+  it("contains the expanded 38-entry catalog", () => {
+    expect(ACTION_REGISTRY_SEED).toHaveLength(38);
     expect(ACTION_REGISTRY_SEED.map((entry) => entry.key)).toEqual(
       expect.arrayContaining([
         "rentvine.lease.read",
@@ -180,6 +180,21 @@ describe("Action Registry seed catalog", () => {
         "google_sheets.renewal_checklist.reconcile",
         "google_sheets.renewal_checklist.writeback",
         "google_drive.maintenance_photo.store",
+        "vendor.account.invite",
+        "vendor.account.disable",
+        "vendor.assignment.change",
+        "vendor.gmail.connect",
+        "vendor.gmail.revoke",
+        "vendor.gmail.health",
+        "vendor.gmail.thread.read",
+        "vendor.gmail.draft.create",
+        "vendor.gmail.thread.reply",
+        "vendor.gmail.label.apply",
+        "gmail.renewal_notice.send",
+        "rentvine.renewal.portal_message.send",
+        "sms.renewal_message.send",
+        "rentvine.work_order.assign_vendor",
+        "gmail.maintenance_owner_notice.send",
       ]),
     );
   });
@@ -188,7 +203,7 @@ describe("Action Registry seed catalog", () => {
     const gmailEntries = ACTION_REGISTRY_SEED.filter(
       (entry) => entry.target_system === "Gmail",
     );
-    expect(gmailEntries).toHaveLength(7);
+    expect(gmailEntries).toHaveLength(16);
 
     const renewalNotice = gmailEntries.find(
       (entry) => entry.key === "gmail.renewal_notice.draft_create",
@@ -201,7 +216,7 @@ describe("Action Registry seed catalog", () => {
     const workflowTransport = gmailEntries.filter(
       (entry) => entry.product_lane === "Workflow Communications",
     );
-    expect(workflowTransport).toHaveLength(5);
+    expect(workflowTransport).toHaveLength(12);
     expect(
       workflowTransport
         .filter((entry) => entry.production_allowed)

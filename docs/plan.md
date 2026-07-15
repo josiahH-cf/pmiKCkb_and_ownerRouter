@@ -227,10 +227,11 @@ npm run seed:launch-skeletons -- --dry-run
 
 ### P6 - Testing, Training, And Acceptance
 
-Status: in progress — the final Round 3 contract and S20–S27 specs are locked. S20 execution authority,
-S21 trusted publication, S23 Console live/test boundary, and S24 Communications policy are Local green; S22/S25–S27 implementation,
-provider/live-action acceptance, release-candidate browser review, and internal plus Vendor operator
-training/signoff remain.
+Status: in progress — the final Round 3 contract and S20–S27 specs are locked. S20–S24 are Local green
+(including S22 Vendor app-plane). S25/S26 safe local execution boundaries and S27 local release
+readiness artifacts are built but remain Gated on real provider contracts/mappings, permitted proofs,
+deployment/browser/rollback acceptance, and Dan/Josiah signoff. Internal plus Vendor operator training
+also remains.
 
 Acceptance criteria:
 
@@ -337,10 +338,11 @@ bash scripts/verify.sh
 
 Status: in progress — production revision `pmi-kc-kb-demo-00020-24d` proves the S19 transport
 baseline; the locally verified workflow-boundary candidate is not deployed. Dan/Josiah release
-ownership and tab direction are resolved. S20/S21/S23/S24 are Local green; the external Vendor portal
-and named workflow writes now expand V1. R01–R09 and S22/S25–S27 are decision-complete but unbuilt; final release needs their implementation,
-approved production source/provider mappings, action-by-action proof, integrated browser acceptance,
-and explicit deploy/smoke/final-acceptance approval.
+ownership and tab direction are resolved. S20/S21/S22/S23/S24 are Local green; the external Vendor
+live setup and named workflow writes now expand V1. R01–R09 are decision-complete; S25/S26 safe local
+execution boundaries and S27 local release artifacts are built but Gated. Final release still needs
+approved production source/provider mappings, action-by-action proof, integrated browser/rollback
+acceptance, dependency disposition, and explicit deploy/smoke/final-acceptance approval.
 
 Acceptance criteria:
 
@@ -366,9 +368,12 @@ bash scripts/verify.sh
 Current state: the client-owned service is live and directly verified; the 2026-07-14 local candidate
 adds the narrower workflow-communication product boundary. Round 3 defines final V1 as an external-user
 release with S20–S27 risk, publication, Vendor, Console, communications, workflow-action, and staged
-acceptance contracts. S20/S21/S23/S24 are Local green; S22/S25–S27 are not built merely because their
-product scope is approved. S23's live adapters and browser acceptance, and S24 live TTL/scheduler and
-authoritative workflow mappings, remain gated despite their local contracts being green.
+acceptance contracts. S20–S24 are Local green in dependency order (including S22's external Vendor
+app-plane). S25/S26 now have complete safe local action graphs, one-attempt orchestration, fake adapters,
+and adversarial tests; S27 has the pre-V1 manifest, integrated fake acceptance, ledger, and operations/
+browser plans. Those three suites remain Gated, not Accepted, until real account contracts/mappings,
+per-action proofs, deployment/browser/rollback evidence, and named acceptance exist. S22 live identity/
+OAuth/vault/invite, S23 live adapters, and S24 TTL/scheduler remain separately gated.
 
 Key gates:
 

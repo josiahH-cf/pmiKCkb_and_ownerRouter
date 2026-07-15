@@ -998,4 +998,310 @@ export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     connection_health_check_ref: "health.google_drive.dwd",
     production_allowed: false,
   },
+  {
+    key: "vendor.account.invite",
+    label: "Invite external Vendor account",
+    target_system: "KB Internal",
+    expected_action:
+      "Create a scoped Firebase Vendor principal and deliver one setup link.",
+    product_lane: "PMI KC KB",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Firebase Admin documents email action links; S22 requires exact-confirmed Admin delivery and verified-email TOTP before detail.",
+    required_permissions: ["Identity Platform TOTP", "Approved invitation delivery"],
+    event_ingestion_mode: "None",
+    preview_schema_note:
+      "Show the exact Vendor email, v1.0 invite artifact, and reason before delivery.",
+    rollback_note:
+      "Disable the Firebase user, revoke sessions, remove assignments, and queue OAuth revocation.",
+    connection_health_check_ref: "health.firebase.vendor_identity",
+    production_allowed: false,
+  },
+  {
+    key: "vendor.account.disable",
+    label: "Disable external Vendor account",
+    target_system: "KB Internal",
+    expected_action:
+      "Disable one Vendor principal, revoke sessions, and deny assigned-ticket access.",
+    product_lane: "PMI KC KB",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Firebase Admin documents user disable and refresh-token revocation.",
+    required_permissions: ["Firebase Auth Admin"],
+    event_ingestion_mode: "None",
+    preview_schema_note:
+      "Show Vendor identity, active assignments, mailbox state, and reason.",
+    rollback_note:
+      "Admin may re-invite after verifying assignments and mailbox revocation state.",
+    connection_health_check_ref: "health.firebase.vendor_identity",
+    production_allowed: false,
+  },
+  {
+    key: "vendor.assignment.change",
+    label: "Change Vendor ticket assignment",
+    target_system: "KB Internal",
+    expected_action:
+      "Assign or remove exactly one external Vendor from one maintenance ticket.",
+    product_lane: "PMI KC KB",
+    readiness: "Planned",
+    evidence_status: "Documented",
+    documented_evidence:
+      "S22/S26 define the server-owned uid-to-vendor-to-ticket assignment join.",
+    required_permissions: ["PMI KC Admin"],
+    event_ingestion_mode: "None",
+    preview_schema_note:
+      "Show ticket reference, current Vendor, target Vendor, and reason.",
+    rollback_note:
+      "Restore the prior assignment and preserve the bodyless assignment audit.",
+    connection_health_check_ref: "health.firebase.vendor_identity",
+    production_allowed: false,
+  },
+  {
+    key: "vendor.gmail.connect",
+    label: "Connect Vendor Gmail mailbox",
+    target_system: "Gmail",
+    expected_action:
+      "Connect the signed-in Vendor's same-address Gmail through server-side OAuth.",
+    product_lane: "Workflow Communications",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Google documents web-server OAuth, offline access, state, and Gmail scopes.",
+    required_permissions: [
+      "Vendor consent",
+      "OAuth client",
+      "Secret Manager token vault",
+    ],
+    event_ingestion_mode: "Webhook",
+    preview_schema_note:
+      "Show exact mailbox, provider, requested scopes, and revocation path.",
+    rollback_note:
+      "Revoke the grant, destroy token material, and mark the connection revoked.",
+    connection_health_check_ref: "health.gmail.workspace_api",
+    production_allowed: false,
+  },
+  {
+    key: "vendor.gmail.revoke",
+    label: "Revoke Vendor Gmail mailbox",
+    target_system: "Gmail",
+    expected_action:
+      "Revoke one Vendor OAuth grant and destroy its server-side token material.",
+    product_lane: "Workflow Communications",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Google OAuth documents token revocation; S22 requires queued idempotent cleanup.",
+    required_permissions: ["Token-vault destroy", "Google token revocation"],
+    event_ingestion_mode: "None",
+    preview_schema_note:
+      "Show mailbox key, connection state, affected linked tickets, and reason.",
+    rollback_note:
+      "Reconnect through a fresh Vendor consent flow; revoked tokens are never restored.",
+    connection_health_check_ref: "health.gmail.workspace_api",
+    production_allowed: false,
+  },
+  {
+    key: "vendor.gmail.health",
+    label: "Check Vendor Gmail health",
+    target_system: "Gmail",
+    expected_action:
+      "Check the signed-in Vendor's OAuth grant metadata without inbox browsing.",
+    product_lane: "Workflow Communications",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Google OAuth token metadata and Gmail profile endpoints document bounded health checks.",
+    required_permissions: ["Vendor OAuth grant"],
+    event_ingestion_mode: "Polling",
+    preview_schema_note:
+      "Show mailbox key, granted scopes, last success, and revocation state.",
+    rollback_note: "Read-only; mark degraded and require reconnect when invalid.",
+    connection_health_check_ref: "health.gmail.workspace_api",
+    production_allowed: false,
+  },
+  {
+    key: "vendor.gmail.thread.read",
+    label: "Read assigned Vendor Gmail thread",
+    target_system: "Gmail",
+    expected_action:
+      "Read one explicitly linked Gmail thread for one assigned Vendor ticket.",
+    product_lane: "Workflow Communications",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Gmail documents thread get; S22 removes list/search/arbitrary thread methods.",
+    required_permissions: ["gmail.readonly", "Assigned ticket/thread link"],
+    event_ingestion_mode: "Webhook",
+    preview_schema_note:
+      "Show assigned ticket, linked thread, mailbox key, and bounded metadata.",
+    rollback_note: "Read-only; revoke the link or mailbox connection.",
+    connection_health_check_ref: "health.gmail.workspace_api",
+    production_allowed: false,
+  },
+  {
+    key: "vendor.gmail.draft.create",
+    label: "Create assigned-ticket Vendor Gmail draft",
+    target_system: "Gmail",
+    expected_action: "Create one unsent reply draft in an assigned Vendor ticket thread.",
+    product_lane: "Workflow Communications",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Gmail drafts.create is documented; S22 restricts it to assigned linked replies.",
+    required_permissions: ["gmail.compose", "Assigned ticket/thread link"],
+    event_ingestion_mode: "None",
+    preview_schema_note:
+      "Show Vendor mailbox, ticket, thread, recipient, artifact/policy, and exact body.",
+    rollback_note: "Delete the unsent draft.",
+    connection_health_check_ref: "health.gmail.workspace_api",
+    production_allowed: false,
+  },
+  {
+    key: "vendor.gmail.thread.reply",
+    label: "Send assigned-ticket Vendor Gmail reply",
+    target_system: "Gmail",
+    expected_action:
+      "Send one exact-confirmed reply from the Vendor mailbox on an assigned ticket.",
+    product_lane: "Workflow Communications",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Gmail messages.send is documented; S22 binds Vendor/Admin exact confirmation and one attempt.",
+    required_permissions: [
+      "gmail.compose",
+      "Assigned ticket/thread link",
+      "Exact confirmation",
+    ],
+    event_ingestion_mode: "Webhook",
+    preview_schema_note:
+      "Show actor, Vendor mailbox, ticket, thread, recipient, policy/artifact, and exact body.",
+    rollback_note:
+      "Reconcile by RFC Message-ID and send a reviewed correction; never retry ambiguity.",
+    connection_health_check_ref: "health.gmail.workspace_api",
+    production_allowed: false,
+  },
+  {
+    key: "vendor.gmail.label.apply",
+    label: "Apply governed Vendor Gmail label",
+    target_system: "Gmail",
+    expected_action: "Apply one approved label to an assigned Vendor ticket thread.",
+    product_lane: "Workflow Communications",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Gmail thread modify is documented; S22 limits labels to the governed allowlist.",
+    required_permissions: ["gmail.modify", "Assigned ticket/thread link"],
+    event_ingestion_mode: "None",
+    preview_schema_note:
+      "Show Vendor mailbox, assigned ticket/thread, approved label, rule, and reason.",
+    rollback_note: "Restore the prior governed label set.",
+    connection_health_check_ref: "health.gmail.workspace_api",
+    production_allowed: false,
+  },
+  {
+    key: "gmail.renewal_notice.send",
+    label: "Send exact-confirmed renewal notice",
+    target_system: "Gmail",
+    expected_action:
+      "Send one S24-governed renewal notice to the authoritative recipient.",
+    product_lane: "Lease Renewal Agent",
+    readiness: "Planned",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Gmail compose/send transport is proven; S25 must supply authoritative recipient and receipt.",
+    required_permissions: [
+      "gmail.compose",
+      "Exact confirmation",
+      "Authoritative renewal mapping",
+    ],
+    event_ingestion_mode: "Webhook",
+    preview_schema_note:
+      "Show workflow, recipient, artifact/policy/sources, subject, exact body, and RFC Message-ID.",
+    rollback_note: "Reconcile by RFC Message-ID and send a reviewed linked correction.",
+    connection_health_check_ref: "health.gmail.workspace_api",
+    production_allowed: false,
+  },
+  {
+    key: "rentvine.renewal.portal_message.send",
+    label: "Send renewal portal message",
+    target_system: "Rentvine",
+    expected_action:
+      "Send one exact-confirmed renewal message in the documented Rentvine portal thread.",
+    product_lane: "Lease Renewal Agent",
+    readiness: "Planned",
+    evidence_status: "Vendor-Confirmation-Required",
+    documented_evidence:
+      "The final-V1 action is approved, but the account-specific portal messaging contract is not documented.",
+    required_permissions: ["Vendor-confirmed portal endpoint", "Exact confirmation"],
+    event_ingestion_mode: "Polling",
+    preview_schema_note:
+      "Show tenant, portal thread, exact message, source refs, and confirmation hash.",
+    rollback_note: "Use the documented same-thread correction path after reconciliation.",
+    connection_health_check_ref: "health.rentvine.api_key",
+    production_allowed: false,
+  },
+  {
+    key: "sms.renewal_message.send",
+    label: "Send renewal SMS",
+    target_system: "SMS",
+    expected_action:
+      "Send one exact-confirmed renewal SMS through PMI KC's documented provider.",
+    product_lane: "Lease Renewal Agent",
+    readiness: "Planned",
+    evidence_status: "Vendor-Confirmation-Required",
+    documented_evidence:
+      "The final-V1 action is approved; PMI KC's operating SMS provider/account contract is not yet documented.",
+    required_permissions: ["Approved SMS provider/plan/sender", "Exact confirmation"],
+    event_ingestion_mode: "Webhook",
+    preview_schema_note:
+      "Show authoritative recipient, sender, exact bounded text, sources, and confirmation hash.",
+    rollback_note:
+      "Reconcile the provider message id and send a reviewed correction; never retry ambiguity.",
+    connection_health_check_ref: "health.sms.provider",
+    production_allowed: false,
+  },
+  {
+    key: "rentvine.work_order.assign_vendor",
+    label: "Assign Vendor to Rentvine work order",
+    target_system: "Rentvine",
+    expected_action:
+      "Assign one authoritative Rentvine Vendor to one current work order.",
+    product_lane: "PMI KC KB",
+    readiness: "Needs Connection",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Rentvine documents work-order and Vendor/trade resources; account mapping and exact transition proof remain gated.",
+    required_permissions: ["Rentvine work-order write", "Approved Vendor mapping"],
+    event_ingestion_mode: "Polling",
+    preview_schema_note:
+      "Show work order, current Vendor, target Vendor, current state, and reason.",
+    rollback_note: "Restore the prior assignment after read-after-write reconciliation.",
+    connection_health_check_ref: "health.rentvine.api_key",
+    production_allowed: false,
+  },
+  {
+    key: "gmail.maintenance_owner_notice.send",
+    label: "Send exact-confirmed maintenance owner notice",
+    target_system: "Gmail",
+    expected_action:
+      "Send one maintenance-owner:v1.0 notice to the authoritative owner recipient.",
+    product_lane: "PMI KC KB",
+    readiness: "Planned",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Gmail transport is proven; S24 freezes the artifact and S26 supplies authoritative owner mapping.",
+    required_permissions: [
+      "gmail.compose",
+      "Authoritative owner mapping",
+      "Exact confirmation",
+    ],
+    event_ingestion_mode: "Webhook",
+    preview_schema_note:
+      "Show ticket, owner recipient, artifact/policy/sources, exact body, and RFC Message-ID.",
+    rollback_note: "Reconcile by RFC Message-ID and send a reviewed linked correction.",
+    connection_health_check_ref: "health.gmail.workspace_api",
+    production_allowed: false,
+  },
 ];

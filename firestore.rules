@@ -229,6 +229,16 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // S25/S26 provider-orchestration state is server-only and bodyless. The browser cannot forge
+    // previews, dependency receipts, one-attempt claims, reconciliation, or correction audit.
+    match /external_action_executions/{executionId} {
+      allow read, write: if false;
+    }
+
+    match /external_action_execution_audit/{auditId} {
+      allow read, write: if false;
+    }
+
     // Workflow-control foundation records are written server-side only. Client
     // writes stay denied so simulation-only and activation gates cannot be bypassed.
     match /process_definitions/{definitionId} {
@@ -409,6 +419,42 @@ service cloud.firestore {
     // S24 retention cleanup and legal-hold decisions are server-only and bodyless. Even Admins use
     // the reasoned API boundary; a browser cannot forge a hold, release one, or rewrite counts.
     match /gmail_retention_audit/{auditId} {
+      allow read, write: if false;
+    }
+
+    // S22 external Vendor state is server-only. Vendor routes re-check verified-email TOTP and the
+    // uid -> vendor -> assigned-ticket join before returning bounded projections. OAuth state,
+    // token-secret references, send confirmations, revocation work, and bodyless audit are never
+    // directly readable or writable by either staff or Vendor browsers.
+    match /vendors/{vendorId} {
+      allow read, write: if false;
+    }
+
+    match /vendor_ticket_assignments/{assignmentId} {
+      allow read, write: if false;
+    }
+
+    match /vendor_ticket_thread_links/{linkId} {
+      allow read, write: if false;
+    }
+
+    match /vendor_oauth_states/{stateId} {
+      allow read, write: if false;
+    }
+
+    match /vendor_mailbox_connections/{connectionId} {
+      allow read, write: if false;
+    }
+
+    match /vendor_send_confirmations/{confirmationId} {
+      allow read, write: if false;
+    }
+
+    match /vendor_token_revocation_queue/{jobId} {
+      allow read, write: if false;
+    }
+
+    match /vendor_audit/{auditId} {
       allow read, write: if false;
     }
 

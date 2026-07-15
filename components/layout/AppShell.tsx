@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PmiWordmark } from "@/components/brand/PmiWordmark";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { NotificationMenu } from "@/components/layout/NotificationMenu";
+import { ReleaseStageBanner } from "@/components/layout/ReleaseStageBanner";
 import { can } from "@/lib/auth/roles";
 import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { PMI_WORDMARK, PRODUCT_NAME, type SpaceScope } from "@/lib/constants";
@@ -49,6 +50,7 @@ export function AppShell({
           <SignOutButton />
         </nav>
       </header>
+      <ReleaseStageBanner />
       {children}
     </div>
   );

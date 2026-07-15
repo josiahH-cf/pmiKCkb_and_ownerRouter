@@ -5,11 +5,11 @@ Use it before older demo docs or preserved specs.
 
 ## Active Lanes
 
-| Product lane            | Read first               | Current state                                                   |
-| ----------------------- | ------------------------ | --------------------------------------------------------------- |
-| PMI KC KB               | `pmi-kc-kb.md`           | Deployed shared runtime; S20–S27 external-V1 gaps remain        |
-| Lease Renewal Agent     | `lease-renewal-agent.md` | Read/reconcile/review built; every S25 action is final-V1 scope |
-| Workflow Communications | `gmail-inbox-zero.md`    | Workflow-linked Gmail adapter; S24 green; S22/S25/S26 remain    |
+| Product lane            | Read first               | Current state                                                     |
+| ----------------------- | ------------------------ | ----------------------------------------------------------------- |
+| PMI KC KB               | `pmi-kc-kb.md`           | S20–S24 green; S25–S27 local boundaries Gated                     |
+| Lease Renewal Agent     | `lease-renewal-agent.md` | Read/review plus S25 local graph/fakes; real proofs pending       |
+| Workflow Communications | `gmail-inbox-zero.md`    | Workflow-linked Gmail adapter; S22/S24 green; S25/S26 fakes Gated |
 
 ### Lease Renewal lane — sub-docs
 

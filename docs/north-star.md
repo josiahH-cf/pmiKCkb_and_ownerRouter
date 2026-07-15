@@ -5,11 +5,11 @@
 PMI KC has purchased three related products that should now be governed from this
 repository as one coordinated workstream:
 
-| Product                 | Purpose                                                                                                      | Current implementation posture                                                                                      |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| PMI KC KB               | Source-backed knowledge, approval, and workflow-control app for operational Q&A and automation.              | Existing runtime plus Local-green S20/S21/S23/S24; final external-user V1 requires S22/S25–S27 and live acceptance. |
-| Lease Renewal Agent     | Dedicated agent track for lease renewal workflows and handoffs.                                              | Read/reconcile/review exists; every S25 R02 action is required for final V1.                                        |
-| Workflow Communications | Workflow-linked Gmail evidence, approved labels, drafts, replies, and attention for renewal and maintenance. | Gmail remains the message system of record; PMI KC is not a general inbox client.                                   |
+| Product                 | Purpose                                                                                                      | Current implementation posture                                                                                                     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| PMI KC KB               | Source-backed knowledge, approval, and workflow-control app for operational Q&A and automation.              | S20–S24 Local green; S25/S26/S27 safe local boundaries Gated; final external-user V1 requires every live/browser/owner acceptance. |
+| Lease Renewal Agent     | Dedicated agent track for lease renewal workflows and handoffs.                                              | Read/reconcile/review exists; every S25 R02 action is required for final V1.                                                       |
+| Workflow Communications | Workflow-linked Gmail evidence, approved labels, drafts, replies, and attention for renewal and maintenance. | Gmail remains the message system of record; PMI KC is not a general inbox client.                                                  |
 
 The end state is a coordinated operating system for PMI KC Metro: source-backed answers,
 approved backend workflow automation, repeatable renewal handoffs, and a visible Gmail

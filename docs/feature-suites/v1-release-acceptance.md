@@ -4,6 +4,12 @@
 
 > New 2026-07-14. Implements R09 and turns S20–S26 into a falsifiable release contract.
 
+**Implementation status (2026-07-14): Gated — safe local readiness boundary green.** The manifest
+verifier, pre-V1 label, integrated fake acceptance, local ledger, exact hard-stop packets, monitoring/
+rollback plan, and eight-surface browser plan are built. Deployment, live proofs, executed browser/
+rollback acceptance, dependency disposition, and Dan/Josiah signatures remain pending. The application
+and manifest must continue to say pre-V1.
+
 **Goal.** PMI KC can deploy and validate in bounded pre-V1 slices without mislabeling an incomplete
 candidate. The release becomes V1 only after every approved Lease/Maintenance action and the external
 Vendor portal pass end to end, all seven tab contracts pass browser acceptance, security/operations/

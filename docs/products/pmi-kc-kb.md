@@ -257,15 +257,16 @@ proven reliable.
 
 ## Current Blockers
 
-- S20–S27 implementation and action-by-action external provider proof.
+- S25/S26 action-by-action real-provider proof/promotion and S27 deploy/browser/rollback/owner acceptance;
+  their safe local execution/readiness boundaries are built.
 - Approved production source folders/files, sensitivity decisions, `sources_meta`, and
   source/data-store maps for the launch Spaces.
 - Named acceptance, go-live, monitoring/support, and rollback owners plus the final operator roster.
 - Browser acceptance of the release candidate, followed by explicit deploy/smoke approval.
 
 R01–R09 remove the prior assumption that the Vendor portal or non-Gmail workflow outputs are post-V1.
-Every S25/S26 action blocks the final V1 label until implemented and accepted. Product inclusion still
-does not authorize a live action.
+Every S25/S26 action blocks the final V1 label until its real-provider proof and acceptance exist. The
+local graph/fake boundary does not authorize a live action.
 
 ## Acceptance Gates
 

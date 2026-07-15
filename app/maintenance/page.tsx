@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { MaintenanceCapture } from "@/components/maintenance/MaintenanceCapture";
+import { MaintenanceExecutionReadiness } from "@/components/maintenance/MaintenanceExecutionReadiness";
 import { MaintenanceQueue } from "@/components/maintenance/MaintenanceQueue";
 import { UnverifiedIntakeReview } from "@/components/maintenance/UnverifiedIntakeReview";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
@@ -54,8 +55,9 @@ export default async function MaintenancePage() {
         <p className="muted">
           Capture a maintenance issue (type or record the problem and the unit), build a
           work-order draft, then create a tracked ticket. Nothing is sent or written to a
-          system of record; the RentVine work order is created only after a human
-          approves.
+          system of record. RentVine and every other external action remain blocked until
+          the exact provider contract, mapping, Registry review, and Admin approval are
+          ready.
         </p>
         <MaintenanceCapture
           reporterUid={user.uid}
@@ -71,6 +73,7 @@ export default async function MaintenancePage() {
           assignees={assignees}
           currentUid={user.uid}
         />
+        <MaintenanceExecutionReadiness />
       </section>
     </AppShell>
   );

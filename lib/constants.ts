@@ -50,6 +50,7 @@ export const ACTION_TARGET_SYSTEMS = [
   "Google Sheets",
   "Google Drive",
   "Gmail",
+  "SMS",
   "KB Internal",
 ] as const;
 

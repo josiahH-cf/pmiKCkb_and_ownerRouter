@@ -83,7 +83,7 @@ requirement while preserving Vendor/Admin exact confirmation for every AI-assist
 The current ticket model does not contain an authoritative owner email. Therefore
 `gmail.maintenance_owner_notice.draft_create` is Planned and non-executable. Round 2 selects the
 maintenance owner scaffold and requires outbound vendor messaging. The v1.0 artifact/AI policy is
-Local green; S22 still implements TOTP/per-vendor OAuth and S26 supplies authoritative runtime
+Local green; S22 now supplies the local TOTP/per-vendor OAuth boundary and S26 supplies authoritative runtime
 recipients/execution before either path may open.
 
 ## Source state and governance
@@ -103,7 +103,7 @@ separately configured and approved.
 
 ## Current implementation dependencies
 
-- Build S22 and the S25/S26 workflow-specific communication actions on the Local-green S20/S24
+- Build S25/S26 workflow-specific communication actions on the Local-green S20/S22/S24
   boundaries; current routes remain narrower even though the decisions are settled.
 - Configure authoritative renewal owner/tenant and maintenance owner/vendor recipient/value adapters;
   a browser-supplied address is never authoritative.
@@ -121,7 +121,7 @@ separately configured and approved.
   after it is implemented, tested, registry-reviewed, and explicitly enabled for that live action.
 - No raw Gmail/customer content in git, logs, notifications, or persistent Gmail operational state.
 - No cross-mailbox browsing or generic inbox management.
-- Current runtime has no outbound Vendor communication. S22/S26 may build it locally; live use remains
+- Current runtime has no outbound Vendor communication. S22 is locally built and S26 must bind it to Maintenance; live use remains
   separately gated and assigned-ticket/exact-confirmation-only.
 
 The active transport specification is `docs/feature-suites/gmail-live-per-user.md`; S20/S24 are Local

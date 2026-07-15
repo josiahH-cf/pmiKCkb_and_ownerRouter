@@ -29,9 +29,11 @@ next safe slice until a stop-and-reset condition fires. The user verifies at the
 end-of-run review point, not after every internal phase.
 
 For the active 2026-07-14 final-V1 goal, the permanent packet already exists at
-`docs/v1-gap-implementation-program-2026-07-14.md`. S20/S21/S23/S24 are Local green; `/loop` starts with S22 and follows the remaining suites in
-that packet; it does not create another Round 3 question packet. Use fake providers/emulators and
-continue safe slices, stopping before exact live/config/provider gates.
+`docs/v1-gap-implementation-program-2026-07-14.md`. S20–S24 are Local green; S25/S26 safe local
+execution boundaries and S27 local release-readiness artifacts are built but Gated. `/loop` now starts
+with the first exact per-action proof packet in `docs/v1-pre-release-report-2026-07-14.md`; it does not
+create another Round 3 packet or infer provider contracts. Stop before each unauthorized live/config/
+provider gate.
 
 Before choosing a local feature, run the migration-readiness stop gate in
 `docs/autonomous-agent-runner.md`. If the proposed work does not improve production

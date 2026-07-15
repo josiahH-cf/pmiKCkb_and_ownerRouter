@@ -5,6 +5,12 @@
 > New 2026-07-14. Implements R03 plus the Round 2 assigned-ticket Vendor workflow. Every row below is
 > required for final V1; provider/credential gaps are release blockers rather than manual substitutes.
 
+**Implementation status (2026-07-14): Gated — safe local boundary green.** The complete action graph,
+shared one-attempt orchestrator, Vendor/Drive/Rentvine/mail/LeadSimple/QuickBooks fake providers, UI
+readiness state, server ledger/rules, and AC-S26-1..9 local tests are built. Every external action stays
+Registry-closed; live identity/folder/account contracts, authoritative mappings, permitted proofs,
+deployment, and Dan/Josiah acceptance are absent. See `docs/v1-pre-release-report-2026-07-14.md`.
+
 **Goal.** A maintenance request can move from intake through secure Vendor assignment, evidence,
 owner/vendor communication, Rentvine/LeadSimple state, QuickBooks draft-bill handoff, and closure while
 the Vendor sees only assigned work. Routine bounded evidence and exact-confirmed communication stay

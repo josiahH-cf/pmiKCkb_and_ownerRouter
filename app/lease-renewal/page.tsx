@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
+import { LeaseExecutionReadiness } from "@/components/lease-renewal/LeaseExecutionReadiness";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { can } from "@/lib/auth/roles";
 import { getRenewalDeskView } from "@/lib/lease-renewal/sample-desk";
@@ -21,6 +22,7 @@ export default async function LeaseRenewalDeskPage() {
           }
           view={view}
         />
+        <LeaseExecutionReadiness />
       </section>
     </AppShell>
   );

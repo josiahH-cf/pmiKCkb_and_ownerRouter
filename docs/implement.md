@@ -83,8 +83,10 @@ Continue iterating on:
   `docs/environment-handoff.md`.
 - S20 risk/authority/ledger, S21 trusted publication, S23 Console live/test-data, and S24 retention/
   artifact/AI-reply policy are Local green and remain shared boundaries.
-- Start S22 Vendor auth/OAuth app-plane, then S25/S26
-  orchestrators/adapters and S27 integrated release acceptance.
+- S22 is Local green. S25/S26 safe local orchestrators, action graphs, fake adapters, and negative tests
+  plus S27's manifest/fake/ledger/runbooks are built but Gated. Continue with the exact per-action proof
+  packets in `docs/v1-pre-release-report-2026-07-14.md`; keep every live identity/provider/deploy step
+  separately gated.
 - Action Registry catalog/schema modeling (metadata only; do not widen `production_allowed`)
   and integration architecture per `docs/integration-architecture.md`, with Maintenance
   Work Order Intake as the first executable-write target and the Rentvine lease-renewal

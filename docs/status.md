@@ -11,6 +11,67 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## S25/S26 local execution and S27 pre-release readiness are built but Gated
+
+- Date: 2026-07-14
+- Added a shared immutable external-action orchestrator/ledger with dependency receipts, authoritative
+  input/contract/connection/mapping checks, S20 risk authority, preview hash, one provider attempt,
+  idempotent duplicate result, ambiguity reconciliation, correction text, and bodyless Firestore state
+  denied to clients. Registry closure is the production default; fake contracts require an explicit
+  test seam.
+- S25 now represents all eleven required Lease actions across Gmail, one-cell Sheet CAS, Rentvine
+  renewal, Dotloop loop/documents, distinct portal/SMS channels, and conditional Boom. Each typed fake
+  adapter falsifies missing values/contracts, drift, duplicates, unavailable providers, and ambiguous
+  outcomes. The Lease page shows provider-by-provider readiness without claiming execution.
+- S26 now represents all nineteen required Maintenance actions across S22 account/mailbox/assignment,
+  validated append-only Drive photos, Rentvine create/assign/status/close, authoritative owner and
+  assigned Vendor mail, LeadSimple, and QuickBooks draft-Bill-only. Tests enforce Vendor scope/MFA,
+  file scanners, transition/readback, no AI authority, no accounting post/pay, and no duplicate retry.
+- S27 now pins the Registry and every S20–S26/action/operations/owner row in a release-manifest verifier,
+  renders a pre-V1 banner, and exposes a production-disabled local Admin integrated-fake endpoint. A
+  pre-release ledger, one packet per exact action, monitoring/rollback plan, and desktop/phone plan for
+  seven internal tabs plus Vendor portal are recorded in `docs/v1-pre-release-report-2026-07-14.md`.
+- Verification passed: S25 11 files/45 focused tests; S26 13 files/52 focused tests; 275 unit files/
+  1,781 tests; 14 Firestore files/50 tests on an isolated port; core E2E 32 passed/18 intentionally
+  skipped; and the complete `scripts/verify.sh` clean-install, formatting, lint, typecheck, unit, build,
+  router, falsification, freshness, traceability, and redaction milestone. Lint retains eight existing
+  warnings; clean install retains 11 known dependency findings (1 low, 7 moderate, 3 high).
+- No customer/Gmail live read, invite, Identity Platform/TOTP/OAuth/vault/TTL/scheduler/cloud change,
+  provider send/write/upload, Registry promotion, deploy, smoke, traffic change, browser acceptance,
+  rollback rehearsal, or Dan/Josiah acceptance occurred. S25–S27 remain Gated and the release remains
+  pre-V1. Next `/loop`: obtain the authoritative recipient/value/mailbox mapping and separate proof
+  authority for `gmail.renewal_notice.draft_create`, or move to the next exact packet without widening
+  any action.
+
+## S22 external Vendor portal and mailbox are Local green
+
+- Date: 2026-07-14
+- Added a separate external Vendor Firebase claim/session lane that requires verified email, a TOTP
+  second factor, and recent auth before any detail. It never parses as an internal role or inherits a
+  Space. The external sign-in UI supports password setup follow-on, first TOTP enrollment, and later
+  TOTP challenge; there is no self-registration.
+- Added the Admin invite service and preview: exact email/artifact/reason binding, no generated or
+  returned password, no setup link/token in UI/result/log/audit, fake delivery, duplicate refusal, and
+  compensating Firebase/Firestore cleanup. All live invite execution remains Registry-closed.
+- Added one server-owned active uid→vendor→ticket/thread join shared by assigned-ticket list/detail and
+  Gmail. Guessed, deassigned, disabled, wrong-Vendor, and wrong-thread requests return bounded 404s;
+  existing staff-only ticket/photo/notification routes reject Vendor claims before provider work.
+- Added server-side Google OAuth state/PKCE/offline flow with exact redirect/provider/four-scope and
+  same-verified-email binding. Refresh material crosses only the token-vault interface; Firestore stores
+  a secret reference and bounded metadata. Wrong/expired/reused state, wrong session/mailbox/provider,
+  missing PKCE/offline grant, and scope drift stop before vault persistence.
+- Added fake assigned-thread-only Gmail without inbox/search/new-compose/attachment methods. Vendor or
+  pre-authorized Admin exact confirmation binds actor, mailbox, Vendor, ticket, thread, body, RFC
+  Message-ID, expiry, and one attempt. Drift/double-click refuses; ambiguous outcome never retries.
+  Disable closes access immediately, disables Auth, revokes sessions, and queues token destruction.
+- Firestore denies every Vendor operational collection to staff and Vendor clients. The emulator runner
+  now preserves an existing port-8080 process and automatically uses an isolated temporary port.
+  Verification so far: 29 focused Vendor tests, typecheck, and 13 Firestore files / 49 tests green.
+- No live principal/invite, Identity Platform/TOTP setting, OAuth consent/client/token, Secret Manager
+  resource, mailbox read/send, cloud/Firebase change, Registry promotion, deploy, or smoke occurred.
+  Exact remaining S22 gates are recorded in environment/client docs. Next safe slice: S25 shared Lease
+  orchestrator, then Gmail as the first independent provider slice.
+
 ## S24 Communications policy and v1.0 artifacts are Local green
 
 - Date: 2026-07-14

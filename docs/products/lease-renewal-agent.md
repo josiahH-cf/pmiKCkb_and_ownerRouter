@@ -100,8 +100,8 @@ source-visible AI rewrite policy. No renewal initiation or external write is exe
 - Internal preparation may happen before Dan approval. S20 directs internal Editors to execute enabled
   Low/Medium instances, including exact-confirmed workflow communication, while consequential High
   Sheet/Rentvine/Dotloop/Boom work requires Admin. Admin may self-approve every risk. S20 is Local
-  green; runtime stays narrower until S25 implements each adapter and each live action is separately
-  promoted.
+  green and S25's complete local action graph/fake adapters are built; runtime stays narrower until
+  every real provider contract/mapping/proof is separately approved and promoted.
 - Dan can edit any generated or prepared document because he has Admin authority.
 - Human send authority remains preserved. Dan is primary business approver; Admin all-risk
   self-approval and Editor Medium exact-confirmation are approved. Autonomous send is not V1.
@@ -465,7 +465,7 @@ and success/stop/escalation condition.
 
 ## Do Not Execute Live Yet
 
-- Build S20/S24/S25 locally with fake providers, but do not enable or run Gmail/Sheet/Rentvine/Dotloop/
+- Use the built S20/S24/S25 local boundaries and exact proof packets, but do not enable or run Gmail/Sheet/Rentvine/Dotloop/
   portal/SMS/Boom actions without their documented contract, registry review, explicit live authority,
   and rollback/proof. LeadSimple/QuickBooks are Maintenance S26 actions, not invented Lease actions.
 - No Rentvine lease-renewal endpoint guessing or browser automation; the undocumented contract blocks

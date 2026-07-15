@@ -31,6 +31,50 @@ export interface HealthCheckContract {
 
 export const HEALTH_CHECK_CONTRACTS: readonly HealthCheckContract[] = [
   {
+    id: "health.firebase.vendor_identity",
+    system: "KB Internal",
+    label: "External Vendor identity health",
+    steps: [
+      {
+        id: "vendor_identity.config",
+        kind: "config_presence",
+        description:
+          "Identity Platform TOTP, approved invite delivery, and the Vendor Firebase claim lane are configured.",
+        expected_evidence:
+          "Non-secret project/config references and a separately approved synthetic Vendor acceptance record.",
+      },
+      {
+        id: "vendor_identity.auth",
+        kind: "auth_validation",
+        description:
+          "Verified-email TOTP session reaches only its assigned Vendor ticket projection.",
+        expected_evidence:
+          "Bounded acceptance proves wrong Vendor/ticket and disabled-session denial.",
+      },
+    ],
+  },
+  {
+    id: "health.sms.provider",
+    system: "SMS",
+    label: "Renewal SMS provider health",
+    steps: [
+      {
+        id: "sms.config",
+        kind: "config_presence",
+        description:
+          "The client-approved SMS provider, plan, sender, and credentials are configured.",
+        expected_evidence:
+          "Documented provider/account contract and non-secret sender reference.",
+      },
+      {
+        id: "sms.auth",
+        kind: "auth_validation",
+        description: "Credentials authorize only the approved workflow sender.",
+        expected_evidence: "Bounded read-only/account probe with no message delivery.",
+      },
+    ],
+  },
+  {
     id: "health.rentvine.api_key",
     system: "Rentvine",
     label: "Rentvine API key health",

@@ -10,6 +10,13 @@ After email verification, password setup, and TOTP MFA, the Vendor sees only tic
 vendor identity. They may connect their own Gmail or Google Workspace mailbox through OAuth and use it
 only for assigned-ticket communication, with AI assistance and exact human confirmation on every send.
 
+**Implementation status — Local green 2026-07-14.** The separate Vendor claims/session, TOTP
+enrollment/sign-in UI, exact-confirmed invite service and Admin preview, assigned-ticket list/detail
+and thread join, OAuth state/PKCE/exact-scope/same-address callback, token-vault seam, Vendor/Admin
+one-attempt fake Gmail boundary, disable/session-revoke/token-revocation lifecycle, server-only
+Firestore collections/rules, and adversarial tests are built. No live principal, invite, Identity
+Platform setting, OAuth app/token, Gmail access/send, secret resource, deploy, or acceptance occurred.
+
 **What it is / how it functions.**
 
 - **Identity type.** Add a Firebase `Vendor` principal separate from internal `Editor|Approver|Admin`.

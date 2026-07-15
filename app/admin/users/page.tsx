@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { UserManagementPanel } from "@/components/admin/UserManagementPanel";
+import { VendorAdminPanel } from "@/components/admin/VendorAdminPanel";
 import { type AppUser, listAppUsers } from "@/lib/admin/users";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { readServerConfig } from "@/lib/config/server";
@@ -33,6 +34,7 @@ export default async function AdminUsersPage() {
           in Google Workspace; this manages roles and space access.
         </p>
         <UserManagementPanel initialUsers={users} unavailableNote={unavailableNote} />
+        <VendorAdminPanel />
       </section>
     </AppShell>
   );

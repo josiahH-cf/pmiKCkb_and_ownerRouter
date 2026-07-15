@@ -157,7 +157,9 @@ Vendor receives a one-time password-setup link, completes email verification and
 detail, sees only tickets joined to their `vendor_id`, and connects the same verified Gmail/Google
 Workspace address through server-side per-vendor OAuth. It never uses DWD or receives staff roles,
 Spaces, cloud/admin/connector authority, shared/alias mailbox inference, or general inbox access. S22 is
-the executable contract; no Vendor principal exists in current code. Outside reporters continue using
+Local green in code with separate session, TOTP UI, assigned-ticket joins, OAuth/token-vault seams, and
+fake-provider acceptance; no live Vendor principal, Identity Platform setting, OAuth grant, or token
+resource exists. Outside reporters continue using
 the separate HMAC-token public maintenance intake; it is not the authenticated Vendor portal.
 
 ### 2.2 App-side Drive access — decide before any direct app Drive read

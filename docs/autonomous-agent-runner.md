@@ -160,8 +160,10 @@ Read the trigger literally to avoid re-prompting:
   between internal phases or between safe slices.
 
 For the active 2026-07-14 V1 goal, the decision-complete packet already exists. `/loop` or any run/
-continue/implement trigger starts the first non-green suite (currently S22), then follows the dependency order in
-`docs/v1-gap-implementation-program-2026-07-14.md`. Do not regenerate Round 3 questions. Continue
+continue/implement trigger starts the first exact open proof packet (currently
+`gmail.renewal_notice.draft_create` in `docs/v1-pre-release-report-2026-07-14.md`) and follows the
+dependency order in `docs/v1-gap-implementation-program-2026-07-14.md`. S25/S26/S27 local boundaries
+are built but Gated; do not regenerate Round 3 questions or infer a provider contract. Continue
 safe fake-provider/emulator slices; stop before each exact live/config/provider gate.
 
 After an implementation packet is locked, do not ask the user to review every internal

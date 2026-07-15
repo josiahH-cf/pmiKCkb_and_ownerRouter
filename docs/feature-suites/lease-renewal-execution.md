@@ -5,6 +5,12 @@
 > New 2026-07-14. Implements R02. Every row below is required for final V1; none is silently manual or
 > later. Undocumented/vendor-blocked actions remain release blockers, not permission to improvise.
 
+**Implementation status (2026-07-14): Gated — safe local boundary green.** The complete action graph,
+shared one-attempt orchestrator, fake providers, UI readiness state, bodyless server ledger/rules, and
+AC-S25-1..9 local tests are built. Every external action remains Registry-closed; real account contracts,
+authoritative mappings, permitted-environment proofs, deployment, and Dan/Josiah acceptance are absent.
+See `docs/v1-pre-release-report-2026-07-14.md`; do not call this suite Accepted.
+
 **Goal.** One authorized renewal workflow can carry verified facts from identification and owner
 decision through tenant outreach, record correction, renewal record/document creation, and conditional
 Boom enrollment. Operators see exact previews and receipts; Editors directly exact-confirm Medium

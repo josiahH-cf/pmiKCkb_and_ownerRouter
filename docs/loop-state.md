@@ -35,19 +35,27 @@ and this pointer under 140 lines. The runner is `docs/autonomous-agent-runner.md
   source-bound exact confirmation are built. Full verification, 47 rules tests, and core E2E are green.
   Live TTL/scheduler activation, authoritative S25/S26 value adapters, customer/Gmail reads, sends,
   and deployment remain gated.
-- **Remaining runtime is narrower than final V1:** no Vendor principal/OAuth, R02/R03 executor set, or
-  staged final-acceptance ledger is built.
-- No live read, Gmail/customer content access, account creation, OAuth consent, source import, external
-  write, send, cloud configuration, deploy, or production smoke occurred during the audit/spec rewrite.
+- **S22 Local green:** separate verified-email/TOTP Vendor claims/session and enrollment UI,
+  assigned-ticket 404 join/routes/pages, exact-confirmed no-password invite boundary, OAuth state/
+  PKCE/exact-scope/same-address checks, token-vault interface, Vendor/Admin assigned-thread fake Gmail,
+  disable/session/token revocation, bodyless server-only persistence, and 29 focused + 49 rules tests.
+  Every Vendor Registry action remains false; no live identity, invite, OAuth app/token/vault, mailbox,
+  send, Firebase/Identity Platform config, deploy, or acceptance occurred.
+- **S25/S26 Gated; safe local boundaries green:** the complete 11-action Lease and 19-action Maintenance
+  graphs, shared preview/authority/dependency/idempotency/one-attempt/receipt/reconciliation kernel,
+  typed fake providers, bodyless server ledger/rules, UI readiness, and focused integrated adversarial
+  tests are built. All newly added actions remain false; real account contracts, authoritative mappings,
+  credentials, permitted proofs, promotion, deployment, and acceptance are absent.
+- **S27 Gated; safe local readiness green:** Registry-pinned manifest/verifier, pre-V1 UI, local
+  integrated fake E2E, action ledger, monitoring/rollback, and browser plans are built. Live/browser/
+  rollback proofs, dependency disposition, and Dan/Josiah acceptance remain pending; V1 is forbidden.
 
-## Next Safe Slice — S22 External Vendor portal and mailbox
+## Next Exact Action — first separately authorized S25 provider proof
 
-Run S22 from `docs/feature-suites/vendor-portal-and-mailbox.md` end to end. Build the Admin-invited
-external Vendor principal, one-time setup boundary, verified-email TOTP gate, assigned-ticket-only UI/
-API authorization, per-vendor Gmail/Workspace OAuth abstraction, encrypted token-vault interface,
-revocation, and fake/emulator acceptance. Stop before real invitation delivery, Identity Platform/TOTP
-configuration, OAuth client/consent/token, live mailbox access, or send. Then continue automatically:
-S25 → S26 → S27. Within S25/S26, one provider is one slice.
+No safe local adapter remains without inventing a contract or mapping. From the pre-release report,
+prepare `gmail.renewal_notice.draft_create`: confirm mailbox and authoritative recipient/value mapping,
+then obtain permission for one bounded proof. Run Google auth preflight just before an authorized read;
+otherwise take the next ledger packet without widening another action.
 
 At every slice boundary:
 
@@ -84,8 +92,8 @@ These are not unanswered product questions. Build local contracts/fakes first, t
 external gate:
 
 - Admin-configured production source roots/Space mappings and malware/sensitivity provider.
-- Identity Platform TOTP, Firebase invitation delivery, Google OAuth consent/client/redirect, token
-  vault, and first approved Vendor acceptance identity/ticket.
+- Live Identity Platform TOTP, Firebase invitation delivery, Google OAuth consent/client/redirect,
+  token-vault resources, and first approved Vendor acceptance identity/ticket for the Local-green S22 seam.
 - Authoritative recipient/value mappings for renewal and maintenance instances.
 - Documented/account-specific contracts, plan/permissions, and non-secret mappings for Rentvine renewal
   writeback/portal, Dotloop, SMS, Boom, LeadSimple, QuickBooks, Drive, and operating Sheet writes.
@@ -124,8 +132,8 @@ cost-bearing work. Before live Google reads run `npm run preflight:adc`; if stal
    entry, and `docs/v1-gap-implementation-program-2026-07-14.md`. A copy-ready outside-window handoff
    also lives at `docs/fresh-context-v1-implementation-prompt-2026-07-14.md`.
 2. Inspect `git status`, branch, and recent commits; preserve all user work and confirm S24 is committed.
-3. Run `npm run verify:context-freshness`, then execute S22's ordered prompt sequence using S20
-   authority, S21 publication, S23 Console, and S24 Communications policy rather than reopening decisions.
-4. Continue safe local slices without asking again; update the spine at every boundary.
+3. Run `npm run verify:context-freshness`, then prepare the first S25 Gmail renewal draft proof packet
+   from the pre-release ledger. Do not access Google or live data until that exact step is authorized.
+4. Continue independent permitted proof packets one action at a time; update the spine at every boundary.
 5. Never infer live action authority from R01–R09, the active goal, `/loop`, a green fake-provider test,
    an existing OAuth/DWD grant, or a prior deployment.

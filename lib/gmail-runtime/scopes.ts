@@ -14,3 +14,11 @@ export const GMAIL_LABELS_SCOPE = `${GMAIL_SCOPE_PREFIX}labels`;
 
 /** Apply or remove labels and perform other bounded mailbox mutations. */
 export const GMAIL_MODIFY_SCOPE = `${GMAIL_SCOPE_PREFIX}modify`;
+
+/** Exact four-scope set shared by the internal DWD and separately consented Vendor OAuth lanes. */
+export const GMAIL_APPROVED_WORKFLOW_SCOPES = Object.freeze([
+  GMAIL_READONLY_SCOPE,
+  GMAIL_COMPOSE_SCOPE,
+  GMAIL_LABELS_SCOPE,
+  GMAIL_MODIFY_SCOPE,
+] as const);
