@@ -46,19 +46,22 @@ Acceptance:
 
 ### P2 - Lease Renewal Workflow
 
-Status: done — source reconciliation, run/property review, decisions, approvals, and the full
-typed Lease action graph are available; production Test evidence covers provider-shaped work.
+Status: in progress — source reconciliation, run/property review, decisions, approvals, and the
+full typed Lease action graph are available; the normal Lease tab is gaining the persistent
+production Test run/receipt/Done journey required by the working-app contract.
 
 Acceptance:
 
 - Live Rentvine/Sheet reads degrade visibly without Test fallback.
-- Test actions use invented values and bodyless non-Live receipts.
+- The normal Lease tab persists invented Test runs, explicit actions, bodyless non-Live receipts,
+  refresh-safe progress, and Done.
 - Each Live Lease provider action has an independent activation state/checklist.
 
 ### P3 - Workflow Communications
 
-Status: done — workflow-linked Gmail transport, scoped reads, governed labels/drafts,
-exact-confirmed replies, Pub/Sub attention, retention policy, and legal hold are built.
+Status: done — workflow-linked Gmail transport, scoped reads, governed labels, review-only
+source-backed proposals, exact-confirmed replies, Pub/Sub attention, retention policy, and legal
+hold are built. The weaker unused draft mutation is Test-ready and production-closed.
 
 Acceptance:
 

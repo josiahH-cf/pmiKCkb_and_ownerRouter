@@ -38,6 +38,14 @@ export function listSimulationRuns(): SimulationRunSummary[] {
 /** Compute a simulation run by id, or null when the id is unknown. Deterministic and pure. */
 export function getSimulationRun(runId: string): RenewalRunResult | null {
   if (runId !== SIMULATION_RUN_ID) return null;
+  return buildTestRenewalSimulation(runId);
+}
+
+/**
+ * Reuses the governance-clean synthetic source tables for a persisted production Test run.
+ * Callers must first prove the addressed run exists in the isolated Firestore Test collection.
+ */
+export function buildTestRenewalSimulation(runId: string): RenewalRunResult {
   return runRenewalPipeline({
     runId,
     tables: SAMPLE_RENEWAL_TABLES,

@@ -21,6 +21,8 @@ interface LeaseRenewalRunClientProps {
   canDefer?: boolean;
   isAdmin: boolean;
   resolutionsError: boolean;
+  /** True when the synthetic reconciliation view belongs to a persisted production Test journey. */
+  persistentTest?: boolean;
   /** Field key from a ?flag= deep link: that flag's card is highlighted and scrolled into view. */
   highlightFieldKey?: string | null;
 }
@@ -31,6 +33,7 @@ export function LeaseRenewalRunClient({
   canDefer,
   isAdmin,
   resolutionsError,
+  persistentTest = false,
   highlightFieldKey = null,
 }: LeaseRenewalRunClientProps) {
   const canSaveProgress = canDefer ?? canResolve;
@@ -61,8 +64,9 @@ export function LeaseRenewalRunClient({
   return (
     <div className="lr-run">
       <p className="workflow-test-banner">
-        Test run only, on sample data. This run performs no live read, no write, and no
-        system-of-record update.
+        {persistentTest
+          ? "TEST DATA reconciliation. Run status, resolutions, attempts, and receipts persist in the app; external effects use internal Test adapters only. No Live provider is contacted."
+          : "Test run only, on sample data. This run performs no live read, no write, and no system-of-record update."}
       </p>
 
       <RenewalReviewMode

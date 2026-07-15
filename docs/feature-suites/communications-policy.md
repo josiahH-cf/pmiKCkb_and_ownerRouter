@@ -4,13 +4,12 @@
 
 > New 2026-07-14. Implements R06/R07 and closes the remaining S19 promotion-policy questions.
 
-**Status: Local green — 2026-07-14.** AC-S24-1 through AC-S24-8 are implemented and verified locally,
-including indexed bounded cleanup queries, transaction-time eligibility rechecks, canonical Firestore
-Date/Timestamp `expires_at` plus numeric `expires_at_ms`, dual-null held records, a crash-resumable
-bodyless run ledger/counts-only audit, and an explicit loopback-emulator-only worker/CLI. Live Firestore
-TTL/index/scheduler activation, authoritative S25/S26 recipient/value mapping, any Gmail read/send,
-Registry promotion, deployment, held-record migration, and production acceptance remain separately
-gated.
+**Status: Working-app green — 2026-07-15.** AC-S24-1 through AC-S24-8 are implemented; production
+Firestore rules are released, and workflow-linked Gmail reads, governed labels, source-backed review
+proposals, and exact-confirmed replies are operable. Indexed bounded cleanup, transaction-time
+eligibility rechecks, dual-null held records, and the crash-resumable bodyless ledger remain verified.
+Native TTL, extra indexes, Scheduler automation, and any legacy held-record migration are optional
+operations work. Each additional recipient/provider action activates independently through S25/S26.
 
 **Goal.** Workflow Communications has explicit deletion/hold behavior, three reviewable versioned V1
 base artifacts, and a source-visible AI reply policy that can improve a draft without inventing facts or
@@ -41,9 +40,9 @@ bodyless unless Gmail is queried on demand through an authorized workflow link.
   retains only bodyless hashes and counts needed for crash-safe resumption, and the run-ledger collection
   is itself one of the eight governed retention/TTL targets.
   Confirmation usability and record retention are separate fields. The runnable CLI requires
-  `--emulator`, a non-production
-  process, and a loopback `FIRESTORE_EMULATOR_HOST`; it has no live mode. Native TTL/index deployment
-  and production scheduling remain separate gates.
+  `--emulator`, a non-production process, and a loopback `FIRESTORE_EMULATOR_HOST`; it has no live
+  mode. Production uses the same bounded policy with manual/on-demand operations; native TTL/index
+  deployment and scheduling are optional automation.
 - **Versioned base artifacts.** Register exact current generator behavior as `owner-renewal:v1.0`,
   `tenant-renewal:v1.0`, and `maintenance-owner:v1.0`, with immutable content hash, source path,
   purpose, allowed context, required values, and owner approval date. Existing wording is the approved
@@ -61,11 +60,11 @@ bodyless unless Gmail is queried on demand through an authorized workflow link.
 - **Exact confirmation.** Actor sees From/To/thread/subject/body/artifact/policy/source context and
   confirms the exact hash. Any edit/source/recipient/policy drift invalidates confirmation. S20 controls
   internal role/risk; S22 controls Vendor/Admin assigned-ticket confirmation.
-- **Built locally (app-plane).** Policy registry, schemas, hashes, indexed bounded cleanup store/worker,
+- **Built and deployed (app-plane).** Policy registry, schemas, hashes, indexed bounded cleanup store/worker,
   emulator-only CLI, dual-null TTL legal hold, resumable run ledger/counts-only audit, artifact registry, deterministic rendering,
   AI guard/diff/provenance, Firestore indexes/rules, and tests.
-- **Gated (owner / vendor).** All eight Firestore index/TTL targets plus scheduler deployment, any required held-record
-  migration, real recipient/source reads, live Gmail, and first template/reply sends.
+- **Independent activation work.** Optional TTL/Scheduler automation, any required legacy held-record
+  migration, and each additional provider/recipient action. These states do not demote application V1.
 
 **Open questions & assumptions.**
 
@@ -120,9 +119,9 @@ test`, `npm run test:e2e:core`, `npm run verify:spec-traceability`, `npm run bui
 
 **Forbidden actions / hard gates.** No autonomous/event/scheduled/bulk send; no persist-AI-by-default;
 no browser-authoritative recipient; no invented fact/commitment/channel receipt; no legal-hold bypass;
-no live TTL/index/scheduler/policy deployment, held-record migration, Gmail read/send, source read, or
-production smoke. The cleanup CLI has no live flag and cannot target a non-loopback emulator. No raw
-content in retention/audit records or git. Existing no-model exclusions remain. ~$10 cap.
+no unreviewed Live action or provider call; and no raw content in retention/audit records or git. The
+cleanup CLI has no live flag and cannot target a non-loopback emulator. Existing no-model exclusions
+remain. ~$10 cap.
 
 **Ordered prompt sequence.**
 
@@ -136,8 +135,8 @@ content in retention/audit records or git. Existing no-model exclusions remain. 
    validator, transient output, and exact-hash confirmation.
 5. _Verify:_ falsify every expiry boundary, hold race, template drift, missing value, false channel claim,
    excluded category, hallucinated commitment, confirmation drift, and storage leak; run full checks.
-6. _Gate:_ stop before live index/TTL/scheduler, held-record migration, source/Gmail access, send, or
-   deploy; issue separate approval packets for configuration and each first action.
+6. _Operate:_ retain safe manual cleanup by default; activate TTL/Scheduler or additional provider
+   actions independently when their exact operational value and provider contract justify them.
 7. _Context update:_ add `F-COMMUNICATIONS-POLICY-BUILT` citing AC-S24-1..8 and update environment,
    facts/status/plan/loop.
 

@@ -274,6 +274,24 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Persistent production Test renewal journeys and their bodyless attempt/receipt evidence are
+    // written only through edit-gated Admin SDK routes. Authenticated staff may read the Test state,
+    // but no browser can forge lane, status, confirmation, attempt count, or provider-contact proof.
+    match /lease_renewal_test_runs/{runId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
+    match /lease_renewal_test_action_attempts/{attemptId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
+    match /lease_renewal_test_action_receipts/{receiptId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
     // Per-user renewal-decider Seen/Deferred markers (S14 B6). Written server-side through the
     // edit-gated Admin SDK boundary only. Unlike shared renewal decisions, these are personal
     // navigation markers: clients may read ONLY their own current + Activity records, including

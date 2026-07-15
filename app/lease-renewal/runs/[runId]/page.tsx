@@ -1,14 +1,29 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { LeaseRenewalRunClient } from "@/components/lease-renewal/LeaseRenewalRunClient";
+import { LeaseTestJourney } from "@/components/lease-renewal/LeaseTestJourney";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { can } from "@/lib/auth/roles";
+import {
+  getLeaseTestRun,
+  listLeaseTestActionAttempts,
+  listLeaseTestActionReceipts,
+} from "@/lib/firestore/lease-renewal-test-runs";
 import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
 import {
   listWritebackApprovalActivityForRun,
   listWritebackApprovalsForRun,
 } from "@/lib/firestore/lease-renewal-writeback-approvals";
 import { buildRenewalRunView } from "@/lib/lease-renewal/run-view";
-import { getSimulationRun, listSimulationRuns } from "@/lib/lease-renewal/simulation";
+import {
+  buildTestRenewalSimulation,
+  getSimulationRun,
+  listSimulationRuns,
+} from "@/lib/lease-renewal/simulation";
+import type {
+  LeaseTestActionAttempt,
+  LeaseTestActionReceipt,
+  LeaseTestRunRecord,
+} from "@/lib/lease-renewal/test-workflow";
 
 interface LeaseRenewalRunPageProps {
   params: Promise<{ runId: string }>;
@@ -25,7 +40,26 @@ export default async function LeaseRenewalRunPage({
   // A ?flag= deep link (from the reconcile redirect route or a queue row) scrolls to and highlights
   // that flag's card so the resolve control lands in view (S13 C1).
   const highlightFieldKey = (await searchParams)?.flag?.trim() || null;
-  const run = getSimulationRun(runId);
+  const staticSimulationRun = getSimulationRun(runId);
+  let persistentTestRun: LeaseTestRunRecord | null = null;
+  let testReceipts: LeaseTestActionReceipt[] = [];
+  let testAttempts: LeaseTestActionAttempt[] = [];
+  let testJourneyError = false;
+  if (!staticSimulationRun) {
+    try {
+      persistentTestRun = await getLeaseTestRun(user, runId);
+      if (persistentTestRun) {
+        [testReceipts, testAttempts] = await Promise.all([
+          listLeaseTestActionReceipts(user, runId),
+          listLeaseTestActionAttempts(user, runId),
+        ]);
+      }
+    } catch {
+      testJourneyError = true;
+    }
+  }
+
+  const run = persistentTestRun ? buildTestRenewalSimulation(runId) : staticSimulationRun;
 
   if (!run) {
     return (
@@ -40,8 +74,9 @@ export default async function LeaseRenewalRunPage({
     );
   }
 
-  const label =
-    listSimulationRuns().find((entry) => entry.runId === runId)?.label ?? runId;
+  const label = persistentTestRun
+    ? `${persistentTestRun.property_label} — persistent Test run`
+    : (listSimulationRuns().find((entry) => entry.runId === runId)?.label ?? runId);
 
   // The flags are recomputed deterministically; only persisted resolutions + write-back approvals +
   // their append-only decision history need Firestore. Degrade to "no saved resolutions" if Firestore
@@ -63,13 +98,27 @@ export default async function LeaseRenewalRunPage({
 
   return (
     <AppShell user={user}>
-      <section className="content">
+      <section className="content ui-stack">
         <h1 className="section-title">Lease Renewal Run</h1>
+        {persistentTestRun && !testJourneyError ? (
+          <LeaseTestJourney
+            initialAttempts={testAttempts}
+            initialReceipts={testReceipts}
+            initialRun={persistentTestRun}
+          />
+        ) : null}
+        {testJourneyError ? (
+          <p className="workflow-blocker">
+            The persistent Test journey could not be loaded. Refresh Google credentials or
+            check Firestore, then reload.
+          </p>
+        ) : null}
         <LeaseRenewalRunClient
           canDefer={can(user.role, "edit")}
           canResolve={can(user.role, "approve")}
           highlightFieldKey={highlightFieldKey}
           isAdmin={can(user.role, "manageAdmin")}
+          persistentTest={Boolean(persistentTestRun)}
           resolutionsError={resolutionsError}
           view={view}
         />

@@ -27,13 +27,30 @@
         display: block;
         width: 100%;
         max-width: 736px;
-        height: calc(100vh - 2rem);
+        height: calc(100vh - 6.75rem);
         margin: 0 auto;
         border: 0;
+      }
+      .historical-notice {
+        box-sizing: border-box;
+        max-width: 736px;
+        margin: 0 auto 0.75rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid rgb(226 85 7 / 45%);
+        border-radius: 0.75rem;
+        color: light-dark(rgb(114 49 10), rgb(255 197 166));
+        background: light-dark(rgb(255 244 236), rgb(70 36 20));
+        font:
+          600 0.875rem/1.4 system-ui,
+          sans-serif;
       }
     </style>
   </head>
   <body>
+    <div class="historical-notice" role="note">
+      Historical snapshot only — revision 00021 and the retired Pre‑V1/169-gate model. See
+      the Working Application V1 report for the current state.
+    </div>
     <iframe
       sandbox="allow-scripts"
       referrerpolicy="no-referrer"

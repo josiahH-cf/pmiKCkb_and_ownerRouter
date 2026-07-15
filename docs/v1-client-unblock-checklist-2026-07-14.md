@@ -72,11 +72,13 @@ curl -X PATCH \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -H "X-Goog-User-Project: ${PROJECT_ID}" \
-  -d '{"mfa":{"providerConfigs":[{"state":"ENABLED","totpProviderConfig":{"adjacentIntervals":1}}]}}'
+  -d '{"mfa":{"state":"ENABLED","providerConfigs":[{"state":"ENABLED","totpProviderConfig":{"adjacentIntervals":1}}]}}'
 ```
 
 Reference: [Firebase TOTP MFA](https://firebase.google.com/docs/auth/web/totp-mfa). This changes only
-the permitted second factor; the application still enforces which users must enroll it.
+the permitted second factor; the application still enforces which users must enroll it. Always GET
+the project config afterward and verify both top-level `mfa.state: ENABLED` and the TOTP provider
+`state: ENABLED`; checking the provider alone previously concealed a disabled global MFA switch.
 
 For deployment, first capture the serving revision, then run the reviewed deployment command:
 

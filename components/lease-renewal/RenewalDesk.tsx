@@ -37,6 +37,9 @@ export function RenewalDesk({
         actions={
           <>
             <ModeChip>Sample data</ModeChip>
+            <Link className="text-link" href="/lease-renewal/runs">
+              Open Test workspace →
+            </Link>
             {liveReviewHref ? (
               <Link className="text-link" href={liveReviewHref}>
                 View live review →

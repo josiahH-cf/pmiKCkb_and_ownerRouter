@@ -6,15 +6,15 @@
 > falsifiable production application contract without conflating app readiness with every provider's
 > activation.
 
-**Implementation status (2026-07-15): Release model green locally; production evidence refresh
-pending.** Manifest schema/verifier `2.0`, bodyless report `2.1`, V1 application banner, application-
+**Implementation status (2026-07-15): Release model green; final production evidence refresh in
+progress.** Manifest schema/verifier `2.0`, bodyless report `2.1`, V1 application banner, application-
 workflow coverage, isolated production Test workspace, provider activation summary, optional advisory
 Dan/Josiah signoffs, role/mobile/failure browser plan, monitoring/rollback plan, and cutover rehearsal
 are built. The old 169 repeated external gates are replaced by grouped application-readiness gates
-plus a separate per-action provider snapshot. The local report correctly remains a non-accepting
-candidate because it lacks the deployed candidate's immutable pins/evidence; this does not require all
-providers to be Live. Production deploy, browser, smoke, monitoring, and rollback evidence must be
-refreshed against the final revision.
+plus a separate per-action provider snapshot. The local report is advisory inventory because no
+production-manifest loader exists. The canonical acceptance authority is the bodyless production
+evidence document with immutable pins and browser/rollback results; this does not require all providers
+to be Live.
 
 **Goal.** PMI KC can deploy a stable V1 application whose internal and Vendor workflows work with
 visibly isolated Live and Test records. Production Test journeys prove application state, roles,
@@ -28,17 +28,21 @@ Live proof for every provider, optional TTL automation, or business/technical si
   configuration (including an explicit none-required/current configuration pin), S20–S26 suite
   acceptance, production Test or Live workflow coverage for every required action, one-attempt/
   idempotency/correction verification, deploy/build/auth/safety/browser/smoke/monitoring/rollback
-  evidence, and lane isolation. A Test-covered action must be at least `test_ready`.
+  evidence, and lane isolation. A Test-covered action must be at least `test_ready`. The canonical
+  bodyless production evidence record is authoritative; a local report cannot promote or demote it.
 - **Provider activation is separate.** Each action reports
   `unavailable|test_ready|live_configured|live_proven|enabled|suspended`. V1 does not require
   `live_proven` or `enabled`. However, a claim of `live_configured`, `live_proven`, `enabled`, or
   `suspended` must have lane-correct Registry, provider, evidence, monitoring, and rollback integrity;
   a fake/synthetic/Test reference can never prove Live.
-- **Release manifest.** `v1-release-manifest:2.0` pins commit, revision, production environment,
+- **Release manifest inventory.** `v1-release-manifest:2.0` validates the shape and integrity of commit,
+  revision, production environment,
   rules/index configuration, normalized Action Registry hash, exact unique action set, S20–S26 AC
   sets, workflow evidence lane, provider activation, communication artifact/retention versions,
   migrations/none-required proof, smokes, monitoring, rollback, and browser acceptance. Evidence lives
-  in durable bodyless `docs/evidence/` references and contains no secret/customer value.
+  in durable bodyless `docs/evidence/` references and contains no secret/customer value. Because the
+  repository has no production manifest loader/CLI, this is an advisory falsification/inventory tool;
+  `docs/evidence/working-app-v1-production-2026-07-15.md` is the acceptance record.
 - **Release report.** The local report is deliberately non-accepting and groups open items into release
   identity/pins, suites, application workflows, and core production evidence. Provider activation
   counts and Dan/Josiah signoffs are advisory sections. It must not turn each missing provider proof
@@ -50,8 +54,10 @@ Live proof for every provider, optional TTL automation, or business/technical si
   never falls back to Test.
 - **Production Test acceptance.** The Admin workspace traverses all 11 S25 and 19 S26 typed executor
   selections, one attempt/receipt each, plus Vendor invite/password/TOTP/assignment/Test-mailbox/
-  disable behavior, using invented aliases and zero Live calls. The persistent Maintenance journey
-  uses `unit:test-maple-204` and `vendor:test-summit-plumbing` and closes inside app-owned Firestore.
+  disable behavior, using invented aliases and zero Live calls. Normal product tabs also persist the
+  full user journeys: Lease records all 11 explicit actions before Done; Maintenance uses
+  `unit:test-maple-204` and `vendor:test-summit-plumbing` and closes inside app-owned Firestore. The
+  Admin workspace is diagnostic typed-adapter evidence, not the primary user workflow.
 - **Tab acceptance.** Console, Spaces, Approval Queue, Workflow Communications, Connections, Admin,
   and Notifications each have purpose, source/failure state, role behavior, Live/Test behavior,
   desktop/phone scenario, and no-dead-end acceptance. Vendor portal is the eighth external surface and
@@ -88,10 +94,12 @@ monitoring, smoke/browser runbooks, dependency/security reports, and rollback. S
 
 **Adversarial acceptance checks.**
 
-- **AC-S27-1** — Manifest verifier requires production stage/environment/pins, exact S20–S26 AC sets,
+- **AC-S27-1** — Manifest verifier rejects malformed production stage/environment/pins, S20–S26 AC sets,
   exact unique required action set, lane-correct durable workflow coverage, one-attempt/idempotency/
   correction, Registry hash, and core production evidence. Every action is at least Test-ready; no
-  action must be Live. Missing/extra/duplicate/path-aliased evidence or pin drift fails. _Verify:_ `npm
+  action must be Live. Missing/extra/duplicate/path-aliased evidence or pin drift fails the supplied
+  inventory. Production acceptance comes from the canonical bodyless evidence record rather than an
+  invented `stage:v1` command. _Verify:_ `npm
 test -- v1-release-manifest v1-manifest-report`; `npm run release:manifest-report`; `npm run
 cutover:report -- --help`.
 - **AC-S27-2** — Production renders the V1 application banner and persistent Live/Test markers. Test
@@ -100,9 +108,10 @@ cutover:report -- --help`.
   completion. _Verify:_ `npm test -- release-label vendor-release-label execution-completion data-mode`.
 - **AC-S27-3** — Production Test acceptance invokes all 11 S25 and 19 S26 typed selections plus the
   Vendor password/TOTP/assignment/Test-mailbox lifecycle with exactly one attempt/receipt per action
-  and zero Live-provider calls. Persistent Maintenance Test data can close. Failure/timeout/drift/
+  and zero Live-provider calls. Persistent Lease Test data reaches Done only after 11 receipts;
+  persistent Maintenance Test data closes. Failure/timeout/drift/
   revocation stops dependencies without duplicate attempt or cross-lane leak. _Verify:_ `npm test --
-v1-synthetic-execution v1-production-test-workspace-route maintenance-test-workflow
+v1-synthetic-execution v1-production-test-workspace-route lease-renewal-test-workflow maintenance-test-workflow
 vendor-test-mailbox`; `npm run test:e2e:core -- v1-fake-execution`.
 - **AC-S27-4** — Deployed browser acceptance covers Console, Spaces, Approval Queue, Workflow
   Communications, Connections, Admin, Notifications, and Vendor portal at desktop/phone widths, with
@@ -126,10 +135,11 @@ cutover:dry-run -- --json`; cutover/rollback/source-command boundary tests and o
   explicitly block release, and retained lower findings have named, time-bounded disposition/recheck.
   Optional TTL/index/scheduler absence is reported as optimization state, not failure. _Verify:_ `npm
 audit`, `bash scripts/verify.sh`, dependency disposition and operations report.
-- **AC-S27-9** — Final V1 acceptance is based on green application readiness and authoritative
+- **AC-S27-9** — Final V1 acceptance is based on green application readiness and the authoritative
   production evidence. Dan/Josiah signoffs are reported separately as `pending|accepted|invalid`; their
-  absence cannot alter `state:v1`, while stale/invalid Live evidence still can. _Verify:_ manifest
-  schema/verifier and report tests.
+  absence cannot alter `state:v1`, while stale/invalid Live evidence still can. The production evidence
+  document records the verdict; manifest schema/verifier and report tests remain advisory
+  falsification checks.
 
 **Forbidden actions / hard gates.** No Test-to-Live fallback, simulated evidence cited as Live,
 autonomous/bulk/generic send, blind retry, guessed provider contract, customer evidence in git, or
@@ -147,8 +157,9 @@ an unavailable provider. ~$10 cap and kill switches remain.
    and validate authentication, smoke, monitoring, and rollback with no provider activation changes.
 3. _Browser acceptance:_ exercise all eight surfaces with internal roles and Vendor Test identity at
    desktop/phone widths, including Live unavailable and Test completion/failure/reconciliation states.
-4. _Manifest acceptance:_ attach lane-correct production evidence and set `stage:v1` when grouped
-   application gates pass. Report provider activation and signoffs separately.
+4. _Evidence acceptance:_ publish the bodyless production evidence record when grouped application
+   gates pass. Run the local manifest report as advisory inventory; report provider activation and
+   signoffs separately.
 5. _Live activation:_ configure/prove individual provider actions as needed without reopening V1 or
    waiting on unrelated providers; update the Registry/evidence snapshot after each change.
 6. _Context update:_ add the working-app release fact and independent provider activation facts; update

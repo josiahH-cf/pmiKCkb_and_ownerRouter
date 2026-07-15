@@ -157,8 +157,11 @@ curl -X PATCH \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -H "X-Goog-User-Project: ${PROJECT_ID}" \
-  -d '{"mfa":{"providerConfigs":[{"state":"ENABLED","totpProviderConfig":{"adjacentIntervals":1}}]}}'
+  -d '{"mfa":{"state":"ENABLED","providerConfigs":[{"state":"ENABLED","totpProviderConfig":{"adjacentIntervals":1}}]}}'
 ```
+
+Read the project config back and require both top-level `mfa.state: ENABLED` and the TOTP provider
+`state: ENABLED`. Provider-only verification is insufficient.
 
 The Test Vendor flow now needs no external invitation provider or OAuth: Admin provisioning returns the
 password-setup link once, the Test operator completes password/TOTP, and the mailbox remains app-only.
