@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { DRAFT_BANNER } from "@/lib/constants";
 import { hashConfirmationToken } from "@/lib/gmail-hub/contracts";
 import { WORKFLOW_REPLY_POLICY_REF } from "@/lib/gmail-hub/governed-artifacts";
 import { communicationsRetentionFields } from "@/lib/gmail-hub/retention-policy";
 import {
   GmailAmbiguousSendError,
   GmailHubError,
+  GmailHubGateError,
   GmailHubService,
 } from "@/lib/gmail-hub/service";
 import { gmailMailboxKey, MemoryGmailStateStore } from "@/lib/gmail-hub/state-store";
@@ -48,6 +50,7 @@ function reply(body: string) {
 
 class FakeGmailClient extends GmailRuntimeClient {
   profileCalls = 0;
+  draftCalls = 0;
   sendCalls = 0;
   sentPayloads: GmailOutgoingMessage[] = [];
   sendError: Error | null = null;
@@ -100,6 +103,15 @@ class FakeGmailClient extends GmailRuntimeClient {
       messagesTotal: 2,
       threadsTotal: 1,
       historyId: "123",
+    };
+  }
+
+  override async createDraft() {
+    this.draftCalls += 1;
+    return {
+      draftId: "draft-1",
+      messageId: "draft-message-1",
+      threadId: "thread-1",
     };
   }
 
@@ -202,6 +214,29 @@ describe("GmailHubService connection", () => {
     expect(client.profileCalls).toBe(1);
     expect(isActionExecutable("gmail.message.send")).toBe(false);
     expect(isActionExecutable("gmail.thread.reply")).toBe(true);
+  });
+});
+
+describe("GmailHubService draft gate", () => {
+  it("blocks the default-seed draft action before calling the Gmail client", async () => {
+    const client = new FakeGmailClient();
+    const hub = new GmailHubService(actor, {
+      client,
+      store: new MemoryGmailStateStore(),
+      isActionExecutable,
+    });
+
+    await expect(
+      hub.createDraft({
+        context: context("gmail.draft.create"),
+        message: {
+          kind: "reply",
+          threadId: "thread-1",
+          body: `${DRAFT_BANNER}\n\nSynthetic draft body`,
+        },
+      }),
+    ).rejects.toBeInstanceOf(GmailHubGateError);
+    expect(client.draftCalls).toBe(0);
   });
 });
 

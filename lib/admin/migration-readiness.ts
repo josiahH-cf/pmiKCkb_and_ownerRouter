@@ -153,7 +153,6 @@ const OWNER_SIDE_SECTIONS = ["gcp:", "env:", "corpus:"];
 // a surprise flip the cutover must flag.
 const EXECUTABLE_ALLOWLIST = new Set<string>([
   "gmail.mailbox.read",
-  "gmail.draft.create",
   "gmail.thread.reply",
   "gmail.label.apply",
 ]);

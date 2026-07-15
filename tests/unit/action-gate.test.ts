@@ -18,9 +18,9 @@ function seedEntry(key: string): CreateActionRegistryInput {
 }
 
 describe("action-gate", () => {
-  it("executes the allow-listed workflow reply-draft transport", () => {
-    expect(isActionExecutable(GMAIL_KEY)).toBe(true);
-    expect(() => assertActionExecutable(GMAIL_KEY)).not.toThrow();
+  it("refuses the unconfirmed workflow reply-draft transport by default", () => {
+    expect(isActionExecutable(GMAIL_KEY)).toBe(false);
+    expect(() => assertActionExecutable(GMAIL_KEY)).toThrow(ActionNotExecutableError);
   });
 
   it("keeps sample-backed renewal draft initiation gated", () => {

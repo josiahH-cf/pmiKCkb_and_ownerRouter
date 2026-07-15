@@ -1,6 +1,5 @@
 import { AppShell } from "@/components/layout/AppShell";
 import { LeaseRenewalRunClient } from "@/components/lease-renewal/LeaseRenewalRunClient";
-import { WorkflowCommunicationPanel } from "@/components/gmail-hub/WorkflowCommunicationPanel";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { can } from "@/lib/auth/roles";
 import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
@@ -77,16 +76,10 @@ export default async function LeaseRenewalRunPage({
         <article className="panel">
           <h2 className="section-subtitle">Renewal communication</h2>
           <p className="muted">
-            This run is simulation-only. Owner and tenant messages can be previewed, but
-            no Gmail thread can be linked, drafted, labeled, or sent from this run.
+            This run is Test-only. Owner and tenant message actions use internal Test
+            receipts; no Live Gmail thread can be loaded, linked, drafted, labeled, or
+            sent from this run.
           </p>
-          <WorkflowCommunicationPanel
-            canLink={false}
-            entityId={runId}
-            entityType="renewal_run"
-            lane="renewals"
-            purpose="renewal_owner"
-          />
         </article>
       </section>
     </AppShell>

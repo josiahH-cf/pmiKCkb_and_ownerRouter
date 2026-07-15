@@ -421,13 +421,23 @@ function TicketCard({
           </p>
         </section>
       )}
-      <WorkflowCommunicationPanel
-        canLink
-        entityId={ticket.id}
-        entityType="maintenance_ticket"
-        lane="maintenance"
-        purpose="maintenance_owner"
-      />
+      {ticket.data_mode === "live" ? (
+        <WorkflowCommunicationPanel
+          canLink
+          entityId={ticket.id}
+          entityType="maintenance_ticket"
+          lane="maintenance"
+          purpose="maintenance_owner"
+        />
+      ) : (
+        <section className="ui-callout" aria-label="Test communication boundary">
+          <p>
+            <strong>Test communication:</strong> simulated owner and Vendor actions stay
+            inside this Test ticket and the assigned Test Vendor portal. No Live Gmail
+            thread can be loaded, linked, drafted, labeled, or sent from Test data.
+          </p>
+        </section>
+      )}
     </article>
   );
 }

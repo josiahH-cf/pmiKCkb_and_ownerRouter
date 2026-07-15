@@ -14,7 +14,35 @@ import type {
   WorkflowCommunicationLink,
   WorkflowCommunicationPurpose,
 } from "@/lib/gmail-hub/workflow-context";
-import type { GmailThreadView } from "@/lib/gmail-runtime/types";
+import type {
+  GmailOutgoingMessage,
+  GmailSendResult,
+  GmailThreadView,
+} from "@/lib/gmail-runtime/types";
+
+interface WorkflowAiReply {
+  ok: boolean;
+  reviewState: string;
+  policyRef: string;
+  artifactRef: string;
+  proposal: string;
+  diff: { added: string[]; removed: string[] };
+  sources: { ref: string; label: string }[];
+  errors: string[];
+}
+
+interface ExactReplyPreview {
+  context: WorkflowCommunicationContext;
+  confirmationToken: string;
+  expiresAt: string;
+  payload: GmailOutgoingMessage;
+}
+
+interface ExactReplyReceipt {
+  result: GmailSendResult;
+  duplicate: boolean;
+  reconciled: boolean;
+}
 
 export function WorkflowCommunicationPanel({
   lane,
@@ -45,16 +73,15 @@ export function WorkflowCommunicationPanel({
     proposal?: { summary: string; waiting_on: string; suggested_next_action: string };
     errors?: string[];
   } | null>(null);
-  const [aiReply, setAiReply] = useState<{
-    ok: boolean;
-    reviewState: string;
-    policyRef: string;
-    artifactRef: string;
-    proposal: string;
-    diff: { added: string[]; removed: string[] };
-    sources: { ref: string; label: string }[];
-    errors: string[];
-  } | null>(null);
+  const [aiReply, setAiReply] = useState<WorkflowAiReply | null>(null);
+  const [exactReplyPreview, setExactReplyPreview] = useState<ExactReplyPreview | null>(
+    null,
+  );
+  const [exactReplyConfirmed, setExactReplyConfirmed] = useState(false);
+  const [exactReplyReceipt, setExactReplyReceipt] = useState<ExactReplyReceipt | null>(
+    null,
+  );
+  const [sendNeedsReconciliation, setSendNeedsReconciliation] = useState(false);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -67,6 +94,13 @@ export function WorkflowCommunicationPanel({
       actionKey,
       sourceRefs: [`${entityType}:${entityId}`],
     };
+  }
+
+  function clearExactReply() {
+    setExactReplyPreview(null);
+    setExactReplyConfirmed(false);
+    setExactReplyReceipt(null);
+    setSendNeedsReconciliation(false);
   }
 
   async function loadLinks() {
@@ -131,6 +165,9 @@ export function WorkflowCommunicationPanel({
         throw new Error(data.error ?? "The linked thread could not be read.");
       setSelected(link);
       setThread(data as GmailThreadView);
+      setAnalysis(null);
+      setAiReply(null);
+      clearExactReply();
       if (link.status === "attention_required") {
         await fetch("/api/notifications/mark-read", {
           method: "POST",
@@ -209,6 +246,7 @@ export function WorkflowCommunicationPanel({
     setBusy(true);
     setStatus("");
     setAiReply(null);
+    clearExactReply();
     try {
       const response = await fetch("/api/gmail-hub/workflow-reply", {
         method: "POST",
@@ -226,6 +264,168 @@ export function WorkflowCommunicationPanel({
       setAiReply(data);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "AI reply is unavailable.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function prepareExactReply() {
+    if (!selected?.gmail_thread_id || !aiReply?.ok) return;
+    setBusy(true);
+    setStatus("");
+    clearExactReply();
+    try {
+      const replyContext: WorkflowCommunicationContext = {
+        ...context("gmail.thread.reply"),
+        templateRef: aiReply.artifactRef,
+        replyPolicyRef: aiReply.policyRef,
+        sourceRefs: [
+          ...new Set([
+            `${entityType}:${entityId}`,
+            ...aiReply.sources.map((source) => source.ref),
+          ]),
+        ],
+      };
+      const response = await fetch("/api/gmail-hub/send-confirmations", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          context: replyContext,
+          message: {
+            kind: "reply",
+            threadId: selected.gmail_thread_id,
+            body: aiReply.proposal,
+          },
+        }),
+      });
+      const data = (await response.json()) as ExactReplyPreview & { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error ?? "The exact Gmail reply could not be prepared.");
+      }
+      setExactReplyPreview(data);
+      setStatus(
+        "Exact reply prepared. Review every displayed field; nothing has been sent.",
+      );
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : "The exact Gmail reply could not be prepared.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sendExactReply() {
+    if (!exactReplyPreview || !exactReplyConfirmed || sendNeedsReconciliation) return;
+    setBusy(true);
+    setStatus("");
+    try {
+      const response = await fetch("/api/gmail-hub/send", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          context: exactReplyPreview.context,
+          confirmationToken: exactReplyPreview.confirmationToken,
+          payload: exactReplyPreview.payload,
+        }),
+      });
+      const data = (await response.json()) as {
+        status?: string;
+        result?: GmailSendResult;
+        duplicate?: boolean;
+        error?: string;
+      };
+      if (!response.ok) {
+        if (data.status === "ambiguous") {
+          setSendNeedsReconciliation(true);
+          setExactReplyConfirmed(false);
+          setStatus(
+            data.error ??
+              "Gmail returned an ambiguous outcome. Do not retry; reconcile it first.",
+          );
+          return;
+        }
+        clearExactReply();
+        throw new Error(
+          data.error ??
+            "Gmail did not accept the exact reply. A new preview is required.",
+        );
+      }
+      if (data.status !== "sent" || !data.result) {
+        clearExactReply();
+        throw new Error("Gmail returned an invalid send receipt.");
+      }
+      setExactReplyReceipt({
+        result: data.result,
+        duplicate: Boolean(data.duplicate),
+        reconciled: false,
+      });
+      setExactReplyPreview(null);
+      setExactReplyConfirmed(false);
+      setSendNeedsReconciliation(false);
+      setStatus(
+        data.duplicate
+          ? "This exact reply had already been sent; the existing receipt was returned."
+          : "The exact linked reply was sent once.",
+      );
+    } catch (error) {
+      setStatus(
+        error instanceof Error ? error.message : "The exact Gmail reply was not sent.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function reconcileExactReply() {
+    if (!exactReplyPreview || !sendNeedsReconciliation) return;
+    setBusy(true);
+    setStatus("");
+    try {
+      const response = await fetch("/api/gmail-hub/send/reconcile", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          context: exactReplyPreview.context,
+          confirmationToken: exactReplyPreview.confirmationToken,
+        }),
+      });
+      const data = (await response.json()) as {
+        status?: "sent" | "not_found";
+        result?: GmailSendResult;
+        reason?: string;
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(data.error ?? "The Gmail send could not be reconciled.");
+      }
+      if (data.status === "not_found") {
+        setStatus(
+          data.reason ??
+            "No matching Gmail message was found. This reply remains blocked; do not retry.",
+        );
+        return;
+      }
+      if (data.status !== "sent" || !data.result) {
+        throw new Error("Gmail returned an invalid reconciliation result.");
+      }
+      setExactReplyReceipt({
+        result: data.result,
+        duplicate: false,
+        reconciled: true,
+      });
+      setExactReplyPreview(null);
+      setExactReplyConfirmed(false);
+      setSendNeedsReconciliation(false);
+      setStatus("The prior Gmail outcome was reconciled as sent; no retry occurred.");
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : "The Gmail send could not be reconciled.",
+      );
     } finally {
       setBusy(false);
     }
@@ -349,7 +549,12 @@ export function WorkflowCommunicationPanel({
               <label className="select-field">
                 Declared analysis category
                 <select
-                  onChange={(event) => setAnalysisCategory(event.target.value)}
+                  onChange={(event) => {
+                    setAnalysisCategory(event.target.value);
+                    setAnalysis(null);
+                    setAiReply(null);
+                    clearExactReply();
+                  }}
                   value={analysisCategory}
                 >
                   <option value="general_question">General question</option>
@@ -390,10 +595,14 @@ export function WorkflowCommunicationPanel({
                 </div>
               ) : null}
               <label className="field">
-                <span>Current human draft (optional)</span>
+                <span>Human draft to improve (optional)</span>
                 <textarea
                   maxLength={50_000}
-                  onChange={(event) => setCurrentDraft(event.target.value)}
+                  onChange={(event) => {
+                    setCurrentDraft(event.target.value);
+                    setAiReply(null);
+                    clearExactReply();
+                  }}
                   rows={6}
                   value={currentDraft}
                 />
@@ -427,10 +636,114 @@ export function WorkflowCommunicationPanel({
                     <p>Removed: {aiReply.diff.removed.join(" / ") || "None"}</p>
                   </details>
                   <p className="muted">
-                    Transient proposal only. Review every source and exact word before
-                    using the separately governed confirmation flow.
+                    Transient proposal only. Review every source and exact word, then
+                    prepare the exact mailbox, recipient, subject, and body confirmation.
                   </p>
+                  {aiReply.ok ? (
+                    <button
+                      className="secondary-button"
+                      disabled={busy}
+                      onClick={() => void prepareExactReply()}
+                      type="button"
+                    >
+                      Review exact linked reply
+                    </button>
+                  ) : null}
                 </div>
+              ) : null}
+              {exactReplyPreview ? (
+                <section
+                  aria-label="Exact linked Gmail reply confirmation"
+                  className="notice ui-stack"
+                >
+                  <h4>Exact linked reply — not yet sent</h4>
+                  <p>
+                    <strong>From:</strong> {exactReplyPreview.payload.from}
+                  </p>
+                  <p>
+                    <strong>To:</strong> {exactReplyPreview.payload.to.join(", ")}
+                  </p>
+                  <p>
+                    <strong>CC:</strong>{" "}
+                    {exactReplyPreview.payload.cc.join(", ") || "None"}
+                  </p>
+                  <p>
+                    <strong>BCC:</strong>{" "}
+                    {exactReplyPreview.payload.bcc.join(", ") || "None"}
+                  </p>
+                  <p>
+                    <strong>Subject:</strong> {exactReplyPreview.payload.subject}
+                  </p>
+                  <p>
+                    <strong>Linked thread:</strong> {exactReplyPreview.payload.threadId}
+                  </p>
+                  <p>
+                    <strong>Confirmation expires:</strong>{" "}
+                    {new Date(exactReplyPreview.expiresAt).toLocaleString()}
+                  </p>
+                  <div>
+                    <strong>Exact reply body:</strong>
+                    <pre>{exactReplyPreview.payload.body}</pre>
+                  </div>
+                  {sendNeedsReconciliation ? (
+                    <div className="ui-stack">
+                      <p>
+                        The prior send outcome is ambiguous. Sending again is disabled
+                        until Gmail is checked for the unique message ID.
+                      </p>
+                      <button
+                        className="secondary-button"
+                        disabled={busy}
+                        onClick={() => void reconcileExactReply()}
+                        type="button"
+                      >
+                        Reconcile ambiguous reply
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <label className="checkbox-field">
+                        <input
+                          checked={exactReplyConfirmed}
+                          onChange={(event) =>
+                            setExactReplyConfirmed(event.target.checked)
+                          }
+                          type="checkbox"
+                        />
+                        <span>
+                          I reviewed the exact mailbox, recipient, subject, and reply
+                          body.
+                        </span>
+                      </label>
+                      <button
+                        className="primary-button"
+                        disabled={busy || !exactReplyConfirmed}
+                        onClick={() => void sendExactReply()}
+                        type="button"
+                      >
+                        Send exact linked reply
+                      </button>
+                    </>
+                  )}
+                </section>
+              ) : null}
+              {exactReplyReceipt ? (
+                <section aria-label="Gmail reply receipt" className="notice ui-stack">
+                  <h4>Bodyless Gmail receipt</h4>
+                  <p>
+                    <strong>Message ID:</strong> {exactReplyReceipt.result.messageId}
+                  </p>
+                  <p>
+                    <strong>Thread ID:</strong> {exactReplyReceipt.result.threadId}
+                  </p>
+                  <p>
+                    {exactReplyReceipt.reconciled
+                      ? "Reconciled as sent; no retry occurred."
+                      : exactReplyReceipt.duplicate
+                        ? "Existing receipt returned; no duplicate provider call occurred."
+                        : "Sent once after exact human confirmation."}
+                  </p>
+                </section>
               ) : null}
             </div>
           ) : null}

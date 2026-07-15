@@ -55,6 +55,17 @@ describe("Maintenance production Test workspace", () => {
     expect(screen.queryByText("Live sink leak")).toBeNull();
   });
 
+  it("keeps Live Gmail controls out of the Test lane", () => {
+    const rendered = render(<MaintenanceQueue initialTickets={[ticket("test")]} />);
+
+    expect(screen.queryByText("Linked Gmail communication")).toBeNull();
+    expect(screen.getByText(/No Live Gmail thread can be loaded/)).toBeVisible();
+
+    rendered.unmount();
+    render(<MaintenanceQueue initialTickets={[ticket("live")]} />);
+    expect(screen.getByText("Linked Gmail communication")).toBeInTheDocument();
+  });
+
   it("creates the canonical Test ticket from the production queue", async () => {
     const seeded = ticket("test");
     const fetchMock = vi.fn().mockResolvedValue({

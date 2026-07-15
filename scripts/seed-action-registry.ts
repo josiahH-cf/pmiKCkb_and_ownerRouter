@@ -29,7 +29,6 @@ artifact); this script refuses to seed any OTHER production_allowed entry.`;
 // NOT listed here is a surprise flip and the seed refuses it.
 const EXECUTABLE_ALLOWLIST = new Set<string>([
   "gmail.mailbox.read",
-  "gmail.draft.create",
   "gmail.message.send",
   "gmail.thread.reply",
   "gmail.label.apply",

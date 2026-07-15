@@ -108,16 +108,11 @@ describe("Action Registry stays non-executable for the live read paths", () => {
     }
   });
 
-  it("keeps every seed entry non-executable except the two allow-listed Gmail actions", () => {
+  it("keeps every seed entry non-executable except the allow-listed Gmail actions", () => {
     expect(
       ACTION_REGISTRY_SEED.filter((entry) => entry.production_allowed).map(
         (entry) => entry.key,
       ),
-    ).toEqual([
-      "gmail.mailbox.read",
-      "gmail.thread.reply",
-      "gmail.label.apply",
-      "gmail.draft.create",
-    ]);
+    ).toEqual(["gmail.mailbox.read", "gmail.thread.reply", "gmail.label.apply"]);
   });
 });

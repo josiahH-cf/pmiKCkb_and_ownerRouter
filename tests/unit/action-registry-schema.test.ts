@@ -140,7 +140,6 @@ describe("Action Registry seed catalog", () => {
       "gmail.mailbox.read",
       "gmail.thread.reply",
       "gmail.label.apply",
-      "gmail.draft.create",
     ]);
     for (const entry of ACTION_REGISTRY_SEED) {
       const parsed = CreateActionRegistryInputSchema.parse(entry);
@@ -221,12 +220,7 @@ describe("Action Registry seed catalog", () => {
       workflowTransport
         .filter((entry) => entry.production_allowed)
         .map((entry) => entry.key),
-    ).toEqual([
-      "gmail.mailbox.read",
-      "gmail.thread.reply",
-      "gmail.label.apply",
-      "gmail.draft.create",
-    ]);
+    ).toEqual(["gmail.mailbox.read", "gmail.thread.reply", "gmail.label.apply"]);
     expect(
       gmailEntries.find(
         (entry) => entry.key === "gmail.maintenance_owner_notice.draft_create",

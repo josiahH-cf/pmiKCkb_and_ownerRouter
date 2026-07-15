@@ -747,10 +747,10 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "Create an unsent reply draft in a thread from an approved reply pattern; Dan presses Send manually.",
     product_lane: "Workflow Communications",
-    readiness: "Approved for Execution",
+    readiness: "Ready for Test",
     evidence_status: "Documented",
     documented_evidence:
-      "Gmail API documents draft creation via gmail.compose. The owner approved production draft creation on 2026-07-13; this action remains draft-only because its runtime method and action gate never call send. Evidence: docs/evidence/gmail-production-activation-2026-07-13.md.",
+      "Gmail API documents draft creation via gmail.compose, and the transport has fake-client coverage. The current route has no exact-confirmation, idempotency/one-attempt ledger, or user-operable reviewed-draft receipt, so Live execution remains gate-closed while the isolated Test lane can exercise the contract.",
     required_permissions: [
       "Owner-approved per-user draft action model",
       "gmail.compose scope (send-capable; this action invokes draft creation only)",
@@ -797,10 +797,10 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
       },
     ],
     test_notes:
-      "Fake-transport coverage verifies the draft-only method boundary; production proof records identifiers only.",
+      "Fake-transport coverage verifies the draft-only method boundary. The committed production seed blocks the route before any Gmail client method call until a confirmed, idempotent UI ledger is implemented and reviewed.",
     rollback_note: "Delete the unsent draft; nothing was sent.",
     connection_health_check_ref: "health.gmail.workspace_api",
-    production_allowed: true,
+    production_allowed: false,
   },
   {
     key: "gmail.renewal_notice.draft_create",

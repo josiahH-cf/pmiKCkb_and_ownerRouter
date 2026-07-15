@@ -8,8 +8,9 @@ import { getSimulationRun } from "@/lib/lease-renewal/simulation";
 import { assertWorkflowRunAccess } from "@/lib/space-scope-resources";
 
 /**
- * Authorize a browser-supplied context before any Gmail client is constructed. Entity existence and
- * scope are both checked. Simulation/test runs are never eligible for an external Gmail mutation.
+ * Authorize a browser-supplied context before any Gmail client is constructed. Entity existence,
+ * scope, and data lane are all checked. Test records never construct or call a Gmail client; their
+ * communication evidence stays inside the isolated application Test workspace.
  */
 export async function requireWorkflowCommunicationContext(
   context: WorkflowCommunicationContext,
@@ -25,6 +26,12 @@ export async function requireWorkflowCommunicationContext(
         404,
       );
     }
+    if (ticket.data_mode !== "live") {
+      throw new EditableLayerError(
+        "Test maintenance tickets cannot access Live Gmail communication.",
+        409,
+      );
+    }
     return user;
   }
 
@@ -35,24 +42,19 @@ export async function requireWorkflowCommunicationContext(
         404,
       );
     }
-    if (capability !== "read") {
-      throw new EditableLayerError(
-        "Simulation renewal runs are preview-only and cannot execute Gmail actions.",
-        409,
-      );
-    }
-    return user;
+    throw new EditableLayerError(
+      "Test renewal runs cannot access Live Gmail communication.",
+      409,
+    );
   }
 
   const run = await getWorkflowRun(user, context.entityId);
   assertWorkflowRunAccess(user, run);
   if (run.is_test_run || run.simulation_only) {
-    if (capability !== "read") {
-      throw new EditableLayerError(
-        "Test workflow runs cannot execute Gmail actions.",
-        409,
-      );
-    }
+    throw new EditableLayerError(
+      "Test workflow runs cannot access Live Gmail communication.",
+      409,
+    );
   }
   if (!run.definition_id.includes("renewal")) {
     throw new EditableLayerError(
