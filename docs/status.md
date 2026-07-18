@@ -11,32 +11,46 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
-## Approval slice terminal; same-page selection regression locally repaired
+## Approval slice deployed, reconciled, and baseline-clean
 
 - Date: 2026-07-18
-- The deployed pass-two run now has 34 terminal cases: 28 pass, five expected denials, one honest
-  `not_reachable` empty write-back state, 247 pending, and zero in progress. All seven isolated
+- Protected PR #79 integrated the Approval same-page selection repair as product commit
+  `f6d5ddbce8b250b64df3bc58c81398f09e33b869`. Cloud Build
+  `1e7d0f07-1e45-4256-99c6-44aed1d3d250` built that exact source; revision
+  `pmi-kc-kb-demo-rmrqntfvs-4ebadb1e34a5` serves it at 100% with image digest
+  `sha256:39e807a8e8365c881a6443757de2b62c78b668d51f8aba04b3c20a0f552a82b2`. The prior serving
+  revision `pmi-kc-kb-demo-rmrqihw0o-e78cdaa5b501` is retained for rollback.
+- Clean integrated validation passed 322 test files / 2,290 tests, format, typecheck, all governance
+  gates, the 77-route production build, Firestore 59/59, and core E2E 32 passed / 18 intentional
+  prerequisite skips. Lint had zero errors/eight known warnings and the runtime dependency audit had
+  zero findings.
+- The deployed pass-two run now has 35 terminal cases: 29 pass, five expected denials, one honest
+  `not_reachable` empty write-back state, 246 pending, and zero in progress. All seven isolated
   Approval actions are terminal. Approve, return, snooze, assign, and disable changed only their
   canonical Test app records; approval-and-execute and bulk Execute stopped before provider
   construction with explicit no-external-write evidence.
-- Ten Approval read cases pass across the urgent inbox, All items, synthetic Renewal handoff, inline
-  eligibility, four reason/actor forms, and approval-versus-execution/bulk-skip boundaries. The
-  write-back view had no current proposal, so it records an honest `not_reachable` branch with the
-  bodyless authorization-never-means-execution boundary instead of an invented Live or sample row.
-- `APPROVAL-012` reproduced a new deployed cross-surface synchronization defect: same-page
-  `?item_id=` navigation changed the URL while the preserved client component retained the prior
-  detail until a refresh. `ApprovalQueue` now detects a changed route-owned initial selection and
-  atomically resets the view, selected item, detail/Activity, filters, action form, and bulk selection
-  to the streamed server state. A focused rerender regression test passes; format, lint (zero
-  errors/eight known warnings), typecheck, and the 12/12 component suite are green.
+- Eleven Approval read cases pass across the urgent inbox, All items, synthetic Renewal handoff,
+  inline eligibility, four reason/actor forms, approval-versus-execution/bulk-skip boundaries, and
+  complete view/filter/refresh persistence. The write-back view had no current proposal, so it
+  records an honest `not_reachable` branch with the bodyless authorization-never-means-execution
+  boundary instead of an invented Live or sample row.
+- `APPROVAL-012` reproduced the deployed cross-surface synchronization defect: same-page `?item_id=`
+  navigation changed the URL while the preserved client component retained the prior detail until a
+  refresh. `ApprovalQueue` now detects a changed route-owned initial selection and atomically resets
+  the view, selected item, detail/Activity, filters, action form, and bulk selection to the streamed
+  server state. Post-deployment browser proof followed the exact guard-to-guard link without refresh
+  and confirmed URL, active link, detail, Activity, views, Ready filter, and refreshed state remained
+  synchronized with zero console errors.
+- Approval reconciliation advanced the remediation ledger and capability matrix to revision 18.
+  Nine applicable finding rows are resolved; the existing documentation-only row remains
+  evidence-excluded; all 19 Approval capability rows now have terminal pass-two outcomes.
 - All seven Approval fixtures were restored to visibly Test / Ready for Approval after the action
   suite. Both managed staff principals are restored to Admin with All spaces, no restricted session
   is retained, and auth-preflight revision 3 records the honest posture. No provider call, Live
   record, message send, secret, customer value, or external effect entered evidence.
-- Production still serves product commit `618602020599104e601b89fb59d2d53a959c9e6d` on revision
-  `pmi-kc-kb-demo-rmrqihw0o-e78cdaa5b501`; the selection repair is local until protected integration
-  and an exact-commit deployment. Next: integrate/deploy it, rerun `APPROVAL-012`, reconcile Approval
-  ledger/matrix rows from revision 17, then continue the remaining 247 cases.
+- Next: continue the remaining 246 cases without replaying any of the 35 terminal cases, provision
+  bounded role/Vendor sessions only when a case requires them, reconcile each completed surface from
+  sidecar revision 18, and restore every temporary Test/identity baseline at the next safe boundary.
 
 ## Vendor repair deployed; pass-two approval checkpoint is baseline-clean
 

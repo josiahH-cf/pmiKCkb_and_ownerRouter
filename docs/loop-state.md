@@ -6,15 +6,15 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 ## Snapshot
 
 - Last updated: 2026-07-18.
-- The validated audit-remediation implementation was integrated through protected PR #76. The
-  deployed Vendor-handoff regression repair was then integrated through protected PR #77 as product
-  commit `618602020599104e601b89fb59d2d53a959c9e6d`.
-- Product commit `6186020` is serving at 100% on Cloud Run revision
-  `pmi-kc-kb-demo-rmrqihw0o-e78cdaa5b501`, image digest
-  `sha256:b3be8782bc12461d9018d3272fef238dc07d830b0794084e7fe3fe51c1c2b8e7`. Cloud Build
-  `aaeecd4a-3fe0-4454-b0e9-ac8ce3510066` built that exact source. The retained rollback revision is
-  `pmi-kc-kb-demo-rmrqf0ce6-ac7fc4d500ea`.
-- The clean integrated verifier passed from `6186020`: 322 test files / 2,289 tests, format,
+- The validated audit-remediation implementation was integrated through protected PR #76, the
+  Vendor-handoff regression repair through PR #77, and the Approval route-selection repair through
+  PR #79 as product commit `f6d5ddbce8b250b64df3bc58c81398f09e33b869`.
+- Product commit `f6d5ddb` is serving at 100% on Cloud Run revision
+  `pmi-kc-kb-demo-rmrqntfvs-4ebadb1e34a5`, image digest
+  `sha256:39e807a8e8365c881a6443757de2b62c78b668d51f8aba04b3c20a0f552a82b2`. Cloud Build
+  `1e7d0f07-1e45-4256-99c6-44aed1d3d250` built that exact source. The retained rollback revision is
+  `pmi-kc-kb-demo-rmrqihw0o-e78cdaa5b501`.
+- The clean integrated verifier passed from `f6d5ddb`: 322 test files / 2,290 tests, format,
   typecheck, router/falsification/context/spec/redaction, production build, Firestore 59/59, and core
   E2E 32 passed / 18 intentional prerequisite skips. Lint had zero errors and eight known warnings;
   the runtime dependency audit had zero findings.
@@ -25,19 +25,21 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
   `CAP-VENDOR-PORTAL-011` is pass.
 - The resumable deployed pass-two run is
   `artifacts/process-audit/20260718T101933Z-remediation-pass2/`. It is intentionally still running and
-  has 34 terminal cases: 28 pass, five expected denials, one honest `not_reachable` empty state, 247
+  has 35 terminal cases: 29 pass, five expected denials, one honest `not_reachable` empty state, 246
   pending, and zero in progress. All seven Approval action cases are terminal: approve, return,
   snooze, assign, and disable pass in isolated Test app state; approval-and-execute and bulk Execute
-  stop before provider construction as expected denials. Ten Approval read cases pass and the empty
-  write-back projection is evidence-excluded without inventing a row.
-- Deployed Approval case `APPROVAL-012` exposed one real same-page selection regression: clicking a
-  different `?item_id=` link changed the URL while the preserved client component briefly retained
-  the prior detail until refresh. The local repair reconciles route-owned selection when streamed
-  server props change; its focused 12/12 suite, format, lint (zero errors/eight known warnings), and
-  typecheck pass. Integration, deployment, and affected deployed proof remain next.
+  stop before provider construction as expected denials. Eleven Approval read cases pass and the
+  empty write-back projection is honestly `not_reachable` without inventing a row.
+- `APPROVAL-012` exposed one real same-page selection regression: clicking a different `?item_id=`
+  link changed the URL while the preserved client component retained the prior detail until refresh.
+  The integrated repair reconciles route-owned selection when streamed server props change. Its
+  focused 12/12 suite and full integrated validation pass; deployed proof shows URL, active link,
+  detail, Activity, All/Renewal/Write-back views, Ready filter, and refresh state remain synchronized,
+  with zero browser-console errors and no mutation or provider effect.
 - The pass-two ledger still maps all 137 pass-one findings and the capability matrix still maps all
-  281 stable cases. Their last durable sidecar reconciliation is revision 17; the newly terminal
-  Approval cases still need ledger/matrix reconciliation. Auth-preflight revision 3 truthfully
+  281 stable cases. Approval reconciliation advanced both sidecars to revision 18: nine applicable
+  Approval findings are resolved, the prior documentation-only row remains evidence-excluded, and
+  all 19 Approval capabilities have terminal pass-two outcomes. Auth-preflight revision 3 truthfully
   records the restored role/fixture baseline and retained-session posture.
 
 ## Safe Stop Boundary
@@ -63,21 +65,19 @@ identity baseline, and publish the final pass-one-versus-pass-two report.
 
 ## Next Exact Actions
 
-1. Validate the Approval selection-sync repair from a clean branch, integrate it through protected
-   `main`, deploy that exact integrated commit, and rerun `APPROVAL-012` by clicking between two exact
-   Test item links before refresh and after refresh. Keep the case pending until URL, selected row,
-   detail, and Activity agree on both paths.
-2. Reconcile all terminal Approval findings and capability rows from ledger/matrix revision 17,
-   including deployed evidence for the seven action cases, the ten passing read cases, the honest
-   empty write-back branch, restored fixture/role evidence, and the repaired refresh case.
-3. Continue the remaining Lease, Maintenance, Spaces, Communications, Console, Notifications,
+1. Continue the remaining Lease, Maintenance, Spaces, Communications, Console, Notifications,
    Connections, Admin, intake, publication, cross-surface, and audit-integrity cases. Provision
    isolated role or Vendor sessions only for the bounded cases that require them, then sign out or
    disable them at the next safe boundary.
-4. Reconcile every terminal result into the 137-row ledger and 281-row matrix, update auth readiness,
-   restore all Test baselines, finalize and validate the run, execute the full repository validation,
-   integrate the final tracked changes, deploy the exact integrated commit, and rerun affected
-   deployed evidence before reporting completion.
+2. Reconcile each newly terminal surface into the 137-row ledger and 281-row matrix from revision 18,
+   update auth readiness when a bounded session is provisioned or retired, and never replay the 35
+   existing terminal cases.
+3. Restore all Test and identity baselines at every mutation boundary; keep Live provider actions,
+   sends, customer-data writes, and unsupported positive paths evidence-excluded unless their exact
+   existing governance contract and human confirmation make them independently reachable.
+4. When all 281 cases are terminal, restore all Test baselines, finalize and validate the run,
+   execute the full repository validation, integrate the final tracked changes, deploy the exact
+   integrated commit, and rerun affected deployed evidence before reporting completion.
 
 ## Locked Safety
 
