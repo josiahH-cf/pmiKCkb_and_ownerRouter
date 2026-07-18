@@ -259,7 +259,7 @@ export function AskForm({
       <div className="ask-grid">
         <form className="ask-form panel" onSubmit={submit}>
           <div className="field-label-row">
-            <label htmlFor="question">
+            <label className="field-label" htmlFor="question">
               Question
               <span aria-hidden="true" className="field-required">
                 *
@@ -295,6 +295,7 @@ export function AskForm({
           </div>
           <textarea
             aria-describedby="question-hint"
+            aria-required="true"
             id="question"
             minLength={3}
             name="question"

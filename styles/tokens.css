@@ -154,7 +154,9 @@
   gap: 14px;
 }
 
-.ask-form label,
+/* Stacked label-over-control for bespoke select fields. The Console Ask form's labels are handled
+   by the .field / .field-label primitive (FDS-3), NOT this grid rule: forcing display:grid on a
+   label that has inline children (text + a required asterisk) would stack them onto two lines. */
 .select-field {
   color: var(--color-text);
   display: grid;
@@ -234,8 +236,8 @@
 }
 
 /* Guided-input field wrapper (FDS-3). One labelled control with an optional required asterisk
-   (always paired with a .sr-only "(required)") and an optional example/hint line, so every
-   data-entry field states what it expects and marks required inputs (baseline principles 2, 3, 12). */
+   (paired with the control's aria-required state so "required" is never color-only) and an optional
+   example/hint line, so every data-entry field states what it expects (baseline principles 2, 3, 12). */
 .field {
   display: grid;
   gap: 6px;
