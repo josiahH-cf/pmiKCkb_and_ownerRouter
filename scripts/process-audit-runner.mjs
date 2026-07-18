@@ -1990,6 +1990,139 @@ export async function checkpointCapabilityMatrix(runDir, artifact, now = new Dat
   return checkpointAuditSidecar(runDir, "capability_matrix", artifact, now);
 }
 
+const REMEDIATION_LEDGER_MUTABLE_KEYS = new Set([
+  "current_applicability",
+  "root_cause",
+  "affected_boundary",
+  "resolution_classification",
+  "required_setup_or_fixture",
+  "code_change",
+  "acceptance_criteria",
+  "regression_test_mapping",
+  "dependencies",
+  "status",
+  "commit_evidence",
+  "deployment_evidence",
+  "post_deployment_result",
+  "exclusion_reason",
+]);
+const CAPABILITY_MATRIX_MUTABLE_KEYS = new Set([
+  "fixture",
+  "test_layer",
+  "current_result",
+  "post_remediation_result",
+  "evidence",
+]);
+
+async function amendSidecarEntries(
+  runDir,
+  { kind, payload, idKey, mutableKeys, checkpoint, now = new Date() },
+) {
+  assertPlainObject("sidecar amendment", payload);
+  assertOnlyKeys("sidecar amendment", payload, new Set(["expected_revision", "updates"]));
+  if (!Number.isInteger(payload.expected_revision) || payload.expected_revision < 1) {
+    throw new Error("sidecar amendment.expected_revision must be a positive integer.");
+  }
+  if (!Array.isArray(payload.updates) || payload.updates.length === 0) {
+    throw new Error("sidecar amendment.updates must be a non-empty array.");
+  }
+
+  const config = SIDECAR_CONFIG[kind];
+  const files = runFiles(runDir);
+  const [manifest, artifact] = await Promise.all([
+    readJson(files.manifest),
+    readJson(path.join(runDir, config.artifact)),
+  ]);
+  assertRunRunning(manifest, `amending ${config.artifact}`);
+  const sidecarCheckpoint = manifest.sidecar_checkpoints?.[kind];
+  if (!sidecarCheckpoint) {
+    throw new Error(`${config.artifact} must be checkpointed before it can be amended.`);
+  }
+
+  const updatesById = new Map();
+  for (const [index, update] of payload.updates.entries()) {
+    const label = `sidecar amendment.updates[${index}]`;
+    assertPlainObject(label, update);
+    assertOnlyKeys(label, update, new Set([idKey, "changes"]));
+    assertNonemptyString(`${label}.${idKey}`, update[idKey], 200);
+    if (updatesById.has(update[idKey])) {
+      throw new Error(`Duplicate sidecar amendment ${idKey} ${update[idKey]}.`);
+    }
+    assertPlainObject(`${label}.changes`, update.changes);
+    assertOnlyKeys(`${label}.changes`, update.changes, mutableKeys);
+    if (Object.keys(update.changes).length === 0) {
+      throw new Error(`${label}.changes cannot be empty.`);
+    }
+    updatesById.set(update[idKey], update.changes);
+  }
+
+  const entriesById = new Map(artifact.entries.map((entry) => [entry[idKey], entry]));
+  const missing = [...updatesById.keys()].filter((id) => !entriesById.has(id));
+  if (missing.length > 0) {
+    throw new Error(
+      `${config.artifact} amendment references unknown ${idKey}: ${missing.join(", ")}.`,
+    );
+  }
+
+  const alreadyApplied = [...updatesById].every(([id, changes]) => {
+    const entry = entriesById.get(id);
+    return Object.entries(changes).every(([key, value]) => sameJson(entry[key], value));
+  });
+  if (sidecarCheckpoint.revision !== payload.expected_revision) {
+    if (sidecarCheckpoint.revision === payload.expected_revision + 1 && alreadyApplied) {
+      return {
+        idempotent: true,
+        artifact,
+        checkpoint: sidecarCheckpoint,
+        manifest,
+      };
+    }
+    throw new Error(
+      `${config.artifact} revision is ${sidecarCheckpoint.revision}; expected ${payload.expected_revision}. Reload before amending.`,
+    );
+  }
+  if (alreadyApplied) {
+    return {
+      idempotent: true,
+      artifact,
+      checkpoint: sidecarCheckpoint,
+      manifest,
+    };
+  }
+
+  const amended = structuredClone(artifact);
+  for (const entry of amended.entries) {
+    const changes = updatesById.get(entry[idKey]);
+    if (changes) Object.assign(entry, structuredClone(changes));
+  }
+  amended.generated_at = isoNow(now);
+  return checkpoint(runDir, amended, now);
+}
+
+/** Revision-checked, resumable amendment of selected remediation-ledger rows. */
+export async function amendRemediationLedgerEntries(runDir, payload, now = new Date()) {
+  return amendSidecarEntries(runDir, {
+    kind: "remediation_ledger",
+    payload,
+    idKey: "finding_id",
+    mutableKeys: REMEDIATION_LEDGER_MUTABLE_KEYS,
+    checkpoint: checkpointRemediationLedger,
+    now,
+  });
+}
+
+/** Revision-checked, resumable amendment of selected capability-matrix rows. */
+export async function amendCapabilityMatrixEntries(runDir, payload, now = new Date()) {
+  return amendSidecarEntries(runDir, {
+    kind: "capability_matrix",
+    payload,
+    idKey: "capability_id",
+    mutableKeys: CAPABILITY_MATRIX_MUTABLE_KEYS,
+    checkpoint: checkpointCapabilityMatrix,
+    now,
+  });
+}
+
 function classifyFindingForRemediation(finding, auditCase) {
   if (finding.finding_origin === "audit_harness") {
     return {
@@ -7131,6 +7264,21 @@ async function main(argv = process.argv.slice(2)) {
     );
     return;
   }
+  if (command === "amend-ledger") {
+    const result = await amendRemediationLedgerEntries(
+      path.resolve(options["run-dir"]),
+      await readCommandPayload(options),
+    );
+    console.log(
+      JSON.stringify({
+        idempotent: result.idempotent,
+        revision: result.checkpoint.revision,
+        entry_count: result.checkpoint.entry_count,
+        artifact_hash: result.checkpoint.artifact_hash,
+      }),
+    );
+    return;
+  }
   if (command === "bootstrap-matrix") {
     const result = await bootstrapCapabilityMatrix(path.resolve(options["run-dir"]));
     console.log(
@@ -7145,6 +7293,21 @@ async function main(argv = process.argv.slice(2)) {
   }
   if (command === "checkpoint-matrix") {
     const result = await checkpointCapabilityMatrix(
+      path.resolve(options["run-dir"]),
+      await readCommandPayload(options),
+    );
+    console.log(
+      JSON.stringify({
+        idempotent: result.idempotent,
+        revision: result.checkpoint.revision,
+        entry_count: result.checkpoint.entry_count,
+        artifact_hash: result.checkpoint.artifact_hash,
+      }),
+    );
+    return;
+  }
+  if (command === "amend-matrix") {
+    const result = await amendCapabilityMatrixEntries(
       path.resolve(options["run-dir"]),
       await readCommandPayload(options),
     );
@@ -7360,7 +7523,7 @@ async function main(argv = process.argv.slice(2)) {
     return;
   }
   const usage =
-    "Usage: npm run audit:process -- <init|reopen|reopen-case|amend-declarations|migrate-enums|amend-environment|declare-traceability|checkpoint-auth|bootstrap-ledger|checkpoint-ledger|bootstrap-matrix|checkpoint-matrix|extend|intent|recover-intent|effect|reversible-effect|dom-evidence|structured-evidence|harness-failure-evidence|evidence|retry|record|amend-result|amend-case-definition|finding|retract-finding|replace-finding|status|finalize|validate> --name=value";
+    "Usage: npm run audit:process -- <init|reopen|reopen-case|amend-declarations|migrate-enums|amend-environment|declare-traceability|checkpoint-auth|bootstrap-ledger|checkpoint-ledger|amend-ledger|bootstrap-matrix|checkpoint-matrix|amend-matrix|extend|intent|recover-intent|effect|reversible-effect|dom-evidence|structured-evidence|harness-failure-evidence|evidence|retry|record|amend-result|amend-case-definition|finding|retract-finding|replace-finding|status|finalize|validate> --name=value";
   if (command === "help") {
     console.log(usage);
     return;

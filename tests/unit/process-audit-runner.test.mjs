@@ -9,8 +9,10 @@ import {
   amendCaseEvidenceReferences,
   amendCaseResult,
   amendCaseRetryMetadata,
+  amendCapabilityMatrixEntries,
   amendEnvironmentMetadata,
   amendManifestDeclarations,
+  amendRemediationLedgerEntries,
   assertValueSafe,
   bootstrapCapabilityMatrix,
   bootstrapRemediationLedger,
@@ -2478,6 +2480,68 @@ it("checkpoints and terminally validates auth, remediation, and capability sidec
   await checkpointAuthPreflight(target.runDir, authPreflight);
   await bootstrapRemediationLedger(target.runDir, source.runDir);
   await bootstrapCapabilityMatrix(target.runDir);
+
+  const ledgerAmendment = {
+    expected_revision: 1,
+    updates: [
+      {
+        finding_id: "FND-SIDECAR-SOURCE-001-01",
+        changes: {
+          status: "in_progress",
+          root_cause: "The fixture dependency was confirmed by the source case.",
+          regression_test_mapping: [
+            "audit-case:SIDECAR-SOURCE-001",
+            "unit:runner-sidecars",
+          ],
+        },
+      },
+    ],
+  };
+  const amendedLedger = await amendRemediationLedgerEntries(
+    target.runDir,
+    ledgerAmendment,
+    new Date("2026-07-18T10:01:00.000Z"),
+  );
+  assert.equal(amendedLedger.checkpoint.revision, 2);
+  const ledgerReplay = await amendRemediationLedgerEntries(
+    target.runDir,
+    ledgerAmendment,
+  );
+  assert.equal(ledgerReplay.idempotent, true);
+  await assert.rejects(
+    amendRemediationLedgerEntries(target.runDir, {
+      expected_revision: 1,
+      updates: [
+        {
+          finding_id: "FND-SIDECAR-SOURCE-001-01",
+          changes: { status: "blocked" },
+        },
+      ],
+    }),
+    /revision is 2; expected 1/,
+  );
+
+  const matrixAmendment = {
+    expected_revision: 1,
+    updates: [
+      {
+        capability_id: "CAP-SIDECAR-ADMIN-001",
+        changes: {
+          fixture: "Reusable isolated Test fixture.",
+          current_result: "fail",
+          evidence: ["unit:runner-sidecars"],
+        },
+      },
+    ],
+  };
+  const amendedMatrix = await amendCapabilityMatrixEntries(
+    target.runDir,
+    matrixAmendment,
+    new Date("2026-07-18T10:02:00.000Z"),
+  );
+  assert.equal(amendedMatrix.checkpoint.revision, 2);
+  const matrixReplay = await amendCapabilityMatrixEntries(target.runDir, matrixAmendment);
+  assert.equal(matrixReplay.idempotent, true);
 
   const manifest = JSON.parse(
     await readFile(path.join(target.runDir, "manifest.json"), "utf8"),
