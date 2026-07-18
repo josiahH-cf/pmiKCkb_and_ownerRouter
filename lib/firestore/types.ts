@@ -577,6 +577,12 @@ export interface LeaseRenewalResolutionRecord {
   id: string;
   source_trigger_key: string;
   run_id: string;
+  /**
+   * Canonical in-boundary property key for an unambiguous address-joined flag. Optional for
+   * legacy/name-joined records. This lets bodyless decision projections route to the owning
+   * property without replaying a Live provider read or copying any source value.
+   */
+  property_key?: string;
   field_key: string;
   field_label: string;
   severity: QueueRiskLevel;
@@ -597,6 +603,7 @@ export interface LeaseRenewalResolutionActivityRecord {
   id: string;
   source_trigger_key: string;
   run_id: string;
+  property_key?: string;
   actor_uid: string;
   action: LeaseRenewalResolutionKind | "reopened";
   previous_status?: LeaseRenewalResolutionStatus;
@@ -618,6 +625,7 @@ export interface LeaseRenewalWritebackApprovalRecord {
   id: string;
   source_trigger_key: string;
   run_id: string;
+  property_key?: string;
   field_key: string;
   field_label: string;
   severity: QueueRiskLevel;
@@ -642,6 +650,7 @@ export interface LeaseRenewalWritebackApprovalActivityRecord {
   id: string;
   source_trigger_key: string;
   run_id: string;
+  property_key?: string;
   actor_uid: string;
   action: LeaseRenewalWritebackApprovalDecision;
   previous_state?: LeaseRenewalWritebackApprovalState;

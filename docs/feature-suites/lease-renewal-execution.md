@@ -62,6 +62,12 @@ external systems.
 - **Live authoritative values.** Configured Rentvine lease/contact/date/rent facts, approved owner
   decision, mapped Sheet cells, approved templates/policy, Dotloop template, and Boom applicability
   supply Live values. Missing/conflicting values block only the affected action.
+- **Live app-decision projection.** An unambiguous address-joined reconciliation decision stamps its
+  canonical in-boundary property key on the app-owned resolution and write-back authorization. The
+  Approval Queue and property history then project the same flag, decision receipt, queued-proposal
+  identity, authorization receipt/state, and explicit `not_executed` result without replaying a Live
+  provider read or copying candidate/proposed values. Legacy or name-joined records without a verified
+  property key are never guessed onto a property.
 - **Messages.** Recipient comes from an approved source adapter, never browser input. Gmail send/reply
   binds the provider-fetched canonical payload and exact RFC Message-ID; recipient/sender/subject/body/
   thread/artifact/label/consent drift is ambiguous. SMS binds exact recipient, sender, workflow, and

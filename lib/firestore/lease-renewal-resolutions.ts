@@ -60,6 +60,7 @@ type ParsedResolveInput = z.output<typeof ResolveLeaseRenewalFlagInputSchema>;
 export interface ResolvableFlag {
   source_trigger_key: string;
   run_id: string;
+  property_key?: string;
   field_key: string;
   field_label: string;
   severity: QueueRiskLevel;
@@ -192,6 +193,7 @@ function toResolvableFlag(
   return {
     source_trigger_key: sourceTriggerKey,
     run_id: run.runId,
+    ...(flag.propertyKey ? { property_key: flag.propertyKey } : {}),
     field_key: flag.fieldKey,
     field_label: flag.fieldLabel,
     severity: flag.reconciliation.severity,
@@ -264,6 +266,7 @@ export async function resolveLeaseRenewalFlag(
         id: docId,
         source_trigger_key: flag.source_trigger_key,
         run_id: flag.run_id,
+        property_key: flag.property_key,
         field_key: flag.field_key,
         field_label: flag.field_label,
         severity: flag.severity,
@@ -287,6 +290,7 @@ export async function resolveLeaseRenewalFlag(
         id: activityId,
         source_trigger_key: flag.source_trigger_key,
         run_id: flag.run_id,
+        property_key: flag.property_key,
         actor_uid: actor.uid,
         action: plan.resolution_kind,
         previous_status: previousStatus,
@@ -329,6 +333,26 @@ export async function listResolutionsForRun(
   const snapshot = await db
     .collection(LEASE_RENEWAL_COLLECTIONS.resolutions)
     .where("run_id", "==", runId)
+    .get();
+  return snapshot.docs
+    .map((doc) => readRecord<LeaseRenewalResolutionRecord>(doc.id, doc.data()))
+    .sort((left, right) => left.created_at.localeCompare(right.created_at));
+}
+
+/**
+ * Read the current decision records attributable to one canonical property. This query is app-plane
+ * only and never replays a RentVine/Sheet read; legacy and name-joined decisions without a verified
+ * property key remain unprojected rather than being guessed onto a property.
+ */
+export async function listResolutionsForProperty(
+  actor: AuthenticatedUser,
+  propertyKey: string,
+  db: Firestore = getAdminFirestore(),
+): Promise<LeaseRenewalResolutionRecord[]> {
+  assertCan(actor, "read");
+  const snapshot = await db
+    .collection(LEASE_RENEWAL_COLLECTIONS.resolutions)
+    .where("property_key", "==", propertyKey)
     .get();
   return snapshot.docs
     .map((doc) => readRecord<LeaseRenewalResolutionRecord>(doc.id, doc.data()))

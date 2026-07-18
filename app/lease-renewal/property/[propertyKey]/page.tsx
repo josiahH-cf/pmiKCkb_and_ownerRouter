@@ -1,16 +1,24 @@
 import Link from "next/link";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { LeaseDecisionProjectionPanel } from "@/components/lease-renewal/LeaseDecisionProjectionPanel";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { listLeaseTestRuns } from "@/lib/firestore/lease-renewal-test-runs";
-import { listResolutionActivityForRun } from "@/lib/firestore/lease-renewal-resolutions";
-import { listWritebackApprovalActivityForRun } from "@/lib/firestore/lease-renewal-writeback-approvals";
+import {
+  listResolutionActivityForRun,
+  listResolutionsForProperty,
+} from "@/lib/firestore/lease-renewal-resolutions";
+import {
+  listWritebackApprovalActivityForRun,
+  listWritebackApprovalsForProperty,
+} from "@/lib/firestore/lease-renewal-writeback-approvals";
 import type { LeaseRenewalWritebackApprovalActivityRecord } from "@/lib/firestore/types";
 import {
   getPropertyActivity,
   type PropertyRunActivity,
 } from "@/lib/lease-renewal/property-repository";
 import { normalizeRenewalReturnTo } from "@/lib/lease-renewal/property-history-link";
+import { buildLeaseRenewalDecisionProjections } from "@/lib/lease-renewal/decision-projection";
 import {
   buildTestRenewalSimulation,
   getSimulationRun,
@@ -79,6 +87,21 @@ export default async function LeaseRenewalPropertyPage({
   }
 
   const bucket = getPropertyActivity(runs, propertyKey);
+  let currentDecisionProjections: ReturnType<
+    typeof buildLeaseRenewalDecisionProjections
+  > = [];
+  try {
+    const [propertyResolutions, propertyApprovals] = await Promise.all([
+      listResolutionsForProperty(user, propertyKey),
+      listWritebackApprovalsForProperty(user, propertyKey),
+    ]);
+    currentDecisionProjections = buildLeaseRenewalDecisionProjections(
+      propertyResolutions,
+      propertyApprovals,
+    );
+  } catch {
+    activityUnavailable = true;
+  }
 
   return (
     <AppShell user={user}>
@@ -96,6 +119,11 @@ export default async function LeaseRenewalPropertyPage({
             connection is back to see this decision history.
           </p>
         ) : null}
+        <LeaseDecisionProjectionPanel
+          decisions={currentDecisionProjections}
+          emptyMessage="No current decision or write-back authorization is attributable to this property yet. Legacy or name-joined records are not guessed onto a property."
+          title="Current decision and authorization state"
+        />
         {bucket ? (
           <article className="panel">
             <p className="muted">

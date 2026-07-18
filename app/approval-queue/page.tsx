@@ -2,6 +2,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { TestOperationalHandoffPanel } from "@/components/operations/TestOperationalHandoffPanel";
 import { ApprovalQueue } from "@/components/approval/ApprovalQueue";
 import { DecisionMetricsCard } from "@/components/approval/DecisionMetricsCard";
+import { LeaseDecisionProjectionPanel } from "@/components/lease-renewal/LeaseDecisionProjectionPanel";
 import {
   buildRenewalReviewBoard,
   type RenewalReviewBoard,
@@ -24,8 +25,14 @@ import {
 import type {
   ApprovalQueueActivityRecord,
   ApprovalQueueItemRecord,
+  LeaseRenewalResolutionRecord,
+  LeaseRenewalWritebackApprovalRecord,
 } from "@/lib/firestore/types";
 import { loadRenewalRunViews } from "@/lib/lease-renewal/renewal-review-board";
+import {
+  buildLeaseRenewalDecisionProjections,
+  LIVE_RENEWAL_DECISION_RUN_ID,
+} from "@/lib/lease-renewal/decision-projection";
 import { loadTestOperationalHandoffs } from "@/lib/operations/test-handoff-loader";
 
 export default async function ApprovalQueuePage({
@@ -70,15 +77,26 @@ export default async function ApprovalQueuePage({
   // Value-free decision metrics (H1): counts only, degrades independently. Reads the KB-owned decision
   // collections directly (small volume) and projects to a value-free shape.
   let decisionMetrics: DecisionMetrics | undefined;
+  let allResolutions: LeaseRenewalResolutionRecord[] = [];
+  let allWritebackApprovals: LeaseRenewalWritebackApprovalRecord[] = [];
   try {
-    const [resolutions, approvals] = await Promise.all([
+    [allResolutions, allWritebackApprovals] = await Promise.all([
       listAllLeaseRenewalResolutions(user),
       listAllWritebackApprovals(user),
     ]);
-    decisionMetrics = buildDecisionMetrics({ resolutions, approvals });
+    decisionMetrics = buildDecisionMetrics({
+      resolutions: allResolutions,
+      approvals: allWritebackApprovals,
+    });
   } catch {
     decisionMetrics = undefined;
   }
+
+  const liveDecisionProjections = buildLeaseRenewalDecisionProjections(
+    allResolutions,
+    allWritebackApprovals,
+    { runId: LIVE_RENEWAL_DECISION_RUN_ID },
+  );
 
   const testHandoffs = await loadTestOperationalHandoffs(user, {
     lease: true,
@@ -98,6 +116,11 @@ export default async function ApprovalQueuePage({
           initialSelectedItemId={initialSelectedItemId}
           renewalBoard={renewalBoard}
           writebackQueue={writebackQueue}
+        />
+        <LeaseDecisionProjectionPanel
+          decisions={liveDecisionProjections}
+          emptyMessage="No Live Review decision has been recorded yet. This projection will populate after an authorized Live app decision; it never reads or changes a provider."
+          title="Live renewal decisions and write-back authorization"
         />
         <TestOperationalHandoffPanel
           handoffs={testHandoffs}

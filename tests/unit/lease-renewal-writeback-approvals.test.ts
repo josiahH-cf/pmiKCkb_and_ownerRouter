@@ -40,6 +40,7 @@ function seedResolution(
     id: docId,
     source_trigger_key: KEY,
     run_id: RUN_ID,
+    property_key: "opaque-property-key",
     field_key: "current_rent",
     field_label: "Current rent",
     severity: "High",
@@ -105,10 +106,15 @@ describe("decideWritebackApproval", () => {
     expect(approval.proposed_value).toBe("1500");
     expect(approval.source_of_value).toBe("rentvine");
     expect(approval.reason).toBe("RentVine is the authoritative rent.");
+    expect(approval.property_key).toBe("opaque-property-key");
 
     const activity = await listWritebackApprovalActivity(admin, KEY, fs());
     expect(activity).toHaveLength(1);
-    expect(activity[0]).toMatchObject({ action: "approve", new_state: "Approved" });
+    expect(activity[0]).toMatchObject({
+      action: "approve",
+      new_state: "Approved",
+      property_key: "opaque-property-key",
+    });
     expect(activity[0].previous_state).toBeUndefined();
   });
 

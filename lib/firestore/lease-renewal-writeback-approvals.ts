@@ -183,6 +183,7 @@ export async function decideWritebackApproval(
         id: docId,
         source_trigger_key: parsed.source_trigger_key,
         run_id: resolution.run_id,
+        property_key: resolution.property_key,
         field_key: resolution.field_key,
         field_label: resolution.field_label,
         severity: resolution.severity,
@@ -206,6 +207,7 @@ export async function decideWritebackApproval(
         id: activityId,
         source_trigger_key: parsed.source_trigger_key,
         run_id: resolution.run_id,
+        property_key: resolution.property_key,
         actor_uid: actor.uid,
         action: parsed.decision,
         previous_state: priorState,
@@ -297,6 +299,22 @@ export async function listWritebackApprovalsForRun(
   const snapshot = await db
     .collection(LEASE_RENEWAL_WRITEBACK_COLLECTIONS.approvals)
     .where("run_id", "==", runId)
+    .get();
+  return snapshot.docs
+    .map((doc) => readRecord<LeaseRenewalWritebackApprovalRecord>(doc.id, doc.data()))
+    .sort((left, right) => left.created_at.localeCompare(right.created_at));
+}
+
+/** Current app-only authorization records attributable to one canonical property. */
+export async function listWritebackApprovalsForProperty(
+  actor: AuthenticatedUser,
+  propertyKey: string,
+  db: Firestore = getAdminFirestore(),
+): Promise<LeaseRenewalWritebackApprovalRecord[]> {
+  assertCan(actor, "read");
+  const snapshot = await db
+    .collection(LEASE_RENEWAL_WRITEBACK_COLLECTIONS.approvals)
+    .where("property_key", "==", propertyKey)
     .get();
   return snapshot.docs
     .map((doc) => readRecord<LeaseRenewalWritebackApprovalRecord>(doc.id, doc.data()))
