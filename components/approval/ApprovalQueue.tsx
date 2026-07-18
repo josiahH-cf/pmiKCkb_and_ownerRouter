@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { queueActionAvailability } from "@/lib/approval/queue";
 import { buildNeedsDecisionInbox } from "@/lib/approval/needs-decision-inbox";
 import type { RenewalReviewBoard } from "@/lib/approval/renewal-review";
@@ -95,6 +95,46 @@ export function ApprovalQueue({
   const [bulkRequiredApproverUid, setBulkRequiredApproverUid] = useState("");
   const [bulkResult, setBulkResult] = useState<BulkQueueResult | null>(null);
   const [selectedBulkIds, setSelectedBulkIds] = useState<Set<string>>(new Set());
+  const initialSelectedItemIdRef = useRef(initialSelectedItemId);
+
+  // Next.js can preserve this client component while a same-page `?item_id=` link streams new
+  // server props. Reconcile that route-owned selection explicitly so the URL, highlighted row,
+  // detail, and Activity never describe different queue items.
+  useEffect(() => {
+    if (initialSelectedItemIdRef.current === initialSelectedItemId) {
+      return;
+    }
+
+    initialSelectedItemIdRef.current = initialSelectedItemId;
+    const nextInitialItem =
+      initialItems.find((item) => item.id === initialSelectedItemId) ??
+      initialItems.at(0);
+
+    setView("all");
+    setOtherViewsOpen(Boolean(initialSelectedItemId));
+    setItems(initialItems);
+    setSelectedItemId(nextInitialItem?.id ?? null);
+    setDetailsById(
+      nextInitialItem
+        ? {
+            [nextInitialItem.id]: {
+              activity: initialActivity,
+              item: nextInitialItem,
+            },
+          }
+        : {},
+    );
+    setFilters(emptyFilters);
+    setListError(initialError);
+    setMessage(initialError ?? "Approval Queue connected.");
+    setActionMode(null);
+    setReason("");
+    setSnoozeUntil("");
+    setAssigneeUid("");
+    setRequiredApproverUid("");
+    setSelectedBulkIds(new Set());
+    setBulkResult(null);
+  }, [initialActivity, initialError, initialItems, initialSelectedItemId]);
 
   const selectedItem = useMemo(() => {
     if (!selectedItemId) {

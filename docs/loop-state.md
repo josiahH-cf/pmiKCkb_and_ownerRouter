@@ -25,13 +25,20 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
   `CAP-VENDOR-PORTAL-011` is pass.
 - The resumable deployed pass-two run is
   `artifacts/process-audit/20260718T101933Z-remediation-pass2/`. It is intentionally still running and
-  has 20 terminal cases: 17 pass, three expected denials, 261 pending, and zero in progress. The four
-  completed approval mutations are approve, return, snooze, and assign. Each has an exact intent,
-  effect, bodyless DOM evidence, and terminal result; none contacted a provider.
+  has 34 terminal cases: 28 pass, five expected denials, one honest `not_reachable` empty state, 247
+  pending, and zero in progress. All seven Approval action cases are terminal: approve, return,
+  snooze, assign, and disable pass in isolated Test app state; approval-and-execute and bulk Execute
+  stop before provider construction as expected denials. Ten Approval read cases pass and the empty
+  write-back projection is evidence-excluded without inventing a row.
+- Deployed Approval case `APPROVAL-012` exposed one real same-page selection regression: clicking a
+  different `?item_id=` link changed the URL while the preserved client component briefly retained
+  the prior detail until refresh. The local repair reconciles route-owned selection when streamed
+  server props change; its focused 12/12 suite, format, lint (zero errors/eight known warnings), and
+  typecheck pass. Integration, deployment, and affected deployed proof remain next.
 - The pass-two ledger still maps all 137 pass-one findings and the capability matrix still maps all
-  281 stable cases. Their last durable sidecar reconciliation is revision 17; the three newly
-  terminal approval actions still need later ledger/matrix reconciliation with the remaining cases.
-  Auth-preflight revision 2 truthfully records the current session posture.
+  281 stable cases. Their last durable sidecar reconciliation is revision 17; the newly terminal
+  Approval cases still need ledger/matrix reconciliation. Auth-preflight revision 3 truthfully
+  records the restored role/fixture baseline and retained-session posture.
 
 ## Safe Stop Boundary
 
@@ -56,14 +63,13 @@ identity baseline, and publish the final pass-one-versus-pass-two report.
 
 ## Next Exact Actions
 
-1. Confirm the pass-two status remains `20 completed / 261 pending / 0 in progress` and inspect the
-   permanent evidence before any new mutation. `APPROVAL-ACT-005` is the first unstarted approval
-   mutation; then prove the execute and bulk-execute guards as expected denials for
-   `APPROVAL-ACT-006` and `APPROVAL-ACT-007`.
-2. Complete the remaining Approval read cases from the same deployed fixture suite. If another reset
-   is required after mutation, temporarily narrow the secondary staff actor through the supported
-   Admin UI, restore the seven fixtures, and immediately restore both staff identities to Admin / All
-   spaces again.
+1. Validate the Approval selection-sync repair from a clean branch, integrate it through protected
+   `main`, deploy that exact integrated commit, and rerun `APPROVAL-012` by clicking between two exact
+   Test item links before refresh and after refresh. Keep the case pending until URL, selected row,
+   detail, and Activity agree on both paths.
+2. Reconcile all terminal Approval findings and capability rows from ledger/matrix revision 17,
+   including deployed evidence for the seven action cases, the ten passing read cases, the honest
+   empty write-back branch, restored fixture/role evidence, and the repaired refresh case.
 3. Continue the remaining Lease, Maintenance, Spaces, Communications, Console, Notifications,
    Connections, Admin, intake, publication, cross-surface, and audit-integrity cases. Provision
    isolated role or Vendor sessions only for the bounded cases that require them, then sign out or

@@ -198,6 +198,42 @@ describe("ApprovalQueue bulk UI", () => {
     ).toBeInTheDocument();
   });
 
+  it("reconciles a same-page deep-link when the route selection changes", async () => {
+    const items = [
+      queueItem({ id: "item-1", action_needed: "Approve first item" }),
+      queueItem({ id: "item-2", action_needed: "Approve second item" }),
+    ];
+    const currentUser = { role: "Admin" as const, uid: "admin-1" };
+    const { rerender } = render(
+      <ApprovalQueue
+        currentUser={currentUser}
+        initialActivity={[activityEntry({ item_id: "item-1" })]}
+        initialItems={items}
+        initialSelectedItemId="item-1"
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { name: "Approve first item" }),
+    ).toBeInTheDocument();
+
+    rerender(
+      <ApprovalQueue
+        currentUser={currentUser}
+        initialActivity={[activityEntry({ id: "activity-2", item_id: "item-2" })]}
+        initialItems={items}
+        initialSelectedItemId="item-2"
+      />,
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("heading", { name: "Approve second item" }),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByRole("heading", { name: "Approve first item" })).toBeNull();
+  });
+
   it("caps Select visible at the 50-item bulk limit and keeps execute visibly guarded", async () => {
     const user = userEvent.setup();
     renderQueue({

@@ -153,11 +153,14 @@ Status: in progress — the validated remediation and its first deployed regress
 integrated through product commit `618602020599104e601b89fb59d2d53a959c9e6d`, which serves at 100%
 on `pmi-kc-kb-demo-rmrqihw0o-e78cdaa5b501`. Every finding remains mapped to an applicable repair or
 evidence-based exclusion and all 281 capabilities carry their pass-one baseline. Deployed pass two
-has 20 terminal cases (17 pass, three expected denials), 261 pending, and zero in progress. The
-Maintenance Vendor-handoff regression is fixed and proven. Approval approve/return/snooze/assign are
-also proven; all seven approval fixtures, both Admin/All-spaces staff baselines, and the signed-out
-restricted session are at a clean stop boundary. Remaining cases, temporary-session reprovisioning,
-ledger/matrix terminalization, final restoration, exact final deployment, and parity/report gates remain.
+has 34 terminal cases (28 pass, five expected denials, one honest `not_reachable` empty state), 247
+pending, and zero in progress. The Maintenance Vendor-handoff regression is fixed and proven. All
+seven Approval actions and eleven of twelve Approval reads are terminal; the final refresh/view case
+reproduced a same-page selection mismatch and now has a focused local repair plus regression test
+awaiting integration, exact deployment, and deployed proof. All seven Approval fixtures, both
+Admin/All-spaces staff baselines, and the signed-out restricted session are at a clean stop boundary.
+Remaining cases, temporary-session reprovisioning, ledger/matrix terminalization, final restoration,
+exact final deployment, and parity/report gates remain.
 
 Acceptance:
 
