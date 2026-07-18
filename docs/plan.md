@@ -149,11 +149,14 @@ Acceptance:
 
 ### P8 - Production Release and Human Walkthrough
 
-Status: in progress — Working-App V1 commit `38ebcf530e3fe193547806bace91246ccea20c0b` is
-serving 100% traffic on `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28`. Clean verification,
-commit/push/deploy, production logs, and signed-in desktop/375px browser acceptance are complete. The
-captured-prior traffic rollback/restore rehearsal is also complete. The human Test Vendor
-password/TOTP lifecycle ceremony is the sole remaining acceptance.
+Status: in progress — the pass-one production baseline remains Working-App V1 commit
+`38ebcf530e3fe193547806bace91246ccea20c0b` on
+`pmi-kc-kb-demo-rmrm9mp6v-04c897acee28`, while the authorized 137-finding remediation is implemented
+locally on `codex/process-audit-remediation-pass2` through commit `82fad97`. Every finding is mapped
+to an applicable repair or evidence-based exclusion and all 281 capabilities carry a pass-one
+baseline. Full validation, integration into `origin/main`, exact-commit deployment, separated role
+sessions, mandatory deployed pass two, regression repair if needed, and deterministic fixture/identity
+restoration remain before this remediation cycle is complete.
 
 Acceptance:
 

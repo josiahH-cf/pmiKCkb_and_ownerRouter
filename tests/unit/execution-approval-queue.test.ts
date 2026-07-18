@@ -65,6 +65,7 @@ describe("S20 execution-linked Approval Queue", () => {
     expect(item).toMatchObject({
       action_execution_id: execution.id,
       action_execution_preview_hash: execution.preview_hash,
+      action_needed: "Approve rentvine.work_order.create for execution.",
       affected_system_action: "rentvine.work_order.create",
       risk: "High",
       status: "Ready for Approval",

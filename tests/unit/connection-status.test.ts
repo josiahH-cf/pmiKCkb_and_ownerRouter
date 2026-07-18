@@ -36,7 +36,9 @@ describe("classifyConnector", () => {
     expect(status.state).toBe("action");
     expect(status.label).toBe("Ready to verify");
     // Detail stays plain and present-true — no not-yet-live verification promise.
-    expect(status.detail).toBe("Ready to connect.");
+    expect(status.detail).toBe(
+      "Configuration is present. Run the bounded read-only check.",
+    );
     expect(status.configuredCount).toBe(3);
   });
 
@@ -73,6 +75,17 @@ describe("classifyConnector", () => {
     );
     // Transport presence is not a product-health proof, so this connector has no live Verify control.
     expect(LIVE_VERIFIABLE_CONNECTOR_IDS).not.toContain("gmail_inbox");
+  });
+
+  it("does not claim an unwired verification control for fully configured connectors", () => {
+    const drive = CONNECTORS.find((connector) => connector.id === "google_drive")!;
+    const status = classifyConnector(
+      drive,
+      Object.fromEntries(drive.requiredConfig.map((name) => [name, true])),
+    );
+
+    expect(status.label).toBe("Setup complete");
+    expect(status.detail).toMatch(/No bounded live verification check is available/);
   });
 });
 

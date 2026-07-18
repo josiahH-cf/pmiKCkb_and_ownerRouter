@@ -292,6 +292,11 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    match /lease_renewal_test_business_events/{eventId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
     // Per-user renewal-decider Seen/Deferred markers (S14 B6). Written server-side through the
     // edit-gated Admin SDK boundary only. Unlike shared renewal decisions, these are personal
     // navigation markers: clients may read ONLY their own current + Activity records, including

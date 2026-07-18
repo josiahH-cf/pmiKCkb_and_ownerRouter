@@ -28,6 +28,20 @@ describe("intake token mint + verify", () => {
       expect(result.payload.jti).toBe("jti-abc");
       expect(result.payload.singleUse).toBe(true);
       expect(result.payload.epoch).toBe(0);
+      expect(result.payload.dataMode).toBe("live");
+    }
+  });
+
+  it("round-trips an explicitly signed Test lane", () => {
+    const token = mint({
+      propertyKey: "unit:test-maple-204",
+      dataMode: "test",
+    });
+    const result = verifyIntakeToken(SECRET, token, NOW);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.payload.propertyKey).toBe("unit:test-maple-204");
+      expect(result.payload.dataMode).toBe("test");
     }
   });
 

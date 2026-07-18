@@ -98,6 +98,45 @@ describe("createApprovalQueueItem", () => {
     });
   });
 
+  it("requires server-owned fixture authority for Test items", async () => {
+    await expect(
+      createApprovalQueueItem(editor, baseInput({ data_mode: "test" }), db),
+    ).rejects.toThrow(/server-owned audit fixture key/i);
+
+    await expect(
+      createApprovalQueueItem(
+        editor,
+        baseInput({
+          data_mode: "test",
+          test_fixture_key: "user-supplied:test",
+        }),
+        db,
+      ),
+    ).rejects.toThrow(/server-owned audit fixture key/i);
+
+    await expect(
+      createApprovalQueueItem(
+        editor,
+        baseInput({ test_fixture_key: "audit:fixture:v1" }),
+        db,
+      ),
+    ).rejects.toThrow(/only in Test mode/i);
+  });
+
+  it("keeps Test fixtures detached from the Live execution ledger", async () => {
+    await expect(
+      createApprovalQueueItem(
+        editor,
+        baseInput({
+          action_execution_id: "action-execution-live-1",
+          data_mode: "test",
+          test_fixture_key: "audit:fixture:v1",
+        }),
+        db,
+      ),
+    ).rejects.toThrow(/cannot attach to a Live execution ledger/i);
+  });
+
   it("routes a missing required approver to Blocked", async () => {
     const item = await createApprovalQueueItem(
       editor,

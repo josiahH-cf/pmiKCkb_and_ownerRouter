@@ -15,6 +15,7 @@ const runtime = vi.hoisted(() => ({
   deleteUser: vi.fn(),
   generatePasswordResetLink: vi.fn(),
   getVendorById: vi.fn(),
+  listBodylessAudit: vi.fn(),
   getConnection: vi.fn(),
   claimVendorSetupLinkRegeneration: vi.fn(),
   renewVendorSetupLinkRegenerationClaim: vi.fn(),
@@ -47,6 +48,7 @@ vi.mock("@/lib/firestore/vendors", () => ({
   FirestoreVendorStore: vi.fn(function FirestoreVendorStore() {
     return {
       getVendorById: runtime.getVendorById,
+      listBodylessAudit: runtime.listBodylessAudit,
       getConnection: runtime.getConnection,
       claimVendorSetupLinkRegeneration: runtime.claimVendorSetupLinkRegeneration,
       renewVendorSetupLinkRegenerationClaim:
@@ -64,6 +66,7 @@ vi.mock("@/lib/firestore/vendors", () => ({
 }));
 
 import {
+  listProductionTestVendorAudit,
   previewProductionTestVendorAuthenticationReset,
   regenerateProductionTestVendorSetupLink,
   resetProductionTestVendorAuthentication,
@@ -95,6 +98,66 @@ const record: VendorRecord = {
 
 afterEach(() => {
   vi.clearAllMocks();
+});
+
+describe("production Test Vendor bodyless audit runtime", () => {
+  it("returns only bodyless lifecycle fields for the canonical Test identity", async () => {
+    runtime.getVendorById.mockResolvedValue(record);
+    runtime.listBodylessAudit.mockResolvedValue([
+      {
+        actorUid: "admin-secret-uid",
+        vendorId: record.id,
+        action: "vendor.disabled",
+        ticketId: "ticket:test-maple-leak",
+        reasonHash: "secret-reason-hash",
+        createdAt: "2026-07-18T12:00:00.000Z",
+      },
+      {
+        actorUid: record.uid,
+        vendorId: record.id,
+        action: "vendor.test_mailbox_reply",
+        mailboxKey: "secret-mailbox-key",
+        createdAt: "2026-07-18T11:00:00.000Z",
+      },
+    ]);
+
+    await expect(listProductionTestVendorAudit(record.id)).resolves.toEqual([
+      {
+        action: "vendor.disabled",
+        createdAt: "2026-07-18T12:00:00.000Z",
+        mailboxScoped: false,
+        reasonRecorded: true,
+        ticketScoped: true,
+      },
+      {
+        action: "vendor.test_mailbox_reply",
+        createdAt: "2026-07-18T11:00:00.000Z",
+        mailboxScoped: true,
+        reasonRecorded: false,
+        ticketScoped: false,
+      },
+    ]);
+  });
+
+  it("rejects an arbitrary Vendor before reading Firestore audit records", async () => {
+    await expect(listProductionTestVendorAudit("vendor:arbitrary")).rejects.toMatchObject(
+      {
+        status: 404,
+        message: "Only an approved Test Vendor audit can be viewed here.",
+      },
+    );
+    expect(runtime.getVendorById).not.toHaveBeenCalled();
+    expect(runtime.listBodylessAudit).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when the canonical record is absent or not Test data", async () => {
+    runtime.getVendorById.mockResolvedValue({ ...record, data_mode: "live" });
+    await expect(listProductionTestVendorAudit(record.id)).rejects.toMatchObject({
+      status: 404,
+      message: "The Test Vendor was not found.",
+    });
+    expect(runtime.listBodylessAudit).not.toHaveBeenCalled();
+  });
 });
 
 describe("production Test Vendor setup-link recovery runtime", () => {

@@ -127,6 +127,9 @@ export function ProcessDefinitionListClient({
                     Owner: {definition.owner_uid} - Approver:{" "}
                     {definition.default_approver_uid}
                   </p>
+                  <p className="muted">
+                    Immutable version: {definition.active_version_id ?? "Not published"}
+                  </p>
                 </article>
               ))}
             </div>
@@ -164,6 +167,10 @@ export function ProcessDefinitionListClient({
                   </div>
                   <p className="muted">
                     Test run. No production metrics or external actions.
+                  </p>
+                  <p className="muted">
+                    Definition version:{" "}
+                    {run.definition_version_id ?? "Not pinned (draft)"}
                   </p>
                 </article>
               ))}

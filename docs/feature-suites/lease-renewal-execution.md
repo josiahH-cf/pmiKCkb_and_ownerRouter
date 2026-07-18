@@ -6,13 +6,18 @@
 > as an application/Test action in V1; each real provider action activates independently after its
 > documented contract and configuration are healthy.
 
-**Implementation status (2026-07-15): Deployed working app/Test journey accepted.** The normal Renewals experience creates
-a canonical invented Firestore Test run, persists `Created → Reviewed → Approved → Executing → Done`,
-and exposes all 11 exact actions with target/risk/effect, matrix dependencies, fresh confirmation,
-deterministic one-attempt/bodyless receipts, refresh-safe progress, and zero provider construction.
-Done is refused until all 11 receipts exist. The Admin Test workspace remains a diagnostic audit that
-selects every typed provider executor against isolated in-memory adapters; it is not the primary user
-workflow or Live-provider proof. Live actions retain independent activation/health states.
+**Implementation status (2026-07-18): Working app/Test journey expanded; deployment verification
+pending.** The normal Renewals experience creates a canonical invented Firestore Test run, persists
+`Created → Reviewed → Approved → Executing → Done` or the terminal `Moved to Move-Out` branch, and
+exposes source-backed candidate inclusion, owner direction, channel-separated outreach timing,
+conditional-fact review, tenant response, simulated signatures, Test business closeout, and all 11
+exact application actions. Every step has a fresh exact confirmation, deterministic bodyless evidence,
+refresh-safe progress, and zero provider construction. `Done` is refused until the accepted-renewal
+business milestones and all 11 receipts exist; Move-Out closes the renewal lane and points to the
+separate Test Move-Out space. Neither Test terminal state claims Live provider or real-world business
+completion. The Admin Test workspace remains a diagnostic audit that selects every typed provider
+executor against isolated in-memory adapters; it is not the primary user workflow or Live-provider
+proof. Live actions retain independent activation/health states.
 
 **Goal.** An authorized renewal workflow can carry verified or invented Test facts from identification
 and owner decision through outreach, record correction, renewal record/document creation, and
@@ -45,14 +50,24 @@ external systems.
 - **S20 bridge/exact schemas.** `lib/external-execution/s20-bridge.ts` projects authority-free values
   into S20 preparation. `lib/integrations/final-v1-action-contracts.ts` defines reviewed fields for all
   actions; missing/extra values block before a provider attempt. Browser authority/risk never applies.
-- **Test execution.** The persistent normal Test journey runs every action against invented values,
-  records exactly one deterministic attempt/receipt, and returns duplicate evidence on replay. Every
-  receipt says `data_mode:test`, `provider_contacted:false`, `live_proof_eligible:false`. The Admin
-  diagnostic separately proves typed executor selection, schema, authority, and failure behavior. No
-  Test evidence proves provider configuration.
+- **Test execution.** The persistent normal Test journey records immutable bodyless business events
+  around every application action: candidate inclusion, owner renewal direction, outreach timing,
+  conditional facts, one mutually exclusive tenant response, signatures, and Test closeout. The
+  accepted branch runs every action against invented values, records exactly one deterministic
+  attempt/receipt, and returns duplicate evidence on replay. The Move-Out branch becomes terminal and
+  refuses remaining renewal actions. Every event and receipt says `data_mode:test`,
+  `provider_contacted:false`, `live_proof_eligible:false`. The Admin diagnostic separately proves typed
+  executor selection, schema, authority, and failure behavior. No Test evidence proves provider
+  configuration or a real tenant/owner outcome.
 - **Live authoritative values.** Configured Rentvine lease/contact/date/rent facts, approved owner
   decision, mapped Sheet cells, approved templates/policy, Dotloop template, and Boom applicability
   supply Live values. Missing/conflicting values block only the affected action.
+- **Live app-decision projection.** An unambiguous address-joined reconciliation decision stamps its
+  canonical in-boundary property key on the app-owned resolution and write-back authorization. The
+  Approval Queue and property history then project the same flag, decision receipt, queued-proposal
+  identity, authorization receipt/state, and explicit `not_executed` result without replaying a Live
+  provider read or copying candidate/proposed values. Legacy or name-joined records without a verified
+  property key are never guessed onto a property.
 - **Messages.** Recipient comes from an approved source adapter, never browser input. Gmail send/reply
   binds the provider-fetched canonical payload and exact RFC Message-ID; recipient/sender/subject/body/
   thread/artifact/label/consent drift is ambiguous. SMS binds exact recipient, sender, workflow, and
@@ -122,11 +137,13 @@ lease-execution-authority external-execution-s20-bridge v1-production-test-works
 - **AC-S25-8** — Boom runs only on explicit applicability plus Admin approval in Live; not-applicable is
   terminal/audited; missing rule/identity blocks. Test covers both terminal paths with zero Boom call.
   _Verify:_ `npm test -- boom-renewal-executor`.
-- **AC-S25-9** — The normal production Test journey persists all 11 actions, deterministic one-attempt/
-  receipt evidence, dependency stops, refresh-safe progress, and Done with zero Live-provider calls.
-  Duplicate requests return the original evidence. The Admin diagnostic invokes all 11 typed executor
-  selections and verifies failure/reconciliation boundaries. Both explicitly deny Live-evidence
-  eligibility. _Verify:_ `npm test -- lease-renewal-test-workflow
+- **AC-S25-9** — The normal production Test journey persists candidate, owner, outreach/fact, tenant,
+  signature, and closeout milestones plus all 11 actions, deterministic one-attempt/receipt evidence,
+  dependency stops, refresh-safe progress, and Done with zero Live-provider calls. The mutually
+  exclusive Move-Out response closes the renewal branch, provides a Test Move-Out handoff, and blocks
+  remaining renewal actions. Duplicate requests return the original evidence. The Admin diagnostic
+  invokes all 11 typed executor selections and verifies failure/reconciliation boundaries. Every Test
+  terminal explicitly denies Live-evidence and real-business-completion eligibility. _Verify:_ `npm test -- lease-renewal-test-workflow
 lease-renewal-test-workflow-routes lease-renewal-test-workflow-component v1-synthetic-execution
 v1-production-test-workspace-route`; `npm run test:firestore`.
 - **AC-S25-10** — Full checks pass: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm
@@ -140,9 +157,10 @@ confirmation, and correction/reconciliation path pass. Unavailable actions remai
 
 **Ordered prompt sequence.**
 
-1. _Application acceptance:_ create a persistent normal Test run, refresh, execute all 11 action keys,
-   refresh, reach Done, and verify exact receipts plus zero Live-provider calls. Retain the Admin
-   typed-adapter run as a diagnostic falsification check.
+1. _Application acceptance:_ create a persistent normal Test run, refresh, record the business
+   milestones, execute all 11 action keys on the accepted branch, refresh, reach Done, and verify exact
+   events/receipts plus zero Live-provider calls. Separately prove the mutually exclusive terminal
+   Move-Out branch and handoff. Retain the Admin typed-adapter run as a diagnostic falsification check.
 2. _Workflow acceptance:_ verify the renewal UI exposes lane, provider activation, target/effect/risk,
    approval/confirmation, dependency, completion, and correction/reconciliation without dead ends.
 3. _Live activation:_ for each action actually used, capture only the official/account contract and

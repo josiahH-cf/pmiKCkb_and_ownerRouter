@@ -43,6 +43,9 @@ export const RECORDER_MESSAGES = {
   mp4Only:
     "This browser (Safari/iPhone) records audio in a format we can't transcribe yet. Use Chrome on this device, or type instead.",
   permission: "Microphone unavailable or permission denied. Type instead.",
+  permissionTimeout:
+    "Microphone permission did not respond. Try again, check browser permission, or type instead.",
+  permissionCancelled: "Microphone request cancelled. Typed text was preserved.",
   autoStop: "Recording reached the ~55 second limit and stopped.",
   handleError: "Something went wrong handling the recording. Type instead.",
 } as const;
@@ -58,11 +61,14 @@ export interface UseAudioRecorderOptions {
   onLifecycle?: (phase: AudioRecorderPhase) => void;
   /** Auto-stop after this many ms (default 55s, under the v1 sync recognize limit). */
   maxDurationMs?: number;
+  /** Stop waiting when the browser leaves its permission request unresolved (default 10s). */
+  permissionTimeoutMs?: number;
 }
 
 export interface AudioRecorderControls {
   isRecording: boolean;
   phase: AudioRecorderPhase;
+  cancelPermissionRequest: () => void;
   toggleRecording: () => Promise<void>;
 }
 
@@ -80,6 +86,7 @@ export function useAudioRecorder({
   onStatus,
   onLifecycle,
   maxDurationMs = 55_000,
+  permissionTimeoutMs = 10_000,
 }: UseAudioRecorderOptions): AudioRecorderControls {
   const [isRecording, setIsRecording] = useState(false);
   const [phase, setPhase] = useState<AudioRecorderPhase>("idle");
@@ -87,6 +94,8 @@ export function useAudioRecorder({
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const autoStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const permissionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const permissionRequestRef = useRef(0);
   const mountedRef = useRef(true);
 
   const transition = useCallback(
@@ -105,10 +114,20 @@ export function useAudioRecorder({
     }
   }, []);
 
-  useEffect(
-    () => () => {
+  const clearPermissionTimeout = useCallback(() => {
+    if (permissionTimeoutRef.current) {
+      clearTimeout(permissionTimeoutRef.current);
+      permissionTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
       mountedRef.current = false;
+      permissionRequestRef.current += 1;
       clearAutoStop();
+      clearPermissionTimeout();
       const recorder = recorderRef.current;
       if (recorder && recorder.state !== "inactive") {
         recorder.onstop = null;
@@ -117,9 +136,16 @@ export function useAudioRecorder({
       streamRef.current?.getTracks().forEach((track) => track.stop());
       recorderRef.current = null;
       streamRef.current = null;
-    },
-    [clearAutoStop],
-  );
+    };
+  }, [clearAutoStop, clearPermissionTimeout]);
+
+  const cancelPermissionRequest = useCallback(() => {
+    if (phaseRef.current !== "requesting-permission") return;
+    permissionRequestRef.current += 1;
+    clearPermissionTimeout();
+    transition("idle");
+    onStatus?.(RECORDER_MESSAGES.permissionCancelled);
+  }, [clearPermissionTimeout, onStatus, transition]);
 
   const toggleRecording = useCallback(async () => {
     const active = recorderRef.current;
@@ -155,13 +181,29 @@ export function useAudioRecorder({
       return;
     }
 
+    let permissionRequestId: number | undefined;
     try {
       transition("requesting-permission");
+      const requestId = ++permissionRequestRef.current;
+      permissionRequestId = requestId;
+      permissionTimeoutRef.current = setTimeout(() => {
+        if (
+          requestId !== permissionRequestRef.current ||
+          phaseRef.current !== "requesting-permission"
+        ) {
+          return;
+        }
+        permissionRequestRef.current += 1;
+        permissionTimeoutRef.current = null;
+        transition("error");
+        onError?.(RECORDER_MESSAGES.permissionTimeout);
+      }, permissionTimeoutMs);
       const stream = await media.getUserMedia({ audio: true });
-      if (!mountedRef.current) {
+      if (!mountedRef.current || requestId !== permissionRequestRef.current) {
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
+      clearPermissionTimeout();
       streamRef.current = stream;
       const recorder = new MediaRecorder(stream, { mimeType: support.supportedType });
       const chunks: Blob[] = [];
@@ -199,10 +241,23 @@ export function useAudioRecorder({
         }
       }, maxDurationMs);
     } catch {
+      clearPermissionTimeout();
+      if (permissionRequestId !== permissionRequestRef.current) return;
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
       transition("error");
       onError?.(RECORDER_MESSAGES.permission);
     }
-  }, [onRecording, onError, onStatus, maxDurationMs, clearAutoStop, transition]);
+  }, [
+    onRecording,
+    onError,
+    onStatus,
+    maxDurationMs,
+    permissionTimeoutMs,
+    clearAutoStop,
+    clearPermissionTimeout,
+    transition,
+  ]);
 
-  return { isRecording, phase, toggleRecording };
+  return { cancelPermissionRequest, isRecording, phase, toggleRecording };
 }

@@ -15,6 +15,7 @@ let testEnv: RulesTestEnvironment;
 const RUN_PATH = "lease_renewal_test_runs/test-renewal-1";
 const ATTEMPT_PATH = "lease_renewal_test_action_attempts/attempt-1";
 const RECEIPT_PATH = "lease_renewal_test_action_receipts/receipt-1";
+const BUSINESS_EVENT_PATH = "lease_renewal_test_business_events/event-1";
 
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
@@ -51,6 +52,14 @@ beforeEach(async () => {
       live_proof_eligible: false,
       provider_contacted: false,
     });
+    await setDoc(doc(db, BUSINESS_EVENT_PATH), {
+      id: "event-1",
+      run_id: "test-renewal-1",
+      data_mode: "test",
+      action: "tenant_accepts",
+      provider_contacted: false,
+      live_proof_eligible: false,
+    });
   });
 });
 
@@ -64,6 +73,7 @@ describe("Lease Test workflow Firestore rules", () => {
     await assertFails(getDoc(doc(db, RUN_PATH)));
     await assertFails(getDoc(doc(db, ATTEMPT_PATH)));
     await assertFails(getDoc(doc(db, RECEIPT_PATH)));
+    await assertFails(getDoc(doc(db, BUSINESS_EVENT_PATH)));
   });
 
   it("allows authenticated staff roles to read runs and bodyless evidence", async () => {
@@ -72,6 +82,7 @@ describe("Lease Test workflow Firestore rules", () => {
       await assertSucceeds(getDoc(doc(db, RUN_PATH)));
       await assertSucceeds(getDoc(doc(db, ATTEMPT_PATH)));
       await assertSucceeds(getDoc(doc(db, RECEIPT_PATH)));
+      await assertSucceeds(getDoc(doc(db, BUSINESS_EVENT_PATH)));
     }
   });
 
@@ -93,6 +104,12 @@ describe("Lease Test workflow Firestore rules", () => {
     await assertFails(
       setDoc(doc(db, "lease_renewal_test_action_receipts/new"), {
         live_proof_eligible: false,
+      }),
+    );
+    await assertFails(
+      setDoc(doc(db, "lease_renewal_test_business_events/new"), {
+        data_mode: "test",
+        action: "tenant_accepts",
       }),
     );
   });

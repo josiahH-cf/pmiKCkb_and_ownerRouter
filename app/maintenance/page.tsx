@@ -16,7 +16,12 @@ import type { UnverifiedIntakeRecord } from "@/lib/maintenance/intake-model";
 import { getMaintenancePhotoActionView } from "@/lib/maintenance/photo-action";
 import type { MaintenanceTestActionReceipt } from "@/lib/maintenance/test-workflow";
 
-export default async function MaintenancePage() {
+interface MaintenancePageProps {
+  searchParams?: Promise<{ ticket_id?: string }>;
+}
+
+export default async function MaintenancePage({ searchParams }: MaintenancePageProps) {
+  const focusedTicketId = (await searchParams)?.ticket_id?.trim() || undefined;
   await requirePageSpaceAccess("maintenance");
   // Capture is editor work (it produces a work-order draft); read-only users don't see it.
   const user = await requirePageCapability("edit");
@@ -78,6 +83,7 @@ export default async function MaintenancePage() {
           assignees={assignees}
           currentUid={user.uid}
           initialTestReceipts={testReceipts}
+          focusedTicketId={focusedTicketId}
         />
         <MaintenanceExecutionReadiness />
       </section>

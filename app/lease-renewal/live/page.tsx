@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { LeaseBusinessContractPanel } from "@/components/lease-renewal/LeaseBusinessContractPanel";
 import { LiveRenewalReview } from "@/components/lease-renewal/LiveRenewalReview";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { can } from "@/lib/auth/roles";
@@ -89,6 +90,7 @@ export default async function LiveRenewalReviewPage() {
         ) : (
           <LiveReviewPanel status={outcome.status} />
         )}
+        <LeaseBusinessContractPanel />
       </section>
     </AppShell>
   );

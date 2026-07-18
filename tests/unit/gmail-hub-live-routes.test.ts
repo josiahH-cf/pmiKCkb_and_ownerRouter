@@ -11,6 +11,10 @@ vi.mock("@/lib/firestore/maintenance-tickets", () => ({
 import { POST as linkCommunication } from "@/app/api/gmail-hub/communications/link/route";
 import { POST as prepareSend } from "@/app/api/gmail-hub/send-confirmations/route";
 import { GET as getThreads } from "@/app/api/gmail-hub/threads/route";
+import {
+  GET as getWatchPreview,
+  POST as renewWatch,
+} from "@/app/api/gmail-hub/watch/route";
 import { setAuthResolverForTest, type AuthenticatedUser } from "@/lib/auth/session";
 import { setGmailHubDependenciesForTest } from "@/lib/gmail-hub/dependencies";
 import { MemoryGmailStateStore } from "@/lib/gmail-hub/state-store";
@@ -79,9 +83,51 @@ afterEach(() => {
   setAuthResolverForTest(null);
   setGmailHubDependenciesForTest(null);
   getMaintenanceTicketMock.mockReset();
+  vi.unstubAllEnvs();
 });
 
+function installPushConfig() {
+  vi.stubEnv("GMAIL_PUBSUB_TOPIC", "projects/pmi-kc-kb-prod/topics/gmail-replies");
+  vi.stubEnv("GMAIL_PUBSUB_AUDIENCE", "https://audit.example.test/gmail-push");
+  vi.stubEnv(
+    "GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT",
+    "gmail-push@pmi-kc-kb-prod.iam.gserviceaccount.com",
+  );
+}
+
 describe("Workflow Communications route boundaries (AC-GW-1, AC-GW-3, AC-GW-5)", () => {
+  it("returns an exact watch preview and rejects confirmation drift before Gmail", async () => {
+    installPushConfig();
+    const tracker = installDependencies();
+    setAuthResolverForTest(async () => actor);
+
+    const preview = await getWatchPreview();
+    expect(preview.status).toBe(200);
+    await expect(preview.json()).resolves.toMatchObject({
+      mailboxEmail: actor.email,
+      topicName: "projects/pmi-kc-kb-prod/topics/gmail-replies",
+      currentWatchExpirationMs: null,
+      risk: expect.stringContaining("Live Gmail watch mutation"),
+    });
+    expect(tracker.clientsCreated()).toBe(1);
+
+    const drifted = await renewWatch(
+      new Request("https://example.test/api/gmail-hub/watch", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          mailboxEmail: "different@pmikcmetro.com",
+          topicName: "projects/pmi-kc-kb-prod/topics/gmail-replies",
+          observedWatchExpirationMs: null,
+          attemptKey: "018f5ca1-7b7c-7c3d-8b6f-5f83a36a5f51",
+          confirmed: true,
+        }),
+      }),
+    );
+    expect(drifted.status).toBe(409);
+    expect(tracker.clientsCreated()).toBe(1);
+  });
+
   it("returns 401 before constructing a Gmail client for a valid workflow reference", async () => {
     const tracker = installDependencies();
     setAuthResolverForTest(async () => null);

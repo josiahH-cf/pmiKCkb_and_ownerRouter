@@ -20,6 +20,7 @@ function submission(
 ): PublicIntakeSubmission {
   return {
     propertyKey: "prop-1",
+    dataMode: "live",
     jti: "jti-1",
     tokenEpoch: 0,
     singleUse: true,
@@ -51,6 +52,7 @@ describe("createUnverifiedIntakeFromPublic", () => {
     expect(record).toMatchObject({
       status: "unverified",
       source: "public-link",
+      data_mode: "live",
       property_key: "prop-1",
       summary: "Leaky faucet",
       reporter_kind: "external",
@@ -62,6 +64,36 @@ describe("createUnverifiedIntakeFromPublic", () => {
       `${MAINTENANCE_INTAKE_COLLECTIONS.rateCounter}/prop-1__${DAY}`,
     );
     expect(counter).toMatchObject({ property_key: "prop-1", day: DAY, count: 1 });
+  });
+
+  it("isolates canonical Test intake from Live counters and records its lane", async () => {
+    const db = new FakeFirestore();
+    const { id } = await run(
+      db,
+      submission({
+        propertyKey: "unit:test-maple-204",
+        dataMode: "test",
+        jti: "jti-test-1",
+        summary: "TEST — kitchen sink leak",
+        description: "TEST fixture: a slow drip needs staff review.",
+        contact: "resident-maintenance@example.invalid",
+      }),
+    );
+
+    expect(db.store.get(`${MAINTENANCE_INTAKE_COLLECTIONS.intake}/${id}`)).toMatchObject({
+      data_mode: "test",
+      property_key: "unit:test-maple-204",
+    });
+    expect(
+      db.store.get(
+        `${MAINTENANCE_INTAKE_COLLECTIONS.rateCounter}/test__unit:test-maple-204__${DAY}`,
+      ),
+    ).toMatchObject({ data_mode: "test", count: 1 });
+    expect(
+      db.store.has(
+        `${MAINTENANCE_INTAKE_COLLECTIONS.rateCounter}/unit:test-maple-204__${DAY}`,
+      ),
+    ).toBe(false);
   });
 
   it("rejects a replayed single-use token (nonce already present)", async () => {

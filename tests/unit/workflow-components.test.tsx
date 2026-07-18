@@ -10,6 +10,7 @@ import { WorkflowRunClient } from "@/components/workflows/WorkflowRunClient";
 import type {
   ProcessDefinitionRecord,
   WorkflowRunRecord,
+  WorkflowRunStepCheckRecord,
   WorkflowRunTimelineRecord,
 } from "@/lib/firestore/types";
 
@@ -95,12 +96,15 @@ describe("workflow components", () => {
     render(
       <WorkflowRunClient
         canEdit
+        initialChecks={[workflowCheck()]}
         initialRun={workflowRun()}
+        initialSteps={definition().steps}
         initialTimeline={[timelineEntry()]}
       />,
     );
 
     expect(screen.getByText(/Test run only/)).toBeInTheDocument();
+    expect(screen.getByText("Not pinned (draft)")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /execute/i })).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Notes"), "All simulated steps passed.");
@@ -110,6 +114,46 @@ describe("workflow components", () => {
       expect(screen.getByText("Test run completed.")).toBeInTheDocument(),
     );
     expect(screen.getAllByText("All simulated steps passed.")).toHaveLength(2);
+  });
+
+  it("keeps Test completion disabled until every definition step is checked or skipped", () => {
+    render(
+      <WorkflowRunClient
+        canEdit
+        initialChecks={[]}
+        initialRun={workflowRun()}
+        initialSteps={definition().steps}
+        initialTimeline={[timelineEntry()]}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Complete Test" })).toBeDisabled();
+    expect(screen.getByText(/Incomplete: Gather facts/)).toBeInTheDocument();
+  });
+
+  it("shows both immutable pins on a publication-continued Test run", () => {
+    render(
+      <WorkflowRunClient
+        canEdit
+        initialChecks={[]}
+        initialRun={workflowRun({
+          definition_version_id: "process-version-1",
+          source_publication_pin: {
+            data_mode: "test",
+            resource_id: "source:audit-test-publication-v1",
+            version_id: "publication-version-1",
+            test_fixture_key: "audit:trusted-publication:v1",
+          },
+        })}
+        initialSteps={definition().steps}
+        initialTimeline={[timelineEntry()]}
+      />,
+    );
+
+    expect(screen.getByText("process-version-1")).toBeInTheDocument();
+    expect(screen.getByText("publication-version-1")).toBeInTheDocument();
+    expect(screen.getByText("source:audit-test-publication-v1")).toBeInTheDocument();
+    expect(screen.getByText("TEST · never Live evidence")).toBeInTheDocument();
   });
 
   it("shows a read-only recent simulation-run index", () => {
@@ -205,6 +249,21 @@ function timelineEntry(
     run_id: "run-1",
     summary: "Started simulation-only test run.",
     ...overrides,
+  };
+}
+
+function workflowCheck(): WorkflowRunStepCheckRecord {
+  return {
+    checked_at: "2026-06-06T00:00:00.000Z",
+    checked_by_uid: "editor-1",
+    created_at: "2026-06-06T00:00:00.000Z",
+    definition_id: "def-1",
+    id: "run-1_step-1",
+    run_id: "run-1",
+    status: "Checked",
+    step_id: "step-1",
+    step_title: "Gather facts",
+    updated_at: "2026-06-06T00:00:00.000Z",
   };
 }
 

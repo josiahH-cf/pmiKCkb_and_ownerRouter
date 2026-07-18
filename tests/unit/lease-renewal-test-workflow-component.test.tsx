@@ -9,6 +9,7 @@ import { LeaseTestRunsWorkspace } from "@/components/lease-renewal/LeaseTestRuns
 import {
   LEASE_TEST_ACTIONS,
   LEASE_TEST_ALIASES,
+  LEASE_TEST_BUSINESS_CONFIRMATION,
   LEASE_TEST_CONFIRMATION,
   buildLeaseTestActionEvidence,
   type LeaseTestRunRecord,
@@ -19,8 +20,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function run(status: LeaseTestRunRecord["status"] = "Created"): LeaseTestRunRecord {
-  return {
+function run(
+  status: LeaseTestRunRecord["status"] = "Created",
+  businessReady = false,
+): LeaseTestRunRecord {
+  const record: LeaseTestRunRecord = {
     id: "test-renewal-1",
     data_mode: "test",
     scenario: "standard-renewal",
@@ -36,6 +40,27 @@ function run(status: LeaseTestRunRecord["status"] = "Created"): LeaseTestRunReco
     created_at: "2026-07-15T12:00:00.000Z",
     updated_at: "2026-07-15T12:00:00.000Z",
   };
+  if (status === "Executing" || status === "Done") {
+    Object.assign(record, {
+      candidate_disposition: "included",
+      candidate_cadence: "two_month_window",
+      candidate_off_cycle: false,
+      candidate_worklog_reason: "canonical_standard_window_test_fixture",
+      owner_direction: "renew",
+      owner_terms_key: "canonical-test-renewal-terms-v1",
+      tenant_offer_timing: "by_fifteenth",
+      signature_window_days: 30,
+      conditional_facts_key: "canonical-test-conditional-facts-v1",
+      ...(businessReady
+        ? {
+            tenant_response: "accepted",
+            signatures_state: "simulated_complete",
+            business_test_status: "test_complete",
+          }
+        : {}),
+    });
+  }
+  return record;
 }
 
 describe("Lease production Test UI", () => {
@@ -109,7 +134,7 @@ describe("Lease production Test UI", () => {
     expect(screen.queryByText("Linked Gmail communication")).toBeNull();
   });
 
-  it("does not allow Done until every matrix action has one receipt", () => {
+  it("separates App Test completion from business closeout evidence", () => {
     const allEvidence = LEASE_TEST_ACTIONS.map((actionKey, index) =>
       buildLeaseTestActionEvidence({
         receiptId: `receipt-${index}`,
@@ -127,18 +152,92 @@ describe("Lease production Test UI", () => {
         initialRun={run("Executing")}
       />,
     );
-    expect(screen.getByRole("button", { name: "Move to Done" })).toBeDisabled();
-    expect(screen.getByText(/Done unlocks after all 11/)).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Move to App Test complete" }),
+    ).toBeDisabled();
+    expect(screen.getByText(/App Test completion unlocks after all 11/)).toBeVisible();
 
     rendered.unmount();
     render(
       <LeaseTestJourney
         initialAttempts={allEvidence.map((entry) => entry.attempt)}
         initialReceipts={allEvidence.map((entry) => entry.receipt)}
-        initialRun={run("Executing")}
+        initialRun={run("Executing", true)}
       />,
     );
-    expect(screen.getByRole("button", { name: "Move to Done" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Move to App Test complete" }),
+    ).toBeEnabled();
     expect(screen.getByText(/11 of 11 Test actions complete/)).toBeVisible();
+    expect(
+      screen.getByRole("region", { name: "Business closeout evidence gates" }),
+    ).toHaveTextContent("Business closeout: Not proven");
+
+    cleanup();
+    render(
+      <LeaseTestJourney
+        initialAttempts={allEvidence.map((entry) => entry.attempt)}
+        initialReceipts={allEvidence.map((entry) => entry.receipt)}
+        initialRun={run("Done", true)}
+      />,
+    );
+    expect(screen.getAllByText("App Test complete").length).toBeGreaterThan(0);
+    expect(screen.getByText(/every internal simulation is recorded/)).toBeVisible();
+    expect(screen.getAllByText(/business proof not established/).length).toBe(6);
+  });
+
+  it("records the exact candidate milestone before review", async () => {
+    const nextRun = {
+      ...run("Created"),
+      candidate_disposition: "included" as const,
+      candidate_cadence: "two_month_window" as const,
+      candidate_off_cycle: false as const,
+      candidate_worklog_reason: "canonical_standard_window_test_fixture" as const,
+    };
+    const event = {
+      id: "business-event-1",
+      run_id: nextRun.id,
+      data_mode: "test" as const,
+      action: "candidate_included" as const,
+      outcome: "included_standard_window" as const,
+      actor_uid: "editor-1",
+      provider_contacted: false as const,
+      live_proof_eligible: false as const,
+      created_at: "2026-07-15T12:01:00.000Z",
+    };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ run: nextRun, event, duplicate: false }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <LeaseTestJourney
+        initialAttempts={[]}
+        initialReceipts={[]}
+        initialRun={run("Created")}
+      />,
+    );
+
+    expect(screen.getByText(/2027-07-31 review for 2027-09-30/)).toBeVisible();
+    fireEvent.click(
+      screen.getByLabelText(
+        "I confirm this exact app-only Test milestone and consequence.",
+      ),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Record Test milestone" }));
+
+    expect(
+      await screen.findByRole("list", { name: "Lease Test business event history" }),
+    ).toHaveTextContent("included_standard_window");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/lease-renewal/test-runs/test-renewal-1/business-events",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          action: "candidate_included",
+          confirmation: LEASE_TEST_BUSINESS_CONFIRMATION,
+        }),
+      }),
+    );
   });
 });

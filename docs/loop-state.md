@@ -6,6 +6,15 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 ## Snapshot
 
 - Last updated: 2026-07-18.
+- The authorized end-to-end pass-one remediation cycle is active on
+  `codex/process-audit-remediation-pass2`. Eight coherent commits through `82fad97` locally repair the
+  Critical dependency, application state/routing defects, Test fixtures, Lease/Maintenance business
+  lifecycle gates, publication/version continuation, cross-surface handoffs, Live app-decision
+  projection, and resumable audit sidecars. The pass-two ledger gives every one of the 137 findings a
+  root cause and disposition: 106 applicable/in progress and 31 evidence-excluded. The capability
+  matrix maps all 281 stable cases and carries their pass-one result/evidence. Local `main` and
+  `origin/main` remain at `77ee76e2f0b814c5a3cec2596a296ec7fe8570b8`; nothing from this repair
+  branch is deployed yet.
 - Deployed process-audit pass one is complete against the canonical Cloud Run application serving
   commit `38ebcf530e3fe193547806bace91246ccea20c0b`; the audit harness was built from local repository
   commit `2ca41cfe18de3ace79c7f4e1bf4c82474cf5be2c`. The resumable run
@@ -15,21 +24,23 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
   screenshots. All 32 reviewer-checklist items map to cases. No product defect was repaired in this
   pass. A later repair pass should consume `run-report.md`, `findings.jsonl`, and `manifest.json`
   without replaying completed Test mutations.
-- The clean repository verifier passes format, lint, typecheck, 307 unit files/2,215 tests, governance
-  gates, redaction, and the 76/76 production build. The current production dependency audit now
-  reports one critical transitive `websocket-driver@0.7.4` advisory through Firebase; direct
-  application reachability is not yet proven. Pass one records it as `FND-PRE-009-01` and makes no
-  dependency change.
-- Final adversarial runner review recorded and corrected three additional harness defects: inferred
-  pass defaults, same-count contract drift, and duplicate evidence references. The clean retry has a
-  canonical contract fingerprint, zero definition drift, zero duplicate-reference arrays, and no
-  replayed Test effect.
-- Active branch: `main`; the Test Vendor reset/re-enable, internal-roster separation,
-  deployment-wrapper hardening, and Approval Queue time-zone fix are committed, pushed, and deployed.
-- Goal: close the stable working V1 on the client-owned Cloud Run service and deliver the final human
-  HTML walkthrough. Deployment, desktop/phone browser acceptance, and current-revision
-  rollback/restore rehearsal are complete. The Test Vendor secret-bearing ceremony is the sole
-  remaining acceptance.
+- Focused remediation verification is green: runner 37/37, publication/workflow 28/28, Live renewal
+  projection and decision persistence 49/49, Lease Test/spec suites, Firestore suites, typecheck, and
+  lint with the eight existing warnings. The transitive `websocket-driver` lockfile is updated to the
+  fixed `0.7.5` release with a production-dependency regression assertion. Full repository validation
+  and the clean integrated-state verifier remain the next gate.
+- The reusable runner now rejects inferred pass defaults, same-count contract drift, duplicate
+  evidence references, unsafe sidecars, stale sidecar revisions, and non-idempotent amendment replay.
+  Pass two has bodyless auth, ledger, and capability checkpoints; role sessions are not terminally
+  ready until the deployed browser phase provisions and separates Admin, Editor, secondary Admin,
+  canonical Test Vendor, and public contexts.
+- Active branch: `codex/process-audit-remediation-pass2`; the pass-one main/deployed baseline is
+  unchanged and remains the rollback target until integration succeeds.
+- Goal: resolve or evidence-based exclude all 137 pass-one findings, add deterministic isolated Test
+  fixtures and role/session coverage, validate the full repository, integrate and deploy the exact
+  verified commit, then complete a deployed browser pass two and restore every temporary Test
+  baseline. Existing provider-activation and human-secret ceremonies remain independent unless a
+  safe fixture or already-authorized bodyless read proves them.
 - V1 truth: application readiness and provider activation are separate. Production carries Live
   records and visibly isolated persistent Test records. Test workflows may write app/Firestore
   state and reach Done, but their executors make zero external calls and never prove Live.
@@ -54,9 +65,6 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
   Gmail Hub, Connections, Admin, Lease Renewal, and Maintenance at desktop and 375px phone widths.
   Every route showed the expected H1, no horizontal overflow, and zero console errors; final-revision
   Cloud Run logs showed no checked ERROR-level entries.
-- Production acceptance found a real Approval Queue hydration mismatch: the initial activity time used
-  the Cloud Run host time zone while Chrome used Kansas City. The formatter now explicitly uses
-  `America/Chicago`, and a regression test pins the server/browser-stable output.
 - The final rollback rehearsal moved 100% traffic from
   `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` to
   `pmi-kc-kb-demo-rmrm8t6y7-d250f83ddfee`. Staff and Vendor sign-in returned 200,
@@ -93,13 +101,16 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 
 ## Next Exact Actions
 
-1. Use the completed pass-one findings and stable case IDs for the separately authorized repair pass,
-   beginning with the Critical dependency advisory and High application defects; do not replay
-   completed Test mutations or treat Test receipts as Live activation proof.
-2. When an owner-present session is available, complete only the remaining explicit human ceremonies:
-   canonical Test Vendor password/TOTP, secondary-role sessions, and exact operational confirmations.
-3. Rerun the affected audit cases after repairs and append a new pass rather than rewriting pass-one
-   evidence.
+1. Finish Tier-0/status documentation, then run format, lint, typecheck, full unit/Firestore/core-E2E,
+   falsification, redaction, context/spec gates, the all-in-one verifier, and pass-two running-state
+   integrity checks. Correct remediation-caused failures only.
+2. Use the established GitHub workflow to push and integrate the verified branch into `origin/main`;
+   recheck ADC/identity/budget/cutover state and deploy that exact integrated commit to the canonical
+   Cloud Run service, retaining the current revision as rollback target.
+3. Establish five isolated role/public browser contexts, run every safely reachable stable case on the
+   deployed revision, record pass-two evidence/findings/deltas, fix and redeploy any regression, make
+   all applicable ledger/matrix rows terminal, restore Test/Vendor/staff baselines, and finalize the
+   resumable run/report.
 
 ## Advisory Post-V1 Activations
 

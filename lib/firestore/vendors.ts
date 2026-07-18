@@ -112,6 +112,24 @@ function ticketProjection(ticket: MaintenanceTicketRecord): VendorTicketProjecti
   };
 }
 
+function auditTimestamp(value: unknown): string | null {
+  if (typeof value === "string") {
+    return Number.isFinite(Date.parse(value)) ? value : null;
+  }
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "toDate" in value &&
+    typeof value.toDate === "function"
+  ) {
+    const date = value.toDate();
+    return date instanceof Date && Number.isFinite(date.getTime())
+      ? date.toISOString()
+      : null;
+  }
+  return null;
+}
+
 export class FirestoreVendorStore
   implements
     VendorInviteStore,
@@ -149,6 +167,27 @@ export class FirestoreVendorStore
     return snapshot.docs
       .map((doc) => doc.data() as VendorRecord)
       .sort((left, right) => left.email.localeCompare(right.email));
+  }
+
+  async listBodylessAudit(vendorId: string, limit = 50): Promise<VendorBodylessAudit[]> {
+    const snapshot = await this.db
+      .collection(VENDOR_COLLECTIONS.audit)
+      .where("vendorId", "==", vendorId)
+      .get();
+    return snapshot.docs
+      .map((doc) => {
+        const raw = doc.data() as Omit<VendorBodylessAudit, "createdAt"> & {
+          createdAt?: unknown;
+        };
+        const createdAt = auditTimestamp(raw.createdAt);
+        return createdAt ? ({ ...raw, createdAt } as VendorBodylessAudit) : null;
+      })
+      .filter(
+        (record): record is VendorBodylessAudit =>
+          record !== null && record.vendorId === vendorId,
+      )
+      .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+      .slice(0, Math.max(1, Math.min(limit, 100)));
   }
 
   async saveVendor(record: VendorRecord): Promise<void> {

@@ -17,12 +17,16 @@ import {
   IntakeReplayError,
   IntakeRevokedError,
 } from "@/lib/firestore/maintenance-unverified-intake";
-import { mintIntakeToken } from "@/lib/maintenance/intake-token";
+import {
+  mintIntakeToken,
+  type MintIntakeTokenInput,
+} from "@/lib/maintenance/intake-token";
+import { MAINTENANCE_TEST_PUBLIC_INTAKE } from "@/lib/maintenance/test-workflow";
 
 const SECRET = "route-secret";
 const NOW = Date.now();
 
-function token(propertyKey = "prop-abc", overrides = {}) {
+function token(propertyKey = "prop-abc", overrides: Partial<MintIntakeTokenInput> = {}) {
   return mintIntakeToken(
     { secret: SECRET, propertyKey, jti: `jti-${Math.random()}`, epoch: 0, ...overrides },
     NOW,
@@ -109,9 +113,48 @@ describe("public maintenance intake route", () => {
     expect(createUnverifiedIntakeFromPublic).toHaveBeenCalledTimes(1);
     expect(vi.mocked(createUnverifiedIntakeFromPublic).mock.calls[0][0]).toMatchObject({
       propertyKey: "prop-xyz",
+      dataMode: "live",
       summary: "Leaky faucet",
       singleUse: true,
     });
+  });
+
+  it("accepts only the exact invented fixture for a signed Test token", async () => {
+    const testToken = token(MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey, {
+      dataMode: "test",
+    });
+    const res = await POST(
+      req(JSON.stringify(MAINTENANCE_TEST_PUBLIC_INTAKE), {
+        "x-intake-token": testToken,
+      }),
+    );
+    expect(res.status).toBe(202);
+    expect(createUnverifiedIntakeFromPublic).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(createUnverifiedIntakeFromPublic).mock.calls[0][0]).toMatchObject({
+      propertyKey: MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey,
+      dataMode: "test",
+      summary: MAINTENANCE_TEST_PUBLIC_INTAKE.summary,
+      description: MAINTENANCE_TEST_PUBLIC_INTAKE.description,
+      contact: MAINTENANCE_TEST_PUBLIC_INTAKE.contact,
+      singleUse: true,
+    });
+  });
+
+  it("rejects a non-fixture body even when the Test token is valid", async () => {
+    const testToken = token(MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey, {
+      dataMode: "test",
+    });
+    const res = await POST(
+      req(
+        JSON.stringify({
+          ...MAINTENANCE_TEST_PUBLIC_INTAKE,
+          summary: "A real-looking arbitrary report",
+        }),
+        { "x-intake-token": testToken },
+      ),
+    );
+    expect(res.status).toBe(400);
+    expect(createUnverifiedIntakeFromPublic).not.toHaveBeenCalled();
   });
 
   it("maps a replayed single-use token to 409", async () => {

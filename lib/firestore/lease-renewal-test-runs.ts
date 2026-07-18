@@ -5,7 +5,7 @@
 
 import { createHash } from "node:crypto";
 
-import type { Firestore } from "firebase-admin/firestore";
+import type { Firestore, Transaction } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
 
@@ -17,13 +17,18 @@ import {
   buildLeaseTestActionEvidence,
   LEASE_TEST_ACTIONS,
   LEASE_TEST_ALIASES,
+  LEASE_TEST_BUSINESS_ACTIONS,
+  LEASE_TEST_BUSINESS_CONFIRMATION,
   LEASE_TEST_CONFIRMATION,
   LEASE_TEST_RUN_STATUSES,
   LEASE_TEST_SCENARIO,
   leaseTestActionDependencies,
+  leaseTestBusinessActionBlocker,
   nextLeaseTestRunStatus,
   type LeaseTestActionAttempt,
   type LeaseTestActionReceipt,
+  type LeaseTestBusinessAction,
+  type LeaseTestBusinessEvent,
   type LeaseTestRunRecord,
 } from "@/lib/lease-renewal/test-workflow";
 
@@ -31,6 +36,7 @@ export const LEASE_TEST_RUN_COLLECTIONS = {
   runs: "lease_renewal_test_runs",
   attempts: "lease_renewal_test_action_attempts",
   receipts: "lease_renewal_test_action_receipts",
+  businessEvents: "lease_renewal_test_business_events",
 } as const;
 
 export const CreateLeaseTestRunInputSchema = z
@@ -53,6 +59,16 @@ export const SimulateLeaseTestActionInputSchema = z
   .strict();
 export type SimulateLeaseTestActionInput = z.input<
   typeof SimulateLeaseTestActionInputSchema
+>;
+
+export const RecordLeaseTestBusinessEventInputSchema = z
+  .object({
+    action: z.enum(LEASE_TEST_BUSINESS_ACTIONS),
+    confirmation: z.literal(LEASE_TEST_BUSINESS_CONFIRMATION),
+  })
+  .strict();
+export type RecordLeaseTestBusinessEventInput = z.input<
+  typeof RecordLeaseTestBusinessEventInputSchema
 >;
 
 function assertCan(actor: AuthenticatedUser, capability: Parameters<typeof can>[1]) {
@@ -146,6 +162,28 @@ export async function transitionLeaseTestRun(
       );
     }
 
+    if (parsed.nextStatus === "Reviewed" && run.candidate_disposition !== "included") {
+      throw new EditableLayerError(
+        "Record the canonical Test candidate disposition before review.",
+        409,
+      );
+    }
+    if (parsed.nextStatus === "Approved" && run.owner_direction !== "renew") {
+      throw new EditableLayerError(
+        "Record source-backed Test owner renewal direction before approval.",
+        409,
+      );
+    }
+    if (
+      parsed.nextStatus === "Executing" &&
+      (!run.tenant_offer_timing || !run.conditional_facts_key)
+    ) {
+      throw new EditableLayerError(
+        "Record tenant-offer timing and conditional Test facts before execution.",
+        409,
+      );
+    }
+
     if (parsed.nextStatus === "Done") {
       const missing: string[] = [];
       for (const actionKey of LEASE_TEST_ACTIONS) {
@@ -166,6 +204,16 @@ export async function transitionLeaseTestRun(
       if (missing.length > 0) {
         throw new EditableLayerError(
           `Complete all ${LEASE_TEST_ACTIONS.length} Test actions before Done. Missing: ${missing.join(", ")}.`,
+          409,
+        );
+      }
+      if (
+        run.tenant_response !== "accepted" ||
+        run.signatures_state !== "simulated_complete" ||
+        run.business_test_status !== "test_complete"
+      ) {
+        throw new EditableLayerError(
+          "Record tenant acceptance, simulated signatures, and Test business closeout before Done.",
           409,
         );
       }
@@ -233,6 +281,11 @@ export async function simulateLeaseTestAction(
       return { receipt, attempt };
     }
 
+    const businessBlocker = leaseTestBusinessActionBlocker(run, parsed.actionKey);
+    if (businessBlocker) {
+      throw new EditableLayerError(businessBlocker, 409);
+    }
+
     if (run.status !== "Executing") {
       throw new EditableLayerError(
         "Move this Lease Test run through Reviewed and Approved to Executing before running actions.",
@@ -274,6 +327,68 @@ export async function simulateLeaseTestAction(
   });
 }
 
+export async function recordLeaseTestBusinessEvent(
+  actor: AuthenticatedUser,
+  runId: string,
+  input: RecordLeaseTestBusinessEventInput,
+  db: Firestore = getAdminFirestore(),
+): Promise<{
+  run: LeaseTestRunRecord;
+  event: LeaseTestBusinessEvent;
+  duplicate: boolean;
+}> {
+  assertCan(actor, "edit");
+  const parsed = RecordLeaseTestBusinessEventInputSchema.parse(input);
+  const runRef = db.collection(LEASE_TEST_RUN_COLLECTIONS.runs).doc(runId);
+  const eventRef = db
+    .collection(LEASE_TEST_RUN_COLLECTIONS.businessEvents)
+    .doc(businessEventId(runId, parsed.action));
+  const createdAt = nowIso();
+
+  return db.runTransaction(async (transaction) => {
+    const runSnapshot = await transaction.get(runRef);
+    if (!runSnapshot.exists) {
+      throw new EditableLayerError("That Lease Test run does not exist.", 404);
+    }
+    const run = readLeaseTestRun(runSnapshot.id, runSnapshot.data()!);
+    const existingSnapshot = await transaction.get(eventRef);
+    if (existingSnapshot.exists) {
+      const event = readRecord<LeaseTestBusinessEvent>(
+        existingSnapshot.id,
+        existingSnapshot.data()!,
+      );
+      assertMatchingBusinessEvent(event, runId, parsed.action);
+      return { run, event, duplicate: true };
+    }
+
+    await assertBusinessEventDependencies(transaction, db, run, parsed.action);
+    const event = buildBusinessEvent(
+      eventRef.id,
+      runId,
+      parsed.action,
+      actor.uid,
+      createdAt,
+    );
+    const updated = applyBusinessEvent(run, parsed.action, actor.uid, createdAt);
+    transaction.set(eventRef, event);
+    transaction.set(runRef, stripUndefined(updated));
+    return { run: updated, event, duplicate: false };
+  });
+}
+
+export async function listLeaseTestBusinessEvents(
+  actor: AuthenticatedUser,
+  runId?: string,
+  db: Firestore = getAdminFirestore(),
+): Promise<LeaseTestBusinessEvent[]> {
+  assertCan(actor, "read");
+  const snapshot = await db.collection(LEASE_TEST_RUN_COLLECTIONS.businessEvents).get();
+  return snapshot.docs
+    .map((doc) => readRecord<LeaseTestBusinessEvent>(doc.id, doc.data()))
+    .filter((event) => !runId || event.run_id === runId)
+    .sort((left, right) => left.created_at.localeCompare(right.created_at));
+}
+
 export async function listLeaseTestActionReceipts(
   actor: AuthenticatedUser,
   runId?: string,
@@ -304,6 +419,242 @@ function evidenceId(kind: "receipt" | "attempt", runId: string, actionKey: strin
   return `${kind}_test_${createHash("sha256")
     .update(`${runId}\u0000${actionKey}`)
     .digest("hex")}`;
+}
+
+function businessEventId(runId: string, action: LeaseTestBusinessAction) {
+  const slot =
+    action === "tenant_accepts" || action === "tenant_moves_out"
+      ? "tenant_response"
+      : action;
+  return `business_test_${createHash("sha256")
+    .update(`${runId}\u0000${slot}`)
+    .digest("hex")}`;
+}
+
+async function assertBusinessEventDependencies(
+  transaction: Transaction,
+  db: Firestore,
+  run: LeaseTestRunRecord,
+  action: LeaseTestBusinessAction,
+) {
+  if (run.status === "Done" || run.status === "Moved to Move-Out") {
+    throw new EditableLayerError("This Lease Test business journey is closed.", 409);
+  }
+  if (action === "candidate_included") {
+    if (run.status !== "Created") {
+      throw new EditableLayerError(
+        "Candidate disposition belongs to the Created stage.",
+        409,
+      );
+    }
+    return;
+  }
+  if (action === "owner_renewal_approved") {
+    if (run.status !== "Reviewed" || run.candidate_disposition !== "included") {
+      throw new EditableLayerError(
+        "Review the included Test candidate before recording owner direction.",
+        409,
+      );
+    }
+    return;
+  }
+  if (action === "tenant_offer_scheduled" || action === "conditional_facts_confirmed") {
+    if (run.status !== "Approved" || run.owner_direction !== "renew") {
+      throw new EditableLayerError(
+        "Approve the source-backed Test owner direction first.",
+        409,
+      );
+    }
+    return;
+  }
+  if (run.status !== "Executing") {
+    throw new EditableLayerError(
+      "Move the Test renewal to Executing before recording this milestone.",
+      409,
+    );
+  }
+  if (action === "tenant_accepts" || action === "tenant_moves_out") {
+    const outreach = [
+      "gmail.renewal_notice.send",
+      "rentvine.renewal.portal_message.send",
+      "sms.renewal_message.send",
+    ] as const;
+    await assertReceiptsExist(transaction, db, run.id, outreach, "outreach channel");
+    return;
+  }
+  if (action === "signatures_complete") {
+    if (run.tenant_response !== "accepted" || !run.conditional_facts_key) {
+      throw new EditableLayerError(
+        "Tenant acceptance and conditional Test facts are required before signatures.",
+        409,
+      );
+    }
+    await assertReceiptsExist(
+      transaction,
+      db,
+      run.id,
+      ["dotloop.loop.create_from_template", "dotloop.document.upload"],
+      "document",
+    );
+    return;
+  }
+  if (action === "business_test_closeout") {
+    if (
+      run.tenant_response !== "accepted" ||
+      run.signatures_state !== "simulated_complete"
+    ) {
+      throw new EditableLayerError(
+        "Tenant acceptance and simulated signatures are required before Test closeout.",
+        409,
+      );
+    }
+    await assertReceiptsExist(transaction, db, run.id, LEASE_TEST_ACTIONS, "Test action");
+  }
+}
+
+async function assertReceiptsExist(
+  transaction: Transaction,
+  db: Firestore,
+  runId: string,
+  actionKeys: readonly (typeof LEASE_TEST_ACTIONS)[number][],
+  label: string,
+) {
+  const missing: string[] = [];
+  for (const actionKey of actionKeys) {
+    const receiptRef = db
+      .collection(LEASE_TEST_RUN_COLLECTIONS.receipts)
+      .doc(evidenceId("receipt", runId, actionKey));
+    const snapshot = await transaction.get(receiptRef);
+    if (!snapshot.exists) {
+      missing.push(actionKey);
+    } else {
+      assertMatchingReceipt(
+        readRecord<LeaseTestActionReceipt>(snapshot.id, snapshot.data()!),
+        runId,
+        actionKey,
+      );
+    }
+  }
+  if (missing.length > 0) {
+    throw new EditableLayerError(
+      `Complete required ${label} receipt${missing.length === 1 ? "" : "s"} first: ${missing.join(", ")}.`,
+      409,
+    );
+  }
+}
+
+function applyBusinessEvent(
+  run: LeaseTestRunRecord,
+  action: LeaseTestBusinessAction,
+  actorUid: string,
+  createdAt: string,
+): LeaseTestRunRecord {
+  const shared = { updated_at: createdAt, updated_by_uid: actorUid };
+  if (action === "candidate_included") {
+    return {
+      ...run,
+      ...shared,
+      candidate_disposition: "included",
+      candidate_cadence: "two_month_window",
+      candidate_off_cycle: false,
+      candidate_worklog_reason: "canonical_standard_window_test_fixture",
+    };
+  }
+  if (action === "owner_renewal_approved") {
+    return {
+      ...run,
+      ...shared,
+      owner_direction: "renew",
+      owner_terms_key: "canonical-test-renewal-terms-v1",
+    };
+  }
+  if (action === "tenant_offer_scheduled") {
+    return {
+      ...run,
+      ...shared,
+      tenant_offer_timing: "by_fifteenth",
+      signature_window_days: 30,
+    };
+  }
+  if (action === "conditional_facts_confirmed") {
+    return {
+      ...run,
+      ...shared,
+      conditional_facts_key: "canonical-test-conditional-facts-v1",
+    };
+  }
+  if (action === "tenant_accepts") {
+    return { ...run, ...shared, tenant_response: "accepted" };
+  }
+  if (action === "tenant_moves_out") {
+    return {
+      ...run,
+      ...shared,
+      business_test_status: "moved_to_move_out",
+      completed_at: createdAt,
+      move_out_handoff: {
+        data_mode: "test",
+        direct_link: "/spaces/move-out-deposit-disposition",
+        next_owner: "Move-Out operator",
+        state: "started",
+      },
+      status: "Moved to Move-Out",
+      tenant_response: "move_out",
+    };
+  }
+  if (action === "signatures_complete") {
+    return { ...run, ...shared, signatures_state: "simulated_complete" };
+  }
+  return { ...run, ...shared, business_test_status: "test_complete" };
+}
+
+function buildBusinessEvent(
+  id: string,
+  runId: string,
+  action: LeaseTestBusinessAction,
+  actorUid: string,
+  createdAt: string,
+): LeaseTestBusinessEvent {
+  const outcomes: Record<LeaseTestBusinessAction, LeaseTestBusinessEvent["outcome"]> = {
+    candidate_included: "included_standard_window",
+    owner_renewal_approved: "renewal_terms_approved",
+    tenant_offer_scheduled: "offer_due_by_fifteenth_with_30_day_signature_window",
+    conditional_facts_confirmed: "canonical_conditional_facts_confirmed",
+    tenant_accepts: "tenant_accepted",
+    tenant_moves_out: "move_out_handoff_started",
+    signatures_complete: "simulated_signatures_complete",
+    business_test_closeout: "test_business_journey_complete",
+  };
+  return {
+    id,
+    run_id: runId,
+    data_mode: "test",
+    action,
+    outcome: outcomes[action],
+    actor_uid: actorUid,
+    provider_contacted: false,
+    live_proof_eligible: false,
+    created_at: createdAt,
+  };
+}
+
+function assertMatchingBusinessEvent(
+  event: LeaseTestBusinessEvent,
+  runId: string,
+  action: LeaseTestBusinessAction,
+) {
+  if (
+    event.run_id !== runId ||
+    event.action !== action ||
+    event.data_mode !== "test" ||
+    event.provider_contacted !== false ||
+    event.live_proof_eligible !== false
+  ) {
+    throw new EditableLayerError(
+      "The existing Lease Test business event does not match this milestone.",
+      409,
+    );
+  }
 }
 
 function readLeaseTestRun(id: string, data: Record<string, unknown>) {

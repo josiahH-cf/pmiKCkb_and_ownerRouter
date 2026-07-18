@@ -9,6 +9,7 @@ import { readServerConfig } from "@/lib/config/server";
 import { readIntakeEpoch } from "@/lib/firestore/maintenance-unverified-intake";
 import { normalizeIntakePropertyKey } from "@/lib/maintenance/intake-sanitize";
 import { INTAKE_TOKEN_MAX_TTL_MS, mintIntakeToken } from "@/lib/maintenance/intake-token";
+import { MAINTENANCE_TEST_PUBLIC_INTAKE } from "@/lib/maintenance/test-workflow";
 
 // Mint a public intake token for a property (edit-gated staff action). Single-use ≤7d by default; a
 // reusable link (signage) is allowed up to 30d. The token is stamped with the property's current
@@ -20,11 +21,14 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const SINGLE_USE_MAX_DAYS = 7;
 const REUSABLE_MAX_DAYS = INTAKE_TOKEN_MAX_TTL_MS / DAY_MS; // 30
 
-const MintBodySchema = z.object({
-  propertyKey: z.string(),
-  ttlDays: z.coerce.number().int().positive().max(REUSABLE_MAX_DAYS).optional(),
-  reusable: z.boolean().optional(),
-});
+const MintBodySchema = z
+  .object({
+    propertyKey: z.string(),
+    dataMode: z.enum(["live", "test"]).default("live"),
+    ttlDays: z.coerce.number().int().positive().max(REUSABLE_MAX_DAYS).optional(),
+    reusable: z.boolean().optional(),
+  })
+  .strict();
 
 export async function POST(request: Request) {
   try {
@@ -44,26 +48,54 @@ export async function POST(request: Request) {
     if (!propertyKey) {
       return NextResponse.json({ error: "Invalid property key." }, { status: 400 });
     }
+    if (
+      input.dataMode === "test" &&
+      propertyKey !== MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey
+    ) {
+      return NextResponse.json(
+        { error: "Test intake tokens require the canonical invented Test property." },
+        { status: 400 },
+      );
+    }
+    if (input.dataMode === "test" && input.reusable) {
+      return NextResponse.json(
+        { error: "Test intake tokens are single-use." },
+        { status: 400 },
+      );
+    }
 
-    const singleUse = !input.reusable;
-    const maxDays = singleUse ? SINGLE_USE_MAX_DAYS : REUSABLE_MAX_DAYS;
+    const singleUse = input.dataMode === "test" ? true : !input.reusable;
+    const maxDays =
+      input.dataMode === "test" ? 1 : singleUse ? SINGLE_USE_MAX_DAYS : REUSABLE_MAX_DAYS;
     const days = Math.min(input.ttlDays ?? maxDays, maxDays);
     const ttlMs = days * DAY_MS;
 
     const now = Date.now();
     const epoch = await readIntakeEpoch(propertyKey);
     const token = mintIntakeToken(
-      { secret, propertyKey, jti: randomUUID(), epoch, ttlMs, singleUse },
+      {
+        secret,
+        propertyKey,
+        jti: randomUUID(),
+        epoch,
+        ttlMs,
+        singleUse,
+        dataMode: input.dataMode,
+      },
       now,
     );
 
     return NextResponse.json({
       token,
       propertyKey,
+      dataMode: input.dataMode,
       singleUse,
       expiresAt: new Date(now + ttlMs).toISOString(),
       submitPath: "/api/maintenance/intake/public",
       tokenHeader: "X-Intake-Token",
+      ...(input.dataMode === "test"
+        ? { testSubmission: MAINTENANCE_TEST_PUBLIC_INTAKE }
+        : {}),
     });
   } catch (error) {
     return apiErrorResponse(error);

@@ -22,6 +22,7 @@ import {
   updateProcessDefinition,
   updateWorkflowRunOutcome,
 } from "@/lib/firestore/workflows";
+import { setWorkflowRunStepCheck } from "@/lib/firestore/workflow-run-step-checks";
 import { FakeFirestore } from "../helpers/fake-firestore";
 
 function userWith(role: Role, uid: string): AuthenticatedUser {
@@ -110,6 +111,7 @@ describe("workflow foundation repository", () => {
       { due_date: "2026-06-20" },
       db,
     );
+    await completeChecklist(editor, testRun.id, definition.steps, db);
     await updateWorkflowRunOutcome(
       editor,
       testRun.id,
@@ -312,6 +314,16 @@ describe("workflow foundation repository", () => {
       "Testing",
     );
 
+    await expect(
+      updateWorkflowRunOutcome(
+        editor,
+        run.id,
+        { action: "complete_test", notes: "This is premature." },
+        db,
+      ),
+    ).rejects.toThrow(/Complete or skip every checklist step/);
+
+    await completeChecklist(editor, run.id, definition.steps, db);
     const completed = await updateWorkflowRunOutcome(
       editor,
       run.id,
@@ -325,6 +337,64 @@ describe("workflow foundation repository", () => {
     expect(
       (await getProcessDefinition(editor, definition.id, db)).last_successful_test_run_id,
     ).toBe(run.id);
+  });
+
+  it("idempotently pins an isolated Test run to active process and publication versions", async () => {
+    const definition = await createProcessDefinition(editor, baseDefinitionInput(), db);
+    const submitted = await submitProcessDefinitionForApproval(
+      editor,
+      definition.id,
+      {},
+      db,
+    );
+    await transitionApprovalQueueItem(
+      admin,
+      submitted.pending_queue_item_id!,
+      { action: "approve" },
+      db,
+    );
+    const active = await activateProcessDefinition(
+      admin,
+      definition.id,
+      { override_reason: "Repository-authorized Test publication continuation." },
+      db,
+    );
+    const sourcePublicationPin = {
+      data_mode: "test" as const,
+      resource_id: "source:audit-test-publication-v1",
+      version_id: "publication-version-1",
+      test_fixture_key: "audit:trusted-publication:v1",
+    };
+
+    const first = await startWorkflowTestRun(
+      editor,
+      definition.id,
+      { note: "Start the version-pinned Test continuation." },
+      db,
+      {
+        requireActiveDefinitionVersion: true,
+        runId: "publication_test_run_1",
+        sourcePublicationPin,
+      },
+    );
+    const duplicate = await startWorkflowTestRun(
+      editor,
+      definition.id,
+      { note: "A retry must not append a second start." },
+      db,
+      {
+        requireActiveDefinitionVersion: true,
+        runId: "publication_test_run_1",
+        sourcePublicationPin,
+      },
+    );
+
+    expect(first.id).toBe(duplicate.id);
+    expect(first.definition_version_id).toBe(active.active_version_id);
+    expect(first.source_publication_pin).toEqual(sourcePublicationPin);
+    const timeline = await listWorkflowRunTimeline(editor, first.id, db);
+    expect(timeline).toHaveLength(1);
+    expect(timeline[0].summary).toContain("publication-version-1");
   });
 
   it("rejects outcome updates for non-test or non-simulation runs", async () => {
@@ -427,6 +497,21 @@ describe("workflow foundation repository", () => {
     expect(runs.map((run) => run.id)).toEqual(["run-new-test"]);
   });
 });
+
+async function completeChecklist(
+  actor: AuthenticatedUser,
+  runId: string,
+  steps: readonly { id: string }[],
+  firestore: Firestore,
+) {
+  for (const step of steps) {
+    await setWorkflowRunStepCheck(
+      actor,
+      { run_id: runId, step_id: step.id, status: "Checked" },
+      firestore,
+    );
+  }
+}
 
 function baseDefinitionInput(
   overrides: Partial<CreateProcessDefinitionInput> = {},

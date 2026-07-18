@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { UnverifiedIntakeReview } from "@/components/maintenance/UnverifiedIntakeReview";
 import type { UnverifiedIntakeRecord } from "@/lib/maintenance/intake-model";
+import { MAINTENANCE_TEST_PUBLIC_INTAKE } from "@/lib/maintenance/test-workflow";
 
 afterEach(() => {
   cleanup();
@@ -17,6 +18,7 @@ function intake(overrides: Partial<UnverifiedIntakeRecord> = {}): UnverifiedInta
     id: "i1",
     status: "unverified",
     source: "public-link",
+    data_mode: "live",
     property_key: "prop-1",
     summary: "Water heater leaking",
     description: "Flooding the closet",
@@ -51,7 +53,7 @@ describe("UnverifiedIntakeReview", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     render(<UnverifiedIntakeReview initialIntake={[intake()]} />);
-    fireEvent.click(screen.getByText("Promote to ticket"));
+    fireEvent.click(screen.getByText("Promote to Live app ticket"));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -62,7 +64,7 @@ describe("UnverifiedIntakeReview", () => {
     await waitFor(() => {
       expect(screen.queryByText("Water heater leaking")).not.toBeInTheDocument();
     });
-    expect(screen.getByText(/Promoted to a ticket/)).toBeInTheDocument();
+    expect(screen.getByText(/Promoted to a Live app ticket/)).toBeInTheDocument();
   });
 
   it("promotes with an operator-confirmed unit in the request body", async () => {
@@ -83,7 +85,7 @@ describe("UnverifiedIntakeReview", () => {
     fireEvent.click(
       await screen.findByRole("button", { name: /123 Main Street Unit 2/ }),
     );
-    fireEvent.click(screen.getByText("Promote to ticket"));
+    fireEvent.click(screen.getByText("Promote to Live app ticket"));
 
     await waitFor(() => {
       const promoteCall = fetchMock.mock.calls.find(([url]) =>
@@ -94,6 +96,44 @@ describe("UnverifiedIntakeReview", () => {
         unit: { unitId: "unit:456", label: "123 Main Street Unit 2" },
       });
     });
+  });
+
+  it("renders and promotes Test intake without exposing a Live unit selector", async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ ticket: { id: "test-ticket" } }), {
+          status: 201,
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <UnverifiedIntakeReview
+        initialIntake={[
+          intake({
+            data_mode: "test",
+            property_key: MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey,
+            summary: MAINTENANCE_TEST_PUBLIC_INTAKE.summary,
+            description: MAINTENANCE_TEST_PUBLIC_INTAKE.description,
+            contact: MAINTENANCE_TEST_PUBLIC_INTAKE.contact,
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("TEST INTAKE")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Confirm unit (optional)")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("Promote to Test ticket"));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/maintenance/intake/i1/promote",
+        expect.objectContaining({ method: "POST", body: undefined }),
+      );
+    });
+    expect(
+      await screen.findByText(/Promoted to an isolated Test ticket/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/No Live ticket or provider effect/)).toBeInTheDocument();
   });
 
   it("requires a reason to dismiss (cancels when the prompt is empty)", async () => {

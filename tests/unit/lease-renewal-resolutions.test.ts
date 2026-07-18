@@ -116,6 +116,7 @@ describe("resolveLeaseRenewalFlag reason audit", () => {
 
     expect(resolution).toMatchObject({
       source_trigger_key: MEDIUM_KEY,
+      property_key: expect.any(String),
       severity: "Medium",
       reason_code: "accepted_suggestion",
       reason: "Accepted the suggested source",
@@ -126,6 +127,7 @@ describe("resolveLeaseRenewalFlag reason audit", () => {
       `${LEASE_RENEWAL_COLLECTIONS.resolutions}/${resolutionDocId(MEDIUM_KEY)}`,
     );
     expect(record).toMatchObject({
+      property_key: resolution.property_key,
       reason_code: "accepted_suggestion",
       reason: "Accepted the suggested source",
     });
@@ -138,6 +140,7 @@ describe("resolveLeaseRenewalFlag reason audit", () => {
     expect(activity).toHaveLength(1);
     expect(activity[0]).toMatchObject({
       source_trigger_key: MEDIUM_KEY,
+      property_key: resolution.property_key,
       reason_code: "accepted_suggestion",
       reason: "Accepted the suggested source",
       actor_uid: "approver-1",

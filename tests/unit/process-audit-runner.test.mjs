@@ -9,10 +9,17 @@ import {
   amendCaseEvidenceReferences,
   amendCaseResult,
   amendCaseRetryMetadata,
+  amendCapabilityMatrixEntries,
   amendEnvironmentMetadata,
   amendManifestDeclarations,
+  amendRemediationLedgerEntries,
   assertValueSafe,
+  bootstrapCapabilityMatrix,
+  bootstrapRemediationLedger,
+  checkpointAuthPreflight,
+  checkpointCapabilityMatrix,
   checkpointMutationIntent,
+  checkpointRemediationLedger,
   declareTraceabilityInventory,
   extendAuditCaseInventory,
   finalizeAuditRun,
@@ -42,6 +49,7 @@ function caseDefinition({
   dataMode = "test",
   mutationKind = "read",
   dependsOn = [],
+  role = "Auditor",
 }) {
   const expectation = {
     user_action: "Perform a deterministic Test-safe interaction.",
@@ -60,7 +68,7 @@ function caseDefinition({
     route: "/test",
     process: "Runner validation",
     workflow_stage: "unit test",
-    role: "Auditor",
+    role,
     data_mode: dataMode,
     mutation_kind: mutationKind,
     safe_alias: mutationKind === "read" ? null : "audit:test-alias",
@@ -2354,4 +2362,256 @@ it("authorizes replay only after a no-effect readback and requires evidence for 
   });
   await finalizeAuditRun(runDir);
   await validateAuditRun(runDir);
+});
+
+it("checkpoints and terminally validates auth, remediation, and capability sidecars", async () => {
+  const baseDir = await temporaryBase();
+  const source = await initializeAuditRun({
+    baseDir,
+    runId: "sidecar-source-run",
+    environment: {
+      deployment_url: "https://audit.example.invalid",
+      repository_commit: "0123456789abcdef",
+    },
+    guideSource: "docs/test-guide.html",
+    roles: ["Auditor"],
+    modes: ["test"],
+    cases: [caseDefinition({ id: "SIDECAR-SOURCE-001" })],
+  });
+  const blocker = {
+    description: "The isolated Test dependency was unavailable.",
+    unblock_action: "Create the isolated Test fixture and retry the case.",
+  };
+  await recordCaseResult(source.runDir, {
+    case_id: "SIDECAR-SOURCE-001",
+    ...resultFor({ current: "blocked", alignment: "blocked" }),
+    blocker,
+  });
+  await recordFinding(
+    source.runDir,
+    findingFor({
+      findingId: "FND-SIDECAR-SOURCE-001-01",
+      caseId: "SIDECAR-SOURCE-001",
+      blocker,
+    }),
+  );
+  await finalizeAuditRun(source.runDir);
+
+  const targetCases = [
+    caseDefinition({ id: "SIDECAR-ADMIN-001", role: "Admin" }),
+    caseDefinition({ id: "SIDECAR-EDITOR-001", role: "Editor" }),
+    caseDefinition({ id: "SIDECAR-VENDOR-001", role: "Test Vendor" }),
+    caseDefinition({
+      id: "SIDECAR-PUBLIC-001",
+      role: "Unauthenticated",
+      dataMode: "sample",
+    }),
+  ];
+  const target = await initializeAuditRun({
+    baseDir,
+    runId: "sidecar-target-run",
+    environment: {
+      deployment_url: "https://audit.example.invalid",
+      repository_commit: "0123456789abcdef",
+    },
+    guideSource: "docs/test-guide.html",
+    roles: ["Admin", "Editor", "Test Vendor", "Unauthenticated"],
+    modes: ["test", "sample"],
+    cases: targetCases,
+  });
+  const checkedAt = "2026-07-18T10:00:00.000Z";
+  const authPreflight = {
+    schema_version: "process-audit-auth-preflight.v1",
+    checked_at: checkedAt,
+    separation_verified: true,
+    identities: [
+      {
+        identity_class: "internal_admin",
+        role: "Admin",
+        mode: "test",
+        readiness: "ready",
+        checked_at: checkedAt,
+        expires_at: null,
+        session_context: "isolated-admin-context",
+        readiness_note: "The internal Admin Test session is ready.",
+      },
+      {
+        identity_class: "disposable_restricted_staff",
+        role: "Editor",
+        mode: "test",
+        readiness: "ready",
+        checked_at: checkedAt,
+        expires_at: "2026-07-19T10:00:00.000Z",
+        session_context: "isolated-editor-context",
+        readiness_note: "The disposable restricted Test session is ready.",
+      },
+      {
+        identity_class: "secondary_admin",
+        role: "Admin",
+        mode: "test",
+        readiness: "ready",
+        checked_at: checkedAt,
+        expires_at: "2026-07-19T10:00:00.000Z",
+        session_context: "isolated-secondary-admin-context",
+        readiness_note: "The distinct secondary Admin Test session is ready.",
+      },
+      {
+        identity_class: "canonical_test_vendor",
+        role: "Test Vendor",
+        mode: "test",
+        readiness: "ready",
+        checked_at: checkedAt,
+        expires_at: "2026-07-19T10:00:00.000Z",
+        session_context: "isolated-vendor-context",
+        readiness_note: "The canonical Test Vendor session is ready.",
+      },
+      {
+        identity_class: "unauthenticated_public",
+        role: "Unauthenticated",
+        mode: "sample",
+        readiness: "ready",
+        checked_at: checkedAt,
+        expires_at: null,
+        session_context: "isolated-public-context",
+        readiness_note: "The public context has no authenticated storage.",
+      },
+    ],
+  };
+  await checkpointAuthPreflight(target.runDir, authPreflight);
+  await bootstrapRemediationLedger(target.runDir, source.runDir);
+  await bootstrapCapabilityMatrix(target.runDir);
+
+  const ledgerAmendment = {
+    expected_revision: 1,
+    updates: [
+      {
+        finding_id: "FND-SIDECAR-SOURCE-001-01",
+        changes: {
+          status: "in_progress",
+          root_cause: "The fixture dependency was confirmed by the source case.",
+          regression_test_mapping: [
+            "audit-case:SIDECAR-SOURCE-001",
+            "unit:runner-sidecars",
+          ],
+        },
+      },
+    ],
+  };
+  const amendedLedger = await amendRemediationLedgerEntries(
+    target.runDir,
+    ledgerAmendment,
+    new Date("2026-07-18T10:01:00.000Z"),
+  );
+  assert.equal(amendedLedger.checkpoint.revision, 2);
+  const ledgerReplay = await amendRemediationLedgerEntries(
+    target.runDir,
+    ledgerAmendment,
+  );
+  assert.equal(ledgerReplay.idempotent, true);
+  await assert.rejects(
+    amendRemediationLedgerEntries(target.runDir, {
+      expected_revision: 1,
+      updates: [
+        {
+          finding_id: "FND-SIDECAR-SOURCE-001-01",
+          changes: { status: "blocked" },
+        },
+      ],
+    }),
+    /revision is 2; expected 1/,
+  );
+
+  const matrixAmendment = {
+    expected_revision: 1,
+    updates: [
+      {
+        capability_id: "CAP-SIDECAR-ADMIN-001",
+        changes: {
+          fixture: "Reusable isolated Test fixture.",
+          current_result: "fail",
+          evidence: ["unit:runner-sidecars"],
+        },
+      },
+    ],
+  };
+  const amendedMatrix = await amendCapabilityMatrixEntries(
+    target.runDir,
+    matrixAmendment,
+    new Date("2026-07-18T10:02:00.000Z"),
+  );
+  assert.equal(amendedMatrix.checkpoint.revision, 2);
+  const matrixReplay = await amendCapabilityMatrixEntries(target.runDir, matrixAmendment);
+  assert.equal(matrixReplay.idempotent, true);
+
+  const manifest = JSON.parse(
+    await readFile(path.join(target.runDir, "manifest.json"), "utf8"),
+  );
+  assert.equal(manifest.capabilities.auth_preflight, true);
+  assert.equal(manifest.capabilities.remediation_ledger, true);
+  assert.equal(manifest.capabilities.capability_matrix, true);
+  assert.equal(manifest.sidecar_checkpoints.auth_preflight.entry_count, 5);
+  assert.equal(manifest.sidecar_checkpoints.remediation_ledger.entry_count, 1);
+  assert.equal(manifest.sidecar_checkpoints.capability_matrix.entry_count, 4);
+
+  const invalidAuth = structuredClone(authPreflight);
+  invalidAuth.identities[1].session_context = invalidAuth.identities[0].session_context;
+  await assert.rejects(
+    checkpointAuthPreflight(target.runDir, invalidAuth),
+    /separate session contexts/,
+  );
+  const pendingLedger = JSON.parse(
+    await readFile(path.join(target.runDir, "remediation-ledger.json"), "utf8"),
+  );
+  const duplicateLedger = structuredClone(pendingLedger);
+  duplicateLedger.entries.push(structuredClone(duplicateLedger.entries[0]));
+  duplicateLedger.source_finding_count = 2;
+  await assert.rejects(
+    checkpointRemediationLedger(target.runDir, duplicateLedger),
+    /Duplicate remediation finding/,
+  );
+  const pendingMatrix = JSON.parse(
+    await readFile(path.join(target.runDir, "capability-matrix.json"), "utf8"),
+  );
+  const unknownCaseMatrix = structuredClone(pendingMatrix);
+  unknownCaseMatrix.entries[0].case_ids = ["UNKNOWN-CASE-001"];
+  await assert.rejects(
+    checkpointCapabilityMatrix(target.runDir, unknownCaseMatrix),
+    /maps unknown case/,
+  );
+
+  const evidenceByCase = new Map();
+  for (const auditCase of targetCases) {
+    const dom = await recordDom(target.runDir, auditCase.id);
+    await recordCaseResult(target.runDir, {
+      case_id: auditCase.id,
+      ...resultFor({ dataMode: auditCase.data_mode, evidence: [dom.reference] }),
+    });
+    evidenceByCase.set(auditCase.id, dom.reference);
+  }
+  await assert.rejects(finalizeAuditRun(target.runDir), /remediation is not terminal/);
+
+  pendingLedger.generated_at = "2026-07-18T10:05:00.000Z";
+  pendingLedger.entries[0] = {
+    ...pendingLedger.entries[0],
+    status: "resolved",
+    commit_evidence: "unit-test source commit",
+    deployment_evidence: "unit-test deployed revision",
+    post_deployment_result: "pass",
+  };
+  await checkpointRemediationLedger(target.runDir, pendingLedger);
+  pendingMatrix.generated_at = "2026-07-18T10:05:00.000Z";
+  for (const entry of pendingMatrix.entries) {
+    entry.current_result = "pass";
+    entry.post_remediation_result = "pass";
+    entry.evidence = entry.case_ids.map((caseId) => evidenceByCase.get(caseId));
+  }
+  await checkpointCapabilityMatrix(target.runDir, pendingMatrix);
+  const replay = await checkpointCapabilityMatrix(target.runDir, pendingMatrix);
+  assert.equal(replay.idempotent, true);
+
+  await finalizeAuditRun(target.runDir);
+  const validation = await validateAuditRun(target.runDir);
+  assert.equal(validation.auth_identity_count, 5);
+  assert.equal(validation.remediation_ledger_count, 1);
+  assert.equal(validation.capability_matrix_count, 4);
 });

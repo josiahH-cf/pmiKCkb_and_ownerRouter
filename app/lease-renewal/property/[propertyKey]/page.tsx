@@ -1,16 +1,29 @@
 import Link from "next/link";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { LeaseDecisionProjectionPanel } from "@/components/lease-renewal/LeaseDecisionProjectionPanel";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
-import { listResolutionActivityForRun } from "@/lib/firestore/lease-renewal-resolutions";
-import { listWritebackApprovalActivityForRun } from "@/lib/firestore/lease-renewal-writeback-approvals";
+import { listLeaseTestRuns } from "@/lib/firestore/lease-renewal-test-runs";
+import {
+  listResolutionActivityForRun,
+  listResolutionsForProperty,
+} from "@/lib/firestore/lease-renewal-resolutions";
+import {
+  listWritebackApprovalActivityForRun,
+  listWritebackApprovalsForProperty,
+} from "@/lib/firestore/lease-renewal-writeback-approvals";
 import type { LeaseRenewalWritebackApprovalActivityRecord } from "@/lib/firestore/types";
 import {
   getPropertyActivity,
   type PropertyRunActivity,
 } from "@/lib/lease-renewal/property-repository";
 import { normalizeRenewalReturnTo } from "@/lib/lease-renewal/property-history-link";
-import { getSimulationRun, listSimulationRuns } from "@/lib/lease-renewal/simulation";
+import { buildLeaseRenewalDecisionProjections } from "@/lib/lease-renewal/decision-projection";
+import {
+  buildTestRenewalSimulation,
+  getSimulationRun,
+  listSimulationRuns,
+} from "@/lib/lease-renewal/simulation";
 
 // Admin-only, and it reads persisted decision Activity on each render, so never statically cached.
 export const dynamic = "force-dynamic";
@@ -50,7 +63,45 @@ export default async function LeaseRenewalPropertyPage({
     runs.push({ run, resolutionActivity, approvalActivity });
   }
 
+  // Persistent Test reconciliation decisions share the exact run id used by their owning Test
+  // journey. Include those app-plane histories beside the sample history; never synthesize a Test
+  // run when its isolated Firestore owning record cannot be read.
+  try {
+    const testRuns = (await listLeaseTestRuns(user)).slice(0, 10);
+    for (const testRun of testRuns) {
+      const run = buildTestRenewalSimulation(testRun.id);
+      let resolutionActivity: Awaited<ReturnType<typeof listResolutionActivityForRun>> =
+        [];
+      let approvalActivity: LeaseRenewalWritebackApprovalActivityRecord[] = [];
+      try {
+        resolutionActivity = await listResolutionActivityForRun(user, run.runId);
+        const approvalByKey = await listWritebackApprovalActivityForRun(user, run.runId);
+        approvalActivity = [...approvalByKey.values()].flat();
+      } catch {
+        activityUnavailable = true;
+      }
+      runs.push({ run, resolutionActivity, approvalActivity });
+    }
+  } catch {
+    activityUnavailable = true;
+  }
+
   const bucket = getPropertyActivity(runs, propertyKey);
+  let currentDecisionProjections: ReturnType<
+    typeof buildLeaseRenewalDecisionProjections
+  > = [];
+  try {
+    const [propertyResolutions, propertyApprovals] = await Promise.all([
+      listResolutionsForProperty(user, propertyKey),
+      listWritebackApprovalsForProperty(user, propertyKey),
+    ]);
+    currentDecisionProjections = buildLeaseRenewalDecisionProjections(
+      propertyResolutions,
+      propertyApprovals,
+    );
+  } catch {
+    activityUnavailable = true;
+  }
 
   return (
     <AppShell user={user}>
@@ -68,6 +119,11 @@ export default async function LeaseRenewalPropertyPage({
             connection is back to see this decision history.
           </p>
         ) : null}
+        <LeaseDecisionProjectionPanel
+          decisions={currentDecisionProjections}
+          emptyMessage="No current decision or write-back authorization is attributable to this property yet. Legacy or name-joined records are not guessed onto a property."
+          title="Current decision and authorization state"
+        />
         {bucket ? (
           <article className="panel">
             <p className="muted">

@@ -17,6 +17,7 @@ import type { Severity } from "@/lib/lease-renewal/severity";
 const SECRET = "SENTINEL_RENT_4242";
 const SECRET_REASON = "SENSITIVE_APPROVAL_REASON_9000";
 const SECRET_DECIDER = "admin-secret-uid";
+const SAFE_RECEIPT_ID = "authorization-receipt-safe-1";
 
 function approvalOverlay(
   state: RenewalWritebackApprovalView["state"] | null,
@@ -26,8 +27,12 @@ function approvalOverlay(
     queued: true,
     state,
     stale: false,
+    authorizationReceiptId: SAFE_RECEIPT_ID,
     decidedByUid: SECRET_DECIDER,
     reason: SECRET_REASON,
+    reasonRecorded: true,
+    productionAllowed: false,
+    executed: false,
     activity: [
       {
         action: "approve",
@@ -157,6 +162,12 @@ describe("buildWritebackApprovalQueue", () => {
       runId: "run-b",
       fieldKey: "lease_start",
     });
+    expect(stateGroup(queue, "Approved")?.rows[0]).toMatchObject({
+      authorizationReceiptId: SAFE_RECEIPT_ID,
+      decisionReasonRecorded: true,
+      productionAllowed: false,
+      executed: false,
+    });
   });
 
   it("orders rows within a bucket most-attention-first (severity, run label, field)", () => {
@@ -216,9 +227,13 @@ describe("buildWritebackApprovalQueue", () => {
     expect(allRows).toHaveLength(2);
     for (const row of allRows) {
       expect(Object.keys(row).sort()).toEqual([
+        "authorizationReceiptId",
+        "decisionReasonRecorded",
+        "executed",
         "fieldKey",
         "fieldLabel",
         "href",
+        "productionAllowed",
         "runId",
         "runLabel",
         "severity",

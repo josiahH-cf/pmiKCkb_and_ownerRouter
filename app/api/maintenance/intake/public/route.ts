@@ -7,6 +7,7 @@ import { readServerConfig } from "@/lib/config/server";
 import { extractClientIp, hashClientIp } from "@/lib/maintenance/intake-client-ip";
 import { IntakeRateLimiter } from "@/lib/maintenance/intake-rate-limit";
 import { verifyIntakeToken } from "@/lib/maintenance/intake-token";
+import { MAINTENANCE_TEST_PUBLIC_INTAKE } from "@/lib/maintenance/test-workflow";
 import {
   createUnverifiedIntakeFromPublic,
   IntakeDailyCapError,
@@ -125,11 +126,21 @@ export async function POST(request: Request) {
   if (!shape.success) {
     return generic(400, "Invalid submission.");
   }
+  if (
+    verified.payload.dataMode === "test" &&
+    (verified.payload.propertyKey !== MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey ||
+      shape.data.summary !== MAINTENANCE_TEST_PUBLIC_INTAKE.summary ||
+      (shape.data.description ?? "") !== MAINTENANCE_TEST_PUBLIC_INTAKE.description ||
+      (shape.data.contact ?? "") !== MAINTENANCE_TEST_PUBLIC_INTAKE.contact)
+  ) {
+    return generic(400, "Invalid submission.");
+  }
 
   try {
     await createUnverifiedIntakeFromPublic(
       {
         propertyKey: verified.payload.propertyKey,
+        dataMode: verified.payload.dataMode,
         jti: verified.payload.jti,
         tokenEpoch: verified.payload.epoch,
         singleUse: verified.payload.singleUse,

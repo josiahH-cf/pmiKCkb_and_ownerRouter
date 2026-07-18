@@ -48,6 +48,7 @@ const INTAKE_RETENTION_MS = 90 * 24 * 60 * 60 * 1000; // 90 days of un-triaged i
 
 export interface PublicIntakeSubmission {
   propertyKey: string;
+  dataMode: "live" | "test";
   jti: string;
   tokenEpoch: number;
   singleUse: boolean;
@@ -127,6 +128,9 @@ export async function createUnverifiedIntakeFromPublic(
 ): Promise<{ id: string }> {
   const propertyKey = normalizeIntakePropertyKey(submission.propertyKey);
   if (!propertyKey) throw new IntakeValidationError();
+  if (!(["live", "test"] as const).includes(submission.dataMode)) {
+    throw new IntakeValidationError();
+  }
 
   const summary = sanitizeIntakeText(submission.summary, "summary");
   if (!summary) throw new IntakeValidationError();
@@ -150,7 +154,11 @@ export async function createUnverifiedIntakeFromPublic(
     const nonceRef = db.collection(MAINTENANCE_INTAKE_COLLECTIONS.nonce).doc(jti);
     const counterRef = db
       .collection(MAINTENANCE_INTAKE_COLLECTIONS.rateCounter)
-      .doc(`${propertyKey}__${isoDay(now)}`);
+      .doc(
+        submission.dataMode === "test"
+          ? `test__${propertyKey}__${isoDay(now)}`
+          : `${propertyKey}__${isoDay(now)}`,
+      );
 
     const epochSnap = await transaction.get(epochRef);
     if (submission.tokenEpoch < readEpoch(epochSnap)) {
@@ -169,6 +177,7 @@ export async function createUnverifiedIntakeFromPublic(
     // Writes.
     const record: UnverifiedIntakeRecord = {
       id,
+      data_mode: submission.dataMode,
       status: "unverified",
       source: "public-link",
       property_key: propertyKey,
@@ -188,6 +197,7 @@ export async function createUnverifiedIntakeFromPublic(
         intake_id: id,
         action: "intake",
         source: "public-link",
+        data_mode: submission.dataMode,
         created_at: createdAt,
       },
     );
@@ -195,12 +205,14 @@ export async function createUnverifiedIntakeFromPublic(
       transaction.set(nonceRef, {
         jti,
         property_key: propertyKey,
+        data_mode: submission.dataMode,
         created_at: createdAt,
         expires_at: new Date(now + NONCE_RETENTION_MS).toISOString(),
       });
     }
     transaction.set(counterRef, {
       property_key: propertyKey,
+      data_mode: submission.dataMode,
       day: isoDay(now),
       count: count + 1,
       updated_at: createdAt,

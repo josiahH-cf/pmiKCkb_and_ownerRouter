@@ -10,8 +10,14 @@ import {
   LIVE_REVIEW_RUN_ID,
   rebuildLiveRenewalRun,
 } from "@/lib/lease-renewal/live-review";
+import type { AuthenticatedUser } from "@/lib/auth/session";
+import { getLeaseTestRun } from "@/lib/firestore/lease-renewal-test-runs";
+import type { Firestore } from "firebase-admin/firestore";
 import type { RenewalRunResult } from "@/lib/lease-renewal/pipeline";
-import { getSimulationRun } from "@/lib/lease-renewal/simulation";
+import {
+  buildTestRenewalSimulation,
+  getSimulationRun,
+} from "@/lib/lease-renewal/simulation";
 
 /**
  * Resolve a renewal run by id for the resolve route: rebuild the live-review run for the live id
@@ -24,4 +30,24 @@ export async function resolveRenewalRun(runId: string): Promise<RenewalRunResult
     return rebuildLiveRenewalRun(new Date().toISOString());
   }
   return getSimulationRun(runId);
+}
+
+/**
+ * Builds the actor-bound resolver used by the authenticated route. Persisted production Test runs
+ * intentionally reuse the synthetic source tables, but only after the addressed Test record is
+ * proven to exist. The unbound resolver above remains pure and cannot turn an arbitrary id into a
+ * synthetic run.
+ */
+export function createRenewalRunResolver(
+  actor: AuthenticatedUser,
+  db?: Firestore,
+): (runId: string) => Promise<RenewalRunResult | null> {
+  return async (runId) => {
+    const knownRun = await resolveRenewalRun(runId);
+    if (knownRun) return knownRun;
+    if (!runId.startsWith("test-renewal-")) return null;
+
+    const persisted = await getLeaseTestRun(actor, runId, db);
+    return persisted ? buildTestRenewalSimulation(runId) : null;
+  };
 }

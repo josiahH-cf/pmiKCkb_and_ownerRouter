@@ -33,6 +33,14 @@ export interface TestVendorAdminProjection {
   disabledAt?: string;
 }
 
+export interface TestVendorAuditProjection {
+  action: string;
+  createdAt: string;
+  mailboxScoped: boolean;
+  reasonRecorded: boolean;
+  ticketScoped: boolean;
+}
+
 function projection(record: VendorRecord): TestVendorAdminProjection {
   if (vendorRecordDataMode(record) !== "test") {
     throw new VendorBoundaryError("The requested Vendor is not a Test identity.", 409);
@@ -55,6 +63,30 @@ function projection(record: VendorRecord): TestVendorAdminProjection {
 export async function listProductionTestVendors() {
   const records = await new FirestoreVendorStore().listTestVendors();
   return records.map(projection);
+}
+
+export async function listProductionTestVendorAudit(
+  vendorId: string,
+): Promise<TestVendorAuditProjection[]> {
+  if (!TEST_VENDOR_ALIASES.some((candidate) => candidate.vendorId === vendorId)) {
+    throw new VendorBoundaryError(
+      "Only an approved Test Vendor audit can be viewed here.",
+      404,
+    );
+  }
+  const store = new FirestoreVendorStore();
+  const vendor = await store.getVendorById(vendorId);
+  if (!vendor || vendorRecordDataMode(vendor) !== "test") {
+    throw new VendorBoundaryError("The Test Vendor was not found.", 404);
+  }
+  const audit = await store.listBodylessAudit(vendorId);
+  return audit.map((record) => ({
+    action: record.action,
+    createdAt: record.createdAt,
+    mailboxScoped: Boolean(record.mailboxKey),
+    reasonRecorded: Boolean(record.reasonHash),
+    ticketScoped: Boolean(record.ticketId),
+  }));
 }
 
 export async function provisionProductionTestVendor(input: {

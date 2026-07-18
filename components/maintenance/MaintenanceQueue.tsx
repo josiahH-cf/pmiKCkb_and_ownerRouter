@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { WorkflowCommunicationPanel } from "@/components/gmail-hub/WorkflowCommunicationPanel";
 import type { AssignableUser } from "@/lib/maintenance/assignee-model";
 import {
-  MAINTENANCE_TICKET_STATUSES,
+  MAINTENANCE_ALLOWED_STATUS_TRANSITIONS,
   type MaintenanceTicketActivityRecord,
   type MaintenanceTicketRecord,
   type MaintenanceTicketStatus,
@@ -14,6 +14,7 @@ import {
   MAINTENANCE_TEST_ACTION_TARGETS,
   MAINTENANCE_TEST_CONFIRMATION,
   MAINTENANCE_TEST_VENDOR,
+  maintenanceTestBusinessCloseoutBoundary,
   type MaintenanceTestActionKey,
   type MaintenanceTestActionReceipt,
 } from "@/lib/maintenance/test-workflow";
@@ -39,20 +40,33 @@ export function MaintenanceQueue({
   assignees = [],
   currentUid,
   initialTestReceipts = [],
+  focusedTicketId,
 }: Readonly<{
   initialTickets: MaintenanceTicketRecord[];
   unavailableNote?: string;
   assignees?: AssignableUser[];
   currentUid?: string;
   initialTestReceipts?: MaintenanceTestActionReceipt[];
+  focusedTicketId?: string;
 }>) {
+  const focusedTicket = initialTickets.find((ticket) => ticket.id === focusedTicketId);
   const [tickets, setTickets] = useState(initialTickets);
   const [testReceipts, setTestReceipts] = useState(initialTestReceipts);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const [assignedToMe, setAssignedToMe] = useState(false);
-  const [dataFilter, setDataFilter] = useState<"all" | "live" | "test">("all");
+  const [dataFilter, setDataFilter] = useState<"all" | "live" | "test">(
+    focusedTicket?.data_mode ?? "all",
+  );
   const [seedPending, setSeedPending] = useState(false);
+
+  useEffect(() => {
+    if (!focusedTicketId) return;
+    const element = document.getElementById(`maintenance-ticket-${focusedTicketId}`);
+    if (!element) return;
+    element.focus();
+    element.scrollIntoView?.({ block: "center" });
+  }, [focusedTicketId]);
 
   if (unavailableNote) {
     return (
@@ -101,6 +115,15 @@ export function MaintenanceQueue({
       }
     }
     void patch(ticket.id, { op: "status", status: next, reason });
+  }
+
+  function reopen(ticket: MaintenanceTicketRecord) {
+    const reason = window.prompt("Reason for reopening this ticket?")?.trim();
+    if (!reason) {
+      setStatus("A reason is required to reopen a ticket.");
+      return;
+    }
+    void patch(ticket.id, { op: "reopen", reason });
   }
 
   function assign(ticket: MaintenanceTicketRecord, assigneeUid: string | null) {
@@ -155,6 +178,8 @@ export function MaintenanceQueue({
       : modeVisible;
   const open = visible.filter((ticket) => ticket.status !== "Closed");
   const closed = visible.filter((ticket) => ticket.status === "Closed");
+  const focusedTicketMissing =
+    Boolean(focusedTicketId) && !tickets.some((ticket) => ticket.id === focusedTicketId);
 
   return (
     <section aria-label="Ticket queue" className="ui-stack">
@@ -212,6 +237,11 @@ export function MaintenanceQueue({
           No tickets yet. Build a work-order draft and create a ticket.
         </p>
       ) : null}
+      {focusedTicketMissing ? (
+        <p className="form-error" role="alert">
+          The linked maintenance ticket could not be found or is not available to you.
+        </p>
+      ) : null}
       {tickets.length > 0 && open.length === 0 && closed.length === 0 ? (
         <p className="muted">No tickets assigned to you.</p>
       ) : null}
@@ -223,6 +253,7 @@ export function MaintenanceQueue({
           onVendorAssign={(vendorId) => assignVendor(ticket, vendorId)}
           onNote={(text) => patch(ticket.id, { op: "note", text })}
           onStatus={(next) => changeStatus(ticket, next)}
+          onReopen={() => reopen(ticket)}
           pending={pendingId === ticket.id}
           receipts={testReceipts.filter((receipt) => receipt.ticket_id === ticket.id)}
           onReceipt={(receipt) =>
@@ -235,7 +266,10 @@ export function MaintenanceQueue({
         />
       ))}
       {closed.length > 0 ? (
-        <details className="ui-stack">
+        <details
+          className="ui-stack"
+          open={closed.some((ticket) => ticket.id === focusedTicketId) || undefined}
+        >
           <summary>Closed ({closed.length})</summary>
           {closed.map((ticket) => (
             <TicketCard
@@ -245,6 +279,7 @@ export function MaintenanceQueue({
               onVendorAssign={(vendorId) => assignVendor(ticket, vendorId)}
               onNote={(text) => patch(ticket.id, { op: "note", text })}
               onStatus={(next) => changeStatus(ticket, next)}
+              onReopen={() => reopen(ticket)}
               pending={pendingId === ticket.id}
               receipts={testReceipts.filter((receipt) => receipt.ticket_id === ticket.id)}
               onReceipt={(receipt) =>
@@ -268,6 +303,7 @@ function TicketCard({
   pending,
   assignees,
   onStatus,
+  onReopen,
   onAssign,
   onVendorAssign,
   onNote,
@@ -278,6 +314,7 @@ function TicketCard({
   pending: boolean;
   assignees: AssignableUser[];
   onStatus: (next: MaintenanceTicketStatus) => void;
+  onReopen: () => void;
   onAssign: (assigneeUid: string | null) => void;
   onVendorAssign: (vendorId: string | null) => void;
   onNote: (text: string) => void;
@@ -292,7 +329,11 @@ function TicketCard({
     !assignees.some((user) => user.uid === ticket.assignee_uid);
 
   return (
-    <article className="panel maintenance-ticket">
+    <article
+      className="panel maintenance-ticket"
+      id={`maintenance-ticket-${ticket.id}`}
+      tabIndex={-1}
+    >
       <div className="ui-spread">
         <div>
           <h3 className="ui-card-title">{ticket.summary}</h3>
@@ -302,7 +343,9 @@ function TicketCard({
           </p>
         </div>
         <span className="queue-pill" data-value={STATUS_PILL[ticket.status]}>
-          {ticket.status}
+          {ticket.data_mode === "test" && ticket.status === "Closed"
+            ? "App ticket closed"
+            : ticket.status}
         </span>
       </div>
       <p>
@@ -317,24 +360,49 @@ function TicketCard({
         <p className="muted">Labels: {ticket.labels.join(", ")}</p>
       ) : null}
       {ticket.closed_reason ? (
-        <p className="muted">Closed: {ticket.closed_reason}</p>
+        <p className="muted">
+          {ticket.data_mode === "test" ? "App ticket closed" : "Closed"}:{" "}
+          {ticket.closed_reason}
+        </p>
       ) : null}
       <div className="field-row">
-        <label className="select-field" htmlFor={`status-${ticket.id}`}>
-          Status
-          <select
-            disabled={pending}
-            id={`status-${ticket.id}`}
-            onChange={(event) => onStatus(event.target.value as MaintenanceTicketStatus)}
-            value={ticket.status}
-          >
-            {MAINTENANCE_TICKET_STATUSES.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
+        {ticket.status === "Closed" ? (
+          <div className="select-field">
+            <span>Status</span>
+            <strong>
+              {ticket.data_mode === "test" ? "App ticket closed" : "Closed"}
+            </strong>
+            <button
+              className="secondary-button"
+              disabled={pending}
+              onClick={onReopen}
+              type="button"
+            >
+              Reopen ticket
+            </button>
+          </div>
+        ) : (
+          <label className="select-field" htmlFor={`status-${ticket.id}`}>
+            Status
+            <select
+              disabled={pending}
+              id={`status-${ticket.id}`}
+              onChange={(event) =>
+                onStatus(event.target.value as MaintenanceTicketStatus)
+              }
+              value={ticket.status}
+            >
+              {[
+                ticket.status,
+                ...MAINTENANCE_ALLOWED_STATUS_TRANSITIONS[ticket.status],
+              ].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="select-field" htmlFor={`assignee-${ticket.id}`}>
           Assignee
           <select
@@ -407,11 +475,14 @@ function TicketCard({
       </div>
       <TicketHistory ticketId={ticket.id} />
       {ticket.data_mode === "test" ? (
-        <MaintenanceTestActions
-          onReceipt={onReceipt}
-          receipts={receipts}
-          ticket={ticket}
-        />
+        <>
+          <MaintenanceTestActions
+            onReceipt={onReceipt}
+            receipts={receipts}
+            ticket={ticket}
+          />
+          <MaintenanceBusinessCloseoutPanel receipts={receipts} />
+        </>
       ) : (
         <section className="ui-callout" aria-label="Live write boundary">
           <p>
@@ -439,6 +510,43 @@ function TicketCard({
         </section>
       )}
     </article>
+  );
+}
+
+function MaintenanceBusinessCloseoutPanel({
+  receipts,
+}: Readonly<{ receipts: MaintenanceTestActionReceipt[] }>) {
+  const boundary = maintenanceTestBusinessCloseoutBoundary(receipts);
+  return (
+    <section
+      aria-label="Maintenance business closeout evidence gates"
+      className="ui-callout ui-stack"
+    >
+      <div>
+        <h4>Business closeout evidence gates</h4>
+        <p className="muted">
+          Test ticket status and real-world completion are separate. Closing an invented
+          Test ticket cannot prove business closeout.
+        </p>
+      </div>
+      <ul className="compact-list">
+        {boundary.gates.map((gate) => (
+          <li key={gate.id}>
+            <strong>{gate.label}</strong> —{" "}
+            {gate.outcome === "internal_simulation_only"
+              ? `${gate.internalTestReceiptCount} of ${gate.internalTestReceiptTotal} internal Test receipts; business proof not established.`
+              : gate.outcome === "test_evidence_incomplete"
+                ? `${gate.internalTestReceiptCount} of ${gate.internalTestReceiptTotal} internal Test receipts; Test evidence incomplete and business proof not established.`
+                : "No owning Test milestone; business proof not established."}
+          </li>
+        ))}
+      </ul>
+      <p>
+        <strong>Business closeout:</strong> Not proven · diagnosis, approvals, physical
+        completion, invoice disposition, and stakeholder notices remain on their owning
+        records.
+      </p>
+    </section>
   );
 }
 

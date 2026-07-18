@@ -7,6 +7,7 @@ import {
   getLeaseTestRun,
   listLeaseTestActionAttempts,
   listLeaseTestActionReceipts,
+  listLeaseTestBusinessEvents,
 } from "@/lib/firestore/lease-renewal-test-runs";
 import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
 import {
@@ -22,6 +23,7 @@ import {
 import type {
   LeaseTestActionAttempt,
   LeaseTestActionReceipt,
+  LeaseTestBusinessEvent,
   LeaseTestRunRecord,
 } from "@/lib/lease-renewal/test-workflow";
 
@@ -44,14 +46,16 @@ export default async function LeaseRenewalRunPage({
   let persistentTestRun: LeaseTestRunRecord | null = null;
   let testReceipts: LeaseTestActionReceipt[] = [];
   let testAttempts: LeaseTestActionAttempt[] = [];
+  let testBusinessEvents: LeaseTestBusinessEvent[] = [];
   let testJourneyError = false;
   if (!staticSimulationRun) {
     try {
       persistentTestRun = await getLeaseTestRun(user, runId);
       if (persistentTestRun) {
-        [testReceipts, testAttempts] = await Promise.all([
+        [testReceipts, testAttempts, testBusinessEvents] = await Promise.all([
           listLeaseTestActionReceipts(user, runId),
           listLeaseTestActionAttempts(user, runId),
+          listLeaseTestBusinessEvents(user, runId),
         ]);
       }
     } catch {
@@ -103,6 +107,7 @@ export default async function LeaseRenewalRunPage({
         {persistentTestRun && !testJourneyError ? (
           <LeaseTestJourney
             initialAttempts={testAttempts}
+            initialBusinessEvents={testBusinessEvents}
             initialReceipts={testReceipts}
             initialRun={persistentTestRun}
           />

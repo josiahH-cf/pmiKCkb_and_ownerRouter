@@ -103,7 +103,12 @@ export function MaintenanceCapture({
     }
   }
 
-  const { isRecording, toggleRecording } = useAudioRecorder({
+  const {
+    cancelPermissionRequest,
+    isRecording,
+    phase: recorderPhase,
+    toggleRecording,
+  } = useAudioRecorder({
     onRecording: transcribe,
     onError: setStatus,
     onStatus: setStatus,
@@ -220,14 +225,20 @@ export function MaintenanceCapture({
           <button
             className="secondary-button"
             disabled={isTranscribing}
-            onClick={toggleRecording}
+            onClick={() =>
+              recorderPhase === "requesting-permission"
+                ? cancelPermissionRequest()
+                : void toggleRecording()
+            }
             type="button"
           >
             {isRecording
               ? "Stop recording"
-              : isTranscribing
-                ? "Transcribing…"
-                : "Record voice"}
+              : recorderPhase === "requesting-permission"
+                ? "Cancel microphone request"
+                : isTranscribing
+                  ? "Transcribing…"
+                  : "Record voice"}
           </button>
         </div>
 

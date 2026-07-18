@@ -3,6 +3,7 @@ import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { resolveDataMode } from "@/lib/data-mode";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type {
@@ -101,6 +102,7 @@ export async function createPublicationPolicy(
   await db.runTransaction(async (transaction) => {
     transaction.set(ref, {
       id,
+      data_mode: "live",
       allowedSpaces: unique(parsed.allowedSpaces),
       allowedTypes: parsed.allowedTypes,
       connectorId: parsed.connectorId,
@@ -197,9 +199,13 @@ export async function resolvePublicationPolicyForSpace(
 
   if (policyId) {
     const policy = await getPublicationPolicy(policyId, db);
-    if (!policy.enabled || !policy.allowedSpaces.includes(spaceId)) {
+    if (
+      resolveDataMode(policy) !== "live" ||
+      !policy.enabled ||
+      !policy.allowedSpaces.includes(spaceId)
+    ) {
       throw new EditableLayerError(
-        "No enabled publication policy covers this Space.",
+        "No enabled Live publication policy covers this Space.",
         409,
       );
     }
@@ -209,13 +215,18 @@ export async function resolvePublicationPolicyForSpace(
   const snapshot = await db.collection(PUBLICATION_POLICY_COLLECTION).get();
   const matches = snapshot.docs
     .map((doc) => readPolicy(doc.id, doc.data()))
-    .filter((policy) => policy.enabled && policy.allowedSpaces.includes(spaceId));
+    .filter(
+      (policy) =>
+        resolveDataMode(policy) === "live" &&
+        policy.enabled &&
+        policy.allowedSpaces.includes(spaceId),
+    );
 
   if (matches.length !== 1) {
     throw new EditableLayerError(
       matches.length === 0
-        ? "No enabled publication policy covers this Space."
-        : "More than one publication policy covers this Space; select one explicitly.",
+        ? "No enabled Live publication policy covers this Space."
+        : "More than one Live publication policy covers this Space; select one explicitly.",
       409,
     );
   }

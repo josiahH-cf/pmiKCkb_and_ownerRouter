@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { Role } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { CreateProcessDefinitionInputSchema } from "@/lib/firestore/schemas";
+import { setWorkflowRunStepCheck } from "@/lib/firestore/workflow-run-step-checks";
 import {
   createProcessDefinition,
   getProcessDefinition,
@@ -168,6 +169,14 @@ describe("lease renewal acceptance scenarios (simulation-only)", () => {
 
     const testing = await getProcessDefinition(editor, definition.id, db);
     expect(testing.status).toBe("Testing");
+
+    for (const step of definition.steps) {
+      await setWorkflowRunStepCheck(
+        editor,
+        { run_id: run.id, step_id: step.id, status: "Checked" },
+        db,
+      );
+    }
 
     const completed = await updateWorkflowRunOutcome(
       editor,

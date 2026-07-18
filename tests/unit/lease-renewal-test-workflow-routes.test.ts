@@ -6,6 +6,8 @@ vi.mock("@/lib/firestore/lease-renewal-test-runs", async (importActual) => {
   return {
     ...actual,
     createCanonicalLeaseTestRun: vi.fn(),
+    listLeaseTestBusinessEvents: vi.fn(),
+    recordLeaseTestBusinessEvent: vi.fn(),
     simulateLeaseTestAction: vi.fn(),
     transitionLeaseTestRun: vi.fn(),
   };
@@ -14,13 +16,22 @@ vi.mock("@/lib/firestore/lease-renewal-test-runs", async (importActual) => {
 import { POST as createTestRun } from "@/app/api/lease-renewal/test-runs/route";
 import { PATCH as transitionTestRun } from "@/app/api/lease-renewal/test-runs/[runId]/route";
 import { POST as runTestAction } from "@/app/api/lease-renewal/test-runs/[runId]/test-actions/route";
+import {
+  GET as listBusinessEvents,
+  POST as recordBusinessEvent,
+} from "@/app/api/lease-renewal/test-runs/[runId]/business-events/route";
 import { setAuthResolverForTest } from "@/lib/auth/session";
 import {
   createCanonicalLeaseTestRun,
+  listLeaseTestBusinessEvents,
+  recordLeaseTestBusinessEvent,
   simulateLeaseTestAction,
   transitionLeaseTestRun,
 } from "@/lib/firestore/lease-renewal-test-runs";
-import { LEASE_TEST_CONFIRMATION } from "@/lib/lease-renewal/test-workflow";
+import {
+  LEASE_TEST_BUSINESS_CONFIRMATION,
+  LEASE_TEST_CONFIRMATION,
+} from "@/lib/lease-renewal/test-workflow";
 
 const context = { params: Promise.resolve({ runId: "test-renewal-1" }) };
 
@@ -44,6 +55,8 @@ function jsonRequest(url: string, body: unknown, method = "POST") {
 afterEach(() => {
   setAuthResolverForTest(null);
   vi.mocked(createCanonicalLeaseTestRun).mockReset();
+  vi.mocked(listLeaseTestBusinessEvents).mockReset();
+  vi.mocked(recordLeaseTestBusinessEvent).mockReset();
   vi.mocked(simulateLeaseTestAction).mockReset();
   vi.mocked(transitionLeaseTestRun).mockReset();
 });
@@ -144,5 +157,60 @@ describe("persistent Lease Test routes", () => {
         confirmation: LEASE_TEST_CONFIRMATION,
       },
     );
+  });
+
+  it("lists and records exact bodyless business milestones", async () => {
+    setEditor();
+    vi.mocked(listLeaseTestBusinessEvents).mockResolvedValue([]);
+    const listResponse = await listBusinessEvents(
+      new Request(
+        "http://localhost/api/lease-renewal/test-runs/test-renewal-1/business-events",
+      ),
+      context,
+    );
+    expect(listResponse.status).toBe(200);
+
+    vi.mocked(recordLeaseTestBusinessEvent).mockResolvedValue({
+      run: { id: "test-renewal-1", candidate_disposition: "included" },
+      event: {
+        id: "event-1",
+        data_mode: "test",
+        provider_contacted: false,
+        live_proof_eligible: false,
+      },
+      duplicate: false,
+    } as never);
+    const response = await recordBusinessEvent(
+      jsonRequest(
+        "http://localhost/api/lease-renewal/test-runs/test-renewal-1/business-events",
+        {
+          action: "candidate_included",
+          confirmation: LEASE_TEST_BUSINESS_CONFIRMATION,
+        },
+      ),
+      context,
+    );
+    expect(response.status).toBe(201);
+    expect(recordLeaseTestBusinessEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ uid: "editor-1" }),
+      "test-renewal-1",
+      {
+        action: "candidate_included",
+        confirmation: LEASE_TEST_BUSINESS_CONFIRMATION,
+      },
+    );
+  });
+
+  it("rejects a stale business confirmation before the Test writer", async () => {
+    setEditor();
+    const response = await recordBusinessEvent(
+      jsonRequest(
+        "http://localhost/api/lease-renewal/test-runs/test-renewal-1/business-events",
+        { action: "candidate_included", confirmation: "yes" },
+      ),
+      context,
+    );
+    expect(response.status).toBe(400);
+    expect(recordLeaseTestBusinessEvent).not.toHaveBeenCalled();
   });
 });

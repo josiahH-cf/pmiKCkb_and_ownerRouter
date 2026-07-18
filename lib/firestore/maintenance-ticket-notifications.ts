@@ -4,7 +4,7 @@
 // transaction (never a separate best-effort write) so the audit twins commit together.
 //
 // GOVERNANCE: app-plane bookkeeping gated at the `read` capability for reads. The notification body
-// is PII-FREE: only the event, the ticket status, the ticket id, and a `/maintenance` href; never a
+// is PII-FREE: only the event, the ticket status, the ticket id, and a focused Maintenance href; never a
 // summary, unit label/address, reporter, or assignee identity. There is no email channel here and no
 // send; the framework is in-app only. Timestamps are ISO strings (no serverTimestamp) so the writer
 // is deterministic and unit-testable against a simple fake as well as the real Admin SDK.
@@ -92,7 +92,7 @@ export function appendMaintenanceTicketNotification(
     title: NOTIFICATION_TITLES[input.event],
     message: NOTIFICATION_MESSAGES[input.event],
     ticket_status: input.ticketStatus,
-    href: "/maintenance",
+    href: `/maintenance?ticket_id=${encodeURIComponent(input.ticketId)}`,
     created_at: input.createdAt,
   };
 

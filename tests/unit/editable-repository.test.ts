@@ -163,6 +163,19 @@ describe("editable Firestore repository", () => {
       entity_id: "placeholder-1",
       entity_type: "placeholder",
     });
+
+    await expect(
+      updatePlaceholder(
+        approver,
+        "placeholder-1",
+        {
+          resolution: "Attempted duplicate resolution.",
+          status: "Resolved",
+        },
+        db,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(changeLogRecords(db)).toHaveLength(1);
   });
 
   it("blocks duplicate active tool names case-insensitively", async () => {

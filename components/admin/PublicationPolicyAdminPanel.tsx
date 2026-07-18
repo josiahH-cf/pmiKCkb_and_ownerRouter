@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { resolveDataMode } from "@/lib/data-mode";
 import type { PublicationPolicyRecord } from "@/lib/publication/types";
 
 export function PublicationPolicyAdminPanel({
@@ -107,6 +108,7 @@ export function PublicationPolicyAdminPanel({
               {policy.connectorId} / {policy.rootId}
             </strong>
             <p className="muted">
+              {resolveDataMode(policy) === "test" ? "TEST" : "LIVE"} ·{" "}
               {policy.enabled ? "Enabled" : "Disabled"} ·{" "}
               {policy.allowedSpaces.join(", ")} · sensitivity ≤{" "}
               {policy.sensitivityCeiling} · scanner {policy.scannerKey}

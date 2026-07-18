@@ -22,6 +22,10 @@ export interface WritebackApprovalQueueRow {
   runId: string;
   runLabel: string;
   state: WritebackApprovalState;
+  authorizationReceiptId?: string | null;
+  decisionReasonRecorded?: boolean;
+  productionAllowed?: false;
+  executed?: false;
   /** Deep link to the authenticated run page where the real value + the approve/return control live. */
   href: string;
 }
@@ -80,6 +84,10 @@ export function buildWritebackApprovalQueue(
           runId: view.runId,
           runLabel: view.label,
           state: approval.state,
+          authorizationReceiptId: approval.authorizationReceiptId ?? null,
+          decisionReasonRecorded: approval.reasonRecorded,
+          productionAllowed: false,
+          executed: false,
           href,
         });
       }

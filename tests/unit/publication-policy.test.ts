@@ -32,6 +32,7 @@ describe("publication policy", () => {
 
     const created = await createPublicationPolicy(admin, input, db);
     expect(created.rootId).toBe("root-1");
+    expect(created.data_mode).toBe("live");
     const audits = collectionData(fake, PUBLICATION_POLICY_AUDIT_COLLECTION);
     expect(audits).toHaveLength(1);
     expect(audits[0]).toMatchObject({ eventType: "created", reason: input.reason });

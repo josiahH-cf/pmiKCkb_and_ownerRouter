@@ -41,6 +41,8 @@ export interface IntakeTokenPayload {
   epoch: number;
   /** When true the jti is burned on first successful write (default posture). */
   singleUse: boolean;
+  /** Signed lane. Older v1 tokens without this claim normalize to live. */
+  dataMode: "live" | "test";
 }
 
 export interface MintIntakeTokenInput {
@@ -50,6 +52,7 @@ export interface MintIntakeTokenInput {
   epoch: number;
   ttlMs?: number;
   singleUse?: boolean;
+  dataMode?: "live" | "test";
 }
 
 export type VerifyIntakeTokenResult =
@@ -115,6 +118,7 @@ export function mintIntakeToken(
     exp: now + ttlMs,
     epoch: Math.max(0, Math.trunc(input.epoch)),
     singleUse: input.singleUse ?? true,
+    dataMode: input.dataMode ?? "live",
   };
 
   const payloadB64 = base64UrlEncode(JSON.stringify(payload));
@@ -178,6 +182,9 @@ export function verifyIntakeToken(
     typeof payload.exp !== "number" ||
     typeof payload.epoch !== "number" ||
     typeof payload.singleUse !== "boolean" ||
+    (payload.dataMode !== undefined &&
+      payload.dataMode !== "live" &&
+      payload.dataMode !== "test") ||
     !Number.isFinite(payload.iat) ||
     !Number.isFinite(payload.exp)
   ) {
@@ -192,6 +199,10 @@ export function verifyIntakeToken(
   if (now >= payload.exp) {
     return { ok: false, reason: "expired" };
   }
+
+  // Backward compatibility for already-minted v1 tokens. The absent claim can only narrow to the
+  // pre-existing Live behavior; a Test lane always requires an explicitly signed claim.
+  payload.dataMode ??= "live";
 
   return { ok: true, payload };
 }

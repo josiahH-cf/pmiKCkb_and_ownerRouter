@@ -212,7 +212,7 @@ describe("maintenance tickets", () => {
     const reopened = await transitionMaintenanceTicket(
       editor,
       ticket.id,
-      { op: "status", status: "Open" },
+      { op: "reopen", reason: "The leak returned after the first repair." },
       db,
     );
 
@@ -221,6 +221,42 @@ describe("maintenance tickets", () => {
     expect(reopened.closed_reason).toBeUndefined();
     const activity = await listMaintenanceTicketActivity(editor, ticket.id, db);
     expect(activity.map((a) => a.action)).toEqual(["create", "close", "reopen"]);
+    expect(activity.at(-1)?.text).toBe("The leak returned after the first repair.");
+  });
+
+  it("rejects backward status moves and requires the explicit audited reopen operation", async () => {
+    const { db } = fakeDb();
+    const ticket = await createMaintenanceTicket(editor, baseInput, db);
+    await transitionMaintenanceTicket(
+      editor,
+      ticket.id,
+      { op: "status", status: "Waiting on Response" },
+      db,
+    );
+
+    await expect(
+      transitionMaintenanceTicket(
+        editor,
+        ticket.id,
+        { op: "status", status: "Open" },
+        db,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+
+    await transitionMaintenanceTicket(
+      editor,
+      ticket.id,
+      { op: "status", status: "Closed", reason: "Resolved." },
+      db,
+    );
+    await expect(
+      transitionMaintenanceTicket(
+        editor,
+        ticket.id,
+        { op: "status", status: "Open" },
+        db,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
   });
 
   it("adds and removes labels", async () => {
@@ -441,7 +477,7 @@ describe("maintenance tickets", () => {
     expect(notifs()[0]).toMatchObject({
       event: "assigned",
       recipient_uid: "assignee-1",
-      href: "/maintenance",
+      href: expect.stringContaining(`/maintenance?ticket_id=${ticket.id}`),
     });
 
     // A subsequent status change by the actor notifies the assignee.

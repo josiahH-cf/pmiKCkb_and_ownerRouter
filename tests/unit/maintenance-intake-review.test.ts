@@ -11,6 +11,10 @@ import { MAINTENANCE_INTAKE_COLLECTIONS } from "@/lib/firestore/maintenance-unve
 import { MAINTENANCE_TICKET_COLLECTIONS } from "@/lib/firestore/maintenance-tickets";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { MaintenanceTicketRecord } from "@/lib/maintenance/ticket-model";
+import {
+  MAINTENANCE_TEST_PUBLIC_INTAKE,
+  MAINTENANCE_TEST_UNIT,
+} from "@/lib/maintenance/test-workflow";
 import { FakeFirestore } from "@/tests/helpers/fake-firestore";
 
 const NOW = Date.parse("2026-07-10T09:00:00.000Z");
@@ -31,6 +35,7 @@ function seedIntake(
     id,
     status: "unverified",
     source: "public-link",
+    data_mode: "live",
     property_key: "prop-1",
     summary: "Water heater leaking",
     description: "Emergency: flooding the closet",
@@ -129,6 +134,57 @@ describe("maintenance intake review", () => {
     expect(ticketDocs(db)).toHaveLength(1);
     const intake = db.store.get(`${MAINTENANCE_INTAKE_COLLECTIONS.intake}/x`);
     expect(intake).toMatchObject({ status: "promoted", ticket_id: ticket.id });
+  });
+
+  it("promotes the canonical Test intake only into the isolated Test ticket", async () => {
+    const db = new FakeFirestore();
+    seedIntake(db, "test-intake", {
+      data_mode: "test",
+      property_key: MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey,
+      summary: MAINTENANCE_TEST_PUBLIC_INTAKE.summary,
+      description: MAINTENANCE_TEST_PUBLIC_INTAKE.description,
+      contact: MAINTENANCE_TEST_PUBLIC_INTAKE.contact,
+    });
+    const ticket = await promoteUnverifiedIntake(
+      editor,
+      "test-intake",
+      {},
+      db as unknown as Firestore,
+      NOW,
+    );
+
+    expect(ticket).toMatchObject({
+      data_mode: "test",
+      unit: MAINTENANCE_TEST_UNIT,
+      labels: ["TEST DATA"],
+      source_trigger_key: "maintenance:test:intake:test-intake",
+    });
+    expect(ticket.labels).not.toContain(NEEDS_VERIFICATION_LABEL);
+    expect(
+      db.store.get(`${MAINTENANCE_INTAKE_COLLECTIONS.intake}/test-intake`),
+    ).toMatchObject({ data_mode: "test", status: "promoted", ticket_id: ticket.id });
+    expect(ticketDocs(db)).toHaveLength(1);
+  });
+
+  it("refuses to bind Test intake to any noncanonical unit", async () => {
+    const db = new FakeFirestore();
+    seedIntake(db, "test-intake", {
+      data_mode: "test",
+      property_key: MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey,
+    });
+    await expect(
+      promoteUnverifiedIntake(
+        editor,
+        "test-intake",
+        { unit: { unitId: "unit:live-1", label: "Live unit" } },
+        db as unknown as Firestore,
+        NOW,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(ticketDocs(db)).toHaveLength(0);
+    expect(
+      db.store.get(`${MAINTENANCE_INTAKE_COLLECTIONS.intake}/test-intake`),
+    ).toMatchObject({ status: "unverified" });
   });
 
   it("refuses to promote a missing intake (404) or an already-triaged one (409)", async () => {

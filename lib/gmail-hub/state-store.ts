@@ -63,10 +63,30 @@ export interface GmailMailboxState {
   user_uid: string;
   history_id: string;
   watch_expiration_ms?: number;
+  watch_attempt?: GmailWatchAttemptCheckpoint;
   last_successful_sync_ms?: number;
   health: "connected" | "watching" | "degraded";
   updated_at_ms: number;
 }
+
+export interface GmailWatchAttemptCheckpoint {
+  attempt_key_hash: string;
+  topic_hash: string;
+  state: "claimed" | "completed" | "ambiguous";
+  claimed_at_ms: number;
+  updated_at_ms: number;
+  history_id?: string;
+  expiration_ms?: number;
+}
+
+export type ClaimWatchAttemptResult =
+  | { status: "claimed"; state: GmailMailboxState }
+  | {
+      status: "completed" | "in_progress" | "ambiguous" | "stale_preview";
+      state: GmailMailboxState;
+    };
+
+const GMAIL_WATCH_ATTEMPT_STALE_MS = 5 * 60 * 1_000;
 
 export type ClaimConfirmationResult =
   | { status: "claimed"; record: GmailConfirmationRecord }
@@ -115,6 +135,28 @@ export interface GmailStateStore {
   }): Promise<void>;
   saveMailboxState(state: GmailMailboxState): Promise<void>;
   getMailboxState(mailboxEmail: string): Promise<GmailMailboxState | null>;
+  claimWatchAttempt(input: {
+    mailboxEmail: string;
+    actorUid: string;
+    attemptKeyHash: string;
+    topicHash: string;
+    observedExpirationMs: number | null;
+    nowMs: number;
+  }): Promise<ClaimWatchAttemptResult>;
+  completeWatchAttempt(input: {
+    mailboxEmail: string;
+    actorUid: string;
+    attemptKeyHash: string;
+    historyId: string;
+    expirationMs: number;
+    nowMs: number;
+  }): Promise<GmailMailboxState>;
+  markWatchAttemptAmbiguous(input: {
+    mailboxEmail: string;
+    actorUid: string;
+    attemptKeyHash: string;
+    nowMs: number;
+  }): Promise<void>;
   claimPush(input: {
     messageId: string;
     mailboxEmail: string;
@@ -315,6 +357,191 @@ export class FirestoreGmailStateStore implements GmailStateStore {
     return snapshot.exists ? (snapshot.data() as GmailMailboxState) : null;
   }
 
+  async claimWatchAttempt(input: {
+    mailboxEmail: string;
+    actorUid: string;
+    attemptKeyHash: string;
+    topicHash: string;
+    observedExpirationMs: number | null;
+    nowMs: number;
+  }): Promise<ClaimWatchAttemptResult> {
+    const ref = this.db
+      .collection(GMAIL_STATE_COLLECTIONS.mailboxState)
+      .doc(mailboxDocId(input.mailboxEmail));
+    return this.db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(ref);
+      const current = snapshot.exists
+        ? (snapshot.data() as GmailMailboxState)
+        : undefined;
+      if (current && current.user_uid !== input.actorUid) {
+        throw new GmailStateError("Gmail watch belongs to another user.", 403);
+      }
+      const currentAttempt = current?.watch_attempt;
+      if (current && currentAttempt?.attempt_key_hash === input.attemptKeyHash) {
+        if (
+          currentAttempt.state === "claimed" &&
+          input.nowMs - currentAttempt.updated_at_ms >= GMAIL_WATCH_ATTEMPT_STALE_MS
+        ) {
+          const state = {
+            ...current,
+            watch_attempt: {
+              ...currentAttempt,
+              state: "ambiguous" as const,
+              updated_at_ms: input.nowMs,
+            },
+            updated_at_ms: input.nowMs,
+          };
+          transaction.set(ref, state);
+          transaction.create(
+            this.db.collection(GMAIL_STATE_COLLECTIONS.syncAudit).doc(uuidv7()),
+            watchAttemptAudit(state, "watch_attempt_ambiguous", input.nowMs),
+          );
+          return { status: "ambiguous" as const, state };
+        }
+        const status =
+          currentAttempt.state === "completed"
+            ? ("completed" as const)
+            : currentAttempt.state === "ambiguous"
+              ? ("ambiguous" as const)
+              : ("in_progress" as const);
+        return { status, state: current };
+      }
+      if (current && currentAttempt?.state === "claimed") {
+        if (input.nowMs - currentAttempt.updated_at_ms < GMAIL_WATCH_ATTEMPT_STALE_MS) {
+          return { status: "in_progress" as const, state: current };
+        }
+        const state = {
+          ...current,
+          watch_attempt: {
+            ...currentAttempt,
+            state: "ambiguous" as const,
+            updated_at_ms: input.nowMs,
+          },
+          updated_at_ms: input.nowMs,
+        };
+        transaction.set(ref, state);
+        transaction.create(
+          this.db.collection(GMAIL_STATE_COLLECTIONS.syncAudit).doc(uuidv7()),
+          watchAttemptAudit(state, "watch_attempt_ambiguous", input.nowMs),
+        );
+        return { status: "ambiguous" as const, state };
+      }
+      if ((current?.watch_expiration_ms ?? null) !== input.observedExpirationMs) {
+        return {
+          status: "stale_preview" as const,
+          state:
+            current ?? emptyMailboxState(input.mailboxEmail, input.actorUid, input.nowMs),
+        };
+      }
+      const state: GmailMailboxState = {
+        ...(current ??
+          emptyMailboxState(input.mailboxEmail, input.actorUid, input.nowMs)),
+        watch_attempt: {
+          attempt_key_hash: input.attemptKeyHash,
+          topic_hash: input.topicHash,
+          state: "claimed",
+          claimed_at_ms: input.nowMs,
+          updated_at_ms: input.nowMs,
+        },
+        updated_at_ms: input.nowMs,
+      };
+      transaction.set(ref, state);
+      transaction.create(
+        this.db.collection(GMAIL_STATE_COLLECTIONS.syncAudit).doc(uuidv7()),
+        watchAttemptAudit(state, "watch_attempt_claimed", input.nowMs),
+      );
+      return { status: "claimed" as const, state };
+    });
+  }
+
+  async completeWatchAttempt(input: {
+    mailboxEmail: string;
+    actorUid: string;
+    attemptKeyHash: string;
+    historyId: string;
+    expirationMs: number;
+    nowMs: number;
+  }): Promise<GmailMailboxState> {
+    const ref = this.db
+      .collection(GMAIL_STATE_COLLECTIONS.mailboxState)
+      .doc(mailboxDocId(input.mailboxEmail));
+    return this.db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(ref);
+      if (!snapshot.exists) {
+        throw new GmailStateError("Gmail watch attempt was not found.", 404);
+      }
+      const current = snapshot.data() as GmailMailboxState;
+      if (
+        current.user_uid !== input.actorUid ||
+        current.watch_attempt?.attempt_key_hash !== input.attemptKeyHash
+      ) {
+        throw new GmailStateError("Gmail watch attempt does not match.", 409);
+      }
+      if (current.watch_attempt.state === "completed") return current;
+      if (current.watch_attempt.state !== "claimed") {
+        throw new GmailStateError("Gmail watch attempt is ambiguous.", 409);
+      }
+      const state: GmailMailboxState = {
+        ...current,
+        history_id: input.historyId,
+        watch_expiration_ms: input.expirationMs,
+        last_successful_sync_ms: input.nowMs,
+        health: "watching",
+        updated_at_ms: input.nowMs,
+        watch_attempt: {
+          ...current.watch_attempt,
+          state: "completed",
+          history_id: input.historyId,
+          expiration_ms: input.expirationMs,
+          updated_at_ms: input.nowMs,
+        },
+      };
+      transaction.set(ref, state);
+      transaction.create(
+        this.db.collection(GMAIL_STATE_COLLECTIONS.syncAudit).doc(uuidv7()),
+        watchAttemptAudit(state, "watch_attempt_completed", input.nowMs),
+      );
+      return state;
+    });
+  }
+
+  async markWatchAttemptAmbiguous(input: {
+    mailboxEmail: string;
+    actorUid: string;
+    attemptKeyHash: string;
+    nowMs: number;
+  }): Promise<void> {
+    const ref = this.db
+      .collection(GMAIL_STATE_COLLECTIONS.mailboxState)
+      .doc(mailboxDocId(input.mailboxEmail));
+    await this.db.runTransaction(async (transaction) => {
+      const snapshot = await transaction.get(ref);
+      if (!snapshot.exists) return;
+      const current = snapshot.data() as GmailMailboxState;
+      if (
+        current.user_uid !== input.actorUid ||
+        current.watch_attempt?.attempt_key_hash !== input.attemptKeyHash ||
+        current.watch_attempt.state !== "claimed"
+      ) {
+        return;
+      }
+      const state: GmailMailboxState = {
+        ...current,
+        updated_at_ms: input.nowMs,
+        watch_attempt: {
+          ...current.watch_attempt,
+          state: "ambiguous",
+          updated_at_ms: input.nowMs,
+        },
+      };
+      transaction.set(ref, state);
+      transaction.create(
+        this.db.collection(GMAIL_STATE_COLLECTIONS.syncAudit).doc(uuidv7()),
+        watchAttemptAudit(state, "watch_attempt_ambiguous", input.nowMs),
+      );
+    });
+  }
+
   async claimPush(input: {
     messageId: string;
     mailboxEmail: string;
@@ -376,6 +603,7 @@ export class FirestoreGmailStateStore implements GmailStateStore {
         ...(current?.watch_expiration_ms
           ? { watch_expiration_ms: current.watch_expiration_ms }
           : {}),
+        ...(current?.watch_attempt ? { watch_attempt: current.watch_attempt } : {}),
         last_successful_sync_ms: input.nowMs,
         health: "watching",
         updated_at_ms: input.nowMs,
@@ -662,6 +890,133 @@ export class MemoryGmailStateStore implements GmailStateStore {
     return structuredClone(this.mailboxStates.get(mailboxEmail) ?? null);
   }
 
+  async claimWatchAttempt(input: {
+    mailboxEmail: string;
+    actorUid: string;
+    attemptKeyHash: string;
+    topicHash: string;
+    observedExpirationMs: number | null;
+    nowMs: number;
+  }): Promise<ClaimWatchAttemptResult> {
+    const current = this.mailboxStates.get(input.mailboxEmail);
+    if (current && current.user_uid !== input.actorUid) {
+      throw new GmailStateError("Gmail watch belongs to another user.", 403);
+    }
+    const currentAttempt = current?.watch_attempt;
+    if (current && currentAttempt?.attempt_key_hash === input.attemptKeyHash) {
+      if (
+        currentAttempt.state === "claimed" &&
+        input.nowMs - currentAttempt.updated_at_ms >= GMAIL_WATCH_ATTEMPT_STALE_MS
+      ) {
+        currentAttempt.state = "ambiguous";
+        currentAttempt.updated_at_ms = input.nowMs;
+        current.updated_at_ms = input.nowMs;
+        this.audit.push(
+          watchAttemptAudit(current, "watch_attempt_ambiguous", input.nowMs),
+        );
+        return { status: "ambiguous", state: structuredClone(current) };
+      }
+      const status =
+        currentAttempt.state === "completed"
+          ? "completed"
+          : currentAttempt.state === "ambiguous"
+            ? "ambiguous"
+            : "in_progress";
+      return { status, state: structuredClone(current) };
+    }
+    if (current && currentAttempt?.state === "claimed") {
+      if (input.nowMs - currentAttempt.updated_at_ms < GMAIL_WATCH_ATTEMPT_STALE_MS) {
+        return { status: "in_progress", state: structuredClone(current) };
+      }
+      currentAttempt.state = "ambiguous";
+      currentAttempt.updated_at_ms = input.nowMs;
+      current.updated_at_ms = input.nowMs;
+      this.audit.push(watchAttemptAudit(current, "watch_attempt_ambiguous", input.nowMs));
+      return { status: "ambiguous", state: structuredClone(current) };
+    }
+    if ((current?.watch_expiration_ms ?? null) !== input.observedExpirationMs) {
+      return {
+        status: "stale_preview",
+        state: structuredClone(
+          current ?? emptyMailboxState(input.mailboxEmail, input.actorUid, input.nowMs),
+        ),
+      };
+    }
+    const state: GmailMailboxState = {
+      ...(current ?? emptyMailboxState(input.mailboxEmail, input.actorUid, input.nowMs)),
+      watch_attempt: {
+        attempt_key_hash: input.attemptKeyHash,
+        topic_hash: input.topicHash,
+        state: "claimed",
+        claimed_at_ms: input.nowMs,
+        updated_at_ms: input.nowMs,
+      },
+      updated_at_ms: input.nowMs,
+    };
+    this.mailboxStates.set(input.mailboxEmail, state);
+    this.audit.push(watchAttemptAudit(state, "watch_attempt_claimed", input.nowMs));
+    return { status: "claimed", state: structuredClone(state) };
+  }
+
+  async completeWatchAttempt(input: {
+    mailboxEmail: string;
+    actorUid: string;
+    attemptKeyHash: string;
+    historyId: string;
+    expirationMs: number;
+    nowMs: number;
+  }) {
+    const current = this.mailboxStates.get(input.mailboxEmail);
+    if (!current) throw new GmailStateError("Gmail watch attempt was not found.", 404);
+    if (
+      current.user_uid !== input.actorUid ||
+      current.watch_attempt?.attempt_key_hash !== input.attemptKeyHash
+    ) {
+      throw new GmailStateError("Gmail watch attempt does not match.", 409);
+    }
+    if (current.watch_attempt.state === "completed") {
+      return structuredClone(current);
+    }
+    if (current.watch_attempt.state !== "claimed") {
+      throw new GmailStateError("Gmail watch attempt is ambiguous.", 409);
+    }
+    current.history_id = input.historyId;
+    current.watch_expiration_ms = input.expirationMs;
+    current.last_successful_sync_ms = input.nowMs;
+    current.health = "watching";
+    current.updated_at_ms = input.nowMs;
+    current.watch_attempt = {
+      ...current.watch_attempt,
+      state: "completed",
+      history_id: input.historyId,
+      expiration_ms: input.expirationMs,
+      updated_at_ms: input.nowMs,
+    };
+    this.audit.push(watchAttemptAudit(current, "watch_attempt_completed", input.nowMs));
+    return structuredClone(current);
+  }
+
+  async markWatchAttemptAmbiguous(input: {
+    mailboxEmail: string;
+    actorUid: string;
+    attemptKeyHash: string;
+    nowMs: number;
+  }) {
+    const current = this.mailboxStates.get(input.mailboxEmail);
+    if (
+      !current ||
+      current.user_uid !== input.actorUid ||
+      current.watch_attempt?.attempt_key_hash !== input.attemptKeyHash ||
+      current.watch_attempt.state !== "claimed"
+    ) {
+      return;
+    }
+    current.watch_attempt.state = "ambiguous";
+    current.watch_attempt.updated_at_ms = input.nowMs;
+    current.updated_at_ms = input.nowMs;
+    this.audit.push(watchAttemptAudit(current, "watch_attempt_ambiguous", input.nowMs));
+  }
+
   async claimPush(input: {
     messageId: string;
     mailboxEmail: string;
@@ -697,6 +1052,7 @@ export class MemoryGmailStateStore implements GmailStateStore {
       ...(current?.watch_expiration_ms
         ? { watch_expiration_ms: current.watch_expiration_ms }
         : {}),
+      ...(current?.watch_attempt ? { watch_attempt: current.watch_attempt } : {}),
       last_successful_sync_ms: input.nowMs,
       health: "watching",
       updated_at_ms: input.nowMs,
@@ -849,6 +1205,46 @@ function sendAudit(record: GmailConfirmationRecord, action: string, createdAtMs:
     ...(record.gmail_thread_id ? { gmail_thread_id: record.gmail_thread_id } : {}),
     created_at_ms: createdAtMs,
     ...bodylessRetentionAuditFields(createdAtMs),
+  };
+}
+
+function emptyMailboxState(
+  mailboxEmail: string,
+  actorUid: string,
+  nowMs: number,
+): GmailMailboxState {
+  return {
+    mailbox_email: mailboxEmail,
+    user_uid: actorUid,
+    history_id: "0",
+    health: "connected",
+    updated_at_ms: nowMs,
+  };
+}
+
+function watchAttemptAudit(
+  state: GmailMailboxState,
+  action: "watch_attempt_claimed" | "watch_attempt_completed" | "watch_attempt_ambiguous",
+  createdAtMs: number,
+) {
+  if (!state.watch_attempt) {
+    throw new GmailStateError("Gmail watch attempt checkpoint is missing.", 409);
+  }
+  return {
+    action,
+    mailbox_key: mailboxDocId(state.mailbox_email),
+    actor_uid: state.user_uid,
+    attempt_key_hash: state.watch_attempt.attempt_key_hash,
+    topic_hash: state.watch_attempt.topic_hash,
+    state: state.watch_attempt.state,
+    ...(state.watch_attempt.history_id
+      ? { history_id: state.watch_attempt.history_id }
+      : {}),
+    ...(state.watch_attempt.expiration_ms
+      ? { expiration_ms: state.watch_attempt.expiration_ms }
+      : {}),
+    created_at_ms: createdAtMs,
+    ...communicationsRetentionFields("sync_audit", createdAtMs),
   };
 }
 

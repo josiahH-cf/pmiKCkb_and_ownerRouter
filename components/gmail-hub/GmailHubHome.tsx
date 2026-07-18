@@ -5,14 +5,18 @@ import { LiveGmailWorkspace } from "@/components/gmail-hub/LiveGmailWorkspace";
 import { SimulatedEmailChain } from "@/components/gmail-hub/SimulatedEmailChain";
 import { TemplateWorkspace } from "@/components/gmail-hub/TemplateWorkspace";
 import { ThreadSummaryPanel } from "@/components/gmail-hub/ThreadSummaryPanel";
+import { TestOperationalHandoffPanel } from "@/components/operations/TestOperationalHandoffPanel";
+import type { TestOperationalHandoff } from "@/lib/operations/test-handoffs";
 
 /** Workflow-bounded Gmail status plus an Admin-only pasted/synthetic fallback. */
 export function GmailHubHome({
   authenticatedEmail = "signed-in user",
   canManageAdmin = false,
+  operationalHandoffs = [],
 }: {
   authenticatedEmail?: string;
   canManageAdmin?: boolean;
+  operationalHandoffs?: readonly TestOperationalHandoff[];
 }) {
   return (
     <section className="content ui-stack gmail-hub">
@@ -27,13 +31,19 @@ export function GmailHubHome({
 
       <LiveGmailWorkspace authenticatedEmail={authenticatedEmail} />
 
+      <TestOperationalHandoffPanel
+        handoffs={operationalHandoffs}
+        title="Workflow-linked Test communication handoffs"
+      />
+
       {canManageAdmin ? (
         <section className="ui-stack" aria-label="Admin fallback tools">
           <div>
-            <h2>Admin-only pasted and synthetic fallback</h2>
+            <h2>Admin-only governed workflow recovery tools</h2>
             <p className="muted">
-              These tools do not read the live mailbox. Pasted input must be sanitized and
-              outputs remain drafts or proposals for human review.
+              These are not generic compose or new-message send controls. They do not read
+              the live mailbox; pasted input must be sanitized, and outputs remain
+              workflow-bounded drafts or review proposals with no delivery.
             </p>
           </div>
           <SimulatedEmailChain />

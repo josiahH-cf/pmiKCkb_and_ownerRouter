@@ -346,6 +346,10 @@ export interface QueueProcessRunRef {
 
 export interface ApprovalQueueItemRecord {
   id: string;
+  /** Legacy absence is Live; canonical audit fixtures explicitly carry Test. */
+  data_mode?: "live" | "test";
+  /** Stable identifier reserved for server-owned Test fixture restoration. */
+  test_fixture_key?: string;
   process_run_ref: QueueProcessRunRef;
   space_id?: string;
   action_execution_id?: string;
@@ -480,6 +484,13 @@ export interface WorkflowRunRecord {
   id: string;
   definition_id: string;
   definition_version_id?: string;
+  /** Optional immutable source publication that this isolated Test run was started against. */
+  source_publication_pin?: {
+    data_mode: "test";
+    resource_id: string;
+    version_id: string;
+    test_fixture_key: string;
+  };
   process_name: string;
   status: WorkflowRunStatus;
   owner_uid: string;
@@ -566,6 +577,12 @@ export interface LeaseRenewalResolutionRecord {
   id: string;
   source_trigger_key: string;
   run_id: string;
+  /**
+   * Canonical in-boundary property key for an unambiguous address-joined flag. Optional for
+   * legacy/name-joined records. This lets bodyless decision projections route to the owning
+   * property without replaying a Live provider read or copying any source value.
+   */
+  property_key?: string;
   field_key: string;
   field_label: string;
   severity: QueueRiskLevel;
@@ -586,6 +603,7 @@ export interface LeaseRenewalResolutionActivityRecord {
   id: string;
   source_trigger_key: string;
   run_id: string;
+  property_key?: string;
   actor_uid: string;
   action: LeaseRenewalResolutionKind | "reopened";
   previous_status?: LeaseRenewalResolutionStatus;
@@ -607,6 +625,7 @@ export interface LeaseRenewalWritebackApprovalRecord {
   id: string;
   source_trigger_key: string;
   run_id: string;
+  property_key?: string;
   field_key: string;
   field_label: string;
   severity: QueueRiskLevel;
@@ -631,6 +650,7 @@ export interface LeaseRenewalWritebackApprovalActivityRecord {
   id: string;
   source_trigger_key: string;
   run_id: string;
+  property_key?: string;
   actor_uid: string;
   action: LeaseRenewalWritebackApprovalDecision;
   previous_state?: LeaseRenewalWritebackApprovalState;

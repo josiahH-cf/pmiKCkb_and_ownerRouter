@@ -2946,7 +2946,7 @@ const vendorAdminCases = [
     userAction:
       "Open the provision preview only when the current canonical state offers it.",
     validation:
-      "Preview binds Test mode, invite version, current status, and expected rotation effects.",
+      "Preview binds the canonical Test alias, Test mode, no-external-delivery boundary, and initial setup effect.",
     visible: "No external delivery or Live identity is implied.",
     guideRefs: ["guide#admin.Test-Vendor-lifecycle", "reviewer-pass#Admin-6"],
   }),

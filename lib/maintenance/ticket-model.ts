@@ -14,6 +14,18 @@ export const MAINTENANCE_TICKET_STATUSES = [
 ] as const;
 export type MaintenanceTicketStatus = (typeof MAINTENANCE_TICKET_STATUSES)[number];
 
+/** Forward lifecycle moves. Closed tickets use the separate audited reopen operation. */
+export const MAINTENANCE_ALLOWED_STATUS_TRANSITIONS: Record<
+  MaintenanceTicketStatus,
+  readonly MaintenanceTicketStatus[]
+> = {
+  Open: ["Waiting on Response", "Waiting on Vendor", "Scheduled", "Closed"],
+  "Waiting on Response": ["Waiting on Vendor", "Scheduled", "Closed"],
+  "Waiting on Vendor": ["Waiting on Response", "Scheduled", "Closed"],
+  Scheduled: ["Waiting on Response", "Waiting on Vendor", "Closed"],
+  Closed: [],
+};
+
 export type MaintenanceTicketActivityAction =
   | "create"
   | "status"

@@ -222,6 +222,7 @@ export function AskForm({
   }
 
   const {
+    cancelPermissionRequest,
     isRecording,
     phase: recorderPhase,
     toggleRecording,
@@ -265,17 +266,20 @@ export function AskForm({
               className="secondary-button dictate-button"
               disabled={
                 isTranscribing ||
-                recorderPhase === "requesting-permission" ||
                 recorderPhase === "stopping" ||
                 recorderPhase === "processing"
               }
-              onClick={() => void toggleRecording()}
+              onClick={() =>
+                recorderPhase === "requesting-permission"
+                  ? cancelPermissionRequest()
+                  : void toggleRecording()
+              }
               type="button"
             >
               {isRecording
                 ? "Stop recording"
                 : recorderPhase === "requesting-permission"
-                  ? "Requesting microphone…"
+                  ? "Cancel microphone request"
                   : recorderPhase === "stopping"
                     ? "Stopping…"
                     : isTranscribing

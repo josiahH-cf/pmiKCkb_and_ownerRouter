@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
+import { TestOperationalHandoffPanel } from "@/components/operations/TestOperationalHandoffPanel";
 import { ATTENTION_LANE_META, type AttentionLane } from "@/lib/attention/lanes";
 import { requirePageCapability } from "@/lib/auth/page-guards";
+import { hasSpaceAccess } from "@/lib/auth/session";
 import { loadNotificationHub } from "@/lib/notifications/hub";
+import { loadTestOperationalHandoffs } from "@/lib/operations/test-handoff-loader";
 
 // S17 B1 — the read-only /notifications hub. A SUPERSET of the Console: it renders the time-ordered event
 // LOG plus the standing setup signals (connections + coverage) and, for an Admin, the value-free review
@@ -11,7 +14,14 @@ import { loadNotificationHub } from "@/lib/notifications/hub";
 // Non-fatal: the loader degrades each read independently, so a hiccup thins the feed rather than erroring.
 export default async function NotificationsPage() {
   const user = await requirePageCapability("read");
-  const feed = await loadNotificationHub(user, { full: true, limit: 50 });
+  const [feed, testHandoffs] = await Promise.all([
+    loadNotificationHub(user, { full: true, limit: 50 }),
+    loadTestOperationalHandoffs(user, {
+      lease: hasSpaceAccess(user, "renewals"),
+      maintenance: hasSpaceAccess(user, "maintenance"),
+      limitPerKind: 5,
+    }),
+  ]);
 
   const connectionSignals = feed.standing.filter(
     (signal) => signal.lane === "connection",
@@ -82,6 +92,11 @@ export default async function NotificationsPage() {
             </ol>
           )}
         </section>
+
+        <TestOperationalHandoffPanel
+          handoffs={testHandoffs}
+          title="Test attention and owning-record handoffs"
+        />
 
         <section className="panel" aria-label="Set-up">
           <h2>Set-up</h2>

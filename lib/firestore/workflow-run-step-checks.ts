@@ -17,16 +17,18 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type {
+  ProcessDefinitionRecord,
+  WorkflowRunRecord,
   WorkflowRunStepCheckActivityRecord,
   WorkflowRunStepCheckRecord,
   WorkflowRunStepCheckStatus,
 } from "@/lib/firestore/types";
-import { getProcessDefinition, getWorkflowRun } from "@/lib/firestore/workflows";
+import {
+  stepCheckDocId,
+  WORKFLOW_RUN_STEP_CHECK_COLLECTIONS,
+} from "@/lib/firestore/workflow-run-step-check-keys";
 
-export const WORKFLOW_RUN_STEP_CHECK_COLLECTIONS = {
-  checks: "workflow_run_step_checks",
-  activity: "workflow_run_step_check_activity",
-} as const;
+export { stepCheckDocId, WORKFLOW_RUN_STEP_CHECK_COLLECTIONS };
 
 export const SetWorkflowRunStepCheckInputSchema = z.object({
   run_id: z.string().min(1),
@@ -59,21 +61,42 @@ export async function setWorkflowRunStepCheck(
     throw new EditableLayerError("A reason is required to skip a step.", 400);
   }
 
-  // Run must exist (getWorkflowRun throws 404 if not); the step must belong to its definition.
-  const run = await getWorkflowRun(actor, parsed.run_id, db);
-  const definition = await getProcessDefinition(actor, run.definition_id, db);
-  const step = definition.steps.find((candidate) => candidate.id === parsed.step_id);
-  if (!step) {
-    throw new EditableLayerError(
-      "That step is not part of this run's process definition.",
-      400,
-    );
-  }
-
   const docId = stepCheckDocId(parsed.run_id, parsed.step_id);
   const isMarked = parsed.status !== "Unchecked";
 
   await db.runTransaction(async (transaction) => {
+    const runSnapshot = await transaction.get(
+      db.collection("workflow_runs").doc(parsed.run_id),
+    );
+    if (!runSnapshot.exists) {
+      throw new EditableLayerError("Workflow run not found.", 404);
+    }
+    const run = readRecord<WorkflowRunRecord>(runSnapshot.id, runSnapshot.data()!);
+    if (["Completed", "Cancelled", "Failed"].includes(run.status)) {
+      throw new EditableLayerError(
+        "Checklist steps cannot be changed after a workflow run is closed.",
+        409,
+      );
+    }
+
+    const definitionSnapshot = await transaction.get(
+      db.collection("process_definitions").doc(run.definition_id),
+    );
+    if (!definitionSnapshot.exists) {
+      throw new EditableLayerError("Process definition not found.", 404);
+    }
+    const definition = readRecord<ProcessDefinitionRecord>(
+      definitionSnapshot.id,
+      definitionSnapshot.data()!,
+    );
+    const step = definition.steps.find((candidate) => candidate.id === parsed.step_id);
+    if (!step) {
+      throw new EditableLayerError(
+        "That step is not part of this run's process definition.",
+        400,
+      );
+    }
+
     const ref = checkRef(db, docId);
     const snapshot = await transaction.get(ref);
     const existing = snapshot.exists ? snapshot.data() : undefined;
@@ -163,11 +186,6 @@ export async function listWorkflowRunStepCheckActivity(
   return snapshot.docs
     .map((doc) => readRecord<WorkflowRunStepCheckActivityRecord>(doc.id, doc.data()))
     .sort((left, right) => left.created_at.localeCompare(right.created_at));
-}
-
-/** Deterministic, Firestore-safe doc id derived from (run_id, step_id). */
-export function stepCheckDocId(runId: string, stepId: string): string {
-  return `${runId}:${stepId}`.replace(/[^a-zA-Z0-9_-]/g, "_");
 }
 
 function checkRef(db: Firestore, docId: string) {

@@ -171,6 +171,13 @@ describe("buildRenewalReviewBoard", () => {
     expect(Object.keys(board.runs[0].flags[0]).sort()).toEqual([
       "actionNeeded",
       "agreement",
+      "authorizationReasonRecorded",
+      "authorizationReceiptId",
+      "authorizationState",
+      "decisionReasonRecorded",
+      "decisionReceiptId",
+      "decisionState",
+      "executionState",
       "fieldKey",
       "fieldLabel",
       "href",
@@ -249,8 +256,12 @@ describe("buildRenewalReviewBoard", () => {
                 queued: true,
                 state: "Approved",
                 stale: false,
+                authorizationReceiptId: "authorization-receipt-safe-1",
                 decidedByUid: "admin-dan",
                 reason: "RentVine is authoritative.",
+                reasonRecorded: true,
+                productionAllowed: false,
+                executed: false,
               },
             }),
             makeFlag("lease_start", "Medium", {
@@ -269,6 +280,13 @@ describe("buildRenewalReviewBoard", () => {
     const run = board.runs[0];
     expect(run.proposalsAwaitingApproval).toBe(1);
     expect(run.proposalsApproved).toBe(1);
+    const approved = run.flags.find((flag) => flag.fieldKey === "renewal_date");
+    expect(approved).toMatchObject({
+      authorizationState: "Approved",
+      authorizationReceiptId: "authorization-receipt-safe-1",
+      authorizationReasonRecorded: true,
+      executionState: "not_executed",
+    });
   });
 
   it("keeps write-back approval detail (decider, reason) out of the value-free board", () => {

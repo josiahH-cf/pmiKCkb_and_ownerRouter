@@ -43,6 +43,8 @@ const BULK_UNAVAILABLE_ITEM_MESSAGE = "Queue item is not available for this bulk
 
 // Approval-critical fields snapshotted into Activity when an open item refreshes.
 const APPROVAL_CRITICAL_FIELDS = [
+  "data_mode",
+  "test_fixture_key",
   "status",
   "risk",
   "action_execution_id",
@@ -135,6 +137,25 @@ export async function createApprovalQueueItem(
   assertCan(actor, "edit");
   const parsed = CreateApprovalQueueItemInputSchema.parse(input);
   const { note, risk_signals, ...rest } = parsed;
+
+  if (rest.data_mode === "test" && !rest.test_fixture_key?.startsWith("audit:")) {
+    throw new EditableLayerError(
+      "Test Approval Queue items require a server-owned audit fixture key.",
+      400,
+    );
+  }
+  if (rest.test_fixture_key && rest.data_mode !== "test") {
+    throw new EditableLayerError(
+      "Approval Queue fixture keys are permitted only in Test mode.",
+      400,
+    );
+  }
+  if (rest.data_mode === "test" && rest.action_execution_id) {
+    throw new EditableLayerError(
+      "Test Approval Queue fixtures cannot attach to a Live execution ledger.",
+      400,
+    );
+  }
 
   const hasAssignee = Boolean(rest.assignee_uid);
   const hasApprover = Boolean(rest.required_approver_uid);

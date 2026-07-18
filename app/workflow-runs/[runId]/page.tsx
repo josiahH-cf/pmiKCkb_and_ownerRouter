@@ -3,7 +3,16 @@ import { WorkflowRunClient } from "@/components/workflows/WorkflowRunClient";
 import { redirect } from "next/navigation";
 import { can } from "@/lib/auth/roles";
 import { primarySpaceHref, requirePageCapability } from "@/lib/auth/page-guards";
-import { getWorkflowRun, listWorkflowRunTimeline } from "@/lib/firestore/workflows";
+import {
+  getProcessDefinition,
+  getWorkflowRun,
+  listWorkflowRunTimeline,
+} from "@/lib/firestore/workflows";
+import { listStepChecksForRun } from "@/lib/firestore/workflow-run-step-checks";
+import type {
+  ProcessDefinitionStep,
+  WorkflowRunStepCheckRecord,
+} from "@/lib/firestore/types";
 import { canAccessWorkflowRun } from "@/lib/space-scope-resources";
 
 interface WorkflowRunPageProps {
@@ -16,6 +25,8 @@ export default async function WorkflowRunPage({ params }: WorkflowRunPageProps) 
   let loadError = false;
   let run: Awaited<ReturnType<typeof getWorkflowRun>> | undefined;
   let timeline: Awaited<ReturnType<typeof listWorkflowRunTimeline>> = [];
+  let steps: ProcessDefinitionStep[] = [];
+  let checks: WorkflowRunStepCheckRecord[] = [];
 
   try {
     run = await getWorkflowRun(user, runId);
@@ -29,7 +40,14 @@ export default async function WorkflowRunPage({ params }: WorkflowRunPageProps) 
 
   if (run) {
     try {
-      timeline = await listWorkflowRunTimeline(user, runId);
+      const [loadedTimeline, definition, loadedChecks] = await Promise.all([
+        listWorkflowRunTimeline(user, runId),
+        getProcessDefinition(user, run.definition_id),
+        listStepChecksForRun(user, runId),
+      ]);
+      timeline = loadedTimeline;
+      steps = definition.steps;
+      checks = loadedChecks;
     } catch {
       loadError = true;
     }
@@ -49,7 +67,9 @@ export default async function WorkflowRunPage({ params }: WorkflowRunPageProps) 
         ) : (
           <WorkflowRunClient
             canEdit={can(user.role, "edit")}
+            initialChecks={checks}
             initialRun={run}
+            initialSteps={steps}
             initialTimeline={timeline}
           />
         )}

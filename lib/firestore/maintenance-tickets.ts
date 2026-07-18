@@ -25,6 +25,7 @@ import {
   type MaintenanceTicketNotificationEvent,
 } from "@/lib/firestore/maintenance-ticket-notifications";
 import {
+  MAINTENANCE_ALLOWED_STATUS_TRANSITIONS,
   MAINTENANCE_TICKET_STATUSES,
   type MaintenanceTicketActivityRecord,
   type MaintenanceTicketRecord,
@@ -132,6 +133,7 @@ export const TransitionMaintenanceTicketInputSchema = z.discriminatedUnion("op",
   z.object({ op: z.literal("label-add"), label: z.string().trim().min(1) }),
   z.object({ op: z.literal("label-remove"), label: z.string().trim().min(1) }),
   z.object({ op: z.literal("note"), text: z.string().trim().min(1) }),
+  z.object({ op: z.literal("reopen"), reason: z.string().trim().min(1) }),
 ]);
 export type TransitionMaintenanceTicketInput = z.input<
   typeof TransitionMaintenanceTicketInputSchema
@@ -285,27 +287,53 @@ export async function transitionMaintenanceTicket(
         if (op.status === "Closed" && !reason) {
           throw new EditableLayerError("A reason is required to close a ticket.", 400);
         }
-        const reopening = ticket.status === "Closed" && op.status !== "Closed";
+        if (!MAINTENANCE_ALLOWED_STATUS_TRANSITIONS[ticket.status].includes(op.status)) {
+          throw new EditableLayerError(
+            ticket.status === "Closed"
+              ? "Closed tickets can only be reopened through the explicit Reopen action."
+              : `A maintenance ticket cannot move from ${ticket.status} to ${op.status}.`,
+            409,
+          );
+        }
         updated = {
           ...updated,
           status: op.status,
           closed_at: op.status === "Closed" ? updatedAt : undefined,
           closed_reason: op.status === "Closed" ? reason : undefined,
         };
-        if (reopening) {
-          updated.closed_at = undefined;
-          updated.closed_reason = undefined;
-        }
         activity = {
           ticket_id: ticketId,
           actor_uid: actor.uid,
-          action: op.status === "Closed" ? "close" : reopening ? "reopen" : "status",
+          action: op.status === "Closed" ? "close" : "status",
           previous_status: ticket.status,
           new_status: op.status,
           text: reason,
         };
-        notificationEvent =
-          op.status === "Closed" ? "closed" : reopening ? "reopened" : "status_changed";
+        notificationEvent = op.status === "Closed" ? "closed" : "status_changed";
+        break;
+      }
+      case "reopen": {
+        if (ticket.status !== "Closed") {
+          throw new EditableLayerError(
+            "Only a closed maintenance ticket can be reopened.",
+            409,
+          );
+        }
+        updated = {
+          ...updated,
+          status: "Open",
+          closed_at: undefined,
+          closed_reason: undefined,
+        };
+        activity = {
+          ticket_id: ticketId,
+          actor_uid: actor.uid,
+          action: "reopen",
+          previous_status: "Closed",
+          new_status: "Open",
+          text: op.reason,
+        };
+        notificationEvent = "reopened";
         break;
       }
       case "assign": {
