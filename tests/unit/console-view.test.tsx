@@ -62,7 +62,7 @@ describe("ConsoleView", () => {
     expect(
       screen.getByRole("heading", { name: "Console", level: 1 }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Question")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Question/)).toBeInTheDocument();
     expect(screen.getByTestId("console-test-data-badge")).toHaveTextContent("Test data");
     // A renewals-visible principal sees the read-only anticipation lane (S18).
     expect(screen.getByRole("heading", { name: "Anticipated work" })).toBeInTheDocument();

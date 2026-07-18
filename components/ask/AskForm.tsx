@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { useAudioRecorder } from "@/components/hooks/useAudioRecorder";
 import { SourceStateBanner } from "@/components/source-state-banner/SourceStateBanner";
+import { Button, Field } from "@/components/ui";
 import { detectProcess } from "@/lib/processes/intent";
 import { launchSpaces } from "@/lib/spaces";
 import type { AskResponse } from "@/lib/schemas";
@@ -258,7 +259,12 @@ export function AskForm({
       <div className="ask-grid">
         <form className="ask-form panel" onSubmit={submit}>
           <div className="field-label-row">
-            <label htmlFor="question">Question</label>
+            <label htmlFor="question">
+              Question
+              <span aria-hidden="true" className="field-required">
+                *
+              </span>
+            </label>
             <button
               ref={dictateButtonRef}
               aria-describedby="dictation-status"
@@ -288,17 +294,19 @@ export function AskForm({
             </button>
           </div>
           <textarea
+            aria-describedby="question-hint"
             id="question"
             minLength={3}
             name="question"
             onChange={(event) => setQuestion(event.target.value)}
-            placeholder="What do you need to know?"
+            placeholder="For example: when does the lease at 1234 Oak St renew?"
             required
             rows={7}
             value={question}
           />
-          <p className="muted dictate-hint">
-            Type your question, or use Dictate to speak it.
+          <p className="muted dictate-hint" id="question-hint">
+            Ask in plain language. For example: when does the lease at 1234 Oak St, Unit 2
+            renew? You can type it or use Dictate to speak it.
           </p>
           <p
             aria-atomic="true"
@@ -355,9 +363,9 @@ export function AskForm({
             </p>
           ) : null}
 
-          <button className="primary-button" disabled={isPending} type="submit">
+          <Button disabled={isPending} size="large" type="submit">
             {submitLabel}
-          </button>
+          </Button>
         </form>
 
         <aside className="panel result-panel" aria-live="polite">
@@ -461,8 +469,7 @@ function SelectField({
   value: string;
 }>) {
   return (
-    <label className="select-field" htmlFor={id}>
-      {label}
+    <Field htmlFor={id} label={label}>
       <select id={id} onChange={(event) => onChange(event.target.value)} value={value}>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -470,7 +477,7 @@ function SelectField({
           </option>
         ))}
       </select>
-    </label>
+    </Field>
   );
 }
 

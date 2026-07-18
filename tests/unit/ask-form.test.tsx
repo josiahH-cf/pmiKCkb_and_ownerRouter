@@ -66,7 +66,20 @@ describe("AskForm (action console)", () => {
     expect(screen.queryByLabelText("Channel")).toBeNull();
     expect(screen.queryByLabelText("Urgency")).toBeNull();
     expect(screen.queryByLabelText("Process")).toBeNull();
-    expect(screen.getByRole("button", { name: "Get answer" })).toBeInTheDocument();
+
+    // FDS-2/FDS-3/FDS-5: the primary action is the prominent "large" Button, the required
+    // Question carries a marked asterisk, and the field offers a guided example.
+    const submit = screen.getByRole("button", { name: "Get answer" });
+    expect(submit).toHaveClass("primary-button", "button--large");
+    expect(screen.getByText("*")).toHaveClass("field-required");
+    expect(screen.getByLabelText(/Question/)).toHaveAttribute(
+      "aria-describedby",
+      "question-hint",
+    );
+    expect(screen.getByText(/when does the lease at 1234 Oak St/)).toHaveAttribute(
+      "id",
+      "question-hint",
+    );
   });
 
   it("shows the Dictate control and its helper (S10 / F-DICTATE-VERIFIED)", () => {
@@ -83,7 +96,7 @@ describe("AskForm (action console)", () => {
     installRecorder(async () => fakeStream());
     render(<AskForm />);
 
-    const question = screen.getByLabelText("Question");
+    const question = screen.getByLabelText(/Question/);
     await user.type(question, "Keep this typed text.");
     await user.click(screen.getByRole("button", { name: "Dictate" }));
     expect(screen.getByRole("status")).toHaveTextContent(
@@ -108,7 +121,7 @@ describe("AskForm (action console)", () => {
     );
     render(<AskForm />);
 
-    const question = screen.getByLabelText("Question");
+    const question = screen.getByLabelText(/Question/);
     await user.type(question, "Original question");
     await user.click(screen.getByRole("button", { name: "Dictate" }));
     await user.click(screen.getByRole("button", { name: "Stop recording" }));
@@ -141,7 +154,7 @@ describe("AskForm (action console)", () => {
       />,
     );
 
-    await user.type(screen.getByLabelText("Question"), "How do renewals work?");
+    await user.type(screen.getByLabelText(/Question/), "How do renewals work?");
     await user.click(screen.getByRole("button", { name: "Get answer" }));
 
     expect(await screen.findByText("Here is the grounded answer.")).toBeInTheDocument();
@@ -161,7 +174,7 @@ describe("AskForm (action console)", () => {
       />,
     );
 
-    await user.type(screen.getByLabelText("Question"), "Start a renewal");
+    await user.type(screen.getByLabelText(/Question/), "Start a renewal");
     await user.selectOptions(screen.getByLabelText("Process"), "lease-renewal");
     expect(
       screen.getByRole("button", { name: "Get answer + start a test run" }),
@@ -200,7 +213,7 @@ describe("AskForm (action console)", () => {
     );
 
     await user.type(
-      screen.getByLabelText("Question"),
+      screen.getByLabelText(/Question/),
       "When is the lease up for renewal?",
     );
     await user.click(await screen.findByRole("button", { name: "Use Lease Renewal" }));
