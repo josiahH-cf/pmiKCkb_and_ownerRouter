@@ -1,4 +1,5 @@
 import type { SourceState } from "@/lib/source-state";
+import type { DataMode } from "@/lib/data-mode";
 
 export const MAX_PUBLICATION_CONTENT_BYTES = 25 * 1024 * 1024;
 
@@ -19,6 +20,9 @@ export interface PublicationAllowedType {
 
 export interface PublicationPolicyRecord {
   id: string;
+  /** Legacy absence is Live. Test policies are server-owned exact fixtures only. */
+  data_mode?: DataMode;
+  test_fixture_key?: string;
   allowedSpaces: readonly string[];
   allowedTypes: readonly PublicationAllowedType[];
   connectorId: string;
@@ -47,6 +51,8 @@ export interface PublicationMetadata {
   rootId: string;
   sourceState?: SourceState;
   spaceId: string;
+  data_mode?: DataMode;
+  test_fixture_key?: string;
 }
 
 export interface PublicationEnvelope {
@@ -94,6 +100,7 @@ export type PublicationFailureCode =
   | "actor_not_authorized"
   | "authority_field_forbidden"
   | "content_size_mismatch"
+  | "data_mode_mismatch"
   | "malware_detected"
   | "mime_mismatch"
   | "path_outside_root"
@@ -118,6 +125,8 @@ export interface PublicationValidationResult {
 
 export interface PublicationVersionRecord {
   id: string;
+  data_mode?: DataMode;
+  test_fixture_key?: string;
   citationLabel?: string;
   connectorId: string;
   contentByteSize: number;
@@ -142,6 +151,8 @@ export interface PublicationVersionRecord {
 
 export interface PublicationResourceRecord {
   id: string;
+  data_mode?: DataMode;
+  test_fixture_key?: string;
   activeVersionId: string;
   /** Monotonic sequence guarded by the resource-document transaction lock. */
   lastVersionNumber: number;

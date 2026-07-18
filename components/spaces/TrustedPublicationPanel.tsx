@@ -70,7 +70,7 @@ export function TrustedPublicationPanel({
     <section className="panel">
       <div className="panel-heading">
         <div>
-          <h2>Trusted sources</h2>
+          <h2>Live trusted sources</h2>
           <p className="muted">{message}</p>
         </div>
         <span className="review-pill">Validated + versioned</span>
@@ -133,6 +133,10 @@ export function TrustedPublicationPanel({
         Allowed launch defaults: Markdown/text 2 MB, PDF/DOCX 25 MB, CSV 10 MB, and common
         images 10 MB. Executables, archives, unknown types, failed scans, and out-of-scope
         paths never become Active.
+      </p>
+      <p className="muted">
+        This upload lane is Live and accepts only an enabled Live policy plus its real
+        scanner. The separate Admin Test fixture cannot be selected here.
       </p>
     </section>
   );

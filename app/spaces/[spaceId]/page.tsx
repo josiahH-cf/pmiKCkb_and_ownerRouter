@@ -13,6 +13,7 @@ import { WelcomeDraftCard } from "@/components/desk/WelcomeDraftCard";
 import { ProcessSummaryPanel } from "@/components/spaces/ProcessSummaryPanel";
 import { SpaceDetailClient } from "@/components/spaces/SpaceDetailClient";
 import { TrustedPublicationPanel } from "@/components/spaces/TrustedPublicationPanel";
+import { TrustedPublicationTestFixturePanel } from "@/components/spaces/TrustedPublicationTestFixturePanel";
 import { can } from "@/lib/auth/roles";
 import { primarySpaceHref, requirePageCapability } from "@/lib/auth/page-guards";
 import { hasSpaceAccess } from "@/lib/auth/session";
@@ -250,7 +251,15 @@ export default async function SpaceDetailPage({
           </div>
         )}
         {!space.readOnly ? (
-          <TrustedPublicationPanel canEdit={can(user.role, "edit")} spaceId={space.id} />
+          <>
+            <TrustedPublicationPanel
+              canEdit={can(user.role, "edit")}
+              spaceId={space.id}
+            />
+            {space.id === "lease-renewals" && can(user.role, "manageAdmin") ? (
+              <TrustedPublicationTestFixturePanel spaceId={space.id} />
+            ) : null}
+          </>
         ) : null}
       </section>
     </AppShell>

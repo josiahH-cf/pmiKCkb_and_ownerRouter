@@ -3,6 +3,7 @@ import { FieldValue, type Firestore, type Transaction } from "firebase-admin/fir
 import { v7 as uuidv7 } from "uuid";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { resolveDataMode, type DataMode } from "@/lib/data-mode";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type {
@@ -64,7 +65,7 @@ export async function publishTrustedContent(
     });
   } catch (error) {
     if (error instanceof PublicationValidationError) {
-      await writeFailureAudit(db, actor, policy.id, envelope.metadata, error.code);
+      await writeFailureAudit(db, actor, policy, envelope.metadata, error.code);
     }
     throw error;
   }
@@ -121,26 +122,35 @@ export async function publishTrustedContent(
         db.collection(PUBLICATION_COLLECTIONS.versions).doc(versionId),
         version,
       );
-      transaction.set(resourceRef, {
-        id: metadata.resourceId,
-        activeVersionId: versionId,
-        lastVersionNumber: versionNumber,
-        policyId: policy.id,
-        resourceType: metadata.resourceType,
-        spaceId: metadata.spaceId,
-        updatedAt: FieldValue.serverTimestamp(),
-        updatedByUid: actor.uid,
-      });
-      transaction.set(db.collection(PUBLICATION_COLLECTIONS.audit).doc(uuidv7()), {
-        actorUid: actor.uid,
-        createdAt: FieldValue.serverTimestamp(),
-        eventType: "published",
-        policyId: policy.id,
-        resourceId: metadata.resourceId,
-        spaceId: metadata.spaceId,
-        versionId,
-        versionNumber,
-      });
+      transaction.set(
+        resourceRef,
+        stripUndefined({
+          id: metadata.resourceId,
+          activeVersionId: versionId,
+          data_mode: resolveDataMode(metadata),
+          test_fixture_key: metadata.test_fixture_key,
+          lastVersionNumber: versionNumber,
+          policyId: policy.id,
+          resourceType: metadata.resourceType,
+          spaceId: metadata.spaceId,
+          updatedAt: FieldValue.serverTimestamp(),
+          updatedByUid: actor.uid,
+        }),
+      );
+      transaction.set(
+        db.collection(PUBLICATION_COLLECTIONS.audit).doc(uuidv7()),
+        stripUndefined({
+          actorUid: actor.uid,
+          createdAt: FieldValue.serverTimestamp(),
+          data_mode: resolveDataMode(metadata),
+          eventType: "published",
+          policyId: policy.id,
+          resourceId: metadata.resourceId,
+          spaceId: metadata.spaceId,
+          versionId,
+          versionNumber,
+        }),
+      );
       options.extendCommit?.({ contentRef, transaction, versionId, versionNumber });
     });
   } catch (error) {
@@ -191,6 +201,7 @@ export async function rollbackTrustedPublication(
     "Publication version was not found.",
   );
   assertRollbackTarget(preflightTarget, resourceId);
+  assertPublicationModesMatch(preflightResource, preflightTarget);
   await assertRollbackContentAvailable(preflightTarget, contentStore);
 
   const versionId = uuidv7();
@@ -214,6 +225,7 @@ export async function rollbackTrustedPublication(
       "Publication version was not found.",
     );
     assertRollbackTarget(target, resourceId);
+    assertPublicationModesMatch(resource, target);
     if (!samePublicationContent(target, preflightTarget)) {
       throw new EditableLayerError("Rollback target changed during verification.", 409);
     }
@@ -245,6 +257,7 @@ export async function rollbackTrustedPublication(
     transaction.set(db.collection(PUBLICATION_COLLECTIONS.audit).doc(uuidv7()), {
       actorUid: actor.uid,
       createdAt: FieldValue.serverTimestamp(),
+      data_mode: resolveDataMode(resource),
       eventType: "rolled_back",
       policyId: resource.policyId,
       reason,
@@ -263,6 +276,7 @@ export async function listActiveTrustedPublications(
   actor: AuthenticatedUser,
   spaceId: string,
   db: Firestore = getAdminFirestore(),
+  options: { dataMode?: DataMode } = {},
 ): Promise<PublicationVersionRecord[]> {
   if (!can(actor.role, "read") || !canAccessSpaceId(actor, spaceId)) {
     throw new EditableLayerError("This user cannot read this Space.", 403);
@@ -272,16 +286,23 @@ export async function listActiveTrustedPublications(
     .where("spaceId", "==", spaceId)
     .get();
   const versions = await Promise.all(
-    resourcesSnapshot.docs.map(async (doc) => {
-      const resource = readRequired<PublicationResourceRecord>(
-        doc.id,
-        doc.data(),
-        "Publication resource was not found.",
-      );
-      return getPublicationVersion(resource.activeVersionId, db);
-    }),
+    resourcesSnapshot.docs
+      .map((doc) =>
+        readRequired<PublicationResourceRecord>(
+          doc.id,
+          doc.data(),
+          "Publication resource was not found.",
+        ),
+      )
+      .filter((resource) => resolveDataMode(resource) === (options.dataMode ?? "live"))
+      .map(async (resource) => {
+        return getPublicationVersion(resource.activeVersionId, db);
+      }),
   );
-  return versions.filter((version) => version.validated);
+  return versions.filter(
+    (version) =>
+      version.validated && resolveDataMode(version) === (options.dataMode ?? "live"),
+  );
 }
 
 export async function getPublicationVersion(
@@ -302,19 +323,23 @@ export async function getPublicationVersion(
 async function writeFailureAudit(
   db: Firestore,
   actor: AuthenticatedUser,
-  policyId: string,
+  policy: PublicationPolicyRecord,
   metadata: PublicationEnvelope["metadata"],
   code: PublicationFailureCode,
 ) {
-  await db.collection(PUBLICATION_COLLECTIONS.audit).doc(uuidv7()).set({
-    actorUid: actor.uid,
-    code,
-    createdAt: FieldValue.serverTimestamp(),
-    eventType: "rejected",
-    policyId,
-    resourceId: metadata.resourceId,
-    spaceId: metadata.spaceId,
-  });
+  await db
+    .collection(PUBLICATION_COLLECTIONS.audit)
+    .doc(uuidv7())
+    .set({
+      actorUid: actor.uid,
+      code,
+      createdAt: FieldValue.serverTimestamp(),
+      data_mode: resolveDataMode(policy),
+      eventType: "rejected",
+      policyId: policy.id,
+      resourceId: metadata.resourceId,
+      spaceId: metadata.spaceId,
+    });
 }
 
 function versionRecord(input: {
@@ -330,6 +355,8 @@ function versionRecord(input: {
   const { metadata } = input;
   return stripUndefined({
     id: input.versionId,
+    data_mode: resolveDataMode(metadata),
+    test_fixture_key: metadata.test_fixture_key,
     citationLabel: metadata.citationLabel,
     connectorId: metadata.connectorId,
     contentByteSize: input.contentRef.byteSize,
@@ -412,7 +439,9 @@ function assertResourceIdentity(
   if (
     resource.policyId !== policyId ||
     resource.resourceType !== metadata.resourceType ||
-    resource.spaceId !== metadata.spaceId
+    resource.spaceId !== metadata.spaceId ||
+    resolveDataMode(resource) !== resolveDataMode(metadata) ||
+    resource.test_fixture_key !== metadata.test_fixture_key
   ) {
     throw new EditableLayerError(
       "Publication resource identity conflicts with the existing Active resource.",
@@ -461,6 +490,10 @@ function assertRollbackAllowedByCurrentPolicy(
     !can(actor.role, "edit") ||
     !canAccessSpaceId(actor, target.spaceId) ||
     !policy.enabled ||
+    resolveDataMode(policy) !== resolveDataMode(resource) ||
+    resolveDataMode(resource) !== resolveDataMode(target) ||
+    policy.test_fixture_key !== resource.test_fixture_key ||
+    resource.test_fixture_key !== target.test_fixture_key ||
     policy.id !== resource.policyId ||
     target.policyId !== policy.id ||
     target.spaceId !== resource.spaceId ||
@@ -479,6 +512,21 @@ function assertRollbackAllowedByCurrentPolicy(
   ) {
     throw new EditableLayerError(
       "Rollback target is no longer allowed by the current publication policy.",
+      409,
+    );
+  }
+}
+
+function assertPublicationModesMatch(
+  resource: PublicationResourceRecord,
+  version: PublicationVersionRecord,
+) {
+  if (
+    resolveDataMode(resource) !== resolveDataMode(version) ||
+    resource.test_fixture_key !== version.test_fixture_key
+  ) {
+    throw new EditableLayerError(
+      "Publication resource and version data modes do not match.",
       409,
     );
   }

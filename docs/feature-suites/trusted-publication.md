@@ -8,7 +8,10 @@
 > Deterministic clean/malicious scanners are fenced to explicit local-demo auth in a non-production
 > process with a loopback Firestore emulator. Existing approved sources remain usable. A new
 > production root/scanner/import connection activates independently when configured; its absence does
-> not block the working application, and deterministic Test publication never claims a Live scan.
+> not block the working application. A production-safe Admin Test fixture now exercises the real
+> immutable version/Active-pointer/rollback path using only two compiled, repository-authorized,
+> hash-locked documents. It is explicitly `data_mode:test`, excluded from Live retrieval and generic
+> upload policy resolution, and never claims a Live malware scan or provider activation.
 
 > New 2026-07-14. Implements R05. Validation-passing Editor additions become Active immediately; the
 > old default approval detour is superseded for content publication only.
@@ -44,7 +47,8 @@ and no document can change runtime authority.
   steps reference only pre-registered action keys and cannot make a disabled action executable.
 - **Built locally (app-plane).** Policy/schema, bounded stream reader, chunk store/reference integrity,
   scanner interfaces and fenced local fakes, version/rollback, audits, UI results, rules, and emulator
-  tests.
+  tests. The deployed app also exposes the Admin-only exact Test fixture with distinct restore,
+  revision, and rollback confirmations plus idempotent baseline restoration.
 - **Gated (owner / vendor).** Production root/connector configuration, malware provider activation,
   source import, Drive changes, indexing, deploy, and live proof.
 
@@ -94,12 +98,19 @@ test:firestore`.
   _Verify:_ `npm test`; keep source-state/citation/anti-hallucination tests green.
 - **AC-S21-7** — Full checks pass: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm
 test`, `npm run verify:redaction`, `npm run verify:router-boundary`, `npm run build`.
+- **AC-S21-8** — The canonical repository-owned Test fixture can be created, retried without a
+  duplicate version, advanced to its exact revision, rolled back to its immutable baseline, and
+  restored. Its policy/resource/version/audit records remain Test-only; default retrieval and the
+  generic upload route reject or exclude them, and the normal provider resolver treats its exact
+  allowlist scanner key as unavailable. _Verify:_ `npm test -- publication-test-fixture`.
 
 **Forbidden actions / hard gates.** No live source read/import/index, Drive mutation, root creation,
 scanner subscription, or deploy. No local-demo/fake scanner in production or outside a loopback
 Firestore emulator. No raw rejected content in logs/audits/git. No content-driven role, scope, Action
 Registry, external execution, scheduled action, or prompt-authority change. Production must fail closed
-if required validation is unavailable. ~$10 cap applies.
+if required validation is unavailable. The exact Test fixture is not a general scanner: it accepts no
+request content, recognizes only its two compiled hashes and exact metadata, stays outside Live
+retrieval, and is ineligible as Live evidence. ~$10 cap applies.
 
 **Ordered prompt sequence.**
 

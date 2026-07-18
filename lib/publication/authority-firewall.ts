@@ -64,6 +64,8 @@ export function safePublicationFailureMessage(code: PublicationFailureCode): str
     actor_not_authorized: "This user is not authorized to publish this resource.",
     authority_field_forbidden: "Structured runtime-authority fields cannot be published.",
     content_size_mismatch: "The received content size does not match its declared size.",
+    data_mode_mismatch:
+      "Publication policy, resource, and content data modes must match.",
     malware_detected: "Publication was rejected by the malware check.",
     mime_mismatch: "The detected file type does not match the allowed declared type.",
     oversize: "The publication exceeds the configured size limit.",

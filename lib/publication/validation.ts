@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { resolveDataMode } from "@/lib/data-mode";
 import { canAccessSpaceId } from "@/lib/space-scope-resources";
 import {
   assertAuthorityFieldsAreInert,
@@ -94,6 +95,16 @@ function assertMetadata(
     fail("actor_not_authorized", 403);
   }
   if (!policy.enabled) fail("policy_disabled", 409);
+  if (
+    resolveDataMode(policy) !== resolveDataMode(metadata) ||
+    (resolveDataMode(metadata) === "test" &&
+      (!metadata.test_fixture_key?.startsWith("audit:") ||
+        metadata.test_fixture_key !== policy.test_fixture_key)) ||
+    (resolveDataMode(metadata) === "live" &&
+      Boolean(metadata.test_fixture_key || policy.test_fixture_key))
+  ) {
+    fail("data_mode_mismatch", 409);
+  }
   if (policy.connectorId !== metadata.connectorId || policy.rootId !== metadata.rootId) {
     fail("root_mismatch", 403);
   }
