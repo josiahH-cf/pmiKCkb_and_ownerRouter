@@ -60,6 +60,9 @@ export function ProcessSummaryPanel({
             <li key={run.id}>
               {run.status}: {run.next_action} · Definition version:{" "}
               {run.definition_version_id ?? "Not pinned (draft)"}
+              {run.source_publication_pin
+                ? ` · Test source publication: ${run.source_publication_pin.version_id}`
+                : ""}
             </li>
           ))}
         </ul>

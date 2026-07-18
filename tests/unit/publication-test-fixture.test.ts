@@ -9,6 +9,7 @@ import {
   PUBLICATION_COLLECTIONS,
 } from "@/lib/publication/service";
 import {
+  continueTestPublicationToPinnedRun,
   inspectTestPublicationFixture,
   publishTestPublicationRevision,
   restoreTestPublicationBaseline,
@@ -181,6 +182,82 @@ describe("repository-authorized Test publication fixture", () => {
     expect(genericScanner).toBeInstanceOf(UnavailablePublicationScanner);
   });
 
+  it("continues a resolved Test Capture Task into one immutable version-pinned Test run", async () => {
+    const baseline = await restoreTestPublicationBaseline(
+      admin,
+      TEST_PUBLICATION_CONFIRMATIONS.restoreBaseline,
+      db,
+      NOW,
+    );
+    seedActiveLeaseProcess(fake);
+
+    const first = await continueTestPublicationToPinnedRun(
+      admin,
+      TEST_PUBLICATION_CONFIRMATIONS.continuePinnedRun,
+      db,
+      NOW + 1,
+    );
+    const duplicate = await continueTestPublicationToPinnedRun(
+      admin,
+      TEST_PUBLICATION_CONFIRMATIONS.continuePinnedRun,
+      db,
+      NOW + 2,
+    );
+
+    expect(first).toMatchObject({
+      changed: true,
+      effect: "continued",
+      status: {
+        capture_task_status: "resolved",
+        continuation_ready: true,
+        pinned_process_definition_version_id: "process-version-1",
+        pinned_publication_version_id: baseline.status.active_version_id,
+      },
+    });
+    expect(first.status.pinned_test_run_id).toBeTruthy();
+    expect(duplicate).toMatchObject({ changed: false, effect: "unchanged" });
+    expect(duplicate.status.pinned_test_run_id).toBe(first.status.pinned_test_run_id);
+    expect(
+      fake.store.get(`workflow_runs/${first.status.pinned_test_run_id}`),
+    ).toMatchObject({
+      definition_id: "lease-renewal",
+      definition_version_id: "process-version-1",
+      is_test_run: true,
+      simulation_only: true,
+      source_publication_pin: {
+        data_mode: "test",
+        resource_id: TEST_PUBLICATION_RESOURCE_ID,
+        version_id: baseline.status.active_version_id,
+        test_fixture_key: TEST_PUBLICATION_FIXTURE_KEY,
+      },
+    });
+    expect(collection(fake, "workflow_run_timeline")).toHaveLength(1);
+  });
+
+  it("refuses a pinned continuation until the owning process has an Active version", async () => {
+    await restoreTestPublicationBaseline(
+      admin,
+      TEST_PUBLICATION_CONFIRMATIONS.restoreBaseline,
+      db,
+      NOW,
+    );
+    fake.seed("process_definitions/lease-renewal", {
+      ...activeLeaseProcess(),
+      active_version_id: undefined,
+      status: "Draft",
+    });
+
+    await expect(
+      continueTestPublicationToPinnedRun(
+        admin,
+        TEST_PUBLICATION_CONFIRMATIONS.continuePinnedRun,
+        db,
+        NOW + 1,
+      ),
+    ).rejects.toThrow(/published Active process definition/i);
+    expect(collection(fake, "workflow_runs")).toHaveLength(0);
+  });
+
   it("requires Admin authority and exact operation-specific confirmation", async () => {
     await expect(inspectTestPublicationFixture(editor, db)).rejects.toMatchObject({
       status: 403,
@@ -213,4 +290,38 @@ function collection(fakeDb: FakeFirestore, name: string) {
   return [...fakeDb.store.entries()]
     .filter(([path]) => path.startsWith(`${name}/`))
     .map(([, value]) => value);
+}
+
+function seedActiveLeaseProcess(fakeDb: FakeFirestore) {
+  fakeDb.seed("process_definitions/lease-renewal", activeLeaseProcess());
+  fakeDb.seed("process_definition_versions/process-version-1", {
+    id: "process-version-1",
+    definition_id: "lease-renewal",
+    version_number: 1,
+    activated_by_uid: admin.uid,
+    snapshot_json: "{}",
+    created_at: "2026-07-18T00:00:00.000Z",
+  });
+}
+
+function activeLeaseProcess() {
+  return {
+    id: "lease-renewal",
+    space_id: TEST_PUBLICATION_SPACE_ID,
+    name: "Lease Renewal Test Process",
+    short_outcome: "Complete the isolated Test process.",
+    trigger: "Exact Test publication is active.",
+    owner_uid: admin.uid,
+    default_approver_uid: admin.uid,
+    source_links: [{ label: "Test fixture", url: "/spaces/lease-renewals" }],
+    required_starting_inputs: [],
+    steps: [{ id: "step-1", title: "Review the pinned Test source" }],
+    action_references: [],
+    success_condition: "The Test checklist completes.",
+    status: "Active",
+    active_version_id: "process-version-1",
+    created_by_uid: admin.uid,
+    created_at: "2026-07-18T00:00:00.000Z",
+    updated_at: "2026-07-18T00:00:00.000Z",
+  };
 }

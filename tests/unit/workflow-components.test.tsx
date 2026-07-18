@@ -131,6 +131,31 @@ describe("workflow components", () => {
     expect(screen.getByText(/Incomplete: Gather facts/)).toBeInTheDocument();
   });
 
+  it("shows both immutable pins on a publication-continued Test run", () => {
+    render(
+      <WorkflowRunClient
+        canEdit
+        initialChecks={[]}
+        initialRun={workflowRun({
+          definition_version_id: "process-version-1",
+          source_publication_pin: {
+            data_mode: "test",
+            resource_id: "source:audit-test-publication-v1",
+            version_id: "publication-version-1",
+            test_fixture_key: "audit:trusted-publication:v1",
+          },
+        })}
+        initialSteps={definition().steps}
+        initialTimeline={[timelineEntry()]}
+      />,
+    );
+
+    expect(screen.getByText("process-version-1")).toBeInTheDocument();
+    expect(screen.getByText("publication-version-1")).toBeInTheDocument();
+    expect(screen.getByText("source:audit-test-publication-v1")).toBeInTheDocument();
+    expect(screen.getByText("TEST · never Live evidence")).toBeInTheDocument();
+  });
+
   it("shows a read-only recent simulation-run index", () => {
     render(
       <ProcessDefinitionListClient

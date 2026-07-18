@@ -115,6 +115,22 @@ export function WorkflowRunClient({
             <span>Definition version</span>
             <strong>{run.definition_version_id ?? "Not pinned (draft)"}</strong>
           </div>
+          {run.source_publication_pin ? (
+            <>
+              <div className="queue-detail-field">
+                <span>Source publication mode</span>
+                <strong>TEST · never Live evidence</strong>
+              </div>
+              <div className="queue-detail-field">
+                <span>Source publication version</span>
+                <strong>{run.source_publication_pin.version_id}</strong>
+              </div>
+              <div className="queue-detail-field">
+                <span>Source resource</span>
+                <strong>{run.source_publication_pin.resource_id}</strong>
+              </div>
+            </>
+          ) : null}
         </div>
         {run.blocker ? (
           <article className="workflow-blocker">

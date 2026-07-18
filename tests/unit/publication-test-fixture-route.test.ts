@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/publication/test-fixture", () => ({
+  continueTestPublicationToPinnedRun: vi.fn(),
   inspectTestPublicationFixture: vi.fn(),
   publishTestPublicationRevision: vi.fn(),
   restoreTestPublicationBaseline: vi.fn(),
@@ -10,6 +11,7 @@ vi.mock("@/lib/publication/test-fixture", () => ({
 import { GET, POST } from "@/app/api/spaces/[spaceId]/publications/test-fixture/route";
 import { setAuthResolverForTest } from "@/lib/auth/session";
 import {
+  continueTestPublicationToPinnedRun,
   inspectTestPublicationFixture,
   publishTestPublicationRevision,
   restoreTestPublicationBaseline,
@@ -26,6 +28,9 @@ const readyStatus = {
   active_version_number: 1,
   authority: "repository-owned exact Test fixture contract" as const,
   baseline_version_id: "version-1",
+  capture_task_id: "capture-1",
+  capture_task_status: "resolved" as const,
+  continuation_ready: false,
   data_mode: "test" as const,
   fixture_key: "audit:trusted-publication:v1" as const,
   live_evidence_eligible: false as const,
@@ -33,6 +38,9 @@ const readyStatus = {
   rollback_available: true,
   scanner_boundary: "exact-hash-only; no Live scanner claim" as const,
   state: "ready" as const,
+  pinned_process_definition_version_id: null,
+  pinned_publication_version_id: "version-1",
+  pinned_test_run_id: null,
   version_count: 1,
 };
 
@@ -65,6 +73,16 @@ beforeEach(() => {
     effect: "unchanged",
     status: readyStatus,
   });
+  vi.mocked(continueTestPublicationToPinnedRun).mockResolvedValue({
+    changed: true,
+    effect: "continued",
+    status: {
+      ...readyStatus,
+      continuation_ready: true,
+      pinned_process_definition_version_id: "process-version-1",
+      pinned_test_run_id: "publication_test_run_1",
+    },
+  });
   vi.mocked(publishTestPublicationRevision).mockResolvedValue({
     changed: true,
     effect: "published",
@@ -90,6 +108,11 @@ describe("Test publication fixture route", () => {
     );
 
     const operations = [
+      [
+        "continue_pinned_run",
+        TEST_PUBLICATION_CONFIRMATIONS.continuePinnedRun,
+        continueTestPublicationToPinnedRun,
+      ],
       [
         "restore_baseline",
         TEST_PUBLICATION_CONFIRMATIONS.restoreBaseline,

@@ -277,6 +277,7 @@ export async function startWorkflowTestRun(
   definitionId: string,
   input: StartWorkflowTestRunInput = {},
   db = getAdminFirestore(),
+  options: StartWorkflowTestRunOptions = {},
 ) {
   assertCan(actor, "edit");
   const parsed = StartWorkflowTestRunInputSchema.parse(input);
@@ -285,8 +286,20 @@ export async function startWorkflowTestRun(
   if (definition.status === "Retired") {
     throw new EditableLayerError("Retired process definitions cannot be started.", 409);
   }
+  if (
+    options.requireActiveDefinitionVersion &&
+    (definition.status !== "Active" || !definition.active_version_id)
+  ) {
+    throw new EditableLayerError(
+      "A published Active process definition is required for this version-pinned Test continuation.",
+      409,
+    );
+  }
+  const sourcePublicationPin = options.sourcePublicationPin
+    ? validateTestSourcePublicationPin(options.sourcePublicationPin)
+    : undefined;
 
-  const runId = uuidv7();
+  const runId = options.runId ? validateTrustedTestRunId(options.runId) : uuidv7();
   const dueDate = parsed.due_date ?? today();
   const run: Omit<WorkflowRunRecord, "created_at" | "updated_at"> & {
     created_at: FieldValue;
@@ -295,6 +308,7 @@ export async function startWorkflowTestRun(
     id: runId,
     definition_id: definition.id,
     definition_version_id: definition.active_version_id,
+    ...(sourcePublicationPin ? { source_publication_pin: sourcePublicationPin } : {}),
     process_name: definition.name,
     status: "In Progress",
     owner_uid: definition.default_approver_uid,
@@ -309,13 +323,27 @@ export async function startWorkflowTestRun(
   };
 
   await db.runTransaction(async (transaction) => {
+    const existingSnapshot = await transaction.get(runRef(db, runId));
+    if (existingSnapshot.exists) {
+      const existing = readRequiredWorkflowRun(
+        existingSnapshot.id,
+        existingSnapshot.data(),
+      );
+      assertIdempotentPinnedTestRun(
+        existing,
+        definitionId,
+        definition.active_version_id,
+        sourcePublicationPin,
+      );
+      return;
+    }
     transaction.set(runRef(db, runId), stripUndefined(run));
     appendTimeline(transaction, db, {
       actor,
       eventType: "started",
       newStatus: "In Progress",
       runId,
-      summary: `${parsed.note ?? `Started a test run for process definition "${definition.name}".`} Definition version: ${definition.active_version_id ?? "unpublished draft (not immutable)"}.`,
+      summary: `${parsed.note ?? `Started a test run for process definition "${definition.name}".`} Definition version: ${definition.active_version_id ?? "unpublished draft (not immutable)"}.${sourcePublicationPin ? ` Source publication version: ${sourcePublicationPin.version_id}.` : ""}`,
     });
 
     if (definition.status === "Draft") {
@@ -328,6 +356,64 @@ export async function startWorkflowTestRun(
   });
 
   return getWorkflowRun(actor, runId, db);
+}
+
+export interface StartWorkflowTestRunOptions {
+  /** Trusted server-owned idempotency identity; never accepted from the generic browser route. */
+  runId?: string;
+  /** Trusted server-owned Test publication pin; the generic browser route cannot supply it. */
+  sourcePublicationPin?: NonNullable<WorkflowRunRecord["source_publication_pin"]>;
+  requireActiveDefinitionVersion?: boolean;
+}
+
+function validateTrustedTestRunId(value: string) {
+  if (!/^[A-Za-z0-9:_-]{1,200}$/.test(value)) {
+    throw new EditableLayerError("The trusted Test run identity is invalid.", 400);
+  }
+  return value;
+}
+
+function validateTestSourcePublicationPin(
+  pin: NonNullable<WorkflowRunRecord["source_publication_pin"]>,
+) {
+  if (
+    pin.data_mode !== "test" ||
+    !pin.resource_id.trim() ||
+    !pin.version_id.trim() ||
+    !pin.test_fixture_key.trim()
+  ) {
+    throw new EditableLayerError(
+      "A version-pinned Test run requires an exact isolated Test publication reference.",
+      400,
+    );
+  }
+  return {
+    data_mode: "test" as const,
+    resource_id: pin.resource_id,
+    version_id: pin.version_id,
+    test_fixture_key: pin.test_fixture_key,
+  };
+}
+
+function assertIdempotentPinnedTestRun(
+  existing: WorkflowRunRecord,
+  definitionId: string,
+  definitionVersionId: string | undefined,
+  pin: WorkflowRunRecord["source_publication_pin"],
+) {
+  if (
+    !pin ||
+    existing.definition_id !== definitionId ||
+    existing.definition_version_id !== definitionVersionId ||
+    existing.is_test_run !== true ||
+    existing.simulation_only !== true ||
+    JSON.stringify(existing.source_publication_pin) !== JSON.stringify(pin)
+  ) {
+    throw new EditableLayerError(
+      "The trusted Test run identity conflicts with an existing workflow run.",
+      409,
+    );
+  }
 }
 
 export async function listWorkflowRuns(

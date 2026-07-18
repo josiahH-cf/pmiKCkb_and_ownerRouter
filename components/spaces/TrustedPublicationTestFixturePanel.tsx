@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import {
@@ -13,12 +14,18 @@ interface FixtureStatus {
   active_version_number: number | null;
   authority: string;
   baseline_version_id: string | null;
+  capture_task_id: string | null;
+  capture_task_status: "resolved" | null;
+  continuation_ready: boolean;
   data_mode: "test";
   live_evidence_eligible: false;
   policy_ready: boolean;
   rollback_available: boolean;
   scanner_boundary: string;
   state: "missing" | "drifted" | "ready" | "revision_active";
+  pinned_process_definition_version_id: string | null;
+  pinned_publication_version_id: string | null;
+  pinned_test_run_id: string | null;
   version_count: number;
 }
 
@@ -58,11 +65,13 @@ export function TrustedPublicationTestFixturePanel({
     setBusy(true);
     try {
       const confirmation =
-        operation === "restore_baseline"
-          ? TEST_PUBLICATION_CONFIRMATIONS.restoreBaseline
-          : operation === "publish_revision"
-            ? TEST_PUBLICATION_CONFIRMATIONS.publishRevision
-            : TEST_PUBLICATION_CONFIRMATIONS.rollbackBaseline;
+        operation === "continue_pinned_run"
+          ? TEST_PUBLICATION_CONFIRMATIONS.continuePinnedRun
+          : operation === "restore_baseline"
+            ? TEST_PUBLICATION_CONFIRMATIONS.restoreBaseline
+            : operation === "publish_revision"
+              ? TEST_PUBLICATION_CONFIRMATIONS.publishRevision
+              : TEST_PUBLICATION_CONFIRMATIONS.rollbackBaseline;
       const response = await fetch(
         `/api/spaces/${encodeURIComponent(spaceId)}/publications/test-fixture`,
         {
@@ -146,6 +155,33 @@ export function TrustedPublicationTestFixturePanel({
               <dt>Rollback baseline</dt>
               <dd>{status.baseline_version_id ?? "Not created"}</dd>
             </div>
+            <div>
+              <dt>Owning Capture Task</dt>
+              <dd>
+                {status.capture_task_id ?? "Not created"}
+                {status.capture_task_status ? ` · ${status.capture_task_status}` : ""}
+              </dd>
+            </div>
+            <div>
+              <dt>Pinned source publication</dt>
+              <dd>{status.pinned_publication_version_id ?? "Not continued"}</dd>
+            </div>
+            <div>
+              <dt>Pinned process definition</dt>
+              <dd>{status.pinned_process_definition_version_id ?? "Not continued"}</dd>
+            </div>
+            <div>
+              <dt>Next pinned Test run</dt>
+              <dd>
+                {status.pinned_test_run_id ? (
+                  <Link href={`/workflow-runs/${status.pinned_test_run_id}`}>
+                    {status.pinned_test_run_id}
+                  </Link>
+                ) : (
+                  "Not started"
+                )}
+              </dd>
+            </div>
           </dl>
         ) : null}
         <label>
@@ -180,6 +216,19 @@ export function TrustedPublicationTestFixturePanel({
             type="button"
           >
             Roll back Test baseline
+          </button>
+          <button
+            className="secondary-button"
+            disabled={
+              busy ||
+              !confirmed ||
+              !status?.active_version_id ||
+              (status.state !== "ready" && status.state !== "revision_active")
+            }
+            onClick={() => void mutate("continue_pinned_run")}
+            type="button"
+          >
+            Start version-pinned Test run
           </button>
         </div>
         <p className="muted" role="status">

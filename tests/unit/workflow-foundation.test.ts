@@ -339,6 +339,64 @@ describe("workflow foundation repository", () => {
     ).toBe(run.id);
   });
 
+  it("idempotently pins an isolated Test run to active process and publication versions", async () => {
+    const definition = await createProcessDefinition(editor, baseDefinitionInput(), db);
+    const submitted = await submitProcessDefinitionForApproval(
+      editor,
+      definition.id,
+      {},
+      db,
+    );
+    await transitionApprovalQueueItem(
+      admin,
+      submitted.pending_queue_item_id!,
+      { action: "approve" },
+      db,
+    );
+    const active = await activateProcessDefinition(
+      admin,
+      definition.id,
+      { override_reason: "Repository-authorized Test publication continuation." },
+      db,
+    );
+    const sourcePublicationPin = {
+      data_mode: "test" as const,
+      resource_id: "source:audit-test-publication-v1",
+      version_id: "publication-version-1",
+      test_fixture_key: "audit:trusted-publication:v1",
+    };
+
+    const first = await startWorkflowTestRun(
+      editor,
+      definition.id,
+      { note: "Start the version-pinned Test continuation." },
+      db,
+      {
+        requireActiveDefinitionVersion: true,
+        runId: "publication_test_run_1",
+        sourcePublicationPin,
+      },
+    );
+    const duplicate = await startWorkflowTestRun(
+      editor,
+      definition.id,
+      { note: "A retry must not append a second start." },
+      db,
+      {
+        requireActiveDefinitionVersion: true,
+        runId: "publication_test_run_1",
+        sourcePublicationPin,
+      },
+    );
+
+    expect(first.id).toBe(duplicate.id);
+    expect(first.definition_version_id).toBe(active.active_version_id);
+    expect(first.source_publication_pin).toEqual(sourcePublicationPin);
+    const timeline = await listWorkflowRunTimeline(editor, first.id, db);
+    expect(timeline).toHaveLength(1);
+    expect(timeline[0].summary).toContain("publication-version-1");
+  });
+
   it("rejects outcome updates for non-test or non-simulation runs", async () => {
     (db as unknown as FakeFirestore).seed("workflow_runs/real-run", {
       created_at: "2026-06-06T00:00:00.000Z",

@@ -5,6 +5,7 @@ import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
+  continueTestPublicationToPinnedRun,
   inspectTestPublicationFixture,
   publishTestPublicationRevision,
   restoreTestPublicationBaseline,
@@ -16,6 +17,12 @@ import {
 } from "@/lib/publication/test-fixture-contract";
 
 const OperationSchema = z.discriminatedUnion("operation", [
+  z
+    .object({
+      confirmation: z.literal(TEST_PUBLICATION_CONFIRMATIONS.continuePinnedRun),
+      operation: z.literal("continue_pinned_run"),
+    })
+    .strict(),
   z
     .object({
       confirmation: z.literal(TEST_PUBLICATION_CONFIRMATIONS.restoreBaseline),
@@ -58,11 +65,13 @@ export async function POST(request: Request, context: RouteContext) {
     await assertCanonicalSpace(context);
     const input = await parseJsonBody(request, OperationSchema);
     const result =
-      input.operation === "restore_baseline"
-        ? await restoreTestPublicationBaseline(actor, input.confirmation)
-        : input.operation === "publish_revision"
-          ? await publishTestPublicationRevision(actor, input.confirmation)
-          : await rollbackTestPublicationToBaseline(actor, input.confirmation);
+      input.operation === "continue_pinned_run"
+        ? await continueTestPublicationToPinnedRun(actor, input.confirmation)
+        : input.operation === "restore_baseline"
+          ? await restoreTestPublicationBaseline(actor, input.confirmation)
+          : input.operation === "publish_revision"
+            ? await publishTestPublicationRevision(actor, input.confirmation)
+            : await rollbackTestPublicationToBaseline(actor, input.confirmation);
     return NextResponse.json({ result });
   } catch (error) {
     return apiErrorResponse(error);

@@ -484,6 +484,13 @@ export interface WorkflowRunRecord {
   id: string;
   definition_id: string;
   definition_version_id?: string;
+  /** Optional immutable source publication that this isolated Test run was started against. */
+  source_publication_pin?: {
+    data_mode: "test";
+    resource_id: string;
+    version_id: string;
+    test_fixture_key: string;
+  };
   process_name: string;
   status: WorkflowRunStatus;
   owner_uid: string;
