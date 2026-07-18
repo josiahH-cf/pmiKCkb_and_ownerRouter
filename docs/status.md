@@ -11,6 +11,39 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Deployed application-process audit pass one is complete
+
+- Date: 2026-07-18
+- Ran the resumable, bodyless browser audit against the canonical signed-in Cloud Run application.
+  The gitignored run is `artifacts/process-audit/20260718T012316Z-pass1/` and validates cleanly with
+  281 terminal cases, 1,798 ordered events, 137 normalized findings, 279 case-specific DOM records,
+  110 bodyless structured records, and two Test-only screenshots. Totals are 222 completed and 59
+  blocked; current behavior is 191 pass, 20 fail, six expected denials, five audit-harness failures,
+  and 59 blocked. Every one of the guide's 32 reviewer-checklist items maps to at least one stable
+  case ID.
+- The persistent Lease Test run reached Done with all eleven internal receipts and zero provider
+  effects, and the Maintenance Test ticket reached Closed with all six internal receipts. Resume and
+  duplicate-effect guards held through interrupted browser navigation. These remain Test evidence,
+  not Live provider activation.
+- Highest-impact findings are the persistent Lease Test reconciliation lookup failure blocking
+  resolution/proposal paths; the current critical `websocket-driver@0.7.4` production dependency
+  advisory with application reachability still unproven; the staff Maintenance ticket deep link
+  ignoring its ticket identity; the Gmail reply-watch control's missing exact preview/confirmation
+  ceremony; the deployed Lease process definition remaining Draft without visible immutable-version
+  evidence; and the missing operational branch, owner, timing, artifact, and closeout gates behind
+  the eleven-action Lease Test journey.
+- Genuine positive-path blockers are the lack of audit-owned approval/intake fixtures, disposable
+  staff identities, a separately authenticated canonical Test Vendor session, an authorized trusted
+  publication source, owner-designated safe Live Gmail/renewal targets, and the reproduced Lease Test
+  reconciliation defect. Local managed-domain ADC is fresh. Every blocker has a specific unblock
+  action in `findings.jsonl`.
+- This was audit pass one only. Product behavior was not changed to make a case pass; only the
+  deterministic audit runner, case inventory, checkpoint repair support, tests, and structured
+  evidence were added. The runner's post-finalization extension fallback, inferred-pass default,
+  same-count drift shortcut, and duplicate-reference adoption were corrected and recorded as harness
+  findings. The clean retry adopted permanent evidence, matched the canonical contract, left zero
+  duplicate arrays, and replayed zero Test effects. The repair pass remains a separate future task.
+
 ## Working-App V1 hardening is deployed and production browser acceptance is green
 
 - Date: 2026-07-15

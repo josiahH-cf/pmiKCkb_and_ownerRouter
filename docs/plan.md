@@ -182,6 +182,10 @@ Current serving release, 2026-07-15:
   eleven receipts, eleven attempts, zero Live calls, and refresh-safe persisted state.
 - The Admin Test workspace passed Vendor 11/11, Lease 11/11, and Maintenance 19/19 with zero Live
   calls.
+- The 2026-07-18 deployed process-audit pass mapped all 32 guide reviewer items into 281 stable cases
+  and completed every reachable case: 222 completed, 59 blocked with exact unblock actions, and 137
+  normalized findings. Its Test-only mutations produced no Live provider effects. Audit findings are
+  evidence for a separately authorized repair pass and do not change this phase status.
 - Delayed direct signed-in loads of Ask, Spaces, Approval Queue, Gmail Hub, Connections, Admin, Lease
   Renewal, and Maintenance showed the expected H1, no horizontal overflow, and zero console errors at
   desktop and 375px phone widths. Production acceptance found Approval Queue's implicit

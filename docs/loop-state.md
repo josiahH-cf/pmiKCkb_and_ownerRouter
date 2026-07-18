@@ -5,7 +5,25 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 
 ## Snapshot
 
-- Last updated: 2026-07-15.
+- Last updated: 2026-07-18.
+- Deployed process-audit pass one is complete against the canonical Cloud Run application serving
+  commit `38ebcf530e3fe193547806bace91246ccea20c0b`; the audit harness was built from local repository
+  commit `2ca41cfe18de3ace79c7f4e1bf4c82474cf5be2c`. The resumable run
+  `artifacts/process-audit/20260718T012316Z-pass1/` is gitignored and validates cleanly: all 281 cases
+  are terminal, with 222 completed, 59 precisely blocked, 137 normalized findings, 1,798 ordered
+  events, 279 case-specific DOM records, 110 bodyless structured records, and two Test-only
+  screenshots. All 32 reviewer-checklist items map to cases. No product defect was repaired in this
+  pass. A later repair pass should consume `run-report.md`, `findings.jsonl`, and `manifest.json`
+  without replaying completed Test mutations.
+- The clean repository verifier passes format, lint, typecheck, 307 unit files/2,215 tests, governance
+  gates, redaction, and the 76/76 production build. The current production dependency audit now
+  reports one critical transitive `websocket-driver@0.7.4` advisory through Firebase; direct
+  application reachability is not yet proven. Pass one records it as `FND-PRE-009-01` and makes no
+  dependency change.
+- Final adversarial runner review recorded and corrected three additional harness defects: inferred
+  pass defaults, same-count contract drift, and duplicate evidence references. The clean retry has a
+  canonical contract fingerprint, zero definition drift, zero duplicate-reference arrays, and no
+  replayed Test effect.
 - Active branch: `main`; the Test Vendor reset/re-enable, internal-roster separation,
   deployment-wrapper hardening, and Approval Queue time-zone fix are committed, pushed, and deployed.
 - Goal: close the stable working V1 on the client-owned Cloud Run service and deliver the final human
@@ -75,11 +93,13 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 
 ## Next Exact Actions
 
-1. Complete the human Test Vendor password/TOTP/assigned-ticket/mailbox journey, disable it, reset it,
-   prove UID rotation plus preserved Test workflow data, and complete a fresh password/TOTP sign-in.
-   Automated Vendor 11/11 evidence is not a substitute for this secret-bearing flow.
-2. Synchronize the human-ceremony evidence into the final HTML walkthrough, commit/push
-   the closeout, then complete the goal.
+1. Use the completed pass-one findings and stable case IDs for the separately authorized repair pass,
+   beginning with the Critical dependency advisory and High application defects; do not replay
+   completed Test mutations or treat Test receipts as Live activation proof.
+2. When an owner-present session is available, complete only the remaining explicit human ceremonies:
+   canonical Test Vendor password/TOTP, secondary-role sessions, and exact operational confirmations.
+3. Rerun the affected audit cases after repairs and append a new pass rather than rewriting pass-one
+   evidence.
 
 ## Advisory Post-V1 Activations
 

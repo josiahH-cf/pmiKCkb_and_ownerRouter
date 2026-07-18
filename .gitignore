@@ -22,6 +22,7 @@ npm-debug.log*
 
 # Local diagnostic artifacts and raw review context
 temp/
+artifacts/process-audit/
 docs/context_and_calls/
 # Client-provided source material: spreadsheets, ledgers, invoices, tool-access
 # records, and any secrets they contain must stay local and never be committed.

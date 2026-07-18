@@ -48,6 +48,7 @@
     "deploy": "node scripts/deploy-demo-cloud-run.mjs",
     "deploy:demo": "node scripts/deploy-demo-cloud-run.mjs",
     "auth:session": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/session-auth.ps1",
+    "audit:process": "node scripts/process-audit-runner.mjs",
     "preflight:adc": "node scripts/preflight-adc.mjs",
     "preflight:gcp": "node scripts/preflight-gcp-setup.mjs",
     "preflight:identity": "node scripts/preflight-identity.mjs",

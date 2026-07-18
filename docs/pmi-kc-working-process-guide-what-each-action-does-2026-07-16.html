@@ -1,0 +1,3293 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      name="description"
+      content="A plain-English, action-oriented guide to the PMI KC operating processes and what the application does after each meaningful user action."
+    />
+    <title>PMI KC Working Process Guide · What Each Action Does</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17233b;
+        --ink-2: #33415f;
+        --muted: #68758d;
+        --paper: #f4f6f9;
+        --card: #ffffff;
+        --navy: #17345f;
+        --navy-2: #245287;
+        --teal: #147b72;
+        --teal-soft: #e8f7f3;
+        --blue: #176bc1;
+        --blue-soft: #ebf4ff;
+        --purple: #704ca2;
+        --purple-soft: #f3edfc;
+        --amber: #9b6415;
+        --amber-soft: #fff4dd;
+        --green: #26744e;
+        --green-soft: #eaf7ef;
+        --red: #a24545;
+        --red-soft: #fff0ee;
+        --line: #d9e0ea;
+        --line-2: #bec9d8;
+        --shadow: 0 18px 50px rgba(25, 44, 77, 0.09);
+        --radius: 22px;
+        --content: 1240px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 18px;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 0 0, rgba(23, 107, 193, 0.09), transparent 30rem),
+          radial-gradient(
+            circle at 100% 18%,
+            rgba(20, 123, 114, 0.08),
+            transparent 28rem
+          ),
+          var(--paper);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        font-size: 16px;
+        line-height: 1.67;
+      }
+
+      a {
+        color: var(--blue);
+        text-decoration-thickness: 1px;
+        text-underline-offset: 3px;
+      }
+
+      a:hover {
+        text-decoration-thickness: 2px;
+      }
+
+      :focus-visible {
+        outline: 3px solid rgba(23, 107, 193, 0.35);
+        outline-offset: 3px;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 920px;
+        margin-bottom: 20px;
+        font-size: clamp(2.7rem, 7vw, 5.65rem);
+        line-height: 0.98;
+        letter-spacing: -0.055em;
+      }
+
+      h2 {
+        margin-bottom: 11px;
+        font-size: clamp(1.75rem, 3.2vw, 2.65rem);
+        line-height: 1.12;
+        letter-spacing: -0.038em;
+      }
+
+      h3 {
+        margin-bottom: 9px;
+        font-size: 1.23rem;
+        line-height: 1.3;
+      }
+
+      h4 {
+        margin-bottom: 7px;
+        font-size: 1rem;
+      }
+
+      code,
+      .route {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      code {
+        padding: 0.1em 0.38em;
+        border-radius: 6px;
+        background: #edf1f6;
+        font-size: 0.88em;
+        overflow-wrap: anywhere;
+      }
+
+      .page {
+        width: min(var(--content), calc(100% - 30px));
+        margin: 0 auto;
+        padding: 18px 0 60px;
+      }
+
+      .skip-link {
+        position: fixed;
+        z-index: 100;
+        top: 8px;
+        left: 8px;
+        padding: 9px 12px;
+        border-radius: 9px;
+        color: white;
+        background: var(--navy);
+        transform: translateY(-150%);
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      .hero {
+        position: relative;
+        margin: 8px 0 16px;
+        padding: clamp(34px, 7vw, 80px);
+        overflow: hidden;
+        border-radius: 32px;
+        color: white;
+        background:
+          linear-gradient(
+            123deg,
+            rgba(23, 52, 95, 0.99),
+            rgba(36, 82, 135, 0.97) 57%,
+            rgba(20, 123, 114, 0.94)
+          ),
+          var(--navy);
+        box-shadow: var(--shadow);
+      }
+
+      .hero::after {
+        position: absolute;
+        top: -190px;
+        right: -135px;
+        width: 520px;
+        height: 520px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 58px rgba(255, 255, 255, 0.036),
+          0 0 0 116px rgba(255, 255, 255, 0.023);
+        content: "";
+      }
+
+      .hero > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .eyebrow,
+      .section-kicker {
+        margin-bottom: 9px;
+        color: var(--teal);
+        font-size: 0.77rem;
+        font-weight: 850;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .hero .eyebrow {
+        color: #c5eef0;
+      }
+
+      .hero-copy {
+        max-width: 900px;
+        margin-bottom: 0;
+        color: #edf5ff;
+        font-size: clamp(1rem, 2vw, 1.22rem);
+      }
+
+      .hero-meta,
+      .pill-row,
+      .toolbar-group,
+      .mode-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .hero-meta {
+        margin-top: 25px;
+      }
+
+      .hero-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 7px 11px;
+        border: 1px solid rgba(255, 255, 255, 0.29);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 0.82rem;
+      }
+
+      .document-layout {
+        display: grid;
+        grid-template-columns: 248px minmax(0, 1fr);
+        gap: 16px;
+        align-items: start;
+      }
+
+      .toc {
+        position: sticky;
+        top: 12px;
+        max-height: calc(100vh - 24px);
+        padding: 14px;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 10px 32px rgba(21, 42, 79, 0.08);
+        backdrop-filter: blur(9px);
+      }
+
+      .toc strong {
+        display: block;
+        margin: 2px 5px 9px;
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .toc a {
+        display: block;
+        padding: 7px 9px;
+        border-radius: 9px;
+        color: var(--ink-2);
+        font-size: 0.82rem;
+        font-weight: 730;
+        line-height: 1.32;
+        text-decoration: none;
+      }
+
+      .toc a:hover,
+      .toc a.active {
+        color: var(--navy);
+        background: var(--blue-soft);
+      }
+
+      .document-main {
+        min-width: 0;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.92);
+      }
+
+      button {
+        padding: 8px 11px;
+        border: 1px solid var(--line-2);
+        border-radius: 9px;
+        color: var(--ink);
+        background: white;
+        font: inherit;
+        font-size: 0.8rem;
+        font-weight: 760;
+        cursor: pointer;
+      }
+
+      button:hover {
+        border-color: var(--blue);
+        background: var(--blue-soft);
+      }
+
+      button[aria-pressed="true"] {
+        border-color: var(--blue);
+        color: white;
+        background: var(--blue);
+      }
+
+      .section {
+        margin: 0 0 16px;
+        padding: clamp(23px, 4vw, 42px);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: var(--shadow);
+      }
+
+      .lede {
+        max-width: 930px;
+        color: var(--muted);
+        font-size: 1.04rem;
+      }
+
+      .fine {
+        color: var(--muted);
+        font-size: 0.83rem;
+      }
+
+      .grid-2,
+      .grid-3,
+      .tab-grid,
+      .phase-grid,
+      .glossary-grid {
+        display: grid;
+        gap: 14px;
+      }
+
+      .grid-2,
+      .tab-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid-3,
+      .phase-grid,
+      .glossary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .card,
+      .tab-card,
+      .action-card,
+      .phase,
+      .callout,
+      .glossary-card,
+      .journey-card {
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--card);
+      }
+
+      .card,
+      .tab-card,
+      .glossary-card,
+      .journey-card {
+        padding: 19px;
+      }
+
+      .tab-card {
+        border-top: 5px solid var(--blue);
+      }
+
+      .tab-card:nth-child(2n) {
+        border-top-color: var(--teal);
+      }
+
+      .tab-card:nth-child(3n) {
+        border-top-color: var(--purple);
+      }
+
+      .tab-title {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+
+      .route {
+        color: var(--muted);
+        font-size: 0.76rem;
+        overflow-wrap: anywhere;
+      }
+
+      .badge,
+      .mode,
+      .confidence {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 0.71rem;
+        font-weight: 840;
+        line-height: 1.25;
+        white-space: nowrap;
+      }
+
+      .badge.business {
+        color: var(--teal);
+        background: var(--teal-soft);
+      }
+
+      .badge.current {
+        color: var(--blue);
+        background: var(--blue-soft);
+      }
+
+      .badge.review {
+        color: var(--purple);
+        background: var(--purple-soft);
+      }
+
+      .mode.sample {
+        color: var(--amber);
+        background: var(--amber-soft);
+      }
+
+      .mode.test {
+        color: var(--purple);
+        background: var(--purple-soft);
+      }
+
+      .mode.live {
+        color: var(--green);
+        background: var(--green-soft);
+      }
+
+      .mode.app {
+        color: var(--blue);
+        background: var(--blue-soft);
+      }
+
+      .callout {
+        margin: 15px 0;
+        padding: 17px 18px;
+        border-left-width: 5px;
+      }
+
+      .callout strong:first-child {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .callout.info {
+        border-left-color: var(--blue);
+        background: var(--blue-soft);
+      }
+
+      .callout.good {
+        border-left-color: var(--green);
+        background: var(--green-soft);
+      }
+
+      .callout.warn {
+        border-left-color: var(--amber);
+        background: var(--amber-soft);
+      }
+
+      .callout.review {
+        border-left-color: var(--purple);
+        background: var(--purple-soft);
+      }
+
+      dl {
+        margin: 0;
+      }
+
+      dt {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 850;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      dt:first-child {
+        margin-top: 0;
+      }
+
+      dd {
+        margin: 2px 0 0;
+      }
+
+      ul,
+      ol {
+        padding-left: 1.25rem;
+      }
+
+      li + li {
+        margin-top: 6px;
+      }
+
+      details {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: white;
+      }
+
+      details + details {
+        margin-top: 10px;
+      }
+
+      summary {
+        padding: 12px 14px;
+        font-weight: 820;
+        cursor: pointer;
+      }
+
+      details > :not(summary) {
+        margin-right: 14px;
+        margin-left: 14px;
+      }
+
+      details > :last-child {
+        margin-bottom: 14px;
+      }
+
+      .verb-flow {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(130px, 1fr));
+        gap: 22px;
+        margin: 18px 0;
+        overflow-x: auto;
+      }
+
+      .verb-step {
+        position: relative;
+        min-width: 130px;
+        padding: 15px;
+        border: 1px solid var(--line-2);
+        border-radius: 15px;
+        background: white;
+      }
+
+      .verb-step:not(:last-child)::after {
+        position: absolute;
+        top: 50%;
+        right: -20px;
+        color: var(--blue);
+        font-size: 1.25rem;
+        font-weight: 900;
+        content: "→";
+        transform: translateY(-50%);
+      }
+
+      .verb-step strong,
+      .verb-step span {
+        display: block;
+      }
+
+      .verb-step span {
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 0.81rem;
+      }
+
+      .action-card {
+        margin: 14px 0;
+        overflow: hidden;
+      }
+
+      .action-head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 17px 18px;
+        border-bottom: 1px solid var(--line);
+        background: #f8fafc;
+      }
+
+      .action-head h3 {
+        margin: 0;
+      }
+
+      .action-chain {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .action-cell {
+        min-width: 0;
+        padding: 16px;
+        border-right: 1px solid var(--line);
+      }
+
+      .action-cell:last-child {
+        border-right: 0;
+      }
+
+      .action-cell strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--navy);
+        font-size: 0.76rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .action-cell p {
+        margin: 0;
+        color: var(--ink-2);
+        font-size: 0.91rem;
+      }
+
+      .action-foot {
+        padding: 13px 17px;
+        border-top: 1px solid var(--line);
+        background: #fbfcfe;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .phase {
+        position: relative;
+        padding: 20px 18px 18px;
+        border-top: 5px solid var(--teal);
+      }
+
+      .phase-number {
+        display: grid;
+        width: 32px;
+        height: 32px;
+        margin-bottom: 12px;
+        border-radius: 50%;
+        color: white;
+        background: var(--teal);
+        font-size: 0.8rem;
+        font-weight: 850;
+        place-items: center;
+      }
+
+      .branch-map {
+        display: grid;
+        grid-template-columns: 1fr 150px 1fr;
+        gap: 14px;
+        align-items: stretch;
+        margin: 18px 0;
+      }
+
+      .branch,
+      .decision {
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 17px;
+        background: white;
+      }
+
+      .decision {
+        display: grid;
+        color: white;
+        background: var(--navy-2);
+        text-align: center;
+        place-items: center;
+      }
+
+      .source-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 12px 0;
+      }
+
+      .source-chip {
+        padding: 6px 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink-2);
+        background: white;
+        font-size: 0.79rem;
+        font-weight: 730;
+      }
+
+      .journey-card {
+        border-left: 5px solid var(--blue);
+      }
+
+      .journey-card + .journey-card {
+        margin-top: 12px;
+      }
+
+      .journey-card h3 {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .journey-number {
+        display: inline-grid;
+        flex: 0 0 auto;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        color: white;
+        background: var(--blue);
+        font-size: 0.77rem;
+        place-items: center;
+      }
+
+      .lens-hidden {
+        display: none !important;
+      }
+
+      .checklist {
+        padding-left: 0;
+        list-style: none;
+      }
+
+      .checklist li {
+        position: relative;
+        padding: 10px 10px 10px 40px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .checklist li::before {
+        position: absolute;
+        top: 11px;
+        left: 9px;
+        width: 19px;
+        height: 19px;
+        border: 2px solid var(--line-2);
+        border-radius: 4px;
+        background: white;
+        content: "";
+      }
+
+      .checklist li:last-child {
+        border-bottom: 0;
+      }
+
+      footer {
+        padding: 22px;
+        color: var(--muted);
+        text-align: center;
+        font-size: 0.83rem;
+      }
+
+      @media (max-width: 1050px) {
+        .document-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .toc {
+          position: static;
+          display: flex;
+          max-height: none;
+          gap: 4px;
+          overflow-x: auto;
+        }
+
+        .toc strong {
+          display: none;
+        }
+
+        .toc a {
+          flex: 0 0 auto;
+        }
+
+        .action-chain {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .action-cell:nth-child(2) {
+          border-right: 0;
+        }
+
+        .action-cell:nth-child(-n + 2) {
+          border-bottom: 1px solid var(--line);
+        }
+      }
+
+      @media (max-width: 740px) {
+        body {
+          font-size: 15px;
+        }
+
+        .page {
+          width: min(100% - 18px, var(--content));
+        }
+
+        .hero {
+          border-radius: 23px;
+        }
+
+        .section {
+          padding: 21px 16px;
+          border-radius: 19px;
+        }
+
+        .grid-2,
+        .grid-3,
+        .tab-grid,
+        .phase-grid,
+        .glossary-grid,
+        .branch-map {
+          grid-template-columns: 1fr;
+        }
+
+        .toolbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .verb-flow {
+          grid-template-columns: 1fr;
+          gap: 24px;
+          overflow: visible;
+        }
+
+        .verb-step:not(:last-child)::after {
+          top: auto;
+          right: 50%;
+          bottom: -25px;
+          content: "↓";
+          transform: translateX(50%);
+        }
+
+        .action-chain {
+          grid-template-columns: 1fr;
+        }
+
+        .action-cell,
+        .action-cell:nth-child(2) {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        .action-cell:last-child {
+          border-bottom: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+
+      @media print {
+        body {
+          background: white;
+          font-size: 10pt;
+        }
+
+        .page {
+          width: 100%;
+          padding: 0;
+        }
+
+        .hero {
+          color: var(--ink);
+          background: white;
+          border: 1px solid var(--line);
+          box-shadow: none;
+        }
+
+        .hero-copy,
+        .hero .eyebrow {
+          color: var(--ink);
+        }
+
+        .document-layout {
+          display: block;
+        }
+
+        .toc,
+        .toolbar {
+          display: none;
+        }
+
+        .section {
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#document-main">Skip to guide</a>
+    <div class="page">
+      <header class="hero" id="top">
+        <p class="eyebrow">PMI KC · Human workflow guide</p>
+        <h1>What happens when I do this?</h1>
+        <p class="hero-copy">
+          A plain-English guide to what PMI KC is trying to accomplish, what each tab is
+          for, what the application does after a person clicks or submits something, and
+          where the work goes next.
+        </p>
+        <div class="hero-meta">
+          <span class="hero-chip">Written for Dan, Josiah, and process reviewers</span>
+          <span class="hero-chip">Process-first, not status-first</span>
+          <span class="hero-chip">Evidence cut · July 16, 2026</span>
+          <span class="hero-chip">Live · Test · Sample kept separate</span>
+        </div>
+      </header>
+
+      <div class="document-layout">
+        <nav class="toc" aria-label="Guide table of contents">
+          <strong>Jump to</strong>
+          <a href="#how-to-read">How to read</a>
+          <a href="#system-journey">The system in plain English</a>
+          <a href="#tabs">What each tab is for</a>
+          <a href="#lease-process">Lease process</a>
+          <a href="#lease-actions">Lease actions today</a>
+          <a href="#ask-start">Ask and start work</a>
+          <a href="#maintenance">Maintenance</a>
+          <a href="#decisions">Resolve, approve, execute</a>
+          <a href="#cross-tab">Cross-tab journeys</a>
+          <a href="#reviewer-pass">Reviewer pass</a>
+          <a href="#evidence">Evidence and terminology</a>
+        </nav>
+
+        <main class="document-main" id="document-main">
+          <div class="toolbar" aria-label="Guide controls">
+            <span class="fine">Choose the layer you want to review.</span>
+            <div class="toolbar-group">
+              <button type="button" data-lens="all">Show both layers</button>
+              <button type="button" data-lens="business">Business process only</button>
+              <button type="button" data-lens="current">Current app only</button>
+              <button type="button" id="expand-details">Expand details</button>
+            </div>
+          </div>
+
+          <section class="section" id="how-to-read">
+            <p class="section-kicker">Start here</p>
+            <h2>Two truths are shown side by side</h2>
+            <p class="lede">
+              The prior document described the implementation accurately, but made a human
+              assemble the process from routes, components, and status tables. This guide
+              starts with the work itself, then explains the current reachable action that
+              supports it.
+            </p>
+
+            <div class="grid-2">
+              <article class="card lens-business" data-lens-content="business">
+                <span class="badge business">BUSINESS PROCESS</span>
+                <h3>What should happen operationally?</h3>
+                <p>
+                  The sequence PMI KC documentation says a renewal, maintenance request,
+                  or decision should follow—from the first trigger through the completed
+                  business outcome.
+                </p>
+              </article>
+              <article class="card lens-current" data-lens-content="current">
+                <span class="badge current">CURRENT APP</span>
+                <h3>What happens after a person acts today?</h3>
+                <p>
+                  The exact reachable control, what the application validates, what
+                  changes, what appears next, and whether the effect stays in the app or
+                  reaches an enabled provider.
+                </p>
+              </article>
+            </div>
+
+            <div class="callout review">
+              <strong>📝 This is the baseline for a later gap analysis</strong>
+              The guide does not decide that every current sequence is correct. It makes
+              the current interpretation readable so a human can say “move this step,”
+              “this result is wrong,” or “this handoff is missing.”
+            </div>
+
+            <div class="mode-legend" aria-label="Data-mode legend">
+              <span class="mode live">LIVE · real source or enabled provider effect</span>
+              <span class="mode test">TEST · invented, persistent, no provider call</span>
+              <span class="mode sample">SAMPLE · explanatory invented view</span>
+              <span class="mode app"
+                >APP ONLY · decision or workflow state inside PMI KC</span
+              >
+            </div>
+          </section>
+
+          <section class="section" id="system-journey">
+            <p class="section-kicker">The system in plain English</p>
+            <h2>Work moves by a simple human-controlled pattern</h2>
+            <p class="lede">
+              The application gathers source-backed facts, makes the next decision
+              visible, and records what the human chose. It performs an external effect
+              only when that exact action is enabled and exactly confirmed.
+            </p>
+
+            <div
+              class="verb-flow"
+              role="img"
+              aria-label="Notice work, open record, review facts, decide, act, and record the outcome"
+            >
+              <div class="verb-step">
+                <strong>1 · Notice</strong
+                ><span>A task, question, flag, message, or ticket needs attention.</span>
+              </div>
+              <div class="verb-step">
+                <strong>2 · Open</strong
+                ><span>The user opens the owning record—not just a summary count.</span>
+              </div>
+              <div class="verb-step">
+                <strong>3 · Understand</strong
+                ><span
+                  >The app gathers permitted facts, sources, history, and missing
+                  information.</span
+                >
+              </div>
+              <div class="verb-step">
+                <strong>4 · Decide</strong
+                ><span
+                  >A human resolves, approves, returns, assigns, or chooses the next
+                  step.</span
+                >
+              </div>
+              <div class="verb-step">
+                <strong>5 · Act</strong
+                ><span
+                  >The app records its own state or performs one separately enabled exact
+                  effect.</span
+                >
+              </div>
+              <div class="verb-step">
+                <strong>6 · Prove</strong
+                ><span
+                  >The result appears as history, a receipt/readback, a new attention
+                  item, or completion.</span
+                >
+              </div>
+            </div>
+
+            <div class="grid-3">
+              <article class="glossary-card">
+                <h3>Information is missing</h3>
+                <p>
+                  The app should show what is missing, where the fact should come from,
+                  and the next person or surface that can supply it. It should not fill
+                  the gap with a confident guess.
+                </p>
+              </article>
+              <article class="glossary-card">
+                <h3>Sources disagree</h3>
+                <p>
+                  The app shows the candidates and their sources. A human chooses the
+                  trusted source, enters a correction, or rejects the flag, with the
+                  required reason.
+                </p>
+              </article>
+              <article class="glossary-card">
+                <h3>An external result is unclear</h3>
+                <p>
+                  The app does not try again blindly. It checks the provider result or
+                  Message-ID and asks for reconciliation if certainty cannot be restored.
+                </p>
+              </article>
+            </div>
+          </section>
+
+          <section class="section" data-lens-content="current" id="tabs">
+            <p class="section-kicker">What each tab is for</p>
+            <h2>Come here when… leave here when…</h2>
+            <p class="lede">
+              These are the primary internal tabs in the signed-in shell. Lease Renewal
+              and Maintenance are deeper work desks reached from Spaces, Console
+              attention, or a direct workflow link. The Vendor portal is a separate
+              external experience.
+            </p>
+
+            <div class="tab-grid lens-current" data-lens-content="current">
+              <article class="tab-card">
+                <div class="tab-title">
+                  <h3>🧭 Console</h3>
+                  <span class="route">/ask</span>
+                </div>
+                <dl>
+                  <dt>Come here when</dt>
+                  <dd>
+                    You need an answer, want to see what needs attention, or want to begin
+                    a known Test process.
+                  </dd>
+                  <dt>You can do</dt>
+                  <dd>
+                    Ask or dictate a question, choose a process, follow an attention link,
+                    approve one eligible low/medium app item, or capture a follow-up task.
+                  </dd>
+                  <dt>Leave here when</dt>
+                  <dd>
+                    You have a cited answer, a visible uncertainty, a new Test run, or a
+                    link to the surface that owns the work.
+                  </dd>
+                </dl>
+              </article>
+
+              <article class="tab-card">
+                <div class="tab-title">
+                  <h3>🗂️ Spaces</h3>
+                  <span class="route">/spaces</span>
+                </div>
+                <dl>
+                  <dt>Come here when</dt>
+                  <dd>
+                    You want the SOP, templates, tools, sources, or process definition for
+                    a kind of work.
+                  </dd>
+                  <dt>You can do</dt>
+                  <dd>
+                    Open a Space, read its Overview, work its Process steps, start a Test
+                    run, update permitted content, or publish a trusted source through the
+                    policy boundary.
+                  </dd>
+                  <dt>Leave here when</dt>
+                  <dd>
+                    You understand the process, have started a version-pinned Test run, or
+                    have moved into its dedicated Lease/Maintenance desk.
+                  </dd>
+                </dl>
+              </article>
+
+              <article class="tab-card">
+                <div class="tab-title">
+                  <h3>✅ Approval Queue</h3>
+                  <span class="route">/approval-queue</span>
+                </div>
+                <dl>
+                  <dt>Come here when</dt>
+                  <dd>
+                    The app says a person must decide, return, assign, snooze, or disable
+                    work.
+                  </dd>
+                  <dt>You can do</dt>
+                  <dd>
+                    Use the urgent “Needs your decision” view, filter general items, or
+                    open Renewal Review and Write-back views.
+                  </dd>
+                  <dt>Leave here when</dt>
+                  <dd>
+                    The decision is recorded—or the queue has taken you to the
+                    value-bearing run where the real decision belongs.
+                  </dd>
+                </dl>
+              </article>
+
+              <article class="tab-card">
+                <div class="tab-title">
+                  <h3>✉️ Communications</h3>
+                  <span class="route">/gmail-hub</span>
+                </div>
+                <dl>
+                  <dt>Come here when</dt>
+                  <dd>
+                    You need mailbox/watch health or a list of workflow-linked message
+                    attention.
+                  </dd>
+                  <dt>You can do</dt>
+                  <dd>
+                    Follow a bodyless link to its owning workflow. The actual thread read,
+                    label, analysis, and exact reply happen inside an authorized
+                    linked-work panel.
+                  </dd>
+                  <dt>Leave here when</dt>
+                  <dd>
+                    You are back on the Lease/Maintenance record that owns the
+                    communication and its next action.
+                  </dd>
+                </dl>
+              </article>
+
+              <article class="tab-card">
+                <div class="tab-title">
+                  <h3>🔌 Connections</h3>
+                  <span class="route">/connections</span>
+                </div>
+                <dl>
+                  <dt>Come here when</dt>
+                  <dd>A process says a provider or source is not ready.</dd>
+                  <dt>You can do</dt>
+                  <dd>
+                    Read the setup instructions and, as Admin, run a supported bounded
+                    verification check for RentVine or Sheets.
+                  </dd>
+                  <dt>Leave here when</dt>
+                  <dd>
+                    The connection is proven healthy or you know the exact owner-side
+                    setup step that remains.
+                  </dd>
+                </dl>
+              </article>
+
+              <article class="tab-card">
+                <div class="tab-title">
+                  <h3>🛡️ Admin</h3>
+                  <span class="route">/admin</span>
+                </div>
+                <dl>
+                  <dt>Come here when</dt>
+                  <dd>
+                    You are managing people/access, governance, operational health,
+                    publication policy, or isolated Test identities.
+                  </dd>
+                  <dt>You can do</dt>
+                  <dd>
+                    Change a staff role/scope with a reason, run the full Test diagnostic,
+                    manage bodyless policies, or provision/reset/disable the Test Vendor
+                    through exact previews.
+                  </dd>
+                  <dt>Leave here when</dt>
+                  <dd>
+                    The administrative change is audited and the affected user/process can
+                    re-enter its normal operating surface.
+                  </dd>
+                </dl>
+              </article>
+
+              <article class="tab-card">
+                <div class="tab-title">
+                  <h3>🔔 Notifications</h3>
+                  <span class="route">header bell + /notifications</span>
+                </div>
+                <dl>
+                  <dt>Come here when</dt>
+                  <dd>
+                    You want an attention snapshot in the header bell or the broader,
+                    time-ordered read-only log on the Notifications page.
+                  </dd>
+                  <dt>In the bell menu</dt>
+                  <dd>
+                    Follow an item, mark one/all read, adjust allowed family preferences,
+                    or choose <em>See all notifications</em>.
+                  </dd>
+                  <dt>On /notifications</dt>
+                  <dd>
+                    Read the event/condition log and follow its owning links. The page
+                    itself does not mark rows read or change family preferences.
+                  </dd>
+                  <dt>Leave here when</dt>
+                  <dd>
+                    You have opened the owning record. A standing setup signal disappears
+                    only when its underlying condition is fixed.
+                  </dd>
+                </dl>
+              </article>
+
+              <article class="tab-card">
+                <div class="tab-title">
+                  <h3>🏘️ Lease / Maintenance desks</h3>
+                  <span class="route">deeper work surfaces</span>
+                </div>
+                <dl>
+                  <dt>Come here when</dt>
+                  <dd>
+                    You are working a specific renewal or maintenance ticket—not merely
+                    reviewing a summary.
+                  </dd>
+                  <dt>You can do</dt>
+                  <dd>
+                    Review values, resolve flags, progress Test actions, capture/update
+                    tickets, link governed communication, and inspect evidence.
+                  </dd>
+                  <dt>Leave here when</dt>
+                  <dd>
+                    The case has a clear next owner/state, an exact receipt, or an
+                    honestly recorded completion.
+                  </dd>
+                </dl>
+              </article>
+
+              <article class="tab-card">
+                <div class="tab-title">
+                  <h3>🧰 Vendor portal</h3>
+                  <span class="route">/vendor</span>
+                </div>
+                <dl>
+                  <dt>Come here when</dt>
+                  <dd>
+                    An external Vendor has completed its separate password/TOTP sign-in
+                    and has an assigned ticket.
+                  </dd>
+                  <dt>You can do</dt>
+                  <dd>
+                    See only assigned matching-mode tickets and, in the Test journey, use
+                    the app-only mailbox actions.
+                  </dd>
+                  <dt>Leave here when</dt>
+                  <dd>
+                    The assigned work/message state has been updated or the Vendor session
+                    is revoked/expires.
+                  </dd>
+                </dl>
+              </article>
+            </div>
+          </section>
+
+          <section class="section" data-lens-content="business" id="lease-process">
+            <p class="section-kicker">Lease Renewal · intended operating process</p>
+            <h2>One lease should move through one understandable lifecycle</h2>
+            <p class="lede">
+              PMI KC’s documented business process begins with a lease that may need
+              renewal and ends only after the chosen path, documents, provider updates,
+              and evidence are accounted for. This is the operating process the
+              application is meant to support; it is not a claim that every step is
+              currently connected in one Live screen.
+            </p>
+
+            <div class="callout info" data-lens-content="business">
+              <strong
+                >🧠 Intended process, grounded in the active Lease product
+                documentation</strong
+              >
+              The app should carry the same lease identity, source facts, decisions,
+              blockers, receipts, and activity through the journey. Where sources
+              disagree, the human resolution becomes part of that record; it does not
+              silently replace source data.
+            </div>
+
+            <div class="phase-grid" data-lens-content="business">
+              <article class="phase">
+                <span class="phase-number">1</span>
+                <h3>Find the right leases</h3>
+                <p>
+                  Begin the documented default cadence roughly two months before lease
+                  end. Identify candidates from RentVine timing, include off-cycle cases
+                  and exceptions, and log the work in the team’s
+                  <code>Lease Renewal</code> Sheet.
+                </p>
+                <p class="fine">
+                  <strong>Outcome:</strong> a bounded cohort with a reason each lease is
+                  in, out, or needs review.
+                </p>
+              </article>
+              <article class="phase">
+                <span class="phase-number">2</span>
+                <h3>Establish the facts</h3>
+                <p>
+                  Reconcile RentVine lease facts and current rent with the Sheet worklog.
+                  Use the PMI Free Rental Analysis for the authoritative market number and
+                  Zillow for range/context; Zillow plus manual approval is the fallback.
+                  Missing or contradictory values become explicit flags.
+                </p>
+                <p class="fine">
+                  <strong>Outcome:</strong> a source-backed owner package, not a guessed
+                  recommendation.
+                </p>
+              </article>
+              <article class="phase">
+                <span class="phase-number">3</span>
+                <h3>Get owner direction</h3>
+                <p>
+                  Present timing, current terms, market context, recommendation, and
+                  unresolved issues. Record whether the owner will renew and the approved
+                  terms.
+                </p>
+                <p class="fine">
+                  <strong>Outcome:</strong> one human-approved direction that governs
+                  tenant outreach.
+                </p>
+              </article>
+              <article class="phase">
+                <span class="phase-number">4</span>
+                <h3>Contact the tenant</h3>
+                <p>
+                  After owner approval, deliver the tenant offer by the documented
+                  15th-of-the-month target while leaving at least 30 days to sign. Use
+                  email, RentVine Portal Chat, and SMS; a person confirms each channel and
+                  each effect needs its own receipt.
+                </p>
+                <p class="fine">
+                  <strong>Outcome:</strong> tenant response or a visible follow-up state,
+                  with channel evidence.
+                </p>
+              </article>
+              <article class="phase">
+                <span class="phase-number">5</span>
+                <h3>Follow the chosen branch</h3>
+                <p>
+                  A non-renewal enters Move-Out. A renewal gathers deposit, inspection,
+                  pet, insurance, charge, occupancy, and property facts. Tenant agreement
+                  comes before conditional document build-out.
+                </p>
+                <p class="fine">
+                  <strong>Outcome:</strong> the correct next process and conditional
+                  document set.
+                </p>
+              </article>
+              <article class="phase">
+                <span class="phase-number">6</span>
+                <h3>Sign, update, and close</h3>
+                <p>
+                  Build the approved Dotloop package, track signatures, apply the signed
+                  renewal through the exact RentVine contract, verify applicable
+                  services/charges, update the Sheet closeout state, and reconcile
+                  receipts.
+                </p>
+                <p class="fine">
+                  <strong>Outcome:</strong> a completed renewal whose final state can be
+                  proven.
+                </p>
+              </article>
+            </div>
+
+            <div
+              class="branch-map"
+              data-lens-content="business"
+              role="img"
+              aria-label="Tenant decision branches to move-out or renewal preparation"
+            >
+              <article class="branch">
+                <span class="badge business">TENANT WILL NOT RENEW</span>
+                <h3>Move-Out branch</h3>
+                <p>
+                  Start the documented Move-Out process, preserve the renewal decision and
+                  message evidence, and stop renewal-document actions.
+                </p>
+              </article>
+              <div class="decision"><strong>Tenant decision</strong></div>
+              <article class="branch">
+                <span class="badge business">TENANT WILL RENEW</span>
+                <h3>Renewal branch</h3>
+                <p>
+                  Verify conditional facts, assemble the approved documents, obtain
+                  signatures, update systems, and close with receipts.
+                </p>
+              </article>
+            </div>
+
+            <details data-lens-content="business">
+              <summary>
+                What each system appears to own in the intended Lease process
+              </summary>
+              <div class="source-strip" aria-label="Lease data owners">
+                <span class="source-chip"
+                  >RentVine · lease facts, timing, parties, current rent</span
+                >
+                <span class="source-chip"
+                  >Renewal Sheet · team worklog and decisions</span
+                >
+                <span class="source-chip"
+                  >Market sources · pricing context, manually reviewed</span
+                >
+                <span class="source-chip"
+                  >Dotloop · document package and signed lease</span
+                >
+                <span class="source-chip"
+                  >Gmail / Portal / SMS · separate communication evidence</span
+                >
+                <span class="source-chip"
+                  >PMI KC app · workflow, resolutions, approvals, receipts, audit</span
+                >
+              </div>
+              <p>
+                The Sheet is operationally important, but it is reconciled rather than
+                trusted blindly. The app should keep backlinks and evidence; it should not
+                pretend to be the authoritative lease ledger or signed-document
+                repository.
+              </p>
+            </details>
+
+            <details data-lens-content="business">
+              <summary>
+                Model-readable instructions for interpreting the Lease process
+              </summary>
+              <ol>
+                <li>
+                  Begin the documented default cadence roughly two months before lease
+                  end, while still capturing off-cycle and exceptional cases, and preserve
+                  the lease identity through every step.
+                </li>
+                <li>
+                  Load current rent and lease facts from RentVine; use the PMI Free Rental
+                  Analysis for the authoritative market number and Zillow for range and
+                  context. When the PMI analysis is unavailable, Zillow plus manual review
+                  and approval is the documented fallback.
+                </li>
+                <li>
+                  Show source conflicts to a person and record the selected source,
+                  correction, rejection, and reason.
+                </li>
+                <li>
+                  Do not prepare tenant terms until owner direction is recorded. Under the
+                  documented default cadence, deliver the tenant offer by the 15th while
+                  leaving at least 30 days to sign.
+                </li>
+                <li>
+                  Treat email, Portal Chat, and SMS as separate actions with separate
+                  confirmation and evidence.
+                </li>
+                <li>
+                  Branch non-renewals out of the renewal path; do not continue document or
+                  writeback actions.
+                </li>
+                <li>
+                  Do not begin document build-out until the tenant agrees. Then build only
+                  the conditional documents supported by verified property, occupancy,
+                  pet, insurance, deposit, and charge facts.
+                </li>
+                <li>
+                  Invoke a Live provider action only when that exact contract is enabled;
+                  otherwise preserve the workflow and expose the unavailable action
+                  honestly.
+                </li>
+                <li>
+                  Track signatures, update the Renewal Sheet closeout state, and close
+                  only after every applicable enabled effect is reconciled to a receipt or
+                  readback.
+                </li>
+              </ol>
+            </details>
+
+            <div class="callout warn" data-lens-content="business">
+              <strong>❓ Business details still require human verification</strong>
+              The evidence does not fully settle every exception cadence, the exact
+              RentVine renewal/rent-increase navigation, every inherited-lease document
+              variant, or every building-level field. These are verification targets—not
+              permission to invent a step.
+            </div>
+          </section>
+
+          <section class="section" data-lens-content="current" id="lease-actions">
+            <p class="section-kicker">Lease Renewal · current reachable behavior</p>
+            <h2>Today’s Lease tools are four parallel lanes</h2>
+            <p class="lede">
+              The repository contains substantial working pieces, but a real lease does
+              not yet travel through all of them as one connected Live run. Read each lane
+              by its badge; they demonstrate different things and should not be treated as
+              successive Live stages.
+            </p>
+
+            <div class="grid-2" data-lens-content="current">
+              <article class="card">
+                <span class="mode sample">SAMPLE</span>
+                <h3>Sample Renewal Desk</h3>
+                <p>
+                  <code>/lease-renewal</code> and its sample lease workspaces show an
+                  invented fixed cohort, timing, source checks, draft previews, and
+                  document-readiness teaching material.
+                </p>
+                <p class="fine">
+                  <strong>It proves:</strong> layout and deterministic sample logic.
+                  <strong>It does not:</strong> load the current Live cohort, save owner
+                  direction, send a message, or build documents.
+                </p>
+              </article>
+              <article class="card">
+                <span class="mode live">LIVE READ + APP ONLY</span>
+                <h3>Live reconciliation review</h3>
+                <p>
+                  <code>/lease-renewal/live</code> lets an Admin compare the configured
+                  RentVine export with the full <code>Lease Renewal</code> Sheet and
+                  resolve flags.
+                </p>
+                <p class="fine">
+                  <strong>It proves:</strong> bounded source reads and app-owned
+                  decisions. <strong>It does not:</strong> change RentVine or the Sheet or
+                  create a connected Live renewal run.
+                </p>
+              </article>
+              <article class="card">
+                <span class="mode test">PERSISTENT TEST</span>
+                <h3>Test execution journey</h3>
+                <p>
+                  <code>/lease-renewal/runs</code> creates invented Firestore runs,
+                  progresses their lifecycle, and confirms all eleven actions one by one
+                  with internal receipts.
+                </p>
+                <p class="fine">
+                  <strong>It proves:</strong> dependency order, confirmation, idempotency,
+                  persistence, and Test isolation. <strong>It does not:</strong> construct
+                  or contact a provider.
+                </p>
+              </article>
+              <article class="card">
+                <span class="badge business">INTENDED LIVE</span>
+                <h3>Provider execution lane</h3>
+                <p>
+                  The S25 action contracts describe Gmail, RentVine, SMS, Sheets, Dotloop,
+                  and Boom effects as independently activated exact actions.
+                </p>
+                <p class="fine">
+                  <strong>Current truth:</strong> no Lease page exposes the general Live
+                  prepare/execute bridge. Registry eligibility is metadata, not a usable
+                  Lease control.
+                </p>
+              </article>
+            </div>
+
+            <div class="callout review" data-lens-content="current">
+              <strong>✅ The central interpretation to review</strong>
+              The four lanes are working control and demonstration surfaces. The missing
+              product connection is one Live lease record flowing from candidate discovery
+              through owner direction, tenant response, documents, signatures, provider
+              updates, and closeout while preserving one shared lifecycle and audit trail.
+            </div>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Open an actionable lease from the Sample Renewal Desk</h3>
+                <span class="mode sample">SAMPLE</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>Choose <em>Open</em> on an actionable sample card.</p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>The fixed sample ID is one of the actionable invented leases.</p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    Nothing persists. A sample workspace displays timing, source checks,
+                    outreach previews, and readiness.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Use it to review the intended content, or move to the Test workspace /
+                    Admin Live review for those separate modes.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                Rows collapsed under Needs review, Skipped, or Out of window are currently
+                not clickable, even where explanatory copy implies an override could be
+                opened.
+              </div>
+            </article>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Click “Prepare owner email” or “Prepare tenant email”</h3>
+                <span class="mode sample">SAMPLE PREVIEW</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>Choose either preparation action in a sample lease workspace.</p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>
+                    The invented record lacks an authoritative recipient, so the recipient
+                    remains <em>Needs Verification</em>.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    No Gmail draft is created. The route returns a preview-only draft with
+                    execution disabled.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Read the representative wording. There is no reachable send or
+                    copy-as-executable control.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                Working as expected means the page is unmistakably a preview and never
+                suggests a provider effect occurred.
+              </div>
+            </article>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Open “View live review”</h3>
+                <span class="mode live">LIVE READ</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>
+                    As Admin, open the Live review and choose
+                    <em>Decide one at a time</em> or <em>View all flags</em>.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>
+                    Admin access and configured source connections; then reads one
+                    RentVine lease export and the full configured Sheet tab.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    The comparison itself is read-only. Deterministic flags, source
+                    candidates, severity, and suggestions are displayed.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Resolve a flag, skip it, or navigate Back/Next. This is
+                    reconciliation—not the same bounded cohort shown in the Sample desk.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                Working as expected means source failures are explicit and no source is
+                silently preferred when policy requires a human choice.
+              </div>
+            </article>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Accept, reject, correct, choose another source, or resolve a flag</h3>
+                <span class="mode app">APP ONLY</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>
+                    Choose a resolution path, enter the required reason/correction, and
+                    confirm where prompted.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>
+                    Role, severity, required reason, selected candidate, and stronger
+                    confirmation for high-risk or blocked cases.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    An app-owned resolution and queued write-back proposal are persisted
+                    with actor and audit context. Authorization does not exist until the
+                    separate approval action.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Review the queued proposal. A resolution decides the trusted fact; it
+                    does not itself change either source.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                Low/Medium flags with a suggestion may offer “Accept suggested source.”
+                High/Blocked flags require the stronger explicit path.
+              </div>
+            </article>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Click “Approve write-back” or “Approve proposal”</h3>
+                <span class="mode app">APP ONLY</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>
+                    Approve the exact queued proposal; alternatively return it for
+                    revision or revoke approval.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>Approver authority and the proposal’s current app state.</p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    The application records authorization. The current Sheet and RentVine
+                    records remain unchanged.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Today, inspect the app audit. The separately specified Live Sheet
+                    compare-and-set/readback executor is not this implemented approval
+                    path.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                The label “write-back” describes the proposal’s intended destination. It
+                must not be read as evidence that a source-system write happened.
+              </div>
+            </article>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Click “Create Test renewal”</h3>
+                <span class="mode test">TEST</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>
+                    As an Editor with Renewals scope, create a canonical Test run and open
+                    its Test journey.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>
+                    Internal identity, scope, mutation role, and Test-only data contract.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    An invented persistent renewal record is created in Firestore. No Live
+                    record is copied or contacted.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Progress Created → Reviewed → Approved → Executing, then confirm the
+                    available actions in dependency order.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                The runs list also preserves an older deterministic in-memory sample; it
+                is not the same kind of persistent Test record.
+              </div>
+            </article>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Move the Test status or click “Run Test action”</h3>
+                <span class="mode test">TEST</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>
+                    Move to the next lifecycle state; then select one action, tick the
+                    exact-target confirmation, and run it.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>
+                    Allowed transition, dependency receipts, exact confirmation, data
+                    mode, and one-attempt/idempotency rules.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    One bodyless internal attempt and receipt are recorded for the
+                    invented target. No provider is constructed or called.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Run the next dependency-ready action. <em>Done</em> is refused until
+                    all eleven Test receipts exist.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                The eleven-action graph covers Gmail draft/send/reply/label, RentVine
+                Portal, SMS, Sheet, Dotloop create/upload, RentVine writeback, and Boom
+                enrollment.
+              </div>
+            </article>
+
+            <details data-lens-content="current">
+              <summary>
+                What the “11-action Registry readiness” display actually means
+              </summary>
+              <p>
+                It is an informational matrix of action keys and activation state. The
+                Test run can simulate all eleven. Two generic Gmail registry rows—thread
+                reply and label—are production-eligible elsewhere, but no Lease route
+                invokes them through the Live orchestration bridge. “Eligible” therefore
+                does not mean “clickable from this Lease.”
+              </p>
+            </details>
+
+            <details data-lens-content="current">
+              <summary>
+                Current cross-surface limitations that affect the human journey
+              </summary>
+              <ul>
+                <li>
+                  The Renewal Review and Write-back views in Approval Queue project
+                  deterministic static simulation runs; they do not collect Live Review
+                  decisions or persistent Test renewals.
+                </li>
+                <li>
+                  Owner Renewal Outreach and Tenant Renewal Notice Spaces are generic Test
+                  checklists with representative sample drafts; they do not receive the
+                  selected Live lease, owner decision, recipient, or provider receipt.
+                </li>
+                <li>
+                  The property-history page currently assembles value-free activity from
+                  static simulation runs; Live-resolution coverage should be re-verified.
+                </li>
+                <li>
+                  The Live review persists app decisions and authorizations but does not
+                  instantiate the intended operational Live run.
+                </li>
+              </ul>
+            </details>
+          </section>
+
+          <section class="section" id="ask-start">
+            <p class="section-kicker">Console, Spaces, Queue, and Communications</p>
+            <h2>Ask for understanding; start work through an explicit process</h2>
+            <p class="lede">
+              The Console is the front door for a question or attention item. Spaces
+              explain repeatable work. Approval Queue holds decisions. Communications
+              exposes only workflow-linked Gmail activity. A human should always be able
+              to tell which surface owns the next action.
+            </p>
+
+            <div class="callout info" data-lens-content="current">
+              <strong>✅ Terminology correction from the transcript</strong>
+              There is no Ask “slash command.” The supported action is to type or dictate
+              a normal request, optionally select a process, and submit it with the
+              visible button.
+            </div>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Submit “Get answer”</h3>
+                <span class="mode app">READ / APP ONLY</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>
+                    Type or dictate a question, leave
+                    <em>Just ask (no process)</em> selected if appropriate, and click
+                    <em>Get answer</em>.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>
+                    Signed-in access, request shape, available permitted sources, and
+                    source state before producing an answer.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    The result is displayed with citations/source state or visible
+                    uncertainty. It does not start a process or write to an external
+                    system.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Use the cited answer, refine the question, select a suggested process,
+                    or create a follow-up Capture Task when offered.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                Working as expected means missing PMI KC evidence stays visible; the app
+                does not fill the gap with generic property-management advice.
+              </div>
+            </article>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Select a process and submit “Get answer + start a test run”</h3>
+                <span class="mode test">TEST</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>
+                    Accept a deterministic suggestion, choose a process yourself, or use
+                    <em>Detect process with AI</em>; then submit the Test-run button.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>
+                    The chosen published process definition, user scope, request, and
+                    Test-mode creation boundary.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    The answer becomes process-aware and a version-pinned Test run is
+                    created in app data.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Open the run or its owning Space and work the checklist. No provider
+                    is contacted merely because a Test run started.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                Process detection proposes context; the visible selection and submit
+                action remain human-controlled.
+              </div>
+            </article>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Click “Create Capture Task”</h3>
+                <span class="mode app">APP ONLY</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>
+                    Choose the capture action after an answer exposes eligible missing or
+                    follow-up work.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>
+                    The answer/source state is eligible and the user may create the app
+                    task.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    A P1 <em>Open</em> placeholder is created in the selected Space and
+                    assigned to the person who captured it, so the uncertainty does not
+                    disappear in prose.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Ask shows <em>Capture task created</em> but no direct task link. Go to
+                    the selected Space’s placeholder list to supply the missing source or
+                    process knowledge and resolve it there.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                Working as expected means the placeholder appears in the selected Space
+                with the caller as owner; the Ask success message alone is not the work
+                surface.
+              </div>
+            </article>
+
+            <div class="grid-2" data-lens-content="business">
+              <article class="journey-card">
+                <h3>
+                  <span class="journey-number">1</span>From question to reusable process
+                </h3>
+                <ol>
+                  <li>A person asks a real operating question.</li>
+                  <li>
+                    The app answers from permitted sources or states what is missing.
+                  </li>
+                  <li>A repeatable request is associated with a published process.</li>
+                  <li>
+                    A Test run proves the checklist and handoffs without an external
+                    effect.
+                  </li>
+                  <li>
+                    Trusted knowledge is corrected or published through its governed Space
+                    boundary.
+                  </li>
+                </ol>
+              </article>
+              <article class="journey-card">
+                <h3>
+                  <span class="journey-number">2</span>From attention to an owned decision
+                </h3>
+                <ol>
+                  <li>Console or Notifications identifies work needing attention.</li>
+                  <li>The user follows the link to the owning record.</li>
+                  <li>
+                    Approval Queue records a decision or deep-links to value-bearing
+                    detail.
+                  </li>
+                  <li>
+                    The owning workflow changes state and emits the next
+                    attention/evidence.
+                  </li>
+                </ol>
+              </article>
+            </div>
+
+            <details data-lens-content="current">
+              <summary>What a Space’s main components mean</summary>
+              <dl>
+                <dt>Overview</dt>
+                <dd>
+                  Orientation: why the Space exists, its sources, tools, templates, and
+                  related work.
+                </dd>
+                <dt>Process</dt>
+                <dd>
+                  The published step sequence and its current version; a Test checklist
+                  run stays pinned to the version it began with.
+                </dd>
+                <dt>Start Test run</dt>
+                <dd>
+                  Creates app-owned Test workflow state. It is evidence that the process
+                  can be followed, not evidence that a Live provider action is enabled.
+                </dd>
+                <dt>Trusted publication controls</dt>
+                <dd>
+                  Where permitted, validate and immediately publish approved source-backed
+                  content with audit. Publication changes app knowledge; it is not a
+                  source-system write.
+                </dd>
+                <dt>Dedicated desk link</dt>
+                <dd>
+                  Moves the person from generic process guidance into the deeper Lease or
+                  Maintenance record when such a desk exists.
+                </dd>
+              </dl>
+            </details>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Choose an item in Approval Queue</h3>
+                <span class="mode app">DECISION BOUNDARY</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>
+                    Open the merged <em>Needs decision</em> view or another queue view;
+                    inspect the owning record before choosing an action.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>
+                    Role/scope, item state, exact selected action, required reason, and
+                    whether execution is actually available.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    <em>Approve</em>, <em>Return</em>, <em>Snooze</em>, <em>Assign</em>,
+                    or <em>Disable Action</em> changes app workflow/audit state.
+                    <em>Approve and execute</em> may perform only an eligible exact
+                    action.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Return to the owning run/ticket for its visible result, receipt,
+                    correction, or next assignee.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                Renewal Review and Write-back queue views currently summarize static
+                simulation runs; they are not a merged inbox for Live Review decisions or
+                persistent Test renewals.
+              </div>
+            </article>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Use a workflow-linked Gmail panel</h3>
+                <span class="mode live">LIVE · EXACT ACTIONS</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>
+                    From an owning workflow, link an exact thread with a reason; then read
+                    it, apply an allowed label, request supported analysis, or prepare an
+                    exact reply.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>
+                    Signed-in user mailbox authority, workflow linkage, exact
+                    thread/message, action gate, confirmation, and data-mode
+                    compatibility.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    Linked read is targeted. An allowed label or confirmed reply may reach
+                    Gmail and records an audit/receipt. Analysis remains review-only.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Inspect the visible provider result. If the outcome is ambiguous,
+                    reconcile it instead of retrying blindly.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                Communications is not a general inbox. Generic compose/send, production
+                draft creation, unrelated mailbox browsing, and autonomous sending are not
+                product capabilities.
+              </div>
+            </article>
+
+            <div class="grid-2" data-lens-content="current">
+              <article class="card">
+                <span class="badge current">CONNECTIONS</span>
+                <h3>Verify, do not enter credentials</h3>
+                <p>
+                  The current Connections page explains setup and offers bounded Admin
+                  verification for supported RentVine and Sheet reads. It is not an in-app
+                  secret-entry or OAuth wizard.
+                </p>
+              </article>
+              <article class="card">
+                <span class="badge current">ADMIN</span>
+                <h3>Change authority with an audit reason</h3>
+                <p>
+                  People/Access changes require Admin authority, the internal identity
+                  boundary, and a plain-English reason. Test Vendor lifecycle controls use
+                  exact previews and remain isolated from Live delivery/provider
+                  construction.
+                </p>
+              </article>
+            </div>
+          </section>
+
+          <section class="section" id="maintenance">
+            <p class="section-kicker">Maintenance · request to closeout</p>
+            <h2>A maintenance issue becomes one owned ticket</h2>
+            <p class="lede">
+              The intended process turns a resident or staff-reported issue into a
+              verified unit, triaged ticket, assigned work, controlled communication,
+              scheduled/completed service, and a close reason. The current app already
+              supports the core in-app ticket journey and an isolated Test Vendor path;
+              Live provider effects remain action-specific.
+            </p>
+
+            <div
+              class="verb-flow"
+              data-lens-content="business"
+              role="img"
+              aria-label="Capture issue, verify unit, triage, assign, coordinate, and close maintenance work"
+            >
+              <div class="verb-step">
+                <strong>1 · Capture</strong
+                ><span
+                  >Resident or staff describes the issue and supplies available
+                  evidence.</span
+                >
+              </div>
+              <div class="verb-step">
+                <strong>2 · Verify</strong
+                ><span
+                  >Match the unit/property and preserve uncertain intake separately.</span
+                >
+              </div>
+              <div class="verb-step">
+                <strong>3 · Triage</strong
+                ><span
+                  >Set priority, clarify scope, and identify the next responsible
+                  person.</span
+                >
+              </div>
+              <div class="verb-step">
+                <strong>4 · Assign</strong
+                ><span>Assign staff/vendor with only the ticket access required.</span>
+              </div>
+              <div class="verb-step">
+                <strong>5 · Coordinate</strong
+                ><span
+                  >Use linked communication, notes, status, and schedule evidence.</span
+                >
+              </div>
+              <div class="verb-step">
+                <strong>6 · Close</strong
+                ><span>Record completion/exception and a meaningful close reason.</span>
+              </div>
+            </div>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Build and create a Live staff maintenance ticket</h3>
+                <span class="mode app">LIVE RECORD · APP ONLY</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>
+                    Type or dictate the issue, select a verified unit from the
+                    RentVine-backed typeahead, choose priority, review the draft, and
+                    create the ticket.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>
+                    Internal access, required issue fields, selected roster unit,
+                    priority, the fixed Live-record boundary, and any enabled photo
+                    boundary.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    A <em>Live-mode</em> maintenance ticket is created in app/Firestore
+                    state with its issue, unit reference, priority, actor, and audit
+                    context. It is still app-only until an exact external action is
+                    separately executed.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Open the ticket queue/detail, assign it, add notes, set the
+                    waiting/scheduled state, or link governed communication.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                “Create ticket” creates the app workflow record. It does not by itself
+                create or update a ticket in an external provider. Do not enter invented
+                Test scenarios here; use the separate <em>Create Test ticket</em> control
+                in the queue.
+              </div>
+            </article>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Promote or dismiss a public intake item</h3>
+                <span class="mode app">QUARANTINE</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>
+                    Review an item admitted through the tokenized public-intake API;
+                    choose <em>Promote to ticket</em> or <em>Dismiss</em>.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>
+                    Token-derived intake state, reviewer authority, required normalized
+                    fields, and the chosen disposition.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    Promotion creates the internal ticket; dismissal records the review
+                    result. Unreviewed input stays quarantined.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Work a promoted ticket in the normal queue; dismissed intake leaves an
+                    audit but no operational ticket.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                The current repository exposes the protected intake API and review
+                surface, not a general public form or token-minting screen.
+              </div>
+            </article>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Change assignee, status, notes, or close reason</h3>
+                <span class="mode app">APP ONLY</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>
+                    Use ticket controls for assignee, note, or status: Open, Waiting on
+                    Response, Waiting on Vendor, Scheduled, or Closed.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>
+                    Role/scope, ticket mode, current state, allowed transition, and
+                    required close reason when closing.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    The ticket, assignment, activity history, and attention state update
+                    inside the application.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    The new owner works the next step; linked notifications/filters
+                    reflect the changed condition.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                Working as expected means the queue can be filtered by mode and “assigned
+                to me,” and a closed ticket retains why it was closed.
+              </div>
+            </article>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>
+                  Click “Create Test ticket” and run the six staff-side Test actions
+                </h3>
+                <span class="mode test">TEST</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>
+                    In the Maintenance Test workspace, click <em>Create Test ticket</em>.
+                    On that ticket, select one exact Test action, confirm its target, and
+                    click <em>Run Test action</em>.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>
+                    Internal role/scope, the canonical invented Test record, exact action
+                    and target confirmation, matching Test mode, and the one-receipt
+                    idempotency boundary.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    One internal simulated-success receipt is persisted. The six actions
+                    represent RentVine work-order creation, Vendor assignment, owner Gmail
+                    notice, LeadSimple stage update, RentVine status update, and a
+                    QuickBooks draft bill.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Confirm each remaining Test action. A completed action is visibly
+                    recorded and cannot create a second simulated receipt.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                These six receipts prove the staff-side Maintenance action graph only. No
+                named provider is constructed or contacted, and they are not Live proof.
+              </div>
+            </article>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Use the separate Test Vendor portal and simulated mailbox</h3>
+                <span class="mode test">TEST VENDOR</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>
+                    After the Test ticket is assigned to the canonical Test Vendor, the
+                    Vendor signs in through its separate password/TOTP path and opens the
+                    assigned ticket. It can save a Test draft, mark waiting/complete,
+                    review a simulated reply, and confirm that exact simulated reply.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>
+                    Canonical Vendor claims, exact vendor ID, matching Test mode, current
+                    ticket assignment, session/TOTP state, and exact reply confirmation.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    The isolated Test mailbox persists its draft, governed Test label, or
+                    simulated reply and app audit evidence. Gmail, OAuth, external
+                    delivery, and provider construction remain disconnected.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Staff reviews the updated assigned-ticket/Test-mailbox state and
+                    continues or closes the Test ticket as appropriate.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                Vendor identity is separate from internal staff. It cannot enter internal
+                People/Access, another Vendor’s tickets, the opposite data mode, or PMI KC
+                cloud/admin authority.
+              </div>
+            </article>
+
+            <article class="action-card" data-lens-content="current">
+              <div class="action-head">
+                <h3>Link and act on a Gmail thread from a Live maintenance ticket</h3>
+                <span class="mode live">LIVE · EXACT ACTIONS</span>
+              </div>
+              <div class="action-chain">
+                <div class="action-cell">
+                  <strong>You do</strong>
+                  <p>
+                    Link the exact workflow thread and reason, read the targeted
+                    conversation, apply an allowed label, or confirm an exact reply.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>App validates</strong>
+                  <p>
+                    The ticket is Live, the signed-in user owns the mailbox authority, and
+                    the thread/action/confirmation match the workflow.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What changes</strong>
+                  <p>
+                    The allowed Gmail effect occurs and returns bodyless evidence; the app
+                    records the linkage, action, and outcome.
+                  </p>
+                </div>
+                <div class="action-cell">
+                  <strong>What next</strong>
+                  <p>
+                    Update the ticket’s assignment/status/schedule based on the confirmed
+                    communication result; reconcile ambiguity before another attempt.
+                  </p>
+                </div>
+              </div>
+              <div class="action-foot">
+                Test maintenance tickets reject Live Gmail actions. The data-mode boundary
+                is part of the action validation, not a label the user can bypass.
+              </div>
+            </article>
+
+            <div class="callout warn" data-lens-content="business">
+              <strong>❓ Maintenance operating details to validate with use</strong>
+              The app supports the visible ticket lifecycle, but the evidence does not
+              establish every real-world emergency escalation, vendor-selection rule,
+              scheduling SLA, resident-access protocol, billing handoff, or external
+              maintenance provider path. Review those as concrete process steps rather
+              than assuming the ticket UI settles them.
+            </div>
+          </section>
+
+          <section class="section" id="decisions">
+            <p class="section-kicker">Decision language</p>
+            <h2>Resolve, approve, and execute are different events</h2>
+            <p class="lede">
+              Several controls sit next to one another but authorize different things. The
+              safe, usable interpretation is: first decide what is true, then authorize a
+              specific next state, then—only if separately enabled—perform one exact
+              external effect and prove it.
+            </p>
+
+            <div
+              class="verb-flow"
+              role="img"
+              aria-label="Review evidence, resolve truth, approve exact change, execute enabled effect, reconcile evidence, and continue workflow"
+            >
+              <div class="verb-step">
+                <strong>Review</strong
+                ><span>See the record, candidates, source, risk, and target.</span>
+              </div>
+              <div class="verb-step">
+                <strong>Resolve</strong
+                ><span>Record which fact or disposition a human accepts.</span>
+              </div>
+              <div class="verb-step">
+                <strong>Approve</strong
+                ><span>Authorize one exact proposed transition or effect.</span>
+              </div>
+              <div class="verb-step">
+                <strong>Execute</strong
+                ><span
+                  >Call only the separately enabled action after exact confirmation.</span
+                >
+              </div>
+              <div class="verb-step">
+                <strong>Reconcile</strong
+                ><span>Bind the result to a receipt/readback or preserve ambiguity.</span>
+              </div>
+              <div class="verb-step">
+                <strong>Continue</strong
+                ><span>Advance the owning workflow and show the next human action.</span>
+              </div>
+            </div>
+
+            <div class="grid-3">
+              <article class="card">
+                <span class="mode app">APP ONLY</span>
+                <h3>Resolve</h3>
+                <p>
+                  Chooses a source, correction, rejection, or disposition and records the
+                  reason. It changes app-owned interpretation, not the source record.
+                </p>
+              </article>
+              <article class="card">
+                <span class="mode app">APP ONLY BY DEFAULT</span>
+                <h3>Approve</h3>
+                <p>
+                  Authorizes a proposal or transition. Unless the control explicitly says
+                  execution is included and eligible, approval does not contact a
+                  provider.
+                </p>
+              </article>
+              <article class="card">
+                <span class="mode live">POSSIBLE LIVE EFFECT</span>
+                <h3>Execute</h3>
+                <p>
+                  Performs one exact action only after preview and confirmation. Target,
+                  effect, identity, idempotency, receipt/readback, and rollback behavior
+                  belong to that action.
+                </p>
+              </article>
+              <article class="card">
+                <span class="badge review">EXCEPTION CONTROL</span>
+                <h3>Reconcile</h3>
+                <p>
+                  Used when an attempted effect cannot be proven successful or failed. It
+                  prevents a blind retry from duplicating a message or write.
+                </p>
+              </article>
+              <article class="card">
+                <span class="mode app">WORKFLOW STATE</span>
+                <h3>Complete a step</h3>
+                <p>
+                  Records checklist progress. Completion proves the app step was marked;
+                  it proves a provider effect only when a matching provider receipt is
+                  also attached.
+                </p>
+              </article>
+              <article class="card">
+                <span class="mode app">WORKFLOW STATE</span>
+                <h3>Skip / return / snooze</h3>
+                <p>
+                  Preserves why work did not advance and who should see it next. It is a
+                  controlled state transition, not a deletion of the underlying need.
+                </p>
+              </article>
+            </div>
+
+            <div class="callout good">
+              <strong>✅ What an explicit write should tell the human</strong>
+              Before confirmation: the action, provider, exact target, proposed effect,
+              current value when applicable, risk, data mode, and whether it can be
+              reversed. Afterward: success/failure/ambiguity, attempt ID, provider receipt
+              or readback, timestamp, and the next action. If those are not present, do
+              not infer that a write happened.
+            </div>
+
+            <details>
+              <summary>Concrete examples in the current application</summary>
+              <ul>
+                <li>
+                  <strong>Lease “Resolve”:</strong> persists a source decision and queues
+                  an app proposal; it does not change the Sheet.
+                </li>
+                <li>
+                  <strong>Lease “Approve write-back”:</strong> persists app authorization;
+                  the implemented path still does not change the Sheet.
+                </li>
+                <li>
+                  <strong>Test “Run Test action”:</strong> creates an internal Test
+                  receipt; the named provider is not constructed or contacted.
+                </li>
+                <li>
+                  <strong>Gmail exact reply/label:</strong> can reach the signed-in user’s
+                  mailbox only from a linked Live workflow after exact confirmation and
+                  returns evidence.
+                </li>
+                <li>
+                  <strong>Maintenance “Create ticket”:</strong> creates the app record; it
+                  does not imply a RentVine/LeadSimple/provider work order exists.
+                </li>
+              </ul>
+            </details>
+          </section>
+
+          <section class="section" id="cross-tab">
+            <p class="section-kicker">Cross-tab journeys</p>
+            <h2>
+              The owning record—not the tab—is the thread that should connect the work
+            </h2>
+            <p class="lede">
+              Tabs are different views of attention, knowledge, decisions, communication,
+              and administration. The durable operating unit should be the Lease run or
+              Maintenance ticket whose ID, state, decisions, and evidence survive every
+              handoff.
+            </p>
+
+            <article class="journey-card">
+              <h3>
+                <span class="journey-number">1</span>Intended renewal journey across
+                surfaces
+              </h3>
+              <div
+                class="verb-flow"
+                data-lens-content="business"
+                role="img"
+                aria-label="Renewal attention moves to lease record, source resolution, owner and tenant decisions, documents and provider effects, then closeout"
+              >
+                <div class="verb-step">
+                  <strong>Console / alert</strong
+                  ><span>Notice a due renewal or unresolved item.</span>
+                </div>
+                <div class="verb-step">
+                  <strong>Lease record</strong
+                  ><span>Review cohort, timing, facts, and sources.</span>
+                </div>
+                <div class="verb-step">
+                  <strong>Decision</strong
+                  ><span>Resolve conflicts and record owner direction.</span>
+                </div>
+                <div class="verb-step">
+                  <strong>Communication</strong
+                  ><span>Confirm each tenant channel and capture response.</span>
+                </div>
+                <div class="verb-step">
+                  <strong>Documents / writes</strong
+                  ><span>Build, sign, and perform separately enabled effects.</span>
+                </div>
+                <div class="verb-step">
+                  <strong>History / close</strong
+                  ><span>Reconcile receipts and finish the same run.</span>
+                </div>
+              </div>
+              <div class="callout warn" data-lens-content="current">
+                <strong>Current reachable result</strong>
+                Sample teaching, Live source reconciliation, persistent Test execution,
+                related Spaces, and Approval projections are separate. They do not yet
+                share one Live run record through this complete sequence.
+              </div>
+            </article>
+
+            <article class="journey-card">
+              <h3>
+                <span class="journey-number">2</span>Maintenance journey across surfaces
+              </h3>
+              <div
+                class="verb-flow"
+                role="img"
+                aria-label="Maintenance intake moves to ticket, queue, vendor or staff work, linked communication, and closeout"
+              >
+                <div class="verb-step">
+                  <strong>Console / Space</strong
+                  ><span>Start staff capture or open maintenance process guidance.</span>
+                </div>
+                <div class="verb-step">
+                  <strong>Capture / intake</strong
+                  ><span>Verify unit, issue, priority, mode, and evidence.</span>
+                </div>
+                <div class="verb-step">
+                  <strong>Ticket queue</strong
+                  ><span>Assign ownership and set the current state.</span>
+                </div>
+                <div class="verb-step">
+                  <strong>Staff / Vendor</strong
+                  ><span>Work only authorized matching-mode tickets.</span>
+                </div>
+                <div class="verb-step">
+                  <strong>Linked communication</strong
+                  ><span>Read/label/reply only from the owning Live workflow.</span>
+                </div>
+                <div class="verb-step">
+                  <strong>Close / history</strong
+                  ><span>Record result, close reason, and action evidence.</span>
+                </div>
+              </div>
+              <div class="callout good" data-lens-content="current">
+                <strong>Current reachable result</strong>
+                Core app ticket capture, quarantine review,
+                assignment/status/notes/closeout, an isolated Test Vendor journey, and
+                linked Live Gmail controls exist. Other external maintenance effects
+                remain separate action activations.
+              </div>
+            </article>
+
+            <article class="journey-card">
+              <h3>
+                <span class="journey-number">3</span>Knowledge and process-improvement
+                journey
+              </h3>
+              <div
+                class="verb-flow"
+                role="img"
+                aria-label="Question becomes source-backed answer, captured gap, trusted update, published process, and future test run"
+              >
+                <div class="verb-step">
+                  <strong>Ask</strong
+                  ><span>Submit a normal-language operating question.</span>
+                </div>
+                <div class="verb-step">
+                  <strong>Answer</strong
+                  ><span>See citations, source state, or missing evidence.</span>
+                </div>
+                <div class="verb-step">
+                  <strong>Capture</strong
+                  ><span>Create a task for reusable missing knowledge.</span>
+                </div>
+                <div class="verb-step">
+                  <strong>Space</strong
+                  ><span>Review the relevant SOP/source/process version.</span>
+                </div>
+                <div class="verb-step">
+                  <strong>Publish</strong
+                  ><span>Audit an allowed trusted-source correction.</span>
+                </div>
+                <div class="verb-step">
+                  <strong>Prove</strong
+                  ><span>Start a version-pinned Test run of the improved process.</span>
+                </div>
+              </div>
+            </article>
+
+            <details>
+              <summary>Data interaction map in plain language</summary>
+              <div class="grid-2">
+                <article class="card">
+                  <h3>Source systems provide operational facts</h3>
+                  <p>
+                    RentVine, the Renewal Sheet, Gmail, and future enabled providers
+                    remain distinct sources/effect destinations. A read does not transfer
+                    ownership to the app.
+                  </p>
+                </article>
+                <article class="card">
+                  <h3>The PMI KC app owns coordination</h3>
+                  <p>
+                    Firestore/app state holds runs, tickets, flags, resolutions,
+                    approvals, action attempts, receipts, attention, and audit suitable
+                    for the product workflow.
+                  </p>
+                </article>
+                <article class="card">
+                  <h3>Console and Notifications are projections</h3>
+                  <p>
+                    They point to work and may expose bounded actions; the underlying
+                    Lease run, ticket, task, or condition remains the owning record.
+                  </p>
+                </article>
+                <article class="card">
+                  <h3>Approval and Communications are control surfaces</h3>
+                  <p>
+                    They authorize or communicate for an owning workflow. They should not
+                    create a disconnected duplicate lifecycle.
+                  </p>
+                </article>
+              </div>
+            </details>
+
+            <div class="grid-3">
+              <article class="card">
+                <span class="badge current">CURRENT</span>
+                <h3>What a user can do now</h3>
+                <p>
+                  Use the exact reachable controls documented above and observe app state
+                  or a separately enabled exact effect.
+                </p>
+              </article>
+              <article class="card">
+                <span class="badge business">INTENDED</span>
+                <h3>What the business expects</h3>
+                <p>
+                  One record follows the full operating sequence while preserving human
+                  authority, source ownership, and evidence.
+                </p>
+              </article>
+              <article class="card">
+                <span class="badge review">CONNECTION TO ASSESS</span>
+                <h3>What the reviewer should compare</h3>
+                <p>
+                  Whether the current consequence and handoff actually advance the
+                  intended record—or leave the person in a parallel demonstration surface.
+                </p>
+              </article>
+            </div>
+          </section>
+
+          <section class="section" id="reviewer-pass">
+            <p class="section-kicker">Human review pass</p>
+            <h2>Use the app, then correct this interpretation</h2>
+            <p class="lede">
+              This checklist is deliberately action-oriented. A reviewer can use invented
+              data through the application’s dedicated Test controls, compare the visible
+              consequence with the intended operating process, and mark precisely where
+              the interpretation or implementation differs. A control documented as Live
+              should not be repurposed for Test entry.
+            </p>
+
+            <div class="callout review">
+              <strong>How to review without conflating modes</strong>
+              Keep SAMPLE, TEST, APP ONLY, and LIVE visible in every note. A Test receipt
+              can prove workflow behavior; it cannot prove that Gmail, RentVine, Sheets,
+              Dotloop, SMS, Boom, or another provider was contacted.
+            </div>
+
+            <details open>
+              <summary>🧭 Console and process start</summary>
+              <ul class="checklist">
+                <li>
+                  Ask a plain-language question without a slash command; verify a cited
+                  answer or explicit source uncertainty appears.
+                </li>
+                <li>
+                  Choose a process and start a Test run; verify the new run is labeled
+                  Test and no external action is implied.
+                </li>
+                <li>
+                  Create an eligible Capture Task; verify the uncertainty becomes owned
+                  work rather than disappearing.
+                </li>
+                <li>
+                  Follow one Console/Notification attention link; verify it lands on the
+                  record that can actually resolve the need.
+                </li>
+              </ul>
+            </details>
+
+            <details open>
+              <summary>🏘️ Lease Renewal</summary>
+              <ul class="checklist">
+                <li>
+                  Open a sample lease; confirm every value and action is clearly labeled
+                  as invented/sample and nothing persists.
+                </li>
+                <li>
+                  Prepare an owner and tenant email; confirm both are preview-only and no
+                  Gmail draft/send is suggested.
+                </li>
+                <li>
+                  As Admin, open Live Review; confirm the sources read, reconciliation
+                  flags, and scope are understandable.
+                </li>
+                <li>
+                  Resolve a flag; confirm the app shows the selected fact, reason, actor,
+                  and that neither source changed.
+                </li>
+                <li>
+                  Approve the proposed write-back; confirm the UI does not claim a
+                  Sheet/RentVine write occurred.
+                </li>
+                <li>
+                  Create a persistent Test renewal; progress each lifecycle state and
+                  verify action dependencies/confirmations.
+                </li>
+                <li>
+                  Run all eleven Test actions; verify one internal receipt per action, no
+                  duplicate attempt, no provider contact, and Done only after all
+                  receipts.
+                </li>
+                <li>
+                  Compare the resulting run with the documented business lifecycle: owner
+                  decision, tenant response, documents, signatures, provider updates, and
+                  closeout should be traceable—or explicitly identified as an unconnected
+                  step.
+                </li>
+              </ul>
+            </details>
+
+            <details open>
+              <summary>🛠️ Maintenance and Vendor</summary>
+              <ul class="checklist">
+                <li>
+                  Verify the normal capture explicitly creates a Live-mode app record; do
+                  not use that control for invented Test scenarios.
+                </li>
+                <li>
+                  Click <em>Create Test ticket</em>; run the six staff-side Test actions
+                  with exact confirmations and verify one internal receipt per action,
+                  with no provider contact.
+                </li>
+                <li>
+                  On the Test ticket, change assignee, add a note, move through
+                  waiting/scheduled states, and close with a reason; confirm history and
+                  filters update.
+                </li>
+                <li>
+                  Promote and dismiss safe Test intake examples; confirm only promotion
+                  creates an operational ticket.
+                </li>
+                <li>
+                  Complete the canonical Test Vendor assignment; confirm the Vendor sees
+                  only its assigned matching-mode ticket, then separately test draft,
+                  label, and exact simulated-reply controls in the Vendor mailbox.
+                </li>
+                <li>
+                  On an authorized Live ticket, exercise a safe linked Gmail
+                  read/label/reply with exact confirmation; verify receipt or explicit
+                  ambiguity.
+                </li>
+              </ul>
+            </details>
+
+            <details>
+              <summary>
+                ✅ Approval, communication, connection, and administration
+              </summary>
+              <ul class="checklist">
+                <li>
+                  For each approval control, state before clicking whether it changes app
+                  state, performs an external action, or both; confirm the result matches.
+                </li>
+                <li>
+                  Verify Communications exposes workflow links/health rather than a
+                  general inbox or compose surface.
+                </li>
+                <li>
+                  Verify a linked Gmail panel cannot act on an unrelated thread or cross
+                  Test/Live mode.
+                </li>
+                <li>
+                  Run bounded connection verification and confirm no credential-entry UI
+                  or hidden write is implied.
+                </li>
+                <li>
+                  Change a safe Test staff role/scope only through an authorized Admin
+                  ceremony; confirm the reason and audit are visible.
+                </li>
+                <li>
+                  Provision/reset/disable the canonical Test Vendor; confirm identity
+                  rotation/session revocation/TOTP reset behavior stays Test-only and
+                  fail-closed.
+                </li>
+              </ul>
+            </details>
+
+            <details>
+              <summary>
+                📝 Questions the review should answer—not assumptions this guide makes
+              </summary>
+              <ul class="checklist">
+                <li>
+                  Is the documented Lease order the order PMI KC staff actually follow,
+                  including exceptions and timing?
+                </li>
+                <li>
+                  Which specific screen should own the single connected Live renewal
+                  lifecycle?
+                </li>
+                <li>
+                  At each handoff, is the next person, due date, blocker, and exact next
+                  action visible?
+                </li>
+                <li>
+                  Are source authority and correction rules correct for each Lease field?
+                </li>
+                <li>
+                  Do owner and tenant decisions branch the process at the right moment?
+                </li>
+                <li>
+                  Are the required conditional documents, charges, services, and closeout
+                  evidence complete?
+                </li>
+                <li>
+                  Which remaining maintenance operating steps belong in the app versus an
+                  external system?
+                </li>
+                <li>
+                  Does every label that sounds like a write accurately distinguish
+                  authorization from actual execution?
+                </li>
+              </ul>
+            </details>
+          </section>
+
+          <section class="section" id="evidence">
+            <p class="section-kicker">Evidence and terminology</p>
+            <h2>What this guide trusts—and where it stays uncertain</h2>
+            <p class="lede">
+              The July 16 conversation transcript is the primary evidence for the desired
+              form and purpose of this revision. The active repository, routes,
+              components, schemas, tests, product docs, feature-suite contracts, and
+              current loop/facts state are the evidence for what the application and
+              documented operating process do.
+            </p>
+
+            <div class="grid-3">
+              <article class="card">
+                <span class="badge current">✅ CONFIRMED</span>
+                <h3>Directly supported</h3>
+                <p>
+                  Reachable routes, visible labels, role/mode gates, persisted app
+                  behavior, provider boundaries, and documented source/process contracts
+                  inspected for this guide.
+                </p>
+              </article>
+              <article class="card">
+                <span class="badge business">🧠 INFERRED / INTENDED</span>
+                <h3>Best supported interpretation</h3>
+                <p>
+                  The human operating sequence assembled from active Lease/Maintenance
+                  documentation where no single current UI carries the whole lifecycle.
+                </p>
+              </article>
+              <article class="card">
+                <span class="badge review">❓ VERIFY</span>
+                <h3>Not established</h3>
+                <p>
+                  Business exceptions, provider-specific navigation, and cross-surface
+                  connections that the implementation/evidence does not currently prove.
+                </p>
+              </article>
+            </div>
+
+            <details open>
+              <summary>Transcription terms resolved by context</summary>
+              <dl>
+                <dt>“TMI KCKE” and similar variants</dt>
+                <dd>
+                  Interpreted as the PMI KC KB / PMI KC Operations Console application.
+                </dd>
+                <dt>“Crosstab maps”</dt>
+                <dd>Interpreted as the cross-tab interaction and data-flow map.</dd>
+                <dt>“Slash command in Ask”</dt>
+                <dd>
+                  Corrected to submitting a normal Ask request; no slash-command syntax
+                  exists in the current UI.
+                </dd>
+                <dt>“Add resolver”</dt>
+                <dd>
+                  Interpreted as resolving a reconciliation flag and recording the
+                  resolution.
+                </dd>
+                <dt>“Begin working”</dt>
+                <dd>
+                  Mapped to the actual visible actions for starting or creating a Test
+                  run.
+                </dd>
+                <dt>“Model training”</dt>
+                <dd>
+                  Interpreted narrowly as making the process explicit and
+                  model-readable—not as a confirmed machine-learning training feature or
+                  data pipeline.
+                </dd>
+              </dl>
+            </details>
+
+            <details>
+              <summary>Primary implementation and product evidence reviewed</summary>
+              <ul>
+                <li>
+                  <code>docs/facts.md</code> and <code>docs/loop-state.md</code> for
+                  current verified context and superseded assumptions.
+                </li>
+                <li>
+                  <code>docs/products/lease-renewal-agent.md</code>, discovery reference,
+                  connector design, spreadsheet map, and V1 process Q&amp;A.
+                </li>
+                <li>
+                  <code>docs/feature-suites/lease-renewal-execution.md</code> and related
+                  execution/communications/acceptance contracts.
+                </li>
+                <li>
+                  Current <code>app/lease-renewal</code>,
+                  <code>components/lease-renewal</code>, Console, Spaces, Approval Queue,
+                  Communications, Connections, Admin, Maintenance, and Vendor surfaces.
+                </li>
+                <li>
+                  The supplied <code>transcript.md</code> first; <code>summary.md</code>,
+                  <code>mindmap.md</code>, and <code>action-items.md</code> only as
+                  secondary aids where consistent with it.
+                </li>
+              </ul>
+            </details>
+
+            <div class="callout warn">
+              <strong
+                >❓ One governance fact should be re-verified rather than blended</strong
+              >
+              An older active fact says the Draft Lease process definition had not been
+              applied to production, while a later status entry records a July 7 seed of
+              <code>process_definitions/lease-renewal</code>. This guide treats the
+              documented process as active product intent but does not claim the current
+              production seed contents without a fresh read.
+            </div>
+
+            <div class="callout info">
+              <strong>Relationship to the prior HTML</strong>
+              The July 15 system map remains the implementation/status companion. This
+              July 16 guide is the human process baseline: it explains what a person does,
+              what the app does next, how the record should move, and what to verify
+              through use.
+            </div>
+
+            <p class="fine">
+              Evidence cut: July 16, 2026. No customer records, message bodies,
+              credentials, fabricated metrics, or unsupported provider successes are
+              included.
+            </p>
+          </section>
+        </main>
+      </div>
+
+      <footer>
+        PMI KC Working Process Guide · Evidence cut July 16, 2026 · Prepared for human
+        correction.
+      </footer>
+    </div>
+
+    <script>
+      (() => {
+        const lensButtons = [...document.querySelectorAll("[data-lens]")];
+        const lensContent = [...document.querySelectorAll("[data-lens-content]")];
+        const details = [...document.querySelectorAll("details")];
+        const expandButton = document.getElementById("expand-details");
+
+        lensButtons.forEach((button) => {
+          button.setAttribute("aria-pressed", button.dataset.lens === "all");
+          button.addEventListener("click", () => {
+            const lens = button.dataset.lens;
+            lensButtons.forEach((candidate) =>
+              candidate.setAttribute("aria-pressed", candidate === button),
+            );
+            lensContent.forEach((item) => {
+              item.classList.toggle(
+                "lens-hidden",
+                lens !== "all" && item.dataset.lensContent !== lens,
+              );
+            });
+          });
+        });
+
+        let expanded = details.length > 0 && details.every((detail) => detail.open);
+        if (expandButton)
+          expandButton.textContent = expanded ? "Collapse details" : "Expand details";
+        expandButton?.addEventListener("click", () => {
+          expanded = !expanded;
+          details.forEach((detail) => {
+            detail.open = expanded;
+          });
+          expandButton.textContent = expanded ? "Collapse details" : "Expand details";
+        });
+
+        const links = [...document.querySelectorAll(".toc a")];
+        const targets = links
+          .map((link) => document.querySelector(link.getAttribute("href")))
+          .filter(Boolean);
+        const observer = new IntersectionObserver(
+          (entries) => {
+            const visible = entries
+              .filter((entry) => entry.isIntersecting)
+              .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+            if (!visible) return;
+            links.forEach((link) =>
+              link.classList.toggle(
+                "active",
+                link.getAttribute("href") === `#${visible.target.id}`,
+              ),
+            );
+          },
+          { rootMargin: "-8% 0px -78% 0px", threshold: 0 },
+        );
+        targets.forEach((target) => observer.observe(target));
+      })();
+    </script>
+  </body>
+</html>
