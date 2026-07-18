@@ -19,8 +19,19 @@ export interface RenewalReviewFlag {
   /** PII-free action text (mirrors the queue item's action_needed) — never a raw value. */
   actionNeeded: string;
   resolved: boolean;
+  decisionState?: "Open" | "Resolved" | "Dismissed";
+  decisionReasonRecorded?: boolean;
+  decisionReceiptId?: string | null;
   /** True when an append-only write-back proposal has a value ready to approve (value-free boolean). */
   proposalReady: boolean;
+  authorizationState?:
+    | "Not queued"
+    | "Awaiting Approval"
+    | "Approved"
+    | "Returned for Revision";
+  authorizationReceiptId?: string | null;
+  authorizationReasonRecorded?: boolean;
+  executionState?: "not_executed";
   /** Deep link to the authenticated resolve surface where the real values live. */
   href: string;
 }
@@ -72,7 +83,14 @@ function toReviewFlag(flag: RenewalFlagView, href: string): RenewalReviewFlag {
     agreement: flag.agreement,
     actionNeeded: flag.actionNeeded,
     resolved: isResolved(flag),
+    decisionState: flag.resolution?.status ?? "Open",
+    decisionReasonRecorded: flag.resolution?.reasonRecorded ?? false,
+    decisionReceiptId: flag.resolution?.receiptId ?? null,
     proposalReady: flag.writeback?.valueReady ?? false,
+    authorizationState: flag.writebackApproval?.state ?? "Not queued",
+    authorizationReceiptId: flag.writebackApproval?.authorizationReceiptId ?? null,
+    authorizationReasonRecorded: flag.writebackApproval?.reasonRecorded ?? false,
+    executionState: "not_executed",
     href,
   };
 }

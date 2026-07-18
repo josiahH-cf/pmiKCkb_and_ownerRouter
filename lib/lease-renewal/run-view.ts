@@ -30,13 +30,16 @@ export interface RenewalCandidateView {
 }
 
 export interface ResolutionView {
+  receiptId?: string;
   status: LeaseRenewalResolutionRecord["status"];
   kind?: LeaseRenewalResolutionRecord["resolution_kind"];
   chosenSource?: string;
   correctedValue?: string;
   reason?: string;
   reasonCode?: DecisionReasonCode;
+  reasonRecorded?: boolean;
   resolvedByUid?: string;
+  updatedAt?: string;
 }
 
 /**
@@ -61,10 +64,16 @@ export interface RenewalWritebackApprovalView {
   queued: true;
   /** Effective state; "Awaiting Approval" when queued but not yet (freshly) decided, or stale. */
   state: WritebackApprovalState;
+  /** Bodyless authorization receipt identity; absent while the proposal awaits a decision. */
+  authorizationReceiptId?: string;
   decidedByUid?: string;
   reason?: string;
+  reasonRecorded?: boolean;
   /** An approval exists but its snapshot no longer matches the queued value — re-approval needed. */
   stale: boolean;
+  productionAllowed?: false;
+  executed?: false;
+  updatedAt?: string;
   /**
    * Full append-only decision history for this flag, oldest→newest (newest last). Present only when a
    * decision has been recorded; run-page-only (value-bearing), never projected onto the board.
@@ -127,13 +136,16 @@ function toResolutionView(
 ): ResolutionView | null {
   if (!record) return null;
   return {
+    receiptId: record.id,
     status: record.status,
     kind: record.resolution_kind,
     chosenSource: record.chosen_source,
     correctedValue: record.corrected_value,
     reason: record.reason,
     reasonCode: record.reason_code,
+    reasonRecorded: Boolean(record.reason?.trim()),
     resolvedByUid: record.resolved_by_uid,
+    updatedAt: record.updated_at,
   };
 }
 
@@ -165,7 +177,14 @@ function toWritebackApprovalView(
     activity.length > 0 ? { ...view, activity } : view;
 
   if (!approval) {
-    return withActivity({ queued: true, state: "Awaiting Approval", stale: false });
+    return withActivity({
+      queued: true,
+      state: "Awaiting Approval",
+      stale: false,
+      reasonRecorded: false,
+      productionAllowed: false,
+      executed: false,
+    });
   }
   const stale =
     approval.proposed_value !== proposal.value ||
@@ -174,9 +193,14 @@ function toWritebackApprovalView(
   return withActivity({
     queued: true,
     state,
+    authorizationReceiptId: approval.id,
     decidedByUid: approval.decided_by_uid,
     reason: approval.reason,
+    reasonRecorded: Boolean(approval.reason.trim()),
     stale,
+    productionAllowed: false,
+    executed: false,
+    updatedAt: approval.updated_at,
   });
 }
 

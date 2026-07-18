@@ -14,6 +14,7 @@ import { ProcessSummaryPanel } from "@/components/spaces/ProcessSummaryPanel";
 import { SpaceDetailClient } from "@/components/spaces/SpaceDetailClient";
 import { TrustedPublicationPanel } from "@/components/spaces/TrustedPublicationPanel";
 import { TrustedPublicationTestFixturePanel } from "@/components/spaces/TrustedPublicationTestFixturePanel";
+import { TestOperationalHandoffPanel } from "@/components/operations/TestOperationalHandoffPanel";
 import { can } from "@/lib/auth/roles";
 import { primarySpaceHref, requirePageCapability } from "@/lib/auth/page-guards";
 import { hasSpaceAccess } from "@/lib/auth/session";
@@ -36,6 +37,7 @@ import { buildEvidencePacket } from "@/lib/move-out/evidence-packet";
 import { getRenewalLeaseWorkspace } from "@/lib/lease-renewal/sample-desk";
 import { SPACE_CONNECTOR_IDS } from "@/lib/space-card-state";
 import { launchSpaces } from "@/lib/spaces";
+import { loadTestOperationalHandoffs } from "@/lib/operations/test-handoff-loader";
 
 /** The domain-specific desk Card(s) for a Space, if any:
  *  Move-In welcome / Move-Out evidence packet; the three Renewals Spaces get the read-only effective
@@ -112,6 +114,11 @@ export default async function SpaceDetailPage({
   let deskStepChecks: WorkflowRunStepCheckRecord[] = [];
   let deskPresence: Record<string, boolean> = {};
   let deskConnectors: ConnectorDef[] = [];
+  const testHandoffs = await loadTestOperationalHandoffs(user, {
+    lease: space.id === "lease-renewals",
+    maintenance: space.id === "maintenance-work-order-intake",
+    limitPerKind: 5,
+  });
 
   if (hasProcess && space.processDefinitionId) {
     const definitionId = space.processDefinitionId;
@@ -250,6 +257,14 @@ export default async function SpaceDetailPage({
             </p>
           </div>
         )}
+        {testHandoffs.length > 0 ||
+        space.id === "lease-renewals" ||
+        space.id === "maintenance-work-order-intake" ? (
+          <TestOperationalHandoffPanel
+            handoffs={testHandoffs}
+            title={`${space.name} Test owning-record handoffs`}
+          />
+        ) : null}
         {!space.readOnly ? (
           <>
             <TrustedPublicationPanel

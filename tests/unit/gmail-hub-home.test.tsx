@@ -25,8 +25,11 @@ describe("Workflow Communications home (AC-GW-1)", () => {
   it("keeps pasted and synthetic tools behind the Admin capability", () => {
     render(<GmailHubHome canManageAdmin />);
     expect(
-      screen.getByRole("heading", { name: "Admin-only pasted and synthetic fallback" }),
+      screen.getByRole("heading", {
+        name: "Admin-only governed workflow recovery tools",
+      }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/not generic compose or new-message send/i)).toBeVisible();
     expect(
       screen.getByRole("heading", { name: "Simulated email chain" }),
     ).toBeInTheDocument();

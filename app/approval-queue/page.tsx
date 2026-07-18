@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/layout/AppShell";
+import { TestOperationalHandoffPanel } from "@/components/operations/TestOperationalHandoffPanel";
 import { ApprovalQueue } from "@/components/approval/ApprovalQueue";
 import { DecisionMetricsCard } from "@/components/approval/DecisionMetricsCard";
 import {
@@ -25,6 +26,7 @@ import type {
   ApprovalQueueItemRecord,
 } from "@/lib/firestore/types";
 import { loadRenewalRunViews } from "@/lib/lease-renewal/renewal-review-board";
+import { loadTestOperationalHandoffs } from "@/lib/operations/test-handoff-loader";
 
 export default async function ApprovalQueuePage({
   searchParams,
@@ -78,6 +80,11 @@ export default async function ApprovalQueuePage({
     decisionMetrics = undefined;
   }
 
+  const testHandoffs = await loadTestOperationalHandoffs(user, {
+    lease: true,
+    limitPerKind: 5,
+  });
+
   return (
     <AppShell user={user}>
       <section className="content">
@@ -91,6 +98,10 @@ export default async function ApprovalQueuePage({
           initialSelectedItemId={initialSelectedItemId}
           renewalBoard={renewalBoard}
           writebackQueue={writebackQueue}
+        />
+        <TestOperationalHandoffPanel
+          handoffs={testHandoffs}
+          title="Lease Test decision and handoff projections"
         />
       </section>
     </AppShell>

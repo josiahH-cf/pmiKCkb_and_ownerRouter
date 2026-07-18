@@ -58,10 +58,17 @@ function QueueStateGroup({ group }: Readonly<{ group: WritebackApprovalQueueGrou
       <ul className="ui-rows">
         {group.rows.map((row) => (
           <li className="ui-spread" key={`${row.runId}:${row.fieldKey}`}>
-            <Link className="text-link" href={row.href}>
-              <strong>{row.fieldLabel}</strong>
-              <span className="muted"> — {row.runLabel}</span>
-            </Link>
+            <div>
+              <Link className="text-link" href={row.href}>
+                <strong>{row.fieldLabel}</strong>
+                <span className="muted"> — {row.runLabel}</span>
+              </Link>
+              <p className="muted">
+                Authorization receipt: {row.authorizationReceiptId ?? "pending"} · Reason:{" "}
+                {row.decisionReasonRecorded ? "recorded" : "pending"} · Provider
+                execution: not executed
+              </p>
+            </div>
             <span className="queue-pill" data-value={row.severity}>
               {row.severity}
             </span>

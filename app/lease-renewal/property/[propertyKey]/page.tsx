@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
+import { listLeaseTestRuns } from "@/lib/firestore/lease-renewal-test-runs";
 import { listResolutionActivityForRun } from "@/lib/firestore/lease-renewal-resolutions";
 import { listWritebackApprovalActivityForRun } from "@/lib/firestore/lease-renewal-writeback-approvals";
 import type { LeaseRenewalWritebackApprovalActivityRecord } from "@/lib/firestore/types";
@@ -10,7 +11,11 @@ import {
   type PropertyRunActivity,
 } from "@/lib/lease-renewal/property-repository";
 import { normalizeRenewalReturnTo } from "@/lib/lease-renewal/property-history-link";
-import { getSimulationRun, listSimulationRuns } from "@/lib/lease-renewal/simulation";
+import {
+  buildTestRenewalSimulation,
+  getSimulationRun,
+  listSimulationRuns,
+} from "@/lib/lease-renewal/simulation";
 
 // Admin-only, and it reads persisted decision Activity on each render, so never statically cached.
 export const dynamic = "force-dynamic";
@@ -48,6 +53,29 @@ export default async function LeaseRenewalPropertyPage({
       activityUnavailable = true;
     }
     runs.push({ run, resolutionActivity, approvalActivity });
+  }
+
+  // Persistent Test reconciliation decisions share the exact run id used by their owning Test
+  // journey. Include those app-plane histories beside the sample history; never synthesize a Test
+  // run when its isolated Firestore owning record cannot be read.
+  try {
+    const testRuns = (await listLeaseTestRuns(user)).slice(0, 10);
+    for (const testRun of testRuns) {
+      const run = buildTestRenewalSimulation(testRun.id);
+      let resolutionActivity: Awaited<ReturnType<typeof listResolutionActivityForRun>> =
+        [];
+      let approvalActivity: LeaseRenewalWritebackApprovalActivityRecord[] = [];
+      try {
+        resolutionActivity = await listResolutionActivityForRun(user, run.runId);
+        const approvalByKey = await listWritebackApprovalActivityForRun(user, run.runId);
+        approvalActivity = [...approvalByKey.values()].flat();
+      } catch {
+        activityUnavailable = true;
+      }
+      runs.push({ run, resolutionActivity, approvalActivity });
+    }
+  } catch {
+    activityUnavailable = true;
   }
 
   const bucket = getPropertyActivity(runs, propertyKey);

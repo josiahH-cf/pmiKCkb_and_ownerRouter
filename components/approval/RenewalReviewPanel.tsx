@@ -21,6 +21,21 @@ function ReviewFlagRow({ flag }: Readonly<{ flag: RenewalReviewFlag }>) {
         {flag.proposalReady ? <span className="ui-tag">Proposal ready</span> : null}
         {flag.resolved ? <span className="ui-tag">Resolved</span> : null}
       </span>
+      <span className="muted">
+        Decision: {flag.decisionState ?? (flag.resolved ? "Resolved" : "Open")} · Reason:{" "}
+        {flag.decisionReasonRecorded ? "recorded" : "pending"}
+        {flag.decisionReceiptId ? ` · Decision receipt: ${flag.decisionReceiptId}` : ""}
+        {flag.authorizationState && flag.authorizationState !== "Not queued"
+          ? ` · Authorization: ${flag.authorizationState}`
+          : ""}
+        {flag.authorizationReceiptId
+          ? ` · Authorization receipt: ${flag.authorizationReceiptId}`
+          : ""}
+        {flag.authorizationState && flag.authorizationState !== "Not queued"
+          ? ` · Authorization reason: ${flag.authorizationReasonRecorded ? "recorded" : "pending"}`
+          : ""}
+        {" · Execution: not executed"}
+      </span>
     </li>
   );
 }

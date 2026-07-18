@@ -219,6 +219,18 @@ backlog separately from unread events and standing setup signals. An empty event
 notifications"; it never declares global all-clear while a decision or setup condition exists. The bell badge
 remains an unread-event count, not a decision count.
 
+**2026-07-18 remediation hardening.** Persistent Lease and Maintenance Test owning records now project
+through one separate bodyless handoff contract into Notifications, Approval where relevant, Workflow
+Communications, and their matching Spaces. This is not an expansion of the six-key B3 attention signal:
+the handoff card deliberately carries the owning Test record id/link, next owner, due state, blocker,
+exact next action, evidence identity/count, mode, status, and update time, while excluding customer
+values, ticket summaries, unit labels, recipients, message bodies, and provider payloads. The same
+contract is derived from the owning record on every read, so refresh cannot create a second projection
+truth. A terminal Test state remains explicitly ineligible as Live-provider or real-world completion
+proof. Renewal reconciliation and write-back projections additionally expose bodyless decision and
+authorization receipt identities, reason-recorded booleans, and `not executed`; approval never implies
+provider execution.
+
 **2026-07-13 Dictate lifecycle (QA-001).** Console Dictate publishes permission, recording, stopping,
 processing, appended, no-speech, and error states through one polite live region; it preserves typed text,
 restores focus, suppresses duplicate permission requests, and stops active media on unmount. The production-
