@@ -149,18 +149,18 @@ Acceptance:
 
 ### P8 - Production Release and Human Walkthrough
 
-Status: in progress — the validated remediation and its first deployed regression repair are
-integrated through product commit `618602020599104e601b89fb59d2d53a959c9e6d`, which serves at 100%
-on `pmi-kc-kb-demo-rmrqihw0o-e78cdaa5b501`. Every finding remains mapped to an applicable repair or
+Status: in progress — the validated remediation and both deployed regression repairs are integrated
+through product commit `f6d5ddbce8b250b64df3bc58c81398f09e33b869`, which serves at 100% on
+`pmi-kc-kb-demo-rmrqntfvs-4ebadb1e34a5`. Every finding remains mapped to an applicable repair or
 evidence-based exclusion and all 281 capabilities carry their pass-one baseline. Deployed pass two
-has 34 terminal cases (28 pass, five expected denials, one honest `not_reachable` empty state), 247
-pending, and zero in progress. The Maintenance Vendor-handoff regression is fixed and proven. All
-seven Approval actions and eleven of twelve Approval reads are terminal; the final refresh/view case
-reproduced a same-page selection mismatch and now has a focused local repair plus regression test
-awaiting integration, exact deployment, and deployed proof. All seven Approval fixtures, both
-Admin/All-spaces staff baselines, and the signed-out restricted session are at a clean stop boundary.
-Remaining cases, temporary-session reprovisioning, ledger/matrix terminalization, final restoration,
-exact final deployment, and parity/report gates remain.
+has 35 terminal cases (29 pass, five expected denials, one honest `not_reachable` empty state), 246
+pending, and zero in progress. The Maintenance Vendor-handoff and Approval same-page selection
+regressions are fixed and proven. All seven Approval actions and all twelve Approval reads are
+terminal; their nine applicable finding rows are resolved, the prior documentation-only row remains
+evidence-excluded, and all 19 Approval capability rows are reconciled at sidecar revision 18. All
+seven Approval fixtures, both Admin/All-spaces staff baselines, and the signed-out restricted session
+are at a clean stop boundary. Remaining cases, temporary-session reprovisioning, their ledger/matrix
+terminalization, final restoration, exact final deployment, and parity/report gates remain.
 
 Acceptance:
 
@@ -180,10 +180,10 @@ Acceptance:
 
 Current serving release, 2026-07-18:
 
-- Successful Cloud Build `aaeecd4a-3fe0-4454-b0e9-ac8ce3510066` produced serving revision
-  `pmi-kc-kb-demo-rmrqihw0o-e78cdaa5b501` for integrated product commit `6186020` and digest
-  `sha256:b3be8782bc12461d9018d3272fef238dc07d830b0794084e7fe3fe51c1c2b8e7`; its captured
-  rollback revision is `pmi-kc-kb-demo-rmrqf0ce6-ac7fc4d500ea`.
+- Successful Cloud Build `1e7d0f07-1e45-4256-99c6-44aed1d3d250` produced serving revision
+  `pmi-kc-kb-demo-rmrqntfvs-4ebadb1e34a5` for integrated product commit `f6d5ddb` and digest
+  `sha256:39e807a8e8365c881a6443757de2b62c78b668d51f8aba04b3c20a0f552a82b2`; its captured
+  rollback revision is `pmi-kc-kb-demo-rmrqihw0o-e78cdaa5b501`.
 - Production Test Lease run `test-renewal-019f6599-af50-7451-88ea-e2592fc001a2` reached Done with
   eleven receipts, eleven attempts, zero Live calls, and refresh-safe persisted state.
 - The Admin Test workspace passed Vendor 11/11, Lease 11/11, and Maintenance 19/19 with zero Live
