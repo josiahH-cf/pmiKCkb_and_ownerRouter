@@ -107,7 +107,6 @@ export default async function ApprovalQueuePage({
     <AppShell user={user}>
       <section className="content">
         <h1 className="section-title">Approval Queue</h1>
-        {decisionMetrics ? <DecisionMetricsCard metrics={decisionMetrics} /> : null}
         <ApprovalQueue
           currentUser={{ role: user.role, uid: user.uid }}
           initialActivity={initialActivity}
@@ -126,6 +125,8 @@ export default async function ApprovalQueuePage({
           handoffs={testHandoffs}
           title="Lease Test decision and handoff projections"
         />
+        {/* AQ-2 (Note 2 §Q): Decision Metrics moves to the very bottom of the page. */}
+        {decisionMetrics ? <DecisionMetricsCard metrics={decisionMetrics} /> : null}
       </section>
     </AppShell>
   );
