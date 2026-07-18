@@ -11,6 +11,55 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Audit-remediation implementation and resumable evidence baseline are locally green
+
+- Date: 2026-07-18
+- The authorized repair pass is active on `codex/process-audit-remediation-pass2`. Eight coherent
+  commits through `82fad97` repair the Critical WebSocket dependency and the reproduced application,
+  fixture, process-evidence, and audit-runner gaps without changing the deployed pass-one baseline.
+  Local `main`/`origin/main` remain `77ee76e`; production still serves commit `38ebcf5` on revision
+  `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` until full validation and integration complete.
+- The persistent Test Lease resolver now accepts only an actor-authorized Firestore Test run and
+  rebuilds the exact invented simulation. The normal Test journey adds candidate disposition, owner
+  direction/terms, timing and channel attempts, conditional facts, tenant accept versus Move-Out,
+  signatures, and closeout evidence. `Done` requires the accepted branch, all business gates, and all
+  eleven bodyless non-Live receipts; Move-Out is a distinct terminal handoff.
+- Maintenance now enforces the legal transition graph server-side, requires an audited reopen,
+  distinguishes app-terminal from real business closeout, and consumes/focuses exact ticket deep
+  links. Public Test intake stays quarantined and can be promoted only to an isolated Test ticket or
+  dismissed idempotently; invented input cannot become a Live ticket.
+- Reusable Approval fixtures cover approve, return, snooze, assignment, disable, guarded execute, and
+  approval-versus-execution. A bodyless canonical Test Vendor lifecycle reader exposes action/status/
+  invite-version/receipt identity without UID or setup material. Shared Test handoffs now project one
+  owner/due/blocker/next-action/mode/owning-link/evidence contract through Approval, Notifications,
+  Communications, matching Spaces, and property history.
+- Trusted-publication fixtures have exact Test authority, baseline/revision/rollback, per-version
+  Capture Tasks, and a deterministic continuation into a Test workflow pinned to both immutable
+  publication and Active process versions. Generic retrieval remains Live-only by default. A Live
+  app decision now stamps an unambiguous canonical property key once, allowing Approval/property
+  history to show the same decision/proposal/authorization receipts and explicit `not_executed`
+  result without replaying a provider read or copying values.
+- Gmail watch renewal now uses an exact mailbox/topic/expiry preview, explicit confirmation,
+  deterministic one-attempt identity, bodyless readback, and ambiguous-outcome reconciliation.
+  Connections copy no longer advertises controls that do not exist; microphone permission has
+  bounded timeout/cancel recovery; terminal workflows reject checklist mutation; resolved Capture
+  Tasks cannot be re-resolved; process/publication version identities remain visible.
+- The gitignored pass-two run is
+  `artifacts/process-audit/20260718T101933Z-remediation-pass2/`. Its 137-row ledger has no unmapped
+  finding: 106 applicable rows await deployed proof and 31 are evidence-excluded (14 separate Live
+  provider activations, 11 unsupported/unconfirmed Live requirements, five already-passing
+  overbroad recommendations, and the superseded `contextualized.md` expectation). Its 281-row
+  capability matrix records all pass-one results/evidence. Revision-checked sidecar amendments are
+  idempotent and regression-tested 37/37.
+- Focused suites are green, including publication/workflow 28/28, Live decision/property projection
+  49/49, the expanded Lease/fixture/spec suites, typecheck, and lint with the eight known warnings.
+  No Live provider effect, customer-data mutation, external delivery, cloud deployment, role change,
+  or secret-bearing Vendor ceremony occurred in this implementation slice.
+- Next: finish Tier-0 formatting/context gates, run the full validation stack, push/integrate the exact
+  verified tree, re-run identity/budget/cutover preflights, deploy exact `main`, establish isolated
+  Admin/Editor/secondary-Admin/Test-Vendor/public contexts, execute/finalize deployed pass two, repair
+  any regression, and restore all temporary Test/identity baselines.
+
 ## Deployed application-process audit pass one is complete
 
 - Date: 2026-07-18

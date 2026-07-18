@@ -102,6 +102,20 @@ The V1 baseline uses bodyless state, legal hold, bounded on-demand cleanup, and 
 health. TTL policies, extra composite indexes, and Cloud Scheduler are optional improvements,
 not prerequisites. Enable them later only with a measured volume need and rollback plan.
 
+## Resumable Process-Audit Remediation
+
+- Preserve stable case/finding/capability IDs and the immutable prior run. Bootstrap the new
+  remediation ledger and capability matrix from the reusable runner; never rewrite pass-one evidence.
+- Use `amend-ledger` and `amend-matrix` with the checkpoint's exact expected revision for incremental
+  updates. The runner rejects stale concurrent changes and treats an exact one-revision replay as
+  idempotent. Do not bypass it with an ad hoc reconciliation script or direct sidecar edit.
+- Keep auth checkpoints bodyless and use distinct session contexts for Admin, restricted staff,
+  secondary Admin, Test Vendor, and unauthenticated/public coverage.
+- Finalization requires every applicable ledger row to include commit, deployment, and passing
+  post-deployment evidence; every evidence exclusion needs an approved classification and precise
+  rationale; every capability needs `pass` or `expected_denial` plus evidence; and all five identity
+  contexts must be ready and separated.
+
 ## Verification
 
 Use focused tests during development, then:
