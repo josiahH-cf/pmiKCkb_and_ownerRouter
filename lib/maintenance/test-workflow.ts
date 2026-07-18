@@ -19,6 +19,13 @@ export const MAINTENANCE_TEST_VENDOR = {
   email: "service@summit-plumbing.example.invalid",
 } as const;
 
+export const MAINTENANCE_TEST_PUBLIC_INTAKE = Object.freeze({
+  propertyKey: MAINTENANCE_TEST_UNIT.unitId,
+  summary: "TEST — kitchen sink leak",
+  description: "TEST fixture: a slow drip needs staff review.",
+  contact: "resident-maintenance@example.invalid",
+});
+
 export const MAINTENANCE_TEST_CONFIRMATION = "SIMULATE TEST ACTION" as const;
 
 export const MAINTENANCE_TEST_ACTIONS = [
@@ -44,6 +51,50 @@ export const MAINTENANCE_TEST_ACTION_TARGETS: Record<MaintenanceTestActionKey, s
     "TEST QuickBooks draft bill workspace (internal simulation)",
 };
 
+export const MAINTENANCE_BUSINESS_CLOSEOUT_GATES = Object.freeze([
+  {
+    id: "diagnosis_scope",
+    label: "Diagnosis, scope, and responsibility decision",
+    testActionKeys: [] as readonly MaintenanceTestActionKey[],
+  },
+  {
+    id: "approval",
+    label: "Required owner or manager approval",
+    testActionKeys: [
+      "gmail.maintenance_owner_notice.send",
+    ] as readonly MaintenanceTestActionKey[],
+  },
+  {
+    id: "vendor_schedule",
+    label: "Vendor acceptance and scheduled appointment",
+    testActionKeys: [
+      "vendor.assignment.change",
+      "leadsimple.process.update_stage",
+    ] as readonly MaintenanceTestActionKey[],
+  },
+  {
+    id: "physical_completion",
+    label: "Physical work completion and quality verification",
+    testActionKeys: [
+      "rentvine.work_order.update_status",
+    ] as readonly MaintenanceTestActionKey[],
+  },
+  {
+    id: "invoice",
+    label: "Invoice review and accounting disposition",
+    testActionKeys: [
+      "quickbooks.bill.create_draft",
+    ] as readonly MaintenanceTestActionKey[],
+  },
+  {
+    id: "stakeholder_closeout",
+    label: "Owner, tenant, and Vendor closeout communication",
+    testActionKeys: [
+      "gmail.maintenance_owner_notice.send",
+    ] as readonly MaintenanceTestActionKey[],
+  },
+] as const);
+
 export interface MaintenanceTestActionReceipt {
   id: string;
   ticket_id: string;
@@ -55,6 +106,30 @@ export interface MaintenanceTestActionReceipt {
   live_proof_eligible: false;
   actor_uid: string;
   created_at: string;
+}
+
+export function maintenanceTestBusinessCloseoutBoundary(
+  receipts: readonly MaintenanceTestActionReceipt[],
+) {
+  const completedKeys = new Set(receipts.map((receipt) => receipt.action_key));
+  return {
+    businessCloseoutEligible: false as const,
+    businessCloseoutStatus: "not_proven" as const,
+    gates: MAINTENANCE_BUSINESS_CLOSEOUT_GATES.map((gate) => ({
+      id: gate.id,
+      label: gate.label,
+      internalTestReceiptCount: gate.testActionKeys.filter((actionKey) =>
+        completedKeys.has(actionKey),
+      ).length,
+      internalTestReceiptTotal: gate.testActionKeys.length,
+      outcome:
+        gate.testActionKeys.length === 0
+          ? ("not_represented" as const)
+          : gate.testActionKeys.every((actionKey) => completedKeys.has(actionKey))
+            ? ("internal_simulation_only" as const)
+            : ("test_evidence_incomplete" as const),
+    })),
+  };
 }
 
 /**

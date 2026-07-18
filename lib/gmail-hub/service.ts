@@ -15,6 +15,7 @@ import {
 } from "@/lib/gmail-hub/contracts";
 import type {
   GmailConfirmationRecord,
+  GmailMailboxState,
   GmailStateStore,
 } from "@/lib/gmail-hub/state-store";
 import { gmailMailboxKey } from "@/lib/gmail-hub/state-store";
@@ -371,20 +372,108 @@ export class GmailHubService {
     return { status: "sent" as const, result };
   }
 
-  async watchMailbox(topicName: string) {
+  async watchPreview(topicName: string) {
     this.assertExecutable(GMAIL_HUB_ACTIONS.read);
-    const watch = await this.dependencies.client.watchMailbox(topicName);
+    assertGmailWatchTopic(topicName);
+    const mailboxState = await this.dependencies.store.getMailboxState(this.mailboxEmail);
+    return {
+      mailboxEmail: this.mailboxEmail,
+      topicName,
+      currentWatchExpirationMs: mailboxState?.watch_expiration_ms ?? null,
+      effect:
+        "Start or renew the targeted Gmail push watch for this signed-in mailbox and topic.",
+      proposedExpiration:
+        "Gmail assigns the new expiration; the exact timestamp is read back after one provider attempt.",
+      risk: "Live Gmail watch mutation. It does not send a message or grant cross-mailbox access.",
+      reversibility:
+        "A later confirmed renewal replaces the expiration; removing the configured watch stops future push delivery.",
+    };
+  }
+
+  async watchMailbox(input: {
+    topicName: string;
+    attemptKey: string;
+    observedExpirationMs: number | null;
+  }) {
+    this.assertExecutable(GMAIL_HUB_ACTIONS.read);
+    assertGmailWatchTopic(input.topicName);
+    if (!/^[a-f0-9-]{36}$/i.test(input.attemptKey)) {
+      throw new GmailHubError("Gmail watch attempt key is invalid.", 409);
+    }
+    const attemptKeyHash = hashWatchBoundary(
+      `${this.actor.uid}:${this.mailboxEmail}:${input.attemptKey}`,
+    );
+    const topicHash = hashWatchBoundary(input.topicName);
     const nowMs = this.now();
-    await this.dependencies.store.saveMailboxState({
-      mailbox_email: this.mailboxEmail,
-      user_uid: this.actor.uid,
-      history_id: watch.historyId,
-      watch_expiration_ms: Number(watch.expiration),
-      health: "watching",
-      updated_at_ms: nowMs,
-      last_successful_sync_ms: nowMs,
+    const claim = await this.dependencies.store.claimWatchAttempt({
+      mailboxEmail: this.mailboxEmail,
+      actorUid: this.actor.uid,
+      attemptKeyHash,
+      topicHash,
+      observedExpirationMs: input.observedExpirationMs,
+      nowMs,
     });
-    return watch;
+    if (claim.status === "stale_preview") {
+      throw new GmailHubError(
+        "Gmail watch state changed after preview. Review the exact effect again.",
+        409,
+      );
+    }
+    if (claim.status === "in_progress") {
+      throw new GmailHubError(
+        "A Gmail watch attempt is already in progress. Do not retry it.",
+        409,
+      );
+    }
+    if (claim.status === "ambiguous") {
+      throw new GmailAmbiguousWatchError(
+        "The prior Gmail watch outcome is ambiguous. Do not retry that attempt key; review current watch health before confirming a new attempt.",
+      );
+    }
+    if (claim.status === "completed") {
+      return watchReadback("already_completed", claim.state, attemptKeyHash, topicHash);
+    }
+    try {
+      const watch = await this.dependencies.client.watchMailbox(input.topicName);
+      const expirationMs = Number(watch.expiration);
+      if (!Number.isSafeInteger(expirationMs) || expirationMs <= nowMs) {
+        throw new GmailAmbiguousWatchError(
+          "Gmail returned an invalid watch expiration; the outcome is ambiguous.",
+        );
+      }
+      await this.dependencies.store.completeWatchAttempt({
+        mailboxEmail: this.mailboxEmail,
+        actorUid: this.actor.uid,
+        attemptKeyHash,
+        historyId: watch.historyId,
+        expirationMs,
+        nowMs: this.now(),
+      });
+    } catch {
+      await this.dependencies.store
+        .markWatchAttemptAmbiguous({
+          mailboxEmail: this.mailboxEmail,
+          actorUid: this.actor.uid,
+          attemptKeyHash,
+          nowMs: this.now(),
+        })
+        .catch(() => undefined);
+      throw new GmailAmbiguousWatchError(
+        "The Gmail watch outcome is ambiguous. The one-attempt key is consumed; review current watch health before confirming a new attempt.",
+      );
+    }
+    const readback = await this.dependencies.store.getMailboxState(this.mailboxEmail);
+    if (
+      !readback ||
+      readback.watch_attempt?.attempt_key_hash !== attemptKeyHash ||
+      readback.watch_attempt.topic_hash !== topicHash ||
+      readback.watch_attempt.state !== "completed"
+    ) {
+      throw new GmailAmbiguousWatchError(
+        "The Gmail watch provider call completed without a matching bodyless readback. Do not retry the consumed attempt key.",
+      );
+    }
+    return watchReadback("completed", readback, attemptKeyHash, topicHash);
   }
 
   async applyThreadLabel(
@@ -724,6 +813,13 @@ export class GmailHubError extends Error {
   }
 }
 
+export class GmailAmbiguousWatchError extends GmailHubError {
+  constructor(message: string) {
+    super(message, 409);
+    this.name = "GmailAmbiguousWatchError";
+  }
+}
+
 export class GmailHubGateError extends GmailHubError {
   constructor(readonly action: string) {
     super(`Gmail action ${action} is not approved for production execution.`, 503);
@@ -746,6 +842,53 @@ function claimMessage(status: "expired" | "mismatch" | "in_progress" | "failed")
     failed: "This Gmail confirmation was already consumed by a failed attempt.",
   } as const;
   return messages[status];
+}
+
+function assertGmailWatchTopic(topicName: string) {
+  if (!/^projects\/pmi-kc-kb-prod\/topics\/[A-Za-z0-9._~-]+$/.test(topicName)) {
+    throw new GmailHubError(
+      "Gmail watch topic must be the configured pmi-kc-kb-prod topic.",
+      409,
+    );
+  }
+}
+
+function hashWatchBoundary(value: string) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function watchReadback(
+  outcome: "completed" | "already_completed",
+  state: GmailMailboxState,
+  attemptKeyHash: string,
+  topicHash: string,
+) {
+  const attempt = state.watch_attempt;
+  if (
+    !attempt ||
+    attempt.attempt_key_hash !== attemptKeyHash ||
+    attempt.topic_hash !== topicHash ||
+    attempt.state !== "completed" ||
+    !attempt.history_id ||
+    !attempt.expiration_ms
+  ) {
+    throw new GmailAmbiguousWatchError(
+      "The Gmail watch has no matching bodyless completion readback.",
+    );
+  }
+  return {
+    outcome,
+    historyId: attempt.history_id,
+    expiration: String(attempt.expiration_ms),
+    readback: {
+      state: attempt.state,
+      mailboxEmail: state.mailbox_email,
+      attemptKeyHash,
+      topicHash,
+      expirationMs: attempt.expiration_ms,
+      observedAtMs: state.updated_at_ms,
+    },
+  };
 }
 
 function assertRegistryPreview(actionKey: string, payload: Record<string, unknown>) {

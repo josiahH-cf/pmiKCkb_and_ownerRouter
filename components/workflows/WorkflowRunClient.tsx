@@ -2,17 +2,26 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { WorkflowRunRecord, WorkflowRunTimelineRecord } from "@/lib/firestore/types";
+import type {
+  ProcessDefinitionStep,
+  WorkflowRunRecord,
+  WorkflowRunStepCheckRecord,
+  WorkflowRunTimelineRecord,
+} from "@/lib/firestore/types";
 
 interface WorkflowRunClientProps {
   canEdit: boolean;
+  initialChecks: WorkflowRunStepCheckRecord[];
   initialRun: WorkflowRunRecord;
+  initialSteps: ProcessDefinitionStep[];
   initialTimeline: WorkflowRunTimelineRecord[];
 }
 
 export function WorkflowRunClient({
   canEdit,
+  initialChecks,
   initialRun,
+  initialSteps,
   initialTimeline,
 }: Readonly<WorkflowRunClientProps>) {
   const [run, setRun] = useState(initialRun);
@@ -21,8 +30,15 @@ export function WorkflowRunClient({
   const [message, setMessage] = useState("Workflow run loaded.");
   const [isBusy, setIsBusy] = useState(false);
   const isClosed = ["Completed", "Cancelled", "Failed"].includes(run.status);
+  const checksByStep = new Map(initialChecks.map((check) => [check.step_id, check]));
+  const incompleteSteps = initialSteps.filter((step) => {
+    const status = checksByStep.get(step.id)?.status;
+    return status !== "Checked" && status !== "Skipped";
+  });
+  const checklistComplete = initialSteps.length > 0 && incompleteSteps.length === 0;
   const canUpdate =
     canEdit && run.is_test_run && run.simulation_only && !isClosed && !isBusy;
+  const canComplete = canUpdate && checklistComplete;
 
   async function updateOutcome(action: "complete_test" | "fail_test") {
     if (!canUpdate) {
@@ -95,6 +111,10 @@ export function WorkflowRunClient({
             <span>Started By</span>
             <strong>{run.started_by_uid}</strong>
           </div>
+          <div className="queue-detail-field">
+            <span>Definition version</span>
+            <strong>{run.definition_version_id ?? "Not pinned (draft)"}</strong>
+          </div>
         </div>
         {run.blocker ? (
           <article className="workflow-blocker">
@@ -117,6 +137,16 @@ export function WorkflowRunClient({
 
       <aside className="panel">
         <h2>Test Outcome</h2>
+        <p className="muted">
+          Checklist: {initialSteps.length - incompleteSteps.length} of{" "}
+          {initialSteps.length} complete. Every step must be Checked or Skipped with a
+          reason before completion.
+        </p>
+        {incompleteSteps.length > 0 ? (
+          <p className="form-error">
+            Incomplete: {incompleteSteps.map((step) => step.title).join(", ")}.
+          </p>
+        ) : null}
         <label className="workflow-note-field">
           Notes
           <textarea
@@ -129,7 +159,7 @@ export function WorkflowRunClient({
         <div className="action-row">
           <button
             className="primary-button"
-            disabled={!canUpdate}
+            disabled={!canComplete}
             onClick={() => updateOutcome("complete_test")}
             type="button"
           >

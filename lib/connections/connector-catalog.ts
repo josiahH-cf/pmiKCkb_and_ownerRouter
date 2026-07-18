@@ -13,6 +13,8 @@ export interface ConnectorDef {
   method: ConnectMethod;
   /** Health-check contract id (lib/integrations/health-checks.ts) — what PMI verifies on connect. */
   healthCheckRef?: string;
+  /** True only when the Connection Center has a bounded live read-only probe wired today. */
+  liveVerificationAvailable?: boolean;
   /** Env var NAMES checked for PRESENCE only (never value, never rendered). */
   requiredConfig: string[];
 }
@@ -24,6 +26,7 @@ export const CONNECTORS: readonly ConnectorDef[] = [
     powers: "Leases, tenants, and rent.",
     method: "api_key",
     healthCheckRef: "health.rentvine.api_key",
+    liveVerificationAvailable: true,
     requiredConfig: ["RENTVINE_API_BASE_URL", "RENTVINE_API_KEY", "RENTVINE_API_SECRET"],
   },
   {
@@ -33,6 +36,7 @@ export const CONNECTORS: readonly ConnectorDef[] = [
       "Your renewal tracking sheet. The app reads it and flags anything that doesn't match RentVine.",
     method: "google",
     healthCheckRef: "health.google_sheets.api",
+    liveVerificationAvailable: true,
     // Truth (S13 D2): the runtime reads the sheet via keyless domain-wide delegation, so it needs
     // the DWD pair too (buildLiveRenewalConfig requires all three).
     requiredConfig: ["RENEWAL_SHEET_ID", "SHEETS_IMPERSONATE_SA", "SHEETS_DWD_SUBJECT"],

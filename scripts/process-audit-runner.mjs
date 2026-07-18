@@ -167,6 +167,137 @@ const STRUCTURED_EVIDENCE_ALLOWED_INPUT_KEYS = new Set([
   "state_hashes",
   "notes",
 ]);
+export const AUTH_PREFLIGHT_SCHEMA_VERSION = "process-audit-auth-preflight.v1";
+export const REMEDIATION_LEDGER_SCHEMA_VERSION = "process-audit-remediation-ledger.v1";
+export const CAPABILITY_MATRIX_SCHEMA_VERSION = "process-audit-capability-matrix.v1";
+export const AUDIT_IDENTITY_CLASSES = Object.freeze([
+  "internal_admin",
+  "disposable_restricted_staff",
+  "secondary_admin",
+  "canonical_test_vendor",
+  "unauthenticated_public",
+]);
+export const AUTH_READINESS_RESULTS = Object.freeze(["ready", "blocked", "not_required"]);
+export const REMEDIATION_RESOLUTION_CLASSIFICATIONS = Object.freeze([
+  "applicable_fix",
+  "already_resolved",
+  "duplicate",
+  "obsolete",
+  "documentation_correction",
+  "fixture_or_identity_setup",
+  "audit_harness_fix",
+  "provider_activation_separate",
+  "unsupported_by_evidence",
+]);
+export const REMEDIATION_APPLICABILITY_RESULTS = Object.freeze([
+  "applicable",
+  "not_applicable",
+]);
+export const REMEDIATION_STATUSES = Object.freeze([
+  "pending",
+  "in_progress",
+  "resolved",
+  "evidence_excluded",
+  "blocked",
+]);
+export const AUDIT_OUTCOME_RESULTS = Object.freeze([
+  "pending",
+  "pass",
+  "fail",
+  "blocked",
+  "expected_denial",
+  "not_reachable",
+  "not_applicable",
+]);
+export const CAPABILITY_TEST_LAYERS = Object.freeze([
+  "unit",
+  "integration",
+  "browser",
+  "deployed_browser",
+  "deployed_live_read",
+  "deployed_provider_guard",
+]);
+const AUTH_PREFLIGHT_ALLOWED_KEYS = new Set([
+  "schema_version",
+  "checked_at",
+  "separation_verified",
+  "identities",
+]);
+const AUTH_IDENTITY_ALLOWED_KEYS = new Set([
+  "identity_class",
+  "role",
+  "mode",
+  "readiness",
+  "checked_at",
+  "expires_at",
+  "session_context",
+  "readiness_note",
+]);
+const REMEDIATION_LEDGER_ALLOWED_KEYS = new Set([
+  "schema_version",
+  "source_run_id",
+  "source_finding_count",
+  "generated_at",
+  "entries",
+]);
+const REMEDIATION_LEDGER_ENTRY_ALLOWED_KEYS = new Set([
+  "finding_id",
+  "case_id",
+  "severity",
+  "finding_class",
+  "source_artifacts",
+  "reported_behavior",
+  "current_applicability",
+  "root_cause",
+  "affected_boundary",
+  "resolution_classification",
+  "required_setup_or_fixture",
+  "code_change",
+  "acceptance_criteria",
+  "regression_test_mapping",
+  "dependencies",
+  "status",
+  "commit_evidence",
+  "deployment_evidence",
+  "post_deployment_result",
+  "exclusion_reason",
+]);
+const CAPABILITY_MATRIX_ALLOWED_KEYS = new Set([
+  "schema_version",
+  "generated_at",
+  "entries",
+]);
+const CAPABILITY_MATRIX_ENTRY_ALLOWED_KEYS = new Set([
+  "capability_id",
+  "human_question",
+  "guide_or_reviewer_items",
+  "case_ids",
+  "role",
+  "mode",
+  "fixture",
+  "test_layer",
+  "expected_behavior",
+  "current_result",
+  "post_remediation_result",
+  "evidence",
+]);
+const SIDECAR_CONFIG = Object.freeze({
+  auth_preflight: {
+    artifact: "auth-preflight.json",
+    eventType: "auth_preflight_checkpointed",
+    manifestCapability: "auth_preflight",
+  },
+  remediation_ledger: {
+    artifact: "remediation-ledger.json",
+    eventType: "remediation_ledger_checkpointed",
+    manifestCapability: "remediation_ledger",
+  },
+  capability_matrix: {
+    artifact: "capability-matrix.json",
+    eventType: "capability_matrix_checkpointed",
+    manifestCapability: "capability_matrix",
+  },
+});
 const EVENT_TYPES = new Set([
   "run_initialized",
   "run_completed",
@@ -198,6 +329,9 @@ const EVENT_TYPES = new Set([
   "mutation_replay_authorized",
   "reversible_effect_verified",
   "audit_harness_failure_observed",
+  "auth_preflight_checkpointed",
+  "remediation_ledger_checkpointed",
+  "capability_matrix_checkpointed",
 ]);
 const CONSOLE_ERROR_ALLOWED_KEYS = new Set(["source", "level", "error_hash", "count"]);
 const ROLE_AUTHORITY_RANK = new Map([
@@ -309,6 +443,415 @@ function assertOnlyKeys(name, value, allowedKeys) {
   for (const key of Object.keys(value)) {
     if (!allowedKeys.has(key)) throw new Error(`${name}.${key} is not allowed.`);
   }
+}
+
+function assertIsoTimestamp(name, value) {
+  assertNonemptyString(name, value, 100);
+  if (!Number.isFinite(Date.parse(value)) || new Date(value).toISOString() !== value) {
+    throw new Error(`${name} must be an ISO timestamp.`);
+  }
+}
+
+function assertNullableString(name, value, max = 2_000) {
+  if (value == null) return;
+  assertNonemptyString(name, value, max);
+}
+
+function validateStringArray(
+  name,
+  values,
+  { allowEmpty = true, maxItems = 1_000, maxLength = 2_000 } = {},
+) {
+  if (!Array.isArray(values)) throw new Error(`${name} must be an array.`);
+  if (!allowEmpty && values.length === 0) {
+    throw new Error(`${name} must not be empty.`);
+  }
+  if (values.length > maxItems) {
+    throw new Error(`${name} exceeds ${maxItems} items.`);
+  }
+  const seen = new Set();
+  for (const value of values) {
+    assertNonemptyString(`${name} item`, value, maxLength);
+    if (seen.has(value)) throw new Error(`${name} contains duplicate ${value}.`);
+    seen.add(value);
+  }
+  return seen;
+}
+
+function validateAuthPreflightArtifact(
+  artifact,
+  manifest,
+  { requireTerminal = false } = {},
+) {
+  assertPlainObject("auth preflight", artifact);
+  assertOnlyKeys("auth preflight", artifact, AUTH_PREFLIGHT_ALLOWED_KEYS);
+  if (artifact.schema_version !== AUTH_PREFLIGHT_SCHEMA_VERSION) {
+    throw new Error("auth-preflight.json has an unsupported schema version.");
+  }
+  assertIsoTimestamp("auth preflight.checked_at", artifact.checked_at);
+  if (typeof artifact.separation_verified !== "boolean") {
+    throw new Error("auth preflight.separation_verified must be a boolean.");
+  }
+  if (!Array.isArray(artifact.identities)) {
+    throw new Error("auth preflight.identities must be an array.");
+  }
+  const identityClasses = new Set();
+  const sessionContexts = new Set();
+  const expectedRoles = new Map([
+    ["internal_admin", new Set(["Admin"])],
+    ["disposable_restricted_staff", new Set(["Editor", "Admin staff"])],
+    ["secondary_admin", new Set(["Admin"])],
+    ["canonical_test_vendor", new Set(["Test Vendor"])],
+    ["unauthenticated_public", new Set(["Unauthenticated"])],
+  ]);
+  for (const [index, identity] of artifact.identities.entries()) {
+    const label = `auth preflight.identities[${index}]`;
+    assertPlainObject(label, identity);
+    assertOnlyKeys(label, identity, AUTH_IDENTITY_ALLOWED_KEYS);
+    assertEnum(
+      `${label}.identity_class`,
+      identity.identity_class,
+      AUDIT_IDENTITY_CLASSES,
+    );
+    if (identityClasses.has(identity.identity_class)) {
+      throw new Error(`Duplicate auth identity class ${identity.identity_class}.`);
+    }
+    identityClasses.add(identity.identity_class);
+    assertNonemptyString(`${label}.role`, identity.role, 200);
+    if (!expectedRoles.get(identity.identity_class).has(identity.role)) {
+      throw new Error(`${identity.identity_class} cannot use role ${identity.role}.`);
+    }
+    if (manifest && !manifest.roles.includes(identity.role)) {
+      throw new Error(
+        `${identity.identity_class} uses undeclared role ${identity.role}.`,
+      );
+    }
+    assertEnum(`${label}.mode`, identity.mode, AUDIT_DATA_MODES);
+    if (manifest && !manifest.modes.includes(identity.mode)) {
+      throw new Error(
+        `${identity.identity_class} uses undeclared mode ${identity.mode}.`,
+      );
+    }
+    assertEnum(`${label}.readiness`, identity.readiness, AUTH_READINESS_RESULTS);
+    assertIsoTimestamp(`${label}.checked_at`, identity.checked_at);
+    if (identity.expires_at != null) {
+      assertIsoTimestamp(`${label}.expires_at`, identity.expires_at);
+    }
+    assertNonemptyString(`${label}.session_context`, identity.session_context, 200);
+    if (sessionContexts.has(identity.session_context)) {
+      throw new Error(
+        `Auth identities must use separate session contexts; duplicate ${identity.session_context}.`,
+      );
+    }
+    sessionContexts.add(identity.session_context);
+    assertNonemptyString(`${label}.readiness_note`, identity.readiness_note, 1_000);
+  }
+  const missingIdentityClasses = AUDIT_IDENTITY_CLASSES.filter(
+    (identityClass) => !identityClasses.has(identityClass),
+  );
+  if (missingIdentityClasses.length > 0) {
+    throw new Error(
+      `auth preflight is missing identity classes: ${missingIdentityClasses.join(", ")}.`,
+    );
+  }
+  if (artifact.identities.length !== AUDIT_IDENTITY_CLASSES.length) {
+    throw new Error("auth preflight contains unsupported identity classes.");
+  }
+  if (
+    requireTerminal &&
+    (!artifact.separation_verified ||
+      artifact.identities.some((identity) => identity.readiness !== "ready"))
+  ) {
+    throw new Error(
+      "Auth preflight must have separated, ready sessions before finalization.",
+    );
+  }
+  assertValueSafe(artifact, "auth-preflight.json");
+  return { entryCount: artifact.identities.length };
+}
+
+const EVIDENCE_EXCLUSION_CLASSIFICATIONS = new Set([
+  "already_resolved",
+  "duplicate",
+  "obsolete",
+  "provider_activation_separate",
+  "unsupported_by_evidence",
+]);
+
+function validateRemediationLedgerArtifact(artifact, { requireTerminal = false } = {}) {
+  assertPlainObject("remediation ledger", artifact);
+  assertOnlyKeys("remediation ledger", artifact, REMEDIATION_LEDGER_ALLOWED_KEYS);
+  if (artifact.schema_version !== REMEDIATION_LEDGER_SCHEMA_VERSION) {
+    throw new Error("remediation-ledger.json has an unsupported schema version.");
+  }
+  assertNonemptyString("remediation ledger.source_run_id", artifact.source_run_id, 200);
+  if (
+    !Number.isInteger(artifact.source_finding_count) ||
+    artifact.source_finding_count < 1
+  ) {
+    throw new Error(
+      "remediation ledger.source_finding_count must be a positive integer.",
+    );
+  }
+  assertIsoTimestamp("remediation ledger.generated_at", artifact.generated_at);
+  if (!Array.isArray(artifact.entries)) {
+    throw new Error("remediation ledger.entries must be an array.");
+  }
+  if (artifact.entries.length !== artifact.source_finding_count) {
+    throw new Error(
+      "remediation ledger entry count does not match source_finding_count.",
+    );
+  }
+  const findingIds = new Set();
+  for (const [index, entry] of artifact.entries.entries()) {
+    const label = `remediation ledger.entries[${index}]`;
+    assertPlainObject(label, entry);
+    assertOnlyKeys(label, entry, REMEDIATION_LEDGER_ENTRY_ALLOWED_KEYS);
+    for (const field of ["finding_id", "case_id"]) {
+      assertNonemptyString(`${label}.${field}`, entry[field], 200);
+    }
+    if (findingIds.has(entry.finding_id)) {
+      throw new Error(`Duplicate remediation finding ${entry.finding_id}.`);
+    }
+    findingIds.add(entry.finding_id);
+    assertEnum(`${label}.severity`, entry.severity, FINDING_SEVERITIES);
+    assertEnum(`${label}.finding_class`, entry.finding_class, FINDING_CLASSES);
+    validateStringArray(`${label}.source_artifacts`, entry.source_artifacts, {
+      allowEmpty: false,
+      maxItems: 100,
+      maxLength: 1_000,
+    });
+    for (const field of [
+      "reported_behavior",
+      "root_cause",
+      "affected_boundary",
+      "required_setup_or_fixture",
+      "code_change",
+      "acceptance_criteria",
+    ]) {
+      assertNonemptyString(`${label}.${field}`, entry[field], 5_000);
+    }
+    assertEnum(
+      `${label}.current_applicability`,
+      entry.current_applicability,
+      REMEDIATION_APPLICABILITY_RESULTS,
+    );
+    assertEnum(
+      `${label}.resolution_classification`,
+      entry.resolution_classification,
+      REMEDIATION_RESOLUTION_CLASSIFICATIONS,
+    );
+    validateStringArray(
+      `${label}.regression_test_mapping`,
+      entry.regression_test_mapping,
+      { allowEmpty: false, maxItems: 100, maxLength: 1_000 },
+    );
+    validateStringArray(`${label}.dependencies`, entry.dependencies, {
+      maxItems: 100,
+      maxLength: 1_000,
+    });
+    assertEnum(`${label}.status`, entry.status, REMEDIATION_STATUSES);
+    assertNullableString(`${label}.commit_evidence`, entry.commit_evidence, 2_000);
+    assertNullableString(
+      `${label}.deployment_evidence`,
+      entry.deployment_evidence,
+      2_000,
+    );
+    assertEnum(
+      `${label}.post_deployment_result`,
+      entry.post_deployment_result,
+      AUDIT_OUTCOME_RESULTS,
+    );
+    assertNullableString(`${label}.exclusion_reason`, entry.exclusion_reason, 5_000);
+    const isEvidenceExclusion = entry.status === "evidence_excluded";
+    if (
+      isEvidenceExclusion &&
+      (entry.current_applicability !== "not_applicable" ||
+        !EVIDENCE_EXCLUSION_CLASSIFICATIONS.has(entry.resolution_classification) ||
+        entry.exclusion_reason == null)
+    ) {
+      throw new Error(
+        `${entry.finding_id} evidence exclusion lacks a supported classification and rationale.`,
+      );
+    }
+    if (entry.status === "resolved" && entry.current_applicability !== "applicable") {
+      throw new Error(`${entry.finding_id} resolved status must remain applicable.`);
+    }
+    if (requireTerminal) {
+      if (["pending", "in_progress", "blocked"].includes(entry.status)) {
+        throw new Error(`${entry.finding_id} remediation is not terminal.`);
+      }
+      if (
+        entry.status === "resolved" &&
+        (!entry.commit_evidence ||
+          !entry.deployment_evidence ||
+          !["pass", "expected_denial"].includes(entry.post_deployment_result))
+      ) {
+        throw new Error(
+          `${entry.finding_id} resolved remediation lacks commit, deployment, or passing post-deployment evidence.`,
+        );
+      }
+      if (
+        entry.status === "evidence_excluded" &&
+        entry.post_deployment_result !== "not_applicable"
+      ) {
+        throw new Error(
+          `${entry.finding_id} evidence exclusion must have a not_applicable post-deployment result.`,
+        );
+      }
+    }
+  }
+  assertValueSafe(artifact, "remediation-ledger.json");
+  return { entryCount: artifact.entries.length };
+}
+
+function validateCapabilityMatrixArtifact(
+  artifact,
+  manifest,
+  { requireTerminal = false } = {},
+) {
+  assertPlainObject("capability matrix", artifact);
+  assertOnlyKeys("capability matrix", artifact, CAPABILITY_MATRIX_ALLOWED_KEYS);
+  if (artifact.schema_version !== CAPABILITY_MATRIX_SCHEMA_VERSION) {
+    throw new Error("capability-matrix.json has an unsupported schema version.");
+  }
+  assertIsoTimestamp("capability matrix.generated_at", artifact.generated_at);
+  if (!Array.isArray(artifact.entries) || artifact.entries.length === 0) {
+    throw new Error("capability matrix.entries must be a non-empty array.");
+  }
+  const capabilityIds = new Set();
+  const mappedCaseIds = new Set();
+  const mappedGuideRoots = new Set();
+  const mappedReviewerIds = new Set();
+  const casesById = new Map(
+    (manifest?.case_inventory ?? []).map((auditCase) => [auditCase.id, auditCase]),
+  );
+  for (const [index, entry] of artifact.entries.entries()) {
+    const label = `capability matrix.entries[${index}]`;
+    assertPlainObject(label, entry);
+    assertOnlyKeys(label, entry, CAPABILITY_MATRIX_ENTRY_ALLOWED_KEYS);
+    assertNonemptyString(`${label}.capability_id`, entry.capability_id, 200);
+    if (!/^[A-Za-z0-9:_-]+$/.test(entry.capability_id)) {
+      throw new Error(`${entry.capability_id} is not a stable capability ID.`);
+    }
+    if (capabilityIds.has(entry.capability_id)) {
+      throw new Error(`Duplicate capability ID ${entry.capability_id}.`);
+    }
+    capabilityIds.add(entry.capability_id);
+    for (const field of [
+      "human_question",
+      "role",
+      "mode",
+      "fixture",
+      "expected_behavior",
+    ]) {
+      assertNonemptyString(`${label}.${field}`, entry[field], 5_000);
+    }
+    assertEnum(`${label}.mode`, entry.mode, AUDIT_DATA_MODES);
+    if (manifest && !manifest.roles.includes(entry.role)) {
+      throw new Error(`${entry.capability_id} uses undeclared role ${entry.role}.`);
+    }
+    if (manifest && !manifest.modes.includes(entry.mode)) {
+      throw new Error(`${entry.capability_id} uses undeclared mode ${entry.mode}.`);
+    }
+    const references = validateStringArray(
+      `${label}.guide_or_reviewer_items`,
+      entry.guide_or_reviewer_items,
+      { allowEmpty: false, maxItems: 100, maxLength: 1_000 },
+    );
+    const caseIds = validateStringArray(`${label}.case_ids`, entry.case_ids, {
+      allowEmpty: false,
+      maxItems: 100,
+      maxLength: 200,
+    });
+    const expectedReferences = new Set();
+    for (const caseId of caseIds) {
+      if (mappedCaseIds.has(caseId)) {
+        throw new Error(`Capability matrix maps case ${caseId} more than once.`);
+      }
+      mappedCaseIds.add(caseId);
+      if (manifest) {
+        const auditCase = casesById.get(caseId);
+        if (!auditCase) {
+          throw new Error(`${entry.capability_id} maps unknown case ${caseId}.`);
+        }
+        if (auditCase.role !== entry.role || auditCase.data_mode !== entry.mode) {
+          throw new Error(
+            `${entry.capability_id} role or mode does not match ${caseId}.`,
+          );
+        }
+        for (const reference of [
+          ...auditCase.guide_refs,
+          ...(auditCase.reviewer_refs ?? []),
+        ]) {
+          expectedReferences.add(reference);
+        }
+      }
+    }
+    if (
+      manifest &&
+      (references.size !== expectedReferences.size ||
+        [...expectedReferences].some((reference) => !references.has(reference)))
+    ) {
+      throw new Error(
+        `${entry.capability_id} guide/reviewer mapping does not match its cases.`,
+      );
+    }
+    for (const reference of references) {
+      const root = guideRoot(reference);
+      if (root) mappedGuideRoots.add(root);
+      if (manifest?.reviewer_checklist_ids.includes(reference)) {
+        mappedReviewerIds.add(reference);
+      }
+    }
+    assertEnum(`${label}.test_layer`, entry.test_layer, CAPABILITY_TEST_LAYERS);
+    assertEnum(`${label}.current_result`, entry.current_result, AUDIT_OUTCOME_RESULTS);
+    assertEnum(
+      `${label}.post_remediation_result`,
+      entry.post_remediation_result,
+      AUDIT_OUTCOME_RESULTS,
+    );
+    validateStringArray(`${label}.evidence`, entry.evidence, {
+      maxItems: 200,
+      maxLength: 1_000,
+    });
+    if (
+      requireTerminal &&
+      (!["pass", "expected_denial"].includes(entry.post_remediation_result) ||
+        entry.evidence.length === 0)
+    ) {
+      throw new Error(
+        `${entry.capability_id} lacks a passing post-remediation result or evidence.`,
+      );
+    }
+  }
+  if (manifest) {
+    const missingCaseIds = [...casesById.keys()].filter(
+      (caseId) => !mappedCaseIds.has(caseId),
+    );
+    const missingGuideSections = manifest.guide_section_ids.filter((guideSectionId) =>
+      guideSectionId === "reviewer-pass"
+        ? manifest.reviewer_checklist_ids.some(
+            (reviewerId) => !mappedReviewerIds.has(reviewerId),
+          )
+        : !mappedGuideRoots.has(guideSectionId),
+    );
+    const missingReviewerIds = manifest.reviewer_checklist_ids.filter(
+      (reviewerId) => !mappedReviewerIds.has(reviewerId),
+    );
+    if (
+      mappedCaseIds.size !== casesById.size ||
+      missingCaseIds.length > 0 ||
+      missingGuideSections.length > 0 ||
+      missingReviewerIds.length > 0
+    ) {
+      throw new Error(
+        `Capability matrix coverage is incomplete: cases=${missingCaseIds.join(",") || "none"}; guides=${missingGuideSections.join(",") || "none"}; reviewer=${missingReviewerIds.join(",") || "none"}.`,
+      );
+    }
+  }
+  assertValueSafe(artifact, "capability-matrix.json");
+  return { entryCount: artifact.entries.length };
 }
 
 function emailAddresses(text) {
@@ -893,6 +1436,9 @@ function runFiles(runDir) {
     findings: path.join(runDir, "findings.jsonl"),
     summary: path.join(runDir, "summary.json"),
     report: path.join(runDir, "run-report.md"),
+    authPreflight: path.join(runDir, "auth-preflight.json"),
+    remediationLedger: path.join(runDir, "remediation-ledger.json"),
+    capabilityMatrix: path.join(runDir, "capability-matrix.json"),
     screenshots: path.join(runDir, "screenshots"),
     domEvidence: path.join(runDir, "dom-evidence"),
     structuredEvidence: path.join(runDir, "structured-evidence"),
@@ -1339,6 +1885,357 @@ function assertRunRunning(manifest, action) {
   if (manifest.status !== "running") {
     throw new Error(`Run ${manifest.run_id} must be reopened before ${action}.`);
   }
+}
+
+function validateSidecarArtifact(kind, artifact, manifest, options = {}) {
+  if (kind === "auth_preflight") {
+    return validateAuthPreflightArtifact(artifact, manifest, options);
+  }
+  if (kind === "remediation_ledger") {
+    return validateRemediationLedgerArtifact(artifact, options);
+  }
+  if (kind === "capability_matrix") {
+    return validateCapabilityMatrixArtifact(artifact, manifest, options);
+  }
+  throw new Error(`Unknown audit sidecar ${kind}.`);
+}
+
+async function checkpointAuditSidecar(runDir, kind, artifact, now = new Date()) {
+  const config = SIDECAR_CONFIG[kind];
+  if (!config) throw new Error(`Unknown audit sidecar ${kind}.`);
+  const files = runFiles(runDir);
+  const artifactFile = path.join(runDir, config.artifact);
+  const [manifest, events] = await Promise.all([
+    readJson(files.manifest),
+    readJsonLines(files.events),
+  ]);
+  assertRunRunning(manifest, `checkpointing ${config.artifact}`);
+  const { entryCount } = validateSidecarArtifact(kind, artifact, manifest);
+  const artifactHash = sha256(JSON.stringify(artifact));
+  const previous = manifest.sidecar_checkpoints?.[kind] ?? null;
+  if (previous) {
+    await repairMissingEvent(
+      files,
+      manifest,
+      events,
+      (event) =>
+        event.type === config.eventType &&
+        event.revision === previous.revision &&
+        event.artifact_hash === previous.artifact_hash,
+      {
+        schema_version: "process-audit-event.v1",
+        timestamp: previous.updated_at,
+        type: config.eventType,
+        run_id: manifest.run_id,
+        artifact: config.artifact,
+        artifact_hash: previous.artifact_hash,
+        artifact_schema_version: previous.schema_version,
+        entry_count: previous.entry_count,
+        revision: previous.revision,
+      },
+    );
+  }
+  await writeJson(artifactFile, artifact);
+  if (
+    previous?.artifact_hash === artifactHash &&
+    previous.entry_count === entryCount &&
+    previous.schema_version === artifact.schema_version
+  ) {
+    return {
+      idempotent: true,
+      repaired: events.at(-1)?.recovered_during_resume === true,
+      artifact,
+      checkpoint: previous,
+      manifest,
+    };
+  }
+  const updatedAt = isoNow(now);
+  const checkpoint = {
+    schema_version: artifact.schema_version,
+    updated_at: updatedAt,
+    revision: (previous?.revision ?? 0) + 1,
+    entry_count: entryCount,
+    artifact_hash: artifactHash,
+  };
+  manifest.capabilities ??= {};
+  manifest.capabilities[config.manifestCapability] = true;
+  manifest.sidecar_checkpoints ??= {};
+  manifest.sidecar_checkpoints[kind] = checkpoint;
+  manifest.updated_at = updatedAt;
+  await writeJson(files.manifest, manifest);
+  await appendJsonLine(files.events, {
+    schema_version: "process-audit-event.v1",
+    event_id: nextEventId(manifest, events),
+    timestamp: updatedAt,
+    type: config.eventType,
+    run_id: manifest.run_id,
+    artifact: config.artifact,
+    artifact_hash: artifactHash,
+    artifact_schema_version: artifact.schema_version,
+    entry_count: entryCount,
+    revision: checkpoint.revision,
+  });
+  return { idempotent: false, repaired: false, artifact, checkpoint, manifest };
+}
+
+export async function checkpointAuthPreflight(runDir, artifact, now = new Date()) {
+  return checkpointAuditSidecar(runDir, "auth_preflight", artifact, now);
+}
+
+export async function checkpointRemediationLedger(runDir, artifact, now = new Date()) {
+  return checkpointAuditSidecar(runDir, "remediation_ledger", artifact, now);
+}
+
+export async function checkpointCapabilityMatrix(runDir, artifact, now = new Date()) {
+  return checkpointAuditSidecar(runDir, "capability_matrix", artifact, now);
+}
+
+function classifyFindingForRemediation(finding, auditCase) {
+  if (finding.finding_origin === "audit_harness") {
+    return {
+      resolutionClassification: "audit_harness_fix",
+      applicability: "applicable",
+      exclusionReason: null,
+    };
+  }
+  if (finding.finding_origin === "authentication") {
+    return {
+      resolutionClassification: "fixture_or_identity_setup",
+      applicability: "applicable",
+      exclusionReason: null,
+    };
+  }
+  if (finding.finding_origin === "documentation") {
+    return {
+      resolutionClassification: "documentation_correction",
+      applicability: "applicable",
+      exclusionReason: null,
+    };
+  }
+  if (finding.finding_origin === "expected_denial") {
+    return {
+      resolutionClassification: "already_resolved",
+      applicability: "not_applicable",
+      exclusionReason:
+        "Pass one classified the observed denial as the expected governed outcome.",
+    };
+  }
+  const looksLikeSeparateProviderActivation =
+    finding.finding_origin === "unavailable_dependency" &&
+    (auditCase.data_mode === "live_effect" ||
+      finding.finding_class === "external_boundary" ||
+      /provider activation|provider credential|external provider/i.test(
+        finding.recommended_correction_or_investigation,
+      ));
+  if (looksLikeSeparateProviderActivation) {
+    return {
+      resolutionClassification: "provider_activation_separate",
+      applicability: "not_applicable",
+      exclusionReason:
+        "The unavailable Live provider activation is tracked separately from app remediation and must not be represented as Live proof.",
+    };
+  }
+  if (finding.finding_origin === "unavailable_dependency") {
+    return {
+      resolutionClassification: "fixture_or_identity_setup",
+      applicability: "applicable",
+      exclusionReason: null,
+    };
+  }
+  return {
+    resolutionClassification: "applicable_fix",
+    applicability: "applicable",
+    exclusionReason: null,
+  };
+}
+
+export async function bootstrapRemediationLedger(runDir, sourceRunDir, now = new Date()) {
+  await validateAuditRun(sourceRunDir);
+  const sourceFiles = runFiles(sourceRunDir);
+  const [sourceManifest, sourceFindings] = await Promise.all([
+    readJson(sourceFiles.manifest),
+    readJsonLines(sourceFiles.findings),
+  ]);
+  const sourceCases = new Map(
+    sourceManifest.case_inventory.map((auditCase) => [auditCase.id, auditCase]),
+  );
+  const entries = sourceFindings.map((finding) => {
+    const auditCase = sourceCases.get(finding.case_id);
+    if (!auditCase) {
+      throw new Error(`${finding.finding_id} has no source case definition.`);
+    }
+    const classification = classifyFindingForRemediation(finding, auditCase);
+    return {
+      finding_id: finding.finding_id,
+      case_id: finding.case_id,
+      severity: finding.severity,
+      finding_class: finding.finding_class,
+      source_artifacts: [
+        `${sourceManifest.run_id}/findings.jsonl#${finding.finding_id}`,
+        ...finding.evidence_references.map(
+          (reference) => `${sourceManifest.run_id}/${reference}`,
+        ),
+      ],
+      reported_behavior: finding.actual_behavior,
+      current_applicability: classification.applicability,
+      root_cause: `Pass-one origin classification: ${finding.finding_origin}. Root-cause confirmation remains part of this pending remediation row.`,
+      affected_boundary: `${finding.route} — ${finding.surface}; ${finding.workflow_stage}.`,
+      resolution_classification: classification.resolutionClassification,
+      required_setup_or_fixture:
+        finding.blocker?.unblock_action ??
+        auditCase.safe_alias ??
+        "No additional Test fixture was identified in pass one.",
+      code_change: finding.recommended_correction_or_investigation,
+      acceptance_criteria: finding.expected_behavior,
+      regression_test_mapping: [`audit-case:${finding.case_id}`],
+      dependencies: auditCase.depends_on.map((caseId) => `audit-case:${caseId}`),
+      status: "pending",
+      commit_evidence: null,
+      deployment_evidence: null,
+      post_deployment_result: "pending",
+      exclusion_reason: classification.exclusionReason,
+    };
+  });
+  return checkpointRemediationLedger(
+    runDir,
+    {
+      schema_version: REMEDIATION_LEDGER_SCHEMA_VERSION,
+      source_run_id: sourceManifest.run_id,
+      source_finding_count: sourceFindings.length,
+      generated_at: isoNow(now),
+      entries,
+    },
+    now,
+  );
+}
+
+function capabilityTestLayer(auditCase) {
+  if (auditCase.data_mode === "live_effect") return "deployed_provider_guard";
+  if (auditCase.data_mode === "live_read") return "deployed_live_read";
+  return "deployed_browser";
+}
+
+export async function bootstrapCapabilityMatrix(runDir, now = new Date()) {
+  const manifest = await readJson(runFiles(runDir).manifest);
+  assertRunRunning(manifest, "bootstrapping capability-matrix.json");
+  const entries = manifest.case_inventory.map((auditCase) => ({
+    capability_id: `CAP-${auditCase.id}`,
+    human_question: `Does the deployed app satisfy “${auditCase.title}” for ${auditCase.role}?`,
+    guide_or_reviewer_items: [
+      ...new Set([...auditCase.guide_refs, ...(auditCase.reviewer_refs ?? [])]),
+    ],
+    case_ids: [auditCase.id],
+    role: auditCase.role,
+    mode: auditCase.data_mode,
+    fixture: auditCase.safe_alias ?? "Read-only observation; no mutable Test fixture.",
+    test_layer: capabilityTestLayer(auditCase),
+    expected_behavior: auditCase.expected.visible_result,
+    current_result: "pending",
+    post_remediation_result: "pending",
+    evidence: [],
+  }));
+  return checkpointCapabilityMatrix(
+    runDir,
+    {
+      schema_version: CAPABILITY_MATRIX_SCHEMA_VERSION,
+      generated_at: isoNow(now),
+      entries,
+    },
+    now,
+  );
+}
+
+async function validateDeclaredAuditSidecars(
+  files,
+  manifest,
+  events,
+  { requireTerminal = false } = {},
+) {
+  const counts = {};
+  for (const [kind, config] of Object.entries(SIDECAR_CONFIG)) {
+    const enabled = manifest.capabilities?.[config.manifestCapability] === true;
+    const checkpoint = manifest.sidecar_checkpoints?.[kind] ?? null;
+    const checkpointEvents = events.filter((event) => event.type === config.eventType);
+    if (!enabled && !checkpoint && checkpointEvents.length === 0) continue;
+    if (!enabled || !checkpoint) {
+      throw new Error(`${config.artifact} capability and checkpoint must agree.`);
+    }
+    assertPlainObject(`${kind} checkpoint`, checkpoint);
+    assertOnlyKeys(
+      `${kind} checkpoint`,
+      checkpoint,
+      new Set([
+        "schema_version",
+        "updated_at",
+        "revision",
+        "entry_count",
+        "artifact_hash",
+      ]),
+    );
+    assertNonemptyString(`${kind} checkpoint.schema_version`, checkpoint.schema_version);
+    assertIsoTimestamp(`${kind} checkpoint.updated_at`, checkpoint.updated_at);
+    if (!Number.isInteger(checkpoint.revision) || checkpoint.revision < 1) {
+      throw new Error(`${kind} checkpoint revision must be positive.`);
+    }
+    if (!Number.isInteger(checkpoint.entry_count) || checkpoint.entry_count < 1) {
+      throw new Error(`${kind} checkpoint entry count must be positive.`);
+    }
+    assertSha256(`${kind} checkpoint artifact hash`, checkpoint.artifact_hash);
+    if (checkpointEvents.length !== checkpoint.revision) {
+      throw new Error(`${config.artifact} checkpoint event count does not reconcile.`);
+    }
+    for (const [index, event] of checkpointEvents.entries()) {
+      assertOnlyKeys(
+        config.eventType,
+        event,
+        new Set([
+          "schema_version",
+          "event_id",
+          "timestamp",
+          "type",
+          "run_id",
+          "artifact",
+          "artifact_hash",
+          "artifact_schema_version",
+          "entry_count",
+          "revision",
+          "recovered_during_resume",
+        ]),
+      );
+      if (
+        event.revision !== index + 1 ||
+        event.artifact !== config.artifact ||
+        event.artifact_schema_version !== checkpoint.schema_version
+      ) {
+        throw new Error(`${config.artifact} checkpoint event chain is invalid.`);
+      }
+      assertSha256(`${config.eventType}.artifact_hash`, event.artifact_hash);
+    }
+    const latestEvent = checkpointEvents.at(-1);
+    if (
+      latestEvent.artifact_hash !== checkpoint.artifact_hash ||
+      latestEvent.entry_count !== checkpoint.entry_count ||
+      latestEvent.timestamp !== checkpoint.updated_at
+    ) {
+      throw new Error(`${config.artifact} latest checkpoint event does not reconcile.`);
+    }
+    const artifact = await readJson(
+      path.join(path.dirname(files.manifest), config.artifact),
+    );
+    const result = validateSidecarArtifact(kind, artifact, manifest, {
+      requireTerminal,
+    });
+    const artifactHash = sha256(JSON.stringify(artifact));
+    if (
+      checkpoint.schema_version !== artifact.schema_version ||
+      checkpoint.entry_count !== result.entryCount ||
+      checkpoint.artifact_hash !== artifactHash
+    ) {
+      throw new Error(`${config.artifact} does not match its manifest checkpoint.`);
+    }
+    counts[kind] = result.entryCount;
+  }
+  return counts;
 }
 
 export async function reopenAuditRun(runDir, payload, now = new Date()) {
@@ -4493,6 +5390,9 @@ export async function finalizeAuditRun(runDir, now = new Date()) {
     }
   }
   await validateEvidenceAssets(files, manifest, events, findings);
+  await validateDeclaredAuditSidecars(files, manifest, events, {
+    requireTerminal: true,
+  });
   const alreadyCompleted = manifest.status === "completed";
   const interruptedCompletion =
     !alreadyCompleted && events.at(-1)?.type === "run_completed";
@@ -6030,6 +6930,9 @@ export async function validateAuditRun(runDir) {
     throw new Error("run-report.md does not reconcile with structured evidence.");
   }
   const evidenceCounts = await validateEvidenceAssets(files, manifest, events, findings);
+  const sidecarCounts = await validateDeclaredAuditSidecars(files, manifest, events, {
+    requireTerminal: true,
+  });
   if (manifest.status !== "completed" || summary.status !== "completed") {
     throw new Error("Run is not completed.");
   }
@@ -6046,6 +6949,9 @@ export async function validateAuditRun(runDir) {
     enum_migration_count: enumMigrations.length,
     environment_amendment_count: environmentAmendments.length,
     completion_cycles: reopenCount + 1,
+    auth_identity_count: sidecarCounts.auth_preflight ?? 0,
+    remediation_ledger_count: sidecarCounts.remediation_ledger ?? 0,
+    capability_matrix_count: sidecarCounts.capability_matrix ?? 0,
   };
 }
 
@@ -6065,6 +6971,16 @@ function parseArgs(argv) {
 function decodePayload(encoded) {
   assertNonemptyString("payload", encoded, 2_000_000);
   return JSON.parse(Buffer.from(encoded, "base64url").toString("utf8"));
+}
+
+async function readCommandPayload(options) {
+  const sources = [options.payload != null, options.file != null].filter(Boolean);
+  if (sources.length !== 1) {
+    throw new Error("Provide exactly one of --payload or --file.");
+  }
+  return options.file
+    ? readJson(path.resolve(options.file))
+    : decodePayload(options.payload);
 }
 
 async function main(argv = process.argv.slice(2)) {
@@ -6168,6 +7084,78 @@ async function main(argv = process.argv.slice(2)) {
       decodePayload(options.payload),
     );
     console.log(JSON.stringify({ idempotent: result.idempotent }));
+    return;
+  }
+  if (command === "checkpoint-auth") {
+    const result = await checkpointAuthPreflight(
+      path.resolve(options["run-dir"]),
+      await readCommandPayload(options),
+    );
+    console.log(
+      JSON.stringify({
+        idempotent: result.idempotent,
+        revision: result.checkpoint.revision,
+        entry_count: result.checkpoint.entry_count,
+        artifact_hash: result.checkpoint.artifact_hash,
+      }),
+    );
+    return;
+  }
+  if (command === "bootstrap-ledger") {
+    const result = await bootstrapRemediationLedger(
+      path.resolve(options["run-dir"]),
+      path.resolve(options["source-run-dir"]),
+    );
+    console.log(
+      JSON.stringify({
+        idempotent: result.idempotent,
+        revision: result.checkpoint.revision,
+        entry_count: result.checkpoint.entry_count,
+        artifact_hash: result.checkpoint.artifact_hash,
+      }),
+    );
+    return;
+  }
+  if (command === "checkpoint-ledger") {
+    const result = await checkpointRemediationLedger(
+      path.resolve(options["run-dir"]),
+      await readCommandPayload(options),
+    );
+    console.log(
+      JSON.stringify({
+        idempotent: result.idempotent,
+        revision: result.checkpoint.revision,
+        entry_count: result.checkpoint.entry_count,
+        artifact_hash: result.checkpoint.artifact_hash,
+      }),
+    );
+    return;
+  }
+  if (command === "bootstrap-matrix") {
+    const result = await bootstrapCapabilityMatrix(path.resolve(options["run-dir"]));
+    console.log(
+      JSON.stringify({
+        idempotent: result.idempotent,
+        revision: result.checkpoint.revision,
+        entry_count: result.checkpoint.entry_count,
+        artifact_hash: result.checkpoint.artifact_hash,
+      }),
+    );
+    return;
+  }
+  if (command === "checkpoint-matrix") {
+    const result = await checkpointCapabilityMatrix(
+      path.resolve(options["run-dir"]),
+      await readCommandPayload(options),
+    );
+    console.log(
+      JSON.stringify({
+        idempotent: result.idempotent,
+        revision: result.checkpoint.revision,
+        entry_count: result.checkpoint.entry_count,
+        artifact_hash: result.checkpoint.artifact_hash,
+      }),
+    );
     return;
   }
   if (command === "intent") {
@@ -6372,7 +7360,7 @@ async function main(argv = process.argv.slice(2)) {
     return;
   }
   const usage =
-    "Usage: npm run audit:process -- <init|reopen|reopen-case|amend-declarations|migrate-enums|amend-environment|declare-traceability|extend|intent|recover-intent|effect|reversible-effect|dom-evidence|structured-evidence|harness-failure-evidence|evidence|retry|record|amend-result|amend-case-definition|finding|retract-finding|replace-finding|status|finalize|validate> --name=value";
+    "Usage: npm run audit:process -- <init|reopen|reopen-case|amend-declarations|migrate-enums|amend-environment|declare-traceability|checkpoint-auth|bootstrap-ledger|checkpoint-ledger|bootstrap-matrix|checkpoint-matrix|extend|intent|recover-intent|effect|reversible-effect|dom-evidence|structured-evidence|harness-failure-evidence|evidence|retry|record|amend-result|amend-case-definition|finding|retract-finding|replace-finding|status|finalize|validate> --name=value";
   if (command === "help") {
     console.log(usage);
     return;

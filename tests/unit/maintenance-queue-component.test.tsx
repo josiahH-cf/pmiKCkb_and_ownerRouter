@@ -58,6 +58,40 @@ describe("MaintenanceQueue status pills + history", () => {
     expect(screen.getByText("History")).toBeInTheDocument();
   });
 
+  it("focuses a linked Test ticket, selects its data lane, and opens Closed tickets", () => {
+    render(
+      <MaintenanceQueue
+        focusedTicketId="t1"
+        initialTickets={[
+          ticket({
+            data_mode: "test",
+            status: "Closed",
+            closed_reason: "resolved",
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByLabelText("Data")).toHaveValue("test");
+    expect(document.getElementById("maintenance-ticket-t1")).toHaveFocus();
+    expect(screen.getByText("Closed (1)").closest("details")).toHaveAttribute("open");
+    expect(screen.getByRole("button", { name: "Reopen ticket" })).toBeEnabled();
+    expect(screen.getAllByText("App ticket closed").length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("region", {
+        name: "Maintenance business closeout evidence gates",
+      }),
+    ).toHaveTextContent("Business closeout: Not proven");
+  });
+
+  it("shows a bodyless denial when a linked ticket is unavailable", () => {
+    render(<MaintenanceQueue focusedTicketId="missing" initialTickets={[ticket()]} />);
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "linked maintenance ticket could not be found",
+    );
+    expect(screen.getByRole("alert")).not.toHaveTextContent("missing");
+  });
+
   it("fetches and renders the activity trail once when the history panel expands", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

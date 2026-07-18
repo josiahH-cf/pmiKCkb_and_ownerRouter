@@ -74,12 +74,20 @@ export function classifyConnector(
       detail: `${configuredCount} of ${requiredCount} details provided — finish connecting.`,
     };
   }
-  return {
-    ...base,
-    state: "action",
-    label: "Ready to verify",
-    detail: "Ready to connect.",
-  };
+  return def.liveVerificationAvailable
+    ? {
+        ...base,
+        state: "action",
+        label: "Ready to verify",
+        detail: "Configuration is present. Run the bounded read-only check.",
+      }
+    : {
+        ...base,
+        state: "action",
+        label: "Setup complete",
+        detail:
+          "Configuration is present. No bounded live verification check is available yet.",
+      };
 }
 
 export function summarizeConnections(statuses: ConnectorStatus[]): ConnectionSummary {

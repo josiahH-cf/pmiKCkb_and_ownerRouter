@@ -40,6 +40,9 @@ export function ProcessSummaryPanel({
         </div>
         <span className="review-pill">{definition.status}</span>
       </div>
+      <p className="muted">
+        Immutable version: {definition.active_version_id ?? "Not published"}
+      </p>
 
       <h3>Steps</h3>
       <ol className="compact-list">
@@ -55,7 +58,8 @@ export function ProcessSummaryPanel({
         <ul className="compact-list">
           {runs.map((run) => (
             <li key={run.id}>
-              {run.status}: {run.next_action}
+              {run.status}: {run.next_action} · Definition version:{" "}
+              {run.definition_version_id ?? "Not pinned (draft)"}
             </li>
           ))}
         </ul>

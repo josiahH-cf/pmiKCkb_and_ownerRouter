@@ -105,6 +105,10 @@ export function SpaceDesk({
       {header}
 
       <Card title="Workflow">
+        <p className="muted">
+          Immutable definition version: {definition.active_version_id ?? "Not published"}
+          {run ? ` · This run: ${run.definition_version_id ?? "Not pinned (draft)"}` : ""}
+        </p>
         <Stepper currentIndex={currentIndex} steps={steps} />
         <p className="muted">Next: {nextAction}</p>
       </Card>

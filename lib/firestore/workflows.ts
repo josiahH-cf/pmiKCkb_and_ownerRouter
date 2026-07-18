@@ -9,6 +9,10 @@ import {
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
+  stepCheckDocId,
+  WORKFLOW_RUN_STEP_CHECK_COLLECTIONS,
+} from "@/lib/firestore/workflow-run-step-check-keys";
+import {
   ActivateProcessDefinitionInputSchema,
   type ActivateProcessDefinitionInput,
   CreateProcessDefinitionInputSchema,
@@ -311,8 +315,7 @@ export async function startWorkflowTestRun(
       eventType: "started",
       newStatus: "In Progress",
       runId,
-      summary:
-        parsed.note ?? `Started a test run for process definition "${definition.name}".`,
+      summary: `${parsed.note ?? `Started a test run for process definition "${definition.name}".`} Definition version: ${definition.active_version_id ?? "unpublished draft (not immutable)"}.`,
     });
 
     if (definition.status === "Draft") {
@@ -397,6 +400,36 @@ export async function updateWorkflowRunOutcome(
 
     if (isTerminalRunStatus(current.status)) {
       throw new EditableLayerError("This workflow run is already closed.", 409);
+    }
+
+    if (parsed.action === "complete_test") {
+      const definitionSnapshot = await transaction.get(
+        definitionRef(db, current.definition_id),
+      );
+      const definition = readRequiredProcessDefinition(
+        definitionSnapshot.id,
+        definitionSnapshot.data(),
+      );
+      const incomplete: string[] = [];
+
+      for (const step of definition.steps) {
+        const checkSnapshot = await transaction.get(
+          db
+            .collection(WORKFLOW_RUN_STEP_CHECK_COLLECTIONS.checks)
+            .doc(stepCheckDocId(runId, step.id)),
+        );
+        const status = checkSnapshot.data()?.status;
+        if (status !== "Checked" && status !== "Skipped") {
+          incomplete.push(step.title);
+        }
+      }
+
+      if (incomplete.length > 0) {
+        throw new EditableLayerError(
+          `Complete or skip every checklist step before completing this Test run. Incomplete: ${incomplete.join(", ")}.`,
+          409,
+        );
+      }
     }
 
     const nextStatus: WorkflowRunStatus =

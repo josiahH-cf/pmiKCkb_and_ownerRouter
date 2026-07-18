@@ -27,7 +27,14 @@ type EditableTemplate = Pick<
 >;
 type EditablePlaceholder = Pick<
   PlaceholderRecord,
-  "due_date" | "id" | "missing_detail" | "owner_uid" | "priority" | "space_id" | "status"
+  | "due_date"
+  | "id"
+  | "missing_detail"
+  | "owner_uid"
+  | "priority"
+  | "resolution"
+  | "space_id"
+  | "status"
 >;
 type EditableTool = Pick<
   ToolRecord,
@@ -520,14 +527,23 @@ export function SpaceDetailClient({
                 {placeholder.priority} - {placeholder.status}
                 {placeholder.due_date ? ` - Due ${placeholder.due_date}` : ""}
               </p>
-              <button
-                className="secondary-button compact-button"
-                disabled={!canMutate || !canApprove || placeholder.status === "Resolved"}
-                onClick={() => resolvePlaceholder(placeholder.id)}
-                type="button"
-              >
-                Resolve
-              </button>
+              {placeholder.resolution ? (
+                <p className="muted">Resolution: {placeholder.resolution}</p>
+              ) : null}
+              {placeholder.status === "Resolved" ? (
+                <span aria-label="Placeholder resolved" className="ui-tag">
+                  Resolved
+                </span>
+              ) : (
+                <button
+                  className="secondary-button compact-button"
+                  disabled={!canMutate || !canApprove}
+                  onClick={() => resolvePlaceholder(placeholder.id)}
+                  type="button"
+                >
+                  Resolve
+                </button>
+              )}
             </article>
           ))}
         </section>

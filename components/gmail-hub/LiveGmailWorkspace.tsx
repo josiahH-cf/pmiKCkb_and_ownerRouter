@@ -15,6 +15,16 @@ interface CommunicationAttention {
   attentionAtMs?: number;
 }
 
+interface GmailWatchPreview {
+  mailboxEmail: string;
+  topicName: string;
+  currentWatchExpirationMs: number | null;
+  effect: string;
+  proposedExpiration: string;
+  risk: string;
+  reversibility: string;
+}
+
 export function LiveGmailWorkspace({
   authenticatedEmail,
 }: {
@@ -28,6 +38,9 @@ export function LiveGmailWorkspace({
   const [connectedEmail, setConnectedEmail] = useState(authenticatedEmail);
   const [syncMessage, setSyncMessage] = useState("Manual watch renewal only");
   const [communications, setCommunications] = useState<CommunicationAttention[]>([]);
+  const [watchPreview, setWatchPreview] = useState<GmailWatchPreview | null>(null);
+  const [watchAttemptKey, setWatchAttemptKey] = useState("");
+  const [watchConfirmed, setWatchConfirmed] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -84,25 +97,72 @@ export function LiveGmailWorkspace({
     };
   }, [hasAuthenticatedMailbox, loadCommunications]);
 
-  async function startPushWatch() {
+  async function reviewPushWatch() {
     if (connection !== "connected" || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/gmail-hub/watch");
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ?? "The Gmail watch preview could not be loaded.");
+      }
+      setWatchPreview(data as GmailWatchPreview);
+      setWatchAttemptKey(globalThis.crypto.randomUUID());
+      setWatchConfirmed(false);
+    } catch (watchError) {
+      setError(
+        watchError instanceof Error
+          ? watchError.message
+          : "The Gmail watch preview could not be loaded.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function startPushWatch() {
+    if (
+      connection !== "connected" ||
+      busy ||
+      !watchPreview ||
+      !watchAttemptKey ||
+      !watchConfirmed
+    ) {
+      return;
+    }
     setBusy(true);
     setError("");
     try {
       const response = await fetch("/api/gmail-hub/watch", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          mailboxEmail: watchPreview.mailboxEmail,
+          topicName: watchPreview.topicName,
+          observedWatchExpirationMs: watchPreview.currentWatchExpirationMs,
+          attemptKey: watchAttemptKey,
+          confirmed: true,
+        }),
       });
       const data = await response.json();
-      if (!response.ok)
+      if (!response.ok) {
+        if (data.status === "ambiguous") {
+          setSyncMessage(
+            "Watch outcome ambiguous; the one-attempt key is consumed. Review current watch health before trying again.",
+          );
+        }
         throw new Error(data.error ?? "The Gmail watch could not be renewed.");
+      }
       const expirationMs = Number(data.expiration);
       setSyncMessage(
         Number.isFinite(expirationMs)
-          ? `Targeted reply watch active until ${new Date(expirationMs).toLocaleString()}.`
+          ? `Targeted reply watch readback confirmed until ${new Date(expirationMs).toLocaleString()}.`
           : "Targeted reply watch active.",
       );
+      setWatchPreview(null);
+      setWatchAttemptKey("");
+      setWatchConfirmed(false);
     } catch (watchError) {
       setError(
         watchError instanceof Error
@@ -141,13 +201,97 @@ export function LiveGmailWorkspace({
           <button
             className="secondary-button"
             disabled={busy}
-            onClick={() => void startPushWatch()}
+            onClick={() => void reviewPushWatch()}
             type="button"
           >
-            Start or renew targeted reply watch
+            Review targeted reply watch renewal
           </button>
         ) : null}
       </div>
+
+      {watchPreview ? (
+        <section
+          className="notice notice-warning ui-stack"
+          aria-label="Gmail watch exact preview"
+        >
+          <div>
+            <strong>Exact Live watch preview</strong>
+            <p>
+              Review the mailbox, topic, current state, and one-attempt boundary before
+              execution.
+            </p>
+          </div>
+          <dl className="review-grid">
+            <div>
+              <dt>Mailbox</dt>
+              <dd>{watchPreview.mailboxEmail}</dd>
+            </div>
+            <div>
+              <dt>Topic</dt>
+              <dd>{watchPreview.topicName}</dd>
+            </div>
+            <div>
+              <dt>Current expiration</dt>
+              <dd>
+                {watchPreview.currentWatchExpirationMs
+                  ? new Date(watchPreview.currentWatchExpirationMs).toLocaleString()
+                  : "No active expiration recorded"}
+              </dd>
+            </div>
+            <div>
+              <dt>Attempt key</dt>
+              <dd>{watchAttemptKey}</dd>
+            </div>
+            <div>
+              <dt>Effect</dt>
+              <dd>{watchPreview.effect}</dd>
+            </div>
+            <div>
+              <dt>Proposed expiration</dt>
+              <dd>{watchPreview.proposedExpiration}</dd>
+            </div>
+            <div>
+              <dt>Risk</dt>
+              <dd>{watchPreview.risk}</dd>
+            </div>
+            <div>
+              <dt>Reversibility</dt>
+              <dd>{watchPreview.reversibility}</dd>
+            </div>
+          </dl>
+          <label>
+            <input
+              checked={watchConfirmed}
+              disabled={busy}
+              onChange={(event) => setWatchConfirmed(event.target.checked)}
+              type="checkbox"
+            />{" "}
+            I confirm this exact mailbox, topic, and single Live provider attempt.
+          </label>
+          <div className="button-row">
+            <button
+              className="primary-button"
+              disabled={busy || !watchConfirmed}
+              onClick={() => void startPushWatch()}
+              type="button"
+            >
+              Confirm and execute one watch attempt
+            </button>
+            <button
+              className="secondary-button"
+              disabled={busy}
+              onClick={() => {
+                setWatchPreview(null);
+                setWatchAttemptKey("");
+                setWatchConfirmed(false);
+              }}
+              type="button"
+            >
+              Cancel watch review
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       {!liveEnabled ? (
         <div className="notice notice-warning" role="status">

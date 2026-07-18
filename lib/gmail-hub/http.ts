@@ -4,7 +4,11 @@ import { z } from "zod";
 import { apiErrorResponse } from "@/lib/api/editable";
 import { GmailBoundaryError } from "@/lib/gmail-hub/contracts";
 import { GmailPushAuthError } from "@/lib/gmail-hub/pubsub";
-import { GmailAmbiguousSendError, GmailHubError } from "@/lib/gmail-hub/service";
+import {
+  GmailAmbiguousSendError,
+  GmailAmbiguousWatchError,
+  GmailHubError,
+} from "@/lib/gmail-hub/service";
 import { GmailStateError } from "@/lib/gmail-hub/state-store";
 import { GmailRuntimeError } from "@/lib/gmail-runtime/client";
 import { GmailSubjectError } from "@/lib/gmail-runtime/subject";
@@ -25,7 +29,10 @@ export function gmailHubErrorResponse(error: unknown) {
     return NextResponse.json(
       {
         error: error.message,
-        ...(error instanceof GmailAmbiguousSendError ? { status: "ambiguous" } : {}),
+        ...(error instanceof GmailAmbiguousSendError ||
+        error instanceof GmailAmbiguousWatchError
+          ? { status: "ambiguous" }
+          : {}),
       },
       { status: error.status },
     );

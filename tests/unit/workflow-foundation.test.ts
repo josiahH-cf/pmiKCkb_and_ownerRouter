@@ -22,6 +22,7 @@ import {
   updateProcessDefinition,
   updateWorkflowRunOutcome,
 } from "@/lib/firestore/workflows";
+import { setWorkflowRunStepCheck } from "@/lib/firestore/workflow-run-step-checks";
 import { FakeFirestore } from "../helpers/fake-firestore";
 
 function userWith(role: Role, uid: string): AuthenticatedUser {
@@ -110,6 +111,7 @@ describe("workflow foundation repository", () => {
       { due_date: "2026-06-20" },
       db,
     );
+    await completeChecklist(editor, testRun.id, definition.steps, db);
     await updateWorkflowRunOutcome(
       editor,
       testRun.id,
@@ -312,6 +314,16 @@ describe("workflow foundation repository", () => {
       "Testing",
     );
 
+    await expect(
+      updateWorkflowRunOutcome(
+        editor,
+        run.id,
+        { action: "complete_test", notes: "This is premature." },
+        db,
+      ),
+    ).rejects.toThrow(/Complete or skip every checklist step/);
+
+    await completeChecklist(editor, run.id, definition.steps, db);
     const completed = await updateWorkflowRunOutcome(
       editor,
       run.id,
@@ -427,6 +439,21 @@ describe("workflow foundation repository", () => {
     expect(runs.map((run) => run.id)).toEqual(["run-new-test"]);
   });
 });
+
+async function completeChecklist(
+  actor: AuthenticatedUser,
+  runId: string,
+  steps: readonly { id: string }[],
+  firestore: Firestore,
+) {
+  for (const step of steps) {
+    await setWorkflowRunStepCheck(
+      actor,
+      { run_id: runId, step_id: step.id, status: "Checked" },
+      firestore,
+    );
+  }
+}
 
 function baseDefinitionInput(
   overrides: Partial<CreateProcessDefinitionInput> = {},

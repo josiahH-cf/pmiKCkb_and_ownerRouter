@@ -45,6 +45,10 @@ export function SpaceDeskRunPanel({
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const isTerminal = run
+    ? ["Completed", "Cancelled", "Failed"].includes(run.status)
+    : false;
+  const canMutateChecklist = canEdit && !isTerminal;
 
   async function startRun() {
     setError(null);
@@ -130,6 +134,9 @@ export function SpaceDeskRunPanel({
   return (
     <Card title="Checklist">
       {error ? <p className="form-error">{error}</p> : null}
+      {isTerminal ? (
+        <p className="muted">This run is closed. Its checklist is read-only.</p>
+      ) : null}
       <ul className="ui-rows">
         {steps.map((step) => {
           const status = checks[step.id]?.status ?? "Unchecked";
@@ -140,7 +147,7 @@ export function SpaceDeskRunPanel({
                 <span>{step.title}</span>
                 <StatusPill value={STATUS_PILL[status]} />
               </div>
-              {canEdit ? (
+              {canMutateChecklist ? (
                 <div className="ui-row">
                   <button
                     className="secondary-button"

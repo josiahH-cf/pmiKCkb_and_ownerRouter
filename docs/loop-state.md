@@ -6,6 +6,14 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 ## Snapshot
 
 - Last updated: 2026-07-18.
+- The authorized end-to-end pass-one remediation cycle is active. The full objective, Tier-0 docs,
+  governing feature suites, both V1 walkthroughs, all 281 case contracts, the audit runner and its
+  regression suite, and all 137 normalized findings have been ingested. Every finding reference is
+  present and case-matched; the two Test-only screenshots were visually checked. Required session
+  preflights currently pass for fresh ADC, `josiah@pmikcmetro.com` gcloud/ADC/Firebase CLI identity,
+  the `$10` budget guard, the production env, and the cheap `gemini-2.5-flash` cost posture. Local
+  `main` and `origin/main` are aligned at `77ee76e2f0b814c5a3cec2596a296ec7fe8570b8` while production
+  still serves the pass-one target revision recorded below.
 - Deployed process-audit pass one is complete against the canonical Cloud Run application serving
   commit `38ebcf530e3fe193547806bace91246ccea20c0b`; the audit harness was built from local repository
   commit `2ca41cfe18de3ace79c7f4e1bf4c82474cf5be2c`. The resumable run
@@ -26,10 +34,11 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
   replayed Test effect.
 - Active branch: `main`; the Test Vendor reset/re-enable, internal-roster separation,
   deployment-wrapper hardening, and Approval Queue time-zone fix are committed, pushed, and deployed.
-- Goal: close the stable working V1 on the client-owned Cloud Run service and deliver the final human
-  HTML walkthrough. Deployment, desktop/phone browser acceptance, and current-revision
-  rollback/restore rehearsal are complete. The Test Vendor secret-bearing ceremony is the sole
-  remaining acceptance.
+- Goal: resolve or evidence-based exclude all 137 pass-one findings, add deterministic isolated Test
+  fixtures and role/session coverage, validate the full repository, integrate and deploy the exact
+  verified commit, then complete a deployed browser pass two and restore every temporary Test
+  baseline. Existing provider-activation and human-secret ceremonies remain independent unless a
+  safe fixture or already-authorized bodyless read proves them.
 - V1 truth: application readiness and provider activation are separate. Production carries Live
   records and visibly isolated persistent Test records. Test workflows may write app/Firestore
   state and reach Done, but their executors make zero external calls and never prove Live.
@@ -93,13 +102,13 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 
 ## Next Exact Actions
 
-1. Use the completed pass-one findings and stable case IDs for the separately authorized repair pass,
-   beginning with the Critical dependency advisory and High application defects; do not replay
-   completed Test mutations or treat Test receipts as Live activation proof.
-2. When an owner-present session is available, complete only the remaining explicit human ceremonies:
-   canonical Test Vendor password/TOTP, secondary-role sessions, and exact operational confirmations.
-3. Rerun the affected audit cases after repairs and append a new pass rather than rewriting pass-one
-   evidence.
+1. Build the 137-finding remediation ledger and capability matrix from the immutable pass-one run;
+   group dependent findings under their shared repair while retaining one disposition per finding.
+2. Repair the Critical dependency advisory and High application defects first, then add the missing
+   deterministic Test approval, intake, attention, publication, role, Vendor, Lease, Maintenance, and
+   workflow-linked communications fixtures without replaying completed pass-one mutations.
+3. Run targeted falsification and the full verifier, integrate and deploy the exact verified commit,
+   append a deployed browser pass-two run, fix any regressions, and restore all temporary Test state.
 
 ## Advisory Post-V1 Activations
 

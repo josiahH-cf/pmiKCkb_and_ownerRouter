@@ -10,6 +10,7 @@ import {
 } from "@/components/hooks/useAudioRecorder";
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -107,5 +108,58 @@ describe("useAudioRecorder lifecycle", () => {
     await act(() => active.result.current.toggleRecording());
     active.unmount();
     expect(trackStop).toHaveBeenCalled();
+  });
+
+  it("lets the user cancel an unresolved permission request and stops a late stream", async () => {
+    let resolvePermission!: (stream: MediaStream) => void;
+    const permission = new Promise<MediaStream>((resolve) => {
+      resolvePermission = resolve;
+    });
+    installRecorder(() => permission);
+    const onStatus = vi.fn();
+    const { result } = renderHook(() =>
+      useAudioRecorder({ onRecording: vi.fn(), onStatus }),
+    );
+
+    let start!: Promise<void>;
+    act(() => {
+      start = result.current.toggleRecording();
+    });
+    expect(result.current.phase).toBe("requesting-permission");
+    act(() => result.current.cancelPermissionRequest());
+    expect(result.current.phase).toBe("idle");
+    expect(onStatus).toHaveBeenCalledWith(RECORDER_MESSAGES.permissionCancelled);
+
+    const { stream, trackStop } = streamWith();
+    resolvePermission(stream);
+    await act(() => start);
+    expect(trackStop).toHaveBeenCalledTimes(1);
+    expect(result.current.isRecording).toBe(false);
+  });
+
+  it("times out an unresolved permission request and ignores a late grant", async () => {
+    vi.useFakeTimers();
+    let resolvePermission!: (stream: MediaStream) => void;
+    const permission = new Promise<MediaStream>((resolve) => {
+      resolvePermission = resolve;
+    });
+    installRecorder(() => permission);
+    const onError = vi.fn();
+    const { result } = renderHook(() =>
+      useAudioRecorder({ onRecording: vi.fn(), onError, permissionTimeoutMs: 25 }),
+    );
+
+    let start!: Promise<void>;
+    act(() => {
+      start = result.current.toggleRecording();
+    });
+    act(() => vi.advanceTimersByTime(25));
+    expect(result.current.phase).toBe("error");
+    expect(onError).toHaveBeenCalledWith(RECORDER_MESSAGES.permissionTimeout);
+
+    const { stream, trackStop } = streamWith();
+    resolvePermission(stream);
+    await act(() => start);
+    expect(trackStop).toHaveBeenCalledTimes(1);
   });
 });

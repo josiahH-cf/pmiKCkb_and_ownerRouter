@@ -403,6 +403,9 @@ export async function updatePlaceholder(
       snapshot.data(),
       "placeholder",
     );
+    if (current.status === "Resolved" && updates.status === "Resolved") {
+      throw new EditableLayerError("This placeholder is already resolved.", 409);
+    }
     const next = { ...current, ...updates };
 
     assertPlaceholderStatusAllowed(actor, next.status);

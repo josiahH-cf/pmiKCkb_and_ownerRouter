@@ -283,6 +283,16 @@ export function ProcessDefinitionDetailClient({
       <aside className="workflow-side">
         <section className="panel">
           <h2>Publication</h2>
+          <p>
+            <strong>Active immutable version:</strong>{" "}
+            <code>{definition.active_version_id ?? "Not published"}</code>
+          </p>
+          {!definition.active_version_id ? (
+            <p className="muted">
+              Test runs started now use the current mutable draft and are explicitly not
+              pinned to an immutable published version.
+            </p>
+          ) : null}
           <p className="muted">
             A version becomes Active immediately only after root, scope, type, size,
             malware, sensitivity, source, graph, and action-reference checks pass.
@@ -342,6 +352,9 @@ export function ProcessDefinitionDetailClient({
                 <p className="muted">
                   {run.status} - Due {run.due_date}
                   {run.is_test_run ? " - Test" : ""}
+                </p>
+                <p className="muted">
+                  Definition version: {run.definition_version_id ?? "Not pinned (draft)"}
                 </p>
               </article>
             ))

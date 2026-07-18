@@ -33,23 +33,26 @@ import type {
   MaintenanceTicketActivityRecord,
   MaintenanceTicketRecord,
 } from "@/lib/maintenance/ticket-model";
+import { MAINTENANCE_TEST_UNIT } from "@/lib/maintenance/test-workflow";
 import { inferPriority } from "@/lib/maintenance/work-order-draft";
 
 /** Label that marks a promoted intake's ticket as still needing unit/detail verification. */
 export const NEEDS_VERIFICATION_LABEL = "Needs Verification";
 
-export const PromoteIntakeInputSchema = z.object({
-  priority: z.enum(MAINTENANCE_PRIORITIES).optional(),
-  // Optional operator-confirmed unit (slice 2a). When present the promoted ticket carries this unit and
-  // drops the Needs-Verification label; when absent the promote is UNCHANGED (unit:null + Needs Verification).
-  unit: z
-    .object({
-      unitId: z.string().trim().min(1),
-      label: z.string().trim().min(1),
-    })
-    .nullable()
-    .optional(),
-});
+export const PromoteIntakeInputSchema = z
+  .object({
+    priority: z.enum(MAINTENANCE_PRIORITIES).optional(),
+    // Optional operator-confirmed unit (slice 2a). When present the promoted ticket carries this unit and
+    // drops the Needs-Verification label; when absent the promote is UNCHANGED (unit:null + Needs Verification).
+    unit: z
+      .object({
+        unitId: z.string().trim().min(1),
+        label: z.string().trim().min(1),
+      })
+      .nullable()
+      .optional(),
+  })
+  .strict();
 export type PromoteIntakeInput = z.input<typeof PromoteIntakeInputSchema>;
 
 export const DismissIntakeInputSchema = z.object({
@@ -71,7 +74,12 @@ function nowIso(now: number): string {
 }
 
 function readIntake(id: string, data: unknown): UnverifiedIntakeRecord {
-  return { ...(data as UnverifiedIntakeRecord), id };
+  const record = data as Partial<UnverifiedIntakeRecord>;
+  return {
+    ...(record as UnverifiedIntakeRecord),
+    id,
+    data_mode: record.data_mode === "test" ? "test" : "live",
+  };
 }
 
 /** List quarantined intake, newest first. `status` defaults to the un-triaged "unverified" bucket. */
@@ -122,12 +130,24 @@ export async function promoteUnverifiedIntake(
 
     // Optional operator-confirmed unit (slice 2a). When present the ticket carries it and the
     // Needs-Verification label is dropped; when absent the promote is unchanged (unit:null + the label).
-    const confirmedUnit = parsed.unit ?? null;
+    if (
+      intake.data_mode === "test" &&
+      parsed.unit &&
+      (parsed.unit.unitId !== MAINTENANCE_TEST_UNIT.unitId ||
+        parsed.unit.label !== MAINTENANCE_TEST_UNIT.label)
+    ) {
+      throw new EditableLayerError(
+        "Test intake can only use the canonical invented Test unit.",
+        409,
+      );
+    }
+    const confirmedUnit =
+      intake.data_mode === "test" ? MAINTENANCE_TEST_UNIT : (parsed.unit ?? null);
 
     const ticketId = uuidv7();
     const ticket: MaintenanceTicketRecord = {
       id: ticketId,
-      data_mode: "live",
+      data_mode: intake.data_mode,
       status: "Open",
       priority,
       priority_provenance: provenance,
@@ -139,9 +159,17 @@ export async function promoteUnverifiedIntake(
         kind: "external",
         ...(intake.contact ? { contact: intake.contact } : {}),
       },
-      labels: confirmedUnit ? [] : [NEEDS_VERIFICATION_LABEL],
+      labels:
+        intake.data_mode === "test"
+          ? ["TEST DATA"]
+          : confirmedUnit
+            ? []
+            : [NEEDS_VERIFICATION_LABEL],
       space_id: "maintenance-work-order-intake",
-      source_trigger_key: `maintenance:intake:${intake.id}`,
+      source_trigger_key:
+        intake.data_mode === "test"
+          ? `maintenance:test:intake:${intake.id}`
+          : `maintenance:intake:${intake.id}`,
       created_at: timestamp,
       updated_at: timestamp,
     };
@@ -152,7 +180,9 @@ export async function promoteUnverifiedIntake(
       action: "create",
       new_status: "Open",
       text: confirmedUnit
-        ? `Promoted from a public intake report (unit confirmed: ${confirmedUnit.label}).`
+        ? intake.data_mode === "test"
+          ? "Promoted from the canonical public Test intake fixture; no Live ticket or provider effect was created."
+          : `Promoted from a public intake report (unit confirmed: ${confirmedUnit.label}).`
         : "Promoted from a public intake report (unit needs verification).",
       created_at: timestamp,
     };
@@ -179,6 +209,7 @@ export async function promoteUnverifiedIntake(
         id: uuidv7(),
         intake_id: intake.id,
         action: "promote",
+        data_mode: intake.data_mode,
         actor_uid: actor.uid,
         ticket_id: ticketId,
         created_at: timestamp,

@@ -92,6 +92,9 @@ describe("SpaceDesk", () => {
     expect(screen.getByText("E-signature")).toBeInTheDocument();
     expect(screen.getByText("Certified funds")).toBeInTheDocument();
     expect(screen.getByText("Disable the listing")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Immutable definition version: Not published/),
+    ).toBeInTheDocument();
   });
 
   it("treats EVERY step as an ordinary checklist step — no hard gate on e-sign or funds", () => {

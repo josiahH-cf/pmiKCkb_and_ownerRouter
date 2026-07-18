@@ -7,6 +7,7 @@ export type UnverifiedIntakeStatus = "unverified" | "promoted" | "dismissed";
 
 export interface UnverifiedIntakeRecord {
   id: string;
+  data_mode: "live" | "test";
   status: UnverifiedIntakeStatus;
   source: "public-link";
   property_key: string;

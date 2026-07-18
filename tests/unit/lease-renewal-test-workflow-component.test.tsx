@@ -109,7 +109,7 @@ describe("Lease production Test UI", () => {
     expect(screen.queryByText("Linked Gmail communication")).toBeNull();
   });
 
-  it("does not allow Done until every matrix action has one receipt", () => {
+  it("separates App Test completion from business closeout evidence", () => {
     const allEvidence = LEASE_TEST_ACTIONS.map((actionKey, index) =>
       buildLeaseTestActionEvidence({
         receiptId: `receipt-${index}`,
@@ -127,8 +127,10 @@ describe("Lease production Test UI", () => {
         initialRun={run("Executing")}
       />,
     );
-    expect(screen.getByRole("button", { name: "Move to Done" })).toBeDisabled();
-    expect(screen.getByText(/Done unlocks after all 11/)).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Move to App Test complete" }),
+    ).toBeDisabled();
+    expect(screen.getByText(/App Test completion unlocks after all 11/)).toBeVisible();
 
     rendered.unmount();
     render(
@@ -138,7 +140,24 @@ describe("Lease production Test UI", () => {
         initialRun={run("Executing")}
       />,
     );
-    expect(screen.getByRole("button", { name: "Move to Done" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Move to App Test complete" }),
+    ).toBeEnabled();
     expect(screen.getByText(/11 of 11 Test actions complete/)).toBeVisible();
+    expect(
+      screen.getByRole("region", { name: "Business closeout evidence gates" }),
+    ).toHaveTextContent("Business closeout: Not proven");
+
+    cleanup();
+    render(
+      <LeaseTestJourney
+        initialAttempts={allEvidence.map((entry) => entry.attempt)}
+        initialReceipts={allEvidence.map((entry) => entry.receipt)}
+        initialRun={run("Done")}
+      />,
+    );
+    expect(screen.getAllByText("App Test complete").length).toBeGreaterThan(0);
+    expect(screen.getByText(/every internal simulation is recorded/)).toBeVisible();
+    expect(screen.getAllByText(/business proof not established/).length).toBe(6);
   });
 });

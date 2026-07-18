@@ -8,6 +8,8 @@ import {
   LEASE_TEST_ACTION_TARGETS,
   LEASE_TEST_CONFIRMATION,
   LEASE_TEST_RUN_STATUSES,
+  LEASE_TEST_RUN_STATUS_LABELS,
+  leaseTestCompletionBoundary,
   leaseTestActionDependencies,
   nextLeaseTestRunStatus,
   type LeaseTestActionAttempt,
@@ -42,6 +44,7 @@ export function LeaseTestJourney({
   const dependencies = leaseTestActionDependencies(actionKey);
   const missingDependencies = dependencies.filter((key) => !completedKeys.has(key));
   const completedReceipt = receipts.find((receipt) => receipt.action_key === actionKey);
+  const completionBoundary = leaseTestCompletionBoundary(run, receipts);
   const canRunAction =
     run.status === "Executing" && missingDependencies.length === 0 && !completedReceipt;
   const doneBlocked =
@@ -68,8 +71,8 @@ export function LeaseTestJourney({
         setRun(payload.run);
         setMessage(
           payload.run.status === "Done"
-            ? "Lease Test journey is Done. All evidence is internal and not Live proof."
-            : `App status moved to ${payload.run.status}.`,
+            ? "Lease App Test is complete. Business closeout remains not proven and is not Live proof."
+            : `App status moved to ${LEASE_TEST_RUN_STATUS_LABELS[payload.run.status]}.`,
         );
       } else {
         setMessage(payload.error ?? "Could not move the Lease Test run.");
@@ -149,14 +152,18 @@ export function LeaseTestJourney({
           className="queue-pill"
           data-value={run.status === "Done" ? "Completed" : "Scheduled"}
         >
-          {run.status}
+          {LEASE_TEST_RUN_STATUS_LABELS[run.status]}
         </span>
       </div>
 
       <ol className="ui-row" aria-label="Lease Test status progression">
         {LEASE_TEST_RUN_STATUSES.map((status) => (
           <li key={status}>
-            {status === run.status ? <strong>{status}</strong> : status}
+            {status === run.status ? (
+              <strong>{LEASE_TEST_RUN_STATUS_LABELS[status]}</strong>
+            ) : (
+              LEASE_TEST_RUN_STATUS_LABELS[status]
+            )}
           </li>
         ))}
       </ol>
@@ -173,21 +180,53 @@ export function LeaseTestJourney({
             onClick={() => void advanceStatus()}
             type="button"
           >
-            {pending === "status" ? "Saving…" : `Move to ${nextStatus}`}
+            {pending === "status"
+              ? "Saving…"
+              : `Move to ${LEASE_TEST_RUN_STATUS_LABELS[nextStatus]}`}
           </button>
           {doneBlocked ? (
             <p className="muted">
-              Done unlocks after all {LEASE_TEST_ACTIONS.length} explicit Test actions
-              have one receipt.
+              App Test completion unlocks after all {LEASE_TEST_ACTIONS.length} explicit
+              Test actions have one receipt. This never marks business closeout.
             </p>
           ) : null}
         </div>
       ) : (
         <p>
-          <strong>Done:</strong> this Test run is complete inside the app. It is not Live
-          provider evidence.
+          <strong>App Test complete:</strong> every internal simulation is recorded.
+          Business closeout remains not proven; this is not Live provider evidence.
         </p>
       )}
+
+      <section
+        className="ui-callout ui-stack"
+        aria-label="Business closeout evidence gates"
+      >
+        <div>
+          <h3 className="section-subtitle">Business closeout evidence gates</h3>
+          <p className="muted">
+            App Test status and business completion are separate. This invented Test run
+            can never become business-closeout eligible.
+          </p>
+        </div>
+        <ul className="compact-list">
+          {completionBoundary.gates.map((gate) => (
+            <li key={gate.id}>
+              <strong>{gate.label}</strong> —{" "}
+              {gate.outcome === "internal_simulation_only"
+                ? `${gate.internalTestReceiptCount} of ${gate.internalTestReceiptTotal} internal Test receipts; business proof not established.`
+                : gate.outcome === "test_evidence_incomplete"
+                  ? `${gate.internalTestReceiptCount} of ${gate.internalTestReceiptTotal} internal Test receipts; Test evidence incomplete and business proof not established.`
+                  : "No owning Test milestone; business proof not established."}
+            </li>
+          ))}
+        </ul>
+        <p>
+          <strong>Business closeout:</strong> Not proven · Live receipts, authoritative
+          decisions, signatures, conditional facts, reconciliation, and exceptions remain
+          on their owning records.
+        </p>
+      </section>
 
       <section
         className="ui-callout ui-stack"

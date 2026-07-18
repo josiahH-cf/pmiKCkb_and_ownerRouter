@@ -98,7 +98,7 @@ describe("maintenance ticket notifications", () => {
       event: "assigned",
       recipient_uid: "assignee-1",
       ticket_status: "Open",
-      href: "/maintenance",
+      href: "/maintenance?ticket_id=t-1",
     });
     // PII-free: never a summary / unit / reporter / assignee-email leak.
     for (const forbidden of [

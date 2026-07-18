@@ -20,6 +20,14 @@ export const LEASE_TEST_RUN_STATUSES = [
 
 export type LeaseTestRunStatus = (typeof LEASE_TEST_RUN_STATUSES)[number];
 
+export const LEASE_TEST_RUN_STATUS_LABELS: Record<LeaseTestRunStatus, string> = {
+  Created: "Created",
+  Reviewed: "Reviewed",
+  Approved: "Approved",
+  Executing: "Executing",
+  Done: "App Test complete",
+};
+
 export const LEASE_TEST_SCENARIO = "standard-renewal" as const;
 export const LEASE_TEST_CONFIRMATION = "SIMULATE LEASE TEST ACTION" as const;
 
@@ -49,6 +57,51 @@ export const LEASE_TEST_ACTION_TARGETS: Record<LeaseExecutionActionKey, string> 
 };
 
 export const LEASE_TEST_ACTIONS = LEASE_EXECUTION_ACTIONS;
+
+export const LEASE_BUSINESS_CLOSEOUT_GATES = Object.freeze([
+  {
+    id: "owner_direction",
+    label: "Source-backed owner direction and approved terms",
+    testActionKeys: [] as readonly LeaseExecutionActionKey[],
+  },
+  {
+    id: "tenant_agreement",
+    label: "Tenant response, agreement, and channel timing",
+    testActionKeys: [
+      "gmail.renewal_notice.send",
+      "rentvine.renewal.portal_message.send",
+      "sms.renewal_message.send",
+    ] as readonly LeaseExecutionActionKey[],
+  },
+  {
+    id: "conditional_facts",
+    label: "Property, occupancy, pet, insurance, deposit, and charge facts",
+    testActionKeys: [] as readonly LeaseExecutionActionKey[],
+  },
+  {
+    id: "signed_documents",
+    label: "Applicable document package and completed signatures",
+    testActionKeys: [
+      "dotloop.loop.create_from_template",
+      "dotloop.document.upload",
+    ] as readonly LeaseExecutionActionKey[],
+  },
+  {
+    id: "provider_updates",
+    label: "RentVine renewal, services, and charge updates",
+    testActionKeys: [
+      "rentvine.lease.renewal_writeback",
+      "boom.resident.enroll",
+    ] as readonly LeaseExecutionActionKey[],
+  },
+  {
+    id: "sheet_closeout",
+    label: "Renewal Sheet closeout and read-after-write reconciliation",
+    testActionKeys: [
+      "google_sheets.renewal_checklist.writeback",
+    ] as readonly LeaseExecutionActionKey[],
+  },
+] as const);
 
 export interface LeaseTestRunRecord {
   id: string;
@@ -93,6 +146,34 @@ export interface LeaseTestActionAttempt {
   provider_contacted: false;
   actor_uid: string;
   created_at: string;
+}
+
+export function leaseTestCompletionBoundary(
+  run: LeaseTestRunRecord,
+  receipts: readonly LeaseTestActionReceipt[],
+) {
+  const completedKeys = new Set(receipts.map((receipt) => receipt.action_key));
+  return {
+    appTestComplete:
+      run.status === "Done" &&
+      LEASE_TEST_ACTIONS.every((actionKey) => completedKeys.has(actionKey)),
+    businessCloseoutEligible: false as const,
+    businessCloseoutStatus: "not_proven" as const,
+    gates: LEASE_BUSINESS_CLOSEOUT_GATES.map((gate) => ({
+      id: gate.id,
+      label: gate.label,
+      internalTestReceiptCount: gate.testActionKeys.filter((actionKey) =>
+        completedKeys.has(actionKey),
+      ).length,
+      internalTestReceiptTotal: gate.testActionKeys.length,
+      outcome:
+        gate.testActionKeys.length === 0
+          ? ("not_represented" as const)
+          : gate.testActionKeys.every((actionKey) => completedKeys.has(actionKey))
+            ? ("internal_simulation_only" as const)
+            : ("test_evidence_incomplete" as const),
+    })),
+  };
 }
 
 export function nextLeaseTestRunStatus(

@@ -7,7 +7,7 @@ import {
   ResolveLeaseRenewalFlagInputSchema,
   resolveLeaseRenewalFlag,
 } from "@/lib/firestore/lease-renewal-resolutions";
-import { resolveRenewalRun } from "@/lib/lease-renewal/resolve-run";
+import { createRenewalRunResolver } from "@/lib/lease-renewal/resolve-run";
 
 // Resolve one lease-renewal reconciliation flag (§3.5: pick a source / enter a corrected value /
 // flag-is-wrong). The route gates at "read"; the data layer enforces the Approver/Admin rule, the
@@ -16,14 +16,14 @@ export async function POST(request: Request) {
   try {
     const user = await requireCapabilityInSpace("read", "renewals");
     const input = await parseJsonBody(request, ResolveLeaseRenewalFlagInputSchema);
-    // Inject the combined resolver so a live-review flag (run_id "live-review") no longer 404s: it
-    // rebuilds the live run for the live id and falls back to the simulation run otherwise. Passing
-    // `undefined` for db keeps the getAdminFirestore() default.
+    // Bind the resolver to the authenticated actor so persisted Test ids are accepted only after
+    // their isolated Test records are proven to exist. Live and deterministic simulation ids keep
+    // their existing read-only resolution paths.
     const resolution = await resolveLeaseRenewalFlag(
       user,
       input,
       undefined,
-      resolveRenewalRun,
+      createRenewalRunResolver(user),
     );
     const activity = await listLeaseRenewalResolutionActivity(
       user,

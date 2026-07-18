@@ -5,6 +5,7 @@
 // falls back to --epoch (default 0) and says so, so an operator on a fresh property still gets a token.
 //
 //   npm run intake:mint -- --property=<key> [--days=7] [--reusable] [--epoch=N]
+//   npm run intake:mint -- --test [--days=1] [--epoch=N]
 //
 // The token is single-use (≤7d) unless --reusable is passed (≤30d, for printed signage). POST the
 // report to /api/maintenance/intake/public with the token in the X-Intake-Token header.
@@ -20,6 +21,7 @@ import {
   INTAKE_TOKEN_MAX_TTL_MS,
   mintIntakeToken,
 } from "../lib/maintenance/intake-token";
+import { MAINTENANCE_TEST_PUBLIC_INTAKE } from "../lib/maintenance/test-workflow";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -68,7 +70,11 @@ async function main(): Promise<void> {
     return;
   }
 
-  const propertyKey = normalizeIntakePropertyKey(readArg("--property"));
+  const testMode = hasArg("--test");
+  const requestedProperty = normalizeIntakePropertyKey(readArg("--property"));
+  const propertyKey = testMode
+    ? MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey
+    : requestedProperty;
   if (!propertyKey) {
     console.error(
       "Pass --property=<key> (letters, digits, . _ : - ; must start alphanumeric).",
@@ -76,9 +82,23 @@ async function main(): Promise<void> {
     process.exitCode = 1;
     return;
   }
+  if (
+    testMode &&
+    requestedProperty &&
+    requestedProperty !== MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey
+  ) {
+    console.error("--test cannot target a non-Test property key.");
+    process.exitCode = 1;
+    return;
+  }
 
   const reusable = hasArg("--reusable");
-  const maxDays = reusable ? INTAKE_TOKEN_MAX_TTL_MS / DAY_MS : 7;
+  if (testMode && reusable) {
+    console.error("--test tokens are single-use and cannot use --reusable.");
+    process.exitCode = 1;
+    return;
+  }
+  const maxDays = testMode ? 1 : reusable ? INTAKE_TOKEN_MAX_TTL_MS / DAY_MS : 7;
   const requestedDays = Number(readArg("--days") ?? maxDays);
   const days = Math.min(
     Number.isFinite(requestedDays) && requestedDays > 0 ? requestedDays : maxDays,
@@ -99,17 +119,29 @@ async function main(): Promise<void> {
   const now = Date.now();
   const ttlMs = days * DAY_MS;
   const token = mintIntakeToken(
-    { secret, propertyKey, jti: randomUUID(), epoch, ttlMs, singleUse: !reusable },
+    {
+      secret,
+      propertyKey,
+      jti: randomUUID(),
+      epoch,
+      ttlMs,
+      singleUse: !reusable,
+      dataMode: testMode ? "test" : "live",
+    },
     now,
   );
 
   console.log(`property:   ${propertyKey}`);
+  console.log(`data mode:  ${testMode ? "test" : "live"}`);
   console.log(`single-use: ${!reusable}`);
   console.log(`expires:    ${new Date(now + ttlMs).toISOString()} (${days}d)`);
   console.log(`epoch:      ${epoch} [${epochSource}]`);
   console.log(
     `submit:     POST /api/maintenance/intake/public  (header: X-Intake-Token)`,
   );
+  if (testMode) {
+    console.log(`fixture:    ${JSON.stringify(MAINTENANCE_TEST_PUBLIC_INTAKE)}`);
+  }
   console.log(`token:      ${token}`);
 }
 

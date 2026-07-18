@@ -161,6 +161,24 @@ describe("setWorkflowRunStepCheck", () => {
     ).rejects.toThrow(EditableLayerError);
   });
 
+  it("rejects every checklist mutation after the run reaches a terminal state", async () => {
+    db.seed(`workflow_runs/${RUN_ID}`, {
+      ...db.store.get(`workflow_runs/${RUN_ID}`),
+      status: "Completed",
+    });
+
+    await expect(
+      setWorkflowRunStepCheck(
+        editor,
+        { run_id: RUN_ID, step_id: "step-1", status: "Checked" },
+        fs(),
+      ),
+    ).rejects.toThrow(/cannot be changed after a workflow run is closed/);
+    expect(
+      db.store.has(`workflow_run_step_checks/${stepCheckDocId(RUN_ID, "step-1")}`),
+    ).toBe(false);
+  });
+
   it("upserts by (run, step) — re-checking overwrites rather than duplicates", async () => {
     await setWorkflowRunStepCheck(
       editor,

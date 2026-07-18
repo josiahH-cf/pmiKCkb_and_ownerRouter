@@ -7,6 +7,7 @@ import { WORKFLOW_REPLY_POLICY_REF } from "@/lib/gmail-hub/governed-artifacts";
 import { communicationsRetentionFields } from "@/lib/gmail-hub/retention-policy";
 import {
   GmailAmbiguousSendError,
+  GmailAmbiguousWatchError,
   GmailHubError,
   GmailHubGateError,
   GmailHubService,
@@ -57,6 +58,9 @@ class FakeGmailClient extends GmailRuntimeClient {
   sendDelay: Promise<void> | null = null;
   reconcileResult: GmailSendResult | null = null;
   labelsApplied: Array<{ threadId: string; labelName: string }> = [];
+  watchCalls = 0;
+  watchError: Error | null = null;
+  watchDelay: Promise<void> | null = null;
   thread: GmailThreadView = {
     id: "thread-1",
     truncated: false,
@@ -140,6 +144,13 @@ class FakeGmailClient extends GmailRuntimeClient {
       labelIds: ["INBOX", "Label_1"],
     };
   }
+
+  override async watchMailbox() {
+    this.watchCalls += 1;
+    if (this.watchDelay) await this.watchDelay;
+    if (this.watchError) throw this.watchError;
+    return { historyId: "456", expiration: "2000000" };
+  }
 }
 
 function service(
@@ -214,6 +225,90 @@ describe("GmailHubService connection", () => {
     expect(client.profileCalls).toBe(1);
     expect(isActionExecutable("gmail.message.send")).toBe(false);
     expect(isActionExecutable("gmail.thread.reply")).toBe(true);
+  });
+});
+
+describe("GmailHubService watch confirmation", () => {
+  const topicName = "projects/pmi-kc-kb-prod/topics/gmail-replies";
+  const attemptKey = "018f5ca1-7b7c-7c3d-8b6f-5f83a36a5f51";
+
+  it("previews the exact effect and makes one provider attempt with bodyless readback", async () => {
+    const { hub, client, store } = service({ now: () => 1_000_000 });
+
+    await expect(hub.watchPreview(topicName)).resolves.toMatchObject({
+      mailboxEmail: actor.email,
+      topicName,
+      currentWatchExpirationMs: null,
+      risk: expect.stringContaining("Live Gmail watch mutation"),
+    });
+    const first = await hub.watchMailbox({
+      topicName,
+      attemptKey,
+      observedExpirationMs: null,
+    });
+    expect(first).toMatchObject({
+      outcome: "completed",
+      historyId: "456",
+      expiration: "2000000",
+      readback: {
+        state: "completed",
+        mailboxEmail: actor.email,
+        expirationMs: 2_000_000,
+      },
+    });
+    expect(client.watchCalls).toBe(1);
+
+    await expect(
+      hub.watchMailbox({ topicName, attemptKey, observedExpirationMs: null }),
+    ).resolves.toMatchObject({ outcome: "already_completed" });
+    expect(client.watchCalls).toBe(1);
+    expect(store.audit.map((entry) => entry.action)).toEqual([
+      "watch_attempt_claimed",
+      "watch_attempt_completed",
+    ]);
+    expect(JSON.stringify(store.audit)).not.toContain(attemptKey);
+    expect(JSON.stringify(store.audit)).not.toContain(topicName);
+  });
+
+  it("rejects stale previews before Gmail and consumes ambiguous attempt keys", async () => {
+    const stale = service({ now: () => 1_000_000 });
+    stale.store.mailboxStates.set(actor.email, {
+      mailbox_email: actor.email,
+      user_uid: actor.uid,
+      history_id: "123",
+      watch_expiration_ms: 1_500_000,
+      health: "watching",
+      updated_at_ms: 900_000,
+    });
+    await expect(
+      stale.hub.watchMailbox({
+        topicName,
+        attemptKey,
+        observedExpirationMs: null,
+      }),
+    ).rejects.toThrow(/state changed after preview/);
+    expect(stale.client.watchCalls).toBe(0);
+
+    const ambiguous = service({ now: () => 1_000_000 });
+    ambiguous.client.watchError = new Error("synthetic transport uncertainty");
+    await expect(
+      ambiguous.hub.watchMailbox({
+        topicName,
+        attemptKey,
+        observedExpirationMs: null,
+      }),
+    ).rejects.toBeInstanceOf(GmailAmbiguousWatchError);
+    await expect(
+      ambiguous.hub.watchMailbox({
+        topicName,
+        attemptKey,
+        observedExpirationMs: null,
+      }),
+    ).rejects.toThrow(/Do not retry that attempt key/);
+    expect(ambiguous.client.watchCalls).toBe(1);
+    expect(ambiguous.store.mailboxStates.get(actor.email)?.watch_attempt?.state).toBe(
+      "ambiguous",
+    );
   });
 });
 
