@@ -11,6 +11,33 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Approval slice terminal; same-page selection regression locally repaired
+
+- Date: 2026-07-18
+- The deployed pass-two run now has 34 terminal cases: 28 pass, five expected denials, one honest
+  `not_reachable` empty write-back state, 247 pending, and zero in progress. All seven isolated
+  Approval actions are terminal. Approve, return, snooze, assign, and disable changed only their
+  canonical Test app records; approval-and-execute and bulk Execute stopped before provider
+  construction with explicit no-external-write evidence.
+- Ten Approval read cases pass across the urgent inbox, All items, synthetic Renewal handoff, inline
+  eligibility, four reason/actor forms, and approval-versus-execution/bulk-skip boundaries. The
+  write-back view had no current proposal, so it records an honest `not_reachable` branch with the
+  bodyless authorization-never-means-execution boundary instead of an invented Live or sample row.
+- `APPROVAL-012` reproduced a new deployed cross-surface synchronization defect: same-page
+  `?item_id=` navigation changed the URL while the preserved client component retained the prior
+  detail until a refresh. `ApprovalQueue` now detects a changed route-owned initial selection and
+  atomically resets the view, selected item, detail/Activity, filters, action form, and bulk selection
+  to the streamed server state. A focused rerender regression test passes; format, lint (zero
+  errors/eight known warnings), typecheck, and the 12/12 component suite are green.
+- All seven Approval fixtures were restored to visibly Test / Ready for Approval after the action
+  suite. Both managed staff principals are restored to Admin with All spaces, no restricted session
+  is retained, and auth-preflight revision 3 records the honest posture. No provider call, Live
+  record, message send, secret, customer value, or external effect entered evidence.
+- Production still serves product commit `618602020599104e601b89fb59d2d53a959c9e6d` on revision
+  `pmi-kc-kb-demo-rmrqihw0o-e78cdaa5b501`; the selection repair is local until protected integration
+  and an exact-commit deployment. Next: integrate/deploy it, rerun `APPROVAL-012`, reconcile Approval
+  ledger/matrix rows from revision 17, then continue the remaining 247 cases.
+
 ## Vendor repair deployed; pass-two approval checkpoint is baseline-clean
 
 - Date: 2026-07-18
