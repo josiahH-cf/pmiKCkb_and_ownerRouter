@@ -1,7 +1,7 @@
 // NoticeRuleCard — renders the effective renewal-notice RULE read-only on a Space desk (S13 F2).
 // Reads the seeded config record (or the built-in DEFAULT set when none is seeded), resolves the
 // effective rule at the global scope, and shows each timing field with its provenance ("default" /
-// "property rule" / ...) and a Needs-Verification badge for any value Dan has not confirmed.
+// "property rule" / ...) and a Needs-Verification badge for any value not yet confirmed.
 //
 // Async server component; read-only; no send, no write. A missing/invalid config safely falls back to
 // the UNVERIFIED defaults via readNoticeRuleSet.
@@ -35,8 +35,8 @@ export async function NoticeRuleCard() {
       </ul>
       {summary.hasUnverified ? (
         <p className="muted">
-          These are starting defaults. They stay Needs Verification until Dan confirms the
-          values for the property or lease.
+          These are starting defaults. They stay Needs Verification until they are
+          confirmed for the property or lease.
         </p>
       ) : null}
     </Card>

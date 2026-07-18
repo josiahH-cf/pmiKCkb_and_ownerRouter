@@ -45,7 +45,7 @@ export function EvidencePacketCard({ packet }: Readonly<{ packet: EvidencePacket
       {packet.signoffRequired ? (
         <p className="muted">
           {packet.linesNeedingSignoff.length} line(s) at or above{" "}
-          {packet.repairSignoffThresholdFormatted} need Dan&apos;s explicit sign-off
+          {packet.repairSignoffThresholdFormatted} need the owner&apos;s explicit sign-off
           before use.
         </p>
       ) : null}
