@@ -11,6 +11,41 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Vendor repair deployed; pass-two approval checkpoint is baseline-clean
+
+- Date: 2026-07-18
+- Protected PR #77 integrated the bodyless Maintenance Vendor-handoff repair as product commit
+  `618602020599104e601b89fb59d2d53a959c9e6d`. Cloud Build
+  `aaeecd4a-3fe0-4454-b0e9-ac8ce3510066` built that exact source; revision
+  `pmi-kc-kb-demo-rmrqihw0o-e78cdaa5b501` serves it at 100% with image digest
+  `sha256:b3be8782bc12461d9018d3272fef238dc07d830b0794084e7fe3fe51c1c2b8e7`. The prior serving
+  revision `pmi-kc-kb-demo-rmrqf0ce6-ac7fc4d500ea` is retained for rollback.
+- Clean integrated validation passed 322 test files / 2,289 tests, format, typecheck, all governance
+  gates, production build, Firestore 59/59, and core E2E 32 passed / 18 intentional prerequisite
+  skips. Lint had zero errors/eight known warnings, and `npm audit --omit=dev` reported zero runtime
+  findings.
+- Deployed `VENDOR-PORTAL-011` now passes with the exact canonical Test assignment, Complete state,
+  bounded Waiting to Complete history, two simulated replies, and the next internal closeout action.
+  The projection is private/no-store/bodyless and proves no Gmail, OAuth, provider, credential, or
+  Live effect. The corresponding finding and capability rows are resolved/pass at sidecar revision 17.
+- The resumable run `artifacts/process-audit/20260718T101933Z-remediation-pass2/` now has 20 completed
+  cases (17 pass, three expected denials), 261 pending, and zero in progress. Approval approve,
+  return, snooze, and assign each have an exact intent/effect checkpoint, permanent bodyless DOM
+  evidence, and a terminal pass. The remaining Approval mutations begin at `APPROVAL-ACT-005`.
+- After capturing those results, all seven app-only Approval Test fixtures were restored to canonical
+  `Ready for Approval`. The temporary secondary restricted role was restored; both managed staff
+  identities are Admin with All spaces access. The isolated Editor/Renewals-only session was signed
+  out. Browser readback showed zero console errors, and structured evidence records seven restored
+  fixtures, two Admin baselines, and zero retained scoped sessions.
+- Auth-preflight revision 2 is intentionally honest at this stop: the primary Admin and clean public
+  contexts are ready; the prior Editor coverage is signed out/restored; a secondary Admin exists but
+  has no separate authenticated session; and the proven Test Vendor session is not retained. These
+  are reprovisioning tasks for their remaining bounded cases, not permission blockers.
+- Next: resume without replay from `20 / 261 / 0`, finish Approval disable and guarded execute/bulk
+  execute, continue every remaining surface, reconcile ledger/matrix rows, restore each temporary
+  fixture/session at its next safe boundary, finalize/validate the run, then integrate and deploy the
+  exact final commit for the closing browser and parity pass.
+
 ## Deployed pass two is active; Vendor handoff regression is locally repaired
 
 - Date: 2026-07-18
