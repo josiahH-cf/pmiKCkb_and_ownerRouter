@@ -5,7 +5,10 @@ import type {
   VendorTestMailboxRecord,
   VendorTestMailboxStore,
 } from "@/lib/vendor/test-mailbox";
-import { VendorTestMailboxService } from "@/lib/vendor/test-mailbox";
+import {
+  projectVendorTestMailboxHandoff,
+  VendorTestMailboxService,
+} from "@/lib/vendor/test-mailbox";
 
 const principal = {
   uid: "uid-test-summit",
@@ -158,6 +161,64 @@ describe("Vendor Test mailbox", () => {
       status: 404,
     });
     expect(saveTestMailbox).not.toHaveBeenCalled();
+  });
+
+  it("projects bodyless staff handoff state and reconstructs legacy label history", () => {
+    const legacy = {
+      id: "vendor:test-summit-plumbing:ticket:test-maple-leak",
+      vendorId: "vendor:test-summit-plumbing",
+      ticketId: "ticket:test-maple-leak",
+      threadId: "test-thread:ticket:test-maple-leak",
+      data_mode: "test",
+      liveEvidenceEligible: false,
+      subject: "Invented sink leak",
+      snippet: "Private simulated snippet",
+      label: "PMI/Vendor/Complete",
+      draftBody: "Private simulated draft",
+      messages: [
+        {
+          id: "private-message-id",
+          direction: "vendor_reply",
+          body: "Private simulated reply",
+          createdAt: "2026-07-15T12:01:00.000Z",
+        },
+      ],
+      createdAt: "2026-07-15T12:00:00.000Z",
+      updatedAt: "2026-07-15T12:02:00.000Z",
+    } as VendorTestMailboxRecord;
+
+    const handoff = projectVendorTestMailboxHandoff(legacy);
+
+    expect(handoff).toMatchObject({
+      ticketId: "ticket:test-maple-leak",
+      data_mode: "test",
+      currentState: "Complete",
+      draftPresent: true,
+      replyCount: 1,
+      externalProvider: false,
+      liveEvidenceEligible: false,
+      labelHistory: [{ state: "Waiting" }, { state: "Complete" }],
+    });
+    expect(JSON.stringify(handoff)).not.toContain("Private simulated");
+    expect(JSON.stringify(handoff)).not.toContain("private-message-id");
+    expect(JSON.stringify(handoff)).not.toContain("test-thread");
+    expect(JSON.stringify(handoff)).not.toContain("vendor:test-summit-plumbing");
+  });
+
+  it("appends bounded bodyless label history on every supported state action", async () => {
+    const { service } = harness();
+    await service.read("ticket:test-maple-leak");
+    await service.applyLabel("ticket:test-maple-leak", "PMI/Vendor/Waiting");
+    await service.applyLabel("ticket:test-maple-leak", "PMI/Vendor/Complete");
+
+    await expect(service.read("ticket:test-maple-leak")).resolves.toMatchObject({
+      label: "PMI/Vendor/Complete",
+      labelHistory: [
+        { label: "PMI/Vendor/Waiting" },
+        { label: "PMI/Vendor/Waiting" },
+        { label: "PMI/Vendor/Complete" },
+      ],
+    });
   });
 
   it("atomically preserves two distinct concurrent exact-confirmed replies", async () => {

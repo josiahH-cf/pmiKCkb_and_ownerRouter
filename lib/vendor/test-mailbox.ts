@@ -26,6 +26,11 @@ export interface VendorTestMailboxMessage {
   createdAt: string;
 }
 
+export interface VendorTestMailboxLabelEvent {
+  label: VendorTestMailboxLabel;
+  createdAt: string;
+}
+
 export interface VendorTestMailboxRecord {
   id: string;
   vendorId: string;
@@ -36,10 +41,27 @@ export interface VendorTestMailboxRecord {
   subject: string;
   snippet: string;
   label: VendorTestMailboxLabel;
+  labelHistory: VendorTestMailboxLabelEvent[];
   draftBody: string;
   messages: VendorTestMailboxMessage[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface VendorTestMailboxHandoff {
+  ticketId: string;
+  data_mode: "test";
+  currentState: "Waiting" | "Complete";
+  labelHistory: Array<{
+    state: "Waiting" | "Complete";
+    createdAt: string;
+  }>;
+  draftPresent: boolean;
+  replyCount: number;
+  updatedAt: string;
+  externalProvider: false;
+  liveEvidenceEligible: false;
+  nextAction: string;
 }
 
 export interface VendorTestMailboxConfirmation {
@@ -93,6 +115,71 @@ export interface VendorTestMailboxStore {
 
 const CONFIRMATION_MS = 10 * 60 * 1000;
 export const VENDOR_TEST_MAILBOX_MAX_MESSAGES = 100;
+export const VENDOR_TEST_MAILBOX_MAX_LABEL_HISTORY = 100;
+
+function labelState(label: VendorTestMailboxLabel): "Waiting" | "Complete" {
+  return label === "PMI/Vendor/Complete" ? "Complete" : "Waiting";
+}
+
+function validLabelEvent(value: unknown): value is VendorTestMailboxLabelEvent {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<VendorTestMailboxLabelEvent>;
+  return (
+    typeof candidate.createdAt === "string" &&
+    candidate.createdAt.length > 0 &&
+    VENDOR_TEST_MAILBOX_LABELS.includes(candidate.label as VendorTestMailboxLabel)
+  );
+}
+
+/**
+ * Older Test mailbox documents predate bodyless label history. Their first state is
+ * deterministic (Waiting), so a current Complete record can be reconstructed without
+ * inventing content: Waiting at creation, then Complete at the latest update.
+ */
+export function normalizeVendorTestMailboxRecord(
+  record: VendorTestMailboxRecord,
+): VendorTestMailboxRecord {
+  const rawHistory = (record as VendorTestMailboxRecord & { labelHistory?: unknown })
+    .labelHistory;
+  const history = Array.isArray(rawHistory)
+    ? rawHistory.filter(validLabelEvent).map((event) => ({ ...event }))
+    : [];
+  if (history.length === 0) {
+    history.push({ label: "PMI/Vendor/Waiting", createdAt: record.createdAt });
+  }
+  if (history.at(-1)?.label !== record.label) {
+    history.push({ label: record.label, createdAt: record.updatedAt });
+  }
+  return {
+    ...record,
+    labelHistory: history.slice(-VENDOR_TEST_MAILBOX_MAX_LABEL_HISTORY),
+  };
+}
+
+export function projectVendorTestMailboxHandoff(
+  record: VendorTestMailboxRecord,
+): VendorTestMailboxHandoff {
+  const mailbox = normalizeVendorTestMailboxRecord(record);
+  const currentState = labelState(mailbox.label);
+  return {
+    ticketId: mailbox.ticketId,
+    data_mode: "test",
+    currentState,
+    labelHistory: mailbox.labelHistory.map((event) => ({
+      state: labelState(event.label),
+      createdAt: event.createdAt,
+    })),
+    draftPresent: mailbox.draftBody.trim().length > 0,
+    replyCount: mailbox.messages.length,
+    updatedAt: mailbox.updatedAt,
+    externalProvider: false,
+    liveEvidenceEligible: false,
+    nextAction:
+      currentState === "Complete"
+        ? "Review completion evidence and continue the internal Maintenance closeout."
+        : "Await the Vendor update or follow up through the assigned Test mailbox.",
+  };
+}
 
 function boundedBody(body: string) {
   const value = body.trim();
@@ -154,7 +241,7 @@ export class VendorTestMailboxService {
       ) {
         throw new VendorBoundaryError("Test mailbox boundary is invalid.", 409);
       }
-      return existing;
+      return normalizeVendorTestMailboxRecord(existing);
     }
 
     const createdAt = new Date(this.now()).toISOString();
@@ -169,6 +256,7 @@ export class VendorTestMailboxService {
       snippet:
         "Simulated assigned-ticket thread. Replies stay inside the production Test workspace.",
       label: "PMI/Vendor/Waiting",
+      labelHistory: [{ label: "PMI/Vendor/Waiting", createdAt }],
       draftBody: "",
       messages: [],
       createdAt,
@@ -215,10 +303,14 @@ export class VendorTestMailboxService {
       throw new VendorBoundaryError("Choose an approved Test mailbox label.", 400);
     }
     const record = await this.mailbox(ticketId);
+    const nowIso = new Date(this.now()).toISOString();
     const updated = {
       ...record,
       label,
-      updatedAt: new Date(this.now()).toISOString(),
+      labelHistory: [...record.labelHistory, { label, createdAt: nowIso }].slice(
+        -VENDOR_TEST_MAILBOX_MAX_LABEL_HISTORY,
+      ),
+      updatedAt: nowIso,
     };
     const saved = await this.dependencies.store.saveTestMailbox({
       actorUid: this.principal.uid,

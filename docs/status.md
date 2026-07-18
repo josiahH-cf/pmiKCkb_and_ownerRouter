@@ -11,6 +11,33 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Deployed pass two is active; Vendor handoff regression is locally repaired
+
+- Date: 2026-07-18
+- Protected PR #76 integrated the validated remediation series as
+  `3033eac81629cd2a67a111256bbdc226b94edbce`. CI and the clean integrated all-in-one verifier passed.
+  The exact commit is serving 100% on revision `pmi-kc-kb-demo-rmrqf0ce6-ac7fc4d500ea`, image digest
+  `sha256:fefa53d611bf0a73c8669eed23f85a517030dfd00ca575666896ce21a6c79868`, under the managed
+  production runtime identity. `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` remains the rollback revision.
+- The resumable pass-two run has 12 terminal cases: nine pass, two expected denials, one reproduced
+  failure, and 269 pending. An isolated canonical `.invalid` Test Vendor completed exact Admin reset,
+  response-only password setup, mandatory TOTP enrollment and fresh challenge, assigned-ticket read,
+  simulated draft/label/exact reply, duplicate-click suppression, Waiting/Complete, cross-ticket denial,
+  and a bodyless route-level cross-mode denial. No Gmail/OAuth/provider/Live effect occurred; no setup
+  link, password, TOTP material, cookie, UID, mailbox body, or provider payload entered artifacts or git.
+- `VENDOR-PORTAL-011` reproduced a real cross-surface defect: Maintenance showed the Test assignment and
+  generic no-Live boundary but not current Vendor Waiting/Complete state, label history, or next internal
+  action. The case is honestly terminal `fail/gap` until redeployed verification.
+- Branch `codex/vendor-handoff-pass2` adds a Maintenance-read-gated, `private, no-store`, bodyless staff
+  projection. It validates the Test ticket/vendor/assignment/thread/mailbox join, returns only state,
+  bounded label history, draft-present boolean, reply count, update time, and next internal action, and
+  exposes no body, message/thread id, UID, credential, or provider value. Older mailbox documents
+  reconstruct their deterministic initial Waiting state and append current Complete when applicable.
+  Focused route/component/service/Firestore tests pass 34/34; format, lint, and typecheck are green.
+- Next: run the full verifier, integrate and deploy this exact repair, amend the failed deployed case with
+  bodyless production evidence, then continue the remaining capability matrix, separated role/public
+  sessions, ledger terminalization, deterministic baseline restoration, and final parity/report gates.
+
 ## Audit-remediation implementation and resumable evidence baseline are locally green
 
 - Date: 2026-07-18

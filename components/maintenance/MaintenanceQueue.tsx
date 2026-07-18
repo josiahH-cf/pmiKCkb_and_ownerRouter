@@ -18,6 +18,7 @@ import {
   type MaintenanceTestActionKey,
   type MaintenanceTestActionReceipt,
 } from "@/lib/maintenance/test-workflow";
+import type { VendorTestMailboxHandoff } from "@/lib/vendor/test-mailbox";
 
 // The staff ticket queue (console overhaul Slice E). Lists persisted tickets grouped Open-first, with
 // one-change-per-action lifecycle transitions (status / note / close-with-reason). Closed tickets
@@ -453,6 +454,9 @@ function TicketCard({
       ) : ticket.vendor_id ? (
         <p className="muted">A Live Vendor is assigned.</p>
       ) : null}
+      {ticket.data_mode === "test" && ticket.vendor_id === MAINTENANCE_TEST_VENDOR.id ? (
+        <VendorTestHandoff ticketId={ticket.id} />
+      ) : null}
       <div className="field-row">
         <input
           aria-label={`Note for ${ticket.summary}`}
@@ -731,6 +735,78 @@ function TicketHistory({ ticketId }: Readonly<{ ticketId: string }>) {
             </li>
           ))}
         </ul>
+      ) : null}
+    </details>
+  );
+}
+
+function VendorTestHandoff({ ticketId }: Readonly<{ ticketId: string }>) {
+  const [handoff, setHandoff] = useState<VendorTestMailboxHandoff | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function load() {
+    if (loaded || loading) return;
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/maintenance/tickets/${encodeURIComponent(ticketId)}/vendor-handoff`,
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        handoff?: VendorTestMailboxHandoff;
+        error?: string;
+      };
+      if (response.ok && payload.handoff) {
+        setHandoff(payload.handoff);
+        setLoaded(true);
+      } else {
+        setError(payload.error ?? "Could not load the Test Vendor handoff.");
+      }
+    } catch {
+      setError("Could not load the Test Vendor handoff.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <details
+      className="ui-stack vendor-test-handoff"
+      onToggle={(event) => {
+        if ((event.target as HTMLDetailsElement).open) void load();
+      }}
+    >
+      <summary>Vendor handoff</summary>
+      {loading ? <p className="muted">Loading Vendor handoff…</p> : null}
+      {error ? <p className="muted">{error}</p> : null}
+      {handoff ? (
+        <section className="ui-callout ui-stack" aria-label="Test Vendor handoff">
+          <p>
+            <strong>Current Vendor mailbox state:</strong> {handoff.currentState}
+          </p>
+          <p className="muted">
+            Draft ready: {handoff.draftPresent ? "Yes" : "No"} · Simulated replies:{" "}
+            {handoff.replyCount}
+          </p>
+          <p>
+            <strong>Next internal action:</strong> {handoff.nextAction}
+          </p>
+          <p className="muted">
+            Bodyless Test projection only. No reply body, provider payload, Gmail, OAuth,
+            external delivery, or Live-proof eligibility is exposed here.
+          </p>
+          <h4>Vendor mailbox state history</h4>
+          <ul aria-label="Vendor mailbox state history">
+            {handoff.labelHistory.map((entry, index) => (
+              <li key={`${entry.createdAt}:${entry.state}:${index}`}>
+                <span className="muted">{formatHistoryStamp(entry.createdAt)}</span>{" "}
+                {entry.state}
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
     </details>
   );

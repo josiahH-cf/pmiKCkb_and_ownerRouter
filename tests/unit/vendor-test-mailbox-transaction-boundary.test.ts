@@ -46,6 +46,7 @@ function seedAuthorizedLane(fake: FakeFirestore) {
     priority: "Normal",
     priority_provenance: "operator-set",
     summary: "Invented sink leak",
+    vendor_id: vendorId,
     source_state: "verified",
     created_at: "2026-07-15T00:00:00.000Z",
     updated_at: "2026-07-15T12:00:00.000Z",
@@ -63,6 +64,9 @@ function mailbox(): VendorTestMailboxRecord {
     subject: "Invented sink leak",
     snippet: "Invented Test mailbox",
     label: "PMI/Vendor/Waiting",
+    labelHistory: [
+      { label: "PMI/Vendor/Waiting", createdAt: "2026-07-15T12:00:00.000Z" },
+    ],
     draftBody: "",
     messages: [],
     createdAt: "2026-07-15T12:00:00.000Z",
@@ -87,6 +91,53 @@ function confirmation(): VendorTestMailboxConfirmation {
 }
 
 describe("Firestore Test mailbox transactional authorization", () => {
+  it("returns a bodyless staff handoff only for the active Test ticket join", async () => {
+    const fake = new FakeFirestore();
+    seedAuthorizedLane(fake);
+    const store = new FirestoreVendorStore(fake as unknown as Firestore);
+    const initialMailbox = mailbox();
+    await store.saveTestMailbox({
+      actorUid,
+      record: initialMailbox,
+      expectedUpdatedAt: null,
+    });
+    fake.seed(mailboxPath, {
+      ...initialMailbox,
+      label: "PMI/Vendor/Complete",
+      labelHistory: undefined,
+      draftBody: "Private simulated draft",
+      messages: [
+        {
+          id: "private-message-id",
+          direction: "vendor_reply",
+          body: "Private simulated reply",
+          createdAt: "2026-07-15T12:01:00.000Z",
+        },
+      ],
+      updatedAt: "2026-07-15T12:02:00.000Z",
+    });
+
+    const handoff = await store.getTestMailboxHandoffForStaff(ticketId);
+
+    expect(handoff).toMatchObject({
+      currentState: "Complete",
+      labelHistory: [{ state: "Waiting" }, { state: "Complete" }],
+      draftPresent: true,
+      replyCount: 1,
+      externalProvider: false,
+      liveEvidenceEligible: false,
+    });
+    expect(JSON.stringify(handoff)).not.toMatch(
+      /Private simulated|private-message-id|threadId|vendorId/i,
+    );
+
+    fake.seed(assignmentPath, {
+      ...(fake.store.get(assignmentPath) ?? {}),
+      active: false,
+    });
+    await expect(store.getTestMailboxHandoffForStaff(ticketId)).resolves.toBeNull();
+  });
+
   it.each(["disable", "deassign", "uid rotation", "reset claim", "unlink"] as const)(
     "denies an existing mailbox read after %s",
     async (boundaryChange) => {
