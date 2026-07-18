@@ -149,14 +149,15 @@ Acceptance:
 
 ### P8 - Production Release and Human Walkthrough
 
-Status: in progress — the validated 137-finding remediation is integrated as
-`3033eac81629cd2a67a111256bbdc226b94edbce` and deployed at 100% on
-`pmi-kc-kb-demo-rmrqf0ce6-ac7fc4d500ea`. Every finding remains mapped to an applicable repair or
-evidence-based exclusion and all 281 capabilities carry their pass-one baseline. Deployed pass two is
-running with separated Test Vendor evidence. It reproduced one missing Maintenance Vendor-handoff
-projection; `codex/vendor-handoff-pass2` contains the locally green bodyless repair. Exact repair
-integration/deployment, the remaining 269 cases, restricted-staff/secondary-Admin/public session
-coverage, ledger/matrix terminalization, deterministic restoration, and final parity/report gates remain.
+Status: in progress — the validated remediation and its first deployed regression repair are
+integrated through product commit `618602020599104e601b89fb59d2d53a959c9e6d`, which serves at 100%
+on `pmi-kc-kb-demo-rmrqihw0o-e78cdaa5b501`. Every finding remains mapped to an applicable repair or
+evidence-based exclusion and all 281 capabilities carry their pass-one baseline. Deployed pass two
+has 20 terminal cases (17 pass, three expected denials), 261 pending, and zero in progress. The
+Maintenance Vendor-handoff regression is fixed and proven. Approval approve/return/snooze/assign are
+also proven; all seven approval fixtures, both Admin/All-spaces staff baselines, and the signed-out
+restricted session are at a clean stop boundary. Remaining cases, temporary-session reprovisioning,
+ledger/matrix terminalization, final restoration, exact final deployment, and parity/report gates remain.
 
 Acceptance:
 
@@ -176,10 +177,10 @@ Acceptance:
 
 Current serving release, 2026-07-18:
 
-- Successful Cloud Build `d17c365e-01f0-4572-b7f1-0404df959b5e` produced serving revision
-  `pmi-kc-kb-demo-rmrqf0ce6-ac7fc4d500ea` for integrated commit `3033eac` and digest
-  `sha256:fefa53d611bf0a73c8669eed23f85a517030dfd00ca575666896ce21a6c79868`; its captured
-  rollback revision is `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28`.
+- Successful Cloud Build `aaeecd4a-3fe0-4454-b0e9-ac8ce3510066` produced serving revision
+  `pmi-kc-kb-demo-rmrqihw0o-e78cdaa5b501` for integrated product commit `6186020` and digest
+  `sha256:b3be8782bc12461d9018d3272fef238dc07d830b0794084e7fe3fe51c1c2b8e7`; its captured
+  rollback revision is `pmi-kc-kb-demo-rmrqf0ce6-ac7fc4d500ea`.
 - Production Test Lease run `test-renewal-019f6599-af50-7451-88ea-e2592fc001a2` reached Done with
   eleven receipts, eleven attempts, zero Live calls, and refresh-safe persisted state.
 - The Admin Test workspace passed Vendor 11/11, Lease 11/11, and Maintenance 19/19 with zero Live
@@ -193,8 +194,10 @@ Current serving release, 2026-07-18:
   desktop and 375px phone widths. Production acceptance found Approval Queue's implicit
   server/browser time-zone hydration mismatch; the deployed formatter now explicitly uses
   `America/Chicago`, with a regression test pinning stable output.
-- Global MFA and the TOTP provider are enabled. Human Test Vendor password/TOTP/assigned-ticket/
-  mailbox/disable/reset acceptance remains explicit P8 work.
+- Global MFA and the TOTP provider are enabled. Deployed pass two proved the canonical Test Vendor
+  password/TOTP, assigned-ticket isolation, mailbox actions, disable/reset, stale-session denial, and
+  fresh authentication lifecycle without retaining secret-bearing evidence; its reusable session is
+  intentionally not retained at the current stop boundary.
 - Historical `f02112d / 00025-mhw` traffic was routed 100% to
   `pmi-kc-kb-demo-00024-6b2`, the auth boundary and signed-in Console were verified, and traffic was
   restored to `00025-mhw`. The final release separately moved 100% traffic from
@@ -203,11 +206,10 @@ Current serving release, 2026-07-18:
   unauthenticated `/ask` redirected to `/sign-in`, and the signed-in Console worked. Traffic was
   restored 100% to the final revision with the same healthy boundaries and no final-revision ERROR
   log entries.
-- The deployed release's clean-install all-in-one verifier passed format, lint (0 errors/8 known
-  warnings), typecheck, unit (306 files/2,179 tests), Firestore (17/59), core E2E (32 passed/18 intentional prerequisite
-  skips), governance/redaction/falsification, spec traceability (124 acceptance criteria/14 specs),
-  `cutover:dry-run`, and the 76-of-76 production build. Full audit: three Moderate dev-only findings,
-  zero High/Critical; runtime audit: zero findings.
+- The current product commit's clean integrated all-in-one verifier passed format, lint (0 errors/8
+  known warnings), typecheck, unit (322 files/2,289 tests), Firestore 59/59, core E2E 32 passed / 18
+  intentional prerequisite skips, governance/redaction/falsification/spec/context gates, and the
+  production build. Runtime audit: zero findings.
 - The deploy wrapper now creates a collision-resistant named revision and then promotes that exact
   revision to 100% traffic, so a prior
   named-revision rollback pin cannot silently leave the new revision unserved. Its public sign-in
