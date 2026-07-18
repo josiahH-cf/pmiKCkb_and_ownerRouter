@@ -5,6 +5,7 @@ export { Button } from "./Button";
 export { Card } from "./Card";
 export { Disclosure } from "./Disclosure";
 export { EmptyState } from "./EmptyState";
+export { Field } from "./Field";
 export { Metric } from "./Metric";
 export { ModeChip } from "./ModeChip";
 export { PageHeader } from "./PageHeader";

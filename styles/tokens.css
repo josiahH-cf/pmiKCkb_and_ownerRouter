@@ -73,6 +73,17 @@
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
+
+  /* Required-field + guided-input tokens (FDS-1). --color-required is ALWAYS paired with a
+     non-color cue (asterisk glyph + a .sr-only "(required)") so a required field never signals
+     by color alone (POUR / baseline principle 14). --font-size-min is the legibility floor the
+     later tiny-text purge (LFW-2) raises sub-floor sizes up to; --field-hint-size is the guided
+     example/hint size. New surfaces consume these; existing bespoke classes keep their literals. */
+  --color-required: #9b2c2c; /* independent literal (validated ~7:1 on white) so a functional
+     status-red retune never silently moves the required/error affordance; shares the "unmet" red
+     with --state-no-source today but is deliberately decoupled. */
+  --font-size-min: 0.8rem;
+  --field-hint-size: var(--font-size-min);
 }
 
 .topbar {
@@ -211,6 +222,46 @@
 .primary-button--accent:active {
   background: var(--color-primary-700);
   border-color: var(--color-primary-700);
+}
+
+/* Prominent next-right-action (FDS-2). Composes with .primary-button / .secondary-button to
+   give the single primary action extra visual weight; the 44px tap floor is already exceeded,
+   so this is about obviousness, not accessibility minimums (baseline principles 6, 8). */
+.button--large {
+  font-size: 1.05rem;
+  min-height: 52px;
+  padding: 14px 22px;
+}
+
+/* Guided-input field wrapper (FDS-3). One labelled control with an optional required asterisk
+   (always paired with a .sr-only "(required)") and an optional example/hint line, so every
+   data-entry field states what it expects and marks required inputs (baseline principles 2, 3, 12). */
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field-label {
+  color: var(--color-text);
+  font-weight: 650;
+}
+
+.field-required {
+  color: var(--color-required);
+  margin-left: 2px;
+}
+
+.field-hint {
+  color: var(--color-text-muted);
+  font-size: var(--field-hint-size);
+  line-height: 1.35;
+}
+
+.field-error {
+  color: var(--color-required);
+  font-size: var(--field-hint-size);
+  font-weight: 650;
+  line-height: 1.35;
 }
 
 .auth-actions {

@@ -5,7 +5,7 @@
 import type { ButtonHTMLAttributes } from "react";
 
 type ButtonVariant = "primary" | "secondary";
-type ButtonSize = "default" | "compact";
+type ButtonSize = "default" | "compact" | "large";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -22,6 +22,7 @@ export function Button({
   const classes = [
     variant === "primary" ? "primary-button" : "secondary-button",
     size === "compact" ? "compact-button" : null,
+    size === "large" ? "button--large" : null,
     className,
   ]
     .filter(Boolean)

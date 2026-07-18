@@ -10,6 +10,7 @@ import {
   Card,
   Disclosure,
   EmptyState,
+  Field,
   ModeChip,
   PageHeader,
   SourceTag,
@@ -45,6 +46,84 @@ describe("Button", () => {
     const button = screen.getByRole("button", { name: "Cancel" });
     expect(button).toHaveClass("secondary-button", "compact-button", "extra");
     expect(button).not.toHaveClass("primary-button");
+  });
+
+  it("renders a large, prominent primary button for the next-right-action", () => {
+    render(<Button size="large">Continue</Button>);
+    const button = screen.getByRole("button", { name: "Continue" });
+    expect(button).toHaveClass("primary-button", "button--large");
+    expect(button).not.toHaveClass("compact-button");
+  });
+});
+
+describe("Field", () => {
+  it("marks a required field with an aria-hidden asterisk, sets aria-required, and wires the hint", () => {
+    render(
+      <Field
+        htmlFor="reason"
+        hint="for example: approved per owner"
+        label="Reason"
+        required
+      >
+        <input id="reason" />
+      </Field>,
+    );
+    const star = screen.getByText("*");
+    expect(star).toHaveClass("field-required");
+    expect(star).toHaveAttribute("aria-hidden", "true");
+
+    const input = screen.getByLabelText(/Reason/);
+    expect(input).toHaveAttribute("aria-required", "true");
+    expect(input).toHaveAttribute("aria-describedby", "reason-hint");
+    expect(screen.getByText("for example: approved per owner")).toHaveAttribute(
+      "id",
+      "reason-hint",
+    );
+  });
+
+  it("defaults the control id from htmlFor and omits required/aria when not required", () => {
+    render(
+      <Field htmlFor="note" label="Note">
+        <textarea />
+      </Field>,
+    );
+    expect(screen.queryByText("*")).not.toBeInTheDocument();
+    const control = screen.getByLabelText("Note");
+    expect(control).toHaveAttribute("id", "note"); // id defaulted from htmlFor
+    expect(control).not.toHaveAttribute("aria-required");
+    expect(control).not.toHaveAttribute("aria-describedby");
+    expect(control).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("preserves a pre-existing aria-describedby and merges error + hint ids in priority order", () => {
+    render(
+      <Field
+        error="Enter a reason"
+        htmlFor="reason"
+        hint="for example: approved"
+        label="Reason"
+        required
+      >
+        <input aria-describedby="external-help" id="reason" />
+      </Field>,
+    );
+    const input = screen.getByLabelText(/Reason/);
+    expect(input).toHaveAttribute(
+      "aria-describedby",
+      "external-help reason-error reason-hint",
+    );
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter a reason");
+  });
+
+  it("supports an invalid (incomplete) state without an error message", () => {
+    render(
+      <Field htmlFor="unit" invalid label="Unit" required>
+        <input id="unit" />
+      </Field>,
+    );
+    expect(screen.getByLabelText(/Unit/)).toHaveAttribute("aria-invalid", "true");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
 
