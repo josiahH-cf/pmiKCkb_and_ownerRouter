@@ -1,27 +1,36 @@
 "use client";
 
 // Global "Report an issue" affordance (TIX-1/2/5/9). A persistent bottom-right button on every
-// signed-in page opens a lightweight dialog that auto-captures the page context (route, viewport,
-// and the last element the user interacted with — identity only, never input values) and an OPTIONAL
-// free-text description, then POSTs an AI-ready report to /api/report-issue. Zero required fields, so
-// one click still submits a context-rich report. The transactional email send is owner-configured
-// (TIX-6); this component only assembles + submits the report.
+// signed-in page opens a lightweight dialog that auto-captures the page context (route + viewport +
+// the IDENTITY of the last control the user interacted with) and an OPTIONAL free-text description,
+// then POSTs an AI-ready report to /api/report-issue. Zero required fields, so one click still
+// submits a context-rich report. The transactional email send is owner-configured (TIX-6).
+//
+// PRIVACY (TIX-8): the element hint is stable identity attributes ONLY (tag/role/type/id/data-testid).
+// aria-label and textContent are deliberately NOT captured — in this app they embed customer/staff
+// data (emails, ticket summaries, tenant names/addresses), so emitting them would leak PII. The route
+// is captured as the pathname only (no query string), for the same reason.
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Field } from "@/components/ui";
 
-type ElementHint = { tag: string; role?: string; name?: string; testId?: string };
+type ElementHint = {
+  tag: string;
+  role?: string;
+  type?: string;
+  id?: string;
+  testId?: string;
+};
 type SubmitStatus = "idle" | "sending" | "sent" | "error";
 
-// Identity of a DOM element for the "which button?" inference — NEVER the value of an input.
+// Identity ONLY — never aria-label or textContent (both carry rendered app data in this codebase).
 function describeElement(node: EventTarget | null): ElementHint | undefined {
   if (!(node instanceof HTMLElement)) return undefined;
-  const ariaLabel = node.getAttribute("aria-label") ?? undefined;
-  const text = (node.textContent ?? "").trim().replace(/\s+/g, " ").slice(0, 80);
   return {
     tag: node.tagName.toLowerCase(),
     role: node.getAttribute("role") ?? undefined,
-    name: ariaLabel ?? (text || undefined),
+    type: node.getAttribute("type") ?? undefined,
+    id: node.id || undefined,
     testId: node.getAttribute("data-testid") ?? undefined,
   };
 }
@@ -32,19 +41,28 @@ export function ReportIssueButton() {
   const [status, setStatus] = useState<SubmitStatus>("idle");
   const [message, setMessage] = useState("");
   const lastElementRef = useRef<ElementHint | undefined>(undefined);
+  const openRef = useRef(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  // Remember the last element the user meaningfully interacted with, app-wide. Interactions with the
-  // report widget itself are ignored so it never reports on its own controls.
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
+
+  const close = useCallback(() => {
+    setOpen(false);
+    setDescription("");
+    triggerRef.current?.focus();
+  }, []);
+
+  // Remember the last control the user meaningfully interacted with, app-wide. Never tracks while the
+  // dialog is open (so a backdrop/dialog click can't make the report describe the widget itself), and
+  // ignores the trigger itself (the click that opens the dialog).
   useEffect(() => {
     function remember(event: Event) {
+      if (openRef.current) return;
       const target = event.target;
-      if (target instanceof Node) {
-        if (dialogRef.current?.contains(target) || triggerRef.current?.contains(target)) {
-          return;
-        }
-      }
+      if (target instanceof Node && triggerRef.current?.contains(target)) return;
       const hint = describeElement(event.target);
       if (hint) lastElementRef.current = hint;
     }
@@ -56,29 +74,53 @@ export function ReportIssueButton() {
     };
   }, []);
 
-  // Escape closes the dialog and restores focus to the trigger.
+  // On open: move focus into the dialog (textarea) and let Escape close it. On send: move focus to the
+  // Close button so keyboard users are never stranded.
   useEffect(() => {
     if (!open) return;
+    dialogRef.current?.querySelector<HTMLElement>("textarea, button")?.focus();
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") close();
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, close]);
 
-  function close() {
-    setOpen(false);
-    setDescription("");
-    triggerRef.current?.focus();
+  useEffect(() => {
+    if (status === "sent") {
+      dialogRef.current?.querySelector<HTMLElement>("button")?.focus();
+    }
+  }, [status]);
+
+  // Trap Tab within the dialog while it is open (aria-modal contract).
+  function trapFocus(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Tab") return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const focusables = Array.from(
+      dialog.querySelectorAll<HTMLElement>(
+        'button, textarea, input, select, a[href], [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((el) => !el.hasAttribute("disabled"));
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   async function submit() {
     setStatus("sending");
     setMessage("");
     const context = {
-      route: window.location.pathname + window.location.search,
+      route: window.location.pathname,
       viewport: `${window.innerWidth}x${window.innerHeight}`,
-      userAgent: navigator.userAgent,
+      userAgent: navigator.userAgent.slice(0, 400),
       element: lastElementRef.current,
     };
     try {
@@ -132,6 +174,7 @@ export function ReportIssueButton() {
             aria-labelledby="report-issue-title"
             aria-modal="true"
             className="panel report-issue-dialog"
+            onKeyDown={trapFocus}
             role="dialog"
           >
             <h2 id="report-issue-title">Report an issue</h2>

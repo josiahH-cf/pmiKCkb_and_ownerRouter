@@ -9,6 +9,13 @@ import { ReportIssueButton } from "@/components/feedback/ReportIssueButton";
 
 let fetchMock: ReturnType<typeof vi.fn>;
 
+function bodyOf(mock: ReturnType<typeof vi.fn>): {
+  description?: string;
+  context: { route: string; element?: Record<string, string> };
+} {
+  return JSON.parse(String((mock.mock.calls[0][1] as RequestInit).body));
+}
+
 beforeEach(() => {
   fetchMock = vi.fn(async () => ({
     ok: true,
@@ -41,7 +48,7 @@ describe("ReportIssueButton", () => {
     expect(screen.getByText(/Be as descriptive as possible/)).toBeInTheDocument();
   });
 
-  it("submits the captured page context (route + last-element identity) and shows a receipt", async () => {
+  it("submits the route + last-element IDENTITY (not its content) and shows a receipt", async () => {
     const user = userEvent.setup();
     render(
       <div>
@@ -52,41 +59,85 @@ describe("ReportIssueButton", () => {
       </div>,
     );
 
-    // Interact with another control so it becomes the remembered "last element".
     await user.click(screen.getByTestId("save-btn"));
     await user.click(screen.getByRole("button", { name: "Report an issue" }));
-    await user.type(screen.getByLabelText(/What went wrong/), "Save does nothing");
+    await user.type(screen.getByLabelText(/What went wrong/), "It does nothing");
     await user.click(screen.getByRole("button", { name: "Send report" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(String(url)).toBe("/api/report-issue");
-    const body = JSON.parse(String(init.body));
-    expect(body.description).toBe("Save does nothing");
+    expect(String(fetchMock.mock.calls[0][0])).toBe("/api/report-issue");
+    const body = bodyOf(fetchMock);
+    expect(body.description).toBe("It does nothing");
     expect(typeof body.context.route).toBe("string");
-    expect(body.context.element.name).toBe("Save");
-    expect(body.context.element.testId).toBe("save-btn");
+    expect(body.context.element).toMatchObject({ tag: "button", testId: "save-btn" });
+    expect(body.context.element).not.toHaveProperty("name"); // no textContent/aria capture
 
     expect(await screen.findByText(/your report was captured/i)).toBeInTheDocument();
   });
 
-  it("captures element identity but NEVER an input's value", async () => {
+  it("never captures an input's value OR its data-derived aria-label", async () => {
     const user = userEvent.setup();
     render(
       <div>
-        <input aria-label="Secret" defaultValue="sensitive-value" />
+        <input
+          aria-label="Reason for changing tenant@example.com"
+          defaultValue="secret-value"
+        />
         <ReportIssueButton />
       </div>,
     );
 
-    await user.click(screen.getByLabelText("Secret"));
+    await user.click(screen.getByLabelText("Reason for changing tenant@example.com"));
     await user.click(screen.getByRole("button", { name: "Report an issue" }));
     await user.click(screen.getByRole("button", { name: "Send report" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body));
-    expect(JSON.stringify(body)).not.toContain("sensitive-value");
-    expect(body.context.element.name).toBe("Secret"); // aria-label, not the value
+    const raw = String((fetchMock.mock.calls[0][1] as RequestInit).body);
+    expect(raw).not.toContain("secret-value"); // input value
+    expect(raw).not.toContain("tenant@example.com"); // PII in aria-label
+    expect(bodyOf(fetchMock).context.element).not.toHaveProperty("name");
+  });
+
+  it("never captures a data cell's rendered text (tenant PII)", async () => {
+    const user = userEvent.setup();
+    render(
+      <div>
+        <table>
+          <tbody>
+            <tr>
+              <td data-testid="tenant-cell">John Doe, 123 Main St, $2000/mo</td>
+            </tr>
+          </tbody>
+        </table>
+        <ReportIssueButton />
+      </div>,
+    );
+
+    await user.click(screen.getByTestId("tenant-cell"));
+    await user.click(screen.getByRole("button", { name: "Report an issue" }));
+    await user.click(screen.getByRole("button", { name: "Send report" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const raw = String((fetchMock.mock.calls[0][1] as RequestInit).body);
+    expect(raw).not.toContain("John Doe");
+    expect(raw).not.toContain("123 Main");
+    expect(bodyOf(fetchMock).context.element).toMatchObject({
+      tag: "td",
+      testId: "tenant-cell",
+    });
+  });
+
+  it("Escape closes the dialog and restores focus to the trigger", async () => {
+    const user = userEvent.setup();
+    render(<ReportIssueButton />);
+
+    const trigger = screen.getByRole("button", { name: "Report an issue" });
+    await user.click(trigger);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(trigger).toHaveFocus();
   });
 
   it("closes on Cancel without sending", async () => {
