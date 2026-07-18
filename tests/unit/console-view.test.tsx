@@ -68,6 +68,24 @@ describe("ConsoleView", () => {
     expect(screen.getByRole("heading", { name: "Anticipated work" })).toBeInTheDocument();
   });
 
+  it("leads with the Ask portal and pushes Live Operations to the bottom (CON-1/CON-2, §E)", async () => {
+    render(await ConsoleView({ user: adminUser as never }));
+
+    const ask = screen.getByLabelText(/Question/);
+    const deck = screen.getByRole("heading", { name: "Needs your decision" });
+    const processes = screen.getByRole("heading", { name: "Processes" });
+    const liveBadge = screen.getByTestId("console-test-data-badge");
+
+    // CON-1: the Ask portal comes before the action deck (it leads the Console).
+    expect(
+      ask.compareDocumentPosition(deck) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // CON-2: Live Operations renders after the process strip (it is the bottom zone).
+    expect(
+      processes.compareDocumentPosition(liveBadge) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it("surfaces the needs-your-decision area with the top row as a deep link (no click-to-reveal)", async () => {
     render(await ConsoleView({ user: adminUser as never }));
 

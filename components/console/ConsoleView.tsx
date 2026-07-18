@@ -215,17 +215,21 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
         test run. Answers cite approved sources, and a test run never touches a system of
         record.
       </p>
-      {consoleProjections.map((projection) => (
-        <ConsoleLiveDataPanel key={projection.mode.kind} projection={projection} />
-      ))}
-      <ConsoleActionDeck canApprove={canApprove} cards={cards} />
+      {/* CON-1 (Note 2 §E): the Ask-a-Question portal leads the Console as its primary action. */}
       <AskForm canStartSimulation={canStartSimulation} processes={processes} />
+      {/* Decks stay on the Console (owner decision D-3: keep here AND mirror in Notifications). */}
+      <ConsoleActionDeck canApprove={canApprove} cards={cards} />
       <ConsoleAnticipatedWork
         groups={anticipatedGroups}
         canStart={canStartSimulation}
         startableDefinitionIds={startableDefinitionIds}
       />
       <ConsoleProcessStrip items={processItems} />
+      {/* CON-2 (Note 2 §E): Live Operations moves to the bottom as reference detail below the
+          action-first zones (progressive disclosure). */}
+      {consoleProjections.map((projection) => (
+        <ConsoleLiveDataPanel key={projection.mode.kind} projection={projection} />
+      ))}
     </section>
   );
 }
