@@ -356,6 +356,8 @@ const queueRiskSignalsSchema = z
   .optional();
 
 export const CreateApprovalQueueItemInputSchema = z.object({
+  data_mode: z.enum(["live", "test"]).optional(),
+  test_fixture_key: optionalTextSchema,
   process_run_ref: queueProcessRunRefSchema,
   space_id: optionalTextSchema,
   action_execution_id: optionalTextSchema,

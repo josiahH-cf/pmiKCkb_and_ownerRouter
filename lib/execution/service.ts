@@ -154,7 +154,7 @@ export async function prepareActionExecution(
         action_execution_context_hash: record.context_hash,
         action_execution_preview_hash: record.preview_hash,
         action_execution_target: input.approvalQueue.reviewTarget,
-        action_needed: `Approve and execute ${record.action_key}.`,
+        action_needed: `Approve ${record.action_key} for execution.`,
         affected_system_action: record.action_key,
         assignee_uid: actor.uid,
         audience_group: "Dan/Admin decisions",

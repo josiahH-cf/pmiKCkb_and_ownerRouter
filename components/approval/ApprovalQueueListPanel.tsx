@@ -43,6 +43,10 @@ export function QueueListPanel({
                 <span>{item.process_run_ref.label}</span>
               </span>
               <span className="queue-row-meta">
+                <QueuePill
+                  label={item.data_mode === "test" ? "TEST" : "LIVE"}
+                  tone="mode"
+                />
                 <QueuePill label={item.status} tone="status" />
                 <QueuePill label={item.risk} tone="risk" />
                 <span>Assignee: {displayValue(item.assignee_uid)}</span>
@@ -60,7 +64,7 @@ export function QueueListPanel({
 function QueuePill({
   label,
   tone,
-}: Readonly<{ label: string; tone: "risk" | "status" }>) {
+}: Readonly<{ label: string; tone: "mode" | "risk" | "status" }>) {
   return (
     <span className="queue-pill" data-tone={tone} data-value={label}>
       {label}

@@ -346,6 +346,10 @@ export interface QueueProcessRunRef {
 
 export interface ApprovalQueueItemRecord {
   id: string;
+  /** Legacy absence is Live; canonical audit fixtures explicitly carry Test. */
+  data_mode?: "live" | "test";
+  /** Stable identifier reserved for server-owned Test fixture restoration. */
+  test_fixture_key?: string;
   process_run_ref: QueueProcessRunRef;
   space_id?: string;
   action_execution_id?: string;

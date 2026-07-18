@@ -45,6 +45,48 @@ const pendingSetupVendor: TestVendorAdminProjection = {
 };
 
 describe("Vendor production Test workspace UI", () => {
+  it("loads only projected bodyless lifecycle history", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async () =>
+      json({
+        audit: [
+          {
+            action: "vendor.disabled",
+            createdAt: "2026-07-18T12:00:00.000Z",
+            mailboxScoped: false,
+            reasonRecorded: true,
+            ticketScoped: false,
+          },
+          {
+            action: "vendor.test_mailbox_reply",
+            createdAt: "2026-07-18T11:00:00.000Z",
+            mailboxScoped: true,
+            reasonRecorded: false,
+            ticketScoped: false,
+          },
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<VendorAdminPanel initialVendors={[pendingSetupVendor]} />);
+    await user.click(screen.getByRole("button", { name: "Load lifecycle audit" }));
+
+    const audit = await screen.findByRole("list", {
+      name: "Test Vendor lifecycle audit",
+    });
+    expect(audit).toHaveTextContent("vendor.disabled");
+    expect(audit).toHaveTextContent("reason hash: recorded");
+    expect(audit).toHaveTextContent("vendor.test_mailbox_reply");
+    expect(audit).toHaveTextContent("scope: Test mailbox");
+    expect(audit).not.toHaveTextContent("admin-secret-uid");
+    expect(audit).not.toHaveTextContent("secret-reason-hash");
+    expect(audit).not.toHaveTextContent("secret-mailbox-key");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/vendors/test/vendor%3Atest-summit-plumbing/audit",
+    );
+  });
+
   it.each(["active", "disabled"] as const)(
     "does not offer setup-link regeneration when a Test Vendor is %s",
     (status) => {

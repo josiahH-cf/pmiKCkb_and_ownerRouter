@@ -71,6 +71,10 @@ export function QueueDetailPanel({
           </div>
 
           <div className="queue-detail-grid">
+            <DetailField
+              label="Data mode"
+              value={selectedItem.data_mode === "test" ? "Test" : "Live"}
+            />
             <DetailField label="Status" value={selectedItem.status} />
             <DetailField label="Risk" value={selectedItem.risk} />
             <DetailField label="Audience" value={selectedItem.audience_group} />
@@ -94,6 +98,14 @@ export function QueueDetailPanel({
             />
           </div>
 
+          <p className="muted">
+            {selectedItem.data_mode === "test"
+              ? "Test fixture: this decision changes app-only Test state and cannot contact a provider."
+              : selectedItem.action_execution_id
+                ? "Approval authorizes the exact execution preview. It does not make the provider attempt; execution remains a separate owning-workflow action."
+                : "Approval changes this app decision only. It does not execute an external action."}
+          </p>
+
           <div className="queue-detail-actions">
             <a
               className="secondary-button compact-button"
@@ -108,7 +120,7 @@ export function QueueDetailPanel({
               title={actionAvailability?.approveReason}
               type="button"
             >
-              {selectedItem.action_execution_id ? "Approve and execute" : "Approve"}
+              {selectedItem.action_execution_id ? "Approve for execution" : "Approve"}
             </button>
             <button
               className="secondary-button compact-button"

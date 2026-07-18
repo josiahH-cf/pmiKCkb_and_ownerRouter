@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 
-import type { TestVendorAdminProjection } from "@/lib/vendor/admin-runtime";
+import type {
+  TestVendorAdminProjection,
+  TestVendorAuditProjection,
+} from "@/lib/vendor/admin-runtime";
 
 interface ExactPreview {
   previewHash: string;
@@ -35,6 +38,9 @@ export function VendorAdminPanel({
   const [disablePreview, setDisablePreview] = useState<ExactPreview | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [auditByVendor, setAuditByVendor] = useState<
+    Record<string, TestVendorAuditProjection[]>
+  >({});
 
   async function refresh() {
     const response = await fetch("/api/admin/vendors/test");
@@ -65,6 +71,34 @@ export function VendorAdminPanel({
         );
       }
       return payload ?? {};
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function loadAudit(vendorId: string) {
+    setBusy(true);
+    setMessage("Loading bodyless Test Vendor lifecycle history.");
+    try {
+      const response = await fetch(
+        `/api/admin/vendors/test/${encodeURIComponent(vendorId)}/audit`,
+      );
+      const payload = (await response.json().catch(() => null)) as {
+        audit?: TestVendorAuditProjection[];
+        error?: string;
+      } | null;
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "Test Vendor audit is unavailable.");
+      }
+      setAuditByVendor((current) => ({
+        ...current,
+        [vendorId]: payload?.audit ?? [],
+      }));
+      setMessage("Bodyless Test Vendor lifecycle history loaded.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Test Vendor audit is unavailable.",
+      );
     } finally {
       setBusy(false);
     }
@@ -315,6 +349,40 @@ export function VendorAdminPanel({
             Email verified: {vendor.emailVerified ? "yes" : "no"} · TOTP verified:{" "}
             {vendor.totpVerified ? "yes" : "not yet"}
           </p>
+          <div className="panel">
+            <h4>Lifecycle audit</h4>
+            <p className="muted">
+              Bodyless action history only. Identity values, reasons, setup links, TOTP
+              material, mailbox content, and ticket content are never displayed.
+            </p>
+            <button
+              className="secondary-button"
+              disabled={busy}
+              onClick={() => void loadAudit(vendor.vendorId)}
+              type="button"
+            >
+              Load lifecycle audit
+            </button>
+            {auditByVendor[vendor.vendorId] ? (
+              auditByVendor[vendor.vendorId].length > 0 ? (
+                <ol className="compact-list" aria-label="Test Vendor lifecycle audit">
+                  {auditByVendor[vendor.vendorId].map((entry, index) => (
+                    <li key={`${entry.createdAt}:${entry.action}:${index}`}>
+                      <strong>{entry.action}</strong> · {entry.createdAt} · reason hash:{" "}
+                      {entry.reasonRecorded ? "recorded" : "not applicable"} · scope:{" "}
+                      {entry.ticketScoped
+                        ? "assigned ticket"
+                        : entry.mailboxScoped
+                          ? "Test mailbox"
+                          : "Vendor lifecycle"}
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="muted">No lifecycle events are recorded yet.</p>
+              )
+            ) : null}
+          </div>
           {vendor.status === "pending_setup" ? (
             <div className="panel">
               <h4>Replace an expired or closed setup link</h4>
