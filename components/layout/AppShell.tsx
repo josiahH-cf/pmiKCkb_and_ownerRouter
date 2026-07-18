@@ -3,6 +3,7 @@ import { PmiWordmark } from "@/components/brand/PmiWordmark";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { NotificationMenu } from "@/components/layout/NotificationMenu";
 import { ReleaseStageBanner } from "@/components/layout/ReleaseStageBanner";
+import { ReportIssueButton } from "@/components/feedback/ReportIssueButton";
 import { can } from "@/lib/auth/roles";
 import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { PMI_WORDMARK, PRODUCT_NAME, type SpaceScope } from "@/lib/constants";
@@ -52,6 +53,8 @@ export function AppShell({
       </header>
       <ReleaseStageBanner />
       {children}
+      {/* TIX-1/2: persistent global "Report an issue" affordance on every signed-in page. */}
+      <ReportIssueButton />
     </div>
   );
 }
