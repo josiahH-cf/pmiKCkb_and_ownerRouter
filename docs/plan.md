@@ -1,6 +1,6 @@
 # PMI KC Working-App V1 Plan
 
-Last updated: 2026-07-15
+Last updated: 2026-07-18
 
 ## Release Contract
 
@@ -149,14 +149,14 @@ Acceptance:
 
 ### P8 - Production Release and Human Walkthrough
 
-Status: in progress — the pass-one production baseline remains Working-App V1 commit
-`38ebcf530e3fe193547806bace91246ccea20c0b` on
-`pmi-kc-kb-demo-rmrm9mp6v-04c897acee28`, while the authorized 137-finding remediation is implemented
-locally on `codex/process-audit-remediation-pass2` through commit `82fad97`. Every finding is mapped
-to an applicable repair or evidence-based exclusion and all 281 capabilities carry a pass-one
-baseline. Full validation, integration into `origin/main`, exact-commit deployment, separated role
-sessions, mandatory deployed pass two, regression repair if needed, and deterministic fixture/identity
-restoration remain before this remediation cycle is complete.
+Status: in progress — the validated 137-finding remediation is integrated as
+`3033eac81629cd2a67a111256bbdc226b94edbce` and deployed at 100% on
+`pmi-kc-kb-demo-rmrqf0ce6-ac7fc4d500ea`. Every finding remains mapped to an applicable repair or
+evidence-based exclusion and all 281 capabilities carry their pass-one baseline. Deployed pass two is
+running with separated Test Vendor evidence. It reproduced one missing Maintenance Vendor-handoff
+projection; `codex/vendor-handoff-pass2` contains the locally green bodyless repair. Exact repair
+integration/deployment, the remaining 269 cases, restricted-staff/secondary-Admin/public session
+coverage, ledger/matrix terminalization, deterministic restoration, and final parity/report gates remain.
 
 Acceptance:
 
@@ -174,13 +174,12 @@ Acceptance:
   password/TOTP access after reset without exposing secret-bearing values.
 - Commit is merged to `main`, pushed, deployed, and production smoke/browser checks pass.
 
-Current serving release, 2026-07-15:
+Current serving release, 2026-07-18:
 
-- Successful Cloud Build `f106ceb4-02d0-497c-b147-f716e04c0149` produced serving revision
-  `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` and digest
-  `sha256:25358a99d6f4890da64db6d3cb17b0ca7d3725c7f0251390b7c6dc8b12ba8103`; its captured
-  serving predecessor is `pmi-kc-kb-demo-rmrm8t6y7-d250f83ddfee`. Firestore ruleset
-  `63b31613-59ba-495c-9ef3-455a5c593f51` is released.
+- Successful Cloud Build `d17c365e-01f0-4572-b7f1-0404df959b5e` produced serving revision
+  `pmi-kc-kb-demo-rmrqf0ce6-ac7fc4d500ea` for integrated commit `3033eac` and digest
+  `sha256:fefa53d611bf0a73c8669eed23f85a517030dfd00ca575666896ce21a6c79868`; its captured
+  rollback revision is `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28`.
 - Production Test Lease run `test-renewal-019f6599-af50-7451-88ea-e2592fc001a2` reached Done with
   eleven receipts, eleven attempts, zero Live calls, and refresh-safe persisted state.
 - The Admin Test workspace passed Vendor 11/11, Lease 11/11, and Maintenance 19/19 with zero Live

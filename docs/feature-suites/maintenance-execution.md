@@ -71,7 +71,11 @@ reconciled, and auditable; unavailable providers remain visible without blocking
 - **Communication.** Live owner recipient comes from the configured property-owner source; Vendor mail
   stays in an assigned ticket. S24 artifacts and exact confirmation apply. Test owner notices are
   non-delivering receipts, while the Vendor Test mailbox persists draft/label/exact-reply inside the
-  app. A message cannot choose a Vendor, approve cost, or transition/close a ticket.
+  app. Staff see the Test Vendor handoff only through a read-gated, bodyless projection of the exact
+  Test ticket/vendor/assignment/thread/mailbox join: current Waiting/Complete state, bounded label
+  history, draft-present, reply count, update time, and next internal action. It never exposes message
+  bodies, message/thread identifiers, actor or Vendor UIDs, credentials, provider payloads, or Live
+  evidence. A message cannot choose a Vendor, approve cost, or transition/close a ticket.
 - **LeadSimple/QuickBooks.** Enabled Live actions use documented account contracts only. LeadSimple
   requires expected-stage mutation and exact readback. QuickBooks creates/reconciles one draft Bill
   with exact Vendor, amount/account, work order, property/unit, currency, and `Draft` state. Posting,

@@ -93,6 +93,10 @@ away, and an ambiguous outcome must reconcile before any correction.
 - The Test Vendor uses Firebase Email/Password and TOTP, sees only matching Test assignments,
   and uses the app-only Test mailbox. Test principals are rejected before OAuth/Gmail client
   construction.
+- Staff inspect Test Vendor handoff through the read-gated Maintenance projection. It may show only
+  current Waiting/Complete state, bounded bodyless label history, draft-present, reply count, update
+  time, and next internal action; never expose draft/reply bodies, message/thread ids, credentials,
+  UIDs, provider payloads, or Live evidence.
 - Live Vendor mailbox activation separately requires a routable verified email, TOTP,
   same-address OAuth, vault references, and assigned-ticket authorization.
 

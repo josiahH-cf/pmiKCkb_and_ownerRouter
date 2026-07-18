@@ -6,15 +6,24 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 ## Snapshot
 
 - Last updated: 2026-07-18.
-- The authorized end-to-end pass-one remediation cycle is active on
-  `codex/process-audit-remediation-pass2`. Eight coherent commits through `82fad97` locally repair the
-  Critical dependency, application state/routing defects, Test fixtures, Lease/Maintenance business
-  lifecycle gates, publication/version continuation, cross-surface handoffs, Live app-decision
-  projection, and resumable audit sidecars. The pass-two ledger gives every one of the 137 findings a
-  root cause and disposition: 106 applicable/in progress and 31 evidence-excluded. The capability
-  matrix maps all 281 stable cases and carries their pass-one result/evidence. Local `main` and
-  `origin/main` remain at `77ee76e2f0b814c5a3cec2596a296ec7fe8570b8`; nothing from this repair
-  branch is deployed yet.
+- The validated remediation series was integrated through protected PR #76. Local `main` and
+  `origin/main` are `3033eac81629cd2a67a111256bbdc226b94edbce`; CI and the clean integrated
+  all-in-one verifier passed. That exact commit is serving at 100% on revision
+  `pmi-kc-kb-demo-rmrqf0ce6-ac7fc4d500ea` with image digest
+  `sha256:fefa53d611bf0a73c8669eed23f85a517030dfd00ca575666896ce21a6c79868` and the
+  managed production runtime service account. The retained rollback revision is
+  `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28`.
+- The active regression-repair branch is `codex/vendor-handoff-pass2`. Deployed pass two has 12
+  terminal cases: nine pass, two expected denials, and one reproduced failure. The isolated canonical
+  Test Vendor completed reset, response-only password setup, TOTP enrollment/challenge, assigned-ticket
+  access, draft, approved label, exact reply, duplicate-click suppression, Waiting, Complete,
+  cross-ticket denial, and route-level cross-mode denial with zero provider/Live effects.
+- The reproduced failure is `VENDOR-PORTAL-011`: Maintenance showed the canonical Test assignment and
+  no-Live-communication boundary but not the bodyless Vendor mailbox state/history/next action. The
+  current branch adds a read-gated `no-store` Test projection and reconstructs legacy mailbox history
+  from the deterministic initial Waiting state plus current state. Focused route/component/service/
+  Firestore-boundary suites are 34/34 green; format, lint, and typecheck pass. The repair still needs
+  integration, exact-commit deployment, and deployed case-result amendment.
 - Deployed process-audit pass one is complete against the canonical Cloud Run application serving
   commit `38ebcf530e3fe193547806bace91246ccea20c0b`; the audit harness was built from local repository
   commit `2ca41cfe18de3ace79c7f4e1bf4c82474cf5be2c`. The resumable run
@@ -24,18 +33,17 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
   screenshots. All 32 reviewer-checklist items map to cases. No product defect was repaired in this
   pass. A later repair pass should consume `run-report.md`, `findings.jsonl`, and `manifest.json`
   without replaying completed Test mutations.
-- Focused remediation verification is green: runner 37/37, publication/workflow 28/28, Live renewal
-  projection and decision persistence 49/49, Lease Test/spec suites, Firestore suites, typecheck, and
-  lint with the eight existing warnings. The transitive `websocket-driver` lockfile is updated to the
-  fixed `0.7.5` release with a production-dependency regression assertion. Full repository validation
-  and the clean integrated-state verifier remain the next gate.
+- The pass-two ledger still maps all 137 pass-one findings (106 applicable/in progress and 31
+  evidence-excluded), and the capability matrix still maps all 281 stable cases. The run remains
+  resumable and running; 269 cases are pending. The Test Vendor identity/session is established, while
+  reusable restricted-staff and secondary-Admin session evidence plus the unauthenticated public check
+  remain to be made terminal in the auth sidecar.
 - The reusable runner now rejects inferred pass defaults, same-count contract drift, duplicate
   evidence references, unsafe sidecars, stale sidecar revisions, and non-idempotent amendment replay.
-  Pass two has bodyless auth, ledger, and capability checkpoints; role sessions are not terminally
-  ready until the deployed browser phase provisions and separates Admin, Editor, secondary Admin,
-  canonical Test Vendor, and public contexts.
-- Active branch: `codex/process-audit-remediation-pass2`; the pass-one main/deployed baseline is
-  unchanged and remains the rollback target until integration succeeds.
+  Pass two has bodyless auth, ledger, and capability checkpoints; finalization still requires separated
+  Admin, restricted staff, secondary Admin, canonical Test Vendor, and public contexts to be ready.
+- Active branch: `codex/vendor-handoff-pass2`; `3033eac` is the current integrated/deployed baseline and
+  `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` is the retained rollback revision.
 - Goal: resolve or evidence-based exclude all 137 pass-one findings, add deterministic isolated Test
   fixtures and role/session coverage, validate the full repository, integrate and deploy the exact
   verified commit, then complete a deployed browser pass two and restore every temporary Test
@@ -44,12 +52,6 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 - V1 truth: application readiness and provider activation are separate. Production carries Live
   records and visibly isolated persistent Test records. Test workflows may write app/Firestore
   state and reach Done, but their executors make zero external calls and never prove Live.
-- Current serving release: commit `38ebcf530e3fe193547806bace91246ccea20c0b`, successful Cloud
-  Build `f106ceb4-02d0-497c-b147-f716e04c0149`, revision
-  `pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` at 100% traffic, image digest
-  `sha256:25358a99d6f4890da64db6d3cb17b0ca7d3725c7f0251390b7c6dc8b12ba8103`, and Firestore
-  ruleset `63b31613-59ba-495c-9ef3-455a5c593f51`. Its captured serving predecessor is
-  `pmi-kc-kb-demo-rmrm8t6y7-d250f83ddfee`.
 
 ## Deployed and Proven
 
@@ -101,16 +103,14 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 
 ## Next Exact Actions
 
-1. Finish Tier-0/status documentation, then run format, lint, typecheck, full unit/Firestore/core-E2E,
-   falsification, redaction, context/spec gates, the all-in-one verifier, and pass-two running-state
-   integrity checks. Correct remediation-caused failures only.
-2. Use the established GitHub workflow to push and integrate the verified branch into `origin/main`;
-   recheck ADC/identity/budget/cutover state and deploy that exact integrated commit to the canonical
-   Cloud Run service, retaining the current revision as rollback target.
-3. Establish five isolated role/public browser contexts, run every safely reachable stable case on the
-   deployed revision, record pass-two evidence/findings/deltas, fix and redeploy any regression, make
-   all applicable ledger/matrix rows terminal, restore Test/Vendor/staff baselines, and finalize the
-   resumable run/report.
+1. Run the full validation stack on `codex/vendor-handoff-pass2`, integrate it through the protected
+   GitHub path, recheck ADC/identity/budget/cutover state, and deploy that exact integrated commit.
+2. Reopen the canonical Test Vendor session on the new revision, expand the Maintenance Vendor handoff,
+   record bodyless Waiting/Complete/history/next-action evidence, and amend `VENDOR-PORTAL-011` from the
+   reproduced failure to its verified deployed result.
+3. Continue every remaining stable case with grouped route evidence, establish restricted-staff,
+   secondary-Admin, and public contexts, terminalize all ledger/matrix rows, restore every Test/Vendor/
+   staff baseline, finalize the resumable report, and perform final exact-commit deployment parity.
 
 ## Advisory Post-V1 Activations
 

@@ -23,7 +23,11 @@ import { vendorRecordDataMode } from "@/lib/vendor/model";
 import type { VendorOAuthState, VendorOAuthStore } from "@/lib/vendor/oauth";
 import {
   VENDOR_TEST_MAILBOX_MAX_MESSAGES,
+  VENDOR_TEST_MAILBOX_LABELS,
+  normalizeVendorTestMailboxRecord,
+  projectVendorTestMailboxHandoff,
   type VendorTestMailboxConfirmation,
+  type VendorTestMailboxHandoff,
   type VendorTestMailboxRecord,
   type VendorTestMailboxReplyCommitResult,
   type VendorTestMailboxStore,
@@ -1119,6 +1123,83 @@ export class FirestoreVendorStore
     });
   }
 
+  async getTestMailboxHandoffForStaff(
+    ticketId: string,
+  ): Promise<VendorTestMailboxHandoff | null> {
+    const assignmentRef = this.db
+      .collection(VENDOR_COLLECTIONS.assignments)
+      .doc(ticketId);
+    const ticketRef = this.db.collection("maintenance_tickets").doc(ticketId);
+    return this.db.runTransaction(async (transaction) => {
+      const [assignmentSnapshot, ticketSnapshot] = await Promise.all([
+        transaction.get(assignmentRef),
+        transaction.get(ticketRef),
+      ]);
+      if (!assignmentSnapshot.exists || !ticketSnapshot.exists) return null;
+      const assignment = assignmentSnapshot.data() as AssignmentRecord;
+      const ticket = ticketSnapshot.data() as MaintenanceTicketRecord;
+      if (
+        !assignment.active ||
+        assignment.ticket_id !== ticketId ||
+        resolveDataMode(assignment) !== "test" ||
+        ticket.id !== ticketId ||
+        ticket.vendor_id !== assignment.vendor_id ||
+        resolveDataMode(ticket) !== "test"
+      ) {
+        return null;
+      }
+
+      const vendorId = assignment.vendor_id;
+      const vendorRef = this.db.collection(VENDOR_COLLECTIONS.vendors).doc(vendorId);
+      const mailboxRef = this.db
+        .collection(VENDOR_COLLECTIONS.testMailboxes)
+        .doc(`${vendorId}:${ticketId}`);
+      const [vendorSnapshot, mailboxSnapshot] = await Promise.all([
+        transaction.get(vendorRef),
+        transaction.get(mailboxRef),
+      ]);
+      if (!vendorSnapshot.exists || !mailboxSnapshot.exists) return null;
+      const vendor = vendorSnapshot.data() as VendorAuthenticationResetRecord;
+      const mailbox = mailboxSnapshot.data() as VendorTestMailboxRecord;
+      if (
+        vendor.id !== vendorId ||
+        vendorRecordDataMode(vendor) !== "test" ||
+        mailbox.id !== `${vendorId}:${ticketId}` ||
+        mailbox.vendorId !== vendorId ||
+        mailbox.ticketId !== ticketId ||
+        mailbox.data_mode !== "test" ||
+        mailbox.liveEvidenceEligible !== false ||
+        typeof mailbox.threadId !== "string" ||
+        mailbox.threadId.length === 0 ||
+        mailbox.threadId.includes("/") ||
+        !VENDOR_TEST_MAILBOX_LABELS.includes(mailbox.label) ||
+        typeof mailbox.draftBody !== "string" ||
+        !Array.isArray(mailbox.messages) ||
+        typeof mailbox.createdAt !== "string" ||
+        typeof mailbox.updatedAt !== "string"
+      ) {
+        return null;
+      }
+      const threadSnapshot = await transaction.get(
+        this.db
+          .collection(VENDOR_COLLECTIONS.threadLinks)
+          .doc(`${vendorId}:${ticketId}:${mailbox.threadId}`),
+      );
+      if (!threadSnapshot.exists) return null;
+      const thread = threadSnapshot.data() as ThreadLinkRecord;
+      if (
+        !thread.active ||
+        thread.vendor_id !== vendorId ||
+        thread.ticket_id !== ticketId ||
+        thread.thread_id !== mailbox.threadId ||
+        resolveDataMode(thread) !== "test"
+      ) {
+        return null;
+      }
+      return projectVendorTestMailboxHandoff(mailbox);
+    });
+  }
+
   async getTestMailbox(input: {
     actorUid: string;
     vendorId: string;
@@ -1187,7 +1268,7 @@ export class FirestoreVendorStore
         thread.ticket_id === input.ticketId &&
         thread.thread_id === mailbox.threadId &&
         resolveDataMode(thread) === "test"
-        ? mailbox
+        ? normalizeVendorTestMailboxRecord(mailbox)
         : null;
     });
   }
