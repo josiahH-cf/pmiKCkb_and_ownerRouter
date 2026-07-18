@@ -8,9 +8,11 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
   LEASE_TEST_RUN_COLLECTIONS,
   createCanonicalLeaseTestRun,
+  listLeaseTestBusinessEvents,
   listLeaseTestActionAttempts,
   listLeaseTestActionReceipts,
   simulateLeaseTestAction,
+  recordLeaseTestBusinessEvent,
   transitionLeaseTestRun,
 } from "@/lib/firestore/lease-renewal-test-runs";
 import { LEASE_EXECUTION_ACTIONS } from "@/lib/lease-renewal/execution/matrix";
@@ -18,6 +20,7 @@ import {
   LEASE_TEST_ACTIONS,
   LEASE_TEST_ALIASES,
   LEASE_TEST_CONFIRMATION,
+  LEASE_TEST_BUSINESS_CONFIRMATION,
   buildLeaseTestActionEvidence,
   leaseTestActionDependencies,
 } from "@/lib/lease-renewal/test-workflow";
@@ -76,8 +79,40 @@ const editor: AuthenticatedUser = {
 };
 
 async function moveToExecuting(runId: string, db: Firestore) {
-  for (const nextStatus of ["Reviewed", "Approved", "Executing"] as const) {
-    await transitionLeaseTestRun(editor, runId, { nextStatus }, db);
+  await recordBusiness(runId, "candidate_included", db);
+  await transitionLeaseTestRun(editor, runId, { nextStatus: "Reviewed" }, db);
+  await recordBusiness(runId, "owner_renewal_approved", db);
+  await transitionLeaseTestRun(editor, runId, { nextStatus: "Approved" }, db);
+  await recordBusiness(runId, "tenant_offer_scheduled", db);
+  await recordBusiness(runId, "conditional_facts_confirmed", db);
+  await transitionLeaseTestRun(editor, runId, { nextStatus: "Executing" }, db);
+}
+
+async function recordBusiness(
+  runId: string,
+  action: Parameters<typeof recordLeaseTestBusinessEvent>[2]["action"],
+  db: Firestore,
+) {
+  return recordLeaseTestBusinessEvent(
+    editor,
+    runId,
+    { action, confirmation: LEASE_TEST_BUSINESS_CONFIRMATION },
+    db,
+  );
+}
+
+async function runActions(
+  runId: string,
+  actionKeys: readonly (typeof LEASE_TEST_ACTIONS)[number][],
+  db: Firestore,
+) {
+  for (const actionKey of actionKeys) {
+    await simulateLeaseTestAction(
+      editor,
+      runId,
+      { actionKey, confirmation: LEASE_TEST_CONFIRMATION },
+      db,
+    );
   }
 }
 
@@ -146,16 +181,12 @@ describe("persistent Lease production Test workflow", () => {
     });
 
     await moveToExecuting(run.id, db);
-    for (const actionKey of LEASE_TEST_ACTIONS) {
-      const evidence = await simulateLeaseTestAction(
-        editor,
-        run.id,
-        { actionKey, confirmation: LEASE_TEST_CONFIRMATION },
-        db,
-      );
-      expect(evidence.receipt.provider_contacted).toBe(false);
-      expect(evidence.receipt.live_proof_eligible).toBe(false);
-    }
+    await runActions(run.id, LEASE_TEST_ACTIONS.slice(0, 6), db);
+    await recordBusiness(run.id, "tenant_accepts", db);
+    await runActions(run.id, LEASE_TEST_ACTIONS.slice(6, 9), db);
+    await recordBusiness(run.id, "signatures_complete", db);
+    await runActions(run.id, LEASE_TEST_ACTIONS.slice(9), db);
+    await recordBusiness(run.id, "business_test_closeout", db);
 
     const receipts = await listLeaseTestActionReceipts(editor, run.id, db);
     const attempts = await listLeaseTestActionAttempts(editor, run.id, db);
@@ -188,6 +219,10 @@ describe("persistent Lease production Test workflow", () => {
     const run = await createCanonicalLeaseTestRun(editor, {}, db);
 
     await expect(
+      transitionLeaseTestRun(editor, run.id, { nextStatus: "Reviewed" }, db),
+    ).rejects.toThrow(/candidate disposition/i);
+
+    await expect(
       simulateLeaseTestAction(
         editor,
         run.id,
@@ -214,6 +249,72 @@ describe("persistent Lease production Test workflow", () => {
     await expect(
       transitionLeaseTestRun(editor, run.id, { nextStatus: "Done" }, db),
     ).rejects.toThrow(/Complete all 11 Test actions/);
+  });
+
+  it("persists an idempotent bodyless business history and closes the renewal on Move-Out", async () => {
+    const { db, store } = fakeDb();
+    const run = await createCanonicalLeaseTestRun(editor, {}, db);
+    await moveToExecuting(run.id, db);
+    await runActions(
+      run.id,
+      [
+        "gmail.renewal_notice.draft_create",
+        "gmail.renewal_notice.send",
+        "rentvine.renewal.portal_message.send",
+        "sms.renewal_message.send",
+      ],
+      db,
+    );
+
+    const moved = await recordBusiness(run.id, "tenant_moves_out", db);
+    expect(moved).toMatchObject({
+      duplicate: false,
+      event: {
+        data_mode: "test",
+        outcome: "move_out_handoff_started",
+        provider_contacted: false,
+        live_proof_eligible: false,
+      },
+      run: {
+        business_test_status: "moved_to_move_out",
+        status: "Moved to Move-Out",
+        tenant_response: "move_out",
+        move_out_handoff: {
+          state: "started",
+          direct_link: "/spaces/move-out-deposit-disposition",
+        },
+      },
+    });
+    await expect(recordBusiness(run.id, "tenant_moves_out", db)).resolves.toMatchObject({
+      duplicate: true,
+    });
+    await expect(recordBusiness(run.id, "tenant_accepts", db)).rejects.toThrow(
+      /does not match this milestone/i,
+    );
+    await expect(
+      simulateLeaseTestAction(
+        editor,
+        run.id,
+        {
+          actionKey: "google_sheets.renewal_checklist.writeback",
+          confirmation: LEASE_TEST_CONFIRMATION,
+        },
+        db,
+      ),
+    ).rejects.toThrow(/Moved to Move-Out|remaining renewal actions/i);
+
+    const events = await listLeaseTestBusinessEvents(editor, run.id, db);
+    expect(events.map((event) => event.action)).toEqual([
+      "candidate_included",
+      "owner_renewal_approved",
+      "tenant_offer_scheduled",
+      "conditional_facts_confirmed",
+      "tenant_moves_out",
+    ]);
+    expect(JSON.stringify(events)).not.toContain("message_body");
+    expect(
+      [...store.keys()].some((name) => /rentvine|gmail|dotloop|boom/i.test(name)),
+    ).toBe(false);
   });
 
   it("rejects a non-Test run before any attempt or receipt is written", async () => {
