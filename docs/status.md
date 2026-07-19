@@ -11,6 +11,21 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Go-live: F-SEND-AUTHORIZED posture + renewal-draft gate deployed to production
+
+- Date: 2026-07-19
+- Owner granted send/draft permissions across the board and directed a ship-to-live governance
+  posture (recorded as `F-SEND-AUTHORIZED`, superseding `F-WRITE-GATE`). Activated the
+  `gmail.renewal_notice.draft_create` gate (draft-into-Gmail, human sends; sample data stays
+  preview-only at the route as a data-safety guard). Change adversarially verified before merge (2 of 3
+  lenses clean; 1 stale-doc contradiction found and fixed).
+- Owner-approved cost-bearing deploy of `main` commit `c87f54d02185507fe47280093a6af4da49ae9656`
+  (`npm run deploy:demo -- --budget-confirmed`) to Cloud Run `pmi-kc-kb-demo` on `pmi-kc-kb-prod`.
+  Serving 100% as revision `pmi-kc-kb-demo-rmrrv992z-a2cc59bb11db`, image digest
+  `sha256:6d373fd726c1386b9d6282d6ece391d90b5316dac4e80029ae57025f1be24d54`. Rollback target is the
+  prior revision `pmi-kc-kb-demo-rmrqntfvs-4ebadb1e34a5`.
+- Live-verified over HTTP: unauth `/`→307 `/sign-in`, `/sign-in`→200, `/api/ask`→401, `/admin`→307.
+
 ## Approval slice deployed, reconciled, and baseline-clean
 
 - Date: 2026-07-18

@@ -13,11 +13,13 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 - The validated audit-remediation implementation was integrated through protected PR #76, the
   Vendor-handoff regression repair through PR #77, and the Approval route-selection repair through
   PR #79 as product commit `f6d5ddbce8b250b64df3bc58c81398f09e33b869`.
-- Product commit `f6d5ddb` is serving at 100% on Cloud Run revision
-  `pmi-kc-kb-demo-rmrqntfvs-4ebadb1e34a5`, image digest
-  `sha256:39e807a8e8365c881a6443757de2b62c78b668d51f8aba04b3c20a0f552a82b2`. Cloud Build
-  `1e7d0f07-1e45-4256-99c6-44aed1d3d250` built that exact source. The retained rollback revision is
-  `pmi-kc-kb-demo-rmrqihw0o-e78cdaa5b501`.
+- Product commit `c87f54d` is serving at 100% on Cloud Run revision
+  `pmi-kc-kb-demo-rmrrv992z-a2cc59bb11db`, image digest
+  `sha256:6d373fd726c1386b9d6282d6ece391d90b5316dac4e80029ae57025f1be24d54` (owner-approved
+  `--budget-confirmed` deploy 2026-07-19). It carries the F-SEND-AUTHORIZED go-live posture and the
+  activated `gmail.renewal_notice.draft_create` gate. Live-verified over HTTP: unauth `/`→307
+  `/sign-in`, `/sign-in`→200, `/api/ask`→401, `/admin`→307. The retained rollback revision is the prior
+  `pmi-kc-kb-demo-rmrqntfvs-4ebadb1e34a5`.
 - The clean integrated verifier passed from `f6d5ddb`: 322 test files / 2,290 tests, format,
   typecheck, router/falsification/context/spec/redaction, production build, Firestore 59/59, and core
   E2E 32 passed / 18 intentional prerequisite skips. Lint had zero errors and eight known warnings;

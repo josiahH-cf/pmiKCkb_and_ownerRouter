@@ -150,8 +150,8 @@ Acceptance:
 ### P8 - Production Release and Human Walkthrough
 
 Status: in progress — the validated remediation and both deployed regression repairs are integrated
-through product commit `f6d5ddbce8b250b64df3bc58c81398f09e33b869`, which serves at 100% on
-`pmi-kc-kb-demo-rmrqntfvs-4ebadb1e34a5`. Every finding remains mapped to an applicable repair or
+through product commit `f6d5ddbce8b250b64df3bc58c81398f09e33b869`; the serving checkpoint has since
+advanced to `c87f54d` on `pmi-kc-kb-demo-rmrrv992z-a2cc59bb11db` (2026-07-19 go-live). Every finding remains mapped to an applicable repair or
 evidence-based exclusion and all 281 capabilities carry their pass-one baseline. Deployed pass two
 has 35 terminal cases (29 pass, five expected denials, one honest `not_reachable` empty state), 246
 pending, and zero in progress. The Maintenance Vendor-handoff and Approval same-page selection
@@ -180,10 +180,11 @@ Acceptance:
 
 Current serving release, 2026-07-18:
 
-- Successful Cloud Build `1e7d0f07-1e45-4256-99c6-44aed1d3d250` produced serving revision
-  `pmi-kc-kb-demo-rmrqntfvs-4ebadb1e34a5` for integrated product commit `f6d5ddb` and digest
-  `sha256:39e807a8e8365c881a6443757de2b62c78b668d51f8aba04b3c20a0f552a82b2`; its captured
-  rollback revision is `pmi-kc-kb-demo-rmrqihw0o-e78cdaa5b501`.
+- The 2026-07-19 owner-approved go-live deploy advanced the serving checkpoint to product commit
+  `c87f54d` on revision `pmi-kc-kb-demo-rmrrv992z-a2cc59bb11db` (digest
+  `sha256:6d373fd726c1386b9d6282d6ece391d90b5316dac4e80029ae57025f1be24d54`), retaining the prior
+  `pmi-kc-kb-demo-rmrqntfvs-4ebadb1e34a5` as the rollback target. The earlier `f6d5ddb` remediation
+  deploy (Cloud Build `1e7d0f07-1e45-4256-99c6-44aed1d3d250`) is retained as historical evidence.
 - Production Test Lease run `test-renewal-019f6599-af50-7451-88ea-e2592fc001a2` reached Done with
   eleven receipts, eleven attempts, zero Live calls, and refresh-safe persisted state.
 - The Admin Test workspace passed Vendor 11/11, Lease 11/11, and Maintenance 19/19 with zero Live
