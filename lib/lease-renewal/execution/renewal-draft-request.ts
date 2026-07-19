@@ -8,9 +8,10 @@
 // not authorized (and never for a `.send` action). Draft-only, per the owner-confirmed end state.
 
 import { DRAFT_BANNER } from "@/lib/constants";
-import type {
-  ExternalActionInput,
-  ExternalActionReceipt,
+import {
+  ExternalExecutionError,
+  type ExternalActionInput,
+  type ExternalActionReceipt,
 } from "@/lib/external-execution/types";
 import { assertActionExecutable } from "@/lib/integrations/action-gate";
 import {
@@ -35,8 +36,9 @@ export interface RenewalNoticeDraftActionInput {
   actionId: string;
   channel: RenewalRecipientChannel;
   templateRef: RenewalNoticeTemplateRef;
-  /** The VERIFIED recipient from resolveRenewalRecipient — a Needs-Verification result must not reach here. */
-  recipient: { to: string; sourceRef: string };
+  /** The VERIFIED recipient from resolveRenewalRecipient — a Needs-Verification result must not reach here.
+   *  `channel` is carried so the assembly refuses an owner recipient on a tenant notice (and vice-versa). */
+  recipient: { channel: RenewalRecipientChannel; to: string; sourceRef: string };
   /** The authenticated sender mailbox that will hold the unsent draft. */
   mailbox: { email: string; sourceRef: string };
   subject: string;
@@ -57,6 +59,11 @@ export function buildRenewalNoticeDraftAction(
   if (input.templateRef !== TEMPLATE_FOR_CHANNEL[input.channel]) {
     throw new Error(
       `The renewal ${input.channel} channel requires template ${TEMPLATE_FOR_CHANNEL[input.channel]}.`,
+    );
+  }
+  if (input.recipient.channel !== input.channel) {
+    throw new Error(
+      `The resolved ${input.recipient.channel} recipient cannot be used on a ${input.channel} renewal notice.`,
     );
   }
   const body = input.body.startsWith(`${DRAFT_BANNER}\n\n`)
@@ -82,16 +89,65 @@ export function buildRenewalNoticeDraftAction(
   };
 }
 
+// Source-ref prefixes that mark NON-authoritative (sample/test/fixture/diagnostic) data.
+const NON_AUTHORITATIVE_SOURCE_PREFIXES = [
+  "sample:",
+  "fixture:",
+  "smoke:",
+  "test:",
+  "dry:",
+  "synthetic:",
+  "browser:",
+];
+// Reserved / non-routable recipient domains that must never receive a real draft.
+const NON_ROUTABLE_RECIPIENT =
+  /(?:\.(?:invalid|test|example|localhost)|@(?:example\.(?:com|net|org)|localhost))$/i;
+
 /**
- * Create the real unsent draft for an assembled renewal-notice action. Re-asserts the Action Registry
- * production gate (draft action is Approved for Execution; a `.send` action would throw here), then runs
- * the governed LeaseGmailExecutor with the live Gmail draft provider. `client` is a real
- * GmailRuntimeClient in production and a fake in tests, so no test contacts Gmail.
+ * Data-safety guard (NOT a governance gate): a REAL renewal draft must be addressed to an
+ * authoritatively-sourced, routable recipient, so sample/test/fixture data can never become a real
+ * client-facing draft — the invariant the Action Registry entry documents. Diagnostics (the smoke's
+ * self-addressed draft) opt out explicitly via executeRenewalNoticeDraft's options.
+ */
+export function assertAuthoritativeRenewalRecipient(action: ExternalActionInput): void {
+  const to = String(action.values.to ?? "")
+    .trim()
+    .toLowerCase();
+  if (NON_ROUTABLE_RECIPIENT.test(to)) {
+    throw new ExternalExecutionError(
+      "Refusing to create a real draft for a non-routable (sample/test) recipient address.",
+      "blocked",
+    );
+  }
+  const sourceRef = String(action.values.recipient_source_ref ?? "")
+    .trim()
+    .toLowerCase();
+  if (
+    !sourceRef ||
+    NON_AUTHORITATIVE_SOURCE_PREFIXES.some((prefix) => sourceRef.startsWith(prefix))
+  ) {
+    throw new ExternalExecutionError(
+      "Refusing to create a real draft without an authoritative recipient source.",
+      "blocked",
+    );
+  }
+}
+
+/**
+ * Create the real unsent draft for an assembled renewal-notice action. Enforces, in order: the
+ * data-safety recipient guard (unless a diagnostic explicitly opts out) and the Action Registry
+ * production gate (draft action is Approved for Execution; a `.send` action throws here). Then runs the
+ * governed LeaseGmailExecutor with the live Gmail draft provider. `client` is a real GmailRuntimeClient
+ * in production and a fake in tests, so no test contacts Gmail.
  */
 export async function executeRenewalNoticeDraft(
   client: RenewalDraftGmailClient,
   action: ExternalActionInput,
+  options: { allowNonAuthoritativeRecipient?: boolean } = {},
 ): Promise<ExternalActionReceipt> {
+  if (!options.allowNonAuthoritativeRecipient) {
+    assertAuthoritativeRenewalRecipient(action);
+  }
   assertActionExecutable(action.actionKey);
   const executor = new LeaseGmailExecutor(new LiveRenewalGmailDraftProvider(client));
   return executor.execute(action);

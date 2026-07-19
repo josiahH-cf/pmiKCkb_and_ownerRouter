@@ -116,7 +116,11 @@ async function runDry(): Promise<void> {
     actionId: "dry-1",
     channel: "tenant",
     templateRef: "tenant-renewal:v1.0",
-    recipient: { to: resolution.to, sourceRef: resolution.recipientSourceRef },
+    recipient: {
+      channel: "tenant",
+      to: resolution.to,
+      sourceRef: resolution.recipientSourceRef,
+    },
     mailbox: { email: mailbox, sourceRef: "smoke:operator-mailbox" },
     subject: "Your lease renewal (dry)",
     body: "Synthetic renewal notice body for the dry-run proof.",
@@ -124,7 +128,10 @@ async function runDry(): Promise<void> {
     sourceRefs: ["smoke:renewal-draft-dry"],
   });
 
-  const receipt = await executeRenewalNoticeDraft(fakeClient, action);
+  // Diagnostic opt-out: the dry run uses a synthetic .invalid recipient by design.
+  const receipt = await executeRenewalNoticeDraft(fakeClient, action, {
+    allowNonAuthoritativeRecipient: true,
+  });
 
   console.log("Renewal draft path (DRY) — full governed chain with a FAKE Gmail client:");
   console.log(
@@ -189,7 +196,8 @@ async function runLive(): Promise<void> {
     );
   }
 
-  // 1) One bounded live RentVine read → recipient-resolution coverage (counts only, no addresses).
+  // 1) One live RentVine read; the recipient-resolution scan is bounded to `limit` leases client-side
+  //    and reports coverage counts only (never an address).
   const rentvineClient = new RentVineClient(
     { baseUrl, apiKey, apiSecret },
     createFetchTransport(),
@@ -215,7 +223,11 @@ async function runLive(): Promise<void> {
     actionId: "smoke-1",
     channel: "tenant",
     templateRef: "tenant-renewal:v1.0",
-    recipient: { to: draftTo, sourceRef: "smoke:self-addressed-diagnostic" },
+    recipient: {
+      channel: "tenant",
+      to: draftTo,
+      sourceRef: "smoke:self-addressed-diagnostic",
+    },
     mailbox: { email: subject, sourceRef: "smoke:operator-mailbox" },
     subject: "[smoke] Renewal draft path verification (safe to delete)",
     body: "This is a self-addressed diagnostic UNSENT draft proving the live renewal draft path. Nothing was sent. Safe to delete.",
@@ -223,7 +235,11 @@ async function runLive(): Promise<void> {
     sourceRefs: ["smoke:renewal-draft-live"],
   });
 
-  const receipt = await executeRenewalNoticeDraft(client, action);
+  // Diagnostic opt-out: this draft is deliberately self-addressed to the operator, not an
+  // authoritatively-sourced client recipient. A real route would omit this and be guarded.
+  const receipt = await executeRenewalNoticeDraft(client, action, {
+    allowNonAuthoritativeRecipient: true,
+  });
   const draftId = receipt.providerRef;
   console.log(
     `Created UNSENT diagnostic draft ${draftId} in ${subject}'s mailbox (addressed to ${draftTo}). Nothing was sent.`,
