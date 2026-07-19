@@ -140,6 +140,7 @@ describe("Action Registry seed catalog", () => {
       "gmail.mailbox.read",
       "gmail.thread.reply",
       "gmail.label.apply",
+      "gmail.renewal_notice.draft_create",
     ]);
     for (const entry of ACTION_REGISTRY_SEED) {
       const parsed = CreateActionRegistryInputSchema.parse(entry);
@@ -198,19 +199,21 @@ describe("Action Registry seed catalog", () => {
     );
   });
 
-  it("opens only the workflow transport actions while workflow initiations stay gated", () => {
+  it("opens the workflow transport actions plus the authorized renewal-notice draft; other initiations stay gated", () => {
     const gmailEntries = ACTION_REGISTRY_SEED.filter(
       (entry) => entry.target_system === "Gmail",
     );
     expect(gmailEntries).toHaveLength(16);
 
+    // Authorized for production by the 2026-07-19 owner grant (F-SEND-AUTHORIZED): draft-into-Gmail,
+    // human sends. The sample-data guard (not the registry gate) keeps sample runs preview-only.
     const renewalNotice = gmailEntries.find(
       (entry) => entry.key === "gmail.renewal_notice.draft_create",
     );
     expect(renewalNotice?.product_lane).toBe("Lease Renewal Agent");
-    expect(renewalNotice?.readiness).toBe("Planned");
+    expect(renewalNotice?.readiness).toBe("Approved for Execution");
     expect(renewalNotice?.evidence_status).toBe("Documented");
-    expect(renewalNotice?.production_allowed).toBe(false);
+    expect(renewalNotice?.production_allowed).toBe(true);
 
     const workflowTransport = gmailEntries.filter(
       (entry) => entry.product_lane === "Workflow Communications",

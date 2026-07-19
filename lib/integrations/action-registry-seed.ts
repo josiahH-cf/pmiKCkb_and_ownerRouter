@@ -6,10 +6,12 @@ import { FINAL_V1_ACTION_PREVIEW_SCHEMAS } from "@/lib/integrations/final-v1-act
  * research (docs/research/integration-capability-2026-06.md), the tool-role architecture
  * (docs/integration-architecture.md), and the workflow-communication architecture.
  *
- * Safety invariant: only the self-mailbox, workflow-linked read/reply/label/reply-draft transport
- * actions are production-eligible. Generic new-message send and sample-backed renewal or
- * maintenance initiations stay false. Google documents gmail.compose as send-capable, so every
- * no-send/draft-only ceiling is enforced by route, action, confirmation, and audit contracts.
+ * Safety invariant (updated 2026-07-19, F-SEND-AUTHORIZED): the self-mailbox workflow-linked
+ * read/reply/label transport actions and the authorized renewal-notice draft-into-Gmail action are
+ * production-eligible. Generic non-workflow new-message send stays false as a deliberate safety
+ * choice. Google documents gmail.compose as send-capable, so every no-send/draft-only ceiling is
+ * enforced by route, action, confirmation, and audit contracts, and sample/test data never produces
+ * a real draft.
  *
  * Each entry's `connection_health_check_ref` points at the matching per-system contract in
  * lib/integrations/health-checks.ts. Maintenance-chain entries carry a structured
@@ -809,10 +811,10 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "Create an unsent Gmail draft in the approval sender's mailbox from an owner-approved renewal notice (owner email or tenant offer email), with the verbatim DRAFT_BANNER in the body; the operator opens it in Gmail and clicks Send. Code never calls send.",
     product_lane: "Lease Renewal Agent",
-    readiness: "Planned",
+    readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
-      "The Gmail transport and draft-only ceiling are proven, but the current renewal route is backed by sample workspaces rather than an authorized real renewal run. It remains preview-only until authoritative workflow facts and recipient sources are connected.",
+      "Owner granted send/draft authorization across the board (2026-07-19, F-SEND-AUTHORIZED): this draft-into-Gmail action is cleared for production. The executor creates an UNSENT draft only (code never sends); a human presses Send in Gmail. Runtime still requires an authorized real renewal run with verified recipient sources, which is a data-safety guard (sample/test data never produces a real draft), not a governance gate.",
     required_permissions: [
       "Committed DWD grant for the signed-in pmikcmetro.com user (docs/evidence/gmail-dwd-grant-2026-07.md)",
       "gmail.compose scope (this action's route calls only createDraft; separate gmail.send scope absent)",
@@ -852,10 +854,10 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
       },
     ],
     test_notes:
-      "The draft request builders remain deterministic preview artifacts. Runtime creation is blocked while the visible renewal run is simulation/sample data.",
+      "The draft request builders remain deterministic preview artifacts. The registry gate is open (2026-07-19); runtime draft creation still requires a real (non-sample) renewal run with verified recipients, so sample/test data yields a preview only and never a real draft.",
     rollback_note: "Delete the unsent draft; nothing was sent.",
     connection_health_check_ref: "health.gmail.workspace_api",
-    production_allowed: false,
+    production_allowed: true,
   },
   {
     key: "gmail.maintenance_owner_notice.draft_create",

@@ -23,8 +23,10 @@ describe("action-gate", () => {
     expect(() => assertActionExecutable(GMAIL_KEY)).toThrow(ActionNotExecutableError);
   });
 
-  it("keeps sample-backed renewal draft initiation gated", () => {
-    expect(isActionExecutable("gmail.renewal_notice.draft_create")).toBe(false);
+  it("opens the authorized renewal-notice draft gate (sample-data safety is a separate route guard)", () => {
+    // Authorized for production by the 2026-07-19 owner grant (F-SEND-AUTHORIZED). The registry gate is
+    // open; keeping sample/test data from producing a real draft is enforced at the route, not here.
+    expect(isActionExecutable("gmail.renewal_notice.draft_create")).toBe(true);
   });
 
   it("still refuses a gated entry with no runtime (Planned/false)", () => {

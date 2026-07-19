@@ -150,11 +150,13 @@ const OWNER_SIDE_SECTIONS = ["gcp:", "env:", "corpus:"];
 
 // Action Registry keys intentionally allowed by the workflow product. Transport proof alone does not
 // authorize generic send or sample-backed workflow drafts. A production_allowed key NOT in this set is
-// a surprise flip the cutover must flag.
+// a surprise flip the cutover must flag. The renewal-notice draft was authorized by the 2026-07-19
+// owner grant (F-SEND-AUTHORIZED): draft-into-Gmail, human sends, sample data still preview-only.
 const EXECUTABLE_ALLOWLIST = new Set<string>([
   "gmail.mailbox.read",
   "gmail.thread.reply",
   "gmail.label.apply",
+  "gmail.renewal_notice.draft_create",
 ]);
 
 export function classifyOwnerActions(rollup: ReadinessRollup): string[] {

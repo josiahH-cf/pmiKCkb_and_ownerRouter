@@ -38,7 +38,15 @@ describe("Lease execution matrix", () => {
         (candidate) => candidate.key === definition.key,
       );
       expect(entry).toBeDefined();
-      if (!["gmail.thread.reply", "gmail.label.apply"].includes(definition.key)) {
+      // gmail.renewal_notice.draft_create was authorized for production by the 2026-07-19 owner grant
+      // (F-SEND-AUTHORIZED); the rest of the R02 matrix stays registry-closed.
+      if (
+        ![
+          "gmail.thread.reply",
+          "gmail.label.apply",
+          "gmail.renewal_notice.draft_create",
+        ].includes(definition.key)
+      ) {
         expect(entry?.production_allowed).toBe(false);
       }
     }
