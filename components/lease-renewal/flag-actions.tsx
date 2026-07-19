@@ -8,7 +8,7 @@
 // This is a client module. It imports server-shaped view types with `import type` ONLY and never
 // value-imports a firebase-admin module (gotcha 4); nothing here executes a system-of-record write.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type {
@@ -18,6 +18,7 @@ import type {
 } from "@/lib/lease-renewal/run-view";
 import type { WritebackProposal } from "@/lib/lease-renewal/writeback-proposal";
 import { displaySourceLabel } from "@/lib/lease-renewal/source-display";
+import { Field } from "@/components/ui";
 import { ReasonCodeSelect } from "@/components/lease-renewal/ReasonCodeSelect";
 
 type ResolveKind = "pick_source" | "corrected_value" | "flag_incorrect";
@@ -51,6 +52,8 @@ export function FlagResolveForm({
   isAdmin: boolean;
 }) {
   const router = useRouter();
+  // Unique per instance so multiple resolve forms on one page don't collide on field ids.
+  const fieldId = useId();
   const requiresAdmin = flag.severity === "High" || flag.severity === "Blocked";
   const canResolveThis = canResolve && (!requiresAdmin || isAdmin);
 
@@ -185,9 +188,9 @@ export function FlagResolveForm({
             />
 
             {kind === "pick_source" ? (
-              <label>
-                Source
+              <Field htmlFor={`${fieldId}-source`} label="Source" required>
                 <select
+                  id={`${fieldId}-source`}
                   value={chosenSource}
                   onChange={(event) => {
                     const nextSource = event.target.value;
@@ -206,35 +209,41 @@ export function FlagResolveForm({
                     </option>
                   ))}
                 </select>
-              </label>
+              </Field>
             ) : null}
 
             {kind === "corrected_value" ? (
-              <label>
-                Corrected value
+              <Field htmlFor={`${fieldId}-corrected`} label="Corrected value" required>
                 <input
+                  id={`${fieldId}-corrected`}
                   type="text"
                   value={correctedValue}
                   onChange={(event) => setCorrectedValue(event.target.value)}
                 />
-              </label>
+              </Field>
             ) : null}
 
             {requiresFreeTextReason ? (
-              <label>
-                Reason (required)
+              <Field
+                hint="Plain-English reason for this choice."
+                htmlFor={`${fieldId}-reason`}
+                label="Reason"
+                required
+              >
                 <textarea
+                  id={`${fieldId}-reason`}
                   value={reason}
                   onChange={(event) => setReason(event.target.value)}
                   rows={2}
                 />
-              </label>
+              </Field>
             ) : null}
 
             {error ? <p className="lr-error">{error}</p> : null}
 
             <button
               ref={resolveButtonRef}
+              className="primary-button button--large"
               type="button"
               disabled={submitting}
               onClick={requestSubmit}

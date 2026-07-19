@@ -135,10 +135,14 @@ describe("LiveRenewalReview", () => {
     expect(screen.getByText("Two sources disagree")).toBeInTheDocument();
 
     // Actionable now: the reused resolve form renders for an Admin on this High flag (slice 1b).
-    expect(screen.getByRole("button", { name: "Resolve" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("textbox", { name: /Reason \(required\)/ }),
-    ).toBeInTheDocument();
+    // LR-9 (§F/§A): the required Reason is marked (aria-required + asterisk) and the primary
+    // Resolve action is the prominent large button.
+    expect(screen.getByRole("button", { name: "Resolve" })).toHaveClass("button--large");
+    expect(screen.getByRole("textbox", { name: /Reason/ })).toHaveAttribute(
+      "aria-required",
+      "true",
+    );
+    expect(screen.getAllByText("*")[0]).toHaveClass("field-required");
     expect(
       screen.getByRole("link", { name: "View property decision history" }),
     ).toHaveAttribute(
@@ -178,7 +182,7 @@ describe("LiveRenewalReview", () => {
       />,
     );
 
-    const reason = screen.getByRole("textbox", { name: /Reason \(required\)/ });
+    const reason = screen.getByRole("textbox", { name: /Reason/ });
     await user.type(reason, "Verified against the signed renewal packet.");
     const resolve = screen.getByRole("button", { name: "Resolve" });
     await user.click(resolve);
