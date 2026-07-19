@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 
+import { Button, Field } from "@/components/ui";
 import { useAudioRecorder } from "@/components/hooks/useAudioRecorder";
 import { UnitTypeahead } from "@/components/maintenance/UnitTypeahead";
 import {
@@ -208,18 +209,24 @@ export function MaintenanceCapture({
           buildDraft();
         }}
       >
-        <label htmlFor="mx-note">Issue</label>
-        <textarea
-          id="mx-note"
-          name="mx-note"
-          onChange={(event) => {
-            invalidateDraft();
-            setTypedNote(event.target.value);
-          }}
-          placeholder="Describe the maintenance issue…"
-          rows={5}
-          value={typedNote}
-        />
+        <Field
+          hint="for example: kitchen faucet leaking under the sink"
+          htmlFor="mx-note"
+          label="Issue"
+          required
+        >
+          <textarea
+            id="mx-note"
+            name="mx-note"
+            onChange={(event) => {
+              invalidateDraft();
+              setTypedNote(event.target.value);
+            }}
+            placeholder="Describe the maintenance issue."
+            rows={5}
+            value={typedNote}
+          />
+        </Field>
 
         <div className="field-row">
           <button
@@ -311,6 +318,7 @@ export function MaintenanceCapture({
 
         <UnitTypeahead
           id="mx-unit"
+          required
           onSelect={(unit) => {
             invalidateDraft();
             setUnitMatch(
@@ -349,9 +357,9 @@ export function MaintenanceCapture({
           </select>
         </label>
 
-        <button className="primary-button" type="submit">
+        <Button size="large" type="submit">
           Build work-order draft
-        </button>
+        </Button>
         {status ? <p className="muted">{status}</p> : null}
       </form>
 
@@ -387,17 +395,17 @@ export function MaintenanceCapture({
               <p className="muted">No blockers — ready for human review.</p>
             )}
 
-            <button
-              className="primary-button"
+            <Button
               aria-describedby={
                 draft.blockers.length > 0 ? "maintenance-ticket-blockers" : undefined
               }
               disabled={isCreating || draft.blockers.length > 0}
               onClick={createTicket}
+              size="large"
               type="button"
             >
               {isCreating ? "Creating…" : "Create ticket"}
-            </button>
+            </Button>
 
             {ownerNotice ? (
               <section aria-label="Owner notice draft">

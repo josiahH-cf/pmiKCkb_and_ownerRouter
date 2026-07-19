@@ -18,8 +18,10 @@ afterEach(() => {
 describe("MaintenanceCapture", () => {
   it("renders the capture form", () => {
     render(<MaintenanceCapture reporterUid="u" />);
-    expect(screen.getByLabelText("Issue")).toBeInTheDocument();
-    expect(screen.getByLabelText("Unit / location")).toBeInTheDocument();
+    expect(screen.getByLabelText("Issue", { exact: false })).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Unit / location", { exact: false }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Record voice" })).toBeInTheDocument();
     expect(
       screen.getByText(/Photo storage is unavailable until the Drive action/),
@@ -30,6 +32,21 @@ describe("MaintenanceCapture", () => {
     expect(
       screen.getByRole("button", { name: "Build work-order draft" }),
     ).toBeInTheDocument();
+
+    // MWO-3 (§I): Issue + Unit are marked required (asterisk + aria-required) and the primary
+    // action is the prominent large Button.
+    expect(screen.getByLabelText("Issue", { exact: false })).toHaveAttribute(
+      "aria-required",
+      "true",
+    );
+    expect(screen.getByLabelText("Unit / location", { exact: false })).toHaveAttribute(
+      "aria-required",
+      "true",
+    );
+    expect(screen.getAllByText("*")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Build work-order draft" })).toHaveClass(
+      "button--large",
+    );
   });
 
   it("requires the registry preview and explicit confirmation before an enabled upload", async () => {
@@ -77,8 +94,14 @@ describe("MaintenanceCapture", () => {
 
     render(<MaintenanceCapture reporterUid="u" />);
 
-    await user.type(screen.getByLabelText("Issue"), "Dishwasher won't drain");
-    await user.type(screen.getByLabelText("Unit / location"), "123 Main");
+    await user.type(
+      screen.getByLabelText("Issue", { exact: false }),
+      "Dishwasher won't drain",
+    );
+    await user.type(
+      screen.getByLabelText("Unit / location", { exact: false }),
+      "123 Main",
+    );
     await user.click(
       await screen.findByRole("button", { name: /123 Main Street Unit 2/ }),
     );
@@ -137,13 +160,22 @@ describe("MaintenanceCapture", () => {
     );
     render(<MaintenanceCapture reporterUid="u" />);
 
-    await user.type(screen.getByLabelText("Issue"), "Kitchen pipe is leaking");
-    await user.type(screen.getByLabelText("Unit / location"), "123 Main");
+    await user.type(
+      screen.getByLabelText("Issue", { exact: false }),
+      "Kitchen pipe is leaking",
+    );
+    await user.type(
+      screen.getByLabelText("Unit / location", { exact: false }),
+      "123 Main",
+    );
     await user.click(await screen.findByRole("button", { name: "123 Main St Unit 1" }));
     await user.click(screen.getByRole("button", { name: "Build work-order draft" }));
     expect(screen.getByRole("button", { name: "Create ticket" })).toBeEnabled();
 
-    await user.type(screen.getByLabelText("Unit / location"), " edited");
+    await user.type(
+      screen.getByLabelText("Unit / location", { exact: false }),
+      " edited",
+    );
     expect(
       screen.queryByRole("button", { name: "Create ticket" }),
     ).not.toBeInTheDocument();

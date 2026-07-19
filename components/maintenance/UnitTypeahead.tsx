@@ -17,6 +17,8 @@ interface UnitTypeaheadProps {
   id: string;
   label?: string;
   placeholder?: string;
+  /** Marks the field required: renders the shared red asterisk and sets aria-required. */
+  required?: boolean;
   onSelect: (unit: UnitTypeaheadSelection | null) => void;
 }
 
@@ -26,6 +28,7 @@ export function UnitTypeahead({
   id,
   label = "Unit / location",
   placeholder = "Start typing an address or unit number",
+  required = false,
   onSelect,
 }: Readonly<UnitTypeaheadProps>) {
   const [query, setQuery] = useState("");
@@ -80,10 +83,18 @@ export function UnitTypeahead({
 
   return (
     <div className="ui-stack">
-      <label htmlFor={id}>{label}</label>
+      <label htmlFor={id}>
+        {label}
+        {required ? (
+          <span aria-hidden="true" className="field-required">
+            *
+          </span>
+        ) : null}
+      </label>
       <input
         id={id}
         name={id}
+        aria-required={required || undefined}
         value={query}
         placeholder={placeholder}
         autoComplete="off"
