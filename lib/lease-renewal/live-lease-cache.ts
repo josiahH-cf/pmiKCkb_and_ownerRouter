@@ -28,6 +28,11 @@ let inflight: Promise<RawLease[]> | null = null;
  * Return the live lease views, served from the cache when a non-expired entry exists, otherwise read
  * once (coalescing concurrent misses into a single read). A failed read is NOT cached — the error
  * propagates and the next call retries.
+ *
+ * The cache is a single global entry, correct only because RentVine is one enforced account
+ * (assertRentVineAccount): every caller reads the same portfolio. If the app ever becomes
+ * multi-credential, key the entry by reader identity. Callers MUST treat the returned array and its
+ * view objects as READ-ONLY — it is the shared cache entry, not a copy.
  */
 export async function getLiveLeaseViews(
   reader: LeaseExportReader,

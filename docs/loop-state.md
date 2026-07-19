@@ -20,7 +20,7 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
   activated `gmail.renewal_notice.draft_create` gate. Live-verified over HTTP: unauth `/`→307
   `/sign-in`, `/sign-in`→200, `/api/ask`→401, `/admin`→307. The retained rollback revision is the prior
   `pmi-kc-kb-demo-rmrqntfvs-4ebadb1e34a5`.
-- `main` (`2b400e1`) is AHEAD of the serving image by the complete live renewal-notice draft feature:
+- `main` (`b8c6963`) is AHEAD of the serving image by the complete live renewal-notice draft feature:
   the library core (Slices A/B/C + hardening: `LiveRenewalGmailDraftProvider`, `resolveRenewalRecipient`,
   `buildRenewalNoticeDraftAction`/`executeRenewalNoticeDraft`), the property→owner join (D), the
   preview/compose core (E), the in-app route + UI — `POST /api/lease-renewal/renewal-notice-draft`
@@ -32,11 +32,14 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
   is resolved server-side from the authoritative live RentVine lease and is never client-controllable; the
   draft lands only in the signed-in user's own mailbox; `confirm:true` is required to create; the
   production gate + authoritative-recipient guard are re-asserted on every create, so sample/test data and
-  `.send` actions can never produce a real draft. A focused adversarial review confirmed the safety model
-  holds (no blocker/major). A redeploy is still deferred (cost-bearing owner decision); the running app is
-  behaviorally unchanged until then. Remaining owner-gated: live click-through of the desk in a
-  RentVine-connected env (local dev SSR/renderer was unresponsive this session, so it rests on unit tests
-  - typecheck + the production build) and an export-scan perf follow-on.
+  `.send` actions can never produce a real draft. A comprehensive multi-agent adversarial audit of the
+  whole feature confirmed the safety model holds (security dimension found nothing); its 8 verified
+  findings — 2 major (owner-rent extraction wrongly gated on tenant name; a null export row crashed the
+  read) and 6 minor ($0-rent, CR/LF-in-address, export-scan perf, three test gaps) — are all fixed and
+  re-verified (`b8c6963`), including a shared short-TTL export cache. A redeploy is still deferred
+  (cost-bearing owner decision); the running app is behaviorally unchanged until then. Remaining
+  owner-gated: live click-through of the desk in a RentVine-connected env (local dev SSR/renderer was
+  unresponsive this session, so it rests on unit tests + typecheck + the production build).
 - The clean integrated verifier passed from `f6d5ddb`: 322 test files / 2,290 tests, format,
   typecheck, router/falsification/context/spec/redaction, production build, Firestore 59/59, and core
   E2E 32 passed / 18 intentional prerequisite skips. Lint had zero errors and eight known warnings;
