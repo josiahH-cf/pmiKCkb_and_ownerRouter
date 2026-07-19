@@ -224,6 +224,21 @@ describe("NotificationMenu", () => {
     expect(screen.queryByRole("link", { name: "Open Approval Queue" })).toBeNull();
     expect(screen.getByText("Maintenance ticket assigned")).toBeInTheDocument();
   });
+
+  it("collapses notification types into a dropdown (NOTIF-2)", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ notifications: [], families: familyViews() })),
+    );
+    render(<NotificationMenu navigate={() => undefined} />);
+    await user.click(await screen.findByRole("button", { name: "Notifications" }));
+
+    // The "Notification types" controls sit behind a collapsed disclosure, not an always-open list.
+    expect(screen.getByText("Notification types").closest("details")).not.toHaveAttribute(
+      "open",
+    );
+  });
 });
 
 function approvalUnified(

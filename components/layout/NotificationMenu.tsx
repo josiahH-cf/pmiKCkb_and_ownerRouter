@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Disclosure } from "@/components/ui";
 import type {
   NotificationFamilyKey,
   NotificationFamilyView,
@@ -188,8 +189,7 @@ export function NotificationMenu({
             </ol>
           ) : null}
           {families.length > 0 ? (
-            <div className="notification-families">
-              <strong>Notification types</strong>
+            <Disclosure summary="Notification types">
               <ul className="notification-family-list">
                 {families.map((family) =>
                   family.available ? (
@@ -212,7 +212,7 @@ export function NotificationMenu({
                   ),
                 )}
               </ul>
-            </div>
+            </Disclosure>
           ) : null}
           <div className="notification-popover-actions">
             {unreadCount > 0 ? (
