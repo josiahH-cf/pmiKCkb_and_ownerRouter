@@ -77,6 +77,37 @@ describe("NotificationMenu", () => {
     await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThan(before));
   });
 
+  it("prefixes the tab title with the unread count (NOTIF-4)", async () => {
+    document.title = "PMI KC";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponse({
+          notifications: [approvalUnified(), maintenanceUnified()],
+          families: familyViews(),
+        }),
+      ),
+    );
+
+    render(<NotificationMenu navigate={() => undefined} />);
+    await screen.findByText("2");
+    expect(document.title).toBe("(2) PMI KC");
+  });
+
+  it("never stacks the unread-count prefix on the tab title (NOTIF-4)", async () => {
+    document.title = "(9) PMI KC"; // a stale prefix from a previous count
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponse({ notifications: [approvalUnified()], families: familyViews() }),
+      ),
+    );
+
+    render(<NotificationMenu navigate={() => undefined} />);
+    await screen.findByText("1");
+    expect(document.title).toBe("(1) PMI KC");
+  });
+
   // AC-S17-1 + B6: the popover links to the /notifications hub and offers Mark all read when unread.
   it("links to the notifications hub and marks all read (AC-S17-1, B6)", async () => {
     const user = userEvent.setup();

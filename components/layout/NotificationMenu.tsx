@@ -57,6 +57,14 @@ export function NotificationMenu({
     };
   }, []);
 
+  // NOTIF-4 (§P): reflect unread notifications in the browser tab title, so the badge is visible
+  // even when the app is a background tab. Strips any existing "(N) " prefix so it never stacks;
+  // clears when nothing is unread. (The PMI favicon-dot overlay waits on owner-supplied artwork.)
+  useEffect(() => {
+    const base = document.title.replace(/^\(\d+\)\s+/, "");
+    document.title = unreadCount > 0 ? `(${unreadCount}) ${base}` : base;
+  }, [unreadCount]);
+
   async function loadNotifications() {
     setState(hasLoaded.current ? "ready" : "loading");
 
