@@ -1,11 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { leaseViewsFromExport } from "@/lib/integrations/rentvine/lease-mapper";
 import type { DateWindow } from "@/lib/lease-renewal/cohort";
+import { clearLiveLeaseCache } from "@/lib/lease-renewal/live-lease-cache";
 import {
   buildLiveRenewalNoticeRows,
   loadLiveRenewalNotices,
 } from "@/lib/lease-renewal/live-notices";
+
+// The loader uses a shared module-level export cache; reset it so cases don't leak reads into each other.
+beforeEach(clearLiveLeaseCache);
 
 const READ_TS = "2026-07-19T00:00:00.000Z";
 // Windows spanning Aug + Sep 2026 month-ends.
@@ -43,7 +47,7 @@ const rows = [
 describe("buildLiveRenewalNoticeRows", () => {
   it("keeps only actionable leases and projects recipient readiness", () => {
     const views = leaseViewsFromExport(rows);
-    const result = buildLiveRenewalNoticeRows(views, WINDOWS, READ_TS);
+    const result = buildLiveRenewalNoticeRows(views, WINDOWS);
 
     expect(result.map((r) => r.leaseId).sort()).toEqual(["4821", "5000"]);
 

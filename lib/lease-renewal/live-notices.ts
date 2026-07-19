@@ -1,18 +1,16 @@
 // Live renewal-notices desk data: read the live RentVine leases, keep the actionable renewal cohort,
 // and project each to a compact row the notices page renders a draft composer for. Server-only read;
-// no writes. The row builder is pure (injectable views + windows + read timestamp); the loader wraps it
-// with the live RentVine read and degrades to a typed status when the source is not connected.
+// no writes. The row builder is pure (injectable views + windows); the loader wraps it with the cached
+// live RentVine read and degrades to a typed status when the source is not connected.
 
 import type { RawLease } from "@/lib/integrations/rentvine/client";
-import {
-  leaseViewsFromExport,
-  mapLeasesToNonSheetCandidates,
-} from "@/lib/integrations/rentvine/lease-mapper";
+import { leaseTenantName } from "@/lib/integrations/rentvine/lease-mapper";
 import { classifyRenewalCohort, type DateWindow } from "@/lib/lease-renewal/cohort";
 import {
   buildLiveRentVineConfig,
   type LiveRentVineConfig,
 } from "@/lib/lease-renewal/live-config";
+import { getLiveLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
 import { resolveRenewalRecipient } from "@/lib/lease-renewal/recipient-resolution";
 
 export interface LiveRenewalNoticeRow {
@@ -36,18 +34,16 @@ export type LiveRenewalNoticesResult =
 export function buildLiveRenewalNoticeRows(
   views: RawLease[],
   windows: DateWindow[],
-  readTimestamp: string,
 ): LiveRenewalNoticeRow[] {
   const cohort = classifyRenewalCohort(views, { windows });
   const rows: LiveRenewalNoticeRow[] = [];
   for (const classification of cohort.actionable) {
     if (!classification.leaseId) continue;
     const view = views[classification.index];
-    const candidate = mapLeasesToNonSheetCandidates([view], { readTimestamp })
-      .candidates[0];
+    const tenantName = leaseTenantName(view);
     rows.push({
       leaseId: classification.leaseId,
-      ...(candidate?.joinValue ? { tenantName: candidate.joinValue } : {}),
+      ...(tenantName ? { tenantName } : {}),
       ...(classification.endDateIso ? { leaseEndIso: classification.endDateIso } : {}),
       tenantRecipientVerified: resolveRenewalRecipient({ lease: view, channel: "tenant" })
         .verified,
@@ -70,10 +66,14 @@ export async function loadLiveRenewalNotices(
 ): Promise<LiveRenewalNoticesResult> {
   if (!config.ok) return { status: config.reason };
   try {
-    const views = leaseViewsFromExport(await config.rentvineClient.listLeasesExport());
+    // Shared short-TTL cache: the desk render + the Preview/Create reads coalesce to one export read.
+    const views = await getLiveLeaseViews(
+      config.rentvineClient,
+      Date.parse(readTimestamp),
+    );
     return {
       status: "ok",
-      rows: buildLiveRenewalNoticeRows(views, windows, readTimestamp),
+      rows: buildLiveRenewalNoticeRows(views, windows),
       scanned: views.length,
     };
   } catch {

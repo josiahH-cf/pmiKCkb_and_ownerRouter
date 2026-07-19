@@ -11,7 +11,6 @@ import {
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-service";
 
 const MAILBOX = { email: "workflow@pmikcmetro.com", sourceRef: "app:session:u1" };
-const READ_TS = "2026-07-19T00:00:00.000Z";
 
 const tenantLease: RawLease = {
   leaseID: 42,
@@ -47,7 +46,6 @@ const tenantInput = (
   leaseId: "42",
   mailbox: MAILBOX,
   confirm,
-  readTimestamp: READ_TS,
   offer: { ownerDecision: "increase", offeredRent: 1550 },
 });
 
@@ -58,7 +56,6 @@ const ownerInput = (
   leaseId: "42",
   mailbox: MAILBOX,
   confirm,
-  readTimestamp: READ_TS,
   offer: {
     market: {
       specificNumber: 1550,
@@ -160,5 +157,57 @@ describe("prepareRenewalNoticeDraft", () => {
     expect(outcome.status).toBe("blocked");
     if (outcome.status !== "blocked") return;
     expect(outcome.reasons.join(" ")).toMatch(/current rent was not found/i);
+  });
+
+  it("composes an owner draft even when the lease has no resolvable tenant name", async () => {
+    // Owner-channel facts (address + rent) must not be gated on tenant-name resolution.
+    const { d } = deps({
+      leaseID: 42,
+      endDate: "2026-09-30",
+      currentRent: "1400.00",
+      tenants: [{ email: "resident-only@x.com" }], // no name / firstName / lastName
+      property: {
+        streetName: "200 Cedar Ct",
+        owner: { email: "owner42@cedar-holdings.com" },
+      },
+    });
+    const outcome = await prepareRenewalNoticeDraft(d, ownerInput(false));
+
+    expect(outcome.status).toBe("preview");
+    if (outcome.status !== "preview") return;
+    expect(outcome.recipient.to).toBe("owner42@cedar-holdings.com");
+    expect(outcome.subject).toContain("200 Cedar Ct");
+  });
+
+  it("blocks a tenant draft with a non-positive offered rent (never composes a $0 offer)", async () => {
+    const { d, createDraft } = deps(tenantLease);
+    const outcome = await prepareRenewalNoticeDraft(d, {
+      ...tenantInput(true),
+      offer: { ownerDecision: "increase", offeredRent: 0 },
+    });
+
+    expect(outcome.status).toBe("blocked");
+    if (outcome.status !== "blocked") return;
+    expect(outcome.reasons.join(" ")).toMatch(/greater than zero/i);
+    expect(createDraft).not.toHaveBeenCalled();
+  });
+
+  it("sanitizes a CR/LF in the property address so it never reaches the Subject", async () => {
+    const { d } = deps({
+      leaseID: 42,
+      endDate: "2026-09-30",
+      currentRent: 1400,
+      tenants: [{ name: "Ada Rowan" }],
+      property: {
+        streetName: "200 Cedar Ct\r\nInjected: header",
+        owner: { email: "owner42@cedar-holdings.com" },
+      },
+    });
+    const outcome = await prepareRenewalNoticeDraft(d, ownerInput(false));
+
+    expect(outcome.status).toBe("preview");
+    if (outcome.status !== "preview") return;
+    expect(outcome.subject).not.toMatch(/[\r\n]/);
+    expect(outcome.subject).toContain("200 Cedar Ct Injected: header");
   });
 });

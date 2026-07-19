@@ -61,15 +61,18 @@ export const RENTVINE_SOURCE_SYSTEM = "Rentvine (read-authoritative)";
  * additive (the pipeline field map reads only scalar tenant/date/rent keys, never these objects). Pure
  * and deterministic.
  */
-export function leaseViewsFromExport(rows: Record<string, unknown>[]): RawLease[] {
-  return rows.map((row) => {
+export function leaseViewsFromExport(rows: readonly unknown[]): RawLease[] {
+  return rows.flatMap((row) => {
+    // A malformed row (null/undefined/non-object) is SKIPPED, not thrown on — one bad element from the
+    // export endpoint must never deny the whole read (matches the per-lease graceful-skip contract).
+    if (!row || typeof row !== "object" || Array.isArray(row)) return [];
+    const record = row as Record<string, unknown>;
     const lease = (
-      row.lease && typeof row.lease === "object" ? row.lease : row
+      record.lease && typeof record.lease === "object" ? record.lease : record
     ) as Record<string, unknown>;
-    const unit = (row.unit && typeof row.unit === "object" ? row.unit : {}) as Record<
-      string,
-      unknown
-    >;
+    const unit = (
+      record.unit && typeof record.unit === "object" ? record.unit : {}
+    ) as Record<string, unknown>;
     const view: Record<string, unknown> = { ...lease };
     if (view.currentRent === undefined && unit.rent !== undefined && unit.rent !== null) {
       view.currentRent = unit.rent;
@@ -77,12 +80,41 @@ export function leaseViewsFromExport(rows: Record<string, unknown>[]): RawLease[
     // Preserve owner-bearing siblings so resolveRenewalRecipient's owner channel can reach them
     // (never overwriting a real lease field of the same name).
     for (const key of ["property", "portfolio", "owner", "owners"] as const) {
-      if (view[key] === undefined && row[key] !== undefined && row[key] !== null) {
-        view[key] = row[key];
+      if (view[key] === undefined && record[key] !== undefined && record[key] !== null) {
+        view[key] = record[key];
       }
     }
-    return view;
+    return [view];
   });
+}
+
+/**
+ * Extract single renewal facts from a lease view WITHOUT the candidate-skip logic — the owner channel
+ * needs the current rent and lease-end date even when a tenant name is absent, so these must not be
+ * gated on tenant resolution. Pure; reuse the same field map + coercers as the candidate mapper so the
+ * two never drift.
+ */
+export function leaseTenantName(
+  lease: RawLease,
+  fieldMap: RentVineLeaseFieldMap = DEFAULT_RENTVINE_LEASE_FIELD_MAP,
+): string | undefined {
+  return resolveTenant(lease, fieldMap.tenantName)?.value;
+}
+
+export function leaseEndDateIso(
+  lease: RawLease,
+  fieldMap: RentVineLeaseFieldMap = DEFAULT_RENTVINE_LEASE_FIELD_MAP,
+): string | undefined {
+  const hit = firstPresentKey(lease, fieldMap.renewalDate);
+  return hit ? (toIsoDate(hit.value) ?? undefined) : undefined;
+}
+
+export function leaseCurrentRent(
+  lease: RawLease,
+  fieldMap: RentVineLeaseFieldMap = DEFAULT_RENTVINE_LEASE_FIELD_MAP,
+): number | undefined {
+  const hit = firstPresentKey(lease, fieldMap.currentRent);
+  return hit ? (toRentNumber(hit.value) ?? undefined) : undefined;
 }
 
 export interface MapLeasesOptions {

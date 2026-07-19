@@ -5,6 +5,9 @@ import {
   type RentVineHttpTransport,
 } from "@/lib/integrations/rentvine/client";
 import {
+  leaseCurrentRent,
+  leaseEndDateIso,
+  leaseTenantName,
   leaseViewsFromExport,
   mapLeasesToNonSheetCandidates,
 } from "@/lib/integrations/rentvine/lease-mapper";
@@ -104,5 +107,38 @@ describe("listLeasesExport + leaseViewsFromExport", () => {
     expect(resolveRenewalRecipient({ lease: view, channel: "owner" }).verified).toBe(
       false,
     );
+  });
+
+  it("SKIPS a malformed (null/primitive) export row instead of throwing on the whole read", () => {
+    const views = leaseViewsFromExport([EXPORT_ROW, null, 42, "oops", undefined]);
+    // The one good row survives; the bad elements are dropped, not fatal.
+    expect(views).toHaveLength(1);
+    expect(views[0].leaseID).toBe(1);
+  });
+});
+
+describe("decoupled lease-fact extractors", () => {
+  it("read current rent + lease-end WITHOUT requiring a tenant name (owner-channel need)", () => {
+    // A lease with a rent + end date but no resolvable tenant name — the candidate mapper would skip it.
+    const lease = { leaseID: 5, endDate: "2026-09-30", currentRent: "1400.00" };
+    expect(
+      mapLeasesToNonSheetCandidates([lease], { readTimestamp: READ_TS }).candidates,
+    ).toHaveLength(0);
+    expect(leaseTenantName(lease)).toBeUndefined();
+    expect(leaseEndDateIso(lease)).toBe("2026-09-30");
+    expect(leaseCurrentRent(lease)).toBe(1400);
+  });
+
+  it("resolves a tenant name from tenants[0] and coerces rent/date", () => {
+    const lease = {
+      leaseID: 6,
+      endDate: "9/30/2026",
+      unit: undefined,
+      currentRent: 1250,
+      tenants: [{ name: "Jordan Maple" }],
+    };
+    expect(leaseTenantName(lease)).toBe("Jordan Maple");
+    expect(leaseEndDateIso(lease)).toBe("2026-09-30");
+    expect(leaseCurrentRent(lease)).toBe(1250);
   });
 });

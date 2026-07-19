@@ -5,22 +5,25 @@ import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
-import { leaseViewsFromExport } from "@/lib/integrations/rentvine/lease-mapper";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
+import { getLiveLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
 import {
   prepareRenewalNoticeDraft,
   type RenewalNoticeDraftInput,
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-service";
 
-const money = z.number().finite().nonnegative();
+// A rent/market figure: finite and strictly positive (a $0 renewal offer is never valid).
+const positiveMoney = z.number().finite().positive();
+// A charge line that may legitimately be zero (e.g. no resident-benefit package).
+const chargeMoney = z.number().finite().nonnegative();
 
 const TenantOfferSchema = z
   .object({
     channel: z.literal("tenant"),
     ownerDecision: z.enum(["keep_same", "increase", "custom"]),
-    offeredRent: money,
+    offeredRent: positiveMoney,
     charges: z
-      .object({ rbp: money.optional(), insurance: money.optional() })
+      .object({ rbp: chargeMoney.optional(), insurance: chargeMoney.optional() })
       .strict()
       .optional(),
     infoFormUrl: z.string().trim().url().optional(),
@@ -32,9 +35,9 @@ const OwnerOfferSchema = z
     channel: z.literal("owner"),
     market: z
       .object({
-        specificNumber: money.optional(),
-        rangeLow: money.optional(),
-        rangeHigh: money.optional(),
+        specificNumber: positiveMoney.optional(),
+        rangeLow: positiveMoney.optional(),
+        rangeHigh: positiveMoney.optional(),
         compsScreenshotRef: z.string().trim().min(1).max(500).optional(),
       })
       .strict(),
@@ -83,23 +86,21 @@ export async function POST(request: Request) {
     }
 
     const rentvineClient = config.rentvineClient;
+    const nowMs = Date.now();
     const { channel, ...offer } = body.offer;
     const input = {
       channel,
       offer,
       leaseId: body.leaseId,
       confirm: body.confirm,
-      readTimestamp: new Date().toISOString(),
       mailbox: { email: user.email, sourceRef: `app:session:${user.uid}` },
     } as RenewalNoticeDraftInput;
 
     const outcome = await prepareRenewalNoticeDraft(
       {
         async loadLease(leaseId) {
-          const rows = await rentvineClient.listLeasesExport();
-          return (
-            leaseViewsFromExport(rows).find((view) => leaseIdOf(view) === leaseId) ?? null
-          );
+          const views = await getLiveLeaseViews(rentvineClient, nowMs);
+          return views.find((view) => leaseIdOf(view) === leaseId) ?? null;
         },
         createGmailClient: (subject) => new GmailRuntimeClient({ subject }),
       },

@@ -55,6 +55,14 @@ describe("resolveRenewalRecipient", () => {
     expect(viaPortfolio.recipientSourceRef).toBe(
       "rentvine:lease:8:portfolio.owner.primaryEmail",
     );
+
+    // The `owners[]` array shape (preserved by leaseViewsFromExport) also resolves.
+    const viaOwnersArray = resolveRenewalRecipient({
+      channel: "owner",
+      lease: { id: 9, owners: [{ email: "first-owner@example.com" }] },
+    });
+    expect(viaOwnersArray.to).toBe("first-owner@example.com");
+    expect(viaOwnersArray.recipientSourceRef).toBe("rentvine:lease:9:owners[0].email");
   });
 
   it("marks Needs-Verification (never invents) when the tenant email is absent", () => {

@@ -111,9 +111,12 @@ describe("assertAuthoritativeRenewalRecipient", () => {
   it.each([
     "resident@example.com",
     "resident@example.net",
+    "resident@example.org",
     "someone@thing.invalid",
     "user@host.test",
+    "resident@acme.example",
     "x@localhost",
+    "user@host.localhost",
   ])("refuses a non-routable recipient %s", (to) => {
     const action = buildRenewalNoticeDraftAction({
       ...tenantInput,
@@ -122,22 +125,28 @@ describe("assertAuthoritativeRenewalRecipient", () => {
     expect(() => assertAuthoritativeRenewalRecipient(action)).toThrow(/non-routable/i);
   });
 
-  it.each(["smoke:x", "sample:x", "fixture:x", "test:x", "synthetic:x", "browser:x", ""])(
-    "refuses a non-authoritative recipient source %s",
-    (sourceRef) => {
-      const action = buildRenewalNoticeDraftAction({
-        ...tenantInput,
-        recipient: { ...tenantInput.recipient, sourceRef: sourceRef || "smoke:x" },
-      });
-      const patched: ExternalActionInput = {
-        ...action,
-        values: { ...action.values, recipient_source_ref: sourceRef },
-      };
-      expect(() => assertAuthoritativeRenewalRecipient(patched)).toThrow(
-        /authoritative recipient source/i,
-      );
-    },
-  );
+  it.each([
+    "smoke:x",
+    "sample:x",
+    "fixture:x",
+    "test:x",
+    "dry:x",
+    "synthetic:x",
+    "browser:x",
+    "",
+  ])("refuses a non-authoritative recipient source %s", (sourceRef) => {
+    const action = buildRenewalNoticeDraftAction({
+      ...tenantInput,
+      recipient: { ...tenantInput.recipient, sourceRef: sourceRef || "smoke:x" },
+    });
+    const patched: ExternalActionInput = {
+      ...action,
+      values: { ...action.values, recipient_source_ref: sourceRef },
+    };
+    expect(() => assertAuthoritativeRenewalRecipient(patched)).toThrow(
+      /authoritative recipient source/i,
+    );
+  });
 });
 
 describe("executeRenewalNoticeDraft", () => {

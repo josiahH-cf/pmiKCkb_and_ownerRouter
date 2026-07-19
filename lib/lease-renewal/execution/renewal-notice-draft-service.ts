@@ -15,7 +15,11 @@
 
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
-import { mapLeasesToNonSheetCandidates } from "@/lib/integrations/rentvine/lease-mapper";
+import {
+  leaseCurrentRent,
+  leaseEndDateIso,
+  leaseTenantName,
+} from "@/lib/integrations/rentvine/lease-mapper";
 import type { RenewalDraftGmailClient } from "@/lib/lease-renewal/execution/live-gmail-draft-provider";
 import {
   buildRenewalNoticeDraftPreview,
@@ -50,8 +54,6 @@ interface CommonInput {
   mailbox: RenewalNoticeMailbox;
   /** false → return the preview only; true → create the real unsent draft. */
   confirm: boolean;
-  /** Read timestamp for the (pure) lease→facts mapping; accepted as INPUT, never Date.now(). */
-  readTimestamp: string;
 }
 
 export type RenewalNoticeDraftInput =
@@ -107,7 +109,7 @@ export async function prepareRenewalNoticeDraft(
     );
   }
 
-  const facts = leaseRenewalFacts(lease, input.readTimestamp);
+  const facts = leaseRenewalFacts(lease);
   const common = {
     mailbox: input.mailbox,
     workflowId: `renewal-live:${input.leaseId}`,
@@ -171,18 +173,27 @@ async function finalize(
   };
 }
 
-function leaseRenewalFacts(lease: RawLease, readTimestamp: string): LeaseRenewalFacts {
-  // Reuse the exact live-read field mapping for tenant name / lease-end / current rent.
-  const candidate = mapLeasesToNonSheetCandidates([lease], { readTimestamp })
-    .candidates[0];
-  const leaseEnd = candidate?.fields.lease_end_date?.value;
-  const currentRent = candidate?.fields.current_rent?.value;
+function leaseRenewalFacts(lease: RawLease): LeaseRenewalFacts {
+  // Each fact is extracted INDEPENDENTLY (reusing the exact live-read field map + coercers). The owner
+  // channel needs the current rent + address even when a tenant name is absent, so — unlike the
+  // candidate mapper, which skips a whole lease that has no tenant name — nothing here is gated on the
+  // tenant name. Free-text facts are sanitized so an embedded control char can never reach a header.
   return {
-    tenantNameLabel: candidate?.joinValue,
-    leaseEndDateIso: typeof leaseEnd === "string" ? leaseEnd : undefined,
-    currentRent: typeof currentRent === "number" ? currentRent : undefined,
-    addressLabel: addressOf(lease),
+    tenantNameLabel: sanitizeText(leaseTenantName(lease)),
+    leaseEndDateIso: leaseEndDateIso(lease),
+    currentRent: leaseCurrentRent(lease),
+    addressLabel: sanitizeText(addressOf(lease)),
   };
+}
+
+/** Strip control chars (incl. CR/LF that would break an email header) and collapse whitespace. */
+function sanitizeText(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  const cleaned = value
+    .replace(/\p{Cc}+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned === "" ? undefined : cleaned;
 }
 
 function buildTenantDecision(
@@ -195,6 +206,9 @@ function buildTenantDecision(
   }
   if (!facts.leaseEndDateIso) {
     reasons.push("Lease end date was not found in the live RentVine lease.");
+  }
+  if (!(offer.offeredRent > 0)) {
+    reasons.push("Offered rent must be greater than zero.");
   }
   if (reasons.length > 0) return { ok: false, reasons };
   return {
