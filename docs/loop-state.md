@@ -20,14 +20,20 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
   activated `gmail.renewal_notice.draft_create` gate. Live-verified over HTTP: unauth `/`→307
   `/sign-in`, `/sign-in`→200, `/api/ask`→401, `/admin`→307. The retained rollback revision is the prior
   `pmi-kc-kb-demo-rmrqntfvs-4ebadb1e34a5`.
-- `main` (`c385a93`) is AHEAD of the serving image by the live renewal-draft path (Slices A/B/C +
-  hardening): `LiveRenewalGmailDraftProvider`, `resolveRenewalRecipient`, and
-  `buildRenewalNoticeDraftAction`/`executeRenewalNoticeDraft`, plus `smoke:renewal-draft-live`. These are
-  inert library primitives + an owner-run smoke — NO production route invokes them yet, so the running
-  app is behaviorally unchanged and a redeploy is deferred (held as a cost-bearing owner decision) until
-  a reachable in-app trigger lands. Draft-only: the provider hard-refuses any non-draft operation and
-  `executeRenewalNoticeDraft` re-asserts the production gate + an authoritative-recipient data-safety
-  guard, so sample/test data and `.send` actions can never produce a real draft.
+- `main` (`4a20551`) is AHEAD of the serving image by the complete live renewal-notice draft feature:
+  the library core (Slices A/B/C + hardening: `LiveRenewalGmailDraftProvider`, `resolveRenewalRecipient`,
+  `buildRenewalNoticeDraftAction`/`executeRenewalNoticeDraft`), the property→owner join (D), the
+  preview/compose core (E), and the in-app route + UI — `POST /api/lease-renewal/renewal-notice-draft`
+  (`prepareRenewalNoticeDraft`) plus the two-step `RenewalNoticeDraftComposer` on the Renewal Workspace.
+  Proven end-to-end by the owner-run `smoke:renewal-draft-live -- --live` (25/25 tenant resolution, one
+  real self-addressed unsent draft created + deleted). Draft-only and safe: the recipient is resolved
+  server-side from the authoritative live RentVine lease and is never client-controllable; the draft
+  lands only in the signed-in user's own mailbox; `confirm:true` is required to create; the production
+  gate + authoritative-recipient guard are re-asserted on every create, so sample/test data and `.send`
+  actions can never produce a real draft. A focused adversarial review confirmed the safety model holds
+  (no blocker/major). A redeploy is still deferred (cost-bearing owner decision); the running app is
+  behaviorally unchanged until then. Remaining owner-gated: live click-through verification, wiring live
+  lease ids into the workspace (it renders sample leases today), and an export-scan perf follow-on.
 - The clean integrated verifier passed from `f6d5ddb`: 322 test files / 2,290 tests, format,
   typecheck, router/falsification/context/spec/redaction, production build, Firestore 59/59, and core
   E2E 32 passed / 18 intentional prerequisite skips. Lint had zero errors and eight known warnings;
