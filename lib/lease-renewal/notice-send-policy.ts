@@ -7,9 +7,10 @@
 // GOVERNANCE: pure text composition only, EXACTLY like lib/gmail-inbox-zero/drafts.ts — this module
 // creates NO Gmail draft and has NO send capability. `production_allowed` and `send_allowed` are literal
 // false. A missing recipient renders a visible `Needs Verification:` marker; a recipient is never
-// invented. The live draft-create runtime stays gated behind the client-approved Gmail access model +
-// the approved per-action spec (Action Registry `gmail.renewal_notice.draft_create`,
-// production_allowed:false). Pure + deterministic: no I/O, no Date.now.
+// invented. This module creates no Gmail draft; the live draft-create runtime is the separate governed
+// executor for the Action Registry action `gmail.renewal_notice.draft_create`, now authorized
+// (production_allowed:true as of 2026-07-19, F-SEND-AUTHORIZED). That executor drafts only a real run's
+// verified recipient, never this sample-desk text. Pure + deterministic: no I/O, no Date.now.
 
 import { DRAFT_BANNER, UNVERIFIED_PLACEHOLDER } from "@/lib/constants";
 import type { OwnerRenewalDraft } from "@/lib/lease-renewal/owner-draft";
