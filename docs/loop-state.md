@@ -20,20 +20,23 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
   activated `gmail.renewal_notice.draft_create` gate. Live-verified over HTTP: unauth `/`→307
   `/sign-in`, `/sign-in`→200, `/api/ask`→401, `/admin`→307. The retained rollback revision is the prior
   `pmi-kc-kb-demo-rmrqntfvs-4ebadb1e34a5`.
-- `main` (`4a20551`) is AHEAD of the serving image by the complete live renewal-notice draft feature:
+- `main` (`2b400e1`) is AHEAD of the serving image by the complete live renewal-notice draft feature:
   the library core (Slices A/B/C + hardening: `LiveRenewalGmailDraftProvider`, `resolveRenewalRecipient`,
   `buildRenewalNoticeDraftAction`/`executeRenewalNoticeDraft`), the property→owner join (D), the
-  preview/compose core (E), and the in-app route + UI — `POST /api/lease-renewal/renewal-notice-draft`
-  (`prepareRenewalNoticeDraft`) plus the two-step `RenewalNoticeDraftComposer` on the Renewal Workspace.
-  Proven end-to-end by the owner-run `smoke:renewal-draft-live -- --live` (25/25 tenant resolution, one
-  real self-addressed unsent draft created + deleted). Draft-only and safe: the recipient is resolved
-  server-side from the authoritative live RentVine lease and is never client-controllable; the draft
-  lands only in the signed-in user's own mailbox; `confirm:true` is required to create; the production
-  gate + authoritative-recipient guard are re-asserted on every create, so sample/test data and `.send`
-  actions can never produce a real draft. A focused adversarial review confirmed the safety model holds
-  (no blocker/major). A redeploy is still deferred (cost-bearing owner decision); the running app is
-  behaviorally unchanged until then. Remaining owner-gated: live click-through verification, wiring live
-  lease ids into the workspace (it renders sample leases today), and an export-scan perf follow-on.
+  preview/compose core (E), the in-app route + UI — `POST /api/lease-renewal/renewal-notice-draft`
+  (`prepareRenewalNoticeDraft`) plus the two-step `RenewalNoticeDraftComposer` (F/G) — and the
+  Admin-gated live renewal-notices desk `/lease-renewal/live/notices` (H) that lists the actionable live
+  RentVine cohort and mounts the composer per REAL lease id (degrading to a connect-RentVine panel when
+  not connected). Proven end-to-end by the owner-run `smoke:renewal-draft-live -- --live` (25/25 tenant
+  resolution, one real self-addressed unsent draft created + deleted). Draft-only and safe: the recipient
+  is resolved server-side from the authoritative live RentVine lease and is never client-controllable; the
+  draft lands only in the signed-in user's own mailbox; `confirm:true` is required to create; the
+  production gate + authoritative-recipient guard are re-asserted on every create, so sample/test data and
+  `.send` actions can never produce a real draft. A focused adversarial review confirmed the safety model
+  holds (no blocker/major). A redeploy is still deferred (cost-bearing owner decision); the running app is
+  behaviorally unchanged until then. Remaining owner-gated: live click-through of the desk in a
+  RentVine-connected env (local dev SSR/renderer was unresponsive this session, so it rests on unit tests
+  + typecheck + the production build) and an export-scan perf follow-on.
 - The clean integrated verifier passed from `f6d5ddb`: 322 test files / 2,290 tests, format,
   typecheck, router/falsification/context/spec/redaction, production build, Firestore 59/59, and core
   E2E 32 passed / 18 intentional prerequisite skips. Lint had zero errors and eight known warnings;
