@@ -12,6 +12,32 @@ durable detail in `docs/`.
 > security rules, human-send authority, and system-of-record write gates still apply.
 > Details live in `docs/away-mode.md` and `docs/budget-and-cost-policy.md`.
 
+## Go-Live Authorization (standing grant, 2026-07-19)
+
+The owner granted send/draft and related permissions across the board and directed that the product
+is LIVE. The DEFAULT posture is **ship-to-production**, not build-to-preview: a built, reviewed
+feature ships, and its `production_allowed` gate is opened by a routine reviewed code change (seed
+edit plus its pinned tests). "Pending" is reserved for a **genuine, named external dependency** (a
+missing provider write endpoint or credential, e.g. a RentVine write endpoint or QuickBooks OAuth) —
+never a governance default and never an open-ended "await cutover." Do not leave a finished feature
+preview-only because a gate has not been flipped; flip the gate (with its tests) or name the exact
+external dependency that blocks it. This is the durable fix for the recurring "features never go
+live, always pending" pattern.
+
+These invariants PERMIT go-live and must be preserved — they never justify keeping a feature pending:
+
+- Every send is human-initiated and exact-confirmed. No autonomous, scheduled, bulk, or
+  model-triggered agent send. The app may send when a person confirms; the agent never sends on its
+  own.
+- Secrets, tokens, and customer data live in Secret Manager, never git.
+- A Live system-of-record write uses its S25/S26 preview, confirm, receipt, and rollback contract.
+- Sample/test data never becomes a real draft or send.
+- Staff, agent, connector, cloud, build, and runtime identities stay `pmikcmetro.com`/service.
+
+Recorded as `F-SEND-AUTHORIZED` in `docs/facts.md` (supersedes `F-WRITE-GATE`). Operational steps that
+only the owner can run (a Cloud Run deploy, a Google Workspace OAuth scope grant) are named as such,
+never as governance blockers.
+
 ## Per-Runner Pointers
 
 This repository is **runner-neutral**: `AGENTS.md` (this file) plus `docs/` hold every
@@ -183,8 +209,10 @@ route new work through the three-product docs.
 - Enforce anti-hallucination in code before model calls.
 - Keep runtime changes scoped to the relevant product lane.
 - External-tool roles and per-action activation live in the Action Registry and
-  `docs/integration-architecture.md`. Production includes separate Live and Test lanes: Test records
-  may complete app/Firestore workflows but cannot contact a provider or prove Live activation.
+  `docs/integration-architecture.md`. Production ships Live by default; the Test lane is an optional
+  safe-testing mode (isolated records that exercise a workflow without contacting a provider) and
+  never blocks or delays a Live action. A feature is Live when its reviewed gate is flipped — it is
+  never held preview-only merely because a Test lane exists.
 - Add tests with any behavior change.
 - Do not build Lease Renewal or Workflow Communications behavior beyond its product
   docs, permissions, and acceptance gates. S19 preserves the proven per-user Gmail transport but
@@ -291,11 +319,14 @@ answer ourselves.
   guard (NOT concurrency-safe; the break-glass script recovers). Per-user domain-wide Gmail
   (`F-GMAIL-PER-USER`, evolved by S19) acts AS each signed-in user's own mailbox via DWD. The
   production transport uses the four approved Gmail scopes and separately governed actions;
-  the rollout-only pilot allowlist is removed. The application exposes only workflow-linked reads,
-  governed labels, review-only source-backed proposals, and exact-confirmed replies. The weaker
-  `gmail.draft.create` mutation and generic new-message sending are disabled in production.
-  Every permitted reply remains exact-message, human-confirmed, action-gated, and audited. Firebase
-  authentication and Gmail DWD authorization are separate systems.
+  the rollout-only pilot allowlist is removed. The application exposes workflow-linked reads,
+  governed labels, review-only source-backed proposals, exact-confirmed replies, and — per the
+  2026-07-19 go-live grant — the authorized Gmail notice draft-into-Gmail actions (renewal
+  owner/tenant, maintenance owner), each cleared to activate through its reviewed seed gate. Generic
+  non-workflow new-message sending stays off as a deliberate safety choice (no arbitrary blast),
+  activated only via a separate approved human-confirmed design. Every activated send or draft
+  remains exact-message, human-confirmed, action-gated, and audited. Firebase authentication and
+  Gmail DWD authorization are separate systems.
 - Full strategy, per-surface mechanisms, and migration plan:
   `docs/auth-identity-and-access-strategy.md`.
 

@@ -5,7 +5,11 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 
 ## Snapshot
 
-- Last updated: 2026-07-18.
+- Last updated: 2026-07-19.
+- GO-LIVE (owner grant 2026-07-19, `F-SEND-AUTHORIZED`): the default posture is ship-to-production,
+  not preview-only-pending. Opening a built action's `production_allowed` is a routine reviewed change;
+  "pending" now means only a genuine named external dependency. The safety invariants below (Locked
+  Safety) are retained because they permit go-live, not because they block it.
 - The validated audit-remediation implementation was integrated through protected PR #76, the
   Vendor-handoff regression repair through PR #77, and the Approval route-selection repair through
   PR #79 as product commit `f6d5ddbce8b250b64df3bc58c81398f09e33b869`.
