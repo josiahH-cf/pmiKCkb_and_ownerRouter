@@ -37,13 +37,21 @@ export function SessionTimeout({
 }: Readonly<{
   warnAfterMs?: number;
   logoutAfterMs?: number;
-  onTimeout?: () => void;
+  onTimeout?: () => void | Promise<void>;
 }>) {
   const lastActivityRef = useRef(0);
   const warnedRef = useRef(false);
   const timedOutRef = useRef(false);
   const stayButtonRef = useRef<HTMLButtonElement>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+
+  // Keep the latest onTimeout in a ref so the interval effect never depends on its identity: an
+  // inline onTimeout={() => ...} would otherwise re-create the effect (re-seeding the idle clock)
+  // on every render, which during the countdown would reset idle each second and never log out.
+  const onTimeoutRef = useRef(onTimeout);
+  useEffect(() => {
+    onTimeoutRef.current = onTimeout;
+  }, [onTimeout]);
 
   function stayActive() {
     lastActivityRef.current = Date.now();
@@ -72,7 +80,7 @@ export function SessionTimeout({
         timedOutRef.current = true;
         warnedRef.current = false;
         setRemainingSeconds(null);
-        onTimeout();
+        void Promise.resolve(onTimeoutRef.current()).catch(() => undefined);
       } else if (idle >= warnAfterMs) {
         warnedRef.current = true;
         setRemainingSeconds(Math.max(0, Math.ceil((logoutAfterMs - idle) / 1000)));
@@ -87,7 +95,7 @@ export function SessionTimeout({
       ACTIVITY_EVENTS.forEach((event) => window.removeEventListener(event, onActivity));
       clearInterval(tick);
     };
-  }, [warnAfterMs, logoutAfterMs, onTimeout]);
+  }, [warnAfterMs, logoutAfterMs]);
 
   const isWarning = remainingSeconds !== null;
   useEffect(() => {
@@ -99,12 +107,22 @@ export function SessionTimeout({
   const minutes = Math.floor(remainingSeconds / 60);
   const seconds = String(remainingSeconds % 60).padStart(2, "0");
 
+  // Modal focus trap: the "Stay signed in" button is the only focusable, so Tab keeps focus on it.
+  function keepFocusInDialog(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Tab") {
+      event.preventDefault();
+      stayButtonRef.current?.focus();
+    }
+  }
+
   return (
     <div className="ui-dialog-backdrop">
       <div
         aria-describedby="session-timeout-desc"
         aria-labelledby="session-timeout-title"
+        aria-modal="true"
         className="panel session-timeout-dialog"
+        onKeyDown={keepFocusInDialog}
         role="alertdialog"
       >
         <h2 id="session-timeout-title">Are you still active?</h2>
