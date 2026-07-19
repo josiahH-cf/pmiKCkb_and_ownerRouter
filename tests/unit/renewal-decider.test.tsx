@@ -103,18 +103,24 @@ describe("RenewalDecider", () => {
     expect(disclosure).toHaveTextContent("Divider rows dropped");
 
     fireEvent.click(screen.getByRole("button", { name: "Reject" }));
-    expect(
-      screen.getByRole("textbox", { name: "Reason (required for this choice)" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Reason" })).toBeInTheDocument();
+    // LR-9 (§F/§A): the required Reason is marked (asterisk + aria-required) and the primary
+    // action is the prominent large Button.
+    expect(screen.getByRole("textbox", { name: "Reason" })).toHaveAttribute(
+      "aria-required",
+      "true",
+    );
+    expect(screen.getByText("*")).toHaveClass("field-required");
+    expect(screen.getByRole("button", { name: "Save decision" })).toHaveClass(
+      "button--large",
+    );
     expect(
       screen.queryByRole("button", { name: "Accept suggested source" }),
     ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByText("2 of 2")).toBeInTheDocument();
     expect(screen.getByText("Lease end")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("textbox", { name: "Reason (required for this choice)" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Reason" })).not.toBeInTheDocument();
     expect(document.querySelectorAll(".lr-decider-card")).toHaveLength(1);
 
     const nextRun = {

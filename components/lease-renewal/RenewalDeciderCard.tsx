@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { Disclosure } from "@/components/ui";
+import { Button, Disclosure, Field } from "@/components/ui";
 import { ReasonCodeSelect } from "@/components/lease-renewal/ReasonCodeSelect";
 import {
   FlagResolveForm,
@@ -272,13 +272,14 @@ export function RenewalDeciderCard({
 
       {canAcceptSuggestion && !queued && !manualKind ? (
         <div className="lr-decider-actions">
-          <button
+          <Button
             disabled={submitting !== null}
             onClick={() => void acceptSuggestion()}
+            size="large"
             type="button"
           >
             {submitting === "accept" ? "Saving..." : "Accept suggested source"}
-          </button>
+          </Button>
           <div className="lr-decider-secondary-actions">
             <button
               className="secondary-button"
@@ -311,9 +312,9 @@ export function RenewalDeciderCard({
         <div className="lr-decider-manual">
           <ReasonCodeSelect value={reasonCode} onChange={setReasonCode} />
           {manualKind === "pick_source" ? (
-            <label>
-              Source
+            <Field htmlFor="lr-manual-source" label="Source" required>
               <select
+                id="lr-manual-source"
                 onChange={(event) => setManualSource(event.target.value)}
                 value={manualSource}
               >
@@ -325,34 +326,40 @@ export function RenewalDeciderCard({
                     </option>
                   ))}
               </select>
-            </label>
+            </Field>
           ) : null}
           {manualKind === "corrected_value" ? (
-            <label>
-              Corrected value
+            <Field htmlFor="lr-corrected-value" label="Corrected value" required>
               <input
+                id="lr-corrected-value"
                 onChange={(event) => setCorrectedValue(event.target.value)}
                 type="text"
                 value={correctedValue}
               />
-            </label>
+            </Field>
           ) : null}
-          <label>
-            Reason (required for this choice)
+          <Field
+            hint="Plain-English reason for this choice."
+            htmlFor="lr-reason"
+            label="Reason"
+            required
+          >
             <textarea
+              id="lr-reason"
               onChange={(event) => setReason(event.target.value)}
               rows={3}
               value={reason}
             />
-          </label>
+          </Field>
           <div className="lr-decider-secondary-actions">
-            <button
+            <Button
               disabled={submitting !== null}
               onClick={() => void submitManualResolution()}
+              size="large"
               type="button"
             >
               {submitting === "manual" ? "Saving..." : "Save decision"}
-            </button>
+            </Button>
             <button
               className="secondary-button"
               onClick={() => setManualKind(null)}
@@ -379,13 +386,14 @@ export function RenewalDeciderCard({
             The resolution is saved. Approval is a separate audited decision; nothing is
             written to the Sheet.
           </p>
-          <button
+          <Button
             disabled={submitting !== null}
             onClick={() => void approveWriteback()}
+            size="large"
             type="button"
           >
             {submitting === "approve" ? "Saving..." : "Approve write-back"}
-          </button>
+          </Button>
         </div>
       ) : approvalPending && !isAdmin ? (
         <p className="muted">An Admin approves the queued write-back proposal.</p>
