@@ -42,7 +42,7 @@ const MOVE_OUT_STEPS: ReadonlyArray<{ title: string; description: string }> = [
   {
     title: "Move-out inspection",
     description:
-      "Tab 2 sends an inspection email via the portal, cc Dan. Tracked checklist flag.",
+      "Tab 2 sends an inspection email via the portal, cc the owner. Tracked checklist flag.",
   },
   {
     title: "RentVine close-out / reporting changes",
@@ -113,6 +113,6 @@ export function buildMoveOutProcessTemplate(
     stop_condition:
       "Missing evidence or a legal input surfaces as an unchecked or flagged step; the app never invents the statutory deposit-disposition deadline or legal wording (it stays a `Needs Verification:` placeholder — v1-process-qa Move-Out Q2).",
     escalation_condition:
-      "Blocked or legal-gated items (deposit deadline, dispute) route to Dan/Josiah Admin and legal.",
+      "Blocked or legal-gated items (deposit deadline, dispute) route to Admin and legal.",
   };
 }

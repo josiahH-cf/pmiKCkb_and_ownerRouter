@@ -85,7 +85,7 @@ export function buildMoveInProcessTemplate(
     short_outcome:
       "Track a tenant move-in as a source-backed checklist — intake, documents, lease build-out, deposit posture, e-signature, certified funds, inspection, keys, welcome, and listing — with a DRAFT welcome a human sends. No app write to any system of record.",
     trigger:
-      "Manual start by a team member when a tenant is approved/onboarding (owner = Dan, default approver = Dan + a Dan-settable secondary). Auto-detect from RentVine is a later phase.",
+      "Manual start by a team member when a tenant is approved/onboarding (owner and default approver come from the process config, plus a settable secondary approver). Auto-detect from RentVine is a later phase.",
     owner_uid: options.ownerUid,
     default_approver_uid: options.approverUid,
     source_links: options.sourceLinks ?? [],
@@ -103,6 +103,6 @@ export function buildMoveInProcessTemplate(
       "Every move-in step is reviewed and checked off by the operator; the welcome is sent by a human; no external write or send occurs from the app.",
     stop_condition:
       "The operator judges readiness; missing prerequisites surface as unchecked or flagged steps, never a hard block (v1-process-qa Move-In Q2 override — no hard gates in V1).",
-    escalation_condition: "Blocked or unclear items route to Dan/Josiah Admin triage.",
+    escalation_condition: "Blocked or unclear items route to Admin triage.",
   };
 }

@@ -21,12 +21,12 @@ const NEEDS_VERIFICATION = "Needs Verification";
 export const SUGGESTED_DEDUCTION_LABEL =
   "Suggested deduction — SUGGESTION ONLY, owner approval required";
 
-/** Provisional repair/bid owner-sign-off threshold (unblock note #5; Josiah 2026-07-03 chose the
- *  note's $500 starting point). PROVISIONAL + UNVERIFIED — it is Dan's business rule; overridable via
- *  `input.repairSignoffThresholdCents` once he confirms a number. Any deduction line at or above it
- *  needs Dan's explicit sign-off before it is treated as final. */
+/** Provisional repair/bid owner-sign-off threshold (unblock note #5; $500 starting point from the
+ *  note). PROVISIONAL + UNVERIFIED: it is the owner's business rule, overridable via
+ *  `input.repairSignoffThresholdCents` once the owner confirms a number. Any deduction line at or
+ *  above it needs the owner's explicit sign-off before it is treated as final. */
 export const PROVISIONAL_REPAIR_SIGNOFF_THRESHOLD_CENTS = 50_000;
-export const REPAIR_SIGNOFF_THRESHOLD_LABEL = `${NEEDS_VERIFICATION}: repair/bid owner-sign-off threshold (provisional $500 — Dan to confirm)`;
+export const REPAIR_SIGNOFF_THRESHOLD_LABEL = `${NEEDS_VERIFICATION}: repair/bid owner-sign-off threshold (provisional $500, owner to confirm)`;
 
 export interface EvidenceLine {
   key: string;
@@ -93,7 +93,7 @@ export function buildEvidencePacket(input: EvidencePacketInput): EvidencePacket 
 
   const statutoryDeadline = input.statutoryDeadlineNote?.trim()
     ? input.statutoryDeadlineNote.trim()
-    : `${NEEDS_VERIFICATION}: deposit-disposition statutory deadline (legal/owner — route to Dan; never computed)`;
+    : `${NEEDS_VERIFICATION}: deposit-disposition statutory deadline (legal/owner sets this; never computed)`;
   const legalWordingNote = input.legalWordingNote?.trim()
     ? input.legalWordingNote.trim()
     : `${NEEDS_VERIFICATION}: statutory deposit-disposition legal language (legal/owner; never generated)`;
