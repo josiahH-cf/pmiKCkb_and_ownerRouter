@@ -36,7 +36,7 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
   holds (no blocker/major). A redeploy is still deferred (cost-bearing owner decision); the running app is
   behaviorally unchanged until then. Remaining owner-gated: live click-through of the desk in a
   RentVine-connected env (local dev SSR/renderer was unresponsive this session, so it rests on unit tests
-  + typecheck + the production build) and an export-scan perf follow-on.
+  - typecheck + the production build) and an export-scan perf follow-on.
 - The clean integrated verifier passed from `f6d5ddb`: 322 test files / 2,290 tests, format,
   typecheck, router/falsification/context/spec/redaction, production build, Firestore 59/59, and core
   E2E 32 passed / 18 intentional prerequisite skips. Lint had zero errors and eight known warnings;
