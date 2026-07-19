@@ -30,16 +30,25 @@ export function NeedsDecisionInboxPanel({
 
   const { counts } = inbox;
   const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  // AQ-9/AQ-10: reconcile the count against what is actionable HERE, replacing the aggregate
+  // flag/write-back/queue-item metadata (which read as a different number from Bulk Actions).
+  // inlineApprovable matches the safe queue approvals a user can record on this surface; everything
+  // else deep-links to its own page for the full decision.
+  const inlineApprovable = inbox.rows.filter(
+    (row) => row.kind === "queue_item" && row.canApproveInline && Boolean(row.itemId),
+  ).length;
+  const elsewhere = counts.total - inlineApprovable;
 
   return (
     <div className="ui-stack needs-decision-inbox" aria-label="Needs your decision">
       <p className="muted">
         {plural(counts.total, "thing needs", "things need")} your decision, most urgent
-        first. {plural(counts.renewalFlags, "renewal flag", "renewal flags")} ·{" "}
-        {plural(counts.writebacksAwaiting, "write-back", "write-backs")} ·{" "}
-        {plural(counts.queueItems, "queue item", "queue items")}. Open each to decide.
-        Safe queue approvals can be recorded here; values and all other controls live on
-        their pages.
+        first.{" "}
+        {inlineApprovable > 0
+          ? elsewhere > 0
+            ? `${inlineApprovable} can be approved right here; the rest open on their own pages for the full decision.`
+            : "You can approve them right here."
+          : "Open each on its own page to decide."}
       </p>
       <ul className="ui-rows">
         {inbox.rows.map((row) => (
