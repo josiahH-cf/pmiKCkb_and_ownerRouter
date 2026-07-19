@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui";
 
 // Structural twin of PrepareOwnerEmailButton. It POSTs the lease id to the tenant-notice-draft route,
 // which returns the addressed UNSENT draft (verbatim DRAFT_BANNER). The control can never send — a
@@ -63,14 +64,14 @@ export function PrepareTenantEmailButton({ leaseId }: Readonly<{ leaseId: string
 
   return (
     <div className="ui-stack">
-      <button
-        className="secondary-button"
+      <Button
         disabled={pending}
         onClick={() => void prepare()}
+        size="large"
         type="button"
       >
         {pending ? "Preparing…" : "Prepare tenant email"}
-      </button>
+      </Button>
       {error ? <p className="muted">{error}</p> : null}
       {result ? (
         <div className="ui-stack">
@@ -84,13 +85,13 @@ export function PrepareTenantEmailButton({ leaseId }: Readonly<{ leaseId: string
           </p>
           <div className="draft-box">{result.request.body}</div>
           {result.execution_allowed ? (
-            <button
-              className="secondary-button"
+            <Button
               onClick={() => void copyDraft(result.request)}
               type="button"
+              variant="secondary"
             >
               {copied ? "Copied" : "Copy draft"}
-            </button>
+            </Button>
           ) : null}
         </div>
       ) : null}

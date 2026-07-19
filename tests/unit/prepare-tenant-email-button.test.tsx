@@ -40,7 +40,10 @@ describe("PrepareTenantEmailButton (AC-S15-6)", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     render(<PrepareTenantEmailButton leaseId="lease-318-cedar-7" />);
-    await user.click(screen.getByRole("button", { name: "Prepare tenant email" }));
+    // §H/§G: the primary Prepare action is now the prominent large primary button (was secondary).
+    const prepare = screen.getByRole("button", { name: "Prepare tenant email" });
+    expect(prepare).toHaveClass("primary-button", "button--large");
+    await user.click(prepare);
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(String(fetchMock.mock.calls[0][0])).toBe(

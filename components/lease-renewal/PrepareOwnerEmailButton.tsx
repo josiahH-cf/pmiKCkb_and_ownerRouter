@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui";
 
 interface DraftRequest {
   to: string;
@@ -63,14 +64,14 @@ export function PrepareOwnerEmailButton({ leaseId }: Readonly<{ leaseId: string 
 
   return (
     <div className="ui-stack">
-      <button
-        className="secondary-button"
+      <Button
         disabled={pending}
         onClick={() => void prepare()}
+        size="large"
         type="button"
       >
         {pending ? "Preparing…" : "Prepare owner email"}
-      </button>
+      </Button>
       {error ? <p className="muted">{error}</p> : null}
       {result ? (
         <div className="ui-stack">
@@ -84,13 +85,13 @@ export function PrepareOwnerEmailButton({ leaseId }: Readonly<{ leaseId: string 
           </p>
           <div className="draft-box">{result.request.body}</div>
           {result.execution_allowed ? (
-            <button
-              className="secondary-button"
+            <Button
               onClick={() => void copyDraft(result.request)}
               type="button"
+              variant="secondary"
             >
               {copied ? "Copied" : "Copy draft"}
-            </button>
+            </Button>
           ) : null}
         </div>
       ) : null}
