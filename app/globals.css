@@ -2147,6 +2147,14 @@ button {
   gap: 10px;
 }
 
+/* Idle session-timeout warning dialog (NOTIF-6). Reuses .ui-dialog-backdrop. */
+.session-timeout-dialog {
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+  width: 100%;
+}
+
 .ui-confirmation-dialog {
   width: min(32rem, 100%);
   max-height: calc(100vh - 2rem);

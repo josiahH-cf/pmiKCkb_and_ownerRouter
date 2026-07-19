@@ -4,6 +4,7 @@ import { SignOutButton } from "@/components/auth/SignOutButton";
 import { NotificationMenu } from "@/components/layout/NotificationMenu";
 import { ReleaseStageBanner } from "@/components/layout/ReleaseStageBanner";
 import { ReportIssueButton } from "@/components/feedback/ReportIssueButton";
+import { SessionTimeout } from "@/components/layout/SessionTimeout";
 import { can } from "@/lib/auth/roles";
 import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { PMI_WORDMARK, PRODUCT_NAME, type SpaceScope } from "@/lib/constants";
@@ -55,6 +56,8 @@ export function AppShell({
       {children}
       {/* TIX-1/2: persistent global "Report an issue" affordance on every signed-in page. */}
       <ReportIssueButton />
+      {/* NOTIF-6: idle session timeout with a 28-min warning + 2-min countdown + auto sign-out. */}
+      <SessionTimeout />
     </div>
   );
 }
