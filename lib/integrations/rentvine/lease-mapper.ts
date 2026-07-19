@@ -55,7 +55,11 @@ export const RENTVINE_SOURCE_SYSTEM = "Rentvine (read-authoritative)";
  * the plain /leases list omits tenant names and carries no rent, so the live read uses /leases/export
  * — where the tenant names live on `lease.tenants[].name` and the contractual rent on `unit.rent`.
  * This lifts `unit.rent` onto the lease view as `currentRent` (without clobbering a real field) and
- * keeps `lease.tenants[]` for the name join. Pure and deterministic.
+ * keeps `lease.tenants[]` for the name join. It also preserves the export row's owner-bearing siblings
+ * (`property`, `portfolio`, `owner`, `owners`) on the view — the lease itself carries no owner contact,
+ * so dropping these siblings is why the OWNER recipient channel could never resolve. Attaching them is
+ * additive (the pipeline field map reads only scalar tenant/date/rent keys, never these objects). Pure
+ * and deterministic.
  */
 export function leaseViewsFromExport(rows: Record<string, unknown>[]): RawLease[] {
   return rows.map((row) => {
@@ -69,6 +73,13 @@ export function leaseViewsFromExport(rows: Record<string, unknown>[]): RawLease[
     const view: Record<string, unknown> = { ...lease };
     if (view.currentRent === undefined && unit.rent !== undefined && unit.rent !== null) {
       view.currentRent = unit.rent;
+    }
+    // Preserve owner-bearing siblings so resolveRenewalRecipient's owner channel can reach them
+    // (never overwriting a real lease field of the same name).
+    for (const key of ["property", "portfolio", "owner", "owners"] as const) {
+      if (view[key] === undefined && row[key] !== undefined && row[key] !== null) {
+        view[key] = row[key];
+      }
     }
     return view;
   });

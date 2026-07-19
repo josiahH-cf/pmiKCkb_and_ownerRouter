@@ -8,6 +8,7 @@ import {
   leaseViewsFromExport,
   mapLeasesToNonSheetCandidates,
 } from "@/lib/integrations/rentvine/lease-mapper";
+import { resolveRenewalRecipient } from "@/lib/lease-renewal/recipient-resolution";
 
 const BASE_URL = "https://pmikcmetro.rentvine.com/api/manager";
 const READ_TS = "2026-06-20T00:00:00.000Z";
@@ -68,5 +69,40 @@ describe("listLeasesExport + leaseViewsFromExport", () => {
     expect(result.candidates[0].fields.current_rent.value).toBe(1250);
     expect(result.resolvedKeys.tenantName).toBe("tenants[0].name");
     expect(result.resolvedKeys.currentRent).toBe("currentRent");
+  });
+
+  it("preserves property/portfolio siblings so the owner channel resolves from an export row", () => {
+    const rowWithOwner = {
+      lease: {
+        leaseID: 7,
+        endDate: "2026-09-30",
+        tenants: [{ name: "Ada Rowan", email: "tenant7@northend-apts.com" }],
+      },
+      property: {
+        streetName: "200 Cedar Ct",
+        owner: { name: "Cedar Holdings LLC", email: "owner7@cedar-holdings.com" },
+      },
+      unit: { rent: "1400.00" },
+    };
+    const [view] = leaseViewsFromExport([rowWithOwner]);
+    expect((view.property as Record<string, unknown>).owner).toBeDefined();
+
+    const owner = resolveRenewalRecipient({ lease: view, channel: "owner" });
+    expect(owner.verified).toBe(true);
+    expect(owner.to).toBe("owner7@cedar-holdings.com");
+    expect(owner.recipientSourceRef).toBe("rentvine:lease:7:property.owner.email");
+
+    // Tenant still resolves from the same view.
+    expect(resolveRenewalRecipient({ lease: view, channel: "tenant" }).to).toBe(
+      "tenant7@northend-apts.com",
+    );
+  });
+
+  it("owner channel stays Needs-Verification when the export carries no owner contact", () => {
+    // EXPORT_ROW's property has only streetName — an address is NOT an owner email.
+    const [view] = leaseViewsFromExport([EXPORT_ROW]);
+    expect(resolveRenewalRecipient({ lease: view, channel: "owner" }).verified).toBe(
+      false,
+    );
   });
 });
