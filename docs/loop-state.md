@@ -20,6 +20,14 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
   activated `gmail.renewal_notice.draft_create` gate. Live-verified over HTTP: unauth `/`→307
   `/sign-in`, `/sign-in`→200, `/api/ask`→401, `/admin`→307. The retained rollback revision is the prior
   `pmi-kc-kb-demo-rmrqntfvs-4ebadb1e34a5`.
+- `main` (`c385a93`) is AHEAD of the serving image by the live renewal-draft path (Slices A/B/C +
+  hardening): `LiveRenewalGmailDraftProvider`, `resolveRenewalRecipient`, and
+  `buildRenewalNoticeDraftAction`/`executeRenewalNoticeDraft`, plus `smoke:renewal-draft-live`. These are
+  inert library primitives + an owner-run smoke — NO production route invokes them yet, so the running
+  app is behaviorally unchanged and a redeploy is deferred (held as a cost-bearing owner decision) until
+  a reachable in-app trigger lands. Draft-only: the provider hard-refuses any non-draft operation and
+  `executeRenewalNoticeDraft` re-asserts the production gate + an authoritative-recipient data-safety
+  guard, so sample/test data and `.send` actions can never produce a real draft.
 - The clean integrated verifier passed from `f6d5ddb`: 322 test files / 2,290 tests, format,
   typecheck, router/falsification/context/spec/redaction, production build, Firestore 59/59, and core
   E2E 32 passed / 18 intentional prerequisite skips. Lint had zero errors and eight known warnings;
