@@ -60,6 +60,23 @@ describe("NotificationMenu", () => {
     });
   });
 
+  it("auto-refreshes the feed when the tab regains visibility (NOTIF-1)", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ notifications: [approvalUnified()], families: familyViews() }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<NotificationMenu navigate={() => undefined} />);
+    await screen.findByText("1");
+    // No user interaction in this test, so every fetch is a feed poll.
+    const before = fetchMock.mock.calls.length;
+
+    // Tab regains visibility → the bell re-fetches without a manual click.
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThan(before));
+  });
+
   // AC-S17-1 + B6: the popover links to the /notifications hub and offers Mark all read when unread.
   it("links to the notifications hub and marks all read (AC-S17-1, B6)", async () => {
     const user = userEvent.setup();

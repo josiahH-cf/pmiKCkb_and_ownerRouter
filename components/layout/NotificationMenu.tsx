@@ -9,6 +9,9 @@ import type {
 
 type NotificationState = "idle" | "loading" | "ready" | "error";
 
+// NOTIF-1: background poll cadence so the bell's unread count stays fresh without a manual click.
+const NOTIFICATION_REFRESH_MS = 60_000;
+
 export function NotificationMenu({
   navigate = (url) => window.location.assign(url),
 }: Readonly<{ navigate?: (url: string) => void }>) {
@@ -31,6 +34,27 @@ export function NotificationMenu({
 
   useEffect(() => {
     void loadNotifications();
+  }, []);
+
+  // NOTIF-1 (§P): auto-refresh the bell — poll on an interval and refresh when the tab regains
+  // focus/visibility, so the unread count updates without a manual click. The event-log GET is
+  // lightweight and makes no external calls.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      void loadNotifications();
+    }, NOTIFICATION_REFRESH_MS);
+    function refreshOnVisible() {
+      if (document.visibilityState === "visible") {
+        void loadNotifications();
+      }
+    }
+    document.addEventListener("visibilitychange", refreshOnVisible);
+    window.addEventListener("focus", refreshOnVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshOnVisible);
+      window.removeEventListener("focus", refreshOnVisible);
+    };
   }, []);
 
   async function loadNotifications() {
