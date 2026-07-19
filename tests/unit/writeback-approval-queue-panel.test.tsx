@@ -69,7 +69,7 @@ describe("WritebackQueuePanel", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", {
-        name: /Approved — ready to write \(not executed\) \(1\)/,
+        name: /Approved: ready to write \(not executed\) \(1\)/,
       }),
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Returned \(0\)/ })).toBeInTheDocument();
@@ -92,9 +92,7 @@ describe("WritebackQueuePanel", () => {
     const collapsed = container.querySelectorAll("details.ui-collapse");
     expect(collapsed).toHaveLength(1); // Approved has rows; Returned is empty (plain "None.").
     expect(collapsed[0]).not.toHaveAttribute("open");
-    expect(collapsed[0]).toHaveTextContent(
-      "Approved — ready to write (not executed) (1)",
-    );
+    expect(collapsed[0]).toHaveTextContent("Approved: ready to write (not executed) (1)");
     expect(collapsed[0]).toHaveTextContent("Already decided. Open to view.");
     expect(collapsed[0]).toHaveTextContent("Renewal date");
 

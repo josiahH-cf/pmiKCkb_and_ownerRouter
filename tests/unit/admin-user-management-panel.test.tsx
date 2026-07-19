@@ -160,7 +160,7 @@ describe("UserManagementPanel space-scope editor", () => {
 
     expect(
       screen.getByText(
-        "Invalid scope claim — choose valid access and save before this user signs in.",
+        "Invalid scope claim: choose valid access and save before this user signs in.",
       ),
     ).toBeInTheDocument();
     expect(

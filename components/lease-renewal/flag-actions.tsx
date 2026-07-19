@@ -383,7 +383,7 @@ export function WritebackProposalCard({
         <p className="muted">{proposal.rationale}</p>
       )}
       <p className="muted">
-        Suggestion only — appended to a new column, never overwrites an existing cell; not
+        Suggestion only: appended to a new column, never overwrites an existing cell; not
         executed here (writing to the operating Sheet needs an approved action spec).
       </p>
       {ready && !queued ? (
@@ -455,11 +455,11 @@ export function WritebackApprovalControl({
 
   const stateLabel =
     approval.state === "Approved"
-      ? "Approved — ready to write (not executed)"
+      ? "Approved: ready to write (not executed)"
       : approval.state === "Returned for Revision"
-        ? "Returned for revision — re-resolve or re-approve"
+        ? "Returned for revision: re-resolve or re-approve"
         : approval.stale
-          ? "Awaiting approval — queued value changed, re-approve"
+          ? "Awaiting approval: queued value changed, re-approve"
           : "Awaiting your approval";
   const pillValue =
     approval.state === "Approved"
@@ -518,7 +518,7 @@ export function WritebackApprovalControl({
           </div>
           <p className="muted">
             Approving records your authorization for the future append-only Sheet write.
-            It is not executed here — the write itself stays gated behind an approved
+            It is not executed here. The write itself stays gated behind an approved
             action spec.
           </p>
         </div>
@@ -548,7 +548,7 @@ function WritebackApprovalTimeline({
       <ol className="lr-writeback-trail">
         {activity.map((entry, index) => (
           <li key={`${entry.createdAt}-${index}`}>
-            <strong>{DECISION_LABEL[entry.action]}</strong> by {entry.decidedByUid} —{" "}
+            <strong>{DECISION_LABEL[entry.action]}</strong> by {entry.decidedByUid} ·{" "}
             {entry.reason} <span className="muted">({entry.createdAt})</span>
           </li>
         ))}

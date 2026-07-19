@@ -125,7 +125,7 @@ export function LeaseRenewalRunClient({
               <ul>
                 {view.excludedTabs.map((excluded, index) => (
                   <li key={`${excluded.tab}-${index}`}>
-                    <strong>{excluded.tab}</strong> — {excluded.reason}
+                    <strong>{excluded.tab}</strong> · {excluded.reason}
                   </li>
                 ))}
               </ul>

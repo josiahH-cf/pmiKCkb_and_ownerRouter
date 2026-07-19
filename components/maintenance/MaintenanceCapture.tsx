@@ -392,7 +392,7 @@ export function MaintenanceCapture({
                 </ul>
               </>
             ) : (
-              <p className="muted">No blockers — ready for human review.</p>
+              <p className="muted">No blockers. Ready for human review.</p>
             )}
 
             <Button
@@ -409,8 +409,8 @@ export function MaintenanceCapture({
 
             {ownerNotice ? (
               <section aria-label="Owner notice draft">
-                <h3>Owner notice — draft</h3>
-                <p className="muted">Draft only — no send; a human reviews and sends.</p>
+                <h3>Owner notice: draft</h3>
+                <p className="muted">Draft only: no send; a human reviews and sends.</p>
                 <p>
                   <strong>{ownerNotice.subject}</strong>
                 </p>
@@ -425,7 +425,7 @@ export function MaintenanceCapture({
 
             {vendorSuggestion ? (
               <section aria-label="Vendor assignment suggestion">
-                <h3>Vendor assignment — suggestion</h3>
+                <h3>Vendor assignment: suggestion</h3>
                 <p className="muted">
                   Trade suggestion only. Assign a roster-backed Vendor from the ticket
                   after creation; any provider write remains a separate confirmed action.

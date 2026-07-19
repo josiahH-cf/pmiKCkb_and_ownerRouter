@@ -329,7 +329,7 @@ export function LiveGmailWorkspace({
                 <li key={communication.id}>
                   <Link href={communication.href}>
                     {communication.lane === "renewals" ? "Renewal" : "Maintenance"}{" "}
-                    communication — {statusLabel(communication.status)}
+                    communication · {statusLabel(communication.status)}
                   </Link>
                 </li>
               ))}

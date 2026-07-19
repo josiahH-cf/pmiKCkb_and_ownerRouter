@@ -41,5 +41,6 @@ fi
 "$NPM_CMD" run verify:falsification
 "$NPM_CMD" run verify:context-freshness
 "$NPM_CMD" run verify:spec-traceability
+"$NPM_CMD" run verify:copy-voice
 "$NPM_CMD" run verify:redaction
 "$NPM_CMD" run build

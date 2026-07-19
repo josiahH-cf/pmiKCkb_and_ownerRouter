@@ -104,7 +104,7 @@ export function AnticipatoryDraftComposer({
         >
           {templates.map((t) => (
             <option key={t.id} value={t.id}>
-              {t.name} — {t.status}
+              {t.name} · {t.status}
             </option>
           ))}
         </select>
@@ -158,8 +158,8 @@ export function AnticipatoryDraftComposer({
             <>
               <p className="muted">
                 {result.usedModel
-                  ? "Model-tailored draft — review before sending."
-                  : "Deterministic draft — review before sending."}
+                  ? "Model-tailored draft. Review before sending."
+                  : "Deterministic draft. Review before sending."}
               </p>
               <div className="draft-box">{result.draft}</div>
               <button

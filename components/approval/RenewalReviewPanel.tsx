@@ -12,7 +12,7 @@ function ReviewFlagRow({ flag }: Readonly<{ flag: RenewalReviewFlag }>) {
     <li className="ui-spread">
       <Link className="text-link" href={flag.href}>
         <strong>{flag.fieldLabel}</strong>
-        <span className="muted"> — {flag.actionNeeded}</span>
+        <span className="muted"> · {flag.actionNeeded}</span>
       </Link>
       <span className="renewal-review-flag-tags">
         <span className="queue-pill" data-value={flag.severity}>
@@ -63,7 +63,7 @@ export function RenewalReviewPanel({ board }: Readonly<{ board?: RenewalReviewBo
       <p className="muted">
         {board.totalOpenFlags} open reconciliation flag
         {board.totalOpenFlags === 1 ? "" : "s"} across {board.totalRuns} renewal run
-        {board.totalRuns === 1 ? "" : "s"}. Resolve each on its run page — the app never
+        {board.totalRuns === 1 ? "" : "s"}. Resolve each on its run page. The app never
         writes to the sheet without your approval.
       </p>
       {proposalsAwaitingApproval > 0 || proposalsApproved > 0 ? (

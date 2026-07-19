@@ -250,7 +250,7 @@ export function UserManagementPanel({
                   <strong>Space access</strong>
                   <span className="muted">
                     {user.scopeClaimInvalid
-                      ? "Invalid scope claim — choose valid access and save before this user signs in."
+                      ? "Invalid scope claim: choose valid access and save before this user signs in."
                       : "Scopes narrow reach; the role still applies."}
                   </span>
                 </div>

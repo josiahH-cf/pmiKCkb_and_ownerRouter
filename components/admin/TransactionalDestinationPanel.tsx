@@ -53,8 +53,8 @@ export function TransactionalDestinationPanel({
     <article className="panel">
       <h2>Owner Notification Destination</h2>
       <p className="muted">
-        The internal owner address that owner-facing transactional email — issue-report
-        tickets and owner-notice drafts — will be addressed to once a transactional send
+        The internal owner address that owner-facing transactional email (issue-report
+        tickets and owner-notice drafts) will be addressed to once a transactional send
         path is activated. It is not wired to any send today. This is an internal owner
         address, not a tenant recipient; tenant and owner-of-record notices still resolve
         their recipient from verified sources.

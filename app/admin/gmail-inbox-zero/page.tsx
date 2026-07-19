@@ -69,7 +69,7 @@ export default async function GmailInboxZeroAdminPage() {
             <h2>Gemini Status</h2>
             <p>
               {config.askDemoMode
-                ? "Demo mode — no live Gemini calls from this session."
+                ? "Demo mode: no live Gemini calls from this session."
                 : "Live mode configured for the KB Ask path and Gmail draft evaluation."}
             </p>
           </article>

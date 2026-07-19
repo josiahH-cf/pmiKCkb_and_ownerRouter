@@ -11,7 +11,7 @@ import type { EvidencePacket } from "@/lib/move-out/evidence-packet";
 export function EvidencePacketCard({ packet }: Readonly<{ packet: EvidencePacket }>) {
   const signoffKeys = new Set(packet.linesNeedingSignoff.map((line) => line.key));
   return (
-    <Card title="Deposit deduction — evidence packet">
+    <Card title="Deposit deduction: evidence packet">
       <p className="review-pill">{DRAFT_BANNER}</p>
 
       {packet.lines.length === 0 ? (
@@ -24,7 +24,7 @@ export function EvidencePacketCard({ packet }: Readonly<{ packet: EvidencePacket
           {packet.lines.map((line) => (
             <li className="ui-spread" key={line.key}>
               <span>
-                {line.label} <span className="muted">— {line.source}</span>
+                {line.label} <span className="muted">· {line.source}</span>
                 {signoffKeys.has(line.key) ? (
                   <span className="queue-pill" data-value="Needs Attention">
                     Needs owner sign-off

@@ -9,7 +9,7 @@ import type {
 // Permanent, honest posture: the lane is computed on Console load, never on a timer, and never executes.
 export const ANTICIPATION_CAPTION =
   "Computed on request · this never runs on a schedule and never sends.";
-export const ANTICIPATION_ALL_CLEAR = "All clear — nothing is coming up right now.";
+export const ANTICIPATION_ALL_CLEAR = "All clear. Nothing is coming up right now.";
 
 const URGENCY_LABEL: Record<AnticipatedUrgency, string> = {
   overdue: "Overdue",

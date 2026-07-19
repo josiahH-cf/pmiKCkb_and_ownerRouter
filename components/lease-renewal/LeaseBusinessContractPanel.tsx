@@ -29,7 +29,7 @@ export function LeaseBusinessContractPanel() {
           </div>
           <div>
             <dt>Durable per-lease Live lifecycle</dt>
-            <dd>Absent — the shared Live Review must not be treated as one.</dd>
+            <dd>Absent: the shared Live Review must not be treated as one.</dd>
           </div>
           <div>
             <dt>Exact next action</dt>
@@ -48,7 +48,7 @@ export function LeaseBusinessContractPanel() {
               <span>Owner: {rule.sourceOwner}</span>
               <br />
               <span>
-                Current result: {statusLabel(rule.status)} — {rule.currentSupport}
+                Current result: {statusLabel(rule.status)} · {rule.currentSupport}
               </span>
             </li>
           ))}
@@ -90,7 +90,7 @@ export function LeaseBusinessContractPanel() {
         <ul className="compact-list">
           {LEASE_SYSTEM_OWNERSHIP_CONTRACT.map((system) => (
             <li key={system.system}>
-              <strong>{system.system}</strong> — {system.ownership}
+              <strong>{system.system}</strong> · {system.ownership}
               <br />
               <span>Write boundary: {system.liveWrite}</span>
             </li>

@@ -2,11 +2,12 @@
 // and for em dashes, so the pre-customer copy pass cannot silently regress (S2 fixed four strings; the
 // surfaces shipped since re-introduced the pattern — this stops that treadmill).
 //
-// Rollout is warn-then-fail: jargon phrases hard-fail EVERYWHERE (app, components, and every lib/ file,
-// since user-facing copy is often composed in lib and rendered by a component). Em dashes hard-fail in
-// the client-facing EMAIL drafts (which reach tenants/owners); em dashes in the operator UI only WARN
-// for now — the full operator-UI em-dash purge is a follow-on, and this reports the remaining debt
-// without blocking.
+// Both jargon and em dashes hard-fail. Jargon phrases fail EVERYWHERE (app, components, and every lib/
+// file, since user-facing copy is often composed in lib and rendered by a component). Em dashes fail in
+// the client-facing EMAIL drafts (which reach tenants/owners) and, since the 2026-07-19 operator-UI
+// purge, in the operator UI (app, components) as well; this locks in the purge so the pattern cannot
+// silently regress. (lib/ non-draft strings are not em-dash-scanned, so keep rendered copy in
+// app/components, or in the allow-listed client-draft files.)
 //
 // Comment handling is block-aware: `/* ... */` blocks (including JSDoc `*` continuation lines) and
 // `//` line comments are stripped before scanning, so internal design notes ("Phase-2 control plane")
@@ -67,7 +68,7 @@ export function scanCopyText(text) {
 
 // Jargon hard-fails in every source root where user-facing copy can originate.
 const JARGON_ROOTS = ["app", "components", "lib"];
-// Operator-facing rendered copy: em dashes WARN (not blocking) here for now.
+// Operator-facing rendered copy: em dashes hard-fail here too (post-2026-07-19 purge).
 const OPERATOR_UI_ROOTS = ["app", "components"];
 // Em dashes in these client-facing EMAIL drafts hard-fail (they reach tenants/owners).
 export const CLIENT_DRAFT_FILES = [
@@ -118,7 +119,7 @@ export function collectViolations() {
       }
     } else if (underRoot(rel, OPERATOR_UI_ROOTS)) {
       for (const hit of emDashes) {
-        warnings.push(`${rel}:${hit.line}  em dash  ${hit.text}`);
+        errors.push(`${rel}:${hit.line}  em dash in operator UI  ${hit.text}`);
       }
     }
   }
@@ -147,7 +148,7 @@ function main() {
   }
 
   console.log(
-    `Copy-voice gate passed (0 jargon/client-draft violations, ${warnings.length} operator-UI em-dash warning(s)).`,
+    "Copy-voice gate passed (0 jargon, 0 em dashes in client drafts or operator UI).",
   );
 }
 

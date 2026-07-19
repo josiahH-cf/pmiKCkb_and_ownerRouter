@@ -11,6 +11,40 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Finalization pass: adversarial spec audit, em-dash purge + copy-voice hardening, gate reconciliation
+
+- Date: 2026-07-19
+- Ran a 13-domain adversarial spec-coverage audit (ticket-icon spec + UI/UX-overhaul §A–Q + compass
+  baseline) with a find-then-adversarially-verify workflow (26 agents). Every "implemented" claim held
+  up against code: this session's draft-into-Gmail path, the Gmail reply/label transport, admin
+  user/role management, the maintenance intake desk, session timeout, Console reordering (Ask-top /
+  Live-Ops-bottom), and the app-wide Report-issue button are all real.
+- Honest coverage backlog (future BUILD work, deliberately NOT done in this verification pass): remove
+  the stale "V1 application" banner; rename Spaces→Processes on the nav/directory; a guided "Next"
+  control; hide the V1 external-execution/readiness internals off the standard renewal landing into
+  Admin; Zillow + what's-next/sheet/bug links on the desk; a Connections connect-and-save walkthrough
+  (today read-only status + verify for RentVine/Sheets only); wire the built-but-dead
+  self-registration / TOTP / verification-code / live-vendor-invite; relabel hardcoded "Dan" to
+  role/state; add a "Deny" action + requester field to the Approval Queue; PMI logo/favicon + red-dot
+  badge (needs owner-supplied vector artwork); the §H tenant/Dotloop UI cleanup; report-issue email
+  delivery (owner transactional send path).
+- Part 2 (gate reconciliation): nothing built-and-connected is held behind a mere governance default.
+  The four Gmail actions (mailbox.read, thread.reply, label.apply, renewal_notice.draft_create) are
+  production_allowed:true and verified live. Every remaining production_allowed:false names a GENUINE
+  dependency: provider OAuth/API keys (QuickBooks, Dotloop, LeadSimple, Boom), undocumented RentVine
+  write endpoints, vendor OAuth mailbox, owner Drive DWD scope + folder id (photo store),
+  Secret-Manager HMAC (public intake), unbuilt send/idempotency contracts (reply-draft ledger,
+  renewal/owner-notice send), and a data dependency (maintenance owner-contact source). None is
+  fabricable to "Approved + Documented" without misstating reality, so none was flipped.
+- Q-CUTOVER-POSTURE surfaced for owner decision: dictated spec §B ("remove test/simulation/demo, make
+  everything sendable") conflicts with the standing governance that keeps the isolated Test lane,
+  simulation-only surfaces, and the admin SimulatedEmailChain demo as safety features. Not acted on
+  unilaterally.
+- Copy scrub (part 3): the deterministic AI-cliché scan of app/components + the client-draft templates
+  was clean; tightened one "Reach out" in the tenant welcome note. Purged all 60 operator-UI em dashes,
+  promoted `verify:copy-voice` to hard-fail operator-UI em dashes, and added it to `scripts/verify.sh`
+  (durable regression lock). Full suite green (2,433 tests); typecheck, format, and copy-voice clean.
+
 ## Go-live: F-SEND-AUTHORIZED posture + renewal-draft gate deployed to production
 
 - Date: 2026-07-19

@@ -68,7 +68,7 @@ function assertActionReadiness(
 
   expect(field(action!, "production-gate")).toHaveTextContent(
     registry?.production_allowed === true
-      ? "Registry-eligible — production_allowed=true"
+      ? "Registry-eligible: production_allowed=true"
       : "Closed",
   );
   expect(field(action!, "recommended-default")).toHaveTextContent(

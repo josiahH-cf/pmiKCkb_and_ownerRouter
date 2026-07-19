@@ -66,7 +66,7 @@ export function LiveRenewalReview({
 
       <p className="muted">
         Live, read-only view of RentVine and the renewal sheet. Nothing here is sent and
-        no record is changed — review each item, then make the fix at the source.
+        no record is changed. Review each item, then make the fix at the source.
       </p>
 
       {resolutionsError ? (
@@ -182,7 +182,7 @@ function LiveFlagCard({
           {flag.suggestedWinner.value}). Suggestion only, needs human approval.
         </p>
       ) : flag.blockedReason ? (
-        <p className="muted">Blocked: {flag.blockedReason} — needs a human decision.</p>
+        <p className="muted">Blocked: {flag.blockedReason}. Needs a human decision.</p>
       ) : null}
 
       {flag.writeback ? (

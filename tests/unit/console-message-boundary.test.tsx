@@ -84,7 +84,7 @@ describe("Console-to-full-message boundary", () => {
     expect(screen.queryByText(/Fixture full body/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Load linked communication" }));
     await user.click(
-      await screen.findByRole("button", { name: /Open renewal owner — linked/ }),
+      await screen.findByRole("button", { name: /Open renewal owner · linked/ }),
     );
     await waitFor(() =>
       expect(
@@ -204,7 +204,7 @@ describe("Console-to-full-message boundary", () => {
 
     await user.click(screen.getByRole("button", { name: "Load linked communication" }));
     await user.click(
-      await screen.findByRole("button", { name: /Open maintenance owner — linked/ }),
+      await screen.findByRole("button", { name: /Open maintenance owner · linked/ }),
     );
     await user.click(
       await screen.findByRole("button", {
@@ -329,7 +329,7 @@ describe("Console-to-full-message boundary", () => {
 
     await user.click(screen.getByRole("button", { name: "Load linked communication" }));
     await user.click(
-      await screen.findByRole("button", { name: /Open maintenance owner — linked/ }),
+      await screen.findByRole("button", { name: /Open maintenance owner · linked/ }),
     );
     await user.click(
       screen.getByRole("button", { name: "Request source-backed reply proposal" }),

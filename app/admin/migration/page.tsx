@@ -175,7 +175,7 @@ export default async function AdminMigrationPage() {
           {registry.note ? <p className="muted">{registry.note}</p> : null}
           <p>
             {!registryGovernanceOk
-              ? `${registry.unexpected_production_allowed_keys.length} entries are production_allowed=true without a committed grant — investigate before any cutover step.`
+              ? `${registry.unexpected_production_allowed_keys.length} entries are production_allowed=true without a committed grant. Investigate before any cutover step.`
               : allowListedExecutable.length === 0
                 ? `All ${registry.total} entries are production_allowed=false; no external write path exists.`
                 : `${allowListedExecutable.length} allow-listed executable (${allowListedExecutable.join(", ")}, unsent draft only); the other ${registry.total - allowListedExecutable.length} are production_allowed=false.`}
@@ -208,7 +208,7 @@ export default async function AdminMigrationPage() {
               <ul className="compact-list">
                 {registry.gated.map((entry) => (
                   <li key={entry.key}>
-                    {entry.key} — {entry.reason}
+                    {entry.key}: {entry.reason}
                   </li>
                 ))}
               </ul>

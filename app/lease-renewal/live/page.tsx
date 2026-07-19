@@ -42,7 +42,7 @@ const PANELS: Record<
   },
   read_error: {
     title: "Live read didn’t complete",
-    body: "The live read couldn’t finish — this is usually a temporary network issue. Reload to try again.",
+    body: "The live read couldn’t finish. This is usually a temporary network issue. Reload to try again.",
   },
 };
 

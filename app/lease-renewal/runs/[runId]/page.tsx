@@ -79,7 +79,7 @@ export default async function LeaseRenewalRunPage({
   }
 
   const label = persistentTestRun
-    ? `${persistentTestRun.property_label} — persistent Test run`
+    ? `${persistentTestRun.property_label} · persistent Test run`
     : (listSimulationRuns().find((entry) => entry.runId === runId)?.label ?? runId);
 
   // The flags are recomputed deterministically; only persisted resolutions + write-back approvals +

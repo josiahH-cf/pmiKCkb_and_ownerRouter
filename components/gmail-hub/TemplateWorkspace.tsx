@@ -82,7 +82,7 @@ export function TemplateWorkspace() {
           <ul className="compact-list">
             {SAMPLE_LABEL_RULES.map((rule) => (
               <li key={rule.id}>
-                <strong>{rule.label}</strong> — {rule.plain_english}{" "}
+                <strong>{rule.label}</strong> · {rule.plain_english}{" "}
                 <span className="queue-pill" data-value={rule.status}>
                   {rule.status}
                 </span>
@@ -154,7 +154,7 @@ export function TemplateWorkspace() {
             >
               {SAMPLE_REPLY_TEMPLATES.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.name} — {t.status}
+                  {t.name} · {t.status}
                 </option>
               ))}
             </select>
@@ -180,7 +180,7 @@ export function TemplateWorkspace() {
             <ul className="compact-list">
               {triage.suggestions.map((suggestion) => (
                 <li key={suggestion.rule_id}>
-                  <strong>{suggestion.label}</strong> — {suggestion.reason}
+                  <strong>{suggestion.label}</strong> · {suggestion.reason}
                   {triage.auto_apply.some((a) => a.rule_id === suggestion.rule_id)
                     ? " (auto-apply eligible)"
                     : " (suggest only)"}

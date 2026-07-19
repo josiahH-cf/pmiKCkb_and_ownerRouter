@@ -458,7 +458,7 @@ export function WorkflowCommunicationPanel({
                 onClick={() => void openThread(link)}
                 type="button"
               >
-                Open {link.purpose.replaceAll("_", " ")} —{" "}
+                Open {link.purpose.replaceAll("_", " ")} ·{" "}
                 {link.status.replaceAll("_", " ")}
               </button>
             </li>
@@ -560,9 +560,9 @@ export function WorkflowCommunicationPanel({
                   <option value="general_question">General question</option>
                   <option value="scheduling">Scheduling</option>
                   <option value="vendor">Vendor</option>
-                  <option value="owner_money">Owner money — label only</option>
-                  <option value="legal_notices">Legal/notices — label only</option>
-                  <option value="tenant_disputes">Tenant dispute — label only</option>
+                  <option value="owner_money">Owner money (label only)</option>
+                  <option value="legal_notices">Legal/notices (label only)</option>
+                  <option value="tenant_disputes">Tenant dispute (label only)</option>
                 </select>
               </label>
               <button
@@ -656,7 +656,7 @@ export function WorkflowCommunicationPanel({
                   aria-label="Exact linked Gmail reply confirmation"
                   className="notice ui-stack"
                 >
-                  <h4>Exact linked reply — not yet sent</h4>
+                  <h4>Exact linked reply: not yet sent</h4>
                   <p>
                     <strong>From:</strong> {exactReplyPreview.payload.from}
                   </p>

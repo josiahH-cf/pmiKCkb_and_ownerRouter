@@ -88,7 +88,7 @@ describe("ConsoleAnticipatedWork", () => {
     );
     expect(screen.getByText(ANTICIPATION_ALL_CLEAR)).toBeInTheDocument();
     expect(
-      screen.getByText("All clear — nothing is coming up right now."),
+      screen.getByText("All clear. Nothing is coming up right now."),
     ).toBeInTheDocument();
     expect(screen.getByText(ANTICIPATION_CAPTION)).toBeInTheDocument();
   });

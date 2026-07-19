@@ -40,6 +40,14 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
   (cost-bearing owner decision); the running app is behaviorally unchanged until then. Remaining
   owner-gated: live click-through of the desk in a RentVine-connected env (local dev SSR/renderer was
   unresponsive this session, so it rests on unit tests + typecheck + the production build).
+- Finalization pass (2026-07-19): a 13-domain adversarial spec audit (ticket-icon + UI/UX-overhaul +
+  compass) verified every "implemented" claim against code; the honest coverage backlog is in
+  `docs/status.md`. The operator-UI em-dash purge cleared all 60 warnings and `verify:copy-voice` now
+  hard-fails operator-UI em dashes and runs inside `scripts/verify.sh`. Gate reconciliation (part 2):
+  nothing built-and-connected is stuck behind a governance default (the four Gmail actions are live;
+  every other `production_allowed:false` is a genuine external/vendor/unbuilt-contract dependency).
+  OWNER DECISION PENDING `Q-CUTOVER-POSTURE`: spec §B ("remove test/simulation/demo") conflicts with
+  the standing Test-lane-as-safety governance; surfaced, not acted on unilaterally.
 - The clean integrated verifier passed from `f6d5ddb`: 322 test files / 2,290 tests, format,
   typecheck, router/falsification/context/spec/redaction, production build, Firestore 59/59, and core
   E2E 32 passed / 18 intentional prerequisite skips. Lint had zero errors and eight known warnings;

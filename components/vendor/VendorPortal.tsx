@@ -24,7 +24,7 @@ export function VendorPortal({
       </p>
       {isTest ? (
         <article className="panel" role="status">
-          <h2>Test data — external delivery is off</h2>
+          <h2>Test data: external delivery is off</h2>
           <p>
             This non-routable Vendor identity exercises the real assigned-ticket and
             mailbox lifecycle. Every write stays in the production Test workspace and is

@@ -11,7 +11,7 @@ import type { WritebackApprovalState } from "@/lib/lease-renewal/writeback-appro
 // stays on the run page (the Admin control), mirroring the renewal review sub-tab's read/triage posture.
 const STATE_HEADING: Record<WritebackApprovalState, string> = {
   "Awaiting Approval": "Awaiting approval",
-  Approved: "Approved — ready to write (not executed)",
+  Approved: "Approved: ready to write (not executed)",
   "Returned for Revision": "Returned",
 };
 
@@ -30,10 +30,10 @@ export function WritebackQueuePanel({
     <div className="ui-stack writeback-queue" aria-label="Write-back queue">
       <p className="muted">
         {queue.counts.total} queued write-back proposal
-        {queue.counts.total === 1 ? "" : "s"} across all runs —{" "}
+        {queue.counts.total === 1 ? "" : "s"} across all runs:{" "}
         {queue.counts.awaitingApproval} awaiting approval · {queue.counts.approved}{" "}
         approved (ready to write, not executed) · {queue.counts.returned} returned.
-        Approve or return each on its run page — nothing is written to the sheet here.
+        Approve or return each on its run page. Nothing is written to the sheet here.
       </p>
 
       {queue.groups.map((group) => (
@@ -61,7 +61,7 @@ function QueueStateGroup({ group }: Readonly<{ group: WritebackApprovalQueueGrou
             <div>
               <Link className="text-link" href={row.href}>
                 <strong>{row.fieldLabel}</strong>
-                <span className="muted"> — {row.runLabel}</span>
+                <span className="muted"> · {row.runLabel}</span>
               </Link>
               <p className="muted">
                 Authorization receipt: {row.authorizationReceiptId ?? "pending"} · Reason:{" "}

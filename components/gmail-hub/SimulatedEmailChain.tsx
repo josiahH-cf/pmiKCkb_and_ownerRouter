@@ -19,12 +19,12 @@ const INITIAL_MESSAGES: readonly SimulatedMessage[] = [
   {
     id: "simulated-message-1",
     actor: "josiah",
-    body: "Hi Dan — this is a browser-only demo update for the PMI KC walkthrough.",
+    body: "Hi Dan. This is a browser-only demo update for the PMI KC walkthrough.",
   },
 ];
 
 const INITIAL_REPLY =
-  "Thanks — I can see this reply attached to the same simulated conversation.";
+  "Thanks. I can see this reply attached to the same simulated conversation.";
 
 /**
  * A deliberately local demo fixture for showing email-thread continuity without mailbox access.

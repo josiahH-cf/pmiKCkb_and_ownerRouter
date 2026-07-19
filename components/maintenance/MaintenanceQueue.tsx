@@ -536,7 +536,7 @@ function MaintenanceBusinessCloseoutPanel({
       <ul className="compact-list">
         {boundary.gates.map((gate) => (
           <li key={gate.id}>
-            <strong>{gate.label}</strong> —{" "}
+            <strong>{gate.label}</strong>:{" "}
             {gate.outcome === "internal_simulation_only"
               ? `${gate.internalTestReceiptCount} of ${gate.internalTestReceiptTotal} internal Test receipts; business proof not established.`
               : gate.outcome === "test_evidence_incomplete"
@@ -621,7 +621,7 @@ function MaintenanceTestActions({
             <option key={action} value={action}>
               {action}
               {receipts.some((receipt) => receipt.action_key === action)
-                ? " — recorded"
+                ? " (recorded)"
                 : ""}
             </option>
           ))}
@@ -668,7 +668,7 @@ function MaintenanceTestActions({
           <ul>
             {receipts.map((receipt) => (
               <li key={receipt.id}>
-                {receipt.action_key} → {receipt.target_label} — simulated; no provider
+                {receipt.action_key} → {receipt.target_label}: simulated; no provider
                 contacted; not Live proof
               </li>
             ))}

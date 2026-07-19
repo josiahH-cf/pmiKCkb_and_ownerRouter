@@ -72,9 +72,9 @@ function ActionReadiness({
   const gateLabel = registryEligible ? "Registry eligible" : "Production closed";
   const gateState = registry
     ? registryEligible
-      ? "Registry-eligible — production_allowed=true. Exact workflow, source, role, confirmation/approval, and provider gates still apply."
-      : "Closed — Action Registry production_allowed=false; no production execution is authorized."
-    : "Closed — no Action Registry record exists; no production execution is authorized.";
+      ? "Registry-eligible: production_allowed=true. Exact workflow, source, role, confirmation/approval, and provider gates still apply."
+      : "Closed: Action Registry production_allowed=false; no production execution is authorized."
+    : "Closed: no Action Registry record exists; no production execution is authorized.";
 
   return (
     <li data-action-key={definition.key}>
@@ -138,7 +138,7 @@ function ActionReadiness({
               </ul>
             ) : (
               <p data-readiness-field="dependencies">
-                None — no predecessor action receipt is required.
+                None: no predecessor action receipt is required.
               </p>
             )}
           </div>

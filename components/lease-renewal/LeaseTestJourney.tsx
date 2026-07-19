@@ -344,7 +344,7 @@ export function LeaseTestJourney({
           <ol className="compact-list" aria-label="Lease Test business event history">
             {businessEvents.map((event) => (
               <li key={event.id}>
-                {LEASE_TEST_BUSINESS_ACTION_LABELS[event.action]} — {event.outcome} ·
+                {LEASE_TEST_BUSINESS_ACTION_LABELS[event.action]} · {event.outcome} ·
                 provider contacted: No · not Live proof
               </li>
             ))}
@@ -401,7 +401,7 @@ export function LeaseTestJourney({
         <ul className="compact-list">
           {completionBoundary.gates.map((gate) => (
             <li key={gate.id}>
-              <strong>{gate.label}</strong> —{" "}
+              <strong>{gate.label}</strong>:{" "}
               {gate.outcome === "internal_simulation_only"
                 ? `Test milestone plus ${gate.internalTestReceiptCount} of ${gate.internalTestReceiptTotal} internal Test receipts; Live business proof not established.`
                 : gate.outcome === "test_evidence_incomplete"
@@ -436,7 +436,7 @@ export function LeaseTestJourney({
             {LEASE_TEST_ACTIONS.map((action) => (
               <option key={action} value={action}>
                 {action}
-                {completedKeys.has(action) ? " — recorded" : ""}
+                {completedKeys.has(action) ? " (recorded)" : ""}
               </option>
             ))}
           </select>
@@ -506,7 +506,7 @@ export function LeaseTestJourney({
           <ul>
             {receipts.map((receipt) => (
               <li key={receipt.id}>
-                {receipt.action_key} → {receipt.target_label} — attempt 1 succeeded;
+                {receipt.action_key} → {receipt.target_label}: attempt 1 succeeded;
                 simulated receipt; no provider contacted; not Live proof
               </li>
             ))}

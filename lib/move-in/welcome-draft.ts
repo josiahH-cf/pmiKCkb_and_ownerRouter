@@ -136,7 +136,7 @@ export function buildWelcomeDraft(input: WelcomeDraftInput): WelcomeDraft {
     `- ${postureNote}`,
     `- Any move-in fees and deposit amounts: ${FEES_POINTER} (these vary by property).`,
     ``,
-    `You'll also receive this note in your RentVine Portal Chat. Reach out any time with questions.`,
+    `You'll also receive this note in your RentVine Portal Chat. Contact us any time with questions.`,
     ``,
     `Thanks,`,
     `PMI KC Metro`,
