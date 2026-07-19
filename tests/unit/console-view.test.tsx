@@ -63,6 +63,8 @@ describe("ConsoleView", () => {
       screen.getByRole("heading", { name: "Console", level: 1 }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText(/Question/)).toBeInTheDocument();
+    // SEU-2 (§A.1): the explanatory intro paragraph is gone; the surface is self-descriptive.
+    expect(screen.queryByText(/never touches a system of record/)).toBeNull();
     expect(screen.getByTestId("console-test-data-badge")).toHaveTextContent("Test data");
     // A renewals-visible principal sees the read-only anticipation lane (S18).
     expect(screen.getByRole("heading", { name: "Anticipated work" })).toBeInTheDocument();

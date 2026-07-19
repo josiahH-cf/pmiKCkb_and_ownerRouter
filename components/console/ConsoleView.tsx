@@ -210,12 +210,9 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
   return (
     <section className="content console">
       <h1 className="section-title">Console</h1>
-      <p className="muted">
-        See what needs your attention, ask a grounded question, or start a process as a
-        test run. Answers cite approved sources, and a test run never touches a system of
-        record.
-      </p>
-      {/* CON-1 (Note 2 §E): the Ask-a-Question portal leads the Console as its primary action. */}
+      {/* CON-1 (Note 2 §E): the Ask-a-Question portal leads the Console as its primary action.
+          SEU-2 (§A.1): the explanatory intro paragraph is removed — the titled Ask box, decks,
+          process strip, and Live-operations badge make the surface self-descriptive. */}
       <AskForm canStartSimulation={canStartSimulation} processes={processes} />
       {/* Decks stay on the Console (owner decision D-3: keep here AND mirror in Notifications). */}
       <ConsoleActionDeck canApprove={canApprove} cards={cards} />
