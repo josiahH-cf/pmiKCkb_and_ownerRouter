@@ -423,6 +423,15 @@ export interface ApprovalQueueEmailSettingRecord {
   updated_by_uid?: string;
 }
 
+// Owner transactional/notice destination (D-1 support). Single-doc admin-editable setting for the
+// owner-INTERNAL destination address; absence resolves to DEFAULT_OWNER_TRANSACTIONAL_EMAIL.
+export interface OwnerTransactionalDestinationRecord {
+  id: string;
+  destination_email: string;
+  updated_at: string;
+  updated_by_uid?: string;
+}
+
 export interface ApprovalQueueNotificationHealth {
   status: QueueNotificationHealthStatus;
   queue_email_status: QueueEmailSetupStatus;

@@ -218,6 +218,13 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Owner transactional/notice destination (D-1 support). Single admin-editable doc; writes are
+    // server-only through the manageAdmin-guarded route, so the browser can never forge the address.
+    match /owner_transactional_destination/{docId} {
+      allow read: if signedIn() && admin();
+      allow create, update, delete: if false;
+    }
+
     // S20 execution authority is server-only. The browser receives bounded projections through
     // authenticated workflow routes; it can never forge risk, approval, preview hash, attempt count,
     // outcome, or append-only Activity by writing Firestore directly.

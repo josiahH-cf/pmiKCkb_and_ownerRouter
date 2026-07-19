@@ -416,6 +416,20 @@ export const UpdateApprovalQueueNotificationInputSchema = z.object({
   action: z.enum(["mark_read"]),
 });
 
+// Owner transactional/notice destination (D-1 support). One editable field: a valid email, trimmed,
+// length-capped, and lowercased — mirrors gmail-hub EmailSchema so the stored value is canonical.
+export const UpdateOwnerTransactionalDestinationInputSchema = z.object({
+  destination_email: z
+    .string()
+    .trim()
+    .email("Enter a valid email address.")
+    .max(254)
+    .transform((value) => value.toLowerCase()),
+});
+export type UpdateOwnerTransactionalDestinationInput = z.infer<
+  typeof UpdateOwnerTransactionalDestinationInputSchema
+>;
+
 // In-app notification framework (console overhaul Slice 3b). NOTIFICATION_FAMILY_KEYS is an `as const`
 // readonly tuple, which z.enum accepts. There is intentionally NO email field: email stays hard-off.
 export const NotificationFamilyKeySchema = z.enum(NOTIFICATION_FAMILY_KEYS);

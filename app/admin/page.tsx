@@ -3,6 +3,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { ApprovalQueueAdminPanel } from "@/components/admin/ApprovalQueueAdminPanel";
 import { CommunicationsRetentionAdminPanel } from "@/components/admin/CommunicationsRetentionAdminPanel";
 import { PublicationPolicyAdminPanel } from "@/components/admin/PublicationPolicyAdminPanel";
+import { TransactionalDestinationPanel } from "@/components/admin/TransactionalDestinationPanel";
 import { V1ProductionTestWorkspacePanel } from "@/components/admin/V1ProductionTestWorkspacePanel";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import {
@@ -17,6 +18,10 @@ import {
   readApprovalQueueNotificationHealth,
   readDefaultApprovalQueueEmailSettings,
 } from "@/lib/firestore/approval-queue-notifications";
+import {
+  defaultOwnerTransactionalDestination,
+  readOwnerTransactionalDestination,
+} from "@/lib/firestore/owner-transactional-destination";
 import type { ApprovalQueueNotificationHealth } from "@/lib/firestore/types";
 import { listPublicationPolicies } from "@/lib/publication/policy";
 import type { PublicationPolicyRecord } from "@/lib/publication/types";
@@ -35,6 +40,8 @@ export default async function AdminPage() {
   let queueAdminNote: string | undefined;
   let publicationPolicies: PublicationPolicyRecord[] = [];
   let publicationPolicyNote: string | undefined;
+  let transactionalDestination = defaultOwnerTransactionalDestination();
+  let transactionalDestinationNote: string | undefined;
 
   try {
     observability = await readAdminObservability({ config });
@@ -59,6 +66,12 @@ export default async function AdminPage() {
     queueAdminNote = config.askDemoMode
       ? "Using default queue email settings because Firestore notification health is not available in this session."
       : "Approval Queue notification health is unavailable. Refresh Google credentials or check Firestore setup before relying on notification status.";
+  }
+  try {
+    transactionalDestination = await readOwnerTransactionalDestination(user);
+  } catch {
+    transactionalDestinationNote =
+      "Showing the seeded default; the saved destination is unavailable until Firestore is reachable in this session.";
   }
   const hasMetrics = Boolean(observability);
 
@@ -218,6 +231,10 @@ export default async function AdminPage() {
               <Link href="/admin/migration">Open migration console</Link>
             </article>
           </div>
+          <TransactionalDestinationPanel
+            initialEmail={transactionalDestination.destination_email}
+            note={transactionalDestinationNote}
+          />
           <article className="panel">
             <h2>Workflow Communications</h2>
             <p className="muted">
