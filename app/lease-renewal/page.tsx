@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { AppShell } from "@/components/layout/AppShell";
 import { RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
 import { LeaseExecutionReadiness } from "@/components/lease-renewal/LeaseExecutionReadiness";
@@ -22,6 +24,13 @@ export default async function LeaseRenewalDeskPage() {
           }
           view={view}
         />
+        {can(user.role, "manageAdmin") ? (
+          <p>
+            <Link className="secondary-button" href="/lease-renewal/live/notices">
+              Live renewal notices (compose drafts)
+            </Link>
+          </p>
+        ) : null}
         <LeaseExecutionReadiness />
       </section>
     </AppShell>
