@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { authErrorResponse, requireCapability } from "@/lib/auth/session";
+import { askModelRateLimiter } from "@/lib/api/model-call-throttle";
 import { answerQuestion } from "@/lib/ask/service";
 import { AnswerGenerationSetupError } from "@/lib/llm/answer";
 import { RetrievalSetupError } from "@/lib/retrieval/vertex-search";
@@ -13,6 +14,17 @@ export async function POST(request: Request) {
     user = await requireCapability("read");
   } catch (error) {
     return authErrorResponse(error);
+  }
+
+  // LR-05: bound per-user paid model invocation before doing any cost-bearing retrieval/answer work.
+  if (!askModelRateLimiter.check(user.uid, Date.now()).allowed) {
+    return NextResponse.json(
+      {
+        error: "Too many questions right now. Please wait a moment and try again.",
+        error_type: "AskRateLimited",
+      },
+      { status: 429 },
+    );
   }
 
   const payload = await request.json().catch(() => null);

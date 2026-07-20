@@ -27,7 +27,11 @@ export async function GET(_request: Request, context: RouteContext) {
 
 export async function PATCH(request: Request, context: RouteContext) {
   try {
-    const user = await requireCapabilityInSpace("read", "renewals");
+    // LR-02: a mutation endpoint is gated at the minimum mutating altitude (`edit`), not `read`. Every
+    // action needs at least edit anyway (approve/deny need `approve`; assign/disable/close need
+    // `manageAdmin`), so this loses no legitimate access while ensuring a read-only principal is rejected
+    // at the boundary rather than relying solely on the per-action capability checks inside planTransition.
+    const user = await requireCapabilityInSpace("edit", "renewals");
     const { itemId } = await context.params;
     const input = await parseJsonBody(request, TransitionApprovalQueueItemInputSchema);
     const item = await transitionApprovalQueueItemWithWorkflowSync(user, itemId, input);

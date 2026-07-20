@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GET as GET_LIST } from "@/app/api/approval-queue/route";
 import {
@@ -153,6 +155,49 @@ describe("Approval Queue API routes", () => {
 
     expect(response.status).toBe(400);
     expect(transitionApprovalQueueItemWithWorkflowSync).not.toHaveBeenCalled();
+  });
+
+  // A PATCH mutation is gated by BOTH capability and renewals-space access — an actor without renewals
+  // access is rejected before the transition runs. (This proves the space+capability gate fires; the
+  // edit-vs-read altitude itself is pinned by the source guard below, since no role has read-without-edit.)
+  it("rejects a PATCH mutation from an actor without renewals space access", async () => {
+    setAuthResolverForTest(() => ({
+      email: "editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+      uid: "editor-9",
+      scopes: ["maintenance"],
+    }));
+
+    const response = await PATCH_ITEM(
+      jsonRequest({ action: "approve", confirm_high_risk: true }),
+      itemContext("item-1"),
+    );
+
+    expect(response.status).toBe(403);
+    expect(transitionApprovalQueueItemWithWorkflowSync).not.toHaveBeenCalled();
+  });
+
+  // LR-02: pin the altitude per-handler so a future swap (PATCH->read or GET->edit) trips CI. Because no
+  // role has read-without-edit, this altitude can only be verified at the source level, so the assertions
+  // are scoped to each handler's body rather than the whole file.
+  it("gates the PATCH mutation at edit and the GET read at read (LR-02 altitude)", () => {
+    const source = readFileSync(
+      fileURLToPath(
+        new URL("../../app/api/approval-queue/[itemId]/route.ts", import.meta.url),
+      ),
+      "utf8",
+    );
+    const patchAt = source.indexOf("export async function PATCH");
+    const getBody = source.slice(source.indexOf("export async function GET"), patchAt);
+    const patchBody = source.slice(patchAt);
+
+    expect(patchBody).toMatch(/requireCapabilityInSpace\("edit", "renewals"\)/);
+    // The mutation handler must NOT be gated at the lower read altitude.
+    expect(patchBody).not.toMatch(/requireCapabilityInSpace\("read", "renewals"\)/);
+    // The read handler stays at read (and is not accidentally raised to edit).
+    expect(getBody).toMatch(/requireCapabilityInSpace\("read", "renewals"\)/);
+    expect(getBody).not.toMatch(/requireCapabilityInSpace\("edit", "renewals"\)/);
   });
 
   it("returns 401 before bulk actions when unauthenticated", async () => {

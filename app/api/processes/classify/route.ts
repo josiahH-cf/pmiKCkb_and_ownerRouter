@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { authErrorResponse, requireCapability } from "@/lib/auth/session";
+import { classifyModelRateLimiter } from "@/lib/api/model-call-throttle";
 import { readServerConfig } from "@/lib/config/server";
 import { listProcessDefinitions } from "@/lib/firestore/workflows";
 import { AnswerGenerationSetupError } from "@/lib/llm/answer";
@@ -21,6 +22,14 @@ export async function POST(request: Request) {
     user = await requireCapability("edit");
   } catch (error) {
     return authErrorResponse(error);
+  }
+
+  // LR-05: bound per-user paid model invocation before doing any cost-bearing work.
+  if (!classifyModelRateLimiter.check(user.uid, Date.now()).allowed) {
+    return NextResponse.json(
+      { error: "Too many classification requests. Please wait a moment and try again." },
+      { status: 429 },
+    );
   }
 
   const payload = await request.json().catch(() => null);
