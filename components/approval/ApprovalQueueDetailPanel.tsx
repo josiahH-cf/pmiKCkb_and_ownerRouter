@@ -87,6 +87,13 @@ export function QueueDetailPanel({
               label="Required approver"
               value={displayValue(selectedItem.required_approver_uid)}
             />
+            <DetailField
+              label="Requested by"
+              value={displayValue(
+                selectedItem.created_by_uid ??
+                  selectedActivity.find((entry) => entry.action === "created")?.actor_uid,
+              )}
+            />
             <DetailField label="Due date" value={displayValue(selectedItem.due_date)} />
             <DetailField
               label="Affected action"

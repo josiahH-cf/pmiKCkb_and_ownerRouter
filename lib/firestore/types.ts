@@ -374,6 +374,10 @@ export interface ApprovalQueueItemRecord {
   audience_group: QueueAudienceGroup;
   assignee_uid?: string;
   required_approver_uid?: string;
+  // F-APPR-5: the requester/creator, stamped at creation so the reviewer knows who to route back to
+  // (a first-class field rather than only inferring it from the Activity log). Optional for back-compat
+  // with items created before this field existed.
+  created_by_uid?: string;
   due_date?: string;
   action_needed: string;
   affected_system_action?: string;

@@ -210,6 +210,8 @@ export async function createApprovalQueueItem(
         status,
         audience_group: audienceGroup,
         supersedes_item_id: closedDuplicate?.id,
+        // F-APPR-5: stamp the requester so the detail view can show who to route back to.
+        created_by_uid: actor.uid,
       }),
     }) as Omit<ApprovalQueueItemRecord, "created_at" | "updated_at">;
 
@@ -470,12 +472,19 @@ function planTransition(
       };
     }
     case "close": {
-      assertCan(actor, "approve");
+      // F-APPR-4: close is a terminal cleanup with no UI control. Restrict it to Admin (like Disable)
+      // and require a reason, so an Approver cannot terminally Close an arbitrary item they can view via
+      // a direct PATCH, with no rationale. A linked-execution close additionally revokes the execution
+      // (syncLinkedActionExecution), which is already Admin-gated and reason-required.
+      if (!can(actor.role, "manageAdmin")) {
+        throw new EditableLayerError("Only Admins can close a queue item.", 403);
+      }
+      const reason = requireReason(input.reason, "Close");
       return {
         updates: { status: "Closed", closed_at: serverTimestamp() },
         action: "closed",
         newState: "Closed",
-        reason: input.reason?.trim() || undefined,
+        reason,
       };
     }
     default: {

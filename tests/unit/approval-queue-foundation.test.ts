@@ -98,6 +98,11 @@ describe("createApprovalQueueItem", () => {
     });
   });
 
+  it("stamps the creator as a first-class created_by_uid field (F-APPR-5)", async () => {
+    const item = await createApprovalQueueItem(editor, baseInput(), db);
+    expect(item.created_by_uid).toBe("editor-1");
+  });
+
   it("requires server-owned fixture authority for Test items", async () => {
     await expect(
       createApprovalQueueItem(editor, baseInput({ data_mode: "test" }), db),
@@ -381,6 +386,33 @@ describe("transitionApprovalQueueItem", () => {
         db,
       ),
     ).rejects.toThrow(/Disable Action/);
+  });
+
+  it("restricts Close to Admins and requires a reason (F-APPR-4)", async () => {
+    const item = await createApprovalQueueItem(editor, baseInput(), db);
+
+    // An Approver can no longer terminally Close an arbitrary item.
+    await expect(
+      transitionApprovalQueueItem(
+        approver,
+        item.id,
+        { action: "close", reason: "cleanup" },
+        db,
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+
+    // Even an Admin must supply a reason.
+    await expect(
+      transitionApprovalQueueItem(admin, item.id, { action: "close" }, db),
+    ).rejects.toThrow(/reason/);
+
+    const closed = await transitionApprovalQueueItem(
+      admin,
+      item.id,
+      { action: "close", reason: "Superseded by a newer request." },
+      db,
+    );
+    expect(closed.status).toBe("Closed");
   });
 
   it("requires a date and reason for Snooze", async () => {
