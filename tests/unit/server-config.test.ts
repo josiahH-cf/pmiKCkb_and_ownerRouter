@@ -82,22 +82,26 @@ describe("server config", () => {
     expect(readServerConfig({}).maintenanceImageFolderId).toBe("");
   });
 
-  it("fails the public intake closed by default (no secret) and defaults the daily cap", () => {
+  it("fails the public intake closed by default (no secret) and defaults the daily + signage caps", () => {
     const config = readServerConfig({});
     expect(config.maintenanceIntakeTokenSecret).toBeUndefined();
     expect(config.maintenanceIntakeIpHashSalt).toBeUndefined();
-    expect(config.maintenanceIntakeDailyCap).toBe(500);
+    // F-MAINT-3: default 50/property/day, with a tighter default for reusable signage links.
+    expect(config.maintenanceIntakeDailyCap).toBe(50);
+    expect(config.maintenanceIntakeSignageDailyCap).toBe(15);
   });
 
-  it("reads the intake secret, salt, and daily cap when provided", () => {
+  it("reads the intake secret, salt, and daily + signage caps when provided", () => {
     const config = readServerConfig({
       MAINTENANCE_INTAKE_TOKEN_SECRET: "s3cret",
       MAINTENANCE_INTAKE_IP_HASH_SALT: "salty",
       MAINTENANCE_INTAKE_DAILY_CAP: "250",
+      MAINTENANCE_INTAKE_SIGNAGE_DAILY_CAP: "40",
     });
     expect(config.maintenanceIntakeTokenSecret).toBe("s3cret");
     expect(config.maintenanceIntakeIpHashSalt).toBe("salty");
     expect(config.maintenanceIntakeDailyCap).toBe(250);
+    expect(config.maintenanceIntakeSignageDailyCap).toBe(40);
   });
 
   it("rejects invalid JSON maps", () => {

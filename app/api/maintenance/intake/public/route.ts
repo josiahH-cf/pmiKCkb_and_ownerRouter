@@ -149,6 +149,7 @@ export async function POST(request: Request) {
         contact: shape.data.contact,
         ipHash,
         dailyCap: config.maintenanceIntakeDailyCap,
+        signageCap: config.maintenanceIntakeSignageDailyCap,
       },
       undefined,
       now,

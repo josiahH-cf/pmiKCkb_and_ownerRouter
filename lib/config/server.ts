@@ -107,7 +107,11 @@ const EnvSchema = z.object({
   // still applies). The daily cap is the per-property 503 kill-ceiling (owner budget safety).
   MAINTENANCE_INTAKE_TOKEN_SECRET: OptionalStringSchema,
   MAINTENANCE_INTAKE_IP_HASH_SALT: OptionalStringSchema,
-  MAINTENANCE_INTAKE_DAILY_CAP: z.coerce.number().int().positive().default(500),
+  // F-MAINT-3 (owner ruling): 50/property/day, with a tighter cap for reusable signage links.
+  MAINTENANCE_INTAKE_DAILY_CAP: z.coerce.number().int().positive().default(50),
+  // The tighter per-property/day ceiling for reusable (signage) links, which do not burn a nonce, so one
+  // posted signage link cannot flood a property's triage queue. Clamped to <= the daily cap at enforcement.
+  MAINTENANCE_INTAKE_SIGNAGE_DAILY_CAP: z.coerce.number().int().positive().default(15),
   SPACE_DRIVE_FOLDER_IDS: JsonMapSchema,
   SPACE_VERTEX_DATA_STORE_IDS: JsonMapSchema,
   VERTEX_AI_LOCATION: z.string().trim().min(1).default("us-central1"),
@@ -158,6 +162,7 @@ export function readServerConfig(env: Environment = process.env) {
     maintenanceIntakeTokenSecret: parsed.MAINTENANCE_INTAKE_TOKEN_SECRET,
     maintenanceIntakeIpHashSalt: parsed.MAINTENANCE_INTAKE_IP_HASH_SALT,
     maintenanceIntakeDailyCap: parsed.MAINTENANCE_INTAKE_DAILY_CAP,
+    maintenanceIntakeSignageDailyCap: parsed.MAINTENANCE_INTAKE_SIGNAGE_DAILY_CAP,
     spaceDriveFolderIds: parsed.SPACE_DRIVE_FOLDER_IDS,
     spaceVertexDataStoreIds: parsed.SPACE_VERTEX_DATA_STORE_IDS,
     vertexAiLocation: parsed.VERTEX_AI_LOCATION,

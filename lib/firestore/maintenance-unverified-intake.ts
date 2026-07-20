@@ -57,6 +57,9 @@ export interface PublicIntakeSubmission {
   contact?: string;
   ipHash: string | null;
   dailyCap: number;
+  // F-MAINT-3: the tighter per-property/day ceiling applied to reusable (signage) links, which do not
+  // burn a nonce. Clamped to never exceed dailyCap at enforcement.
+  signageCap: number;
 }
 
 export class IntakeValidationError extends Error {
@@ -144,6 +147,14 @@ export async function createUnverifiedIntakeFromPublic(
     Number.isFinite(submission.dailyCap) && submission.dailyCap > 0
       ? Math.trunc(submission.dailyCap)
       : 1;
+  // F-MAINT-3: reusable (signage) links get a tighter per-property/day ceiling than single-use links, so
+  // one publicly posted signage link cannot flood a property's triage queue. Never looser than dailyCap;
+  // an absent/invalid signage cap falls back to dailyCap (no extra restriction).
+  const signageCap =
+    Number.isFinite(submission.signageCap) && submission.signageCap > 0
+      ? Math.min(Math.trunc(submission.signageCap), dailyCap)
+      : dailyCap;
+  const effectiveCap = submission.singleUse ? dailyCap : signageCap;
 
   const createdAt = new Date(now).toISOString();
   const id = uuidv7();
@@ -172,7 +183,7 @@ export async function createUnverifiedIntakeFromPublic(
 
     const counterSnap = await transaction.get(counterRef);
     const count = readCount(counterSnap);
-    if (count >= dailyCap) throw new IntakeDailyCapError();
+    if (count >= effectiveCap) throw new IntakeDailyCapError();
 
     // Writes.
     const record: UnverifiedIntakeRecord = {

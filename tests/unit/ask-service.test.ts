@@ -60,6 +60,7 @@ const liveConfig: ServerConfig = {
   maintenanceIntakeTokenSecret: undefined,
   maintenanceIntakeIpHashSalt: undefined,
   maintenanceIntakeDailyCap: 500,
+  maintenanceIntakeSignageDailyCap: 15,
   imageStore: "stub",
   spaceDriveFolderIds: {
     "lease-renewals": "folder-1",
