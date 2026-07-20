@@ -299,7 +299,7 @@ describe("setAppUserScopes", () => {
     });
   });
 
-  it("returns the committed claim state and logs when the audit write fails", async () => {
+  it("aborts with the claim untouched when the audit write fails (LR-01, no un-audited change)", async () => {
     const { auth, setSpy } = fakeAuth([
       {
         uid: "u1",
@@ -307,12 +307,12 @@ describe("setAppUserScopes", () => {
         customClaims: { role: "Approver", scopes: ["renewals"], marker: true },
       },
     ]);
-    const auditFailure = new Error("firestore unavailable");
-    vi.mocked(recordAdminScopeChange).mockRejectedValueOnce(auditFailure);
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(recordAdminScopeChange).mockRejectedValueOnce(
+      new Error("firestore unavailable"),
+    );
 
-    try {
-      const updated = await setAppUserScopes(
+    await expect(
+      setAppUserScopes(
         {
           actor: adminActor,
           targetUid: "u1",
@@ -320,27 +320,12 @@ describe("setAppUserScopes", () => {
           reason: "maintenance assignment",
         },
         auth,
-      );
+      ),
+    ).rejects.toMatchObject({ status: 500 });
 
-      expect(setSpy).toHaveBeenCalledTimes(1);
-      expect(setSpy).toHaveBeenCalledWith("u1", {
-        role: "Approver",
-        scopes: ["maintenance"],
-        marker: true,
-      });
-      expect(recordAdminScopeChange).toHaveBeenCalledTimes(1);
-      expect(consoleError).toHaveBeenCalledTimes(1);
-      expect(consoleError).toHaveBeenCalledWith(
-        "Scope change applied for worker@pmikcmetro.com but the audit write failed:",
-        auditFailure,
-      );
-      expect(updated).toMatchObject({
-        role: "Approver",
-        scopes: ["maintenance"],
-        scopeClaimInvalid: false,
-      });
-    } finally {
-      consoleError.mockRestore();
-    }
+    // The audit record is written before the claim, so a failed audit leaves the claim untouched:
+    // setCustomUserClaims must never have run, meaning no un-audited scope change can exist.
+    expect(setSpy).not.toHaveBeenCalled();
+    expect(recordAdminScopeChange).toHaveBeenCalledTimes(1);
   });
 });

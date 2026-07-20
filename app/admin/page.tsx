@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
+import { AdminActivityLogPanel } from "@/components/admin/AdminActivityLogPanel";
 import { ApprovalQueueAdminPanel } from "@/components/admin/ApprovalQueueAdminPanel";
 import { CommunicationsRetentionAdminPanel } from "@/components/admin/CommunicationsRetentionAdminPanel";
 import { NoticeRulesAdminPanel } from "@/components/admin/NoticeRulesAdminPanel";
@@ -8,6 +9,7 @@ import { SupportReportsPanel } from "@/components/admin/SupportReportsPanel";
 import { TransactionalDestinationPanel } from "@/components/admin/TransactionalDestinationPanel";
 import { V1ProductionTestWorkspacePanel } from "@/components/admin/V1ProductionTestWorkspacePanel";
 import { requirePageCapability } from "@/lib/auth/page-guards";
+import { type AdminActivityEntry, readAdminActivityLog } from "@/lib/admin/activity-log";
 import {
   type AdminObservability,
   adminObservabilityUnavailableMessage,
@@ -56,6 +58,8 @@ export default async function AdminPage() {
   let supportReportsNote: string | undefined;
   let noticeRules: NoticeRuleSetRecord | undefined;
   let noticeRulesNote: string | undefined;
+  let activityEntries: AdminActivityEntry[] = [];
+  let activityNote: string | undefined;
 
   try {
     observability = await readAdminObservability({ config });
@@ -98,6 +102,12 @@ export default async function AdminPage() {
   } catch {
     noticeRulesNote =
       "Renewal notice rules are unavailable right now. Try again in a minute before changing them.";
+  }
+  try {
+    activityEntries = await readAdminActivityLog();
+  } catch {
+    activityNote =
+      "The access-change history is unavailable right now. Try again in a minute; recent role or scope changes may not be listed here yet.";
   }
   const hasMetrics = Boolean(observability);
 
@@ -226,6 +236,10 @@ export default async function AdminPage() {
           <SupportReportsPanel
             reports={supportReports}
             unavailableNote={supportReportsNote}
+          />
+          <AdminActivityLogPanel
+            entries={activityEntries}
+            unavailableNote={activityNote}
           />
         </section>
 

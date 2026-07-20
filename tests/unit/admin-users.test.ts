@@ -58,6 +58,50 @@ afterEach(() => {
   vi.mocked(recordAdminScopeChange).mockClear();
 });
 
+describe("admin-audit hardening (LR-01 / LR-04)", () => {
+  const editorActor: AuthenticatedUser = { ...actor, uid: "editor-1", role: "Editor" };
+
+  it("LR-04: setAppUserRole rejects a non-Admin actor (defense in depth, not only the route guard)", async () => {
+    const { auth, setSpy } = fakeAuth([{ uid: "u1", email: "u1@pmikcmetro.com" }]);
+    await expect(
+      setAppUserRole(
+        { actor: editorActor, targetUid: "u1", role: "Approver", reason: "promote" },
+        auth,
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(setSpy).not.toHaveBeenCalled();
+    expect(recordAdminRoleChange).not.toHaveBeenCalled();
+  });
+
+  it("LR-01: setAppUserRole aborts with the claim untouched when the audit write fails", async () => {
+    const { auth, setSpy, store } = fakeAuth([
+      { uid: "u1", email: "u1@pmikcmetro.com", customClaims: { role: "Editor" } },
+    ]);
+    vi.mocked(recordAdminRoleChange).mockRejectedValueOnce(new Error("firestore down"));
+    await expect(
+      setAppUserRole({ actor, targetUid: "u1", role: "Admin", reason: "promote" }, auth),
+    ).rejects.toMatchObject({ status: 500 });
+    // No un-audited privilege change: the claim must be unchanged.
+    expect(setSpy).not.toHaveBeenCalled();
+    expect(store.get("u1")?.customClaims).toEqual({ role: "Editor" });
+  });
+
+  it("LR-01: setAppUserScopes aborts with the claim untouched when the audit write fails", async () => {
+    const { auth, setSpy, store } = fakeAuth([
+      { uid: "u1", email: "u1@pmikcmetro.com", customClaims: { role: "Editor" } },
+    ]);
+    vi.mocked(recordAdminScopeChange).mockRejectedValueOnce(new Error("firestore down"));
+    await expect(
+      setAppUserScopes(
+        { actor, targetUid: "u1", scopes: ["renewals"], reason: "narrow" },
+        auth,
+      ),
+    ).rejects.toMatchObject({ status: 500 });
+    expect(setSpy).not.toHaveBeenCalled();
+    expect(store.get("u1")?.customClaims).toEqual({ role: "Editor" });
+  });
+});
+
 describe("listAppUsers", () => {
   it("maps internal claims, sorts by email, and excludes missing-email and external Vendor principals", async () => {
     const { auth } = fakeAuth([

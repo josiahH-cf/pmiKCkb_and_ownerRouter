@@ -48,7 +48,8 @@ export interface AdminAuthLike {
 export class UserManagementError extends Error {
   constructor(
     message: string,
-    public readonly status: 400 | 403 | 404 | 409 = 400,
+    // 500 covers a failed audit write that aborts a privilege change (LR-01).
+    public readonly status: 400 | 403 | 404 | 409 | 500 = 400,
   ) {
     super(message);
     this.name = "UserManagementError";
@@ -169,6 +170,11 @@ export async function setAppUserRole(
 ): Promise<AppUser> {
   const { actor, targetUid, role, reason } = input;
 
+  // LR-04 (admin-audit): defense in depth — re-check the capability inside the service, matching
+  // setAppUserScopes, so this (the most sensitive op) never relies on the route guard alone.
+  if (!can(actor.role, "manageAdmin")) {
+    throw new UserManagementError("Admin access is required.", 403);
+  }
   if (!ROLES.includes(role)) {
     throw new UserManagementError("Invalid role.", 400);
   }
@@ -205,14 +211,10 @@ export async function setAppUserRole(
     }
   }
 
-  await auth.setCustomUserClaims(targetUid, {
-    ...(target.customClaims ?? {}),
-    role,
-  });
-
-  // The privilege change has already committed. If the audit write fails (transient Firestore
-  // error), do NOT surface a role-change failure — that would leave the operator's roster view stale
-  // and wrong while the claim actually changed. Log the audit gap and return the true new state.
+  // LR-01 (admin-audit): write the append-only audit record BEFORE mutating the claim. If the audit
+  // write fails, abort so no un-audited privilege change can exist; because the claim is still
+  // untouched, the operator gets an honest failure and the roster stays accurate, and the recorded
+  // previous->new transition is always correct even if the operator retries.
   try {
     await recordAdminRoleChange(
       {
@@ -226,12 +228,17 @@ export async function setAppUserRole(
       },
       new Date().toISOString(),
     );
-  } catch (error) {
-    console.error(
-      `Role change applied for ${target.email} (${previousRole} -> ${role}) but the audit write failed:`,
-      error,
+  } catch {
+    throw new UserManagementError(
+      "Could not save the audit record for this role change, so the change was not applied. Try again.",
+      500,
     );
   }
+
+  await auth.setCustomUserClaims(targetUid, {
+    ...(target.customClaims ?? {}),
+    role,
+  });
 
   const scopeState = scopeStateFromClaims(target.customClaims);
   return {
@@ -315,11 +322,8 @@ export async function setAppUserScopes(
     nextClaims.scopes = [...scopes];
   }
 
-  // Merge rather than replace so the target's role and any unrelated custom claims are untouched.
-  await auth.setCustomUserClaims(targetUid, nextClaims);
-
-  // The claim has already committed. Match role changes' degradation policy: report an audit gap,
-  // but return the true claim state rather than telling the operator the scope change failed.
+  // LR-01 (admin-audit): audit before mutating the claim (see setAppUserRole). A failed audit write
+  // aborts the change, so no un-audited scope change can exist and the roster view stays accurate.
   try {
     await recordAdminScopeChange(
       {
@@ -336,12 +340,15 @@ export async function setAppUserScopes(
       },
       new Date().toISOString(),
     );
-  } catch (error) {
-    console.error(
-      `Scope change applied for ${target.email} but the audit write failed:`,
-      error,
+  } catch {
+    throw new UserManagementError(
+      "Could not save the audit record for this scope change, so the change was not applied. Try again.",
+      500,
     );
   }
+
+  // Merge rather than replace so the target's role and any unrelated custom claims are untouched.
+  await auth.setCustomUserClaims(targetUid, nextClaims);
 
   return {
     uid: targetUid,
