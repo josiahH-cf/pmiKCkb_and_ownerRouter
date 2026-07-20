@@ -198,6 +198,9 @@ export async function submitProcessDefinitionForApproval(
   return getProcessDefinition(actor, definitionId, db);
 }
 
+// F-SPACE-2 (D3): RETIRED as a live path. The HTTP activate route now returns 409 and points callers to
+// publish (the one canonical path to Active). This function is retained only for migration helpers and the
+// state-machine tests that document the legacy gate; it is not reachable from a product route.
 export async function activateProcessDefinition(
   actor: AuthenticatedUser,
   definitionId: string,

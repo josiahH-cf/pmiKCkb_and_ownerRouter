@@ -137,13 +137,10 @@ describe("workflow API routes", () => {
     );
   });
 
-  it("retires approval submission while preserving legacy activation and test routes", async () => {
+  it("retires both approval submission and direct activation while preserving the test route (F-SPACE-2)", async () => {
     setAdmin();
     vi.mocked(submitProcessDefinitionForApproval).mockResolvedValue(
       definition({ status: "Pending Approval" }),
-    );
-    vi.mocked(activateProcessDefinition).mockResolvedValue(
-      definition({ status: "Active" }),
     );
     vi.mocked(startWorkflowTestRun).mockResolvedValue(workflowRun());
     vi.mocked(listWorkflowRuns).mockResolvedValue([]);
@@ -161,15 +158,12 @@ describe("workflow API routes", () => {
       definitionContext("def-1"),
     );
 
+    // Submit and direct activation are both retired (409); publish is the one canonical path to Active.
     expect(submitResponse.status).toBe(409);
-    expect(activateResponse.status).toBe(200);
+    expect(activateResponse.status).toBe(409);
     expect(testRunResponse.status).toBe(201);
     expect(submitProcessDefinitionForApproval).not.toHaveBeenCalled();
-    expect(activateProcessDefinition).toHaveBeenCalledWith(
-      expect.objectContaining({ uid: "admin-1" }),
-      "def-1",
-      { override_reason: "Dan approved override." },
-    );
+    expect(activateProcessDefinition).not.toHaveBeenCalled();
     expect(startWorkflowTestRun).toHaveBeenCalledWith(
       expect.objectContaining({ uid: "admin-1" }),
       "def-1",

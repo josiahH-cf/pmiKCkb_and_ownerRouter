@@ -1,37 +1,27 @@
 import { NextResponse } from "next/server";
-import { apiErrorResponse, parseOptionalJsonBody } from "@/lib/api/editable";
+import { apiErrorResponse } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
-import { ActivateProcessDefinitionInputSchema } from "@/lib/firestore/schemas";
-import {
-  activateProcessDefinition,
-  getProcessDefinition,
-  listWorkflowRuns,
-} from "@/lib/firestore/workflows";
-import { assertProcessDefinitionRecordAccess } from "@/lib/space-scope-resources";
-import { assertProcessDefinitionAccess } from "@/lib/space-scope-resources";
 
 interface RouteContext {
   params: Promise<{ definitionId: string }>;
 }
 
+// F-SPACE-2 (owner ruling D3): `publish` is the ONE canonical path to Active. The divergent `activate`
+// path (Admin + an Approved ProcessDefinitionChange queue item + a passed test run or override) is retired
+// at the route level so there is a single, documented activation lifecycle. The route stays Admin-gated so
+// the retired surface keeps its authorization boundary; callers are pointed to the publish action.
 export async function POST(request: Request, context: RouteContext) {
   try {
-    const user = await requireCapability("manageAdmin");
-    const { definitionId } = await context.params;
-    if (user.scopes === undefined) {
-      assertProcessDefinitionAccess(user, definitionId);
-    } else {
-      const current = await getProcessDefinition(user, definitionId);
-      assertProcessDefinitionRecordAccess(user, current);
-    }
-    const input = await parseOptionalJsonBody(
-      request,
-      ActivateProcessDefinitionInputSchema,
+    await requireCapability("manageAdmin");
+    await context.params;
+    await request.text();
+    return NextResponse.json(
+      {
+        error:
+          "Direct activation is retired. Publish the process definition to move it to Active.",
+      },
+      { status: 409 },
     );
-    const definition = await activateProcessDefinition(user, definitionId, input);
-    const runs = await listWorkflowRuns(user, { definitionId });
-
-    return NextResponse.json({ definition, runs });
   } catch (error) {
     return apiErrorResponse(error);
   }

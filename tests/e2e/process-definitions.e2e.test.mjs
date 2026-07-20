@@ -90,13 +90,15 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
       expect(response.status).toBe(403);
     });
 
-    it("refuses activation until the queue item is approved", async () => {
+    it("retires the direct activate route (F-SPACE-2: publish is the canonical path)", async () => {
       const response = await admin.postJson(
         `/api/process-definitions/${definitionId}/activate`,
         {},
       );
 
       expect(response.status).toBe(409);
+      const body = await response.json();
+      expect(body.error).toMatch(/publish/i);
     });
 
     it("records a completed simulation test run", async () => {
@@ -120,7 +122,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
       expect(runPage.response.status).toBe(200);
     });
 
-    it("activates after the queue item is approved", async () => {
+    it("keeps the activate route retired even after the queue item is approved (F-SPACE-2)", async () => {
       const detail = await (
         await admin.get(`/api/process-definitions/${definitionId}`)
       ).json();
@@ -133,16 +135,13 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
       );
       expect(approve.status).toBe(200);
 
+      // Even with the queue item approved, activation is retired: publish is the one path to Active.
       const response = await admin.postJson(
         `/api/process-definitions/${definitionId}/activate`,
         {},
       );
 
-      expect(response.status).toBe(200);
-      const body = await response.json();
-
-      expect(body.definition.status).toBe("Active");
-      expect(body.definition.active_version_id).toBeTruthy();
+      expect(response.status).toBe(409);
     });
   },
 );
