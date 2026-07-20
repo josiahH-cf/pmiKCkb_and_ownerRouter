@@ -6,6 +6,8 @@ import type {
   TemplateRecord,
   ToolRecord,
 } from "@/lib/firestore/types";
+import { SAMPLE_REPLY_TEMPLATES } from "@/lib/gmail-inbox-zero/sample-hub";
+import { WELCOME_V1_BASE_COPY } from "@/lib/move-in/welcome-draft";
 import { launchSpaces } from "@/lib/spaces";
 
 type LaunchSop = Pick<
@@ -22,7 +24,16 @@ type LaunchSop = Pick<
 >;
 type LaunchTemplate = Pick<
   TemplateRecord,
-  "audience" | "body" | "channel" | "id" | "name" | "owner_uid" | "space_id" | "status"
+  | "approved_by_uid"
+  | "audience"
+  | "body"
+  | "channel"
+  | "id"
+  | "last_reviewed_at"
+  | "name"
+  | "owner_uid"
+  | "space_id"
+  | "status"
 >;
 type LaunchPlaceholder = Pick<
   PlaceholderRecord,
@@ -119,6 +130,67 @@ const skeletonDefinitions = [
 const skeletonSeeds = Object.fromEntries(
   skeletonDefinitions.map((definition) => [definition.id, buildSkeletonSeed(definition)]),
 ) as Record<string, LaunchEditableSeed>;
+
+// F-TMPL-2/F-TMPL-6: seed governed, Admin-editable process copy so composers and the move-in welcome
+// draft read store-backed records (each caller still falls back to the code default when unseeded). The
+// Gmail reply patterns live in the daily-inbox-triage Communications Space; the welcome email in the
+// move-in Space. Bodies are DERIVED from the code fallbacks (SAMPLE_REPLY_TEMPLATES / WELCOME_V1_BASE_COPY)
+// so the store-backed path and the fallback path produce the same wording by construction; the live seed
+// writer (scripts/seed-launch-skeletons.mjs) mirrors these, guarded by a seed-consistency test.
+const replySeedSpecs: ReadonlyArray<{
+  id: string;
+  audience: LaunchTemplate["audience"];
+  status: LaunchTemplate["status"];
+}> = [
+  { id: "tpl-vendor-ack", audience: "Vendor", status: "Approved" },
+  { id: "tpl-scheduling-ack", audience: "Unknown", status: "Approved" },
+  { id: "tpl-proposed-portal", audience: "Tenant", status: "Draft" },
+];
+
+const launchReplyTemplates: LaunchTemplate[] = replySeedSpecs.map((spec) => {
+  const sample = SAMPLE_REPLY_TEMPLATES.find((entry) => entry.id === spec.id);
+  if (!sample) {
+    throw new Error(`Missing sample reply template for launch seed: ${spec.id}`);
+  }
+  return {
+    id: sample.id,
+    name: sample.name,
+    body: sample.body,
+    audience: spec.audience,
+    channel: "Gmail",
+    space_id: "daily-inbox-triage",
+    status: spec.status,
+    owner_uid: defaultOwnerUid,
+    ...(spec.status === "Approved"
+      ? { approved_by_uid: defaultOwnerUid, last_reviewed_at: seedTimestamp }
+      : {}),
+  };
+});
+
+const launchWelcomeTemplate: LaunchTemplate = {
+  id: "move-in-welcome-email",
+  name: "Move-In Welcome Email",
+  body: WELCOME_V1_BASE_COPY.emailBody,
+  audience: "Tenant",
+  channel: "Gmail",
+  space_id: "move-in",
+  status: "Approved",
+  owner_uid: defaultOwnerUid,
+  approved_by_uid: defaultOwnerUid,
+  last_reviewed_at: seedTimestamp,
+};
+
+const extraLaunchTemplatesBySpaceId: Record<string, LaunchTemplate[]> = {
+  "daily-inbox-triage": launchReplyTemplates,
+  "move-in": [launchWelcomeTemplate],
+};
+
+for (const [spaceId, extra] of Object.entries(extraLaunchTemplatesBySpaceId)) {
+  const seed = skeletonSeeds[spaceId];
+  if (seed) {
+    seed.templates = [...seed.templates, ...extra];
+  }
+}
 
 export const launchEditableSeedsBySpaceId: Readonly<Record<string, LaunchEditableSeed>> =
   Object.fromEntries(

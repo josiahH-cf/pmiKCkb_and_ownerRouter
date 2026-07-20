@@ -1,12 +1,24 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { AnticipatoryDraftComposer } from "@/components/gmail-hub/AnticipatoryDraftComposer";
 import { LiveGmailWorkspace } from "@/components/gmail-hub/LiveGmailWorkspace";
 import { SimulatedEmailChain } from "@/components/gmail-hub/SimulatedEmailChain";
 import { TemplateWorkspace } from "@/components/gmail-hub/TemplateWorkspace";
 import { ThreadSummaryPanel } from "@/components/gmail-hub/ThreadSummaryPanel";
 import { TestOperationalHandoffPanel } from "@/components/operations/TestOperationalHandoffPanel";
+import type { TemplateRecord } from "@/lib/firestore/types";
+import type { ReplyTemplate } from "@/lib/gmail-inbox-zero/drafts";
+import { toReplyTemplate } from "@/lib/gmail-inbox-zero/reply-template-map";
+import { SAMPLE_REPLY_TEMPLATES } from "@/lib/gmail-inbox-zero/sample-hub";
 import type { TestOperationalHandoff } from "@/lib/operations/test-handoffs";
+
+// F-TMPL-2: the reply patterns the Admin composers offer come from the approved store (the
+// daily-inbox-triage Communications Space), not a hard-coded list. The server route
+// (/api/gmail-hub/anticipatory-draft) still resolves the body + status server-side, so this fetch only
+// drives the picker; an empty store or a non-OK response keeps the built-in sample patterns.
+const REPLY_TEMPLATES_ENDPOINT = "/api/spaces/daily-inbox-triage/templates";
 
 /** Workflow-bounded Gmail status plus an Admin-only pasted/synthetic fallback. */
 export function GmailHubHome({
@@ -18,6 +30,28 @@ export function GmailHubHome({
   canManageAdmin?: boolean;
   operationalHandoffs?: readonly TestOperationalHandoff[];
 }) {
+  const [replyTemplates, setReplyTemplates] =
+    useState<readonly ReplyTemplate[]>(SAMPLE_REPLY_TEMPLATES);
+
+  useEffect(() => {
+    if (!canManageAdmin) return;
+    let active = true;
+    void (async () => {
+      try {
+        const response = await fetch(REPLY_TEMPLATES_ENDPOINT);
+        if (!response.ok) return;
+        const payload = (await response.json()) as { templates?: TemplateRecord[] };
+        const mapped = (payload.templates ?? []).map(toReplyTemplate);
+        if (active && mapped.length > 0) setReplyTemplates(mapped);
+      } catch {
+        // Keep the sample fallback on any read/parse failure.
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [canManageAdmin]);
+
   return (
     <section className="content ui-stack gmail-hub">
       <div>
@@ -47,8 +81,8 @@ export function GmailHubHome({
             </p>
           </div>
           <SimulatedEmailChain />
-          <AnticipatoryDraftComposer />
-          <TemplateWorkspace />
+          <AnticipatoryDraftComposer templates={replyTemplates} />
+          <TemplateWorkspace templates={replyTemplates} />
           <ThreadSummaryPanel />
         </section>
       ) : null}

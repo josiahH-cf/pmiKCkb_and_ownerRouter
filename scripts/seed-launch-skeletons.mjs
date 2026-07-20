@@ -7,6 +7,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DRAFT_BANNER = "Draft \u2014 Review before sending";
 const defaultOwnerUid = "launch-process-owner";
+// F-TMPL-2/F-TMPL-6: fixed review timestamp for the seeded Approved process copy (mirrors
+// lib/launch/content.ts seedTimestamp). Bodies below are byte-identical to the code fallbacks
+// (lib/gmail-inbox-zero/sample-hub.ts SAMPLE_REPLY_TEMPLATES + lib/move-in/welcome-draft.ts
+// WELCOME_V1_BASE_COPY); a seed-consistency test asserts that identity so 1-character drift is caught.
+const SEED_REVIEW_TIMESTAMP = "2026-05-29T00:00:00.000Z";
 
 const skeletonDefinitions = [
   {
@@ -82,7 +87,7 @@ export function parseLaunchSkeletonArgs(argv = process.argv.slice(2)) {
 }
 
 export function buildLaunchSkeletonRecords(now = new Date().toISOString()) {
-  return skeletonDefinitions.flatMap((definition) => [
+  const definitionRecords = skeletonDefinitions.flatMap((definition) => [
     {
       collection: "sops",
       id: `launch-${definition.id}-sop`,
@@ -139,6 +144,101 @@ export function buildLaunchSkeletonRecords(now = new Date().toISOString()) {
       },
     },
   ]);
+
+  return [...definitionRecords, ...buildLaunchTemplateSeedRecords(now)];
+}
+
+// F-TMPL-2/F-TMPL-6: the Admin-editable process copy seeded into the store. Reply patterns land in the
+// daily-inbox-triage Communications Space; the welcome email in the move-in Space. Bodies are
+// byte-identical to the code fallbacks (SAMPLE_REPLY_TEMPLATES / WELCOME_V1_BASE_COPY). Approved records
+// carry owner_uid + approved_by_uid + last_reviewed_at so they satisfy the Approved-template invariant.
+export function buildLaunchTemplateSeedRecords(now = new Date().toISOString()) {
+  const approvedFields = {
+    owner_uid: defaultOwnerUid,
+    approved_by_uid: defaultOwnerUid,
+    last_reviewed_at: SEED_REVIEW_TIMESTAMP,
+  };
+
+  return [
+    {
+      collection: "templates",
+      id: "tpl-vendor-ack",
+      data: {
+        audience: "Vendor",
+        body: "Thanks — we received the invoice and will review it against the work order, then follow up.",
+        channel: "Gmail",
+        created_at: now,
+        id: "tpl-vendor-ack",
+        name: "Vendor invoice acknowledgement",
+        space_id: "daily-inbox-triage",
+        status: "Approved",
+        updated_at: now,
+        ...approvedFields,
+      },
+    },
+    {
+      collection: "templates",
+      id: "tpl-scheduling-ack",
+      data: {
+        audience: "Unknown",
+        body: "Thanks for the note. We are coordinating scheduling on our side and will confirm a time shortly.",
+        channel: "Gmail",
+        created_at: now,
+        id: "tpl-scheduling-ack",
+        name: "Scheduling acknowledgement",
+        space_id: "daily-inbox-triage",
+        status: "Approved",
+        updated_at: now,
+        ...approvedFields,
+      },
+    },
+    {
+      collection: "templates",
+      id: "tpl-proposed-portal",
+      data: {
+        audience: "Tenant",
+        body: "Here are the steps to reset your resident portal access.",
+        channel: "Gmail",
+        created_at: now,
+        id: "tpl-proposed-portal",
+        name: "Portal access help (proposed)",
+        owner_uid: defaultOwnerUid,
+        space_id: "daily-inbox-triage",
+        status: "Draft",
+        updated_at: now,
+      },
+    },
+    {
+      collection: "templates",
+      id: "move-in-welcome-email",
+      data: {
+        audience: "Tenant",
+        body: [
+          "Hello {{tenant}},",
+          "",
+          "Welcome to your new home at {{property}}! We're glad to have you with PMI KC Metro.",
+          "",
+          "A few move-in notes:",
+          "- Move-in date: {{move_in_date}}",
+          "- {{deposit_posture_note}}",
+          "- Any move-in fees and deposit amounts: {{fees_pointer}} (these vary by property).",
+          "",
+          "You'll also receive this note in your RentVine Portal Chat. Contact us any time with questions.",
+          "",
+          "Thanks,",
+          "PMI KC Metro",
+        ].join("\n"),
+        channel: "Gmail",
+        created_at: now,
+        id: "move-in-welcome-email",
+        name: "Move-In Welcome Email",
+        space_id: "move-in",
+        status: "Approved",
+        updated_at: now,
+        ...approvedFields,
+      },
+    },
+  ];
 }
 
 export async function seedLaunchSkeletons({
@@ -170,7 +270,7 @@ export async function seedLaunchSkeletons({
     );
 
     if (snapshot.exists) {
-      await clearStaleReviewFields(ref, record.collection);
+      await clearStaleReviewFields(ref, record.collection, record.data);
     }
 
     results.push({ ...record, action: snapshot.exists ? "updated" : "created" });
@@ -195,13 +295,16 @@ export async function main(argv = process.argv.slice(2)) {
   }
 }
 
-export function launchSkeletonDeleteFieldsFor(collection) {
+export function launchSkeletonDeleteFieldsFor(collection, data = undefined) {
   if (collection === "sops") {
     return ["backup_owner_uid", "last_reviewed_at"];
   }
 
   if (collection === "templates") {
-    return ["approved_by_uid", "last_reviewed_at"];
+    // F-TMPL-2/F-TMPL-6: an Approved template legitimately CARRIES approved_by_uid + last_reviewed_at
+    // (they are required for Approved), so never strip them from a seeded Approved record on re-seed.
+    // The strip stays for the Draft placeholder templates, which must not accrue stale review fields.
+    return data?.status === "Approved" ? [] : ["approved_by_uid", "last_reviewed_at"];
   }
 
   if (collection === "placeholders") {
@@ -211,8 +314,8 @@ export function launchSkeletonDeleteFieldsFor(collection) {
   return [];
 }
 
-async function clearStaleReviewFields(ref, collection) {
-  const fields = launchSkeletonDeleteFieldsFor(collection);
+async function clearStaleReviewFields(ref, collection, data = undefined) {
+  const fields = launchSkeletonDeleteFieldsFor(collection, data);
 
   if (fields.length === 0) {
     return;

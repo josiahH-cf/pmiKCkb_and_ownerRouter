@@ -21,6 +21,7 @@ import { hasSpaceAccess } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
 import { CONNECTORS, type ConnectorDef } from "@/lib/connections/connector-catalog";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
+import { getApprovedTemplate } from "@/lib/firestore/approved-templates";
 import { getProcessDefinition, listWorkflowRuns } from "@/lib/firestore/workflows";
 import { listStepChecksForRun } from "@/lib/firestore/workflow-run-step-checks";
 import type {
@@ -42,9 +43,15 @@ import { loadTestOperationalHandoffs } from "@/lib/operations/test-handoff-loade
 /** The domain-specific desk Card(s) for a Space, if any:
  *  Move-In welcome / Move-Out evidence packet; the three Renewals Spaces get the read-only effective
  *  notice-rule card (F2) and, for the outreach/notice Spaces, a sample renewal draft (F3). */
-function buildDomainSlot(spaceId: string): ReactNode {
+function buildDomainSlot(spaceId: string, welcomeEmailBodyTemplate?: string): ReactNode {
   if (spaceId === "move-in") {
-    return <WelcomeDraftCard draft={buildWelcomeDraft({})} />;
+    // F-TMPL-6: render the welcome draft from the Admin-approved store copy when present; the composer
+    // falls back to its frozen base copy when nothing is seeded (welcomeEmailBodyTemplate is undefined).
+    return (
+      <WelcomeDraftCard
+        draft={buildWelcomeDraft({}, { emailBodyTemplate: welcomeEmailBodyTemplate })}
+      />
+    );
   }
   if (spaceId === "move-out-deposit-disposition") {
     return <EvidencePacketCard packet={buildEvidencePacket({ lines: [] })} />;
@@ -101,6 +108,22 @@ export default async function SpaceDetailPage({
 
   const config = readServerConfig();
   const editableSeed = launchEditableSeedsBySpaceId[space.id];
+
+  // F-TMPL-6: resolve the Admin-approved move-in welcome copy from the editable store. A 404 (nothing
+  // seeded) resolves to null; a scope denial or read failure is swallowed here so the desk still renders
+  // from the composer's frozen base copy instead of erroring.
+  let welcomeEmailBodyTemplate: string | undefined;
+  if (space.id === "move-in") {
+    try {
+      const welcomeRecord = await getApprovedTemplate(user, {
+        spaceId: "move-in",
+        name: "Move-In Welcome Email",
+      });
+      welcomeEmailBodyTemplate = welcomeRecord?.body;
+    } catch {
+      welcomeEmailBodyTemplate = undefined;
+    }
+  }
 
   // Spaces ⊇ Processes: a Space that carries a process gets a Process sub-tab beside its Overview.
   // The Overview stays the default so the existing content (and smoke coverage) is unchanged.
@@ -231,7 +254,7 @@ export default async function SpaceDetailPage({
             connectors={deskConnectors}
             definition={processDefinition}
             definitionId={space.processDefinitionId}
-            domainSlot={buildDomainSlot(space.id)}
+            domainSlot={buildDomainSlot(space.id, welcomeEmailBodyTemplate)}
             presence={deskPresence}
             processCategory={space.processCategory}
             run={latestRun}

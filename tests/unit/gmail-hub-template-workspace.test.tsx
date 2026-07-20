@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { TemplateWorkspace } from "@/components/gmail-hub/TemplateWorkspace";
 import { DRAFT_BANNER } from "@/lib/constants";
+import type { ReplyTemplate } from "@/lib/gmail-inbox-zero/drafts";
 
 afterEach(cleanup);
 
@@ -46,5 +47,28 @@ describe("TemplateWorkspace (AC-S15-3)", () => {
 
     expect(await screen.findByText(/Draft refused/)).toBeInTheDocument();
     expect(screen.getByText(/hard exclusion/)).toBeInTheDocument();
+  });
+
+  it("renders the injected store templates (F-TMPL-2) and not the built-in samples", () => {
+    const storeTemplates: ReplyTemplate[] = [
+      {
+        id: "store-reply-1",
+        name: "Store-approved reply",
+        body: "Approved store body.",
+        status: "Approved",
+      },
+    ];
+    render(<TemplateWorkspace templates={storeTemplates} />);
+
+    expect(screen.getAllByText("Store-approved reply").length).toBeGreaterThan(0);
+    // The sample vendor pattern must NOT appear when the store supplies the set.
+    expect(screen.queryByText("Vendor invoice acknowledgement")).toBeNull();
+  });
+
+  it("falls back to the sample reply patterns when no templates prop is given", () => {
+    render(<TemplateWorkspace />);
+    expect(screen.getAllByText("Vendor invoice acknowledgement").length).toBeGreaterThan(
+      0,
+    );
   });
 });

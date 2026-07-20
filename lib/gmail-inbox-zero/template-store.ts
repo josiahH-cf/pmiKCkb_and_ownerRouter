@@ -12,26 +12,13 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { getTemplate } from "@/lib/firestore/editable";
 import { EditableLayerError } from "@/lib/firestore/errors";
-import type { TemplateRecord } from "@/lib/firestore/types";
 import type { ReplyTemplate } from "@/lib/gmail-inbox-zero/drafts";
+import { toReplyTemplate } from "@/lib/gmail-inbox-zero/reply-template-map";
 import { SAMPLE_REPLY_TEMPLATES } from "@/lib/gmail-inbox-zero/sample-hub";
 
-// Bridge the editable store's TemplateStatus (Draft | In Review | Approved | Deprecated) to the Gmail
-// spine's GmailRuleStatus (Proposed | Approved | Retired). Only a stored Approved template maps to
-// Approved, so the spine still refuses everything else BEFORE the model runs.
-export function toReplyTemplate(record: TemplateRecord): ReplyTemplate {
-  return {
-    id: record.id,
-    name: record.name,
-    body: record.body,
-    status:
-      record.status === "Approved"
-        ? "Approved"
-        : record.status === "Deprecated"
-          ? "Retired"
-          : "Proposed",
-  };
-}
+// Re-export the pure mapper (now client-safe in reply-template-map.ts) so existing server importers of
+// toReplyTemplate keep working through this module.
+export { toReplyTemplate };
 
 // Resolve by id from the approved store first (getTemplate enforces read capability, Space access, and
 // active-record — an unknown/soft-deleted id throws 404), then fall back to the server-defined sample

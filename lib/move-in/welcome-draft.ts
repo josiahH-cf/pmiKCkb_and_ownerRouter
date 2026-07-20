@@ -14,6 +14,31 @@ import type { DraftFact } from "@/lib/lease-renewal/owner-draft";
 
 const NEEDS_VERIFICATION = "Needs Verification";
 
+// F-TMPL-6: the welcome email copy as a frozen, tokenized base. buildWelcomeDraft renders from this by
+// default, but an Admin-approved "Move-In Welcome Email" template in the editable store can be injected
+// (options.emailBodyTemplate) so the process copy is editable in-app without a code change. The tokens
+// are filled from the same source-tagged facts, so governance (fees pointer, deposit posture as text,
+// Needs-Verification markers) is preserved regardless of who edited the wording. The default body here
+// MUST render byte-identical to the previously inlined copy (a seed-consistency test guards this).
+export const WELCOME_V1_BASE_COPY = Object.freeze({
+  subject: "Welcome to {{property}}",
+  emailBody: [
+    "Hello {{tenant}},",
+    "",
+    "Welcome to your new home at {{property}}! We're glad to have you with PMI KC Metro.",
+    "",
+    "A few move-in notes:",
+    "- Move-in date: {{move_in_date}}",
+    "- {{deposit_posture_note}}",
+    "- Any move-in fees and deposit amounts: {{fees_pointer}} (these vary by property).",
+    "",
+    "You'll also receive this note in your RentVine Portal Chat. Contact us any time with questions.",
+    "",
+    "Thanks,",
+    "PMI KC Metro",
+  ].join("\n"),
+});
+
 /** How the deposit is covered — a cash security deposit vs. a deposit-replacement policy. */
 export type DepositPosture = "cash" | "replacement";
 
@@ -62,8 +87,18 @@ function depositPostureNote(posture: DepositPosture | undefined): string {
   }
 }
 
+export interface WelcomeDraftOptions {
+  /** An Admin-approved email body (tokenized like WELCOME_V1_BASE_COPY.emailBody) from the editable
+   *  store. Absent → the frozen base copy. The subject and Portal Chat message always use the base
+   *  wording; only the email body is overridable. */
+  emailBodyTemplate?: string;
+}
+
 /** Compose a source-tagged move-in welcome draft (email + Portal Chat). No send; gaps stay visible. */
-export function buildWelcomeDraft(input: WelcomeDraftInput): WelcomeDraft {
+export function buildWelcomeDraft(
+  input: WelcomeDraftInput,
+  options: WelcomeDraftOptions = {},
+): WelcomeDraft {
   const facts: DraftFact[] = [];
   const missingInputs: string[] = [];
 
@@ -125,22 +160,20 @@ export function buildWelcomeDraft(input: WelcomeDraftInput): WelcomeDraft {
     confidence: NEEDS_VERIFICATION,
   });
 
-  const emailSubject = `Welcome to ${property}`;
-  const emailBody = [
-    `Hello ${tenantName},`,
-    ``,
-    `Welcome to your new home at ${property}! We're glad to have you with PMI KC Metro.`,
-    ``,
-    `A few move-in notes:`,
-    `- Move-in date: ${moveInDate}`,
-    `- ${postureNote}`,
-    `- Any move-in fees and deposit amounts: ${FEES_POINTER} (these vary by property).`,
-    ``,
-    `You'll also receive this note in your RentVine Portal Chat. Contact us any time with questions.`,
-    ``,
-    `Thanks,`,
-    `PMI KC Metro`,
-  ].join("\n");
+  // Render the email from the base copy (or an injected Admin-approved body) with the same facts. The
+  // subject always uses the base wording; only the body is overridable.
+  const replacements = {
+    tenant: tenantName,
+    property,
+    move_in_date: moveInDate,
+    deposit_posture_note: postureNote,
+    fees_pointer: FEES_POINTER,
+  };
+  const emailSubject = renderBaseCopy(WELCOME_V1_BASE_COPY.subject, replacements);
+  const emailBody = renderBaseCopy(
+    options.emailBodyTemplate ?? WELCOME_V1_BASE_COPY.emailBody,
+    replacements,
+  );
 
   const portalChatMessage = [
     `Welcome to ${property}, ${tenantName}! We're glad to have you.`,
@@ -160,4 +193,8 @@ export function buildWelcomeDraft(input: WelcomeDraftInput): WelcomeDraft {
     production_allowed: false,
     send_allowed: false,
   };
+}
+
+function renderBaseCopy(template: string, values: Record<string, string>) {
+  return template.replace(/\{\{([a-z_]+)\}\}/g, (_, key: string) => values[key] ?? "");
 }

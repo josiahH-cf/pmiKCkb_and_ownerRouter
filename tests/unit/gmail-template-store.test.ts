@@ -85,4 +85,25 @@ describe("gmail reply template store (TMPL-3)", () => {
       resolveReplyTemplate(maintenanceScoped, "tpl-x", db),
     ).rejects.toBeInstanceOf(AuthError);
   });
+
+  it("resolves the seeded daily-inbox-triage reply pattern to a body identical to its sample (F-TMPL-2)", async () => {
+    const sample = SAMPLE_REPLY_TEMPLATES.find((s) => s.id === "tpl-vendor-ack");
+    expect(sample).toBeDefined();
+    if (!sample) return;
+
+    // The store seed reuses the sample id + body; once seeded, the route resolves the STORE record
+    // (not the fallback), so the resolved body must match the sample byte-for-byte.
+    const db = seed(
+      tpl({
+        id: "tpl-vendor-ack",
+        space_id: "daily-inbox-triage",
+        name: sample.name,
+        status: "Approved",
+        body: sample.body,
+      }),
+    );
+    const resolved = await resolveReplyTemplate(admin, "tpl-vendor-ack", db);
+    expect(resolved?.status).toBe("Approved");
+    expect(resolved?.body).toBe(sample.body);
+  });
 });

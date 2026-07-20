@@ -1001,7 +1001,9 @@ describe("cheap live setup scripts", () => {
   it("builds source-backed launch skeleton records for the remaining launch Spaces", () => {
     const records = buildLaunchSkeletonRecords("2026-05-29T00:00:00.000Z");
 
-    expect(records).toHaveLength(21);
+    // 7 launch definitions × (sop + template + placeholder) = 21, plus the 4 F-TMPL-2/F-TMPL-6 process
+    // copy seeds (3 reply patterns + 1 welcome email).
+    expect(records).toHaveLength(25);
     expect(records.map((record) => record.data.space_id)).toContain("move-in");
     expect(records.find((record) => record.id === "launch-move-in-sop")).toMatchObject({
       collection: "sops",
@@ -1009,6 +1011,10 @@ describe("cheap live setup scripts", () => {
         source_state_hint: "Open Placeholder",
         status: "Placeholder",
       },
+    });
+    expect(records.find((record) => record.id === "tpl-vendor-ack")).toMatchObject({
+      collection: "templates",
+      data: { space_id: "daily-inbox-triage", status: "Approved" },
     });
     expect(launchSkeletonDeleteFieldsFor("sops")).toContain("last_reviewed_at");
     expect(launchSkeletonDeleteFieldsFor("templates")).toContain("approved_by_uid");

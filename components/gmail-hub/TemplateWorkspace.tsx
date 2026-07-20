@@ -7,7 +7,7 @@ import {
   GMAIL_INBOX_ZERO_PHASES,
   type GmailDraftCategoryId,
 } from "@/lib/gmail-inbox-zero/constants";
-import { buildReplyDraft } from "@/lib/gmail-inbox-zero/drafts";
+import { buildReplyDraft, type ReplyTemplate } from "@/lib/gmail-inbox-zero/drafts";
 import {
   evaluateInboxTriage,
   type GmailInboxZeroPhase,
@@ -30,17 +30,19 @@ interface DraftPreview {
  * Approved templates produce a draft; hard-excluded categories are label-only; the Shadow rollout phase
  * suggests but applies nothing. It reads no live mailbox and has no send control.
  */
-export function TemplateWorkspace() {
+export function TemplateWorkspace({
+  templates = SAMPLE_REPLY_TEMPLATES,
+}: Readonly<{ templates?: readonly ReplyTemplate[] }>) {
   const [sender, setSender] = useState("vendor@example.com");
   const [subject, setSubject] = useState("Re: invoice question");
   const [category, setCategory] = useState<GmailDraftCategoryId>("vendor");
   const [phase, setPhase] = useState<GmailInboxZeroPhase>("Suggest");
-  const [templateId, setTemplateId] = useState(SAMPLE_REPLY_TEMPLATES[0]?.id ?? "");
+  const [templateId, setTemplateId] = useState(templates[0]?.id ?? "");
   const [missingFactsText, setMissingFactsText] = useState("");
   const [triage, setTriage] = useState<TriageResult | null>(null);
   const [draft, setDraft] = useState<DraftPreview | null>(null);
 
-  const template = SAMPLE_REPLY_TEMPLATES.find((t) => t.id === templateId);
+  const template = templates.find((t) => t.id === templateId);
 
   function evaluate() {
     const message = {
@@ -93,7 +95,7 @@ export function TemplateWorkspace() {
         <article className="panel ui-stack">
           <h3>Reply patterns</h3>
           <ul className="compact-list">
-            {SAMPLE_REPLY_TEMPLATES.map((t) => (
+            {templates.map((t) => (
               <li key={t.id}>
                 {t.name}{" "}
                 <span className="queue-pill" data-value={t.status}>
@@ -152,7 +154,7 @@ export function TemplateWorkspace() {
               value={templateId}
               onChange={(event) => setTemplateId(event.target.value)}
             >
-              {SAMPLE_REPLY_TEMPLATES.map((t) => (
+              {templates.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name} · {t.status}
                 </option>
