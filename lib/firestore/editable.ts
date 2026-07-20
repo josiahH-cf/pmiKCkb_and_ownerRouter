@@ -2,6 +2,7 @@ import { FieldValue, type Firestore, type Transaction } from "firebase-admin/fir
 import { v7 as uuidv7 } from "uuid";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { assertSpaceIdAccess } from "@/lib/space-scope-resources";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type {
@@ -57,7 +58,7 @@ export async function listSops(
   db = getAdminFirestore(),
 ) {
   assertCan(actor, "read");
-  await assertKnownSpace(db, spaceId);
+  await assertKnownSpace(actor, db, spaceId);
   const snapshot = await db
     .collection(COLLECTIONS.sops)
     .where("space_id", "==", spaceId)
@@ -75,7 +76,9 @@ export async function getSop(
 ) {
   assertCan(actor, "read");
   const snapshot = await db.collection(COLLECTIONS.sops).doc(sopId).get();
-  return readRequiredActiveRecord<SopRecord>(snapshot.id, snapshot.data(), "SOP");
+  const record = readRequiredActiveRecord<SopRecord>(snapshot.id, snapshot.data(), "SOP");
+  assertSpaceIdAccess(actor, record.space_id);
+  return record;
 }
 
 export async function createSop(
@@ -93,7 +96,7 @@ export async function createSop(
   const { note, ...recordInput } = parsedInput;
 
   await db.runTransaction(async (transaction) => {
-    await assertWritableSpace(transaction, db, spaceId);
+    await assertWritableSpace(actor, transaction, db, spaceId);
     const ref = db.collection(COLLECTIONS.sops).doc(id);
     const now = FieldValue.serverTimestamp();
 
@@ -134,7 +137,7 @@ export async function updateSop(
 
     assertSopStatusAllowed(actor, next.status);
     validateSopState(next);
-    await assertWritableSpace(transaction, db, next.space_id);
+    await assertWritableSpace(actor, transaction, db, next.space_id);
 
     transaction.update(ref, {
       ...updates,
@@ -172,7 +175,7 @@ export async function softDeleteSop(
       "SOP",
     );
 
-    await assertWritableSpace(transaction, db, current.space_id);
+    await assertWritableSpace(actor, transaction, db, current.space_id);
     transaction.update(ref, {
       deleted_at: FieldValue.serverTimestamp(),
       status: "Deprecated",
@@ -188,7 +191,7 @@ export async function listTemplates(
   db = getAdminFirestore(),
 ) {
   assertCan(actor, "read");
-  await assertKnownSpace(db, spaceId);
+  await assertKnownSpace(actor, db, spaceId);
   const snapshot = await db
     .collection(COLLECTIONS.templates)
     .where("space_id", "==", spaceId)
@@ -206,11 +209,13 @@ export async function getTemplate(
 ) {
   assertCan(actor, "read");
   const snapshot = await db.collection(COLLECTIONS.templates).doc(templateId).get();
-  return readRequiredActiveRecord<TemplateRecord>(
+  const record = readRequiredActiveRecord<TemplateRecord>(
     snapshot.id,
     snapshot.data(),
     "template",
   );
+  assertSpaceIdAccess(actor, record.space_id);
+  return record;
 }
 
 export async function createTemplate(
@@ -228,7 +233,7 @@ export async function createTemplate(
   const { note, ...recordInput } = parsedInput;
 
   await db.runTransaction(async (transaction) => {
-    await assertWritableSpace(transaction, db, spaceId);
+    await assertWritableSpace(actor, transaction, db, spaceId);
     const ref = db.collection(COLLECTIONS.templates).doc(id);
     const now = FieldValue.serverTimestamp();
 
@@ -269,7 +274,7 @@ export async function updateTemplate(
 
     assertTemplateStatusAllowed(actor, next.status);
     validateTemplateState(next);
-    await assertWritableSpace(transaction, db, next.space_id);
+    await assertWritableSpace(actor, transaction, db, next.space_id);
 
     transaction.update(ref, {
       ...updates,
@@ -307,7 +312,7 @@ export async function softDeleteTemplate(
       "template",
     );
 
-    await assertWritableSpace(transaction, db, current.space_id);
+    await assertWritableSpace(actor, transaction, db, current.space_id);
     transaction.update(ref, {
       deleted_at: FieldValue.serverTimestamp(),
       status: "Deprecated",
@@ -323,7 +328,7 @@ export async function listPlaceholders(
   db = getAdminFirestore(),
 ) {
   assertCan(actor, "read");
-  await assertKnownSpace(db, spaceId);
+  await assertKnownSpace(actor, db, spaceId);
   const snapshot = await db
     .collection(COLLECTIONS.placeholders)
     .where("space_id", "==", spaceId)
@@ -342,11 +347,13 @@ export async function getPlaceholder(
 ) {
   assertCan(actor, "read");
   const snapshot = await db.collection(COLLECTIONS.placeholders).doc(placeholderId).get();
-  return readRequiredActiveRecord<PlaceholderRecord>(
+  const record = readRequiredActiveRecord<PlaceholderRecord>(
     snapshot.id,
     snapshot.data(),
     "placeholder",
   );
+  assertSpaceIdAccess(actor, record.space_id);
+  return record;
 }
 
 export async function createPlaceholder(
@@ -364,7 +371,7 @@ export async function createPlaceholder(
   const { note, ...recordInput } = parsedInput;
 
   await db.runTransaction(async (transaction) => {
-    await assertWritableSpace(transaction, db, spaceId);
+    await assertWritableSpace(actor, transaction, db, spaceId);
     await assertRelatedSop(transaction, db, spaceId, parsedInput.related_sop_id);
 
     const ref = db.collection(COLLECTIONS.placeholders).doc(id);
@@ -410,7 +417,7 @@ export async function updatePlaceholder(
 
     assertPlaceholderStatusAllowed(actor, next.status);
     validatePlaceholderState(next);
-    await assertWritableSpace(transaction, db, next.space_id);
+    await assertWritableSpace(actor, transaction, db, next.space_id);
     await assertRelatedSop(transaction, db, next.space_id, next.related_sop_id);
 
     transaction.update(ref, {
@@ -449,7 +456,7 @@ export async function softDeletePlaceholder(
       "placeholder",
     );
 
-    await assertWritableSpace(transaction, db, current.space_id);
+    await assertWritableSpace(actor, transaction, db, current.space_id);
     transaction.update(ref, {
       deleted_at: FieldValue.serverTimestamp(),
       updated_at: FieldValue.serverTimestamp(),
@@ -583,7 +590,14 @@ function assertCan(actor: AuthenticatedUser, capability: Parameters<typeof can>[
   }
 }
 
-async function assertKnownSpace(db: Firestore, spaceId: string) {
+async function assertKnownSpace(
+  actor: AuthenticatedUser,
+  db: Firestore,
+  spaceId: string,
+) {
+  // SPACE-1/TMPL-4: a scope-restricted principal may only read/write editable-layer records in a
+  // Space they can access; an unscoped principal (scopes === undefined) still reaches every Space.
+  assertSpaceIdAccess(actor, spaceId);
   const snapshot = await db.collection(COLLECTIONS.spaces).doc(spaceId).get();
 
   if (snapshot.exists || launchSpaces.some((space) => space.id === spaceId)) {
@@ -594,10 +608,14 @@ async function assertKnownSpace(db: Firestore, spaceId: string) {
 }
 
 async function assertWritableSpace(
+  actor: AuthenticatedUser,
   transaction: Transaction,
   db: Firestore,
   spaceId: string,
 ) {
+  // SPACE-1/TMPL-4: enforce space scope before any write, using the record's own space id for the
+  // id-based item routes (which carry no spaceId of their own).
+  assertSpaceIdAccess(actor, spaceId);
   const space = await readSpaceBoundary(transaction, db, spaceId);
 
   if (space.read_only) {

@@ -4,6 +4,8 @@ import {
   createSop,
   createTemplate,
   createTool,
+  getSop,
+  listSops,
   listTools,
   softDeleteTool,
   updateTemplate,
@@ -11,7 +13,7 @@ import {
   updateSop,
 } from "@/lib/firestore/editable";
 import { EditableLayerError } from "@/lib/firestore/errors";
-import type { AuthenticatedUser } from "@/lib/auth/session";
+import { AuthError, type AuthenticatedUser } from "@/lib/auth/session";
 import { FakeFirestore } from "../helpers/fake-firestore";
 
 const editor: AuthenticatedUser = {
@@ -211,6 +213,71 @@ describe("editable Firestore repository", () => {
     expect(changeLogRecords(db)[0]).toMatchObject({
       action: "deprecate",
       note: "Retired link",
+    });
+  });
+});
+
+describe("editable layer space-scope enforcement (SPACE-1/TMPL-4)", () => {
+  const maintenanceEditor: AuthenticatedUser = {
+    ...editor,
+    uid: "maint-editor",
+    scopes: ["maintenance"],
+  };
+
+  it("denies a scoped principal cross-scope list/create/read/update of editable records", async () => {
+    const db = fakeDb();
+    // Seed a renewals SOP as an unscoped admin (allowed), then confirm a maintenance-scoped editor
+    // cannot reach the renewals Space through any editable-layer operation.
+    const renewalsSop = await createSop(
+      admin,
+      "lease-renewals",
+      { body_md: "# R", owner_uid: "o", title: "R" },
+      db,
+    );
+
+    await expect(
+      listSops(maintenanceEditor, "lease-renewals", db),
+    ).rejects.toBeInstanceOf(AuthError);
+    await expect(
+      createSop(
+        maintenanceEditor,
+        "lease-renewals",
+        { body_md: "# X", owner_uid: "o", title: "X" },
+        db,
+      ),
+    ).rejects.toBeInstanceOf(AuthError);
+    await expect(getSop(maintenanceEditor, renewalsSop.id, db)).rejects.toBeInstanceOf(
+      AuthError,
+    );
+    await expect(
+      updateSop(maintenanceEditor, renewalsSop.id, { title: "Nope" }, db),
+    ).rejects.toBeInstanceOf(AuthError);
+  });
+
+  it("still allows a scoped principal to work within its own Space", async () => {
+    const db = fakeDb();
+    const sop = await createSop(
+      maintenanceEditor,
+      "maintenance-work-order-intake",
+      { body_md: "# M", owner_uid: "o", title: "M" },
+      db,
+    );
+    expect(sop.space_id).toBe("maintenance-work-order-intake");
+    await expect(
+      listSops(maintenanceEditor, "maintenance-work-order-intake", db),
+    ).resolves.toHaveLength(1);
+  });
+
+  it("still allows an unscoped principal to reach every Space", async () => {
+    const db = fakeDb();
+    const sop = await createSop(
+      admin,
+      "lease-renewals",
+      { body_md: "# R", owner_uid: "o", title: "R" },
+      db,
+    );
+    await expect(getSop(admin, sop.id, db)).resolves.toMatchObject({
+      space_id: "lease-renewals",
     });
   });
 });
