@@ -171,6 +171,17 @@ button {
   margin-top: 14px;
 }
 
+/* F-TMPL-1: the inline template editor, separated from the template list above it. */
+.template-editor {
+  border-top: 1px solid var(--color-border);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.template-editor input {
+  width: 100%;
+}
+
 .review-pill {
   background: var(--color-accent-100);
   border: 1px solid var(--color-accent-500);

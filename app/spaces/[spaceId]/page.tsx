@@ -243,6 +243,7 @@ export default async function SpaceDetailPage({
           <SpaceDetailClient
             canApprove={can(user.role, "approve")}
             canEdit={can(user.role, "edit")}
+            canSoftDelete={can(user.role, "softDelete")}
             readOnly={space.readOnly}
             seed={editableSeed}
             spaceId={space.id}

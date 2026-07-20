@@ -23,7 +23,16 @@ type EditableSop = Pick<
 >;
 type EditableTemplate = Pick<
   TemplateRecord,
-  "audience" | "body" | "channel" | "id" | "name" | "space_id" | "status"
+  | "approved_by_uid"
+  | "audience"
+  | "body"
+  | "channel"
+  | "id"
+  | "last_reviewed_at"
+  | "name"
+  | "owner_uid"
+  | "space_id"
+  | "status"
 >;
 type EditablePlaceholder = Pick<
   PlaceholderRecord,
@@ -63,6 +72,7 @@ type DataMode = "loading" | "api" | "seed";
 export function SpaceDetailClient({
   canApprove,
   canEdit,
+  canSoftDelete = false,
   readOnly,
   seed,
   spaceId,
@@ -70,6 +80,7 @@ export function SpaceDetailClient({
 }: Readonly<{
   canApprove: boolean;
   canEdit: boolean;
+  canSoftDelete?: boolean;
   readOnly?: boolean;
   seed: EditableSeed;
   spaceId: string;
@@ -82,10 +93,16 @@ export function SpaceDetailClient({
   const [tools, setTools] = useState(seed.tools);
   const [changeLog, setChangeLog] = useState<EditableChangeLog[]>([]);
   const [draftBody, setDraftBody] = useState(seed.sops[0]?.body_md ?? "");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [templateDraftName, setTemplateDraftName] = useState("");
+  const [templateDraftBody, setTemplateDraftBody] = useState("");
   const [message, setMessage] = useState("Loading editable records.");
   const [isBusy, setIsBusy] = useState(false);
   const currentSop = sops[0] ?? null;
   const canMutate = canEdit && !readOnly && !isBusy;
+  const canDelete = canSoftDelete && !readOnly && !isBusy;
+  const selectedTemplate =
+    templates.find((template) => template.id === selectedTemplateId) ?? null;
   const reviewCount = useMemo(
     () =>
       sops.filter((sop) => sop.status === "In Review").length +
@@ -327,6 +344,121 @@ export function SpaceDetailClient({
     });
   }
 
+  // F-TMPL-1: the template editor mirrors the SOP edit loop (save -> submit for review -> approve ->
+  // soft-delete), reusing runMutation + fetchEditable against the existing /api/templates routes.
+  function selectTemplate(template: EditableTemplate) {
+    setSelectedTemplateId(template.id);
+    setTemplateDraftName(template.name);
+    setTemplateDraftBody(template.body);
+    setMessage(`Editing template "${template.name}".`);
+  }
+
+  async function saveTemplate() {
+    if (!selectedTemplate || !canMutate) {
+      return;
+    }
+    const name = templateDraftName.trim();
+    const body = templateDraftBody.trim();
+    if (name.length === 0 || body.length === 0) {
+      return;
+    }
+
+    if (mode !== "api") {
+      setTemplates((records) =>
+        records.map((record) =>
+          record.id === selectedTemplate.id ? { ...record, body, name } : record,
+        ),
+      );
+      setMessage("Saved template changes in local demo records.");
+      return;
+    }
+
+    await runMutation(async () => {
+      const { template } = await fetchEditable<{ template: EditableTemplate }>(
+        `/api/templates/${selectedTemplate.id}`,
+        {
+          body: JSON.stringify({
+            body,
+            name,
+            note: `Saved template from ${spaceName} Space.`,
+          }),
+          method: "PATCH",
+        },
+      );
+
+      setTemplates((records) =>
+        records.map((record) => (record.id === template.id ? template : record)),
+      );
+      setTemplateDraftName(template.name);
+      setTemplateDraftBody(template.body);
+      setMessage("Saved template to editable API.");
+    });
+  }
+
+  async function transitionTemplate(status: "In Review" | "Approved") {
+    if (!selectedTemplate || !canMutate || (status === "Approved" && !canApprove)) {
+      return;
+    }
+
+    if (mode !== "api") {
+      setTemplates((records) =>
+        records.map((record) =>
+          record.id === selectedTemplate.id ? { ...record, status } : record,
+        ),
+      );
+      setMessage(`Template marked ${status} in local demo records.`);
+      return;
+    }
+
+    await runMutation(async () => {
+      const { template } = await fetchEditable<{ template: EditableTemplate }>(
+        `/api/templates/${selectedTemplate.id}`,
+        {
+          body: JSON.stringify({
+            status,
+            // The server stamps approved_by_uid on approval (F-TMPL-7); the client only supplies the
+            // review timestamp, exactly like the SOP approve flow.
+            ...(status === "Approved"
+              ? { last_reviewed_at: new Date().toISOString() }
+              : {}),
+            note: `Template ${status} from ${spaceName} Space.`,
+          }),
+          method: "PATCH",
+        },
+      );
+
+      setTemplates((records) =>
+        records.map((record) => (record.id === template.id ? template : record)),
+      );
+      setMessage(`Template ${status} through editable API.`);
+    });
+  }
+
+  async function softDeleteTemplateRecord() {
+    if (!selectedTemplate || !canDelete) {
+      return;
+    }
+    const removedId = selectedTemplate.id;
+
+    if (mode !== "api") {
+      setTemplates((records) => records.filter((record) => record.id !== removedId));
+      setSelectedTemplateId(null);
+      setMessage("Removed template from local demo records.");
+      return;
+    }
+
+    await runMutation(async () => {
+      await fetchEditable<{ ok?: boolean }>(`/api/templates/${removedId}`, {
+        body: JSON.stringify({ note: `Retired from ${spaceName} Space.` }),
+        method: "DELETE",
+      });
+
+      setTemplates((records) => records.filter((record) => record.id !== removedId));
+      setSelectedTemplateId(null);
+      setMessage("Retired template through editable API.");
+    });
+  }
+
   async function createDemoPlaceholder() {
     const demoPlaceholder = seed.placeholders[0];
 
@@ -476,8 +608,94 @@ export function SpaceDetailClient({
               <p className="muted">
                 {template.audience} - {template.channel} - {template.status}
               </p>
+              <button
+                className="secondary-button compact-button"
+                disabled={isBusy}
+                onClick={() => selectTemplate(template)}
+                type="button"
+              >
+                {template.id === selectedTemplateId ? "Editing" : "Edit"}
+              </button>
             </article>
           ))}
+
+          {selectedTemplate ? (
+            <div className="template-editor">
+              <p className="muted">
+                Editing {selectedTemplate.name} - {selectedTemplate.status}
+                {selectedTemplate.owner_uid
+                  ? ` - owner ${selectedTemplate.owner_uid}`
+                  : ""}
+                {selectedTemplate.approved_by_uid
+                  ? ` - approved by ${selectedTemplate.approved_by_uid}`
+                  : ""}
+              </p>
+              <label className="editor-label" htmlFor="template-name">
+                Template name
+              </label>
+              <input
+                disabled={!canMutate}
+                id="template-name"
+                onChange={(event) => setTemplateDraftName(event.target.value)}
+                value={templateDraftName}
+              />
+              <label className="editor-label" htmlFor="template-body">
+                Template body
+              </label>
+              <textarea
+                className="sop-editor"
+                disabled={!canMutate}
+                id="template-body"
+                onChange={(event) => setTemplateDraftBody(event.target.value)}
+                rows={8}
+                value={templateDraftBody}
+              />
+              <div className="action-row">
+                <button
+                  className="secondary-button"
+                  disabled={
+                    !canMutate ||
+                    templateDraftName.trim().length === 0 ||
+                    templateDraftBody.trim().length === 0
+                  }
+                  onClick={saveTemplate}
+                  type="button"
+                >
+                  Save
+                </button>
+                <button
+                  className="secondary-button"
+                  disabled={
+                    !canMutate ||
+                    selectedTemplate.status === "In Review" ||
+                    selectedTemplate.status === "Approved"
+                  }
+                  onClick={() => transitionTemplate("In Review")}
+                  type="button"
+                >
+                  Submit for review
+                </button>
+                <button
+                  className="primary-button"
+                  disabled={
+                    !canMutate || !canApprove || selectedTemplate.status === "Approved"
+                  }
+                  onClick={() => transitionTemplate("Approved")}
+                  type="button"
+                >
+                  Mark Approved
+                </button>
+                <button
+                  className="secondary-button"
+                  disabled={!canDelete}
+                  onClick={softDeleteTemplateRecord}
+                  type="button"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <section className="panel">
