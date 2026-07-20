@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { ApprovalQueueAdminPanel } from "@/components/admin/ApprovalQueueAdminPanel";
 import { CommunicationsRetentionAdminPanel } from "@/components/admin/CommunicationsRetentionAdminPanel";
+import { NoticeRulesAdminPanel } from "@/components/admin/NoticeRulesAdminPanel";
 import { PublicationPolicyAdminPanel } from "@/components/admin/PublicationPolicyAdminPanel";
 import { SupportReportsPanel } from "@/components/admin/SupportReportsPanel";
 import { TransactionalDestinationPanel } from "@/components/admin/TransactionalDestinationPanel";
@@ -23,6 +24,10 @@ import {
   defaultOwnerTransactionalDestination,
   readOwnerTransactionalDestination,
 } from "@/lib/firestore/owner-transactional-destination";
+import {
+  type NoticeRuleSetRecord,
+  readNoticeRuleConfigRecord,
+} from "@/lib/firestore/lease-renewal-notice-rules";
 import { listSupportReports } from "@/lib/firestore/support-reports";
 import type {
   ApprovalQueueNotificationHealth,
@@ -49,6 +54,8 @@ export default async function AdminPage() {
   let transactionalDestinationNote: string | undefined;
   let supportReports: SupportReportRecord[] = [];
   let supportReportsNote: string | undefined;
+  let noticeRules: NoticeRuleSetRecord | undefined;
+  let noticeRulesNote: string | undefined;
 
   try {
     observability = await readAdminObservability({ config });
@@ -85,6 +92,12 @@ export default async function AdminPage() {
   } catch {
     supportReportsNote =
       "Reported issues are unavailable right now. Try again in a minute; if this list is not loading, new reports may not be saving either.";
+  }
+  try {
+    noticeRules = await readNoticeRuleConfigRecord(user);
+  } catch {
+    noticeRulesNote =
+      "Renewal notice rules are unavailable right now. Try again in a minute before changing them.";
   }
   const hasMetrics = Boolean(observability);
 
@@ -252,6 +265,14 @@ export default async function AdminPage() {
             initialEmail={transactionalDestination.destination_email}
             note={transactionalDestinationNote}
           />
+          {noticeRules ? (
+            <NoticeRulesAdminPanel initialRecord={noticeRules} note={noticeRulesNote} />
+          ) : (
+            <article className="panel">
+              <h2>Renewal Notice Rules</h2>
+              <p className="muted">{noticeRulesNote}</p>
+            </article>
+          )}
           <article className="panel">
             <h2>Workflow Communications</h2>
             <p className="muted">

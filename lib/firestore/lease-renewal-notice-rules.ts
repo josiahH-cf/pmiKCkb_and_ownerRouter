@@ -11,7 +11,10 @@
 import { z } from "zod";
 import type { Firestore } from "firebase-admin/firestore";
 
+import { can } from "@/lib/auth/roles";
+import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
+import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   DEFAULT_NOTICE_RULE_SET,
   type NoticeRuleSet,
@@ -45,9 +48,20 @@ export const NoticeRuleSetRecordSchema = z.object({
   created_at: z.string(),
   updated_at: z.string(),
   seeded_by_uid: z.string().min(1),
+  // F-TMPL-5: stamped when an Admin edits the rules through the in-app surface (absent on seeded-only
+  // records). Optional so pre-existing records still parse.
+  updated_by_uid: z.string().min(1).optional(),
 });
 
 export type NoticeRuleSetRecord = z.infer<typeof NoticeRuleSetRecordSchema>;
+
+// F-TMPL-5: the Admin edit surface sends the full desired rule set (global defaults + any overrides).
+export const UpdateNoticeRuleConfigInputSchema = z.object({
+  rules: z.array(ScopedNoticeRuleSchema).min(1),
+});
+export type UpdateNoticeRuleConfigInput = z.infer<
+  typeof UpdateNoticeRuleConfigInputSchema
+>;
 
 /** A record minus the timestamps the writer stamps. */
 export type SeedableNoticeRuleConfig = Omit<
@@ -123,4 +137,73 @@ export async function readNoticeRuleSet(
   } catch {
     return DEFAULT_NOTICE_RULE_SET;
   }
+}
+
+// F-TMPL-5: the Admin edit surface for notice rules. Admin-only (mirrors the owner-transactional
+// destination trio); reads/writes are server-only through the Admin SDK (firestore.rules denies client
+// writes). Nothing here sends or drafts anything — it only records the app's own timing rules.
+function assertNoticeRuleAdmin(actor: AuthenticatedUser) {
+  if (!can(actor.role, "manageAdmin")) {
+    throw new EditableLayerError("Only Admins can change renewal notice rules.", 403);
+  }
+}
+
+/** Full record for the admin surface. A missing/malformed doc returns the default set as an unsaved
+ *  baseline (created_at/updated_at "default") so the surface can render and confirm it. */
+export async function readNoticeRuleConfigRecord(
+  actor: AuthenticatedUser,
+  db: Firestore = getAdminFirestore(),
+): Promise<NoticeRuleSetRecord> {
+  assertNoticeRuleAdmin(actor);
+  const baseline = (): NoticeRuleSetRecord => ({
+    ...buildNoticeRuleConfigRecord({ seededByUid: actor.uid }),
+    created_at: "default",
+    updated_at: "default",
+  });
+
+  try {
+    const snapshot = await db
+      .collection(NOTICE_RULE_CONFIG_COLLECTION)
+      .doc(NOTICE_RULE_CONFIG_DOC_ID)
+      .get();
+    if (!snapshot.exists) return baseline();
+    const parsed = NoticeRuleSetRecordSchema.safeParse({
+      ...snapshot.data(),
+      id: snapshot.id,
+    });
+    return parsed.success ? parsed.data : baseline();
+  } catch {
+    return baseline();
+  }
+}
+
+/** Admin-only replacement of the rule set. Preserves created_at + seeded_by_uid, stamps updated_at +
+ *  updated_by_uid. Read-modify-write inside a transaction so concurrent admins cannot lose overrides. */
+export async function updateNoticeRuleConfig(
+  actor: AuthenticatedUser,
+  input: UpdateNoticeRuleConfigInput,
+  db: Firestore = getAdminFirestore(),
+  now: string = new Date().toISOString(),
+): Promise<NoticeRuleSetRecord> {
+  assertNoticeRuleAdmin(actor);
+  const parsed = UpdateNoticeRuleConfigInputSchema.parse(input);
+  const ref = db.collection(NOTICE_RULE_CONFIG_COLLECTION).doc(NOTICE_RULE_CONFIG_DOC_ID);
+
+  const saved = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    const existing = snapshot.exists ? snapshot.data() : undefined;
+    const record: NoticeRuleSetRecord = {
+      id: NOTICE_RULE_CONFIG_DOC_ID,
+      rules: parsed.rules,
+      created_at: typeof existing?.created_at === "string" ? existing.created_at : now,
+      updated_at: now,
+      seeded_by_uid:
+        typeof existing?.seeded_by_uid === "string" ? existing.seeded_by_uid : actor.uid,
+      updated_by_uid: actor.uid,
+    };
+    transaction.set(ref, record);
+    return record;
+  });
+
+  return NoticeRuleSetRecordSchema.parse(saved);
 }
