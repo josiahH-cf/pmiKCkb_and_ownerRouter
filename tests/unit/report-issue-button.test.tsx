@@ -21,7 +21,7 @@ beforeEach(() => {
     ok: true,
     json: async () => ({
       received: true,
-      delivered: false,
+      delivered: true,
       subject: "Report: Issue on /",
     }),
   }));
@@ -72,7 +72,31 @@ describe("ReportIssueButton", () => {
     expect(body.context.element).toMatchObject({ tag: "button", testId: "save-btn" });
     expect(body.context.element).not.toHaveProperty("name"); // no textContent/aria capture
 
-    expect(await screen.findByText(/your report was captured/i)).toBeInTheDocument();
+    expect(await screen.findByText(/filed to the support queue/i)).toBeInTheDocument();
+  });
+
+  it("shows a soft-failure notice (not success) when the report was received but not delivered (F-SUPP-3)", async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        received: true,
+        delivered: false,
+        subject: "Report: Issue on /",
+      }),
+    });
+    const user = userEvent.setup();
+    render(<ReportIssueButton />);
+
+    await user.click(screen.getByRole("button", { name: "Report an issue" }));
+    await user.click(screen.getByRole("button", { name: "Send report" }));
+
+    // The request succeeded (202) but the report was not filed: the UI must not claim success, and
+    // the form stays open so the user can retry.
+    expect(
+      await screen.findByText(/could not file it to the support queue/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/filed to the support queue for review/i)).toBeNull();
+    expect(screen.getByRole("button", { name: "Send report" })).toBeInTheDocument();
   });
 
   it("never captures an input's value OR its data-derived aria-label", async () => {

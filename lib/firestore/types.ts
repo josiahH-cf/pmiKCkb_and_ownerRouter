@@ -435,6 +435,36 @@ export interface OwnerTransactionalDestinationRecord {
   updated_by_uid?: string;
 }
 
+// Support report / issue ticket (F-SUPP-1). A durable, Admin-reviewable record of a "Report an issue"
+// submission. This is the monitored destination reports are routed to (no email is sent — generic
+// send is disabled by governance), so a successful write is what makes a report "delivered". Only
+// allowlisted, non-sensitive page context is stored (route pathname, viewport, user-agent, and the
+// IDENTITY of the last-interacted element) plus the reporter's optional free-text description.
+export type SupportReportStatus = "new" | "acknowledged" | "resolved";
+
+export interface SupportReportElementHint {
+  tag: string;
+  role?: string;
+  type?: string;
+  id?: string;
+  testId?: string;
+}
+
+export interface SupportReportRecord {
+  id: string;
+  route: string;
+  description?: string;
+  reporter_uid: string;
+  reporter_role: string;
+  origin: "app" | "error_boundary";
+  status: SupportReportStatus;
+  viewport?: string;
+  user_agent?: string;
+  element?: SupportReportElementHint;
+  error_digest?: string;
+  created_at: string;
+}
+
 export interface ApprovalQueueNotificationHealth {
   status: QueueNotificationHealthStatus;
   queue_email_status: QueueEmailSetupStatus;

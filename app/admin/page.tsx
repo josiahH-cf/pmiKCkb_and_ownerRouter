@@ -3,6 +3,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { ApprovalQueueAdminPanel } from "@/components/admin/ApprovalQueueAdminPanel";
 import { CommunicationsRetentionAdminPanel } from "@/components/admin/CommunicationsRetentionAdminPanel";
 import { PublicationPolicyAdminPanel } from "@/components/admin/PublicationPolicyAdminPanel";
+import { SupportReportsPanel } from "@/components/admin/SupportReportsPanel";
 import { TransactionalDestinationPanel } from "@/components/admin/TransactionalDestinationPanel";
 import { V1ProductionTestWorkspacePanel } from "@/components/admin/V1ProductionTestWorkspacePanel";
 import { requirePageCapability } from "@/lib/auth/page-guards";
@@ -22,7 +23,11 @@ import {
   defaultOwnerTransactionalDestination,
   readOwnerTransactionalDestination,
 } from "@/lib/firestore/owner-transactional-destination";
-import type { ApprovalQueueNotificationHealth } from "@/lib/firestore/types";
+import { listSupportReports } from "@/lib/firestore/support-reports";
+import type {
+  ApprovalQueueNotificationHealth,
+  SupportReportRecord,
+} from "@/lib/firestore/types";
 import { listPublicationPolicies } from "@/lib/publication/policy";
 import type { PublicationPolicyRecord } from "@/lib/publication/types";
 import { launchSpaces } from "@/lib/spaces";
@@ -42,6 +47,8 @@ export default async function AdminPage() {
   let publicationPolicyNote: string | undefined;
   let transactionalDestination = defaultOwnerTransactionalDestination();
   let transactionalDestinationNote: string | undefined;
+  let supportReports: SupportReportRecord[] = [];
+  let supportReportsNote: string | undefined;
 
   try {
     observability = await readAdminObservability({ config });
@@ -72,6 +79,12 @@ export default async function AdminPage() {
   } catch {
     transactionalDestinationNote =
       "Showing the seeded default; the saved destination is unavailable until Firestore is reachable in this session.";
+  }
+  try {
+    supportReports = await listSupportReports(user);
+  } catch {
+    supportReportsNote =
+      "Reported issues are unavailable right now. Try again in a minute; new reports are still being captured.";
   }
   const hasMetrics = Boolean(observability);
 
@@ -196,6 +209,10 @@ export default async function AdminPage() {
             initialHealth={queueHealth}
             initialSettings={queueEmailSettings}
             unavailableNote={queueAdminNote}
+          />
+          <SupportReportsPanel
+            reports={supportReports}
+            unavailableNote={supportReportsNote}
           />
         </section>
 

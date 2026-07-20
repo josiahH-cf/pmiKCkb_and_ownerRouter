@@ -21,7 +21,9 @@ type ElementHint = {
   id?: string;
   testId?: string;
 };
-type SubmitStatus = "idle" | "sending" | "sent" | "error";
+// "sent" = filed to the support queue (delivered). "notice" = the request succeeded but the report
+// was not saved (delivered:false) — a soft failure the user can retry, never shown as success.
+type SubmitStatus = "idle" | "sending" | "sent" | "notice" | "error";
 
 // Identity ONLY — never aria-label or textContent (both carry rendered app data in this codebase).
 function describeElement(node: EventTarget | null): ElementHint | undefined {
@@ -133,8 +135,18 @@ export function ReportIssueButton() {
         }),
       });
       if (response.ok) {
-        setStatus("sent");
-        setMessage("Thanks. Your report was captured with the page details.");
+        const payload = (await response.json().catch(() => ({}))) as {
+          delivered?: boolean;
+        };
+        if (payload.delivered) {
+          setStatus("sent");
+          setMessage("Thanks. Your report was filed to the support queue for review.");
+        } else {
+          setStatus("notice");
+          setMessage(
+            "We received your report but could not file it to the support queue yet. Please try again in a moment.",
+          );
+        }
       } else {
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
         setStatus("error");
@@ -205,7 +217,9 @@ export function ReportIssueButton() {
                     value={description}
                   />
                 </Field>
-                {status === "error" ? <p className="auth-message">{message}</p> : null}
+                {status === "error" || status === "notice" ? (
+                  <p className="auth-message">{message}</p>
+                ) : null}
                 <div className="report-issue-actions">
                   <Button
                     disabled={status === "sending"}
