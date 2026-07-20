@@ -84,7 +84,7 @@ export default async function AdminPage() {
     supportReports = await listSupportReports(user);
   } catch {
     supportReportsNote =
-      "Reported issues are unavailable right now. Try again in a minute; new reports are still being captured.";
+      "Reported issues are unavailable right now. Try again in a minute; if this list is not loading, new reports may not be saving either.";
   }
   const hasMetrics = Boolean(observability);
 
