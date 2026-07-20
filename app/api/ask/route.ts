@@ -52,6 +52,15 @@ export async function POST(request: Request) {
       );
     }
 
-    throw error;
+    // LR-03: a runtime retrieval/model OUTAGE (not just a setup gap) degrades gracefully to a retryable
+    // 503 with an actionable cause, so the Ask surface shows a real reason instead of a bare 500.
+    return NextResponse.json(
+      {
+        error:
+          "The answer service is temporarily unavailable. Please try again in a moment.",
+        error_type: "AskRuntimeError",
+      },
+      { status: 503 },
+    );
   }
 }

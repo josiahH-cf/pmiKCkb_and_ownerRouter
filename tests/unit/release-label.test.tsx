@@ -10,7 +10,7 @@ describe("V1 application release label", () => {
     render(<ReleaseStageBanner />);
     expect(screen.getByRole("status").textContent).toContain("V1 application");
     expect(screen.getByRole("status").textContent).toContain(
-      "Live and Test records are clearly labeled",
+      "Live and Test records are labeled by data mode",
     );
     expect(screen.getByRole("status").textContent).toContain(
       "provider status and signoffs are advisory",

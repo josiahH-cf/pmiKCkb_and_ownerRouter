@@ -1,6 +1,7 @@
 // Owner transactional/notice destination store (D-1 support). A single admin-editable Firestore doc
-// holding the owner-INTERNAL destination address — where issue-report tickets (TIX-6) and owner-notice
-// drafts are addressed once a real send path is activated. Absence resolves to the seeded default.
+// holding the owner-INTERNAL destination address — where owner-notice drafts are addressed once a real
+// send path is activated. (Reported issues route only to the in-app support queue, never here.) Absence
+// resolves to the seeded default.
 //
 // GOVERNANCE: this is an internal owner address only. It is NEVER the authoritative recipient for a
 // tenant or owner-of-record notice — those recipients still flow through the governed executor's

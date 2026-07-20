@@ -20,8 +20,9 @@ export const DRAFT_BANNER = "Draft — Review before sending";
 export const UNVERIFIED_PLACEHOLDER = "Needs Verification: <fact>";
 
 // Owner-facing transactional/notice destination (D-1 support). Where owner-INTERNAL transactional
-// email is addressed — issue-report tickets (TIX-6) and owner-notice drafts — when a real send path
-// is later activated. Admin-editable in-app and seeded to this address to start (owner ruling
+// email is addressed — owner-notice drafts — when a real send path is later activated. (Reported issues
+// route only to the in-app support queue, never here.) Admin-editable in-app and seeded to this address
+// to start (owner ruling
 // 2026-07-18). This is an internal owner address, NOT a tenant/owner-of-record recipient: those still
 // require verified source refs through the governed executor, never a free-form admin field.
 export const DEFAULT_OWNER_TRANSACTIONAL_EMAIL = "josiah@pmikcmetro.com";
