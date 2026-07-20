@@ -107,7 +107,13 @@ interface AppendQueueNotificationInput {
 export interface ListApprovalQueueNotificationsOptions {
   itemId?: string;
   limit?: number;
-  recipientOnly?: boolean;
+  /**
+   * LR-02 (fail-closed default): the reader returns only the caller's OWN notifications unless this is
+   * explicitly set. Broad, cross-recipient visibility (the Admin monitoring view) is an opt-in AND is
+   * additionally gated on the Admin capability inside the reader, so a caller that forgets to narrow the
+   * query can never leak another user's notifications, and a non-Admin can never widen it.
+   */
+  adminAll?: boolean;
   unreadOnly?: boolean;
 }
 
@@ -188,12 +194,17 @@ export async function listApprovalQueueNotifications(
   assertCan(actor, "read");
   const snapshot = await db.collection(COLLECTIONS.notifications).get();
   const limit = options.limit ?? 25;
+  // LR-02: recipient-only is the DEFAULT. The broad cross-recipient view is an explicit opt-in that ALSO
+  // requires the Admin capability, so a forgotten flag can never leak another user's items and a
+  // non-Admin asking for `adminAll` is silently narrowed back to their own.
+  const includeAllRecipients =
+    options.adminAll === true && can(actor.role, "manageAdmin");
 
   return snapshot.docs
     .map((doc) => readRecord<ApprovalQueueNotificationRecord>(doc.id, doc.data()))
     .filter((notification) => canViewNotification(actor, notification))
     .filter((notification) =>
-      options.recipientOnly ? notification.recipient_uid === actor.uid : true,
+      includeAllRecipients ? true : notification.recipient_uid === actor.uid,
     )
     .filter((notification) =>
       options.itemId ? notification.item_id === options.itemId : true,

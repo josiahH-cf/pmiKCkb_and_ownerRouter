@@ -61,9 +61,10 @@ describe("Approval Queue notification API routes", () => {
     await expect(response.json()).resolves.toMatchObject({
       notifications: [{ id: "notification-1" }],
     });
+    // LR-02: mine_only=true narrows to the recipient-only default, so the broad opt-in is off.
     expect(listApprovalQueueNotifications).toHaveBeenCalledWith(
       expect.objectContaining({ uid: "editor-1" }),
-      { itemId: "item-1", limit: 10, recipientOnly: true, unreadOnly: true },
+      { itemId: "item-1", limit: 10, adminAll: false, unreadOnly: true },
     );
   });
 

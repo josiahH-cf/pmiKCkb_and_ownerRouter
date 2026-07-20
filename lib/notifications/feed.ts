@@ -57,6 +57,12 @@ export interface BuildNotificationFeedInput {
 export interface NotificationFeed {
   /** The time-ordered EVENT log (approvals + maintenance), lane-stamped, low-alarm applied. */
   notifications: UnifiedNotification[];
+  /**
+   * NOTIF/LR-01: the uncapped count of UNREAD event rows that survive mute / low-alarm / digest,
+   * computed BEFORE the preview `limit` slice. The bell badge and tab title read this so they report
+   * the true unread count instead of maxing out at the (e.g. 8-row) preview list length.
+   */
+  unreadTotal: number;
   /** B2 standing setup signals surviving mute / threshold / snooze. */
   standing: AttentionSignal[];
   /** B5 review digest surviving mute / threshold / snooze, or null. */
@@ -87,7 +93,14 @@ export function buildNotificationFeed(
     .filter((notification) => !muted.has(notification.family))
     .sort((left, right) => right.created_at.localeCompare(left.created_at));
   const filteredEvents = applyLowAlarm(events, prefs, now);
-  const notifications = collapseDigestedLanes(filteredEvents, prefs).slice(0, limit);
+  const collapsed = collapseDigestedLanes(filteredEvents, prefs);
+  // LR-01: the badge total counts every UNREAD surviving row BEFORE the preview cap, so the bell never
+  // under-reports when there are more unread rows than the preview list shows.
+  const unreadTotal = collapsed.reduce(
+    (count, notification) => (notification.read_at ? count : count + 1),
+    0,
+  );
+  const notifications = collapsed.slice(0, limit);
 
   // 2. Standing signals: drop muted lanes, then threshold + snooze (a standing family maps 1:1 to a
   //    lane, so a family mute is a lane mute here). Standing conditions are never digested.
@@ -109,6 +122,7 @@ export function buildNotificationFeed(
 
   return {
     notifications,
+    unreadTotal,
     standing,
     review,
     decisions: input.decisions ?? { count: 0, signals: [] },

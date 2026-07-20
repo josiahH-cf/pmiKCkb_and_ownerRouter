@@ -65,7 +65,11 @@ describe("Approval Queue v1 console notifications", () => {
 
     const editorNotifications = await listApprovalQueueNotifications(editor, {}, db);
     const approverNotifications = await listApprovalQueueNotifications(approver, {}, db);
-    const adminNotifications = await listApprovalQueueNotifications(admin, {}, db);
+    const adminNotifications = await listApprovalQueueNotifications(
+      admin,
+      { adminAll: true },
+      db,
+    );
 
     expect(editorNotifications).toHaveLength(1);
     expect(editorNotifications[0]).toMatchObject({
@@ -103,12 +107,13 @@ describe("Approval Queue v1 console notifications", () => {
       db,
     );
 
-    const allAdminVisible = await listApprovalQueueNotifications(admin, {}, db);
-    const onlyMine = await listApprovalQueueNotifications(
+    const allAdminVisible = await listApprovalQueueNotifications(
       admin,
-      { recipientOnly: true },
+      { adminAll: true },
       db,
     );
+    // LR-02: recipient-only is the DEFAULT — an Admin passing no opt-in sees only their own.
+    const onlyMine = await listApprovalQueueNotifications(admin, {}, db);
 
     expect(allAdminVisible).toHaveLength(4);
     expect(onlyMine).toHaveLength(1);
@@ -212,9 +217,10 @@ describe("Approval Queue v1 console notifications", () => {
     expect(item.status).toBe("Blocked");
 
     // A triage notification exists and every Admin can see it, even though no single user owns it.
+    // The triage recipient is nobody's uid, so it only surfaces through the Admin cross-recipient view.
     const adminView = await listApprovalQueueNotifications(
       admin,
-      { itemId: item.id },
+      { itemId: item.id, adminAll: true },
       db,
     );
     expect(adminView).toHaveLength(1);
@@ -225,13 +231,32 @@ describe("Approval Queue v1 console notifications", () => {
     });
 
     // The triage notification belongs to no real person, so it never lands in an individual's
-    // "mine only" list (the editor who created it cannot even view it).
-    const editorMine = await listApprovalQueueNotifications(
+    // default (recipient-only) list — the editor who created it cannot even view it.
+    const editorMine = await listApprovalQueueNotifications(editor, {}, db);
+    expect(editorMine).toHaveLength(0);
+  });
+
+  it("ignores adminAll for a non-Admin — a non-Admin only ever sees their own notifications (LR-02)", async () => {
+    // One item routes notifications to BOTH the editor (assignee) and the approver.
+    await createApprovalQueueItem(editor, baseInput(), db);
+
+    // Even explicitly asking for the broad view, a non-Admin is silently narrowed to their own rows:
+    // the reader gates the cross-recipient opt-in on the Admin capability, so this can never leak.
+    const editorAll = await listApprovalQueueNotifications(
       editor,
-      { recipientOnly: true },
+      { adminAll: true },
       db,
     );
-    expect(editorMine).toHaveLength(0);
+    expect(editorAll).toHaveLength(1);
+    expect(editorAll[0]).toMatchObject({ recipient_uid: "editor-1" });
+
+    const approverAll = await listApprovalQueueNotifications(
+      approver,
+      { adminAll: true },
+      db,
+    );
+    expect(approverAll).toHaveLength(1);
+    expect(approverAll[0]).toMatchObject({ recipient_uid: "approver-1" });
   });
 });
 

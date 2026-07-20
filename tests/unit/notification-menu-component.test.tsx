@@ -77,6 +77,33 @@ describe("NotificationMenu", () => {
     await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThan(before));
   });
 
+  it("shows the uncapped unread total, not the capped preview length (LR-01)", async () => {
+    document.title = "PMI KC";
+    // The server caps the preview list at 8 rows but reports the true unread total separately.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponse({
+          notifications: Array.from({ length: 8 }, (_, index) =>
+            approvalUnified({ id: `a-${index}` }),
+          ),
+          families: familyViews(),
+          unreadTotal: 20,
+        }),
+      ),
+    );
+
+    render(<NotificationMenu navigate={() => undefined} />);
+
+    // The "9+" affordance is reachable only because the count is decoupled from the 8-row preview list.
+    expect(await screen.findByText("9+")).toBeInTheDocument();
+    // The accessible label and the tab title report the true total, not the preview length of 8.
+    expect(
+      screen.getByRole("button", { name: /Notifications, 20 unread/ }),
+    ).toBeInTheDocument();
+    expect(document.title).toBe("(20) PMI KC");
+  });
+
   it("prefixes the tab title with the unread count (NOTIF-4)", async () => {
     document.title = "PMI KC";
     vi.stubGlobal(

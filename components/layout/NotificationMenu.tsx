@@ -22,9 +22,10 @@ export function NotificationMenu({
   const [state, setState] = useState<NotificationState>("idle");
   const [message, setMessage] = useState("Loading notifications.");
   const hasLoaded = useRef(false);
-  const unreadCount = notifications.filter(
-    (notification) => !notification.read_at,
-  ).length;
+  // LR-01: the badge/title count comes from the server's uncapped unread TOTAL, not the capped preview
+  // list, so it stays accurate (and can exceed the preview length) instead of maxing out at the fetch
+  // limit. The preview list below still shows only the first few rows.
+  const [unreadCount, setUnreadCount] = useState(0);
   const buttonLabel = useMemo(
     () => (unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"),
     [unreadCount],
@@ -74,10 +75,18 @@ export function NotificationMenu({
       const payload = await readJsonResponse<{
         notifications: UnifiedNotification[];
         families: NotificationFamilyView[];
+        unreadTotal?: number;
       }>(response);
 
       setNotifications(payload.notifications);
       setFamilies(payload.families);
+      // Prefer the server's uncapped total; fall back to the preview list only if an older payload omits
+      // it, so the badge never silently reads NaN.
+      setUnreadCount(
+        typeof payload.unreadTotal === "number"
+          ? payload.unreadTotal
+          : payload.notifications.filter((notification) => !notification.read_at).length,
+      );
       setState("ready");
       setMessage(
         payload.notifications.length > 0

@@ -27,11 +27,11 @@ export async function POST() {
 
     let marked = 0;
 
-    // F-NOTIF-3: approval-queue notifications are personal (recipient-only), so the caller's own ones
-    // are always included regardless of space scope — the same rule the feed and single mark-read use.
+    // F-NOTIF-3: approval-queue notifications are personal, so the caller's own ones are always included
+    // regardless of space scope — the same rule the feed and single mark-read use. Recipient-only is the
+    // reader default (LR-02), so no cross-recipient opt-in is passed here.
     {
       const unread = await listApprovalQueueNotifications(user, {
-        recipientOnly: true,
         unreadOnly: true,
       });
       await Promise.all(

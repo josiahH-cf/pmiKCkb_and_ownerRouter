@@ -15,10 +15,13 @@ export async function GET(request: Request) {
       throw new EditableLayerError("Invalid notification limit.", 400);
     }
 
+    // LR-02: recipient-only is the reader default. This Admin-monitoring endpoint offers the broad
+    // cross-recipient view unless the caller narrows to `mine_only`; the reader still gates that opt-in on
+    // the Admin capability, so a non-Admin caller only ever sees their own notifications here.
     const notifications = await listApprovalQueueNotifications(user, {
       itemId: optionalParam(searchParams, "item_id"),
       limit,
-      recipientOnly: searchParams.get("mine_only") === "true",
+      adminAll: searchParams.get("mine_only") !== "true",
       unreadOnly: searchParams.get("unread_only") === "true",
     });
 

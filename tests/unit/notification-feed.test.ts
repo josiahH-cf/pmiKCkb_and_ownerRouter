@@ -111,6 +111,34 @@ describe("buildNotificationFeed", () => {
     expect(feed.notifications.map((n) => n.id)).toEqual(["a-late", "m-mid"]);
   });
 
+  // LR-01: the badge total is the count of UNREAD surviving rows BEFORE the preview cap, so the bell
+  // never under-reports when there are more unread rows than the preview list shows.
+  it("reports an uncapped unread total decoupled from the preview limit", () => {
+    const feed = buildNotificationFeed({
+      approval: [
+        approval({ id: "a-1", created_at: "2026-07-01T00:00:00.000Z" }),
+        approval({
+          id: "a-2",
+          item_id: "item-2",
+          created_at: "2026-07-02T00:00:00.000Z",
+        }),
+        approval({
+          id: "a-3",
+          item_id: "item-3",
+          created_at: "2026-07-03T00:00:00.000Z",
+          read_at: "2026-07-03T06:00:00.000Z",
+        }),
+      ],
+      maintenance: [],
+      limit: 1,
+    });
+
+    // The preview list honors the limit...
+    expect(feed.notifications).toHaveLength(1);
+    // ...but the badge total counts every UNREAD row (2 unread, 1 read) before the slice.
+    expect(feed.unreadTotal).toBe(2);
+  });
+
   // AC-GW-12: the catalog exposes the two available, workflow-specific Gmail families.
   it("returns exactly seven available in-app families", () => {
     const feed = buildNotificationFeed({ approval: [], maintenance: [] });

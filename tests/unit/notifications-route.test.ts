@@ -197,9 +197,9 @@ describe("notifications routes", () => {
     );
     expect(response.status).toBe(200);
 
-    // unread_only=true is forwarded to BOTH readers (approval additionally gets recipientOnly).
+    // unread_only=true is forwarded to BOTH readers. The approval reader relies on the recipient-only
+    // DEFAULT (LR-02) — the route passes no cross-recipient opt-in.
     expect(listApprovalQueueNotifications).toHaveBeenCalledWith(editor, {
-      recipientOnly: true,
       unreadOnly: true,
     });
     expect(listMaintenanceTicketNotifications).toHaveBeenCalledWith(editor, {
@@ -213,6 +213,8 @@ describe("notifications routes", () => {
     const body = await response.json();
     expect(body.notifications).toHaveLength(1);
     expect(body.notifications[0].id).toBe("a-new");
+    // LR-01: the badge total is decoupled from the limit — both unread rows are counted before the slice.
+    expect(body.unreadTotal).toBe(2);
   });
 
   it("GET drops a family the caller's preferences mute and marks it muted in the family views", async () => {
@@ -272,11 +274,12 @@ describe("notifications routes", () => {
     expect(response.status).toBe(200);
     const body = await response.json();
 
-    // Approval notifications are recipient-only, so a user without renewals scope still sees their
-    // own; maintenance is fetched on its own scope.
+    // Approval notifications are recipient-only by default (LR-02), so a user without renewals scope
+    // still sees their own; maintenance is fetched on its own scope. The hub never opts into the Admin
+    // cross-recipient view.
     expect(listApprovalQueueNotifications).toHaveBeenCalledWith(
       maintenanceEditor,
-      expect.objectContaining({ recipientOnly: true }),
+      expect.not.objectContaining({ adminAll: true }),
     );
     expect(listMaintenanceTicketNotifications).toHaveBeenCalledOnce();
     const sources = body.notifications.map((item: { source: string }) => item.source);
@@ -362,9 +365,9 @@ describe("notifications routes", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ ok: true, marked: 3 });
 
-    // Each unread notification is flipped via its per-source writer (self-scoped, recipient-only).
+    // Each unread notification is flipped via its per-source writer (self-scoped; recipient-only is the
+    // reader default, LR-02, so no cross-recipient opt-in is passed).
     expect(listApprovalQueueNotifications).toHaveBeenCalledWith(editor, {
-      recipientOnly: true,
       unreadOnly: true,
     });
     expect(markApprovalQueueNotificationRead).toHaveBeenCalledWith(editor, "a-1");
@@ -380,9 +383,9 @@ describe("notifications routes", () => {
 
     const response = await markAllRead();
     expect(response.status).toBe(200);
-    // Approval notifications are personal (recipient-only), so they are always swept for the caller.
+    // Approval notifications are personal (recipient-only by default, LR-02), so they are always swept
+    // for the caller without opting into any cross-recipient view.
     expect(listApprovalQueueNotifications).toHaveBeenCalledWith(maintenanceEditor, {
-      recipientOnly: true,
       unreadOnly: true,
     });
     expect(listMaintenanceTicketNotifications).toHaveBeenCalled();

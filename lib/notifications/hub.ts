@@ -57,10 +57,11 @@ export async function loadNotificationHub(
   const [preferences, approval, maintenance, gmail, coverage, decision] =
     await Promise.all([
       getNotificationPreferences(user),
-      // F-NOTIF-3: approval-queue notifications are personal (recipient-only), so a recipient always
-      // sees their OWN ones regardless of space scope — an assignee/approver who lacks renewals scope
-      // must never be dead-ended out of their own action items.
-      listApprovalQueueNotifications(user, { recipientOnly: true, unreadOnly }),
+      // F-NOTIF-3: approval-queue notifications are personal, so a recipient always sees their OWN ones
+      // regardless of space scope — an assignee/approver who lacks renewals scope must never be
+      // dead-ended out of their own action items. Recipient-only is the reader default (LR-02); this
+      // path deliberately does NOT opt into the Admin cross-recipient view.
+      listApprovalQueueNotifications(user, { unreadOnly }),
       canReadMaintenance
         ? listMaintenanceTicketNotifications(user, { unreadOnly })
         : Promise.resolve([]),
