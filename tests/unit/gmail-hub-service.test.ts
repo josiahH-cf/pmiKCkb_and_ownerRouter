@@ -511,6 +511,198 @@ describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
     expect(record?.state).toBe("sent");
   });
 
+  it("refuses a new send while a prior send for the same context is ambiguous (double-send guard)", async () => {
+    const client = new FakeGmailClient();
+    client.sendError = new GmailRuntimeError("unclear", undefined, true);
+    const store = new MemoryGmailStateStore();
+
+    // First attempt: prepare -> send -> ambiguous; reconcile cannot find the message, so it stays ambiguous.
+    const first = service({
+      client,
+      store,
+      token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    });
+    const prepared = await first.hub.prepareSendConfirmation(reply("Ambiguous send"));
+    await expect(first.hub.sendConfirmed(prepared)).rejects.toBeInstanceOf(
+      GmailAmbiguousSendError,
+    );
+    await expect(
+      first.hub.reconcileSend(prepared.confirmationToken, prepared.context),
+    ).resolves.toMatchObject({ status: "not_found" });
+
+    // A re-prepare for the SAME context with a DIFFERENT token (so it is not an id collision) is refused.
+    // Without the guard this would mint a fresh confirmation and enable a second delivery.
+    const second = service({
+      client,
+      store,
+      token: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    });
+    await expect(
+      second.hub.prepareSendConfirmation(reply("Retry attempt")),
+    ).rejects.toBeInstanceOf(GmailAmbiguousSendError);
+    // Only the single original send was ever attempted.
+    expect(client.sendCalls).toBe(1);
+  });
+
+  it("clears the double-send guard once the ambiguous send reconciles to sent", async () => {
+    const client = new FakeGmailClient();
+    client.sendError = new GmailRuntimeError("unclear", undefined, true);
+    const store = new MemoryGmailStateStore();
+
+    const first = service({
+      client,
+      store,
+      token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    });
+    const prepared = await first.hub.prepareSendConfirmation(reply("Ambiguous send"));
+    await expect(first.hub.sendConfirmed(prepared)).rejects.toBeInstanceOf(
+      GmailAmbiguousSendError,
+    );
+
+    // Reconcile now FINDS the message, so the confirmation resolves to sent (no longer ambiguous).
+    client.reconcileResult = {
+      messageId: "reconciled-message",
+      threadId: "reconciled-thread",
+      labelIds: ["SENT"],
+    };
+    await expect(
+      first.hub.reconcileSend(prepared.confirmationToken, prepared.context),
+    ).resolves.toMatchObject({ status: "sent" });
+
+    // With no unresolved-ambiguous record for the context, a fresh prepare is allowed again.
+    const second = service({
+      client,
+      store,
+      token: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    });
+    await expect(
+      second.hub.prepareSendConfirmation(reply("Follow-up")),
+    ).resolves.toMatchObject({ confirmationToken: expect.any(String) });
+  });
+
+  it("still blocks a re-prepare that VARIES the source refs (guard keys on identity, not context key)", async () => {
+    const client = new FakeGmailClient();
+    client.sendError = new GmailRuntimeError("unclear", undefined, true);
+    const store = new MemoryGmailStateStore();
+    const withRefs = (body: string, sourceRefs: string[]) => ({
+      context: { ...context("gmail.thread.reply"), sourceRefs },
+      message: { kind: "reply" as const, threadId: "thread-1", body },
+    });
+
+    // First send with source refs ["ref:a"] goes ambiguous; reconcile cannot find it.
+    const first = service({
+      client,
+      store,
+      token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    });
+    const prepared = await first.hub.prepareSendConfirmation(
+      withRefs("First", ["ref:a"]),
+    );
+    await expect(first.hub.sendConfirmed(prepared)).rejects.toBeInstanceOf(
+      GmailAmbiguousSendError,
+    );
+    await expect(
+      first.hub.reconcileSend(prepared.confirmationToken, prepared.context),
+    ).resolves.toMatchObject({ status: "not_found" });
+
+    // A re-prepare of the SAME communication (same thread/entity) with DIFFERENT source refs derives a
+    // different context key but the SAME identity — it must still be refused. (Keying on the context key
+    // would let this slip through and double-send.)
+    const second = service({
+      client,
+      store,
+      token: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    });
+    await expect(
+      second.hub.prepareSendConfirmation(withRefs("Second", ["ref:a", "ref:b"])),
+    ).rejects.toBeInstanceOf(GmailAmbiguousSendError);
+    expect(client.sendCalls).toBe(1);
+  });
+
+  it("blocks a re-prepare while a prior send is stuck in 'sending' (crash mid-send)", async () => {
+    const store = new MemoryGmailStateStore();
+    const first = service({
+      store,
+      token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    });
+    const prepared = await first.hub.prepareSendConfirmation(reply("First"));
+    // Simulate a crash after the claim but before the outcome was recorded: leave it in "sending".
+    const stuck = store.confirmations.get(
+      hashConfirmationToken(prepared.confirmationToken),
+    );
+    expect(stuck).toBeDefined();
+    stuck!.state = "sending";
+
+    const second = service({
+      store,
+      token: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    });
+    await expect(
+      second.hub.prepareSendConfirmation(reply("Second")),
+    ).rejects.toBeInstanceOf(GmailAmbiguousSendError);
+  });
+
+  it("reconciles a stuck 'sending' confirmation by its RFC Message-ID (not a permanent block)", async () => {
+    const client = new FakeGmailClient();
+    const store = new MemoryGmailStateStore();
+    const first = service({
+      client,
+      store,
+      token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    });
+    const prepared = await first.hub.prepareSendConfirmation(reply("First"));
+    store.confirmations.get(hashConfirmationToken(prepared.confirmationToken))!.state =
+      "sending";
+    client.reconcileResult = {
+      messageId: "found-message",
+      threadId: "found-thread",
+      labelIds: ["SENT"],
+    };
+
+    await expect(
+      first.hub.reconcileSend(prepared.confirmationToken, prepared.context),
+    ).resolves.toMatchObject({ status: "sent" });
+  });
+
+  it("recovers WITHOUT the token: a re-prepare resolves an ambiguous send that actually delivered", async () => {
+    const client = new FakeGmailClient();
+    client.sendError = new GmailRuntimeError("unclear", undefined, true);
+    const store = new MemoryGmailStateStore();
+
+    const first = service({
+      client,
+      store,
+      token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    });
+    const prepared = await first.hub.prepareSendConfirmation(reply("First"));
+    await expect(first.hub.sendConfirmed(prepared)).rejects.toBeInstanceOf(
+      GmailAmbiguousSendError,
+    );
+    const id = hashConfirmationToken(prepared.confirmationToken);
+    expect(store.confirmations.get(id)!.state).toBe("ambiguous");
+
+    // The one-time token is lost (page reload). On re-prepare, the guard re-checks delivery by the prior
+    // send's RFC Message-ID (no token needed) and finds it DID deliver: it records that (the block
+    // resolves) and refuses this send as a duplicate.
+    client.reconcileResult = {
+      messageId: "found-message",
+      threadId: "found-thread",
+      labelIds: ["SENT"],
+    };
+    const second = service({
+      client,
+      store,
+      token: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    });
+    await expect(
+      second.hub.prepareSendConfirmation(reply("Second")),
+    ).rejects.toBeInstanceOf(GmailAmbiguousSendError);
+    // The prior confirmation is now resolved to sent, so it no longer blocks future sends, and no second
+    // copy was ever delivered.
+    expect(store.confirmations.get(id)!.state).toBe("sent");
+    expect(client.sendCalls).toBe(1);
+  });
+
   it("builds a reply from the live parent with matching subject and RFC thread headers", async () => {
     const { hub } = service();
     const prepared = await hub.prepareSendConfirmation(reply("Synthetic reply"));

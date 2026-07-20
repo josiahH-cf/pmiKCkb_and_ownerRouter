@@ -110,9 +110,46 @@ export interface GmailWorkflowActionAuditInput {
   nowMs: number;
 }
 
+// The identity that binds a workflow send to its thread (mirrors linkMatchesContext). The double-send
+// guard keys on this — NOT the full workflow_context_key — so a re-prepare that varies the caller-supplied
+// source refs cannot slip past it.
+export interface CommunicationIdentity {
+  mailboxEmail: string;
+  lane: WorkflowCommunicationLink["lane"];
+  entityType: WorkflowCommunicationLink["entity_type"];
+  entityId: string;
+  purpose: WorkflowCommunicationLink["purpose"];
+}
+
+// True when a confirmation is an UNRESOLVED send (may already have delivered) for exactly this identity.
+function isUnresolvedSendForCommunication(
+  record: GmailConfirmationRecord,
+  identity: CommunicationIdentity,
+): boolean {
+  return (
+    (record.state === "ambiguous" || record.state === "sending") &&
+    record.mailbox_email === identity.mailboxEmail &&
+    record.workflow_lane === identity.lane &&
+    record.workflow_entity_type === identity.entityType &&
+    record.workflow_entity_id === identity.entityId &&
+    record.workflow_purpose === identity.purpose
+  );
+}
+
 export interface GmailStateStore {
   createConfirmation(record: GmailConfirmationRecord): Promise<void>;
   getConfirmation(id: string): Promise<GmailConfirmationRecord | null>;
+  /**
+   * The unresolved send confirmation (state "ambiguous" OR "sending" — either may already have delivered)
+   * for a workflow COMMUNICATION IDENTITY: mailbox + lane + entity_type + entity_id + purpose. That is the
+   * same identity that binds a reply to its thread (linkMatchesContext), so it is the correct dedup key,
+   * NOT the full workflow_context_key (which folds in caller-supplied source refs a re-prepare could vary
+   * to slip past the guard). Used to REFUSE preparing a new send while a prior send's outcome is unknown;
+   * reconciling it to a definitive "sent" clears the block.
+   */
+  findUnresolvedSendForCommunication(
+    identity: CommunicationIdentity,
+  ): Promise<GmailConfirmationRecord | null>;
   claimConfirmation(input: {
     id: string;
     actorUid: string;
@@ -220,6 +257,21 @@ export class FirestoreGmailStateStore implements GmailStateStore {
       .doc(id)
       .get();
     return snapshot.exists ? (snapshot.data() as GmailConfirmationRecord) : null;
+  }
+
+  async findUnresolvedSendForCommunication(
+    identity: CommunicationIdentity,
+  ): Promise<GmailConfirmationRecord | null> {
+    // Query by the most selective single field (entity id, auto-indexed) then match the rest in memory, so
+    // this needs no composite index. Confirmations per entity are few (one per send attempt).
+    const snapshot = await this.db
+      .collection(GMAIL_STATE_COLLECTIONS.confirmations)
+      .where("workflow_entity_id", "==", identity.entityId)
+      .get();
+    const match = snapshot.docs
+      .map((doc) => doc.data() as GmailConfirmationRecord)
+      .find((record) => isUnresolvedSendForCommunication(record, identity));
+    return match ?? null;
   }
 
   async claimConfirmation(input: {
@@ -800,6 +852,15 @@ export class MemoryGmailStateStore implements GmailStateStore {
 
   async getConfirmation(id: string) {
     return structuredClone(this.confirmations.get(id) ?? null);
+  }
+
+  async findUnresolvedSendForCommunication(identity: CommunicationIdentity) {
+    for (const record of this.confirmations.values()) {
+      if (isUnresolvedSendForCommunication(record, identity)) {
+        return structuredClone(record);
+      }
+    }
+    return null;
   }
 
   async claimConfirmation(input: {

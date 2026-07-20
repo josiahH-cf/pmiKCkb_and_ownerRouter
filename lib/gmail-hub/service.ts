@@ -211,6 +211,50 @@ export class GmailHubService {
     this.assertExecutable(GMAIL_HUB_ACTIONS.reply);
     this.assertContextAction(parsed.context, GMAIL_HUB_ACTIONS.reply);
     this.assertApprovedTemplate(parsed.context);
+    const workflowContextKey = workflowActionContextKey(parsed.context);
+    // Double-send guard: refuse a new send while a PRIOR send for the same COMMUNICATION IDENTITY (this
+    // mailbox + lane + entity + purpose — the identity that binds a reply to its thread) is still
+    // unresolved: state "ambiguous" (Gmail returned no definitive result) or "sending" (a claim whose
+    // outcome was never recorded). Either might already have delivered, so preparing another send risks a
+    // second copy. Keyed on the entity identity, NOT the full context key, because the context key folds in
+    // caller-supplied source refs a re-prepare can vary to slip past the guard. Reconciling the prior send
+    // to a definitive "sent" clears the block.
+    const unresolvedSend =
+      await this.dependencies.store.findUnresolvedSendForCommunication({
+        mailboxEmail: this.mailboxEmail,
+        lane: parsed.context.lane,
+        entityType: parsed.context.entityType,
+        entityId: parsed.context.entityId,
+        purpose: parsed.context.purpose,
+      });
+    if (unresolvedSend) {
+      // Recovery WITHOUT the one-time confirmation token (which lives only in ephemeral client state and is
+      // lost on reload): re-check delivery by the prior send's unique RFC Message-ID. If it DID deliver,
+      // record that so the block resolves, then refuse this send as a duplicate. If delivery still cannot
+      // be confirmed, keep the block — a not_found may be a still-indexing delivery, so we never
+      // auto-conclude "not sent" (that would risk a second copy). The block then clears on its own once
+      // delivery is confirmed, or an administrator clears a confirmation that genuinely never sent.
+      // This delivery re-check is a mailbox READ, so it is gated on the read action like reconcileSend.
+      this.assertExecutable(GMAIL_HUB_ACTIONS.read);
+      const delivered = await this.dependencies.client.findMessageByRfcMessageId(
+        unresolvedSend.message_id,
+      );
+      if (delivered) {
+        await this.dependencies.store.markConfirmationSent({
+          id: unresolvedSend.id,
+          actorUid: unresolvedSend.actor_uid,
+          result: delivered,
+          nowMs: this.now(),
+          reconciled: true,
+        });
+        throw new GmailAmbiguousSendError(
+          "The prior reply for this workflow communication was already delivered. Start again to send a follow-up if that is intended.",
+        );
+      }
+      throw new GmailAmbiguousSendError(
+        "A prior send for this workflow communication has an outcome that could not be confirmed yet. It clears once delivery is confirmed; if it never sent, ask an administrator to clear it.",
+      );
+    }
     const payload = await this.buildOutgoingPayload(parsed.message, parsed.context);
     assertAuthenticatedSender(payload, this.mailboxEmail);
     assertRegistryPreview(GMAIL_HUB_ACTIONS.reply, {
@@ -233,7 +277,7 @@ export class GmailHubService {
       payload_hash: hashGmailPayload(payload),
       message_id: payload.messageId,
       message_kind: parsed.message.kind,
-      workflow_context_key: workflowActionContextKey(parsed.context),
+      workflow_context_key: workflowContextKey,
       workflow_lane: parsed.context.lane,
       workflow_entity_type: parsed.context.entityType,
       workflow_entity_id: parsed.context.entityId,
@@ -350,8 +394,11 @@ export class GmailHubService {
         },
       };
     }
-    if (record.state !== "ambiguous") {
-      throw new GmailHubError("Only an ambiguous send can be reconciled.", 409);
+    // Both "ambiguous" (no definitive Gmail result) and "sending" (a claim whose outcome was never
+    // recorded, e.g. a crash mid-send) are unresolved outcomes that may have delivered — either is
+    // reconcilable by its unique RFC Message-ID, so a stuck "sending" is not a permanent block.
+    if (record.state !== "ambiguous" && record.state !== "sending") {
+      throw new GmailHubError("Only an unresolved send can be reconciled.", 409);
     }
     const result = await this.dependencies.client.findMessageByRfcMessageId(
       record.message_id,
