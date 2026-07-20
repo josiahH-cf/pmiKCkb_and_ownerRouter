@@ -3,6 +3,7 @@ import { MaintenanceCapture } from "@/components/maintenance/MaintenanceCapture"
 import { MaintenanceExecutionReadiness } from "@/components/maintenance/MaintenanceExecutionReadiness";
 import { MaintenanceQueue } from "@/components/maintenance/MaintenanceQueue";
 import { UnverifiedIntakeReview } from "@/components/maintenance/UnverifiedIntakeReview";
+import { can } from "@/lib/auth/roles";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { listUnverifiedIntake } from "@/lib/firestore/maintenance-intake-review";
 import {
@@ -23,8 +24,10 @@ interface MaintenancePageProps {
 export default async function MaintenancePage({ searchParams }: MaintenancePageProps) {
   const focusedTicketId = (await searchParams)?.ticket_id?.trim() || undefined;
   await requirePageSpaceAccess("maintenance");
-  // Capture is editor work (it produces a work-order draft); read-only users don't see it.
-  const user = await requirePageCapability("edit");
+  // LR-04: viewing the desk (the read-only ticket + intake queues) needs only `read`. The editor-only
+  // Capture surface below is gated separately on `edit`, so read-capable users are no longer coupled out
+  // of the whole page by write authority (matching the app-wide read-page / edit-component pattern).
+  const user = await requirePageCapability("read");
 
   // The persisted ticket queue (console overhaul Slice E) + the public-intake triage queue (2d).
   // Read-only + non-fatal: a Firestore hiccup degrades each to a clear note rather than 500-ing the desk.
@@ -69,10 +72,12 @@ export default async function MaintenancePage({ searchParams }: MaintenancePageP
           an explicit, target-labeled, human-confirmed action through its configured
           provider gate.
         </p>
-        <MaintenanceCapture
-          reporterUid={user.uid}
-          photoAction={getMaintenancePhotoActionView()}
-        />
+        {can(user.role, "edit") ? (
+          <MaintenanceCapture
+            reporterUid={user.uid}
+            photoAction={getMaintenancePhotoActionView()}
+          />
+        ) : null}
         <UnverifiedIntakeReview
           initialIntake={intake}
           unavailableNote={intakeUnavailableNote}

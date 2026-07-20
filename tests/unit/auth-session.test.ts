@@ -4,6 +4,7 @@ import {
   AUTH_ABSOLUTE_MAX_AGE_SECONDS,
   AuthError,
   authenticateIdToken,
+  getCurrentUser,
   hasSpaceAccess,
   localDemoSessionValue,
   localDemoUser,
@@ -86,7 +87,7 @@ describe("auth hosted-domain enforcement", () => {
         role: "Admin",
         vendor: true,
       }),
-    ).toThrow(expect.objectContaining({ status: 403 }));
+    ).toThrow(expect.objectContaining({ status: 403, code: "vendor_session" }));
   });
 
   it.each([{ vendor_id: "vendor:drifted" }, { vendor: false }, { data_mode: "test" }])(
@@ -178,6 +179,23 @@ describe("auth guards", () => {
   it("returns 401 when no session is present", async () => {
     setAuthResolverForTest(() => null);
 
+    await expect(requireUser()).rejects.toMatchObject({ status: 401 });
+  });
+
+  it("resolves a well-formed vendor session to null, not a thrown 403 (LR-03)", async () => {
+    // A valid EXTERNAL vendor identity presented to the INTERNAL boundary is not an internal user. The
+    // internal resolver must report "not signed in here" (null) so pages redirect to sign-in, rather than
+    // surfacing a 403 crash — while validateAuthClaims still rejects it (proven above).
+    setAuthResolverForTest(() => ({
+      uid: "vendor-1",
+      email: "vendor-1@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Admin",
+      vendor_id: "vendor:acme",
+    }));
+
+    await expect(getCurrentUser()).resolves.toBeNull();
+    // Guards built on it therefore reject the vendor as unauthenticated (401), never a 403.
     await expect(requireUser()).rejects.toMatchObject({ status: 401 });
   });
 

@@ -39,10 +39,17 @@ interface FirebaseAuthClaims extends AuthClaims {
   auth_time?: unknown;
 }
 
+// A distinguishable AuthError kind. "vendor_session" marks a well-formed EXTERNAL vendor identity
+// presented to the INTERNAL boundary: it is a valid principal on its own boundary, so the internal
+// `getCurrentUser` treats it as "no internal user" (returns null) rather than surfacing a 403 — while
+// the login/session-creation path still rejects it with the 403 status.
+export type AuthErrorCode = "vendor_session";
+
 export class AuthError extends Error {
   constructor(
     message: string,
     public readonly status: 401 | 403,
+    public readonly code?: AuthErrorCode,
   ) {
     super(message);
     this.name = "AuthError";
@@ -103,27 +110,36 @@ export function setSessionCookieCreatorForTest(creator: SessionCookieCreator | n
 }
 
 export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
-  if (testAuthResolver) {
-    const claims = await testAuthResolver();
-    return claims ? validateAuthClaims(claims) : null;
-  }
-
-  const sessionCookie = await getSessionCookie();
-
-  if (!sessionCookie) {
-    return null;
-  }
-
-  const localDemoRole = readLocalDemoSessionRole(sessionCookie);
-
-  if (localDemoRole) {
-    return localDemoUser(localDemoRole);
-  }
-
   try {
+    if (testAuthResolver) {
+      const claims = await testAuthResolver();
+      return claims ? validateAuthClaims(claims) : null;
+    }
+
+    const sessionCookie = await getSessionCookie();
+
+    if (!sessionCookie) {
+      return null;
+    }
+
+    const localDemoRole = readLocalDemoSessionRole(sessionCookie);
+
+    if (localDemoRole) {
+      return localDemoUser(localDemoRole);
+    }
+
     return await authenticateSessionCookie(sessionCookie);
   } catch (error) {
-    if (error instanceof AuthError && error.status === 401) {
+    // LR-03: "no internal user" resolves to null, not a thrown error. That covers an unauthenticated
+    // session (401) AND a well-formed EXTERNAL vendor identity presented to this boundary
+    // ("vendor_session") — a vendor cookie is valid on the vendor boundary, so the internal resolver must
+    // report "not signed in here", never a 403 page. Other AuthErrors (e.g. a disallowed hosted domain)
+    // still propagate. The login/session-creation path does NOT route through here, so it still rejects a
+    // vendor identity with its 403.
+    if (
+      error instanceof AuthError &&
+      (error.status === 401 || error.code === "vendor_session")
+    ) {
       return null;
     }
 
@@ -255,6 +271,7 @@ export function validateAuthClaims(claims: AuthClaims): AuthenticatedUser {
     throw new AuthError(
       "Vendor identities cannot use the internal application session.",
       403,
+      "vendor_session",
     );
   }
 
