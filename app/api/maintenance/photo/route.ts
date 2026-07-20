@@ -11,13 +11,17 @@ import {
   getMaintenancePhotoActionView,
   maintenancePhotoClosedResponse,
 } from "@/lib/maintenance/photo-action";
+import { sniffImageMime } from "@/lib/maintenance/image-mime";
 
 // ~10 MB base64 cap (~7.5 MB image) bounds payload size + storage. Field photos are small.
 const MAX_IMAGE_BASE64 = 10_000_000;
 
 const PhotoRequestSchema = z.object({
   filename: z.string().trim().min(1).max(200),
-  mimeType: z.string().trim().min(1),
+  // Advisory only: the caller's declared type is a hint. The server sniffs the actual bytes below and
+  // stores THAT canonical type, so a wrong or missing client declaration (e.g. a browser that reports an
+  // empty type for a .heic file) can neither mislabel nor block a genuine image.
+  mimeType: z.string().trim().min(1).max(100),
   base64: z.string().min(1).max(MAX_IMAGE_BASE64),
 });
 
@@ -50,10 +54,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid photo upload." }, { status: 400 });
   }
 
+  // LR-01: the stored object's type is decided by the ACTUAL leading bytes, not the caller's declared
+  // type. A payload whose bytes are not one of the allowed images (JPEG/PNG/WebP/HEIC) — HTML, a PDF, a
+  // script — is refused before anything is written; a genuine image is stored under its true detected type
+  // even if the client mis-declared it, so the stored Content-Type always describes the stored bytes.
+  const detectedMimeType = sniffImageMime(parsed.data.base64);
+  if (!detectedMimeType) {
+    return NextResponse.json(
+      { error: "Only image uploads (JPEG, PNG, WebP, or HEIC) are supported." },
+      { status: 400 },
+    );
+  }
+
   try {
     const config = readServerConfig();
     const store = createMaintenanceImageStore(config);
-    const stored = await store.put(parsed.data);
+    const stored = await store.put({ ...parsed.data, mimeType: detectedMimeType });
     return NextResponse.json(stored);
   } catch (error) {
     if (error instanceof ImageStoreSetupError) {
