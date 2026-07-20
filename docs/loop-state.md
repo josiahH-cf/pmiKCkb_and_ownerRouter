@@ -5,7 +5,12 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 
 ## Snapshot
 
-- Last updated: 2026-07-19.
+- Last updated: 2026-07-20.
+- v1 REMEDIATION (2026-07-20): a 65-finding adversarial readiness audit ran; the owner ruled all 22
+  decision-findings (`docs/v1-remediation-decisions-2026-07-20.md`, `F-V1-REMEDIATION-DECISIONS`). Fixing
+  proceeds by gate (Demo, UAT, Real-data with all 5 High, Broader-prod, Post-v1), then a BLIND adversarial
+  re-audit (fresh finders get generic trace instructions and are never told the findings; a separate
+  informed step reconciles), ending in a regenerated process doc. No fix weakens Locked Safety.
 - GO-LIVE (owner grant 2026-07-19, `F-SEND-AUTHORIZED`): the default posture is ship-to-production,
   not preview-only-pending. Opening a built action's `production_allowed` is a routine reviewed change;
   "pending" now means only a genuine named external dependency. The safety invariants below (Locked

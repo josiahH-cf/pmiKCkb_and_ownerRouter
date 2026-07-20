@@ -11,6 +11,23 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## v1 remediation: 65-finding readiness audit + all 22 decisions ruled (2026-07-20)
+
+A comprehensive adversarial v1 readiness audit produced 65 findings (0 Blocker, 5 High, 26 Medium, 34
+Low; all 5 High independently re-verified against the cited code). A remediation plan sequences all 65 by
+gate (Demo, UAT, Real-data, Broader-prod, Post-v1) with a blind adversarial verification design: fresh
+finders re-audit the fixed app with generic "trace this domain" instructions and are never told the
+findings, and a separate informed step reconciles what they surface against the register; the terminal
+state is a regenerated process doc. The owner ruled all 22 decision-findings on 2026-07-20
+(`docs/v1-remediation-decisions-2026-07-20.md`, ledger row `F-V1-REMEDIATION-DECISIONS`). Four change
+durable governance: onboarding grants no space access until an Admin assigns scope (a new unprovisioned
+state; absent scopes stays all-spaces for provisioned users), Editors keep single-operator exact-confirm
+send, `publish` is the one canonical process-activation path (`activate` retired or redirected), and the
+template store becomes the single editable source of message copy via an in-app editor and approval
+lifecycle that composers read from (reconcile with the immutable-artifact model during the build).
+Accepted with no code: Editor send, bulk high-risk approval, last-Admin race as a known limitation, and
+the renewal Sheet staying read-only. Fixing proceeds by gate next.
+
 ## Finalization pass: adversarial spec audit, em-dash purge + copy-voice hardening, gate reconciliation
 
 - Date: 2026-07-19
