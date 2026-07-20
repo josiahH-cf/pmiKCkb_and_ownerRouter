@@ -9,9 +9,12 @@
 // approval sender's Drafts folder and does NOTHING else. It hard-refuses every non-draft operation
 // (send, reply, portal, sms, label), so even if it were wired to the multi-operation LeaseGmailExecutor
 // alongside a send action, no send could occur THROUGH it. `.send` also stays production_allowed:false
-// in the Action Registry; this provider boundary is the second, independent guard. It never calls the
-// Gmail messages/send endpoint and holds no send scope of its own — GmailRuntimeClient.createDraft uses
-// only gmail.compose.
+// in the Action Registry; this provider boundary is the second, independent guard. The draft-only
+// guarantee rests on CONSTRUCTION, not on an absent send scope: gmail.compose is itself send-capable (it
+// can both create AND send drafts). What makes this safe is that the provider only ever calls createDraft
+// and never invokes GmailRuntimeClient.sendMessage or the Gmail messages/send endpoint. An architecture
+// test (tests/unit/lease-renewal-send-boundary.test.ts) enforces that no lease-renewal module imports the
+// concrete send-capable client or calls sendMessage.
 
 import { DRAFT_BANNER } from "@/lib/constants";
 import { ExternalExecutionError } from "@/lib/external-execution/types";

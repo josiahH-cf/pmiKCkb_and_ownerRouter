@@ -9,6 +9,7 @@
 // and sends each channel. Pure and deterministic: no I/O, no Date.now().
 
 import { formatUsd, type DraftFact } from "@/lib/lease-renewal/owner-draft";
+import { formatNoticeDate } from "@/lib/lease-renewal/notice-rules";
 
 export type TenantChannel = "email" | "portal_chat" | "text";
 
@@ -109,7 +110,9 @@ export function buildTenantOfferDraft(input: TenantOfferInput): TenantOfferDraft
   );
   const replacements = {
     tenant_name: input.tenantNameLabel,
-    lease_end_date: input.leaseEndDateIso,
+    // LR-04: the tenant-facing subject/body render a human date ("Aug 31, 2026"), not the raw ISO. The
+    // machine fact above (facts[].value) keeps the ISO for downstream use.
+    lease_end_date: formatNoticeDate(input.leaseEndDateIso),
     offered_rent: offered,
     charges_line: charges ?? "",
     form_ask: formAsk ? `\n${formAsk}` : "",
