@@ -132,7 +132,6 @@ describe("editable Firestore repository", () => {
         editor,
         template.id,
         {
-          approved_by_uid: "approver",
           last_reviewed_at: "2026-05-27T00:00:00.000Z",
           status: "Approved",
         },
@@ -360,6 +359,57 @@ describe("template governance metadata (TMPL-7)", () => {
     await expect(
       updateTemplate(editor, second.id, { name: "first" }, db),
     ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("ignores a client-supplied approved_by_uid and stamps the acting approver", async () => {
+    const db = fakeDb();
+    const template = await createTemplate(
+      editor,
+      "lease-renewals",
+      { name: "Renewal Notice", body: "b" },
+      db,
+    );
+
+    const approved = await updateTemplate(
+      approver,
+      template.id,
+      {
+        last_reviewed_at: "2026-05-27T00:00:00.000Z",
+        status: "Approved",
+        // @ts-expect-error approved_by_uid is server-owned, not a client input; it must be ignored.
+        approved_by_uid: "forged-uid",
+      },
+      db,
+    );
+    expect(approved.approved_by_uid).toBe("approver");
+  });
+
+  it("does not let a non-approver pre-seed a forged approver on a Draft", async () => {
+    const db = fakeDb();
+    const template = await createTemplate(
+      editor,
+      "lease-renewals",
+      { name: "Renewal Notice", body: "b" },
+      db,
+    );
+
+    const stillDraft = await updateTemplate(
+      editor,
+      template.id,
+      // @ts-expect-error approved_by_uid is server-owned; forcing it in must be ignored.
+      { body: "b2", approved_by_uid: "forged-uid" },
+      db,
+    );
+    expect(stillDraft.approved_by_uid).toBeUndefined();
+
+    // A later approval records the ACTUAL approver, never the earlier forged id.
+    const approved = await updateTemplate(
+      approver,
+      template.id,
+      { last_reviewed_at: "2026-05-27T00:00:00.000Z", status: "Approved" },
+      db,
+    );
+    expect(approved.approved_by_uid).toBe("approver");
   });
 });
 

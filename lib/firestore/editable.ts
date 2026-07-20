@@ -231,15 +231,12 @@ export async function createTemplate(
   const id = uuidv7();
   const { note, ...recordInput } = parsedInput;
   // F-TMPL-7: every template has an owner; default to the creator when the caller omits it. When a
-  // template is created directly as Approved, stamp the approver server-side so the client never
-  // supplies its own uid (the client-facing approve flow only sends status + last_reviewed_at).
+  // template is created directly as Approved, stamp the approver server-side (never a client input),
+  // so the approval audit trail cannot be forged.
   const record = {
     ...recordInput,
     owner_uid: recordInput.owner_uid ?? actor.uid,
-    approved_by_uid:
-      recordInput.status === "Approved"
-        ? (recordInput.approved_by_uid ?? actor.uid)
-        : recordInput.approved_by_uid,
+    ...(recordInput.status === "Approved" ? { approved_by_uid: actor.uid } : {}),
   };
   validateTemplateState(record);
 
@@ -282,32 +279,30 @@ export async function updateTemplate(
       snapshot.data(),
       "template",
     );
-    // F-TMPL-7: stamp the approver server-side on the transition to Approved (once), so the client
-    // never supplies its own uid. The stamped field goes into the update payload below to persist.
-    if (
-      updates.status === "Approved" &&
-      !updates.approved_by_uid &&
-      !current.approved_by_uid
-    ) {
-      updates.approved_by_uid = actor.uid;
-    }
-    const next = { ...current, ...updates };
+    // F-TMPL-7 (audit integrity): whenever this update sets status to Approved, stamp the approver to
+    // the acting user server-side. approved_by_uid is not a client input, so it cannot be forged or
+    // pre-seeded onto a Draft; the acting approver is always recorded as the approver.
+    const stampedUpdates =
+      updates.status === "Approved"
+        ? { ...updates, approved_by_uid: actor.uid }
+        : updates;
+    const next = { ...current, ...stampedUpdates };
 
     assertTemplateStatusAllowed(actor, next.status);
     validateTemplateState(next);
     await assertWritableSpace(actor, transaction, db, next.space_id);
-    if (typeof updates.name === "string") {
+    if (typeof stampedUpdates.name === "string") {
       await assertUniqueTemplateName(
         transaction,
         db,
         next.space_id,
-        updates.name,
+        stampedUpdates.name,
         templateId,
       );
     }
 
     transaction.update(ref, {
-      ...updates,
+      ...stampedUpdates,
       updated_at: FieldValue.serverTimestamp(),
     });
     createChangeLog(
@@ -318,7 +313,7 @@ export async function updateTemplate(
       templateId,
       actionFromStatus(current.status, next.status),
       note,
-      diffFor(updates),
+      diffFor(stampedUpdates),
     );
   });
 

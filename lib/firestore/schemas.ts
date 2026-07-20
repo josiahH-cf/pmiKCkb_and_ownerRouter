@@ -103,6 +103,9 @@ export const UpdateSopInputSchema = z.object({
   note: optionalTextSchema,
 });
 
+// F-TMPL-7 (audit integrity): approved_by_uid is NOT a client input. It is stamped server-side to the
+// acting user on the transition to Approved (see editable.ts), so a caller cannot forge who approved a
+// template or pre-seed a forged approver on a Draft.
 export const CreateTemplateInputSchema = z.object({
   name: requiredTextSchema,
   // Optional on input; createTemplate defaults it to the creator's uid (F-TMPL-7).
@@ -110,7 +113,6 @@ export const CreateTemplateInputSchema = z.object({
   audience: AudienceSchema.default("Unknown"),
   channel: ChannelSchema.default("Other"),
   body: requiredTextSchema,
-  approved_by_uid: optionalTextSchema,
   last_reviewed_at: timestampStringSchema.optional(),
   status: TemplateStatusSchema.default("Draft"),
   note: optionalTextSchema,
@@ -122,7 +124,6 @@ export const UpdateTemplateInputSchema = z.object({
   audience: AudienceSchema.optional(),
   channel: ChannelSchema.optional(),
   body: requiredTextSchema.optional(),
-  approved_by_uid: optionalTextSchema,
   last_reviewed_at: timestampStringSchema.optional(),
   status: TemplateStatusSchema.optional(),
   note: optionalTextSchema,
