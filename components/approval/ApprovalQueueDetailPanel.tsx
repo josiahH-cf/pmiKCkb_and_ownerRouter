@@ -21,7 +21,7 @@ interface QueueDetailPanelProps {
   onCancelAction: () => void;
   onStartAction: (mode: QueueActionMode) => void;
   onSubmitAssign: () => void;
-  onSubmitReasonedAction: (action: "approve" | "disable" | "return") => void;
+  onSubmitReasonedAction: (action: "approve" | "deny" | "disable" | "return") => void;
   onSubmitSnooze: () => void;
   reason: string;
   requiredApproverUid: string;
@@ -129,6 +129,15 @@ export function QueueDetailPanel({
               type="button"
             >
               Return
+            </button>
+            <button
+              className="secondary-button compact-button"
+              disabled={busyAction !== null || !actionAvailability?.deny}
+              onClick={() => onStartAction("deny")}
+              title={actionAvailability?.denyReason}
+              type="button"
+            >
+              Deny
             </button>
             <button
               className="secondary-button compact-button"

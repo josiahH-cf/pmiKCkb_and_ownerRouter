@@ -323,6 +323,66 @@ describe("transitionApprovalQueueItem", () => {
     ).rejects.toThrow(/Ready for Approval/);
   });
 
+  it("lets the required approver Deny with a reason, closing the item as Denied (F-APPR-1)", async () => {
+    const item = await createApprovalQueueItem(editor, baseInput(), db);
+    const denied = await transitionApprovalQueueItem(
+      approver,
+      item.id,
+      { action: "deny", reason: "Owner declined the renewal terms." },
+      db,
+    );
+
+    expect(denied.status).toBe("Denied");
+    expect(denied.closed_at).toBeTruthy();
+
+    const activity = await listApprovalQueueActivity(admin, item.id, db);
+    expect(activity.at(-1)).toMatchObject({
+      action: "denied",
+      previous_state: "Ready for Approval",
+      new_state: "Denied",
+      reason: "Owner declined the renewal terms.",
+    });
+  });
+
+  it("requires a reason to Deny (distinct from Return)", async () => {
+    const item = await createApprovalQueueItem(editor, baseInput(), db);
+    await expect(
+      transitionApprovalQueueItem(approver, item.id, { action: "deny" }, db),
+    ).rejects.toThrow(/reason/);
+  });
+
+  it("blocks a non-Admin from denying their own item (same gate as approve)", async () => {
+    const item = await createApprovalQueueItem(
+      admin,
+      baseInput({ assignee_uid: "approver-1" }),
+      db,
+    );
+    await expect(
+      transitionApprovalQueueItem(
+        approver,
+        item.id,
+        { action: "deny", reason: "Not acceptable." },
+        db,
+      ),
+    ).rejects.toThrow(EditableLayerError);
+  });
+
+  it("refuses to Deny a linked execution and points to Disable Action", async () => {
+    const item = await createApprovalQueueItem(
+      editor,
+      baseInput({ action_execution_id: "exec-linked-1" }),
+      db,
+    );
+    await expect(
+      transitionApprovalQueueItem(
+        admin,
+        item.id,
+        { action: "deny", reason: "Reject this execution." },
+        db,
+      ),
+    ).rejects.toThrow(/Disable Action/);
+  });
+
   it("requires a date and reason for Snooze", async () => {
     const item = await createApprovalQueueItem(editor, baseInput(), db);
 

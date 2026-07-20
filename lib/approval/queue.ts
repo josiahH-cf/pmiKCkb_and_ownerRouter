@@ -11,6 +11,7 @@ export const QUEUE_ITEM_STATUSES = [
   "Blocked",
   "Snoozed",
   "Returned",
+  "Denied",
   "Approved",
   "Completed",
   "Cancelled",
@@ -38,6 +39,7 @@ export const QUEUE_TERMINAL_STATUSES = [
   "Completed",
   "Cancelled",
   "Disabled",
+  "Denied",
   "Closed",
 ] as const satisfies readonly QueueItemStatus[];
 
@@ -52,6 +54,10 @@ export interface ApprovalQueueActionAvailability {
   approve: boolean;
   approveReason?: string;
   assign: boolean;
+  /** F-APPR-1: terminal reject, available exactly when approve is (same required-approver gate), but
+   *  only for review items without a linked execution — those keep Admin "Disable Action". */
+  deny: boolean;
+  denyReason?: string;
   disable: boolean;
   returnForRevision: boolean;
   snooze: boolean;
@@ -92,6 +98,8 @@ export function queueActionAvailability(
       approve: false,
       approveReason: "This queue item is already closed.",
       assign: false,
+      deny: false,
+      denyReason: "This queue item is already closed.",
       disable: false,
       returnForRevision: false,
       snooze: false,
@@ -116,10 +124,20 @@ export function queueActionAvailability(
     approveReason = "Only the required approver or an Admin can approve.";
   }
 
+  // F-APPR-1: Deny is symmetric to Approve (same required-approver eligibility), but only for review
+  // items without a linked execution; a linked execution keeps Admin "Disable Action" as its terminal
+  // negative path (denying it here would leave the execution dangling).
+  const deny = approve && !linkedExecutionRequiresAdmin;
+  const denyReason = linkedExecutionRequiresAdmin
+    ? "Use Disable Action to reject a linked execution."
+    : approveReason;
+
   return {
     approve,
     approveReason,
     assign: isAdmin,
+    deny,
+    denyReason,
     disable: isAdmin,
     returnForRevision: true,
     snooze: true,

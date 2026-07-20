@@ -321,7 +321,7 @@ export function ApprovalQueue({
     setRequiredApproverUid(selectedItem?.required_approver_uid ?? "");
   }
 
-  function submitReasonedAction(action: "approve" | "disable" | "return") {
+  function submitReasonedAction(action: "approve" | "deny" | "disable" | "return") {
     const trimmedReason = reason.trim();
 
     if (!trimmedReason) {
@@ -330,7 +330,9 @@ export function ApprovalQueue({
           ? "High-risk approval requires a reason."
           : action === "return"
             ? "Return for Revision requires a reason."
-            : "Disable Action requires a reason.",
+            : action === "deny"
+              ? "Deny requires a reason."
+              : "Disable Action requires a reason.",
       );
       return;
     }

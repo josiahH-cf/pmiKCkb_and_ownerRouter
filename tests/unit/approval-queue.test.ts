@@ -34,6 +34,7 @@ describe("Approval Queue view helpers", () => {
     expect(isQueueAudienceGroup("Dan/Admin decisions")).toBe(true);
     expect(isQueueAudienceGroup("Everyone")).toBe(false);
     expect(isQueueItemTerminal("Approved")).toBe(true);
+    expect(isQueueItemTerminal("Denied")).toBe(true);
     expect(isQueueItemTerminal("Returned")).toBe(false);
   });
 
@@ -99,9 +100,46 @@ describe("Approval Queue view helpers", () => {
     ).toMatchObject({
       approve: false,
       assign: false,
+      deny: false,
       disable: false,
       returnForRevision: false,
       snooze: false,
     });
+  });
+
+  it("offers Deny symmetric to Approve for review items, but withholds it for linked executions and terminal items (F-APPR-1)", () => {
+    // Deny is available exactly when approve is, for a review item.
+    expect(
+      queueActionAvailability({ role: "Approver", uid: "approver-1" }, baseItem),
+    ).toMatchObject({ approve: true, deny: true });
+
+    // The required approver cannot deny their own assigned item (same gate as approve).
+    expect(
+      queueActionAvailability(
+        { role: "Approver", uid: "approver-1" },
+        { ...baseItem, assignee_uid: "approver-1" },
+      ),
+    ).toMatchObject({ approve: false, deny: false });
+
+    // A linked execution keeps Admin "Disable Action" as its negative path: Deny is withheld even for
+    // an Admin who can approve it.
+    expect(
+      queueActionAvailability(
+        { role: "Admin", uid: "admin-1" },
+        { ...baseItem, action_execution_id: "exec-1" },
+      ),
+    ).toMatchObject({
+      approve: true,
+      deny: false,
+      denyReason: "Use Disable Action to reject a linked execution.",
+    });
+
+    // Terminal items offer no Deny.
+    expect(
+      queueActionAvailability(
+        { role: "Admin", uid: "admin-1" },
+        { ...baseItem, status: "Denied" },
+      ),
+    ).toMatchObject({ deny: false });
   });
 });

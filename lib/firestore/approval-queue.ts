@@ -405,6 +405,32 @@ function planTransition(
         reason,
       };
     }
+    case "deny": {
+      // F-APPR-1: terminal reject, symmetric to approve (approve capability + required-approver gate)
+      // but reason-REQUIRED and distinct from Return. Linked executions are excluded — they keep the
+      // Admin "Disable Action" revoke path, so a Denied item never leaves an execution dangling.
+      assertCan(actor, "approve");
+      if (current.action_execution_id) {
+        throw new EditableLayerError(
+          "A linked execution cannot be denied here; use Disable Action.",
+          409,
+        );
+      }
+      if (current.status !== "Ready for Approval") {
+        throw new EditableLayerError(
+          "Only Ready for Approval queue items can be denied.",
+          409,
+        );
+      }
+      const reason = requireReason(input.reason, "Deny");
+      assertCanApprove(actor, current);
+      return {
+        updates: { status: "Denied", closed_at: serverTimestamp() },
+        action: "denied",
+        newState: "Denied",
+        reason,
+      };
+    }
     case "assign": {
       if (!can(actor.role, "manageAdmin")) {
         throw new EditableLayerError(
@@ -954,6 +980,7 @@ function statusRank(status: QueueItemStatus) {
     Completed: 5,
     Cancelled: 6,
     Disabled: 6,
+    Denied: 6,
     Closed: 6,
   };
 

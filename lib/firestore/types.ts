@@ -55,6 +55,8 @@ export type QueueItemStatus =
   | "Blocked"
   | "Snoozed"
   | "Returned"
+  // F-APPR-1: terminal reject by the required approver, reason-required, distinct from Returned.
+  | "Denied"
   | "Approved"
   | "Completed"
   | "Cancelled"
@@ -77,6 +79,7 @@ export type QueueActivityAction =
   | "created"
   | "assigned"
   | "returned"
+  | "denied"
   | "snoozed"
   | "unsnoozed"
   | "blocked"

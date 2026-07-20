@@ -597,8 +597,11 @@ export async function syncProcessDefinitionQueueItemTransition(
 // A process definition waits in "Pending Approval" while its queue item is open. When that
 // item reaches a terminal state without activation, move the definition back to an editable
 // status so it is never stranded: "Returned" carries reviewer feedback (Needs Revision),
-// while Disabled/Closed/Cancelled abandon the change (back to Draft to edit or resubmit).
+// while Denied/Disabled/Closed/Cancelled abandon the change (back to Draft to edit or resubmit).
 // "Approved" is left untouched — the definition stays Pending Approval awaiting activation.
+// F-APPR-1: "Denied" is a terminal reject, so it MUST revert here too — otherwise denying a
+// ProcessDefinitionChange item would strand the definition in Pending Approval (uneditable,
+// un-activatable, and the Denied item can no longer be re-transitioned).
 function definitionStatusForTerminalQueueItem(
   status: ApprovalQueueItemRecord["status"],
 ): ProcessDefinitionStatus | null {
@@ -606,7 +609,12 @@ function definitionStatusForTerminalQueueItem(
     return "Needs Revision";
   }
 
-  if (status === "Disabled" || status === "Closed" || status === "Cancelled") {
+  if (
+    status === "Denied" ||
+    status === "Disabled" ||
+    status === "Closed" ||
+    status === "Cancelled"
+  ) {
     return "Draft";
   }
 

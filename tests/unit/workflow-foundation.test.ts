@@ -202,6 +202,36 @@ describe("workflow foundation repository", () => {
     expect(edited.status).toBe("Draft");
   });
 
+  it("returns a denied process-definition to Draft so it is not stranded (F-APPR-1)", async () => {
+    const definition = await createProcessDefinition(editor, baseDefinitionInput(), db);
+    const submitted = await submitProcessDefinitionForApproval(
+      editor,
+      definition.id,
+      {},
+      db,
+    );
+
+    const denied = await transitionApprovalQueueItemWithWorkflowSync(
+      admin,
+      submitted.pending_queue_item_id!,
+      { action: "deny", reason: "Rejecting this process change." },
+      db,
+    );
+    const reverted = await getProcessDefinition(editor, definition.id, db);
+
+    expect(denied.status).toBe("Denied");
+    // Denied is terminal, so the definition must revert to Draft, not strand in Pending Approval.
+    expect(reverted.status).toBe("Draft");
+
+    const edited = await updateProcessDefinition(
+      editor,
+      definition.id,
+      { name: "Revised after deny" },
+      db,
+    );
+    expect(edited.status).toBe("Draft");
+  });
+
   it("edits Needs Revision definitions and resubmits the same queue item", async () => {
     const definition = await createProcessDefinition(editor, baseDefinitionInput(), db);
     const submitted = await submitProcessDefinitionForApproval(

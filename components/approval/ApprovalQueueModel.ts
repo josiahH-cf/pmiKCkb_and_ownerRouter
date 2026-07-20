@@ -5,7 +5,13 @@ import type {
   ApprovalQueueItemRecord,
 } from "@/lib/firestore/types";
 
-export type QueueActionMode = "approve" | "assign" | "disable" | "return" | "snooze";
+export type QueueActionMode =
+  | "approve"
+  | "assign"
+  | "deny"
+  | "disable"
+  | "return"
+  | "snooze";
 export type BulkActionMode =
   | "approve"
   | "assign"
@@ -228,6 +234,7 @@ export function activityLabel(action: ApprovalQueueActivityRecord["action"]) {
     closed: "Closed",
     comment: "Comment",
     created: "Created",
+    denied: "Denied",
     disabled: "Disabled",
     refreshed: "Refreshed",
     returned: "Returned",

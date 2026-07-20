@@ -198,6 +198,7 @@ export const QueueAudienceGroupSchema = z.enum([
 export const QueueTransitionActionSchema = z.enum([
   "approve",
   "return",
+  "deny",
   "assign",
   "snooze",
   "disable",
