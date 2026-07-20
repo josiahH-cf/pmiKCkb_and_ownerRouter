@@ -22,7 +22,7 @@ type LaunchSop = Pick<
 >;
 type LaunchTemplate = Pick<
   TemplateRecord,
-  "audience" | "body" | "channel" | "id" | "name" | "space_id" | "status"
+  "audience" | "body" | "channel" | "id" | "name" | "owner_uid" | "space_id" | "status"
 >;
 type LaunchPlaceholder = Pick<
   PlaceholderRecord,
@@ -215,6 +215,7 @@ function buildSkeletonSeed(definition: (typeof skeletonDefinitions)[number]) {
         channel: "Internal" as const,
         id: `launch-${definition.id}-template`,
         name: definition.templateName,
+        owner_uid: defaultOwnerUid,
         space_id: definition.id,
         status: "Draft" as const,
       },

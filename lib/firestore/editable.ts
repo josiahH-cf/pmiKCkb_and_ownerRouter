@@ -227,20 +227,32 @@ export async function createTemplate(
   assertCan(actor, "edit");
   const parsedInput = CreateTemplateInputSchema.parse(input);
   assertTemplateStatusAllowed(actor, parsedInput.status);
-  validateTemplateState(parsedInput);
 
   const id = uuidv7();
   const { note, ...recordInput } = parsedInput;
+  // F-TMPL-7: every template has an owner; default to the creator when the caller omits it. When a
+  // template is created directly as Approved, stamp the approver server-side so the client never
+  // supplies its own uid (the client-facing approve flow only sends status + last_reviewed_at).
+  const record = {
+    ...recordInput,
+    owner_uid: recordInput.owner_uid ?? actor.uid,
+    approved_by_uid:
+      recordInput.status === "Approved"
+        ? (recordInput.approved_by_uid ?? actor.uid)
+        : recordInput.approved_by_uid,
+  };
+  validateTemplateState(record);
 
   await db.runTransaction(async (transaction) => {
     await assertWritableSpace(actor, transaction, db, spaceId);
+    await assertUniqueTemplateName(transaction, db, spaceId, record.name);
     const ref = db.collection(COLLECTIONS.templates).doc(id);
     const now = FieldValue.serverTimestamp();
 
     transaction.set(ref, {
       id,
       space_id: spaceId,
-      ...stripUndefined(recordInput),
+      ...stripUndefined(record),
       created_at: now,
       updated_at: now,
     });
@@ -270,11 +282,29 @@ export async function updateTemplate(
       snapshot.data(),
       "template",
     );
+    // F-TMPL-7: stamp the approver server-side on the transition to Approved (once), so the client
+    // never supplies its own uid. The stamped field goes into the update payload below to persist.
+    if (
+      updates.status === "Approved" &&
+      !updates.approved_by_uid &&
+      !current.approved_by_uid
+    ) {
+      updates.approved_by_uid = actor.uid;
+    }
     const next = { ...current, ...updates };
 
     assertTemplateStatusAllowed(actor, next.status);
     validateTemplateState(next);
     await assertWritableSpace(actor, transaction, db, next.space_id);
+    if (typeof updates.name === "string") {
+      await assertUniqueTemplateName(
+        transaction,
+        db,
+        next.space_id,
+        updates.name,
+        templateId,
+      );
+    }
 
     transaction.update(ref, {
       ...updates,
@@ -693,6 +723,35 @@ async function assertUniqueToolName(
   }
 }
 
+// F-TMPL-7: template names must be unique WITHIN a Space (unlike tools, which are global). Scoped by
+// space_id so the same name may exist in different Spaces. Reads inside the transaction before writes.
+async function assertUniqueTemplateName(
+  transaction: Transaction,
+  db: Firestore,
+  spaceId: string,
+  name: string,
+  exceptTemplateId?: string,
+) {
+  const snapshot = await transaction.get(db.collection(COLLECTIONS.templates));
+  const normalizedName = normalizeName(name);
+  const duplicate = snapshot.docs
+    .map((doc) => readRecord<TemplateRecord>(doc.id, doc.data()))
+    .find(
+      (template) =>
+        template.id !== exceptTemplateId &&
+        template.space_id === spaceId &&
+        isActiveRecord(template) &&
+        normalizeName(template.name) === normalizedName,
+    );
+
+  if (duplicate) {
+    throw new EditableLayerError(
+      "An active template with this name already exists in this Space.",
+      409,
+    );
+  }
+}
+
 function assertSopStatusAllowed(actor: AuthenticatedUser, status?: unknown) {
   if (status === "Approved" && !can(actor.role, "approve")) {
     throw new EditableLayerError("Editor role cannot approve SOPs.", 403);
@@ -729,6 +788,7 @@ function validateSopState(
 
 function validateTemplateState(
   template: Pick<TemplateRecord, "body" | "name" | "status"> & {
+    owner_uid?: string;
     approved_by_uid?: string;
     last_reviewed_at?: string;
   },
@@ -737,11 +797,12 @@ function validateTemplateState(
     template.status === "Approved" &&
     (!template.name ||
       !template.body ||
+      !template.owner_uid ||
       !template.approved_by_uid ||
       !template.last_reviewed_at)
   ) {
     throw new EditableLayerError(
-      "Approved templates require name, body, approved_by_uid, and last_reviewed_at.",
+      "Approved templates require name, body, owner, approved_by_uid, and last_reviewed_at.",
       400,
     );
   }

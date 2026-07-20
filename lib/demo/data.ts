@@ -17,7 +17,7 @@ type DemoSop = Pick<
 };
 type DemoTemplate = Pick<
   TemplateRecord,
-  "audience" | "body" | "channel" | "id" | "name" | "status" | "updated_at"
+  "audience" | "body" | "channel" | "id" | "name" | "owner_uid" | "status" | "updated_at"
 > & {
   space_id: string;
 };
@@ -124,6 +124,7 @@ export const demoWorkflows: readonly DemoWorkflow[] = [
         channel: "Gmail",
         id: "demo-owner-renewal-follow-up",
         name: "Owner Renewal Follow-Up",
+        owner_uid: "local-demo-admin",
         space_id: "lease-renewals",
         status: "In Review",
         updated_at: "2026-05-28T00:00:00.000Z",
@@ -227,6 +228,7 @@ export const demoWorkflows: readonly DemoWorkflow[] = [
         channel: "RentVine",
         id: "demo-maintenance-photo-request",
         name: "Maintenance Photo Request",
+        owner_uid: "local-demo-admin",
         space_id: "maintenance-work-order-intake",
         status: "In Review",
         updated_at: "2026-05-28T00:00:00.000Z",
@@ -288,6 +290,7 @@ export const demoWorkflows: readonly DemoWorkflow[] = [
         channel: "Gmail",
         id: "demo-move-out-owner-update",
         name: "Move-Out Owner Update",
+        owner_uid: "local-demo-admin",
         space_id: "move-out-deposit-disposition",
         status: "In Review",
         updated_at: "2026-05-28T00:00:00.000Z",
@@ -349,6 +352,7 @@ export const demoWorkflows: readonly DemoWorkflow[] = [
         channel: "Gmail",
         id: "demo-owner-onboarding-follow-up",
         name: "Owner Onboarding Follow-Up",
+        owner_uid: "local-demo-admin",
         space_id: "owner-onboarding",
         status: "In Review",
         updated_at: "2026-05-28T00:00:00.000Z",

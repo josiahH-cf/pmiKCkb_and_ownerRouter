@@ -249,6 +249,9 @@ export interface TemplateRecord {
   id: string;
   space_id: string;
   name: string;
+  // F-TMPL-7: templates carry an owner for accountability, matching SopRecord. Defaulted to the
+  // creator when not supplied; required once a template is Approved.
+  owner_uid: string;
   audience: Audience;
   channel: Channel;
   body: string;

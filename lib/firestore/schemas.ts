@@ -105,6 +105,8 @@ export const UpdateSopInputSchema = z.object({
 
 export const CreateTemplateInputSchema = z.object({
   name: requiredTextSchema,
+  // Optional on input; createTemplate defaults it to the creator's uid (F-TMPL-7).
+  owner_uid: requiredTextSchema.optional(),
   audience: AudienceSchema.default("Unknown"),
   channel: ChannelSchema.default("Other"),
   body: requiredTextSchema,
@@ -116,6 +118,7 @@ export const CreateTemplateInputSchema = z.object({
 
 export const UpdateTemplateInputSchema = z.object({
   name: requiredTextSchema.optional(),
+  owner_uid: requiredTextSchema.optional(),
   audience: AudienceSchema.optional(),
   channel: ChannelSchema.optional(),
   body: requiredTextSchema.optional(),

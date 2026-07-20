@@ -282,6 +282,87 @@ describe("editable layer space-scope enforcement (SPACE-1/TMPL-4)", () => {
   });
 });
 
+describe("template governance metadata (TMPL-7)", () => {
+  it("defaults owner_uid to the creator and stamps the approver server-side", async () => {
+    const db = fakeDb();
+    const template = await createTemplate(
+      editor,
+      "lease-renewals",
+      {
+        name: "Owner Renewal Follow-Up",
+        body: "Approved wording.",
+        audience: "Owner",
+        channel: "Gmail",
+      },
+      db,
+    );
+    expect(template.owner_uid).toBe("editor");
+    expect(template.approved_by_uid).toBeUndefined();
+
+    // The approve flow only sends status + last_reviewed_at; the approver uid is stamped by the server.
+    const approved = await updateTemplate(
+      approver,
+      template.id,
+      { status: "Approved", last_reviewed_at: "2026-05-27T00:00:00.000Z" },
+      db,
+    );
+    expect(approved).toMatchObject({
+      status: "Approved",
+      approved_by_uid: "approver",
+      owner_uid: "editor",
+    });
+  });
+
+  it("rejects a duplicate active template name within the same Space (case-insensitively)", async () => {
+    const db = fakeDb();
+    await createTemplate(
+      editor,
+      "lease-renewals",
+      { name: "Renewal Notice", body: "b" },
+      db,
+    );
+    await expect(
+      createTemplate(
+        editor,
+        "lease-renewals",
+        { name: "renewal notice", body: "b2" },
+        db,
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("allows the same template name in different Spaces", async () => {
+    const db = fakeDb();
+    await createTemplate(
+      editor,
+      "lease-renewals",
+      { name: "Shared Name", body: "b" },
+      db,
+    );
+    const other = await createTemplate(
+      editor,
+      "move-in",
+      { name: "Shared Name", body: "b" },
+      db,
+    );
+    expect(other).toMatchObject({ name: "Shared Name", space_id: "move-in" });
+  });
+
+  it("rejects renaming a template onto an existing active name in its Space", async () => {
+    const db = fakeDb();
+    await createTemplate(editor, "lease-renewals", { name: "First", body: "b" }, db);
+    const second = await createTemplate(
+      editor,
+      "lease-renewals",
+      { name: "Second", body: "b" },
+      db,
+    );
+    await expect(
+      updateTemplate(editor, second.id, { name: "first" }, db),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+});
+
 function fakeDb() {
   return new FakeFirestore() as unknown as Firestore;
 }
