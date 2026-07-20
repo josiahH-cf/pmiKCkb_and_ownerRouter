@@ -135,6 +135,34 @@ describe("loadNotificationHub — Admin-only review digest (AC-S17-6)", () => {
     expect(mocks.listAllWritebackApprovals).not.toHaveBeenCalled();
   });
 
+  it("counts the TRUE unread total across the full set, not a per-source preview cap (LR-01)", async () => {
+    // 30 unread approvals for the caller — more than the readers' default 25-row preview cap. The hub must
+    // read the sources UNCAPPED for the count, so unreadTotal reflects all 30 while the preview stays small.
+    const unread = Array.from({ length: 30 }, (_, index) => ({
+      id: `a-${index}`,
+      item_id: `item-${index}`,
+      title: `Approval ${index}`,
+      message: "Review the requested approval action.",
+      created_at: `2026-07-09T00:${String(index).padStart(2, "0")}:00.000Z`,
+    }));
+    mocks.listApprovalQueueNotifications.mockResolvedValue(unread);
+    mocks.listMaintenanceTicketNotifications.mockResolvedValue([]);
+    mocks.listGmailWorkflowNotifications.mockResolvedValue([]);
+    mocks.getNotificationPreferences.mockResolvedValue(prefs());
+
+    const feed = await loadNotificationHub(admin, { unreadOnly: true, limit: 8 });
+
+    // The badge total is the true count (30), decoupled from the 8-row preview list.
+    expect(feed.unreadTotal).toBe(30);
+    expect(feed.notifications).toHaveLength(8);
+    // The fix: the reader is asked for the uncapped set, so nothing truncates the count upstream of
+    // buildNotificationFeed (which previously capped it at the reader's 25-row default).
+    expect(mocks.listApprovalQueueNotifications).toHaveBeenCalledWith(
+      admin,
+      expect.objectContaining({ limit: Number.MAX_SAFE_INTEGER }),
+    );
+  });
+
   it("skips the review digest + standing reads for the lightweight bell (no full)", async () => {
     seedReviewData();
     const feed = await loadNotificationHub(admin, { full: false });

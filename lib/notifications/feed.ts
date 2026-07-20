@@ -60,7 +60,10 @@ export interface NotificationFeed {
   /**
    * NOTIF/LR-01: the uncapped count of UNREAD event rows that survive mute / low-alarm / digest,
    * computed BEFORE the preview `limit` slice. The bell badge and tab title read this so they report
-   * the true unread count instead of maxing out at the (e.g. 8-row) preview list length.
+   * the true unread count instead of maxing out at the (e.g. 8-row) preview list length. NOTE: this is
+   * only as complete as the input arrays — the caller MUST supply the full unread set (not a per-source
+   * preview page), or this count inherits that upstream cap. `loadNotificationHub` reads the sources
+   * uncapped for exactly this reason.
    */
   unreadTotal: number;
   /** B2 standing setup signals surviving mute / threshold / snooze. */

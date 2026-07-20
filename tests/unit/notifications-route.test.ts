@@ -198,15 +198,19 @@ describe("notifications routes", () => {
     expect(response.status).toBe(200);
 
     // unread_only=true is forwarded to BOTH readers. The approval reader relies on the recipient-only
-    // DEFAULT (LR-02) — the route passes no cross-recipient opt-in.
+    // DEFAULT (LR-02) — the route passes no cross-recipient opt-in. Each source is read UNCAPPED (LR-01)
+    // so the unread total is exact and never truncated by a per-source preview cap.
     expect(listApprovalQueueNotifications).toHaveBeenCalledWith(editor, {
       unreadOnly: true,
+      limit: Number.MAX_SAFE_INTEGER,
     });
     expect(listMaintenanceTicketNotifications).toHaveBeenCalledWith(editor, {
       unreadOnly: true,
+      limit: Number.MAX_SAFE_INTEGER,
     });
     expect(listGmailWorkflowNotifications).toHaveBeenCalledWith(editor, {
       unreadOnly: true,
+      limit: Number.MAX_SAFE_INTEGER,
     });
 
     // limit=1 reaches the (real) feed builder: two eligible notifications slice to the newest one.

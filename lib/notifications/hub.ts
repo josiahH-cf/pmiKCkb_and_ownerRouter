@@ -42,6 +42,13 @@ export interface LoadNotificationHubOptions {
   now?: string;
 }
 
+// LR-01: the badge / tab-title unread TOTAL must be the true count, so the count-bearing source reads must
+// not be truncated by each reader's small default preview cap (25). The readers already `.get()` the whole
+// collection and filter in memory — the cap only trims the RETURNED array, and each set is bounded to the
+// caller's OWN notifications — so requesting them uncapped is correct and adds no extra reads. The preview
+// list is trimmed once, downstream, by `buildNotificationFeed`'s own `limit`.
+const NOTIFICATION_SOURCE_SCAN_LIMIT = Number.MAX_SAFE_INTEGER;
+
 export async function loadNotificationHub(
   user: AuthenticatedUser,
   options: LoadNotificationHubOptions = {},
@@ -60,13 +67,23 @@ export async function loadNotificationHub(
       // F-NOTIF-3: approval-queue notifications are personal, so a recipient always sees their OWN ones
       // regardless of space scope — an assignee/approver who lacks renewals scope must never be
       // dead-ended out of their own action items. Recipient-only is the reader default (LR-02); this
-      // path deliberately does NOT opt into the Admin cross-recipient view.
-      listApprovalQueueNotifications(user, { unreadOnly }),
+      // path deliberately does NOT opt into the Admin cross-recipient view. Uncapped (LR-01) so the
+      // unread TOTAL is exact.
+      listApprovalQueueNotifications(user, {
+        unreadOnly,
+        limit: NOTIFICATION_SOURCE_SCAN_LIMIT,
+      }),
       canReadMaintenance
-        ? listMaintenanceTicketNotifications(user, { unreadOnly })
+        ? listMaintenanceTicketNotifications(user, {
+            unreadOnly,
+            limit: NOTIFICATION_SOURCE_SCAN_LIMIT,
+          })
         : Promise.resolve([]),
       canReadRenewals || canReadMaintenance
-        ? listGmailWorkflowNotifications(user, { unreadOnly })
+        ? listGmailWorkflowNotifications(user, {
+            unreadOnly,
+            limit: NOTIFICATION_SOURCE_SCAN_LIMIT,
+          })
         : Promise.resolve([]),
       full ? resolveCoverageState(user) : Promise.resolve(null),
       full && canReadRenewals
