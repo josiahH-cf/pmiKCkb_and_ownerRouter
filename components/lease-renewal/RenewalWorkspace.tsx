@@ -18,7 +18,6 @@ import {
 } from "@/components/ui";
 import { PrepareOwnerEmailButton } from "@/components/lease-renewal/PrepareOwnerEmailButton";
 import { PrepareTenantEmailButton } from "@/components/lease-renewal/PrepareTenantEmailButton";
-import { RenewalNoticeDraftComposer } from "@/components/lease-renewal/RenewalNoticeDraftComposer";
 import { DRAFT_BANNER } from "@/lib/constants";
 import type { ReadinessStatus } from "@/lib/lease-renewal/renewal-readiness";
 import type { RenewalLeaseWorkspace } from "@/lib/lease-renewal/sample-desk";
@@ -153,7 +152,15 @@ export function RenewalWorkspace({
         )}
       </Card>
 
-      <RenewalNoticeDraftComposer leaseId={summary.id} />
+      {/* FTU/LEASE-2: this is the sample workspace, so the live-draft composer (which resolves a real
+          RentVine lease by id) can never succeed here. Point operators to the live notices desk, where
+          drafts are built from real leases, instead of showing a control that always fails. */}
+      <Card title="Renewal-notice draft">
+        <EmptyState
+          description="Renewal-notice Gmail drafts are built from real RentVine leases on the live notices desk, not from this sample workspace."
+          title="Create renewal drafts on the live notices desk"
+        />
+      </Card>
 
       <Card title="Build docs readiness">
         <p className="muted">

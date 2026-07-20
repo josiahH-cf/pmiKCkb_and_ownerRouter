@@ -20,7 +20,7 @@ export function ConnectionCenter({
     <div className="ui-stack">
       <PageHeader
         actions={<ModeChip>Read-only checks</ModeChip>}
-        subtitle="Connect the systems the app reads from. The app stores the credentials and checks each connection."
+        subtitle="Connect the systems the app reads from and acts through under governance. The app stores the credentials and checks each connection."
         title="Connections"
       />
 

@@ -52,7 +52,7 @@ export const launchSpaces: readonly LaunchSpace[] = [
   },
   {
     id: "daily-inbox-triage",
-    name: "Daily Workflow Communication Review",
+    name: "Daily Inbox Triage",
     processCategory: "Communications",
   },
   { id: "fathom-training", name: "Fathom Training", processCategory: "Training" },

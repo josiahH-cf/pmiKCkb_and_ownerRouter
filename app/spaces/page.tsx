@@ -24,14 +24,16 @@ export default async function SpacesPage() {
   );
 
   // Real card state (A-IA-V2): reflect whether each Space has its process and connections. Both reads
-  // are read-only and degrade gracefully — if Firestore is unavailable the cards fall back to
-  // "needs-a-process" rather than 500-ing the directory.
+  // are read-only and degrade gracefully. FTU-4: if the definition read fails, mark it unavailable so
+  // process-carrying cards read neutral "status unavailable" rather than a red "needs a process" wall.
   let definitionIds = new Set<string>();
+  let definitionsUnavailable = false;
   try {
     const definitions = await listProcessDefinitions(user);
     definitionIds = new Set(definitions.map((definition) => definition.id));
   } catch {
     definitionIds = new Set();
+    definitionsUnavailable = true;
   }
   const presence = readConnectorPresence();
 
@@ -51,7 +53,12 @@ export default async function SpacesPage() {
         <h1 className="section-title">Spaces</h1>
         <div className="grid three">
           {visibleSpaces.map((space) => {
-            const state = computeSpaceCardState(space, definitionIds, presence);
+            const state = computeSpaceCardState(
+              space,
+              definitionIds,
+              presence,
+              definitionsUnavailable,
+            );
             const waiting = waitingBySpace[space.id] ?? 0;
             return (
               // The whole card is clickable (A-IA-V2), so the card has no nested interactive elements.

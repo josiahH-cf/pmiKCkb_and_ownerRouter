@@ -36,7 +36,7 @@ export default async function MaintenancePage({ searchParams }: MaintenancePageP
     testReceipts = await listMaintenanceTestActionReceipts(user);
   } catch {
     unavailableNote =
-      "The ticket queue is unavailable in this session. Refresh Google credentials (npm run auth:session) or check the Firestore setup, then reload.";
+      "The ticket queue isn't available right now. Try reloading in a minute; if it keeps happening, let your administrator know.";
   }
 
   let intake: UnverifiedIntakeRecord[] = [];
@@ -45,7 +45,7 @@ export default async function MaintenancePage({ searchParams }: MaintenancePageP
     intake = await listUnverifiedIntake(user);
   } catch {
     intakeUnavailableNote =
-      "The unverified-intake queue is unavailable in this session. Refresh Google credentials (npm run auth:session) or check the Firestore setup, then reload.";
+      "The new-request queue isn't available right now. Try reloading in a minute; if it keeps happening, let your administrator know.";
   }
 
   // The assignable-user roster for the per-ticket picker (edit-gated; demo-aware). Non-fatal: if the

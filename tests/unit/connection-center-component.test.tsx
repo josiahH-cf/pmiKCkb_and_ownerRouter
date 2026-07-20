@@ -60,7 +60,7 @@ describe("ConnectionCenter", () => {
     expect(document.body.textContent).not.toMatch(/PMI handles/i);
     expect(document.body.textContent).not.toMatch(/PMI stores/i);
     expect(document.body.textContent).toContain(
-      "Connect the systems the app reads from.",
+      "Connect the systems the app reads from and acts through under governance.",
     );
   });
 

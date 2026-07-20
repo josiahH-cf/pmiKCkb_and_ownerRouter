@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PmiWordmark } from "@/components/brand/PmiWordmark";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { NotificationMenu } from "@/components/layout/NotificationMenu";
+import { PrimaryNav, type PrimaryNavItem } from "@/components/layout/PrimaryNav";
 import { ReleaseStageBanner } from "@/components/layout/ReleaseStageBanner";
 import { ReportIssueButton } from "@/components/feedback/ReportIssueButton";
 import { SessionTimeout } from "@/components/layout/SessionTimeout";
@@ -12,9 +13,15 @@ import { PMI_WORDMARK, PRODUCT_NAME, type SpaceScope } from "@/lib/constants";
 // Processes is no longer a standalone nav tab (A-IA-V2): each process is surfaced alongside its Space
 // (Spaces ⊇ Processes). The /processes routes + the process-definition engine are preserved and still
 // deep-linked (e.g. from the Renewal Desk and each Space's Process sub-tab).
-const navItems: readonly { href: string; label: string; scope?: SpaceScope }[] = [
-  { href: "/ask", label: "Console" },
+//
+// FTU-7: the built operator desks (Lease Renewal, Maintenance) are surfaced directly in the nav,
+// scope-filtered, so a single-scope user reaches their daily work in one click instead of via Spaces.
+// FTU-8: the Console entry also reads active on the home route "/" (both render the ConsoleView).
+const navItems: readonly (PrimaryNavItem & { scope?: SpaceScope })[] = [
+  { href: "/ask", label: "Console", alsoActiveOn: ["/"] },
   { href: "/spaces", label: "Spaces" },
+  { href: "/lease-renewal", label: "Lease Renewal", scope: "renewals" },
+  { href: "/maintenance", label: "Maintenance", scope: "maintenance" },
   { href: "/approval-queue", label: "Approval Queue", scope: "renewals" },
   { href: "/gmail-hub", label: "Communications" },
 ];
@@ -35,18 +42,18 @@ export function AppShell({
           <PmiWordmark variant="inline" />
         </Link>
         <nav className="nav" aria-label="Primary">
-          {navItems
-            .filter(
-              (item) => item.scope === undefined || hasSpaceAccess(user, item.scope),
-            )
-            .map((item) => (
-              <Link href={item.href} key={item.href}>
-                {item.label}
-              </Link>
-            ))}
-          {/* Every role sees connection status read-only (S13 D5); Admins manage from the same page. */}
-          <Link href="/connections">Connections</Link>
-          {can(user.role, "manageAdmin") ? <Link href="/admin">Admin</Link> : null}
+          <PrimaryNav
+            items={[
+              ...navItems.filter(
+                (item) => item.scope === undefined || hasSpaceAccess(user, item.scope),
+              ),
+              // Every role sees connection status read-only (S13 D5); Admins manage from the same page.
+              { href: "/connections", label: "Connections" },
+              ...(can(user.role, "manageAdmin")
+                ? [{ href: "/admin", label: "Admin" }]
+                : []),
+            ]}
+          />
           <NotificationMenu />
           <span className="user-role">{user.role}</span>
           <SignOutButton />

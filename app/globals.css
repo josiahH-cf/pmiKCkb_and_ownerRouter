@@ -50,6 +50,14 @@ button {
   outline-color: var(--pmi-orange-bright);
 }
 
+/* FTU-2: the active top-nav item is marked with aria-current and reads bold + underlined so a user
+   always knows where they are. Emphasis only, so it composes with the base nav link color. */
+.nav a[aria-current="page"] {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 .page {
   min-height: 100vh;
 }
@@ -231,6 +239,13 @@ button {
 .space-card-state-pill[data-tone="reference"] {
   background: #f3effc;
   border-color: var(--state-reference);
+}
+
+/* FTU-4: neutral "planned" tone for intentionally unbuilt launch-planning spaces and for a transient
+   status-read failure, so neither reads as a red "blocked" failure. */
+.space-card-state-pill[data-tone="planned"] {
+  background: #f4f5f7;
+  border-color: var(--color-border);
 }
 
 /* Value-free "N waiting on you" interlock pill (S13 B5) — attention-colored so real work reads as

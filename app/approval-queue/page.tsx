@@ -57,7 +57,7 @@ export default async function ApprovalQueuePage({
     }
   } catch {
     initialError =
-      "Approval Queue is unavailable. Refresh Google credentials or check Firestore setup.";
+      "The Approval Queue isn't available right now. Try reloading in a minute; if it keeps happening, let your administrator know.";
   }
 
   // The renewal review sub-tab (OQ-UI-1) + the cross-run write-back queue (F-WRITEBACK-QUEUE) are

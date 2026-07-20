@@ -211,8 +211,11 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
     <section className="content console">
       <h1 className="section-title">Console</h1>
       {/* CON-1 (Note 2 §E): the Ask-a-Question portal leads the Console as its primary action.
-          SEU-2 (§A.1): the explanatory intro paragraph is removed — the titled Ask box, decks,
-          process strip, and Live-operations badge make the surface self-descriptive. */}
+          FTU-1/FTU-6: a single plain-language purpose line orients a first-time user without
+          bringing back the old multi-line intro. */}
+      <p className="muted console-purpose">
+        Ask about a property, lease, or process, then hand the work to the right place.
+      </p>
       <AskForm canStartSimulation={canStartSimulation} processes={processes} />
       {/* Decks stay on the Console (owner decision D-3: keep here AND mirror in Notifications). */}
       <ConsoleActionDeck canApprove={canApprove} cards={cards} />

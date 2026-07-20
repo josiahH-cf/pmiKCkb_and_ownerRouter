@@ -70,9 +70,17 @@ describe("computeSpaceCardState", () => {
     );
   });
 
-  it("returns needs-a-process for an unmapped scaffold Space (never mislabeled connections-needed)", () => {
+  it("returns planned for an unmapped scaffold Space (no process id; never a red failure)", () => {
+    // FTU-4: a launch-planning scaffold with no process id reads neutral "planned", not red "blocked".
     expect(computeSpaceCardState(ownerOnboarding, new Set(), NONE_PRESENT)).toBe(
-      "needs-a-process",
+      "planned",
+    );
+  });
+
+  it("returns status-unavailable for a process-carrying Space when the definition read failed", () => {
+    // FTU-4: a transient read failure must not falsely claim a configured Space is missing its process.
+    expect(computeSpaceCardState(leaseRenewals, new Set(), ALL_PRESENT, true)).toBe(
+      "status-unavailable",
     );
   });
 

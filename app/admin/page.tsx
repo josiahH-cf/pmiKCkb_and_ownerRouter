@@ -65,7 +65,7 @@ export default async function AdminPage() {
   } catch {
     queueAdminNote = config.askDemoMode
       ? "Using default queue email settings because Firestore notification health is not available in this session."
-      : "Approval Queue notification health is unavailable. Refresh Google credentials or check Firestore setup before relying on notification status.";
+      : "Notification health isn't available right now. Try again in a minute before relying on notification status.";
   }
   try {
     transactionalDestination = await readOwnerTransactionalDestination(user);
