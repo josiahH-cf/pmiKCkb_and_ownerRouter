@@ -5,20 +5,17 @@ import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
 import { composeAnticipatoryReplyDraft } from "@/lib/gmail-inbox-zero/anticipatory-draft";
-import { GMAIL_RULE_STATUSES } from "@/lib/gmail-inbox-zero/constants";
 import { inspectGmailDraftSafety } from "@/lib/gmail-inbox-zero/draft-safety";
+import { resolveReplyTemplate } from "@/lib/gmail-inbox-zero/template-store";
 import {
   AnswerGenerationSetupError,
   createModelProvider,
 } from "@/lib/llm/model-provider";
 
+// F-TMPL-3: the client sends only a template_id. The body + status are resolved server-side from the
+// approved store (or the server-defined sample patterns), never trusted from the request.
 const AnticipatoryDraftInputSchema = z.object({
-  template: z.object({
-    id: z.string().trim().min(1),
-    name: z.string().trim().min(1),
-    body: z.string().trim().min(1),
-    status: z.enum(GMAIL_RULE_STATUSES),
-  }),
+  template_id: z.string().trim().min(1),
   message: z.object({
     sender: z.string().trim().min(1),
     subject: z.string().trim().min(1),
@@ -36,7 +33,7 @@ const AnticipatoryDraftInputSchema = z.object({
 // imports no @/lib/gmail-runtime/*; the ceiling is a review-before-send draft a human sends. Edit-gated.
 export async function POST(request: Request) {
   try {
-    await requireCapability("edit");
+    const user = await requireCapability("edit");
     const input = await parseJsonBody(request, AnticipatoryDraftInputSchema);
 
     // Client category text is untrusted. Refuse unknown/excluded category aliases or excluded intent
@@ -55,13 +52,28 @@ export async function POST(request: Request) {
       });
     }
 
+    // F-TMPL-3: resolve the template server-side by id. An unknown id refuses BEFORE the model, the
+    // same shape as a spine refusal; a stored non-Approved template resolves to Proposed and the spine
+    // then refuses it — either way the client cannot influence the drafted prose or its approval state.
+    const template = await resolveReplyTemplate(user, input.template_id);
+    if (!template) {
+      return NextResponse.json({
+        ok: false,
+        usedModel: false,
+        refusedBeforeModel: true,
+        errors: [
+          `Reply template "${input.template_id}" was not found among approved patterns.`,
+        ],
+      });
+    }
+
     const config = readServerConfig();
     const provider = createModelProvider(config);
     const model =
       config.modelProvider === "local" ? config.localModelName : config.geminiAnswerModel;
 
     const result = await composeAnticipatoryReplyDraft({
-      template: input.template,
+      template,
       message: { ...input.message, category: safety.categoryId },
       missingFacts: input.missingFacts,
       category: safety.categoryId,

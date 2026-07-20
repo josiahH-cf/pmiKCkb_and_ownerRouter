@@ -56,7 +56,8 @@ export function AnticipatoryDraftComposer({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          template,
+          // F-TMPL-3: send only the id; the route resolves the body + status from the approved store.
+          template_id: template.id,
           message: {
             sender,
             subject,
