@@ -44,6 +44,11 @@ two disagree, this status log wins and `docs/loop-state.md` is corrected.
   was clean; tightened one "Reach out" in the tenant welcome note. Purged all 60 operator-UI em dashes,
   promoted `verify:copy-voice` to hard-fail operator-UI em dashes, and added it to `scripts/verify.sh`
   (durable regression lock). Full suite green (2,433 tests); typecheck, format, and copy-voice clean.
+- Redeploy (part 5): deployed `main@ead5da5` to Cloud Run `pmi-kc-kb-demo` on `pmi-kc-kb-prod` via
+  `npm run deploy:demo -- --budget-confirmed` (ran non-interactively; the session CLI login was fresh
+  from `auth:session`). New revision `pmi-kc-kb-demo-rmrsg73yg-2bb353f9e7dc` serves 100%; rollback
+  target is the prior `pmi-kc-kb-demo-rmrrv992z-a2cc59bb11db` (served `c87f54d`). HTTP-verified: unauth
+  `/`→307, `/sign-in`→200, `/admin`→307, `/api/ask` GET→405 (POST-only route).
 
 ## Go-live: F-SEND-AUTHORIZED posture + renewal-draft gate deployed to production
 

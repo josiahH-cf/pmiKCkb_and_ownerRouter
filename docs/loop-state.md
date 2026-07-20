@@ -13,14 +13,14 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
 - The validated audit-remediation implementation was integrated through protected PR #76, the
   Vendor-handoff regression repair through PR #77, and the Approval route-selection repair through
   PR #79 as product commit `f6d5ddbce8b250b64df3bc58c81398f09e33b869`.
-- Product commit `c87f54d` is serving at 100% on Cloud Run revision
-  `pmi-kc-kb-demo-rmrrv992z-a2cc59bb11db`, image digest
-  `sha256:6d373fd726c1386b9d6282d6ece391d90b5316dac4e80029ae57025f1be24d54` (owner-approved
-  `--budget-confirmed` deploy 2026-07-19). It carries the F-SEND-AUTHORIZED go-live posture and the
-  activated `gmail.renewal_notice.draft_create` gate. Live-verified over HTTP: unauth `/`→307
-  `/sign-in`, `/sign-in`→200, `/api/ask`→401, `/admin`→307. The retained rollback revision is the prior
-  `pmi-kc-kb-demo-rmrqntfvs-4ebadb1e34a5`.
-- `main` (`b8c6963`) is AHEAD of the serving image by the complete live renewal-notice draft feature:
+- Product commit `ead5da5` (main) is serving at 100% on Cloud Run revision
+  `pmi-kc-kb-demo-rmrsg73yg-2bb353f9e7dc` (owner-authorized `--budget-confirmed` deploy 2026-07-19,
+  run non-interactively while the session CLI login was fresh). It carries the F-SEND-AUTHORIZED
+  go-live posture, the activated `gmail.renewal_notice.draft_create` gate, the complete live
+  renewal-notice draft feature, and the finalization pass (below). Live-verified over HTTP: unauth
+  `/`→307 `/sign-in`, `/sign-in`→200, `/admin`→307, `/api/ask` GET→405 (POST-only route). The retained
+  rollback revision is the prior `pmi-kc-kb-demo-rmrrv992z-a2cc59bb11db` (served `c87f54d`).
+- The live renewal-notice draft feature now deployed in `ead5da5` (built as `b8c6963`):
   the library core (Slices A/B/C + hardening: `LiveRenewalGmailDraftProvider`, `resolveRenewalRecipient`,
   `buildRenewalNoticeDraftAction`/`executeRenewalNoticeDraft`), the property→owner join (D), the
   preview/compose core (E), the in-app route + UI — `POST /api/lease-renewal/renewal-notice-draft`
@@ -36,10 +36,10 @@ Read `docs/facts.md` first. This is the short resume pointer; history belongs in
   whole feature confirmed the safety model holds (security dimension found nothing); its 8 verified
   findings — 2 major (owner-rent extraction wrongly gated on tenant name; a null export row crashed the
   read) and 6 minor ($0-rent, CR/LF-in-address, export-scan perf, three test gaps) — are all fixed and
-  re-verified (`b8c6963`), including a shared short-TTL export cache. A redeploy is still deferred
-  (cost-bearing owner decision); the running app is behaviorally unchanged until then. Remaining
-  owner-gated: live click-through of the desk in a RentVine-connected env (local dev SSR/renderer was
-  unresponsive this session, so it rests on unit tests + typecheck + the production build).
+  re-verified (`b8c6963`), including a shared short-TTL export cache. Now DEPLOYED and HTTP-smoke-verified
+  (2026-07-19, revision `rmrsg73yg-2bb353f9e7dc`). Remaining owner-gated: a live click-through of the desk
+  in a RentVine-connected env to mint a real draft end-to-end (local dev SSR/renderer was unresponsive
+  this session, so automated coverage rests on unit tests + typecheck + the production build).
 - Finalization pass (2026-07-19): a 13-domain adversarial spec audit (ticket-icon + UI/UX-overhaul +
   compass) verified every "implemented" claim against code; the honest coverage backlog is in
   `docs/status.md`. The operator-UI em-dash purge cleared all 60 warnings and `verify:copy-voice` now
