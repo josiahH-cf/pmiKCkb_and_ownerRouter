@@ -104,7 +104,10 @@ export type QueueNotificationRecipientRole =
   | "Required approver"
   | "Creator/editor"
   | "Admin selected";
-export type QueueEmailSetupStatus = "Ready" | "Disconnected" | "Not Required";
+// v1 posture (F-APPR-2 / D7): approval attention is in-app only. Gmail delivery is hard-disabled, so
+// the health signal never claims an email is "Ready" or a sender is "Disconnected" (both implied a
+// delivery path that does not exist). "In-App Only" is the single truthful state.
+export type QueueEmailSetupStatus = "In-App Only";
 export type QueueNotificationHealthStatus =
   | "Healthy"
   | "Needs Attention"
@@ -447,7 +450,6 @@ export interface ApprovalQueueNotificationHealth {
   blocked_high_risk_count: number;
   action_required_reasons: string[];
   needs_attention_reasons: string[];
-  email_setup_error?: string;
 }
 
 export interface ProcessDefinitionRecord {

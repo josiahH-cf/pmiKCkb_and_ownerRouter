@@ -124,7 +124,6 @@ export interface MigrationReadinessDeps {
   listActionRegistry: (actor: AuthenticatedUser) => Promise<RegistrySummaryRecord[]>;
   readApprovalQueueNotificationHealth: (input: {
     actor: AuthenticatedUser;
-    config: ServerConfig;
   }) => Promise<{ status: string; disabled_event_types: string[] }>;
   listApprovalQueueEmailSettings: (
     actor: AuthenticatedUser,
@@ -338,7 +337,7 @@ export async function buildMigrationReadinessReport(
   let notifications: MigrationReadinessReport["notifications"];
   try {
     const [health, settings] = await Promise.all([
-      resolved.readApprovalQueueNotificationHealth({ actor, config }),
+      resolved.readApprovalQueueNotificationHealth({ actor }),
       resolved.listApprovalQueueEmailSettings(actor),
     ]);
     notifications = {

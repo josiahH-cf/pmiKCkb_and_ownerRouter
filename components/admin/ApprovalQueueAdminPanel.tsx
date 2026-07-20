@@ -118,9 +118,6 @@ export function ApprovalQueueAdminPanel({
             <HealthField label="Overdue" value={String(health.stale_overdue_count)} />
           </div>
 
-          {health.email_setup_error ? (
-            <p className="muted">{health.email_setup_error}</p>
-          ) : null}
           <ReasonList title="Action Required" reasons={health.action_required_reasons} />
           <ReasonList title="Needs Attention" reasons={health.needs_attention_reasons} />
         </>

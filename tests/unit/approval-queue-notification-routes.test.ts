@@ -249,7 +249,7 @@ function health(
     disabled_event_types: [],
     failed_delivery_count: 0,
     needs_attention_reasons: [],
-    queue_email_status: "Ready",
+    queue_email_status: "In-App Only",
     stale_overdue_count: 0,
     status: "Healthy",
     ...overrides,

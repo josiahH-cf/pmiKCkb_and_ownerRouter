@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type {
   ConsoleField,
-  ConsoleMessageMetadata,
+  ConsoleMessagePresence,
   ConsoleProjection,
 } from "@/lib/console/live-data";
 
@@ -78,9 +78,11 @@ function Field<T>({ label, field }: Readonly<{ field: ConsoleField<T>; label: st
   );
 }
 
+// F-CONS-4: the landing view shows only that a linked message is present, never its subject, sender,
+// recipients, or snippet. The full message is read under the workflow's authorized communication panel.
 function MessageMetadata({
   field,
-}: Readonly<{ field: ConsoleField<ConsoleMessageMetadata> }>) {
+}: Readonly<{ field: ConsoleField<ConsoleMessagePresence> }>) {
   if (!field.value) {
     return (
       <div className="notice">
@@ -89,15 +91,11 @@ function MessageMetadata({
       </div>
     );
   }
-  const message = field.value;
   return (
     <div className="notice">
-      <strong>{message.subject || "No subject"}</strong>
-      <p className="muted">
-        From {message.sender || "Unknown sender"} to{" "}
-        {message.recipients.join(", ") || "Unknown recipient"} · {message.timestamp}
-      </p>
-      <p className="console-message-snippet">{message.snippet || "No snippet."}</p>
+      <strong>Linked message on file</strong>
+      <p className="muted">Open the workflow to read it under its communication panel.</p>
+      <p className="muted">Last message {field.value.timestamp}</p>
       <Provenance field={field} />
     </div>
   );

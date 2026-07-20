@@ -3,7 +3,6 @@ import { v7 as uuidv7 } from "uuid";
 import { isQueueItemTerminal } from "@/lib/approval/queue";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import { readServerConfig, type ServerConfig } from "@/lib/config/server";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
@@ -28,6 +27,11 @@ const COLLECTIONS = {
   notifications: "approval_queue_notifications",
   queueItems: "approval_queue_items",
 } as const;
+
+// F-APPR-3: the recipient of last resort for a queue item that has no assignee and no approver. It is
+// not a real user id; Admins reach it through their role (canViewNotification), and no single person
+// "owns" it, so it never lands in a specific user's "mine only" list.
+export const APPROVAL_QUEUE_TRIAGE_UID = "approval-queue-triage";
 
 const DEFAULT_QUEUE_EMAIL_SETTINGS: ApprovalQueueEmailSettingRecord[] = [
   defaultSetting({
@@ -298,12 +302,10 @@ export async function updateApprovalQueueEmailSetting(
 
 export async function readApprovalQueueNotificationHealth({
   actor,
-  config = readServerConfig(),
   db = getAdminFirestore(),
   referenceDate = today(),
 }: {
   actor: AuthenticatedUser;
-  config?: ServerConfig;
   db?: Firestore;
   referenceDate?: string;
 }) {
@@ -315,7 +317,6 @@ export async function readApprovalQueueNotificationHealth({
   ]);
 
   return buildApprovalQueueNotificationHealth({
-    config,
     items,
     notificationLogs,
     referenceDate,
@@ -324,13 +325,11 @@ export async function readApprovalQueueNotificationHealth({
 }
 
 export function buildApprovalQueueNotificationHealth({
-  config = readServerConfig(),
   items,
   notificationLogs,
   referenceDate = today(),
   settings,
 }: {
-  config?: ServerConfig;
   items: ApprovalQueueItemRecord[];
   notificationLogs: NotificationLogRecord[];
   referenceDate?: string;
@@ -350,17 +349,10 @@ export function buildApprovalQueueNotificationHealth({
   const disabledEventTypes = settings
     .filter((setting) => !setting.email_enabled)
     .map((setting) => setting.event_type);
-  const emailRequired = settings.some((setting) => setting.email_enabled);
-  const emailSetupError = emailRequired ? approvalQueueEmailSetupError(config) : null;
-  const queueEmailStatus = !emailRequired
-    ? "Not Required"
-    : emailSetupError
-      ? "Disconnected"
-      : "Ready";
+  // v1 is in-app only (D7): Gmail delivery is hard-disabled, so the email channel is never a setup
+  // problem to fix and never a reason the queue "needs action". Any historical delivery failure is
+  // still surfaced, and blocked/overdue items still drive attention on their own merits.
   const actionRequiredReasons = [
-    queueEmailStatus === "Disconnected"
-      ? "Queue email escalation is enabled but sender, recipients, or app URL are not fully configured."
-      : null,
     failedLogs.length > 0 ? "At least one approval notification delivery failed." : null,
     blockedHighRiskItems.length > 0
       ? `${blockedHighRiskItems.length} blocked queue item(s) need Admin review.`
@@ -396,12 +388,9 @@ export function buildApprovalQueueNotificationHealth({
         })
       : undefined,
     needs_attention_reasons: needsAttentionReasons,
-    queue_email_status: queueEmailStatus,
+    queue_email_status: "In-App Only",
     stale_overdue_count: staleOverdueItems.length,
     status,
-    ...stripUndefined({
-      email_setup_error: emailSetupError ?? undefined,
-    }),
   };
 }
 
@@ -445,6 +434,14 @@ export function queueNotificationRecipientsForItem(item: QueueNotificationItem) 
       role: "Required approver",
       uid: item.required_approver_uid,
     });
+  }
+
+  // F-APPR-3: an item with neither an assignee nor an approver (a Blocked-on-creation item) would
+  // otherwise notify no one and sit silently unowned. Route it to the shared Admin triage recipient
+  // so someone always sees it. Admins can view every triage notification (see canViewNotification);
+  // the sentinel uid keeps it out of any single person's "mine" list because it belongs to no one yet.
+  if (recipients.length === 0) {
+    recipients.push({ role: "Admin selected", uid: APPROVAL_QUEUE_TRIAGE_UID });
   }
 
   return recipients;
@@ -491,18 +488,6 @@ function canViewNotification(
   notification: ApprovalQueueNotificationRecord,
 ) {
   return actor.role === "Admin" || notification.recipient_uid === actor.uid;
-}
-
-function approvalQueueEmailSetupError(config: ServerConfig) {
-  const missing = [
-    !config.kbApprovalSender ? "KB_APPROVAL_SENDER" : null,
-    config.kbApprovalRecipients.length === 0 ? "KB_APPROVAL_RECIPIENTS" : null,
-    !config.appBaseUrl ? "APP_BASE_URL" : null,
-  ].filter(Boolean);
-
-  return missing.length > 0
-    ? `Missing approval notification setup: ${missing.join(", ")}.`
-    : null;
 }
 
 async function readCollection<T>(db: Firestore, collection: string) {

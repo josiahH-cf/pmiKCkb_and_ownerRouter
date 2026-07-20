@@ -1,7 +1,6 @@
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { ConsoleDataMode } from "@/lib/console/environment";
 import { createRentvineConsoleProvider } from "@/lib/console/rentvine-live-provider";
-import { boundConsoleSnippet } from "@/lib/console/snippet";
 
 export type ConsoleFieldState = "fresh" | "stale" | "needs_review" | "unavailable";
 export type ConsoleSourceName = "Rentvine" | "PMI KC workflow" | "Gmail";
@@ -22,6 +21,14 @@ export interface ConsoleMessageMetadata {
   timestamp: string;
 }
 
+// F-CONS-4: on the Console landing view a linked message is shown only as a presence indicator. Its
+// subject, sender, recipients, and snippet never reach the front door; the full message is read under
+// the workflow's authorized communication panel (reached via "Open workflow"). Only the message's own
+// timestamp — which is not message content — rides along so the front door can say when it arrived.
+export interface ConsoleMessagePresence {
+  timestamp: string;
+}
+
 export interface ConsoleOperationalRow {
   currentRent: ConsoleField<string>;
   leaseEnd: ConsoleField<string>;
@@ -34,6 +41,12 @@ export interface ConsoleOperationalRow {
   workflowHref: string;
 }
 
+// The front-door projection keeps every operational fact from the provider row but reduces the linked
+// message to a presence indicator (see ConsoleMessagePresence).
+export type ConsoleFrontDoorRow = Omit<ConsoleOperationalRow, "message"> & {
+  message?: ConsoleField<ConsoleMessagePresence>;
+};
+
 export interface ConsoleSourceHealth {
   guidance: string;
   source: ConsoleSourceName;
@@ -42,7 +55,7 @@ export interface ConsoleSourceHealth {
 
 export interface ConsoleProjection {
   mode: ConsoleDataMode;
-  rows: ConsoleOperationalRow[];
+  rows: ConsoleFrontDoorRow[];
   sourceHealth: ConsoleSourceHealth[];
 }
 
@@ -100,22 +113,19 @@ function canSeeRow(actor: AuthenticatedUser, row: ConsoleOperationalRow) {
   return actor.scopes.includes(requiredScope);
 }
 
-function minimizeConsoleRow(row: ConsoleOperationalRow): ConsoleOperationalRow {
+// F-CONS-4: reduce the linked message to a presence indicator for the landing view. Subject, sender,
+// recipients, and snippet are dropped here so they never serialize to the client; the workflow's own
+// communication panel is the only place the full message is read.
+function minimizeConsoleRow(row: ConsoleOperationalRow): ConsoleFrontDoorRow {
+  const { message, ...rest } = row;
   return {
-    ...row,
-    message: row.message?.value
+    ...rest,
+    message: message
       ? {
-          ...row.message,
-          value: {
-            observedAt: row.message.value.observedAt,
-            recipients: row.message.value.recipients.slice(0, 10),
-            sender: row.message.value.sender,
-            snippet: boundConsoleSnippet(row.message.value.snippet),
-            subject: row.message.value.subject,
-            timestamp: row.message.value.timestamp,
-          },
+          ...message,
+          value: message.value ? { timestamp: message.value.timestamp } : undefined,
         }
-      : row.message,
+      : undefined,
   };
 }
 

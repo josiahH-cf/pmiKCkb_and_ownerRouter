@@ -1,5 +1,6 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it } from "vitest";
+import { APPROVAL_QUEUE_TRIAGE_UID } from "@/lib/firestore/approval-queue-notifications";
 import { runScheduledApprovalQueueNotifications } from "@/lib/firestore/approval-queue-scheduled-notifications";
 import type {
   ApprovalQueueActivityRecord,
@@ -215,7 +216,7 @@ describe("scheduled approval queue notifications", () => {
     expect(collectionDocs("approval_queue_notifications")).toHaveLength(4);
   });
 
-  it("routes missing-ownership unsnoozed items to Blocked and skips items with no recipients", async () => {
+  it("routes missing-ownership unsnoozed items to Blocked and sends unowned items to Admin triage (F-APPR-3)", async () => {
     seedQueueItem(
       item({
         id: "missing-approver",
@@ -238,35 +239,45 @@ describe("scheduled approval queue notifications", () => {
       write: true,
     });
 
+    // F-APPR-3: an item with neither an assignee nor an approver is no longer silently left snoozed;
+    // it unsnoozes to Blocked and notifies the shared Admin triage recipient, so nothing goes unowned.
     expect(result.summary).toMatchObject({
       eligible_unsnoozed_count: 2,
-      notifications_written_count: 1,
-      skipped_count: 1,
-      written_count: 1,
+      notifications_written_count: 2,
+      skipped_count: 0,
+      written_count: 2,
     });
     expect(readQueueItem("missing-approver")).toMatchObject({
       status: "Blocked",
     });
     expect(readQueueItem("missing-approver").snooze_until).toBeUndefined();
     expect(readQueueItem("no-recipients")).toMatchObject({
-      snooze_until: "2026-06-09",
-      status: "Snoozed",
+      status: "Blocked",
     });
+    expect(readQueueItem("no-recipients").snooze_until).toBeUndefined();
     expect(
       result.results.find((entry) => entry.item_id === "no-recipients"),
     ).toMatchObject({
-      outcome: "skipped",
-      recipient_count: 0,
+      outcome: "updated",
+      recipient_count: 1,
     });
 
     const notifications = collectionDocs<ApprovalQueueNotificationRecord>(
       "approval_queue_notifications",
     );
-    expect(notifications).toHaveLength(1);
-    expect(notifications[0]).toMatchObject({
+    expect(notifications).toHaveLength(2);
+    const byItem = new Map(
+      notifications.map((notification) => [notification.item_id, notification]),
+    );
+    expect(byItem.get("missing-approver")).toMatchObject({
       event: "unsnoozed",
-      item_id: "missing-approver",
       recipient_uid: "editor-1",
+      status: "Blocked",
+    });
+    expect(byItem.get("no-recipients")).toMatchObject({
+      event: "unsnoozed",
+      recipient_role: "Admin selected",
+      recipient_uid: APPROVAL_QUEUE_TRIAGE_UID,
       status: "Blocked",
     });
   });

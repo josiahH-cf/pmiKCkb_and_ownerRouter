@@ -16,7 +16,7 @@ const observedAt = "2026-07-14T12:00:00.000Z";
 afterEach(cleanup);
 
 describe("Console live-data projection", () => {
-  it("renders provenance and exact bounded metadata while omitting the wrong Space", async () => {
+  it("renders provenance and a presence-only linked message while omitting the wrong Space", async () => {
     const provider = providerWithRows([row("lease-renewals"), row("maintenance")]);
     const actor: AuthenticatedUser = {
       email: "editor@pmikcmetro.com",
@@ -39,12 +39,17 @@ describe("Console live-data projection", () => {
     expect(screen.getByText("Fixture property lease-renewals")).toBeInTheDocument();
     expect(screen.queryByText("Fixture property maintenance")).not.toBeInTheDocument();
     expect(screen.getAllByText(/Rentvine · fresh · observed/)).toHaveLength(2);
-    expect(screen.getByText(/From fixture-sender@example\.test to/)).toBeInTheDocument();
-    expect(screen.getByText("Synthetic test communication")).toBeInTheDocument();
-    expect(screen.getByText("Synthetic bounded preview")).toBeInTheDocument();
+    // F-CONS-4: the front door shows only that a message is present — never its subject, sender,
+    // recipients, or snippet.
+    expect(screen.getByText("Linked message on file")).toBeInTheDocument();
+    expect(
+      screen.queryByText(/From fixture-sender@example\.test/),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Synthetic test communication")).not.toBeInTheDocument();
+    expect(screen.queryByText("Synthetic bounded preview")).not.toBeInTheDocument();
   });
 
-  it("serializes no body, attachment, or unrelated message identifier", async () => {
+  it("serializes no message content to the front door: no body, subject, sender, recipients, or snippet (F-CONS-4)", async () => {
     const projection = await loadConsoleProjection(
       admin(),
       { kind: "live" },
@@ -56,6 +61,12 @@ describe("Console live-data projection", () => {
     const serialized = JSON.stringify(projection);
     expect(serialized).not.toMatch(/bodyText|attachments|gmail_thread_id|messageId/);
     expect(serialized).not.toContain("fixture full body must never serialize");
+    // The reduced front-door projection carries none of the message's subject, sender, recipients,
+    // or snippet; only the non-content timestamp rides along.
+    expect(serialized).not.toContain("fixture-sender@example.test");
+    expect(serialized).not.toContain("fixture-recipient@example.test");
+    expect(serialized).not.toContain("Synthetic bounded preview");
+    expect(serialized).not.toContain("Synthetic test communication");
   });
 });
 

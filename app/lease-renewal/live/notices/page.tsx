@@ -5,15 +5,17 @@ import { LiveRenewalNotices } from "@/components/lease-renewal/LiveRenewalNotice
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { loadLiveRenewalNotices } from "@/lib/lease-renewal/live-notices";
 
-// Owner-gated (Admin only): reads live RentVine on each render, so never statically cached. The live
-// read only happens here; the sample Renewal Desk stays the default landing.
+// Editors and up (D4): drafting renewal notices is core Editor work, so this desk matches the draft
+// API's own "edit" gate instead of standing behind an Admin-only wall. It reads live RentVine on each
+// render, so it is never statically cached; the sample Renewal Desk stays the default landing, and
+// every draft the desk creates is unsent and still passes the production gate before it is written.
 export const dynamic = "force-dynamic";
 
 const WINDOW_DAYS = 120;
 
 export default async function LiveRenewalNoticesPage() {
   await requirePageSpaceAccess("renewals");
-  const user = await requirePageCapability("manageAdmin");
+  const user = await requirePageCapability("edit");
 
   // The renewal window is computed here (the pure loader never calls Date.now()): leases ending on a
   // month boundary between today and ~4 months out are the actionable batch.

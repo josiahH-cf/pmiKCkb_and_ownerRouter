@@ -27,7 +27,9 @@ export async function POST() {
 
     let marked = 0;
 
-    if (canReadRenewals) {
+    // F-NOTIF-3: approval-queue notifications are personal (recipient-only), so the caller's own ones
+    // are always included regardless of space scope — the same rule the feed and single mark-read use.
+    {
       const unread = await listApprovalQueueNotifications(user, {
         recipientOnly: true,
         unreadOnly: true,

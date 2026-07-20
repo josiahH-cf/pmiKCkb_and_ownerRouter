@@ -60,7 +60,7 @@ export default async function AdminPage() {
   try {
     [queueEmailSettings, queueHealth] = await Promise.all([
       listApprovalQueueEmailSettings(user),
-      readApprovalQueueNotificationHealth({ actor: user, config }),
+      readApprovalQueueNotificationHealth({ actor: user }),
     ]);
   } catch {
     queueAdminNote = config.askDemoMode

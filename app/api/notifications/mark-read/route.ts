@@ -14,9 +14,10 @@ export async function POST(request: Request) {
     const input = await parseJsonBody(request, MarkNotificationReadInputSchema);
 
     if (input.source === "approval_queue") {
-      if (!hasSpaceAccess(user, "renewals")) {
-        throw new AuthError("This user is not authorized for the requested space.", 403);
-      }
+      // F-NOTIF-3: approval-queue notifications are personal (addressed to a specific recipient), so a
+      // recipient can always mark their OWN one read regardless of space scope. The writer enforces
+      // recipient ownership (recipient_uid === actor.uid), which is the correct and sufficient guard;
+      // a space-scope pre-check here would dead-end a legitimate assignee/approver who lacks the scope.
       await markApprovalQueueNotificationRead(user, input.id);
     } else if (input.source === "maintenance_ticket") {
       if (!hasSpaceAccess(user, "maintenance")) {

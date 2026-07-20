@@ -2,12 +2,12 @@ import type { Firestore } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Role } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import { readServerConfig } from "@/lib/config/server";
 import {
   createApprovalQueueItem,
   transitionApprovalQueueItem,
 } from "@/lib/firestore/approval-queue";
 import {
+  APPROVAL_QUEUE_TRIAGE_UID,
   listApprovalQueueEmailSettings,
   listApprovalQueueNotifications,
   markApprovalQueueNotificationRead,
@@ -194,6 +194,45 @@ describe("Approval Queue v1 console notifications", () => {
       recipient_uid: "approver-1",
     });
   });
+
+  it("routes an unowned Blocked item to the shared Admin triage recipient (F-APPR-3)", async () => {
+    // An unowned item (no assignee, no approver) is typically system/Admin-created; use admin as the
+    // creator so the post-create read-back is not blocked by the item's own view gate.
+    const item = await createApprovalQueueItem(
+      admin,
+      baseInput({
+        assignee_uid: undefined,
+        required_approver_uid: undefined,
+        source_trigger_key: "run-1:unowned",
+      }),
+      db,
+    );
+
+    // With no assignee and no approver the item is Blocked on creation.
+    expect(item.status).toBe("Blocked");
+
+    // A triage notification exists and every Admin can see it, even though no single user owns it.
+    const adminView = await listApprovalQueueNotifications(
+      admin,
+      { itemId: item.id },
+      db,
+    );
+    expect(adminView).toHaveLength(1);
+    expect(adminView[0]).toMatchObject({
+      event: "blocked",
+      recipient_role: "Admin selected",
+      recipient_uid: APPROVAL_QUEUE_TRIAGE_UID,
+    });
+
+    // The triage notification belongs to no real person, so it never lands in an individual's
+    // "mine only" list (the editor who created it cannot even view it).
+    const editorMine = await listApprovalQueueNotifications(
+      editor,
+      { recipientOnly: true },
+      db,
+    );
+    expect(editorMine).toHaveLength(0);
+  });
 });
 
 describe("Approval Queue v1 email settings and health", () => {
@@ -238,29 +277,26 @@ describe("Approval Queue v1 email settings and health", () => {
     expect(approverNotifications).toHaveLength(1);
   });
 
-  it("reports healthy, disconnected, overdue, blocked, and failed-delivery states", async () => {
+  it("reports an in-app-only email signal regardless of sender config (F-APPR-2/D7)", async () => {
     await createApprovalQueueItem(
       editor,
       baseInput({ due_date: "2026-06-10", source_trigger_key: "healthy-item" }),
       db,
     );
 
-    const readyConfig = readServerConfig({
-      APP_BASE_URL: "https://kb.example.com",
-      KB_APPROVAL_RECIPIENTS: "dan@example.com",
-      KB_APPROVAL_SENDER: "kb@example.com",
-    });
     const healthy = await readApprovalQueueNotificationHealth({
       actor: admin,
-      config: readyConfig,
       db,
       referenceDate: "2026-06-05",
     });
 
+    // Gmail delivery is hard-disabled, so the email channel is always in-app only and is never a
+    // setup problem or a reason the queue needs action — a healthy queue reports no action reasons.
     expect(healthy).toMatchObject({
-      queue_email_status: "Ready",
+      queue_email_status: "In-App Only",
       status: "Healthy",
     });
+    expect(healthy.action_required_reasons).toEqual([]);
 
     await createApprovalQueueItem(
       editor,
@@ -284,21 +320,23 @@ describe("Approval Queue v1 email settings and health", () => {
 
     const actionRequired = await readApprovalQueueNotificationHealth({
       actor: admin,
-      config: readServerConfig({}),
       db,
       referenceDate: "2026-06-05",
     });
 
+    // Blocked, overdue, and a real delivery failure still drive attention on their own merits; the
+    // email channel itself never appears as a reason, and the status stays "In-App Only".
     expect(actionRequired).toMatchObject({
       blocked_high_risk_count: 1,
       blocked_item_count: 1,
       failed_delivery_count: 1,
-      queue_email_status: "Disconnected",
+      queue_email_status: "In-App Only",
       stale_overdue_count: 1,
       status: "Action Required",
     });
+    expect(actionRequired.action_required_reasons.join(" ")).not.toMatch(/email/i);
     expect(actionRequired.action_required_reasons.join(" ")).toContain(
-      "Queue email escalation is enabled",
+      "blocked queue item(s) need Admin review",
     );
   });
 });

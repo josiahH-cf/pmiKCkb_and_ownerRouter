@@ -57,9 +57,10 @@ export async function loadNotificationHub(
   const [preferences, approval, maintenance, gmail, coverage, decision] =
     await Promise.all([
       getNotificationPreferences(user),
-      canReadRenewals
-        ? listApprovalQueueNotifications(user, { recipientOnly: true, unreadOnly })
-        : Promise.resolve([]),
+      // F-NOTIF-3: approval-queue notifications are personal (recipient-only), so a recipient always
+      // sees their OWN ones regardless of space scope — an assignee/approver who lacks renewals scope
+      // must never be dead-ended out of their own action items.
+      listApprovalQueueNotifications(user, { recipientOnly: true, unreadOnly }),
       canReadMaintenance
         ? listMaintenanceTicketNotifications(user, { unreadOnly })
         : Promise.resolve([]),
@@ -100,7 +101,8 @@ export async function loadNotificationHub(
     ...feed,
     families: feed.families.filter(
       (family) =>
-        (family.key !== "approval_queue" || canReadRenewals) &&
+        // approval_queue is intentionally NOT scope-gated (F-NOTIF-3): it is the recipient's own
+        // personal action items, so it is always served to whoever those items are addressed to.
         (family.key !== "maintenance_tickets" || canReadMaintenance) &&
         (family.key !== "renewal_communications" || canReadRenewals) &&
         (family.key !== "maintenance_communications" || canReadMaintenance) &&
