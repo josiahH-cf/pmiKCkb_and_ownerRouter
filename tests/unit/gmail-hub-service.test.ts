@@ -12,7 +12,12 @@ import {
   GmailHubGateError,
   GmailHubService,
 } from "@/lib/gmail-hub/service";
-import { gmailMailboxKey, MemoryGmailStateStore } from "@/lib/gmail-hub/state-store";
+import {
+  gmailMailboxKey,
+  MemoryGmailStateStore,
+  type CommunicationIdentity,
+  type GmailConfirmationRecord,
+} from "@/lib/gmail-hub/state-store";
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
 import { GmailRuntimeClient, GmailRuntimeError } from "@/lib/gmail-runtime/client";
 import { isActionExecutable } from "@/lib/integrations/action-gate";
@@ -46,6 +51,42 @@ function reply(body: string) {
   return {
     context: context("gmail.thread.reply"),
     message: { kind: "reply" as const, threadId: "thread-1", body },
+  };
+}
+
+const identityX: CommunicationIdentity = {
+  mailboxEmail: actor.email,
+  lane: "maintenance",
+  entityType: "maintenance_ticket",
+  entityId: "ticket-X",
+  purpose: "maintenance_owner",
+};
+const identityY: CommunicationIdentity = { ...identityX, entityId: "ticket-Y" };
+
+function confirmationRecord(
+  id: string,
+  identity: CommunicationIdentity,
+  state: GmailConfirmationRecord["state"],
+  nowMs = 1_000,
+): GmailConfirmationRecord {
+  return {
+    id,
+    actor_uid: actor.uid,
+    mailbox_email: identity.mailboxEmail,
+    payload_hash: `hash-${id}`,
+    message_id: `<${id}@mail>`,
+    message_kind: "reply",
+    state,
+    usable_until_ms: nowMs + 600_000,
+    created_at_ms: nowMs,
+    updated_at_ms: nowMs,
+    workflow_context_key: `ctx-${id}`,
+    workflow_lane: identity.lane,
+    workflow_entity_type: identity.entityType,
+    workflow_entity_id: identity.entityId,
+    workflow_purpose: identity.purpose,
+    template_ref: "maintenance-owner:v1.0",
+    ...communicationsRetentionFields("confirmation", nowMs),
   };
 }
 
@@ -642,6 +683,68 @@ describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
     ).rejects.toBeInstanceOf(GmailAmbiguousSendError);
   });
 
+  it("supersedes a prior concurrent pending so only the newest confirmation can send", async () => {
+    // Two prepares for the SAME communication identity, both minted before either is sent (two tabs / two
+    // operators / a double-submitted prepare). Each carries its own one-time token, so neither is an id
+    // collision and the ambiguous/sending guard does not catch them — only the supersede does.
+    const client = new FakeGmailClient();
+    const store = new MemoryGmailStateStore();
+    const first = service({
+      client,
+      store,
+      token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    });
+    const preparedOne = await first.hub.prepareSendConfirmation(reply("First copy"));
+    const second = service({
+      client,
+      store,
+      token: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    });
+    const preparedTwo = await second.hub.prepareSendConfirmation(reply("Second copy"));
+
+    // Minting the second retired the first: it is superseded, no longer a claimable pending.
+    const firstRecord = store.confirmations.get(
+      hashConfirmationToken(preparedOne.confirmationToken),
+    );
+    expect(firstRecord?.state).toBe("superseded");
+
+    // Confirming the retired first is refused with no send; only the newest confirmation delivers, once.
+    await expect(first.hub.sendConfirmed(preparedOne)).rejects.toThrow(/replaced/i);
+    await expect(second.hub.sendConfirmed(preparedTwo)).resolves.toMatchObject({
+      status: "sent",
+      duplicate: false,
+    });
+    expect(client.sendCalls).toBe(1);
+  });
+
+  it("refuses a pending send when a sibling send raced into flight (claim-time dedup)", async () => {
+    // The concurrent race supersede-at-mint cannot cover: two confirmations for one identity exist, and the
+    // first was claimed to "sending" during the second's prepare, so the supersede skipped it. The
+    // claim-time identity dedup must still refuse the second, delivering no second copy.
+    const store = new MemoryGmailStateStore();
+    const first = service({
+      store,
+      token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    });
+    const preparedOne = await first.hub.prepareSendConfirmation(reply("First"));
+    const second = service({
+      store,
+      token: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    });
+    const preparedTwo = await second.hub.prepareSendConfirmation(reply("Second"));
+
+    // Simulate that the first confirmation was actually claimed to "sending" (a sibling send now in flight).
+    const firstRecord = store.confirmations.get(
+      hashConfirmationToken(preparedOne.confirmationToken),
+    );
+    firstRecord!.state = "sending";
+
+    await expect(second.hub.sendConfirmed(preparedTwo)).rejects.toBeInstanceOf(
+      GmailAmbiguousSendError,
+    );
+    expect(second.client.sendCalls).toBe(0);
+  });
+
   it("reconciles a stuck 'sending' confirmation by its RFC Message-ID (not a permanent block)", async () => {
     const client = new FakeGmailClient();
     const store = new MemoryGmailStateStore();
@@ -813,5 +916,93 @@ describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
           isActionExecutable: () => true,
         }),
     ).toThrow("did not match the signed-in user");
+  });
+});
+
+describe("GmailStateStore supersedePendingSendsForCommunication (concurrent-pending)", () => {
+  it("retires only OTHER same-identity pendings, keeping keepId and other identities untouched", async () => {
+    const store = new MemoryGmailStateStore();
+    await store.createConfirmation(confirmationRecord("keep", identityX, "pending"));
+    await store.createConfirmation(confirmationRecord("sibling", identityX, "pending"));
+    await store.createConfirmation(confirmationRecord("other", identityY, "pending"));
+    await store.createConfirmation(
+      confirmationRecord("already-sending", identityX, "sending"),
+    );
+
+    await store.supersedePendingSendsForCommunication(identityX, "keep", 2_000);
+
+    expect((await store.getConfirmation("keep"))?.state).toBe("pending");
+    expect((await store.getConfirmation("sibling"))?.state).toBe("superseded");
+    // A different communication identity is never touched.
+    expect((await store.getConfirmation("other"))?.state).toBe("pending");
+    // An in-flight send for the same identity is NOT clobbered — it owns the identity and must resolve.
+    expect((await store.getConfirmation("already-sending"))?.state).toBe("sending");
+  });
+
+  it("makes a superseded confirmation unclaimable (cannot go on to send)", async () => {
+    const store = new MemoryGmailStateStore();
+    await store.createConfirmation(confirmationRecord("keep", identityX, "pending"));
+    const stale = confirmationRecord("stale", identityX, "pending");
+    await store.createConfirmation(stale);
+
+    await store.supersedePendingSendsForCommunication(identityX, "keep", 2_000);
+
+    const claim = await store.claimConfirmation({
+      id: "stale",
+      actorUid: actor.uid,
+      payloadHash: stale.payload_hash,
+      workflowContextKey: stale.workflow_context_key,
+      nowMs: 3_000,
+    });
+    expect(claim.status).toBe("superseded");
+  });
+});
+
+describe("GmailStateStore claim-time identity dedup (concurrent-pending)", () => {
+  async function claimWaiting(store: MemoryGmailStateStore, id: string) {
+    return store.claimConfirmation({
+      id,
+      actorUid: actor.uid,
+      payloadHash: `hash-${id}`,
+      workflowContextKey: `ctx-${id}`,
+      nowMs: 5_000,
+    });
+  }
+
+  it("refuses a pending claim while a sibling send is in flight (sending)", async () => {
+    const store = new MemoryGmailStateStore();
+    await store.createConfirmation(confirmationRecord("in-flight", identityX, "sending"));
+    await store.createConfirmation(confirmationRecord("waiting", identityX, "pending"));
+
+    const claim = await claimWaiting(store, "waiting");
+    expect(claim.status).toBe("sibling_in_flight");
+    // The waiting record is NOT advanced — it stays claimable once the sibling resolves.
+    expect((await store.getConfirmation("waiting"))?.state).toBe("pending");
+  });
+
+  it("refuses a pending claim while a sibling send is ambiguous", async () => {
+    const store = new MemoryGmailStateStore();
+    await store.createConfirmation(confirmationRecord("ambig", identityX, "ambiguous"));
+    await store.createConfirmation(confirmationRecord("waiting", identityX, "pending"));
+
+    expect((await claimWaiting(store, "waiting")).status).toBe("sibling_in_flight");
+  });
+
+  it("allows a follow-up claim after a prior send RESOLVED to sent", async () => {
+    const store = new MemoryGmailStateStore();
+    await store.createConfirmation(confirmationRecord("done", identityX, "sent"));
+    await store.createConfirmation(confirmationRecord("followup", identityX, "pending"));
+
+    expect((await claimWaiting(store, "followup")).status).toBe("claimed");
+  });
+
+  it("does not block on an in-flight send for a DIFFERENT identity", async () => {
+    const store = new MemoryGmailStateStore();
+    await store.createConfirmation(
+      confirmationRecord("other-inflight", identityY, "sending"),
+    );
+    await store.createConfirmation(confirmationRecord("mine", identityX, "pending"));
+
+    expect((await claimWaiting(store, "mine")).status).toBe("claimed");
   });
 });

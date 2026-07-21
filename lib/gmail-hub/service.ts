@@ -212,6 +212,13 @@ export class GmailHubService {
     this.assertContextAction(parsed.context, GMAIL_HUB_ACTIONS.reply);
     this.assertApprovedTemplate(parsed.context);
     const workflowContextKey = workflowActionContextKey(parsed.context);
+    const identity = {
+      mailboxEmail: this.mailboxEmail,
+      lane: parsed.context.lane,
+      entityType: parsed.context.entityType,
+      entityId: parsed.context.entityId,
+      purpose: parsed.context.purpose,
+    };
     // Double-send guard: refuse a new send while a PRIOR send for the same COMMUNICATION IDENTITY (this
     // mailbox + lane + entity + purpose — the identity that binds a reply to its thread) is still
     // unresolved: state "ambiguous" (Gmail returned no definitive result) or "sending" (a claim whose
@@ -220,13 +227,7 @@ export class GmailHubService {
     // caller-supplied source refs a re-prepare can vary to slip past the guard. Reconciling the prior send
     // to a definitive "sent" clears the block.
     const unresolvedSend =
-      await this.dependencies.store.findUnresolvedSendForCommunication({
-        mailboxEmail: this.mailboxEmail,
-        lane: parsed.context.lane,
-        entityType: parsed.context.entityType,
-        entityId: parsed.context.entityId,
-        purpose: parsed.context.purpose,
-      });
+      await this.dependencies.store.findUnresolvedSendForCommunication(identity);
     if (unresolvedSend) {
       // Recovery WITHOUT the one-time confirmation token (which lives only in ephemeral client state and is
       // lost on reload): re-check delivery by the prior send's unique RFC Message-ID. If it DID deliver,
@@ -290,6 +291,17 @@ export class GmailHubService {
       ...communicationsRetentionFields("confirmation", nowMs),
     };
     await this.dependencies.store.createConfirmation(record);
+    // Now that this confirmation exists, retire any OTHER still-pending confirmation for the same
+    // communication identity so only one pending send is ever claimable. This closes the concurrent-pending
+    // window the ambiguous/sending guard above does not cover: two confirmations minted before either
+    // resolves (two tabs / two operators / a double-submitted prepare) could otherwise each be sent. It also
+    // cleans up the common orphan — a reload loses the first token, and this re-prepare supersedes the
+    // stranded pending instead of leaving it live.
+    await this.dependencies.store.supersedePendingSendsForCommunication(
+      identity,
+      id,
+      nowMs,
+    );
     return {
       context: parsed.context,
       confirmationToken,
@@ -327,6 +339,13 @@ export class GmailHubService {
     if (claim.status === "ambiguous") {
       throw new GmailAmbiguousSendError(
         "The prior send outcome is ambiguous. Reconcile its RFC Message-ID before any new attempt.",
+      );
+    }
+    if (claim.status === "sibling_in_flight") {
+      // Another send for this same workflow communication is in flight or unresolved. Refuse rather than
+      // deliver a possible second copy; the operator reconciles or waits for that send to resolve.
+      throw new GmailAmbiguousSendError(
+        "Another send for this workflow communication is already in progress or unresolved. Reconcile or wait for it to resolve before sending again.",
       );
     }
     if (claim.status !== "claimed") {
@@ -881,12 +900,16 @@ export class GmailAmbiguousSendError extends GmailHubError {
   }
 }
 
-function claimMessage(status: "expired" | "mismatch" | "in_progress" | "failed") {
+function claimMessage(
+  status: "expired" | "mismatch" | "in_progress" | "failed" | "superseded",
+) {
   const messages = {
     expired: "The Gmail confirmation expired. Review the exact message again.",
     mismatch: "The Gmail confirmation does not match this user and exact payload.",
     in_progress: "This Gmail confirmation is already being processed.",
     failed: "This Gmail confirmation was already consumed by a failed attempt.",
+    superseded:
+      "A newer confirmation replaced this one for this workflow communication. Prepare the send again.",
   } as const;
   return messages[status];
 }

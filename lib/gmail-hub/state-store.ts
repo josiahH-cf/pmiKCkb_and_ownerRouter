@@ -35,7 +35,10 @@ export type GmailConfirmationState =
   | "sending"
   | "sent"
   | "ambiguous"
-  | "failed";
+  | "failed"
+  // A pending confirmation that a newer prepare for the SAME communication identity replaced. Terminal
+  // and unclaimable, so at most one pending confirmation per identity can ever reach a send.
+  | "superseded";
 
 export interface GmailConfirmationRecord extends CommunicationsRetentionFields {
   id: string;
@@ -91,7 +94,13 @@ const GMAIL_WATCH_ATTEMPT_STALE_MS = 5 * 60 * 1_000;
 export type ClaimConfirmationResult =
   | { status: "claimed"; record: GmailConfirmationRecord }
   | {
-      status: "expired" | "mismatch" | "in_progress" | "failed";
+      status:
+        | "expired"
+        | "mismatch"
+        | "in_progress"
+        | "failed"
+        | "superseded"
+        | "sibling_in_flight";
       record?: GmailConfirmationRecord;
     }
   | { status: "sent"; record: GmailConfirmationRecord; result: GmailSendResult }
@@ -121,6 +130,20 @@ export interface CommunicationIdentity {
   purpose: WorkflowCommunicationLink["purpose"];
 }
 
+// True when a confirmation carries exactly this communication identity (mailbox + lane + entity + purpose).
+function matchesCommunicationIdentity(
+  record: GmailConfirmationRecord,
+  identity: CommunicationIdentity,
+): boolean {
+  return (
+    record.mailbox_email === identity.mailboxEmail &&
+    record.workflow_lane === identity.lane &&
+    record.workflow_entity_type === identity.entityType &&
+    record.workflow_entity_id === identity.entityId &&
+    record.workflow_purpose === identity.purpose
+  );
+}
+
 // True when a confirmation is an UNRESOLVED send (may already have delivered) for exactly this identity.
 function isUnresolvedSendForCommunication(
   record: GmailConfirmationRecord,
@@ -128,12 +151,50 @@ function isUnresolvedSendForCommunication(
 ): boolean {
   return (
     (record.state === "ambiguous" || record.state === "sending") &&
-    record.mailbox_email === identity.mailboxEmail &&
-    record.workflow_lane === identity.lane &&
-    record.workflow_entity_type === identity.entityType &&
-    record.workflow_entity_id === identity.entityId &&
-    record.workflow_purpose === identity.purpose
+    matchesCommunicationIdentity(record, identity)
   );
+}
+
+// True when a confirmation is a still-claimable PENDING send for exactly this identity, other than keepId.
+// A newer prepare supersedes these so only its own pending can go on to a send.
+function isSupersedablePendingForCommunication(
+  record: GmailConfirmationRecord,
+  identity: CommunicationIdentity,
+  keepId: string,
+): boolean {
+  return (
+    record.id !== keepId &&
+    record.state === "pending" &&
+    matchesCommunicationIdentity(record, identity)
+  );
+}
+
+// True when some OTHER confirmation (not selfId) is an in-flight/unresolved send (state "sending" or
+// "ambiguous") for exactly this identity. Checked when claiming a pending confirmation so a
+// concurrent-pending sibling cannot deliver a second copy while a prior send for the same communication is
+// still in flight. A sibling that already resolved to "sent" does NOT block, so a deliberate follow-up
+// after a completed send stays allowed.
+function unresolvedSiblingSendExists(
+  records: Iterable<GmailConfirmationRecord>,
+  identity: CommunicationIdentity,
+  selfId: string,
+): boolean {
+  for (const record of records) {
+    if (record.id !== selfId && isUnresolvedSendForCommunication(record, identity)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function identityOfRecord(record: GmailConfirmationRecord): CommunicationIdentity {
+  return {
+    mailboxEmail: record.mailbox_email,
+    lane: record.workflow_lane,
+    entityType: record.workflow_entity_type,
+    entityId: record.workflow_entity_id,
+    purpose: record.workflow_purpose,
+  };
 }
 
 export interface GmailStateStore {
@@ -150,6 +211,21 @@ export interface GmailStateStore {
   findUnresolvedSendForCommunication(
     identity: CommunicationIdentity,
   ): Promise<GmailConfirmationRecord | null>;
+  /**
+   * Mark every OTHER still-pending confirmation for this communication identity as "superseded", keeping
+   * only keepId. Called right after minting a fresh confirmation so at most one pending confirmation per
+   * identity is ever claimable — closing the window where two confirmations minted before either resolves
+   * (two tabs / two operators / a double-submitted prepare) could each be sent, delivering two copies. The
+   * common case it also covers: a reload orphans the first pending (its one-time token is lost from client
+   * state); the re-prepare supersedes that orphan instead of leaving it live. Each supersede re-checks the
+   * record is still "pending" under a lock, so it never clobbers a confirmation a concurrent claim already
+   * advanced to "sending".
+   */
+  supersedePendingSendsForCommunication(
+    identity: CommunicationIdentity,
+    keepId: string,
+    nowMs: number,
+  ): Promise<void>;
   claimConfirmation(input: {
     id: string;
     actorUid: string;
@@ -274,6 +350,45 @@ export class FirestoreGmailStateStore implements GmailStateStore {
     return match ?? null;
   }
 
+  async supersedePendingSendsForCommunication(
+    identity: CommunicationIdentity,
+    keepId: string,
+    nowMs: number,
+  ): Promise<void> {
+    const snapshot = await this.db
+      .collection(GMAIL_STATE_COLLECTIONS.confirmations)
+      .where("workflow_entity_id", "==", identity.entityId)
+      .get();
+    const stale = snapshot.docs
+      .map((doc) => doc.data() as GmailConfirmationRecord)
+      .filter((record) =>
+        isSupersedablePendingForCommunication(record, identity, keepId),
+      );
+    for (const record of stale) {
+      const ref = this.db
+        .collection(GMAIL_STATE_COLLECTIONS.confirmations)
+        .doc(record.id);
+      // Re-check "pending" under the doc lock so a concurrent claim that already advanced it to "sending"
+      // is never clobbered — that send owns the identity and must resolve on its own.
+      await this.db.runTransaction(async (transaction) => {
+        const current = await transaction.get(ref);
+        if (!current.exists) return;
+        const live = current.data() as GmailConfirmationRecord;
+        if (live.state !== "pending") return;
+        const superseded = {
+          ...live,
+          state: "superseded" as const,
+          updated_at_ms: nowMs,
+        };
+        transaction.set(ref, superseded);
+        transaction.create(
+          this.db.collection(GMAIL_STATE_COLLECTIONS.sendAudit).doc(uuidv7()),
+          sendAudit(superseded, "confirmation_superseded", nowMs),
+        );
+      });
+    }
+  }
+
   async claimConfirmation(input: {
     id: string;
     actorUid: string;
@@ -307,8 +422,32 @@ export class FirestoreGmailStateStore implements GmailStateStore {
       if (record.state === "ambiguous") return { status: "ambiguous" as const, record };
       if (record.state === "sending") return { status: "in_progress" as const, record };
       if (record.state === "failed") return { status: "failed" as const, record };
+      if (record.state === "superseded") return { status: "superseded" as const, record };
       if (record.usable_until_ms <= input.nowMs)
         return { status: "expired" as const, record };
+
+      // Identity-level dedup at the point of no return: refuse this pending claim if ANOTHER send for the
+      // same communication identity is already in flight (state "sending" or "ambiguous"). This closes the
+      // concurrent-pending race that supersede-at-mint cannot — where a sibling was claimed to "sending"
+      // during this confirmation's prepare, so the supersede skipped it. Read the siblings inside the
+      // transaction (before the write) via the auto-indexed entity id, then match the full identity in
+      // memory. A sibling that already resolved to "sent" does not block, so a deliberate follow-up stays
+      // allowed.
+      const identity = identityOfRecord(record);
+      const siblings = await transaction.get(
+        this.db
+          .collection(GMAIL_STATE_COLLECTIONS.confirmations)
+          .where("workflow_entity_id", "==", identity.entityId),
+      );
+      if (
+        unresolvedSiblingSendExists(
+          siblings.docs.map((doc) => doc.data() as GmailConfirmationRecord),
+          identity,
+          record.id,
+        )
+      ) {
+        return { status: "sibling_in_flight" as const, record };
+      }
 
       const claimed = {
         ...record,
@@ -863,6 +1002,19 @@ export class MemoryGmailStateStore implements GmailStateStore {
     return null;
   }
 
+  async supersedePendingSendsForCommunication(
+    identity: CommunicationIdentity,
+    keepId: string,
+    nowMs: number,
+  ) {
+    for (const record of this.confirmations.values()) {
+      if (!isSupersedablePendingForCommunication(record, identity, keepId)) continue;
+      record.state = "superseded";
+      record.updated_at_ms = nowMs;
+      this.audit.push(sendAudit(record, "confirmation_superseded", nowMs));
+    }
+  }
+
   async claimConfirmation(input: {
     id: string;
     actorUid: string;
@@ -899,8 +1051,21 @@ export class MemoryGmailStateStore implements GmailStateStore {
       return { status: "in_progress", record: structuredClone(record) };
     if (record.state === "failed")
       return { status: "failed", record: structuredClone(record) };
+    if (record.state === "superseded")
+      return { status: "superseded", record: structuredClone(record) };
     if (record.usable_until_ms <= input.nowMs)
       return { status: "expired", record: structuredClone(record) };
+    // Identity-level dedup at the point of no return (mirrors the Firestore store): refuse this pending
+    // claim if another send for the same communication identity is already in flight (sending/ambiguous).
+    if (
+      unresolvedSiblingSendExists(
+        this.confirmations.values(),
+        identityOfRecord(record),
+        record.id,
+      )
+    ) {
+      return { status: "sibling_in_flight", record: structuredClone(record) };
+    }
     record.state = "sending";
     record.updated_at_ms = input.nowMs;
     this.audit.push(sendAudit(record, "send_claimed", input.nowMs));
