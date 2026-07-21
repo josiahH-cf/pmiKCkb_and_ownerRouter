@@ -149,18 +149,16 @@ Acceptance:
 
 ### P8 - Production Release and Human Walkthrough
 
-Status: in progress — the validated remediation and both deployed regression repairs are integrated
-through product commit `f6d5ddbce8b250b64df3bc58c81398f09e33b869`; the serving checkpoint has since
-advanced to `c87f54d` on `pmi-kc-kb-demo-rmrrv992z-a2cc59bb11db` (2026-07-19 go-live). Every finding remains mapped to an applicable repair or
-evidence-based exclusion and all 281 capabilities carry their pass-one baseline. Deployed pass two
-has 35 terminal cases (29 pass, five expected denials, one honest `not_reachable` empty state), 246
-pending, and zero in progress. The Maintenance Vendor-handoff and Approval same-page selection
-regressions are fixed and proven. All seven Approval actions and all twelve Approval reads are
-terminal; their nine applicable finding rows are resolved, the prior documentation-only row remains
-evidence-excluded, and all 19 Approval capability rows are reconciled at sidecar revision 18. All
-seven Approval fixtures, both Admin/All-spaces staff baselines, and the signed-out restricted session
-are at a clean stop boundary. Remaining cases, temporary-session reprovisioning, their ledger/matrix
-terminalization, final restoration, exact final deployment, and parity/report gates remain.
+Status: in progress — the application is built and the v1 readiness remediation is complete on every
+testable code front. `main` = `36440e9` (2,555 tests green, gate clean); the 65-finding audit is fully
+worked (all 22 owner decisions ruled, every self-contained code finding fixed and adversarially
+verified, a blind 15-agent re-verify held every closed finding). Two P8 gates remain, both human/owner
+steps rather than code: (1) an owner-authorized production redeploy — Cloud Run currently serves the
+earlier `ead5da5` (`pmi-kc-kb-demo-rmrsg73yg-2bb353f9e7dc`) and `main` is four remediation commits
+ahead, so a single `npm run deploy:demo -- --budget-confirmed` puts the remediation live (rollback
+target `pmi-kc-kb-demo-rmrrv992z-a2cc59bb11db` / `c87f54d`); and (2) the signed-in by-hand human
+walkthrough of every macro feature, guided by `docs/manual-qa-walkthrough-2026-07-21.md`. The
+prioritized owner-gated/infra backlog with recommendations is `docs/whats-next.md`.
 
 Acceptance:
 

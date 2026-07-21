@@ -98,6 +98,8 @@ route new work through the three-product docs.
 | North star and product direction      | `docs/north-star.md`                                                                                                   |
 | Product lane routing                  | `docs/products/README.md`, then the relevant product doc                                                               |
 | Continue feature development          | `docs/loop-state.md`, `docs/plan.md`, then the relevant current product/spec doc                                       |
+| What to do next (open decisions)      | `docs/whats-next.md` (findings + context + recommendations; read after `docs/facts.md` + `docs/loop-state.md`)         |
+| Hand-test the built app (manual QA)   | `docs/manual-qa-walkthrough-2026-07-21.md` (click-by-click walkthrough of every macro feature)                         |
 | Renewal / move-in / move-out flow     | `docs/products/lease-renewal-discovery-reference.md`, `docs/products/move-in-move-out-process.md`                      |
 | Renewal sheet connector + conflicts   | `docs/products/lease-renewal-connector-design.md`, `docs/products/lease-renewal-spreadsheet-map.md`                    |
 | V1 process Q&A and owner decisions    | `docs/products/v1-process-qa.md`                                                                                       |

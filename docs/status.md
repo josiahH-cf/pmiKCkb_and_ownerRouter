@@ -11,6 +11,41 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## v1 remediation closed on all testable fronts; docs realigned; baseline green (2026-07-21)
+
+- The v1 readiness remediation is complete on every self-contained code finding. A blind 15-agent
+  adversarial re-verify re-checked the claimed-closed findings and challenged the "only owner-gated
+  remains" scope. Every closed finding held (CLOSED/MOOT at high confidence, including both re-checked
+  High findings — cross-scope access on editable routes and the template approval-gate). The scope
+  challenge surfaced three buildable slices that were then built, adversarially verified, and shipped
+  green on `main`:
+  - `aa92c38` — page auth-coverage boundary test (`tests/unit/page-auth-boundary.test.ts`, mirrors the
+    existing route-auth test) + an honest `ConsoleView` docstring that states the one inline-Approve
+    exception instead of over-claiming "nothing here executes."
+  - `4d53418` — closed the concurrent-pending Gmail double-send race adjacent to the closed Comms LR-01.
+    Two PENDING confirmations for one communication identity could each reach `sending`. Fix: supersede
+    prior live pending at mint plus a claim-time identity dedup on `{sending, ambiguous}`. Owner ruled
+    keep-re-sends/close-the-race. Two adversarial rounds — the first caught that a supersede-only fix was
+    only partial; the second returned all-SAFE. Accepted residual: a leftover race-confirmation after a
+    real send is indistinguishable from a deliberate follow-up; it never breaches the no-autonomous-send
+    boundary. See `docs/whats-next.md` and memory `gmail-concurrent-pending-double-send-window`.
+  - `36440e9` — F-LEASE-6: a renewal notice now addresses all authoritative co-tenants (To = primary,
+    Cc = the rest), each held to the routable + authoritative-source bar; draft-only preserved. A
+    dedicated adversarial pass was all-SAFE (no non-authoritative, non-routable, invented, or
+    CR/LF-injected address can reach a real draft as To or Cc).
+- Baseline: `main` = `36440e9`, working tree clean, `main` and the `ui-ux-overhaul` branch aligned and
+  pushed. Gate green — 2,555 tests / 353 files, typecheck clean, lint 0 errors / 13 known warnings,
+  `verify:copy-voice` clean, falsification/context/spec gates green, production build green.
+- Documentation realigned to this outcome: `docs/loop-state.md` rewritten from the stale pass-two-audit
+  framing to the current green-and-remediated baseline; a resumable `docs/whats-next.md` created (every
+  open item = finding + context + recommendation + the owner input that unblocks it) and routed from
+  `AGENTS.md`; a by-hand `docs/manual-qa-walkthrough-2026-07-21.md` created so the owner can click
+  through every macro feature and confirm the built processes work.
+- Production is behind `main`: Cloud Run `pmi-kc-kb-demo` still serves `ead5da5`
+  (`pmi-kc-kb-demo-rmrsg73yg-2bb353f9e7dc`, 2026-07-19). Redeploying `36440e9` to put the four
+  post-`ead5da5` remediation commits live is the remaining owner-gated, cost-bearing step; rollback
+  target stays `pmi-kc-kb-demo-rmrrv992z-a2cc59bb11db` (`c87f54d`).
+
 ## v1 remediation: 65-finding readiness audit + all 22 decisions ruled (2026-07-20)
 
 A comprehensive adversarial v1 readiness audit produced 65 findings (0 Blocker, 5 High, 26 Medium, 34
