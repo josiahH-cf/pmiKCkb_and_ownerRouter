@@ -12,6 +12,13 @@ import { getFirebaseClientAuth, hasFirebaseBrowserConfig } from "@/lib/firebase/
 
 type SignInStatus = "checking" | "idle" | "redirecting" | "creating" | "error";
 
+// Shown when the server rejects the session because the account is not authorized for the internal app
+// (wrong hosted domain, unverified email, vendor identity, etc.). A 403 from POST /api/auth/session and
+// the page-guard `?error=forbidden` redirect both surface this same friendly copy, so the sign-in popup
+// path and the deep-link-guard path stay consistent instead of leaking the raw server error string.
+const UNAUTHORIZED_ACCOUNT_MESSAGE =
+  "This Google account is not authorized for PMI KC KB.";
+
 export function SignInPanel({
   allowedHostedDomain,
   initialError,
@@ -49,7 +56,12 @@ export function SignInPanel({
       });
 
       if (!response.ok) {
-        const errorMessage = await readErrorMessage(response);
+        // A 403 means the account is authenticated with Google but not authorized for the internal app;
+        // show the same friendly copy the page-guard forbidden redirect uses, not the raw server string.
+        const errorMessage =
+          response.status === 403
+            ? UNAUTHORIZED_ACCOUNT_MESSAGE
+            : await readErrorMessage(response);
         await signOut(getFirebaseClientAuth()).catch(() => undefined);
         isCompletingSession.current = false;
         setStatus("error");
@@ -210,7 +222,7 @@ function buttonLabel(status: SignInStatus) {
 
 function initialMessage(initialError: string | null | undefined, isConfigured: boolean) {
   if (initialError === "forbidden") {
-    return "This Google account is not authorized for PMI KC KB.";
+    return UNAUTHORIZED_ACCOUNT_MESSAGE;
   }
 
   if (!isConfigured) {

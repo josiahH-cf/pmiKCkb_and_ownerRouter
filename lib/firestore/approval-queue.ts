@@ -309,7 +309,9 @@ export async function transitionApprovalQueueItem(
       throw new EditableLayerError("This queue item is already closed.", 409);
     }
 
-    const { updates, action, reason, newState } = planTransition(actor, current, parsed);
+    const { updates, action, reason, newState } = planTransition(actor, current, parsed, {
+      requireHighRiskReason: true,
+    });
 
     await syncLinkedActionExecution(transaction, db, actor, current, parsed);
 
@@ -374,6 +376,7 @@ function planTransition(
   actor: AuthenticatedUser,
   current: ApprovalQueueItemRecord,
   input: ParsedTransitionApprovalQueueItemInput,
+  options: { requireHighRiskReason?: boolean } = {},
 ): TransitionPlan {
   switch (input.action) {
     case "approve": {
@@ -384,17 +387,29 @@ function planTransition(
           409,
         );
       }
-      if (current.risk === "High" && input.confirm_high_risk !== true) {
-        throw new EditableLayerError(
-          "High-risk approval requires explicit confirmation.",
-          400,
-        );
+      let reason: string | undefined;
+      if (current.risk === "High") {
+        if (input.confirm_high_risk !== true) {
+          throw new EditableLayerError(
+            "High-risk approval requires explicit confirmation.",
+            400,
+          );
+        }
+        // Defense in depth: a single High-risk approval must carry a plain-English reason, matching the
+        // client guard (ApprovalQueue.tsx) and the linked-execution path (syncLinkedActionExecution), so a
+        // direct API call that bypasses the UI can never record an un-reasoned High-risk approval. The
+        // reason is returned below so it is written to the append-only Activity trail. Bulk high-risk
+        // approval stays reason-optional by owner ruling (F-APPR-6, accepted as-is).
+        if (options.requireHighRiskReason) {
+          reason = requireReason(input.reason, "High-risk approval");
+        }
       }
       assertCanApprove(actor, current);
       return {
         updates: { status: "Approved", closed_at: serverTimestamp() },
         action: "approved",
         newState: "Approved",
+        ...(reason ? { reason } : {}),
       };
     }
     case "return": {

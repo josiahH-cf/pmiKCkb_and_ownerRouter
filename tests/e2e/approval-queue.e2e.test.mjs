@@ -82,7 +82,11 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("approval queue flows", ()
     const response = await client.sendJson(
       "PATCH",
       "/api/approval-queue/demo-queue-lease-renewals-owner-comms",
-      { action: "approve", confirm_high_risk: true },
+      {
+        action: "approve",
+        confirm_high_risk: true,
+        reason: "QA e2e: high-risk approval reason.",
+      },
     );
 
     expect(response.status).toBe(200);

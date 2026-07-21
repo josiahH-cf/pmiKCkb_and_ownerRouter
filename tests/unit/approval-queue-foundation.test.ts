@@ -249,10 +249,25 @@ describe("transitionApprovalQueueItem", () => {
       transitionApprovalQueueItem(approver, item.id, { action: "approve" }, db),
     ).rejects.toThrow(/High-risk approval requires explicit confirmation/);
 
+    // Defense in depth: a single High-risk approval must carry a plain-English reason server-side, not
+    // only client-side, so a direct API call that bypasses the UI cannot record an un-reasoned approval.
+    await expect(
+      transitionApprovalQueueItem(
+        approver,
+        item.id,
+        { action: "approve", confirm_high_risk: true },
+        db,
+      ),
+    ).rejects.toThrow(/High-risk approval requires a plain-English reason/);
+
     const approved = await transitionApprovalQueueItem(
       approver,
       item.id,
-      { action: "approve", confirm_high_risk: true },
+      {
+        action: "approve",
+        confirm_high_risk: true,
+        reason: "Owner direction confirmed; the exact preview matches the source values.",
+      },
       db,
     );
     expect(approved.status).toBe("Approved");

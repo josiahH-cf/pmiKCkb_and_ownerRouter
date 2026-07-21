@@ -131,7 +131,11 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
       const approve = await admin.sendJson(
         "PATCH",
         `/api/approval-queue/${queueItemId}`,
-        { action: "approve", confirm_high_risk: true },
+        {
+          action: "approve",
+          confirm_high_risk: true,
+          reason: "QA e2e: approve the pending process-definition queue item.",
+        },
       );
       expect(approve.status).toBe(200);
 
