@@ -39,6 +39,15 @@ export interface RenewalRecipientResolution {
   to?: string;
   /** Authoritative source pointer, e.g. `rentvine:lease:123:tenants[0].email`. Present with `to`. */
   recipientSourceRef?: string;
+  /**
+   * Additional authoritative CO-TENANT emails to Cc (F-LEASE-6 default: address ALL tenants on the lease
+   * when the single intended recipient is unconfirmed). Only populated for the TENANT channel, only from
+   * the live lease's own tenant objects (never invented), distinct from `to`. Empty for a single-tenant
+   * lease and for the owner channel.
+   */
+  cc?: string[];
+  /** Authoritative source pointers for each `cc` entry, index-aligned with `cc`. */
+  ccSourceRefs?: string[];
   verified: boolean;
   /** Non-empty when no authoritative email was found. The caller MUST NOT invent a recipient. */
   missing: string[];
@@ -57,11 +66,31 @@ export function resolveRenewalRecipient(input: {
   const fieldMap = input.fieldMap ?? DEFAULT_RENEWAL_RECIPIENT_FIELD_MAP;
   const leaseLabel = leaseLabelFor(lease);
 
-  const hit =
-    channel === "tenant"
-      ? findEmail(tenantContainers(lease, fieldMap), leaseLabel)
-      : findEmail(ownerContainers(lease, fieldMap), leaseLabel);
+  if (channel === "tenant") {
+    // F-LEASE-6 default (interim, pending Dan's confirmation of tenant primacy): address ALL tenants on the
+    // lease. The FIRST authoritative tenant email is the primary `to`; every OTHER distinct tenant email is
+    // an authoritative Cc. All come from the lease's own tenant objects — never invented.
+    const hits = collectEmails(tenantContainers(lease, fieldMap), leaseLabel);
+    if (hits.length === 0) {
+      return { channel, verified: false, missing: ["tenant email"] };
+    }
+    const [primary, ...rest] = hits;
+    return {
+      channel,
+      to: primary.email,
+      recipientSourceRef: primary.sourceRef,
+      ...(rest.length
+        ? {
+            cc: rest.map((hit) => hit.email),
+            ccSourceRefs: rest.map((hit) => hit.sourceRef),
+          }
+        : {}),
+      verified: true,
+      missing: [],
+    };
+  }
 
+  const hit = findEmail(ownerContainers(lease, fieldMap), leaseLabel);
   if (hit) {
     return {
       channel,
@@ -71,7 +100,7 @@ export function resolveRenewalRecipient(input: {
       missing: [],
     };
   }
-  return { channel, verified: false, missing: [`${channel} email`] };
+  return { channel, verified: false, missing: ["owner email"] };
 }
 
 interface EmailSearch {
@@ -87,14 +116,19 @@ function tenantContainers(
   fieldMap: RenewalRecipientFieldMap,
 ): EmailSearch[] {
   const searches: EmailSearch[] = [];
-  const firstTenant = firstElementObject(lease.tenants);
-  if (firstTenant) {
-    searches.push({
-      obj: firstTenant,
-      prefix: "tenants[0]",
-      keys: fieldMap.scopedEmailKeys,
-    });
-  }
+  // EVERY element of lease.tenants[] (not just [0]) so co-tenants can be addressed (F-LEASE-6). Each
+  // carries its own index in the source ref, keeping every resolved email individually attributable.
+  const tenants = Array.isArray(lease.tenants) ? lease.tenants : [];
+  tenants.forEach((element, index) => {
+    const obj = asObject(element);
+    if (obj) {
+      searches.push({
+        obj,
+        prefix: `tenants[${index}]`,
+        keys: fieldMap.scopedEmailKeys,
+      });
+    }
+  });
   const tenant = asObject(lease.tenant);
   if (tenant)
     searches.push({ obj: tenant, prefix: "tenant", keys: fieldMap.scopedEmailKeys });
@@ -156,6 +190,31 @@ function findEmail(
     }
   }
   return null;
+}
+
+// Every DISTINCT authoritative email across the search containers, in container order (one email per
+// container, its first matching key — mirroring findEmail). Deduplicated by email so the same person listed
+// twice is addressed once. Order fixes the primary `to` (first) vs the Cc list (the rest).
+function collectEmails(
+  searches: EmailSearch[],
+  leaseLabel: string,
+): { email: string; sourceRef: string }[] {
+  const seen = new Set<string>();
+  const hits: { email: string; sourceRef: string }[] = [];
+  for (const search of searches) {
+    for (const key of search.keys) {
+      const email = normalizeEmail(search.obj[key]);
+      if (email) {
+        if (!seen.has(email)) {
+          seen.add(email);
+          const path = search.prefix ? `${search.prefix}.${key}` : key;
+          hits.push({ email, sourceRef: `rentvine:${leaseLabel}:${path}` });
+        }
+        break;
+      }
+    }
+  }
+  return hits;
 }
 
 function leaseLabelFor(lease: RawLease): string {

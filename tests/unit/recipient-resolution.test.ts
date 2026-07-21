@@ -23,6 +23,71 @@ describe("resolveRenewalRecipient", () => {
     });
   });
 
+  it("addresses ALL tenants: primary To = tenants[0], co-tenants become authoritative Cc (F-LEASE-6)", () => {
+    const result = resolveRenewalRecipient({
+      channel: "tenant",
+      lease: {
+        leaseID: 4821,
+        tenants: [
+          { email: "Primary@Example.com" },
+          { email: "Co.Tenant@Example.com" },
+          { emailAddress: "third@example.com" },
+        ],
+      },
+    });
+    expect(result.to).toBe("primary@example.com");
+    expect(result.recipientSourceRef).toBe("rentvine:lease:4821:tenants[0].email");
+    expect(result.cc).toEqual(["co.tenant@example.com", "third@example.com"]);
+    expect(result.ccSourceRefs).toEqual([
+      "rentvine:lease:4821:tenants[1].email",
+      "rentvine:lease:4821:tenants[2].emailAddress",
+    ]);
+  });
+
+  it("emits no Cc for a single-tenant lease", () => {
+    const result = resolveRenewalRecipient({
+      channel: "tenant",
+      lease: { leaseID: 1, tenants: [{ email: "only@example.com" }] },
+    });
+    expect(result.to).toBe("only@example.com");
+    expect(result.cc).toBeUndefined();
+    expect(result.ccSourceRefs).toBeUndefined();
+  });
+
+  it("deduplicates a co-tenant listed with the same email as the primary", () => {
+    const result = resolveRenewalRecipient({
+      channel: "tenant",
+      lease: {
+        leaseID: 2,
+        tenants: [{ email: "same@example.com" }, { email: "Same@example.com" }],
+      },
+    });
+    expect(result.to).toBe("same@example.com");
+    expect(result.cc).toBeUndefined();
+  });
+
+  it("promotes the first tenant WITH an email to primary when tenants[0] has none", () => {
+    const result = resolveRenewalRecipient({
+      channel: "tenant",
+      lease: {
+        leaseID: 3,
+        tenants: [{ name: "No Email" }, { email: "second@example.com" }],
+      },
+    });
+    expect(result.to).toBe("second@example.com");
+    expect(result.recipientSourceRef).toBe("rentvine:lease:3:tenants[1].email");
+    expect(result.cc).toBeUndefined();
+  });
+
+  it("never emits a Cc on the owner channel", () => {
+    const result = resolveRenewalRecipient({
+      channel: "owner",
+      lease: { leaseID: 4, owner: { email: "owner@example.com" } },
+    });
+    expect(result.cc).toBeUndefined();
+    expect(result.ccSourceRefs).toBeUndefined();
+  });
+
   it("resolves an owner email from lease.owner and lowercases + trims it", () => {
     const result = resolveRenewalRecipient({
       channel: "owner",

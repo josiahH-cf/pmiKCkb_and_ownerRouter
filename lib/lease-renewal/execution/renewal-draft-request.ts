@@ -39,6 +39,11 @@ export interface RenewalNoticeDraftActionInput {
   /** The VERIFIED recipient from resolveRenewalRecipient — a Needs-Verification result must not reach here.
    *  `channel` is carried so the assembly refuses an owner recipient on a tenant notice (and vice-versa). */
   recipient: { channel: RenewalRecipientChannel; to: string; sourceRef: string };
+  /**
+   * Additional authoritative CO-TENANT Cc recipients (F-LEASE-6), each resolved from the live lease with
+   * its own source ref (index-aligned). Omitted for a single-tenant lease and the owner channel.
+   */
+  cc?: { emails: readonly string[]; sourceRefs: readonly string[] };
   /** The authenticated sender mailbox that will hold the unsent draft. */
   mailbox: { email: string; sourceRef: string };
   subject: string;
@@ -66,9 +71,13 @@ export function buildRenewalNoticeDraftAction(
       `The resolved ${input.recipient.channel} recipient cannot be used on a ${input.channel} renewal notice.`,
     );
   }
+  if (input.cc && input.cc.emails.length !== input.cc.sourceRefs.length) {
+    throw new Error("Each renewal Cc recipient requires an index-aligned source ref.");
+  }
   const body = input.body.startsWith(`${DRAFT_BANNER}\n\n`)
     ? input.body
     : `${DRAFT_BANNER}\n\n${input.body}`;
+  const cc = input.cc?.emails.length ? input.cc : undefined;
   return {
     dataMode: "live",
     workflowId: input.workflowId,
@@ -79,6 +88,12 @@ export function buildRenewalNoticeDraftAction(
       template_ref: input.templateRef,
       from: input.mailbox.email,
       to: input.recipient.to,
+      ...(cc
+        ? {
+            cc: cc.emails.join(", "),
+            cc_source_refs: cc.sourceRefs.join(", "),
+          }
+        : {}),
       subject: input.subject,
       body,
       recipient_source_ref: input.recipient.sourceRef,
@@ -131,6 +146,43 @@ export function assertAuthoritativeRenewalRecipient(action: ExternalActionInput)
       "blocked",
     );
   }
+  // Every Cc co-tenant is held to the SAME bar as the primary recipient: routable and authoritatively
+  // sourced, so a sample/test/fixture address can never ride along on a real draft (F-LEASE-6).
+  const ccEmails = splitList(action.values.cc);
+  const ccSourceRefs = splitList(action.values.cc_source_refs);
+  if (ccEmails.length !== ccSourceRefs.length) {
+    throw new ExternalExecutionError(
+      "Each Cc recipient requires an index-aligned authoritative source.",
+      "blocked",
+    );
+  }
+  for (const ccEmail of ccEmails) {
+    if (NON_ROUTABLE_RECIPIENT.test(ccEmail.toLowerCase())) {
+      throw new ExternalExecutionError(
+        "Refusing to create a real draft for a non-routable (sample/test) Cc recipient address.",
+        "blocked",
+      );
+    }
+  }
+  for (const ccSource of ccSourceRefs) {
+    const normalized = ccSource.toLowerCase();
+    if (
+      !normalized ||
+      NON_AUTHORITATIVE_SOURCE_PREFIXES.some((prefix) => normalized.startsWith(prefix))
+    ) {
+      throw new ExternalExecutionError(
+        "Refusing to create a real draft with a Cc recipient that has no authoritative source.",
+        "blocked",
+      );
+    }
+  }
+}
+
+function splitList(value: unknown): string[] {
+  return String(value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 /**

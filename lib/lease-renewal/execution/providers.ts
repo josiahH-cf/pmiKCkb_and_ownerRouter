@@ -62,6 +62,8 @@ export interface WorkflowMessagePayload {
   operation: WorkflowMessageOperation;
   artifactRef?: string;
   recipient?: string;
+  /** Comma-joined authoritative Cc recipients (F-LEASE-6 co-tenants), carried verbatim into the readback. */
+  cc?: string;
   sender?: string;
   subject?: string;
   body?: string;
@@ -631,6 +633,7 @@ function workflowMessagePayload(
     operation,
     ...(text(input, "template_ref") ? { artifactRef: text(input, "template_ref") } : {}),
     ...(recipient ? { recipient } : {}),
+    ...(text(input, "cc") ? { cc: text(input, "cc") } : {}),
     ...(text(input, "from") || text(input, "sender")
       ? { sender: text(input, "from") ?? text(input, "sender") }
       : {}),

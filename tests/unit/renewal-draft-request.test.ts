@@ -99,6 +99,38 @@ describe("buildRenewalNoticeDraftAction", () => {
       }),
     ).toThrow(/owner recipient cannot be used on a tenant/i);
   });
+
+  it("carries authoritative co-tenant Cc recipients and their sources (F-LEASE-6)", () => {
+    const action = buildRenewalNoticeDraftAction({
+      ...tenantInput,
+      cc: {
+        emails: ["a@northend-apts.com", "b@northend-apts.com"],
+        sourceRefs: [
+          "rentvine:lease:42:tenants[1].email",
+          "rentvine:lease:42:tenants[2].email",
+        ],
+      },
+    });
+    expect(action.values.cc).toBe("a@northend-apts.com, b@northend-apts.com");
+    expect(action.values.cc_source_refs).toBe(
+      "rentvine:lease:42:tenants[1].email, rentvine:lease:42:tenants[2].email",
+    );
+  });
+
+  it("omits Cc values entirely for a single-tenant action", () => {
+    const action = buildRenewalNoticeDraftAction(tenantInput);
+    expect(action.values.cc).toBeUndefined();
+    expect(action.values.cc_source_refs).toBeUndefined();
+  });
+
+  it("rejects mismatched Cc email/source-ref counts", () => {
+    expect(() =>
+      buildRenewalNoticeDraftAction({
+        ...tenantInput,
+        cc: { emails: ["a@northend-apts.com"], sourceRefs: [] },
+      }),
+    ).toThrow(/index-aligned source ref/i);
+  });
 });
 
 describe("assertAuthoritativeRenewalRecipient", () => {
@@ -147,6 +179,40 @@ describe("assertAuthoritativeRenewalRecipient", () => {
       /authoritative recipient source/i,
     );
   });
+
+  it("passes authoritative, routable Cc recipients (F-LEASE-6)", () => {
+    const action = buildRenewalNoticeDraftAction({
+      ...tenantInput,
+      cc: {
+        emails: ["co@northend-apts.com"],
+        sourceRefs: ["rentvine:lease:42:tenants[1].email"],
+      },
+    });
+    expect(() => assertAuthoritativeRenewalRecipient(action)).not.toThrow();
+  });
+
+  it("holds Cc recipients to the routable bar (a sample/test Cc blocks the whole draft)", () => {
+    const action = buildRenewalNoticeDraftAction({
+      ...tenantInput,
+      cc: {
+        emails: ["co@example.com"],
+        sourceRefs: ["rentvine:lease:42:tenants[1].email"],
+      },
+    });
+    expect(() => assertAuthoritativeRenewalRecipient(action)).toThrow(
+      /non-routable.*cc/i,
+    );
+  });
+
+  it("holds Cc recipients to the authoritative-source bar", () => {
+    const action = buildRenewalNoticeDraftAction({
+      ...tenantInput,
+      cc: { emails: ["co@northend-apts.com"], sourceRefs: ["sample:fixture"] },
+    });
+    expect(() => assertAuthoritativeRenewalRecipient(action)).toThrow(
+      /Cc recipient that has no authoritative source/i,
+    );
+  });
 });
 
 describe("executeRenewalNoticeDraft", () => {
@@ -163,6 +229,26 @@ describe("executeRenewalNoticeDraft", () => {
     });
     expect(receipt.providerRef).toBe("draft-assembled-1");
     expect(receipt.outcome).toBe("succeeded");
+  });
+
+  it("passes authoritative co-tenant Cc addresses through to the draft (F-LEASE-6)", async () => {
+    const { client, createDraft } = fakeClient();
+    const action = buildRenewalNoticeDraftAction({
+      ...tenantInput,
+      cc: {
+        emails: ["cotenant@northend-apts.com"],
+        sourceRefs: ["rentvine:lease:42:tenants[1].email"],
+      },
+    });
+
+    await executeRenewalNoticeDraft(client, action);
+
+    expect(createDraft).toHaveBeenCalledWith({
+      to: "resident@northend-apts.com",
+      cc: ["cotenant@northend-apts.com"],
+      subject: "Your lease renewal",
+      body: `${DRAFT_BANNER}\n\nAn owner-approved renewal offer.`,
+    });
   });
 
   it("refuses a non-authoritative recipient by default, and never touches Gmail", async () => {

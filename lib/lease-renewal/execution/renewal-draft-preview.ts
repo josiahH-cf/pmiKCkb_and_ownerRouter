@@ -49,7 +49,7 @@ export type RenewalDraftPreview =
   | {
       status: "ready";
       channel: RenewalRecipientChannel;
-      recipient: { to: string; sourceRef: string };
+      recipient: { to: string; sourceRef: string; cc?: string[] };
       subject: string;
       /** The composed body, with the review-before-sending banner applied. */
       body: string;
@@ -133,6 +133,7 @@ export function buildRenewalNoticeDraftPreview(
     };
   }
 
+  const ccEmails = resolution.cc ?? [];
   const action = buildRenewalNoticeDraftAction({
     workflowId: input.workflowId,
     actionId: input.actionId,
@@ -143,6 +144,9 @@ export function buildRenewalNoticeDraftPreview(
       to: resolution.to,
       sourceRef: resolution.recipientSourceRef,
     },
+    ...(ccEmails.length
+      ? { cc: { emails: ccEmails, sourceRefs: resolution.ccSourceRefs ?? [] } }
+      : {}),
     mailbox: input.mailbox,
     subject,
     body,
@@ -153,7 +157,11 @@ export function buildRenewalNoticeDraftPreview(
   return {
     status: "ready",
     channel: input.channel,
-    recipient: { to: resolution.to, sourceRef: resolution.recipientSourceRef },
+    recipient: {
+      to: resolution.to,
+      sourceRef: resolution.recipientSourceRef,
+      ...(ccEmails.length ? { cc: ccEmails } : {}),
+    },
     subject,
     body: String(action.values.body),
     action,

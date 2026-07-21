@@ -33,6 +33,7 @@ export interface RenewalDraftGmailClient {
   readonly subject: string;
   createDraft(input: {
     to: string;
+    cc?: string[];
     subject: string;
     body: string;
   }): Promise<{ draftId: string }>;
@@ -70,7 +71,20 @@ export class LiveRenewalGmailDraftProvider implements WorkflowMessageProvider {
       );
     }
 
-    const { draftId } = await this.client.createDraft({ to: recipient, subject, body });
+    // Co-tenant Cc recipients (F-LEASE-6), already validated authoritative by
+    // assertAuthoritativeRenewalRecipient before the executor ran. Carried as a comma-joined string on the
+    // payload; split back to addresses only to hand Gmail the draft.
+    const cc = (input.cc ?? "")
+      .split(",")
+      .map((address) => address.trim())
+      .filter(Boolean);
+
+    const { draftId } = await this.client.createDraft({
+      to: recipient,
+      ...(cc.length ? { cc } : {}),
+      subject,
+      body,
+    });
 
     // Echo the exact reviewed payload back as the readback. A createDraft that succeeds with these
     // fields IS faithful to them; the executor re-asserts readback == expected as a guard against a

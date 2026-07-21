@@ -68,6 +68,34 @@ describe("buildRenewalNoticeDraftPreview", () => {
     );
   });
 
+  it("surfaces co-tenant Cc on a multi-tenant lease, To and Cc both authoritative (F-LEASE-6)", () => {
+    const preview = buildRenewalNoticeDraftPreview({
+      ...common,
+      channel: "tenant",
+      lease: {
+        leaseID: 7,
+        tenants: [
+          { name: "Ada Rowan", email: "tenant7@northend-apts.com" },
+          { name: "Ben Rowan", email: "cotenant7@northend-apts.com" },
+        ],
+      },
+      decision: tenantDecision,
+    });
+
+    expect(preview.status).toBe("ready");
+    if (preview.status !== "ready") return;
+    expect(preview.recipient).toEqual({
+      to: "tenant7@northend-apts.com",
+      sourceRef: "rentvine:lease:7:tenants[0].email",
+      cc: ["cotenant7@northend-apts.com"],
+    });
+    expect(preview.action.values.to).toBe("tenant7@northend-apts.com");
+    expect(preview.action.values.cc).toBe("cotenant7@northend-apts.com");
+    expect(preview.action.values.cc_source_refs).toBe(
+      "rentvine:lease:7:tenants[1].email",
+    );
+  });
+
   it("produces a ready owner preview from the joined property.owner email", () => {
     const preview = buildRenewalNoticeDraftPreview({
       ...common,

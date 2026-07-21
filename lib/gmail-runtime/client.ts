@@ -153,7 +153,9 @@ export class GmailRuntimeClient {
 
   /** Create an unsent draft. gmail.compose is send-capable; this method itself never sends. */
   async createDraft(
-    input: GmailOutgoingMessage | { to: string; subject: string; body: string },
+    input:
+      | GmailOutgoingMessage
+      | { to: string; cc?: string[]; subject: string; body: string },
   ): Promise<CreatedDraft> {
     let outgoing: GmailOutgoingMessage | undefined;
     let raw: string;

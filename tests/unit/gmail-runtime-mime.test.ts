@@ -5,6 +5,7 @@ import {
   parseGmailMessage,
   parseGmailThread,
 } from "@/lib/gmail-runtime/mime";
+import { encodeRawDraft } from "@/lib/gmail-runtime/raw-message";
 import { GMAIL_RUNTIME_LIMITS } from "@/lib/gmail-runtime/types";
 
 const encoded = (value: string) => Buffer.from(value, "utf8").toString("base64url");
@@ -84,5 +85,49 @@ describe("defensive Gmail MIME parsing (AC-S19-3)", () => {
       thread.messages.reduce((total, item) => total + item.bodyText.length, 0),
     ).toBeLessThanOrEqual(GMAIL_RUNTIME_LIMITS.maxThreadBodyCharacters);
     expect(thread.truncated).toBe(true);
+  });
+});
+
+describe("encodeRawDraft Cc header (F-LEASE-6)", () => {
+  const decode = (raw: string) => Buffer.from(raw, "base64url").toString("utf8");
+
+  it("emits a Cc header with all co-tenant addresses when cc is present", () => {
+    const raw = encodeRawDraft({
+      to: "primary@northend-apts.com",
+      cc: ["co1@northend-apts.com", "co2@northend-apts.com"],
+      subject: "Your lease renewal",
+      body: "Body",
+      from: "workflow@pmikcmetro.com",
+    });
+    const text = decode(raw);
+    expect(text).toContain("To: primary@northend-apts.com");
+    expect(text).toContain("Cc: co1@northend-apts.com, co2@northend-apts.com");
+  });
+
+  it("emits no Cc header when cc is absent or empty", () => {
+    const withoutCc = decode(
+      encodeRawDraft({ to: "only@northend-apts.com", subject: "S", body: "B" }),
+    );
+    expect(withoutCc).not.toContain("Cc:");
+    const emptyCc = decode(
+      encodeRawDraft({
+        to: "only@northend-apts.com",
+        cc: ["   "],
+        subject: "S",
+        body: "B",
+      }),
+    );
+    expect(emptyCc).not.toContain("Cc:");
+  });
+
+  it("rejects a Cc value that smuggles a header break", () => {
+    expect(() =>
+      encodeRawDraft({
+        to: "a@northend-apts.com",
+        cc: ["b@northend-apts.com\r\nBcc: sneaky@evil.com"],
+        subject: "S",
+        body: "B",
+      }),
+    ).toThrow(/invalid header/i);
   });
 });

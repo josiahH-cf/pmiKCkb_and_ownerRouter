@@ -36,13 +36,18 @@ export function encodeRawMessage(input: GmailOutgoingMessage): string {
 // Backward-compatible helper for the existing renewal unsent-draft action.
 export function encodeRawDraft(input: {
   to: string;
+  cc?: readonly string[];
   subject: string;
   body: string;
   from?: string;
 }): string {
+  const cc = (input.cc ?? []).filter((value) => value.trim());
   const lines = [
     ...(input.from ? [`From: ${safeHeader(input.from, "From")}`] : []),
     `To: ${safeHeader(input.to, "To")}`,
+    ...(cc.length
+      ? [`Cc: ${cc.map((value) => safeHeader(value, "Cc")).join(", ")}`]
+      : []),
     `Subject: ${safeHeader(input.subject, "Subject")}`,
     "MIME-Version: 1.0",
     'Content-Type: text/plain; charset="UTF-8"',
