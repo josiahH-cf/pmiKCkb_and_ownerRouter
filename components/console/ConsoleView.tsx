@@ -49,8 +49,10 @@ function toDotStatus(state: SpaceCardState): ConnectionStatus {
  * Assembles three zones from ONE read-only, non-fatal gather: an always-visible action deck (what
  * needs a decision / connections to set up / space coverage), the AI question + dictation box, and a
  * read-only strip of the live processes. Editors additionally get the process picker for a SAFE
- * simulation (no system-of-record write). Nothing here executes an approval, send, or write — those
- * stay on their own gated surfaces, reached via each card's deep link.
+ * simulation (no system-of-record write). The one inline exception is the deck's Approve control:
+ * for an Approver/Admin, a queue_item row records the app-plane approval decision in place via the
+ * existing item PATCH (ConsoleActionDeck A4). That decision executes no external send and no
+ * system-of-record write; every other action stays on its own gated surface, reached via a deep link.
  */
 export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
   const consoleModes = resolveConsoleDataModes();
