@@ -31,15 +31,19 @@ context, and recommendations, read `docs/whats-next.md`.
   (Firestore backups/PITR before real client data), budget kill-switch and intake-salt provisioning,
   and two owner answers (Q-CUTOVER-POSTURE; whether the primary tenant is always `tenants[0]`, which
   would revert F-LEASE-6).
-- **Production is current with `main`.** Cloud Run `pmi-kc-kb-demo` serves the deployed remediation
-  build (`f4330ec`, docs-only atop the byte-identical app of `36440e9`) as revision
-  `pmi-kc-kb-demo-rmruogj57-577c8d7b9d1a` at 100% traffic — owner-authorized
-  `npm run deploy:demo -- --budget-confirmed` on 2026-07-21 with a fresh ADC session. Auth boundary
-  HTTP-smoked green: unauth `/`→307, `/sign-in`→200, `/admin`→307, `/api/ask`→405. The retained
-  rollback revision is `pmi-kc-kb-demo-rmrsg73yg-2bb353f9e7dc` (served `ead5da5`).
-- **Owner self-test is the current human step.** The app is built and green; the owner now walks
-  through the macro features by hand. The click-by-click guide is
-  `docs/manual-qa-walkthrough-2026-07-21.md`.
+- **Production is current with `main` (includes the two shipped QA fixes).** Cloud Run `pmi-kc-kb-demo`
+  serves `main` at `8243b88` (the browser-QA pass: the P3.2 friendly sign-in refusal copy + the P6.3
+  server-enforced reason for single High-risk approvals, plus the annotated walkthrough and the
+  unconfirmed/blocked companion doc) as revision `pmi-kc-kb-demo-rmrv6motb-be0e1c7937a4` at 100% traffic —
+  owner-authorized `npm run deploy:demo -- --budget-confirmed` on 2026-07-21 with a fresh ADC session.
+  Auth boundary HTTP-smoked green: unauth `/`→307, `/sign-in`→200, `/admin`→307, `/approval-queue`→307,
+  `/api/ask`→405; demo auth confirmed OFF in prod (`POST /api/auth/demo`→403, no demo button). The
+  retained rollback revision is `pmi-kc-kb-demo-rmruogj57-577c8d7b9d1a` (served the prior `f4330ec` build).
+- **Owner self-test is the current human step.** The app is built, green, and deployed; the owner now
+  walks the macro features by hand. The click-by-click guide is `docs/manual-qa-walkthrough-2026-07-21.md`
+  (now annotated with the automated `model-result` per process); the short list of items the automated
+  pass could not confirm (real providers / human inputs / prod config) plus how to verify the two fixes
+  is `docs/manual-qa-unconfirmed-and-blocked-2026-07-21.md`.
 
 ## Safe Stop Boundary
 
