@@ -41,10 +41,12 @@ two disagree, this status log wins and `docs/loop-state.md` is corrected.
   open item = finding + context + recommendation + the owner input that unblocks it) and routed from
   `AGENTS.md`; a by-hand `docs/manual-qa-walkthrough-2026-07-21.md` created so the owner can click
   through every macro feature and confirm the built processes work.
-- Production is behind `main`: Cloud Run `pmi-kc-kb-demo` still serves `ead5da5`
-  (`pmi-kc-kb-demo-rmrsg73yg-2bb353f9e7dc`, 2026-07-19). Redeploying `36440e9` to put the four
-  post-`ead5da5` remediation commits live is the remaining owner-gated, cost-bearing step; rollback
-  target stays `pmi-kc-kb-demo-rmrrv992z-a2cc59bb11db` (`c87f54d`).
+- Deployed 2026-07-21: `main` was redeployed to Cloud Run `pmi-kc-kb-demo` via
+  `npm run deploy:demo -- --budget-confirmed` (owner-authorized, fresh ADC session). The new revision
+  `pmi-kc-kb-demo-rmruogj57-577c8d7b9d1a` serves 100% traffic; the auth boundary was HTTP-smoked green
+  (unauth `/`→307, `/sign-in`→200, `/admin`→307, `/api/ask`→405). The prior
+  `pmi-kc-kb-demo-rmrsg73yg-2bb353f9e7dc` (`ead5da5`) is retained as the rollback target. Production is
+  now current with `main` (the completed remediation, incl. the double-send fix and F-LEASE-6).
 
 ## v1 remediation: 65-finding readiness audit + all 22 decisions ruled (2026-07-20)
 

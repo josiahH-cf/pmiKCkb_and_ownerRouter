@@ -152,12 +152,11 @@ Acceptance:
 Status: in progress — the application is built and the v1 readiness remediation is complete on every
 testable code front. `main` = `36440e9` (2,555 tests green, gate clean); the 65-finding audit is fully
 worked (all 22 owner decisions ruled, every self-contained code finding fixed and adversarially
-verified, a blind 15-agent re-verify held every closed finding). Two P8 gates remain, both human/owner
-steps rather than code: (1) an owner-authorized production redeploy — Cloud Run currently serves the
-earlier `ead5da5` (`pmi-kc-kb-demo-rmrsg73yg-2bb353f9e7dc`) and `main` is four remediation commits
-ahead, so a single `npm run deploy:demo -- --budget-confirmed` puts the remediation live (rollback
-target `pmi-kc-kb-demo-rmrrv992z-a2cc59bb11db` / `c87f54d`); and (2) the signed-in by-hand human
-walkthrough of every macro feature, guided by `docs/manual-qa-walkthrough-2026-07-21.md`. The
+verified, a blind 15-agent re-verify held every closed finding). The remediation is now live in production: `main` was deployed to Cloud Run `pmi-kc-kb-demo` on
+2026-07-21 (revision `pmi-kc-kb-demo-rmruogj57-577c8d7b9d1a`, 100% traffic, auth boundary HTTP-smoked
+green), with the prior `pmi-kc-kb-demo-rmrsg73yg-2bb353f9e7dc` (`ead5da5`) retained as the rollback
+target. One P8 gate remains, a human step rather than code: the signed-in by-hand human walkthrough of
+every macro feature, guided by `docs/manual-qa-walkthrough-2026-07-21.md`. The
 prioritized owner-gated/infra backlog with recommendations is `docs/whats-next.md`.
 
 Acceptance:

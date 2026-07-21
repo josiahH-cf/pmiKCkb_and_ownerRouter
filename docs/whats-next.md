@@ -24,7 +24,7 @@ contract; sample/test data never becomes a real draft or send; staff/cloud ident
 
 | #   | Item                                                          | Type              | Blocked on                              | Default recommendation                                       |
 | --- | ------------------------------------------------------------- | ----------------- | --------------------------------------- | ------------------------------------------------------------ |
-| 1.1 | Redeploy `main@36440e9` to production                         | Deploy            | Your authorization + fresh gcloud login | Deploy now (puts the remediation live)                       |
+| 1.1 | Redeploy `main` to production (DONE 2026-07-21)               | Deploy            | Your authorization + fresh gcloud login | Done — prod serves it at rev rmruogj57                       |
 | 1.2 | Q-CUTOVER-POSTURE: keep Test lane vs strip to production-only | Decision          | Your ruling                             | Keep the Test lane; scope teardown as its own reviewed cycle |
 | 1.3 | F-LEASE-6: is the primary tenant always `tenants[0]`?         | Decision (Dan)    | One answer                              | Keep the all-tenants-Cc behavior we shipped                  |
 | 1.4 | F-LEASE-3: confirm live RentVine field names                  | Decision (Dan)    | One answer                              | Confirm before any live renewal click-through                |
@@ -40,23 +40,17 @@ contract; sample/test data never becomes a real draft or send; staff/cloud ident
 
 ## 1. Decisions only you can make (these unblock the most)
 
-### 1.1 Authorize the production redeploy
+### 1.1 Production redeploy — DONE (2026-07-21)
 
-- **Finding.** Cloud Run `pmi-kc-kb-demo` serves `ead5da5` (revision
-  `pmi-kc-kb-demo-rmrsg73yg-2bb353f9e7dc`, deployed 2026-07-19). `main` is four remediation commits
-  ahead (`0363d9a`, `aa92c38`, `4d53418`, `36440e9`). Production is safe but does not yet carry the
-  concurrent-pending double-send fix or the F-LEASE-6 all-tenants Cc.
-- **Context.** The deploy is one command, `npm run deploy:demo -- --budget-confirmed`. It is
-  cost-bearing (a Cloud Build) and outward-facing, and on this managed org gcloud reauth is
-  interactive-only — the agent can run the deploy non-interactively **only while your session login is
-  fresh** (`npm run auth:session` earlier in the session). The agent checks `preflight:adc` first and
-  hands you the exact command if the login is stale.
-- **Recommendation.** Deploy. It only moves already-verified, green code forward; the rollback target
-  (`pmi-kc-kb-demo-rmrrv992z-a2cc59bb11db` / `c87f54d`) is retained, and the auth boundary is HTTP-smoked
-  after.
-- **What I need from you.** A "yes, deploy" (and, if the login is stale, run `npm run auth:session` in
-  your terminal first). I will capture the new serving + rollback revisions and record the checkpoint in
-  `docs/facts.md` + `docs/status.md`.
+- **Status.** Done. `main` was redeployed to Cloud Run `pmi-kc-kb-demo` on 2026-07-21 via
+  `npm run deploy:demo -- --budget-confirmed` (owner-authorized, fresh ADC session). Production now
+  serves the completed remediation build (including the concurrent-pending double-send fix and the
+  F-LEASE-6 all-tenants Cc) as revision `pmi-kc-kb-demo-rmruogj57-577c8d7b9d1a` at 100% traffic.
+- **Verification.** Auth boundary HTTP-smoked green: unauth `/`→307, `/sign-in`→200, `/admin`→307,
+  `/api/ask`→405. The retained rollback target is the prior revision
+  `pmi-kc-kb-demo-rmrsg73yg-2bb353f9e7dc` (served `ead5da5`).
+- **Next deploy.** Only needed when the next owner-approved change lands: same command, after a fresh
+  `preflight:adc` check.
 
 ### 1.2 Q-CUTOVER-POSTURE — keep the Test lane, or strip to a production-only app
 
