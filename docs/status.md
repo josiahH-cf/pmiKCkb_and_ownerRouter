@@ -11,6 +11,25 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Shipped the two QA findings + redeploy (2026-07-21)
+
+- Owner approved shipping both surfaced findings from the QA pass (entry below). Both fixed in the
+  `ui-ux-overhaul` worktree, full gate green (typecheck, **2557** unit tests across 354 files, lint 0
+  errors / 13 known warnings, prettier, verify:copy-voice / falsification / context-freshness), then
+  ff-merged to `main` and redeployed to Cloud Run:
+  - **P3.2** — `SignInPanel.finishSignIn` now maps a 403 session response to the friendly
+    "This Google account is not authorized for PMI KC KB." (the same copy the page-guard forbidden
+    redirect uses), instead of leaking the raw "Google Workspace hosted domain is not allowed." server
+    string. New component test `tests/unit/sign-in-panel.test.tsx`.
+  - **P6.3** — `planTransition` now requires a plain-English reason for a **single** High-risk
+    approval-queue approval (server-side, matching the client guard and the linked-execution path) and
+    writes it to the Activity trail. Bulk high-risk approval stays reason-optional by owner ruling
+    (F-APPR-6). Updated `approval-queue-foundation.test.ts` + two e2e approvals.
+- A focused companion doc lists everything the automated pass could not confirm (blocked on providers /
+  human inputs / prod config) plus how to verify these two fixes:
+  `docs/manual-qa-unconfirmed-and-blocked-2026-07-21.md`.
+- Serving checkpoint recorded in `docs/facts.md` after the redeploy.
+
 ## Browser QA audit-and-fix pass over the manual walkthrough (2026-07-21)
 
 - Ran `docs/meta-prompts/qa-audit-and-fix.md`: drove every process in
