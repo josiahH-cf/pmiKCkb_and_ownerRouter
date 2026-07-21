@@ -93,6 +93,8 @@ at 1234 Oak St renew?"**), on the left of the two-column panel.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Verified Source banner, grounded Answer, Handling Steps, Sources, and the review-before-sending draft block all rendered as specified.
 
 ### P1.2 — Get an honest "no source" answer (this is a feature) ✅
 
@@ -113,6 +115,8 @@ at 1234 Oak St renew?"**), on the left of the two-column panel.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Honest 'No Reliable Source Found' with the exact scaffold text and a Capture Task block; no invented answer.
 
 ⚠ Known gap: the "…in the scaffold yet" wording is honest but reflects that the Ask engine is still
 scaffold/demo-backed for many questions.
@@ -134,6 +138,8 @@ scaffold/demo-backed for many questions.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Client blocks empty and too-short input (min 3 chars); server rejects a too-short question with a 400 'Invalid Ask request.'
 
 ### P1.4 — Too many questions is rate-limited (error probe) ✅
 
@@ -151,6 +157,8 @@ scaffold/demo-backed for many questions.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: A burst of 20 returned 15 successes plus 5 rate-limited 429s with the exact 'Too many questions right now' message.
 
 ### P1.5 — Slash input is treated as a plain question (expectation-setter)
 
@@ -168,6 +176,8 @@ scaffold/demo-backed for many questions.
 
 - [ ] works as intended
 - changes:
+- model-result: gap-confirmed
+- model-notes: '/help' was sent as a literal question with no command handling; confirmed there is no slash-command router.
 
 ⚠ Known gap: if you expected slash-commands (e.g. `/renewal`) or a command palette, they do not exist
 yet. Add a `- changes:` note if you want one.
@@ -195,6 +205,8 @@ yet. Add a `- changes:` note if you want one.
 
 - [ ] works as intended
 - changes:
+- model-result: BLOCKED
+- model-notes: Dictate button present, but actual dictation needs a real microphone plus the live Google Speech API.
 
 ⚠ Known gap: on Safari/iPhone you get **"This browser (Safari/iPhone) records audio in a format we can't
 transcribe yet. Use Chrome on this device, or type instead."** Test dictation on Chrome.
@@ -221,6 +233,8 @@ Found" banner, the **"Capture Task"** block below the answer.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Picking a space and clicking Create Capture Task wrote an Open placeholder task to the emulator.
 
 ### P1.8 — Auto-detect the process for free (deterministic) ✅
 
@@ -239,6 +253,8 @@ Found" banner, the **"Capture Task"** block below the answer.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Free matcher showed the auto-detect process hint; Use selected it client-side and the submit button changed to start a test run.
 
 ⚠ Known gap: the free matcher only knows synonyms for the process ids `lease-renewal` and
 `maintenance-work-order-intake`. If the real definition id differs, only the process's literal name words
@@ -263,6 +279,8 @@ box.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Detect process with AI auto-selected a valid in-list process and never invented one outside the list.
 
 ### P1.10 — Start a test run from the Console ✅
 
@@ -284,6 +302,8 @@ box.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Test run started block showed process, status, a Next line, and a working View-the-test-run link to /workflow-runs.
 
 **The attention deck (below the Ask box)**
 
@@ -306,6 +326,8 @@ box.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: The three attention cards showed counts and deep-linked to /approval-queue, /connections, and /spaces.
 
 ### P1.12 — Approve an item inline from the deck (Approver/Admin) ✅
 
@@ -327,6 +349,8 @@ low/medium items).
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Inline Approve correctly absent on High-risk rows; low/medium inline approve and High-risk refusal verified.
 
 ⚠ Known gap (Console): the **"Anticipated work"** zone is populated only in a test workspace; a plain
 production Admin sees it empty by design.
@@ -355,6 +379,8 @@ production Admin sees it empty by design.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Tab-title prefix, bell accessible label, and numeric badge all showed the true unread count (badge caps at 9+).
 
 ⚠ Known gap: the badge caps at "9+" while the label and tab title show the true number (minor mismatch),
 and the PMI favicon red-dot is deferred until you supply the artwork.
@@ -376,6 +402,8 @@ and the PMI favicon red-dot is deferred until you supply the artwork.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Clicking a notification navigated to the linked approval item and marked it read; badge and title decremented.
 
 ### P2.3 — Mark all read ✅
 
@@ -394,6 +422,8 @@ and the PMI favicon red-dot is deferred until you supply the artwork.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Mark all read cleared unread and the tab-title prefix; standing set-up signals correctly remained.
 
 ⚠ Known gap: approval-queue notifications are produced by a batch job, not the instant an item becomes
 ready — expect a delay, and note that approving or denying an item does not itself clear its bell
@@ -415,6 +445,8 @@ notification (open it, or Mark-all-read).
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Muting a family persisted to the user's own Firestore doc across sessions; unmuted cleanly afterward.
 
 ### P2.5 — The full notification hub (`/notifications`) ✅
 
@@ -435,6 +467,8 @@ notification (open it, or Mark-all-read).
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Hub intro and ordered sections render read-only with no mark-read control; Team-review is Admin-only and hidden when empty.
 
 ---
 
@@ -460,6 +494,8 @@ notification (open it, or Mark-all-read).
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Sign-in page renders and demo Admin sign-in works; new-user Editor/all-spaces/8h default confirmed by code. Live Google OAuth not run.
 
 ### P3.2 — A non-pmikcmetro account is refused (error probe) ✅
 
@@ -479,6 +515,8 @@ notification (open it, or Mark-all-read).
 
 - [ ] works as intended
 - changes:
+- model-result: BLOCKED
+- model-notes: Live non-pmikcmetro rejection needs a real external Google account (not run). Code review: the sign-in popup shows the server's 'Google Workspace hosted domain is not allowed.' rather than the documented friendly string; see report.
 
 ### P3.3 — Demo mode is dev-only (expectation-setter)
 
@@ -496,6 +534,8 @@ notification (open it, or Mark-all-read).
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: 'Continue in local demo mode' present on dev and force-disabled in production, as documented.
 
 **Navigation and access**
 
@@ -520,6 +560,8 @@ notification (open it, or Mark-all-read).
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Admin sees all eight tabs; scoped-nav hiding rules confirmed by code. Live scoped-session walk needs a real scoped account.
 
 **Security: session timeout**
 
@@ -543,6 +585,8 @@ notification (open it, or Mark-all-read).
 
 - [ ] works as intended
 - changes:
+- model-result: BLOCKED
+- model-notes: The 28-minute idle timer is a human-time wait; component, constants, and warning strings confirmed by code.
 
 ### P3.6 — Sign out ✅
 
@@ -559,6 +603,8 @@ notification (open it, or Mark-all-read).
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Sign out cleared the session and redirected to /sign-in (browser-verified).
 
 **Reporting problems (and the error safety nets)**
 
@@ -584,6 +630,8 @@ notification (open it, or Mark-all-read).
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Report an issue filed a record shown in Admin Reported Issues, capturing the page path (not the query string).
 
 ⚠ Known gap: reports go to the in-app queue, not email (email delivery is a separate, unbuilt send path).
 The 30-per-minute rate limit is per-server-instance, not global.
@@ -605,6 +653,8 @@ The 30-per-minute rate limit is per-server-instance, not global.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Error-boundary and global-crash strings plus the shared working report path confirmed by code; a runtime crash was not force-triggered.
 
 ⚠ Known gap (chrome): a hardcoded **"V1 application · Live and Test records are labeled by data mode ·
 provider status and signoffs are advisory"** banner shows on every signed-in page regardless of
@@ -639,6 +689,8 @@ environment — cosmetic, on the cleanup list.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: All 12 space cards render in the exact documented order, each a single clickable tile.
 
 ### P4.2 — Scope filtering (expectation-setter) ⚠
 
@@ -658,6 +710,8 @@ environment — cosmetic, on the cleanup list.
 
 - [ ] works as intended
 - changes:
+- model-result: gap-confirmed
+- model-notes: Scoped users see only scope-tagged cards and under-see untagged spaces (documented gap); live scoped check needs a real account.
 
 ⚠ Known gap: scoped users under-see the launch-planning and move-in/move-out spaces (those have no scope
 tag). Worth deciding whether they should surface for scoped users.
@@ -680,6 +734,8 @@ tag). Worth deciding whether they should surface for scoped users.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Status pills reflect real state (Process ready, Planned, Reference, plus 'N waiting on you'); labels and colors agree.
 
 **Opening a space**
 
@@ -706,6 +762,8 @@ tag). Worth deciding whether they should surface for scoped users.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Cards route correctly to /lease-renewal, /maintenance, /gmail-hub, and reference space pages; an unknown space returns a 404.
 
 ### P4.5 — Per-space draft cards (draft-only) ✅
 
@@ -729,6 +787,8 @@ tag). Worth deciding whether they should surface for scoped users.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Move-In welcome draft and Move-Out evidence packet render with Needs-Verification and suggestion-only labels; empty amount uses no-decimal currency.
 
 ⚠ Known gap: these drafts are synthetic (seeded from one sample lease), and "Dan" is hardcoded as the
 owner/approver name in several renewal and move-out strings — cosmetic, on the cleanup list.
@@ -766,6 +826,8 @@ mind as you test.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Header, subtitle, Sample-data chip, metric row, Needs-attention fold, and the three-card queue all match.
 
 ### P5.2 — The "what's next" signal on each lease ✅
 
@@ -785,6 +847,8 @@ mind as you test.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Each queue card shows the four-step stepper, correct Next line, source-conflict pill, and Open button.
 
 ⚠ Known gap: the **"Live renewal notices (compose drafts)"** button (the real draft flow) and the **"View
 live review →"** link are shown to **Admins only**, even though the notices page itself only needs `edit`.
@@ -807,6 +871,8 @@ An Editor has permission but no visible link — they must know the URL.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Set-aside groups show the correct deterministic reasons (off-cycle, month-to-month, program lease, outside window).
 
 **Work a lease (sample, read-only)**
 
@@ -832,6 +898,8 @@ An Editor has permission but no visible link — they must know the URL.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: The Cedar lease's four stepper panels (Data check, Owner decision, Tenant offer, Build docs) render as specified.
 
 ### P5.5 — See a data-check conflict ✅
 
@@ -851,6 +919,8 @@ An Editor has permission but no visible link — they must know the URL.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: The Walnut data-check conflict shows a Needs-your-decision pill with the RentVine-vs-Sheet values; stepper sits at Data check.
 
 ### P5.6 — "Prepare owner/tenant email" is preview-only (expectation-setter) ⚠
 
@@ -871,6 +941,8 @@ An Editor has permission but no visible link — they must know the URL.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Prepare owner email is preview-only: reason string shown, Needs-Verification recipient, no Copy button, and no Gmail draft created.
 
 ⚠ Known gap: the "Renewal-notice draft" card in this workspace is an inert empty-state that tells you to
 use the live desk but gives no link to it — you must navigate back and (if Admin) use the desk button.
@@ -896,6 +968,8 @@ use the live desk but gives no link to it — you must navigate back and (if Adm
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: The sample reconciliation run shows the Test-only banner and the expected High/Medium/Blocked flag cards; agreeing fields raise none.
 
 ### P5.8 — Resolve a High conflict (Admin) ✅
 
@@ -918,6 +992,8 @@ use the live desk but gives no link to it — you must navigate back and (if Adm
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Empty reason blocked; a full resolve wrote a Firestore resolution and Activity row with no write-back. Non-Admin gate code-verified.
 
 ### P5.9 — Approve a write-back proposal (Admin) ✅
 
@@ -937,6 +1013,8 @@ use the live desk but gives no link to it — you must navigate back and (if Adm
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Approve proposal recorded authorization ('ready to write, not executed') with an Activity row; no sheet write (read-only by design).
 
 ⚠ Known gap: the renewal tracking sheet stays read-only by owner decision — write-back is authorization
 only, never an actual sheet mutation.
@@ -959,6 +1037,8 @@ only, never an actual sheet mutation.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Environment is connected so degraded panels are not shown; the key invariant holds (never silently falls back to sample data).
 
 ### P5.11 — Live flag resolution (when connected) ✅
 
@@ -977,6 +1057,8 @@ only, never an actual sheet mutation.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Live review structure verified (header, Live-data chip, exact copy); did not resolve a real-property flag for safety.
 
 **The real draft flow (`/lease-renewal/live/notices`) — produces a Gmail draft**
 
@@ -1006,6 +1088,8 @@ RentVine connected.**
 
 - [ ] works as intended
 - changes:
+- model-result: BLOCKED
+- model-notes: Live notices read 25 live leases and the draft-create path is wired, but Create was not clicked (would make a real draft with live tenant data).
 
 ### P5.13 — A draft with no verifiable recipient is blocked (error probe) ✅
 
@@ -1026,6 +1110,8 @@ RentVine connected.**
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Not-ready block reasons (recipient needs verification, missing lease end date, non-positive rent) wired; Create stays disabled while blocked.
 
 ### P5.14 — Owner-channel drafts (expectation-setter) ⚠
 
@@ -1042,6 +1128,8 @@ RentVine connected.**
 
 - [ ] works as intended
 - changes:
+- model-result: gap-confirmed
+- model-notes: Owner-notice correctly blocks on a recipient-needs-verification message; owner contact is dropped on the live-view flatten (documented gap).
 
 ⚠ Known gap: the owner contact is dropped when the live lease view is flattened, so owner-notice drafts
 generally cannot resolve a recipient until the owner-join lands. Expect owner drafts to fail on live data.
@@ -1065,6 +1153,8 @@ generally cannot resolve a recipient until the owner-join lands. Expect owner dr
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: The property decision-history page shows the property key and a read-only current-state panel.
 
 > **One concrete front-to-back run (do this once, in order):**
 >
@@ -1081,6 +1171,8 @@ generally cannot resolve a recipient until the owner-join lands. Expect owner dr
 >
 > - [ ] the end-to-end path is discoverable and obvious
 > - changes:
+> - model-result: PASS
+> - model-notes: The stepper, Next line, and open-Gmail end-state make the path discoverable; the live draft-create step itself was not run for safety.
 
 ---
 
@@ -1109,6 +1201,8 @@ returns **"This queue item is already closed."**
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Landing 'Needs your decision' inbox plus Other views; All items renders the list, detail panel, filters, and bulk bar.
 
 ### P6.2 — Approve a plain low/medium item ✅
 
@@ -1128,6 +1222,8 @@ returns **"This queue item is already closed."**
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: A plain low/medium approve took one click with no reason and flipped to Approved (verified in UI and API).
 
 ### P6.3 — Approve a High-risk item (confirm + reason probe) ✅
 
@@ -1147,6 +1243,8 @@ returns **"This queue item is already closed."**
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Missing confirmation refused server-side; confirm plus reason approved; client requires the reason. (An API-bypass reason gap is noted in the report.)
 
 ### P6.4 — Approve for execution (linked item, Admin) ✅
 
@@ -1166,6 +1264,8 @@ returns **"This queue item is already closed."**
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Approve-for-execution set the execution ledger to Approved; the non-Admin block message is code-verified.
 
 ### P6.5 — Deny an item (terminal; reason required) ✅
 
@@ -1184,6 +1284,8 @@ returns **"This queue item is already closed."**
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Deny without a reason is blocked; with a reason the item went Denied.
 
 ### P6.6 — Return for revision (reason) ✅
 
@@ -1200,6 +1302,8 @@ returns **"This queue item is already closed."**
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Return without a reason is blocked; with a reason the item went Returned.
 
 ### P6.7 — Snooze (date + reason) ✅
 
@@ -1217,6 +1321,8 @@ returns **"This queue item is already closed."**
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Snooze without a date and reason is blocked; with both it went Snoozed.
 
 ### P6.8 — Assign (Admin only) ✅
 
@@ -1236,6 +1342,8 @@ returns **"This queue item is already closed."**
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Assign with no fields is blocked; setting both on a Blocked item unblocked it to Ready for Approval.
 
 ### P6.9 — Disable Action (Admin only) ✅
 
@@ -1253,6 +1361,8 @@ returns **"This queue item is already closed."**
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Disable without a reason is blocked; with a reason the item went Disabled.
 
 ### P6.10 — Role gates (error probes) ✅
 
@@ -1272,6 +1382,8 @@ returns **"This queue item is already closed."**
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Self-approving an assigned item returned a 403; an Admin bypasses by design, as coded.
 
 ### P6.11 — Bulk actions ✅
 
@@ -1291,6 +1403,8 @@ returns **"This queue item is already closed."**
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Bulk execute skipped every item with the no-runtime message; selecting past 50 is capped server- and client-side.
 
 ⚠ Known gap: bulk **Execute** never does anything today (no executable runtime). A **"Close"** transition
 exists server-side (Admin + reason) but has **no button** — it is direct-API only.
@@ -1314,6 +1428,8 @@ exists server-side (Admin + reason) but has **no button** — it is direct-API o
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: The deep link auto-expanded Other views and selected the item; Status/Risk/Audience filters and the full layout worked.
 
 ---
 
@@ -1345,6 +1461,8 @@ The page loads at `read` + the maintenance scope; the capture form needs `edit`.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Capture form renders; the unit typeahead returned 25 live units; ticket create confirmed via API at status Open. Full UI capture not driven.
 
 ### P7.2 — Voice-capture the issue ✅
 
@@ -1362,6 +1480,8 @@ The page loads at `read` + the maintenance scope; the capture form needs `edit`.
 
 - [ ] works as intended
 - changes:
+- model-result: BLOCKED
+- model-notes: Record-voice button present, but actual capture needs a real microphone plus the live Speech transcribe endpoint.
 
 ### P7.3 — Blockers stop a premature ticket (error probe) ✅
 
@@ -1381,6 +1501,8 @@ The page loads at `read` + the maintenance scope; the capture form needs `edit`.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: An empty build showed the expected blocker messages and kept Create ticket disabled.
 
 ### P7.4 — Photo upload is gated off (expectation-setter) ⚠
 
@@ -1397,6 +1519,8 @@ The page loads at `read` + the maintenance scope; the capture form needs `edit`.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: No file input; the 'Photo storage is unavailable' gate message shows (Drive action gate-closed, documented).
 
 ⚠ Known gap: photo upload is not wired in this build (the Drive action is gate-closed); the API refuses
 before touching bytes. Owner Drive permission + a folder id would open it.
@@ -1422,6 +1546,8 @@ before touching bytes. Owner Drive permission + a folder id would open it.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Queue lists Open first with a Closed group; all statuses, the Data filter, and 'Assigned to me' are present.
 
 ### P7.6 — Change status / close a ticket (reason) ✅
 
@@ -1441,6 +1567,8 @@ before touching bytes. Owner Drive permission + a folder id would open it.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Close without a reason is blocked; with a reason the ticket went Closed.
 
 ### P7.7 — Reopen, assign, note, and history ✅
 
@@ -1464,6 +1592,8 @@ before touching bytes. Owner Drive permission + a folder id would open it.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Reopen, off-roster assign rejection, valid assignee, note append, and human-readable History all worked.
 
 **Vendor handoff**
 
@@ -1486,6 +1616,8 @@ before touching bytes. Owner Drive permission + a folder id would open it.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Assigning the Test Vendor wrote a record and Activity; Unassign reversed cleanly. The handoff projection appears lazily after vendor activity.
 
 ### P7.9 — Live vendor assignment (expectation-setter) ⛔
 
@@ -1504,6 +1636,8 @@ before touching bytes. Owner Drive permission + a folder id would open it.
 
 - [ ] works as intended
 - changes:
+- model-result: gap-confirmed
+- model-notes: Only the Test-vendor lane exists; there is no live-vendor-assign UI control on Live tickets (documented).
 
 ⚠ Known gap: live vendor assignment is not wired (only the Test vendor lane is). The vendor suggestion is
 heuristic trade-matching and never names a vendor ("Needs Verification: client vendor roster").
@@ -1530,6 +1664,8 @@ heuristic trade-matching and never names a vendor ("Needs Verification: client v
 
 - [ ] works as intended
 - changes:
+- model-result: BLOCKED
+- model-notes: Intake token mint returns a 503 (no signing secret); public intake cannot run until the signing secret is configured.
 
 ⚠ Known gap: there is no tenant-facing form page and no UI to mint the link; public intake has no photo
 field. Also set the intake IP-hash salt secret before enabling this in production (see `docs/whats-next.md`
@@ -1554,6 +1690,8 @@ field. Also set the intake IP-hash salt secret before enabling this in productio
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: With injected quarantine records: promote created an Open ticket, re-promote returned 409, dismiss set 'dismissed', and dismiss-again returned 409.
 
 ---
 
@@ -1583,6 +1721,8 @@ workspace; the four governed tools are Admin-only.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Header, not-a-replacement-inbox note, a not-connected health state, footer restrictions, and all four Admin tools are present.
 
 ⚠ Known gap: the "Available / Action Required" words are internal styling attributes, not the visible pill
 text — don't look for them literally on screen.
@@ -1607,6 +1747,8 @@ text — don't look for them literally on screen.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: A hard-excluded category is refused before the model; a normal compose produced a Draft-review preview with Needs-Verification and Copy.
 
 ### P8.3 — Template workspace, thread summary, simulated chain (Admin) ✅
 
@@ -1630,6 +1772,8 @@ text — don't look for them literally on screen.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Evaluate, Summarize thread, and the browser-only simulated chain all render with the no-external-delivery disclaimer; none can send.
 
 ### P8.4 — Send an exact-confirmed reply (live maintenance ticket) ✅ (the only in-app send)
 
@@ -1655,6 +1799,8 @@ text — don't look for them literally on screen.
 
 - [ ] works as intended
 - changes:
+- model-result: BLOCKED
+- model-notes: The only in-app send needs Gmail DWD connected plus a live linked thread; Gmail is not connected locally and a real send is forbidden.
 
 ### P8.5 — An ambiguous send is not blindly retried (error probe) ✅
 
@@ -1673,6 +1819,8 @@ text — don't look for them literally on screen.
 
 - [ ] works as intended
 - changes:
+- model-result: BLOCKED
+- model-notes: The ambiguous-send reconcile route exists but only triggers mid-send on an ambiguous Gmail result; not reproducible without a live send.
 
 ### P8.6 — Confirm there is no autonomous / bulk / new-message send (safety check) ✅
 
@@ -1691,6 +1839,8 @@ text — don't look for them literally on screen.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Generic compose/bulk/new-message send is refused server-side; footer restrictions hold and the legacy Gmail sender is Disabled.
 
 ⚠ Known gap: real drafts/sends need the Gmail DWD env plus the RentVine/Sheets data behind the ticket;
 without them the connection sits at "Waiting on Gmail access". The renewal draft path (§5.12) and this
@@ -1721,6 +1871,8 @@ gate-closed.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: All connector cards, the metric row, and method badges render; the Gmail-legacy sender shows Disabled.
 
 ### P9.2 — "Set up <name>" is text-only (expectation-setter) ⚠
 
@@ -1739,6 +1891,8 @@ gate-closed.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: 'Set up RentVine' is text-only with no credential form; the over-promising 'store your credentials' copy is present (honesty-fix candidate).
 
 ⚠ Known gap: this copy over-promises an in-app "store your credentials" flow that does not exist. A real
 connect-and-save walkthrough is on the build list (`docs/whats-next.md` §2.2); an honesty-fix to the copy
@@ -1761,6 +1915,8 @@ is worth doing sooner.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Verify connection ran a bounded read-only probe against connected RentVine ('answered the live check'); non-Admin gate code-verified.
 
 ### P9.4 — Other connectors can't turn green (expectation-setter) ⚠
 
@@ -1777,6 +1933,8 @@ is worth doing sooner.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Only RentVine and Sheets have a Verify button; the others cap at 'Setup complete' with no live probe (documented).
 
 ⚠ Known gap: the "Disabled" Gmail-legacy and QuickBooks cards still render "Not connected / Connect to
 enable …", inviting connection of an intentionally-disabled/no-config connector — mildly confusing copy.
@@ -1806,6 +1964,8 @@ Admin-only. Three sections: **People and Access**, **Activity and Logs**, **App 
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Admin home shows People and Access, Activity and Logs, and App Info and Readiness with their links.
 
 **Make a teammate a maintenance user and scope them (the headline flow)**
 
@@ -1831,6 +1991,8 @@ Admin-only. Three sections: **People and Access**, **Activity and Logs**, **App 
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Role change: a short reason is rejected; success set the new role with a re-sign-in note; append-only audit written before the claim.
 
 ⚠ Known gap (read this first): there is **no in-app "invite / create user"**. A teammate becomes a row
 here only **after** they have signed in once with a `@pmikcmetro.com` Google account (creation lives in
@@ -1858,6 +2020,8 @@ Google Workspace). A brand-new hire is invisible on this page until their first 
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Scope change: empty scopes are rejected; setting Maintenance plus a reason succeeded.
 
 ### P10.4 — Last-Admin guard (error probe) ✅
 
@@ -1873,6 +2037,8 @@ Google Workspace). A brand-new hire is invisible on this page until their first 
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Demoting the only Admin returned a 409 'Cannot remove the last Admin' (best-effort guard, documented).
 
 ⚠ Known gap: the last-Admin guard is best-effort, not concurrency-safe — two simultaneous demotions could
 still race to zero (recoverable only via the `firebase:set-role` break-glass script).
@@ -1895,6 +2061,8 @@ still race to zero (recoverable only via the `firebase:set-role` break-glass scr
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Access Changes lists role and scope changes newest-first; the Reported Issues panel was verified earlier.
 
 **External Vendor lifecycle (Test)**
 
@@ -1919,6 +2087,8 @@ still race to zero (recoverable only via the `firebase:set-role` break-glass scr
 
 - [ ] works as intended
 - changes:
+- model-result: BLOCKED
+- model-notes: Preview provision returns the exact-effect card, but actual provision 503s because the Auth emulator cannot mint a valid setup link; needs real Firebase.
 
 ### P10.7 — Regenerate / reset / disable a Test Vendor ✅
 
@@ -1941,6 +2111,8 @@ still race to zero (recoverable only via the `firebase:set-role` break-glass scr
 
 - [ ] works as intended
 - changes:
+- model-result: BLOCKED
+- model-notes: Regenerate/reset/disable need a provisioned vendor, blocked by the same emulator setup-link limit; the link-minting mutations need real Firebase.
 
 ### P10.8 — Migration and communication-governance consoles ✅
 
@@ -1960,6 +2132,8 @@ still race to zero (recoverable only via the `firebase:set-role` break-glass scr
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Migration console is a read-only mirror with no cloud call; the governance console shows immutable artifacts and a non-executable evaluator.
 
 ---
 
@@ -1990,6 +2164,8 @@ from any UI.
 
 - [ ] works as intended
 - changes:
+- model-result: BLOCKED
+- model-notes: Vendor sign-in page renders, but the full password and TOTP-enroll flow needs a provisioned vendor, setup link, and real authenticator (real Firebase).
 
 ### P11.2 — Server enforcement (error probes) ✅
 
@@ -2009,6 +2185,8 @@ from any UI.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: All four server-enforcement gate strings are present by code; live triggering needs real vendor tokens.
 
 ### P11.3 — Assigned tickets only + isolation ✅
 
@@ -2031,6 +2209,8 @@ from any UI.
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: Internal staff hitting /vendor redirect to /vendor/sign-in confirmed; vendor-side isolation was not run (no vendor session).
 
 ⚠ Known gap: the live vendor **invite** flow is built but wired to no route or button — you cannot invite a
 real vendor from the running app today.
@@ -2061,6 +2241,8 @@ These are reached by deep link (e.g. a Space's "View full process →"), not fro
 
 - [ ] works as intended
 - changes:
+- model-result: PASS
+- model-notes: /processes lists six seeded definitions; the definition and workflow-run pages render as specified; the scoped redirect is the same code path.
 
 ---
 

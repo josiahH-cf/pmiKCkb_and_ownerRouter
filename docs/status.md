@@ -11,6 +11,31 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Browser QA audit-and-fix pass over the manual walkthrough (2026-07-21)
+
+- Ran `docs/meta-prompts/qa-audit-and-fix.md`: drove every process in
+  `docs/manual-qa-walkthrough-2026-07-21.md` (~90 blocks, all 12 sections) against a sandboxed LOCAL
+  instance (Firestore emulator :8090 + Firebase Auth emulator :9099 + Ollama; demo auth). The Auth
+  emulator was required so `getAuth()` (roster, approval test-fixtures, vendor provisioning) never
+  touched real production Firebase Auth (ADC was fresh). Recipe in memory
+  `qa-local-bringup-recipe-and-live-connected-gotcha`.
+- Result: **76 PASS, 11 BLOCKED, 4 gap-confirmed** (`model-result`/`model-notes` lines added under each
+  block; the two human lines — `- [ ] works as intended` and `- changes:` — left untouched and empty;
+  file stays prettier-clean). The 11 BLOCKED are genuine human/provider/emulator prerequisites (voice
+  mic + Speech API; 28-min idle timer; a non-pmikcmetro Google account; live Gmail send; the maintenance
+  intake signing secret; real-Firebase vendor setup-link minting; live-notices draft-create against real
+  RentVine data — deliberately not run for safety).
+- **No code or doc-content fixes were auto-shipped** — the baseline is green and adversarially verified,
+  and the only two candidate findings are subtle and owner-decision-shaped, so they were surfaced (memory
+  `qa-pass-2026-07-21-findings`): (1) a rejected non-pmikcmetro sign-in shows "Google Workspace hosted
+  domain is not allowed." instead of the documented friendly "This Google account is not authorized for
+  PMI KC KB." (`SignInPanel` finishSignIn shows the raw server message; the friendly copy is only on the
+  page-guard path); (2) a PLAIN High-risk approval-queue approval is server-required to confirm but NOT
+  to give a reason (client-only; the linked-execution path does enforce it) — a defense-in-depth gap, not
+  a walkthrough deviation.
+- Untouched invariants hold: everything ran on emulators (discarded); no real send/draft/system-of-record
+  write occurred; live RentVine/Sheet were read-only; the deployed production build is unchanged.
+
 ## v1 remediation closed on all testable fronts; docs realigned; baseline green (2026-07-21)
 
 - The v1 readiness remediation is complete on every self-contained code finding. A blind 15-agent
