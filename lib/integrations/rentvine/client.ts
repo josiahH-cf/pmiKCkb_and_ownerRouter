@@ -38,6 +38,11 @@ export interface RentVineHttpTransport {
 /** A raw lease record as returned by Rentvine. Field names confirm on the first live call. */
 export type RawLease = Record<string, unknown>;
 
+/** Raw single-resource records for the owner-recipient join (read-only). All are object bags. */
+export type RawProperty = Record<string, unknown>;
+export type RawPortfolio = Record<string, unknown>;
+export type RawContact = Record<string, unknown>;
+
 export class RentVineError extends Error {
   readonly status: number;
   constructor(message: string, status: number) {
@@ -125,6 +130,21 @@ function unwrapLease(item: unknown): RawLease {
     return obj as RawLease;
   }
   throw new RentVineError("Unexpected Rentvine lease response shape.", 0);
+}
+
+/**
+ * Unwrap a single-resource envelope ({ property } / { portfolio } / { contact }) exactly like
+ * unwrapLease does for { lease }: return the named inner object when present, otherwise the body
+ * itself. Read-only shaping only.
+ */
+export function unwrapRecord(item: unknown, key: string): Record<string, unknown> {
+  if (item && typeof item === "object") {
+    const obj = item as Record<string, unknown>;
+    const inner = obj[key];
+    if (inner && typeof inner === "object") return inner as Record<string, unknown>;
+    return obj;
+  }
+  throw new RentVineError(`Unexpected Rentvine ${key} response shape.`, 0);
 }
 
 /** Normalize the list response to RawLease[] across the shapes Rentvine may return. */
@@ -255,6 +275,30 @@ export class RentVineClient {
     const response = await this.rawGet(path);
     this.ensureOk(response, path);
     return unwrapLease(await response.json());
+  }
+
+  /** Read a single property by id (read-only). Unwraps the `{ property }` envelope. */
+  async getProperty(propertyId: string | number): Promise<RawProperty> {
+    const path = `properties/${encodeURIComponent(String(propertyId))}`;
+    const response = await this.rawGet(path);
+    this.ensureOk(response, path);
+    return unwrapRecord(await response.json(), "property");
+  }
+
+  /** Read a single portfolio by id (read-only). Unwraps the `{ portfolio }` envelope. */
+  async getPortfolio(portfolioId: string | number): Promise<RawPortfolio> {
+    const path = `portfolios/${encodeURIComponent(String(portfolioId))}`;
+    const response = await this.rawGet(path);
+    this.ensureOk(response, path);
+    return unwrapRecord(await response.json(), "portfolio");
+  }
+
+  /** Read a single contact by id (read-only). Unwraps the `{ contact }` envelope. */
+  async getContact(contactId: string | number): Promise<RawContact> {
+    const path = `contacts/${encodeURIComponent(String(contactId))}`;
+    const response = await this.rawGet(path);
+    this.ensureOk(response, path);
+    return unwrapRecord(await response.json(), "contact");
   }
 
   /**

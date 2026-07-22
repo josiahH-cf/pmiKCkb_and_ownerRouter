@@ -7,6 +7,7 @@ import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import { getLiveLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
+import { resolveLiveOwnerEmail } from "@/lib/lease-renewal/live-owner-recipient";
 import {
   prepareRenewalNoticeDraft,
   type RenewalNoticeDraftInput,
@@ -100,7 +101,22 @@ export async function POST(request: Request) {
       {
         async loadLease(leaseId) {
           const views = await getLiveLeaseViews(rentvineClient, nowMs);
-          return views.find((view) => leaseIdOf(view) === leaseId) ?? null;
+          const view = views.find((candidate) => leaseIdOf(candidate) === leaseId);
+          if (!view) return null;
+          // OWNER channel only: RentVine's lease/export rows carry no owner email, so resolve it via the
+          // proven read-only property -> portfolio -> contact join and attach it as an owner-scoped object
+          // so resolveRenewalRecipient({ channel: "owner" }) can read `owner.email`. When the join cannot
+          // resolve authoritatively it returns null and the view is left unenriched, so the owner channel
+          // blocks honestly ("owner email Needs Verification") rather than guessing. The tenant channel is
+          // untouched and makes no property/portfolio/contact reads. The enriched value still flows through
+          // assertAuthoritativeRenewalRecipient in the executor. Copy (never mutate) the shared cache view.
+          if (channel === "owner") {
+            const owner = await resolveLiveOwnerEmail(rentvineClient, leaseId);
+            if (owner) {
+              return { ...view, owner: { email: owner.email } };
+            }
+          }
+          return view;
         },
         createGmailClient: (subject) => new GmailRuntimeClient({ subject }),
       },
