@@ -55,6 +55,24 @@ context, and recommendations, read `docs/whats-next.md`.
   pass could not confirm (real providers / human inputs / prod config) plus how to verify the two fixes
   is `docs/manual-qa-unconfirmed-and-blocked-2026-07-21.md`.
 
+## Overnight run 2026-07-22 — live progress (worktree `ui-ux-overhaul`)
+
+Building per `docs/overnight-build-run-2026-07-22.md`. Baseline `ca8fd44`. ADC fresh at run start.
+Each slice: worktree build → targeted tests + adversarial falsification → commit. Single ff-merge at
+close-out. Live slices sequenced first (token freshest).
+
+- **Slice 1 (RentVine field discovery) — DONE** (`5e60658`). Live read of 25 leases. Confirmed:
+  tenant `tenants[].email` (25/25) + rent `unit.rent` + date `endDate`; **owner email at
+  `portfolio.owners[].email` (25/25)** — `resolveRenewalRecipient` misses it today (checks singular
+  `portfolio.owner`), Slice 6 wires it; Slice 3 address `property.streetName/address/city` (25/25).
+  D18 write endpoint NOT probed (GET-only) — Slice 9 stays gated; flagged for AM. Map:
+  `docs/products/rentvine-live-field-map-2026-07-22.md`.
+- **Slice 2 (Sheet write-back live proof) — HARNESS DONE, live proof DEFERRED** (`6fdd7e4`). Added
+  `smoke:sheet-write` + `createSpreadsheet`. Live run fail-closed at the DWD write-token exchange
+  (HTTP 401 unauthorized_client): **Sheets WRITE scope not on the lease-renewal-reader SA's DWD
+  grant** (documented dependency). Executor already unit-proven. AM owner step: grant the
+  `spreadsheets` scope, re-run `npm run smoke:sheet-write -- --live`.
+
 ## Safe Stop Boundary
 
 - `main` and `ui-ux-overhaul` are aligned at the deployed head, pushed, working tree clean; no slice
