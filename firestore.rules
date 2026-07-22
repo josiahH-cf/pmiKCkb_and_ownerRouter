@@ -546,6 +546,13 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Admin-confirmed re-index requests (Slice 8). Server-written through the manageAdmin-guarded route
+    // only; Admin-only read. The record is intent; ingestion is a cost-bearing owner CLI action.
+    match /reindex_requests/{requestId} {
+      allow read: if signedIn() && admin();
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

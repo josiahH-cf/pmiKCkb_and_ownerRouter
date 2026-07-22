@@ -5,6 +5,7 @@ import { ApprovalQueueAdminPanel } from "@/components/admin/ApprovalQueueAdminPa
 import { CommunicationsRetentionAdminPanel } from "@/components/admin/CommunicationsRetentionAdminPanel";
 import { NoticeRulesAdminPanel } from "@/components/admin/NoticeRulesAdminPanel";
 import { PublicationPolicyAdminPanel } from "@/components/admin/PublicationPolicyAdminPanel";
+import { ReindexPanel } from "@/components/admin/ReindexPanel";
 import { SupportReportsPanel } from "@/components/admin/SupportReportsPanel";
 import { TransactionalDestinationPanel } from "@/components/admin/TransactionalDestinationPanel";
 import { V1ProductionTestWorkspacePanel } from "@/components/admin/V1ProductionTestWorkspacePanel";
@@ -30,6 +31,10 @@ import {
   type NoticeRuleSetRecord,
   readNoticeRuleConfigRecord,
 } from "@/lib/firestore/lease-renewal-notice-rules";
+import {
+  type ReindexRequest,
+  listReindexRequests,
+} from "@/lib/firestore/reindex-requests";
 import { listSupportReports } from "@/lib/firestore/support-reports";
 import type {
   ApprovalQueueNotificationHealth,
@@ -60,6 +65,7 @@ export default async function AdminPage() {
   let noticeRulesNote: string | undefined;
   let activityEntries: AdminActivityEntry[] = [];
   let activityNote: string | undefined;
+  let reindexRequests: ReindexRequest[] = [];
 
   try {
     observability = await readAdminObservability({ config });
@@ -108,6 +114,11 @@ export default async function AdminPage() {
   } catch {
     activityNote =
       "The access-change history is unavailable right now. Try again in a minute; recent role or scope changes may not be listed here yet.";
+  }
+  try {
+    reindexRequests = await listReindexRequests(user);
+  } catch {
+    // The re-index control still stages new requests; the recent list is just empty this session.
   }
   const hasMetrics = Boolean(observability);
 
@@ -283,6 +294,13 @@ export default async function AdminPage() {
               <Link href="/admin/spaces/request">Request a new Space</Link>
             </article>
           </div>
+          <article className="panel">
+            <h2>Re-index Sources</h2>
+            <ReindexPanel
+              initialRequests={reindexRequests}
+              spaces={launchSpaces.map((space) => ({ id: space.id, name: space.name }))}
+            />
+          </article>
           <TransactionalDestinationPanel
             initialEmail={transactionalDestination.destination_email}
             note={transactionalDestinationNote}
