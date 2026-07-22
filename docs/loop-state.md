@@ -7,6 +7,13 @@ context, and recommendations, read `docs/whats-next.md`.
 ## Snapshot
 
 - Last updated: 2026-07-22.
+- **QUEUED NEXT (outside model): the adversarial UI/UX + browser functional pass, then the demo
+  test-script rewrite** — runbook `docs/overnight-build-run-2026-07-22.md` **Slice 11** (adversarial
+  browser QA of every shipped flow on emulators, read-only vs live RentVine/Sheet, fix bugs at source)
+  and **Slice 12** (rewrite `docs/customer-demo-walkthrough-2026-07-21.html` into a morning test script
+  with verified click-paths + expected results). The build below is done; this pass verifies it and
+  produces the doc the owner walks tomorrow. After it: re-gate → ff-merge → build → push → best-effort
+  deploy.
 - **The 2026-07-22 overnight build cycle is COMPLETE and DEPLOYED.** All 11 slices in
   `docs/overnight-build-run-2026-07-22.md` landed and the four must-haves (comp basis + Zillow, KB
   answer transparency, maintenance owner-notice draft, add-a-Space intake) all shipped. Per-slice
@@ -80,15 +87,25 @@ per-slice detail lives in the dated `docs/status.md` entry.
 
 ## Goal
 
-The 2026-07-22 overnight build cycle is COMPLETE and deployed (`7663cec`, revision `rmrwmk2kn`). All
-four must-have slices plus the approved remainder shipped and every safety invariant held (no
-autonomous send/live-write, RentVine write stays `production_allowed:false`, the 11-space KB config
-preserved). The next actions are the deferred owner AM steps below; the broader owner-gated backlog is
+The 2026-07-22 overnight BUILD cycle is COMPLETE and deployed (`7663cec`, revision `rmrwmk2kn`); all
+four must-have slices plus the approved remainder shipped and every safety invariant held. The QUEUED
+next work (outside model) is the **adversarial UI/UX + browser functional pass then the demo
+test-script rewrite** — runbook Slices 11–12 — verifying the shipped app in a browser (read-only vs
+live data), fixing any bug at source, and producing the morning test-script walkthrough. After that
+pass: re-gate → ff-merge → build in primary → push → best-effort deploy. The deferred owner AM steps
+(Sheets write scope, RentVine endpoint, Dotloop auth) remain owner-gated; the broader backlog is
 `docs/whats-next.md`.
 
 ## Next Exact Actions
 
-These are owner AM steps (the unattended run left them for a human).
+0. **Run the adversarial + demo-script pass (outside model, QUEUED).** Follow runbook
+   `docs/overnight-build-run-2026-07-22.md` Slice 11 (adversarial browser QA on emulators — Firestore
+   :8090, Auth :9099 REQUIRED; read-only vs live RentVine/Sheet; fix bugs at source via worktree →
+   gate → ff-merge) and Slice 12 (rewrite `docs/customer-demo-walkthrough-2026-07-21.html` into a
+   verified morning test script). Then re-gate → ff-merge → build in primary → push → `preflight:adc`
+   → deploy if fresh, else defer.
+
+The remaining items are owner AM steps (the unattended run left them for a human).
 
 1. **Verify + optionally roll back the deploy.** Production serves `7663cec` on revision
    `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7`. Spot-check the new surfaces (comp basis on a live renewal,
@@ -104,7 +121,7 @@ These are owner AM steps (the unattended run left them for a human).
    executor + S25 contract are built and owner-approved-in-principle (`F-RENTVINE-WRITE-APPROVED`), so
    the flip is a one-line reviewed change once the endpoint is confirmed.
 4. **Dotloop (optional).** Register the Dotloop OAuth app, set `DOTLOOP_OAUTH_CLIENT_ID/SECRET/
-   REDIRECT_URI` in `.env.local`, then authorize. Every Dotloop action stays `production_allowed:false`
+REDIRECT_URI` in `.env.local`, then authorize. Every Dotloop action stays `production_allowed:false`
    until connected + reviewed.
 5. To start the NEXT cycle, follow the runner route (`AGENTS.md` → `docs/facts.md` → this file →
    `docs/whats-next.md`) and plan the next packet.
