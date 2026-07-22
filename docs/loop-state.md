@@ -55,39 +55,22 @@ context, and recommendations, read `docs/whats-next.md`.
   pass could not confirm (real providers / human inputs / prod config) plus how to verify the two fixes
   is `docs/manual-qa-unconfirmed-and-blocked-2026-07-21.md`.
 
-## Overnight run 2026-07-22 — live progress (worktree `ui-ux-overhaul`)
+## Overnight run 2026-07-22 — progress (worktree `ui-ux-overhaul`)
 
-Building per `docs/overnight-build-run-2026-07-22.md`. Baseline `ca8fd44`. ADC fresh at run start.
-Each slice: worktree build → targeted tests + adversarial falsification → commit. Single ff-merge at
-close-out. Live slices sequenced first (token freshest).
+Building per `docs/overnight-build-run-2026-07-22.md` from baseline `ca8fd44`. Per slice: worktree
+build → targeted tests + adversarial falsification → commit; single ff-merge at close-out. Full
+per-slice detail lives in the dated `docs/status.md` entry.
 
-- **Slice 1 (RentVine field discovery) — DONE** (`5e60658`). Live read of 25 leases. Confirmed:
-  tenant `tenants[].email` (25/25) + rent `unit.rent` + date `endDate`; **owner email at
-  `portfolio.owners[].email` (25/25)** — `resolveRenewalRecipient` misses it today (checks singular
-  `portfolio.owner`), Slice 6 wires it; Slice 3 address `property.streetName/address/city` (25/25).
-  D18 write endpoint NOT probed (GET-only) — Slice 9 stays gated; flagged for AM. Map:
-  `docs/products/rentvine-live-field-map-2026-07-22.md`.
-- **Slice 2 (Sheet write-back live proof) — HARNESS DONE, live proof DEFERRED** (`6fdd7e4`). Added
-  `smoke:sheet-write` + `createSpreadsheet`. Live run fail-closed at the DWD write-token exchange
-  (HTTP 401 unauthorized_client): **Sheets WRITE scope not on the lease-renewal-reader SA's DWD
-  grant** (documented dependency). Executor already unit-proven. AM owner step: grant the
-  `spreadsheets` scope, re-run `npm run smoke:sheet-write -- --live`.
-- **Slice 3 (comp basis + Zillow) MUST-HAVE — DONE** (`b3bab46`). Comp basis capture (Zillow
-  low/high + PMI number + comps URL, all optional) flows to the owner email (source-tagged) and a
-  gated "KB Proposed — Comp basis" write-back proposal; Zillow deep link from property address; app
-  never invents a rent figure.
-- **Slice 4 (KB answer transparency) MUST-HAVE — DONE** (`34c1120`). "Answered by <model> · N sources"
-  stamped on every Ask result for everyone; source count is the honest citation count.
-- **Slice 6 (maintenance owner-notice draft) MUST-HAVE — DONE** (`baa2af4`). Owner-email resolver
-  extended to `portfolio.owners[]` (owner channel 0/25 → **25/25** proven live);
-  `gmail.maintenance_owner_notice.draft_create` flipped live (draft-only); its `.send` stays
-  `production_allowed:false`. Governance allowlist updated.
-- **Slice 7 (add-a-Space intake) MUST-HAVE — DONE** (`18029d7`). Admin-only request form → Firestore
-  `space_requests` + auto-generated gcloud/Vertex/Drive provisioning commands + merged `.env.local`
-  lines (existing Spaces preserved). Provisions nothing.
-- **All four must-haves (3,4,6,7) landed.** Remaining approved slices in progress: 5 (KB freshness),
-  8 (re-index button), 9 (RentVine write executor, gated OFF), 10 (Dotloop scaffolding, gated OFF),
-  11 (docs). Full unit suite green at 2663 after Slice 6; per-slice typecheck + copy-voice clean.
+- **All four MUST-HAVES landed:** Slice 3 comp basis + Zillow (`b3bab46`), Slice 4 KB answer
+  transparency (`34c1120`), Slice 6 maintenance owner-notice draft gate-flip (`baa2af4`; owner channel
+  proven live 25/25 via `portfolio.owners[].email`), Slice 7 add-a-Space intake (`18029d7`).
+- **Live slices:** Slice 1 RentVine field map confirmed (`5e60658`); Slice 2 Sheet write-back harness
+  built, live proof DEFERRED (`6fdd7e4`) — needs the Sheets WRITE scope on the lease-renewal-reader
+  SA's DWD grant (AM owner step).
+- **Also done:** Slice 5 KB freshness (`c7c6bd4`); Slice 8 re-index button, cost-gated (`0d32a17`);
+  Slice 9 RentVine write executor already built + gated `production_allowed:false` pending a documented
+  endpoint (`F-RENTVINE-WRITE-APPROVED`). Remaining: Slice 10 (Dotloop scaffolding, gated OFF), Slice 11
+  (docs), close-out.
 
 ## Safe Stop Boundary
 

@@ -946,13 +946,16 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     readiness: "Planned",
     evidence_status: "Undocumented",
     documented_evidence:
-      "No public Rentvine endpoint found for executing a renewal or modifying renewal charges; lease export/list/view only. Gated until vendor confirmation.",
-    required_permissions: ["Vendor-confirmed Rentvine lease-write capability"],
+      "RentVine is GET-only today: a live read on 2026-07-22 (Slice 1) confirmed no write endpoint is exposed, only lease export/list/view. The full renewal-write executor + S25 contract are BUILT and unit-proven (RentvineRenewalExecutor: read-drift-check, compare-and-set with idempotency, readback, reconcile) over the least-privilege RenewalMutationProvider seam, and the owner APPROVED RentVine write in principle (2026-07-22, F-RENTVINE-WRITE-APPROVED) behind the app confirm/approval gates. It stays production_allowed:false pending a DOCUMENTED write endpoint + provider semantics (the unresolved D16 write half); flipping is then a one-line reviewed change. Never perform an unproven live write.",
+    required_permissions: [
+      "Documented RentVine write endpoint + provider semantics (D16)",
+      "Vendor-confirmed Rentvine lease-write capability",
+    ],
     event_ingestion_mode: "None",
     preview_schema_note:
       "Not executable: requires a confirmed endpoint and an approved per-action spec before a preview can be defined.",
     rollback_note:
-      "Undefined until the endpoint is confirmed; renewal writeback stays non-executable.",
+      "Correct via the documented provider correction contract once the endpoint is confirmed; until then renewal writeback stays non-executable (production_allowed:false).",
     connection_health_check_ref: "health.rentvine.api_key",
     production_allowed: false,
   },
