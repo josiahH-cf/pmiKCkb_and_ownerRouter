@@ -1,0 +1,1921 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PMI KC — Overnight Build Decision Packet (2026-07-22)</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --panel: #ffffff;
+        --ink: #1c2430;
+        --muted: #5b6675;
+        --line: #e2e6ec;
+        --line-strong: #cfd6df;
+        --accent: #2f5bd7;
+        --accent-soft: #eaf0fe;
+        --ready: #1f7a4d;
+        --ready-soft: #e6f4ec;
+        --caution: #9a6b00;
+        --caution-soft: #fbf1dc;
+        --blocked: #b23b3b;
+        --blocked-soft: #fbe9e9;
+        --unknown: #5b6675;
+        --unknown-soft: #eef1f5;
+        --deferred: #5a4b9c;
+        --deferred-soft: #efecf9;
+        --radius: 12px;
+        --shadow: 0 1px 2px rgba(20, 30, 45, 0.06), 0 6px 20px rgba(20, 30, 45, 0.05);
+        --maxw: 1040px;
+        font-synthesis: none;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.55 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        padding-bottom: 92px;
+      }
+      .wrap {
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+      a {
+        color: var(--accent);
+      }
+      h1,
+      h2,
+      h3 {
+        line-height: 1.2;
+        margin: 0 0 0.4em;
+      }
+      h1 {
+        font-size: 30px;
+        letter-spacing: -0.02em;
+      }
+      h2 {
+        font-size: 22px;
+        letter-spacing: -0.01em;
+        margin-top: 0;
+      }
+      h3 {
+        font-size: 17px;
+      }
+      p {
+        margin: 0 0 0.7em;
+      }
+      code {
+        background: var(--unknown-soft);
+        padding: 1px 5px;
+        border-radius: 5px;
+        font-size: 0.88em;
+      }
+      .small {
+        font-size: 13.5px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      section {
+        margin: 26px 0;
+      }
+
+      header.hero {
+        background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+        border-bottom: 1px solid var(--line);
+        padding: 30px 0 24px;
+      }
+      .kicker {
+        text-transform: uppercase;
+        letter-spacing: 0.13em;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 18px;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .hero-meta b {
+        color: var(--ink);
+      }
+      .usebox {
+        margin-top: 16px;
+        background: var(--accent-soft);
+        border: 1px solid #d3e0fb;
+        border-radius: var(--radius);
+        padding: 14px 16px;
+        font-size: 14px;
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 20px 22px;
+      }
+
+      .counts {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
+        margin: 16px 0 4px;
+      }
+      .count {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px 14px;
+        text-align: center;
+      }
+      .count .n {
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .count .l {
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .tag {
+        display: inline-block;
+        font-size: 11.5px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 999px;
+        letter-spacing: 0.02em;
+        vertical-align: middle;
+      }
+      .t-ready {
+        background: var(--ready-soft);
+        color: var(--ready);
+      }
+      .t-caution {
+        background: var(--caution-soft);
+        color: var(--caution);
+      }
+      .t-blocked {
+        background: var(--blocked-soft);
+        color: var(--blocked);
+      }
+      .t-unknown {
+        background: var(--unknown-soft);
+        color: var(--unknown);
+      }
+      .t-deferred {
+        background: var(--deferred-soft);
+        color: var(--deferred);
+      }
+      .t-rec {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 16px 18px;
+        margin: 14px 0;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+      .card.d {
+        border-left: 4px solid var(--accent);
+      }
+      .card-head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .card-id {
+        font-weight: 800;
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+      }
+      .card-title {
+        font-weight: 700;
+        font-size: 17px;
+      }
+      .card-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 6px 18px;
+        margin: 8px 0 4px;
+      }
+      .kv {
+        font-size: 14px;
+      }
+      .kv b {
+        color: var(--ink);
+      }
+      .kv span {
+        color: var(--muted);
+      }
+      .rec-line {
+        font-size: 13.5px;
+        margin-top: 6px;
+      }
+      .options {
+        margin: 12px 0 4px;
+        display: grid;
+        gap: 8px;
+      }
+      .opt {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 9px 11px;
+        cursor: pointer;
+        transition:
+          border-color 0.12s,
+          background 0.12s;
+      }
+      .opt:hover {
+        border-color: var(--line-strong);
+      }
+      .opt.is-rec {
+        background: #fbfcff;
+        border-color: #c9d6f5;
+      }
+      .opt input {
+        margin-top: 3px;
+      }
+      .opt .ol {
+        font-size: 14px;
+      }
+      .opt .ol .r {
+        color: var(--accent);
+        font-weight: 700;
+        font-size: 12px;
+        margin-left: 6px;
+      }
+      textarea,
+      select,
+      input[type="text"] {
+        font: inherit;
+      }
+      textarea {
+        width: 100%;
+        min-height: 62px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        padding: 9px 11px;
+        resize: vertical;
+        background: #fff;
+        color: var(--ink);
+      }
+      textarea.note {
+        min-height: 44px;
+        margin-top: 8px;
+      }
+      select {
+        padding: 7px 10px;
+        border: 1px solid var(--line-strong);
+        border-radius: 8px;
+        background: #fff;
+      }
+      label.fieldlabel {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+        margin: 8px 0 4px;
+      }
+
+      table.reg {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      table.reg th,
+      table.reg td {
+        text-align: left;
+        padding: 9px 10px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      table.reg th {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+      }
+      .wrap-scroll {
+        overflow-x: auto;
+      }
+
+      .surface {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 14px 16px;
+        margin: 12px 0;
+        box-shadow: var(--shadow);
+        background: var(--panel);
+      }
+      .surface .s-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: baseline;
+        flex-wrap: wrap;
+      }
+      .surface .disp {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .seq {
+        counter-reset: seq;
+        list-style: none;
+        padding-left: 0;
+      }
+      .seq li {
+        position: relative;
+        padding: 8px 0 8px 40px;
+        border-bottom: 1px dashed var(--line);
+      }
+      .seq li::before {
+        counter-increment: seq;
+        content: counter(seq);
+        position: absolute;
+        left: 0;
+        top: 8px;
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-weight: 800;
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+      }
+
+      pre.preview {
+        background: #0f1622;
+        color: #e6edf7;
+        border-radius: 10px;
+        padding: 16px;
+        overflow: auto;
+        font-size: 12.5px;
+        line-height: 1.5;
+        max-height: 420px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .actionbar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(6px);
+        border-top: 1px solid var(--line-strong);
+        z-index: 40;
+      }
+      .actionbar .inner {
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: 12px 20px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      button {
+        font: inherit;
+        font-weight: 600;
+        border-radius: 9px;
+        border: 1px solid var(--line-strong);
+        background: #fff;
+        color: var(--ink);
+        padding: 9px 15px;
+        cursor: pointer;
+      }
+      button.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      button.ghost {
+        background: transparent;
+      }
+      button:hover {
+        filter: brightness(0.98);
+      }
+      .status {
+        font-size: 13.5px;
+        color: var(--muted);
+        min-height: 18px;
+      }
+      .status.ok {
+        color: var(--ready);
+        font-weight: 600;
+      }
+      .spacer {
+        flex: 1;
+      }
+
+      @media (max-width: 720px) {
+        .counts {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        h1 {
+          font-size: 24px;
+        }
+        .actionbar .inner {
+          gap: 8px;
+        }
+        button {
+          padding: 8px 12px;
+        }
+      }
+
+      @media print {
+        body {
+          background: #fff;
+          padding: 0;
+          font-size: 12px;
+        }
+        .actionbar,
+        .no-print,
+        textarea.note:placeholder-shown {
+          display: none !important;
+        }
+        .panel,
+        .card,
+        .surface {
+          box-shadow: none;
+          border-color: #bbb;
+          break-inside: avoid;
+        }
+        .opt input {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        pre.preview {
+          max-height: none;
+          background: #fff;
+          color: #000;
+          border: 1px solid #999;
+        }
+        a {
+          color: #000;
+          text-decoration: none;
+        }
+        section {
+          margin: 14px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="wrap">
+        <div class="kicker">Decision &amp; Q&amp;A Packet · Round 1</div>
+        <h1>Overnight Unattended Build — answer everything once</h1>
+        <div class="hero-meta">
+          <span
+            ><b>Subject:</b> the seven demo-gap remediation slices + the unattended
+            run</span
+          >
+          <span><b>Date:</b> 2026-07-22</span>
+          <span><b>For:</b> Josiah (owner)</span>
+          <span><b>Baseline:</b> green + live, rev <code>rmrwfezcc</code></span>
+        </div>
+        <div class="usebox">
+          <b>How to use this.</b> Every question the overnight builder would otherwise
+          stop on is here, with my recommended answer pre-selected. Skim, change anything
+          you disagree with, add notes, then press <b>Generate&nbsp;&amp;&nbsp;copy</b> at
+          the bottom and paste the result back into our chat. I fold your answers into
+          decision-complete specs and the loop runs unattended. Your selections are saved
+          in this browser automatically — nothing here executes, deploys, sends, or writes
+          anything.
+        </div>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <section class="panel" id="exec">
+        <h2>Executive conclusion</h2>
+        <p>
+          The seven items sort into <b>four buildable slices</b>,
+          <b>one already-live capability to make honest</b>,
+          <b>three named external dependencies</b>, and
+          <b>one hard safety boundary we keep</b>. Almost all of it is additive app code +
+          specs + tests + docs that a builder can complete offline —
+          <b>no live cloud reads and no deploy required overnight</b>, which is exactly
+          what makes an unattended run safe. The single most important setup decision is
+          <b>D20 (overnight auth posture)</b>: keep the builder offline and local so a
+          stale token can never wedge it mid-run, and leave every live check + the deploy
+          for your morning. The one thing genuinely blocked on you is the
+          <b>RentVine field/endpoint confirmation (D16)</b> and the
+          <b>Sheet write-back preconditions (D17)</b> — the builder will build to the
+          mapped-from-export defaults and flag anything it cannot confirm rather than
+          guess.
+        </p>
+        <div class="counts">
+          <div class="count">
+            <div class="n">20</div>
+            <div class="l">Decisions</div>
+          </div>
+          <div class="count">
+            <div class="n">2</div>
+            <div class="l">True blockers</div>
+          </div>
+          <div class="count">
+            <div class="n">13</div>
+            <div class="l">Safe defaults</div>
+          </div>
+          <div class="count">
+            <div class="n">3</div>
+            <div class="l">Evidence gaps</div>
+          </div>
+          <div class="count">
+            <div class="n">6</div>
+            <div class="l">Deferred / boundary</div>
+          </div>
+        </div>
+        <p class="small muted" style="margin-top: 12px">
+          Convergence: this is a first, broad round. If your answers open new downstream
+          choices (e.g. you pick a non-default RentVine posture), I run one more focused
+          round rather than guessing.
+        </p>
+      </section>
+
+      <section class="panel" id="scope">
+        <h2>Scope &amp; state model</h2>
+        <p class="small">
+          <b>Inspected:</b> <code>AGENTS.md</code>, <code>docs/loop-state.md</code>,
+          <code>docs/autonomous-agent-runner.md</code>, <code>docs/whats-next.md</code>,
+          <code>docs/facts.md</code> (relevant facts),
+          <code>docs/feature-suites/maintenance-execution.md</code>, and the live code
+          paths for renewal desk, owner-decision capture, Vertex space config, the Ask
+          surface, the maintenance execution orchestrator, the Action-Registry gate, and
+          Dotloop scaffolding.
+        </p>
+        <p class="small">
+          <b>State distinctions that matter:</b> the runtime live gate is a committed-seed
+          boolean <code>production_allowed</code>, valid only with
+          <code>readiness="Approved for Execution"</code> +
+          <code>evidence_status="Documented"</code>
+          (<code>lib/integrations/action-gate.ts</code>), pinned by tests — so any "go
+          live" is a reviewed code change, never a console toggle. "Grounding is live"
+          (Ask over a Space) is separate from "an action is live" (a draft/send).
+        </p>
+        <p class="small">
+          <b>Non-goals this cycle:</b> no autonomous send (the app may draft; a human
+          still confirms every send); no live system-of-record write without its
+          preview→confirm→receipt→rollback contract; the renewal Sheet stays read-only
+          augment; RentVine stays read-only; the ~$10 cost ceiling holds; no live Vertex
+          provisioning/ingestion overnight.
+        </p>
+      </section>
+
+      <section id="decisions">
+        <h2>Decision register</h2>
+        <p class="muted small">
+          Recommended options are pre-selected and marked
+          <span class="tag t-rec">Recommended</span>. Change any of them. The note box
+          under each card is optional.
+        </p>
+        <div id="decision-cards"></div>
+      </section>
+
+      <section class="panel" id="register">
+        <h2>Blocker &amp; ambiguity register</h2>
+        <div class="wrap-scroll">
+          <table class="reg">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Class</th>
+                <th>Owner / evidence needed</th>
+                <th>Consequence</th>
+                <th>Next action</th>
+              </tr>
+            </thead>
+            <tbody id="register-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="surfaces">
+        <h2>Surface map — disposition per slice</h2>
+        <p class="muted small">
+          For each slice: purpose, current state, what works, the gap, and my
+          recommendation. Set a disposition (Approve / Revise / Defer / Exclude) and add a
+          note if you want a change.
+        </p>
+        <div id="surface-cards"></div>
+      </section>
+
+      <section class="panel" id="sequencing">
+        <h2>Recommended sequencing (dependency order)</h2>
+        <p class="small muted">
+          Selecting anything here records intent only — it does not authorize execution or
+          deployment. The builder runs slices in this order, skipping any you
+          Defer/Exclude.
+        </p>
+        <ol class="seq">
+          <li>
+            <b>Comp basis capture + Zillow link</b> — highest value, fully additive, no
+            dependency. <span class="tag t-ready">safe</span>
+          </li>
+          <li>
+            <b>KB answer transparency</b> — small, additive, no dependency.
+            <span class="tag t-ready">safe</span>
+          </li>
+          <li>
+            <b>KB freshness surfacing</b> (existing <code>last_reviewed_at</code>) —
+            additive, no dependency. <span class="tag t-ready">safe</span>
+          </li>
+          <li>
+            <b>Maintenance owner-notice draft</b> — needs the owner-email source wired
+            first (D10/D16), then the draft gate flip.
+            <span class="tag t-caution">data dep</span>
+          </li>
+          <li>
+            <b>Add-a-Space request intake</b> — additive; live provisioning stays your
+            console step. <span class="tag t-ready">safe</span>
+          </li>
+          <li>
+            <b>RentVine-write exploration</b> — research + spec + vendor ask, no live
+            write. <span class="tag t-deferred">research</span>
+          </li>
+          <li>
+            <b>Sheet write-back proof harness</b> — build <code>smoke:sheet-write</code>;
+            you run it AM against a copy tab. <span class="tag t-caution">owner AM</span>
+          </li>
+          <li>
+            <b>Update walkthrough + testing doc</b> to reflect every shipped change.
+            <span class="tag t-ready">docs</span>
+          </li>
+          <li>
+            <b>Full gate → ff-merge to main → build in primary → push both.</b> Deploy
+            waits for you. <span class="tag t-caution">no deploy</span>
+          </li>
+        </ol>
+      </section>
+
+      <section class="panel" id="evidence">
+        <h2>Evidence &amp; residual risk</h2>
+        <ul class="small">
+          <li>
+            <b>Comp model already exists:</b>
+            <code>lib/lease-renewal/owner-draft.ts</code>
+            (<code>OwnerDraftMarketInput</code>) renders source-tagged comp facts, but
+            <code>lib/lease-renewal/live-desk.ts:370</code> never feeds it — comps always
+            show "Needs Verification". Risk: low; purely additive wiring.
+          </li>
+          <li>
+            <b>Maintenance owner-notice gated OFF:</b>
+            <code>action-registry-seed.ts:863</code> / <code>:1288</code>,
+            <code>production_allowed:false</code>; seed evidence names the real blocker
+            (ticket lacks a verified owner-email source). Risk: medium — the owner-email
+            source must be authoritative before the draft is trustworthy.
+          </li>
+          <li>
+            <b>Space config is env-only:</b> <code>lib/config/server.ts</code> reads
+            <code>SPACE_VERTEX_DATA_STORE_IDS</code>/<code>SPACE_DRIVE_FOLDER_IDS</code>
+            at startup; no runtime "last indexed". A true freshness timestamp is a new
+            data dependency (deferred). Existing
+            <code>sources_meta.last_reviewed_at</code> is real and can be surfaced.
+          </li>
+          <li>
+            <b>Dotloop fully scaffolded but non-executable:</b> executor + provider
+            interface + 2 registry keys + draft composer + connector card, all
+            <code>production_allowed:false</code>; live needs a Dotloop OAuth2 approved
+            application.
+          </li>
+          <li>
+            <b>Not verified overnight (by design):</b> anything needing a live
+            RentVine/Sheet/Vertex read or a deploy — deliberately deferred to your morning
+            because the builder's non-interactive token can go stale (see D20).
+          </li>
+        </ul>
+      </section>
+
+      <section class="panel no-print" id="continue">
+        <h2>Continue the audit</h2>
+        <label class="fieldlabel" for="ctx-extra"
+          >Additional context, corrections, or desired direction</label
+        >
+        <textarea
+          id="ctx-extra"
+          placeholder="Anything I got wrong, extra constraints, or direction for the overnight run…"
+        ></textarea>
+        <label class="fieldlabel" for="ctx-evidence"
+          >Evidence to inspect next (optional)</label
+        >
+        <textarea
+          id="ctx-evidence"
+          placeholder="Files, endpoints, or sources you want me to read before building…"
+        ></textarea>
+        <label class="fieldlabel" for="ctx-next"
+          >What should change in the next round (optional)</label
+        >
+        <textarea
+          id="ctx-next"
+          placeholder="If a choice opens follow-ups, what should the next round focus on…"
+        ></textarea>
+      </section>
+
+      <section class="panel" id="response">
+        <h2>Structured response</h2>
+        <p class="small muted">
+          This is generated from your current selections. Press
+          <b>Generate &amp; copy</b>, then paste it into our chat.
+        </p>
+        <pre class="preview" id="preview" aria-live="polite">
+Press “Generate / refresh” to build your response…</pre
+        >
+        <div
+          class="no-print"
+          style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px"
+        >
+          <button id="btn-gen">Generate / refresh</button>
+          <button id="btn-copy" class="primary">Generate &amp; copy</button>
+          <button id="btn-print" class="ghost">Print / save as PDF</button>
+          <button id="btn-clear" class="ghost">Clear saved response</button>
+        </div>
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <div class="actionbar no-print">
+      <div class="inner">
+        <span class="small muted" id="progress">0 / 20 decisions answered</span>
+        <span class="spacer"></span>
+        <button id="btn-gen2">Refresh preview</button>
+        <button id="btn-copy2" class="primary">Generate &amp; copy</button>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+        var NS = "pmikc-audit-2026-07-22";
+        var AUDIT_TITLE = "PMI KC Overnight Build Decision Packet";
+
+        // ---- Decision data (evidence-backed). type: 'choice' captures a radio; 'text' captures free input. ----
+        var DECISIONS = [
+          {
+            id: "D01",
+            group: "Unattended run",
+            type: "choice",
+            title: "Deploy authority overnight",
+            question: "May the builder deploy to Cloud Run during the unattended run?",
+            why: "Deploy needs a fresh, owner-present ADC and touches live cost; a stale token mid-run would fail or serve unproven code.",
+            state: "Prior deploys were owner-authorized with a fresh ADC session.",
+            confidence: "High",
+            delay:
+              "Builder either over-reaches (deploys unproven) or you get no merged result.",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "Build + gate + ff-merge to main + push. Do NOT deploy — I deploy in the morning.",
+              },
+              {
+                v: "b",
+                l: "Also deploy to Cloud Run unattended once the gate is green.",
+              },
+              { v: "c", l: "Build on the branch only — do not merge to main either." },
+            ],
+          },
+          {
+            id: "D02",
+            group: "Unattended run",
+            type: "choice",
+            title: "Branch / merge workflow",
+            question: "How should completed slices land?",
+            why: "The repo uses a worktree → gate → ff-merge → build-in-primary → push-both flow to keep main deployable.",
+            state: "main and ui-ux-overhaul are aligned at the deployed head.",
+            confidence: "High",
+            delay: "Ambiguity risks a half-merged main.",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "Worktree → full gate → ff-merge to main → build in primary → push both branches.",
+              },
+              {
+                v: "b",
+                l: "Keep everything on ui-ux-overhaul; I merge to main myself later.",
+              },
+              { v: "c", l: "Commit per slice on main directly (no worktree)." },
+            ],
+          },
+          {
+            id: "D03",
+            group: "Unattended run",
+            type: "choice",
+            title: "Stop-and-reset posture",
+            question:
+              "What should the builder do when a slice hits a blocker or gets uncertain?",
+            why: "The loop's rule is to record the blocker and continue on the next safe slice, not to guess or halt everything.",
+            state: "docs/autonomous-agent-runner.md defines stop-and-reset conditions.",
+            confidence: "High",
+            delay: "Without this it may stall the whole run on one snag.",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "Record the blocker, skip to the next safe slice, keep going. Summarize all blockers in the morning.",
+              },
+              { v: "b", l: "Stop the entire run at the first blocker and wait for me." },
+              { v: "c", l: "Push through blockers with a best-effort guess." },
+            ],
+          },
+          {
+            id: "D04",
+            group: "Unattended run",
+            type: "choice",
+            title: "If time/tokens run short, what MUST be done",
+            question: "Which slices are the non-negotiable must-haves by morning?",
+            why: "An unattended run can exhaust budget; a priority floor guarantees the highest-value work lands first.",
+            state: "Recommended order is in the Sequencing section.",
+            confidence: "Medium",
+            delay:
+              "You might get breadth-first partial work instead of the items you care about.",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "Must-haves: Comp capture + KB transparency + walkthrough/testing-doc update. Everything else best-effort.",
+              },
+              { v: "b", l: "Must-haves: all four build slices; docs best-effort." },
+              { v: "c", l: "No floor — do as much as possible in the sequenced order." },
+            ],
+          },
+          {
+            id: "D05",
+            group: "Unattended run",
+            type: "choice",
+            title: "Docs the builder must update",
+            question: "Which docs get updated to reflect the shipped changes?",
+            why: "You asked that the walkthrough / testing sheet be fully updated by morning.",
+            state:
+              "Walkthrough: docs/customer-demo-walkthrough-2026-07-21.html. QA checklist: docs/manual-qa-walkthrough-2026-07-21.md.",
+            confidence: "Medium",
+            delay: "Docs drift from the app; the morning demo prep is stale.",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "Update the walkthrough HTML AND the manual-QA checklist to cover every shipped change.",
+              },
+              { v: "b", l: "Update the walkthrough HTML only." },
+              { v: "c", l: "Leave docs; I'll update them myself." },
+            ],
+            noteHint:
+              "If “the testing sheet” is a different file than the two above, name it here.",
+          },
+          {
+            id: "D20",
+            group: "Unattended run",
+            type: "choice",
+            title: "Overnight auth posture (the key setup decision)",
+            question:
+              "Should the builder run fully offline/local, or with a fresh live-read window?",
+            why: "On this managed org the agent's non-interactive gcloud/ADC cannot refresh; it silently stalls a live read mid-run. All build slices are code+specs+tests+docs that need NO live read.",
+            state:
+              "Memory: gcloud reauth is interactive-only; live reads/deploy need owner-present auth.",
+            confidence: "High",
+            delay:
+              "A stale token could wedge the run on a live call that never needed to happen.",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "Fully offline/local: no live RentVine/Sheet/Vertex reads, no deploy. All live checks are my morning step.",
+              },
+              {
+                v: "b",
+                l: "I'll run npm run auth:session right before leaving so the builder has a fresh window for live reads.",
+              },
+            ],
+          },
+
+          {
+            id: "D06",
+            group: "Comp capture",
+            type: "choice",
+            title: "Comp inputs to capture",
+            question: "What comp fields does the owner-decision form gain?",
+            why: "OwnerDraftMarketInput already supports a Zillow range, a PMI number, and a comps-screenshot ref; the operator enters them (the app never invents a number).",
+            state:
+              "Form today captures decision/offeredRent/rbp/insurance/infoFormUrl only.",
+            confidence: "High",
+            delay: "Owner email keeps showing “Needs Verification” for the rent basis.",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "Zillow low + Zillow high (range) + PMI rental-analysis number — all optional.",
+              },
+              { v: "b", l: "Add a comps-screenshot URL field as well." },
+              { v: "c", l: "A single free-text “market rent basis” field only." },
+            ],
+          },
+          {
+            id: "D07",
+            group: "Comp capture",
+            type: "choice",
+            title: "Zillow link on the desk",
+            question: "What form should the Zillow convenience link take?",
+            why: "A deep link seeded from the property address saves a lookup; a property address is not tenant PII, but confirm you're comfortable with it in the URL.",
+            state: "No external convenience links exist on the desk today.",
+            confidence: "Medium",
+            delay: "Minor — operators keep searching Zillow manually.",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "Deep link seeded from the property address (opens Zillow search for that address).",
+              },
+              { v: "b", l: "Plain zillow.com link (no address in the URL)." },
+              { v: "c", l: "No Zillow link." },
+            ],
+          },
+          {
+            id: "D08",
+            group: "Comp capture",
+            type: "choice",
+            title: "Where the comp basis flows",
+            question: "Does the captured comp feed anything beyond the owner email?",
+            why: "Keeping it email-only avoids touching the Sheet write-back proposal path (which is a separate, gated mechanism).",
+            state:
+              "Sheet write-back proposes specific KB fields; the comp is the owner's decision basis, not a KB field.",
+            confidence: "High",
+            delay: "None.",
+            rec: "a",
+            options: [
+              { v: "a", l: "Owner email only (source-tagged facts)." },
+              { v: "b", l: "Also include it in the Sheet write-back proposal." },
+            ],
+          },
+          {
+            id: "D09",
+            group: "KB transparency",
+            type: "choice",
+            title: "What the Ask result shows",
+            question: "How is answer provenance surfaced?",
+            why: "The answering model is in server config but never shown; a short honest line supports the “KB improves as you bump models” story.",
+            state: "Ask shows a source-state banner + a Sources list, no model/version.",
+            confidence: "High",
+            delay: "The “what model / how fresh” question stays unanswerable in-product.",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "“Answered by <friendly model name> · N sources”, shown to everyone.",
+              },
+              { v: "b", l: "Same line, but Admin-only." },
+              { v: "c", l: "Source count only, no model name." },
+            ],
+          },
+          {
+            id: "D10",
+            group: "Maintenance draft",
+            type: "choice",
+            title: "Authoritative owner-email source",
+            question: "Where does the maintenance owner-notice recipient come from?",
+            why: "This is the data dependency the seed names. Renewal draws verified recipients from RentVine; mirroring that is the cleanest.",
+            state: "Maintenance ticket does not yet carry a verified owner-email source.",
+            confidence: "Medium",
+            delay: "The draft can't be trusted / the gate can't flip.",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "RentVine property-owner contact (mirror renewal's authoritative-source pattern).",
+              },
+              { v: "b", l: "The operating Google Sheet." },
+              { v: "c", l: "Manual operator entry per ticket (no external source)." },
+            ],
+            noteHint: "Exact RentVine field/path for the owner email goes in D16.",
+          },
+          {
+            id: "D11",
+            group: "Maintenance draft",
+            type: "choice",
+            title: "Maintenance draft gate flip",
+            question: "Flip the maintenance owner-notice DRAFT to live this run?",
+            why: "Draft-only never sends (same posture as the live renewal draft). Ship-to-live is the governance default once the data source is wired + pinned.",
+            state:
+              "gmail.maintenance_owner_notice.draft_create is production_allowed:false; the send stays off regardless.",
+            confidence: "Medium",
+            delay: "The capability sits built-but-dark.",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "Build the owner-email wiring AND flip the draft-only gate live (never sends), behind its reviewed seed + pins.",
+              },
+              {
+                v: "b",
+                l: "Build it, but leave the gate OFF for me to review before flipping.",
+              },
+              { v: "c", l: "Defer the whole maintenance slice." },
+            ],
+          },
+          {
+            id: "D12",
+            group: "Add-a-Space",
+            type: "choice",
+            title: "Add-a-Space request intake",
+            question: "Build the self-serve Space request MVP?",
+            why: "Live Vertex provisioning is billed (touches the $10 ceiling); an intake that captures intent + emits the exact provisioning commands is safe and useful.",
+            state: "Spaces are env-configured; no in-app add flow exists.",
+            confidence: "Medium",
+            delay: "Adding a Space stays a fully manual, undocumented owner task.",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "Admin request-intake form + auto-generate the exact gcloud/Vertex provisioning commands as output (no execution).",
+              },
+              { v: "b", l: "Intake only — capture intent, no command generation." },
+              { v: "c", l: "Defer entirely." },
+            ],
+          },
+          {
+            id: "D13",
+            group: "KB freshness",
+            type: "choice",
+            title: "KB freshness surfacing",
+            question: "Surface source freshness using existing data?",
+            why: "sources_meta.last_reviewed_at is real; a true index timestamp is a new data dependency (out of scope tonight).",
+            state: "No freshness shown anywhere today.",
+            confidence: "Medium",
+            delay: "“KB improves over time” stays unsupported in-product.",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "Surface existing last_reviewed_at as “sources last reviewed”.",
+              },
+              { v: "b", l: "Defer freshness entirely." },
+              {
+                v: "c",
+                l: "Build a full index-timestamp data dependency (larger; needs an ingest-time write).",
+              },
+            ],
+          },
+          {
+            id: "D14",
+            group: "KB freshness",
+            type: "choice",
+            title: "Re-index trigger",
+            question: "Add an in-app re-index control?",
+            why: "Re-indexing calls Vertex document import (cost/quota) and is CLI-only today.",
+            state: "scripts/import-agent-search-documents.mjs is the only trigger.",
+            confidence: "High",
+            delay: "None — CLI still works.",
+            rec: "a",
+            options: [
+              { v: "a", l: "Defer; keep the CLI re-index." },
+              {
+                v: "b",
+                l: "Build an Admin re-index button (cost-gated; still needs my approval to actually run).",
+              },
+            ],
+          },
+          {
+            id: "D15",
+            group: "Dotloop",
+            type: "choice",
+            title: "Dotloop this cycle",
+            question: "How far do we take Dotloop tonight?",
+            why: "Live Dotloop needs an OAuth2 approved application (external). The draft composer already exists and makes no external call.",
+            state: "All Dotloop actions production_allowed:false.",
+            confidence: "High",
+            delay: "E-sign follow-up stays roadmap (fine — voiced as “next”).",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "Leave fully gated; record the OAuth-app ask in the client checklist.",
+              },
+              {
+                v: "b",
+                l: "Surface the existing draft-only follow-up composer (no external call).",
+              },
+              {
+                v: "c",
+                l: "Start the OAuth integration (blocked without the Dotloop app).",
+              },
+            ],
+          },
+          {
+            id: "D18",
+            group: "RentVine write",
+            type: "choice",
+            title: "RentVine-write exploration depth",
+            question: "You chose “explore RentVine write” — how deep tonight?",
+            why: "No live write is possible (read-only client, no confirmed endpoint). The useful deliverable is research + a specific vendor ask + a spec.",
+            state: "OQ-RV-1 open; RentVine client is GET-only by construction.",
+            confidence: "Medium",
+            delay: "The vendor conversation stays vague.",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "Research feasibility + draft the specific vendor/Dan ask + record OQ-RV-1 findings. No code.",
+              },
+              {
+                v: "b",
+                l: "Also scaffold a gated, non-executable RentVine write executor (like Dotloop's), production_allowed:false.",
+              },
+              { v: "c", l: "Defer — keep it as a one-line backlog item." },
+            ],
+          },
+          {
+            id: "D19",
+            group: "Boundary",
+            type: "choice",
+            title: "Negotiation / rent-figure exclusion",
+            question: "Confirm the app never invents or negotiates a rent number?",
+            why: "Q-GMAIL-AI-EXCLUSIONS (Verified) excludes owner money. This keeps it a documented, deliberate boundary.",
+            state: "App drafts from the operator's recorded decision only.",
+            confidence: "High",
+            delay: "It keeps resurfacing as a “gap.”",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "Keep it excluded; document it as a named boundary in facts.md.",
+              },
+              {
+                v: "b",
+                l: "Reconsider (would cross the owner-money exclusion — not recommended).",
+              },
+            ],
+          },
+
+          {
+            id: "D16",
+            group: "Evidence gap",
+            type: "text",
+            title: "RentVine field/endpoint confirmations (blocker)",
+            question:
+              "Paste the confirmed RentVine field paths (or write “use export defaults, flag unknowns”).",
+            why: "Three field questions gate correctness: (i) renewal recipient + rent [F-LEASE-3], (ii) property-owner email for maintenance [D10], (iii) any writable renewal fields [D18]. The builder can proceed on the mapped-from-export defaults and flag what it can't confirm.",
+            state:
+              "Live field names were mapped from one export, not confirmed by the source owner.",
+            confidence: "",
+            delay:
+              "Wrong mappings surface wrong data on a draft (still draft-only, never auto-sent).",
+            placeholder:
+              "e.g. owner email = lease.property.owner.email ; renewal rent = lease.rent ; primary tenant = tenants[0]. Or: “use export defaults and flag anything unconfirmed for my AM review.”",
+          },
+          {
+            id: "D17",
+            group: "Evidence gap",
+            type: "choice",
+            title: "Sheet write-back preconditions (blocker)",
+            question:
+              "Is the Sheets WRITE scope granted and do the “KB Proposed” columns exist?",
+            why: "The write-back is enabled but never actually executed. It fail-closes silently if the DWD write scope is missing or the target column is absent.",
+            state:
+              "Read path only needed spreadsheets.readonly; the write client needs full spreadsheets.",
+            confidence: "",
+            delay: "The “enabled” write-back may be a paper tiger until proven.",
+            rec: "a",
+            options: [
+              {
+                v: "a",
+                l: "Both are in place — builder adds a smoke:sheet-write harness for me to run AM against a copy tab.",
+              },
+              {
+                v: "b",
+                l: "Not yet / unsure — builder still adds the harness; the actual proof waits on me granting the scope + adding columns.",
+              },
+              { v: "c", l: "Skip the write-back proof this cycle." },
+            ],
+            noteHint: "If you know the scope status or column state, note it here.",
+          },
+        ];
+
+        var SURFACES = [
+          {
+            id: "S1",
+            title: "Comp basis capture + Zillow link",
+            state: "Half-built",
+            purpose:
+              "Record where the owner's rent number came from and show it, source-tagged, in the owner email.",
+            works: "OwnerDraftMarketInput renders Zillow/PMI comp facts already.",
+            gap: "The live desk never feeds it; the form has no comp inputs; no Zillow link.",
+            evidence: "owner-draft.ts, live-desk.ts:370, RenewalProgressControls.tsx",
+            rec: "Approve",
+          },
+          {
+            id: "S2",
+            title: "KB answer transparency",
+            state: "Absent",
+            purpose: "Show which model answered + source count.",
+            works: "Model is in server config; Sources list already renders.",
+            gap: "Model/version never reaches the UI.",
+            evidence: "lib/config/server.ts, components/ask/AskForm.tsx",
+            rec: "Approve",
+          },
+          {
+            id: "S3",
+            title: "KB freshness surfacing",
+            state: "Absent",
+            purpose: "Show source freshness honestly.",
+            works: "sources_meta.last_reviewed_at exists.",
+            gap: "Not surfaced; no true index timestamp.",
+            evidence: "vertex-search.ts (FirestoreSourceMetaReader)",
+            rec: "Approve",
+          },
+          {
+            id: "S4",
+            title: "Maintenance owner-notice draft",
+            state: "Wired but gated OFF",
+            purpose: "Draft an owner notice for a maintenance ticket (never sends).",
+            works: "Executor + template + draft route exist.",
+            gap: "Ticket lacks a verified owner-email source; gate is off.",
+            evidence:
+              "maintenance/execution/providers.ts:493, action-registry-seed.ts:863",
+            rec: "Approve",
+          },
+          {
+            id: "S5",
+            title: "Add-a-Space request intake",
+            state: "Absent",
+            purpose:
+              "Let an Admin request a new Space; hand the owner provisioning steps.",
+            works: "—",
+            gap: "Spaces are env-only; no in-app flow.",
+            evidence: "lib/config/server.ts, lib/spaces.ts",
+            rec: "Approve",
+          },
+          {
+            id: "S6",
+            title: "RentVine write-back",
+            state: "Deferred (external dep)",
+            purpose: "Write renewal outcomes back to RentVine.",
+            works: "—",
+            gap: "No confirmed write endpoint; read-only by construction.",
+            evidence: "OQ-RV-1; RentVine client (GET-only)",
+            rec: "Defer",
+          },
+          {
+            id: "S7",
+            title: "Dotloop e-sign",
+            state: "Scaffolded, gated OFF",
+            purpose: "E-sign follow-up on renewal.",
+            works: "Executor + provider interface + draft composer + connector card.",
+            gap: "Needs a Dotloop OAuth2 approved application.",
+            evidence: "lease-renewal/execution/providers.ts, action-registry-seed.ts:259",
+            rec: "Defer",
+          },
+          {
+            id: "S8",
+            title: "Negotiation / rent-figure invention",
+            state: "Excluded (boundary)",
+            purpose: "—",
+            works: "—",
+            gap: "Deliberately excluded (owner-money).",
+            evidence: "Q-GMAIL-AI-EXCLUSIONS",
+            rec: "Exclude",
+          },
+          {
+            id: "S9",
+            title: "Sheet write-back live proof",
+            state: "Enabled, unproven",
+            purpose: "Prove the append-only Sheet write actually executes.",
+            works: "Full mechanism + unit tests; flag on.",
+            gap: "No smoke harness; DWD write scope + target columns unverified.",
+            evidence: "sheet-writeback-execution.ts, no smoke:sheet-write",
+            rec: "Approve",
+          },
+        ];
+
+        var REGISTER = [
+          {
+            item: "RentVine field/endpoint names (D16)",
+            cls: "blocked",
+            owner: "Dan / source owner",
+            cons: "Wrong data on a draft",
+            next: "Builder uses export defaults + flags unknowns; you confirm AM.",
+          },
+          {
+            item: "Sheet write-back preconditions (D17)",
+            cls: "blocked",
+            owner: "You (Workspace admin console)",
+            cons: "Enabled write may fail-close",
+            next: "Builder adds smoke harness; you grant scope + add columns AM.",
+          },
+          {
+            item: "Overnight auth posture (D20)",
+            cls: "default",
+            owner: "You (one choice)",
+            cons: "Stale token could wedge a live call",
+            next: "Default: run offline/local; no live reads overnight.",
+          },
+          {
+            item: "Deploy overnight (D01)",
+            cls: "default",
+            owner: "You (one choice)",
+            cons: "Serving unproven code",
+            next: "Default: no deploy; you deploy AM.",
+          },
+          {
+            item: "Maintenance owner-email source (D10)",
+            cls: "evidence",
+            owner: "D16 field path",
+            cons: "Draft not trustworthy",
+            next: "Wire RentVine owner contact once field confirmed.",
+          },
+          {
+            item: "RentVine write feasibility (D18)",
+            cls: "evidence",
+            owner: "Vendor confirmation",
+            cons: "Vague vendor ask",
+            next: "Research + draft the specific ask; no code.",
+          },
+          {
+            item: "Live Vertex Space provisioning (D12)",
+            cls: "deferred",
+            owner: "You (billed console step)",
+            cons: "—",
+            next: "Intake MVP now; provisioning stays your step.",
+          },
+          {
+            item: "KB index-timestamp freshness (D13)",
+            cls: "deferred",
+            owner: "New data dependency",
+            cons: "—",
+            next: "Surface existing last_reviewed_at instead.",
+          },
+          {
+            item: "Re-index UI (D14)",
+            cls: "deferred",
+            owner: "Vertex ingestion cost",
+            cons: "—",
+            next: "Keep CLI; defer button.",
+          },
+          {
+            item: "Dotloop live (D15)",
+            cls: "deferred",
+            owner: "Dotloop OAuth app",
+            cons: "—",
+            next: "Record the ask; keep gated.",
+          },
+          {
+            item: "Negotiation / rent invention (D19)",
+            cls: "oos",
+            owner: "—",
+            cons: "—",
+            next: "Documented boundary; not built.",
+          },
+        ];
+
+        var CLS_TAG = {
+          blocked: ["t-blocked", "True blocker"],
+          default: ["t-caution", "Safe default"],
+          evidence: ["t-unknown", "Evidence needed"],
+          deferred: ["t-deferred", "Deferred"],
+          oos: ["t-unknown", "Out of scope"],
+        };
+
+        // ---- State ----
+        function load() {
+          try {
+            return JSON.parse(localStorage.getItem(NS) || "{}");
+          } catch (e) {
+            return {};
+          }
+        }
+        function save(s) {
+          try {
+            localStorage.setItem(NS, JSON.stringify(s));
+          } catch (e) {}
+        }
+        var state = load();
+        if (!state.decisions) state.decisions = {};
+        if (!state.notes) state.notes = {};
+        if (!state.surfaces) state.surfaces = {};
+        if (!state.surfaceNotes) state.surfaceNotes = {};
+        if (!state.ctx) state.ctx = {};
+        // preselect recommended defaults on first load
+        DECISIONS.forEach(function (d) {
+          if (d.type === "choice" && d.rec && !(d.id in state.decisions))
+            state.decisions[d.id] = d.rec;
+        });
+        SURFACES.forEach(function (s) {
+          if (!(s.id in state.surfaces)) state.surfaces[s.id] = s.rec;
+        });
+        save(state);
+
+        function esc(t) {
+          return String(t == null ? "" : t).replace(/[&<>]/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c];
+          });
+        }
+
+        // ---- Render decision cards ----
+        function renderDecisions() {
+          var host = document.getElementById("decision-cards");
+          var lastGroup = null;
+          var html = "";
+          DECISIONS.forEach(function (d) {
+            if (d.group !== lastGroup) {
+              html +=
+                '<h3 style="margin-top:22px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-size:13px">' +
+                esc(d.group) +
+                "</h3>";
+              lastGroup = d.group;
+            }
+            html += '<div class="card d" id="card-' + d.id + '">';
+            html +=
+              '<div class="card-head"><span class="card-id">' +
+              d.id +
+              '</span><span class="card-title">' +
+              esc(d.title) +
+              "</span>";
+            if (d.confidence)
+              html +=
+                ' <span class="tag t-unknown">Confidence: ' +
+                esc(d.confidence) +
+                "</span>";
+            html += "</div>";
+            html += '<div class="card-grid">';
+            html +=
+              '<div class="kv"><b>Question.</b> <span>' +
+              esc(d.question) +
+              "</span></div>";
+            html +=
+              '<div class="kv"><b>Why it matters.</b> <span>' +
+              esc(d.why) +
+              "</span></div>";
+            if (d.state)
+              html +=
+                '<div class="kv"><b>Current state.</b> <span>' +
+                esc(d.state) +
+                "</span></div>";
+            if (d.delay)
+              html +=
+                '<div class="kv"><b>If delayed.</b> <span>' +
+                esc(d.delay) +
+                "</span></div>";
+            html += "</div>";
+            if (d.type === "choice") {
+              html += '<div class="options">';
+              d.options.forEach(function (o) {
+                var checked = state.decisions[d.id] === o.v;
+                var isRec = d.rec === o.v;
+                html += '<label class="opt' + (isRec ? " is-rec" : "") + '">';
+                html +=
+                  '<input type="radio" name="' +
+                  d.id +
+                  '" value="' +
+                  o.v +
+                  '"' +
+                  (checked ? " checked" : "") +
+                  ">";
+                html +=
+                  '<span class="ol">' +
+                  esc(o.l) +
+                  (isRec ? '<span class="r">Recommended</span>' : "") +
+                  "</span>";
+                html += "</label>";
+              });
+              html += "</div>";
+            } else {
+              html +=
+                '<textarea id="text-' +
+                d.id +
+                '" placeholder="' +
+                esc(d.placeholder || "") +
+                '">' +
+                esc(state.notes[d.id] || "") +
+                "</textarea>";
+            }
+            var noteVal = d.type === "choice" ? state.notes[d.id] || "" : "";
+            if (d.type === "choice") {
+              html +=
+                '<textarea class="note" id="note-' +
+                d.id +
+                '" placeholder="' +
+                esc(d.noteHint || "Optional: a qualification or an alternative…") +
+                '">' +
+                esc(noteVal) +
+                "</textarea>";
+            }
+            html += "</div>";
+          });
+          host.innerHTML = html;
+
+          DECISIONS.forEach(function (d) {
+            if (d.type === "choice") {
+              Array.prototype.forEach.call(
+                document.getElementsByName(d.id),
+                function (r) {
+                  r.addEventListener("change", function () {
+                    state.decisions[d.id] = r.value;
+                    save(state);
+                    updateProgress();
+                  });
+                },
+              );
+              var n = document.getElementById("note-" + d.id);
+              if (n)
+                n.addEventListener("input", function () {
+                  state.notes[d.id] = n.value;
+                  save(state);
+                });
+            } else {
+              var t = document.getElementById("text-" + d.id);
+              if (t)
+                t.addEventListener("input", function () {
+                  state.notes[d.id] = t.value;
+                  save(state);
+                  updateProgress();
+                });
+            }
+          });
+        }
+
+        function renderRegister() {
+          var rows = REGISTER.map(function (r) {
+            var t = CLS_TAG[r.cls] || ["t-unknown", r.cls];
+            return (
+              "<tr><td>" +
+              esc(r.item) +
+              '</td><td><span class="tag ' +
+              t[0] +
+              '">' +
+              t[1] +
+              "</span></td><td>" +
+              esc(r.owner) +
+              "</td><td>" +
+              esc(r.cons) +
+              "</td><td>" +
+              esc(r.next) +
+              "</td></tr>"
+            );
+          }).join("");
+          document.getElementById("register-rows").innerHTML = rows;
+        }
+
+        function renderSurfaces() {
+          var host = document.getElementById("surface-cards");
+          var stateTag = {
+            "Half-built": "t-caution",
+            Absent: "t-unknown",
+            "Wired but gated OFF": "t-caution",
+            "Deferred (external dep)": "t-deferred",
+            "Scaffolded, gated OFF": "t-deferred",
+            "Excluded (boundary)": "t-unknown",
+            "Enabled, unproven": "t-caution",
+          };
+          var html = SURFACES.map(function (s) {
+            var sel = state.surfaces[s.id] || s.rec;
+            var opts = ["Approve", "Revise", "Defer", "Exclude"]
+              .map(function (o) {
+                return (
+                  '<option value="' +
+                  o +
+                  '"' +
+                  (sel === o ? " selected" : "") +
+                  ">" +
+                  o +
+                  (o === s.rec ? " (rec)" : "") +
+                  "</option>"
+                );
+              })
+              .join("");
+            var out = '<div class="surface" id="surf-' + s.id + '">';
+            out +=
+              '<div class="s-head"><div><b>' +
+              s.id +
+              " · " +
+              esc(s.title) +
+              '</b> <span class="tag ' +
+              (stateTag[s.state] || "t-unknown") +
+              '">' +
+              esc(s.state) +
+              "</span></div>";
+            out +=
+              '<div class="disp no-print"><label class="small muted" for="disp-' +
+              s.id +
+              '">Disposition</label><select id="disp-' +
+              s.id +
+              '">' +
+              opts +
+              "</select></div></div>";
+            out += '<div class="card-grid" style="margin-top:8px">';
+            out +=
+              '<div class="kv"><b>Purpose.</b> <span>' + esc(s.purpose) + "</span></div>";
+            if (s.works && s.works !== "—")
+              out +=
+                '<div class="kv"><b>Works.</b> <span>' + esc(s.works) + "</span></div>";
+            out += '<div class="kv"><b>Gap.</b> <span>' + esc(s.gap) + "</span></div>";
+            out +=
+              '<div class="kv"><b>Evidence.</b> <span><code>' +
+              esc(s.evidence) +
+              "</code></span></div>";
+            out += "</div>";
+            out +=
+              '<textarea class="note no-print" id="snote-' +
+              s.id +
+              '" placeholder="Optional note on this slice…">' +
+              esc(state.surfaceNotes[s.id] || "") +
+              "</textarea>";
+            out += "</div>";
+            return out;
+          }).join("");
+          host.innerHTML = html;
+          SURFACES.forEach(function (s) {
+            var sel = document.getElementById("disp-" + s.id);
+            sel.addEventListener("change", function () {
+              state.surfaces[s.id] = sel.value;
+              save(state);
+            });
+            var n = document.getElementById("snote-" + s.id);
+            n.addEventListener("input", function () {
+              state.surfaceNotes[s.id] = n.value;
+              save(state);
+            });
+          });
+        }
+
+        function bindCtx() {
+          [
+            ["ctx-extra", "extra"],
+            ["ctx-evidence", "evidence"],
+            ["ctx-next", "next"],
+          ].forEach(function (p) {
+            var el = document.getElementById(p[0]);
+            el.value = state.ctx[p[1]] || "";
+            el.addEventListener("input", function () {
+              state.ctx[p[1]] = el.value;
+              save(state);
+            });
+          });
+        }
+
+        function answeredCount() {
+          var n = 0;
+          DECISIONS.forEach(function (d) {
+            if (d.type === "choice") {
+              if (state.decisions[d.id]) n++;
+            } else {
+              if ((state.notes[d.id] || "").trim()) n++;
+            }
+          });
+          return n;
+        }
+        function updateProgress() {
+          var msg = answeredCount() + " / " + DECISIONS.length + " decisions answered";
+          document.getElementById("progress").textContent = msg;
+        }
+
+        // ---- Generate the copy-back Markdown ----
+        function labelFor(d) {
+          if (d.type === "text")
+            return (state.notes[d.id] || "").trim() || "No response yet";
+          var v = state.decisions[d.id];
+          if (!v) return "No response yet";
+          var o = d.options.filter(function (x) {
+            return x.v === v;
+          })[0];
+          return o ? o.l : v;
+        }
+        function generate() {
+          var L = [];
+          L.push("# " + AUDIT_TITLE + " - reviewer response");
+          L.push("");
+          L.push("- Round: 1");
+          L.push(
+            "- Generated: (fill on paste) · Source artifact: docs/audit-2026-07-22.html",
+          );
+          L.push("");
+          // Executive disposition
+          L.push("## Executive disposition");
+          var must = labelFor(
+            DECISIONS.filter(function (d) {
+              return d.id === "D04";
+            })[0],
+          );
+          var authp = labelFor(
+            DECISIONS.filter(function (d) {
+              return d.id === "D20";
+            })[0],
+          );
+          var deploy = labelFor(
+            DECISIONS.filter(function (d) {
+              return d.id === "D01";
+            })[0],
+          );
+          L.push("Overnight posture: " + authp);
+          L.push("Deploy: " + deploy);
+          L.push("Must-haves: " + must);
+          L.push("");
+          // Decisions
+          L.push("## Decisions");
+          var lastG = null;
+          DECISIONS.forEach(function (d) {
+            if (d.group !== lastG) {
+              L.push("");
+              L.push("### " + d.group);
+              lastG = d.group;
+            }
+            var accepted = "";
+            if (d.type === "choice") {
+              var v = state.decisions[d.id];
+              accepted = !v
+                ? "(no response)"
+                : v === d.rec
+                  ? "(accepted recommendation)"
+                  : "(CHANGED from recommendation)";
+            } else {
+              accepted = (state.notes[d.id] || "").trim()
+                ? "(provided)"
+                : "(no response)";
+            }
+            L.push("- **" + d.id + " " + d.title + "** " + accepted);
+            L.push("  - Selected: " + labelFor(d));
+            var note = d.type === "choice" ? (state.notes[d.id] || "").trim() : "";
+            if (note) L.push("  - Note: " + note);
+          });
+          L.push("");
+          // Surfaces
+          L.push("## Workstream or surface dispositions");
+          SURFACES.forEach(function (s) {
+            var disp = state.surfaces[s.id] || s.rec;
+            var line =
+              "- " +
+              s.id +
+              " " +
+              s.title +
+              ": " +
+              disp +
+              (disp === s.rec ? " (rec)" : " (CHANGED)");
+            var sn = (state.surfaceNotes[s.id] || "").trim();
+            L.push(line);
+            if (sn) L.push("  - Note: " + sn);
+          });
+          L.push("");
+          // Unresolved
+          L.push("## Unresolved items");
+          var unresolved = [];
+          DECISIONS.forEach(function (d) {
+            var ans =
+              d.type === "choice"
+                ? !!state.decisions[d.id]
+                : !!(state.notes[d.id] || "").trim();
+            if (!ans) unresolved.push(d.id + " " + d.title);
+          });
+          if (unresolved.length === 0) L.push("- None — every decision has a response.");
+          else
+            unresolved.forEach(function (u) {
+              L.push("- " + u);
+            });
+          L.push("");
+          // Context
+          L.push("## Additional context and corrections");
+          L.push((state.ctx.extra || "").trim() || "(none)");
+          L.push("");
+          L.push("### Evidence to inspect next");
+          L.push((state.ctx.evidence || "").trim() || "(none)");
+          L.push("");
+          L.push("## Desired direction for the next round");
+          L.push((state.ctx.next || "").trim() || "(none)");
+          L.push("");
+          L.push("---");
+          L.push(
+            "Use this response as the input for the next audit round. Treat accepted decisions as settled unless new evidence conflicts with them. Focus the next artifact on unresolved items, newly supplied context, changed recommendations, and any downstream decisions created by those changes.",
+          );
+          return L.join("\n");
+        }
+
+        function refresh() {
+          var md = generate();
+          document.getElementById("preview").textContent = md;
+          return md;
+        }
+        function setStatus(msg, ok) {
+          var el = document.getElementById("status");
+          el.textContent = msg;
+          el.className = "status" + (ok ? " ok" : "");
+        }
+        function copy() {
+          var md = refresh();
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(md).then(
+              function () {
+                setStatus("Copied to clipboard — paste it into the chat.", true);
+              },
+              function () {
+                selectPreview();
+                setStatus(
+                  "Clipboard blocked (local file). The response is selected below — press Ctrl/Cmd+C.",
+                  false,
+                );
+              },
+            );
+          } else {
+            selectPreview();
+            setStatus(
+              "The response is selected below — press Ctrl/Cmd+C to copy.",
+              false,
+            );
+          }
+        }
+        function selectPreview() {
+          var pre = document.getElementById("preview");
+          var r = document.createRange();
+          r.selectNodeContents(pre);
+          var sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(r);
+        }
+
+        document.getElementById("btn-gen").addEventListener("click", function () {
+          refresh();
+          setStatus("Preview refreshed.", true);
+        });
+        document.getElementById("btn-gen2").addEventListener("click", function () {
+          refresh();
+          setStatus("Preview refreshed.", true);
+          document.getElementById("response").scrollIntoView();
+        });
+        document.getElementById("btn-copy").addEventListener("click", copy);
+        document.getElementById("btn-copy2").addEventListener("click", function () {
+          copy();
+          document.getElementById("response").scrollIntoView();
+        });
+        document.getElementById("btn-print").addEventListener("click", function () {
+          refresh();
+          window.print();
+        });
+        document.getElementById("btn-clear").addEventListener("click", function () {
+          if (
+            !window.confirm(
+              "Clear all saved selections and notes on this device? This cannot be undone.",
+            )
+          )
+            return;
+          try {
+            localStorage.removeItem(NS);
+          } catch (e) {}
+          state = { decisions: {}, notes: {}, surfaces: {}, surfaceNotes: {}, ctx: {} };
+          DECISIONS.forEach(function (d) {
+            if (d.type === "choice" && d.rec) state.decisions[d.id] = d.rec;
+          });
+          SURFACES.forEach(function (s) {
+            state.surfaces[s.id] = s.rec;
+          });
+          save(state);
+          renderDecisions();
+          renderSurfaces();
+          bindCtx();
+          updateProgress();
+          document.getElementById("preview").textContent =
+            "Cleared. Selections reset to recommended defaults.";
+          setStatus("Saved response cleared; defaults restored.", true);
+        });
+
+        renderDecisions();
+        renderRegister();
+        renderSurfaces();
+        bindCtx();
+        updateProgress();
+        refresh();
+      })();
+    </script>
+  </body>
+</html>

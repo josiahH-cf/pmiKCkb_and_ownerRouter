@@ -6,7 +6,16 @@ context, and recommendations, read `docs/whats-next.md`.
 
 ## Snapshot
 
-- Last updated: 2026-07-21.
+- Last updated: 2026-07-22.
+- **QUEUED: the 2026-07-22 overnight build cycle.** A decision-complete runbook is locked at
+  `docs/overnight-build-run-2026-07-22.md` (owner-ruled via the Round-1 decision packet
+  `docs/audit-2026-07-22.html`). It runs 11 ordered slices (comp capture + Zillow link, KB answer
+  transparency, KB freshness, maintenance owner-notice **draft** go-live, add-a-Space request intake,
+  cost-gated re-index button, RentVine write executor **gated OFF pending a documented endpoint**,
+  Dotloop OAuth scaffolding gated OFF, plus the Sheet-write live proof and RentVine field discovery),
+  then full gate → ff-merge → build-in-primary → push → **best-effort unattended deploy** (owner
+  authorized D01; gated on a fresh `preflight:adc`, else deferred to the morning). The owner runs
+  `npm run auth:session` before departure to open the live/deploy window. Read the runbook first.
 - **Baseline is green, clean, and live in production.** `main` (the v1 remediation plus the
   governance/QA doc realignment) is deployed to Cloud Run, working tree clean, `main` and the
   `ui-ux-overhaul` branch aligned and pushed. Full gate passes: 2,555 tests across 353 files,
@@ -25,8 +34,9 @@ context, and recommendations, read `docs/whats-next.md`.
     identity dedup; owner ruled keep-re-sends/close-the-race; two adversarial rounds, second all-SAFE).
   - `36440e9` — F-LEASE-6: address all authoritative co-tenants as Cc on a renewal notice (draft-only
     preserved; each Cc held to the routable + authoritative bar; adversarial pass all-SAFE).
-- **What remains is owner-gated or infrastructure only — no autonomous code slice is queued.** The
-  prioritized list with per-item findings/context/recommendations is `docs/whats-next.md`. In short:
+- **A queued autonomous cycle now exists (the 2026-07-22 runbook above).** The broader owner-gated /
+  infrastructure backlog with per-item findings/context/recommendations is still `docs/whats-next.md`.
+  In short:
   F-AUTH-1 onboarding (needs a deploy migration that must not lock out admins), the HIGH env item
   (Firestore backups/PITR before real client data), budget kill-switch and intake-salt provisioning,
   and two owner answers (Q-CUTOVER-POSTURE; whether the primary tenant is always `tenants[0]`, which
@@ -57,27 +67,28 @@ context, and recommendations, read `docs/whats-next.md`.
 
 ## Goal
 
-Hold the green, clean, fully-remediated v1 baseline (already live in production) while the owner (a)
-walks the macro features by hand against `docs/manual-qa-walkthrough-2026-07-21.md`, and (b) decides
-the owner-gated items in `docs/whats-next.md`. Do not open a new autonomous code slice unless the
-owner directs one; when directed, resume the worktree → full gate → adversarial pass → ff-merge →
-build-in-primary → push-both loop.
+Run the 2026-07-22 overnight build cycle to completion per `docs/overnight-build-run-2026-07-22.md`:
+land the four must-have slices (comp capture, KB answer transparency, maintenance owner-notice draft,
+add-a-Space intake) plus the approved remainder, keep every safety invariant, then gate → ff-merge →
+build-in-primary → push → best-effort unattended deploy (gated on a fresh `preflight:adc`). Preserve
+the green baseline: nothing half-merged, no autonomous send/live-write, RentVine write stays
+`production_allowed:false` pending a documented endpoint.
 
 ## Next Exact Actions
 
-1. When the owner asks "what's next?", read `docs/whats-next.md` and walk them through the top
-   items as confirm-with-default decisions, asking only the irreducible questions. Do not re-derive
-   the closed findings; they are done.
-2. Production already serves this build (revision `pmi-kc-kb-demo-rmruogj57-577c8d7b9d1a`). A new
-   deploy is needed only when the next owner-approved change lands: verify `preflight:adc` is fresh,
-   run `npm run deploy:demo -- --budget-confirmed`, capture the new serving + rollback revisions,
-   HTTP-smoke the auth boundary, and record the new serving checkpoint in `docs/facts.md` +
-   `docs/status.md`.
-3. If the owner picks up an owner-gated build (e.g. F-AUTH-1), follow its recommendation in
-   `docs/whats-next.md`, preserving the stated invariant (absent `scopes` must still mean all-spaces
-   for already-provisioned users; never lock out existing Admins).
-4. Keep governance docs current on every change: `docs/facts.md` (Tier-0), this file, and a dated
-   `docs/status.md` entry, per the Documentation Rules in `AGENTS.md`.
+1. Read `docs/overnight-build-run-2026-07-22.md` (the decision-complete runbook) and
+   `docs/audit-2026-07-22.html` (the owner rulings) before touching code. Follow the slice order:
+   live-read/live-write work first (RentVine field discovery, Sheet-write proof), then the build
+   slices, then close-out.
+2. Confirm `npm run preflight:adc` is fresh (the owner runs `npm run auth:session` before leaving). If
+   stale, do the offline slices and defer every live read + the deploy, flagging them for the morning.
+3. Per slice: worktree build → tests → smallest relevant checks → adversarial falsification pass →
+   update `docs/loop-state.md` at the boundary. On a genuine blocker, record it and skip to the next
+   safe slice (never halt, never guess a live external effect).
+4. Close-out: full gate → ff-merge to `main` → build in primary → push both → `check:live-cost` →
+   `preflight:adc` → deploy (`--budget-confirmed --allow-multiple-spaces`, verify `vertex spaces: 11`)
+   or defer. Capture serving + rollback revisions. Update `docs/facts.md` (Tier-0), this file, and a
+   dated `docs/status.md` entry, then write the morning report.
 
 ## Locked Safety
 
