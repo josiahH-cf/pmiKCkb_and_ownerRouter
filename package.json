@@ -62,6 +62,7 @@
     "golden:distill": "tsx scripts/distill-decisions-to-golden.ts",
     "smoke:ask-local": "tsx scripts/smoke-local-ask.ts",
     "smoke:rentvine-read": "tsx scripts/smoke-rentvine-read.ts",
+    "discover:rentvine-fields": "tsx scripts/discover-rentvine-fields.ts",
     "smoke:sheet-read": "tsx scripts/smoke-sheet-read.ts",
     "smoke:renewal-review": "tsx scripts/smoke-renewal-review.ts",
     "smoke:gmail-draft-live": "tsx scripts/smoke-gmail-draft-live.ts",
