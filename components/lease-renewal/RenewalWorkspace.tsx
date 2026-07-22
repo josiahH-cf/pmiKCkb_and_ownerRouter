@@ -157,7 +157,7 @@ export function RenewalWorkspace({
           drafts are built from real leases, instead of showing a control that always fails. */}
       <Card title="Renewal-notice draft">
         <EmptyState
-          description="Renewal-notice Gmail drafts are built from real RentVine leases on the live notices desk, not from this sample workspace."
+          description="Create renewal-notice Gmail drafts from real RentVine leases on the live notices desk."
           title="Create renewal drafts on the live notices desk"
         />
       </Card>

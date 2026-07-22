@@ -98,7 +98,7 @@ export function PublicationPolicyAdminPanel({
       <h2>Trusted Publication Policies</h2>
       <p className="muted">{message}</p>
       <p className="muted">
-        The connector and root are authority boundaries, not upload fields. Existing
+        The connector and root define this space&rsquo;s authority boundary. Existing
         policies may only be tightened; widening requires a new audited policy.
       </p>
       <div className="workflow-record-list">

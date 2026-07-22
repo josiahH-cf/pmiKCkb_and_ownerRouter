@@ -78,7 +78,7 @@ export function V1ProductionTestWorkspacePanel() {
       }
       setResult(payload);
       setMessage(
-        "Test workspace completed with 0 Live-provider calls. This proves application workflow behavior, not Live-provider activation.",
+        "Test workspace completed with 0 Live-provider calls. This proves the application's workflow behavior with Live providers inactive.",
       );
     } catch (error) {
       setMessage(

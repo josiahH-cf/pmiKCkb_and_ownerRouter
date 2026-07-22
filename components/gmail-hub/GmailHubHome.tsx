@@ -57,9 +57,8 @@ export function GmailHubHome({
       <div>
         <h1 className="section-title">Workflow Communications</h1>
         <p className="muted">
-          Review Gmail evidence in the renewal or maintenance workflow it supports. This
-          is not a replacement inbox: unrelated mail, generic compose, and mailbox
-          management stay in Gmail.
+          Review Gmail evidence inside the renewal or maintenance workflow it supports.
+          Unrelated mail, generic compose, and mailbox management stay in Gmail.
         </p>
       </div>
 
@@ -75,9 +74,9 @@ export function GmailHubHome({
           <div>
             <h2>Admin-only governed workflow recovery tools</h2>
             <p className="muted">
-              These are not generic compose or new-message send controls. They do not read
-              the live mailbox; pasted input must be sanitized, and outputs remain
-              workflow-bounded drafts or review proposals with no delivery.
+              These tools draft and review workflow replies from sanitized pasted input.
+              Every output is a workflow-bounded draft or review proposal; sending stays a
+              human step in Gmail.
             </p>
           </div>
           <SimulatedEmailChain />

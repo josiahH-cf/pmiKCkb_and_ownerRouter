@@ -15,7 +15,7 @@ describe("Workflow Communications home (AC-GW-1)", () => {
       screen.getByRole("heading", { name: "Workflow Communications" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Gmail connection" })).toBeInTheDocument();
-    expect(screen.getByText(/not a replacement inbox/i)).toBeInTheDocument();
+    expect(screen.getByText(/mailbox management stay in Gmail/i)).toBeInTheDocument();
     expect(screen.queryByText("Recent inbox threads")).not.toBeInTheDocument();
     expect(screen.queryByText("Compose message")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Review exact message" })).toBeNull();
@@ -29,7 +29,7 @@ describe("Workflow Communications home (AC-GW-1)", () => {
         name: "Admin-only governed workflow recovery tools",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/not generic compose or new-message send/i)).toBeVisible();
+    expect(screen.getByText(/draft and review workflow replies/i)).toBeVisible();
     expect(
       screen.getByRole("heading", { name: "Simulated email chain" }),
     ).toBeInTheDocument();

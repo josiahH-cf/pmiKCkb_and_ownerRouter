@@ -18,7 +18,7 @@ export function TrustedPublicationPanel({
   const [sourceState, setSourceState] = useState<SourceState>("Verified Source");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(
-    "Select a source or folder. Publication fails closed until an Admin trust policy and scanner cover this Space.",
+    "Add a file or folder below. An Admin enables source publishing for each space; once enabled, every file you add is checked, versioned, and made active.",
   );
 
   async function publishSelection(files: FileList | null) {
@@ -70,18 +70,23 @@ export function TrustedPublicationPanel({
     <section className="panel">
       <div className="panel-heading">
         <div>
-          <h2>Live trusted sources</h2>
-          <p className="muted">{message}</p>
+          <h2>Approved sources the app can cite</h2>
+          <p className="muted">
+            Add the documents the app should cite when it answers questions about this
+            space: SOPs, policies, and templates. The app checks and versions each file
+            you add, then it becomes an active source that answers can quote and link.
+          </p>
         </div>
-        <span className="review-pill">Validated + versioned</span>
+        <span className="review-pill">Checked and versioned</span>
       </div>
+      <p className="muted">{message}</p>
       <div className="workflow-two-column-fields">
         <label>
           Citation label
           <input
             disabled={!canEdit || busy}
             onChange={(event) => setCitationLabel(event.target.value)}
-            placeholder="What reviewers should recognize"
+            placeholder="A short name reviewers will recognize"
             value={citationLabel}
           />
         </label>
@@ -130,13 +135,12 @@ export function TrustedPublicationPanel({
         </label>
       </div>
       <p className="muted">
-        Allowed launch defaults: Markdown/text 2 MB, PDF/DOCX 25 MB, CSV 10 MB, and common
-        images 10 MB. Executables, archives, unknown types, failed scans, and out-of-scope
-        paths never become Active.
+        Accepted files: Markdown and text up to 2 MB, PDF and DOCX up to 25 MB, CSV up to
+        10 MB, and common images up to 10 MB. The app publishes documents and images that
+        pass its safety scan.
       </p>
       <p className="muted">
-        This upload lane is Live and accepts only an enabled Live policy plus its real
-        scanner. The separate Admin Test fixture cannot be selected here.
+        Files you add here become live sources the app can cite for this space.
       </p>
     </section>
   );

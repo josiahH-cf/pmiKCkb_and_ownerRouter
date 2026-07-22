@@ -82,7 +82,7 @@ describe("V1 production Test workspace Admin panel", () => {
     });
     expect(
       await screen.findByText(
-        "Test workspace completed with 0 Live-provider calls. This proves application workflow behavior, not Live-provider activation.",
+        "Test workspace completed with 0 Live-provider calls. This proves the application's workflow behavior with Live providers inactive.",
       ),
     ).toBeInTheDocument();
 
