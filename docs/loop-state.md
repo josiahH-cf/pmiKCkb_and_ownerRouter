@@ -72,6 +72,22 @@ close-out. Live slices sequenced first (token freshest).
   (HTTP 401 unauthorized_client): **Sheets WRITE scope not on the lease-renewal-reader SA's DWD
   grant** (documented dependency). Executor already unit-proven. AM owner step: grant the
   `spreadsheets` scope, re-run `npm run smoke:sheet-write -- --live`.
+- **Slice 3 (comp basis + Zillow) MUST-HAVE — DONE** (`b3bab46`). Comp basis capture (Zillow
+  low/high + PMI number + comps URL, all optional) flows to the owner email (source-tagged) and a
+  gated "KB Proposed — Comp basis" write-back proposal; Zillow deep link from property address; app
+  never invents a rent figure.
+- **Slice 4 (KB answer transparency) MUST-HAVE — DONE** (`34c1120`). "Answered by <model> · N sources"
+  stamped on every Ask result for everyone; source count is the honest citation count.
+- **Slice 6 (maintenance owner-notice draft) MUST-HAVE — DONE** (`baa2af4`). Owner-email resolver
+  extended to `portfolio.owners[]` (owner channel 0/25 → **25/25** proven live);
+  `gmail.maintenance_owner_notice.draft_create` flipped live (draft-only); its `.send` stays
+  `production_allowed:false`. Governance allowlist updated.
+- **Slice 7 (add-a-Space intake) MUST-HAVE — DONE** (`18029d7`). Admin-only request form → Firestore
+  `space_requests` + auto-generated gcloud/Vertex/Drive provisioning commands + merged `.env.local`
+  lines (existing Spaces preserved). Provisions nothing.
+- **All four must-haves (3,4,6,7) landed.** Remaining approved slices in progress: 5 (KB freshness),
+  8 (re-index button), 9 (RentVine write executor, gated OFF), 10 (Dotloop scaffolding, gated OFF),
+  11 (docs). Full unit suite green at 2663 after Slice 6; per-slice typecheck + copy-voice clean.
 
 ## Safe Stop Boundary
 
