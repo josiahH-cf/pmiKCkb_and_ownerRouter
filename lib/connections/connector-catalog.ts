@@ -17,6 +17,8 @@ export interface ConnectorDef {
   liveVerificationAvailable?: boolean;
   /** Env var NAMES checked for PRESENCE only (never value, never rendered). */
   requiredConfig: string[];
+  /** Optional one-line setup note shown on the card (e.g. an owner step that is still pending). */
+  setupNote?: string;
 }
 
 export const CONNECTORS: readonly ConnectorDef[] = [
@@ -60,9 +62,16 @@ export const CONNECTORS: readonly ConnectorDef[] = [
     powers: "Lease document build-out and e-signature.",
     method: "oauth",
     healthCheckRef: "health.dotloop.oauth_app",
-    // Config seam (S13 D3): where the already-held OAuth app credentials land. Presence only;
-    // no Dotloop client code exists yet, so status stays honest ("details provided, not verified").
-    requiredConfig: ["DOTLOOP_OAUTH_CLIENT_ID", "DOTLOOP_OAUTH_CLIENT_SECRET"],
+    // Config seam (S13 D3): where the already-held OAuth app credentials land. Presence only. The OAuth
+    // auth-code scaffolding now exists (Slice 10, lib/connections/dotloop-oauth.ts) but makes no live
+    // call yet, so status stays honest ("details provided, not verified") until the owner authorizes.
+    requiredConfig: [
+      "DOTLOOP_OAUTH_CLIENT_ID",
+      "DOTLOOP_OAUTH_CLIENT_SECRET",
+      "DOTLOOP_OAUTH_REDIRECT_URI",
+    ],
+    setupNote:
+      "Register your Dotloop app and complete authorization in the morning. Every Dotloop action stays off until it is connected and reviewed.",
   },
   {
     id: "leadsimple",

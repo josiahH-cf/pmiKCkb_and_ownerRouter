@@ -40,6 +40,7 @@ export function ConnectorCard({
             <span className="ui-tag">{connectorMethodBadge(def.method)}</span>
             <span className="muted">{status.detail}</span>
           </div>
+          {def.setupNote ? <p className="muted">{def.setupNote}</p> : null}
 
           {canManage && verifiable ? (
             <VerifyConnectionButton connectorId={def.id} connectorName={def.name} />
