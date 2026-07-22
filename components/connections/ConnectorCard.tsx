@@ -47,10 +47,15 @@ export function ConnectorCard({
             <Disclosure summary={`Set up ${def.name}`}>
               <div className="ui-stack">
                 <p>
-                  <strong>How you&rsquo;ll connect:</strong> {connectLabel}. The app
-                  stores your credentials securely and checks the connection. No files to
-                  edit, no tests to run.
+                  <strong>How this connects:</strong> {connectLabel}. This is set up
+                  securely on the server; there is no credential form or sign-in on this
+                  page.
                 </p>
+                {verifiable ? null : (
+                  <p className="muted">
+                    There is no live connection check for this connector.
+                  </p>
+                )}
                 {contract ? (
                   <div>
                     <p className="muted">What the app checks:</p>

@@ -3,7 +3,6 @@ import { PmiWordmark } from "@/components/brand/PmiWordmark";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { NotificationMenu } from "@/components/layout/NotificationMenu";
 import { PrimaryNav, type PrimaryNavItem } from "@/components/layout/PrimaryNav";
-import { ReleaseStageBanner } from "@/components/layout/ReleaseStageBanner";
 import { ReportIssueButton } from "@/components/feedback/ReportIssueButton";
 import { SessionTimeout } from "@/components/layout/SessionTimeout";
 import { can } from "@/lib/auth/roles";
@@ -59,7 +58,6 @@ export function AppShell({
           <SignOutButton />
         </nav>
       </header>
-      <ReleaseStageBanner />
       {children}
       {/* TIX-1/2: persistent global "Report an issue" affordance on every signed-in page. */}
       <ReportIssueButton />
