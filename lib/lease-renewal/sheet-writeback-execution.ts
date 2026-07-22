@@ -117,6 +117,114 @@ export async function executeProposalWriteBack(
   return { status: "written", a1 };
 }
 
+// ── Row-anchored path (used by the live confirm-target write) ─────────────────────────────────────────
+//
+// The reconciliation pipeline already stamps each flag with the exact sheet row it read (recordRef
+// .sourceRowIndex), so the live write does not guess a row: it writes to THAT row's KB-Proposed cell.
+// resolveWritebackTarget is read-only (it powers the human "confirm the target" preview);
+// commitWritebackAtRow performs the guarded single-cell append. Both are flag-gated (default off).
+
+export interface RowWritebackPlan {
+  spreadsheetId: string;
+  tabName: string;
+  /** Header of the append-only KB-Proposed column (must already exist on the sheet). */
+  proposedColumnHeader: string;
+  /** 0-based raw-grid index of the target data row (the pipeline's sourceRowIndex). */
+  rowIndex: number;
+  proposedValue: string;
+}
+
+export interface ResolvedWritebackTarget {
+  a1: string;
+  proposedColumnHeader: string;
+  proposedValue: string;
+  /** The resolved row's current cell values, so a human can verify it is the right lease before writing. */
+  rowValues: string[];
+}
+
+export type ResolveTargetOutcome =
+  | { status: "disabled" }
+  | { status: "resolved"; target: ResolvedWritebackTarget }
+  | { status: "blocked"; reason: string };
+
+/** Find the (first) row + column holding the given header. Returns null when the header is absent. */
+function locateColumn(
+  grid: string[][],
+  header: string,
+): { headerRowIndex: number; colIndex: number } | null {
+  for (let row = 0; row < grid.length; row++) {
+    const colIndex = (grid[row] ?? []).indexOf(header);
+    if (colIndex !== -1) return { headerRowIndex: row, colIndex };
+  }
+  return null;
+}
+
+/**
+ * Read-only: resolve the exact cell a write would target, WITHOUT writing. Returns the A1 target, the
+ * value, and the whole resolved row so the operator can confirm it is the right lease. Blocks (no write
+ * possible) when the KB-Proposed column is absent, the row is outside the sheet, or the cell is already
+ * filled (append-only never overwrites). Disabled when the feature flag is off.
+ */
+export async function resolveWritebackTarget(
+  writer: SheetsValuesWriter,
+  plan: RowWritebackPlan,
+): Promise<ResolveTargetOutcome> {
+  if (!isSheetWritebackEnabled()) return { status: "disabled" };
+  const blocked = (reason: string): ResolveTargetOutcome => ({
+    status: "blocked",
+    reason,
+  });
+  if (plan.proposedValue.trim() === "") return blocked("no value to append");
+
+  const grid = await writer.getValues(plan.spreadsheetId, plan.tabName);
+  const located = locateColumn(grid, plan.proposedColumnHeader);
+  if (!located) {
+    return blocked(
+      `the "${plan.proposedColumnHeader}" column was not found on the sheet`,
+    );
+  }
+  const { headerRowIndex, colIndex } = located;
+  if (plan.rowIndex <= headerRowIndex || plan.rowIndex >= grid.length) {
+    return blocked("the target row is outside the sheet");
+  }
+  const rowValues = grid[plan.rowIndex] ?? [];
+  if ((rowValues[colIndex] ?? "").trim() !== "") {
+    return blocked("the KB-Proposed cell already has a value; not overwriting");
+  }
+  return {
+    status: "resolved",
+    target: {
+      a1: `${plan.tabName}!${columnLetter(colIndex)}${plan.rowIndex + 1}`,
+      proposedColumnHeader: plan.proposedColumnHeader,
+      proposedValue: plan.proposedValue,
+      rowValues,
+    },
+  };
+}
+
+/**
+ * Perform the guarded single-cell append to the resolved row, then read it back. Re-resolves the target
+ * immediately before writing (so a cell filled since the preview blocks), writes once, and verifies with
+ * a read-after-write. Flag-gated; any uncertainty returns "blocked". Never overwrites an existing value.
+ */
+export async function commitWritebackAtRow(
+  writer: SheetsValuesWriter,
+  plan: RowWritebackPlan,
+): Promise<SheetWritebackOutcome> {
+  const resolved = await resolveWritebackTarget(writer, plan);
+  if (resolved.status === "disabled") return { status: "disabled" };
+  if (resolved.status === "blocked")
+    return { status: "blocked", reason: resolved.reason };
+
+  const { a1 } = resolved.target;
+  await writer.updateValues(plan.spreadsheetId, a1, [[plan.proposedValue]]);
+  const check = await writer.getValues(plan.spreadsheetId, a1);
+  if ((check[0]?.[0] ?? "") !== plan.proposedValue) {
+    return { status: "blocked", reason: "read-after-write mismatch" };
+  }
+  return { status: "written", a1 };
+}
+
 /** 0-based column index → A1 column letters (0 → A, 25 → Z, 26 → AA). */
 export function columnLetter(index: number): string {
   let n = index;

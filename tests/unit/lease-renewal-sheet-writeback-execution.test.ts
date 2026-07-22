@@ -4,8 +4,11 @@ import type { SheetsValuesWriter } from "@/lib/google-sheets/write-client";
 import {
   SHEET_WRITEBACK_FLAG,
   columnLetter,
+  commitWritebackAtRow,
   executeProposalWriteBack,
   isSheetWritebackEnabled,
+  resolveWritebackTarget,
+  type RowWritebackPlan,
   type SheetWritebackPlan,
 } from "@/lib/lease-renewal/sheet-writeback-execution";
 
@@ -152,6 +155,81 @@ describe("executeProposalWriteBack", () => {
     if (outcome.status === "blocked") {
       expect(outcome.reason).toContain("read-after-write");
     }
+  });
+});
+
+describe("resolveWritebackTarget / commitWritebackAtRow (row-anchored)", () => {
+  function rowPlan(overrides: Partial<RowWritebackPlan> = {}): RowWritebackPlan {
+    return {
+      spreadsheetId: "sheet",
+      tabName: "Lease Renewal",
+      proposedColumnHeader: "KB Proposed — Rent",
+      rowIndex: 1,
+      proposedValue: "1300",
+      ...overrides,
+    };
+  }
+
+  it("is disabled (no read, no write) when the flag is off", async () => {
+    const writer = new FakeWriter(grid());
+    expect(await resolveWritebackTarget(writer, rowPlan())).toEqual({
+      status: "disabled",
+    });
+    expect(await commitWritebackAtRow(writer, rowPlan())).toEqual({ status: "disabled" });
+    expect(writer.updates).toHaveLength(0);
+  });
+
+  it("resolves the exact target with the row's current values, without writing", async () => {
+    enable();
+    const writer = new FakeWriter(grid());
+    const out = await resolveWritebackTarget(writer, rowPlan());
+    expect(out.status).toBe("resolved");
+    if (out.status === "resolved") {
+      expect(out.target.a1).toBe("Lease Renewal!C2");
+      expect(out.target.proposedValue).toBe("1300");
+      expect(out.target.rowValues).toEqual(["4821 Maple", "Delgado", ""]);
+    }
+    expect(writer.updates).toHaveLength(0);
+  });
+
+  it("commits the append and verifies it (read-after-write)", async () => {
+    enable();
+    const writer = new FakeWriter(grid());
+    expect(await commitWritebackAtRow(writer, rowPlan())).toEqual({
+      status: "written",
+      a1: "Lease Renewal!C2",
+    });
+    expect(writer.grid[1][2]).toBe("1300");
+  });
+
+  it("blocks (no overwrite) when the target cell already has a value", async () => {
+    enable();
+    const writer = new FakeWriter(grid("999"));
+    expect((await commitWritebackAtRow(writer, rowPlan())).status).toBe("blocked");
+    expect(writer.updates).toHaveLength(0);
+    expect(writer.grid[1][2]).toBe("999");
+  });
+
+  it("blocks when the row is the header row or outside the sheet", async () => {
+    enable();
+    const writer = new FakeWriter(grid());
+    expect((await commitWritebackAtRow(writer, rowPlan({ rowIndex: 0 }))).status).toBe(
+      "blocked",
+    );
+    expect((await commitWritebackAtRow(writer, rowPlan({ rowIndex: 9 }))).status).toBe(
+      "blocked",
+    );
+    expect(writer.updates).toHaveLength(0);
+  });
+
+  it("blocks when the KB-Proposed column has not been created", async () => {
+    enable();
+    const writer = new FakeWriter([
+      ["Address", "Tenant"],
+      ["4821 Maple", "Delgado"],
+    ]);
+    expect((await commitWritebackAtRow(writer, rowPlan())).status).toBe("blocked");
+    expect(writer.updates).toHaveLength(0);
   });
 });
 

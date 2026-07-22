@@ -353,6 +353,13 @@ function readRuntimeEnv(env, project, region, searchLocation) {
     RENEWAL_SHEET_ID: withDefault("RENEWAL_SHEET_ID", ""),
     SHEETS_IMPERSONATE_SA: withDefault("SHEETS_IMPERSONATE_SA", ""),
     SHEETS_DWD_SUBJECT: withDefault("SHEETS_DWD_SUBJECT", ""),
+    // Phase C: the live append-only Sheet write-back stays OFF unless this is explicitly "true" (and the
+    // SA's domain-wide-delegation grant carries the read/WRITE Sheets scope). Default off → deploying the
+    // code writes nothing to the operational sheet until an admin turns it on.
+    LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: withDefault(
+      "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED",
+      "false",
+    ),
     VERTEX_AI_LOCATION: region,
     VERTEX_SEARCH_LOCATION: searchLocation,
   };

@@ -46,6 +46,7 @@ export function LiveRenewalReview({
   canDefer,
   isAdmin,
   resolutionsError,
+  writebackEnabled = false,
 }: Readonly<{
   view: RenewalRunView;
   meta: LiveReviewMeta;
@@ -53,6 +54,8 @@ export function LiveRenewalReview({
   canDefer?: boolean;
   isAdmin: boolean;
   resolutionsError: boolean;
+  /** Admin feature flag: when on, an Approved proposal offers the live confirm-target Sheet write. */
+  writebackEnabled?: boolean;
 }>) {
   return (
     <div className="ui-stack">
@@ -107,6 +110,7 @@ export function LiveRenewalReview({
                   isAdmin={isAdmin}
                   key={flag.sourceTriggerKey}
                   runId={view.runId}
+                  writebackEnabled={writebackEnabled}
                 />
               ))}
             </section>
@@ -136,11 +140,13 @@ function LiveFlagCard({
   runId,
   canResolve,
   isAdmin,
+  writebackEnabled = false,
 }: Readonly<{
   flag: RenewalFlagView;
   runId: string;
   canResolve: boolean;
   isAdmin: boolean;
+  writebackEnabled?: boolean;
 }>) {
   const historyHref = isAdmin
     ? buildPropertyHistoryHref(flag.propertyKey, flag.directLink)
@@ -199,6 +205,7 @@ function LiveFlagCard({
           isAdmin={isAdmin}
           runId={runId}
           sourceTriggerKey={flag.sourceTriggerKey}
+          writebackEnabled={writebackEnabled}
         />
       ) : null}
 

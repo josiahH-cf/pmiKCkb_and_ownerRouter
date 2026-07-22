@@ -5,6 +5,7 @@ import { LeaseBusinessContractPanel } from "@/components/lease-renewal/LeaseBusi
 import { LiveRenewalReview } from "@/components/lease-renewal/LiveRenewalReview";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { can } from "@/lib/auth/roles";
+import { isSheetWritebackEnabled } from "@/lib/lease-renewal/sheet-writeback-execution";
 import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
 import {
   listWritebackApprovalActivityForRun,
@@ -86,6 +87,7 @@ export default async function LiveRenewalReviewPage() {
             meta={outcome.meta}
             resolutionsError={resolutionsError}
             view={outcome.view}
+            writebackEnabled={isSheetWritebackEnabled()}
           />
         ) : (
           <LiveReviewPanel status={outcome.status} />

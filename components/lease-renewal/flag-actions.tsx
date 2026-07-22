@@ -405,11 +405,14 @@ export function WritebackApprovalControl({
   runId,
   sourceTriggerKey,
   isAdmin,
+  writebackEnabled = false,
 }: {
   approval: RenewalWritebackApprovalView;
   runId: string;
   sourceTriggerKey: string;
   isAdmin: boolean;
+  /** When true (admin feature flag on), an Approved proposal offers the live confirm-target write. */
+  writebackEnabled?: boolean;
 }) {
   const router = useRouter();
   const [reason, setReason] = useState("");
@@ -525,7 +528,145 @@ export function WritebackApprovalControl({
         <p className="muted">An Admin approves the queued write-back proposal.</p>
       )}
 
+      {writebackEnabled && isAdmin && approval.state === "Approved" ? (
+        <SheetWritebackButton runId={runId} sourceTriggerKey={sourceTriggerKey} />
+      ) : null}
+
       <WritebackApprovalTimeline activity={approval.activity} />
+    </div>
+  );
+}
+
+interface ResolvedWritebackTargetView {
+  a1: string;
+  proposedColumnHeader: string;
+  proposedValue: string;
+  rowValues: string[];
+}
+
+// The live confirm-target write control (Phase C enablement). Two steps: "Write approved value to Sheet"
+// resolves the exact target (value → KB-Proposed column → the matched row's current cells) so the Admin
+// can verify it is the right lease; "Confirm write to Sheet" performs the guarded, append-only, single-
+// cell write. It reaches the sheet only through the flag-gated /writeback-execute route; any block is
+// surfaced verbatim. Shown only when the admin feature flag is on and the proposal is Approved.
+function SheetWritebackButton({
+  runId,
+  sourceTriggerKey,
+}: {
+  runId: string;
+  sourceTriggerKey: string;
+}) {
+  const router = useRouter();
+  const [pending, setPending] = useState<null | "prepare" | "commit">(null);
+  const [target, setTarget] = useState<ResolvedWritebackTargetView | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [wroteA1, setWroteA1] = useState<string | null>(null);
+
+  function surface(outcome: {
+    status?: string;
+    target?: ResolvedWritebackTargetView;
+    a1?: string;
+    reason?: string;
+  }) {
+    switch (outcome.status) {
+      case "resolved":
+        setTarget(outcome.target ?? null);
+        return;
+      case "written":
+        setTarget(null);
+        setWroteA1(outcome.a1 ?? "");
+        router.refresh();
+        return;
+      case "disabled":
+        setMessage("The Sheet write-back is turned off.");
+        return;
+      case "not_configured":
+        setMessage("Live sources aren’t connected.");
+        return;
+      case "not_approved":
+        setMessage(outcome.reason ?? "There is no approved write-back to execute.");
+        return;
+      case "flag_not_found":
+        setMessage("This flag is no longer in the live run; reload the review.");
+        return;
+      case "read_error":
+        setMessage("The live read or write did not complete. Try again.");
+        return;
+      case "blocked":
+        setMessage(`Blocked: ${outcome.reason ?? "the write could not be verified"}.`);
+        return;
+      default:
+        setMessage("Unexpected response from the write-back endpoint.");
+    }
+  }
+
+  async function call(confirm: boolean) {
+    setPending(confirm ? "commit" : "prepare");
+    setMessage(null);
+    try {
+      const response = await fetch("/api/lease-renewal/writeback-execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ runId, sourceTriggerKey, confirm }),
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        status?: string;
+        target?: ResolvedWritebackTargetView;
+        a1?: string;
+        reason?: string;
+        error?: string;
+      };
+      if (!response.ok) {
+        setMessage(body.error ?? "Could not reach the write-back endpoint.");
+        return;
+      }
+      surface(body);
+    } catch {
+      setMessage("Could not reach the write-back endpoint.");
+    } finally {
+      setPending(null);
+    }
+  }
+
+  if (wroteA1 !== null) {
+    return <p className="muted">✓ Wrote the approved value to the Sheet ({wroteA1}).</p>;
+  }
+
+  return (
+    <div className="lr-writeback-execute">
+      {target ? (
+        <div className="lr-approve-form">
+          <p>
+            Append <strong>{target.proposedValue}</strong> to{" "}
+            <strong>{target.proposedColumnHeader}</strong> at <strong>{target.a1}</strong>
+            .
+          </p>
+          <p className="muted">
+            Row: {target.rowValues.filter((cell) => cell.trim() !== "").join(" · ")}
+          </p>
+          <div className="lr-approve-actions">
+            <button disabled={pending !== null} onClick={() => call(true)} type="button">
+              {pending === "commit" ? "Writing…" : "Confirm write to Sheet"}
+            </button>
+            <button
+              className="secondary-button"
+              disabled={pending !== null}
+              onClick={() => {
+                setTarget(null);
+                setMessage(null);
+              }}
+              type="button"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button disabled={pending !== null} onClick={() => call(false)} type="button">
+          {pending === "prepare" ? "Resolving…" : "Write approved value to Sheet"}
+        </button>
+      )}
+      {message ? <p className="lr-error">{message}</p> : null}
     </div>
   );
 }
