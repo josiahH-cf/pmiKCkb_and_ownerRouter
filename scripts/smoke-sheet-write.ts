@@ -59,12 +59,15 @@ function record(name: string, ok: boolean, detail: string): void {
 
 /** True when the error looks like a missing-scope / stale-token fail-closed (=> DEFERRED, not FAIL). */
 function isAuthScopeError(message: string): boolean {
-  return /scope|token|auth|invalid_grant|unauthorized|permission|403|401|DWD/i.test(message);
+  return /scope|token|auth|invalid_grant|unauthorized|permission|403|401|DWD/i.test(
+    message,
+  );
 }
 
 async function main(): Promise<void> {
   const localEnv = loadEnvLocal();
-  const readEnv = (name: string): string | undefined => process.env[name] ?? localEnv[name];
+  const readEnv = (name: string): string | undefined =>
+    process.env[name] ?? localEnv[name];
   const live = hasArg("--live");
 
   const impersonateSa = readEnv("SHEETS_IMPERSONATE_SA");
@@ -76,7 +79,9 @@ async function main(): Promise<void> {
         `("KB Writeback Smoke — <run>"), seed synthetic rows + the "${PROPOSED_COLUMN}" column, then ` +
         "prove write + CAS + block-on-uncertainty + gate-off. It never touches the operational sheet.",
     );
-    console.log("Pass --live to run the proof (free; read/WRITE Sheets scope; no GCP budget spend).");
+    console.log(
+      "Pass --live to run the proof (free; read/WRITE Sheets scope; no GCP budget spend).",
+    );
     return;
   }
 
@@ -185,7 +190,11 @@ async function main(): Promise<void> {
       rowIndex: 2,
       proposedValue: "   ",
     });
-    record("empty value blocks", emptyValue.status === "blocked", JSON.stringify(emptyValue));
+    record(
+      "empty value blocks",
+      emptyValue.status === "blocked",
+      JSON.stringify(emptyValue),
+    );
 
     // 3c. BLOCK — target row outside the sheet.
     const outOfRange = await commitWritebackAtRow(writer, {
@@ -211,7 +220,11 @@ async function main(): Promise<void> {
       rowIndex: 2,
       proposedValue,
     });
-    record("flag OFF => disabled (no write)", disabled.status === "disabled", JSON.stringify(disabled));
+    record(
+      "flag OFF => disabled (no write)",
+      disabled.status === "disabled",
+      JSON.stringify(disabled),
+    );
     process.env[SHEET_WRITEBACK_FLAG] = "true";
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -223,13 +236,17 @@ async function main(): Promise<void> {
   const failed = checks.filter((c) => !c.ok);
   console.log("");
   if (failed.length === 0) {
-    console.log(`PASS — all ${checks.length} write-back proofs passed on test sheet ${spreadsheetId}.`);
+    console.log(
+      `PASS — all ${checks.length} write-back proofs passed on test sheet ${spreadsheetId}.`,
+    );
     console.log(
       "The append-only write-back executes live: it writes an empty KB-Proposed cell, blocks every " +
         "overwrite/uncertainty, and is fully gated by the flag. Operational sheet untouched.",
     );
   } else {
-    console.error(`FAIL — ${failed.length}/${checks.length} proofs failed on test sheet ${spreadsheetId}.`);
+    console.error(
+      `FAIL — ${failed.length}/${checks.length} proofs failed on test sheet ${spreadsheetId}.`,
+    );
     process.exitCode = 1;
   }
 }
@@ -237,7 +254,9 @@ async function main(): Promise<void> {
 void main().catch((error) => {
   const message = error instanceof Error ? error.message : String(error);
   if (isAuthScopeError(message)) {
-    console.log(`DEFERRED — fail-closed (likely missing write scope / stale token): ${message}`);
+    console.log(
+      `DEFERRED — fail-closed (likely missing write scope / stale token): ${message}`,
+    );
     return;
   }
   console.error(message);

@@ -104,9 +104,7 @@ describe("space-requests store", () => {
       ),
     ).rejects.toThrow();
     expect(db.store.size).toBe(0);
-    await expect(
-      listSpaceRequests(editor, db as unknown as Firestore),
-    ).rejects.toThrow();
+    await expect(listSpaceRequests(editor, db as unknown as Firestore)).rejects.toThrow();
   });
 
   it("rejects a too-short name via the input schema", async () => {

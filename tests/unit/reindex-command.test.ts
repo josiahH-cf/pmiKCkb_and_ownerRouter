@@ -19,7 +19,10 @@ describe("buildReindexCommand", () => {
   });
 
   it("is not runnable when the Space has no configured data store", () => {
-    const plan = buildReindexCommand({ spaceId: "brand-new", vertexSearchLocation: "us" });
+    const plan = buildReindexCommand({
+      spaceId: "brand-new",
+      vertexSearchLocation: "us",
+    });
     expect(plan.runnable).toBe(false);
     expect(plan.command).toMatch(/No Vertex data store is configured/);
     // Still cost-safe: it prints guidance, never a runnable ingestion command.

@@ -54,8 +54,8 @@ export function ReindexPanel({
   return (
     <div className="ui-stack">
       <p className="muted">
-        Re-indexing runs Vertex ingestion, which is cost-bearing. This records the request and prints
-        the command; you run it. Nothing is ingested automatically.
+        Re-indexing runs Vertex ingestion, which is cost-bearing. This records the request
+        and prints the command; you run it. Nothing is ingested automatically.
       </p>
       <Field htmlFor={id.space} label="Space to re-index" required>
         <select

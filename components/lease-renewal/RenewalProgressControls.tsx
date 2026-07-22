@@ -186,8 +186,8 @@ export function OwnerDecisionForm({
         />
       </Field>
       <p className="muted">
-        Comp basis (optional). Your own numbers, shown source-tagged in the owner email. The app
-        never suggests a rent figure.
+        Comp basis (optional). Your own numbers, shown source-tagged in the owner email.
+        The app never suggests a rent figure.
       </p>
       <div className="ui-row">
         <Field htmlFor={id.zillowLow} label="Zillow low (optional)">
@@ -221,7 +221,10 @@ export function OwnerDecisionForm({
           />
         </Field>
       </div>
-      <Field htmlFor={id.compsUrl} label="Comps screenshot / Zillow search URL (optional)">
+      <Field
+        htmlFor={id.compsUrl}
+        label="Comps screenshot / Zillow search URL (optional)"
+      >
         <input
           id={id.compsUrl}
           onChange={(event) => setCompsUrl(event.target.value)}

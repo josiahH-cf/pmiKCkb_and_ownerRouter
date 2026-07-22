@@ -8,18 +8,18 @@ same way). This resolves the D16 read half and feeds Slices 6 and 9.
 
 ## Confirmed field paths (on the `/leases/export` row)
 
-| Purpose                            | Path on export row              | Path on flattened lease view      | Coverage (present/of) |
-| ---------------------------------- | ------------------------------- | --------------------------------- | --------------------- |
-| Lease id (join key)                | `lease.leaseID`                 | `leaseID`                         | 25/25                 |
-| Tenant name (recipient join)       | `lease.tenants[].name`          | `tenants[].name`                  | 25/25                 |
-| **Tenant email (recipient)**       | `lease.tenants[].email`         | `tenants[].email`                 | **25/25** email-shaped |
-| Lease-end date                     | `lease.endDate`                 | `endDate` → `lease_end_date`      | 25/25                 |
-| Current rent                       | `unit.rent`                     | `currentRent` (lifted)            | 25/25                 |
-| **Property-owner email (D10)**     | `portfolio.owners[].email`      | `portfolio.owners[].email`        | **25/25** email-shaped |
-| Property-owner name                | `portfolio.owners[].name`       | `portfolio.owners[].name`         | 25/25                 |
-| Property-owner contact id          | `portfolio.owners[].contactID`  | `portfolio.owners[].contactID`    | 25/25                 |
-| Property street (Zillow link, S3)  | `property.streetName`/`.address`| `property.streetName`/`.address`  | 25/25                 |
-| Property city / state / postal     | `property.city`/`.stateID`/`.postalCode` | same on `property`       | 25/25                 |
+| Purpose                           | Path on export row                       | Path on flattened lease view     | Coverage (present/of)  |
+| --------------------------------- | ---------------------------------------- | -------------------------------- | ---------------------- |
+| Lease id (join key)               | `lease.leaseID`                          | `leaseID`                        | 25/25                  |
+| Tenant name (recipient join)      | `lease.tenants[].name`                   | `tenants[].name`                 | 25/25                  |
+| **Tenant email (recipient)**      | `lease.tenants[].email`                  | `tenants[].email`                | **25/25** email-shaped |
+| Lease-end date                    | `lease.endDate`                          | `endDate` → `lease_end_date`     | 25/25                  |
+| Current rent                      | `unit.rent`                              | `currentRent` (lifted)           | 25/25                  |
+| **Property-owner email (D10)**    | `portfolio.owners[].email`               | `portfolio.owners[].email`       | **25/25** email-shaped |
+| Property-owner name               | `portfolio.owners[].name`                | `portfolio.owners[].name`        | 25/25                  |
+| Property-owner contact id         | `portfolio.owners[].contactID`           | `portfolio.owners[].contactID`   | 25/25                  |
+| Property street (Zillow link, S3) | `property.streetName`/`.address`         | `property.streetName`/`.address` | 25/25                  |
+| Property city / state / postal    | `property.city`/`.stateID`/`.postalCode` | same on `property`               | 25/25                  |
 
 The export row's top-level append objects are: `lease` (with `tenants[]`), `portfolio` (with
 `owners[]`), `property`, `unit`, `balances`, `unpaidCharges[]` (87 leaf paths total).

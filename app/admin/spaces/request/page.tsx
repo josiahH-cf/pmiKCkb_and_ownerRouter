@@ -27,8 +27,9 @@ export default async function AdminSpaceRequestPage() {
         </Link>
         <h1 className="section-title">Request a new Space</h1>
         <p className="muted">
-          Describe the Space you want and the app prints the exact commands to provision it. The app
-          records the request only; you run the commands. Nothing is provisioned automatically.
+          Describe the Space you want and the app prints the exact commands to provision
+          it. The app records the request only; you run the commands. Nothing is
+          provisioned automatically.
         </p>
         {unavailableNote ? <p className="muted">{unavailableNote}</p> : null}
         <SpaceRequestPanel initialRequests={requests} />

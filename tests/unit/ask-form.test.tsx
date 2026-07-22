@@ -178,7 +178,11 @@ describe("AskForm (action console)", () => {
                 url: "https://drive.example/s1",
                 last_reviewed_at: "2026-05-01T00:00:00.000Z",
               },
-              { source_id: "s2", title: "Unreviewed SOP", url: "https://drive.example/s2" },
+              {
+                source_id: "s2",
+                title: "Unreviewed SOP",
+                url: "https://drive.example/s2",
+              },
             ],
           })
         : jsonResponse({}, false),

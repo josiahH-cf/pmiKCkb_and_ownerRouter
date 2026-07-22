@@ -41,7 +41,9 @@ describe("ownerDraftMarketFromBasis", () => {
   });
 
   it("omits fields the operator did not enter (never invents a number)", () => {
-    expect(ownerDraftMarketFromBasis({ pmiNumber: 1550 })).toEqual({ specificNumber: 1550 });
+    expect(ownerDraftMarketFromBasis({ pmiNumber: 1550 })).toEqual({
+      specificNumber: 1550,
+    });
     expect(ownerDraftMarketFromBasis({})).toEqual({});
     // A blank comps URL is dropped, not passed through.
     expect(ownerDraftMarketFromBasis({ compsUrl: "   " })).toEqual({});

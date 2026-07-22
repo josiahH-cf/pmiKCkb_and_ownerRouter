@@ -357,7 +357,11 @@ describe("lease-renewal-progress store", () => {
       },
     });
     // Read back camelCase.
-    const progress = await getRenewalProgress(editor, LEASE_ID, db as unknown as Firestore);
+    const progress = await getRenewalProgress(
+      editor,
+      LEASE_ID,
+      db as unknown as Firestore,
+    );
     expect(progress?.ownerDecision?.market).toEqual({
       zillowLow: 1450,
       zillowHigh: 1600,

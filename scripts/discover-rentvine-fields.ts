@@ -111,7 +111,9 @@ function walk(
   if (Array.isArray(node)) {
     out.set(`${prefix}[]`, { type: `array(${node.length})` });
     if (depth >= maxDepth) return;
-    node.slice(0, 2).forEach((el, i) => walk(el, `${prefix}[${i}]`, depth + 1, maxDepth, out));
+    node
+      .slice(0, 2)
+      .forEach((el, i) => walk(el, `${prefix}[${i}]`, depth + 1, maxDepth, out));
     return;
   }
   if (node && typeof node === "object") {
@@ -172,7 +174,8 @@ function coverageAt(
 
 async function main(): Promise<void> {
   const localEnv = loadEnvLocal();
-  const readEnv = (name: string): string | undefined => process.env[name] ?? localEnv[name];
+  const readEnv = (name: string): string | undefined =>
+    process.env[name] ?? localEnv[name];
 
   const baseUrl = readArg("--base-url") ?? readEnv("RENTVINE_API_BASE_URL");
   const apiKey = readEnv("RENTVINE_API_KEY");
@@ -207,7 +210,9 @@ async function main(): Promise<void> {
     console.log(
       `RentVine field discovery (DRY). Would GET ${normalizedBase}/leases/export?limit=${limit} via HTTP Basic as account "${account}", then enumerate PATHS + PRESENCE only (no PII).`,
     );
-    console.log("Pass --live to make the single read-only call (free; no GCP budget spend).");
+    console.log(
+      "Pass --live to make the single read-only call (free; no GCP budget spend).",
+    );
     return;
   }
 
@@ -221,7 +226,8 @@ async function main(): Promise<void> {
   try {
     rawRows = await client.listLeasesExport({ limit });
   } catch (error) {
-    readError = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    readError =
+      error instanceof Error ? `${error.name}: ${error.message}` : String(error);
   }
 
   if (readError) {
@@ -321,11 +327,17 @@ async function main(): Promise<void> {
   };
 
   mkdirSync(artifactDir, { recursive: true });
-  writeFileSync(join(artifactDir, "field-discovery.json"), JSON.stringify(proof, null, 2), "utf8");
+  writeFileSync(
+    join(artifactDir, "field-discovery.json"),
+    JSON.stringify(proof, null, 2),
+    "utf8",
+  );
 
   console.log(`RentVine field discovery (LIVE) — host ${host}, account ${account}`);
   console.log(`Scanned export rows: ${rawRows.length} (lease views: ${views.length})`);
-  console.log(`Resolved rent/date keys (F-LEASE-3): ${JSON.stringify(mapping.resolvedKeys)}`);
+  console.log(
+    `Resolved rent/date keys (F-LEASE-3): ${JSON.stringify(mapping.resolvedKeys)}`,
+  );
   console.log(
     `Mapped candidates: ${mapping.candidates.length} (skipped ${mapping.skipped})`,
   );
@@ -342,10 +354,14 @@ async function main(): Promise<void> {
   console.log(`Email-shaped paths on export row: ${JSON.stringify(emailLikePaths)}`);
   console.log("Path coverage across all rows (present/emailLike/of):");
   for (const [path, cov] of Object.entries(pathCoverage)) {
-    console.log(`  - ${path}: present=${cov.present} emailLike=${cov.emailLike} of=${cov.of}`);
+    console.log(
+      `  - ${path}: present=${cov.present} emailLike=${cov.emailLike} of=${cov.of}`,
+    );
   }
   console.log(`Export row path count: ${allPaths.length}`);
-  console.log(`Shape-only proof written to ${join(artifactDir, "field-discovery.json")} (gitignored).`);
+  console.log(
+    `Shape-only proof written to ${join(artifactDir, "field-discovery.json")} (gitignored).`,
+  );
   console.log(
     "WRITE endpoint (D18 -> Slice 9): not probed. The read client is GET-only by contract; a documented RentVine write endpoint + semantics are required before any write flip. Flagged for AM owner confirmation.",
   );

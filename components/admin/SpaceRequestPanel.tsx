@@ -113,8 +113,8 @@ function ProvisioningPlanView({ plan }: Readonly<{ plan: SpaceProvisioningPlan }
       <h2 className="section-title">Provisioning steps for {plan.spaceId}</h2>
       {plan.alreadyExists ? (
         <p className="muted">
-          Heads up: a Space keyed {plan.spaceId} already exists in the config. Pick a different
-          name or update that Space instead of creating a duplicate.
+          Heads up: a Space keyed {plan.spaceId} already exists in the config. Pick a
+          different name or update that Space instead of creating a duplicate.
         </p>
       ) : null}
       <h3>Owner console commands (run these yourself)</h3>
