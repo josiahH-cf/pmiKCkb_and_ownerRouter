@@ -866,13 +866,14 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "Create an unsent owner-notice draft from an authorized maintenance ticket and verified owner contact.",
     product_lane: "Maintenance Intake",
-    readiness: "Planned",
-    evidence_status: "Undocumented",
+    readiness: "Approved for Execution",
+    evidence_status: "Documented",
     documented_evidence:
-      "The repository has a deterministic maintenance owner-notice preview, but the ticket record does not yet carry a verified owner-email source. No executable Gmail route is approved.",
+      "The authoritative property-owner email is confirmed present and email-shaped on 25/25 live RentVine leases at portfolio.owners[].email (Slice 1, 2026-07-22; docs/products/rentvine-live-field-map-2026-07-22.md) and resolves via resolveRenewalRecipient's owner channel (owner coverage 25/25, verified live). This gate authorizes DRAFT creation only (unsent, review-before-sending banner) and reuses the proven Gmail DWD draft grant; code never sends. The paired gmail.maintenance_owner_notice.send action stays production_allowed:false.",
     required_permissions: [
       "Authorized maintenance ticket access",
-      "Client-confirmed authoritative owner-contact source",
+      "gmail.compose (draft only)",
+      "Authoritative owner mapping (RentVine portfolio.owners[].email)",
       "Approved owner-notice template and recipient policy",
     ],
     event_ingestion_mode: "Manual",
@@ -930,10 +931,10 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
       },
     ],
     test_notes:
-      "Planned only. Falsification must prove missing/conflicting owner facts reject before Gmail client construction.",
+      "Draft-into-Gmail only, never sends. The registry gate is open (2026-07-22); runtime draft creation still requires a real (non-sample) ticket with a verified owner recipient resolved from the authoritative source (portfolio.owners[].email), so sample/test data yields a preview only and never a real draft. Falsification must prove missing/conflicting owner facts reject before Gmail client construction. The paired send action stays production_allowed:false.",
     rollback_note: "Delete the unsent draft; nothing was sent.",
     connection_health_check_ref: "health.gmail.workspace_api",
-    production_allowed: false,
+    production_allowed: true,
   },
   {
     key: "rentvine.lease.renewal_writeback",

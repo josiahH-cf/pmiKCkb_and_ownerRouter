@@ -141,6 +141,9 @@ describe("Action Registry seed catalog", () => {
       "gmail.thread.reply",
       "gmail.label.apply",
       "gmail.renewal_notice.draft_create",
+      // Slice 6 (2026-07-22): maintenance owner-notice DRAFT flipped live (owner email confirmed at
+      // portfolio.owners[].email, 25/25). Draft-only; the paired .send stays non-executable below.
+      "gmail.maintenance_owner_notice.draft_create",
     ]);
     for (const entry of ACTION_REGISTRY_SEED) {
       const parsed = CreateActionRegistryInputSchema.parse(entry);
@@ -224,10 +227,17 @@ describe("Action Registry seed catalog", () => {
         .filter((entry) => entry.production_allowed)
         .map((entry) => entry.key),
     ).toEqual(["gmail.mailbox.read", "gmail.thread.reply", "gmail.label.apply"]);
+    // Slice 6 (2026-07-22): maintenance owner-notice DRAFT flipped live (owner email confirmed at
+    // portfolio.owners[].email, 25/25). Draft-only; the paired .send stays gated below.
+    const maintenanceDraft = gmailEntries.find(
+      (entry) => entry.key === "gmail.maintenance_owner_notice.draft_create",
+    );
+    expect(maintenanceDraft?.readiness).toBe("Approved for Execution");
+    expect(maintenanceDraft?.evidence_status).toBe("Documented");
+    expect(maintenanceDraft?.production_allowed).toBe(true);
     expect(
-      gmailEntries.find(
-        (entry) => entry.key === "gmail.maintenance_owner_notice.draft_create",
-      )?.production_allowed,
+      gmailEntries.find((entry) => entry.key === "gmail.maintenance_owner_notice.send")
+        ?.production_allowed,
     ).toBe(false);
   });
 

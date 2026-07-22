@@ -12,6 +12,9 @@ describe("Workflow Communications action gate (AC-GW-4, AC-GW-5)", () => {
     expect(isActionExecutable("gmail.mailbox.read")).toBe(true);
     expect(isActionExecutable("gmail.message.send")).toBe(false);
     expect(isActionExecutable("gmail.thread.reply")).toBe(true);
+    // Slice 6 (2026-07-22): maintenance owner-notice DRAFT is live (draft-only); its send stays gated.
+    expect(isActionExecutable("gmail.maintenance_owner_notice.draft_create")).toBe(true);
+    expect(isActionExecutable("gmail.maintenance_owner_notice.send")).toBe(false);
   });
 
   it("returns false for an unknown key (typo in an action key is fail-closed)", () => {

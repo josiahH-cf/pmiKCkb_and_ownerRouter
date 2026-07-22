@@ -29,6 +29,12 @@ describe("action-gate", () => {
     expect(isActionExecutable("gmail.renewal_notice.draft_create")).toBe(true);
   });
 
+  it("opens the maintenance owner-notice DRAFT gate but keeps its send gated (Slice 6)", () => {
+    // 2026-07-22: owner email confirmed at portfolio.owners[].email (25/25); draft-only flip.
+    expect(isActionExecutable("gmail.maintenance_owner_notice.draft_create")).toBe(true);
+    expect(isActionExecutable("gmail.maintenance_owner_notice.send")).toBe(false);
+  });
+
   it("still refuses a gated entry with no runtime (Planned/false)", () => {
     expect(isActionExecutable(GATED_KEY)).toBe(false);
     expect(() => assertActionExecutable(GATED_KEY)).toThrow(ActionNotExecutableError);

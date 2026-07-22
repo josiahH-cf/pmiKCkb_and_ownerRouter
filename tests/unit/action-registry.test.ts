@@ -46,6 +46,7 @@ describe("Action Registry repository", () => {
     ).toEqual([
       "gmail.label.apply",
       "gmail.mailbox.read",
+      "gmail.maintenance_owner_notice.draft_create",
       "gmail.renewal_notice.draft_create",
       "gmail.thread.reply",
     ]);

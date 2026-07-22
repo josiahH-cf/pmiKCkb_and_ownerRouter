@@ -6,13 +6,14 @@
 // guess. When an email IS present it returns it lowercased plus a source pointer
 // (`rentvine:lease:<id>:<field-path>`) that the governed executor stores as `recipient_source_ref`.
 //
-// Honest coverage note: Rentvine's `/leases/export` row carries the tenant on `lease.tenants[]`, so the
-// TENANT channel resolves directly from the live read. The OWNER contact lives on the property/owner
-// relationship, which the lease-view flatten drops today — so the OWNER channel resolves only when an
-// owner object is actually present, and is otherwise honestly `Needs Verification` until the
-// property→owner join lands. To avoid MIS-attribution, a party's email is read only from that party's
-// own scoped object (or a lease-level key that explicitly names the party) — never from a generic
-// top-level `email` that could belong to the other side.
+// Honest coverage note: Rentvine's `/leases/export` row carries the tenant on `lease.tenants[]` and the
+// authoritative property OWNER on `portfolio.owners[]` (both preserved on the flattened lease view by
+// leaseViewsFromExport), so BOTH channels resolve directly from the live read — the owner email was
+// confirmed present + email-shaped on 25/25 leases (Slice 1, 2026-07-22,
+// docs/products/rentvine-live-field-map-2026-07-22.md). When no authoritative email is present the
+// channel stays honestly `Needs Verification` rather than guessing. To avoid MIS-attribution, a party's
+// email is read only from that party's own scoped object (or a lease-level key that explicitly names the
+// party) — never from a generic top-level `email` that could belong to the other side.
 
 import type { RawLease } from "@/lib/integrations/rentvine/client";
 
@@ -170,6 +171,29 @@ function ownerContainers(
       prefix: "portfolio.owner",
       keys: fieldMap.scopedEmailKeys,
     });
+  }
+  // Owner ARRAYS on the portfolio/property appends. The live RentVine `/leases/export` row carries the
+  // authoritative owner on `portfolio.owners[]` (a plural array, NOT the singular `.owner` above) —
+  // confirmed 2026-07-22, present + email-shaped on 25/25 leases (Slice 1,
+  // docs/products/rentvine-live-field-map-2026-07-22.md). Each element is scoped to its own index so
+  // every resolved email stays individually attributable via its source ref.
+  for (const [containerKey, container] of [
+    ["portfolio", portfolio],
+    ["property", property],
+  ] as const) {
+    const owners = container?.owners;
+    if (Array.isArray(owners)) {
+      owners.forEach((element, index) => {
+        const obj = asObject(element);
+        if (obj) {
+          searches.push({
+            obj,
+            prefix: `${containerKey}.owners[${index}]`,
+            keys: fieldMap.scopedEmailKeys,
+          });
+        }
+      });
+    }
   }
   // Lease-level ONLY via keys that name the owner, never a generic `email`.
   searches.push({ obj: lease, prefix: "", keys: fieldMap.ownerLeaseKeys });

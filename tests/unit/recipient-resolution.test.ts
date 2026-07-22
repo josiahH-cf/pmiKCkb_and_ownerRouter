@@ -130,6 +130,41 @@ describe("resolveRenewalRecipient", () => {
     expect(viaOwnersArray.recipientSourceRef).toBe("rentvine:lease:9:owners[0].email");
   });
 
+  it("resolves the owner from portfolio.owners[] (the live RentVine export shape, Slice 1 2026-07-22)", () => {
+    // The authoritative property-owner email lives on portfolio.owners[].email (a plural array), NOT the
+    // singular portfolio.owner. This is the shape leaseViewsFromExport preserves; confirmed 25/25 live.
+    const result = resolveRenewalRecipient({
+      channel: "owner",
+      lease: {
+        leaseID: 6001,
+        portfolio: {
+          name: "PF",
+          owners: [{ name: "Owner One", email: "Owner.One@Example.com", contactID: 42 }],
+        },
+        tenants: [{ email: "tenant@example.com" }],
+      },
+    });
+    expect(result.verified).toBe(true);
+    expect(result.to).toBe("owner.one@example.com");
+    expect(result.recipientSourceRef).toBe(
+      "rentvine:lease:6001:portfolio.owners[0].email",
+    );
+    // Never grabs the tenant address for the owner channel; the owner channel never emits Cc.
+    expect(result.to).not.toBe("tenant@example.com");
+    expect(result.cc).toBeUndefined();
+  });
+
+  it("also resolves the owner from property.owners[] (symmetry)", () => {
+    const result = resolveRenewalRecipient({
+      channel: "owner",
+      lease: { id: 6002, property: { owners: [{ email: "prop.owner@example.com" }] } },
+    });
+    expect(result.to).toBe("prop.owner@example.com");
+    expect(result.recipientSourceRef).toBe(
+      "rentvine:lease:6002:property.owners[0].email",
+    );
+  });
+
   it("marks Needs-Verification (never invents) when the tenant email is absent", () => {
     const result = resolveRenewalRecipient({
       channel: "tenant",
