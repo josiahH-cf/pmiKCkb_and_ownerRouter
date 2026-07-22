@@ -60,7 +60,8 @@ export const RENEWAL_STEPS = [
   { id: "build", label: "Build docs" },
 ] as const;
 
-const STAGE_NEXT_ACTION = [
+/** Next-step copy per stage (index-aligned with RENEWAL_STEPS). Shared with the live desk. */
+export const STAGE_NEXT_ACTION = [
   "Confirm the rent before drafting",
   "Get the owner's rent decision",
   "Review the tenant offer drafts",

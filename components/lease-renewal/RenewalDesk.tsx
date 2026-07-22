@@ -24,22 +24,41 @@ import {
   type RenewalDeskView,
 } from "@/lib/lease-renewal/sample-desk";
 
+type DeskMode = "sample" | "live";
+
+/** Per-lease workspace link target for the current mode. */
+function leaseHrefFor(mode: DeskMode, id: string): string {
+  return mode === "live"
+    ? `/lease-renewal/live/desk/lease/${id}`
+    : `/lease-renewal/lease/${id}`;
+}
+
 export function RenewalDesk({
   view,
   liveReviewHref,
-}: Readonly<{ view: RenewalDeskView; liveReviewHref?: string }>) {
+  mode = "sample",
+}: Readonly<{ view: RenewalDeskView; liveReviewHref?: string; mode?: DeskMode }>) {
   const { summary } = view.cohort;
-  const attention = buildRenewalAttention(view.actionable);
+  const isLive = mode === "live";
+  const attention = buildRenewalAttention(view.actionable, (id) =>
+    leaseHrefFor(mode, id),
+  );
 
   return (
     <div className="ui-stack">
       <PageHeader
         actions={
           <>
-            <ModeChip>Sample data</ModeChip>
-            <Link className="text-link" href="/lease-renewal/runs">
-              Open Test workspace →
-            </Link>
+            {isLive ? (
+              <ModeChip tone="live">Live data</ModeChip>
+            ) : (
+              <ModeChip>Sample data</ModeChip>
+            )}
+            {isLive ? null : (
+              <Link className="text-link" href="/lease-renewal/runs">
+                Open Test workspace →
+              </Link>
+            )}
             {liveReviewHref ? (
               <Link className="text-link" href={liveReviewHref}>
                 View live review →
@@ -76,7 +95,11 @@ export function RenewalDesk({
           />
         ) : (
           view.actionable.map((lease) => (
-            <ActionableLeaseCard key={lease.id} lease={lease} />
+            <ActionableLeaseCard
+              href={leaseHrefFor(mode, lease.id)}
+              key={lease.id}
+              lease={lease}
+            />
           ))
         )}
       </section>
@@ -99,13 +122,17 @@ export function RenewalDesk({
 
       <Disclosure summary="Data diagnostics">
         <p className="muted">
-          Sample data. No live read performed. {summary.total} leases classified.
+          {isLive
+            ? `Live RentVine and Sheet read. ${summary.total} leases classified.`
+            : `Sample data. No live read performed. ${summary.total} leases classified.`}
         </p>
-        <p>
-          <Link className="text-link" href="/lease-renewal/runs">
-            View the raw reconciliation run
-          </Link>
-        </p>
+        {isLive ? null : (
+          <p>
+            <Link className="text-link" href="/lease-renewal/runs">
+              View the raw reconciliation run
+            </Link>
+          </p>
+        )}
         <p>
           <Link className="text-link" href="/processes/lease-renewal">
             View process definition
@@ -132,7 +159,10 @@ function AttentionCard({ item }: Readonly<{ item: AttentionItem }>) {
   );
 }
 
-function ActionableLeaseCard({ lease }: Readonly<{ lease: DeskLeaseSummary }>) {
+function ActionableLeaseCard({
+  lease,
+  href,
+}: Readonly<{ lease: DeskLeaseSummary; href: string }>) {
   return (
     <Card>
       <div className="ui-stack">
@@ -149,7 +179,7 @@ function ActionableLeaseCard({ lease }: Readonly<{ lease: DeskLeaseSummary }>) {
         <Stepper currentIndex={lease.stageIndex} steps={RENEWAL_STEPS} />
         <div className="ui-spread">
           <span className="muted">Next: {lease.nextAction}</span>
-          <Link className="secondary-button" href={`/lease-renewal/lease/${lease.id}`}>
+          <Link className="secondary-button" href={href}>
             Open
           </Link>
         </div>

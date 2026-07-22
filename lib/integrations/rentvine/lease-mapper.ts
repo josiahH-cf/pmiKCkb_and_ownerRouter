@@ -117,6 +117,26 @@ export function leaseCurrentRent(
   return hit ? (toRentNumber(hit.value) ?? undefined) : undefined;
 }
 
+/**
+ * Best-effort property address label for a live lease view (export-shaped). Reads the owner-bearing
+ * `property` sibling first, then the lease itself, over the same key set the draft service uses. In
+ * boundary only (never written to git); returns undefined when no address is on the record so callers
+ * can fall back to a non-PII label. Pure and deterministic.
+ */
+export function leaseAddressLabel(lease: RawLease): string | undefined {
+  const property =
+    lease.property && typeof lease.property === "object"
+      ? (lease.property as Record<string, unknown>)
+      : {};
+  for (const source of [property, lease] as const) {
+    for (const key of ["streetName", "address", "addressLine1", "propertyAddress"]) {
+      const value = source[key];
+      if (typeof value === "string" && value.trim() !== "") return value.trim();
+    }
+  }
+  return undefined;
+}
+
 export interface MapLeasesOptions {
   /** Read timestamp captured at read time; accepted as INPUT, never Date.now(). */
   readTimestamp: string;

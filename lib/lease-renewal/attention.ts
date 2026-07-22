@@ -51,8 +51,16 @@ function actionLabelForStage(stageIndex: number): string {
   return "Open the renewal";
 }
 
-function itemFor(lease: DeskLeaseSummary): AttentionItem {
-  const href = `/lease-renewal/lease/${lease.id}`;
+/** Default per-lease link target (the sample workspace). The live desk passes its own builder. */
+export function sampleLeaseHref(id: string): string {
+  return `/lease-renewal/lease/${id}`;
+}
+
+function itemFor(
+  lease: DeskLeaseSummary,
+  leaseHref: (id: string) => string,
+): AttentionItem {
+  const href = leaseHref(lease.id);
 
   if (lease.openConflicts > 0) {
     const plural = lease.openConflicts === 1 ? "" : "s";
@@ -96,10 +104,11 @@ function compareEndDate(a: string | null, b: string | null): number {
  */
 export function buildRenewalAttention(
   actionable: readonly DeskLeaseSummary[],
+  leaseHref: (id: string) => string = sampleLeaseHref,
 ): AttentionItem[] {
   return [...actionable]
     .filter(needsAttention)
-    .map((lease) => ({ lease, item: itemFor(lease) }))
+    .map((lease) => ({ lease, item: itemFor(lease, leaseHref) }))
     .sort(
       (a, b) =>
         URGENCY_RANK[a.item.urgency] - URGENCY_RANK[b.item.urgency] ||

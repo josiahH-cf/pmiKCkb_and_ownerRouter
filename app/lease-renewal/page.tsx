@@ -26,6 +26,13 @@ export default async function LeaseRenewalDeskPage() {
         />
         {can(user.role, "manageAdmin") ? (
           <p>
+            <Link className="secondary-button" href="/lease-renewal/live/desk">
+              Open the live renewal desk (real leases)
+            </Link>
+          </p>
+        ) : null}
+        {can(user.role, "manageAdmin") ? (
+          <p>
             <Link className="secondary-button" href="/lease-renewal/live/notices">
               Live renewal notices (compose drafts)
             </Link>
