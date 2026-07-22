@@ -26,6 +26,10 @@
   approved and should be built, but these four must land. Docs (Slice 11) are best-effort.
 - **Docs (D05):** update **`docs/customer-demo-walkthrough-2026-07-21.html`** only (the "testing
   sheet"); the manual-QA checklist is not required this run.
+- **Adversarial pass + demo test-script (owner follow-up 2026-07-22):** Slice 11 (adversarial UI/UX +
+  external-browser functional pass) and Slice 12 (rewrite the walkthrough into a morning test script)
+  are **REQUIRED**, not best-effort. The owner walks the rewritten walkthrough tomorrow morning to
+  confirm the app works, so the doc must carry verified click-paths + expected results, not claims.
 - **Budget:** ~$10 ceiling holds. Run `npm run check:live-cost` / `check:budget-guard` before any live
   or deploy step. No Vertex ingestion/re-index overnight (Slice 8 builds the button but never runs it).
 
@@ -212,15 +216,49 @@ Permission"` or "Planned", `evidence_status` honest); a least-privilege write pa
   here).
 - **Tests.** Scaffolding compiles; actions gated false; token vault interface contract.
 
-### Slice 11 — Walkthrough + facts/boundary docs (D05 best-effort; D19)
+### Slice 11 — Adversarial UI/UX + external-browser functional pass (owner follow-up; REQUIRED)
 
-- **Objective.** Update `docs/customer-demo-walkthrough-2026-07-21.html` to reflect every shipped
-  change (comp capture, KB transparency + freshness, maintenance owner-notice draft, add-a-Space,
-  re-index, Dotloop "next", RentVine write "approved, gated"). Record the **negotiation exclusion** as
-  a named boundary in `docs/facts.md` (ties to `Q-GMAIL-AI-EXCLUSIONS`). Promote the run's governance
-  facts: `F-RENTVINE-WRITE-APPROVED`, maintenance draft go-live, the overnight-run authorization.
-- **Copy-voice.** Walkthrough is a doc (copy-voice gate does not scan docs), but keep client-facing
-  drafts/operator strings jargon-free + em-dash-free.
+- **Objective.** Adversarially review and break-test every UI/UX and functional change from Slices
+  3–10 by driving the **actual app in a browser** (not just unit tests). Fix clear bugs at source
+  (worktree → gate → ff-merge); flag ambiguous ones for the morning.
+- **Bring-up (safe sandbox).** Run the local stack on emulators per the QA recipe: Firestore emulator
+  **:8090**, **Auth emulator :9099 (REQUIRED — sandboxes `getAuth` away from prod)**, seed, `npm run
+dev`; authenticate as the demo Admin. Drive it with the in-app Browser pane (`preview_start` /
+  `navigate` / `read_page` / `computer` / `read_console_messages`). Follow the methodology in
+  `docs/meta-prompts/qa-audit-and-fix.md` and the click-by-click `docs/manual-qa-walkthrough-2026-07-21.md`.
+- **CRITICAL live-data guard.** The local env is **live-connected to real RentVine/Sheet** — every
+  walkthrough action is **read-only**: never send a real email, never write the operational Sheet,
+  never emit PII. Draft flows stop at the draft; write-back is exercised only against the Slice-2 test
+  sheet.
+- **Walk + adversarially probe each new flow:** comp capture (enter Zillow low/high + PMI number +
+  comps URL → the owner email shows the **sourced** basis, not "Needs Verification"; Zillow deep link
+  opens the property; empty/invalid inputs handled; the app never invents a number); KB answer
+  transparency line ("Answered by … · N sources"); KB freshness ("sources last reviewed"); maintenance
+  owner-notice **draft** (draft is created and **never sends**; owner-email resolves or is flagged);
+  add-a-Space intake (Admin-gated; persists; emits provisioning commands); re-index button (present +
+  cost-gated; does **not** run ingestion); Dotloop connect entry ("authorize in the morning"; no live
+  call); RentVine write UI (confirm/approval gate present; gate OFF). Re-check the auth boundary
+  (unauth redirects, sign-in refusal copy), responsive + dark mode, and **zero console errors**.
+- **Adversarial lens:** invalid inputs, unauthorized-role access, empty/boundary states, double-submit,
+  stale state, and any place a gated or draft-only affordance could actually fire a live effect.
+- **Output.** A **PASS/FAIL line per flow** with evidence (screenshot / console / network); fixes
+  committed through the worktree; residuals flagged. This evidence feeds Slice 12.
+
+### Slice 12 — Rewrite the walkthrough into a morning test script (D05; owner follow-up; REQUIRED) + facts
+
+- **Objective.** Rewrite `docs/customer-demo-walkthrough-2026-07-21.html` so it doubles as the
+  **morning test script** the owner walks to confirm the app works. Organize by the existing demo
+  outline (Acts/beats); for **each new or changed process** give: the click-path, the demo talk-track
+  beat, and an explicit **Verification** (the expected result to check). Insert every shipped feature
+  (comp capture, KB transparency + freshness, maintenance owner-notice draft, add-a-Space, re-index,
+  Dotloop "next", RentVine write "approved, gated"). Fold in Slice 11's PASS/FAIL evidence so the doc
+  reflects **verified reality, not claims**; mark anything gated/deferred as such and keep the
+  talk-track guardrails honest (no overclaim).
+- **Boundary + facts.** Record the **negotiation exclusion** as a named boundary in `docs/facts.md`
+  (ties `Q-GMAIL-AI-EXCLUSIONS`); promote the run's governance facts (`F-RENTVINE-WRITE-APPROVED`,
+  maintenance draft go-live, the overnight-run authorization).
+- **Copy-voice.** The walkthrough is a doc (the copy-voice gate does not scan docs), but keep any
+  client-facing draft/operator strings jargon-free and em-dash-free.
 
 ---
 
