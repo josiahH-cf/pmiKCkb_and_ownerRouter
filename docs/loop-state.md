@@ -7,20 +7,20 @@ context, and recommendations, read `docs/whats-next.md`.
 ## Snapshot
 
 - Last updated: 2026-07-22.
-- **QUEUED: the 2026-07-22 overnight build cycle.** A decision-complete runbook is locked at
-  `docs/overnight-build-run-2026-07-22.md` (owner-ruled via the Round-1 decision packet
-  `docs/audit-2026-07-22.html`). It runs 11 ordered slices (comp capture + Zillow link, KB answer
-  transparency, KB freshness, maintenance owner-notice **draft** go-live, add-a-Space request intake,
-  cost-gated re-index button, RentVine write executor **gated OFF pending a documented endpoint**,
-  Dotloop OAuth scaffolding gated OFF, plus the Sheet-write live proof and RentVine field discovery),
-  then full gate → ff-merge → build-in-primary → push → **best-effort unattended deploy** (owner
-  authorized D01; gated on a fresh `preflight:adc`, else deferred to the morning). The owner runs
-  `npm run auth:session` before departure to open the live/deploy window. Read the runbook first.
-- **Baseline is green, clean, and live in production.** `main` (the v1 remediation plus the
-  governance/QA doc realignment) is deployed to Cloud Run, working tree clean, `main` and the
-  `ui-ux-overhaul` branch aligned and pushed. Full gate passes: 2,555 tests across 353 files,
-  typecheck clean, lint 0 errors (13 known warnings), `verify:copy-voice` clean (0 jargon, 0
-  operator-UI em dashes), falsification/context/spec gates green, production build green.
+- **The 2026-07-22 overnight build cycle is COMPLETE and DEPLOYED.** All 11 slices in
+  `docs/overnight-build-run-2026-07-22.md` landed and the four must-haves (comp basis + Zillow, KB
+  answer transparency, maintenance owner-notice draft, add-a-Space intake) all shipped. Per-slice
+  detail is in the dated `docs/status.md` entry and `F-OVERNIGHT-RUN-2026-07-22`. `main` and
+  `ui-ux-overhaul` are aligned + pushed at `7663cec`; working trees clean.
+- **Production serves the new build.** Cloud Run `pmi-kc-kb-demo` serves `main` at `7663cec` as
+  revision `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7` at 100% traffic (owner-authorized unattended
+  `npm run deploy -- --budget-confirmed --allow-multiple-spaces`, fresh ADC, 2026-07-22). Verified:
+  `vertex spaces:11`, `drive folders:11`, `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED:true`,
+  `ASK_DEMO_MODE:false`; auth boundary green (`/`→307, `/sign-in`→200, `/admin`→307,
+  `/approval-queue`→307, `/api/ask`→405). Rollback target: `pmi-kc-kb-demo-rmrwc70pc-d5cb9815094b`.
+  Full gate green pre-deploy: 2,697 tests / 373 files, typecheck, lint 0 errors (13 known warnings),
+  prettier, copy-voice/falsification/context/spec, production build.
+  (`F-CURRENT-SERVING-CHECKPOINT-2026-07-22`.)
 - **The v1 readiness remediation is COMPLETE on every testable code front.** The 65-finding
   adversarial audit (0 Blocker, 5 High, 26 Medium, 34 Low) is fully worked: the owner ruled all 22
   decision-findings (`docs/v1-remediation-decisions-2026-07-20.md`, `F-V1-REMEDIATION-DECISIONS`),
@@ -41,19 +41,15 @@ context, and recommendations, read `docs/whats-next.md`.
   (Firestore backups/PITR before real client data), budget kill-switch and intake-salt provisioning,
   and two owner answers (Q-CUTOVER-POSTURE; whether the primary tenant is always `tenants[0]`, which
   would revert F-LEASE-6).
-- **Production is current with `main` (includes the two shipped QA fixes).** Cloud Run `pmi-kc-kb-demo`
-  serves `main` at `8243b88` (the browser-QA pass: the P3.2 friendly sign-in refusal copy + the P6.3
-  server-enforced reason for single High-risk approvals, plus the annotated walkthrough and the
-  unconfirmed/blocked companion doc) as revision `pmi-kc-kb-demo-rmrv6motb-be0e1c7937a4` at 100% traffic —
-  owner-authorized `npm run deploy:demo -- --budget-confirmed` on 2026-07-21 with a fresh ADC session.
-  Auth boundary HTTP-smoked green: unauth `/`→307, `/sign-in`→200, `/admin`→307, `/approval-queue`→307,
-  `/api/ask`→405; demo auth confirmed OFF in prod (`POST /api/auth/demo`→403, no demo button). The
-  retained rollback revision is `pmi-kc-kb-demo-rmruogj57-577c8d7b9d1a` (served the prior `f4330ec` build).
-- **Owner self-test is the current human step.** The app is built, green, and deployed; the owner now
-  walks the macro features by hand. The click-by-click guide is `docs/manual-qa-walkthrough-2026-07-21.md`
-  (now annotated with the automated `model-result` per process); the short list of items the automated
-  pass could not confirm (real providers / human inputs / prod config) plus how to verify the two fixes
-  is `docs/manual-qa-unconfirmed-and-blocked-2026-07-21.md`.
+- **Two items are deferred to the owner (AM).** (1) The Sheet write-back LIVE proof is deferred: the
+  `smoke:sheet-write` harness is built + merged, but the live run fail-closed at the DWD write-token
+  exchange (HTTP 401) because the Sheets WRITE scope (`.../auth/spreadsheets`) is not yet on the
+  `lease-renewal-reader` SA's domain-wide-delegation grant. Owner step: add the scope, then
+  `npm run smoke:sheet-write -- --live`. (2) The RentVine renewal-WRITE gate stays
+  `production_allowed:false` pending a DOCUMENTED write endpoint (Slice 1 confirmed RentVine is
+  GET-only); the executor + S25 contract are built + approved-in-principle
+  (`F-RENTVINE-WRITE-APPROVED`). Dotloop OAuth is scaffolded but gated OFF until the owner registers
+  the app + authorizes it. Full AM steps are in the newest `docs/status.md` entry.
 
 ## Overnight run 2026-07-22 — progress (worktree `ui-ux-overhaul`)
 
@@ -84,28 +80,34 @@ per-slice detail lives in the dated `docs/status.md` entry.
 
 ## Goal
 
-Run the 2026-07-22 overnight build cycle to completion per `docs/overnight-build-run-2026-07-22.md`:
-land the four must-have slices (comp capture, KB answer transparency, maintenance owner-notice draft,
-add-a-Space intake) plus the approved remainder, keep every safety invariant, then gate → ff-merge →
-build-in-primary → push → best-effort unattended deploy (gated on a fresh `preflight:adc`). Preserve
-the green baseline: nothing half-merged, no autonomous send/live-write, RentVine write stays
-`production_allowed:false` pending a documented endpoint.
+The 2026-07-22 overnight build cycle is COMPLETE and deployed (`7663cec`, revision `rmrwmk2kn`). All
+four must-have slices plus the approved remainder shipped and every safety invariant held (no
+autonomous send/live-write, RentVine write stays `production_allowed:false`, the 11-space KB config
+preserved). The next actions are the deferred owner AM steps below; the broader owner-gated backlog is
+`docs/whats-next.md`.
 
 ## Next Exact Actions
 
-1. Read `docs/overnight-build-run-2026-07-22.md` (the decision-complete runbook) and
-   `docs/audit-2026-07-22.html` (the owner rulings) before touching code. Follow the slice order:
-   live-read/live-write work first (RentVine field discovery, Sheet-write proof), then the build
-   slices, then close-out.
-2. Confirm `npm run preflight:adc` is fresh (the owner runs `npm run auth:session` before leaving). If
-   stale, do the offline slices and defer every live read + the deploy, flagging them for the morning.
-3. Per slice: worktree build → tests → smallest relevant checks → adversarial falsification pass →
-   update `docs/loop-state.md` at the boundary. On a genuine blocker, record it and skip to the next
-   safe slice (never halt, never guess a live external effect).
-4. Close-out: full gate → ff-merge to `main` → build in primary → push both → `check:live-cost` →
-   `preflight:adc` → deploy (`--budget-confirmed --allow-multiple-spaces`, verify `vertex spaces: 11`)
-   or defer. Capture serving + rollback revisions. Update `docs/facts.md` (Tier-0), this file, and a
-   dated `docs/status.md` entry, then write the morning report.
+These are owner AM steps (the unattended run left them for a human).
+
+1. **Verify + optionally roll back the deploy.** Production serves `7663cec` on revision
+   `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7`. Spot-check the new surfaces (comp basis on a live renewal,
+   the Ask "Answered by … · N sources" line + per-source review dates, the maintenance owner-notice
+   draft, Admin → Spaces → Request a new Space, Admin → Re-index Sources). One-step rollback if needed:
+   `gcloud run services update-traffic pmi-kc-kb-demo --region us-central1 --project pmi-kc-kb-prod --to-revisions pmi-kc-kb-demo-rmrwc70pc-d5cb9815094b=100`.
+2. **Unblock the Sheet write-back live proof.** Add the Sheets WRITE scope
+   (`https://www.googleapis.com/auth/spreadsheets`) to the `lease-renewal-reader` SA's domain-wide
+   delegation grant (Admin console → Security → API controls → Domain-wide delegation), then
+   `npm run auth:session` + `npm run smoke:sheet-write -- --live`.
+3. **RentVine write (optional).** To move `rentvine.lease.renewal_writeback` off
+   `production_allowed:false`, provide the DOCUMENTED RentVine renewal-write endpoint + semantics; the
+   executor + S25 contract are built and owner-approved-in-principle (`F-RENTVINE-WRITE-APPROVED`), so
+   the flip is a one-line reviewed change once the endpoint is confirmed.
+4. **Dotloop (optional).** Register the Dotloop OAuth app, set `DOTLOOP_OAUTH_CLIENT_ID/SECRET/
+   REDIRECT_URI` in `.env.local`, then authorize. Every Dotloop action stays `production_allowed:false`
+   until connected + reviewed.
+5. To start the NEXT cycle, follow the runner route (`AGENTS.md` → `docs/facts.md` → this file →
+   `docs/whats-next.md`) and plan the next packet.
 
 ## Locked Safety
 

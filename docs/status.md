@@ -11,6 +11,72 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Overnight build cycle 2026-07-22 — 11 slices shipped + deployed
+
+Ran the decision-complete runbook `docs/overnight-build-run-2026-07-22.md` (owner-authorized via the
+Round-1 decision packet) unattended, end to end. All 11 slices landed in the `ui-ux-overhaul` worktree
+and ff-merged to `main` at `7663cec`; full gate green and deployed to Cloud Run. Every safety invariant
+held: no autonomous send or live system-of-record write, RentVine write stays `production_allowed:false`,
+the Sheet write-back smoke targets a NEW test sheet only, and the 11-space KB config was preserved.
+
+**Live slices (token fresh at run start):**
+
+- **Slice 1 — RentVine field discovery** (`5e60658`). Read-only live discovery over `GET /leases/export`
+  (25 leases), paths/presence only (no PII). Confirmed tenant recipient `tenants[].email` (25/25), rent
+  `unit.rent`, date `endDate`, and the property-owner email at **`portfolio.owners[].email` (25/25)** and
+  the Zillow-link address at `property.streetName/address/city`. Map: `docs/products/rentvine-live-field-map-2026-07-22.md`.
+  D18 write endpoint NOT probed (client is GET-only) — flagged for AM.
+- **Slice 2 — Sheet write-back live proof** (`6fdd7e4`). Added `smoke:sheet-write` + a `createSpreadsheet`
+  client method. Live proof **DEFERRED**: fail-closed at the DWD write-token exchange (HTTP 401
+  unauthorized_client) because the Sheets WRITE scope is not on the `lease-renewal-reader` SA's DWD grant.
+  Harness is complete + dry-validated; the executor is already unit-proven.
+
+**Build slices (must-haves are 3, 4, 6, 7):**
+
+- **Slice 3 (MUST) — comp basis + Zillow** (`b3bab46`). Operator comp basis (Zillow low/high + PMI number
+  + comps URL, all optional) flows to the owner email (source-tagged) and a gated "KB Proposed — Comp basis"
+  write-back proposal; a Zillow deep link is seeded from the property address. The app never invents a rent
+  figure (D19).
+- **Slice 4 (MUST) — KB answer transparency** (`34c1120`). "Answered by <friendly model> · N sources" on
+  every Ask result for everyone; the source count is the honest citation count.
+- **Slice 5 — KB freshness** (`c7c6bd4`). Each cited source shows its existing `last_reviewed_at` as
+  "reviewed <date>" (honest; omitted when absent).
+- **Slice 6 (MUST) — maintenance owner-notice draft** (`baa2af4`). Extended the owner-email resolver to
+  `portfolio.owners[]` (owner channel 0/25 → **25/25** proven live) and flipped
+  `gmail.maintenance_owner_notice.draft_create` to `production_allowed:true` (draft-only). The paired
+  `.send` stays `production_allowed:false`; migration-readiness allowlist updated.
+- **Slice 7 (MUST) — add-a-Space intake** (`18029d7`). Admin-only request form → Firestore `space_requests`
+  + auto-generated gcloud/Vertex/Drive provisioning commands + merged `.env.local` lines (existing Spaces
+  preserved). Provisions nothing.
+- **Slice 8 — re-index control, cost-gated** (`0d32a17`). Admin records a confirm-gated re-index request +
+  prints the owner command. Ingests nothing (importDocuments is CLI-only).
+- **Slice 9 — RentVine write executor** (`b36803a`). The executor + S25 contract already existed and are
+  unit-proven; recorded `F-RENTVINE-WRITE-APPROVED` (owner approved-in-principle) and kept the gate OFF
+  pending a documented endpoint. No live write client built.
+- **Slice 10 — Dotloop OAuth scaffolding** (`bfd19f1`). Auth-code URL builder + token-exchange/vault seams
+  (no live call, no credentials, secret never in URL). Every Dotloop action stays `production_allowed:false`.
+- **Slice 11 — docs** (`2cf8345`). Promoted `F-MAINT-OWNER-DRAFT-LIVE`, `F-NEGOTIATION-EXCLUDED`,
+  `F-OVERNIGHT-RUN-2026-07-22`; updated the customer-demo walkthrough.
+
+**Close-out.** Full gate green in the worktree (typecheck; **2,697 tests / 373 files**; lint 0 errors / 13
+known warnings; prettier `7663cec`; copy-voice/falsification/context/spec). The worktree build hit a
+Turbopack-vs-symlinked-`node_modules` limitation, so the authoritative production build ran in the primary
+tree (real `node_modules`) and passed. ff-merged worktree → `main`; pushed both branches at `7663cec`.
+`check:budget-guard` passed; `preflight:adc` fresh. Deployed
+`npm run deploy -- --budget-confirmed --allow-multiple-spaces`. Serving revision
+**`pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7`** at 100%; rollback target
+**`pmi-kc-kb-demo-rmrwc70pc-d5cb9815094b`**. Verified deployed env: `vertex spaces:11`, `drive folders:11`,
+`LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED:true`, `ASK_DEMO_MODE:false`; auth boundary green (`/`→307,
+`/sign-in`→200, `/admin`→307, `/approval-queue`→307, `/api/ask`→405). (Note: standalone
+`npm run check:live-cost` reports a false `ASK_DEMO_MODE` failure because it reads `process.env` rather than
+`.env.local`; the deploy reads `.env.local` and force-sets `ASK_DEMO_MODE=false`, so the deployed value is
+correct.)
+
+**Deferred to the owner (AM):** (1) the Sheets WRITE scope on the DWD grant to unblock the Sheet
+write-back live proof; (2) a documented RentVine write endpoint to flip the RentVine write gate; (3) the
+Dotloop OAuth app registration + authorization. Details + exact commands are in `docs/loop-state.md`
+(Next Exact Actions).
+
 ## Shipped the two QA findings + redeploy (2026-07-21)
 
 - Owner approved shipping both surfaced findings from the QA pass (entry below). Both fixed in the
