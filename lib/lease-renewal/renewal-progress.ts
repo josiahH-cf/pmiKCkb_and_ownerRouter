@@ -24,6 +24,22 @@ export const RENEWAL_STAGE = {
 /** Highest valid stage index (build). */
 export const MAX_RENEWAL_STAGE = RENEWAL_STAGE.build;
 
+/**
+ * The operator's comp basis for the owner email + (gated) write-back proposal. Every field is the
+ * operator's OWN input — the app never invents or suggests a rent figure (D19). All optional so a
+ * decision can be recorded before the comps are gathered.
+ */
+export interface RenewalMarketBasis {
+  /** Zillow comparable-rent range low. */
+  zillowLow?: number;
+  /** Zillow comparable-rent range high. */
+  zillowHigh?: number;
+  /** The specific number from the PMI/franchise rental-analysis tool. */
+  pmiNumber?: number;
+  /** The Zillow comps-search URL the operator used (property address only; no tenant PII). */
+  compsUrl?: string;
+}
+
 /** The recorded owner rent decision that unlocks the tenant offer. Values are the operator's inputs. */
 export interface RenewalOwnerDecision {
   decision: OwnerDecision;
@@ -33,6 +49,8 @@ export interface RenewalOwnerDecision {
   charges?: { rbp?: number; insurance?: number };
   /** Optional tenant info-gathering form link. */
   infoFormUrl?: string;
+  /** Optional operator comp basis (Zillow range + PMI number + comps URL). */
+  market?: RenewalMarketBasis;
 }
 
 /** One lease's forward progress. `stageIndex` is the furthest step the operator has reached. */
@@ -101,7 +119,41 @@ export function normalizeOwnerDecision(
   if (input.infoFormUrl && input.infoFormUrl.trim() !== "") {
     normalized.infoFormUrl = input.infoFormUrl.trim();
   }
+  const market = normalizeMarketBasis(input.market);
+  if (market) normalized.market = market;
   return normalized;
+}
+
+/**
+ * Validate + normalize the operator's comp basis. Numbers must be non-negative and finite (a comp is
+ * never negative); the comps URL is trimmed and dropped when blank. Returns undefined when nothing was
+ * entered, so a decision without comps carries no `market` field. Never invents a value.
+ */
+function normalizeMarketBasis(
+  input: RenewalMarketBasis | undefined,
+): RenewalMarketBasis | undefined {
+  if (!input) return undefined;
+  const market: RenewalMarketBasis = {};
+  if (input.zillowLow !== undefined) {
+    market.zillowLow = assertMoney(input.zillowLow, "Zillow low", true);
+  }
+  if (input.zillowHigh !== undefined) {
+    market.zillowHigh = assertMoney(input.zillowHigh, "Zillow high", true);
+  }
+  if (input.pmiNumber !== undefined) {
+    market.pmiNumber = assertMoney(input.pmiNumber, "PMI rental-analysis number", true);
+  }
+  if (
+    market.zillowLow !== undefined &&
+    market.zillowHigh !== undefined &&
+    market.zillowHigh < market.zillowLow
+  ) {
+    throw new EditableLayerError("Zillow high cannot be less than Zillow low.", 400);
+  }
+  if (input.compsUrl && input.compsUrl.trim() !== "") {
+    market.compsUrl = input.compsUrl.trim();
+  }
+  return Object.keys(market).length > 0 ? market : undefined;
 }
 
 /**

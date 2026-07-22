@@ -24,6 +24,7 @@ import {
   RenewalCompleteButton,
 } from "@/components/lease-renewal/RenewalProgressControls";
 import { DRAFT_BANNER } from "@/lib/constants";
+import { zillowSearchUrl } from "@/lib/lease-renewal/market-links";
 import type { ReadinessStatus } from "@/lib/lease-renewal/renewal-readiness";
 import type {
   DeskReconItem,
@@ -56,6 +57,9 @@ export function RenewalWorkspace({
   const { summary, ownerDraft, tenantDraft, readiness, dataCheck } = workspace;
   const openItems = readiness.flags.length + readiness.needsInput.length;
   const isLive = mode === "live";
+  // Deep link seeded from the property address so the operator can pull Zillow comps in one click
+  // (property address only — no tenant PII in the URL).
+  const zillowUrl = isLive ? zillowSearchUrl(summary.addressLabel) : null;
 
   return (
     <div className="ui-stack">
@@ -124,6 +128,14 @@ export function RenewalWorkspace({
             <p className="muted">
               Record the owner’s rent decision to unlock the tenant offer.
             </p>
+            {zillowUrl ? (
+              <p className="muted">
+                Comp research:{" "}
+                <a href={zillowUrl} rel="noreferrer noopener" target="_blank">
+                  Look up this address on Zillow
+                </a>
+              </p>
+            ) : null}
             <OwnerDecisionForm
               current={workspace.live.ownerDecision}
               leaseId={workspace.live.leaseId}

@@ -24,6 +24,17 @@ const OwnerDecisionActionSchema = z
       .strict()
       .optional(),
     infoFormUrl: z.string().trim().url().optional(),
+    // Operator comp basis (all optional; the app never invents a rent figure). compsUrl is the
+    // Zillow comps-search URL (property address only — no tenant PII).
+    market: z
+      .object({
+        zillowLow: chargeMoney.optional(),
+        zillowHigh: chargeMoney.optional(),
+        pmiNumber: chargeMoney.optional(),
+        compsUrl: z.string().trim().url().optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 
@@ -55,6 +66,7 @@ export async function POST(request: Request) {
         offeredRent: body.offeredRent,
         ...(body.charges ? { charges: body.charges } : {}),
         ...(body.infoFormUrl ? { infoFormUrl: body.infoFormUrl } : {}),
+        ...(body.market ? { market: body.market } : {}),
       });
       return NextResponse.json({ progress });
     }

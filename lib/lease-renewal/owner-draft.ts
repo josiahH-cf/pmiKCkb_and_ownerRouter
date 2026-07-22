@@ -10,6 +10,7 @@
 // (product doc confidence rules). Pure and deterministic: no I/O, no Date.now().
 
 import type { NormalizedConfidence } from "@/lib/lease-renewal/normalized-value";
+import type { RenewalMarketBasis } from "@/lib/lease-renewal/renewal-progress";
 
 export type FactConfidence = NormalizedConfidence | "Needs Verification";
 
@@ -75,6 +76,24 @@ export const OWNER_RENEWAL_V1_BASE_COPY = Object.freeze({
 export function formatUsd(amount: number): string {
   const fixed = Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
   return "$" + fixed.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+/**
+ * Map the operator's recorded comp basis (RenewalMarketBasis) onto the owner-draft market input, copying
+ * only the fields that were actually entered. The app never fills a missing number — an absent field stays
+ * absent so the draft renders a visible `Needs Verification:` marker instead of an invented value.
+ */
+export function ownerDraftMarketFromBasis(
+  market: RenewalMarketBasis,
+): OwnerDraftMarketInput {
+  const out: OwnerDraftMarketInput = {};
+  if (market.pmiNumber !== undefined) out.specificNumber = market.pmiNumber;
+  if (market.zillowLow !== undefined) out.rangeLow = market.zillowLow;
+  if (market.zillowHigh !== undefined) out.rangeHigh = market.zillowHigh;
+  if (market.compsUrl !== undefined && market.compsUrl.trim() !== "") {
+    out.compsScreenshotRef = market.compsUrl.trim();
+  }
+  return out;
 }
 
 /** Compose a source-tagged owner renewal-email draft. No send; missing market inputs stay visible. */

@@ -66,6 +66,49 @@ describe("renewal-progress pure planner", () => {
     ).toThrow();
   });
 
+  it("normalizes the operator comp basis, drops an empty market, and validates numbers + range", () => {
+    expect(
+      normalizeOwnerDecision({
+        decision: "increase",
+        offeredRent: 1300,
+        market: {
+          zillowLow: 1450,
+          zillowHigh: 1600,
+          pmiNumber: 1550,
+          compsUrl: "  https://www.zillow.com/homes/x_rb/  ",
+        },
+      }),
+    ).toEqual({
+      decision: "increase",
+      offeredRent: 1300,
+      market: {
+        zillowLow: 1450,
+        zillowHigh: 1600,
+        pmiNumber: 1550,
+        compsUrl: "https://www.zillow.com/homes/x_rb/",
+      },
+    });
+    // An all-empty market object is dropped entirely (no market field).
+    expect(
+      normalizeOwnerDecision({ decision: "keep_same", offeredRent: 1200, market: {} }),
+    ).toEqual({ decision: "keep_same", offeredRent: 1200 });
+    // A negative comp is rejected; an inverted range (high < low) is rejected.
+    expect(() =>
+      normalizeOwnerDecision({
+        decision: "increase",
+        offeredRent: 1300,
+        market: { zillowLow: -1 },
+      }),
+    ).toThrow();
+    expect(() =>
+      normalizeOwnerDecision({
+        decision: "increase",
+        offeredRent: 1300,
+        market: { zillowLow: 1700, zillowHigh: 1500 },
+      }),
+    ).toThrow();
+  });
+
   it("recording a decision places the lease at the Tenant step and clears any prior draft", () => {
     const plan = planRecordOwnerDecision(
       {
@@ -279,6 +322,47 @@ describe("lease-renewal-progress store", () => {
     expect(activity[0][1]).toMatchObject({
       lease_id: LEASE_ID,
       action: "owner_decision",
+    });
+  });
+
+  it("persists and reads back the operator comp basis (market) in both directions", async () => {
+    const db = new ProgressTestFirestore();
+    await recordOwnerDecision(
+      editor,
+      LEASE_ID,
+      {
+        decision: "increase",
+        offeredRent: 1300,
+        market: {
+          zillowLow: 1450,
+          zillowHigh: 1600,
+          pmiNumber: 1550,
+          compsUrl: "https://www.zillow.com/homes/x_rb/",
+        },
+      },
+      db as unknown as Firestore,
+    );
+    const record = db.store.get(
+      `${LEASE_RENEWAL_PROGRESS_COLLECTIONS.progress}/${progressDocId(LEASE_ID)}`,
+    );
+    // Persisted snake_case.
+    expect(record).toMatchObject({
+      owner_decision: {
+        market: {
+          zillow_low: 1450,
+          zillow_high: 1600,
+          pmi_number: 1550,
+          comps_url: "https://www.zillow.com/homes/x_rb/",
+        },
+      },
+    });
+    // Read back camelCase.
+    const progress = await getRenewalProgress(editor, LEASE_ID, db as unknown as Firestore);
+    expect(progress?.ownerDecision?.market).toEqual({
+      zillowLow: 1450,
+      zillowHigh: 1600,
+      pmiNumber: 1550,
+      compsUrl: "https://www.zillow.com/homes/x_rb/",
     });
   });
 

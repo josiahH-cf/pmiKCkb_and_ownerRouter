@@ -679,6 +679,12 @@ export interface LeaseRenewalProgressRecord {
     offered_rent: number;
     charges?: { rbp?: number; insurance?: number };
     info_form_url?: string;
+    market?: {
+      zillow_low?: number;
+      zillow_high?: number;
+      pmi_number?: number;
+      comps_url?: string;
+    };
   };
   tenant_offer_draft_id?: string;
   complete: boolean;

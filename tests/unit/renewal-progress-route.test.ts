@@ -75,6 +75,57 @@ describe("renewal-progress route", () => {
     expect(json.progress.stageIndex).toBe(2);
   });
 
+  it("passes the operator comp basis (market) through to the store", async () => {
+    mocks.requireCapabilityInSpace.mockResolvedValue(user);
+    mocks.recordOwnerDecision.mockResolvedValue({
+      leaseId: "5001",
+      stageIndex: 2,
+      ownerDecision: { decision: "increase", offeredRent: 1300 },
+      tenantOfferDraftId: null,
+      complete: false,
+    });
+
+    const res = await post({
+      action: "owner_decision",
+      leaseId: "5001",
+      decision: "increase",
+      offeredRent: 1300,
+      market: {
+        zillowLow: 1450,
+        zillowHigh: 1600,
+        pmiNumber: 1550,
+        compsUrl: "https://www.zillow.com/homes/x_rb/",
+      },
+    });
+
+    expect(res.status).toBe(200);
+    expect(mocks.recordOwnerDecision).toHaveBeenCalledWith(
+      user,
+      "5001",
+      expect.objectContaining({
+        market: {
+          zillowLow: 1450,
+          zillowHigh: 1600,
+          pmiNumber: 1550,
+          compsUrl: "https://www.zillow.com/homes/x_rb/",
+        },
+      }),
+    );
+  });
+
+  it("rejects a malformed comps URL with a 400 and never touches the store", async () => {
+    mocks.requireCapabilityInSpace.mockResolvedValue(user);
+    const res = await post({
+      action: "owner_decision",
+      leaseId: "5001",
+      decision: "increase",
+      offeredRent: 1300,
+      market: { compsUrl: "not-a-url" },
+    });
+    expect(res.status).toBe(400);
+    expect(mocks.recordOwnerDecision).not.toHaveBeenCalled();
+  });
+
   it("marks a renewal complete", async () => {
     mocks.requireCapabilityInSpace.mockResolvedValue(user);
     mocks.markRenewalComplete.mockResolvedValue({

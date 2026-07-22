@@ -17,6 +17,12 @@ interface RecordedDecision {
   offeredRent: number;
   charges?: { rbp?: number; insurance?: number };
   infoFormUrl?: string;
+  market?: {
+    zillowLow?: number;
+    zillowHigh?: number;
+    pmiNumber?: number;
+    compsUrl?: string;
+  };
 }
 
 const OWNER_DECISIONS: { value: OwnerDecision; label: string }[] = [
@@ -48,6 +54,16 @@ export function OwnerDecisionForm({
   const [insurance, setInsurance] = useState(
     current?.charges?.insurance !== undefined ? String(current.charges.insurance) : "",
   );
+  const [zillowLow, setZillowLow] = useState(
+    current?.market?.zillowLow !== undefined ? String(current.market.zillowLow) : "",
+  );
+  const [zillowHigh, setZillowHigh] = useState(
+    current?.market?.zillowHigh !== undefined ? String(current.market.zillowHigh) : "",
+  );
+  const [pmiNumber, setPmiNumber] = useState(
+    current?.market?.pmiNumber !== undefined ? String(current.market.pmiNumber) : "",
+  );
+  const [compsUrl, setCompsUrl] = useState(current?.market?.compsUrl ?? "");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -58,6 +74,10 @@ export function OwnerDecisionForm({
     form: useId(),
     rbp: useId(),
     insurance: useId(),
+    zillowLow: useId(),
+    zillowHigh: useId(),
+    pmiNumber: useId(),
+    compsUrl: useId(),
   };
 
   const ready = offeredRent.trim() !== "" && Number(offeredRent) > 0;
@@ -79,6 +99,12 @@ export function OwnerDecisionForm({
       body.charges = charges;
     }
     if (infoFormUrl.trim() !== "") body.infoFormUrl = infoFormUrl.trim();
+    const market: Record<string, unknown> = {};
+    if (zillowLow.trim() !== "") market.zillowLow = Number(zillowLow);
+    if (zillowHigh.trim() !== "") market.zillowHigh = Number(zillowHigh);
+    if (pmiNumber.trim() !== "") market.pmiNumber = Number(pmiNumber);
+    if (compsUrl.trim() !== "") market.compsUrl = compsUrl.trim();
+    if (Object.keys(market).length > 0) body.market = market;
     try {
       const response = await fetch("/api/lease-renewal/renewal-progress", {
         method: "POST",
@@ -157,6 +183,50 @@ export function OwnerDecisionForm({
           onChange={(event) => setInfoFormUrl(event.target.value)}
           type="url"
           value={infoFormUrl}
+        />
+      </Field>
+      <p className="muted">
+        Comp basis (optional). Your own numbers, shown source-tagged in the owner email. The app
+        never suggests a rent figure.
+      </p>
+      <div className="ui-row">
+        <Field htmlFor={id.zillowLow} label="Zillow low (optional)">
+          <input
+            id={id.zillowLow}
+            inputMode="decimal"
+            min="0"
+            onChange={(event) => setZillowLow(event.target.value)}
+            type="number"
+            value={zillowLow}
+          />
+        </Field>
+        <Field htmlFor={id.zillowHigh} label="Zillow high (optional)">
+          <input
+            id={id.zillowHigh}
+            inputMode="decimal"
+            min="0"
+            onChange={(event) => setZillowHigh(event.target.value)}
+            type="number"
+            value={zillowHigh}
+          />
+        </Field>
+        <Field htmlFor={id.pmiNumber} label="PMI rental-analysis number (optional)">
+          <input
+            id={id.pmiNumber}
+            inputMode="decimal"
+            min="0"
+            onChange={(event) => setPmiNumber(event.target.value)}
+            type="number"
+            value={pmiNumber}
+          />
+        </Field>
+      </div>
+      <Field htmlFor={id.compsUrl} label="Comps screenshot / Zillow search URL (optional)">
+        <input
+          id={id.compsUrl}
+          onChange={(event) => setCompsUrl(event.target.value)}
+          type="url"
+          value={compsUrl}
         />
       </Field>
       <div className="ui-row">

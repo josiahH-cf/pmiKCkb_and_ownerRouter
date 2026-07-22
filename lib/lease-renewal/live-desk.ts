@@ -41,7 +41,10 @@ import {
   type ReconciledFieldOutcome,
 } from "@/lib/lease-renewal/pipeline";
 import type { ReconCandidate } from "@/lib/lease-renewal/reconciliation";
-import { buildOwnerRenewalDraft } from "@/lib/lease-renewal/owner-draft";
+import {
+  buildOwnerRenewalDraft,
+  ownerDraftMarketFromBasis,
+} from "@/lib/lease-renewal/owner-draft";
 import { evaluateRenewalReadiness } from "@/lib/lease-renewal/renewal-readiness";
 import {
   DEFAULT_NOTICE_RULE_SET,
@@ -370,6 +373,11 @@ export async function loadLiveRenewalLeaseWorkspace(
       ownerDraft: buildOwnerRenewalDraft({
         addressLabel: summary.addressLabel,
         currentRent: leaseCurrentRent(view) ?? 0,
+        // Feed the operator's recorded comp basis so the owner email shows the Zillow range + PMI number
+        // source-tagged. Absent comps stay absent (visible Needs Verification markers) — never invented.
+        ...(progress?.ownerDecision?.market
+          ? { market: ownerDraftMarketFromBasis(progress.ownerDecision.market) }
+          : {}),
       }),
       tenantDraft,
       // RentVine carries none of the build-out readiness inputs, so every check honestly reads

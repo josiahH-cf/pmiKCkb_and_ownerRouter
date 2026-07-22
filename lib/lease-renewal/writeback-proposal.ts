@@ -7,12 +7,18 @@
 // compare-and-set model (method (b)) lives in `writeback.ts` and stays the graduate-later path. A field
 // that has no safe suggestion yields a value-LESS proposal — a value is never invented. Pure + deterministic.
 
+import { formatUsd } from "@/lib/lease-renewal/owner-draft";
 import type { FieldReconciliation } from "@/lib/lease-renewal/reconciliation";
+import type { RenewalMarketBasis } from "@/lib/lease-renewal/renewal-progress";
 import type { WriteBackState } from "@/lib/lease-renewal/writeback";
 
 export const WRITEBACK_METHOD_APPEND_ONLY = "append_only_column" as const;
 
 const APPEND_ONLY_COLUMN_PREFIX = "KB Proposed";
+
+/** The comp-basis proposed field key + label (Slice 3, D08). Its append-only column is "KB Proposed — Comp basis". */
+export const COMP_BASIS_FIELD_KEY = "comp_basis" as const;
+export const COMP_BASIS_FIELD_LABEL = "Comp basis";
 
 export interface WritebackProposal {
   fieldKey: string;
@@ -97,6 +103,63 @@ export function buildWritebackProposal(
     rationale:
       `Append "${winnerValue}" from ${sourceSystem} to a new "${proposedColumnHeader}" column ` +
       "(suggestion only — needs approval; appended, never overwrites an existing cell).",
+    status: "Proposed",
+    valueReady: true,
+  };
+}
+
+/**
+ * Build the append-only write-back proposal for the operator's COMP BASIS (Slice 3, D08). Unlike a
+ * reconciliation proposal this is not a source conflict — it is the operator's own Zillow range + PMI
+ * number, formatted into one cell for the "KB Proposed — Comp basis" column. It rides the SAME gate:
+ * suggestion only, requires approval, never auto-applied, append-only, never overwrites. When no comp
+ * numbers were entered it returns a value-LESS Blocked proposal — a value is never invented.
+ */
+export function buildCompBasisProposal(
+  market: RenewalMarketBasis | null | undefined,
+): WritebackProposal {
+  const proposedColumnHeader = `${APPEND_ONLY_COLUMN_PREFIX} — ${COMP_BASIS_FIELD_LABEL}`;
+  const base = {
+    fieldKey: COMP_BASIS_FIELD_KEY,
+    fieldLabel: COMP_BASIS_FIELD_LABEL,
+    method: WRITEBACK_METHOD_APPEND_ONLY,
+    proposedColumnHeader,
+    requiresApproval: true as const,
+    autoApplyAllowed: false as const,
+    suggestionOnly: true as const,
+  };
+
+  const parts: string[] = [];
+  if (market?.zillowLow !== undefined && market?.zillowHigh !== undefined) {
+    parts.push(`Zillow ${formatUsd(market.zillowLow)}–${formatUsd(market.zillowHigh)}`);
+  }
+  if (market?.pmiNumber !== undefined) {
+    parts.push(`PMI ${formatUsd(market.pmiNumber)}`);
+  }
+  const proposedValue = parts.join("; ");
+
+  if (proposedValue === "") {
+    return {
+      ...base,
+      proposedValue: null,
+      sourceSystem: null,
+      rationale:
+        "No comp basis proposed: the operator has not entered a Zillow range or PMI number yet. " +
+        "No value is ever invented.",
+      status: "Blocked",
+      valueReady: false,
+    };
+  }
+
+  const sourceSystem = "Operator comp basis (Zillow + PMI rental analysis)";
+  const compsSuffix = market?.compsUrl ? ` (comps: ${market.compsUrl})` : "";
+  return {
+    ...base,
+    proposedValue,
+    sourceSystem,
+    rationale:
+      `Append the operator's comp basis "${proposedValue}"${compsSuffix} to a new ` +
+      `"${proposedColumnHeader}" column (suggestion only — needs approval; appended, never overwrites).`,
     status: "Proposed",
     valueReady: true,
   };

@@ -156,6 +156,14 @@ async function applyTransition(
               offered_rent: next.ownerDecision.offeredRent,
               charges: next.ownerDecision.charges,
               info_form_url: next.ownerDecision.infoFormUrl,
+              market: next.ownerDecision.market
+                ? stripUndefined({
+                    zillow_low: next.ownerDecision.market.zillowLow,
+                    zillow_high: next.ownerDecision.market.zillowHigh,
+                    pmi_number: next.ownerDecision.market.pmiNumber,
+                    comps_url: next.ownerDecision.market.compsUrl,
+                  })
+                : undefined,
             })
           : undefined,
         tenant_offer_draft_id: next.tenantOfferDraftId ?? undefined,
@@ -212,6 +220,24 @@ function toRenewalProgress(record: LeaseRenewalProgressRecord): RenewalProgress 
           offeredRent: decision.offered_rent,
           ...(decision.charges ? { charges: decision.charges } : {}),
           ...(decision.info_form_url ? { infoFormUrl: decision.info_form_url } : {}),
+          ...(decision.market
+            ? {
+                market: {
+                  ...(decision.market.zillow_low !== undefined
+                    ? { zillowLow: decision.market.zillow_low }
+                    : {}),
+                  ...(decision.market.zillow_high !== undefined
+                    ? { zillowHigh: decision.market.zillow_high }
+                    : {}),
+                  ...(decision.market.pmi_number !== undefined
+                    ? { pmiNumber: decision.market.pmi_number }
+                    : {}),
+                  ...(decision.market.comps_url !== undefined
+                    ? { compsUrl: decision.market.comps_url }
+                    : {}),
+                },
+              }
+            : {}),
         }
       : null,
     tenantOfferDraftId: record.tenant_offer_draft_id ?? null,
