@@ -58,22 +58,12 @@ context, and recommendations, read `docs/whats-next.md`.
   (`F-RENTVINE-WRITE-APPROVED`). Dotloop OAuth is scaffolded but gated OFF until the owner registers
   the app + authorizes it. Full AM steps are in the newest `docs/status.md` entry.
 
-## Overnight run 2026-07-22 — progress (worktree `ui-ux-overhaul`)
+## Overnight run 2026-07-22 — build progress
 
-Building per `docs/overnight-build-run-2026-07-22.md` from baseline `ca8fd44`. Per slice: worktree
-build → targeted tests + adversarial falsification → commit; single ff-merge at close-out. Full
-per-slice detail lives in the dated `docs/status.md` entry.
-
-- **All four MUST-HAVES landed:** Slice 3 comp basis + Zillow (`b3bab46`), Slice 4 KB answer
-  transparency (`34c1120`), Slice 6 maintenance owner-notice draft gate-flip (`baa2af4`; owner channel
-  proven live 25/25 via `portfolio.owners[].email`), Slice 7 add-a-Space intake (`18029d7`).
-- **Live slices:** Slice 1 RentVine field map confirmed (`5e60658`); Slice 2 Sheet write-back harness
-  built, live proof DEFERRED (`6fdd7e4`) — needs the Sheets WRITE scope on the lease-renewal-reader
-  SA's DWD grant (AM owner step).
-- **Also done:** Slice 5 KB freshness (`c7c6bd4`); Slice 8 re-index button, cost-gated (`0d32a17`);
-  Slice 9 RentVine write executor already built + gated `production_allowed:false` pending a documented
-  endpoint (`F-RENTVINE-WRITE-APPROVED`). Remaining: Slice 10 (Dotloop scaffolding, gated OFF), Slice 11
-  (docs), close-out.
+All 11 build slices landed from baseline `ca8fd44` (per-slice commits + detail in the dated
+`docs/status.md` entry). Deferred: Slice 2 Sheet write-back live proof (needs the Sheets WRITE scope
+on the `lease-renewal-reader` SA's DWD grant); Slice 9 RentVine write gate stays `false` pending a
+documented endpoint; Slice 10 Dotloop gated OFF pending the owner's OAuth app.
 
 ## Safe Stop Boundary
 
