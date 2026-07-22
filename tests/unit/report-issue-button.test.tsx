@@ -39,12 +39,12 @@ describe("ReportIssueButton", () => {
     const user = userEvent.setup();
     render(<ReportIssueButton />);
 
-    const trigger = screen.getByRole("button", { name: "Report an issue" });
+    const trigger = screen.getByRole("button", { name: "Feedback" });
     expect(trigger).toHaveClass("report-issue-trigger");
     expect(screen.queryByRole("dialog")).toBeNull();
 
     await user.click(trigger);
-    expect(screen.getByRole("dialog", { name: "Report an issue" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Feedback" })).toBeInTheDocument();
     expect(screen.getByText(/Be as descriptive as possible/)).toBeInTheDocument();
   });
 
@@ -60,9 +60,9 @@ describe("ReportIssueButton", () => {
     );
 
     await user.click(screen.getByTestId("save-btn"));
-    await user.click(screen.getByRole("button", { name: "Report an issue" }));
-    await user.type(screen.getByLabelText(/What went wrong/), "It does nothing");
-    await user.click(screen.getByRole("button", { name: "Send report" }));
+    await user.click(screen.getByRole("button", { name: "Feedback" }));
+    await user.type(screen.getByLabelText(/Your feedback/), "It does nothing");
+    await user.click(screen.getByRole("button", { name: "Send feedback" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(String(fetchMock.mock.calls[0][0])).toBe("/api/report-issue");
@@ -87,8 +87,8 @@ describe("ReportIssueButton", () => {
     const user = userEvent.setup();
     render(<ReportIssueButton />);
 
-    await user.click(screen.getByRole("button", { name: "Report an issue" }));
-    await user.click(screen.getByRole("button", { name: "Send report" }));
+    await user.click(screen.getByRole("button", { name: "Feedback" }));
+    await user.click(screen.getByRole("button", { name: "Send feedback" }));
 
     // The request succeeded (202) but the report was not filed: the UI must not claim success, and
     // the form stays open so the user can retry.
@@ -96,7 +96,7 @@ describe("ReportIssueButton", () => {
       await screen.findByText(/could not file it to the support queue/i),
     ).toBeInTheDocument();
     expect(screen.queryByText(/filed to the support queue for review/i)).toBeNull();
-    expect(screen.getByRole("button", { name: "Send report" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send feedback" })).toBeInTheDocument();
   });
 
   it("never captures an input's value OR its data-derived aria-label", async () => {
@@ -112,8 +112,8 @@ describe("ReportIssueButton", () => {
     );
 
     await user.click(screen.getByLabelText("Reason for changing tenant@example.com"));
-    await user.click(screen.getByRole("button", { name: "Report an issue" }));
-    await user.click(screen.getByRole("button", { name: "Send report" }));
+    await user.click(screen.getByRole("button", { name: "Feedback" }));
+    await user.click(screen.getByRole("button", { name: "Send feedback" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const raw = String((fetchMock.mock.calls[0][1] as RequestInit).body);
@@ -138,8 +138,8 @@ describe("ReportIssueButton", () => {
     );
 
     await user.click(screen.getByTestId("tenant-cell"));
-    await user.click(screen.getByRole("button", { name: "Report an issue" }));
-    await user.click(screen.getByRole("button", { name: "Send report" }));
+    await user.click(screen.getByRole("button", { name: "Feedback" }));
+    await user.click(screen.getByRole("button", { name: "Send feedback" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const raw = String((fetchMock.mock.calls[0][1] as RequestInit).body);
@@ -155,7 +155,7 @@ describe("ReportIssueButton", () => {
     const user = userEvent.setup();
     render(<ReportIssueButton />);
 
-    const trigger = screen.getByRole("button", { name: "Report an issue" });
+    const trigger = screen.getByRole("button", { name: "Feedback" });
     await user.click(trigger);
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
@@ -168,7 +168,7 @@ describe("ReportIssueButton", () => {
     const user = userEvent.setup();
     render(<ReportIssueButton />);
 
-    await user.click(screen.getByRole("button", { name: "Report an issue" }));
+    await user.click(screen.getByRole("button", { name: "Feedback" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(screen.queryByRole("dialog")).toBeNull();

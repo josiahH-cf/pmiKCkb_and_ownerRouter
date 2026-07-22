@@ -8,11 +8,11 @@ export function SupportReportsPanel({
   unavailableNote,
 }: Readonly<{ reports: SupportReportRecord[]; unavailableNote?: string }>) {
   return (
-    <article className="panel" aria-label="Reported issues">
-      <h2>Reported Issues</h2>
+    <article className="panel" aria-label="Feedback">
+      <h2>Feedback</h2>
       <p className="muted">
-        Problems teammates reported with the &ldquo;Report an issue&rdquo; button. Each
-        report is filed here for review; nothing is emailed.
+        Feedback teammates shared with the &ldquo;Feedback&rdquo; button: ideas,
+        questions, or problems. Each note is filed here for review; nothing is emailed.
       </p>
       {unavailableNote ? <p className="muted">{unavailableNote}</p> : null}
       {reports.length === 0 ? (

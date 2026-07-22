@@ -623,6 +623,110 @@
               on <b>sample / test / simulated</b> data.
             </p>
           </div>
+
+          <div class="callout">
+            <div class="h">
+              🗣 Talk-track guardrails — say it the way the app actually works
+            </div>
+            <p style="margin: 0.3em 0">
+              The app and this script are accurate. The only place a demo can overclaim is
+              off-script narration. Keep these swaps handy — each is a real capability
+              said the honest way.
+            </p>
+            <ul style="margin: 0.3em 0">
+              <li>
+                Instead of “it runs <b>Zillow</b> analysis and picks a midpoint rent” →
+                “<b>you bring the market comps</b>; the app builds the owner notice around
+                the number you enter.” (There is no Zillow integration; comps are typed
+                in.)
+              </li>
+              <li>
+                Instead of “the AI <b>negotiates counteroffers</b> / auto-replies to the
+                owner” → “the app <b>drafts</b> replies for a human to review; it never
+                invents a rent number and never sends on its own.” (Owner rent is a
+                deliberate hard-exclusion.)
+              </li>
+              <li>
+                Instead of “it <b>watches your inbox</b> and auto-resends if there’s no
+                reply in 5 days” → “it can link a reply back to the right renewal thread
+                and flag it for review; follow-ups are operator-triggered.” (Don’t demo
+                inbox pickup live — the Gmail watch isn’t currently active.)
+              </li>
+              <li>
+                Instead of “the approval queue <b>writes back to RentVine</b>” → “RentVine
+                is the read source of truth; approved values write back to the
+                <b>tracking Sheet</b> (append-only, never overwriting a cell), never to
+                RentVine.”
+              </li>
+              <li>
+                Instead of “<b>Feedback</b> emails a ticket to me” → “Feedback files to
+                the in-app support queue you review in
+                <span class="ui">Admin → Feedback</span>; nothing is emailed.”
+              </li>
+              <li>
+                Instead of “your corrections <b>train / improve the AI model</b>” → “your
+                corrections are recorded and harden the app’s checks; the reconciliation
+                engine is deterministic — there’s no model being trained.”
+              </li>
+              <li>
+                Instead of “alerts at <b>50% and 25%</b>, hard shut-off of the AI” →
+                “budget alerts at <b>50 / 90 / 100%</b> of a ~$10 cap, plus a
+                billing-layer <b>kill switch</b> that disables spend at the cap.”
+              </li>
+              <li>
+                Instead of “from the <b>Ask box</b> you can start a live lease renewal or
+                edit a process” → “from Ask you can <b>capture a task</b> and kick off a
+                <b>safe test run</b>; the live renewal desk is its own surface.”
+              </li>
+              <li>
+                Instead of “the renewal view pulls from
+                <b>RentVine, Dotloop, LeadSimple and sheets</b>” → “today it reconciles
+                <b>RentVine + the Sheet</b>; Dotloop/LeadSimple are connectors staged for
+                next phase.”
+              </li>
+              <li>
+                Instead of “you can <b>move / add / delete anything</b> you see” → “the
+                content, rules, roles and templates you see are editable in-app; layout
+                and new pages are bespoke build work we do for you.”
+              </li>
+              <li>
+                Small ones: say “<b>Spaces</b>” (not “Pages”) and “the
+                <b>three attention cards</b>” (not “notification queues”).
+              </li>
+            </ul>
+            <p style="margin: 0.5em 0 0.2em">
+              <b>Real, but not in the script below — safe to show if it comes up:</b>
+            </p>
+            <ul style="margin: 0.3em 0">
+              <li>
+                <b>Edit a process live:</b> open a Space’s Process tab (→
+                <span class="ui">/processes/&lt;id&gt;</span>), change a step, Save. Note:
+                editing an Active definition drops it to <b>Draft</b> until you
+                re-Publish, and it needs the Editor role.
+              </li>
+              <li>
+                <b>The renewal Notice-timing card:</b> open the <b>Maple</b> lease and
+                point at “Notice timing” — it shows when the notice must go out (dates are
+                unconfirmed defaults, badged <span class="ui">Needs Verification</span>).
+              </li>
+              <li>
+                <b>The $10 kill switch</b> (above) — a genuine strength if a technical
+                buyer asks about cost control.
+              </li>
+              <li>
+                The Ask box runs on <b>Gemini 2.5 Flash</b> grounded via Vertex AI Search.
+              </li>
+            </ul>
+            <p style="margin: 0.5em 0 0.2em">
+              <b>Roadmap — say “next,” never “today”:</b> Dotloop e-signature (create loop
+              → auto-fill fields → update on completion); in-app self-service to
+              add/configure a Space; attaching comp screenshots to the owner notice; the
+              KB improving as you add &amp; approve sources and as we move it to newer
+              models (not automatic self-learning); maintenance <b>go-live</b> (the
+              workflow is already built end-to-end — the step left is flipping its
+              external actions on, not building it).
+            </p>
+          </div>
         </header>
 
         <!-- ============================================================= ACT 0 -->
@@ -2609,7 +2713,7 @@ Vendor replaced the supply line and confirmed no further leak; tenant notified.<
                 <p>
                   <span class="ui">People and Access</span> (Manage users and roles),
                   <span class="ui">Activity and Logs</span> (observability, approval-queue
-                  depth, Reported Issues, Access Changes), and
+                  depth, Feedback, Access Changes), and
                   <span class="ui">App Info and Readiness</span> (approval label,
                   indexing, migration console, communication governance).
                 </p>
@@ -2782,7 +2886,7 @@ Maintenance coordinator — should only see the maintenance desk this quarter.</
                 <p>
                   Back on <span class="ui">/admin</span>, read
                   <span class="ui">Access Changes</span> and
-                  <span class="ui">Reported Issues</span>.
+                  <span class="ui">Feedback</span>.
                 </p>
               </div>
             </div>
@@ -2794,9 +2898,9 @@ Maintenance coordinator — should only see the maintenance desk this quarter.</
                   lists every role/scope change newest-first (what changed, target, actor,
                   reason) —
                   <span class="quote">“Read-only history; nothing is emailed.”</span>
-                  <span class="ui">Reported Issues</span> lists everything filed via the
-                  app-wide <span class="ui">Report an issue</span> button (route, time,
-                  role, status, description).
+                  <span class="ui">Feedback</span> lists everything filed via the app-wide
+                  <span class="ui">Feedback</span> button (route, time, role, status,
+                  description).
                 </p>
               </div>
             </div>
@@ -2981,8 +3085,8 @@ Maintenance coordinator — should only see the maintenance desk this quarter.</
               <div class="body">
                 <p>
                   On any page, click
-                  <span class="ui">Report an issue</span> (bottom-right), optionally type
-                  a note, and click <span class="ui">Send report</span>.
+                  <span class="ui">Feedback</span> (bottom-right), optionally type a note,
+                  and click <span class="ui">Send feedback</span>.
                 </p>
               </div>
             </div>
@@ -2991,12 +3095,12 @@ Maintenance coordinator — should only see the maintenance desk this quarter.</
               <div class="body">
                 <p>
                   <span class="quote"
-                    >“Thanks. Your report was filed to the support queue for
+                    >“Thanks. Your feedback was filed to the support queue for
                     review.”</span
                   >
                   A record is written (page path, viewport, and the last element touched —
                   never the page text or the query string) and shows up in
-                  <span class="ui">Admin → Reported Issues</span>.
+                  <span class="ui">Admin → Feedback</span>.
                 </p>
               </div>
             </div>
@@ -3004,9 +3108,9 @@ Maintenance coordinator — should only see the maintenance desk this quarter.</
               <span class="tag t-say">Say</span>
               <div class="body">
                 <p>
-                  “There’s a ‘report an issue’ button on every screen. Your team’s
-                  feedback lands in one queue for you — and it’s privacy-careful: it
-                  captures where they were, never what they typed.”
+                  “There’s a ‘Feedback’ button on every screen. Your team’s feedback lands
+                  in one queue for you — and it’s privacy-careful: it captures where they
+                  were, never what they typed.”
                 </p>
               </div>
             </div>
@@ -3277,7 +3381,7 @@ Maintenance coordinator — should only see the maintenance desk this quarter.</
                 simulated chain (all draft / read-only) · Notifications · Admin roles
                 &amp; scopes, audit panels, Test-vendor provisioning · Connections
                 <b>Verify</b> (read-only probe) and the Admin <b>Connect</b> flows
-                (honest; they store nothing until storage is wired) · Report an issue.
+                (honest; they store nothing until storage is wired) · Feedback.
               </p>
             </div>
             <div class="callout tip">

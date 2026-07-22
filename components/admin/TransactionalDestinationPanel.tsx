@@ -54,7 +54,7 @@ export function TransactionalDestinationPanel({
       <h2>Owner Notification Destination</h2>
       <p className="muted">
         The internal owner address that owner-notice drafts will use once a transactional
-        send path is activated. Today it is display-only. Reported issues go to the in-app
+        send path is activated. Today it is display-only. Feedback goes to the in-app
         support queue for Admin review. Use this for the internal owner address only;
         tenant and owner-of-record notices resolve their recipient from verified sources.
       </p>

@@ -95,7 +95,7 @@ export default async function AdminPage() {
     supportReports = await listSupportReports(user);
   } catch {
     supportReportsNote =
-      "Reported issues are unavailable right now. Try again in a minute; if this list is not loading, new reports may not be saving either.";
+      "Feedback is unavailable right now. Try again in a minute; if this list is not loading, new feedback may not be saving either.";
   }
   try {
     noticeRules = await readNoticeRuleConfigRecord(user);

@@ -140,17 +140,17 @@ export function ReportIssueButton() {
         };
         if (payload.delivered) {
           setStatus("sent");
-          setMessage("Thanks. Your report was filed to the support queue for review.");
+          setMessage("Thanks. Your feedback was filed to the support queue for review.");
         } else {
           setStatus("notice");
           setMessage(
-            "We received your report but could not file it to the support queue yet. Please try again in a moment.",
+            "We received your feedback but could not file it to the support queue yet. Please try again in a moment.",
           );
         }
       } else {
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
         setStatus("error");
-        setMessage(payload.error ?? "Could not send the report. Please try again.");
+        setMessage(payload.error ?? "Could not send your feedback. Please try again.");
       }
     } catch {
       setStatus("error");
@@ -171,7 +171,7 @@ export function ReportIssueButton() {
         }}
         type="button"
       >
-        Report an issue
+        Feedback
       </button>
 
       {open ? (
@@ -189,7 +189,7 @@ export function ReportIssueButton() {
             onKeyDown={trapFocus}
             role="dialog"
           >
-            <h2 id="report-issue-title">Report an issue</h2>
+            <h2 id="report-issue-title">Feedback</h2>
 
             {status === "sent" ? (
               <>
@@ -205,14 +205,14 @@ export function ReportIssueButton() {
                   the page you are on automatically, so you do not have to.
                 </p>
                 <Field
-                  hint="Optional. For example: the Save button on this page does nothing when I click it."
+                  hint="Optional. An idea, a question, or something that went wrong. For example: the Save button on this page does nothing when I click it."
                   htmlFor="report-issue-description"
-                  label="What went wrong?"
+                  label="Your feedback"
                 >
                   <textarea
                     id="report-issue-description"
                     onChange={(event) => setDescription(event.target.value)}
-                    placeholder="Describe what you expected and what happened."
+                    placeholder="Share an idea, a question, or what happened."
                     rows={4}
                     value={description}
                   />
@@ -226,7 +226,7 @@ export function ReportIssueButton() {
                     onClick={() => void submit()}
                     type="button"
                   >
-                    {status === "sending" ? "Sending" : "Send report"}
+                    {status === "sending" ? "Sending" : "Send feedback"}
                   </Button>
                   <Button onClick={close} type="button" variant="secondary">
                     Cancel
