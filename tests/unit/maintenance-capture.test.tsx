@@ -122,7 +122,9 @@ describe("MaintenanceCapture", () => {
     expect(
       screen.getByRole("heading", { name: "Owner notice: draft" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Draft only: no send/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/A person reviews and sends every owner notice from Gmail/),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Vendor assignment: suggestion" }),
     ).toBeInTheDocument();

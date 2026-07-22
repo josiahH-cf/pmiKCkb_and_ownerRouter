@@ -93,8 +93,8 @@ export function AnticipatoryDraftComposer({
       <h2>Anticipatory draft</h2>
       <p className="muted">
         Draft a reply from an Approved pattern over pasted, sanitized facts. Unapproved
-        patterns and hard-excluded categories are refused before the model. Nothing here
-        can send.
+        patterns and hard-excluded categories are refused before the model. Sending stays
+        a human step in Gmail.
       </p>
 
       <label className="field">

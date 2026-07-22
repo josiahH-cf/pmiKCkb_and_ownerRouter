@@ -74,7 +74,8 @@ export function TemplateWorkspace({
           Evaluate a message against the Admin-approved rule and reply-pattern sets over
           pasted, sanitized facts. Approved rules only; Shadow phase applies nothing;
           hard-excluded categories are label-only; every draft carries the
-          review-before-sending banner. No mailbox is read and nothing here can send.
+          review-before-sending banner. This workspace reads only your pasted text;
+          sending stays a human step in Gmail.
         </p>
       </div>
 

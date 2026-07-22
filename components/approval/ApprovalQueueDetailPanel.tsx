@@ -109,8 +109,8 @@ export function QueueDetailPanel({
             {selectedItem.data_mode === "test"
               ? "Test fixture: this decision changes app-only Test state and cannot contact a provider."
               : selectedItem.action_execution_id
-                ? "Approval authorizes the exact execution preview. It does not make the provider attempt; execution remains a separate owning-workflow action."
-                : "Approval changes this app decision only. It does not execute an external action."}
+                ? "Approval authorizes the exact execution preview. Execution remains a separate owning-workflow action."
+                : "Approval changes this app decision only; external actions stay in their owning workflow."}
           </p>
 
           <div className="queue-detail-actions">

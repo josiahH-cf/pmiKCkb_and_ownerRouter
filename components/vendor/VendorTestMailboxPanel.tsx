@@ -144,8 +144,9 @@ export function VendorTestMailboxPanel({ ticketId }: Readonly<{ ticketId: string
       <p className="eyebrow">Test workspace · simulated mailbox</p>
       <h2>{mailbox?.subject ?? "Assigned-ticket communication"}</h2>
       <p>
-        This is persisted production Test data. It exercises the real portal lifecycle,
-        but is structurally isolated from Gmail, OAuth, external delivery, and live proof.
+        This is persisted production Test data. It exercises the real portal lifecycle
+        while staying structurally isolated from Gmail, OAuth, external delivery, and live
+        proof.
       </p>
       {mailbox ? (
         <>

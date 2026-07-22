@@ -1,0 +1,3013 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PMI KC KB — Live Customer Demo Walkthrough</title>
+    <style>
+      :root {
+        --bg: #f7f7f5;
+        --panel: #ffffff;
+        --ink: #1d1c1a;
+        --ink-soft: #54514c;
+        --line: #e5e2dc;
+        --accent: #7a5cff;
+        --accent-ink: #4a34c9;
+        --say: #0b6bcb;
+        --say-bg: #eaf3fd;
+        --say-line: #bcdcfb;
+        --do: #1a7f4b;
+        --do-bg: #e8f6ee;
+        --do-line: #b7e3c8;
+        --see: #8a5a00;
+        --see-bg: #fdf3e0;
+        --see-line: #f2dca8;
+        --safe: #b02a37;
+        --safe-bg: #fdeced;
+        --safe-line: #f5c2c7;
+        --tip: #5b3fb0;
+        --tip-bg: #f1ecfd;
+        --tip-line: #d9ccf6;
+        --code-bg: #1e1c24;
+        --code-ink: #f4f2ff;
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 6px 20px rgba(0, 0, 0, 0.05);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #141317;
+          --panel: #1c1b21;
+          --ink: #ececf0;
+          --ink-soft: #a7a4ad;
+          --line: #2c2a32;
+          --accent: #a48bff;
+          --accent-ink: #c3b2ff;
+          --say: #7fbaf5;
+          --say-bg: #132535;
+          --say-line: #274a68;
+          --do: #7fd4a2;
+          --do-bg: #12271b;
+          --do-line: #245036;
+          --see: #f0cf8a;
+          --see-bg: #2c2411;
+          --see-line: #5a4720;
+          --safe: #f4a1a9;
+          --safe-bg: #2e1417;
+          --safe-line: #5e2830;
+          --tip: #c3b2ff;
+          --tip-bg: #201a35;
+          --tip-line: #3d3260;
+          --code-bg: #0f0e13;
+          --code-ink: #eceafb;
+          --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 26px rgba(0, 0, 0, 0.35);
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.6 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: var(--accent-ink);
+      }
+      .wrap {
+        display: grid;
+        grid-template-columns: 270px minmax(0, 1fr);
+        gap: 0;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      /* Sidebar */
+      nav.toc {
+        position: sticky;
+        top: 0;
+        align-self: start;
+        height: 100vh;
+        overflow: auto;
+        padding: 22px 16px 40px;
+        border-right: 1px solid var(--line);
+        background: var(--panel);
+      }
+      nav.toc h2 {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        margin: 18px 0 8px;
+      }
+      nav.toc a {
+        display: block;
+        text-decoration: none;
+        color: var(--ink-soft);
+        padding: 4px 8px;
+        border-radius: 7px;
+        font-size: 13.5px;
+      }
+      nav.toc a:hover {
+        background: var(--bg);
+        color: var(--ink);
+      }
+      nav.toc a.act {
+        color: var(--ink);
+        font-weight: 640;
+        margin-top: 4px;
+      }
+      nav .brand {
+        font-weight: 800;
+        font-size: 15px;
+        letter-spacing: -0.01em;
+        margin-bottom: 2px;
+      }
+      nav .brand span {
+        color: var(--accent-ink);
+      }
+      nav .subtle {
+        font-size: 12px;
+        color: var(--ink-soft);
+      }
+      /* Main */
+      main {
+        padding: 34px 40px 120px;
+        min-width: 0;
+      }
+      header.hero {
+        margin-bottom: 8px;
+      }
+      h1 {
+        font-size: 30px;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        margin: 0 0 6px;
+      }
+      .lead {
+        font-size: 17px;
+        color: var(--ink-soft);
+        margin: 0 0 18px;
+        max-width: 70ch;
+      }
+      .metabar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 22px;
+      }
+      .metabar .m {
+        font-size: 12.5px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 4px 11px;
+        color: var(--ink-soft);
+      }
+      .metabar .m b {
+        color: var(--ink);
+        font-weight: 640;
+      }
+      section.act {
+        margin: 40px 0 0;
+        scroll-margin-top: 14px;
+      }
+      .act-head {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        border-bottom: 2px solid var(--line);
+        padding-bottom: 8px;
+        margin-bottom: 6px;
+      }
+      .act-num {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--accent-ink);
+        letter-spacing: 0.05em;
+        background: var(--tip-bg);
+        border: 1px solid var(--tip-line);
+        padding: 3px 9px;
+        border-radius: 8px;
+        white-space: nowrap;
+      }
+      .act-head h2 {
+        font-size: 23px;
+        letter-spacing: -0.015em;
+        margin: 0;
+      }
+      .act-sub {
+        color: var(--ink-soft);
+        font-size: 14.5px;
+        margin: 8px 0 14px;
+        max-width: 78ch;
+      }
+      .beat {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 18px 6px;
+        margin: 14px 0;
+        box-shadow: var(--shadow);
+        scroll-margin-top: 14px;
+      }
+      .beat > h3 {
+        font-size: 16.5px;
+        margin: 2px 0 10px;
+        letter-spacing: -0.01em;
+        display: flex;
+        gap: 9px;
+        align-items: baseline;
+      }
+      .beat > h3 .bn {
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--ink-soft);
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 1px 7px;
+      }
+      .row {
+        display: flex;
+        gap: 11px;
+        padding: 8px 0;
+        border-top: 1px dashed var(--line);
+      }
+      .row:first-of-type {
+        border-top: 0;
+      }
+      .tag {
+        flex: 0 0 auto;
+        width: 64px;
+        text-align: center;
+        font-size: 10.5px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        padding: 4px 0;
+        height: fit-content;
+        border-radius: 6px;
+        border: 1px solid;
+        text-transform: uppercase;
+      }
+      .t-say {
+        color: var(--say);
+        background: var(--say-bg);
+        border-color: var(--say-line);
+      }
+      .t-do {
+        color: var(--do);
+        background: var(--do-bg);
+        border-color: var(--do-line);
+      }
+      .t-see {
+        color: var(--see);
+        background: var(--see-bg);
+        border-color: var(--see-line);
+      }
+      .t-safe {
+        color: var(--safe);
+        background: var(--safe-bg);
+        border-color: var(--safe-line);
+      }
+      .t-tip {
+        color: var(--tip);
+        background: var(--tip-bg);
+        border-color: var(--tip-line);
+      }
+      .row .body {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding-top: 1px;
+      }
+      .row .body p {
+        margin: 0;
+      }
+      .row.say .body {
+        font-style: italic;
+      }
+      kbd {
+        font: inherit;
+        font-size: 0.92em;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-bottom-width: 2px;
+        border-radius: 5px;
+        padding: 0 5px;
+      }
+      .ui {
+        font-weight: 640;
+        color: var(--ink);
+      }
+      .quote {
+        color: var(--do);
+        font-weight: 600;
+      }
+      /* copy blocks */
+      .copy {
+        position: relative;
+        margin: 9px 0 4px;
+      }
+      .copy .lbl {
+        font-size: 11px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        margin-bottom: 3px;
+      }
+      .copy pre {
+        margin: 0;
+        background: var(--code-bg);
+        color: var(--code-ink);
+        border-radius: 9px;
+        padding: 11px 84px 11px 13px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font:
+          13.5px/1.5 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          Consolas,
+          monospace;
+      }
+      .copy button {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        font: 600 11.5px/1 inherit;
+        color: #fff;
+        background: var(--accent);
+        border: 0;
+        border-radius: 7px;
+        padding: 7px 11px;
+        cursor: pointer;
+      }
+      .copy button:hover {
+        filter: brightness(1.08);
+      }
+      .copy button.done {
+        background: var(--do);
+      }
+      /* callouts */
+      .callout {
+        border: 1px solid;
+        border-radius: 12px;
+        padding: 12px 15px;
+        margin: 16px 0;
+        font-size: 14.5px;
+      }
+      .callout.safety {
+        border-color: var(--safe-line);
+        background: var(--safe-bg);
+      }
+      .callout.tip {
+        border-color: var(--tip-line);
+        background: var(--tip-bg);
+      }
+      .callout .h {
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        margin-bottom: 3px;
+        display: flex;
+        gap: 7px;
+        align-items: center;
+      }
+      .callout.safety .h {
+        color: var(--safe);
+      }
+      .callout.tip .h {
+        color: var(--tip);
+      }
+      .checklist {
+        list-style: none;
+        padding: 0;
+        margin: 6px 0;
+      }
+      .checklist li {
+        padding: 6px 0 6px 30px;
+        position: relative;
+        border-top: 1px dashed var(--line);
+      }
+      .checklist li:first-child {
+        border-top: 0;
+      }
+      .checklist li::before {
+        content: "☐";
+        position: absolute;
+        left: 4px;
+        top: 5px;
+        font-size: 16px;
+        color: var(--ink-soft);
+      }
+      table.map {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0;
+        font-size: 13.5px;
+      }
+      table.map th,
+      table.map td {
+        text-align: left;
+        padding: 7px 10px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      table.map th {
+        color: var(--ink-soft);
+        font-weight: 640;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      table.map code {
+        font-size: 12.5px;
+      }
+      code {
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        padding: 0.5px 5px;
+        font:
+          13px ui-monospace,
+          Menlo,
+          Consolas,
+          monospace;
+      }
+      .pillrow {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 8px 0;
+      }
+      .pill {
+        font-size: 12px;
+        border: 1px solid var(--line);
+        background: var(--bg);
+        border-radius: 999px;
+        padding: 3px 10px;
+        color: var(--ink-soft);
+      }
+      .divider {
+        height: 1px;
+        background: var(--line);
+        margin: 26px 0;
+      }
+      footer {
+        margin-top: 60px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+        color: var(--ink-soft);
+        font-size: 13px;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin: 14px 0 4px;
+        font-size: 13px;
+        color: var(--ink-soft);
+      }
+      .legend .li {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      @media (max-width: 900px) {
+        .wrap {
+          grid-template-columns: 1fr;
+        }
+        nav.toc {
+          position: static;
+          height: auto;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        main {
+          padding: 24px 18px 80px;
+        }
+        .row {
+          flex-direction: column;
+          gap: 4px;
+        }
+        .tag {
+          width: auto;
+          display: inline-block;
+        }
+      }
+      @media print {
+        nav.toc {
+          display: none;
+        }
+        .wrap {
+          display: block;
+          max-width: none;
+        }
+        main {
+          padding: 0;
+        }
+        .beat,
+        .callout {
+          break-inside: avoid;
+          box-shadow: none;
+        }
+        body {
+          background: #fff;
+          color: #000;
+        }
+        .copy button {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <nav class="toc">
+        <div class="brand">PMI&nbsp;KC&nbsp;<span>KB</span></div>
+        <div class="subtle">Live customer demo script</div>
+        <h2>Run of show</h2>
+        <a class="act" href="#preflight">0 · Pre-flight &amp; the pitch</a>
+        <a class="act" href="#act1">1 · Console / Ask</a>
+        <a class="act" href="#act2">2 · Spaces (the map)</a>
+        <a class="act" href="#act3">3 · Lease Renewal</a>
+        <a class="act" href="#act4">4 · Approval Queue</a>
+        <a class="act" href="#act5">5 · Maintenance</a>
+        <a class="act" href="#act6">6 · Communications</a>
+        <a class="act" href="#act7">7 · Notifications</a>
+        <a class="act" href="#act8">8 · Setup, Roles &amp; Admin</a>
+        <a class="act" href="#act9">9 · Closing the demo</a>
+        <h2>Reference</h2>
+        <a href="#bank">Copy/paste bank</a>
+        <a href="#safecard">Demo-safety quick card</a>
+      </nav>
+
+      <main>
+        <header class="hero">
+          <h1>PMI KC KB — Live Customer Demo Walkthrough</h1>
+          <p class="lead">
+            A presenter script for showing the whole application to a customer who is
+            seeing it for the first time. Every beat gives you the words to say, the exact
+            clicks to make, the copy/paste inputs, and what the customer will see on
+            screen — in the order that tells the best story.
+          </p>
+          <div class="metabar">
+            <span class="m"
+              ><b>App:</b> https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app</span
+            >
+            <span class="m"><b>Sign in as:</b> Admin (@pmikcmetro.com)</span>
+            <span class="m"><b>Build:</b> production, current</span>
+            <span class="m"><b>Run time:</b> ~35–45 min full · ~15 min short</span>
+          </div>
+
+          <div class="legend">
+            <span class="li"
+              ><span class="tag t-say">Say</span> narration for the customer</span
+            >
+            <span class="li"><span class="tag t-do">Do</span> the exact click</span>
+            <span class="li"
+              ><span class="tag t-see">See</span> what appears on screen</span
+            >
+            <span class="li"
+              ><span class="tag t-safe">Safety</span> presenter guardrail</span
+            >
+            <span class="li"><span class="tag t-tip">Tip</span> delivery / fallback</span>
+          </div>
+
+          <div class="callout safety">
+            <div class="h">⚠ The one rule for a live demo</div>
+            <p style="margin: 0.3em 0">
+              This app is deliberately built so that
+              <b
+                >nothing goes out to a real owner, tenant, or vendor without a human
+                pressing a final button</b
+              >. That is a selling point — but it also means two surfaces can produce a
+              <i>real</i> effect. During the demo you will
+              <b>show them, not fire them</b>:
+            </p>
+            <ul style="margin: 0.3em 0">
+              <li>
+                <b>Renewal → Live notices “Create Gmail draft”</b> — creates a real
+                (unsent) draft against real tenant data. In the demo, preview it and stop.
+                Don’t click <span class="ui">Create Gmail draft</span> unless you are on a
+                lease you control and want a real draft.
+              </li>
+              <li>
+                <b>Communications → “Send exact linked reply”</b> — the one path that
+                actually sends email. In the demo, walk up to the confirmation card and
+                describe it; <b>do not tick the box and send</b> unless the recipient is
+                an address you own.
+              </li>
+            </ul>
+            <p style="margin: 0.3em 0">
+              Everything else (Ask, Spaces, the renewal desk &amp; reconciliation run, the
+              Approval Queue, Maintenance test tickets, the draft composer, roles &amp;
+              scopes, connections) runs on <b>sample / test / simulated</b> data and is
+              100% safe to click live.
+            </p>
+          </div>
+        </header>
+
+        <!-- ============================================================= ACT 0 -->
+        <section class="act" id="preflight">
+          <div class="act-head">
+            <span class="act-num">ACT 0</span>
+            <h2>Pre-flight &amp; the 60-second pitch</h2>
+          </div>
+          <p class="act-sub">
+            Do this 10 minutes before the call so the demo opens instantly and you never
+            fumble a login in front of the customer.
+          </p>
+
+          <div class="beat">
+            <h3><span class="bn">0.1</span> Before the call — presenter checklist</h3>
+            <ul class="checklist">
+              <li>
+                Sign in to the app with your <b>Admin</b>
+                <code>@pmikcmetro.com</code> Google account so you land on the Console. (A
+                brand-new account defaults to Editor; you want Admin so every tab and gate
+                is visible.)
+              </li>
+              <li>
+                Confirm the top nav shows all eight tabs:
+                <span class="ui"
+                  >Console · Spaces · Lease Renewal · Maintenance · Approval Queue ·
+                  Communications · Connections · Admin</span
+                >. If a tab is missing, you’re not on an Admin account.
+              </li>
+              <li>
+                Open <span class="ui">Approval Queue</span> once to confirm there are a
+                few test items waiting (the demo is livelier with items in it). If it’s
+                empty, you’ll still demo the flow — just narrate it.
+              </li>
+              <li>
+                Have a second browser profile or an incognito window ready if you want to
+                <i>show</i> the signed-out sign-in screen without logging yourself out.
+              </li>
+              <li>
+                Close noisy tabs. Zoom the browser to ~110–125% so the room can read it.
+              </li>
+              <li>
+                Re-read the <a href="#safecard">Demo-safety quick card</a> at the bottom.
+              </li>
+            </ul>
+            <div class="callout tip">
+              <div class="h">▶ Tip</div>
+              <p style="margin: 0.2em 0">
+                This is a real, running production build — not a slide deck or a mockup.
+                Say that out loud early; it lands.
+              </p>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">0.2</span> The opening line (say this first)</h3>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “What you’re about to see is your operation’s <b>front door</b>. Instead
+                  of ten tabs and a spreadsheet, your team asks one question box what to
+                  do, and the app routes the work to the right place — renewals,
+                  maintenance, approvals, communications — with the property data already
+                  attached. The theme you’ll notice throughout is
+                  <b
+                    >the app does the drafting and the checking; a person always makes the
+                    decision and presses the button.</b
+                  >
+                  Nothing leaves the building on its own.”
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-tip">Tip</span>
+              <div class="body">
+                <p>
+                  Keep the pitch to two breaths, then move — the product sells itself once
+                  they see the Ask box answer honestly.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================= ACT 1 -->
+        <section class="act" id="act1">
+          <div class="act-head">
+            <span class="act-num">ACT 1</span>
+            <h2>Console / Ask — the front door</h2>
+          </div>
+          <p class="act-sub">
+            This is where the whole story starts and where you win trust. The app is
+            grounded in an approved knowledge base — and when it doesn’t have an approved
+            source, it <b>refuses to guess</b>. That honesty is the foundation everything
+            else is built on.
+          </p>
+
+          <div class="beat">
+            <h3><span class="bn">1.1</span> Land on the Console and frame it</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Click <span class="ui">Console</span> in the top nav (or just point at
+                  where you already are — you land here after sign-in).
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  A single <span class="ui">Question</span> box on the left, a result
+                  panel on the right, and below it a
+                  <span class="ui">“What needs your attention”</span> deck of three cards.
+                  The purpose line reads
+                  <span class="quote"
+                    >“Ask about a property, lease, or process, then hand the work to the
+                    right place.”</span
+                  >
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “One box. Your team types a real question in plain English — no menus to
+                  learn.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">1.2</span> The honesty foundation — it refuses to guess
+            </h3>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “This is the single most important thing for a property-management
+                  company, so I’ll show it first: this box will <b>not</b> make something
+                  up and put it in front of an owner or tenant.”
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Click into <span class="ui">Question</span>, paste the line below, and
+                  click <span class="ui">Get answer</span>.
+                </p>
+              </div>
+            </div>
+            <div class="copy">
+              <div class="lbl">Paste into the Question box</div>
+              <pre>When does the lease renewal process start?</pre>
+              <button>Copy</button>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  The banner reads
+                  <span class="quote">“No Reliable Source Found.”</span> The answer is
+                  exactly
+                  <span class="quote"
+                    >“No approved PMI KC source is configured for this question in the
+                    scaffold yet,”</span
+                  >
+                  it names an <span class="quote">Escalation owner</span>, and a
+                  <span class="ui">Capture Task</span> block appears. It does
+                  <b>not</b> invent an answer.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “That’s the whole philosophy on one screen. Most AI tools confidently
+                  make something up. This one is grounded in an
+                  <b>approved knowledge base</b> — and until <i>your</i> sources are
+                  loaded into it, it tells you the plain truth and points you to who owns
+                  the answer. You’ll be able to trust what it eventually <i>does</i> say
+                  precisely because it refuses to bluff now.”
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  (Optional) In the <span class="ui">Capture Task</span> block, pick a
+                  <span class="ui">Space</span> and click
+                  <span class="ui">Create Capture Task</span> →
+                  <span class="quote">“Capture task created”</span> — that logs the gap so
+                  it gets a real source next time.
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-tip">Tip</span>
+              <div class="body">
+                <p>
+                  This particular question asks for a renewal <i>start date</i>, which the
+                  loaded source deliberately doesn’t state — so ‘no source’ is the
+                  correct, honest answer. Ask something the source <i>does</i> cover and
+                  it grounds (next beat). Loading more of <i>your</i> approved SOPs widens
+                  what it can answer.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">1.3</span> A grounded, cited answer — live</h3>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “Now watch what it does when it <i>does</i> have an approved source
+                  behind the question. Same box, a lease-renewals question.”
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Paste the line below and click <span class="ui">Get answer</span>. (If a
+                  Space picker is shown, leave it on Lease Renewals.)
+                </p>
+              </div>
+            </div>
+            <div class="copy">
+              <div class="lbl">Paste into the Question box</div>
+              <pre>What is the lease renewal workflow?</pre>
+              <button>Copy</button>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  A grounded answer fills the right panel top-to-bottom: a green
+                  <span class="quote">“Verified Source”</span> banner, an
+                  <span class="ui">Answer</span> (the renewal workflow steps), often a
+                  numbered <span class="ui">Handling Steps</span> list, and a
+                  <span class="ui">Sources</span> list of clickable citations. If an
+                  answer ever includes a draft, its first line is exactly
+                  <span class="quote">“Draft — Review before sending.”</span> When two
+                  sources disagree it returns
+                  <span class="quote">“Conflict Found”</span> and routes the decision to a
+                  person instead of picking a winner.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “There’s the difference: it cites the source so anyone can check the
+                  work, it gives you steps rather than just an answer, and it only
+                  answered because an approved source backs it. It grounds where it has
+                  your content and refuses where it doesn’t — that’s the whole guarantee,
+                  and it’s live today.”
+                </p>
+              </div>
+            </div>
+            <div class="row safe">
+              <span class="tag t-safe">Safety</span>
+              <div class="body">
+                <p>
+                  <b>Verify this once before your call.</b> Retrieval is confirmed strong
+                  for this exact question (it returns the loaded SOP well above
+                  threshold), but the final answer is model-generated — run it live
+                  beforehand and confirm you get the green
+                  <span class="quote">“Verified Source”</span> banner. Grounding currently
+                  works for the <b>Lease Renewals</b> space (the one with content loaded);
+                  other spaces still return ‘no source’ until their SOPs are loaded.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">1.4</span> It knows which process you mean — and starts a
+              safe test run
+            </h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Paste the line below. Watch the area just under the box — a hint appears
+                  before you even submit.
+                </p>
+              </div>
+            </div>
+            <div class="copy">
+              <div class="lbl">Paste into the Question box</div>
+              <pre>broken hvac needs repair</pre>
+              <button>Copy</button>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  A hint:
+                  <span class="quote">“Looks like &lt;process name&gt;.”</span> with a
+                  <span class="ui">Use &lt;process name&gt;</span> button. Click it; the
+                  submit button changes to
+                  <span class="quote">“Get answer + start a test run,”</span> and a note
+                  appears:
+                  <span class="quote"
+                    >“Starting this process runs a test only. Nothing is sent, and nothing
+                    is written to a system of record.”</span
+                  >
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Click <span class="ui">Get answer + start a test run</span>. The answer
+                  panel still shows the honest
+                  <span class="quote">“No Reliable Source Found”</span> (no KB yet), but
+                  below it a <span class="ui">“Test run started”</span> block appears with
+                  a <span class="ui">View the test run</span> link — the routing and the
+                  safe rehearsal work independently of the knowledge base.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “It recognized this was a maintenance work-order and offered to run that
+                  process — and it labels it a <i>test</i> in bright letters. Your team
+                  can rehearse any workflow end-to-end with zero risk of anything real
+                  happening.”
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-tip">Tip</span>
+              <div class="body">
+                <p>
+                  There’s also a <span class="ui">Dictate</span> button by the Question
+                  label for voice input — mention it, but only demo it on Chrome with a
+                  real mic (§Notes). Skip live if unsure.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">1.5</span> The attention deck — the app tells you what’s
+              next
+            </h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Scroll to the <span class="ui">“What needs your attention”</span> row of
+                  three cards and read them out.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  Three cards — <span class="ui">“Needs your decision”</span> (→ Approval
+                  Queue), <span class="ui">“Connections to set up”</span> (→ Connections),
+                  and <span class="ui">“Space coverage”</span> (→ Spaces) — each with a
+                  count, up to three preview rows, and a link.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “Even before you go looking, the home screen surfaces the three things
+                  that actually need a person: decisions to make, connections to finish,
+                  and coverage gaps. We’ll follow each of these threads.”
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-tip">Tip</span>
+              <div class="body">
+                <p>
+                  On a fresh production account some cards may read a zero/empty state —
+                  that’s fine; point at what’s there and move on.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================= ACT 2 -->
+        <section class="act" id="act2">
+          <div class="act-head">
+            <span class="act-num">ACT 2</span>
+            <h2>Spaces — the map of everything the system does</h2>
+          </div>
+          <p class="act-sub">
+            A 30-second orientation so the customer sees the full scope before you go deep
+            on one workflow.
+          </p>
+
+          <div class="beat">
+            <h3><span class="bn">2.1</span> Open Spaces and read the grid</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>Click <span class="ui">Spaces</span> in the top nav.</p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  A grid of up to twelve cards:
+                  <span class="ui"
+                    >Lease Renewals · Owner Renewal Outreach · Tenant Renewal Notice ·
+                    Maintenance Work Order Intake · Vendor Assignment Handoff · Daily
+                    Inbox Triage · Fathom Training · Escalation Rules · Move-In · Move-Out
+                    + Deposit Disposition · Owner Onboarding · Workflow
+                    Communications.</span
+                  >
+                  Each card is a single clickable tile with a colored status pill.
+                </p>
+              </div>
+            </div>
+            <div class="pillrow">
+              <span class="pill">🟢 Process ready</span
+              ><span class="pill">🟡 Connections needed</span>
+              <span class="pill">🔴 Needs a process</span
+              ><span class="pill">⚪ Planned</span>
+              <span class="pill">🟣 Reference (read-only)</span>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “Each tile is a ‘space’ — one area of your operation. The colored pill
+                  tells you at a glance whether that area is ready to run, still needs a
+                  connection, or is planned for later. This is your map; today we’ll walk
+                  the two that matter most — <b>renewals</b> and <b>maintenance</b> — and
+                  show how approvals and communications tie them together.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">2.2</span> A space opens its own workspace</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Click a reference card such as
+                  <span class="ui">Escalation Rules</span> to show a space detail page (an
+                  <span class="ui">Overview</span> tab, and a
+                  <span class="ui">Process</span> sub-tab when the space has a defined
+                  process). Then click back.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “Some spaces are living workflows; some are reference material your team
+                  can read but not change. The operational ones —
+                  <span class="ui">Lease Renewals</span>,
+                  <span class="ui">Maintenance</span>,
+                  <span class="ui">Workflow Communications</span> — open straight into
+                  their own working desk.”
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-tip">Tip</span>
+              <div class="body">
+                <p>
+                  Don’t linger here. Spaces is the “here’s the whole thing” beat; the
+                  depth is in Acts 3–6.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================= ACT 3 -->
+        <section class="act" id="act3">
+          <div class="act-head">
+            <span class="act-num">ACT 3</span>
+            <h2>Lease Renewal — the centerpiece</h2>
+          </div>
+          <p class="act-sub">
+            This is the flagship. Show how the app turns a renewal window into a guided,
+            step-by-step desk that catches data conflicts, routes decisions to a human,
+            and ends by drafting the tenant email <i>for you to send</i> — never for
+            itself to send.
+          </p>
+
+          <div class="callout tip">
+            <div class="h">▶ How the data map works here (accurate in prod)</div>
+            <p style="margin: 0.2em 0">
+              The renewal <b>desk</b> and per-lease workspace run on
+              <b>sample data</b> (they show a “Sample data” chip) so you can walk the
+              workflow before live sources are connected. The <b>live</b> equivalents are
+              already built and use real data: <b>Live review</b> reads real RentVine +
+              Sheet, and <b>Live notices</b>
+              (§3.5) creates a real unsent Gmail draft. Two guardrails are deliberate and
+              stay: owner and tenant emails are
+              <b>draft-only</b> (a person opens Gmail and sends), and the renewal tracking
+              sheet stays <b>read-only</b> — the app records your write-back authorization
+              for a later, owner-approved sheet write.
+            </p>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">3.1</span> Read the Renewal Desk</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>Click <span class="ui">Lease Renewal</span> in the top nav.</p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  Header <span class="ui">“Renewals”</span>, subtitle
+                  <span class="quote">“7 leases in your current renewal window,”</span> a
+                  <span class="ui">“Sample data”</span> chip, and a metric row:
+                  <span class="quote"
+                    >Actionable 3 · Needs review 1 · Skipped 2 · Out of window 1.</span
+                  >
+                  A <span class="ui">“Needs your attention”</span> fold shows two cards
+                  (Walnut — <span class="quote">“1 source conflict to resolve”</span>;
+                  Maple — <span class="quote">“Get the owner’s rent decision”</span>), and
+                  a <span class="ui">“Your queue”</span> of three lease cards.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “The desk already did the triage. Out of the leases in this window, it
+                  tells you which three are actionable now, which one needs a second look,
+                  and which it deliberately set aside — with the reason. Your team doesn’t
+                  open a spreadsheet and guess where to start; the app points at the top
+                  of the pile.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">3.2</span> Each lease shows exactly what to do next</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Point at a queue card’s four-step stepper (<span class="ui"
+                    >Data check → Owner decision → Tenant offer → Build docs</span
+                  >) and its <span class="ui">“Next:”</span> line.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  Walnut →
+                  <span class="quote">“Next: Confirm the rent before drafting”</span> with
+                  a red <span class="quote">“1 source conflict”</span> pill. Maple →
+                  <span class="quote">“Next: Get the owner’s rent decision.”</span> Cedar
+                  → <span class="quote">“Next: Review the tenant offer drafts.”</span>
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “Every lease carries its own progress bar and a single next action.
+                  There’s never a ‘what was I doing on this one?’ moment.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">3.3</span> Walk a clean lease through all four steps</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Click <span class="ui">Open</span> on
+                  <span class="ui">318 Cedar Ave, Unit 7</span>. Walk the four panels top
+                  to bottom.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  <b>Data check</b> — both rows show an
+                  <span class="quote">“Agrees”</span> pill (RentVine $1,180 / 2026-09-30,
+                  both Verified). <b>Owner decision</b> — facts populated, a draft stamped
+                  <span class="quote">“Draft — Review before sending,”</span> and a
+                  <span class="ui">Preview the owner email</span> disclosure.
+                  <b>Tenant offer</b> — three channel tabs (Email / Portal chat / Text).
+                  <b>Build docs</b> — a 7-item readiness checklist, each OK / Flag / Needs
+                  input.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “When the sources agree, the app marks it ‘Agrees’ and moves you
+                  straight toward the offer. It even drafts the owner and tenant messages
+                  across email, portal chat, and text — but every draft says ‘review
+                  before sending,’ and the ‘Prepare email’ buttons here are preview-only.
+                  This desk cannot send anything. That’s deliberate.”
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-safe">Safety</span>
+              <div class="body">
+                <p>
+                  Clicking <span class="ui">Prepare owner/tenant email</span> here is safe
+                  — it only previews and shows
+                  <span class="quote"
+                    >“Sample renewal data is preview-only. Do not send…”</span
+                  >
+                  with no Copy button and no draft created.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">3.4</span> The catch that saves you — a source conflict,
+              resolved by a human
+            </h3>
+            <div class="row">
+              <span class="tag t-say">Say</span>
+              <div class="body say">
+                <p>
+                  “Now the case that earns its keep. Your rent number lives in two places
+                  — RentVine and the tracking sheet — and sometimes they disagree. Here’s
+                  what the app does about that.”
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Go back to the desk and open the <span class="ui">Walnut</span> lease
+                  (its <span class="ui">“Resolve conflicts”</span> card). Read the
+                  <span class="ui">Data check</span> step.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  A conflict row with a
+                  <span class="quote">“Needs your decision”</span> pill: RentVine
+                  <span class="quote">$1,250 (Verified)</span> versus Sheet
+                  <span class="quote">$1,289 (Needs Verification)</span>, and the stepper
+                  held at Data check.
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Now open the reconciliation run that has the actual resolve controls: on
+                  the desk, use diagnostics
+                  <span class="ui">“View the raw reconciliation run”</span> (or
+                  <span class="ui">/lease-renewal/runs</span> →
+                  <span class="ui">“Sample renewal run (synthetic)”</span>).
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  A <span class="ui">Test-only</span> banner, then flag cards: a
+                  <b>High</b> rent conflict (Casey Rivers: Sheet $1,300 vs RentVine
+                  $1,400), a <b>High</b> renewal-date conflict, a <b>High</b> legal
+                  conflict, a <b>Medium</b> inspections conflict, and a <b>Blocked</b> “no
+                  precedence rule” item.
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  On the High rent flag, set
+                  <span class="ui">Resolution = “Pick a source”</span> → choose
+                  <span class="ui">RentVine</span>, paste a reason (below), click the
+                  resolve button, then <span class="ui">Confirm resolution</span>.
+                </p>
+              </div>
+            </div>
+            <div class="copy">
+              <div class="lbl">Paste as the resolution reason</div>
+              <pre>
+RentVine is our system of record for rent; the sheet value was stale. Confirmed the $1,400 figure against the current lease.</pre
+              >
+              <button>Copy</button>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  A dialog <span class="quote">“Confirm High resolution”</span> notes it
+                  records the decision but
+                  <span class="quote">does not execute a write-back.</span> After
+                  confirming, the card reads
+                  <span class="quote"
+                    >“Resolved via Pick a source → Rentvine: &lt;your reason&gt;”</span
+                  >
+                  and an append-only Activity row is written. (Try an <b>empty</b> reason
+                  first →
+                  <span class="quote">“A plain-English reason is required.”</span>)
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  If the flag has a write-back proposal, click
+                  <span class="ui">Approve proposal</span>, add a reason, confirm.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  State becomes
+                  <span class="quote">“Approved: ready to write (not executed)”</span>
+                  with
+                  <span class="quote"
+                    >“Approving records your authorization for the future append-only
+                    Sheet write. It is not executed here.”</span
+                  >
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “Two things just happened that a spreadsheet can’t do. One: the app
+                  <i>caught</i> the disagreement instead of quietly picking one. Two: it
+                  made <b>a person</b> choose the winner <i>with a written reason</i>, and
+                  it recorded that decision in an audit trail — but it did
+                  <b>not</b> reach into your sheet and overwrite anything. Even ‘approve’
+                  means ‘I authorize this,’ not ‘go do it.’ Your source of truth stays
+                  under your control.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">3.5</span> The finish line — draft the tenant email for a
+              human to send
+            </h3>
+            <div class="row">
+              <span class="tag t-safe">Safety</span>
+              <div class="body">
+                <p>
+                  <b>This is a real-effect surface.</b> In a customer demo,
+                  <b>preview and stop</b>. Only click
+                  <span class="ui">Create Gmail draft</span> if you’re on a lease you own
+                  and want a real (still unsent) draft.
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Open <span class="ui">/lease-renewal/live/notices</span> (the desk’s
+                  Admin <span class="ui">“Live renewal notices”</span> button). Expand a
+                  lease whose summary says “tenant ready,” set channel to
+                  <span class="ui">Tenant offer</span>, set an owner decision and offered
+                  rent, and click <span class="ui">Preview draft</span>.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  <span class="quote"
+                    >“Preview only. Review it, then choose ‘Create Gmail draft.’”</span
+                  >
+                  with the resolved <b>To / Subject / body</b>. If a recipient can’t be
+                  verified, it blocks under
+                  <span class="quote">“This draft is not ready:”</span> with the exact
+                  reason (e.g.
+                  <span class="quote">“Recipient tenant email needs verification.”</span>)
+                  and keeps <span class="ui">Create Gmail draft</span> disabled.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “Here’s the payoff. The app pulls the live tenant from RentVine, builds
+                  the renewal notice, and — if and only if it can verify a real recipient
+                  — lets you create a <b>draft in your own Gmail</b>. Not a send. A draft,
+                  prefixed ‘Draft — Review before sending,’ sitting in your Drafts folder
+                  for a human to read and press Send. If it can’t verify who it’s going
+                  to, it refuses to draft at all. This is the line the app will not cross
+                  for you.”
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================= ACT 4 -->
+        <section class="act" id="act4">
+          <div class="act-head">
+            <span class="act-num">ACT 4</span>
+            <h2>Approval Queue — the governance backbone</h2>
+          </div>
+          <p class="act-sub">
+            The single place every consequential decision funnels through — with the right
+            person, a required reason, and a permanent record. This is the “how do I stay
+            in control at scale” answer.
+          </p>
+
+          <div class="beat">
+            <h3><span class="bn">4.1</span> The decision inbox</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Click <span class="ui">Approval Queue</span>. Read the landing, then
+                  expand <span class="ui">Other views</span>.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  A clean inbox:
+                  <span class="quote"
+                    >“N thing(s) need your decision, most urgent first.”</span
+                  >
+                  Under <span class="ui">Other views</span> are three tabs —
+                  <span class="ui"
+                    >All items / Renewal reviews (N) / Write-back proposals (N)</span
+                  >. Open <span class="ui">All items</span> for the full list, detail
+                  panel, filters, and a bulk bar.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “Everything across the app that needs a yes/no — a renewal decision, a
+                  write-back, a high-risk action — collects here, most urgent first. One
+                  place to look; nothing slips.”
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-tip">Tip</span>
+              <div class="body">
+                <p>
+                  The action beats (4.2–4.6) need items in the queue. If it’s empty on
+                  this build, narrate from a selected item — the buttons, reasons, and
+                  gates still demonstrate — or seed a few test items before the call.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">4.2</span> A routine approval — one click</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  In <span class="ui">All items</span>, select a plain low/medium item and
+                  click <span class="ui">Approve</span>.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  One click, no reason required; status flips to
+                  <span class="ui">Approved</span>, an Activity row is written, the item
+                  collapses out of the active list. (<span class="quote"
+                    >“Approval changes this app decision only”</span
+                  >
+                  — no send, no record write.)
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “Low-stakes work stays fast — one click. The friction scales with the
+                  risk, which you’ll see next.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">4.3</span> A high-risk approval — confirm <i>and</i> a
+              written reason
+            </h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Select a <b>High</b>-risk item and click
+                  <span class="ui">Approve</span>. Try to submit with the reason blank
+                  first, then add one.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  A browser confirm:
+                  <span class="quote"
+                    >“This is a High-risk approval. Approve this queue item?”</span
+                  >
+                  A reason is required — blank is refused (<span class="quote"
+                    >“High-risk approval requires a reason.”</span
+                  >), and the reason is now enforced on the <b>server</b>, not just the
+                  screen, so the audit trail can never hold an un-reasoned high-risk
+                  approval.
+                </p>
+              </div>
+            </div>
+            <div class="copy">
+              <div class="lbl">Paste as the high-risk approval reason</div>
+              <pre>
+Confirmed the amount and recipient with the owner by phone on 2026-07-20; approving for execution.</pre
+              >
+              <button>Copy</button>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “For anything high-risk, one click isn’t enough. The app makes you
+                  confirm and <b>write down why</b> — and that reason is captured
+                  permanently. If a decision is ever questioned months later, there’s a
+                  name, a timestamp, and a reason attached to it.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">4.4</span> Deny, Return, Snooze — every path leaves a
+              reason
+            </h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  On a review item, try <span class="ui">Deny</span>,
+                  <span class="ui">Return</span>, and <span class="ui">Snooze</span> —
+                  each with the reason (and, for Snooze, the date) blank first, then
+                  filled.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  Blank is always refused —
+                  <span class="quote">“Deny requires a reason,”</span>
+                  <span class="quote">“Return for Revision requires a reason,”</span>
+                  <span class="quote">“Snooze requires a date and reason.”</span> Filled →
+                  <span class="ui">Denied</span> (terminal),
+                  <span class="ui">Returned</span> (back to the submitter), or
+                  <span class="ui">Snoozed</span> (with the date). Every outcome is
+                  logged.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “There’s no silent ‘no.’ Deny, send back, or defer — each one records
+                  why, so the person on the other end knows what to fix and you keep a
+                  clean history.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">4.5</span> The right person decides — role &amp;
+              self-approval guards
+            </h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>Try to approve an item that’s assigned to you.</p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  Refused —
+                  <span class="quote">“You cannot approve your own assigned item.”</span>
+                  Only the required approver or an Admin can approve; linked/consequential
+                  executions require Admin (<span class="quote"
+                    >“Admin role is required for this consequential execution.”</span
+                  >).
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “You can’t rubber-stamp your own work — the app enforces separation of
+                  duties. The person who prepares a thing isn’t the person who approves
+                  it.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">4.6</span> Bulk actions, safely capped</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Tick several items and use the bulk bar; try to select more than 50.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  Past 50 →
+                  <span class="quote"
+                    >“Bulk actions are limited to 50 visible items.”</span
+                  >
+                  After Apply →
+                  <span class="quote"
+                    >“Bulk action finished: X updated, Y skipped, Z failed.”</span
+                  >
+                  A bulk <span class="ui">Execute</span> is offered but every item is
+                  <b>skipped</b> with
+                  <span class="quote">“…No external write was attempted”</span> — the app
+                  will not batch-fire external effects.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “You can move fast in bulk — but even bulk can’t trigger a mass external
+                  action. That door is closed on purpose.”
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================= ACT 5 -->
+        <section class="act" id="act5">
+          <div class="act-head">
+            <span class="act-num">ACT 5</span>
+            <h2>Maintenance — from a leak to a tracked ticket</h2>
+          </div>
+          <p class="act-sub">
+            Show the everyday workflow: capture an issue in plain English, let the app
+            draft the work order, create a real ticket, move it through its lifecycle, and
+            hand it to a vendor — all with reasons and history.
+          </p>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">5.1</span> Capture an issue → build a draft → create the
+              ticket
+            </h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Click <span class="ui">Maintenance</span>. In the Capture panel, paste
+                  the issue below, pick a unit from the typeahead, leave Priority on
+                  <span class="ui">Auto</span>, and click
+                  <span class="ui">Build work-order draft</span>.
+                </p>
+              </div>
+            </div>
+            <div class="copy">
+              <div class="lbl">Paste into the Issue box</div>
+              <pre>
+kitchen faucet leaking under the sink, cabinet floor is getting wet</pre
+              >
+              <button>Copy</button>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  A draft preview: summary, inferred priority, unit, photo count,
+                  blockers, an owner-notice draft, and a vendor-trade suggestion. Click
+                  <span class="ui">Create ticket</span> →
+                  <span class="quote"
+                    >“Ticket created (Open). Reload to see it in the queue below.”</span
+                  >
+                  A real ticket is written at status <span class="ui">Open</span>.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “Your team types what the tenant said, picks the unit, and the app
+                  writes the work order — summary, priority, even a suggested trade. One
+                  click and it’s a tracked ticket. It also <i>infers</i> priority from the
+                  words, so an emergency doesn’t get filed as routine.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">5.2</span> It won’t let you file half a ticket</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Click <span class="ui">Build work-order draft</span> with the issue
+                  empty; then add an issue but don’t match a unit.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  <span class="ui">Create ticket</span> stays disabled while any blocker
+                  exists:
+                  <span class="quote">“Add an issue description or voice note,”</span>
+                  <span class="quote">“Match the location to a unit.”</span> Clear them →
+                  <span class="quote">“No blockers. Ready for human review.”</span>
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “It blocks incomplete tickets before they’re created — you never end up
+                  chasing a work order with no address on it.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">5.3</span> Move a ticket through its life — with reasons
+              and history
+            </h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  On a ticket card, change <span class="ui">Status</span> to
+                  <span class="ui">Closed</span> — try an empty reason first, then a real
+                  one. Then <span class="ui">Reopen</span> it, change the
+                  <span class="ui">Assignee</span>, add a note, and expand
+                  <span class="ui">History</span>.
+                </p>
+              </div>
+            </div>
+            <div class="copy">
+              <div class="lbl">Paste as the close reason</div>
+              <pre>
+Vendor replaced the supply line and confirmed no further leak; tenant notified.</pre
+              >
+              <button>Copy</button>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  Empty reason →
+                  <span class="quote">“A reason is required to close a ticket.”</span>
+                  With a reason → <span class="ui">Closed</span> with an Activity row.
+                  Assignee is validated against the roster (off-roster →
+                  <span class="quote"
+                    >“That user cannot be assigned maintenance tickets.”</span
+                  >). History reads back in plain English:
+                  <span class="quote"
+                    >“Ticket created,” “Status set to …,” “Closed: &lt;reason&gt;,” “Note:
+                    …”.</span
+                  >
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “Every status change carries a reason, assignments are checked against
+                  your real team, and the full history reads like a plain-English log. If
+                  an owner asks ‘what happened with that leak in March,’ the answer is
+                  right there.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">5.4</span> Hand a ticket to a vendor (test lane)</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  On a <b>Test</b> ticket, click
+                  <span class="ui">Assign Summit Plumbing Test Vendor</span>, expand
+                  <span class="ui">Vendor handoff</span>, then
+                  <span class="ui">Unassign Test Vendor</span> to reverse it.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  Assigning writes a vendor record and an Activity row; the handoff panel
+                  shows a bodyless projection (<span class="quote"
+                    >“Draft ready: Yes/No · Simulated replies: N”</span
+                  >) — no real message content, no email out. Unassign reverses cleanly.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “You can hand a ticket to a vendor and track the exchange — and in the
+                  test lane you can rehearse the whole handoff without a single real email
+                  leaving the app.”
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-tip">Tip</span>
+              <div class="body">
+                <p>
+                  This needs a <b>Test</b>-mode ticket present. If none exists, provision
+                  the Test Vendor first (8.6); otherwise describe the handoff and move on.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">5.5</span> Triage requests that come in from outside</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  In the <span class="ui">“Unverified intake (N)”</span> section, use
+                  <span class="ui">Promote to Live app ticket</span> on one row and
+                  <span class="ui">Dismiss</span> (with a reason) on another.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  Promote → a real <span class="ui">Open</span> ticket (labeled “Needs
+                  Verification” if the unit is unconfirmed) with
+                  <span class="quote"
+                    >“Promoted to a Live app ticket… no provider effect was
+                    created.”</span
+                  >
+                  Dismiss → <span class="quote">“Dismissed.”</span> with the reason
+                  logged.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “Requests that arrive from a tenant link land in a holding area first —
+                  never straight into your live queue. A person promotes the real ones and
+                  dismisses the noise. Nothing untrusted becomes a work order
+                  automatically.”
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================= ACT 6 -->
+        <section class="act" id="act6">
+          <div class="act-head">
+            <span class="act-num">ACT 6</span>
+            <h2>Communications — governed email, not a second inbox</h2>
+          </div>
+          <p class="act-sub">
+            The trust centerpiece for anyone nervous about “AI sending emails.” Show that
+            the app drafts and assists everywhere, but the <i>only</i> way anything sends
+            is one exact reply, to an already-linked thread, behind a one-time human
+            confirmation.
+          </p>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">6.1</span> Frame it: a governed lane for workflow email
+            </h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Click <span class="ui">Communications</span>. Read the header and the
+                  footer.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  Header <span class="ui">“Workflow Communications”</span> with the
+                  boundary stated plainly:
+                  <span class="quote"
+                    >“Unrelated mail, generic compose, and mailbox management stay in
+                    Gmail.”</span
+                  >
+                  A connection status line (<span class="quote"
+                    >“Connected as &lt;mailbox&gt;”</span
+                  >
+                  or <span class="quote">“Waiting on Gmail access”</span>) and a footer
+                  noting that inbox search, recent-inbox browsing, free-form compose, and
+                  arbitrary labels live in Gmail.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “This is a focused, governed lane for the specific workflow-linked
+                  messages the app helps with. Everyday inbox work stays in Gmail, and the
+                  app tells you that plainly.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">6.2</span> The app drafts; you send — the anticipatory
+              composer
+            </h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Open the Admin tool <span class="ui">“Anticipatory draft.”</span> Pick a
+                  reply pattern, fill Sender / Category / Subject / Facts, and click
+                  <span class="ui">Compose draft</span>. Then click
+                  <span class="ui">Copy draft</span>. Finally, try a hard-excluded
+                  <span class="ui">Category</span> (Owner money / Legal-notices / Tenant
+                  disputes).
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  A draft whose <b>first line is exactly</b>
+                  <span class="quote">“Draft — Review before sending,”</span> with any
+                  missing fact shown as <span class="quote">“Needs Verification: …”</span>
+                  <span class="ui">Copy draft</span> copies it (it can’t send — no mailbox
+                  is touched). A hard-excluded category is refused <i>before</i> the model
+                  even runs: <span class="quote">“Refused before the model: …”</span>
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “It writes the reply for you and marks every unknown ‘needs
+                  verification’ so nothing is fabricated — but all it can do is hand you
+                  text to copy. And for the sensitive categories — owner money, legal
+                  notices, tenant disputes — it refuses to draft at all. Those always go
+                  through a person.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">6.3</span> Summarize and triage — all read-only</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Show <span class="ui">Template &amp; triage workspace</span> (<span
+                    class="ui"
+                    >Evaluate</span
+                  >), <span class="ui">Thread summary</span> (<span class="ui"
+                    >Summarize thread</span
+                  >), and <span class="ui">Simulated email chain</span> (add a reply, then
+                  refresh — it resets).
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  Suggested labels and a draft preview; a Summary / Waiting-on /
+                  Suggested-next-action; and a browser-only chain that vanishes on refresh
+                  (<span class="quote"
+                    >“no Gmail API, mailbox, database, or external delivery is
+                    involved”</span
+                  >). None of these can send.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “It can read a long thread and tell you what it’s about, who’s waiting,
+                  and what to do next — as a suggestion. Great for clearing a backlog, and
+                  it can’t touch the real mailbox while doing it.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">6.4</span> The one and only send — exact, linked, and
+              confirmed once
+            </h3>
+            <div class="row">
+              <span class="tag t-safe">Safety</span>
+              <div class="body">
+                <p>
+                  <b>This is the real send path.</b> In a customer demo, walk up to the
+                  confirmation card and describe it.
+                  <b>Do not tick the checkbox and send</b> unless the recipient is an
+                  address you own.
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  On a <b>live</b> maintenance ticket, expand
+                  <span class="ui">“Linked Gmail communication,”</span>
+                  <span class="ui">Load linked communication</span> →
+                  <span class="ui">Open</span> the thread →
+                  <span class="ui">Request source-backed reply proposal</span> →
+                  <span class="ui">Review exact linked reply</span>.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  A confirmation card
+                  <span class="quote">“Exact linked reply: not yet sent”</span> showing
+                  From / To / CC / BCC / Subject / Linked thread / Confirmation expires /
+                  the <b>exact reply body</b> — all resolved server-side from the real
+                  thread (never the AI text directly). The required checkbox reads
+                  <span class="quote"
+                    >“I reviewed the exact mailbox, recipient, subject, and reply
+                    body.”</span
+                  >
+                  A send returns a bodyless receipt (Message/Thread ID) and
+                  <span class="quote">“The exact linked reply was sent once”</span>; a
+                  duplicate returns the same receipt — no double-send.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “This is the only thing in the entire app that sends an email — and look
+                  how much has to be true first: it must be an <i>exact reply</i> to a
+                  thread that’s <i>already linked</i> to a real ticket, the recipient and
+                  body are rebuilt from the real thread (not from the AI), and a human has
+                  to check a box that literally says ‘I reviewed the recipient and body.’
+                  It sends once, and if the network hiccups it won’t double-send. That’s
+                  as controlled as outbound email gets.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">6.5</span> Prove the negative — no autonomous or bulk send
+              exists
+            </h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Look for a “compose new email,” “send all,” or bulk-send control
+                  anywhere in Communications.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  There is none. Generic compose is refused server-side (<span
+                    class="quote"
+                    >“New-message sending is not exposed by Workflow Communications; use
+                    an approved unsent workflow draft.”</span
+                  >), and the Connection Center lists the legacy notification sender as
+                  <span class="quote">“Disabled.”</span>
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “There is no ‘blast an email’ button to find — not hidden, not disabled,
+                  it doesn’t exist. The app cannot email your owners or tenants on its
+                  own. Every message is a person’s decision.”
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================= ACT 7 -->
+        <section class="act" id="act7">
+          <div class="act-head">
+            <span class="act-num">ACT 7</span>
+            <h2>Notifications — the attention system</h2>
+          </div>
+          <p class="act-sub">
+            A quick beat to show the app keeps a live tally of what needs a person,
+            without becoming noisy.
+          </p>
+
+          <div class="beat">
+            <h3><span class="bn">7.1</span> The bell, the count, and the tab title</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Point at the bell (top-right of every internal page) and the browser tab
+                  title.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  A numeric badge (caps visually at <span class="quote">“9+”</span>), an
+                  accessible label
+                  <span class="quote">“Notifications, N unread,”</span> and the browser
+                  tab title prefixed <span class="quote">“(N) ”</span>. It refreshes on
+                  its own every ~60 seconds and whenever you refocus the tab.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">7.2</span> Open, clear, and tune</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Click the bell → open a notification (it deep-links to the item and
+                  marks itself read). Click <span class="ui">Mark all read</span>. Expand
+                  <span class="ui">Notification types</span> and untick a family (e.g.
+                  <span class="ui">Maintenance tickets</span>). Then click
+                  <span class="ui">See all notifications</span> for the full hub.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  Opening a notification navigates to the linked item;
+                  <span class="ui">Mark all read</span> clears event notifications
+                  (standing set-up signals stay until you fix the underlying thing);
+                  muting a family persists to your account across sessions. The hub (<span
+                    class="ui"
+                    >/notifications</span
+                  >) is a read-only, newest-first record with a Team-review section for
+                  Admins.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “Each person gets their own tally of what needs them, tunable by type.
+                  And the ‘set-up’ reminders don’t clear until the thing is actually fixed
+                  — they’re not dismissible noise.”
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================= ACT 8 -->
+        <section class="act" id="act8">
+          <div class="act-head">
+            <span class="act-num">ACT 8</span>
+            <h2>Setup, Roles &amp; Admin — how you run and maintain it</h2>
+          </div>
+          <p class="act-sub">
+            Close the operational loop: who can do what, the audit trails, provisioning a
+            vendor, and connecting your live systems. This is the “I could actually own
+            this” section for the decision-maker.
+          </p>
+
+          <div class="beat">
+            <h3><span class="bn">8.1</span> The Admin home</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>Click <span class="ui">Admin</span>. Skim the three sections.</p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  <span class="ui">People and Access</span> (Manage users and roles),
+                  <span class="ui">Activity and Logs</span> (observability, approval-queue
+                  depth, Reported Issues, Access Changes), and
+                  <span class="ui">App Info and Readiness</span> (approval label,
+                  indexing, migration console, communication governance).
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">8.2</span> Change a teammate’s role — with a reason and an
+              audit record
+            </h3>
+            <div class="row safe">
+              <span class="tag t-safe">Safety</span>
+              <div class="body">
+                <p>
+                  This writes a <b>real</b> change to a real teammate’s access (effective
+                  on their next sign-in). In a live demo, use a throwaway/test roster row,
+                  or walk the flow and the error probes <b>without</b> clicking
+                  <span class="ui">Save role</span> — and change it back if you do save.
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Open <span class="ui">Manage users and roles</span>. On a person’s row,
+                  change <span class="ui">Role</span> (Editor / Approver / Admin), type a
+                  reason, and click <span class="ui">Save role</span>.
+                </p>
+              </div>
+            </div>
+            <div class="copy">
+              <div class="lbl">Paste as the role-change reason</div>
+              <pre>
+Promoting to Approver to cover renewal approvals while the lead is out next week.</pre
+              >
+              <button>Copy</button>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  <span class="quote"
+                    >“&lt;email&gt; is now &lt;Role&gt;. They re-sign-in to
+                    refresh.”</span
+                  >
+                  Granting/removing Admin pops an extra confirm. An append-only audit
+                  record is written <b>before</b> the change (visible under
+                  <span class="ui">Access Changes</span>). A too-short reason →
+                  <span class="quote">“Add a short reason for the change.”</span>
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “Access changes require a reason and are logged before they take effect
+                  — nobody quietly hands out admin. The change applies on that person’s
+                  next sign-in, so it’s intentional, not instant-and-forgotten.”
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-tip">Tip</span>
+              <div class="body">
+                <p>
+                  Roles at a glance: <b>Editor</b> = read, edit, workflow-linked send ·
+                  <b>Approver</b> = Editor + approve/resolve · <b>Admin</b> = everything +
+                  manage users. <b>Scopes</b> narrow which desks a person sees; no scope =
+                  all spaces.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">8.3</span> Put a teammate “in the maintenance group”
+              (scoping)
+            </h3>
+            <div class="row safe">
+              <span class="tag t-safe">Safety</span>
+              <div class="body">
+                <p>
+                  Same caution as 8.2 — this re-scopes a <b>real</b> account. Prefer a
+                  test row, or show the flow without saving.
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  On the person’s <span class="ui">Space access</span> sub-row, untick
+                  <span class="ui">All spaces</span>, tick
+                  <span class="ui">Maintenance</span>, add an access reason, and click
+                  <span class="ui">Save space access</span>.
+                </p>
+              </div>
+            </div>
+            <div class="copy">
+              <div class="lbl">Paste as the access reason</div>
+              <pre>
+Maintenance coordinator — should only see the maintenance desk this quarter.</pre
+              >
+              <button>Copy</button>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  <span class="quote"
+                    >“&lt;email&gt; now has access to Maintenance. They re-sign-in to
+                    refresh.”</span
+                  >
+                  After they sign back in, their nav shows Maintenance but not Lease
+                  Renewal or Approval Queue, and they land on the Maintenance desk. Empty
+                  selection →
+                  <span class="quote"
+                    >“Choose at least one space, or choose All spaces.”</span
+                  >
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “You can hand someone exactly the part of the operation they own — a
+                  maintenance coordinator sees the maintenance desk and nothing else.
+                  Least-privilege by default, and reversible in two clicks.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">8.4</span> The guardrail you hope you never need</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body"><p>Try to demote the only remaining Admin.</p></div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  Refused — <span class="quote">“Cannot remove the last Admin.”</span>
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “The app won’t let you lock yourself out of your own account. Small
+                  thing — but exactly the kind of mistake that ruins a Friday.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">8.5</span> The audit trails</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Back on <span class="ui">/admin</span>, read
+                  <span class="ui">Access Changes</span> and
+                  <span class="ui">Reported Issues</span>.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  <span class="ui">Access Changes</span>
+                  lists every role/scope change newest-first (what changed, target, actor,
+                  reason) —
+                  <span class="quote">“Read-only history; nothing is emailed.”</span>
+                  <span class="ui">Reported Issues</span> lists everything filed via the
+                  app-wide <span class="ui">Report an issue</span> button (route, time,
+                  role, status, description).
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “Two permanent, read-only histories: who changed access and why, and
+                  every problem your team reported from any page. Nothing here is editable
+                  — that’s the point.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">8.6</span> Provision a vendor with a one-time, single-use
+              setup link
+            </h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  In <span class="ui">Manage users and roles</span> →
+                  <span class="ui">External Vendors</span>, enter a reason, click
+                  <span class="ui">Review exact Test setup</span>, then
+                  <span class="ui">Confirm and provision Test Vendor</span>, and copy the
+                  one-time link immediately.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  A review card of the exact effect, then a
+                  <b>one-time password-setup link shown once</b> with
+                  <span class="quote"
+                    >“Never paste, share, copy, save, log, or send this link…”</span
+                  >
+                  and
+                  <span class="quote"
+                    >“Test Vendor created. Open the one-time link now, set its password,
+                    then enroll TOTP on first sign-in.”</span
+                  >
+                  The vendor lifecycle also supports regenerate, reset (new identity,
+                  sessions/TOTP cleared, tickets preserved), and disable.
+                </p>
+              </div>
+            </div>
+            <div class="row safe">
+              <span class="tag t-safe">Safety</span>
+              <div class="body">
+                <p>
+                  Copy the link once and don’t share or log it. This is a Test vendor (a
+                  <code>.invalid</code> email) — no external delivery, no real effect.
+                  Vendors sign in with password + an authenticator-app TOTP code and see
+                  <b>only their assigned tickets</b> — never your internal pages.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “You provision a vendor with a single-use link — no shared passwords,
+                  and they must set up two-factor before they get in. Once in, a vendor
+                  sees only the tickets you assigned them. And you can reset or disable
+                  them in one reviewed action.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">8.7</span> Connect your live systems</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Click <span class="ui">Connections</span>. On the
+                  <span class="ui">RentVine</span> or
+                  <span class="ui">Google Sheets</span> card, click
+                  <span class="ui">Verify connection</span>.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  A metric row (Connected / Need attention / Not connected) and a card per
+                  system (RentVine, Sheets, Drive, Dotloop, LeadSimple, Gmail,
+                  QuickBooks). Verify runs a bounded read-only probe →
+                  <span class="quote">“&lt;name&gt; answered the live check”</span> and
+                  the card turns
+                  <span class="ui">Connected / “Verified and ready.”</span> (Only an Admin
+                  can run it.)
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “This is your connection dashboard — one card per system you plug in.
+                  For your live data sources it runs a real, read-only health check so you
+                  can see green with your own eyes, not just take our word for it.”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">8.8</span> Anyone can report a problem from anywhere</h3>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  On any page, click
+                  <span class="ui">Report an issue</span> (bottom-right), optionally type
+                  a note, and click <span class="ui">Send report</span>.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">See</span>
+              <div class="body">
+                <p>
+                  <span class="quote"
+                    >“Thanks. Your report was filed to the support queue for
+                    review.”</span
+                  >
+                  A record is written (page path, viewport, and the last element touched —
+                  never the page text or the query string) and shows up in
+                  <span class="ui">Admin → Reported Issues</span>.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “There’s a ‘report an issue’ button on every screen. Your team’s
+                  feedback lands in one queue for you — and it’s privacy-careful: it
+                  captures where they were, never what they typed.”
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================= ACT 9 -->
+        <section class="act" id="act9">
+          <div class="act-head">
+            <span class="act-num">ACT 9</span>
+            <h2>Closing the demo — the trust story</h2>
+          </div>
+          <p class="act-sub">
+            Land the plane. Recap the pillars in one breath, be honest about what’s
+            deliberately staged for later, and ask for the next step.
+          </p>
+
+          <div class="beat">
+            <h3><span class="bn">9.1</span> The one-paragraph recap</h3>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “So here’s what you saw. One front door that answers from
+                  <b>your</b> sources and admits when it can’t. A renewal desk that
+                  <b>catches conflicts</b> your spreadsheet would hide and makes a person
+                  decide, with a reason. An approval queue where every consequential yes,
+                  no, or defer <b>leaves a name, a reason, and a timestamp</b>. A
+                  maintenance workflow from a tenant’s words to a tracked ticket to a
+                  vendor. And a communications lane where the app drafts everywhere but
+                  the <b>only</b> send is one confirmed reply to a linked thread. The
+                  through-line:
+                  <b
+                    >the app does the work, a person makes the call, and everything is
+                    written down.</b
+                  >”
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">9.2</span> The pillars (put these on screen or say them)
+            </h3>
+            <table class="map">
+              <tr>
+                <th>Pillar</th>
+                <th>What they saw</th>
+              </tr>
+              <tr>
+                <td><b>Grounded &amp; honest</b></td>
+                <td>
+                  Answers cite your sources; “No Reliable Source Found” instead of a
+                  made-up answer.
+                </td>
+              </tr>
+              <tr>
+                <td><b>Human-in-the-loop</b></td>
+                <td>
+                  Drafts everywhere; no autonomous or bulk send; one confirmed reply is
+                  the only send.
+                </td>
+              </tr>
+              <tr>
+                <td><b>Reason + audit</b></td>
+                <td>
+                  High-risk approvals, denials, closes, and access changes all require a
+                  written reason, logged permanently.
+                </td>
+              </tr>
+              <tr>
+                <td><b>Catches conflicts</b></td>
+                <td>
+                  RentVine-vs-Sheet disagreements are surfaced and resolved by a person,
+                  not silently picked.
+                </td>
+              </tr>
+              <tr>
+                <td><b>Least-privilege</b></td>
+                <td>
+                  Roles and space scopes; vendors see only their tickets; last-Admin
+                  guard.
+                </td>
+              </tr>
+              <tr>
+                <td><b>Reversible &amp; safe</b></td>
+                <td>
+                  Records authorization, not execution; the sheet stays your source of
+                  truth; test lanes for rehearsal.
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <div class="beat">
+            <h3>
+              <span class="bn">9.3</span> If they ask “what’s <i>not</i> here yet?” —
+              answer honestly
+            </h3>
+            <div class="row">
+              <span class="tag t-tip">Tip</span>
+              <div class="body">
+                <p>
+                  Being candid about the roadmap builds more trust than pretending it’s
+                  all done. Frame each as a deliberate “shipped when it’s safe,” not a
+                  gap.
+                </p>
+              </div>
+            </div>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “A few things are deliberately staged for the next phase: in-app
+                  <b>connect-and-save wizards</b> (today connecting a system is a quick
+                  setup on our side), a tenant-facing <b>public maintenance form</b>,
+                  <b>photo attachments</b> on tickets, <b>live vendor invites</b> (the
+                  test-vendor path is fully built), and an <b>onboarding gate</b> so new
+                  hires get zero access until you assign them. These are designed and
+                  prioritized — we ship each one when it’s verified, not before.”
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-tip">Tip</span>
+              <div class="body">
+                <p>
+                  One cosmetic thing you may still see and can wave off: a placeholder
+                  name “Dan” in a couple of sample drafts — on the cleanup list, doesn’t
+                  affect behavior. (The old “V1 application…” topline banner has now been
+                  removed.)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">9.4</span> The ask</h3>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  “I’d love to point this at <b>your</b> real renewal window and one
+                  <b>real</b> maintenance thread in a follow-up, so you can watch it work
+                  on your own data — with the same guardrails you saw today. What would
+                  make that the most useful next session for you?”
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- ============================================================= APPENDICES -->
+        <section class="act" id="bank">
+          <div class="act-head">
+            <span class="act-num">REF</span>
+            <h2>Copy/paste bank</h2>
+          </div>
+          <p class="act-sub">
+            Every input from the script in one place, so you can grab them fast mid-demo.
+          </p>
+          <div class="beat">
+            <div class="copy">
+              <div class="lbl">Ask — the honesty foundation, no-source (1.2)</div>
+              <pre>When does the lease renewal process start?</pre>
+              <button>Copy</button>
+            </div>
+            <div class="copy">
+              <div class="lbl">Ask — grounded, cited answer (1.3)</div>
+              <pre>What is the lease renewal workflow?</pre>
+              <button>Copy</button>
+            </div>
+            <div class="copy">
+              <div class="lbl">Ask — process auto-detect + test run (1.4)</div>
+              <pre>broken hvac needs repair</pre>
+              <button>Copy</button>
+            </div>
+            <div class="copy">
+              <div class="lbl">Renewal — High-conflict resolution reason (3.4)</div>
+              <pre>
+RentVine is our system of record for rent; the sheet value was stale. Confirmed the $1,400 figure against the current lease.</pre
+              >
+              <button>Copy</button>
+            </div>
+            <div class="copy">
+              <div class="lbl">Approval — high-risk reason (4.3)</div>
+              <pre>
+Confirmed the amount and recipient with the owner by phone on 2026-07-20; approving for execution.</pre
+              >
+              <button>Copy</button>
+            </div>
+            <div class="copy">
+              <div class="lbl">Maintenance — issue (5.1)</div>
+              <pre>
+kitchen faucet leaking under the sink, cabinet floor is getting wet</pre
+              >
+              <button>Copy</button>
+            </div>
+            <div class="copy">
+              <div class="lbl">Maintenance — close reason (5.3)</div>
+              <pre>
+Vendor replaced the supply line and confirmed no further leak; tenant notified.</pre
+              >
+              <button>Copy</button>
+            </div>
+            <div class="copy">
+              <div class="lbl">Admin — role-change reason (8.2)</div>
+              <pre>
+Promoting to Approver to cover renewal approvals while the lead is out next week.</pre
+              >
+              <button>Copy</button>
+            </div>
+            <div class="copy">
+              <div class="lbl">Admin — space-access reason (8.3)</div>
+              <pre>
+Maintenance coordinator — should only see the maintenance desk this quarter.</pre
+              >
+              <button>Copy</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="act" id="safecard">
+          <div class="act-head">
+            <span class="act-num">REF</span>
+            <h2>Demo-safety quick card</h2>
+          </div>
+          <div class="beat">
+            <div class="callout safety">
+              <div class="h">⛔ Do NOT click these live (unless on data you own)</div>
+              <ul style="margin: 0.3em 0">
+                <li>
+                  <b>Renewal → Live notices → “Create Gmail draft”</b> — makes a real
+                  (unsent) draft against real tenant data. Preview only.
+                </li>
+                <li>
+                  <b>Communications → “Send exact linked reply”</b> (tick + send) — the
+                  only real send. Describe the confirmation card; don’t send.
+                </li>
+              </ul>
+            </div>
+            <div class="callout tip">
+              <div class="h">✅ 100% safe to click live</div>
+              <p style="margin: 0.3em 0">
+                Ask box (all of Act 1) · Spaces · the Renewal <b>desk</b>, lease
+                workspaces, and the <b>synthetic reconciliation run</b> (resolve/approve
+                write governance records only, never the sheet) · the whole
+                <b>Approval Queue</b> · Maintenance <b>test</b> tickets, capture,
+                status/close, test-vendor handoff, intake triage · the
+                <b>Anticipatory draft</b> composer, template eval, thread summary,
+                simulated chain (all draft/ read-only) · Notifications · Admin roles &amp;
+                scopes, audit panels, Test-vendor provisioning · Connections
+                <b>Verify</b> (read-only probe) · Report an issue.
+              </p>
+            </div>
+            <div class="callout tip">
+              <div class="h">▶ Notes &amp; fallbacks</div>
+              <ul style="margin: 0.3em 0">
+                <li>
+                  <b>Ask knowledge base:</b> the Lease Renewals space has sample SOP
+                  content loaded, so a well-matched question —
+                  <b>“What is the lease renewal workflow?”</b> — grounds to a green
+                  “Verified Source” (verify it once before the call). Questions the
+                  content doesn’t cover, and every other space, honestly return
+                  <b>“No Reliable Source Found.”</b> Loading your real approved SOPs
+                  widens coverage.
+                </li>
+                <li>
+                  <b>Voice dictation</b> (Ask &amp; Maintenance) needs a real mic on
+                  <b>Chrome</b> — demo only if you’ve tested it; otherwise just mention
+                  it.
+                </li>
+                <li>
+                  <b>Idle timeout</b> is 28 min warning / 30 min sign-out — describe it,
+                  don’t wait for it.
+                </li>
+                <li>
+                  <b>Scoped-nav</b> changes take effect on the teammate’s
+                  <b>next sign-in</b> — mention rather than wait.
+                </li>
+                <li>
+                  If the <b>Approval Queue is empty</b>, narrate the flow from the detail
+                  panel; the buttons and gates still demonstrate.
+                </li>
+                <li>
+                  Everything is on the <b>production</b> build — say so; it’s a real
+                  running system, not a mockup.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <footer>
+          <p>
+            PMI KC KB — customer demo walkthrough · generated 2026-07-21 · derived from
+            the internal per-process QA walkthrough. Exact on-screen strings are quoted
+            verbatim; the app’s copy is the source of truth if anything drifts. Print to
+            PDF for an offline call sheet (the sidebar and copy buttons are hidden in
+            print).
+          </p>
+        </footer>
+      </main>
+    </div>
+
+    <script>
+      // Click-to-copy for every .copy block
+      document.querySelectorAll(".copy").forEach(function (box) {
+        var btn = box.querySelector("button");
+        var pre = box.querySelector("pre");
+        if (!btn || !pre) return;
+        btn.addEventListener("click", function () {
+          var text = pre.textContent;
+          var done = function () {
+            var old = btn.textContent;
+            btn.textContent = "Copied ✓";
+            btn.classList.add("done");
+            setTimeout(function () {
+              btn.textContent = old;
+              btn.classList.remove("done");
+            }, 1400);
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () {
+              fallback(text);
+              done();
+            });
+          } else {
+            fallback(text);
+            done();
+          }
+        });
+      });
+      function fallback(text) {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand("copy");
+        } catch (e) {}
+        document.body.removeChild(ta);
+      }
+    </script>
+  </body>
+</html>

@@ -195,7 +195,7 @@ export function VendorAdminPanel({
       setDisablePreview(null);
       setResetReason("");
       setMessage(
-        "Test Vendor authentication reset. A new one-time setup link is shown below; the app did not deliver it externally.",
+        "Test Vendor authentication reset. A new one-time setup link is shown below and stays inside the app for you to open.",
       );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Authentication reset failed.");
@@ -217,7 +217,7 @@ export function VendorAdminPanel({
       setRegenerateReason("");
       await refresh();
       setMessage(
-        "A new one-time Test Vendor setup link is shown below. The app did not deliver it externally.",
+        "A new one-time Test Vendor setup link is shown below and stays inside the app for you to open.",
       );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Regeneration failed.");
@@ -270,7 +270,7 @@ export function VendorAdminPanel({
       <p>
         Provision the canonical non-routable Test Vendor to use the real Firebase
         password/TOTP, assignment, disable/revoke, and portal lifecycle. Test mailbox
-        writes stay inside the app and never count as live-provider evidence.
+        writes stay inside the app as Test-only evidence.
       </p>
 
       <div className="panel">
@@ -324,8 +324,8 @@ export function VendorAdminPanel({
             <h3>One-time password setup link</h3>
             <p>
               This secret-bearing link is shown only from the confirmed response and is
-              not stored, emailed, or otherwise delivered by the app. Open it directly
-              now; Firebase consumes the action code once.
+              kept only on this screen for you to open now. Open it directly now; Firebase
+              consumes the action code once.
             </p>
             <p>
               <strong>
@@ -353,7 +353,7 @@ export function VendorAdminPanel({
             <h4>Lifecycle audit</h4>
             <p className="muted">
               Bodyless action history only. Identity values, reasons, setup links, TOTP
-              material, mailbox content, and ticket content are never displayed.
+              material, and mailbox and ticket content stay hidden.
             </p>
             <button
               className="secondary-button"
@@ -388,8 +388,8 @@ export function VendorAdminPanel({
               <h4>Replace an expired or closed setup link</h4>
               <p>
                 Generate a new one-time Firebase password-setup link only after reviewing
-                the exact Test identity effect. The app does not email or deliver the
-                link.
+                the exact Test identity effect. The link stays on this screen for you to
+                open.
               </p>
               <label>
                 Setup-link regeneration reason
@@ -447,7 +447,7 @@ export function VendorAdminPanel({
             </p>
             <p>
               Isolated Test tickets and app-only mailbox data are preserved. The reset
-              performs no external delivery or provider call and is never Live evidence.
+              stays entirely inside the app as Test-only evidence.
             </p>
             <label>
               Authentication-reset reason

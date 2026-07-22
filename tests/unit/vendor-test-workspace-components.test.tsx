@@ -190,7 +190,7 @@ describe("Vendor production Test workspace UI", () => {
     );
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent("shown only from the confirmed response");
-    expect(alert).toHaveTextContent("not stored, emailed, or otherwise delivered");
+    expect(alert).toHaveTextContent("kept only on this screen for you to open now");
     expect(alert).toHaveTextContent("Never paste, share, copy, save, log, or send");
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
@@ -237,9 +237,8 @@ describe("Vendor production Test workspace UI", () => {
         screen.getByText(/Test tickets and app-only mailbox data are preserved/i),
       ).toBeInTheDocument();
       expect(
-        screen.getByText(/no external delivery or provider call/i),
+        screen.getByText(/stays entirely inside the app as Test-only evidence/i),
       ).toBeInTheDocument();
-      expect(screen.getByText(/never Live evidence/i)).toBeInTheDocument();
     },
   );
 

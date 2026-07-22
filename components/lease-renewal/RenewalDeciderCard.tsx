@@ -383,8 +383,8 @@ export function RenewalDeciderCard({
       {canApproveWithOneTap ? (
         <div className="lr-decider-follow-on">
           <p className="muted">
-            The resolution is saved. Approval is a separate audited decision; nothing is
-            written to the Sheet.
+            The resolution is saved. Approval is a separate audited decision; the Sheet
+            write stays gated.
           </p>
           <Button
             disabled={submitting !== null}

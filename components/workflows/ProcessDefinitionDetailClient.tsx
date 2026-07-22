@@ -298,14 +298,14 @@ export function ProcessDefinitionDetailClient({
             malware, sensitivity, source, graph, and action-reference checks pass.
           </p>
           <p className="muted">
-            Publication does not enable an external action or widen any role.
+            Publication keeps every external action and role exactly as they are.
           </p>
         </section>
 
         <section className="panel">
           <h2>Test run</h2>
           <p className="muted">
-            Test runs created here are not live and excluded from production metrics.
+            Test runs created here stay in Test and are kept out of production metrics.
           </p>
           <label>
             Due date

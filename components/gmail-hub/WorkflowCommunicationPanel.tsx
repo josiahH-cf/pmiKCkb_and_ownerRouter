@@ -589,8 +589,8 @@ export function WorkflowCommunicationPanel({
                     </>
                   )}
                   <p className="muted">
-                    Proposal only. Nothing was persisted and no workflow or external
-                    system was changed.
+                    Proposal only. This preview stays in the browser; workflows and
+                    external systems change only when you act.
                   </p>
                 </div>
               ) : null}

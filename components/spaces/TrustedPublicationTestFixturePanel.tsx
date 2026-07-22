@@ -113,8 +113,8 @@ export function TrustedPublicationTestFixturePanel({
       <div className="ui-stack">
         <p className="muted">
           TEST only. The server accepts two compiled, hash-locked fixture revisions and no
-          uploaded content. This proves app publication and rollback mechanics; it does
-          not claim a Live malware scanner or provider activation.
+          uploaded content. This proves app publication and rollback mechanics, with
+          scanning and provider activation stubbed for Test.
         </p>
         <button
           className="secondary-button"

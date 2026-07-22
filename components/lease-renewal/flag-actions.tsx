@@ -336,7 +336,7 @@ function ResolutionConfirmationDialog({
         <h2 id="resolution-confirm-title">Confirm {severity} resolution</h2>
         <p id="resolution-confirm-description">
           Resolve <strong>{fieldLabel}</strong> using “{kindLabel}”? This records the
-          decision and its reason, but does not execute a write-back.
+          decision and its reason, and keeps the write-back a separate, gated step.
         </p>
         <div className="field-row">
           <button ref={cancelRef} disabled={submitting} onClick={onCancel} type="button">
@@ -383,7 +383,7 @@ export function WritebackProposalCard({
         <p className="muted">{proposal.rationale}</p>
       )}
       <p className="muted">
-        Suggestion only: appended to a new column, never overwrites an existing cell; not
+        Suggestion only: appends to a new column and keeps existing cells intact; not
         executed here (writing to the operating Sheet needs an approved action spec).
       </p>
       {ready && !queued ? (
@@ -518,8 +518,7 @@ export function WritebackApprovalControl({
           </div>
           <p className="muted">
             Approving records your authorization for the future append-only Sheet write.
-            It is not executed here. The write itself stays gated behind an approved
-            action spec.
+            The write itself stays gated behind an approved action spec.
           </p>
         </div>
       ) : (

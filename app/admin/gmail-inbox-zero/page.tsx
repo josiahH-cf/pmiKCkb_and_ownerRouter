@@ -62,7 +62,7 @@ export default async function GmailInboxZeroAdminPage() {
             <p className="muted">
               Open Workflow Communications to verify the signed-in user&apos;s own Gmail
               authorization, inspect bodyless workflow attention, and start or renew the
-              targeted reply watch. Unrelated inbox content is not shown.
+              targeted reply watch. The desk shows only workflow-linked messages.
             </p>
           </article>
           <article className="panel">

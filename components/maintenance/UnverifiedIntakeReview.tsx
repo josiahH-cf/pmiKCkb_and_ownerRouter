@@ -90,8 +90,9 @@ export function UnverifiedIntakeReview({
       <h2 className="section-subtitle">Unverified intake ({intake.length})</h2>
       <p className="muted">
         Reports submitted through a public intake link. Review each, then promote it to a
-        mode-matched tracked ticket or dismiss it. Test intake can only create the
-        canonical invented Test ticket; it can never create a Live ticket.
+        mode-matched tracked ticket or dismiss it. Test intake produces only the canonical
+        invented Test ticket and stays in the Test plane; it can never create a Live
+        ticket.
       </p>
       {intake.length === 0 ? (
         <p className="muted">No unverified intake right now.</p>

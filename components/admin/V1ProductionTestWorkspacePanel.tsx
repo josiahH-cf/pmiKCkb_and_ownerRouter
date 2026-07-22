@@ -96,7 +96,8 @@ export function V1ProductionTestWorkspacePanel() {
           <h2 id="v1-production-test-title">V1 Production Test Workspace</h2>
           <p className="muted">
             Run the real application workflow against isolated in-memory Test adapters and
-            invented aliases. No customer record or external provider is contacted.
+            invented aliases. Every record and provider it touches is an isolated Test
+            stand-in.
           </p>
         </div>
         <span className="review-pill" data-testid="v1-production-test-badge">
@@ -107,8 +108,8 @@ export function V1ProductionTestWorkspacePanel() {
       <div className="notice">
         <strong>Evidence boundary</strong>
         <p className="muted">
-          A passing run counts as V1 application workflow evidence. It cannot activate a
-          provider, satisfy Live-provider proof, or be reported as a Live write.
+          A passing run counts as V1 application workflow evidence. Provider activation,
+          Live-provider proof, and Live writes stay separate Live steps.
         </p>
       </div>
 
@@ -176,8 +177,8 @@ function WorkspaceResults({
       <details>
         <summary>Test adapter operations ({result.providerOperations.length})</summary>
         <p className="muted">
-          These names describe isolated Test-adapter operations. They are not
-          Live-provider calls or Live-provider evidence.
+          These names describe isolated Test-adapter operations; each one stays a
+          Test-adapter call and counts only as Test-only evidence.
         </p>
         <ul className="compact-list">
           {result.providerOperations.map((operation) => (

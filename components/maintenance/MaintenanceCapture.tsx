@@ -410,7 +410,9 @@ export function MaintenanceCapture({
             {ownerNotice ? (
               <section aria-label="Owner notice draft">
                 <h3>Owner notice: draft</h3>
-                <p className="muted">Draft only: no send; a human reviews and sends.</p>
+                <p className="muted">
+                  Draft only. A person reviews and sends every owner notice from Gmail.
+                </p>
                 <p>
                   <strong>{ownerNotice.subject}</strong>
                 </p>

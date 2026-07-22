@@ -70,8 +70,9 @@ export function SimulatedEmailChain() {
         <div>
           <h2>Simulated email chain</h2>
           <p className="muted">
-            Demo only. Replies stay in this browser tab; no Gmail API, mailbox, database,
-            or external delivery is involved. Refreshing the page resets the thread.
+            Demo only. Every reply stays in this browser tab, and refreshing the page
+            resets the thread; the whole exchange stays inside your browser, with no Gmail
+            API, mailbox, database, or external delivery behind it.
           </p>
         </div>
         <span className="queue-pill" data-value="Available">

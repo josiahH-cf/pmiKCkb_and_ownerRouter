@@ -328,8 +328,8 @@ function WritebackBulkDecisionBar({
           </button>
         </div>
         <p className="muted">
-          Approving records your authorization for the future append-only Sheet write.
-          Nothing is written to the Sheet here.
+          Approving records your authorization for the future append-only Sheet write. The
+          append-only Sheet write happens later, outside this screen.
         </p>
       </div>
       {outcomes ? (

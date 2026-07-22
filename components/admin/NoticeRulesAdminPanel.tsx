@@ -70,7 +70,7 @@ export function NoticeRulesAdminPanel({
       <p className="muted">
         The renewal timing the app uses for reminders and follow-ups. Confirm the values
         to clear the Needs Verification note on the renewal desk. This records the app
-        timing rules only and never sends anything.
+        timing rules only; sending stays a separate human step.
       </p>
       {note ? <p className="muted">{note}</p> : null}
       <form

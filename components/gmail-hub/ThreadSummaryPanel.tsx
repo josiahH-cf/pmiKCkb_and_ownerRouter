@@ -51,7 +51,8 @@ export function ThreadSummaryPanel() {
       <h2>Thread summary</h2>
       <p className="muted">
         Paste sanitized thread text to get a summary, who it is waiting on, and a
-        suggested next action. No mailbox is read and nothing here can send.
+        suggested next action. This panel reads only the text you paste; sending stays a
+        human step in Gmail.
       </p>
       <label className="field">
         <span>Thread text</span>

@@ -131,8 +131,8 @@ export default async function LeaseRenewalRunPage({
           <h2 className="section-subtitle">Renewal communication</h2>
           <p className="muted">
             This run is Test-only. Owner and tenant message actions use internal Test
-            receipts; no Live Gmail thread can be loaded, linked, drafted, labeled, or
-            sent from this run.
+            receipts; every load, link, draft, label, and send here stays on those Test
+            receipts inside this run, and Live Gmail stays untouched.
           </p>
         </article>
       </section>

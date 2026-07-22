@@ -33,7 +33,8 @@ export function WritebackQueuePanel({
         {queue.counts.total === 1 ? "" : "s"} across all runs:{" "}
         {queue.counts.awaitingApproval} awaiting approval · {queue.counts.approved}{" "}
         approved (ready to write, not executed) · {queue.counts.returned} returned.
-        Approve or return each on its run page. Nothing is written to the sheet here.
+        Approve or return each on its run page. Sheet writes stay gated behind an approved
+        action.
       </p>
 
       {queue.groups.map((group) => (

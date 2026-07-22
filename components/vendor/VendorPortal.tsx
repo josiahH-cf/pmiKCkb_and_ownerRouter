@@ -60,7 +60,7 @@ export function VendorPortal({
         {isTest ? (
           <p>
             Open an assigned ticket to draft, label, review, and confirm simulated
-            replies. The Test provider cannot call Gmail or OAuth.
+            replies. The Test provider is sandboxed from Gmail and OAuth.
           </p>
         ) : (
           <p>

@@ -14,9 +14,8 @@ export function TestOperationalHandoffPanel({
       <div>
         <h2>{title}</h2>
         <p className="muted">
-          Read-only bodyless projections from the owning Test record. These cards share
-          one run or ticket identity across surfaces and never prove a Live provider or
-          real-world outcome.
+          Read-only bodyless projections from the owning Test record. These cards mirror
+          one Test run or ticket identity across surfaces and stand as Test-only evidence.
         </p>
       </div>
       {handoffs.length === 0 ? (

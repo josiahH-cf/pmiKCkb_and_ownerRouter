@@ -67,7 +67,9 @@ describe("V1 production Test workspace Admin panel", () => {
       "TEST · non-Live",
     );
     expect(
-      screen.getByText(/cannot activate a provider, satisfy Live-provider proof/i),
+      screen.getByText(
+        /Provider activation, Live-provider proof, and Live writes stay separate Live steps/i,
+      ),
     ).toBeInTheDocument();
     const safety = screen.getByLabelText("Test workspace safety boundary");
     expect(within(safety).getByText("TEST")).toBeInTheDocument();

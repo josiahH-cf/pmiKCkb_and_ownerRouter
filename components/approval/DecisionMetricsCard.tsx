@@ -27,8 +27,8 @@ export function DecisionMetricsCard({ metrics }: Readonly<{ metrics: DecisionMet
     <section className="panel" aria-label="Decision metrics">
       <h2 className="section-subtitle">Decision metrics</h2>
       <p className="muted">
-        {metrics.total_decisions} decision(s) recorded. Counts only: no values leave the
-        run page.
+        {metrics.total_decisions} decision(s) recorded. Counts only: every value stays on
+        the run page.
       </p>
       <ul className="ui-rows">
         <li className="ui-spread">

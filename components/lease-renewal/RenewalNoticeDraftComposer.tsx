@@ -112,8 +112,8 @@ export function RenewalNoticeDraftComposer({ leaseId }: Readonly<{ leaseId: stri
           <h3 className="section-title">Renewal-notice draft</h3>
           <p className="muted">
             Composes an unsent Gmail draft from this lease’s live RentVine record. The
-            recipient comes from RentVine; you enter the offer. Nothing is sent. You
-            review and send it yourself in Gmail.
+            recipient comes from RentVine; you enter the offer. You review and send it
+            yourself in Gmail.
           </p>
         </div>
 

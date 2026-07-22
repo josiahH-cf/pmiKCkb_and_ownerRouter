@@ -65,8 +65,9 @@ export function LiveRenewalReview({
       />
 
       <p className="muted">
-        Live, read-only view of RentVine and the renewal sheet. Nothing here is sent and
-        no record is changed. Review each item, then make the fix at the source.
+        Live, read-only view of RentVine and the renewal sheet. This view only reads;
+        every send and record change happens at the source. Review each item, then make
+        the fix at the source.
       </p>
 
       {resolutionsError ? (
@@ -115,8 +116,8 @@ export function LiveRenewalReview({
 
       <Disclosure summary="Read details">
         <p className="muted">
-          One read-only RentVine export and one renewal-sheet read. This view performs no
-          write and carries production_allowed:{" "}
+          One read-only RentVine export and one renewal-sheet read. This view only reads
+          and carries production_allowed:{" "}
           <strong>{String(meta.productionAllowed)}</strong>.
         </p>
         <div className="ui-metric-grid">

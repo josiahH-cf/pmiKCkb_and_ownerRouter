@@ -359,8 +359,8 @@ export function AskForm({
 
           {willSimulate ? (
             <p className="muted">
-              Starting this process runs a test only. Nothing is sent, and nothing is
-              written to a system of record.
+              Starting this process runs a test only, kept inside the app. Any real send
+              or system-of-record write stays a separate, human step.
             </p>
           ) : null}
 

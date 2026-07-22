@@ -34,7 +34,7 @@ export const SAMPLE_LABEL_RULES: readonly LabelRule[] = [
     id: "rule-owner-money-holdback",
     label: "Dan Decision",
     plain_english:
-      "Owner money threads go to Dan for a decision — label only, never auto-draft.",
+      "Owner money threads go to Dan for a decision; the app only labels them, and a person writes any draft.",
     criteria: { category: "owner_money" },
     match_kind: "exact",
     status: "Approved",

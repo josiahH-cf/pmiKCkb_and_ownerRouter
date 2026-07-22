@@ -8,7 +8,7 @@ import type {
 
 // Permanent, honest posture: the lane is computed on Console load, never on a timer, and never executes.
 export const ANTICIPATION_CAPTION =
-  "Computed on request · this never runs on a schedule and never sends.";
+  "Computed on request · it runs only when you open the Console, and a person sends every message.";
 export const ANTICIPATION_ALL_CLEAR = "All clear. Nothing is coming up right now.";
 
 const URGENCY_LABEL: Record<AnticipatedUrgency, string> = {

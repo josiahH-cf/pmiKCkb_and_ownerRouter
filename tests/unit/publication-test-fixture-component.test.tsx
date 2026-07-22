@@ -46,7 +46,7 @@ describe("TrustedPublicationTestFixturePanel", () => {
     await user.click(screen.getByText("Trusted publication Test fixture"));
     expect(screen.getByText(/hash-locked fixture revisions/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/does not claim a Live malware scanner/i),
+      screen.getByText(/scanning and provider activation stubbed for Test/i),
     ).toBeInTheDocument();
     await user.click(
       screen.getByRole("button", { name: "Inspect Test publication fixture" }),

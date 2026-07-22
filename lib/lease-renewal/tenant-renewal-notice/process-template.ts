@@ -32,7 +32,7 @@ const TENANT_RENEWAL_NOTICE_STEPS: ReadonlyArray<{
   {
     title: "Gather facts",
     description:
-      "Read the renewal facts (lease end date, owner-approved offered rent, any RBP/insurance charges, the info-gathering form link). Missing facts render as visible Needs-Verification markers, never invented.",
+      "Read the renewal facts (lease end date, owner-approved offered rent, any RBP/insurance charges, the info-gathering form link). Missing facts render as visible Needs-Verification markers, so the app uses only verified facts.",
   },
   {
     title: "Compose tenant offer draft",
@@ -67,7 +67,7 @@ export function buildTenantRenewalNoticeProcessTemplate(
   return {
     name: "Tenant Renewal Notice + Dotloop Follow-Up",
     short_outcome:
-      "Prepare source-backed email, Portal Chat, SMS, and Dotloop actions; execute only individually enabled, exact-confirmed or Admin-approved actions, never an autonomous send.",
+      "Prepare source-backed email, Portal Chat, SMS, and Dotloop actions; execute only individually enabled actions after exact human confirmation or Admin approval; a person sends every message.",
     trigger:
       "Manual start by a team member when an owner-approved renewal offer is ready to send to the tenant.",
     owner_uid: options.ownerUid,

@@ -48,8 +48,8 @@ export function ConnectorCard({
               <div className="ui-stack">
                 <p>
                   <strong>How this connects:</strong> {connectLabel}. This is set up
-                  securely on the server; there is no credential form or sign-in on this
-                  page.
+                  securely on the server; sign-in and any credentials stay in the server
+                  setup flow, and this page shows connection status.
                 </p>
                 {verifiable ? null : (
                   <p className="muted">
