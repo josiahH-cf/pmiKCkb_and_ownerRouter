@@ -7,19 +7,24 @@ context, and recommendations, read `docs/whats-next.md`.
 ## Snapshot
 
 - Last updated: 2026-07-22.
-- **QUEUED NEXT (outside model): the adversarial UI/UX + browser functional pass, then the demo
-  test-script rewrite** — runbook `docs/overnight-build-run-2026-07-22.md` **Slice 11** (adversarial
-  browser QA of every shipped flow on emulators, read-only vs live RentVine/Sheet, fix bugs at source)
-  and **Slice 12** (rewrite `docs/customer-demo-walkthrough-2026-07-21.html` into a morning test script
-  with verified click-paths + expected results). The build below is done; this pass verifies it and
-  produces the doc the owner walks tomorrow. After it: re-gate → ff-merge → build → push → best-effort
-  deploy.
-- **The 2026-07-22 overnight build cycle is COMPLETE and DEPLOYED.** All 11 slices in
-  `docs/overnight-build-run-2026-07-22.md` landed and the four must-haves (comp basis + Zillow, KB
-  answer transparency, maintenance owner-notice draft, add-a-Space intake) all shipped. Per-slice
-  detail is in the dated `docs/status.md` entry and `F-OVERNIGHT-RUN-2026-07-22`. `main` and
-  `ui-ux-overhaul` are aligned + pushed at `7663cec`; working trees clean.
-- **Production serves the new build.** Cloud Run `pmi-kc-kb-demo` serves `main` at `7663cec` as
+- **The adversarial browser QA + demo test-script pass is COMPLETE (2026-07-22; Slices 11-12).** Slice
+  11 drove the actual app on emulators (Firestore :8090 + Auth :9099, demo Admin), read-only vs the
+  live-connected RentVine/Sheet: **every shipped flow verified PASS, zero console errors**; the
+  comp-basis live walk was safely BLOCKED (the demo session could not authenticate the live RentVine
+  read, so no customer PII was exposed) and its logic is unit-verified. One bug fixed at source (F1:
+  the `seed-action-registry` executable allow-list omitted the Slice 6 maintenance-draft flip, so
+  `seed:action-registry` refused) plus a regression test. Slice 12 rewrote
+  `docs/customer-demo-walkthrough-2026-07-21.html` into a verified morning test script.
+  (`F-OVERNIGHT-QA-2026-07-22`.) `main` = `ui-ux-overhaul` = `464ebf9`, pushed, clean.
+- **Redeploy of `464ebf9` DEFERRED — the ADC token went stale mid-pass** (`invalid_rapt`; reauth is
+  interactive-only, the agent cannot). It is **runtime-identical** to the serving build: the F1 fix is
+  a CLI seed-script change and docs are not served, so production is correct and QA-verified as-is. AM
+  owner step: `npm run auth:session` then `npm run deploy -- --budget-confirmed --allow-multiple-spaces`
+  to align the serving commit to `464ebf9`.
+- **The 2026-07-22 overnight build cycle is COMPLETE.** All 11 build slices + the four must-haves (comp
+  basis + Zillow, KB answer transparency, maintenance owner-notice draft, add-a-Space intake) shipped;
+  per-slice detail is in `docs/status.md` and `F-OVERNIGHT-RUN-2026-07-22`.
+- **Production serves the QA-verified build.** Cloud Run `pmi-kc-kb-demo` serves commit `7663cec` as
   revision `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7` at 100% traffic (owner-authorized unattended
   `npm run deploy -- --budget-confirmed --allow-multiple-spaces`, fresh ADC, 2026-07-22). Verified:
   `vertex spaces:11`, `drive folders:11`, `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED:true`,
@@ -77,25 +82,22 @@ documented endpoint; Slice 10 Dotloop gated OFF pending the owner's OAuth app.
 
 ## Goal
 
-The 2026-07-22 overnight BUILD cycle is COMPLETE and deployed (`7663cec`, revision `rmrwmk2kn`); all
-four must-have slices plus the approved remainder shipped and every safety invariant held. The QUEUED
-next work (outside model) is the **adversarial UI/UX + browser functional pass then the demo
-test-script rewrite** — runbook Slices 11–12 — verifying the shipped app in a browser (read-only vs
-live data), fixing any bug at source, and producing the morning test-script walkthrough. After that
-pass: re-gate → ff-merge → build in primary → push → best-effort deploy. The deferred owner AM steps
-(Sheets write scope, RentVine endpoint, Dotloop auth) remain owner-gated; the broader backlog is
-`docs/whats-next.md`.
+The 2026-07-22 overnight BUILD cycle AND the adversarial browser-QA + demo test-script pass (Slices
+11-12) are both COMPLETE. Every shipped flow was verified PASS in a browser (read-only vs live data),
+one bug (F1) was fixed at source, and the customer-demo walkthrough is now a verified morning test
+script. `main` = `ui-ux-overhaul` = `464ebf9`, pushed, clean; production serves the QA-verified
+`7663cec` (`rmrwmk2kn`). The redeploy of `464ebf9` is deferred (ADC token went stale). The owner AM
+steps are below; the broader backlog is `docs/whats-next.md`.
 
 ## Next Exact Actions
 
-0. **Run the adversarial + demo-script pass (outside model, QUEUED).** Follow runbook
-   `docs/overnight-build-run-2026-07-22.md` Slice 11 (adversarial browser QA on emulators — Firestore
-   :8090, Auth :9099 REQUIRED; read-only vs live RentVine/Sheet; fix bugs at source via worktree →
-   gate → ff-merge) and Slice 12 (rewrite `docs/customer-demo-walkthrough-2026-07-21.html` into a
-   verified morning test script). Then re-gate → ff-merge → build in primary → push → `preflight:adc`
-   → deploy if fresh, else defer.
+0. **Redeploy `464ebf9` (deferred — ADC token stale).** `npm run auth:session`, then
+   `npm run deploy -- --budget-confirmed --allow-multiple-spaces`; verify `vertex spaces:11` + the
+   writeback flag and capture the rollback revision. It is runtime-identical to the serving build (the
+   F1 fix is a CLI seed-script change; docs are not served), so this only aligns the serving commit to
+   `464ebf9` — production is already QA-verified.
 
-The remaining items are owner AM steps (the unattended run left them for a human).
+The remaining items are owner AM steps.
 
 1. **Verify + optionally roll back the deploy.** Production serves `7663cec` on revision
    `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7`. Spot-check the new surfaces (comp basis on a live renewal,

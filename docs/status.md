@@ -11,6 +11,49 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Adversarial browser QA + demo test-script (2026-07-22; Slices 11-12)
+
+Verified the deployed 2026-07-22 build by driving the actual app on emulators (Firestore :8090 + Auth
+:9099, demo Admin, dev server :3000, `ASK_DEMO_MODE=true`), read-only against the live-connected
+RentVine/Sheet. Zero console errors. `main` = `ui-ux-overhaul` = `464ebf9`, pushed.
+
+**PASS/FAIL (Slice 11):**
+
+- Auth boundary — PASS. Unauth `/`→307; `/sign-in` renders (Google + demo + pmikcmetro.com note);
+  demo Editor → 403 on every admin API.
+- KB answer transparency — PASS. `/api/ask` returns `answered_by:{model:"Gemini 2.5 Flash",source_count:1}`;
+  the Console renders "Answered by Gemini 2.5 Flash · 1 source".
+- KB source freshness — PASS (graceful). The demo source has no review date, so none is shown (never
+  fabricated); render-when-present is unit-verified.
+- Maintenance owner-notice draft — PASS. `/maintenance` has NO send affordance anywhere; draft/intake only.
+- Add-a-Space — PASS. Persists; emits the real Discovery Engine create command + `.env.local` lines that
+  preserve all 11 existing Spaces and merge the new one; Admin-only (non-Admin → 403).
+- Re-index (cost-gated) — PASS. Button disabled until confirm; API refuses without confirm (400) and only
+  ever returns the command (never ingests); Admin-only.
+- RentVine write-back — PASS (gated off). Reconciliation states "no live read, no write, and no
+  system-of-record update"; suggestion-only proposals; no execute control.
+- Dotloop connect — PASS. "Authorize in the morning" note; connect → `credentials_not_configured` (no
+  live call).
+- Comp basis (Slice 3) — UNIT-VERIFIED; live browser BLOCKED. The comp form + sourcing + Zillow link +
+  write-back proposal are unit-green. The live workspace's RentVine read returned "Live read couldn't
+  authenticate" in the demo session (a session/live-auth limitation, the safe outcome — no PII exposed);
+  owner walks it on a real signed-in session.
+- Dark mode — N/A (app is light-only by design; no dark-mode CSS; unchanged by the run). Console errors — zero.
+
+**Fix shipped:** F1 — `scripts/seed-action-registry.ts` `EXECUTABLE_ALLOWLIST` was missing
+`gmail.maintenance_owner_notice.draft_create` (the Slice 6 flip), so `seed:action-registry` refused.
+Added the key + `tests/unit/seed-action-registry-allowlist.test.ts` (fails on any future un-allow-listed
+flip). Live gate unaffected (app reads the committed seed). Committed `464ebf9`.
+
+**Slice 12:** rewrote `docs/customer-demo-walkthrough-2026-07-21.html` new-build section into a verified
+morning test script (per feature: Where / Say / Do / Verify + the PASS result). `F-OVERNIGHT-QA-2026-07-22`.
+
+**Deploy: DEFERRED.** Full gate green (2,698 tests / 374 files; typecheck; lint 0 errors; prettier;
+copy-voice/falsification/context/spec; primary build). `preflight:adc` went stale (`invalid_rapt`) before
+deploy, so the redeploy of `464ebf9` is deferred. It is runtime-identical to the serving build
+(`7663cec` / `rmrwmk2kn`), so production is correct and QA-verified as-is. AM: `npm run auth:session` +
+`npm run deploy -- --budget-confirmed --allow-multiple-spaces`.
+
 ## Overnight build cycle 2026-07-22 — 11 slices shipped + deployed
 
 Ran the decision-complete runbook `docs/overnight-build-run-2026-07-22.md` (owner-authorized via the
