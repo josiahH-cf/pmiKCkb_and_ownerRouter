@@ -165,6 +165,37 @@ describe("AskForm (action console)", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows a source's last-reviewed date when present and omits it when absent (Slice 5)", async () => {
+    const user = userEvent.setup();
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) =>
+      String(input).includes("/api/ask")
+        ? jsonResponse({
+            ...ANSWER,
+            citations: [
+              {
+                source_id: "s1",
+                title: "Reviewed SOP",
+                url: "https://drive.example/s1",
+                last_reviewed_at: "2026-05-01T00:00:00.000Z",
+              },
+              { source_id: "s2", title: "Unreviewed SOP", url: "https://drive.example/s2" },
+            ],
+          })
+        : jsonResponse({}, false),
+    );
+    render(<AskForm />);
+
+    await user.type(screen.getByLabelText(/Question/), "How do renewals work?");
+    await user.click(screen.getByRole("button", { name: "Get answer" }));
+
+    expect(await screen.findByText("Reviewed SOP")).toBeInTheDocument();
+    expect(screen.getByText(/reviewed 2026-05-01/)).toBeInTheDocument();
+    // The unreviewed source shows no review date (guard against matching "Unreviewed" itself).
+    expect(screen.getByText("Unreviewed SOP").closest("li")?.textContent).not.toMatch(
+      /reviewed \d{4}/,
+    );
+  });
+
   it("asks without a process and never starts a simulation", async () => {
     const user = userEvent.setup();
     render(

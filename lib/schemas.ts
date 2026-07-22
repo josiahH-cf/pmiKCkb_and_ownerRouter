@@ -20,6 +20,9 @@ export const CitationSchema = z.object({
   title: z.string().min(1),
   url: z.string().url(),
   excerpt: z.string().optional(),
+  // KB freshness (Slice 5, D13): the source's existing sources_meta.last_reviewed_at, when present.
+  // Honest surfacing only — the UI shows "reviewed <date>"; absent when the source has no review date.
+  last_reviewed_at: z.string().optional(),
 });
 
 export const AskResponseSchema = z.object({

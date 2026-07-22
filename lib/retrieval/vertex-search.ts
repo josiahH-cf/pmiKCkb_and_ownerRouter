@@ -393,6 +393,12 @@ function withSourceMeta(
     ...source,
     approvalStatus: meta.approval_status,
     sensitivity: meta.sensitivity,
+    // Surface the existing review date on the citation so the Ask result can show "reviewed <date>"
+    // (Slice 5, D13). Only when present; never fabricated. toGroundedSearchResult maps source.citation
+    // into grounding.citations, and canonicalizeValidCitations returns those trusted citations verbatim.
+    citation: meta.last_reviewed_at
+      ? { ...source.citation, last_reviewed_at: meta.last_reviewed_at }
+      : source.citation,
   };
 }
 

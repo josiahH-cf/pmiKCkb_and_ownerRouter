@@ -195,6 +195,48 @@ describe("Vertex AI Search retrieval", () => {
     expect(result.sourceIds).toEqual(["drive-file-1", "drive-file-4"]);
     expect(result.confidence).toBe(0.9);
   });
+
+  it("surfaces the source's last_reviewed_at on its citation, and omits it when absent (Slice 5)", async () => {
+    const client = new FakeSearchClient([
+      {
+        document: resultDocument("drive-file-1", "Reviewed SOP"),
+        rankSignals: { relevanceScore: 0.9 },
+      },
+      {
+        document: resultDocument("drive-file-2", "Unreviewed SOP"),
+        rankSignals: { relevanceScore: 0.85 },
+      },
+    ]);
+    const sourceMetaReader = new FakeSourceMetaReader([
+      {
+        drive_file_id: "drive-file-1",
+        space_id: "lease-renewals",
+        approval_status: "Approved",
+        sensitivity: "Low",
+        last_reviewed_at: "2026-05-01T00:00:00.000Z",
+      },
+      {
+        drive_file_id: "drive-file-2",
+        space_id: "lease-renewals",
+        approval_status: "Approved",
+        sensitivity: "Low",
+      },
+    ]);
+    const retrieval = new VertexSearchRetrievalClient(config(), {
+      client,
+      sourceMetaReader,
+    });
+
+    const result = await retrieval.search({
+      question: "renewal?",
+      spaceId: "lease-renewals",
+    });
+
+    const reviewed = result.citations.find((c) => c.title === "Reviewed SOP");
+    const unreviewed = result.citations.find((c) => c.title === "Unreviewed SOP");
+    expect(reviewed?.last_reviewed_at).toBe("2026-05-01T00:00:00.000Z");
+    expect(unreviewed?.last_reviewed_at).toBeUndefined();
+  });
 });
 
 class FakeSearchClient implements VertexSearchApiClient {

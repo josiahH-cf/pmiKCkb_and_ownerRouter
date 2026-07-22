@@ -401,6 +401,12 @@ export function AskForm({
                         <a href={citation.url} rel="noreferrer" target="_blank">
                           {citation.title}
                         </a>
+                        {citation.last_reviewed_at ? (
+                          <span className="muted">
+                            {" "}
+                            · reviewed {formatReviewedDate(citation.last_reviewed_at)}
+                          </span>
+                        ) : null}
                       </li>
                     ))}
                   </ul>
@@ -487,6 +493,12 @@ function SelectField({
       </select>
     </Field>
   );
+}
+
+/** Show just the calendar date when the review value is an ISO timestamp; otherwise show it verbatim. */
+function formatReviewedDate(value: string): string {
+  const match = value.match(/^\d{4}-\d{2}-\d{2}/);
+  return match ? match[0] : value;
 }
 
 async function readErrorMessage(response: Response, fallback: string) {
