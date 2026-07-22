@@ -274,6 +274,14 @@ export default async function AdminPage() {
               </p>
               <Link href="/admin/migration">Open migration console</Link>
             </article>
+            <article className="panel">
+              <h2>Spaces</h2>
+              <p className="muted">
+                Request a new Space. The app records it and prints the exact commands to
+                provision the Vertex data store and Drive folder; you run them.
+              </p>
+              <Link href="/admin/spaces/request">Request a new Space</Link>
+            </article>
           </div>
           <TransactionalDestinationPanel
             initialEmail={transactionalDestination.destination_email}

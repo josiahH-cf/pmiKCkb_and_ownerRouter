@@ -538,6 +538,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Add-a-Space request intake (Slice 7). Admin captures the request through the manageAdmin-guarded
+    // route; the record is server-written through the Admin SDK only, so the browser can never forge a
+    // request. Admin-only read. The record is intent only and provisions nothing.
+    match /space_requests/{requestId} {
+      allow read: if signedIn() && admin();
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
