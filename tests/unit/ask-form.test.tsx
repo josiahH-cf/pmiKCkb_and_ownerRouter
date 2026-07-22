@@ -145,6 +145,26 @@ describe("AskForm (action console)", () => {
     await waitFor(() => expect(button).toHaveFocus());
   });
 
+  it("shows the answer transparency line (Answered by <model> · N sources)", async () => {
+    const user = userEvent.setup();
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) =>
+      String(input).includes("/api/ask")
+        ? jsonResponse({
+            ...ANSWER,
+            answered_by: { model: "Gemini 2.5 Pro", source_count: 3 },
+          })
+        : jsonResponse({}, false),
+    );
+    render(<AskForm />);
+
+    await user.type(screen.getByLabelText(/Question/), "How do renewals work?");
+    await user.click(screen.getByRole("button", { name: "Get answer" }));
+
+    expect(
+      await screen.findByText(/Answered by Gemini 2\.5 Pro · 3 sources/),
+    ).toBeInTheDocument();
+  });
+
   it("asks without a process and never starts a simulation", async () => {
     const user = userEvent.setup();
     render(

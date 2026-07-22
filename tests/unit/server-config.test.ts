@@ -1,5 +1,21 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { readRequiredGoogleConfig, readServerConfig } from "@/lib/config/server";
+import {
+  friendlyModelLabel,
+  readRequiredGoogleConfig,
+  readServerConfig,
+} from "@/lib/config/server";
+
+describe("friendlyModelLabel", () => {
+  it("maps known Gemini ids to client-facing labels", () => {
+    expect(friendlyModelLabel("gemini-2.5-pro")).toBe("Gemini 2.5 Pro");
+    expect(friendlyModelLabel("gemini-2.5-flash")).toBe("Gemini 2.5 Flash");
+  });
+
+  it("title-cases an unknown id segment-by-segment", () => {
+    expect(friendlyModelLabel("gemini-3.0-ultra")).toBe("Gemini 3.0 Ultra");
+    expect(friendlyModelLabel("  gemini-2.5-pro  ")).toBe("Gemini 2.5 Pro");
+  });
+});
 
 describe("server config", () => {
   afterEach(() => {

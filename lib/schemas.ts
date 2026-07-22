@@ -30,6 +30,14 @@ export const AskResponseSchema = z.object({
   citations: z.array(CitationSchema),
   draft: z.string(),
   escalation_owner: z.string().optional(),
+  // Answer transparency (Slice 4): the friendly answer-model label + the number of sources shown.
+  // Stamped by the Ask service on every result; the UI renders "Answered by <model> · N sources".
+  answered_by: z
+    .object({
+      model: z.string(),
+      source_count: z.number().int().nonnegative(),
+    })
+    .optional(),
 });
 
 export const AskCaptureRequestSchema = z.object({

@@ -121,6 +121,34 @@ const EnvSchema = z.object({
 export type ServerConfig = ReturnType<typeof readServerConfig>;
 type Environment = Record<string, string | undefined>;
 
+const FRIENDLY_MODEL_LABELS: Record<string, string> = {
+  "gemini-2.5-pro": "Gemini 2.5 Pro",
+  "gemini-2.5-flash": "Gemini 2.5 Flash",
+  "gemini-1.5-pro": "Gemini 1.5 Pro",
+  "gemini-1.5-flash": "Gemini 1.5 Flash",
+};
+
+/**
+ * Map a raw model id (GEMINI_MODEL_ANSWER) to a client-facing label for the Ask transparency line.
+ * Known ids map exactly; an unknown id is title-cased segment-by-segment ("gemini-3.0-ultra" →
+ * "Gemini 3.0 Ultra") so a new model still reads cleanly. Pure + deterministic.
+ */
+export function friendlyModelLabel(modelId: string): string {
+  const id = modelId.trim();
+  if (FRIENDLY_MODEL_LABELS[id]) return FRIENDLY_MODEL_LABELS[id];
+  return id
+    .split(/[-_]/)
+    .filter((seg) => seg !== "")
+    .map((seg) =>
+      seg === "gemini"
+        ? "Gemini"
+        : /^\d/.test(seg)
+          ? seg
+          : seg.charAt(0).toUpperCase() + seg.slice(1),
+    )
+    .join(" ");
+}
+
 export function readServerConfig(env: Environment = process.env) {
   const parsed = EnvSchema.parse(env);
   const isProduction = (env.NODE_ENV ?? process.env.NODE_ENV) === "production";

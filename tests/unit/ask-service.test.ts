@@ -93,6 +93,29 @@ describe("Ask service", () => {
     });
   });
 
+  it("stamps the answer transparency line (model label + source count) on every result", async () => {
+    // A grounded (demo) answer carries the friendly model label + the number of sources shown.
+    const answered = await answerQuestion(
+      user,
+      { draft_enabled: true, question: "What is the lease renewal workflow?" },
+      { config: demoConfig },
+    );
+    expect(answered.answered_by).toEqual({
+      model: "Gemini 2.5 Pro",
+      source_count: answered.citations.length,
+    });
+    expect(answered.citations.length).toBeGreaterThan(0);
+
+    // A no-reliable-source result still carries the line, honestly reporting 0 sources.
+    const unknown = await answerQuestion(
+      user,
+      { draft_enabled: true, question: "an unrelated question with no PMI source at all" },
+      { config: demoConfig },
+    );
+    expect(unknown.source_state).toBe("No Reliable Source Found");
+    expect(unknown.answered_by).toEqual({ model: "Gemini 2.5 Pro", source_count: 0 });
+  });
+
   it("returns cited demo answers for the approved workflow demo Spaces", async () => {
     const cases = [
       {

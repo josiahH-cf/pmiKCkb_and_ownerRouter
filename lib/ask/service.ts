@@ -1,7 +1,11 @@
 import { DRAFT_BANNER, UNVERIFIED_PLACEHOLDER } from "@/lib/constants";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { canonicalizeValidCitations } from "@/lib/citations/validate";
-import { readServerConfig, type ServerConfig } from "@/lib/config/server";
+import {
+  friendlyModelLabel,
+  readServerConfig,
+  type ServerConfig,
+} from "@/lib/config/server";
 import {
   demoCitation,
   findDemoWorkflow,
@@ -54,6 +58,25 @@ async function resolveProcessContext(
 }
 
 export async function answerQuestion(
+  user: AuthenticatedUser,
+  request: AskRequest,
+  options: AskServiceOptions = {},
+): Promise<AskResponse> {
+  const config = options.config ?? readServerConfig();
+  const response = await produceAnswer(user, request, { ...options, config });
+  // Answer transparency (Slice 4): stamp the configured answer-model label + the number of sources
+  // shown on EVERY result path (generated, demo, no-source, review-only). Never overrides a value a
+  // path already set.
+  return {
+    ...response,
+    answered_by: response.answered_by ?? {
+      model: friendlyModelLabel(config.geminiAnswerModel),
+      source_count: response.citations.length,
+    },
+  };
+}
+
+async function produceAnswer(
   user: AuthenticatedUser,
   request: AskRequest,
   options: AskServiceOptions = {},

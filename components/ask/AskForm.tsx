@@ -375,6 +375,13 @@ export function AskForm({
               <SourceStateBanner state={result.source_state} />
               <h2>Answer</h2>
               <p>{result.answer}</p>
+              {result.answered_by ? (
+                <p className="muted">
+                  Answered by {result.answered_by.model} ·{" "}
+                  {result.answered_by.source_count}{" "}
+                  {result.answered_by.source_count === 1 ? "source" : "sources"}
+                </p>
+              ) : null}
               {result.handling_steps.length > 0 ? (
                 <>
                   <h3>Handling Steps</h3>
