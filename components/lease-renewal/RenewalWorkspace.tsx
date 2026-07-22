@@ -19,6 +19,10 @@ import {
 import { PrepareOwnerEmailButton } from "@/components/lease-renewal/PrepareOwnerEmailButton";
 import { PrepareTenantEmailButton } from "@/components/lease-renewal/PrepareTenantEmailButton";
 import { RenewalNoticeDraftComposer } from "@/components/lease-renewal/RenewalNoticeDraftComposer";
+import {
+  OwnerDecisionForm,
+  RenewalCompleteButton,
+} from "@/components/lease-renewal/RenewalProgressControls";
 import { DRAFT_BANNER } from "@/lib/constants";
 import type { ReadinessStatus } from "@/lib/lease-renewal/renewal-readiness";
 import type {
@@ -115,6 +119,17 @@ export function RenewalWorkspace({
       </Card>
 
       <Card title="Owner decision">
+        {isLive && workspace.live ? (
+          <div className="ui-stack">
+            <p className="muted">
+              Record the owner’s rent decision to unlock the tenant offer.
+            </p>
+            <OwnerDecisionForm
+              current={workspace.live.ownerDecision}
+              leaseId={workspace.live.leaseId}
+            />
+          </div>
+        ) : null}
         <p className="muted">{DRAFT_BANNER}</p>
         <ul className="ui-rows">
           {ownerDraft.facts.map((fact) => (
@@ -187,7 +202,17 @@ export function RenewalWorkspace({
           real lease to resolve, so it points to the live notices desk instead of a control that fails. */}
       <Card title="Renewal-notice draft">
         {isLive ? (
-          <RenewalNoticeDraftComposer leaseId={summary.id} />
+          <RenewalNoticeDraftComposer
+            initialOffer={
+              workspace.live?.ownerDecision
+                ? {
+                    decision: workspace.live.ownerDecision.decision,
+                    offeredRent: workspace.live.ownerDecision.offeredRent,
+                  }
+                : null
+            }
+            leaseId={summary.id}
+          />
         ) : (
           <EmptyState
             description="Create renewal-notice Gmail drafts from real RentVine leases on the live notices desk."
@@ -215,6 +240,12 @@ export function RenewalWorkspace({
             </li>
           ))}
         </ul>
+        {isLive && workspace.live ? (
+          <RenewalCompleteButton
+            complete={workspace.live.complete}
+            leaseId={workspace.live.leaseId}
+          />
+        ) : null}
       </Card>
     </div>
   );

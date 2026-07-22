@@ -664,6 +664,38 @@ export interface LeaseRenewalResolutionActivityRecord {
   created_at: string;
 }
 
+// Lease Renewal Phase-A live PROGRESS: the small, app-owned forward state that makes the live workspace
+// clickable front-to-back (owner decision → tenant offer → build → complete). Written server-side through
+// the edit-gated Admin SDK boundary only; it changes NO system of record (RentVine + Sheet stay
+// read-only). `owner_decision` holds the operator's own inputs; `stage_index` indexes RENEWAL_STEPS.
+export type LeaseRenewalOwnerDecisionKind = "keep_same" | "increase" | "custom";
+
+export interface LeaseRenewalProgressRecord {
+  id: string;
+  lease_id: string;
+  stage_index: number;
+  owner_decision?: {
+    decision: LeaseRenewalOwnerDecisionKind;
+    offered_rent: number;
+    charges?: { rbp?: number; insurance?: number };
+    info_form_url?: string;
+  };
+  tenant_offer_draft_id?: string;
+  complete: boolean;
+  updated_by_uid: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeaseRenewalProgressActivityRecord {
+  id: string;
+  lease_id: string;
+  actor_uid: string;
+  action: "owner_decision" | "tenant_offer_drafted" | "mark_complete";
+  stage_index: number;
+  created_at: string;
+}
+
 // Lease Renewal Phase-2 write-back APPROVAL layer (Q-WRITEBACK-METHOD control plane). One record per
 // decided proposal, keyed by its source_trigger_key. A resolution QUEUES a proposed write-back; an
 // Admin then Approves (authorizes the future, gated write) or Returns it here. This layer NEVER

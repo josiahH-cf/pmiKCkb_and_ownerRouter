@@ -6,6 +6,10 @@ import {
   loadLiveRenewalDesk,
   loadLiveRenewalLeaseWorkspace,
 } from "@/lib/lease-renewal/live-desk";
+import {
+  RENEWAL_STAGE,
+  type RenewalProgress,
+} from "@/lib/lease-renewal/renewal-progress";
 import { SAMPLE_RENEWAL_TABLES } from "@/lib/lease-renewal/sample-sheet";
 
 // The loaders use the shared module-level export cache; reset it so cases don't leak reads.
@@ -255,5 +259,76 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
       }) as unknown as WorkspaceConfigArg,
     );
     expect(result).toEqual({ status: "read_error" });
+  });
+});
+
+describe("live renewal workspace + recorded progress (Phase A)", () => {
+  function progressFor(overrides: Partial<RenewalProgress>): RenewalProgress {
+    return {
+      leaseId: "4821",
+      stageIndex: RENEWAL_STAGE.tenant,
+      ownerDecision: { decision: "increase", offeredRent: 1300 },
+      tenantOfferDraftId: null,
+      complete: false,
+      ...overrides,
+    };
+  }
+
+  it("a recorded owner decision advances the stage and builds the tenant offer from those numbers", async () => {
+    const result = await loadLiveRenewalLeaseWorkspace(
+      "4821",
+      READ_TS,
+      okConfig() as unknown as WorkspaceConfigArg,
+      progressFor({}),
+    );
+    if (result.status !== "ok") throw new Error(result.status);
+    const { workspace } = result;
+
+    // Stage now reflects the recorded progress, not the data-derived default (which was Owner decision).
+    expect(workspace.currentStepIndex).toBe(RENEWAL_STAGE.tenant);
+    expect(workspace.summary.stageLabel).toBe("Tenant offer");
+    // The tenant offer is a REAL draft built from the recorded rent, not null and not a placeholder.
+    expect(workspace.tenantDraft).not.toBeNull();
+    expect(workspace.tenantDraft?.channels.email.body).toContain("$1,300");
+    // The live progress payload is carried for the workspace controls.
+    expect(workspace.live?.ownerDecision).toEqual({
+      decision: "increase",
+      offeredRent: 1300,
+    });
+    expect(workspace.live?.leaseId).toBe("4821");
+  });
+
+  it("without a recorded decision the tenant offer stays null (composer is still the only send)", async () => {
+    const result = await loadLiveRenewalLeaseWorkspace(
+      "4821",
+      READ_TS,
+      okConfig() as unknown as WorkspaceConfigArg,
+      null,
+    );
+    if (result.status !== "ok") throw new Error(result.status);
+    expect(result.workspace.tenantDraft).toBeNull();
+    expect(result.workspace.live?.ownerDecision).toBeNull();
+  });
+
+  it("the desk projects each lease's recorded stage over the derived default", async () => {
+    const progressByLease = new Map<string, RenewalProgress>([
+      [
+        "4821",
+        progressFor({ leaseId: "4821", stageIndex: RENEWAL_STAGE.build, complete: true }),
+      ],
+    ]);
+    const result = await loadLiveRenewalDesk(
+      WINDOWS,
+      READ_TS,
+      okConfig() as unknown as DeskConfigArg,
+      progressByLease,
+    );
+    if (result.status !== "ok") throw new Error(result.status);
+    const recorded = result.view.actionable.find((s) => s.id === "4821");
+    // 4821 agrees on rent (derived stage = Owner decision), but the recorded stage wins.
+    expect(recorded?.stageLabel).toBe("Build docs");
+    // A lease with no record keeps its derived stage.
+    const untouched = result.view.actionable.find((s) => s.id === "5001");
+    expect(untouched?.stageLabel).toBe("Data check");
   });
 });

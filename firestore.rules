@@ -281,6 +281,20 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Per-lease live renewal PROGRESS (Phase A: the clickable front-to-back flow) and its append-only
+    // activity. Written only through the edit-gated Admin SDK boundary; it holds the operator's forward
+    // state (owner decision, tenant-offer draft id, complete) and changes NO system of record. Staff may
+    // read it; no browser client may forge a stage, a decision, or a completion.
+    match /lease_renewal_progress/{leaseId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
+    match /lease_renewal_progress_activity/{activityId} {
+      allow read: if signedIn() && editorOrBetter();
+      allow create, update, delete: if false;
+    }
+
     // Persistent production Test renewal journeys and their bodyless attempt/receipt evidence are
     // written only through edit-gated Admin SDK routes. Authenticated staff may read the Test state,
     // but no browser can forge lane, status, confirmation, attempt count, or provider-contact proof.

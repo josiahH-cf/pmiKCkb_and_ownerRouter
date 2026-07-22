@@ -62,6 +62,11 @@ import {
 } from "@/lib/lease-renewal/sample-desk";
 import { readRenewalSheetGrids } from "@/lib/google-sheets/read-client";
 import type { RawGrid } from "@/lib/lease-renewal/sheet-types";
+import {
+  effectiveStageIndex,
+  type RenewalProgress,
+} from "@/lib/lease-renewal/renewal-progress";
+import { buildTenantOfferDraft } from "@/lib/lease-renewal/tenant-draft";
 
 // Parity with the live review: the single "Lease Renewal" tab, name join, no cohort pre-filter inside
 // the pipeline (the desk classifies the cohort itself). The run id is inert here (the desk never uses
@@ -191,16 +196,20 @@ function toLiveSummary(
   view: RawLease,
   classification: CohortLease,
   dataCheck?: DeskReconItem[],
+  progress?: RenewalProgress | null,
 ): DeskLeaseSummary {
   const leaseId = classification.leaseId ?? "";
   const isActionable = classification.disposition === "actionable";
   const openConflicts = dataCheck
     ? dataCheck.filter((item) => item.agreement === "conflict").length
     : 0;
-  // A live lease carries no recorded owner decision, so its stage is derived: still on the data check
-  // while a conflict is open, otherwise ready for the owner decision. Typed as a plain number (not a
-  // literal union) so the `>= 0` guarded tuple indexing matches the sample desk's projection.
-  const stageIndex: number = isActionable ? (openConflicts > 0 ? 0 : 1) : -1;
+  // The stage is the operator's RECORDED progress when present, otherwise derived from the live read:
+  // still on the data check while a conflict is open, otherwise ready for the owner decision. Typed as a
+  // plain number (not a literal union) so the `>= 0` guarded tuple indexing matches the sample projection.
+  const derivedStage = openConflicts > 0 ? 0 : 1;
+  const stageIndex: number = isActionable
+    ? effectiveStageIndex(progress ?? null, derivedStage)
+    : -1;
   return {
     id: leaseId,
     addressLabel: leaseAddressLabel(view) ?? `Lease ${leaseId}`,
@@ -248,6 +257,7 @@ export async function loadLiveRenewalDesk(
   windows: DateWindow[],
   readTimestamp: string,
   config: LiveRenewalConfig = buildLiveRenewalConfig(),
+  progressByLease?: Map<string, RenewalProgress>,
 ): Promise<LiveRenewalDeskResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -263,11 +273,15 @@ export async function loadLiveRenewalDesk(
     const cohort = classifyRenewalCohort(views, { windows });
     const summaries = cohort.classifications.map((classification) => {
       const view = views[classification.index];
+      const progress = classification.leaseId
+        ? (progressByLease?.get(classification.leaseId) ?? null)
+        : null;
       if (classification.disposition === "actionable") {
         return toLiveSummary(
           view,
           classification,
           buildLeaseDataCheck(view, tables, readTimestamp),
+          progress,
         );
       }
       return toLiveSummary(view, classification);
@@ -300,6 +314,7 @@ export async function loadLiveRenewalLeaseWorkspace(
   leaseId: string,
   readTimestamp: string,
   config: LiveRenewalConfig = buildLiveRenewalConfig(),
+  progress: RenewalProgress | null = null,
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -323,7 +338,27 @@ export async function loadLiveRenewalLeaseWorkspace(
       tabTitles: LIVE_DESK_TABS,
     });
     const dataCheck = buildLeaseDataCheck(view, tables, readTimestamp);
-    const summary = toLiveSummary(view, classification, dataCheck);
+    const summary = toLiveSummary(view, classification, dataCheck, progress);
+
+    // Once the owner decision is RECORDED, the Tenant-offer step shows a real offer built from those
+    // numbers (not a placeholder). Without a recorded decision — or a lease with no end date — it stays
+    // null and the Tenant-offer card invites composing below. The gated composer is still the only send.
+    const endDateIso = classification.endDateIso;
+    const tenantDraft =
+      progress?.ownerDecision && endDateIso
+        ? buildTenantOfferDraft({
+            tenantNameLabel: summary.tenantNameLabel,
+            leaseEndDateIso: endDateIso,
+            ownerDecision: progress.ownerDecision.decision,
+            offeredRent: progress.ownerDecision.offeredRent,
+            ...(progress.ownerDecision.charges
+              ? { charges: progress.ownerDecision.charges }
+              : {}),
+            ...(progress.ownerDecision.infoFormUrl
+              ? { infoFormUrl: progress.ownerDecision.infoFormUrl }
+              : {}),
+          })
+        : null;
 
     const workspace: RenewalLeaseWorkspace = {
       summary,
@@ -336,12 +371,18 @@ export async function loadLiveRenewalLeaseWorkspace(
         addressLabel: summary.addressLabel,
         currentRent: leaseCurrentRent(view) ?? 0,
       }),
-      // The tenant offer is composed through the gated live composer, not prebuilt here.
-      tenantDraft: null,
+      tenantDraft,
       // RentVine carries none of the build-out readiness inputs, so every check honestly reads
       // "Needs input" rather than a fabricated pass.
       readiness: evaluateRenewalReadiness({}),
-      notice: buildLiveNotice(classification.endDateIso, readTimestamp.slice(0, 10)),
+      notice: buildLiveNotice(endDateIso, readTimestamp.slice(0, 10)),
+      // The operator's recorded progress drives the Phase-A controls in the workspace UI.
+      live: {
+        leaseId,
+        ownerDecision: progress?.ownerDecision ?? null,
+        tenantOfferDraftId: progress?.tenantOfferDraftId ?? null,
+        complete: progress?.complete ?? false,
+      },
     };
     return { status: "ok", workspace };
   } catch {

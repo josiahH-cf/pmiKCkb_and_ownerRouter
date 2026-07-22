@@ -6,6 +6,7 @@ import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
+import { recordTenantOfferDraft } from "@/lib/firestore/lease-renewal-progress";
 import { getLiveLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
 import { resolveLiveOwnerEmail } from "@/lib/lease-renewal/live-owner-recipient";
 import {
@@ -122,6 +123,17 @@ export async function POST(request: Request) {
       },
       input,
     );
+
+    // Phase A: creating the tenant-offer draft advances this lease's recorded progress to Build docs.
+    // Best-effort and non-blocking — progress is a convenience layer, so a stamp failure (e.g. no owner
+    // decision recorded yet when composing from the notices desk) never fails an already-created draft.
+    if (channel === "tenant" && body.confirm && outcome.status === "created") {
+      try {
+        await recordTenantOfferDraft(user, body.leaseId, outcome.draftId);
+      } catch {
+        // Intentionally ignored — the Gmail draft exists; progress tracking is secondary.
+      }
+    }
 
     return NextResponse.json(outcome);
   } catch (error) {

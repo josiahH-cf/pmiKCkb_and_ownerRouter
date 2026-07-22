@@ -30,6 +30,7 @@ import {
   type OwnerDecision,
   type TenantOfferDraft,
 } from "@/lib/lease-renewal/tenant-draft";
+import type { RenewalOwnerDecision } from "@/lib/lease-renewal/renewal-progress";
 import {
   evaluateRenewalReadiness,
   type RenewalReadinessInput,
@@ -313,6 +314,14 @@ export interface RenewalDeskView {
   outOfWindow: DeskLeaseSummary[];
 }
 
+/** The operator's recorded LIVE progress, surfaced to the Phase-A workspace controls. */
+export interface RenewalWorkspaceLiveState {
+  leaseId: string;
+  ownerDecision: RenewalOwnerDecision | null;
+  tenantOfferDraftId: string | null;
+  complete: boolean;
+}
+
 export interface RenewalLeaseWorkspace {
   summary: DeskLeaseSummary;
   steps: typeof RENEWAL_STEPS;
@@ -324,6 +333,12 @@ export interface RenewalLeaseWorkspace {
   readiness: RenewalReadinessResult;
   /** Read-only effective notice-rule view for this lease (F2). Null when no lease-end is on file. */
   notice: EffectiveRuleView | null;
+  /**
+   * Present only for the LIVE workspace: the operator's recorded Phase-A progress. Drives the
+   * record-owner-decision form, the composer prefill, and the mark-complete control. The sample
+   * workspace leaves this undefined (its flow is illustrative, not operator-editable).
+   */
+  live?: RenewalWorkspaceLiveState;
 }
 
 function toSummary(

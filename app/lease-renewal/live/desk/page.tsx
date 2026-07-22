@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
+import { listAllRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
 import { loadLiveRenewalDesk, type LiveDeskStatus } from "@/lib/lease-renewal/live-desk";
 
 // Owner-gated (Admin only). Reads live RentVine + the renewal sheet on each render, so it is never
@@ -44,7 +45,15 @@ export default async function LiveRenewalDeskPage() {
   end.setUTCDate(end.getUTCDate() + WINDOW_DAYS);
   const endIso = end.toISOString().slice(0, 10);
 
-  const outcome = await loadLiveRenewalDesk([{ startIso, endIso }], now.toISOString());
+  // The desk cards show each lease's RECORDED stage (owner decision made, tenant offer drafted, complete)
+  // over the data-derived default. Only leases an operator has touched carry a record, so this is small.
+  const progressByLease = await listAllRenewalProgress(user);
+  const outcome = await loadLiveRenewalDesk(
+    [{ startIso, endIso }],
+    now.toISOString(),
+    undefined,
+    progressByLease,
+  );
 
   return (
     <AppShell user={user}>

@@ -28,10 +28,21 @@ const OWNER_DECISIONS: { value: OwnerDecision; label: string }[] = [
   { value: "custom", label: "Custom" },
 ];
 
-export function RenewalNoticeDraftComposer({ leaseId }: Readonly<{ leaseId: string }>) {
+export function RenewalNoticeDraftComposer({
+  leaseId,
+  initialOffer = null,
+}: Readonly<{
+  leaseId: string;
+  /** Prefill the tenant-offer inputs from the recorded owner decision (live workspace). */
+  initialOffer?: { decision: OwnerDecision; offeredRent: number } | null;
+}>) {
   const [channel, setChannel] = useState<Channel>("tenant");
-  const [ownerDecision, setOwnerDecision] = useState<OwnerDecision>("increase");
-  const [offeredRent, setOfferedRent] = useState("");
+  const [ownerDecision, setOwnerDecision] = useState<OwnerDecision>(
+    initialOffer?.decision ?? "increase",
+  );
+  const [offeredRent, setOfferedRent] = useState(
+    initialOffer ? String(initialOffer.offeredRent) : "",
+  );
   const [specificNumber, setSpecificNumber] = useState("");
   const [rangeLow, setRangeLow] = useState("");
   const [rangeHigh, setRangeHigh] = useState("");

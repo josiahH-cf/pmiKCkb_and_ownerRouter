@@ -3,6 +3,8 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
+import { getRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
+import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
 import {
   loadLiveRenewalLeaseWorkspace,
   type LiveDeskStatus,
@@ -43,7 +45,13 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const user = await requirePageCapability("manageAdmin");
   const { leaseId } = await params;
 
-  const outcome = await loadLiveRenewalLeaseWorkspace(leaseId, new Date().toISOString());
+  const progress = await getRenewalProgress(user, leaseId);
+  const outcome = await loadLiveRenewalLeaseWorkspace(
+    leaseId,
+    new Date().toISOString(),
+    buildLiveRenewalConfig(),
+    progress,
+  );
 
   return (
     <AppShell user={user}>
