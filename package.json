@@ -64,6 +64,7 @@
     "smoke:rentvine-read": "tsx scripts/smoke-rentvine-read.ts",
     "discover:rentvine-fields": "tsx scripts/discover-rentvine-fields.ts",
     "smoke:sheet-read": "tsx scripts/smoke-sheet-read.ts",
+    "smoke:sheet-write": "tsx scripts/smoke-sheet-write.ts",
     "smoke:renewal-review": "tsx scripts/smoke-renewal-review.ts",
     "smoke:gmail-draft-live": "tsx scripts/smoke-gmail-draft-live.ts",
     "smoke:renewal-draft-live": "tsx scripts/smoke-renewal-draft-live.ts",

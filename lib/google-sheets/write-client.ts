@@ -132,4 +132,30 @@ export class GoogleSheetsApiWriter implements SheetsValuesWriter {
       throw new Error(`Sheets values write failed (HTTP ${response.status}).`);
     }
   }
+
+  /**
+   * Create a brand-new spreadsheet owned by the DWD subject, with one named tab. NOT part of the
+   * append-only executor's write surface (not on SheetsValuesWriter) — it exists only so the
+   * `smoke:sheet-write` proof can write into a THROWAWAY test sheet, never the operational one.
+   * Requires the same `spreadsheets` write scope, so it is fail-closed exactly like the writes.
+   */
+  async createSpreadsheet(title: string, tabTitle = "Sheet1"): Promise<string> {
+    const token = await this.authToken();
+    const response = await fetch("https://sheets.googleapis.com/v4/spreadsheets", {
+      method: "POST",
+      headers: { Authorization: token, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        properties: { title },
+        sheets: [{ properties: { title: tabTitle } }],
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`Sheets create failed (HTTP ${response.status}).`);
+    }
+    const body = (await response.json()) as { spreadsheetId?: string };
+    if (!body.spreadsheetId) {
+      throw new Error("Sheets create returned no spreadsheetId.");
+    }
+    return body.spreadsheetId;
+  }
 }
