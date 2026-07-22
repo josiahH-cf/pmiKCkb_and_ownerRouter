@@ -166,7 +166,8 @@ export function VendorSignIn() {
         </form>
       )}
       <p className="muted">
-        There is no self-registration. Use the one-time setup link from PMI KC first.
+        Start from the one-time setup link PMI KC sends you; your account is created
+        there.
       </p>
       {message ? <p role="alert">{message}</p> : null}
     </div>

@@ -289,8 +289,8 @@ export function ProcessDefinitionDetailClient({
           </p>
           {!definition.active_version_id ? (
             <p className="muted">
-              Test runs started now use the current mutable draft and are explicitly not
-              pinned to an immutable published version.
+              Test runs started now follow the current mutable draft and track its edits
+              until you publish an immutable version.
             </p>
           ) : null}
           <p className="muted">

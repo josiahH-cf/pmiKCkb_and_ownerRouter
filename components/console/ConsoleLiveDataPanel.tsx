@@ -16,7 +16,7 @@ export function ConsoleLiveDataPanel({
           <h2>{title}</h2>
           <p className="muted">
             {projection.mode.kind === "test"
-              ? "Invented records can complete the workflow here without contacting an external provider."
+              ? "Invented records complete the workflow here, entirely inside the test workspace."
               : "Live facts show their source and observation time. Message bodies load only inside an authorized workflow communication panel."}
           </p>
         </div>

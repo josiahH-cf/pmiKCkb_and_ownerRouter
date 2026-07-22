@@ -29,7 +29,7 @@ export function LeaseBusinessContractPanel() {
           </div>
           <div>
             <dt>Durable per-lease Live lifecycle</dt>
-            <dd>Absent: the shared Live Review must not be treated as one.</dd>
+            <dd>Absent: the shared Live Review is a coordination surface only.</dd>
           </div>
           <div>
             <dt>Exact next action</dt>
@@ -80,8 +80,8 @@ export function LeaseBusinessContractPanel() {
           </table>
         </div>
         <p className="muted">
-          Any unlisted field type is Blocked with “no precedence rule”; the app never
-          guesses.
+          Any unlisted field type is Blocked with “no precedence rule”; the app asks for a
+          human decision.
         </p>
       </details>
 

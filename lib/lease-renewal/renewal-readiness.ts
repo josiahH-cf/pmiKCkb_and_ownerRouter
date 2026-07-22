@@ -107,7 +107,7 @@ function checkInheritedFullSet(input: RenewalReadinessInput): ReadinessCheck {
       id,
       label,
       "High",
-      "Inherited lease needs the FULL document set, not the extension-only renewal template.",
+      "Inherited lease needs the full document set; select the full-document template for the build-out.",
     );
   }
   return ok(id, label, "Inherited lease with the full document set selected.");

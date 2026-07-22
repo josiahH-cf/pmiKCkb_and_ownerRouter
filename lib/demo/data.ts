@@ -177,7 +177,7 @@ export const demoWorkflows: readonly DemoWorkflow[] = [
   },
   {
     answer:
-      "Maintenance intake starts in RentVine. The team verifies the request details, asks for missing photos when needed, keeps the handoff visible, and escalates vendor assignment instead of letting the KB choose a vendor.",
+      "Maintenance intake starts in RentVine. The team verifies the request details, asks for missing photos when needed, keeps the handoff visible, and escalates vendor assignment for a person to decide.",
     citation: {
       source_id: "demo-maintenance-work-order-sop",
       title: "Maintenance Work Order Intake Demo SOP",
@@ -190,7 +190,7 @@ export const demoWorkflows: readonly DemoWorkflow[] = [
       "Open the Maintenance Work Order Intake Space.",
       "Check RentVine for the request details and any attached photos.",
       "Use the approved photo-request template when details are missing.",
-      "Escalate vendor assignment instead of choosing a vendor in the KB.",
+      "Escalate vendor assignment for a person to decide.",
     ],
     matchTerms: ["maintenance", "work order", "vendor", "photo", "photos"],
     placeholders: [
@@ -252,7 +252,7 @@ export const demoWorkflows: readonly DemoWorkflow[] = [
       "Open the Move-Out + Deposit Disposition Space.",
       "Confirm the notice and move-out tracker status.",
       "Check inspection and vendor-bid status before owner-facing commitments.",
-      "Escalate deposit disposition questions instead of guessing charges.",
+      "Escalate deposit disposition questions so a person confirms the charges.",
     ],
     matchTerms: ["move-out", "move out", "deposit", "disposition", "inspection"],
     placeholders: [

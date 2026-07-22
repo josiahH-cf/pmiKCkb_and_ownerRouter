@@ -53,7 +53,8 @@ export function ConnectorCard({
                 </p>
                 {verifiable ? null : (
                   <p className="muted">
-                    There is no live connection check for this connector.
+                    This connector reports its stored status; live verification is
+                    available only where a connector supports it.
                   </p>
                 )}
                 {contract ? (

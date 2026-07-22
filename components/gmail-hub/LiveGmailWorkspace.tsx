@@ -340,9 +340,8 @@ export function LiveGmailWorkspace({
 
       {error ? <p className="error-text">{error}</p> : null}
       <p className="muted">
-        Inbox search, recent-inbox browsing, free-form compose, and arbitrary labels are
-        not available here. Open the authorized renewal run or maintenance ticket to read
-        or act.
+        This surface reads and acts inside an authorized renewal run or maintenance
+        ticket. Broad inbox search, compose, and labeling stay in Gmail.
       </p>
     </article>
   );

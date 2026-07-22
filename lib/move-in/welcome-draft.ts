@@ -81,7 +81,7 @@ function depositPostureNote(posture: DepositPosture | undefined): string {
       // Policy cited as text (up to 2× monthly rent); the exact amount lives in the lease/RentVine.
       return "A cash security deposit is in place (Missouri policy allows up to 2× monthly rent — see the lease/RentVine for the exact amount).";
     case "replacement":
-      return "A deposit-replacement policy (The Guarantors / Rhino) covers this tenant instead of a cash deposit.";
+      return "A deposit-replacement policy (The Guarantors / Rhino) covers this tenant's deposit.";
     default:
       return `[${NEEDS_VERIFICATION}: deposit posture (cash security deposit vs. deposit-replacement policy)]`;
   }
