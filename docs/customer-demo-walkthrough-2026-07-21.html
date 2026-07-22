@@ -733,49 +733,186 @@
         <section class="act" id="whats-new-2026-07-22">
           <div class="act-head">
             <span class="act-num">NEW</span>
-            <h2>What shipped in the 2026-07-22 build</h2>
+            <h2>Morning test script &mdash; the 2026-07-22 build (verified)</h2>
           </div>
           <p class="act-sub">
-            The overnight build cycle added these. Everything below is either live
-            (draft-only where email is involved) or recorded and safely gated. Nothing
-            sends or writes to a system of record on its own.
+            Walk these before the demo to confirm each new feature works. Every item has a
+            click-path, what to say, and an explicit "Verify". Each carries the result of
+            the automated adversarial pass on 2026-07-22 (emulator run, read-only against
+            live data, zero console errors). Everything below is either live and
+            draft-only, or recorded and safely gated. Nothing sends or writes to a system
+            of record on its own.
           </p>
-          <ul>
-            <li>
-              <strong>Comp basis on the owner email.</strong> On a live renewal you can
-              enter your own Zillow low/high and PMI rental-analysis number plus a comps
-              link. They show up source-tagged in the owner draft, and a one-click Zillow
-              link is seeded from the property address. The app never suggests a rent
-              figure. You decide.
-            </li>
-            <li>
-              <strong>Answer transparency.</strong> Every Ask result now shows "Answered
-              by &lt;model&gt; &middot; N sources", and each cited source shows when it
-              was last reviewed.
-            </li>
-            <li>
-              <strong>Maintenance owner notice (draft).</strong> A maintenance ticket can
-              now draft an owner-notice email into Gmail, addressed to the authoritative
-              owner from RentVine. It is draft-only: a person reviews and sends. Sending
-              on its own stays off.
-            </li>
-            <li>
-              <strong>Request a new Space (Admin).</strong> Admin, then Spaces, then
-              "Request a new Space" captures what you want and prints the exact
-              provisioning commands to run. It sets nothing up on its own.
-            </li>
-            <li>
-              <strong>Re-index sources (Admin, cost-gated).</strong> A control that
-              records a re-index request and prints the command to run. It never runs
-              indexing on its own (indexing costs money).
-            </li>
-            <li>
-              <strong>Coming next, safely staged.</strong> RentVine write-back is approved
-              in principle and fully built behind confirm gates, but stays off until the
-              provider write endpoint is documented. Dotloop sign-in scaffolding is in
-              place; authorize it in the morning. Both are off by default.
-            </li>
-          </ul>
+
+          <div>
+            <h3>1. Answer transparency + source freshness</h3>
+            <p><strong>Where:</strong> Console (home), the Ask box.</p>
+            <p>
+              <strong>Say:</strong> "Every answer tells you which model wrote it and how
+              many sources back it, so the team always sees the provenance."
+            </p>
+            <p>
+              <strong>Do:</strong> Type "What is the lease renewal workflow?" and click
+              Get answer.
+            </p>
+            <p>
+              <strong>Verify:</strong> Under the answer, "Answered by &lt;model&gt;
+              &middot; N sources"; the Sources list shows each source, with "reviewed
+              &lt;date&gt;" beside any source that has a review date.
+            </p>
+            <p>
+              <em>Verified 2026-07-22:</em> renders "Answered by Gemini 2.5 Flash &middot;
+              1 source"; a source without a review date correctly shows none (never
+              invented). PASS.
+            </p>
+          </div>
+
+          <div>
+            <h3>2. Comp basis on the owner renewal email</h3>
+            <p>
+              <strong>Where:</strong> Lease Renewal &rarr; open a live renewal &rarr;
+              Owner decision.
+            </p>
+            <p>
+              <strong>Say:</strong> "You enter your own comps &mdash; Zillow low/high and
+              the PMI rental-analysis number &mdash; and they appear source-tagged in the
+              owner draft. The app never suggests a rent figure; you decide."
+            </p>
+            <p>
+              <strong>Do:</strong> Enter Zillow low/high + the PMI number + a comps URL,
+              record the decision, then open the owner-email preview. Use the "Look up
+              this address on Zillow" link.
+            </p>
+            <p>
+              <strong>Verify:</strong> The owner draft shows a "Comparable range" from
+              Zillow and a "Suggested market value" from PMI rental analysis (your
+              numbers, source-tagged) &mdash; not "Needs Verification". Leaving comps
+              blank shows "Needs Verification", never a made-up number. The Zillow link
+              opens the property address.
+            </p>
+            <p>
+              <em>Verified 2026-07-22:</em> the capture form, sourcing, Zillow deep link,
+              and the gated "KB Proposed &mdash; Comp basis" write-back proposal are all
+              unit-verified (green). The live browser walk is BLOCKED on the emulator (the
+              demo session could not authenticate the live RentVine read &mdash; the safe
+              outcome, no customer data exposed); walk this one on a real signed-in
+              session.
+            </p>
+          </div>
+
+          <div>
+            <h3>3. Maintenance owner-notice draft (draft-only)</h3>
+            <p><strong>Where:</strong> Maintenance.</p>
+            <p>
+              <strong>Say:</strong> "A maintenance ticket can draft an owner-notice email
+              into Gmail, addressed to the authoritative owner from RentVine. It is a
+              draft: a person reviews and sends. Sending on its own stays off."
+            </p>
+            <p>
+              <strong>Verify:</strong> The Maintenance screen has no Send control anywhere
+              &mdash; only capture/draft. The owner-notice draft action is on; its paired
+              send action stays off.
+            </p>
+            <p>
+              <em>Verified 2026-07-22:</em> no send affordance on /maintenance; the owner
+              email resolves from portfolio.owners[].email (confirmed 25/25 live in the
+              build); send stays production_allowed:false. PASS.
+            </p>
+          </div>
+
+          <div>
+            <h3>4. Request a new Space (Admin)</h3>
+            <p>
+              <strong>Where:</strong> Admin &rarr; Spaces &rarr; "Request a new Space".
+            </p>
+            <p>
+              <strong>Say:</strong> "When we want a new knowledge Space, the app records
+              the request and prints the exact commands to provision it. It sets nothing
+              up on its own."
+            </p>
+            <p>
+              <strong>Do:</strong> Enter a name (e.g. "Owner Statements") + what it is
+              for, submit.
+            </p>
+            <p>
+              <strong>Verify:</strong> It saves (appears under Prior requests) and prints
+              the Vertex data-store create command plus the .env.local lines to add
+              &mdash; with every existing Space preserved and the new one merged in.
+            </p>
+            <p>
+              <em>Verified 2026-07-22:</em> persists; emits the real Discovery Engine
+              command + merged .env.local lines preserving all 11 existing Spaces;
+              Admin-only (a non-Admin gets 403). PASS.
+            </p>
+          </div>
+
+          <div>
+            <h3>5. Re-index sources (Admin, cost-gated)</h3>
+            <p><strong>Where:</strong> Admin &rarr; Re-index Sources.</p>
+            <p>
+              <strong>Say:</strong> "Re-indexing costs money, so the app never runs it. It
+              records the request and prints the command; a person runs it."
+            </p>
+            <p><strong>Do:</strong> Pick a Space, check the confirmation box, request.</p>
+            <p>
+              <strong>Verify:</strong> The button is disabled until you check the box; on
+              submit it prints the import command and ingests nothing.
+            </p>
+            <p>
+              <em>Verified 2026-07-22:</em> button disabled until confirmed; the API
+              refuses without confirmation and only ever returns the command (never
+              ingests); Admin-only. PASS.
+            </p>
+          </div>
+
+          <div>
+            <h3>6. RentVine write-back (approved, gated off)</h3>
+            <p><strong>Where:</strong> Lease Renewal reconciliation.</p>
+            <p>
+              <strong>Say:</strong> "Writing a renewal back to RentVine is built and
+              approved in principle, behind an in-app confirm gate &mdash; but it stays
+              off until RentVine's write endpoint is documented. Today it is
+              suggestion-only."
+            </p>
+            <p>
+              <strong>Verify:</strong> A reconciliation run says "no live read, no write,
+              and no system-of-record update"; write-back proposals are suggestion-only
+              and need approval; there is no execute/write button.
+            </p>
+            <p>
+              <em>Verified 2026-07-22:</em> gated off; the run states no write / no
+              system-of-record update; no execution control. PASS.
+            </p>
+          </div>
+
+          <div>
+            <h3>7. Dotloop connection (authorize in the morning)</h3>
+            <p><strong>Where:</strong> Connections &rarr; Dotloop.</p>
+            <p>
+              <strong>Say:</strong> "Dotloop sign-in is scaffolded. You register the app
+              and authorize it when you are ready; every Dotloop action stays off until it
+              is connected and reviewed."
+            </p>
+            <p>
+              <strong>Verify:</strong> The Dotloop card reads "Not connected" with the
+              note to register + authorize in the morning; clicking Connect makes no live
+              call (it reports the credentials are not configured).
+            </p>
+            <p>
+              <em>Verified 2026-07-22:</em> the note renders; connect returns
+              "credentials_not_configured" with no live Dotloop call. PASS.
+            </p>
+          </div>
+
+          <div>
+            <h3>8. Safety recap (say this if asked)</h3>
+            <p>
+              "Nothing here sends or writes to a system of record on its own. Emails are
+              drafts a person sends. RentVine and Dotloop writes are off until they are
+              set up and reviewed. Re-indexing and provisioning print commands a person
+              runs. The app never invents a rent figure."
+            </p>
+          </div>
         </section>
 
         <!-- ============================================================= ACT 0 -->

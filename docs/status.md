@@ -34,9 +34,9 @@ the Sheet write-back smoke targets a NEW test sheet only, and the 11-space KB co
 **Build slices (must-haves are 3, 4, 6, 7):**
 
 - **Slice 3 (MUST) — comp basis + Zillow** (`b3bab46`). Operator comp basis (Zillow low/high + PMI number
-  + comps URL, all optional) flows to the owner email (source-tagged) and a gated "KB Proposed — Comp basis"
-  write-back proposal; a Zillow deep link is seeded from the property address. The app never invents a rent
-  figure (D19).
+  - comps URL, all optional) flows to the owner email (source-tagged) and a gated "KB Proposed — Comp basis"
+    write-back proposal; a Zillow deep link is seeded from the property address. The app never invents a rent
+    figure (D19).
 - **Slice 4 (MUST) — KB answer transparency** (`34c1120`). "Answered by <friendly model> · N sources" on
   every Ask result for everyone; the source count is the honest citation count.
 - **Slice 5 — KB freshness** (`c7c6bd4`). Each cited source shows its existing `last_reviewed_at` as
@@ -46,8 +46,8 @@ the Sheet write-back smoke targets a NEW test sheet only, and the 11-space KB co
   `gmail.maintenance_owner_notice.draft_create` to `production_allowed:true` (draft-only). The paired
   `.send` stays `production_allowed:false`; migration-readiness allowlist updated.
 - **Slice 7 (MUST) — add-a-Space intake** (`18029d7`). Admin-only request form → Firestore `space_requests`
-  + auto-generated gcloud/Vertex/Drive provisioning commands + merged `.env.local` lines (existing Spaces
-  preserved). Provisions nothing.
+  - auto-generated gcloud/Vertex/Drive provisioning commands + merged `.env.local` lines (existing Spaces
+    preserved). Provisions nothing.
 - **Slice 8 — re-index control, cost-gated** (`0d32a17`). Admin records a confirm-gated re-index request +
   prints the owner command. Ingests nothing (importDocuments is CLI-only).
 - **Slice 9 — RentVine write executor** (`b36803a`). The executor + S25 contract already existed and are

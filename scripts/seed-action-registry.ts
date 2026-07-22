@@ -24,15 +24,18 @@ Usage: tsx scripts/seed-action-registry.ts [--dry-run] [--json]
 Executable entries are limited to an explicit allow-list (each backed by a committed grant
 artifact); this script refuses to seed any OTHER production_allowed entry.`;
 
-// Action Registry keys intentionally production_allowed, each backed by a committed grant artifact
-// (Section 3). Mirrors the allow-list in lib/admin/migration-readiness.ts. Any production_allowed entry
-// NOT listed here is a surprise flip and the seed refuses it.
+// Action Registry keys permitted to be production_allowed, each backed by a committed grant artifact
+// (Section 3). Kept in sync with the executable set in lib/admin/migration-readiness.ts (gmail.message.send
+// is additionally retained here as a permitted-but-currently-gated send). Any production_allowed entry NOT
+// listed here is a surprise flip and the seed refuses it.
 const EXECUTABLE_ALLOWLIST = new Set<string>([
   "gmail.mailbox.read",
   "gmail.message.send",
   "gmail.thread.reply",
   "gmail.label.apply",
   "gmail.renewal_notice.draft_create",
+  // Slice 6 (2026-07-22): maintenance owner-notice DRAFT flipped live (draft-only); its send stays gated.
+  "gmail.maintenance_owner_notice.draft_create",
 ]);
 
 export function parseSeedActionRegistryArgs(
