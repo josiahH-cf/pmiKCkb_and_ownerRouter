@@ -729,6 +729,53 @@
           </div>
         </header>
 
+        <!-- ===================================================== WHAT'S NEW 2026-07-22 -->
+        <section class="act" id="whats-new-2026-07-22">
+          <div class="act-head">
+            <span class="act-num">NEW</span>
+            <h2>What shipped in the 2026-07-22 build</h2>
+          </div>
+          <p class="act-sub">
+            The overnight build cycle added these. Everything below is either live (draft-only
+            where email is involved) or recorded and safely gated. Nothing sends or writes to a
+            system of record on its own.
+          </p>
+          <ul>
+            <li>
+              <strong>Comp basis on the owner email.</strong> On a live renewal you can enter your
+              own Zillow low/high and PMI rental-analysis number plus a comps link. They show up
+              source-tagged in the owner draft, and a one-click Zillow link is seeded from the
+              property address. The app never suggests a rent figure. You decide.
+            </li>
+            <li>
+              <strong>Answer transparency.</strong> Every Ask result now shows "Answered by
+              &lt;model&gt; &middot; N sources", and each cited source shows when it was last
+              reviewed.
+            </li>
+            <li>
+              <strong>Maintenance owner notice (draft).</strong> A maintenance ticket can now draft
+              an owner-notice email into Gmail, addressed to the authoritative owner from RentVine.
+              It is draft-only: a person reviews and sends. Sending on its own stays off.
+            </li>
+            <li>
+              <strong>Request a new Space (Admin).</strong> Admin, then Spaces, then "Request a new
+              Space" captures what you want and prints the exact provisioning commands to run. It
+              sets nothing up on its own.
+            </li>
+            <li>
+              <strong>Re-index sources (Admin, cost-gated).</strong> A control that records a
+              re-index request and prints the command to run. It never runs indexing on its own
+              (indexing costs money).
+            </li>
+            <li>
+              <strong>Coming next, safely staged.</strong> RentVine write-back is approved in
+              principle and fully built behind confirm gates, but stays off until the provider write
+              endpoint is documented. Dotloop sign-in scaffolding is in place; authorize it in the
+              morning. Both are off by default.
+            </li>
+          </ul>
+        </section>
+
         <!-- ============================================================= ACT 0 -->
         <section class="act" id="preflight">
           <div class="act-head">
