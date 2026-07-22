@@ -488,6 +488,13 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Connector connection records are server-only: they hold an opaque secret reference (never a
+    // secret value) and are written only by the Admin-guarded connect/disconnect API. No browser
+    // client may read or forge them.
+    match /connector_connections/{connectionId} {
+      allow read, write: if false;
+    }
+
     // S21 trusted publication is entirely server-owned. Policy changes require the
     // route-level manageAdmin gate; validated versions, Active pointers, and bodyless
     // audits are one transaction that no browser client may forge or rewrite.

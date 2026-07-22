@@ -4,6 +4,7 @@
 // Server component; never renders a secret or an env var name.
 
 import { Card, Disclosure, StatusDot } from "@/components/ui";
+import { ConnectorSetupActions } from "@/components/connections/ConnectorSetupActions";
 import { VerifyConnectionButton } from "@/components/connections/VerifyConnectionButton";
 import {
   connectorConnectLabel,
@@ -17,7 +18,8 @@ export function ConnectorCard({
   canManage,
   verifiable,
 }: Readonly<{ item: ConnectorView; canManage: boolean; verifiable: boolean }>) {
-  const { def, status } = item;
+  const { def, status, connection } = item;
+  const connected = connection?.status === "connected";
   const contract = def.healthCheckRef
     ? getHealthCheckContract(def.healthCheckRef)
     : undefined;
@@ -44,31 +46,39 @@ export function ConnectorCard({
           ) : null}
 
           {canManage ? (
-            <Disclosure summary={`Set up ${def.name}`}>
-              <div className="ui-stack">
-                <p>
-                  <strong>How this connects:</strong> {connectLabel}. This is set up
-                  securely on the server; sign-in and any credentials stay in the server
-                  setup flow, and this page shows connection status.
-                </p>
-                {verifiable ? null : (
-                  <p className="muted">
-                    This connector reports its stored status; live verification is
-                    available only where a connector supports it.
+            <>
+              <ConnectorSetupActions
+                connected={connected}
+                connectorId={def.id}
+                connectorName={def.name}
+                method={def.method}
+              />
+              <Disclosure summary={`Set up ${def.name}`}>
+                <div className="ui-stack">
+                  <p>
+                    <strong>How this connects:</strong> {connectLabel}. This is set up
+                    securely on the server; sign-in and any credentials stay in the server
+                    setup flow, and this page shows connection status.
                   </p>
-                )}
-                {contract ? (
-                  <div>
-                    <p className="muted">What the app checks:</p>
-                    <ul className="compact-list">
-                      {contract.steps.map((step) => (
-                        <li key={step.id}>{step.description}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
-            </Disclosure>
+                  {verifiable ? null : (
+                    <p className="muted">
+                      This connector reports its stored status; live verification is
+                      available only where a connector supports it.
+                    </p>
+                  )}
+                  {contract ? (
+                    <div>
+                      <p className="muted">What the app checks:</p>
+                      <ul className="compact-list">
+                        {contract.steps.map((step) => (
+                          <li key={step.id}>{step.description}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              </Disclosure>
+            </>
           ) : (
             <p className="muted">An Admin connects and verifies this.</p>
           )}
