@@ -58,19 +58,26 @@ build program); the older owner-gated backlog with findings/context is `docs/wha
   `resolveLiveOwnerEmail` (no `getUnit`, no ticket-schema change); base `operationFor` gained the draft key.
   Draft-only by construction (reuses the createDraft-only provider + gate + authoritative-recipient guard);
   `.send` stays gated. AC-S38-1..4 green; 2842 tests pass; Turbopack build green on main.
+- **S28a** market-comp provider + comp-screenshot upload → `F-MARKET-COMP-PROVIDER` (records `Q-RENTCAST-ENDPOINT`).
+  DISPLAY-only `MarketCompProvider`: manual adapter (default, echoes the operator's own numbers) + reference-only
+  comps surface with the "Does not set the rent" caption (`offeredRent` never bound). Comp screenshot is a real
+  Drive upload reusing the maintenance image-store seam; `ownerDraftMarketFromBasis` prefers the `drive:<id>`
+  ref and carries the provider source. RentCast adapter BUILT INERT (median aggregation, fail-closed, key from
+  env); two gated-OFF Registry entries (`google_drive.renewal_comp_screenshot.store`,
+  `rentcast.rental_listings.search`, both `production_allowed:false`, absent from both allowlists). Added
+  target-system "RentCast" plus its health contract and risk-policy kind. AC-S28-1..6 green; feeds S29. Owner
+  dep: RentCast key (S28b, owner-dep #2).
 
-**Wave-1 remaining — resume here (pick either; both pure app-plane, zero owner dep):**
+**Wave-1 remaining — resume here (the last Wave-1 suite; pure app-plane, zero owner dep):**
 
 - **S39** (internal transactional notifications + notification center) — decision-complete, pure app-plane,
   internal-only (D-AUTOMATION-LINE), gate flip authorized WITHIN the suite. LARGE (~13 files): extends the S17
   attention machinery (`lib/attention/lanes.ts`, `lib/notifications/{families,feed,hub}.ts`, new
   `support-lane.ts`) + a new gated internal-transactional executor + `internal.transactional_notice.send` key
-  - the flip. Best started with fresh context; read the S17 single-gather + value-free-six-key contract first.
-- **S28a** (comp data provider + screenshot upload) — pure app-plane, feeds S29; `MarketCompProvider` +
-  manual adapter + display-only comps surface + comp-screenshot Drive upload (reuse the maintenance image-store
-  seam) + RentCast adapter built inert + two gated-OFF Action Registry entries. S28b (RentCast key) is Wave 2.
+  plus the flip. Best split into 3 shippable sub-slices (data + gated executor OFF, then the notification
+  center, then auto-emit + the in-suite flip); read the S17 single-gather + value-free-six-key contract first.
 
-Build order is `docs/roadmap-unblock-2026-07-23.md` §4; the two above are the Wave-1 remainder. Wave 2 =
+Build order is `docs/roadmap-unblock-2026-07-23.md` §4; S39 above is the Wave-1 remainder. Wave 2 =
 the live-provider seams, one owner step each (S30 RentVine write, S31 Gmail watch, S28b RentCast, S35
 LeadSimple, S34 Dotloop, S36 Space provisioning, S38b maintenance send); Wave 3 = S37 no-code builder. The
 suite specs S28–S39 live under `docs/feature-suites/` (spec-shape sentinel plus README rows); each is

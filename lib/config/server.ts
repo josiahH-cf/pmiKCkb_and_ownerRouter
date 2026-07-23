@@ -100,6 +100,17 @@ const EnvSchema = z.object({
   // KB-source prefix and a photo folder. Falls back to the legacy
   // SPACE_DRIVE_FOLDER_IDS["maintenance-work-order-intake"] for back-compat.
   MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: OptionalStringSchema,
+  // Renewal comp-screenshot storage (S28a). Reuses the maintenance Drive image-store seam with its OWN
+  // folder id so the comp screenshot lands in a distinct in-boundary folder; absent → the store fails
+  // closed (no folder configured), same as the maintenance photo folder.
+  RENEWAL_COMP_DRIVE_FOLDER_ID: OptionalStringSchema,
+  // Market-comp provider (S28a). "manual" reproduces today's operator-typed behavior with no network
+  // call (the default, works with no owner step); "rentcast" selects the licensed rental-listings-search
+  // adapter, which the comps route additionally gates on rentcast.rental_listings.search until flipped.
+  MARKET_COMP_PROVIDER: z.enum(["manual", "rentcast"]).default("manual"),
+  // RentCast rental-listings-search API key (S28b). Read only from env/Secret Manager; absent → the
+  // RentCast adapter fails closed. Never in git; .env.example names it with no value.
+  RENTCAST_API_KEY: OptionalStringSchema,
   // Public tokenized maintenance intake (A5). The HMAC signing secret for intake links; ABSENT by
   // default so the public route fails CLOSED (503) until the owner provisions it in Secret Manager —
   // there is no dev fallback secret (a checked-in default would be a forgeable token). The salt hashes
@@ -191,6 +202,13 @@ export function readServerConfig(env: Environment = process.env) {
       parsed.MAINTENANCE_PHOTO_DRIVE_FOLDER_ID ??
       parsed.SPACE_DRIVE_FOLDER_IDS["maintenance-work-order-intake"] ??
       "",
+    // The renewal comp-screenshot Drive folder (S28a). Absent → "" so the reused Drive store fails closed.
+    renewalCompImageFolderId: parsed.RENEWAL_COMP_DRIVE_FOLDER_ID ?? "",
+    // Market-comp provider selection (S28a). Default "manual"; "rentcast" is additionally gate-fenced in
+    // the comps route (rentcast.rental_listings.search) so a config flip alone cannot make a live call.
+    marketCompProvider: parsed.MARKET_COMP_PROVIDER,
+    // RentCast API key (S28b); undefined until provisioned in Secret Manager. The adapter fails closed.
+    rentcastApiKey: parsed.RENTCAST_API_KEY,
     // Public tokenized maintenance intake (A5). Secret undefined ⇒ the public route fails closed (503).
     maintenanceIntakeTokenSecret: parsed.MAINTENANCE_INTAKE_TOKEN_SECRET,
     maintenanceIntakeIpHashSalt: parsed.MAINTENANCE_INTAKE_IP_HASH_SALT,

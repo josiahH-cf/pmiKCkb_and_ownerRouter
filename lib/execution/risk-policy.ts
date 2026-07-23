@@ -36,6 +36,11 @@ export const EXECUTION_ACTION_POLICIES = {
   "gmail.renewal_notice.send": policy("Medium", "workflow_communication", true),
   "gmail.thread.reply": policy("Medium", "workflow_communication", true),
   "google_drive.maintenance_photo.store": policy("Medium", "assigned_ticket_photo", true),
+  "google_drive.renewal_comp_screenshot.store": policy(
+    "Medium",
+    "renewal_comp_screenshot",
+    true,
+  ),
   "google_sheets.audit_snapshot.append": policy("High", "system_of_record_write", true),
   "google_sheets.renewal_checklist.read": policy("Low", "read", true),
   "google_sheets.renewal_checklist.reconcile": policy("Low", "read", true),
@@ -47,6 +52,7 @@ export const EXECUTION_ACTION_POLICIES = {
   "leadsimple.process.update_stage": policy("High", "system_of_record_write", true),
   "leadsimple.task.create": policy("High", "system_of_record_write", true),
   "quickbooks.bill.create_draft": policy("High", "accounting_write", true),
+  "rentcast.rental_listings.search": policy("Low", "read", true),
   "rentvine.lease.read": policy("Low", "read", true),
   "rentvine.lease.renewal_writeback": policy("High", "system_of_record_write", true),
   "rentvine.renewal.portal_message.send": policy(

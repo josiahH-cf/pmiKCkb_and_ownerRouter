@@ -22,7 +22,21 @@ interface RecordedDecision {
     zillowHigh?: number;
     pmiNumber?: number;
     compsUrl?: string;
+    compScreenshotRef?: string;
+    compSource?: string;
+    compRetrievedAt?: string;
   };
+}
+
+/** A DISPLAY-only comp lookup result (mirrors the server MarketCompResult). Never bound to offeredRent. */
+interface CompLookup {
+  rangeLow?: number;
+  rangeHigh?: number;
+  pointEstimate?: number;
+  compCount?: number;
+  source: string;
+  retrievedAt?: string;
+  confidence: "Likely" | "Needs Verification";
 }
 
 const OWNER_DECISIONS: { value: OwnerDecision; label: string }[] = [
@@ -30,6 +44,26 @@ const OWNER_DECISIONS: { value: OwnerDecision; label: string }[] = [
   { value: "keep_same", label: "Keep the same rent" },
   { value: "custom", label: "Custom" },
 ];
+
+/** Format a whole/decimal dollar amount with thousands separators (client-side reference display). */
+function formatMoney(amount: number): string {
+  const fixed = Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
+  return "$" + fixed.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+/** Read a File into base64 (no data: prefix), for the comp-screenshot upload. */
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result);
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(new Error("Could not read the file."));
+    reader.readAsDataURL(file);
+  });
+}
 
 /**
  * Record (or update) the owner's rent decision for a live lease. Recording advances the lease to the
@@ -39,7 +73,13 @@ const OWNER_DECISIONS: { value: OwnerDecision; label: string }[] = [
 export function OwnerDecisionForm({
   leaseId,
   current,
-}: Readonly<{ leaseId: string; current: RecordedDecision | null }>) {
+  address,
+}: Readonly<{
+  leaseId: string;
+  current: RecordedDecision | null;
+  /** The in-boundary property address, used only for the reference-only comp lookup (never PII/rent). */
+  address?: string;
+}>) {
   const router = useRouter();
   const [decision, setDecision] = useState<OwnerDecision>(
     current?.decision ?? "increase",
@@ -63,7 +103,13 @@ export function OwnerDecisionForm({
   const [pmiNumber, setPmiNumber] = useState(
     current?.market?.pmiNumber !== undefined ? String(current.market.pmiNumber) : "",
   );
-  const [compsUrl, setCompsUrl] = useState(current?.market?.compsUrl ?? "");
+  const [compScreenshotRef, setCompScreenshotRef] = useState(
+    current?.market?.compScreenshotRef ?? "",
+  );
+  const [screenshotStatus, setScreenshotStatus] = useState("");
+  const [screenshotPending, setScreenshotPending] = useState(false);
+  const [compLookup, setCompLookup] = useState<CompLookup | null>(null);
+  const [lookupPending, setLookupPending] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -77,8 +123,73 @@ export function OwnerDecisionForm({
     zillowLow: useId(),
     zillowHigh: useId(),
     pmiNumber: useId(),
-    compsUrl: useId(),
+    screenshot: useId(),
   };
+
+  // Reference-only market-comp lookup: runs the configured provider (the manual adapter echoes the
+  // operator's own numbers; RentCast is refused until its gate flips) and DISPLAYS the range. It never
+  // sets the offered rent — the comp-derived SUGGESTED number is the separate Admin-gated S29.
+  async function lookupComps() {
+    setLookupPending(true);
+    try {
+      const manualBasis: Record<string, number> = {};
+      if (zillowLow.trim() !== "") manualBasis.zillowLow = Number(zillowLow);
+      if (zillowHigh.trim() !== "") manualBasis.zillowHigh = Number(zillowHigh);
+      if (pmiNumber.trim() !== "") manualBasis.pmiNumber = Number(pmiNumber);
+      const response = await fetch("/api/lease-renewal/market-comps", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          address: (address ?? "").trim() || "Unknown",
+          ...(Object.keys(manualBasis).length > 0 ? { manualBasis } : {}),
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as CompLookup & {
+        error?: string;
+      };
+      setCompLookup(response.ok ? payload : null);
+    } catch {
+      setCompLookup(null);
+    } finally {
+      setLookupPending(false);
+    }
+  }
+
+  // Upload a comps screenshot to the in-boundary Drive folder (behind its own gate). Stores only the
+  // returned ref; the binary never comes back. A closed gate or failure leaves a clear note and no ref.
+  async function onScreenshotSelected(file: File | undefined) {
+    if (!file) return;
+    setScreenshotPending(true);
+    setScreenshotStatus("");
+    try {
+      const base64 = await fileToBase64(file);
+      const response = await fetch("/api/lease-renewal/comp-screenshot", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type || "application/octet-stream",
+          base64,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        ref?: string;
+        error?: string;
+      };
+      if (response.ok && payload.ref) {
+        setCompScreenshotRef(payload.ref);
+        setScreenshotStatus("Screenshot stored.");
+      } else {
+        setScreenshotStatus(
+          payload.error ?? "Could not store the screenshot. Continue without one.",
+        );
+      }
+    } catch {
+      setScreenshotStatus("Could not reach the screenshot service.");
+    } finally {
+      setScreenshotPending(false);
+    }
+  }
 
   const ready = offeredRent.trim() !== "" && Number(offeredRent) > 0;
 
@@ -103,7 +214,11 @@ export function OwnerDecisionForm({
     if (zillowLow.trim() !== "") market.zillowLow = Number(zillowLow);
     if (zillowHigh.trim() !== "") market.zillowHigh = Number(zillowHigh);
     if (pmiNumber.trim() !== "") market.pmiNumber = Number(pmiNumber);
-    if (compsUrl.trim() !== "") market.compsUrl = compsUrl.trim();
+    // S28a: the stored screenshot Drive ref + display-only comp attribution (never a rent figure).
+    if (compScreenshotRef.trim() !== "")
+      market.compScreenshotRef = compScreenshotRef.trim();
+    if (compLookup?.source) market.compSource = compLookup.source;
+    if (compLookup?.retrievedAt) market.compRetrievedAt = compLookup.retrievedAt;
     if (Object.keys(market).length > 0) body.market = market;
     try {
       const response = await fetch("/api/lease-renewal/renewal-progress", {
@@ -222,16 +337,53 @@ export function OwnerDecisionForm({
         </Field>
       </div>
       <Field
-        htmlFor={id.compsUrl}
-        label="Comps screenshot / Zillow search URL (optional)"
+        htmlFor={id.screenshot}
+        hint="Stored in the in-boundary Drive folder and attached to the owner draft."
+        label="Comps screenshot (optional)"
       >
         <input
-          id={id.compsUrl}
-          onChange={(event) => setCompsUrl(event.target.value)}
-          type="url"
-          value={compsUrl}
+          accept="image/*"
+          disabled={screenshotPending}
+          id={id.screenshot}
+          onChange={(event) =>
+            void onScreenshotSelected(event.target.files?.[0] ?? undefined)
+          }
+          type="file"
         />
       </Field>
+      {compScreenshotRef ? (
+        <p className="muted">Screenshot stored (ref {compScreenshotRef}).</p>
+      ) : null}
+      {screenshotStatus ? <p className="muted">{screenshotStatus}</p> : null}
+      <div className="ui-row">
+        <Button
+          disabled={lookupPending}
+          onClick={() => void lookupComps()}
+          type="button"
+          variant="secondary"
+        >
+          {lookupPending ? "Looking up…" : "Look up market comps (reference only)"}
+        </Button>
+      </div>
+      {compLookup ? (
+        <div className="ui-stack">
+          <p className="muted">
+            {compLookup.confidence === "Likely" &&
+            (compLookup.rangeLow !== undefined || compLookup.pointEstimate !== undefined)
+              ? `Comparable rents${
+                  compLookup.rangeLow !== undefined && compLookup.rangeHigh !== undefined
+                    ? ` ${formatMoney(compLookup.rangeLow)}–${formatMoney(compLookup.rangeHigh)}`
+                    : ""
+                }${
+                  compLookup.pointEstimate !== undefined
+                    ? ` (point estimate ${formatMoney(compLookup.pointEstimate)})`
+                    : ""
+                } · Source: ${compLookup.source}`
+              : `No comparable range is available yet (${compLookup.source}). Needs verification.`}
+          </p>
+          <p className="muted">Reference only. Does not set the rent.</p>
+        </div>
+      ) : null}
       <div className="ui-row">
         <Button disabled={!ready || pending} onClick={() => void submit()} type="button">
           {pending

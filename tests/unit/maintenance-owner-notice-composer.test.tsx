@@ -94,7 +94,7 @@ describe("MaintenanceOwnerNoticeDraftComposer on the queue (AC-S38-4)", () => {
       String(url).includes("/api/maintenance/owner-notice-draft"),
     );
     expect(previewCall).toBeTruthy();
-    expect(JSON.parse(String(previewCall![1].body))).toEqual({
+    expect(JSON.parse(String(previewCall![1]!.body))).toEqual({
       ticketRef: "t1",
       confirm: false,
     });
@@ -112,7 +112,7 @@ describe("MaintenanceOwnerNoticeDraftComposer on the queue (AC-S38-4)", () => {
         JSON.parse(String((init as RequestInit).body)).confirm === true,
     );
     expect(createCall).toBeTruthy();
-    expect(JSON.parse(String(createCall![1].body))).toEqual({
+    expect(JSON.parse(String(createCall![1]!.body))).toEqual({
       ticketRef: "t1",
       confirm: true,
     });

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { zillowSearchUrl } from "@/lib/lease-renewal/market-links";
-import { ownerDraftMarketFromBasis } from "@/lib/lease-renewal/owner-draft";
+import {
+  buildOwnerRenewalDraft,
+  ownerDraftMarketFromBasis,
+} from "@/lib/lease-renewal/owner-draft";
 import {
   COMP_BASIS_FIELD_KEY,
   COMP_BASIS_FIELD_LABEL,
@@ -47,6 +50,58 @@ describe("ownerDraftMarketFromBasis", () => {
     expect(ownerDraftMarketFromBasis({})).toEqual({});
     // A blank comps URL is dropped, not passed through.
     expect(ownerDraftMarketFromBasis({ compsUrl: "   " })).toEqual({});
+  });
+
+  it("prefers the stored Drive screenshot ref over the pasted URL (S28a)", () => {
+    expect(
+      ownerDraftMarketFromBasis({
+        compScreenshotRef: "drive:abc123",
+        compsUrl: "https://www.zillow.com/homes/x_rb/",
+      }),
+    ).toEqual({ compsScreenshotRef: "drive:abc123" });
+  });
+
+  it("carries the provider source as the range attribution (S28a)", () => {
+    expect(
+      ownerDraftMarketFromBasis({
+        zillowLow: 1450,
+        zillowHigh: 1600,
+        compSource: "RentCast",
+      }),
+    ).toEqual({ rangeLow: 1450, rangeHigh: 1600, rangeSource: "RentCast" });
+  });
+});
+
+describe("buildOwnerRenewalDraft market attribution + Needs Verification (AC-S28-3)", () => {
+  const base = { addressLabel: "104 NE Lindsay Ave", currentRent: 1500 };
+
+  it("labels the comparable-range fact with the provider source when present", () => {
+    const draft = buildOwnerRenewalDraft({
+      ...base,
+      market: { rangeLow: 1450, rangeHigh: 1600, rangeSource: "RentCast" },
+    });
+    const rangeFact = draft.facts.find((fact) => fact.key === "market_range");
+    expect(rangeFact?.source).toBe("RentCast");
+    expect(rangeFact?.value).toBe("$1,450–$1,600");
+  });
+
+  it("renders a Needs Verification marker (never a fabricated range) when comp data is absent", () => {
+    const draft = buildOwnerRenewalDraft({ ...base, market: {} });
+    const rangeFact = draft.facts.find((fact) => fact.key === "market_range");
+    expect(rangeFact?.confidence).toBe("Needs Verification");
+    expect(rangeFact?.value).toContain("Needs Verification");
+    expect(draft.missingInputs).toContain("market comp range (Zillow)");
+    // No fabricated numeric range appears in the composed body.
+    expect(draft.body).not.toMatch(/\$\d[\d,]*–\$\d/);
+  });
+
+  it("resolves the screenshot fact to a stored Drive ref, not a pasted string (AC-S28-4)", () => {
+    const draft = buildOwnerRenewalDraft({
+      ...base,
+      market: ownerDraftMarketFromBasis({ compScreenshotRef: "drive:abc123" }),
+    });
+    expect(draft.body).toContain("drive:abc123");
+    expect(draft.missingInputs).not.toContain("comps screenshot");
   });
 });
 

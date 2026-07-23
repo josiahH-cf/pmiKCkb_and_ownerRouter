@@ -165,10 +165,13 @@ describe("Action Registry seed catalog", () => {
     expect(writeback?.production_allowed).toBe(false);
   });
 
-  it("contains the expanded 38-entry catalog", () => {
-    expect(ACTION_REGISTRY_SEED).toHaveLength(38);
+  it("contains the expanded 40-entry catalog", () => {
+    expect(ACTION_REGISTRY_SEED).toHaveLength(40);
     expect(ACTION_REGISTRY_SEED.map((entry) => entry.key)).toEqual(
       expect.arrayContaining([
+        // S28a gated-OFF entries (production_allowed:false, absent from the executable allowlist).
+        "google_drive.renewal_comp_screenshot.store",
+        "rentcast.rental_listings.search",
         "rentvine.lease.read",
         "rentvine.work_order.read",
         "leadsimple.task.create",

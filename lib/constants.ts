@@ -55,6 +55,7 @@ export const ACTION_TARGET_SYSTEMS = [
   "Dotloop",
   "QuickBooks",
   "Boom",
+  "RentCast",
   "Google Sheets",
   "Google Drive",
   "Gmail",

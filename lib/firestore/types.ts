@@ -718,6 +718,9 @@ export interface LeaseRenewalProgressRecord {
       zillow_high?: number;
       pmi_number?: number;
       comps_url?: string;
+      comp_screenshot_ref?: string;
+      comp_source?: string;
+      comp_retrieved_at?: string;
     };
   };
   tenant_offer_draft_id?: string;

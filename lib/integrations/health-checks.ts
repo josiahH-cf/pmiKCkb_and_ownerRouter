@@ -306,6 +306,38 @@ export const HEALTH_CHECK_CONTRACTS: readonly HealthCheckContract[] = [
       },
     ],
   },
+  {
+    id: "health.rentcast.api_key",
+    system: "RentCast",
+    label: "RentCast rental-listings API key health",
+    steps: [
+      {
+        id: "rentcast.config",
+        kind: "config_presence",
+        description: "The RentCast API key is configured outside the repository.",
+        expected_evidence:
+          "RENTCAST_API_KEY reference present in approved secret storage; never in git.",
+      },
+      {
+        id: "rentcast.auth",
+        kind: "auth_validation",
+        description: "The API key authenticates against the listings-search endpoint.",
+        expected_evidence: "Authenticated response from the read-only listings search.",
+      },
+      {
+        id: "rentcast.probe",
+        kind: "endpoint_probe",
+        description: "The /listings/rental/long-term endpoint answers a read-only probe.",
+        expected_evidence: "Successful listings response; read-only, no mutation exists.",
+      },
+      {
+        id: "rentcast.rate_limit",
+        kind: "rate_limit_read",
+        description: "Rate-limit posture is read from the response headers.",
+        expected_evidence: "Documented or observed rate-limit headers recorded.",
+      },
+    ],
+  },
 ];
 
 export function getHealthCheckContract(id: string): HealthCheckContract | undefined {

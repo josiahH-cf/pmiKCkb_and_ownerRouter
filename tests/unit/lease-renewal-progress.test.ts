@@ -338,6 +338,10 @@ describe("lease-renewal-progress store", () => {
           zillowHigh: 1600,
           pmiNumber: 1550,
           compsUrl: "https://www.zillow.com/homes/x_rb/",
+          // S28a: the stored Drive screenshot ref + display-only provider attribution must round-trip.
+          compScreenshotRef: "drive:abc123",
+          compSource: "RentCast",
+          compRetrievedAt: "2026-07-23T00:00:00.000Z",
         },
       },
       db as unknown as Firestore,
@@ -353,6 +357,9 @@ describe("lease-renewal-progress store", () => {
           zillow_high: 1600,
           pmi_number: 1550,
           comps_url: "https://www.zillow.com/homes/x_rb/",
+          comp_screenshot_ref: "drive:abc123",
+          comp_source: "RentCast",
+          comp_retrieved_at: "2026-07-23T00:00:00.000Z",
         },
       },
     });
@@ -367,6 +374,9 @@ describe("lease-renewal-progress store", () => {
       zillowHigh: 1600,
       pmiNumber: 1550,
       compsUrl: "https://www.zillow.com/homes/x_rb/",
+      compScreenshotRef: "drive:abc123",
+      compSource: "RentCast",
+      compRetrievedAt: "2026-07-23T00:00:00.000Z",
     });
   });
 

@@ -162,6 +162,9 @@ async function applyTransition(
                     zillow_high: next.ownerDecision.market.zillowHigh,
                     pmi_number: next.ownerDecision.market.pmiNumber,
                     comps_url: next.ownerDecision.market.compsUrl,
+                    comp_screenshot_ref: next.ownerDecision.market.compScreenshotRef,
+                    comp_source: next.ownerDecision.market.compSource,
+                    comp_retrieved_at: next.ownerDecision.market.compRetrievedAt,
                   })
                 : undefined,
             })
@@ -234,6 +237,15 @@ function toRenewalProgress(record: LeaseRenewalProgressRecord): RenewalProgress 
                     : {}),
                   ...(decision.market.comps_url !== undefined
                     ? { compsUrl: decision.market.comps_url }
+                    : {}),
+                  ...(decision.market.comp_screenshot_ref !== undefined
+                    ? { compScreenshotRef: decision.market.comp_screenshot_ref }
+                    : {}),
+                  ...(decision.market.comp_source !== undefined
+                    ? { compSource: decision.market.comp_source }
+                    : {}),
+                  ...(decision.market.comp_retrieved_at !== undefined
+                    ? { compRetrievedAt: decision.market.comp_retrieved_at }
                     : {}),
                 },
               }

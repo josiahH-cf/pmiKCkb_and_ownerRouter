@@ -51,7 +51,11 @@ const OWNER = {
 const MAILBOX = { email: "editor@pmikcmetro.com", sourceRef: "app:session:u1" };
 
 function fakeGmailClient() {
-  const createDraft = vi.fn(async () => ({ draftId: "draft-123" }));
+  const createDraft = vi.fn(
+    async (_input: { to: string; cc?: string[]; subject: string; body: string }) => ({
+      draftId: "draft-123",
+    }),
+  );
   const send = vi.fn();
   const client = {
     subject: MAILBOX.email.toLowerCase(),

@@ -1006,6 +1006,90 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     production_allowed: false,
   },
   {
+    key: "google_drive.renewal_comp_screenshot.store",
+    label: "Store renewal comp screenshot in Drive",
+    target_system: "Google Drive",
+    expected_action:
+      "Upload a renewal comp screenshot to the in-boundary renewal-comp Drive folder, acting as the pmikcmetro.com DWD subject.",
+    product_lane: "PMI KC KB",
+    readiness: "Needs Permission",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Reuses the proven maintenance Drive image-store seam (Drive v3 multipart upload, keyless domain-wide delegation acting AS a pmikcmetro.com user, F-DRIVE-DWD, Q-MAINT-STORAGE resolved). The Drive scope is already authorized (2026-06-29); the only remaining prod config is the renewal-comp folder id (RENEWAL_COMP_DRIVE_FOLDER_ID). Draft-only downstream: the stored drive:<id> ref attaches to the owner renewal DRAFT, which stays send_allowed:false.",
+    required_permissions: [
+      "Drive scope authorized for the DWD service account (Admin console -> Domain-wide delegation)",
+      "Renewal-comp Drive folder id in RENEWAL_COMP_DRIVE_FOLDER_ID",
+    ],
+    event_ingestion_mode: "None",
+    preview_schema_note:
+      "Show the file name, MIME type, and target in-boundary Drive folder before uploading; nothing tenant/owner-facing is sent.",
+    preview_payload_schema: [
+      {
+        name: "filename",
+        label: "File name",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "mime_type",
+        label: "MIME type",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "folder_id",
+        label: "Target Drive folder",
+        type: "reference",
+        required: true,
+        source_system: "Google Drive",
+      },
+    ],
+    rollback_note:
+      "Trash the uploaded file in Drive and remove its reference from the owner renewal draft.",
+    connection_health_check_ref: "health.google_drive.dwd",
+    production_allowed: false,
+  },
+  {
+    key: "rentcast.rental_listings.search",
+    label: "Search RentCast rental listings (reference comps)",
+    target_system: "RentCast",
+    expected_action:
+      "Query comparable long-term rental listings near a property address and aggregate them into a DISPLAY-only comparable-rent range (median point estimate). Read-only reference; never fills or moves the offered rent.",
+    product_lane: "PMI KC KB",
+    readiness: "Planned",
+    evidence_status: "Undocumented",
+    documented_evidence:
+      "Owner-confirmed 2026-07-23: RentCast /listings/rental/long-term is the comp source (no usable rent-estimate endpoint), and the app aggregates the returned comps deterministically (median = point estimate, min/max = range, fail-closed below a minimum comp count). The exact RentCast tier + rate limits ride with owner-dependency #2 (Q-RENTCAST-ENDPOINT); the API key (RENTCAST_API_KEY) lives in Secret Manager, never git. The adapter is built and unit-proven against the documented listings response over a stubbed transport, but stays inert until this gate is flipped.",
+    required_permissions: [
+      "RentCast rental-listings-search API key in Secret Manager (RENTCAST_API_KEY)",
+    ],
+    event_ingestion_mode: "None",
+    preview_schema_note:
+      "Show the queried property address and the returned comparable-rent range as reference only; the only external datum is the address (no tenant PII, no rent figure sent), and the result never sets the offered rent.",
+    preview_payload_schema: [
+      {
+        name: "queried_address",
+        label: "Queried property address",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "comparable_range",
+        label: "Returned comparable-rent range (reference only)",
+        type: "string",
+        required: false,
+        source_system: "RentCast",
+      },
+    ],
+    rollback_note:
+      "None required: the listings search is a read with no mutation to reverse. A stale or low-confidence result renders a Needs Verification marker rather than a fabricated number.",
+    connection_health_check_ref: "health.rentcast.api_key",
+    production_allowed: false,
+  },
+  {
     key: "vendor.account.invite",
     label: "Invite external Vendor account",
     target_system: "KB Internal",

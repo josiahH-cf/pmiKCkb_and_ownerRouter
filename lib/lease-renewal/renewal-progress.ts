@@ -39,6 +39,12 @@ export interface RenewalMarketBasis {
   pmiNumber?: number;
   /** The Zillow comps-search URL the operator used (property address only; no tenant PII). */
   compsUrl?: string;
+  /** The stored Drive ref (drive:<id>) for the uploaded comps screenshot (S28a; distinct from compsUrl). */
+  compScreenshotRef?: string;
+  /** Attribution for the comp range (e.g. "Manual entry" or "RentCast"). Display string only; no number. */
+  compSource?: string;
+  /** ISO timestamp the comp range was retrieved (RentCast receipt). Display string only; no number. */
+  compRetrievedAt?: string;
 }
 
 /** The recorded owner rent decision that unlocks the tenant offer. Values are the operator's inputs. */
@@ -153,6 +159,17 @@ function normalizeMarketBasis(
   }
   if (input.compsUrl && input.compsUrl.trim() !== "") {
     market.compsUrl = input.compsUrl.trim();
+  }
+  // S28a display-only attribution + the stored screenshot ref. Trimmed, blank dropped; never a number, so
+  // the no-invented-number invariant is untouched by these fields.
+  if (input.compScreenshotRef && input.compScreenshotRef.trim() !== "") {
+    market.compScreenshotRef = input.compScreenshotRef.trim();
+  }
+  if (input.compSource && input.compSource.trim() !== "") {
+    market.compSource = input.compSource.trim();
+  }
+  if (input.compRetrievedAt && input.compRetrievedAt.trim() !== "") {
+    market.compRetrievedAt = input.compRetrievedAt.trim();
   }
   return Object.keys(market).length > 0 ? market : undefined;
 }

@@ -36,8 +36,10 @@ export interface OwnerDraftMarketInput {
   /** Zillow comp range for justification. */
   rangeLow?: number;
   rangeHigh?: number;
-  /** A link/placeholder for the comps screenshot Dan pastes into the email. */
+  /** A link/placeholder for the comps screenshot Dan pastes into the email (S28a: a stored drive:<id> ref). */
   compsScreenshotRef?: string;
+  /** Attribution for the comparable range (S28a: e.g. "RentCast" or "Manual entry"); defaults to "Zillow". */
+  rangeSource?: string;
   /**
    * S29: an Admin-APPROVED comp-derived suggested rent number, resolved server-side from the rent-suggestion
    * control plane (never the raw computed value, never client-trusted). When present it fills the
@@ -111,8 +113,12 @@ export function ownerDraftMarketFromBasis(
   if (market.pmiNumber !== undefined) out.specificNumber = market.pmiNumber;
   if (market.zillowLow !== undefined) out.rangeLow = market.zillowLow;
   if (market.zillowHigh !== undefined) out.rangeHigh = market.zillowHigh;
-  if (market.compsUrl !== undefined && market.compsUrl.trim() !== "") {
-    out.compsScreenshotRef = market.compsUrl.trim();
+  // Prefer the stored Drive screenshot ref (S28a); fall back to the pasted URL for back-compat.
+  const screenshotRef = market.compScreenshotRef?.trim() || market.compsUrl?.trim();
+  if (screenshotRef) out.compsScreenshotRef = screenshotRef;
+  // Carry the provider attribution onto the comparable-range fact (defaults to "Zillow" when absent).
+  if (market.compSource && market.compSource.trim() !== "") {
+    out.rangeSource = market.compSource.trim();
   }
   return out;
 }
@@ -138,13 +144,16 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
   });
 
   const market = input.market ?? {};
+  // S28a: the comparable-range fact wears the provider's attribution ("Manual entry" / "RentCast" / …),
+  // defaulting to "Zillow" to preserve prior behavior when no provider source was recorded.
+  const rangeSource = market.rangeSource ?? "Zillow";
   const hasRange = market.rangeLow !== undefined && market.rangeHigh !== undefined;
   if (hasRange) {
     facts.push({
       key: "market_range",
       label: "Comparable range",
       value: `${formatUsd(market.rangeLow!)}–${formatUsd(market.rangeHigh!)}`,
-      source: "Zillow",
+      source: rangeSource,
       confidence: "Likely",
     });
   } else {

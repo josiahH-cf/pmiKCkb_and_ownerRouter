@@ -138,6 +138,7 @@ export function RenewalWorkspace({
               </p>
             ) : null}
             <OwnerDecisionForm
+              address={summary.addressLabel}
               current={workspace.live.ownerDecision}
               leaseId={workspace.live.leaseId}
             />
