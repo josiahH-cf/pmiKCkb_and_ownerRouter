@@ -35,7 +35,7 @@ build program); the older owner-gated backlog with findings/context is `docs/wha
 
 **Shipped this cycle (2026-07-23, worktree `ui-ux-overhaul`, ff-merged to `main`):**
 
-(Each shipped slice below has a full `docs/facts.md` F-row + `docs/status.md` entry; these are one-line pointers.)
+(Each shipped slice below has a full `docs/facts.md` F-row — the authoritative record; these are one-line pointers. `docs/status.md` carries the S29/S32/S33 history entry; S38a/S28a/S39.1 live in their F-rows.)
 
 - **S29** comp-informed rent suggestion, Admin-approval-gated → `F-RENT-SUGGEST-ADMIN-GATED` (supersedes
   `F-NEGOTIATION-EXCLUDED`). AC-S29-1..8; falsified clean; Turbopack green.
