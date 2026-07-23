@@ -52,15 +52,27 @@ build program); the older owner-gated backlog with findings/context is `docs/wha
   `RenewalNoticeDraftComposer` pre-seeded with the resolved lease. No new executor/endpoint/scope/gate;
   Action Registry untouched; Test-run/capture unchanged. AC-S33-1..8 green.
 
-Next Wave-1 suite: **S38a** (surface the maintenance owner-notice draft; mirrors the renewal-notice-draft
-flow — needs the maintenance ticket store + `MaintenanceOwnerEmailExecutor` invocation loaded first).
+**Wave-1 remaining — resume here (pick any; all pure app-plane, zero owner dep):**
 
-Build order is `docs/roadmap-unblock-2026-07-23.md` §4. Wave 1 remaining (pure app-plane, zero owner
-dep): S38a surface the maintenance draft, S39 internal notifications, S28a comp provider plus screenshot.
-Wave 2 (build the live provider to the seam, one owner step each): S30 RentVine write, S31 Gmail
-watch, S28b RentCast, S35 LeadSimple, S34 Dotloop, S36 Space provisioning, S38b maintenance send.
-Wave 3: S37 full no-code builder. The suite specs S28–S39 live under `docs/feature-suites/`
-(spec-shape sentinel plus README rows); each is decision-complete.
+- **S38a** (surface the maintenance owner-notice draft) — NOT a clean mirror of the renewal flow. BLOCKER
+  found 2026-07-23: its authoritative owner-resolution keys on the ticket's `unit.unitId`, but the RentVine
+  client has NO `getUnit` hop and ticket unitIds are app-internal (`unit:demo-*`), not RentVine keys. Needs a
+  deliberate unit→RentVine-property (or unit→live-lease→owner via `resolveLiveOwnerEmail`) mapping design
+  before the composer/route/service can resolve an authoritative owner. Do this design first, then build.
+- **S39** (internal transactional notifications + notification center) — decision-complete, pure app-plane,
+  internal-only (D-AUTOMATION-LINE), gate flip authorized WITHIN the suite. LARGE (~13 files): extends the S17
+  attention machinery (`lib/attention/lanes.ts`, `lib/notifications/{families,feed,hub}.ts`, new
+  `support-lane.ts`) + a new gated internal-transactional executor + `internal.transactional_notice.send` key
+  - the flip. Best started with fresh context; read the S17 single-gather + value-free-six-key contract first.
+- **S28a** (comp data provider + screenshot upload) — pure app-plane, feeds S29; `MarketCompProvider` +
+  manual adapter + display-only comps surface + comp-screenshot Drive upload (reuse the maintenance image-store
+  seam) + RentCast adapter built inert + two gated-OFF Action Registry entries. S28b (RentCast key) is Wave 2.
+
+Build order is `docs/roadmap-unblock-2026-07-23.md` §4; the three above are the Wave-1 remainder. Wave 2 =
+the live-provider seams, one owner step each (S30 RentVine write, S31 Gmail watch, S28b RentCast, S35
+LeadSimple, S34 Dotloop, S36 Space provisioning, S38b maintenance send); Wave 3 = S37 no-code builder. The
+suite specs S28–S39 live under `docs/feature-suites/` (spec-shape sentinel plus README rows); each is
+decision-complete.
 
 ## Safe Stop Boundary
 
