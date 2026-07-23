@@ -200,6 +200,85 @@ describe("AskForm (action console)", () => {
     );
   });
 
+  it("renders a freshness chip only for review-due/stale citations (S32 AC-S32-5)", async () => {
+    const user = userEvent.setup();
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) =>
+      String(input).includes("/api/ask")
+        ? jsonResponse({
+            ...ANSWER,
+            citations: [
+              {
+                source_id: "s1",
+                title: "Due SOP",
+                url: "https://drive.example/s1",
+                freshness: { status: "review-due", daysOverdue: 5 },
+              },
+              {
+                source_id: "s2",
+                title: "Old SOP",
+                url: "https://drive.example/s2",
+                freshness: { status: "stale", daysOverdue: 90 },
+              },
+              {
+                source_id: "s3",
+                title: "Fresh SOP",
+                url: "https://drive.example/s3",
+                freshness: { status: "fresh" },
+              },
+              { source_id: "s4", title: "Plain SOP", url: "https://drive.example/s4" },
+            ],
+          })
+        : jsonResponse({}, false),
+    );
+    render(<AskForm />);
+
+    await user.type(screen.getByLabelText(/Question/), "How do renewals work?");
+    await user.click(screen.getByRole("button", { name: "Get answer" }));
+
+    expect((await screen.findByText("Due SOP")).closest("li")?.textContent).toMatch(
+      /Review due/,
+    );
+    expect(screen.getByText("Old SOP").closest("li")?.textContent).toMatch(/Stale/);
+    // Fresh and unknown citations render no chip.
+    expect(screen.getByText("Fresh SOP").closest("li")?.textContent).not.toMatch(
+      /Review due|Stale/,
+    );
+    expect(screen.getByText("Plain SOP").closest("li")?.textContent).not.toMatch(
+      /Review due|Stale/,
+    );
+  });
+
+  it("files a correction (Proposed-only) and leaves the answer unchanged (S32 AC-S32-1)", async () => {
+    const user = userEvent.setup();
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/ask/correct")) {
+        return jsonResponse({ correction: { id: "c1", status: "Proposed" } }, true);
+      }
+      if (url.includes("/api/ask")) return jsonResponse(ANSWER);
+      return jsonResponse({}, false);
+    });
+    render(<AskForm />);
+
+    await user.type(screen.getByLabelText(/Question/), "How do renewals work?");
+    await user.click(screen.getByRole("button", { name: "Get answer" }));
+    await screen.findByText("Here is the grounded answer.");
+
+    await user.click(screen.getByRole("button", { name: "Suggest a correction" }));
+    await user.type(screen.getByLabelText("Correction"), "The grace period is 5 days.");
+    await user.click(screen.getByRole("button", { name: "File correction" }));
+
+    expect(
+      await screen.findByText(/filed for review\. The answer is unchanged/i),
+    ).toBeInTheDocument();
+    // Nothing self-modified: the answer text is still on screen.
+    expect(screen.getByText("Here is the grounded answer.")).toBeInTheDocument();
+    const correctCalls = fetchMock.mock.calls
+      .map((call) => String(call[0]))
+      .filter((url) => url.includes("/api/ask/correct"));
+    expect(correctCalls).toHaveLength(1);
+  });
+
   it("asks without a process and never starts a simulation", async () => {
     const user = userEvent.setup();
     render(

@@ -23,6 +23,15 @@ export const CitationSchema = z.object({
   // KB freshness (Slice 5, D13): the source's existing sources_meta.last_reviewed_at, when present.
   // Honest surfacing only — the UI shows "reviewed <date>"; absent when the source has no review date.
   last_reviewed_at: z.string().optional(),
+  // S32 source freshness: computed server-side from last_reviewed_at + the source's review interval.
+  // Absent when either input is missing (status "unknown"); the UI shows a chip only for review-due/stale.
+  freshness: z
+    .object({
+      status: z.enum(["fresh", "review-due", "stale", "unknown"]),
+      dueDateIso: z.string().optional(),
+      daysOverdue: z.number().optional(),
+    })
+    .optional(),
 });
 
 export const AskResponseSchema = z.object({
@@ -53,7 +62,28 @@ export const AskCaptureRequestSchema = z.object({
   space_id: z.string().trim().min(1),
 });
 
+// S32: filing a plain-language correction on an Ask answer. It writes a Proposed-only review record and
+// changes nothing on its own (mirrors the capture-task shape). `citations`/`source_state` are a
+// non-authoritative context snapshot for the reviewer.
+export const AskCorrectionKinds = [
+  "wrong_fact",
+  "wrong_source",
+  "missing_detail",
+  "wrong_process",
+] as const;
+
+export const CorrectionRequestSchema = z.object({
+  ask_log_id: z.string().trim().min(1).optional(),
+  space_id: z.string().trim().min(1),
+  question: z.string().trim().min(3),
+  kind: z.enum(AskCorrectionKinds),
+  note: z.string().trim().min(1),
+  source_state: z.string().trim().optional(),
+  citations: z.array(CitationSchema).default([]),
+});
+
 export type AskRequest = z.infer<typeof AskRequestSchema>;
 export type AskCaptureRequest = z.infer<typeof AskCaptureRequestSchema>;
+export type CorrectionRequest = z.infer<typeof CorrectionRequestSchema>;
 export type Citation = z.infer<typeof CitationSchema>;
 export type AskResponse = z.infer<typeof AskResponseSchema>;

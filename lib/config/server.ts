@@ -133,6 +133,11 @@ const FRIENDLY_MODEL_LABELS: Record<string, string> = {
  * Known ids map exactly; an unknown id is title-cased segment-by-segment ("gemini-3.0-ultra" →
  * "Gemini 3.0 Ultra") so a new model still reads cleanly. Pure + deterministic.
  */
+/** True when the model id is in the known-good label map (S32 model-config transparency panel). */
+export function isKnownGoodModel(modelId: string): boolean {
+  return Boolean(FRIENDLY_MODEL_LABELS[modelId.trim()]);
+}
+
 export function friendlyModelLabel(modelId: string): string {
   const id = modelId.trim();
   if (FRIENDLY_MODEL_LABELS[id]) return FRIENDLY_MODEL_LABELS[id];

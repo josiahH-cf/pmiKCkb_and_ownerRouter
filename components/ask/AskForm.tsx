@@ -7,9 +7,18 @@ import { SourceStateBanner } from "@/components/source-state-banner/SourceStateB
 import { Button, Field } from "@/components/ui";
 import { detectProcess } from "@/lib/processes/intent";
 import { launchSpaces } from "@/lib/spaces";
-import type { AskResponse } from "@/lib/schemas";
+import { AskCorrectionKinds, type AskResponse } from "@/lib/schemas";
 
 type SelectOption = { label: string; value: string };
+
+type CorrectionKind = (typeof AskCorrectionKinds)[number];
+
+const CORRECTION_KIND_LABELS: Record<CorrectionKind, string> = {
+  wrong_fact: "Wrong fact",
+  wrong_source: "Wrong source",
+  missing_detail: "Missing detail",
+  wrong_process: "Wrong process",
+};
 
 async function blobToBase64(blob: Blob): Promise<string> {
   const buffer = await blob.arrayBuffer();
@@ -62,6 +71,12 @@ export function AskForm({
   const [isDetecting, setIsDetecting] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [dictationStatus, setDictationStatus] = useState("");
+  // S32: file a plain-language correction on the answer. Proposed-only; changes nothing on its own.
+  const [showCorrection, setShowCorrection] = useState(false);
+  const [correctionKind, setCorrectionKind] = useState<CorrectionKind>("wrong_fact");
+  const [correctionNote, setCorrectionNote] = useState("");
+  const [correctionStatus, setCorrectionStatus] = useState("");
+  const [isCorrecting, setIsCorrecting] = useState(false);
   const dictateButtonRef = useRef<HTMLButtonElement>(null);
 
   const showProcessPicker = canStartSimulation && processes.length > 0;
@@ -157,6 +172,37 @@ export function AskForm({
     }
 
     setIsCapturing(false);
+  }
+
+  async function submitCorrection() {
+    if (!result || correctionNote.trim() === "") {
+      return;
+    }
+    setIsCorrecting(true);
+    setCorrectionStatus("");
+    const response = await fetch("/api/ask/correct", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        space_id: captureSpace,
+        question: result.question,
+        kind: correctionKind,
+        note: correctionNote.trim(),
+        source_state: result.source_state,
+        citations: result.citations,
+      }),
+    });
+    if (response.ok) {
+      // Proposed-only: nothing about the answer changes. An Admin reviews it separately.
+      setCorrectionStatus("Correction filed for review. The answer is unchanged.");
+      setCorrectionNote("");
+      setShowCorrection(false);
+    } else {
+      setCorrectionStatus(
+        await readErrorMessage(response, "Could not file the correction."),
+      );
+    }
+    setIsCorrecting(false);
   }
 
   async function detectWithAi() {
@@ -407,6 +453,19 @@ export function AskForm({
                             · reviewed {formatReviewedDate(citation.last_reviewed_at)}
                           </span>
                         ) : null}
+                        {citation.freshness &&
+                        (citation.freshness.status === "review-due" ||
+                          citation.freshness.status === "stale") ? (
+                          <span
+                            className={`freshness-chip freshness-${citation.freshness.status}`}
+                          >
+                            {" "}
+                            ·{" "}
+                            {citation.freshness.status === "stale"
+                              ? "Stale"
+                              : "Review due"}
+                          </span>
+                        ) : null}
                       </li>
                     ))}
                   </ul>
@@ -458,6 +517,63 @@ export function AskForm({
                 </div>
               ) : null}
               {captureStatus ? <p className="muted">{captureStatus}</p> : null}
+              <div className="capture-panel">
+                {showCorrection ? (
+                  <>
+                    <h3>Suggest a correction</h3>
+                    <SelectField
+                      id="ask-correction-kind"
+                      label="What was wrong"
+                      onChange={(value) => setCorrectionKind(value as CorrectionKind)}
+                      options={AskCorrectionKinds.map((kind) => ({
+                        label: CORRECTION_KIND_LABELS[kind],
+                        value: kind,
+                      }))}
+                      value={correctionKind}
+                    />
+                    <Field htmlFor="ask-correction-note" label="Correction">
+                      <textarea
+                        id="ask-correction-note"
+                        onChange={(event) => setCorrectionNote(event.target.value)}
+                        rows={3}
+                        value={correctionNote}
+                      />
+                    </Field>
+                    <p className="muted">
+                      Filing a correction changes nothing on its own. An Admin reviews it.
+                    </p>
+                    <div className="ui-row">
+                      <button
+                        className="secondary-button"
+                        disabled={isCorrecting || correctionNote.trim() === ""}
+                        onClick={submitCorrection}
+                        type="button"
+                      >
+                        {isCorrecting ? "Filing" : "File correction"}
+                      </button>
+                      <button
+                        className="link-button"
+                        onClick={() => setShowCorrection(false)}
+                        type="button"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <button
+                    className="link-button"
+                    onClick={() => {
+                      setShowCorrection(true);
+                      setCorrectionStatus("");
+                    }}
+                    type="button"
+                  >
+                    Suggest a correction
+                  </button>
+                )}
+                {correctionStatus ? <p className="muted">{correctionStatus}</p> : null}
+              </div>
             </>
           ) : (
             <p className="muted">Results appear here.</p>

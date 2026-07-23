@@ -2,6 +2,8 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { AdminActivityLogPanel } from "@/components/admin/AdminActivityLogPanel";
 import { ApprovalQueueAdminPanel } from "@/components/admin/ApprovalQueueAdminPanel";
+import { KbCorrectionsPanel } from "@/components/admin/KbCorrectionsPanel";
+import { ModelConfigPanel } from "@/components/admin/ModelConfigPanel";
 import { CommunicationsRetentionAdminPanel } from "@/components/admin/CommunicationsRetentionAdminPanel";
 import { NoticeRulesAdminPanel } from "@/components/admin/NoticeRulesAdminPanel";
 import { PublicationPolicyAdminPanel } from "@/components/admin/PublicationPolicyAdminPanel";
@@ -18,6 +20,7 @@ import {
   readDemoAdminObservability,
 } from "@/lib/admin/observability";
 import { readServerConfig } from "@/lib/config/server";
+import { listAskCorrections } from "@/lib/firestore/ask-corrections";
 import {
   listApprovalQueueEmailSettings,
   readApprovalQueueNotificationHealth,
@@ -50,6 +53,8 @@ import { launchSpaces } from "@/lib/spaces";
 export default async function AdminPage() {
   const user = await requirePageCapability("manageAdmin");
   const config = readServerConfig();
+  // S32: Proposed answer corrections awaiting Admin review (harden-the-app loop). Nothing self-modifies.
+  const proposedCorrections = await listAskCorrections(user, { status: "Proposed" });
   let observability: AdminObservability | undefined;
   let observabilityNote: string | undefined;
   let queueEmailSettings = readDefaultApprovalQueueEmailSettings();
@@ -260,6 +265,12 @@ export default async function AdminPage() {
             Configuration, migration readiness, and connected-service consoles.
           </p>
           <V1ProductionTestWorkspacePanel />
+          <KbCorrectionsPanel proposed={proposedCorrections} />
+          <ModelConfigPanel
+            answerModel={config.geminiAnswerModel}
+            classifyModel={config.geminiClassifyModel}
+            provider={config.modelProvider}
+          />
           <div className="grid three">
             <article className="panel">
               <h2>Approval Label</h2>

@@ -82,7 +82,7 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 | S29 Comp-informed rent suggestion          | `docs/feature-suites/rent-suggestion-admin-gated.md`   | Built — Wave 1 app-plane (F-RENT-SUGGEST-ADMIN-GATED) |
 | S30 RentVine renewal-write activation      | `docs/feature-suites/rentvine-write-activation.md`     | Spec — Wave 2 seam (owner: RentVine endpoint)         |
 | S31 Gmail reply-watch + follow-up          | `docs/feature-suites/gmail-watch-inbound.md`           | Spec — Wave 2 seam (owner: Pub/Sub + Scheduler)       |
-| S32 KB corrections learning + freshness    | `docs/feature-suites/kb-corrections-learning.md`       | Spec — Wave 1 app-plane, ready to run                 |
+| S32 KB corrections learning + freshness    | `docs/feature-suites/kb-corrections-learning.md`       | Built — Wave 1 app-plane (F-KB-CORRECTIONS-LEARNING)  |
 | S33 Ask box to live-action orchestration   | `docs/feature-suites/ask-to-action.md`                 | Spec — Wave 1 app-plane, ready to run                 |
 | S34 Dotloop e-signature activation         | `docs/feature-suites/dotloop-esign-activation.md`      | Spec — Wave 2 seam (owner: Dotloop OAuth app)         |
 | S35 LeadSimple connector activation        | `docs/feature-suites/leadsimple-activation.md`         | Spec — Wave 2 seam (owner: API key + vendor)          |

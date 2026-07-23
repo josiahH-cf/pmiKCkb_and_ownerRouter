@@ -7,6 +7,7 @@ import type {
   SourceMetaRecord,
 } from "@/lib/firestore/types";
 import type { Citation } from "@/lib/schemas";
+import { computeSourceFreshness } from "@/lib/retrieval/source-freshness";
 import type { ServerConfig } from "@/lib/config/server";
 import { launchSpaces } from "@/lib/spaces";
 
@@ -140,6 +141,7 @@ export class FirestoreSourceMetaReader implements SourceMetaReader {
         }
 
         const data = snapshot.data() ?? {};
+        const reviewInterval = data.review_interval_days;
         const record: SourceMetaRecord = {
           drive_file_id: driveFileId,
           space_id: readString(data.space_id) ?? "",
@@ -147,6 +149,9 @@ export class FirestoreSourceMetaReader implements SourceMetaReader {
           sensitivity: readSensitivity(data.sensitivity) ?? "Low",
           last_reviewed_at: readString(data.last_reviewed_at),
           reviewer_uid: readString(data.reviewer_uid),
+          ...(typeof reviewInterval === "number" && Number.isFinite(reviewInterval)
+            ? { review_interval_days: reviewInterval }
+            : {}),
         };
 
         return [driveFileId, record] as const;
@@ -189,9 +194,10 @@ export class VertexSearchRetrievalClient implements RetrievalClient {
       sources.map((source) => source.driveFileId),
     );
 
+    const referenceDateIso = new Date().toISOString();
     return toGroundedSearchResult(
       sources
-        .map((source) => withSourceMeta(source, metaByDriveFileId))
+        .map((source) => withSourceMeta(source, metaByDriveFileId, referenceDateIso))
         .filter(isUsableSource)
         .filter((source) =>
           isAboveThreshold(source, this.config.groundingConfidenceThreshold),
@@ -382,6 +388,7 @@ function toGroundedSearchResult(
 function withSourceMeta(
   source: GroundedSearchSource,
   metaByDriveFileId: ReadonlyMap<string, SourceMetaRecord>,
+  referenceDateIso: string,
 ): GroundedSearchSource {
   const meta = metaByDriveFileId.get(source.driveFileId);
 
@@ -389,16 +396,29 @@ function withSourceMeta(
     return source;
   }
 
+  // Surface the existing review date on the citation so the Ask result can show "reviewed <date>"
+  // (Slice 5, D13). Only when present; never fabricated. toGroundedSearchResult maps source.citation
+  // into grounding.citations, and canonicalizeValidCitations returns those trusted citations verbatim.
+  let citation = meta.last_reviewed_at
+    ? { ...source.citation, last_reviewed_at: meta.last_reviewed_at }
+    : source.citation;
+
+  // S32: stamp the computed freshness signal ONLY when it is determinable (a review interval is set).
+  // Absent interval -> "unknown" -> no freshness field -> no chip (honest absence, never fabricated).
+  const freshness = computeSourceFreshness({
+    lastReviewedAt: meta.last_reviewed_at,
+    reviewIntervalDays: meta.review_interval_days,
+    referenceDateIso,
+  });
+  if (freshness.status !== "unknown") {
+    citation = { ...citation, freshness };
+  }
+
   return {
     ...source,
     approvalStatus: meta.approval_status,
     sensitivity: meta.sensitivity,
-    // Surface the existing review date on the citation so the Ask result can show "reviewed <date>"
-    // (Slice 5, D13). Only when present; never fabricated. toGroundedSearchResult maps source.citation
-    // into grounding.citations, and canonicalizeValidCitations returns those trusted citations verbatim.
-    citation: meta.last_reviewed_at
-      ? { ...source.citation, last_reviewed_at: meta.last_reviewed_at }
-      : source.citation,
+    citation,
   };
 }
 

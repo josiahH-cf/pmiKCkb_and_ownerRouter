@@ -303,6 +303,9 @@ export interface SourceMetaRecord {
   sensitivity: Sensitivity;
   last_reviewed_at?: string;
   reviewer_uid?: string;
+  // S32: optional review cadence in days. With last_reviewed_at it computes the freshness signal; absent
+  // means "unknown" (no chip), never a guessed interval.
+  review_interval_days?: number;
 }
 
 export interface AskLogRecord {
@@ -318,6 +321,37 @@ export interface AskLogRecord {
   escalation_owner?: string;
   user_feedback?: string;
   created_at: string;
+}
+
+// S32 KB corrections learning loop. An operator files a plain-language correction on an Ask answer; it
+// is captured as a Proposed-only review record and changes NOTHING on its own. An Admin later reviews it
+// and, on approval, a deterministic pipeline proposes a Draft KB entry / eval case / re-rank hint (each
+// still requiring its own approval). Nothing self-modifies; no model is trained.
+export type AskCorrectionKind =
+  | "wrong_fact"
+  | "wrong_source"
+  | "missing_detail"
+  | "wrong_process";
+export type AskCorrectionStatus = "Proposed" | "Approved" | "Dismissed";
+
+export interface AskCorrectionRecord {
+  id: string;
+  /** The ask_log this correction is about, when the answer was logged. */
+  ask_log_id?: string;
+  space_id: string;
+  question: string;
+  kind: AskCorrectionKind;
+  /** The operator's plain-language corrected note. */
+  note: string;
+  /** Context snapshot of the answer at correction time (non-authoritative, for the reviewer). */
+  source_state?: string;
+  citations: Citation[];
+  status: AskCorrectionStatus;
+  user_uid: string;
+  /** Set when an Admin approves or dismisses the correction. */
+  decided_by_uid?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ChangeLogRecord {
