@@ -279,6 +279,110 @@ describe("AskForm (action console)", () => {
     expect(correctCalls).toHaveLength(1);
   });
 
+  it("resolves a live target and renders the reused gated composer for a renewal intent (S33 AC-S33-3)", async () => {
+    const user = userEvent.setup();
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/ask/live-target")) {
+        return jsonResponse({
+          status: "ok",
+          leaseId: "42",
+          addressLabel: "1234 Oak St",
+          route: {
+            actionKey: "gmail.renewal_notice.draft_create",
+            surface: "renewal-notice-draft",
+            href: "/lease-renewal/live/desk/lease/42",
+            label: "Start the renewal on the live desk",
+          },
+        });
+      }
+      if (url.includes("/api/ask")) return jsonResponse(ANSWER);
+      return jsonResponse({}, false);
+    });
+    render(
+      <AskForm
+        canStartSimulation
+        processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(/Question/),
+      "start the renewal for 1234 Oak St",
+    );
+    await user.click(screen.getByRole("button", { name: "Get answer" }));
+
+    // The single gated affordance appears and REUSES the desk composer (its own heading renders).
+    expect(
+      await screen.findByRole("heading", { name: "Start the renewal on the live desk" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Renewal-notice draft")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Open the full lease workspace" }),
+    ).toHaveAttribute("href", "/lease-renewal/live/desk/lease/42");
+    // Ask asked the read-only target route with the detected process; it never posts to execute/send.
+    const targetCalls = fetchMock.mock.calls
+      .map((call) => String(call[0]))
+      .filter((url) => url.includes("/api/ask/live-target"));
+    expect(targetCalls).toHaveLength(1);
+    const sendCalls = fetchMock.mock.calls
+      .map((call) => String(call[0]))
+      .filter((url) => /\/send|writeback|\/execute/.test(url));
+    expect(sendCalls).toHaveLength(0);
+  });
+
+  it("shows the Connection Center link when live sources are not connected (S33 AC-S33-7)", async () => {
+    const user = userEvent.setup();
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/ask/live-target")) {
+        return jsonResponse({ status: "not_configured" });
+      }
+      if (url.includes("/api/ask")) return jsonResponse(ANSWER);
+      return jsonResponse({}, false);
+    });
+    render(
+      <AskForm
+        canStartSimulation
+        processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
+      />,
+    );
+
+    await user.type(screen.getByLabelText(/Question/), "renew 1234 Oak St");
+    await user.click(screen.getByRole("button", { name: "Get answer" }));
+
+    expect(await screen.findByText(/Live sources are not connected/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Open Connection Center" }),
+    ).toBeInTheDocument();
+    // No live-desk composer appears when unconfigured.
+    expect(screen.queryByText("Renewal-notice draft")).toBeNull();
+  });
+
+  it("resolves no live target for a read-only user (no live affordance, S33 AC-S33-7)", async () => {
+    const user = userEvent.setup();
+    render(
+      <AskForm
+        canStartSimulation={false}
+        processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
+      />,
+    );
+
+    await user.type(
+      screen.getByLabelText(/Question/),
+      "start the renewal for 1234 Oak St",
+    );
+    await user.click(screen.getByRole("button", { name: "Get answer" }));
+    await screen.findByText("Here is the grounded answer.");
+
+    // A read-only user never triggers the live-target read and sees no live affordance.
+    const targetCalls = fetchMock.mock.calls
+      .map((call) => String(call[0]))
+      .filter((url) => url.includes("/api/ask/live-target"));
+    expect(targetCalls).toHaveLength(0);
+    expect(screen.queryByText("Renewal-notice draft")).toBeNull();
+  });
+
   it("asks without a process and never starts a simulation", async () => {
     const user = userEvent.setup();
     render(

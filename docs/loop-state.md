@@ -46,12 +46,17 @@ build program); the older owner-gated backlog with findings/context is `docs/wha
   `propose.ts` (Draft KB / redaction-required eval / re-rank hints, all Proposed); Admin review lane
   (`KbCorrectionsPanel` + decide route → `createPlaceholder`); pure `computeSourceFreshness` + citation
   chip; read-only `ModelConfigPanel`. AC-S32-1..9 green. `Q-KBCORR-1/2` recorded.
+- **S33** Ask box → live-action front door → `F-ASK-ACTION` (resolves `Q-ASK-ACTION-SCOPE`). Pure
+  `resolveAskAction` (gate-respecting, value-free route) + pure strict `matchRenewalTarget` + read-only
+  `POST /api/ask/live-target` (server-side gate check) + AskForm affordance that REUSES the desk's gated
+  `RenewalNoticeDraftComposer` pre-seeded with the resolved lease. No new executor/endpoint/scope/gate;
+  Action Registry untouched; Test-run/capture unchanged. AC-S33-1..8 green.
 
-Next Wave-1 suite: **S33** (Ask → action orchestration).
+Next Wave-1 suite: **S38a** (surface the maintenance owner-notice draft; mirrors the renewal-notice-draft
+flow — needs the maintenance ticket store + `MaintenanceOwnerEmailExecutor` invocation loaded first).
 
 Build order is `docs/roadmap-unblock-2026-07-23.md` §4. Wave 1 remaining (pure app-plane, zero owner
-dep): S33 Ask→action, S38a surface the maintenance draft, S39 internal notifications, S28a comp
-provider plus screenshot.
+dep): S38a surface the maintenance draft, S39 internal notifications, S28a comp provider plus screenshot.
 Wave 2 (build the live provider to the seam, one owner step each): S30 RentVine write, S31 Gmail
 watch, S28b RentCast, S35 LeadSimple, S34 Dotloop, S36 Space provisioning, S38b maintenance send.
 Wave 3: S37 full no-code builder. The suite specs S28–S39 live under `docs/feature-suites/`

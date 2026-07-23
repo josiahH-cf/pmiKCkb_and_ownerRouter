@@ -83,7 +83,7 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 | S30 RentVine renewal-write activation      | `docs/feature-suites/rentvine-write-activation.md`     | Spec — Wave 2 seam (owner: RentVine endpoint)         |
 | S31 Gmail reply-watch + follow-up          | `docs/feature-suites/gmail-watch-inbound.md`           | Spec — Wave 2 seam (owner: Pub/Sub + Scheduler)       |
 | S32 KB corrections learning + freshness    | `docs/feature-suites/kb-corrections-learning.md`       | Built — Wave 1 app-plane (F-KB-CORRECTIONS-LEARNING)  |
-| S33 Ask box to live-action orchestration   | `docs/feature-suites/ask-to-action.md`                 | Spec — Wave 1 app-plane, ready to run                 |
+| S33 Ask box to live-action orchestration   | `docs/feature-suites/ask-to-action.md`                 | Built — Wave 1 app-plane (F-ASK-ACTION)               |
 | S34 Dotloop e-signature activation         | `docs/feature-suites/dotloop-esign-activation.md`      | Spec — Wave 2 seam (owner: Dotloop OAuth app)         |
 | S35 LeadSimple connector activation        | `docs/feature-suites/leadsimple-activation.md`         | Spec — Wave 2 seam (owner: API key + vendor)          |
 | S36 Space self-service provisioning        | `docs/feature-suites/space-self-provisioning.md`       | Spec — Wave 2 seam (owner: billing + SA)              |

@@ -5,6 +5,8 @@ import { useRef, useState } from "react";
 import { useAudioRecorder } from "@/components/hooks/useAudioRecorder";
 import { SourceStateBanner } from "@/components/source-state-banner/SourceStateBanner";
 import { Button, Field } from "@/components/ui";
+import { RenewalNoticeDraftComposer } from "@/components/lease-renewal/RenewalNoticeDraftComposer";
+import type { AskActionRoute } from "@/lib/ask/action-intent";
 import { detectProcess } from "@/lib/processes/intent";
 import { launchSpaces } from "@/lib/spaces";
 import { AskCorrectionKinds, type AskResponse } from "@/lib/schemas";
@@ -12,6 +14,19 @@ import { AskCorrectionKinds, type AskResponse } from "@/lib/schemas";
 type SelectOption = { label: string; value: string };
 
 type CorrectionKind = (typeof AskCorrectionKinds)[number];
+
+// S33: the read-only live-target lookup result. `route` is non-null only for an open gate + resolved target.
+type LiveTargetResult = {
+  status: "ok" | "no_match" | "not_configured";
+  leaseId?: string;
+  addressLabel?: string;
+  route?: AskActionRoute | null;
+};
+
+const ASK_ACTION_PROCESS_IDS = new Set([
+  "lease-renewal",
+  "maintenance-work-order-intake",
+]);
 
 const CORRECTION_KIND_LABELS: Record<CorrectionKind, string> = {
   wrong_fact: "Wrong fact",
@@ -77,6 +92,9 @@ export function AskForm({
   const [correctionNote, setCorrectionNote] = useState("");
   const [correctionStatus, setCorrectionStatus] = useState("");
   const [isCorrecting, setIsCorrecting] = useState(false);
+  // S33: the live-action target resolved for the answer's detected process, or null. The gate check runs
+  // server-side; Ask renders a live affordance only when a route (open gate + authoritative target) returns.
+  const [liveTarget, setLiveTarget] = useState<LiveTargetResult | null>(null);
   const dictateButtonRef = useRef<HTMLButtonElement>(null);
 
   const showProcessPicker = canStartSimulation && processes.length > 0;
@@ -101,6 +119,7 @@ export function AskForm({
     setSimulationRun(null);
     setStatusMessage("");
     setCaptureStatus("");
+    setLiveTarget(null);
 
     const response = await fetch("/api/ask", {
       method: "POST",
@@ -120,6 +139,14 @@ export function AskForm({
     }
 
     setResult((await response.json()) as AskResponse);
+
+    // S33: if the answer's process is a renewal/maintenance intent and the operator can act, resolve the
+    // authoritative live target so Ask can offer the single gated "Start on the live desk" affordance.
+    const detectedForAction =
+      processId || detectProcess(question, processes)?.processId || "";
+    if (canStartSimulation && ASK_ACTION_PROCESS_IDS.has(detectedForAction)) {
+      void resolveLiveTarget(question, detectedForAction);
+    }
 
     if (willSimulate) {
       const runResponse = await fetch(
@@ -172,6 +199,25 @@ export function AskForm({
     }
 
     setIsCapturing(false);
+  }
+
+  // S33: resolve the live-action target for the answer's detected process. Read-only; server gates the
+  // capability and the action key. A non-permitted role or a closed gate simply yields no live affordance.
+  async function resolveLiveTarget(forQuestion: string, processIdForAction: string) {
+    try {
+      const response = await fetch("/api/ask/live-target", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ question: forQuestion, processId: processIdForAction }),
+      });
+      if (response.ok) {
+        setLiveTarget((await response.json()) as LiveTargetResult);
+      } else {
+        setLiveTarget(null);
+      }
+    } catch {
+      setLiveTarget(null);
+    }
   }
 
   async function submitCorrection() {
@@ -480,6 +526,24 @@ export function AskForm({
               {result.escalation_owner ? (
                 <p>
                   Escalation owner: <strong>{result.escalation_owner}</strong>
+                </p>
+              ) : null}
+              {liveTarget?.status === "ok" &&
+              liveTarget.route?.surface === "renewal-notice-draft" &&
+              liveTarget.leaseId ? (
+                <div className="capture-panel">
+                  <h3>{liveTarget.route.label}</h3>
+                  <p className="muted">
+                    This opens the same gated draft action for {liveTarget.addressLabel}{" "}
+                    at its preview. You review the draft and send it by hand.
+                  </p>
+                  <RenewalNoticeDraftComposer leaseId={liveTarget.leaseId} />
+                  <Link href={liveTarget.route.href}>Open the full lease workspace</Link>
+                </div>
+              ) : liveTarget?.status === "not_configured" ? (
+                <p className="muted">
+                  Live sources are not connected.{" "}
+                  <Link href="/connections">Open Connection Center</Link>
                 </p>
               ) : null}
               {simulationRun ? (
