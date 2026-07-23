@@ -11,6 +11,30 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Full-suite build loop — S29 + S32 shipped, verified, merged (2026-07-23)
+
+Unattended build loop against `docs/roadmap-unblock-2026-07-23.md`. Built in the `ui-ux-overhaul`
+worktree; ff-merged to `main` (`538cc87`); Turbopack build green on main after each; 2805 unit tests +
+typecheck + lint + copy-voice/context-freshness/spec-traceability gates all green.
+
+- **S29 comp-informed rent suggestion (Admin-approval-gated)** → `F-RENT-SUGGEST-ADMIN-GATED`, supersedes
+  `F-NEGOTIATION-EXCLUDED`. Pure `computeRentSuggestion` (comp median), Admin-only approval FSM + Firestore
+  control plane (server-recomputed, never client-trusted; stale-on-change) + route + `RentSuggestionApproval`
+  on the live desk, `buildOwnerRenewalDraft` approved-suggestion channel wired end-to-end (live-desk preview
+  AND the owner Gmail send-draft, server-set), and a narrow server-set `draft-safety.ts` owner_money
+  carve-out (content regex byte-for-byte unchanged). AC-S29-1..8. A 5-skeptic adversarial falsification pass
+  found NO safety violation (all invariants upheld, high confidence).
+- **S32 KB corrections learning loop + source freshness + read-only model-config** → `F-KB-CORRECTIONS-LEARNING`.
+  `ask_corrections` Proposed-only writer + route + AskForm "Suggest a correction" control; pure `propose.ts`
+  (Draft KB / redaction-required eval / re-rank hints, all Proposed); Admin review lane (`KbCorrectionsPanel`
+  - decide route → `createPlaceholder`); pure `computeSourceFreshness` + citation chip; read-only
+    `ModelConfigPanel`. AC-S32-1..9; `Q-KBCORR-1/2` recorded. A 3-skeptic adversarial pass found NO safety
+    violation (nothing-self-modifies was DECISIVE: Draft placeholders are decoupled from live Vertex grounding).
+
+Wave-1 remaining (pure app-plane, zero owner dep): S33 Ask→action, S38a surface the maintenance draft, S39
+internal notifications, S28a comp provider + screenshot. `main` is ff-merged locally and ready to push at the
+owner's discretion (pushes/deploys stay owner-run). Loop-state points at S33.
+
 ## Roadmap unblock — governance opened + 12 specs authored (2026-07-23)
 
 Owner directive: PMI KC is a full suite of applications, not a demo with a permanent "next phase"
