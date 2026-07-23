@@ -124,8 +124,8 @@ action):
    all exist; the Cloud Scheduler API is enabled. Remaining is the Scheduler JOB, created at S31
    build-time against the watch-renew endpoint.)_
 4. **Sheets WRITE scope** on the `lease-renewal-reader` SA's DWD grant → Sheet write-back live proof.
-   _(OPEN — owner adds `https://www.googleapis.com/auth/spreadsheets` to SA client id
-   `104374162913177846911` in the Workspace Admin console.)_
+   _(DONE 2026-07-23 — scope added; `npm run smoke:sheet-write -- --live` passed all 7 write-back
+   proofs on a throwaway sheet, operational Sheet untouched.)_
 5. **LeadSimple** admin-enabled REST API key + vendor-confirmed endpoint contract → S35. _(OPEN.)_
 6. **Dotloop** OAuth app registration + `DOTLOOP_OAUTH_CLIENT_ID/SECRET/REDIRECT_URI` + authorize →
    S34. _(OPEN.)_
