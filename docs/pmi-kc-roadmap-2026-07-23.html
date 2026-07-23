@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Your PMI KC App - Product Roadmap</title>
+    <style>
+      /* Self-contained styling. No external fonts, stylesheets, scripts, or images. */
+      :root {
+        --ink: #1a1d21;
+        --muted: #59616b;
+        --line: #e2e5e9;
+        --surface: #f6f7f9;
+        --white: #ffffff;
+        --black: #111417;
+        --orange: #d75f16;
+        --orange-ink: #9c4409;
+        --live: #1f7a44;
+        --live-bg: #e7f4ec;
+        --live-line: #bfe3cc;
+        --prog: #2f5fbf;
+        --prog-bg: #e9f0fc;
+        --prog-line: #cbdcf7;
+        --input: #8a5a00;
+        --input-bg: #fbf1dc;
+        --input-line: #f0dcaa;
+        --plan: #5b6470;
+        --plan-bg: #eef0f2;
+        --plan-line: #dfe3e7;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--white);
+        color: var(--ink);
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        line-height: 1.6;
+        font-size: 17px;
+      }
+      .wrap {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 0 20px 90px;
+      }
+      header.hero {
+        background: var(--black);
+        color: var(--white);
+        padding: 34px 20px 32px;
+      }
+      .hero-inner {
+        max-width: 880px;
+        margin: 0 auto;
+      }
+      .wordmark {
+        font-size: 40px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        line-height: 1;
+        color: var(--white);
+      }
+      .tagline {
+        color: var(--orange);
+        font-weight: 600;
+        margin-top: 6px;
+        font-size: 15px;
+      }
+      .hero h1 {
+        color: var(--white);
+        font-size: 26px;
+        margin: 20px 0 4px;
+        font-weight: 700;
+      }
+      .hero p {
+        color: #cfd4da;
+        margin: 4px 0 0;
+        font-size: 16px;
+      }
+      h2 {
+        font-size: 22px;
+        margin: 44px 0 6px;
+        padding-bottom: 8px;
+        border-bottom: 3px solid var(--orange);
+        display: inline-block;
+      }
+      a {
+        color: var(--orange-ink);
+        font-weight: 600;
+      }
+      p {
+        margin: 10px 0;
+      }
+      .lead {
+        font-size: 18px;
+      }
+      .section-lead {
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 16px 0 4px;
+      }
+      .pill {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 999px;
+        border: 1px solid;
+        white-space: nowrap;
+      }
+      .pill.live {
+        color: var(--live);
+        background: var(--live-bg);
+        border-color: var(--live-line);
+      }
+      .pill.prog {
+        color: var(--prog);
+        background: var(--prog-bg);
+        border-color: var(--prog-line);
+      }
+      .pill.input {
+        color: var(--input);
+        background: var(--input-bg);
+        border-color: var(--input-line);
+      }
+      .pill.plan {
+        color: var(--plan);
+        background: var(--plan-bg);
+        border-color: var(--plan-line);
+      }
+      ul.feature {
+        list-style: none;
+        padding: 0;
+        margin: 12px 0;
+      }
+      ul.feature li {
+        position: relative;
+        padding: 6px 0 6px 30px;
+        border-top: 1px solid var(--line);
+      }
+      ul.feature li:first-child {
+        border-top: 0;
+      }
+      ul.feature li::before {
+        content: "✓";
+        position: absolute;
+        left: 4px;
+        top: 6px;
+        color: var(--live);
+        font-weight: 800;
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 15px 18px;
+        margin: 12px 0;
+        background: var(--white);
+      }
+      .card .top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .card h3 {
+        font-size: 17px;
+        margin: 0;
+      }
+      .card p {
+        margin: 8px 0 2px;
+      }
+      .card .need {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 8px 0 0;
+      }
+      .card .need b {
+        color: var(--ink);
+      }
+      .decision {
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--orange);
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin: 12px 0;
+        background: var(--white);
+      }
+      .decision h3 {
+        margin: 0 0 4px;
+        font-size: 16px;
+      }
+      .decision .rec {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 6px 0 0;
+      }
+      .decision .rec b {
+        color: var(--live);
+      }
+      .note {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px 18px;
+        margin: 18px 0;
+      }
+      .btnrow {
+        margin: 16px 0 4px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .btn {
+        display: inline-block;
+        background: var(--black);
+        color: var(--white) !important;
+        text-decoration: none;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 15px;
+      }
+      .btn.open {
+        background: var(--orange);
+      }
+      footer {
+        border-top: 1px solid var(--line);
+        margin-top: 46px;
+        padding-top: 18px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      @media (max-width: 560px) {
+        .wordmark {
+          font-size: 34px;
+        }
+        body {
+          font-size: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="wordmark">pmi.</div>
+        <div class="tagline">the property management people</div>
+        <h1>Product roadmap</h1>
+        <p>
+          What is live, what is next, and the few decisions we will finalize together.
+          Updated 2026-07-23.
+        </p>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <p class="lead">
+        Your app is live and doing real work today. This page shows where it stands: the
+        capabilities that are running now, the features coming next, and a short list of
+        decisions and setup steps we will settle with you. Each upcoming item is a small,
+        specific step, usually a single key, a setting, or one answer, and the feature is
+        already built and waiting for it.
+      </p>
+
+      <div class="legend">
+        <span class="pill live">Live now</span>
+        <span class="pill prog">Building / switching on</span>
+        <span class="pill input">Ready when you provide one thing</span>
+        <span class="pill plan">Planned</span>
+      </div>
+
+      <h2 id="live">Live today</h2>
+      <p class="section-lead">
+        Already running in your app. Full detail is in the app guide.
+      </p>
+      <ul class="feature">
+        <li>
+          <b>Ask anything</b> and get answers grounded in your approved knowledge, with
+          sources cited, across every area of your operation.
+        </li>
+        <li>
+          <b>The guided lease-renewal desk</b>: triage, a step-by-step flow per lease,
+          data-conflict catching, and renewal drafts created for a person to send.
+        </li>
+        <li>
+          <b>Comp-informed rent suggestion</b>: the app can suggest a renewal rent from
+          the comps you record, for an Admin to approve.
+        </li>
+        <li>
+          <b>The approval queue</b>: one decision inbox with required reasons, separation
+          of duties, and a permanent record.
+        </li>
+        <li>
+          <b>Maintenance</b>: capture a request, build the work order, run the ticket
+          through its life, and draft the owner notice.
+        </li>
+        <li>
+          <b>Governed communications</b>: drafting and thread summaries, plus one
+          carefully confirmed send and no blast button anywhere.
+        </li>
+        <li>
+          <b>Notifications, roles and audit logs, feedback, and a real spending cap.</b>
+        </li>
+      </ul>
+
+      <h2 id="next">Coming next</h2>
+      <p class="section-lead">
+        Built and waiting on one small step each. The label shows what unlocks it.
+      </p>
+
+      <div class="card">
+        <div class="top">
+          <h3>Automatic rent comparables</h3>
+          <span class="pill input">Ready when you provide a key</span>
+        </div>
+        <p>
+          Pull comparable local listings automatically, so the market range fills in for
+          you instead of being entered by hand.
+        </p>
+        <p class="need"><b>Unlocks with:</b> a RentCast data key (free tier).</p>
+      </div>
+
+      <div class="card">
+        <div class="top">
+          <h3>Save approved values back to RentVine</h3>
+          <span class="pill input">Ready when RentVine provides the write step</span>
+        </div>
+        <p>
+          Once you approve a renewal value, write it back into RentVine so you do not
+          re-key it. Every write shows a preview, waits for your confirmation, and can be
+          undone.
+        </p>
+        <p class="need"><b>Unlocks with:</b> the documented RentVine write endpoint.</p>
+      </div>
+
+      <div class="card">
+        <div class="top">
+          <h3>E-signature for renewals</h3>
+          <span class="pill input">Ready when you register a Dotloop app</span>
+        </div>
+        <p>
+          Send renewal documents for signature through Dotloop and get a signal back when
+          they are signed.
+        </p>
+        <p class="need">
+          <b>Unlocks with:</b> a Dotloop application you register and authorize.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="top">
+          <h3>LeadSimple connector</h3>
+          <span class="pill input">Ready when you provide a key</span>
+        </div>
+        <p>
+          Connect the workflows that use LeadSimple, behind the same preview-and-confirm
+          safeguards.
+        </p>
+        <p class="need">
+          <b>Unlocks with:</b> a LeadSimple API key and a short confirmation of which
+          endpoints to use.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="top">
+          <h3>Automatic reply follow-up</h3>
+          <span class="pill prog">Switching on</span>
+        </div>
+        <p>
+          Notice replies to your workflow emails and raise a follow-up for the team. It is
+          read-only and never sends anything on its own.
+        </p>
+        <p class="need">
+          <b>Status:</b> the connection is set up; the final switch-on is on our side.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="top">
+          <h3>Maintenance owner-notice send</h3>
+          <span class="pill prog">Switching on</span>
+        </div>
+        <p>
+          The owner-notice draft is already built and reviewed. Turning the send on, still
+          confirmed by a person each time, is the last step.
+        </p>
+        <p class="need">
+          <b>Status:</b> a small reviewed change on our side; no owner action needed.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="top">
+          <h3>Self-service new areas</h3>
+          <span class="pill input">Ready when you grant one permission</span>
+        </div>
+        <p>
+          Add and configure a new knowledge area from inside the app, behind a
+          cost-confirm step, instead of a manual setup.
+        </p>
+        <p class="need">
+          <b>Unlocks with:</b> one Google Cloud permission (billing is already approved).
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="top">
+          <h3>Comp screenshots on the owner notice</h3>
+          <span class="pill plan">Planned</span>
+        </div>
+        <p>
+          Attach the comparable-listing screenshots directly to the owner notice,
+          alongside the numbers.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="top">
+          <h3>A smarter knowledge base over time</h3>
+          <span class="pill prog">Ongoing</span>
+        </div>
+        <p>
+          The answers keep getting better as you add and approve more of your own
+          procedures, and as we move the app to newer assistant models. Your corrections
+          are recorded and sharpen the app's checks.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="top">
+          <h3>Build and rearrange screens yourself</h3>
+          <span class="pill plan">Planned</span>
+        </div>
+        <p>
+          A no-code way to move, add, and change pages and layouts without a developer.
+        </p>
+      </div>
+
+      <h2 id="decisions">A few decisions to finalize together</h2>
+      <p class="section-lead">
+        Each has a recommended default, so you can say "go with the default" or steer it.
+      </p>
+
+      <div class="decision">
+        <h3>Keep the practice mode, or move to a live-only app?</h3>
+        <p>
+          The app keeps a safe practice mode and clear "test" labels so a mistaken click
+          can never send something real.
+        </p>
+        <p class="rec">
+          <b>Recommended:</b> keep the practice mode. If you want a live-only version, we
+          build it as its own reviewed project.
+        </p>
+      </div>
+
+      <div class="decision">
+        <h3>Which tenant is the main contact?</h3>
+        <p>
+          Renewal notices go to the first tenant on the lease, with co-tenants copied.
+        </p>
+        <p class="rec">
+          <b>Recommended:</b> keep addressing all tenants. We just need Dan to confirm the
+          first tenant is the right lead, or tell us the rule.
+        </p>
+      </div>
+
+      <div class="decision">
+        <h3>Confirm the RentVine field names</h3>
+        <p>
+          The renewal desk reads the recipient and rent from specific RentVine fields.
+        </p>
+        <p class="rec">
+          <b>Recommended:</b> Dan confirms the field names against a couple of real leases
+          before the first live draft.
+        </p>
+      </div>
+
+      <div class="decision">
+        <h3>New-staff access</h3>
+        <p>
+          Today a new sign-in can see all areas. Your preference is that new people see
+          nothing until an Admin grants access.
+        </p>
+        <p class="rec">
+          <b>Recommended:</b> build it so existing people keep their access and only
+          brand-new accounts start empty. We just need your go-ahead.
+        </p>
+      </div>
+
+      <div class="note">
+        <h3 style="margin-top: 0">One-time setup and your branding</h3>
+        <p>
+          A short list of one-time steps in your Google Cloud console gets the app fully
+          production-ready: turning on data backups before real client data lands, one or
+          two safety settings, and the connection keys listed above. Separately, sending
+          us your official PMI brand files (logo, colors, and fonts) lets us replace the
+          current clean default styling with your real brand.
+        </p>
+        <p>
+          Every one of these, with the exact step and where to do it, is written up in the
+          companion unblock guide.
+        </p>
+      </div>
+
+      <div class="btnrow">
+        <a
+          class="btn open"
+          href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/"
+          target="_blank"
+          rel="noopener"
+          >Open the app</a
+        >
+      </div>
+
+      <footer>
+        <p>
+          Companion documents: the
+          <a href="pmi-kc-app-guide-2026-07-23.html">app guide</a> ("what your app does")
+          and the unblock guide ("what the app needs from you"). Live app:
+          <a
+            href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/"
+            target="_blank"
+            rel="noopener"
+            >pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app</a
+          >.
+        </p>
+        <p>Property Management Inc. An internal roadmap for PMI KC Metro.</p>
+      </footer>
+    </main>
+  </body>
+</html>

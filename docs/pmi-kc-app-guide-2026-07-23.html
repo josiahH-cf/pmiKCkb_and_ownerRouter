@@ -6,8 +6,7 @@
     <title>Your PMI KC App - What It Does and How to Use It</title>
     <style>
       /* Self-contained styling. No external fonts, stylesheets, scripts, or images.
-         Colors follow PMI's observed identity (black field, white wordmark, orange accent).
-         The orange is an accessible placeholder pending the official PMI color values. */
+         Colors follow PMI's observed identity (black field, white wordmark, orange accent). */
       :root {
         --ink: #1a1d21;
         --muted: #59616b;
@@ -19,14 +18,14 @@
         --orange-ink: #9c4409;
         --ok: #1f7a44;
         --ok-bg: #e7f4ec;
-        --wait: #8a5a00;
-        --wait-bg: #fbf1dc;
+        --ok-line: #bfe3cc;
       }
       * {
         box-sizing: border-box;
       }
       html {
         -webkit-text-size-adjust: 100%;
+        scroll-behavior: smooth;
       }
       body {
         margin: 0;
@@ -44,17 +43,17 @@
         font-size: 17px;
       }
       .wrap {
-        max-width: 860px;
+        max-width: 880px;
         margin: 0 auto;
-        padding: 0 20px 80px;
+        padding: 0 20px 90px;
       }
       header.hero {
         background: var(--black);
         color: var(--white);
-        padding: 34px 20px 30px;
+        padding: 34px 20px 32px;
       }
       .hero-inner {
-        max-width: 860px;
+        max-width: 880px;
         margin: 0 auto;
       }
       .wordmark {
@@ -69,11 +68,10 @@
         font-weight: 600;
         margin-top: 6px;
         font-size: 15px;
-        letter-spacing: 0.2px;
       }
       .hero h1 {
         color: var(--white);
-        font-size: 25px;
+        font-size: 26px;
         margin: 20px 0 4px;
         font-weight: 700;
       }
@@ -84,14 +82,14 @@
       }
       h2 {
         font-size: 22px;
-        margin: 40px 0 8px;
+        margin: 44px 0 6px;
         padding-bottom: 8px;
         border-bottom: 3px solid var(--orange);
         display: inline-block;
       }
       h3 {
         font-size: 18px;
-        margin: 26px 0 4px;
+        margin: 22px 0 4px;
       }
       a {
         color: var(--orange-ink);
@@ -102,26 +100,66 @@
       }
       .lead {
         font-size: 18px;
-        color: var(--ink);
       }
-      .card {
+      .section-lead {
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      .area {
         border: 1px solid var(--line);
         border-left: 4px solid var(--orange);
-        border-radius: 10px;
-        padding: 16px 18px;
-        margin: 16px 0;
+        border-radius: 12px;
+        padding: 18px 20px 8px;
+        margin: 18px 0;
         background: var(--white);
       }
-      .card h3 {
+      .area h3 {
         margin-top: 0;
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        flex-wrap: wrap;
       }
-      .card .who {
-        font-size: 14px;
-        color: var(--muted);
-        margin: 2px 0 10px;
+      .area .num {
+        font-size: 13px;
+        font-weight: 800;
+        color: var(--orange-ink);
+        background: #fbeee5;
+        border: 1px solid #f2d5bf;
+        border-radius: 7px;
+        padding: 1px 8px;
+      }
+      ul.feature {
+        list-style: none;
+        padding: 0;
+        margin: 12px 0;
+      }
+      ul.feature li {
+        position: relative;
+        padding: 6px 0 6px 30px;
+        border-top: 1px solid var(--line);
+      }
+      ul.feature li:first-child {
+        border-top: 0;
+      }
+      ul.feature li::before {
+        content: "✓";
+        position: absolute;
+        left: 4px;
+        top: 6px;
+        color: var(--ok);
+        font-weight: 800;
+      }
+      ul.feature li b {
+        color: var(--ink);
+      }
+      .tablink {
+        display: inline-block;
+        margin: 6px 0 10px;
+        font-size: 15px;
       }
       .btnrow {
-        margin: 14px 0 4px;
+        margin: 16px 0 4px;
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
@@ -143,11 +181,6 @@
         outline: 3px solid var(--orange-ink);
         outline-offset: 2px;
       }
-      .tablink {
-        display: inline-block;
-        margin-top: 10px;
-        font-size: 15px;
-      }
       .pill {
         display: inline-block;
         font-size: 12px;
@@ -155,7 +188,6 @@
         padding: 2px 9px;
         border-radius: 999px;
         vertical-align: middle;
-        margin-left: 6px;
       }
       .pill.everyone {
         background: var(--surface);
@@ -167,56 +199,60 @@
         color: #37489a;
         border: 1px solid #d5dcf5;
       }
-      .note {
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        padding: 16px 18px;
+      .backend {
+        background: var(--black);
+        color: #e7e9ec;
+        border-radius: 12px;
+        padding: 20px 22px 8px;
         margin: 18px 0;
+      }
+      .backend h3 {
+        color: var(--white);
+        margin-top: 6px;
+      }
+      .backend b {
+        color: var(--orange);
+      }
+      .backend ul.feature li {
+        border-top-color: #2a2e33;
+      }
+      .backend ul.feature li::before {
+        color: #7fd4a2;
+      }
+      .backend ul.feature li b {
+        color: #fff;
       }
       .safe {
         background: var(--ok-bg);
-        border: 1px solid #bfe3cc;
-        border-radius: 10px;
-        padding: 16px 18px;
-        margin: 18px 0;
+        border: 1px solid var(--ok-line);
+        border-radius: 12px;
+        padding: 18px 20px;
+        margin: 22px 0;
       }
       .safe strong {
         color: var(--ok);
       }
-      ul {
-        margin: 10px 0;
-        padding-left: 22px;
+      .toc {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px 18px;
+        margin: 22px 0;
       }
-      li {
-        margin: 6px 0;
-      }
-      ol.steps {
-        padding-left: 22px;
-      }
-      ol.steps li {
-        margin: 8px 0;
+      .toc ol {
+        columns: 2;
+        margin: 6px 0 0;
+        padding-left: 20px;
       }
       footer {
         border-top: 1px solid var(--line);
-        margin-top: 44px;
+        margin-top: 46px;
         padding-top: 18px;
         color: var(--muted);
         font-size: 14px;
       }
-      .toc {
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        padding: 14px 18px;
-        margin: 22px 0;
-      }
-      .toc ul {
-        columns: 2;
-        margin: 6px 0 0;
-      }
       @media (max-width: 560px) {
-        .toc ul {
+        .toc ol {
           columns: 1;
         }
         .wordmark {
@@ -233,17 +269,23 @@
       <div class="hero-inner">
         <div class="wordmark">pmi.</div>
         <div class="tagline">the property management people</div>
-        <h1>Your app: what it does and how to use it</h1>
-        <p>A plain-language guide for PMI KC Metro. Updated 2026-07-23.</p>
+        <h1>Your app: everything it does, in plain language</h1>
+        <p>A guide for PMI KC Metro. Updated 2026-07-23.</p>
       </div>
     </header>
 
     <main class="wrap">
       <p class="lead">
-        This is your team's web app for lease renewals, maintenance, and answering
-        questions from a trusted knowledge base. You open it in a normal web browser and
-        sign in with your PMI work account. This guide explains how to get in, who can use
-        it, and what each part of the menu does, in simple terms.
+        This is your team's operations app. Instead of ten browser tabs and a spreadsheet,
+        your team works from one question box and a handful of clear desks: renewals,
+        maintenance, approvals, and communications, with the property data already
+        attached. The idea you will notice throughout is simple:
+        <strong
+          >the app does the drafting and the checking, and a person always makes the
+          decision and presses the button.</strong
+        >
+        This guide walks through what it does, how to use it, and a little of how it works
+        behind the scenes.
       </p>
 
       <div class="btnrow">
@@ -264,83 +306,98 @@
       </div>
 
       <div class="toc">
-        <strong>In this guide</strong>
-        <ul>
-          <li><a href="#signin">How to sign in and who can</a></li>
-          <li><a href="#menu">The main menu</a></li>
-          <li><a href="#console">Console</a></li>
-          <li><a href="#spaces">Spaces</a></li>
-          <li><a href="#renewal">Lease Renewal</a></li>
+        <strong>What the app does</strong>
+        <ol>
+          <li><a href="#signin">Signing in and who can use it</a></li>
+          <li><a href="#ask">Ask anything (the Console)</a></li>
+          <li><a href="#spaces">Spaces: the map of your operation</a></li>
+          <li><a href="#renewal">Lease renewals</a></li>
+          <li><a href="#approval">The approval queue</a></li>
           <li><a href="#maintenance">Maintenance</a></li>
-          <li><a href="#approval">Approval Queue</a></li>
           <li><a href="#comms">Communications</a></li>
-          <li><a href="#connections">Connections</a></li>
-          <li><a href="#admin">Admin</a></li>
-          <li><a href="#extras">The bell, feedback, sign out</a></li>
-          <li><a href="#safe">Our safety promise</a></li>
-          <li><a href="#brand">A note on branding</a></li>
-        </ul>
+          <li><a href="#notifications">Notifications</a></li>
+          <li><a href="#admin">Setup, roles, and admin</a></li>
+          <li><a href="#backend">How it works behind the scenes</a></li>
+          <li><a href="#control">You are always in control</a></li>
+        </ol>
       </div>
 
-      <h2 id="signin">How to sign in and who can</h2>
+      <h2 id="signin">1. Signing in and who can use it</h2>
       <p>
-        Open the app and you land on the sign-in page. Sign in with your PMI KC Metro
-        Google work account (the <strong>pmikcmetro.com</strong> account). Personal Google
-        accounts are not allowed, and the app never uses one.
+        Open the app in any web browser and sign in with your PMI KC Metro Google work
+        account (the
+        <strong>pmikcmetro.com</strong> account). That is the only way in, and it is the
+        same sign-in your team already uses for email. Once you are in, you land on the
+        Console, the app's home screen, with a menu across the top.
       </p>
-      <ol class="steps">
+      <p>What each person can do depends on their role:</p>
+      <ul class="feature">
+        <li><b>Editor</b> prepares the work, such as renewal and maintenance drafts.</li>
         <li>
-          Go to the
-          <a
-            href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/sign-in"
-            target="_blank"
-            rel="noopener"
-            >sign-in page</a
-          >.
-        </li>
-        <li>Choose your PMI work Google account and continue.</li>
-        <li>You arrive at the Console, the app's home screen.</li>
-      </ol>
-      <p>
-        <strong>Who can use it.</strong> Everyone on the team uses the same work-account
-        sign-in. What you can see and do depends on your role:
-      </p>
-      <ul>
-        <li><strong>Editor</strong> prepares work, such as renewal drafts.</li>
-        <li>
-          <strong>Approver</strong> reviews and approves items that need a second set of
-          eyes.
+          <b>Approver</b> reviews and approves the items that need a second set of eyes.
         </li>
         <li>
-          <strong>Admin</strong> manages people, connections, and settings, and can do
-          everything above. Today you and Dan are the Admins.
+          <b>Admin</b> manages people, connections, and settings, and can do everything
+          above. Today you and Dan are the Admins.
         </li>
       </ul>
       <p>
-        If you are ever away from the keyboard for a while, the app warns you and then
-        signs you out on its own to keep things safe.
+        People can also be scoped to just renewals or just maintenance, so each person
+        sees the work that is theirs. If someone steps away, the app warns them and then
+        signs them out on its own to keep things safe.
       </p>
 
-      <h2 id="menu">The main menu</h2>
-      <p>
-        Across the top of every page is the menu. From left to right you see the
-        <strong>pmi.</strong> name (which takes you home), then the tabs below, then a
-        bell for notifications, your role, and a sign-out button. You only see the tabs
-        your role and access allow.
+      <h2 id="ask">
+        2. Ask anything (the Console) <span class="pill everyone">Everyone</span>
+      </h2>
+      <p class="section-lead">
+        The home screen and the front door to everything. One box, plain English,
+        trustworthy answers.
       </p>
-
-      <h3 id="console">Console <span class="pill everyone">Everyone</span></h3>
-      <div class="card">
-        <p class="who">The home screen. Also opens when you click "pmi." or "Console."</p>
-        <p>
-          The Console is your starting point. It shows what needs your attention and has
-          an
-          <strong>Ask</strong> box where you can type a question in plain English (for
-          example, about a policy or a process) and get an answer backed by your approved
-          knowledge sources. Each answer shows how it was produced and how many sources it
-          used, so you can trust it. From here you can also start a task, such as
-          preparing a renewal notice, and the app walks you through the safe steps.
-        </p>
+      <div class="area">
+        <h3>What it does</h3>
+        <ul class="feature">
+          <li>
+            <b>One question box.</b> Your team types a real question in plain English,
+            such as "What is the lease renewal workflow?" and gets a clear answer. No
+            menus to learn.
+          </li>
+          <li>
+            <b>Answers you can trust.</b> Answers come from your approved knowledge, and
+            each one cites its sources so anyone can check the work. Many answers include
+            step-by-step handling instructions, not just a paragraph.
+          </li>
+          <li>
+            <b>It will not guess.</b> When there is no approved source for a question, the
+            app says so plainly and points you to who owns the answer, instead of making
+            something up. That honesty is the foundation of everything else.
+          </li>
+          <li>
+            <b>It shows its work.</b> Every answer says which assistant wrote it and how
+            many sources back it, and shows when each source was last reviewed. If two
+            sources disagree, it flags the conflict for a person to settle rather than
+            quietly picking one.
+          </li>
+          <li>
+            <b>It covers your whole operation.</b> Answers draw from every area that has
+            knowledge loaded, renewals, maintenance, move-ins and move-outs, owner
+            onboarding, and more, and each answer names the area it came from.
+          </li>
+          <li>
+            <b>It knows which process you mean.</b> Type "broken hvac needs repair" and it
+            recognizes the maintenance work-order process and offers to start it.
+          </li>
+          <li>
+            <b>Practice mode.</b> Your team can rehearse any workflow from start to finish
+            as a test run, clearly labeled, with nothing real happening and nothing sent.
+          </li>
+          <li><b>Speak your question.</b> A dictate button lets you ask by voice.</li>
+          <li>
+            <b>It tells you what needs you.</b> Below the box, a "what needs your
+            attention" panel surfaces the three things that actually need a person:
+            decisions to make, connections to finish, and coverage gaps.
+          </li>
+        </ul>
         <a
           class="tablink"
           href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/ask"
@@ -350,14 +407,28 @@
         >
       </div>
 
-      <h3 id="spaces">Spaces <span class="pill everyone">Everyone</span></h3>
-      <div class="card">
-        <p class="who">A front-door menu of your work areas.</p>
-        <p>
-          Spaces is a simple menu of the different areas the app covers, such as Renewals
-          and Maintenance. Pick a Space to jump into that area. Think of it as choosing
-          which desk you want to sit at.
-        </p>
+      <h2 id="spaces">
+        3. Spaces: the map of your operation <span class="pill everyone">Everyone</span>
+      </h2>
+      <p class="section-lead">A single screen that shows every area the app covers.</p>
+      <div class="area">
+        <h3>What it does</h3>
+        <ul class="feature">
+          <li>
+            <b>A tile for each area of your business:</b> lease renewals, owner renewal
+            outreach, tenant renewal notices, maintenance work orders, vendor handoffs,
+            daily inbox triage, escalation rules, move-ins, move-outs and deposits, owner
+            onboarding, and workflow communications.
+          </li>
+          <li>
+            <b>Status at a glance.</b> A colored dot on each tile tells you whether that
+            area is ready to run, still needs a connection, or is planned for later.
+          </li>
+          <li>
+            <b>Pick a desk.</b> The working areas open straight into their own desk;
+            reference areas open material your team can read.
+          </li>
+        </ul>
         <a
           class="tablink"
           href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/spaces"
@@ -367,19 +438,67 @@
         >
       </div>
 
-      <h3 id="renewal">
-        Lease Renewal <span class="pill everyone">Renewals access</span>
-      </h3>
-      <div class="card">
-        <p class="who">Prepare and track lease renewals.</p>
-        <p>
-          This is the renewal desk. It reads real lease details, helps you prepare the
-          renewal notice to the owner or the tenants, and tracks where each renewal
-          stands. You can record the rent basis from comparable listings, and the notice
-          shows that basis with its sources. When a rent number is suggested, an Admin has
-          to approve that exact number before it goes into a draft. Nothing is sent from
-          here on its own: the app prepares the draft and a person reviews and sends it.
-        </p>
+      <h2 id="renewal">
+        4. Lease renewals <span class="pill everyone">Renewals access</span>
+      </h2>
+      <p class="section-lead">
+        The flagship. It turns a renewal window into a guided, step-by-step desk that
+        catches data problems, routes decisions to a person, and drafts the emails for you
+        to send.
+      </p>
+      <div class="area">
+        <h3>What it does</h3>
+        <ul class="feature">
+          <li>
+            <b>It triages for you.</b> The desk sorts the leases in your renewal window
+            into what to work now, what needs a second look, and what it set aside, with
+            the reason. Your team does not open a spreadsheet and guess where to start.
+          </li>
+          <li>
+            <b>Every lease shows the next step.</b> Each lease carries a four-step
+            progress bar (data check, owner decision, tenant offer, build documents) and a
+            single clear "next" action, so there is never a "what was I doing on this
+            one?" moment.
+          </li>
+          <li>
+            <b>It checks your data and catches conflicts.</b> For each lease it compares
+            your two rent sources, RentVine and the tracking sheet, field by field, and
+            marks whether they agree, disagree, or are missing. It never dresses an
+            unconfirmed number up as verified.
+          </li>
+          <li>
+            <b>A person settles disagreements, with a reason.</b> When the sources
+            disagree, the app asks a person to choose the right value and write down why,
+            and it keeps that decision in a permanent, plain-English history.
+          </li>
+          <li>
+            <b>Market comps, your numbers.</b> You record comps from comparable listings
+            and they appear with their source right in the owner draft. The app can
+            suggest a renewal rent from those comps, and an Admin approves that exact
+            number before it ever goes into a draft.
+          </li>
+          <li>
+            <b>It drafts the messages.</b> It prepares the owner and tenant messages
+            across email, portal chat, and text, each clearly marked "review before
+            sending."
+          </li>
+          <li>
+            <b>Real drafts, only to verified people.</b> On a real lease it can create a
+            ready-to-review draft in your own Gmail, addressed to the tenant or owner
+            pulled straight from RentVine. If it cannot confirm exactly who the message is
+            going to, it will not create the draft. A person opens Gmail and presses Send.
+          </li>
+          <li>
+            <b>It remembers where each lease is.</b> Record the owner's decision once and
+            the app carries it forward: it builds the tenant offer from that number,
+            tracks exactly where each lease is, and lets you mark it complete. No
+            re-typing the rent, no guessing which renewals you have already handled.
+          </li>
+          <li>
+            <b>A safe sample desk.</b> A sample version of the desk lets your team learn
+            the whole workflow before touching live data.
+          </li>
+        </ul>
         <a
           class="tablink"
           href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/lease-renewal"
@@ -389,37 +508,39 @@
         >
       </div>
 
-      <h3 id="maintenance">
-        Maintenance <span class="pill everyone">Maintenance access</span>
-      </h3>
-      <div class="card">
-        <p class="who">Track maintenance tickets and owner notices.</p>
-        <p>
-          The maintenance area tracks repair tickets and helps you prepare the notice to
-          the property owner about a maintenance item. As with renewals, the app prepares
-          the draft and a person reviews and sends it. Tenant photos and details are
-          handled carefully and are never mixed into the knowledge base.
-        </p>
-        <a
-          class="tablink"
-          href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/maintenance"
-          target="_blank"
-          rel="noopener"
-          >Open Maintenance</a
-        >
-      </div>
-
-      <h3 id="approval">
-        Approval Queue <span class="pill everyone">Renewals access</span>
-      </h3>
-      <div class="card">
-        <p class="who">One place for items that need a decision.</p>
-        <p>
-          The Approval Queue is a single, urgent-first list of items waiting for a
-          decision, so nothing slips through the cracks. You open an item, see the detail,
-          and approve or resolve it right there. Higher-risk items ask for a short written
-          reason before you approve, which is kept for the record.
-        </p>
+      <h2 id="approval">
+        5. The approval queue <span class="pill everyone">Renewals access</span>
+      </h2>
+      <p class="section-lead">
+        One place every decision funnels through, with the right person, a reason, and a
+        permanent record. This is how you stay in control as volume grows.
+      </p>
+      <div class="area">
+        <h3>What it does</h3>
+        <ul class="feature">
+          <li>
+            <b>One decision inbox.</b> Everything across the app that needs a yes or no
+            collects here, most urgent first. One place to look; nothing slips.
+          </li>
+          <li>
+            <b>Friction that matches the risk.</b> Routine items approve in one click.
+            Anything high-risk asks you to confirm and write down why, and that reason is
+            required and recorded.
+          </li>
+          <li>
+            <b>No silent no.</b> Deny, send back for revision, or defer, and each one
+            records a reason so the other person knows what to fix.
+          </li>
+          <li>
+            <b>The right person decides.</b> You cannot approve your own assigned work,
+            and the most consequential actions require an Admin. The person who prepares a
+            thing is not the person who approves it.
+          </li>
+          <li>
+            <b>Fast in bulk, safe by design.</b> You can act on many items at once, within
+            a sensible limit, and even bulk actions cannot fire a mass external effect.
+          </li>
+        </ul>
         <a
           class="tablink"
           href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/approval-queue"
@@ -429,15 +550,91 @@
         >
       </div>
 
-      <h3 id="comms">Communications <span class="pill everyone">Everyone</span></h3>
-      <div class="card">
-        <p class="who">Workflow emails, drafts, and templates.</p>
-        <p>
-          Communications is where workflow email lives: the renewal and maintenance
-          drafts, the message templates, and replies tied to a renewal or a ticket. It
-          only touches messages linked to your work here; it is not a general inbox. Every
-          send is reviewed and confirmed by a person first.
-        </p>
+      <h2 id="maintenance">
+        6. Maintenance <span class="pill everyone">Maintenance access</span>
+      </h2>
+      <p class="section-lead">
+        From a plain-English report to a tracked ticket, moved through its life with
+        reasons and history.
+      </p>
+      <div class="area">
+        <h3>What it does</h3>
+        <ul class="feature">
+          <li>
+            <b>Capture in plain English.</b> Your team types what the tenant said, picks
+            the unit, and the app writes the work order: a summary, an inferred priority,
+            and even a suggested trade. One click turns it into a tracked ticket.
+          </li>
+          <li>
+            <b>No half tickets.</b> It will not create a ticket that is missing an address
+            or a description, so you never chase a work order with no location on it.
+          </li>
+          <li>
+            <b>A full life with a paper trail.</b> Move a ticket from open to closed and
+            back, with a required reason at each step. Assignments are checked against
+            your real team, and the history reads like a plain-English log, so if an owner
+            asks "what happened with that leak in March," the answer is right there.
+          </li>
+          <li>
+            <b>Hand it to a vendor.</b> You can assign a ticket to a vendor and track the
+            exchange, and practice the whole handoff safely before anything real goes out.
+          </li>
+          <li>
+            <b>A holding area for outside requests.</b> Requests that arrive from a tenant
+            link land in a holding area first. A person promotes the real ones and
+            dismisses the noise; nothing untrusted becomes a work order on its own.
+          </li>
+          <li>
+            <b>Owner notice, drafted for you.</b> A ticket can prepare an owner-notice
+            email addressed to the property owner from RentVine, ready for a person to
+            review and send.
+          </li>
+        </ul>
+        <a
+          class="tablink"
+          href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/maintenance"
+          target="_blank"
+          rel="noopener"
+          >Open Maintenance</a
+        >
+      </div>
+
+      <h2 id="comms">7. Communications <span class="pill everyone">Everyone</span></h2>
+      <p class="section-lead">
+        A focused, governed lane for the workflow emails the app helps with. Everyday
+        inbox work stays in Gmail, and the app says so plainly.
+      </p>
+      <div class="area">
+        <h3>What it does</h3>
+        <ul class="feature">
+          <li>
+            <b>It drafts replies for you.</b> It writes the reply and marks anything it is
+            unsure of as "needs verification" so nothing is invented, and hands you the
+            text to review.
+          </li>
+          <li>
+            <b>It knows its limits.</b> For the most sensitive topics, owner money, legal
+            notices, and tenant disputes, it does not draft at all. Those always go
+            through a person.
+          </li>
+          <li>
+            <b>It summarizes long threads.</b> It can read a long email thread and tell
+            you what it is about, who is waiting, and what to do next, as a suggestion, so
+            you can clear a backlog fast.
+          </li>
+          <li>
+            <b>One careful, confirmed send.</b> When you do send, it is an exact reply to
+            a thread already linked to a real ticket, the recipient and message are
+            rebuilt from the real thread, and a person checks a box that says "I reviewed
+            the recipient and the message" first. It sends once, and a network hiccup
+            cannot make it send twice.
+          </li>
+          <li>
+            <b>No blast button anywhere.</b> There is no "email everyone" control to find.
+            The app cannot email your owners or tenants on its own; every message is a
+            person's decision.
+          </li>
+        </ul>
         <a
           class="tablink"
           href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/gmail-hub"
@@ -447,34 +644,77 @@
         >
       </div>
 
-      <h3 id="connections">
-        Connections <span class="pill everyone">Everyone (Admin sets up)</span>
-      </h3>
-      <div class="card">
-        <p class="who">See which outside tools are connected.</p>
-        <p>
-          Connections shows the outside tools the app can work with, such as RentVine and
-          Google Sheets, and whether each one is connected and healthy. Everyone can see
-          the status. An Admin does the actual setup. This is where a new tool becomes
-          available once you provide its key or access.
-        </p>
+      <h2 id="notifications">
+        8. Notifications <span class="pill everyone">Everyone</span>
+      </h2>
+      <p class="section-lead">
+        A live tally of what needs a person, without becoming noisy.
+      </p>
+      <div class="area">
+        <h3>What it does</h3>
+        <ul class="feature">
+          <li>
+            <b>A personal to-do count.</b> A bell at the top of every page shows how many
+            things need you, and even the browser tab title carries the count. It
+            refreshes on its own.
+          </li>
+          <li>
+            <b>Click straight to the item.</b> Opening a notification takes you to the
+            exact thing that needs attention and marks it read.
+          </li>
+          <li>
+            <b>Tune it to you.</b> Each person can mute the types they do not need, and
+            the setting sticks across sessions.
+          </li>
+          <li>
+            <b>Set-up reminders that mean it.</b> Reminders to finish a setup step stay
+            until the thing is actually fixed, so they are not dismissible noise.
+          </li>
+        </ul>
         <a
           class="tablink"
-          href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/connections"
+          href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/notifications"
           target="_blank"
           rel="noopener"
-          >Open Connections</a
+          >Open Notifications</a
         >
       </div>
 
-      <h3 id="admin">Admin <span class="pill admin">Admin only</span></h3>
-      <div class="card">
-        <p class="who">People, settings, feedback, and behind-the-scenes tools.</p>
-        <p>
-          The Admin area is for managing the app. From here an Admin manages who is on the
-          team and their roles, reviews feedback that people send with the "Report an
-          issue" button, and reaches the setup and review tools. Only Admins see this tab.
-        </p>
+      <h2 id="admin">9. Setup, roles, and admin <span class="pill admin">Admin</span></h2>
+      <p class="section-lead">
+        How you run and maintain the app: who can do what, the audit trails, and
+        connecting your systems.
+      </p>
+      <div class="area">
+        <h3>What it does</h3>
+        <ul class="feature">
+          <li>
+            <b>Manage your team.</b> Change a teammate's role with a required reason, and
+            the change is recorded in an audit log and takes effect on their next sign-in.
+          </li>
+          <li>
+            <b>See what is happening.</b> An activity and logs area shows the
+            approval-queue depth, feedback, and access changes.
+          </li>
+          <li>
+            <b>Review feedback.</b> Anyone can send feedback with the "report an issue"
+            button on any page. It files to a review list, and a short internal notice
+            goes to your staff. It never emails a tenant or owner.
+          </li>
+          <li>
+            <b>Grow the app.</b> Request a new knowledge area, and the app records the
+            request and prepares the exact setup steps for you.
+          </li>
+          <li>
+            <b>Connect your systems.</b> The Connection Center shows which outside tools
+            are connected and healthy, and is where new tools come online as you provide
+            access.
+          </li>
+          <li>
+            <b>Cost control built in.</b> The app runs under a small spending cap with
+            alerts and a real, billing-level shut-off, so cost can never run away.
+          </li>
+        </ul>
         <a
           class="tablink"
           href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/admin"
@@ -484,50 +724,52 @@
         >
       </div>
 
-      <h2 id="extras">The bell, feedback, and sign out</h2>
-      <ul>
-        <li>
-          <strong>The bell (notifications).</strong> The bell near the top right collects
-          what needs attention, in time order. Click it to open your
-          <a
-            href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/notifications"
-            target="_blank"
-            rel="noopener"
-            >notifications</a
-          >.
-        </li>
-        <li>
-          <strong>Report an issue.</strong> A button is on every page. If something looks
-          wrong or you have an idea, click it and write a short note. It goes straight to
-          the team for review, and your staff destination also gets a short internal
-          heads-up. It never emails a tenant or owner.
-        </li>
-        <li>
-          <strong>Sign out.</strong> The sign-out button is at the top right. The app also
-          signs you out on its own after a period of no activity.
-        </li>
-      </ul>
-
-      <div class="safe" id="safe">
-        <p>
-          <strong>Our safety promise.</strong> No email or message is ever sent to an
-          owner, tenant, or vendor unless a person reviews the exact message and confirms
-          it. The app can prepare a draft, but a human always presses send. Only small
-          internal notices to your own staff can send on their own. The app keeps a safe
-          practice mode so a mistaken click can never send a real message, and a real
-          spending cap stays switched on at all times.
+      <div class="backend">
+        <h3 id="backend">10. How it works behind the scenes</h3>
+        <p style="color: #cfd4da; margin-top: 6px">
+          You do not need any of this to use the app, but here is the short version of
+          what is under the hood.
         </p>
+        <ul class="feature">
+          <li>
+            <b>Your real data, read safely.</b> The app reads your leases and contacts
+            from <b>RentVine</b> and compares them against your
+            <b>Google tracking sheet</b>. RentVine is treated as the trusted source; the
+            app reads it and never quietly changes it.
+          </li>
+          <li>
+            <b>Grounded answers.</b> The question box is powered by Google's
+            <b>Gemini</b> assistant, kept honest by <b>Vertex AI Search</b> over your
+            approved documents, so answers are grounded in your own material and cite it.
+          </li>
+          <li>
+            <b>Drafts in your own Google Workspace.</b> Renewal and maintenance drafts are
+            created in your own <b>Gmail</b>, so a person reviews and sends them from the
+            mailbox they already use.
+          </li>
+          <li>
+            <b>A permanent record.</b> Decisions, approvals, and status changes are
+            written to an add-only history, so nothing is lost and every action has a
+            name, a time, and a reason.
+          </li>
+          <li>
+            <b>Runs on Google Cloud.</b> The app is hosted on Google Cloud with your
+            company identity, behind sign-in, with the spending cap and shut-off described
+            above.
+          </li>
+        </ul>
       </div>
 
-      <div class="note" id="brand">
+      <div class="safe">
+        <h3 id="control" style="margin-top: 0">11. You are always in control</h3>
         <p>
-          <strong>A note on branding.</strong> This guide and the app use the confirmed
-          PMI name "pmi." and tagline, on the black-and-orange identity from your brand
-          book cover. The official PMI logo files, exact brand color values, and brand
-          fonts are not yet in our files, so the app currently uses clean, accessible
-          default styling and does not guess a logo or a color. When you send the official
-          brand files, we will wire in the real logo, colors, and fonts. This is listed as
-          an open item in the unblock guide.
+          <strong>The single promise that runs through the whole app:</strong> it drafts
+          and it checks, but a person always decides. No email or message goes to an
+          owner, tenant, or vendor unless a person reviews the exact message and confirms
+          it. The app can prepare a draft, but a human presses Send. Only small notices to
+          your own staff go out on their own. Your systems of record stay under your
+          control, sensitive money and legal topics always route to a person, and a real
+          spending cap stays on the whole time.
         </p>
       </div>
 
@@ -539,13 +781,11 @@
             target="_blank"
             rel="noopener"
             >pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app</a
-          >. Sign in with your pmikcmetro.com work account.
+          >. Sign in with your pmikcmetro.com work account. To see what is coming next,
+          view the <a href="pmi-kc-roadmap-2026-07-23.html">product roadmap</a> that
+          accompanies this guide.
         </p>
-        <p>
-          Property Management Inc. This is an internal guide for PMI KC Metro. For the
-          list of things the app still needs from you, see the unblock guide that
-          accompanies this file.
-        </p>
+        <p>Property Management Inc. An internal guide for PMI KC Metro.</p>
       </footer>
     </main>
   </body>
