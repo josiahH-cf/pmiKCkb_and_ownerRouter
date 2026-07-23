@@ -12,10 +12,11 @@ program); the owner-unblock asks are compiled in `docs/client-unblock-guide-2026
   `main` is now `2bfe7d4` after the docs cycle), each with a green full gate and an independent
   multi-skeptic adversarial falsification pass. Each has an authoritative
   `docs/facts.md` F-row (the record of truth); `docs/status.md` carries the narrative history.
-- **A documentation + handoff cycle then ran (2026-07-23, docs only, no app code).** It produced two
-  client deliverables — `docs/client-unblock-guide-2026-07-23.md` (every owner-unblock ask) and
-  `docs/pmi-kc-app-guide-2026-07-23.html` (plain-language app guide) — and rewrote
-  `docs/customer-demo-walkthrough-2026-07-21.html` into Say / Do / Process test rows.
+- **A documentation + handoff cycle then ran (2026-07-23, docs only, no app code).** It produced three
+  client deliverables — `docs/client-unblock-guide-2026-07-23.md` (every owner-unblock ask),
+  `docs/pmi-kc-app-guide-2026-07-23.html` (full plain-language capabilities guide, folded in from the
+  walkthrough), and `docs/pmi-kc-roadmap-2026-07-23.html` (what is live / next / open, client-facing) —
+  and rewrote `docs/customer-demo-walkthrough-2026-07-21.html` into Say / Do / Process test rows.
 - **Deployed 2026-07-23.** Production serves `2bfe7d4` (main — completed Wave 1 plus the
   documentation-and-handoff docs) on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e` at 100%
   (`F-CURRENT-SERVING-CHECKPOINT-2026-07-23`); rollback `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7`

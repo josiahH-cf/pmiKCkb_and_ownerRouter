@@ -42,10 +42,15 @@ secret-free):
   scope, RentVine write endpoint, RentCast key, Gmail Pub/Sub + Scheduler, LeadSimple, Dotloop OAuth,
   Space provisioning, maintenance-send evidence, the infra/provisioning items, and the field
   confirmations).
-- `docs/pmi-kc-app-guide-2026-07-23.html` — plain-language "what your app does" guide: how to sign in,
-  who can, and what each tab does. Self-contained (inline CSS, no network calls, clickable links). A
-  brand note flags that official PMI logo, color, and font assets are not yet in the repo (the brand
-  pack is source-constrained), so the guide uses accessible product defaults.
+- `docs/pmi-kc-app-guide-2026-07-23.html` — plain-language "what your app does" guide. Later in the
+  session (owner follow-up) it was expanded from a light tab overview into a full capabilities guide,
+  folding in the demo walkthrough content client-facing and positive (capabilities only, no
+  caveats/gated language) with a "how it works behind the scenes" section. Self-contained (inline CSS,
+  no network calls, clickable links to the live app + each section).
+- `docs/pmi-kc-roadmap-2026-07-23.html` (owner follow-up) — client-facing product roadmap: what is live
+  now, what is coming next (each item labeled with the one thing that unlocks it), and the open
+  decisions with recommended defaults, plus one-time setup and branding. The forward-looking /
+  open-question content lives here; the app guide stays capabilities-only. Cross-linked to the app guide.
 - `docs/customer-demo-walkthrough-2026-07-21.html` — rewritten into copy/paste Say / Do / Process rows,
   each with an expected result to verify; every gated or deferred item marked as such.
 
