@@ -35,49 +35,43 @@ build program); the older owner-gated backlog with findings/context is `docs/wha
 
 **Shipped this cycle (2026-07-23, worktree `ui-ux-overhaul`, ff-merged to `main`):**
 
-- **S29** comp-informed rent suggestion (Admin-approval-gated) → `F-RENT-SUGGEST-ADMIN-GATED` (supersedes
-  `F-NEGOTIATION-EXCLUDED`). Pure `computeRentSuggestion` (comp median), Admin-only approval FSM +
-  Firestore control plane + route, `RentSuggestionApproval` on the live desk, `buildOwnerRenewalDraft`
-  approved-suggestion channel wired end-to-end (live-desk preview + the owner Gmail send-draft, server-set),
-  and the narrow server-set `draft-safety.ts` owner_money carve-out. AC-S29-1..8 green; 5-skeptic
-  adversarial falsification found no safety violation; Turbopack build green on main.
-- **S32** KB corrections learning loop + source freshness + read-only model-config → `F-KB-CORRECTIONS-LEARNING`.
-  `ask_corrections` Proposed-only writer + route + AskForm "Suggest a correction" control; pure
-  `propose.ts` (Draft KB / redaction-required eval / re-rank hints, all Proposed); Admin review lane
-  (`KbCorrectionsPanel` + decide route → `createPlaceholder`); pure `computeSourceFreshness` + citation
-  chip; read-only `ModelConfigPanel`. AC-S32-1..9 green. `Q-KBCORR-1/2` recorded.
-- **S33** Ask box → live-action front door → `F-ASK-ACTION` (resolves `Q-ASK-ACTION-SCOPE`). Pure
-  `resolveAskAction` (gate-respecting, value-free route) + pure strict `matchRenewalTarget` + read-only
-  `POST /api/ask/live-target` (server-side gate check) + AskForm affordance that REUSES the desk's gated
-  `RenewalNoticeDraftComposer` pre-seeded with the resolved lease. No new executor/endpoint/scope/gate;
-  Action Registry untouched; Test-run/capture unchanged. AC-S33-1..8 green.
-- **S38a** maintenance owner-notice draft made REACHABLE → `F-MAINT-OWNER-DRAFT-REACHABLE`. Route + service +
-  per-ticket `MaintenanceOwnerNoticeDraftComposer` (edit-gated, Live only) over the already-open
-  `gmail.maintenance_owner_notice.draft_create` gate. Unblock: owner is a PROPERTY attribute, resolved from the
-  ticket unit's live `propertyId` via the extracted `resolveOwnerContactFromPropertyId` tail of
-  `resolveLiveOwnerEmail` (no `getUnit`, no ticket-schema change); base `operationFor` gained the draft key.
-  Draft-only by construction (reuses the createDraft-only provider + gate + authoritative-recipient guard);
-  `.send` stays gated. AC-S38-1..4 green; 2842 tests pass; Turbopack build green on main.
-- **S28a** market-comp provider + comp-screenshot upload → `F-MARKET-COMP-PROVIDER` (records `Q-RENTCAST-ENDPOINT`).
-  DISPLAY-only `MarketCompProvider`: manual adapter (default, echoes the operator's own numbers) + reference-only
-  comps surface with the "Does not set the rent" caption (`offeredRent` never bound). Comp screenshot is a real
-  Drive upload reusing the maintenance image-store seam; `ownerDraftMarketFromBasis` prefers the `drive:<id>`
-  ref and carries the provider source. RentCast adapter BUILT INERT (median aggregation, fail-closed, key from
-  env); two gated-OFF Registry entries (`google_drive.renewal_comp_screenshot.store`,
-  `rentcast.rental_listings.search`, both `production_allowed:false`, absent from both allowlists). Added
-  target-system "RentCast" plus its health contract and risk-policy kind. AC-S28-1..6 green; feeds S29. Owner
-  dep: RentCast key (S28b, owner-dep #2).
+(Each shipped slice below has a full `docs/facts.md` F-row + `docs/status.md` entry; these are one-line pointers.)
 
-**Wave-1 remaining — resume here (the last Wave-1 suite; pure app-plane, zero owner dep):**
+- **S29** comp-informed rent suggestion, Admin-approval-gated → `F-RENT-SUGGEST-ADMIN-GATED` (supersedes
+  `F-NEGOTIATION-EXCLUDED`). AC-S29-1..8; falsified clean; Turbopack green.
+- **S32** KB corrections learning loop + source freshness + read-only model-config → `F-KB-CORRECTIONS-LEARNING`
+  (`Q-KBCORR-1/2`). AC-S32-1..9.
+- **S33** Ask box → live-action front door (reuses the desk's gated composer; no new executor/endpoint/scope/gate)
+  → `F-ASK-ACTION` (resolves `Q-ASK-ACTION-SCOPE`). AC-S33-1..8.
+- **S38a** maintenance owner-notice draft made REACHABLE (property-anchored owner resolve, draft-only, `.send`
+  stays gated) → `F-MAINT-OWNER-DRAFT-REACHABLE`. AC-S38-1..4.
+- **S28a** market-comp provider (manual default; RentCast built INERT) + comp-screenshot Drive upload,
+  DISPLAY-only, two gated-OFF Registry entries → `F-MARKET-COMP-PROVIDER` (`Q-RENTCAST-ENDPOINT`). AC-S28-1..6.
+- **S39.1** (notification-center half of S39) → `F-SUPPORT-NOTIFY-CENTER` (records `Q-SUPP-FOLLOWUP`). Admin-scoped
+  Feedback lane on the ONE S17 machinery: new `support` lane + meta, `support_reports` family (7→8), value-free
+  `gatherSupportAttention` (reads only `support_reports`, at most two count signals, `/admin` deep link only),
+  hub gathers it `full && isAdmin` + serve-time Admin family filter (mirrors `team_review`), `/notifications`
+  Feedback section, and the `SupportReportsPanel` badge from the SAME gather (interlock: neither recomputes;
+  the hub also honors notification mute/snooze so it can intentionally show less than the authoritative panel
+  badge — pinned by tests). No send. AC-S39-1/-2/-3/-8 green; 2877 tests; falsification found only that
+  intended mute-layer nuance (severity low), resolved + tested.
 
-- **S39** (internal transactional notifications + notification center) — decision-complete, pure app-plane,
-  internal-only (D-AUTOMATION-LINE), gate flip authorized WITHIN the suite. LARGE (~13 files): extends the S17
-  attention machinery (`lib/attention/lanes.ts`, `lib/notifications/{families,feed,hub}.ts`, new
-  `support-lane.ts`) + a new gated internal-transactional executor + `internal.transactional_notice.send` key
-  plus the flip. Best split into 3 shippable sub-slices (data + gated executor OFF, then the notification
-  center, then auto-emit + the in-suite flip); read the S17 single-gather + value-free-six-key contract first.
+**Wave-1 remaining — resume here (S39.2 + S39.3, the send half of the LAST Wave-1 suite; internal-only, zero owner dep):**
 
-Build order is `docs/roadmap-unblock-2026-07-23.md` §4; S39 above is the Wave-1 remainder. Wave 2 =
+- **S39.2** (internal transactional executor, gated OFF) — add the internal-domain allowlist to
+  `UpdateOwnerTransactionalDestinationInputSchema`; build `lib/notifications/internal-transactional.ts`
+  (recipient resolved ONLY from a non-actor-gated SYSTEM read of the owner destination — never
+  `readOwnerTransactionalDestination(actor)` which 403s non-Admin reporters; re-assert the domain allowlist at
+  send; metadata-only payload; idempotent one-attempt keyed `support_report:{id}:filed`; receipt/health store),
+  plus the gated-OFF `internal.transactional_notice.send` Registry key (`production_allowed:false`, both
+  allowlists untouched). NOT wired to send yet. AC-S39-4/-5/-6.
+- **S39.3** (auto-emit + in-suite flip) — emit the internal notice from `app/api/report-issue/route.ts` AFTER
+  the durable queue write (a send failure never blocks the write); flip the gate the routine reviewed way (both
+  `EXECUTABLE_ALLOWLIST` copies + pinned tests); DELETE the now-false "display-only"/"nothing here sends" copy
+  (`TransactionalDestinationPanel`, `owner-transactional-destination.ts` header, `report-issue/route.ts`) with a
+  Supersede Log marker. AC-S39-7. Then promote `F-INTERNAL-NOTIFY` (AC-S39-1..8).
+
+Build order is `docs/roadmap-unblock-2026-07-23.md` §4; S39.2/S39.3 above are the Wave-1 remainder. Wave 2 =
 the live-provider seams, one owner step each (S30 RentVine write, S31 Gmail watch, S28b RentCast, S35
 LeadSimple, S34 Dotloop, S36 Space provisioning, S38b maintenance send); Wave 3 = S37 no-code builder. The
 suite specs S28–S39 live under `docs/feature-suites/` (spec-shape sentinel plus README rows); each is

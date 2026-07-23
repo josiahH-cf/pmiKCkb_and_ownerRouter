@@ -6,10 +6,35 @@ import type { SupportReportRecord } from "@/lib/firestore/types";
 export function SupportReportsPanel({
   reports,
   unavailableNote,
-}: Readonly<{ reports: SupportReportRecord[]; unavailableNote?: string }>) {
+  newCount,
+  followUpDueCount,
+}: Readonly<{
+  reports: SupportReportRecord[];
+  unavailableNote?: string;
+  /** Value-free counts from the shared gatherSupportAttention (same numbers the notifications hub shows). */
+  newCount?: number;
+  followUpDueCount?: number;
+}>) {
   return (
     <article className="panel" aria-label="Feedback">
-      <h2>Feedback</h2>
+      <div className="notifications-lane-head">
+        <h2>Feedback</h2>
+        {newCount !== undefined || followUpDueCount !== undefined ? (
+          <span className="console-deck-count" data-testid="support-followup-badge">
+            {followUpDueCount ?? 0}
+          </span>
+        ) : null}
+      </div>
+      {newCount !== undefined || followUpDueCount !== undefined ? (
+        <p className="muted">
+          <strong data-testid="support-new-count">{newCount ?? 0}</strong> new
+          {" · "}
+          <strong data-testid="support-followup-count">
+            {followUpDueCount ?? 0}
+          </strong>{" "}
+          past the follow-up window
+        </p>
+      ) : null}
       <p className="muted">
         Feedback teammates shared with the &ldquo;Feedback&rdquo; button: ideas,
         questions, or problems. Each note is filed here for review; nothing is emailed.

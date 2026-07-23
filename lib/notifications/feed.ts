@@ -44,6 +44,8 @@ export interface BuildNotificationFeedInput {
   standing?: readonly AttentionSignal[];
   /** B5 Admin-only review digest, already gated to an Admin viewer by the caller. */
   review?: AttentionSignal | null;
+  /** S39 Admin-only support (feedback) signals, already gated to an Admin viewer by the caller. */
+  support?: readonly AttentionSignal[];
   /** Canonical needs-decision backlog shared with Console; value-free and read-only. */
   decisions?: DecisionAttentionBacklog;
   mutedFamilies?: readonly NotificationFamilyKey[];
@@ -70,6 +72,8 @@ export interface NotificationFeed {
   standing: AttentionSignal[];
   /** B5 review digest surviving mute / threshold / snooze, or null. */
   review: AttentionSignal | null;
+  /** S39 Admin-only support (feedback) signals surviving mute / threshold / snooze. */
+  support: AttentionSignal[];
   /** Actionable decisions are a standing backlog, not unread event notifications. */
   decisions: DecisionAttentionBacklog;
   families: NotificationFamilyView[];
@@ -123,11 +127,21 @@ export function buildNotificationFeed(
       ? input.review
       : null;
 
+  // 4. Support signals: standing + Admin-scoped, filtered exactly like the standing setup signals (drop
+  //    muted lanes, snooze, threshold). Never digested.
+  const support = (input.support ?? []).filter(
+    (signal) =>
+      !mutedLanes.has(signal.lane) &&
+      !isLaneSnoozed(signal.lane, prefs, now) &&
+      passesLaneThreshold(signal, prefs),
+  );
+
   return {
     notifications,
     unreadTotal,
     standing,
     review,
+    support,
     decisions: input.decisions ?? { count: 0, signals: [] },
     families: buildFamilyViews([...muted]),
   };

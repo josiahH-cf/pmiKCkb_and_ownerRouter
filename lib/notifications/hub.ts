@@ -15,6 +15,7 @@ import {
 } from "@/lib/attention/decision-backlog";
 import { buildTeamReviewDigest } from "@/lib/attention/review-lane";
 import { buildStandingSignals } from "@/lib/attention/standing-signals";
+import { gatherSupportAttention } from "@/lib/attention/support-lane";
 import {
   resolveConnectionsState,
   resolveCoverageState,
@@ -102,12 +103,18 @@ export async function loadNotificationHub(
   const review =
     full && isAdmin && canReadRenewals ? await buildReviewDigest(user) : null;
 
+  // S39: the support (feedback) lane is Admin-scoped, gathered ONLY for an Admin hub view (mirroring the
+  // review digest). The SAME gather feeds the /admin panel badge, so their counts cannot diverge.
+  const support =
+    full && isAdmin ? (await gatherSupportAttention(user, { now })).signals : [];
+
   const feed = buildNotificationFeed({
     approval,
     maintenance,
     gmail,
     standing,
     review,
+    support,
     decisions: decision.attention,
     mutedFamilies: preferences.muted_families,
     preferences: toLowAlarmPreferences(preferences),
@@ -124,7 +131,9 @@ export async function loadNotificationHub(
         (family.key !== "maintenance_tickets" || canReadMaintenance) &&
         (family.key !== "renewal_communications" || canReadRenewals) &&
         (family.key !== "maintenance_communications" || canReadMaintenance) &&
-        (family.key !== "team_review" || isAdmin),
+        (family.key !== "team_review" || isAdmin) &&
+        // support_reports is Admin-only at serve time, exactly like team_review.
+        (family.key !== "support_reports" || isAdmin),
     ),
   };
 }

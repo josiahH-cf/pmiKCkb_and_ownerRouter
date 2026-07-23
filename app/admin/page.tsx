@@ -39,6 +39,7 @@ import {
   listReindexRequests,
 } from "@/lib/firestore/reindex-requests";
 import { listSupportReports } from "@/lib/firestore/support-reports";
+import { gatherSupportAttention } from "@/lib/attention/support-lane";
 import type {
   ApprovalQueueNotificationHealth,
   SupportReportRecord,
@@ -66,6 +67,9 @@ export default async function AdminPage() {
   let transactionalDestinationNote: string | undefined;
   let supportReports: SupportReportRecord[] = [];
   let supportReportsNote: string | undefined;
+  // S39: the badge counts come from the SAME gatherSupportAttention the /notifications hub reads, so the
+  // panel and the hub can never show different numbers (never a separate ad-hoc count over the list).
+  let supportAttention = { newCount: 0, followUpDueCount: 0 };
   let noticeRules: NoticeRuleSetRecord | undefined;
   let noticeRulesNote: string | undefined;
   let activityEntries: AdminActivityEntry[] = [];
@@ -108,6 +112,8 @@ export default async function AdminPage() {
     supportReportsNote =
       "Feedback is unavailable right now. Try again in a minute; if this list is not loading, new feedback may not be saving either.";
   }
+  // Never throws (gatherSupportAttention degrades to empty), so this is safe outside a try.
+  supportAttention = await gatherSupportAttention(user);
   try {
     noticeRules = await readNoticeRuleConfigRecord(user);
   } catch {
@@ -252,6 +258,8 @@ export default async function AdminPage() {
           <SupportReportsPanel
             reports={supportReports}
             unavailableNote={supportReportsNote}
+            newCount={supportAttention.newCount}
+            followUpDueCount={supportAttention.followUpDueCount}
           />
           <AdminActivityLogPanel
             entries={activityEntries}

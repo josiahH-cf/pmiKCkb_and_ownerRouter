@@ -3,6 +3,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { TestOperationalHandoffPanel } from "@/components/operations/TestOperationalHandoffPanel";
 import { ATTENTION_LANE_META, type AttentionLane } from "@/lib/attention/lanes";
 import { requirePageCapability } from "@/lib/auth/page-guards";
+import { can } from "@/lib/auth/roles";
 import { hasSpaceAccess } from "@/lib/auth/session";
 import { loadNotificationHub } from "@/lib/notifications/hub";
 import { loadTestOperationalHandoffs } from "@/lib/operations/test-handoff-loader";
@@ -27,6 +28,9 @@ export default async function NotificationsPage() {
     (signal) => signal.lane === "connection",
   );
   const coverageSignals = feed.standing.filter((signal) => signal.lane === "coverage");
+  // S39: the Feedback section is Admin-scoped (feed.support is only gathered for an Admin viewer). Gate
+  // the SECTION on the role so a non-Admin never sees it, and an Admin with no feedback sees the all-clear.
+  const isAdmin = can(user.role, "manageAdmin");
 
   return (
     <AppShell user={user}>
@@ -49,6 +53,26 @@ export default async function NotificationsPage() {
             </div>
             <Link href={feed.review.href}>{feed.review.label}</Link>
             <p className="muted">{feed.review.detail}</p>
+          </section>
+        ) : null}
+
+        {isAdmin ? (
+          <section className="panel" aria-label="Feedback">
+            <div className="notifications-lane-head">
+              <h2>{ATTENTION_LANE_META.support.label}</h2>
+            </div>
+            {feed.support.length === 0 ? (
+              <p className="muted">{ATTENTION_LANE_META.support.allClear}</p>
+            ) : (
+              <ul className="notifications-standing-list">
+                {feed.support.map((signal) => (
+                  <li key={signal.signal_key} data-lane={signal.lane}>
+                    <Link href={signal.href}>{signal.label}</Link>
+                    <span className="muted">{signal.detail}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         ) : null}
 

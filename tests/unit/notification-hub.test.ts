@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   })),
   listAllLeaseRenewalResolutions: vi.fn(),
   listAllWritebackApprovals: vi.fn(),
+  listSupportReports: vi.fn(),
   gatherNeedsDecisionInbox: vi.fn(async () => ({
     rows: [],
     counts: { total: 0, renewalFlags: 0, writebacksAwaiting: 0, queueItems: 0 },
@@ -59,8 +60,12 @@ vi.mock("@/lib/firestore/lease-renewal-writeback-approvals", () => ({
 vi.mock("@/lib/approval/needs-decision-gather", () => ({
   gatherNeedsDecisionInbox: mocks.gatherNeedsDecisionInbox,
 }));
+vi.mock("@/lib/firestore/support-reports", () => ({
+  listSupportReports: mocks.listSupportReports,
+}));
 
 import { loadNotificationHub } from "@/lib/notifications/hub";
+import { gatherSupportAttention } from "@/lib/attention/support-lane";
 
 const admin = {
   uid: "admin-1",
@@ -102,6 +107,7 @@ describe("loadNotificationHub — Admin-only review digest (AC-S17-6)", () => {
       { state: "Returned for Revision" },
       { state: "Returned for Revision" },
     ]);
+    mocks.listSupportReports.mockResolvedValue([]);
   }
 
   it("serves ONE value-free review digest to an Admin in full mode", async () => {
@@ -133,6 +139,89 @@ describe("loadNotificationHub — Admin-only review digest (AC-S17-6)", () => {
     // The Admin-only decision-metrics reads are never issued for a non-Admin.
     expect(mocks.listAllLeaseRenewalResolutions).not.toHaveBeenCalled();
     expect(mocks.listAllWritebackApprovals).not.toHaveBeenCalled();
+  });
+
+  it("serves value-free support signals + the support_reports family only to an Admin (AC-S39-1)", async () => {
+    seedReviewData();
+    mocks.listSupportReports.mockResolvedValue([
+      { id: "r1", status: "new", created_at: "2026-07-23T00:00:00.000Z" },
+      { id: "r2", status: "acknowledged", created_at: "2026-07-01T00:00:00.000Z" },
+    ]);
+    const feed = await loadNotificationHub(admin, {
+      full: true,
+      now: "2026-07-23T12:00:00.000Z",
+    });
+
+    expect(feed.support.map((s) => s.signal_key).sort()).toEqual([
+      "support:follow_up_due",
+      "support:new",
+    ]);
+    expect(feed.support.every((s) => s.lane === "support")).toBe(true);
+    // Value-free: exactly the six whitelisted keys on every support signal.
+    for (const signal of feed.support) {
+      expect(Object.keys(signal).sort()).toEqual([
+        "detail",
+        "href",
+        "label",
+        "lane",
+        "severity",
+        "signal_key",
+      ]);
+    }
+    expect(feed.families.map((f) => f.key)).toContain("support_reports");
+  });
+
+  it("both surfaces read the SAME gather: the hub's follow-up count equals the /admin panel's, byte-for-byte (AC-S39-2)", async () => {
+    seedReviewData();
+    const reports = [
+      { id: "r1", status: "new", created_at: "2026-07-23T00:00:00.000Z" },
+      { id: "r2", status: "acknowledged", created_at: "2026-07-01T00:00:00.000Z" }, // follow-up due
+      { id: "r3", status: "acknowledged", created_at: "2026-06-01T00:00:00.000Z" }, // follow-up due
+    ];
+    mocks.listSupportReports.mockResolvedValue(reports);
+    const now = "2026-07-23T12:00:00.000Z";
+
+    const feed = await loadNotificationHub(admin, { full: true, now });
+    // The /admin panel badge reads this exact gather (app/admin/page.tsx).
+    const panelSource = await gatherSupportAttention(admin, { now });
+
+    const hubFollowUp = feed.support.find(
+      (s) => s.signal_key === "support:follow_up_due",
+    );
+    expect(hubFollowUp?.detail).toContain(`${panelSource.followUpDueCount} report`);
+    expect(panelSource.followUpDueCount).toBe(2);
+  });
+
+  it("honors a muted Feedback family on the hub while the authoritative /admin gather count is unmuted (intended mute layer)", async () => {
+    seedReviewData();
+    // The Admin muted the Feedback notification family.
+    mocks.getNotificationPreferences.mockResolvedValue({
+      ...prefs(),
+      muted_families: ["support_reports"],
+    });
+    mocks.listSupportReports.mockResolvedValue([
+      { id: "r1", status: "new", created_at: "2026-07-23T00:00:00.000Z" },
+    ]);
+    const now = "2026-07-23T12:00:00.000Z";
+
+    const feed = await loadNotificationHub(admin, { full: true, now });
+    // Muting removes the notification from the hub feed (a notification preference)...
+    expect(feed.support).toEqual([]);
+    // ...but the /admin triage badge reads the SAME gather UNMUTED, so the operational count stands.
+    const panelSource = await gatherSupportAttention(admin, { now });
+    expect(panelSource.newCount).toBe(1);
+  });
+
+  it("never serves support signals OR the support_reports family to an Editor, and never reads them (AC-S39-8)", async () => {
+    seedReviewData();
+    mocks.listSupportReports.mockResolvedValue([
+      { id: "r1", status: "new", created_at: "2026-07-23T00:00:00.000Z" },
+    ]);
+    const feed = await loadNotificationHub(editor, { full: true });
+
+    expect(feed.support).toEqual([]);
+    expect(feed.families.map((f) => f.key)).not.toContain("support_reports");
+    expect(mocks.listSupportReports).not.toHaveBeenCalled();
   });
 
   it("counts the TRUE unread total across the full set, not a per-source preview cap (LR-01)", async () => {

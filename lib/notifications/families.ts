@@ -21,6 +21,7 @@ export const NOTIFICATION_FAMILY_KEYS = [
   "team_review",
   "renewal_communications",
   "maintenance_communications",
+  "support_reports",
 ] as const;
 
 export type NotificationFamilyKey = (typeof NOTIFICATION_FAMILY_KEYS)[number];
@@ -117,6 +118,14 @@ export const NOTIFICATION_FAMILIES: readonly NotificationFamily[] = [
     description: "Value-free attention for replies on linked maintenance communication.",
     available: true,
     lane: "decision",
+  },
+  {
+    key: "support_reports",
+    label: "Feedback",
+    description:
+      "Value-free counts of newly-filed feedback and reports past their follow-up window (Admin only).",
+    available: true,
+    lane: "support",
   },
 ];
 

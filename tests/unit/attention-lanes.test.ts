@@ -10,13 +10,14 @@ import {
 import { buildStandingSignals } from "@/lib/attention/standing-signals";
 
 describe("attention lane contract (S17 B3)", () => {
-  it("exposes exactly the five closed lanes, each with all-clear copy", () => {
+  it("exposes exactly the six closed lanes, each with all-clear copy", () => {
     expect([...ATTENTION_LANES]).toEqual([
       "decision",
       "connection",
       "coverage",
       "renewal",
       "review",
+      "support",
     ]);
     for (const lane of ATTENTION_LANES) {
       expect(ATTENTION_LANE_META[lane].label.length).toBeGreaterThan(0);

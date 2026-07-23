@@ -19,6 +19,7 @@ export const ATTENTION_LANES = [
   "coverage",
   "renewal",
   "review",
+  "support",
 ] as const;
 export type AttentionLane = (typeof ATTENTION_LANES)[number];
 
@@ -90,6 +91,11 @@ export const ATTENTION_LANE_META: Record<AttentionLane, AttentionLaneMeta> = {
     lane: "review",
     label: "Team review",
     allClear: "No high-risk overrides or self-corrections to review.",
+  },
+  support: {
+    lane: "support",
+    label: "Feedback",
+    allClear: "All feedback has been followed up.",
   },
 };
 

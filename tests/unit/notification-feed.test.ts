@@ -140,7 +140,7 @@ describe("buildNotificationFeed", () => {
   });
 
   // AC-GW-12: the catalog exposes the two available, workflow-specific Gmail families.
-  it("returns exactly seven available in-app families", () => {
+  it("returns exactly eight available in-app families", () => {
     const feed = buildNotificationFeed({ approval: [], maintenance: [] });
 
     expect(feed.families.map((family) => family.key)).toEqual([
@@ -151,6 +151,7 @@ describe("buildNotificationFeed", () => {
       "team_review",
       "renewal_communications",
       "maintenance_communications",
+      "support_reports",
     ]);
     expect(feed.families.every((family) => family.available)).toBe(true);
   });
