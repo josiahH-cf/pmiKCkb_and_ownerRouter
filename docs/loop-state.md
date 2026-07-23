@@ -54,11 +54,13 @@ build program); the older owner-gated backlog with findings/context is `docs/wha
 
 **Wave-1 remaining — resume here (pick any; all pure app-plane, zero owner dep):**
 
-- **S38a** (surface the maintenance owner-notice draft) — NOT a clean mirror of the renewal flow. BLOCKER
-  found 2026-07-23: its authoritative owner-resolution keys on the ticket's `unit.unitId`, but the RentVine
-  client has NO `getUnit` hop and ticket unitIds are app-internal (`unit:demo-*`), not RentVine keys. Needs a
-  deliberate unit→RentVine-property (or unit→live-lease→owner via `resolveLiveOwnerEmail`) mapping design
-  before the composer/route/service can resolve an authoritative owner. Do this design first, then build.
+- **S38a** (surface the maintenance owner-notice draft) — UNBLOCKED 2026-07-23; the earlier "no `getUnit` hop"
+  note misdiagnosed it. Owner is a PROPERTY attribute and `resolveLiveOwnerEmail` uses the lease only to read
+  `propertyID`; the live unit candidate ALREADY carries the real RentVine `propertyId`
+  (`deriveUnitCandidatesFromExport`, `unit-matcher.ts`) but drops it building `MaintenanceUnitMatch`
+  ({unitId,label,confidence}). Fix: extract a `resolveOwnerFromPropertyId` tail from `resolveLiveOwnerEmail`
+  (behavior-preserving), thread `propertyId` through the match + persisted ticket unit, resolve owner from the
+  property and fail-closed when absent — no `getUnit` needed. Small/low-risk; then build composer/route/service.
 - **S39** (internal transactional notifications + notification center) — decision-complete, pure app-plane,
   internal-only (D-AUTOMATION-LINE), gate flip authorized WITHIN the suite. LARGE (~13 files): extends the S17
   attention machinery (`lib/attention/lanes.ts`, `lib/notifications/{families,feed,hub}.ts`, new
