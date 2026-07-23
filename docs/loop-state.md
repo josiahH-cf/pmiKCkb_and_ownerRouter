@@ -8,18 +8,21 @@ program); the owner-unblock asks are compiled in `docs/client-unblock-guide-2026
 
 - Last updated: 2026-07-23.
 - **Wave 1 of the full-suite build program is COMPLETE and merged.** All six pure-app-plane suites
-  shipped in the `ui-ux-overhaul` worktree and ff-merged to `main` (`ceb6bea`), each with a green full
-  gate and an independent multi-skeptic adversarial falsification pass. Each has an authoritative
+  shipped in the `ui-ux-overhaul` worktree and ff-merged to `main` (Wave 1 completed at `ceb6bea`;
+  `main` is now `2bfe7d4` after the docs cycle), each with a green full gate and an independent
+  multi-skeptic adversarial falsification pass. Each has an authoritative
   `docs/facts.md` F-row (the record of truth); `docs/status.md` carries the narrative history.
 - **A documentation + handoff cycle then ran (2026-07-23, docs only, no app code).** It produced two
   client deliverables — `docs/client-unblock-guide-2026-07-23.md` (every owner-unblock ask) and
   `docs/pmi-kc-app-guide-2026-07-23.html` (plain-language app guide) — and rewrote
   `docs/customer-demo-walkthrough-2026-07-21.html` into Say / Do / Process test rows.
-- **Deploy of `ceb6bea` is pending.** Production still serves `7663cec` on revision
-  `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7` (`F-CURRENT-SERVING-CHECKPOINT-2026-07-22`); rollback
-  `pmi-kc-kb-demo-rmrwc70pc-d5cb9815094b`. Wave-1 gates are already merged, so a redeploy only advances
-  the served label; production stays QA-verified. Deploy is owner-run (`npm run auth:session`, then
-  `npm run deploy -- --budget-confirmed --allow-multiple-spaces`) when ADC is fresh.
+- **Deployed 2026-07-23.** Production serves `2bfe7d4` (main — completed Wave 1 plus the
+  documentation-and-handoff docs) on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e` at 100%
+  (`F-CURRENT-SERVING-CHECKPOINT-2026-07-23`); rollback `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7`
+  (`7663cec`). Config verified: `vertex spaces:11`, `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED:true`,
+  `ASK_DEMO_MODE:false`, `NODE_ENV:production`; auth boundary green. Run deploys from the PRIMARY tree:
+  its `.env.local` carries the writeback flag; the worktree `.env.local` does not (an initial
+  worktree-run deploy shipped the flag off and was corrected by redeploying from the primary tree).
 - **The four owner Q&A decisions (2026-07-23)** remain in force (`F-ROADMAP-BUILD-AUTHORIZED`, roadmap
   §3): D-RENT-SUGGEST, D-RENTVINE-ENDPOINT, D-BUILDER-FULL, D-AUTOMATION-LINE.
 
@@ -53,8 +56,9 @@ gate (both `EXECUTABLE_ALLOWLIST` copies + pinned tests) once the named dependen
 
 ## Safe Stop Boundary
 
-- `main` and `ui-ux-overhaul` are aligned at `ceb6bea`, pushed, working tree clean; no slice is
-  half-applied and no mutation is mid-flight. Production serves the QA-verified `7663cec`.
+- `main` and `ui-ux-overhaul` are aligned at `2bfe7d4`, pushed, working tree clean; no slice is
+  half-applied and no mutation is mid-flight. Production serves `2bfe7d4` on `rmrxpsn5q`; the rollback
+  target is the QA-verified `7663cec` / `rmrwmk2kn`.
 - The seven canonical app-only Approval Test fixtures are at `Ready for Approval`; both managed internal
   staff identities are `Admin` with All-spaces access. No reusable authenticated restricted-role or
   Vendor session is retained; a clean signed-out public context is ready.
@@ -69,10 +73,11 @@ Preserve the safety NEVERs (roadmap §7).
 
 ## Next Exact Actions
 
-1. Owner-run: `npm run auth:session`, then deploy `ceb6bea` with
-   `npm run deploy -- --budget-confirmed --allow-multiple-spaces` (verify `vertex spaces:11`, capture the
-   rollback revision, HTTP-smoke the auth boundary). Production is already QA-verified; this advances the
-   served label to the Wave-1 build.
+1. Wave 1 + the handoff docs are deployed (`2bfe7d4` on `rmrxpsn5q`, 2026-07-23). Future deploys run
+   from the PRIMARY tree after `npm run auth:session`:
+   `npm run deploy -- --budget-confirmed --allow-multiple-spaces` (verify `vertex spaces:11` +
+   `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED:true`, capture the rollback revision, HTTP-smoke the auth
+   boundary).
 2. Interleave Wave 2 as owner dependencies (roadmap §5) land. Build each live provider to the seam now;
    flip its gate (both `EXECUTABLE_ALLOWLIST` copies + pinned tests) once the dependency is documented.
 3. Or start **Wave 3 / S37** (the no-code builder) — pure app-plane, no owner dependency — under the same

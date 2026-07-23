@@ -56,7 +56,19 @@ outcome is recorded at the end of this entry and in the serving-checkpoint fact.
 behind reviewed gates that are already merged, so a redeploy only advances the served label; production
 stays QA-verified in the meantime.
 
-<!-- CLOSE-OUT DEPLOY RESULT (filled at §5): -->
+**Deploy result (2026-07-23).** Deployed. Owner-authorized (documentation-cycle step 5), fresh ADC,
+`npm run deploy -- --budget-confirmed --allow-multiple-spaces`. Production now serves `2bfe7d4` (Wave 1
+plus the handoff docs) on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e` at 100%
+(`F-CURRENT-SERVING-CHECKPOINT-2026-07-23`, supersedes `-2026-07-22`); rollback target is the last
+owner-QA-verified build `7663cec` on `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7`. Config verified:
+`vertex spaces:11`, `drive folders:11`, `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED:true`,
+`ASK_DEMO_MODE:false`, `NODE_ENV:production`; auth boundary green (`/`→307, `/sign-in`→200,
+`/admin`→307, `/approval-queue`→307, `/api/ask`→405). Only the internal-staff feedback auto-notice is
+newly live (D-AUTOMATION-LINE); every client-facing send stays gated and human-confirmed. Gotcha caught
+and fixed mid-deploy: the FIRST deploy was run from the `ui-ux-overhaul` worktree, whose `.env.local`
+lacks `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED`, so it shipped the flag off (intermediate revision
+`rmrxpgpxp-d056b675e19c`); redeploying from the PRIMARY tree (its `.env.local` carries the flag)
+restored `true`. Run deploys from the primary tree.
 
 ## Full-suite build loop — S29 + S32 + S33 shipped, verified, merged (2026-07-23)
 
