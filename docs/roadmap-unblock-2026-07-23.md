@@ -111,18 +111,32 @@ dependency; it never stops a whole feature at the seam.
 Everything else is code the loop builds. These are the exact one-line steps only the owner can do —
 each unblocks a flip, not a feature (the feature is built to the seam regardless):
 
-1. **RentVine** documented renewal-write endpoint + semantics → flips S30. _(owner providing)_
-2. **RentCast** (or chosen) comp-data API key → activates the S28 live adapter.
-3. **Gmail watch** Pub/Sub topic + Cloud Scheduler auto-renew (read-only) → S31 continuous.
+Status verified/updated in the 2026-07-23 owner working session (DONE items need no further owner
+action):
+
+1. **RentVine** documented renewal-write endpoint + semantics → flips S30. _(OPEN — owner checking
+   with RentVine whether a write endpoint exists; the API was GET-only in testing.)_
+2. **RentCast** rental-listings-search API key → activates the S28 live adapter. _(OPEN — provider
+   confirmed 2026-07-23: RentCast `/listings/rental/long-term` with median aggregation; owner signs
+   up for the free tier and places the key in Secret Manager.)_
+3. **Gmail watch** Pub/Sub topic + publisher + subscription → S31. _(DONE 2026-07-23 — topic
+   `gmail-inbox0-events` + `gmail-api-push@system` publisher + push subscription `gmail-inbox0-push`
+   all exist; the Cloud Scheduler API is enabled. Remaining is the Scheduler JOB, created at S31
+   build-time against the watch-renew endpoint.)_
 4. **Sheets WRITE scope** on the `lease-renewal-reader` SA's DWD grant → Sheet write-back live proof.
-5. **LeadSimple** admin-enabled REST API key + vendor-confirmed endpoint contract → S35.
-6. **Dotloop** OAuth app registration + `DOTLOOP_OAUTH_CLIENT_ID/SECRET/REDIRECT_URI` + authorize → S34.
-7. **Space provisioning** billing approval + a service identity permitted to create Discovery Engine
-   data stores → S36.
-8. **Maintenance send** documented S26 owner-mapping/exact-confirmation evidence → S38b flip.
-9. **Budget kill-switch** live arming: run `npm run killswitch:plan` as `josiah@pmikcmetro.com`
-   (create topic, SA + `roles/billing.projectManager`, deploy fn, create the $10 budget w/ 50/90/100
-   thresholds, connect topic in Console).
+   _(OPEN — owner adds `https://www.googleapis.com/auth/spreadsheets` to SA client id
+   `104374162913177846911` in the Workspace Admin console.)_
+5. **LeadSimple** admin-enabled REST API key + vendor-confirmed endpoint contract → S35. _(OPEN.)_
+6. **Dotloop** OAuth app registration + `DOTLOOP_OAUTH_CLIENT_ID/SECRET/REDIRECT_URI` + authorize →
+   S34. _(OPEN.)_
+7. **Space provisioning** billing + a create identity → S36. _(Billing APPROVED 2026-07-23; owner
+   runs one `gcloud projects add-iam-policy-binding` granting `roles/discoveryengine.admin` — or the
+   least-privilege `editor` — to `pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com`.)_
+8. **Maintenance send** S26 owner-mapping/exact-confirmation evidence → S38b flip. _(CONFIRMED
+   2026-07-23 — owner ruled `portfolio.owners[].email` authoritative and every send human
+   exact-confirmed; the S38b evidence is satisfied, the flip is a reviewed change after S38a ships.)_
+9. **Budget kill-switch** live arming. _(DONE — verified 2026-07-23: the `$10 kill switch` budget →
+   `budget-guardrail-topic` → the ACTIVE `budget-guardrail` Cloud Function.)_
 10. **Per-session** `npm run auth:session` (ADC reauth) + owner-run `npm run deploy`.
 
 ## 6. The new operating rule: build to the seam
