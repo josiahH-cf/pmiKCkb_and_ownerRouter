@@ -7,6 +7,7 @@ import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import { recordTenantOfferDraft } from "@/lib/firestore/lease-renewal-progress";
+import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
 import { getLiveLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
 import { resolveLiveOwnerEmail } from "@/lib/lease-renewal/live-owner-recipient";
 import {
@@ -97,6 +98,20 @@ export async function POST(request: Request) {
       confirm: body.confirm,
       mailbox: { email: user.email, sourceRef: `app:session:${user.uid}` },
     } as RenewalNoticeDraftInput;
+
+    // S29: for the OWNER channel, resolve any Admin-approved comp-derived rent number SERVER-SIDE and
+    // inject it into the owner-draft market. The request schema deliberately omits approvedSuggestion, so
+    // the number is NEVER client-supplied; getApprovedRentSuggestion returns it only when an Approved
+    // record still matches the current server recompute (otherwise null, and the draft stays unchanged).
+    if (input.channel === "owner") {
+      const approved = await getApprovedRentSuggestion(user, body.leaseId);
+      if (approved) {
+        input.offer.market = {
+          ...input.offer.market,
+          approvedSuggestion: { value: approved.value, comps: approved.comps },
+        };
+      }
+    }
 
     const outcome = await prepareRenewalNoticeDraft(
       {

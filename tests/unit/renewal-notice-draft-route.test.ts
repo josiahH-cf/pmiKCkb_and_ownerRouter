@@ -6,12 +6,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   requireCapabilityInSpace: vi.fn(),
   buildLiveRentVineConfig: vi.fn(),
+  getApprovedRentSuggestion: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/session", async (importActual) => {
   const actual = await importActual<typeof import("@/lib/auth/session")>();
   return { ...actual, requireCapabilityInSpace: mocks.requireCapabilityInSpace };
 });
+
+vi.mock("@/lib/firestore/lease-renewal-rent-suggestion-approvals", () => ({
+  getApprovedRentSuggestion: mocks.getApprovedRentSuggestion,
+}));
 
 vi.mock("@/lib/lease-renewal/live-config", async (importActual) => {
   const actual = await importActual<typeof import("@/lib/lease-renewal/live-config")>();
@@ -125,6 +130,8 @@ beforeEach(() => {
     email: "josiah@pmikcmetro.com",
     uid: "editor-1",
   });
+  // Default: no Admin-approved suggestion for this lease (the operator's own numbers are used).
+  mocks.getApprovedRentSuggestion.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -164,6 +171,46 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
     expect(createDraftMock).toHaveBeenCalledWith(
       expect.objectContaining({ to: "owner42@cedar-holdings.com" }),
     );
+  });
+
+  it("injects the server-resolved Admin-approved comp-derived number into the owner draft (S29)", async () => {
+    const { client } = fakeClient();
+    useClient(client);
+    // The server (not the client body) supplies the Admin-approved number; the strict schema omits it.
+    mocks.getApprovedRentSuggestion.mockResolvedValue({
+      approvalId: "42",
+      value: 2350,
+      comps: [
+        { rent: 2200, source: "Zillow low" },
+        { rent: 2500, source: "Zillow high" },
+      ],
+    });
+
+    const response = await POST(req(ownerBody(false)));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.status).toBe("preview");
+    // The Admin-approved 2350 is carried, taking precedence over the operator's own 1550.
+    expect(payload.body).toContain("$2,350");
+    expect(payload.body).not.toContain("$1,550");
+    expect(mocks.getApprovedRentSuggestion).toHaveBeenCalledWith(
+      expect.objectContaining({ uid: "editor-1" }),
+      "42",
+    );
+  });
+
+  it("leaves the owner draft on the operator's own number when there is no Admin approval (S29)", async () => {
+    const { client } = fakeClient();
+    useClient(client);
+    mocks.getApprovedRentSuggestion.mockResolvedValue(null);
+
+    const response = await POST(req(ownerBody(false)));
+    const payload = await response.json();
+
+    expect(payload.status).toBe("preview");
+    // No approval → the operator's own PMI number is used, unchanged.
+    expect(payload.body).toContain("$1,550");
   });
 
   it("blocks honestly (never invents) when the join cannot resolve the owner email", async () => {
