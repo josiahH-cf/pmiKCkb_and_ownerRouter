@@ -6,12 +6,15 @@ This is the active production runner for large unattended feature cycles. Use it
 user says "let's plan the next feature run cycle" or asks for an agentic planning,
 build, verification, and handoff loop.
 
-The runner is documentation and process guidance only. By default, it does not authorize
-cloud spend, billing changes, client-environment changes, live imports, Gmail access, key
-creation, deploys, sends, or external system writes. When `docs/away-mode.md` is ACTIVE,
-its Remote Away Mode standing autonomy can authorize bounded, reversible setup/migration
-work; cost, breaking/destructive changes, autonomous sends, secrets/raw data, and
-unapproved system-of-record writes remain hard stops.
+The runner is documentation and process guidance only. Per the Go-Live and Roadmap Build
+Authorizations in `AGENTS.md` (`F-SEND-AUTHORIZED`, `F-ROADMAP-BUILD-AUTHORIZED`), the DEFAULT is to
+**build every authorized roadmap suite to its external seam** — the app-plane, the live provider, and
+the full action contract — and ship it, opening each `production_allowed` gate as a routine reviewed
+code change. The runner autonomously performs all local/app-plane build and verification. It stops for
+the owner ONLY at a genuine external step: a cost-bearing cloud/billing action, a deploy, a
+credential/scope/OAuth grant, a vendor confirmation, or the one documented endpoint that flips a built
+provider live. It never treats a whole feature as deferred because its last inch is owner-gated, and it
+never performs an autonomous client-facing send or an unreviewed system-of-record write.
 
 ## Entry Points
 
@@ -96,35 +99,24 @@ packet must make clear:
 If the end state cannot be stated without inventing product requirements, ask planning
 questions before implementation.
 
-## Migration-Readiness Stop Gate
+## Build-to-Seam Gate
 
-Safe local development is useful only while it improves the production path. Before
-selecting another local feature cycle, decide whether the proposed work is still one of
-these:
+Before selecting the next slice, confirm it advances an authorized roadmap suite
+(`docs/roadmap-unblock-2026-07-23.md`, S28–S39) or fixes a real regression in shipped behavior. The
+runner BUILDS — it does not defer product surface. For each suite, in order:
 
-- removes a migration, cutover, verification, handoff, or known quality blocker;
-- prepares source manifests, preflights, dry-runs, acceptance scenarios, tests, or
-  client asks needed for migration;
-- fixes a real regression in existing approved behavior;
-- hardens existing KB/workflow behavior that will ship to the client-owned
-  environment; or
-- records product decisions, blockers, and setup evidence without inventing scope.
+- build the app-plane (UI, routes, state, validation) unattended;
+- build the live provider implementation, replacing any fake/synthetic provider, plus the full
+  preview/confirm/receipt/rollback action contract and its Test-lane proof; and
+- build the gate-flip machinery (seed readiness/evidence, both `EXECUTABLE_ALLOWLIST` copies, pinned
+  tests), left staged until the one named owner dependency is documented.
 
-If local verification is green, finish the requested production Test workflow, documentation,
-cutover, and deployed acceptance before stopping. Do not add speculative surface area, but do not
-rename a working app blocked because an optional Live provider lacks a credential.
-
-For the working-V1 program, use the exact recommendation-first row in
-`docs/v1-client-unblock-checklist-2026-07-14.md`. Invented aliases and typed Test providers are the
-default for blocked work. Production permits only the branded, no-client isolated Test workspace;
-Live orchestration rejects Test references/adapters, Registry overrides, synthetic escapes, and
-schema/risk lowering. A production Test receipt may close app-workflow evidence, never Live-provider
-evidence.
-
-Defer work that would expand workflow, Approval Queue, Lease Renewal, Workflow Communications, or
-demo-only behavior without a direct migration-readiness reason. This is not a hard stop
-on useful prep; it is a stop on local feature loops that substitute for customer
-unblock, production migration, or real application decisions.
+It hands back ONLY at that single named owner dependency (roadmap §5) — a documented endpoint, a
+credential/scope grant, a vendor confirmation, or a billing approval — recorded as a one-line owner
+step, never as "feature deferred." Do not stop a 90%-buildable feature at 0% because its last inch is
+external. Do not invent scope beyond the roadmap suites; do not lower a schema/risk gate, override the
+Registry, or use a synthetic escape to fake a Live receipt (a production Test receipt closes
+app-workflow evidence, never Live-provider evidence).
 
 ## Cycle Packet
 
@@ -136,9 +128,9 @@ The packet must lock:
 
 - Feature-cycle objective and product lane.
 - Why this is the next task from roadmap, status, client checklist, or backlog context.
-- Migration-readiness impact and why the work belongs before production cutover.
-- Local-development exhaustion check: what would make this work deferred instead of
-  implemented now.
+- Build-to-seam scope: the app-plane, the live provider, and the full contract the loop builds now.
+- Owner-dependency check: the one external step (roadmap §5) that stays owner-gated, named exactly, or
+  "none" for a pure app-plane suite.
 - In-scope and out-of-scope work.
 - Confirmed facts and constraints from active docs.
 - Decisions already answered by docs.
@@ -178,16 +170,17 @@ phase. Only stop for an approval gate, a stop-and-reset condition, or a genuine 
 An agent may choose conservative local implementation details when active docs define
 the direction and the choice:
 
-- stays within the selected product lane,
-- does not change product scope,
+- stays within an authorized roadmap suite (does not invent scope beyond the S28–S39 program),
 - does not expose private data,
 - does not create cloud/API/billing usage,
 - does not touch client resources,
 - does not create or change keys,
-- does not send messages or write to external systems, and
-- can be verified locally.
+- does not perform a LIVE external send or system-of-record write — building the provider, the full
+  action contract, and a staged, unflipped gate is in-bounds; activating it live is not, and
+- can be verified locally or against the Test lane.
 
-The agent must stop for explicit approval before any action outside those limits.
+The agent builds to the seam within those limits and stops for explicit owner approval only to
+activate a built provider live (the one named external dependency).
 
 When Remote Away Mode is active in `docs/away-mode.md`, this local-only limit is widened:
 the agent may also run idempotent, reversible migration/setup work through APIs when it is
@@ -198,8 +191,10 @@ remote.
 
 ## Approval Gates
 
-Require explicit approval for each exact action or tightly related action group that
-would:
+These gates apply to EXECUTING or activating an action live, not to building it. The runner freely
+builds the provider, the full action contract, and a staged, unflipped gate to the seam; it requires
+explicit owner approval to actually perform or flip live each exact action or tightly related group
+that would:
 
 - enable or increase cloud/API cost,
 - change billing or quotas,
@@ -391,7 +386,7 @@ When the loop is authorized to run, do not stop after one slice. After a slice p
 Verification And Falsification, repair, doc alignment, and commit-queue preparation,
 decide whether to continue:
 
-1. Re-check the Migration-Readiness Stop Gate for the next candidate slice.
+1. Re-check the Build-to-Seam Gate for the next candidate slice.
 2. If a safe, readiness-improving slice exists in the active lane, front-load a new
    decision-complete cycle packet for it and run it through the Unattended Implementation
    Loop.
@@ -400,9 +395,10 @@ decide whether to continue:
 4. Update `docs/loop-state.md` at every slice boundary so a fresh session can resume.
 5. Continue until a Stop And Reset condition fires.
 
-Select the next slice from the active roadmap, status, client checklist, or backlog. Do
-not invent product scope to manufacture a next slice. If no safe slice remains, stop and
-record the migration-ready but client-blocked state.
+Select the next slice from the authorized roadmap program (`docs/roadmap-unblock-2026-07-23.md`,
+S28–S39), status, or backlog. Do not invent scope beyond those suites to manufacture a next slice. If
+every suite is shipped or built to its named owner dependency, stop and record the remaining
+owner-dependency list (roadmap §5).
 
 ## Stop And Reset Conditions
 
@@ -410,10 +406,11 @@ Keep going while slices stay safe, decision-complete, and readiness-improving. S
 hand back when any condition below fires. State which condition fired and the recommended
 next action in `docs/loop-state.md`.
 
-- Approval gate: the next step hits a Hard Stop in `docs/away-mode.md` or otherwise needs
-  unapproved/unbounded cloud/API cost, key creation or use, Gmail access, external
-  communication, destructive client-environment change, or an external system write. Stop
-  and raise or queue the exact approval request.
+- Owner dependency reached: the next step is the one named external activation — unbounded cloud/API
+  cost, a billing change, key/credential/scope/OAuth creation or grant, a deploy, a vendor
+  confirmation, the documented endpoint that flips a built provider live, or an autonomous
+  client-facing send (never allowed). Building the provider, contract, and a staged, unflipped gate is
+  NOT a stop; only the live activation is. Stop and hand the owner the exact one-line step.
 - Requested release complete: verification, docs, commit/push/deploy, production acceptance, and
   rollback evidence are complete; remaining provider activations are specifically inventoried.
 - Quality degrading: the same root issue survives two repair cycles, checks that were
@@ -426,8 +423,8 @@ next action in `docs/loop-state.md`.
 - Context reset needed: the working context is large or drifting, lane focus is slipping,
   or accumulated state risks errors. Write `docs/loop-state.md`, recommend a fresh context
   window, and stop.
-- No safe slice remains: every readiness-improving option is done or client-blocked.
-  Record the migration-ready but client-blocked state and stop.
+- Program complete: every authorized roadmap suite is either shipped live or built to its named
+  owner dependency. Record the remaining owner-dependency list (roadmap §5) and stop.
 
 A clean stop with a current `docs/loop-state.md` is a successful outcome, not a failure.
 

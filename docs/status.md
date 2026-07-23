@@ -11,6 +11,74 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Roadmap unblock — governance opened + 12 specs authored (2026-07-23)
+
+Owner directive: PMI KC is a full suite of applications, not a demo with a permanent "next phase"
+list. Every roadmap gap is built to its external seam or justified as a permanent NEVER. Owner holds
+admin/Dan approval + tool write access. This session did Steps 1-4 (root cause + governance, scope
+audit + Q&A, specs, adversarial check); the build loop runs next with fresh context. No app code was
+touched (docs/specs/governance only); production still serves `7663cec` and was not redeployed.
+
+**Root cause (why builds kept stopping).** `F-SEND-AUTHORIZED` (ship-to-live) was outvoted by a
+defer-first layer: (1) AGENTS.md "do not build beyond the docs" + no spec existed for any roadmap item
+(features invisible, not gated); (2) TEMPLATE.md + north-star defaulted every external effect to
+"gated, stop here"; (3) the "named external dependency" pending-escape was applied to WHOLE features
+instead of the last inch; (4) frozen exclusions + loop-state framing the backlog as "owner AM steps."
+Decisive audit finding: the RentVine/LeadSimple/Dotloop/maintenance executors + full S25/S26 contracts
+are already BUILT and wired to FAKE providers; the gap was a live provider + one credential each.
+
+**Governance opened (build-to-seam).** AGENTS.md: new "Roadmap Build Authorization" section; the scope
+fence rewritten from "don't build beyond docs" to "build every roadmap suite to its seam."
+autonomous-agent-runner.md: the Migration-Readiness Stop Gate became a Build-to-Seam Gate; default
+posture, Autonomous Choices, Approval Gates intro, Stop-and-Reset, Continuation loop, and the Cycle
+Packet all now distinguish building a provider (in-bounds) from activating it live (the one owner
+step). TEMPLATE.md: added the "Build to the seam" middle category. facts.md: +`F-ROADMAP-BUILD-AUTHORIZED`;
+amended `F-SEND-AUTHORIZED` / `F-NEGOTIATION-EXCLUDED` / `Q-GMAIL-AI-EXCLUSIONS` / `Q-GMAIL-WATCH-OWNER`.
+loop-state.md rewritten to the roadmap program (~98 lines). implement.md Start-Here + meta-prompt
+reference updated. Deleted the stale tracked `deferred-remaining-slices.md` + its `.gitignore` line.
+
+**Four owner Q&A decisions (2026-07-23).** D-RENT-SUGGEST: the app may compute a comp-derived SUGGESTED
+renewal rent number that enters a draft only after an explicit per-number Admin approval (supersedes
+the owner-rent hard-exclusion when S29 ships; a human still sends). D-RENTVINE-ENDPOINT: owner provides
+the documented write endpoint; the loop builds all else + the flip. D-BUILDER-FULL: a full no-code
+page/layout builder (S37). D-AUTOMATION-LINE: automated notifications to internal staff + read-only
+Gmail-watch auto-renew are allowed; every client-facing send stays human-confirmed.
+
+**Scope audit + program.** `docs/roadmap-unblock-2026-07-23.md` is the authoritative program: the
+14-feature matrix with evidence-backed verdicts, the 4 decisions, ordered build waves, and the exact
+10-item owner-dependency list.
+
+**12 feature-suite specs authored (S28-S39),** each sentinel-shaped + registered + decision-complete:
+S28 market-comp-data, S29 rent-suggestion-admin-gated, S30 rentvine-write-activation, S31
+gmail-watch-inbound, S32 kb-corrections-learning, S33 ask-to-action, S34 dotloop-esign-activation, S35
+leadsimple-activation, S36 space-self-provisioning, S37 nocode-page-builder, S38
+maintenance-notice-activation, S39 internal-notifications. Waves: Wave 1 (pure app-plane, zero owner
+dep) S29/S32/S33/S38a/S39/S28a; Wave 2 (seam, one owner step) S30/S31/S28b/S35/S34/S36/S38b; Wave 3
+(multi-slice) S37.
+
+**Owner-dependency list (the only external blockers):** RentVine write endpoint (being provided);
+RentCast comp key; Gmail Pub/Sub topic + Cloud Scheduler; Sheets WRITE scope on the reader SA DWD;
+LeadSimple key + vendor-confirmed contract; Dotloop OAuth app; Space-provisioning billing + create
+identity; maintenance-send owner-mapping evidence; kill-switch arming; per-session auth:session + deploy.
+
+**Adversarial check (Step 4) — 9 real findings, all fixed.** Two adversaries (specs + governance) ran
+after authoring. Governance: (HIGH) the every-live-external-effect human-confirm floor had leaked to
+"client-facing only," which would have let a system-of-record write (RentVine/Sheet) auto-run;
+restored to "every client-facing send OR system-of-record write is human-confirmed" in loop-state,
+roadmap §7, TEMPLATE. (MED) `F-SEND-AUTHORIZED` still forbade ALL autonomous sends, contradicting the
+internal-notification grant; scoped it to client-facing + the internal carve-out. (MED) the Cycle
+Packet still demanded a deferral rationale; reworded to build-to-seam + owner-dependency framing.
+(LOW) renamed a dangling "Migration-Readiness Stop Gate" reference; refreshed implement.md. Specs: 11
+of 12 clean with exact grounding (~40 modules spot-checked); S39 hardened so the internal-only
+recipient lock is code-enforced (internal-domain allowlist in the destination schema + re-asserted at
+send + a SYSTEM-context read, since the Feedback trigger is available to non-Admins) and its
+supersede list expanded; S28's citation of the soon-superseded fact made ordering-safe.
+
+**Gates green (docs-only change, no app code touched):** format:check, feature-suite-spec-shape
+(105/105), verify:spec-traceability (210 AC ids / 26 specs), verify:context-freshness,
+verify:falsification (1228 files), router-boundary. `main` = `ui-ux-overhaul` advanced (docs-only;
+production still serves `7663cec`, not redeployed).
+
 ## Adversarial browser QA + demo test-script (2026-07-22; Slices 11-12)
 
 Verified the deployed 2026-07-22 build by driving the actual app on emulators (Firestore :8090 + Auth

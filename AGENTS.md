@@ -38,6 +38,34 @@ Recorded as `F-SEND-AUTHORIZED` in `docs/facts.md` (supersedes `F-WRITE-GATE`). 
 only the owner can run (a Cloud Run deploy, a Google Workspace OAuth scope grant) are named as such,
 never as governance blockers.
 
+## Roadmap Build Authorization (standing grant, 2026-07-23)
+
+The owner directed that PMI KC is a **full suite of applications**, not a demo with a permanent
+"next phase" list. Every roadmap gap is **built to its external seam or justified as a permanent
+NEVER** — there is no third "deferred indefinitely" state. The scope, the ordered build waves, and
+the exact owner-dependency list live in `docs/roadmap-unblock-2026-07-23.md` (suites S28–S39); read
+it after `docs/facts.md` and `docs/loop-state.md`. Recorded as `F-ROADMAP-BUILD-AUTHORIZED`.
+
+**Build to the seam.** For every roadmap suite the runner builds the app-plane, the live provider
+implementation, and the full S25/S26 preview/confirm/receipt/rollback contract, and stops ONLY at the
+single named owner dependency (a documented endpoint, a credential/scope, a vendor confirmation, a
+billing approval). A fake/synthetic provider is a scaffold to be replaced, never a stopping point;
+"named external dependency" scopes to that one flip, never to a whole feature. This is the operative
+correction to the recurring "always pending" pattern — it strengthens `F-SEND-AUTHORIZED`, and it
+overrides any older defer-first framing (the retired Migration-Readiness Stop Gate, "no safe slice",
+or "owner AM steps" backlog language) wherever they still read as active.
+
+**Owner decisions baked in (2026-07-23, see roadmap §3):** the app MAY compute a comp-derived
+_suggested_ renewal rent number that enters a draft only after an explicit per-number **Admin
+approval** (supersedes the owner-rent hard-exclusion `F-NEGOTIATION-EXCLUDED`; a human still sends);
+RentVine renewal-write ships once the owner provides the endpoint; the no-code page/layout builder is
+in scope (S37); automated notifications to internal staff are allowed while every client-facing send
+stays human-confirmed (`D-AUTOMATION-LINE`).
+
+The safety NEVERs in `docs/roadmap-unblock-2026-07-23.md` §7 (no autonomous client-facing send, no
+generic blast send, personal account never in an auth path, no PII/guessed-endpoint in git, ~$10 cap,
+every live effect reversible) are preserved and are the ONLY permanent exclusions.
+
 ## Per-Runner Pointers
 
 This repository is **runner-neutral**: `AGENTS.md` (this file) plus `docs/` hold every
@@ -73,66 +101,79 @@ route new work through the three-product docs.
 
 ## Route Table
 
-| Need                                  | Read                                                                                                                   |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Solidified facts vs assumptions       | `docs/facts.md` (Tier-0 spine; read with `docs/loop-state.md` before acting)                                           |
-| Feature-suite specs (backlog)         | `docs/feature-suites/`                                                                                                 |
-| New/overhaul spec template + gates    | `docs/feature-suites/TEMPLATE.md` (sentinel-gated by `feature-suite-spec-shape.test.mjs` + `verify:spec-traceability`) |
-| Approval Queue mobile redesign (S14)  | `docs/feature-suites/approval-queue-mobile.md`                                                                         |
-| Gmail hub — drafts/templates (S15)    | `docs/feature-suites/gmail-hub.md`                                                                                     |
-| Live Gmail per user (S19)             | `docs/feature-suites/gmail-live-per-user.md`                                                                           |
-| V1 gap implementation program         | `docs/v1-gap-implementation-program-2026-07-14.md`, then S20–S27                                                       |
-| V1 execution authority (S20)          | `docs/feature-suites/execution-authority.md`                                                                           |
-| Immediate trusted publication (S21)   | `docs/feature-suites/trusted-publication.md`                                                                           |
-| External Vendor + Gmail OAuth (S22)   | `docs/feature-suites/vendor-portal-and-mailbox.md`                                                                     |
-| Console live/test boundary (S23)      | `docs/feature-suites/console-live-data.md`                                                                             |
-| Communications policy (S24)           | `docs/feature-suites/communications-policy.md`                                                                         |
-| Lease external execution (S25)        | `docs/feature-suites/lease-renewal-execution.md`                                                                       |
-| Maintenance external execution (S26)  | `docs/feature-suites/maintenance-execution.md`                                                                         |
-| V1 working-app acceptance (S27)       | `docs/feature-suites/v1-release-acceptance.md`                                                                         |
-| Role-scoped sub-users / scopes (S16)  | `docs/feature-suites/rbac-subusers.md`                                                                                 |
-| Unified Console + notifications (S17) | `docs/feature-suites/unified-console-and-attention.md`                                                                 |
-| Process auto-initiation (S18)         | `docs/feature-suites/process-auto-initiation.md`                                                                       |
-| Governance meta-prompts               | `docs/meta-prompts/`                                                                                                   |
-| Audience profile and copy voice       | `docs/voice-and-audience.md`                                                                                           |
-| North star and product direction      | `docs/north-star.md`                                                                                                   |
-| Product lane routing                  | `docs/products/README.md`, then the relevant product doc                                                               |
-| Continue feature development          | `docs/loop-state.md`, `docs/plan.md`, then the relevant current product/spec doc                                       |
-| What to do next (open decisions)      | `docs/whats-next.md` (findings + context + recommendations; read after `docs/facts.md` + `docs/loop-state.md`)         |
-| Hand-test the built app (manual QA)   | `docs/manual-qa-walkthrough-2026-07-21.md` (click-by-click walkthrough of every macro feature)                         |
-| Browser QA audit-and-fix meta-prompt  | `docs/meta-prompts/qa-audit-and-fix.md` (hand to a browser+repo agent to test, fix, and annotate the walkthrough)      |
-| Renewal / move-in / move-out flow     | `docs/products/lease-renewal-discovery-reference.md`, `docs/products/move-in-move-out-process.md`                      |
-| Renewal sheet connector + conflicts   | `docs/products/lease-renewal-connector-design.md`, `docs/products/lease-renewal-spreadsheet-map.md`                    |
-| V1 process Q&A and owner decisions    | `docs/products/v1-process-qa.md`                                                                                       |
-| Renewal discovery validation (team)   | `docs/products/lease-renewal-discovery-packet.md`                                                                      |
-| Demo lane retirement                  | `docs/demo-lane-retirement.md`                                                                                         |
-| Phase plan and acceptance gates       | `docs/plan.md`                                                                                                         |
-| Integration and cutover               | `docs/integration-cutover-plan.md`                                                                                     |
-| Verified integration architecture     | `docs/integration-architecture.md`                                                                                     |
-| Integration capability research       | `docs/research/integration-capability-2026-06.md`                                                                      |
-| Environment and key handoff           | `docs/environment-handoff.md`                                                                                          |
-| Product definition gaps               | `docs/product-definition-gap-plan.md`                                                                                  |
-| How to work next                      | `docs/implement.md`                                                                                                    |
-| Autonomous feature-cycle runner       | `docs/autonomous-agent-runner.md`                                                                                      |
-| Plan, run, or continue the loop       | `docs/loop-state.md`, then `docs/autonomous-agent-runner.md`                                                           |
-| Fresh-context final-V1 continuation   | `docs/fresh-context-v1-implementation-prompt-2026-07-14.md`                                                            |
-| Cost ceiling and budget policy        | `docs/budget-and-cost-policy.md`                                                                                       |
-| Vacation / away-mode overlay          | `docs/away-mode.md`                                                                                                    |
-| Local-dev stop/cutover gate           | `docs/autonomous-agent-runner.md`, `docs/implement.md`                                                                 |
-| Current status and blockers           | `docs/status.md`                                                                                                       |
-| Loop resume state and next slice      | `docs/loop-state.md`                                                                                                   |
-| V1 state + tab walkthrough            | `docs/pmi-kc-v1-working-app-state-2026-07-15.html`; prior decision audits remain historical context                    |
-| Client asks                           | `docs/client-checklist.md`                                                                                             |
-| Client unblock and parallel work      | `docs/status.md`, `docs/client-checklist.md`, `docs/implement.md`                                                      |
-| Engineering checklist                 | `docs/engineering-checklist.md`                                                                                        |
-| AI execution workflow                 | `docs/ai-execution-workflow.md`                                                                                        |
-| Research backlog                      | `docs/research-backlog.md`                                                                                             |
-| Security and conventions              | `docs/engineering.md`                                                                                                  |
-| Original preserved specs              | `docs/specs/`                                                                                                          |
-| KB technical spec                     | `docs/spec.md`                                                                                                         |
-| Legacy Owner Router split             | `docs/legacy/owner-router-separate-repo.md`                                                                            |
-| Owner Router artifact source          | `docs/legacy/owner-router-artifact-source.md`                                                                          |
-| Google setup details                  | `docs/google-setup.md`, `SETUP.md`                                                                                     |
+| Need                                    | Read                                                                                                                   |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Solidified facts vs assumptions         | `docs/facts.md` (Tier-0 spine; read with `docs/loop-state.md` before acting)                                           |
+| Feature-suite specs (backlog)           | `docs/feature-suites/`                                                                                                 |
+| New/overhaul spec template + gates      | `docs/feature-suites/TEMPLATE.md` (sentinel-gated by `feature-suite-spec-shape.test.mjs` + `verify:spec-traceability`) |
+| Approval Queue mobile redesign (S14)    | `docs/feature-suites/approval-queue-mobile.md`                                                                         |
+| Gmail hub — drafts/templates (S15)      | `docs/feature-suites/gmail-hub.md`                                                                                     |
+| Live Gmail per user (S19)               | `docs/feature-suites/gmail-live-per-user.md`                                                                           |
+| V1 gap implementation program           | `docs/v1-gap-implementation-program-2026-07-14.md`, then S20–S27                                                       |
+| Full-suite build program (S28–S39)      | `docs/roadmap-unblock-2026-07-23.md` (scope, waves, owner deps; read after facts + loop-state)                         |
+| Market comp provider + screenshot (S28) | `docs/feature-suites/market-comp-data.md`                                                                              |
+| Comp-informed rent suggestion (S29)     | `docs/feature-suites/rent-suggestion-admin-gated.md`                                                                   |
+| RentVine write activation (S30)         | `docs/feature-suites/rentvine-write-activation.md`                                                                     |
+| Gmail reply-watch + follow-up (S31)     | `docs/feature-suites/gmail-watch-inbound.md`                                                                           |
+| KB corrections learning loop (S32)      | `docs/feature-suites/kb-corrections-learning.md`                                                                       |
+| Ask to action orchestration (S33)       | `docs/feature-suites/ask-to-action.md`                                                                                 |
+| Dotloop e-sign activation (S34)         | `docs/feature-suites/dotloop-esign-activation.md`                                                                      |
+| LeadSimple connector activation (S35)   | `docs/feature-suites/leadsimple-activation.md`                                                                         |
+| Space self-service provisioning (S36)   | `docs/feature-suites/space-self-provisioning.md`                                                                       |
+| No-code page/layout builder (S37)       | `docs/feature-suites/nocode-page-builder.md`                                                                           |
+| Maintenance notice activation (S38)     | `docs/feature-suites/maintenance-notice-activation.md`                                                                 |
+| Internal notifications + center (S39)   | `docs/feature-suites/internal-notifications.md`                                                                        |
+| V1 execution authority (S20)            | `docs/feature-suites/execution-authority.md`                                                                           |
+| Immediate trusted publication (S21)     | `docs/feature-suites/trusted-publication.md`                                                                           |
+| External Vendor + Gmail OAuth (S22)     | `docs/feature-suites/vendor-portal-and-mailbox.md`                                                                     |
+| Console live/test boundary (S23)        | `docs/feature-suites/console-live-data.md`                                                                             |
+| Communications policy (S24)             | `docs/feature-suites/communications-policy.md`                                                                         |
+| Lease external execution (S25)          | `docs/feature-suites/lease-renewal-execution.md`                                                                       |
+| Maintenance external execution (S26)    | `docs/feature-suites/maintenance-execution.md`                                                                         |
+| V1 working-app acceptance (S27)         | `docs/feature-suites/v1-release-acceptance.md`                                                                         |
+| Role-scoped sub-users / scopes (S16)    | `docs/feature-suites/rbac-subusers.md`                                                                                 |
+| Unified Console + notifications (S17)   | `docs/feature-suites/unified-console-and-attention.md`                                                                 |
+| Process auto-initiation (S18)           | `docs/feature-suites/process-auto-initiation.md`                                                                       |
+| Governance meta-prompts                 | `docs/meta-prompts/`                                                                                                   |
+| Audience profile and copy voice         | `docs/voice-and-audience.md`                                                                                           |
+| North star and product direction        | `docs/north-star.md`                                                                                                   |
+| Product lane routing                    | `docs/products/README.md`, then the relevant product doc                                                               |
+| Continue feature development            | `docs/loop-state.md`, `docs/plan.md`, then the relevant current product/spec doc                                       |
+| What to do next (open decisions)        | `docs/whats-next.md` (findings + context + recommendations; read after `docs/facts.md` + `docs/loop-state.md`)         |
+| Hand-test the built app (manual QA)     | `docs/manual-qa-walkthrough-2026-07-21.md` (click-by-click walkthrough of every macro feature)                         |
+| Browser QA audit-and-fix meta-prompt    | `docs/meta-prompts/qa-audit-and-fix.md` (hand to a browser+repo agent to test, fix, and annotate the walkthrough)      |
+| Renewal / move-in / move-out flow       | `docs/products/lease-renewal-discovery-reference.md`, `docs/products/move-in-move-out-process.md`                      |
+| Renewal sheet connector + conflicts     | `docs/products/lease-renewal-connector-design.md`, `docs/products/lease-renewal-spreadsheet-map.md`                    |
+| V1 process Q&A and owner decisions      | `docs/products/v1-process-qa.md`                                                                                       |
+| Renewal discovery validation (team)     | `docs/products/lease-renewal-discovery-packet.md`                                                                      |
+| Demo lane retirement                    | `docs/demo-lane-retirement.md`                                                                                         |
+| Phase plan and acceptance gates         | `docs/plan.md`                                                                                                         |
+| Integration and cutover                 | `docs/integration-cutover-plan.md`                                                                                     |
+| Verified integration architecture       | `docs/integration-architecture.md`                                                                                     |
+| Integration capability research         | `docs/research/integration-capability-2026-06.md`                                                                      |
+| Environment and key handoff             | `docs/environment-handoff.md`                                                                                          |
+| Product definition gaps                 | `docs/product-definition-gap-plan.md`                                                                                  |
+| How to work next                        | `docs/implement.md`                                                                                                    |
+| Autonomous feature-cycle runner         | `docs/autonomous-agent-runner.md`                                                                                      |
+| Plan, run, or continue the loop         | `docs/loop-state.md`, then `docs/autonomous-agent-runner.md`                                                           |
+| Fresh-context final-V1 continuation     | `docs/fresh-context-v1-implementation-prompt-2026-07-14.md`                                                            |
+| Cost ceiling and budget policy          | `docs/budget-and-cost-policy.md`                                                                                       |
+| Vacation / away-mode overlay            | `docs/away-mode.md`                                                                                                    |
+| Local-dev stop/cutover gate             | `docs/autonomous-agent-runner.md`, `docs/implement.md`                                                                 |
+| Current status and blockers             | `docs/status.md`                                                                                                       |
+| Loop resume state and next slice        | `docs/loop-state.md`                                                                                                   |
+| V1 state + tab walkthrough              | `docs/pmi-kc-v1-working-app-state-2026-07-15.html`; prior decision audits remain historical context                    |
+| Client asks                             | `docs/client-checklist.md`                                                                                             |
+| Client unblock and parallel work        | `docs/status.md`, `docs/client-checklist.md`, `docs/implement.md`                                                      |
+| Engineering checklist                   | `docs/engineering-checklist.md`                                                                                        |
+| AI execution workflow                   | `docs/ai-execution-workflow.md`                                                                                        |
+| Research backlog                        | `docs/research-backlog.md`                                                                                             |
+| Security and conventions                | `docs/engineering.md`                                                                                                  |
+| Original preserved specs                | `docs/specs/`                                                                                                          |
+| KB technical spec                       | `docs/spec.md`                                                                                                         |
+| Legacy Owner Router split               | `docs/legacy/owner-router-separate-repo.md`                                                                            |
+| Owner Router artifact source            | `docs/legacy/owner-router-artifact-source.md`                                                                          |
+| Google setup details                    | `docs/google-setup.md`, `SETUP.md`                                                                                     |
 
 ## Project Map
 
@@ -217,10 +258,14 @@ route new work through the three-product docs.
   never blocks or delays a Live action. A feature is Live when its reviewed gate is flipped — it is
   never held preview-only merely because a Test lane exists.
 - Add tests with any behavior change.
-- Do not build Lease Renewal or Workflow Communications behavior beyond its product
-  docs, permissions, and acceptance gates. S19 preserves the proven per-user Gmail transport but
-  restricts product use to authorized workflow-linked communications. Generic compose/send and
-  unrelated mailbox browsing are not product capabilities.
+- Build every roadmap suite (S28–S39, indexed by `docs/roadmap-unblock-2026-07-23.md`) to its
+  external seam per the Roadmap Build Authorization above — the app-plane, the live provider, and the
+  full action contract — stopping only at the one named owner dependency, never at a fake provider or
+  a frozen "V1 done" line. The roadmap doc plus the feature-suite specs ARE the scope; "beyond the
+  docs" means beyond THAT set. S19 preserves the proven per-user Gmail transport restricted to
+  authorized workflow-linked communications. Preserve the safety NEVERs: no autonomous client-facing
+  send, generic non-workflow compose/send stays Registry-closed, and unrelated mailbox browsing is
+  not a product capability.
 
 ## Working Order
 

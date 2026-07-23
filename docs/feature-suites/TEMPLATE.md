@@ -21,14 +21,19 @@ confirmed source (transcript, `docs/`, or an owner decision) or is labeled an as
 
 **What it is / how it functions.** Bulleted mechanism with bold sub-labels naming the real
 modules, e.g. `- **Decider — components/…**`. Describe the surfaces, data flow, and states.
-Split the work into two explicit lists so the loop can build the safe part and stop at the
-gate:
+Split the work into three explicit lists so the loop builds everything up to the single owner
+step (see the Roadmap Build Authorization in `AGENTS.md`):
 
 - **Buildable now (app-plane).** Slices that add no system-of-record write, no autonomous
-  send, no new external scope, and stay `production_allowed:false`. The loop may build these
+  send, no new external scope, and stay `production_allowed:false`. The loop builds these
   unattended.
-- **Gated (owner / vendor).** Slices that need a deploy, a credential/scope grant, a vendor
-  confirmation, or an owner decision. The loop stops here and hands back.
+- **Build to the seam (live provider).** The live provider implementation plus the full
+  preview/confirm/receipt/rollback contract, replacing any fake/synthetic provider. The loop
+  builds ALL of this — it does NOT stop merely because the action is external; it stops only at
+  the one named owner dependency below.
+- **Owner dependency (the one flip).** The single documented endpoint, credential/scope grant,
+  vendor confirmation, or billing approval that activates the built provider. Name it exactly;
+  the loop hands back only here, and flipping the gate afterward is a one-line reviewed change.
 
 **Open questions & assumptions.** Each item labeled `_Assumption:_` / `_Open:_` /
 `_Answered YYYY-MM-DD:_` / `_Client-owned:_`. Record any undecided point as a `Q-`/`A-` row in
@@ -48,12 +53,16 @@ NAMED sentinel/invariant tests the slice must keep green. Example:
 - **AC-S{n}-1** — {observable state}. _Verify:_ `npm test -- {file}`; keep `{sentinel test}` green.
 - **AC-S{n}-2** — {observable state}. _Verify:_ `npm run typecheck`, `npm run lint`.
 
-**Forbidden actions / hard gates.** Restate the fence a violation of which is itself a
-falsification: app-plane only unless the suite names an already-approved action; no new Action
-Registry flip (the existing compose-only `gmail.renewal_notice.draft_create` allowlist is not a
-general write grant); no autonomous send; no system-of-record write (RentVine / Sheet /
-QuickBooks / bank / client Drive); no new Google scope; no Cloud Scheduler; no client data on
-GitHub; ~$10 budget cap; deploy stays owner-run. Add any suite-specific hard stop.
+**Forbidden actions / hard gates.** Restate the safety NEVERs a violation of which is itself a
+falsification (roadmap §7): no autonomous CLIENT-facing send (internal-staff notifications may
+auto-send per `D-AUTOMATION-LINE`); generic non-workflow `gmail.message.send` stays Registry-closed;
+no personal account in any auth path; no secrets/PII/guessed-endpoint in git; ~$10 budget cap; every
+live effect one-attempt/idempotent/receipted/reversible, with every client-facing send OR
+system-of-record write additionally human-confirmed (internal-staff notifications may auto-run per
+`D-AUTOMATION-LINE`); deploys and credential/scope grants stay owner-run. This suite MAY build a live provider and a system-of-record write to the seam and prepare
+its gate flip — it does NOT set `production_allowed:true` until its named owner dependency is
+documented, at which point the flip updates both `EXECUTABLE_ALLOWLIST` copies plus the pinned schema
+tests. Add any suite-specific hard stop.
 
 **Ordered prompt sequence.** Numbered steps, each tagged `_Discovery:_` / `_Understanding:_` /
 `_Build:_` / `_Gate:_` / `_Owner:_` / `_Context update:_` / `_Verify:_`. The final step always

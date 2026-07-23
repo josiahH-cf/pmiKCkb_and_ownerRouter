@@ -1,79 +1,50 @@
 # Loop State
 
-Read `docs/facts.md` first. This is the short resume pointer; history belongs in
-`docs/status.md`. When you want the prioritized "what should I do next?" list with findings,
-context, and recommendations, read `docs/whats-next.md`.
+Read `docs/facts.md` first. This is the short resume pointer; history belongs in `docs/status.md`.
+The prioritized "what to build next" list is `docs/roadmap-unblock-2026-07-23.md` (the full-suite
+build program); the older owner-gated backlog with findings/context is `docs/whats-next.md`.
 
 ## Snapshot
 
-- Last updated: 2026-07-22.
-- **The adversarial browser QA + demo test-script pass is COMPLETE (2026-07-22; Slices 11-12).** Slice
-  11 drove the actual app on emulators (Firestore :8090 + Auth :9099, demo Admin), read-only vs the
-  live-connected RentVine/Sheet: **every shipped flow verified PASS, zero console errors**; the
-  comp-basis live walk was safely BLOCKED (the demo session could not authenticate the live RentVine
-  read, so no customer PII was exposed) and its logic is unit-verified. One bug fixed at source (F1:
-  the `seed-action-registry` executable allow-list omitted the Slice 6 maintenance-draft flip, so
-  `seed:action-registry` refused) plus a regression test. Slice 12 rewrote
-  `docs/customer-demo-walkthrough-2026-07-21.html` into a verified morning test script.
-  (`F-OVERNIGHT-QA-2026-07-22`.) `main` = `ui-ux-overhaul` = `464ebf9`, pushed, clean.
-- **Redeploy of `464ebf9` DEFERRED — the ADC token went stale mid-pass** (`invalid_rapt`; reauth is
-  interactive-only, the agent cannot). It is **runtime-identical** to the serving build: the F1 fix is
-  a CLI seed-script change and docs are not served, so production is correct and QA-verified as-is. AM
-  owner step: `npm run auth:session` then `npm run deploy -- --budget-confirmed --allow-multiple-spaces`
-  to align the serving commit to `464ebf9`.
-- **The 2026-07-22 overnight build cycle is COMPLETE.** All 11 build slices + the four must-haves (comp
-  basis + Zillow, KB answer transparency, maintenance owner-notice draft, add-a-Space intake) shipped;
-  per-slice detail is in `docs/status.md` and `F-OVERNIGHT-RUN-2026-07-22`.
-- **Production serves the QA-verified build.** Cloud Run `pmi-kc-kb-demo` serves commit `7663cec` as
-  revision `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7` at 100% traffic (owner-authorized unattended
-  `npm run deploy -- --budget-confirmed --allow-multiple-spaces`, fresh ADC, 2026-07-22). Verified:
-  `vertex spaces:11`, `drive folders:11`, `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED:true`,
-  `ASK_DEMO_MODE:false`; auth boundary green (`/`→307, `/sign-in`→200, `/admin`→307,
-  `/approval-queue`→307, `/api/ask`→405). Rollback target: `pmi-kc-kb-demo-rmrwc70pc-d5cb9815094b`.
-  Full gate green pre-deploy: 2,697 tests / 373 files, typecheck, lint 0 errors (13 known warnings),
-  prettier, copy-voice/falsification/context/spec, production build.
-  (`F-CURRENT-SERVING-CHECKPOINT-2026-07-22`.)
-- **The v1 readiness remediation is COMPLETE on every testable code front.** The 65-finding
-  adversarial audit (0 Blocker, 5 High, 26 Medium, 34 Low) is fully worked: the owner ruled all 22
-  decision-findings (`docs/v1-remediation-decisions-2026-07-20.md`, `F-V1-REMEDIATION-DECISIONS`),
-  and every self-contained code finding is fixed and verified. A blind 15-agent adversarial re-verify
-  (2026-07-21) re-checked the claimed-closed findings and challenged the scope; every closed finding
-  held (CLOSED/MOOT at high confidence, including the two High findings — cross-scope access on
-  editable routes and the template approval-gate), and the three buildable slices it surfaced were
-  then built and shipped:
-  - `aa92c38` — page auth-coverage boundary test + honest `ConsoleView` docstring.
-  - `4d53418` — closed the concurrent-pending Gmail double-send race (supersede-at-mint + claim-time
-    identity dedup; owner ruled keep-re-sends/close-the-race; two adversarial rounds, second all-SAFE).
-  - `36440e9` — F-LEASE-6: address all authoritative co-tenants as Cc on a renewal notice (draft-only
-    preserved; each Cc held to the routable + authoritative bar; adversarial pass all-SAFE).
-- **A queued autonomous cycle now exists (the 2026-07-22 runbook above).** The broader owner-gated /
-  infrastructure backlog with per-item findings/context/recommendations is still `docs/whats-next.md`.
-  In short:
-  F-AUTH-1 onboarding (needs a deploy migration that must not lock out admins), the HIGH env item
-  (Firestore backups/PITR before real client data), budget kill-switch and intake-salt provisioning,
-  and two owner answers (Q-CUTOVER-POSTURE; whether the primary tenant is always `tenants[0]`, which
-  would revert F-LEASE-6).
-- **Two items are deferred to the owner (AM).** (1) The Sheet write-back LIVE proof is deferred: the
-  `smoke:sheet-write` harness is built + merged, but the live run fail-closed at the DWD write-token
-  exchange (HTTP 401) because the Sheets WRITE scope (`.../auth/spreadsheets`) is not yet on the
-  `lease-renewal-reader` SA's domain-wide-delegation grant. Owner step: add the scope, then
-  `npm run smoke:sheet-write -- --live`. (2) The RentVine renewal-WRITE gate stays
-  `production_allowed:false` pending a DOCUMENTED write endpoint (Slice 1 confirmed RentVine is
-  GET-only); the executor + S25 contract are built + approved-in-principle
-  (`F-RENTVINE-WRITE-APPROVED`). Dotloop OAuth is scaffolded but gated OFF until the owner registers
-  the app + authorizes it. Full AM steps are in the newest `docs/status.md` entry.
+- Last updated: 2026-07-23.
+- **The full-suite build program is DEFINED and AUTHORIZED.** Owner directive 2026-07-23
+  (`F-ROADMAP-BUILD-AUTHORIZED`) removed the defer-first posture: every roadmap gap is built to its
+  external seam or justified as a permanent NEVER, with no third "deferred indefinitely" state.
+  Scope, ordered waves (S28–S39), and the exact owner-dependency list are in
+  `docs/roadmap-unblock-2026-07-23.md`. Governance was opened to match: the runner's
+  Migration-Readiness Stop Gate became a Build-to-Seam Gate, and `AGENTS.md`,
+  `docs/autonomous-agent-runner.md`, and `docs/feature-suites/TEMPLATE.md` now say "build the live
+  provider plus the full contract; stop only at the one named owner dependency."
+- **Four owner Q&A decisions (2026-07-23)** are baked in (`F-ROADMAP-BUILD-AUTHORIZED`, roadmap §3):
+  D-RENT-SUGGEST (the app computes a comp-derived SUGGESTED rent number behind explicit per-number
+  Admin approval; S29 supersedes `F-NEGOTIATION-EXCLUDED`), D-RENTVINE-ENDPOINT (owner provides the
+  endpoint, the loop builds all else plus the flip), D-BUILDER-FULL (full no-code page/layout
+  builder, S37), D-AUTOMATION-LINE (auto internal notifications plus read-only watch auto-renew are
+  OK; every client-facing send stays human-confirmed).
+- **The prior cycles are COMPLETE and verified.** The 2026-07-22 overnight build (Slices 1–10) plus
+  the adversarial browser QA and demo test-script pass (Slices 11–12) all shipped and PASSED
+  (`F-OVERNIGHT-RUN-2026-07-22`, `F-OVERNIGHT-QA-2026-07-22`). `main` = `ui-ux-overhaul`, pushed.
+- **Production serves the QA-verified build.** Cloud Run `pmi-kc-kb-demo` serves commit `7663cec`
+  as revision `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7` at 100%
+  (`F-CURRENT-SERVING-CHECKPOINT-2026-07-22`). Rollback: `pmi-kc-kb-demo-rmrwc70pc-d5cb9815094b`.
+- **Audited code-state (2026-07-23):** the RentVine / LeadSimple / Dotloop / maintenance executors
+  plus full contracts are already BUILT and wired to FAKE providers; the gap is a live provider plus
+  one external credential each. That is exactly what the build-to-seam program closes.
 
-## Overnight run 2026-07-22 — build progress
+## Roadmap program — next work
 
-All 11 build slices landed from baseline `ca8fd44` (per-slice commits + detail in the dated
-`docs/status.md` entry). Deferred: Slice 2 Sheet write-back live proof (needs the Sheets WRITE scope
-on the `lease-renewal-reader` SA's DWD grant); Slice 9 RentVine write gate stays `false` pending a
-documented endpoint; Slice 10 Dotloop gated OFF pending the owner's OAuth app.
+Build order is `docs/roadmap-unblock-2026-07-23.md` §4. Wave 1 (pure app-plane, zero owner dep,
+build first): S29 rent suggestion (Admin-gated), S32 KB corrections-learning, S33 Ask→action,
+S38a surface the maintenance draft, S39 internal notifications, S28a comp provider plus screenshot.
+Wave 2 (build the live provider to the seam, one owner step each): S30 RentVine write, S31 Gmail
+watch, S28b RentCast, S35 LeadSimple, S34 Dotloop, S36 Space provisioning, S38b maintenance send.
+Wave 3: S37 full no-code builder. The suite specs S28–S39 live under `docs/feature-suites/`
+(spec-shape sentinel plus README rows); each is decision-complete.
 
 ## Safe Stop Boundary
 
-- `main` and `ui-ux-overhaul` are aligned at the deployed head, pushed, working tree clean; no slice
-  is half-applied and no mutation is mid-flight. Production serves this exact build.
+- `main` and `ui-ux-overhaul` are aligned, pushed, working tree clean; no slice is half-applied and
+  no mutation is mid-flight. Production serves this exact build.
 - The seven canonical app-only Approval Test fixtures are at `Ready for Approval`; both managed
   internal staff identities are `Admin` with All-spaces access. No reusable authenticated
   restricted-role or Vendor session is retained; a clean signed-out public context is ready.
@@ -82,56 +53,45 @@ documented endpoint; Slice 10 Dotloop gated OFF pending the owner's OAuth app.
 
 ## Goal
 
-The 2026-07-22 overnight BUILD cycle AND the adversarial browser-QA + demo test-script pass (Slices
-11-12) are both COMPLETE. Every shipped flow was verified PASS in a browser (read-only vs live data),
-one bug (F1) was fixed at source, and the customer-demo walkthrough is now a verified morning test
-script. `main` = `ui-ux-overhaul` = `464ebf9`, pushed, clean; production serves the QA-verified
-`7663cec` (`rmrwmk2kn`). The redeploy of `464ebf9` is deferred (ADC token went stale). The owner AM
-steps are below; the broader backlog is `docs/whats-next.md`.
+Execute the full-suite build program (`docs/roadmap-unblock-2026-07-23.md`) build-to-seam: build each
+roadmap suite's app-plane plus live provider plus full contract, ship the pure-app-plane suites, and
+stop only at each suite's one named owner dependency (roadmap §5). Do not defer a whole feature at the
+seam. Preserve the safety NEVERs (roadmap §7).
 
 ## Next Exact Actions
 
-0. **Redeploy `464ebf9` (deferred — ADC token stale).** `npm run auth:session`, then
-   `npm run deploy -- --budget-confirmed --allow-multiple-spaces`; verify `vertex spaces:11` + the
-   writeback flag and capture the rollback revision. It is runtime-identical to the serving build (the
-   F1 fix is a CLI seed-script change; docs are not served), so this only aligns the serving commit to
-   `464ebf9` — production is already QA-verified.
-
-The remaining items are owner AM steps.
-
-1. **Verify + optionally roll back the deploy.** Production serves `7663cec` on revision
-   `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7`. Spot-check the new surfaces (comp basis on a live renewal,
-   the Ask "Answered by … · N sources" line + per-source review dates, the maintenance owner-notice
-   draft, Admin → Spaces → Request a new Space, Admin → Re-index Sources). One-step rollback if needed:
-   `gcloud run services update-traffic pmi-kc-kb-demo --region us-central1 --project pmi-kc-kb-prod --to-revisions pmi-kc-kb-demo-rmrwc70pc-d5cb9815094b=100`.
-2. **Unblock the Sheet write-back live proof.** Add the Sheets WRITE scope
-   (`https://www.googleapis.com/auth/spreadsheets`) to the `lease-renewal-reader` SA's domain-wide
-   delegation grant (Admin console → Security → API controls → Domain-wide delegation), then
-   `npm run auth:session` + `npm run smoke:sheet-write -- --live`.
-3. **RentVine write (optional).** To move `rentvine.lease.renewal_writeback` off
-   `production_allowed:false`, provide the DOCUMENTED RentVine renewal-write endpoint + semantics; the
-   executor + S25 contract are built and owner-approved-in-principle (`F-RENTVINE-WRITE-APPROVED`), so
-   the flip is a one-line reviewed change once the endpoint is confirmed.
-4. **Dotloop (optional).** Register the Dotloop OAuth app, set `DOTLOOP_OAUTH_CLIENT_ID/SECRET/
-REDIRECT_URI` in `.env.local`, then authorize. Every Dotloop action stays `production_allowed:false`
-   until connected + reviewed.
-5. To start the NEXT cycle, follow the runner route (`AGENTS.md` → `docs/facts.md` → this file →
-   `docs/whats-next.md`) and plan the next packet.
+1. Start at roadmap §4 Wave 1. For each suite: read its spec under `docs/feature-suites/`, author a
+   `docs/temp/<slug>-plan.md` packet, build the app-plane, verify and falsify, ff-merge, and promote
+   to a `docs/facts.md` `F-*` row citing its `AC-` ids.
+2. Interleave Wave 2 as owner dependencies (roadmap §5) land. Build each live provider to the seam
+   now; flip its gate (both `EXECUTABLE_ALLOWLIST` copies plus pinned tests) once the dependency is
+   documented.
+3. The owner dependencies (roadmap §5) are the only external blockers: RentVine endpoint (being
+   provided), RentCast key, Gmail Pub/Sub topic plus Scheduler, Sheets WRITE scope on the reader
+   SA's DWD grant, LeadSimple key plus vendor confirm, Dotloop OAuth app, Space-provisioning billing
+   plus create identity, maintenance-send owner-mapping evidence, kill-switch arming, per-session
+   `npm run auth:session` plus owner `npm run deploy`.
+4. Optional: align the serving commit — `npm run auth:session` then
+   `npm run deploy -- --budget-confirmed --allow-multiple-spaces` (verify `vertex spaces:11`, capture
+   the rollback revision). Production is already QA-verified, so this only advances the deployed label.
 
 ## Locked Safety
 
-- No autonomous, scheduled, bulk, or model-triggered send. Every send is human-initiated and
-  exact-confirmed.
+- No autonomous, scheduled, bulk, or model-triggered CLIENT-facing send. Every client-facing send is
+  human-initiated and exact-confirmed. Internal-staff notifications and read-only Gmail-watch renewal
+  may auto-run (`D-AUTOMATION-LINE`).
 - No guessed provider endpoint/value or customer data in git/evidence.
-- Every Live external effect remains target-labeled, human-confirmed, one-attempt, idempotent,
-  receipted, reconcilable, monitored, and reversible.
+- Every Live external effect stays target-labeled, one-attempt, idempotent, receipted, reconcilable,
+  monitored, and reversible; every client-facing send OR system-of-record write is additionally
+  human-confirmed (internal-staff notifications and read-only ops may auto-run per `D-AUTOMATION-LINE`).
 - Test receipts never claim Live activation. Staff/cloud identities remain `pmikcmetro.com` or
   `pmi-kc-kb-prod`; no personal account may enter an auth path.
 - The approximately $10 total cost ceiling remains binding.
 
 ## Resume
 
-Read `AGENTS.md`, `docs/facts.md`, this file, `docs/whats-next.md`, and the newest `docs/status.md`
-entry. The v1 remediation is done on every testable front; the open work is owner-gated/infra. Do
-not reopen settled Working-App V1 decisions or re-verify the closed findings unless new evidence
-contradicts them.
+Read `AGENTS.md`, `docs/facts.md`, this file, `docs/roadmap-unblock-2026-07-23.md`, then the target
+suite spec under `docs/feature-suites/`. The prior cycles are done and verified; the open work is the
+authorized full-suite build program. Do not re-verify closed findings unless new evidence contradicts
+them, and do not reopen a genuinely SETTLED decision — but the roadmap suites (S28–S39) are
+AUTHORIZED new scope, not settled-closed, so build them.

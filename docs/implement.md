@@ -8,10 +8,12 @@ Read, in order:
 2. `docs/facts.md`
 3. `docs/loop-state.md`
 4. `docs/plan.md`
-5. the relevant product doc and S20–S27 feature-suite specification
+5. `docs/roadmap-unblock-2026-07-23.md` (the authorized S28–S39 build program), then the relevant product doc or feature-suite spec
 
-The active outcome is a working production V1 with distinct Live and Test lanes. Do not
-reopen R01–R09 or turn an unavailable optional provider into an application-wide blocker.
+The active outcome is the full-suite build program: build every roadmap suite (S28–S39) to its
+external seam per the Build-to-Seam Gate, shipping the app-plane and stopping only at each suite's one
+named owner dependency. The prior working-app V1 (S20–S27) is done. Do not reopen R01–R09 or a closed
+finding, but the roadmap suites S28–S39 are authorized new scope to build.
 
 ## Session Start
 

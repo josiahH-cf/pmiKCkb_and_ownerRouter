@@ -4,7 +4,7 @@ Hand this to a model (or run it through the unattended loop) to build the two re
 follow-ons that sit on top of the shipped lease-renewal write-back approval control plane
 (`F-WRITEBACK-APPROVAL`). Both are unblocked and readiness-improving — they harden existing behavior
 that will ship to the client-owned environment (operator visibility + auditability of a governance
-control), so they pass the Migration-Readiness Stop Gate. Neither executes a system-of-record write,
+control), so they pass the Build-to-Seam Gate. Neither executes a system-of-record write,
 adds a vendor action, changes `production_allowed` anywhere, or invents product scope. They are
 independent; ship either first (Slice B is the smaller one).
 

@@ -78,6 +78,18 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 | S25 Lease Renewal external execution       | `docs/feature-suites/lease-renewal-execution.md`       | Working Test journey; Live per action           |
 | S26 Maintenance external execution         | `docs/feature-suites/maintenance-execution.md`         | Working Test journey; Live per action           |
 | S27 Working-app release + activation       | `docs/feature-suites/v1-release-acceptance.md`         | Working V1 deployed and machine-accepted        |
+| S28 Market comp provider + screenshot      | `docs/feature-suites/market-comp-data.md`              | Spec — Wave 1 app-plane; Wave 2 RentCast seam   |
+| S29 Comp-informed rent suggestion          | `docs/feature-suites/rent-suggestion-admin-gated.md`   | Spec — Wave 1 app-plane (D-RENT-SUGGEST)        |
+| S30 RentVine renewal-write activation      | `docs/feature-suites/rentvine-write-activation.md`     | Spec — Wave 2 seam (owner: RentVine endpoint)   |
+| S31 Gmail reply-watch + follow-up          | `docs/feature-suites/gmail-watch-inbound.md`           | Spec — Wave 2 seam (owner: Pub/Sub + Scheduler) |
+| S32 KB corrections learning + freshness    | `docs/feature-suites/kb-corrections-learning.md`       | Spec — Wave 1 app-plane, ready to run           |
+| S33 Ask box to live-action orchestration   | `docs/feature-suites/ask-to-action.md`                 | Spec — Wave 1 app-plane, ready to run           |
+| S34 Dotloop e-signature activation         | `docs/feature-suites/dotloop-esign-activation.md`      | Spec — Wave 2 seam (owner: Dotloop OAuth app)   |
+| S35 LeadSimple connector activation        | `docs/feature-suites/leadsimple-activation.md`         | Spec — Wave 2 seam (owner: API key + vendor)    |
+| S36 Space self-service provisioning        | `docs/feature-suites/space-self-provisioning.md`       | Spec — Wave 2 seam (owner: billing + SA)        |
+| S37 Full no-code page/layout builder       | `docs/feature-suites/nocode-page-builder.md`           | Spec — Wave 3 multi-slice, app-plane            |
+| S38 Maintenance notice activation          | `docs/feature-suites/maintenance-notice-activation.md` | Spec — S38a app-plane; S38b seam to flip        |
+| S39 Internal notifications + center        | `docs/feature-suites/internal-notifications.md`        | Spec — Wave 1 app-plane (D-AUTOMATION-LINE)     |
 
 The final hardening revision is deployed and machine-accepted. The only remaining S19–S27 acceptance
 item is the secret-free outcome of the private human Test Vendor password/TOTP/assigned-ticket/
