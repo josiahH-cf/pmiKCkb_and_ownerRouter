@@ -79,4 +79,70 @@ describe("buildOwnerRenewalDraft", () => {
     const input = { addressLabel: "X", currentRent: 1000 } as const;
     expect(buildOwnerRenewalDraft(input)).toEqual(buildOwnerRenewalDraft(input));
   });
+
+  // AC-S29-2: no draft entry without approval; the number appears only for an Approved record.
+  it("renders Needs Verification for a computed-but-unapproved suggestion (no approvedSuggestion supplied)", () => {
+    const draft = buildOwnerRenewalDraft({
+      addressLabel: "104 NE Lindsay Ave",
+      currentRent: 2200,
+      // The operator captured comps but NO Admin approval exists, so no approvedSuggestion is passed.
+      market: { rangeLow: 2200, rangeHigh: 2500 },
+    });
+    // The suggested-number slot is a Needs Verification marker, and there is NO "Suggested market value" fact.
+    expect(draft.facts.some((f) => f.key === "market_number")).toBe(false);
+    expect(draft.body).toContain("Needs Verification");
+    expect(draft.missingInputs).toContain(
+      "specific market number (PMI rental-analysis tool)",
+    );
+    expect(draft.production_allowed).toBe(false);
+    expect(draft.send_allowed).toBe(false);
+  });
+
+  it("carries the exact Admin-approved number with the distinct comp-derived source label", () => {
+    const draft = buildOwnerRenewalDraft({
+      addressLabel: "104 NE Lindsay Ave",
+      currentRent: 2200,
+      market: {
+        rangeLow: 2200,
+        rangeHigh: 2500,
+        compsScreenshotRef: "comps.png",
+        approvedSuggestion: {
+          value: 2350,
+          comps: [
+            { rent: 2200, source: "Zillow low" },
+            { rent: 2500, source: "Zillow high" },
+          ],
+        },
+      },
+    });
+    const marketNumber = draft.facts.find((f) => f.key === "market_number");
+    expect(marketNumber).toMatchObject({
+      value: "$2,350",
+      source: "Comp-derived suggestion (Admin-approved)",
+      confidence: "Likely",
+    });
+    expect(draft.body).toContain("$2,350");
+    expect(draft.body).toContain("comparable rents");
+    // Still draft-only in every case.
+    expect(draft.production_allowed).toBe(false);
+    expect(draft.send_allowed).toBe(false);
+  });
+
+  it("prefers the Admin-approved number over the operator's own PMI number", () => {
+    const draft = buildOwnerRenewalDraft({
+      addressLabel: "104 NE Lindsay Ave",
+      currentRent: 2200,
+      market: {
+        specificNumber: 9999,
+        approvedSuggestion: {
+          value: 2350,
+          comps: [{ rent: 2350, source: "RentCast median" }],
+        },
+      },
+    });
+    const marketNumber = draft.facts.find((f) => f.key === "market_number");
+    expect(marketNumber?.value).toBe("$2,350");
+    expect(marketNumber?.source).toBe("Comp-derived suggestion (Admin-approved)");
+    expect(draft.body).not.toContain("$9,999");
+  });
 });

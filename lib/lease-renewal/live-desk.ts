@@ -318,6 +318,13 @@ export async function loadLiveRenewalLeaseWorkspace(
   readTimestamp: string,
   config: LiveRenewalConfig = buildLiveRenewalConfig(),
   progress: RenewalProgress | null = null,
+  // S29: an Admin-approved comp-derived rent number, resolved server-side by the caller from the
+  // rent-suggestion control plane. When present it flows into the owner-draft preview with its distinct
+  // "Comp-derived suggestion (Admin-approved)" source label. Absent → the draft is unchanged.
+  approvedSuggestion: {
+    value: number;
+    comps: { rent: number; source: string; label?: string }[];
+  } | null = null,
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -375,8 +382,24 @@ export async function loadLiveRenewalLeaseWorkspace(
         currentRent: leaseCurrentRent(view) ?? 0,
         // Feed the operator's recorded comp basis so the owner email shows the Zillow range + PMI number
         // source-tagged. Absent comps stay absent (visible Needs Verification markers) — never invented.
-        ...(progress?.ownerDecision?.market
-          ? { market: ownerDraftMarketFromBasis(progress.ownerDecision.market) }
+        // S29: an Admin-approved comp-derived number (server-resolved) rides in with its distinct source
+        // label and takes precedence over the operator's own PMI number; an unapproved suggestion never does.
+        ...(progress?.ownerDecision?.market || approvedSuggestion
+          ? {
+              market: {
+                ...(progress?.ownerDecision?.market
+                  ? ownerDraftMarketFromBasis(progress.ownerDecision.market)
+                  : {}),
+                ...(approvedSuggestion
+                  ? {
+                      approvedSuggestion: {
+                        value: approvedSuggestion.value,
+                        comps: approvedSuggestion.comps,
+                      },
+                    }
+                  : {}),
+              },
+            }
           : {}),
       }),
       tenantDraft,

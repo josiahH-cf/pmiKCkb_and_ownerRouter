@@ -4,6 +4,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { getRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
+import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
 import {
   loadLiveRenewalLeaseWorkspace,
@@ -46,11 +47,15 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const { leaseId } = await params;
 
   const progress = await getRenewalProgress(user, leaseId);
+  // S29: the exact Admin-approved comp-derived rent number (or null). It flows into the owner-draft preview
+  // only when an Approved record still matches the current recompute; it is never the raw computed value.
+  const approvedSuggestion = await getApprovedRentSuggestion(user, leaseId);
   const outcome = await loadLiveRenewalLeaseWorkspace(
     leaseId,
     new Date().toISOString(),
     buildLiveRenewalConfig(),
     progress,
+    approvedSuggestion,
   );
 
   return (

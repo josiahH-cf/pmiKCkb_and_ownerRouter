@@ -33,9 +33,16 @@ build program); the older owner-gated backlog with findings/context is `docs/wha
 
 ## Roadmap program — next work
 
-Build order is `docs/roadmap-unblock-2026-07-23.md` §4. Wave 1 (pure app-plane, zero owner dep,
-build first): S29 rent suggestion (Admin-gated), S32 KB corrections-learning, S33 Ask→action,
-S38a surface the maintenance draft, S39 internal notifications, S28a comp provider plus screenshot.
+**Shipped this cycle (2026-07-23, worktree `ui-ux-overhaul`):** S29 comp-informed rent suggestion
+(Admin-approval-gated) is BUILT and promoted to `F-RENT-SUGGEST-ADMIN-GATED` (supersedes
+`F-NEGOTIATION-EXCLUDED`). Pure `computeRentSuggestion` (comp median), Admin-only approval FSM +
+Firestore control plane + route, `RentSuggestionApproval` component wired into the live desk,
+`buildOwnerRenewalDraft` approved-suggestion channel, and the narrow server-set `draft-safety.ts`
+owner_money carve-out. AC-S29-1..8 green; doc gates green. Next Wave-1 suite: **S32**.
+
+Build order is `docs/roadmap-unblock-2026-07-23.md` §4. Wave 1 remaining (pure app-plane, zero owner
+dep): S32 KB corrections-learning, S33 Ask→action, S38a surface the maintenance draft, S39 internal
+notifications, S28a comp provider plus screenshot.
 Wave 2 (build the live provider to the seam, one owner step each): S30 RentVine write, S31 Gmail
 watch, S28b RentCast, S35 LeadSimple, S34 Dotloop, S36 Space provisioning, S38b maintenance send.
 Wave 3: S37 full no-code builder. The suite specs S28–S39 live under `docs/feature-suites/`

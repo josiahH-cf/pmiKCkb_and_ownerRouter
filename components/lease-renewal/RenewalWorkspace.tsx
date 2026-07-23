@@ -23,6 +23,7 @@ import {
   OwnerDecisionForm,
   RenewalCompleteButton,
 } from "@/components/lease-renewal/RenewalProgressControls";
+import { RentSuggestionApproval } from "@/components/lease-renewal/RentSuggestionApproval";
 import { DRAFT_BANNER } from "@/lib/constants";
 import { zillowSearchUrl } from "@/lib/lease-renewal/market-links";
 import type { ReadinessStatus } from "@/lib/lease-renewal/renewal-readiness";
@@ -140,6 +141,9 @@ export function RenewalWorkspace({
               current={workspace.live.ownerDecision}
               leaseId={workspace.live.leaseId}
             />
+            {/* S29: the comp-derived suggested rent number, shown beside its comps, with the Admin-only
+                per-number approval control. It enters the owner draft only after an Admin approves it. */}
+            <RentSuggestionApproval leaseId={workspace.live.leaseId} />
           </div>
         ) : null}
         <p className="muted">{DRAFT_BANNER}</p>

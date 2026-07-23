@@ -25,9 +25,10 @@ export const RENEWAL_STAGE = {
 export const MAX_RENEWAL_STAGE = RENEWAL_STAGE.build;
 
 /**
- * The operator's comp basis for the owner email + (gated) write-back proposal. Every field is the
- * operator's OWN input — the app never invents or suggests a rent figure (D19). All optional so a
- * decision can be recorded before the comps are gathered.
+ * The operator's comp basis for the owner email + (gated) write-back proposal. Every field here is the
+ * operator's OWN input. The app MAY separately compute a comp-derived suggested rent number, but only
+ * behind explicit per-number Admin approval (S29, D-RENT-SUGGEST); this comp basis never becomes that
+ * suggestion on its own. All optional so a decision can be recorded before the comps are gathered.
  */
 export interface RenewalMarketBasis {
   /** Zillow comparable-rent range low. */

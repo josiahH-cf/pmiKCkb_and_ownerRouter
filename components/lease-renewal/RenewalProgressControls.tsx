@@ -186,8 +186,8 @@ export function OwnerDecisionForm({
         />
       </Field>
       <p className="muted">
-        Comp basis (optional). Your own numbers, shown source-tagged in the owner email.
-        The app never suggests a rent figure.
+        Comp basis (optional). Your own numbers, shown source-tagged in the owner email. A
+        separate comp-derived suggestion needs Admin approval before it enters a draft.
       </p>
       <div className="ui-row">
         <Field htmlFor={id.zillowLow} label="Zillow low (optional)">

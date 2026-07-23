@@ -23,6 +23,13 @@ export interface DraftFact {
   confidence: FactConfidence;
 }
 
+/** One comp source behind an Admin-approved suggested number, snapshotted so the draft is transparent. */
+export interface OwnerDraftApprovedCompSource {
+  rent: number;
+  source: string;
+  label?: string;
+}
+
 export interface OwnerDraftMarketInput {
   /** The specific number from the PMI/franchise rental-analysis tool (Dan's source-of-truth number). */
   specificNumber?: number;
@@ -31,7 +38,21 @@ export interface OwnerDraftMarketInput {
   rangeHigh?: number;
   /** A link/placeholder for the comps screenshot Dan pastes into the email. */
   compsScreenshotRef?: string;
+  /**
+   * S29: an Admin-APPROVED comp-derived suggested rent number, resolved server-side from the rent-suggestion
+   * control plane (never the raw computed value, never client-trusted). When present it fills the
+   * "Suggested market value" fact and the suggestion line with the distinct
+   * "Comp-derived suggestion (Admin-approved)" source label, taking precedence over the operator's own PMI
+   * number. Absent → the draft is unchanged (operator PMI number, or the Needs Verification marker).
+   */
+  approvedSuggestion?: {
+    value: number;
+    comps: OwnerDraftApprovedCompSource[];
+  };
 }
+
+/** The distinct source label an Admin-approved comp-derived number wears in the draft (S29). */
+export const APPROVED_SUGGESTION_SOURCE = "Comp-derived suggestion (Admin-approved)";
 
 export interface OwnerDraftInput {
   /** Property address label (in-boundary; never written to git). */
@@ -137,12 +158,20 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
     });
   }
 
-  if (market.specificNumber !== undefined) {
+  // S29: an Admin-approved comp-derived number (server-resolved) takes precedence over the operator's own
+  // PMI number and wears a distinct source label. The raw COMPUTED suggestion never reaches this input —
+  // only an Approved record does — so an unapproved suggestion still renders the Needs Verification marker.
+  const approvedSuggestion = market.approvedSuggestion;
+  const suggestedValue = approvedSuggestion?.value ?? market.specificNumber;
+  const suggestedSource = approvedSuggestion
+    ? APPROVED_SUGGESTION_SOURCE
+    : "PMI rental analysis";
+  if (suggestedValue !== undefined) {
     facts.push({
       key: "market_number",
       label: "Suggested market value",
-      value: formatUsd(market.specificNumber),
-      source: "PMI rental analysis",
+      value: formatUsd(suggestedValue),
+      source: suggestedSource,
       confidence: "Likely",
     });
   } else {
@@ -157,8 +186,8 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
     ? `I'm seeing comparable rents ranging from ${formatUsd(market.rangeLow!)} to ${formatUsd(market.rangeHigh!)}.`
     : `I'm seeing comparable rents ranging from [${NEEDS_VERIFICATION}: market comp range from Zillow].`;
   const suggestionLine =
-    market.specificNumber !== undefined
-      ? `Based on the analysis, a renewal around ${formatUsd(market.specificNumber)} looks reasonable.`
+    suggestedValue !== undefined
+      ? `Based on ${approvedSuggestion ? "comparable rents" : "the analysis"}, a renewal around ${formatUsd(suggestedValue)} looks reasonable.`
       : `[${NEEDS_VERIFICATION}: specific market number from the rental-analysis tool]`;
 
   const replacements = {

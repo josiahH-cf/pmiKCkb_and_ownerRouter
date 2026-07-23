@@ -748,3 +748,52 @@ export interface LeaseRenewalWritebackApprovalActivityRecord {
   reason_code?: DecisionReasonCode;
   created_at: string;
 }
+
+// Lease Renewal comp-derived rent-suggestion APPROVAL layer (S29, D-RENT-SUGGEST). One record per lease,
+// keyed by lease id. The app computes a comp-derived SUGGESTED renewal rent number server-side; an Admin
+// then Approves (authorizes placing that exact number in the owner-notice draft) or Returns it here. This
+// layer NEVER executes a send or a system-of-record write: `production_allowed` and `executed` are always
+// false, and the state can only be one of the approval FSM's non-executing states (rent-suggestion-approval.ts).
+export type LeaseRenewalRentSuggestionApprovalState =
+  | "Approved"
+  | "Returned for Revision";
+export type LeaseRenewalRentSuggestionApprovalDecision = "approve" | "return";
+
+/** A single comp source, snapshotted onto the approval so the number is never stored without its sources. */
+export interface LeaseRenewalRentSuggestionComp {
+  rent: number;
+  source: string;
+  label?: string;
+}
+
+export interface LeaseRenewalRentSuggestionApprovalRecord {
+  id: string;
+  lease_id: string;
+  state: LeaseRenewalRentSuggestionApprovalState;
+  // The EXACT approved number and its comp sources this decision was made against, so a later recompute
+  // with a different value or different sources marks this approval stale (needs re-approval) instead of
+  // silently authorizing a different number.
+  approved_value: number;
+  approved_comps: LeaseRenewalRentSuggestionComp[];
+  method: "comp_median";
+  reason: string;
+  reason_code?: DecisionReasonCode;
+  decided_by_uid: string;
+  // Hard invariants — this layer never executes. Both are always false.
+  production_allowed: false;
+  executed: false;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeaseRenewalRentSuggestionApprovalActivityRecord {
+  id: string;
+  lease_id: string;
+  actor_uid: string;
+  action: LeaseRenewalRentSuggestionApprovalDecision;
+  previous_state?: LeaseRenewalRentSuggestionApprovalState;
+  new_state: LeaseRenewalRentSuggestionApprovalState;
+  reason: string;
+  reason_code?: DecisionReasonCode;
+  created_at: string;
+}

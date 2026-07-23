@@ -52,10 +52,36 @@ for (const id of GMAIL_DRAFT_CATEGORY_IDS) {
 
 const EXCLUDED_IDS = new Set<GmailDraftCategoryId>(GMAIL_HARD_EXCLUSION_CATEGORY_IDS);
 
+/**
+ * S29 (D-RENT-SUGGEST): server-set provenance that an Admin explicitly approved this exact renewal rent
+ * number, resolved server-side from the rent-suggestion control plane. It is NEVER client-trusted. Its ONLY
+ * effect is to lift the CATEGORY-level `owner_money` exclusion for an owner-renewal draft whose owner-money
+ * signal is that one approved number. It never loosens the `detectExcludedIntent` regex, so owner
+ * payout/funds/monies/proceeds CONTENT, legal/notices, and tenant disputes all stay refused exactly as before.
+ */
+export interface ApprovedRentSuggestionProvenance {
+  approved: true;
+  value: number;
+}
+
 export interface GmailDraftSafetyInput {
   category: unknown;
   subject?: unknown;
   facts?: readonly unknown[];
+  /** Server-set only (never from a client body); see ApprovedRentSuggestionProvenance. */
+  approvedRentSuggestion?: ApprovedRentSuggestionProvenance;
+}
+
+/** A valid server-set approved-rent-suggestion provenance: approved with a finite, positive number. */
+function hasValidApprovedRentSuggestion(input: GmailDraftSafetyInput): boolean {
+  const provenance = input.approvedRentSuggestion;
+  return (
+    !!provenance &&
+    provenance.approved === true &&
+    typeof provenance.value === "number" &&
+    Number.isFinite(provenance.value) &&
+    provenance.value > 0
+  );
 }
 
 export interface GmailDraftSafetyResult {
@@ -81,7 +107,13 @@ export function inspectGmailDraftSafety(
     };
   }
 
-  const categoryExcluded = EXCLUDED_IDS.has(categoryId);
+  // S29 narrow carve-out: the CATEGORY-level owner_money exclusion is lifted ONLY for an owner-renewal
+  // draft carrying a valid SERVER-SET approved rent number. Every other excluded category (legal_notices,
+  // tenant_disputes, and owner_money without provenance) is unchanged, and the content regex below is left
+  // BYTE-FOR-BYTE untouched, so owner payout/funds/monies/proceeds CONTENT stays refused regardless.
+  const ownerMoneyRentCarveOut =
+    categoryId === "owner_money" && hasValidApprovedRentSuggestion(input);
+  const categoryExcluded = EXCLUDED_IDS.has(categoryId) && !ownerMoneyRentCarveOut;
   const detectedIntent = detectExcludedIntent([
     typeof input.subject === "string" ? input.subject : "",
     ...(input.facts ?? []).filter((fact): fact is string => typeof fact === "string"),
