@@ -61,21 +61,23 @@ build program); the older owner-gated backlog with findings/context is `docs/wha
   production_allowed (OFF in the seed); recipient ONLY from `readOwnerTransactionalDestinationSystem` (no
   recipient field on the input, so a caller can't supply one); domain re-asserted at send; metadata-only payload;
   idempotent one-attempt keyed `support_report:{id}:filed` + durable receipt/health store. Dedicated key; generic
-  `gmail.message.send` untouched. AC-S39-4/-5/-6 green; 2891 tests; falsification pending.
+  `gmail.message.send` untouched. AC-S39-4/-5/-6 green; 2891 tests; 4-skeptic falsification clean.
+- **S39.3** (auto-emit + LIVE gate flip) → `F-INTERNAL-NOTIFY` (completes S39, AC-S39-1..8; Supersede Log
+  `SUPPORT-INTAKE-NO-EMAIL`). `report-issue` now emits ONE metadata-only internal notice AFTER the durable
+  queue write (best-effort; never blocks the write/response; no notice when the write fails). The gate
+  `internal.transactional_notice.send` is FLIPPED live (`production_allowed:true`, both `EXECUTABLE_ALLOWLIST`
+  copies + all pinned tests) — authorized within-suite by D-AUTOMATION-LINE; the concrete
+  `GmailInternalTransactionalSender` sends AS `KB_APPROVAL_SENDER` over the approved scope (no new scope). The
+  now-false "display-only"/"nothing is emailed" copy was deleted. Generic `gmail.message.send` stays closed;
+  every client-facing send stays human-confirmed. AC-S39-7 green; 2897 tests; falsification clean.
 
-**Wave-1 remaining — resume here (S39.3, the last step of the LAST Wave-1 suite; internal-only, zero owner dep):**
-
-- **S39.3** (auto-emit + in-suite flip) — emit the internal notice from `app/api/report-issue/route.ts` AFTER
-  the durable queue write (a send failure never blocks the write); flip the gate the routine reviewed way (both
-  `EXECUTABLE_ALLOWLIST` copies + pinned tests); DELETE the now-false "display-only"/"nothing here sends" copy
-  (`TransactionalDestinationPanel`, `owner-transactional-destination.ts` header, `report-issue/route.ts`) with a
-  Supersede Log marker. AC-S39-7. Then promote `F-INTERNAL-NOTIFY` (AC-S39-1..8).
-
-Build order is `docs/roadmap-unblock-2026-07-23.md` §4; S39.3 above is the Wave-1 remainder. Wave 2 =
-the live-provider seams, one owner step each (S30 RentVine write, S31 Gmail watch, S28b RentCast, S35
-LeadSimple, S34 Dotloop, S36 Space provisioning, S38b maintenance send); Wave 3 = S37 no-code builder. The
-suite specs S28–S39 live under `docs/feature-suites/` (spec-shape sentinel plus README rows); each is
-decision-complete.
+**Wave 1 is COMPLETE.** All pure-app-plane suites shipped: S29, S32, S33, S38a, S28a, S39 (S39.1/.2/.3). Resume
+at **Wave 2** — the live-provider seams, one owner step each: S30 RentVine write (endpoint incoming), S31 Gmail
+watch (Pub/Sub topic + Scheduler), S28b RentCast (API key), S35 LeadSimple (key + vendor confirm), S34 Dotloop
+(OAuth app), S36 Space provisioning (billing + create identity), S38b maintenance send (owner-mapping evidence).
+Wave 3 = S37 no-code builder. Build order `docs/roadmap-unblock-2026-07-23.md` §4/§5; per suite build the live
+provider to the seam, then flip its gate once the named owner dependency is documented. The suite specs S28–S39
+live under `docs/feature-suites/` (spec-shape sentinel plus README rows); each is decision-complete.
 
 ## Safe Stop Boundary
 

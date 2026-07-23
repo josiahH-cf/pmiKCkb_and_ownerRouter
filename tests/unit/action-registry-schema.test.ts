@@ -144,6 +144,9 @@ describe("Action Registry seed catalog", () => {
       // Slice 6 (2026-07-22): maintenance owner-notice DRAFT flipped live (owner email confirmed at
       // portfolio.owners[].email, 25/25). Draft-only; the paired .send stays non-executable below.
       "gmail.maintenance_owner_notice.draft_create",
+      // S39.3 (2026-07-23): internal-staff transactional notice flipped live (D-AUTOMATION-LINE).
+      // Internal-only auto-send; the generic gmail.message.send stays non-executable.
+      "internal.transactional_notice.send",
     ]);
     for (const entry of ACTION_REGISTRY_SEED) {
       const parsed = CreateActionRegistryInputSchema.parse(entry);

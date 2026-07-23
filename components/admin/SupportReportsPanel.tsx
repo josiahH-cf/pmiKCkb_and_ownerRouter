@@ -37,7 +37,9 @@ export function SupportReportsPanel({
       ) : null}
       <p className="muted">
         Feedback teammates shared with the &ldquo;Feedback&rdquo; button: ideas,
-        questions, or problems. Each note is filed here for review; nothing is emailed.
+        questions, or problems. Each note is filed here for review, and one metadata-only
+        internal notice goes to the configured staff destination (the note itself stays
+        here).
       </p>
       {unavailableNote ? <p className="muted">{unavailableNote}</p> : null}
       {reports.length === 0 ? (

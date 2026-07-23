@@ -119,6 +119,8 @@ describe("Action Registry stays non-executable for the live read paths", () => {
       "gmail.label.apply",
       "gmail.renewal_notice.draft_create",
       "gmail.maintenance_owner_notice.draft_create",
+      // S39.3: internal-staff transactional notice flipped live (D-AUTOMATION-LINE); internal-only.
+      "internal.transactional_notice.send",
     ]);
   });
 });

@@ -2,14 +2,29 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
+import { readServerConfig } from "@/lib/config/server";
+import {
+  getInternalTransactionalReceipt,
+  recordInternalTransactionalReceipt,
+} from "@/lib/firestore/internal-transactional-receipts";
+import { readOwnerTransactionalDestinationSystem } from "@/lib/firestore/owner-transactional-destination";
 import { createSupportReport } from "@/lib/firestore/support-reports";
+import type { SupportReportRecord } from "@/lib/firestore/types";
+import { sendInternalTransactionalNotice } from "@/lib/notifications/internal-transactional";
+import { GmailInternalTransactionalSender } from "@/lib/notifications/internal-transactional-sender";
 
 // Report-issue intake (TIX-6, F-SUPP-1). Assembles a report from the auto-captured page context plus
 // an optional description and routes it to a MONITORED destination: a durable, Admin-reviewable
-// Firestore support queue (lib/firestore/support-reports). No email is sent — generic Gmail send is
-// disabled in production and unattended send is a hard governance boundary — so a successful queue
-// write IS delivery. The response reports delivered:true only when the write succeeds; a write
-// failure is a soft failure (delivered:false) the client surfaces honestly, never as success.
+// Firestore support queue (lib/firestore/support-reports). A successful queue write IS delivery; the
+// response reports delivered:true only when the write succeeds, and a write failure is a soft failure
+// (delivered:false) the client surfaces honestly, never as success.
+//
+// S39.3: AFTER the durable queue write, an internal-only metadata-only notice auto-sends to the
+// owner-configured INTERNAL staff destination (D-AUTOMATION-LINE authorizes internal-staff automation).
+// It is best-effort and NEVER blocks the queue write or the response, is gated by
+// internal.transactional_notice.send, addresses only the internal destination (never a
+// client/tenant/owner-of-record/vendor), and carries metadata only (never the description). The generic
+// gmail.message.send stays Registry-closed and every client-facing send stays human-confirmed.
 //
 // Privacy (TIX-8): only allowlisted, non-sensitive context is accepted — route (pathname only),
 // viewport, user-agent, and the IDENTITY (not the value/label content) of the last-interacted
@@ -86,8 +101,9 @@ export async function POST(request: Request) {
     // Route the report to the monitored support queue. A successful write is delivery; a failure is a
     // soft failure the client shows honestly. The queue is the only place the description is stored.
     let delivered = false;
+    let created: SupportReportRecord | null = null;
     try {
-      await createSupportReport(user, {
+      created = await createSupportReport(user, {
         route: safeRoute,
         description: input.description,
         origin: input.origin,
@@ -102,6 +118,13 @@ export async function POST(request: Request) {
         "[report-issue] could not persist support report:",
         error instanceof Error ? error.message : "unknown error",
       );
+    }
+
+    // S39.3: internal-staff auto-notice, AFTER the durable queue write. Best-effort — a gate-closed /
+    // no-destination / non-internal refusal OR a transport failure NEVER blocks the report response. Only
+    // fires for a persisted report (so a queue-write failure never triggers a notice about nothing).
+    if (created) {
+      await emitInternalFeedbackNotice(created, safeRoute, input.origin, user.role);
     }
 
     // Metadata only (no description text, no aria/textContent) so Cloud Logging never receives
@@ -122,5 +145,42 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true, delivered, subject }, { status: 202 });
   } catch (error) {
     return apiErrorResponse(error);
+  }
+}
+
+// Best-effort internal-staff feedback notice (S39.3). Swallows EVERY error — a closed gate, an
+// unconfigured/non-internal destination, or a Gmail transport failure — so the report response is never
+// affected. The executor owns the gate, the SYSTEM-read recipient lock, the internal-domain re-assert, the
+// metadata-only payload, and idempotency; this only assembles its dependencies from server config.
+async function emitInternalFeedbackNotice(
+  report: SupportReportRecord,
+  route: string,
+  origin: string,
+  reporterRole: string,
+): Promise<void> {
+  try {
+    const config = readServerConfig();
+    await sendInternalTransactionalNotice(
+      {
+        resolveDestination: async () =>
+          (await readOwnerTransactionalDestinationSystem()).destination_email,
+        sender: new GmailInternalTransactionalSender(config.kbApprovalSender),
+        getReceipt: getInternalTransactionalReceipt,
+        recordReceipt: recordInternalTransactionalReceipt,
+        appBaseUrl: config.appBaseUrl,
+      },
+      {
+        reportId: report.id,
+        route,
+        origin,
+        reporterRole,
+        filedAtIso: new Date().toISOString(),
+      },
+    );
+  } catch (error) {
+    console.error(
+      "[report-issue] internal feedback notice not sent:",
+      error instanceof Error ? error.message : "unknown error",
+    );
   }
 }

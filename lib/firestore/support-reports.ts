@@ -1,8 +1,10 @@
 // Support report store (F-SUPP-1). The "Report an issue" button and the error boundaries route
 // reports here: a durable, Admin-reviewable Firestore collection. This is the monitored destination
-// a report is delivered to. No email is sent (generic Gmail send is disabled by governance and
-// unattended send is a hard safety boundary), so a successful write IS delivery. A write failure is a
-// soft failure the caller surfaces honestly (delivered:false), never unqualified success.
+// a report is delivered to, so a successful write IS delivery. (S39.3: the report-issue route
+// additionally auto-sends a metadata-only INTERNAL-staff notice after this write — best-effort,
+// D-AUTOMATION-LINE — but this store itself never sends, and every client-facing send stays
+// human-confirmed.) A write failure is a soft failure the caller surfaces honestly (delivered:false),
+// never unqualified success.
 //
 // PRIVACY (TIX-8): only allowlisted, non-sensitive context is stored — route pathname, viewport,
 // user-agent, and the IDENTITY (not the value/label) of the last-interacted element — plus the

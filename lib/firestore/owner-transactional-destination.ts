@@ -1,12 +1,14 @@
-// Owner transactional/notice destination store (D-1 support). A single admin-editable Firestore doc
-// holding the owner-INTERNAL destination address — where owner-notice drafts are addressed once a real
-// send path is activated. (Reported issues route only to the in-app support queue, never here.) Absence
-// resolves to the seeded default.
+// Owner transactional/notice destination store (D-1 support; S39 internal-domain lock). A single
+// admin-editable Firestore doc holding the INTERNAL staff destination address. S39.3: a filed feedback
+// report auto-sends ONE metadata-only internal notice to this address (via the gated internal
+// transactional executor), so it is now a live send target — but internal-staff only. Absence resolves to
+// the seeded (internal) default.
 //
-// GOVERNANCE: this is an internal owner address only. It is NEVER the authoritative recipient for a
-// tenant or owner-of-record notice — those recipients still flow through the governed executor's
-// verified `recipient_source_ref`/`mailbox_source_ref`, never a free-form admin field. Reads and
-// writes require the manageAdmin capability. Nothing here sends or drafts anything.
+// GOVERNANCE: this is an INTERNAL staff address only, enforced by the internal-domain lock at config-set
+// AND re-asserted at send. It is NEVER the authoritative recipient for a tenant or owner-of-record notice —
+// those recipients still flow through the governed executor's verified `recipient_source_ref`/
+// `mailbox_source_ref`, never a free-form admin field. The Admin-gated read/write require manageAdmin; the
+// non-actor-gated `readOwnerTransactionalDestinationSystem` feeds only the server-side executor.
 
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
 

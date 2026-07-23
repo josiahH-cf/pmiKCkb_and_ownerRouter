@@ -97,10 +97,23 @@ describe("buildInternalTransactionalNotice (metadata-only — AC-S39-3)", () => 
 });
 
 describe("sendInternalTransactionalNotice", () => {
-  it("refuses when the gate is CLOSED in the committed seed (AC-S39-6)", async () => {
-    const { deps, sent } = makeDeps({ registry: undefined }); // default = committed seed (closed)
+  it("refuses when the gate is CLOSED (injected closed registry) — no send (AC-S39-6)", async () => {
+    const closedRegistry = ACTION_REGISTRY_SEED.map((entry) =>
+      entry.key === INTERNAL_TRANSACTIONAL_ACTION_KEY
+        ? { ...entry, production_allowed: false }
+        : entry,
+    );
+    const { deps, sent } = makeDeps({ registry: closedRegistry });
     await expect(sendInternalTransactionalNotice(deps, INPUT)).rejects.toThrow();
     expect(sent).toHaveLength(0);
+  });
+
+  it("the COMMITTED seed has the internal send flipped ON, so the machinery runs (S39.3 flip)", async () => {
+    // registry:undefined → the default committed ACTION_REGISTRY_SEED, now production_allowed:true.
+    const { deps, sent } = makeDeps({ registry: undefined });
+    const receipt = await sendInternalTransactionalNotice(deps, INPUT);
+    expect(receipt.delivered).toBe(true);
+    expect(sent).toHaveLength(1);
   });
 
   it("resolves the recipient ONLY from the SYSTEM read and sends a metadata-only notice (AC-S39-4)", async () => {

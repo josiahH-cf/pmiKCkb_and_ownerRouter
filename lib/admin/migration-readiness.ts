@@ -159,6 +159,9 @@ const EXECUTABLE_ALLOWLIST = new Set<string>([
   "gmail.label.apply",
   "gmail.renewal_notice.draft_create",
   "gmail.maintenance_owner_notice.draft_create",
+  // S39.3 (2026-07-23): internal-staff transactional notice flipped live (D-AUTOMATION-LINE). Internal-only
+  // auto-send, metadata-only, internal-domain-locked; every client-facing send stays human-confirmed.
+  "internal.transactional_notice.send",
 ]);
 
 export function classifyOwnerActions(rollup: ReadinessRollup): string[] {

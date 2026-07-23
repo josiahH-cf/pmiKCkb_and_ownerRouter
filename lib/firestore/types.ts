@@ -480,9 +480,10 @@ export interface OwnerTransactionalDestinationRecord {
 }
 
 // Support report / issue ticket (F-SUPP-1). A durable, Admin-reviewable record of a "Report an issue"
-// submission. This is the monitored destination reports are routed to (no email is sent — generic
-// send is disabled by governance), so a successful write is what makes a report "delivered". Only
-// allowlisted, non-sensitive page context is stored (route pathname, viewport, user-agent, and the
+// submission. This is the monitored destination reports are routed to, so a successful write is what
+// makes a report "delivered" (S39.3 additionally auto-sends a metadata-only internal-staff notice from
+// the route, best-effort; generic + client-facing send stay closed). Only allowlisted, non-sensitive page
+// context is stored (route pathname, viewport, user-agent, and the
 // IDENTITY of the last-interacted element) plus the reporter's optional free-text description.
 export type SupportReportStatus = "new" | "acknowledged" | "resolved";
 

@@ -19,11 +19,10 @@ export const ALLOWED_HD_DEFAULT = "pmikcmetro.com";
 export const DRAFT_BANNER = "Draft — Review before sending";
 export const UNVERIFIED_PLACEHOLDER = "Needs Verification: <fact>";
 
-// Owner-facing transactional/notice destination (D-1 support). Where owner-INTERNAL transactional
-// email is addressed — owner-notice drafts — when a real send path is later activated. (Reported issues
-// route only to the in-app support queue, never here.) Admin-editable in-app and seeded to this address
-// to start (owner ruling
-// 2026-07-18). This is an internal owner address, NOT a tenant/owner-of-record recipient: those still
+// Internal transactional/notice destination (D-1 support; wired live by S39.3). The INTERNAL staff
+// address the feedback auto-notice is sent to when a report is filed (metadata only, D-AUTOMATION-LINE).
+// Admin-editable in-app behind the internal-domain lock and seeded to this address to start (owner ruling
+// 2026-07-18). This is an internal staff address, NOT a tenant/owner-of-record recipient: those still
 // require verified source refs through the governed executor, never a free-form admin field.
 export const DEFAULT_OWNER_TRANSACTIONAL_EMAIL = "josiah@pmikcmetro.com";
 

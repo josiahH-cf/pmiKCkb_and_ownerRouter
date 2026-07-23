@@ -49,6 +49,8 @@ describe("Action Registry repository", () => {
       "gmail.maintenance_owner_notice.draft_create",
       "gmail.renewal_notice.draft_create",
       "gmail.thread.reply",
+      // S39.3: internal-staff transactional notice flipped live (sorts after the gmail.* keys).
+      "internal.transactional_notice.send",
     ]);
   });
 

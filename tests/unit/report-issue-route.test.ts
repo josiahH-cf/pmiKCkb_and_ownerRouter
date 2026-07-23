@@ -9,6 +9,15 @@ vi.mock("@/lib/firestore/support-reports", () => ({
   createSupportReport: vi.fn(),
 }));
 
+// S39.3: mock the internal transactional executor so the best-effort emit is deterministic and touches no
+// Firestore/Gmail. (The executor itself is unit-tested in internal-transactional.test.ts.)
+const { sendInternalMock } = vi.hoisted(() => ({ sendInternalMock: vi.fn() }));
+vi.mock("@/lib/notifications/internal-transactional", async (importActual) => {
+  const actual =
+    await importActual<typeof import("@/lib/notifications/internal-transactional")>();
+  return { ...actual, sendInternalTransactionalNotice: sendInternalMock };
+});
+
 const editor = {
   email: "editor@pmikcmetro.com",
   hd: "pmikcmetro.com",
@@ -26,6 +35,8 @@ function jsonReq(body: unknown) {
 
 beforeEach(() => {
   vi.mocked(createSupportReport).mockReset();
+  sendInternalMock.mockReset();
+  sendInternalMock.mockResolvedValue({ delivered: true });
   setAuthResolverForTest(() => editor);
 });
 
@@ -66,6 +77,63 @@ describe("report-issue route (F-SUPP-1)", () => {
         origin: "app",
       }),
     );
+  });
+
+  it("emits the internal notice AFTER a persisted report, metadata only, never the description (AC-S39-7)", async () => {
+    vi.mocked(createSupportReport).mockResolvedValue({
+      id: "report-9",
+      route: "/maintenance",
+      reporter_uid: "editor-uid",
+      reporter_role: "Editor",
+      origin: "app",
+      status: "new",
+      created_at: "2026-07-20T00:00:00.000Z",
+    });
+
+    await POST(
+      jsonReq({
+        description: "SECRET description text",
+        context: { route: "/maintenance", viewport: "1280x800" },
+      }),
+    );
+
+    expect(sendInternalMock).toHaveBeenCalledTimes(1);
+    const [, notice] = sendInternalMock.mock.calls[0];
+    expect(notice).toMatchObject({
+      reportId: "report-9",
+      route: "/maintenance",
+      origin: "app",
+      reporterRole: "Editor",
+    });
+    // Metadata only — the free-text description never reaches the notice input.
+    expect(JSON.stringify(notice)).not.toContain("SECRET");
+  });
+
+  it("does NOT emit an internal notice when the queue write fails (never a notice about nothing)", async () => {
+    vi.mocked(createSupportReport).mockRejectedValue(new Error("firestore unavailable"));
+    const response = await POST(jsonReq({ context: { route: "/x" } }));
+    expect(response.status).toBe(202);
+    expect(sendInternalMock).not.toHaveBeenCalled();
+  });
+
+  it("still returns 202 delivered:true when the internal notice emit throws (best-effort)", async () => {
+    vi.mocked(createSupportReport).mockResolvedValue({
+      id: "report-10",
+      route: "/x",
+      reporter_uid: "editor-uid",
+      reporter_role: "Editor",
+      origin: "app",
+      status: "new",
+      created_at: "2026-07-20T00:00:00.000Z",
+    });
+    sendInternalMock.mockRejectedValue(new Error("gate closed / gmail down"));
+
+    const response = await POST(jsonReq({ context: { route: "/x" } }));
+    expect(response.status).toBe(202);
+    await expect(response.json()).resolves.toMatchObject({
+      received: true,
+      delivered: true,
+    });
   });
 
   it("returns delivered:false as a soft failure when the queue write fails (still 202)", async () => {

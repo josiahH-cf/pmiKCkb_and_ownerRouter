@@ -4,10 +4,11 @@ import { useId, useState } from "react";
 
 import { Button, Field } from "@/components/ui";
 
-// Owner transactional/notice destination editor (D-1 support). Admin-only surface to view and change
-// the owner-INTERNAL destination address. It PATCHes /api/admin/transactional-destination and shows
-// save/success/error state. It never sends or drafts email; it only records where a future, separately
-// gated transactional send would be addressed.
+// Owner transactional/notice destination editor (D-1 support; wired live by S39.3). Admin-only surface to
+// view and change the INTERNAL staff destination the feedback notice is auto-sent to. It PATCHes
+// /api/admin/transactional-destination (which enforces the internal-domain lock) and shows
+// save/success/error state. It records the recipient only; the send itself is the gated internal
+// transactional executor, and tenant/owner-of-record notices never resolve their recipient from here.
 export function TransactionalDestinationPanel({
   initialEmail,
   note,
@@ -53,10 +54,11 @@ export function TransactionalDestinationPanel({
     <article className="panel">
       <h2>Owner Notification Destination</h2>
       <p className="muted">
-        The internal owner address that owner-notice drafts will use once a transactional
-        send path is activated. Today it is display-only. Feedback goes to the in-app
-        support queue for Admin review. Use this for the internal owner address only;
-        tenant and owner-of-record notices resolve their recipient from verified sources.
+        The internal staff address the app auto-sends a feedback notice to when a teammate
+        files feedback (metadata only; the full note stays in the feedback queue for Admin
+        review). It must be an internal address. Tenant and owner-of-record notices are
+        never sent from here; they resolve their recipient from verified sources and stay
+        human-confirmed.
       </p>
       {note ? <p className="muted">{note}</p> : null}
       <form

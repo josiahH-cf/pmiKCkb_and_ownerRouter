@@ -36,6 +36,8 @@ const EXECUTABLE_ALLOWLIST = new Set<string>([
   "gmail.renewal_notice.draft_create",
   // Slice 6 (2026-07-22): maintenance owner-notice DRAFT flipped live (draft-only); its send stays gated.
   "gmail.maintenance_owner_notice.draft_create",
+  // S39.3 (2026-07-23): internal-staff transactional notice flipped live (D-AUTOMATION-LINE); internal-only.
+  "internal.transactional_notice.send",
 ]);
 
 export function parseSeedActionRegistryArgs(
