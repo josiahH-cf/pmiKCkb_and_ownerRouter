@@ -136,9 +136,13 @@ export class LeaseGmailExecutor implements ExternalExecutor {
       input.actionKey === "gmail.maintenance_owner_notice.send"
         ? "recipients"
         : "recipient";
-    const actualRecipientKey = input.actionKey.startsWith("gmail.renewal_notice")
-      ? "to"
-      : recipientKey;
+    // The renewal draft/send and the maintenance owner-notice DRAFT both key the recipient as `to`
+    // (matching their Action Registry preview schemas); every other governed action uses recipient(s).
+    const actualRecipientKey =
+      input.actionKey.startsWith("gmail.renewal_notice") ||
+      input.actionKey === "gmail.maintenance_owner_notice.draft_create"
+        ? "to"
+        : recipientKey;
     const missing = stringBlocker(
       input,
       "workflow_context",
@@ -598,6 +602,7 @@ export class BoomRenewalExecutor implements ExternalExecutor {
 function operationFor(actionKey: string): WorkflowMessageOperation | null {
   switch (actionKey) {
     case "gmail.renewal_notice.draft_create":
+    case "gmail.maintenance_owner_notice.draft_create":
     case "vendor.gmail.draft.create":
       return "draft";
     case "gmail.renewal_notice.send":

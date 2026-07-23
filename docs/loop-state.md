@@ -51,16 +51,16 @@ build program); the older owner-gated backlog with findings/context is `docs/wha
   `POST /api/ask/live-target` (server-side gate check) + AskForm affordance that REUSES the desk's gated
   `RenewalNoticeDraftComposer` pre-seeded with the resolved lease. No new executor/endpoint/scope/gate;
   Action Registry untouched; Test-run/capture unchanged. AC-S33-1..8 green.
+- **S38a** maintenance owner-notice draft made REACHABLE → `F-MAINT-OWNER-DRAFT-REACHABLE`. Route + service +
+  per-ticket `MaintenanceOwnerNoticeDraftComposer` (edit-gated, Live only) over the already-open
+  `gmail.maintenance_owner_notice.draft_create` gate. Unblock: owner is a PROPERTY attribute, resolved from the
+  ticket unit's live `propertyId` via the extracted `resolveOwnerContactFromPropertyId` tail of
+  `resolveLiveOwnerEmail` (no `getUnit`, no ticket-schema change); base `operationFor` gained the draft key.
+  Draft-only by construction (reuses the createDraft-only provider + gate + authoritative-recipient guard);
+  `.send` stays gated. AC-S38-1..4 green; 2842 tests pass; Turbopack build green on main.
 
-**Wave-1 remaining — resume here (pick any; all pure app-plane, zero owner dep):**
+**Wave-1 remaining — resume here (pick either; both pure app-plane, zero owner dep):**
 
-- **S38a** (surface the maintenance owner-notice draft) — UNBLOCKED 2026-07-23; the earlier "no `getUnit` hop"
-  note misdiagnosed it. Owner is a PROPERTY attribute and `resolveLiveOwnerEmail` uses the lease only to read
-  `propertyID`; the live unit candidate ALREADY carries the real RentVine `propertyId`
-  (`deriveUnitCandidatesFromExport`, `unit-matcher.ts`) but drops it building `MaintenanceUnitMatch`
-  ({unitId,label,confidence}). Fix: extract a `resolveOwnerFromPropertyId` tail from `resolveLiveOwnerEmail`
-  (behavior-preserving), thread `propertyId` through the match + persisted ticket unit, resolve owner from the
-  property and fail-closed when absent — no `getUnit` needed. Small/low-risk; then build composer/route/service.
 - **S39** (internal transactional notifications + notification center) — decision-complete, pure app-plane,
   internal-only (D-AUTOMATION-LINE), gate flip authorized WITHIN the suite. LARGE (~13 files): extends the S17
   attention machinery (`lib/attention/lanes.ts`, `lib/notifications/{families,feed,hub}.ts`, new
@@ -70,7 +70,7 @@ build program); the older owner-gated backlog with findings/context is `docs/wha
   manual adapter + display-only comps surface + comp-screenshot Drive upload (reuse the maintenance image-store
   seam) + RentCast adapter built inert + two gated-OFF Action Registry entries. S28b (RentCast key) is Wave 2.
 
-Build order is `docs/roadmap-unblock-2026-07-23.md` §4; the three above are the Wave-1 remainder. Wave 2 =
+Build order is `docs/roadmap-unblock-2026-07-23.md` §4; the two above are the Wave-1 remainder. Wave 2 =
 the live-provider seams, one owner step each (S30 RentVine write, S31 Gmail watch, S28b RentCast, S35
 LeadSimple, S34 Dotloop, S36 Space provisioning, S38b maintenance send); Wave 3 = S37 no-code builder. The
 suite specs S28–S39 live under `docs/feature-suites/` (spec-shape sentinel plus README rows); each is

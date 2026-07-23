@@ -87,6 +87,7 @@ export default async function MaintenancePage({ searchParams }: MaintenancePageP
           unavailableNote={unavailableNote}
           assignees={assignees}
           currentUid={user.uid}
+          canEdit={can(user.role, "edit")}
           initialTestReceipts={testReceipts}
           focusedTicketId={focusedTicketId}
         />

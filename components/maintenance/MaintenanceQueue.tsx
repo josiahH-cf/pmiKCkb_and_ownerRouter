@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { WorkflowCommunicationPanel } from "@/components/gmail-hub/WorkflowCommunicationPanel";
+import { MaintenanceOwnerNoticeDraftComposer } from "@/components/maintenance/MaintenanceOwnerNoticeDraftComposer";
 import type { AssignableUser } from "@/lib/maintenance/assignee-model";
 import {
   MAINTENANCE_ALLOWED_STATUS_TRANSITIONS,
@@ -40,6 +41,7 @@ export function MaintenanceQueue({
   unavailableNote,
   assignees = [],
   currentUid,
+  canEdit = false,
   initialTestReceipts = [],
   focusedTicketId,
 }: Readonly<{
@@ -47,6 +49,8 @@ export function MaintenanceQueue({
   unavailableNote?: string;
   assignees?: AssignableUser[];
   currentUid?: string;
+  /** Whether the signed-in user may edit (drives the per-ticket owner-notice draft control). */
+  canEdit?: boolean;
   initialTestReceipts?: MaintenanceTestActionReceipt[];
   focusedTicketId?: string;
 }>) {
@@ -250,6 +254,7 @@ export function MaintenanceQueue({
         <TicketCard
           key={ticket.id}
           assignees={assignees}
+          canEdit={canEdit}
           onAssign={(assigneeUid) => assign(ticket, assigneeUid)}
           onVendorAssign={(vendorId) => assignVendor(ticket, vendorId)}
           onNote={(text) => patch(ticket.id, { op: "note", text })}
@@ -276,6 +281,7 @@ export function MaintenanceQueue({
             <TicketCard
               key={ticket.id}
               assignees={assignees}
+              canEdit={canEdit}
               onAssign={(assigneeUid) => assign(ticket, assigneeUid)}
               onVendorAssign={(vendorId) => assignVendor(ticket, vendorId)}
               onNote={(text) => patch(ticket.id, { op: "note", text })}
@@ -303,6 +309,7 @@ function TicketCard({
   ticket,
   pending,
   assignees,
+  canEdit,
   onStatus,
   onReopen,
   onAssign,
@@ -314,6 +321,7 @@ function TicketCard({
   ticket: MaintenanceTicketRecord;
   pending: boolean;
   assignees: AssignableUser[];
+  canEdit: boolean;
   onStatus: (next: MaintenanceTicketStatus) => void;
   onReopen: () => void;
   onAssign: (assigneeUid: string | null) => void;
@@ -497,13 +505,16 @@ function TicketCard({
         </section>
       )}
       {ticket.data_mode === "live" ? (
-        <WorkflowCommunicationPanel
-          canLink
-          entityId={ticket.id}
-          entityType="maintenance_ticket"
-          lane="maintenance"
-          purpose="maintenance_owner"
-        />
+        <>
+          {canEdit ? <MaintenanceOwnerNoticeDraftComposer ticketRef={ticket.id} /> : null}
+          <WorkflowCommunicationPanel
+            canLink
+            entityId={ticket.id}
+            entityType="maintenance_ticket"
+            lane="maintenance"
+            purpose="maintenance_owner"
+          />
+        </>
       ) : (
         <section className="ui-callout" aria-label="Test communication boundary">
           <p>
