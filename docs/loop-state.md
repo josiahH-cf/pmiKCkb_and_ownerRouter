@@ -1,123 +1,88 @@
 # Loop State
 
 Read `docs/facts.md` first. This is the short resume pointer; history belongs in `docs/status.md`.
-The prioritized "what to build next" list is `docs/roadmap-unblock-2026-07-23.md` (the full-suite
-build program); the older owner-gated backlog with findings/context is `docs/whats-next.md`.
+The prioritized "what to build next" list is `docs/roadmap-unblock-2026-07-23.md` (the full-suite build
+program); the owner-unblock asks are compiled in `docs/client-unblock-guide-2026-07-23.md`.
 
 ## Snapshot
 
 - Last updated: 2026-07-23.
-- **The full-suite build program is DEFINED and AUTHORIZED.** Owner directive 2026-07-23
-  (`F-ROADMAP-BUILD-AUTHORIZED`) removed the defer-first posture: every roadmap gap is built to its
-  external seam or justified as a permanent NEVER, with no third "deferred indefinitely" state.
-  Scope, ordered waves (S28–S39), and the exact owner-dependency list are in
-  `docs/roadmap-unblock-2026-07-23.md`. Governance was opened to match: the runner's
-  Migration-Readiness Stop Gate became a Build-to-Seam Gate, and `AGENTS.md`,
-  `docs/autonomous-agent-runner.md`, and `docs/feature-suites/TEMPLATE.md` now say "build the live
-  provider plus the full contract; stop only at the one named owner dependency."
-- **Four owner Q&A decisions (2026-07-23)** are baked in (`F-ROADMAP-BUILD-AUTHORIZED`, roadmap §3):
-  D-RENT-SUGGEST (the app computes a comp-derived SUGGESTED rent number behind explicit per-number
-  Admin approval; S29 supersedes `F-NEGOTIATION-EXCLUDED`), D-RENTVINE-ENDPOINT (owner provides the
-  endpoint, the loop builds all else plus the flip), D-BUILDER-FULL (full no-code page/layout
-  builder, S37), D-AUTOMATION-LINE (auto internal notifications plus read-only watch auto-renew are
-  OK; every client-facing send stays human-confirmed).
-- **The prior cycles are COMPLETE and verified.** The 2026-07-22 overnight build (Slices 1–10) plus
-  the adversarial browser QA and demo test-script pass (Slices 11–12) all shipped and PASSED
-  (`F-OVERNIGHT-RUN-2026-07-22`, `F-OVERNIGHT-QA-2026-07-22`). `main` = `ui-ux-overhaul`, pushed.
-- **Production serves the QA-verified build.** Cloud Run `pmi-kc-kb-demo` serves commit `7663cec`
-  as revision `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7` at 100%
-  (`F-CURRENT-SERVING-CHECKPOINT-2026-07-22`). Rollback: `pmi-kc-kb-demo-rmrwc70pc-d5cb9815094b`.
-- **Audited code-state (2026-07-23):** the RentVine / LeadSimple / Dotloop / maintenance executors
-  plus full contracts are already BUILT and wired to FAKE providers; the gap is a live provider plus
-  one external credential each. That is exactly what the build-to-seam program closes.
+- **Wave 1 of the full-suite build program is COMPLETE and merged.** All six pure-app-plane suites
+  shipped in the `ui-ux-overhaul` worktree and ff-merged to `main` (`ceb6bea`), each with a green full
+  gate and an independent multi-skeptic adversarial falsification pass. Each has an authoritative
+  `docs/facts.md` F-row (the record of truth); `docs/status.md` carries the narrative history.
+- **A documentation + handoff cycle then ran (2026-07-23, docs only, no app code).** It produced two
+  client deliverables — `docs/client-unblock-guide-2026-07-23.md` (every owner-unblock ask) and
+  `docs/pmi-kc-app-guide-2026-07-23.html` (plain-language app guide) — and rewrote
+  `docs/customer-demo-walkthrough-2026-07-21.html` into Say / Do / Process test rows.
+- **Deploy of `ceb6bea` is pending.** Production still serves `7663cec` on revision
+  `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7` (`F-CURRENT-SERVING-CHECKPOINT-2026-07-22`); rollback
+  `pmi-kc-kb-demo-rmrwc70pc-d5cb9815094b`. Wave-1 gates are already merged, so a redeploy only advances
+  the served label; production stays QA-verified. Deploy is owner-run (`npm run auth:session`, then
+  `npm run deploy -- --budget-confirmed --allow-multiple-spaces`) when ADC is fresh.
+- **The four owner Q&A decisions (2026-07-23)** remain in force (`F-ROADMAP-BUILD-AUTHORIZED`, roadmap
+  §3): D-RENT-SUGGEST, D-RENTVINE-ENDPOINT, D-BUILDER-FULL, D-AUTOMATION-LINE.
 
-## Roadmap program — next work
-
-**Shipped this cycle (2026-07-23, worktree `ui-ux-overhaul`, ff-merged to `main`):**
-
-(Each shipped slice below has a full `docs/facts.md` F-row — the authoritative record; these are one-line pointers. `docs/status.md` carries the S29/S32/S33 history entry; S38a/S28a/S39.1 live in their F-rows.)
+## Wave 1 — shipped (one-line pointers; the F-row is authoritative)
 
 - **S29** comp-informed rent suggestion, Admin-approval-gated → `F-RENT-SUGGEST-ADMIN-GATED` (supersedes
-  `F-NEGOTIATION-EXCLUDED`). AC-S29-1..8; falsified clean; Turbopack green.
-- **S32** KB corrections learning loop + source freshness + read-only model-config → `F-KB-CORRECTIONS-LEARNING`
-  (`Q-KBCORR-1/2`). AC-S32-1..9.
-- **S33** Ask box → live-action front door (reuses the desk's gated composer; no new executor/endpoint/scope/gate)
-  → `F-ASK-ACTION` (resolves `Q-ASK-ACTION-SCOPE`). AC-S33-1..8.
-- **S38a** maintenance owner-notice draft made REACHABLE (property-anchored owner resolve, draft-only, `.send`
-  stays gated) → `F-MAINT-OWNER-DRAFT-REACHABLE`. AC-S38-1..4.
-- **S28a** market-comp provider (manual default; RentCast built INERT) + comp-screenshot Drive upload,
-  DISPLAY-only, two gated-OFF Registry entries → `F-MARKET-COMP-PROVIDER` (`Q-RENTCAST-ENDPOINT`). AC-S28-1..6.
-- **S39.1** (notification-center half of S39) → `F-SUPPORT-NOTIFY-CENTER` (records `Q-SUPP-FOLLOWUP`). Admin-scoped
-  Feedback lane on the ONE S17 machinery: new `support` lane + meta, `support_reports` family (7→8), value-free
-  `gatherSupportAttention` (reads only `support_reports`, at most two count signals, `/admin` deep link only),
-  hub gathers it `full && isAdmin` + serve-time Admin family filter (mirrors `team_review`), `/notifications`
-  Feedback section, and the `SupportReportsPanel` badge from the SAME gather (interlock: neither recomputes;
-  the hub also honors notification mute/snooze so it can intentionally show less than the authoritative panel
-  badge — pinned by tests). No send. AC-S39-1/-2/-3/-8 green; 2877 tests; falsification found only that
-  intended mute-layer nuance (severity low), resolved + tested.
-- **S39.2** (internal transactional executor, gated OFF) → `F-INTERNAL-NOTIFY-EXECUTOR`. LIVE: the destination
-  config now refuses a non-internal address (schema + route; `isInternalTransactionalDestination`). BUILT/INERT:
-  `sendInternalTransactionalNotice` — gate-refused unless `internal.transactional_notice.send` is
-  production_allowed (OFF in the seed); recipient ONLY from `readOwnerTransactionalDestinationSystem` (no
-  recipient field on the input, so a caller can't supply one); domain re-asserted at send; metadata-only payload;
-  idempotent one-attempt keyed `support_report:{id}:filed` + durable receipt/health store. Dedicated key; generic
-  `gmail.message.send` untouched. AC-S39-4/-5/-6 green; 2891 tests; 4-skeptic falsification clean.
-- **S39.3** (auto-emit + LIVE gate flip) → `F-INTERNAL-NOTIFY` (completes S39, AC-S39-1..8; Supersede Log
-  `SUPPORT-INTAKE-NO-EMAIL`). `report-issue` now emits ONE metadata-only internal notice AFTER the durable
-  queue write (best-effort; never blocks the write/response; no notice when the write fails). The gate
-  `internal.transactional_notice.send` is FLIPPED live (`production_allowed:true`, both `EXECUTABLE_ALLOWLIST`
-  copies + all pinned tests) — authorized within-suite by D-AUTOMATION-LINE; the concrete
-  `GmailInternalTransactionalSender` sends AS `KB_APPROVAL_SENDER` over the approved scope (no new scope). The
-  now-false "display-only"/"nothing is emailed" copy was deleted. Generic `gmail.message.send` stays closed;
-  every client-facing send stays human-confirmed. AC-S39-7 green; 2897 tests; falsification clean.
+  `F-NEGOTIATION-EXCLUDED`). `73f6b41`.
+- **S32** KB corrections learning loop + source freshness + read-only model-config →
+  `F-KB-CORRECTIONS-LEARNING` (`Q-KBCORR-1/2`). `538cc87`.
+- **S33** Ask box → live-action front door (reuses the desk's gated composer) → `F-ASK-ACTION` (resolves
+  `Q-ASK-ACTION-SCOPE`). `db601ae`.
+- **S38a** maintenance owner-notice draft made reachable (property-anchored resolve; draft-only) →
+  `F-MAINT-OWNER-DRAFT-REACHABLE`. `2bc11d7`.
+- **S28a** market-comp provider (manual default; RentCast inert) + comp-screenshot upload, display-only →
+  `F-MARKET-COMP-PROVIDER` (`Q-RENTCAST-ENDPOINT`). `5c03c06`.
+- **S39** internal transactional notifications + Admin Feedback center, internal-only auto
+  (`D-AUTOMATION-LINE`) → `F-SUPPORT-NOTIFY-CENTER` (`e32587a`) → `F-INTERNAL-NOTIFY-EXECUTOR`
+  (`9cca3b1`) → `F-INTERNAL-NOTIFY` (`ceb6bea`; Supersede Log `SUPPORT-INTAKE-NO-EMAIL`).
 
-**Wave 1 is COMPLETE.** All pure-app-plane suites shipped: S29, S32, S33, S38a, S28a, S39 (S39.1/.2/.3). Resume
-at **Wave 2** — the live-provider seams, one owner step each: S30 RentVine write (endpoint incoming), S31 Gmail
-watch (Pub/Sub topic + Scheduler), S28b RentCast (API key), S35 LeadSimple (key + vendor confirm), S34 Dotloop
-(OAuth app), S36 Space provisioning (billing + create identity), S38b maintenance send (owner-mapping evidence).
-Wave 3 = S37 no-code builder. Build order `docs/roadmap-unblock-2026-07-23.md` §4/§5; per suite build the live
-provider to the seam, then flip its gate once the named owner dependency is documented. The suite specs S28–S39
-live under `docs/feature-suites/` (spec-shape sentinel plus README rows); each is decision-complete.
+## Next work — Wave 2 (seam built; each waits on one named owner step)
+
+Resume at **Wave 2** — the live-provider seams. The executor plus full S25/S26 contract are already built
+and wired to fake providers; each needs the live provider built to the seam plus one owner dependency to
+flip: S30 RentVine write (endpoint), S31 Gmail watch (Pub/Sub topic + Scheduler JOB), S28b RentCast (API
+key), S35 LeadSimple (key + vendor confirm), S34 Dotloop (OAuth app), S36 Space provisioning (billing +
+create identity), S38b maintenance send (owner-mapping evidence — CONFIRMED, flip is a reviewed change
+after S38a). **Wave 3** = S37 no-code builder (pure app-plane, no owner dep). Build order and the full
+owner-dependency list: `docs/roadmap-unblock-2026-07-23.md` §4/§5; the client-facing asks are in
+`docs/client-unblock-guide-2026-07-23.md`. Per suite: build the live provider to the seam, then flip its
+gate (both `EXECUTABLE_ALLOWLIST` copies + pinned tests) once the named dependency is documented.
 
 ## Safe Stop Boundary
 
-- `main` and `ui-ux-overhaul` are aligned, pushed, working tree clean; no slice is half-applied and
-  no mutation is mid-flight. Production serves this exact build.
-- The seven canonical app-only Approval Test fixtures are at `Ready for Approval`; both managed
-  internal staff identities are `Admin` with All-spaces access. No reusable authenticated
-  restricted-role or Vendor session is retained; a clean signed-out public context is ready.
-- All Test/identity baselines are restored. Resume from committed state; never replay a terminal
-  mutation.
+- `main` and `ui-ux-overhaul` are aligned at `ceb6bea`, pushed, working tree clean; no slice is
+  half-applied and no mutation is mid-flight. Production serves the QA-verified `7663cec`.
+- The seven canonical app-only Approval Test fixtures are at `Ready for Approval`; both managed internal
+  staff identities are `Admin` with All-spaces access. No reusable authenticated restricted-role or
+  Vendor session is retained; a clean signed-out public context is ready.
+- All Test/identity baselines are restored. Resume from committed state; never replay a terminal mutation.
 
 ## Goal
 
 Execute the full-suite build program (`docs/roadmap-unblock-2026-07-23.md`) build-to-seam: build each
-roadmap suite's app-plane plus live provider plus full contract, ship the pure-app-plane suites, and
-stop only at each suite's one named owner dependency (roadmap §5). Do not defer a whole feature at the
-seam. Preserve the safety NEVERs (roadmap §7).
+roadmap suite's app-plane plus live provider plus full contract, ship the pure-app-plane suites, and stop
+only at each suite's one named owner dependency (roadmap §5). Do not defer a whole feature at the seam.
+Preserve the safety NEVERs (roadmap §7).
 
 ## Next Exact Actions
 
-1. Start at roadmap §4 Wave 1. For each suite: read its spec under `docs/feature-suites/`, author a
-   `docs/temp/<slug>-plan.md` packet, build the app-plane, verify and falsify, ff-merge, and promote
-   to a `docs/facts.md` `F-*` row citing its `AC-` ids.
-2. Interleave Wave 2 as owner dependencies (roadmap §5) land. Build each live provider to the seam
-   now; flip its gate (both `EXECUTABLE_ALLOWLIST` copies plus pinned tests) once the dependency is
-   documented.
-3. The owner dependencies (roadmap §5) are the only external blockers: RentVine endpoint (being
-   provided), RentCast key, Gmail Pub/Sub topic plus Scheduler, Sheets WRITE scope on the reader
-   SA's DWD grant, LeadSimple key plus vendor confirm, Dotloop OAuth app, Space-provisioning billing
-   plus create identity, maintenance-send owner-mapping evidence, kill-switch arming, per-session
-   `npm run auth:session` plus owner `npm run deploy`.
-4. Optional: align the serving commit — `npm run auth:session` then
-   `npm run deploy -- --budget-confirmed --allow-multiple-spaces` (verify `vertex spaces:11`, capture
-   the rollback revision). Production is already QA-verified, so this only advances the deployed label.
+1. Owner-run: `npm run auth:session`, then deploy `ceb6bea` with
+   `npm run deploy -- --budget-confirmed --allow-multiple-spaces` (verify `vertex spaces:11`, capture the
+   rollback revision, HTTP-smoke the auth boundary). Production is already QA-verified; this advances the
+   served label to the Wave-1 build.
+2. Interleave Wave 2 as owner dependencies (roadmap §5) land. Build each live provider to the seam now;
+   flip its gate (both `EXECUTABLE_ALLOWLIST` copies + pinned tests) once the dependency is documented.
+3. Or start **Wave 3 / S37** (the no-code builder) — pure app-plane, no owner dependency — under the same
+   worktree → gate → falsify → ff-merge → F-row discipline.
 
 ## Locked Safety
 
 - No autonomous, scheduled, bulk, or model-triggered CLIENT-facing send. Every client-facing send is
-  human-initiated and exact-confirmed. Internal-staff notifications and read-only Gmail-watch renewal
-  may auto-run (`D-AUTOMATION-LINE`).
+  human-initiated and exact-confirmed. Internal-staff notifications and read-only Gmail-watch renewal may
+  auto-run (`D-AUTOMATION-LINE`).
 - No guessed provider endpoint/value or customer data in git/evidence.
 - Every Live external effect stays target-labeled, one-attempt, idempotent, receipted, reconcilable,
   monitored, and reversible; every client-facing send OR system-of-record write is additionally
@@ -128,8 +93,8 @@ seam. Preserve the safety NEVERs (roadmap §7).
 
 ## Resume
 
-Read `AGENTS.md`, `docs/facts.md`, this file, `docs/roadmap-unblock-2026-07-23.md`, then the target
-suite spec under `docs/feature-suites/`. The prior cycles are done and verified; the open work is the
-authorized full-suite build program. Do not re-verify closed findings unless new evidence contradicts
-them, and do not reopen a genuinely SETTLED decision — but the roadmap suites (S28–S39) are
-AUTHORIZED new scope, not settled-closed, so build them.
+Read `AGENTS.md`, `docs/facts.md`, this file, `docs/roadmap-unblock-2026-07-23.md`, then the target suite
+spec under `docs/feature-suites/`. Wave 1 and the prior cycles are done and verified; the open work is
+Wave 2 (owner-gated seams) and Wave 3 (S37). Do not re-verify closed findings unless new evidence
+contradicts them; do not reopen a genuinely SETTLED decision. The roadmap suites (S28–S39) are AUTHORIZED
+scope, not settled-closed.

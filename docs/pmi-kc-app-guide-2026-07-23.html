@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Your PMI KC App - What It Does and How to Use It</title>
+    <style>
+      /* Self-contained styling. No external fonts, stylesheets, scripts, or images.
+         Colors follow PMI's observed identity (black field, white wordmark, orange accent).
+         The orange is an accessible placeholder pending the official PMI color values. */
+      :root {
+        --ink: #1a1d21;
+        --muted: #59616b;
+        --line: #e2e5e9;
+        --surface: #f6f7f9;
+        --white: #ffffff;
+        --black: #111417;
+        --orange: #d75f16;
+        --orange-ink: #9c4409;
+        --ok: #1f7a44;
+        --ok-bg: #e7f4ec;
+        --wait: #8a5a00;
+        --wait-bg: #fbf1dc;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--white);
+        color: var(--ink);
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        line-height: 1.6;
+        font-size: 17px;
+      }
+      .wrap {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 0 20px 80px;
+      }
+      header.hero {
+        background: var(--black);
+        color: var(--white);
+        padding: 34px 20px 30px;
+      }
+      .hero-inner {
+        max-width: 860px;
+        margin: 0 auto;
+      }
+      .wordmark {
+        font-size: 40px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        line-height: 1;
+        color: var(--white);
+      }
+      .tagline {
+        color: var(--orange);
+        font-weight: 600;
+        margin-top: 6px;
+        font-size: 15px;
+        letter-spacing: 0.2px;
+      }
+      .hero h1 {
+        color: var(--white);
+        font-size: 25px;
+        margin: 20px 0 4px;
+        font-weight: 700;
+      }
+      .hero p {
+        color: #cfd4da;
+        margin: 4px 0 0;
+        font-size: 16px;
+      }
+      h2 {
+        font-size: 22px;
+        margin: 40px 0 8px;
+        padding-bottom: 8px;
+        border-bottom: 3px solid var(--orange);
+        display: inline-block;
+      }
+      h3 {
+        font-size: 18px;
+        margin: 26px 0 4px;
+      }
+      a {
+        color: var(--orange-ink);
+        font-weight: 600;
+      }
+      p {
+        margin: 10px 0;
+      }
+      .lead {
+        font-size: 18px;
+        color: var(--ink);
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-left: 4px solid var(--orange);
+        border-radius: 10px;
+        padding: 16px 18px;
+        margin: 16px 0;
+        background: var(--white);
+      }
+      .card h3 {
+        margin-top: 0;
+      }
+      .card .who {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 2px 0 10px;
+      }
+      .btnrow {
+        margin: 14px 0 4px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .btn {
+        display: inline-block;
+        background: var(--black);
+        color: var(--white) !important;
+        text-decoration: none;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 15px;
+      }
+      .btn.open {
+        background: var(--orange);
+      }
+      .btn:focus-visible {
+        outline: 3px solid var(--orange-ink);
+        outline-offset: 2px;
+      }
+      .tablink {
+        display: inline-block;
+        margin-top: 10px;
+        font-size: 15px;
+      }
+      .pill {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 999px;
+        vertical-align: middle;
+        margin-left: 6px;
+      }
+      .pill.everyone {
+        background: var(--surface);
+        color: var(--muted);
+        border: 1px solid var(--line);
+      }
+      .pill.admin {
+        background: #eef1fb;
+        color: #37489a;
+        border: 1px solid #d5dcf5;
+      }
+      .note {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px 18px;
+        margin: 18px 0;
+      }
+      .safe {
+        background: var(--ok-bg);
+        border: 1px solid #bfe3cc;
+        border-radius: 10px;
+        padding: 16px 18px;
+        margin: 18px 0;
+      }
+      .safe strong {
+        color: var(--ok);
+      }
+      ul {
+        margin: 10px 0;
+        padding-left: 22px;
+      }
+      li {
+        margin: 6px 0;
+      }
+      ol.steps {
+        padding-left: 22px;
+      }
+      ol.steps li {
+        margin: 8px 0;
+      }
+      footer {
+        border-top: 1px solid var(--line);
+        margin-top: 44px;
+        padding-top: 18px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .toc {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin: 22px 0;
+      }
+      .toc ul {
+        columns: 2;
+        margin: 6px 0 0;
+      }
+      @media (max-width: 560px) {
+        .toc ul {
+          columns: 1;
+        }
+        .wordmark {
+          font-size: 34px;
+        }
+        body {
+          font-size: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="wordmark">pmi.</div>
+        <div class="tagline">the property management people</div>
+        <h1>Your app: what it does and how to use it</h1>
+        <p>A plain-language guide for PMI KC Metro. Updated 2026-07-23.</p>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <p class="lead">
+        This is your team's web app for lease renewals, maintenance, and answering
+        questions from a trusted knowledge base. You open it in a normal web browser and
+        sign in with your PMI work account. This guide explains how to get in, who can use
+        it, and what each part of the menu does, in simple terms.
+      </p>
+
+      <div class="btnrow">
+        <a
+          class="btn open"
+          href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/"
+          target="_blank"
+          rel="noopener"
+          >Open the app</a
+        >
+        <a
+          class="btn"
+          href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/sign-in"
+          target="_blank"
+          rel="noopener"
+          >Go to the sign-in page</a
+        >
+      </div>
+
+      <div class="toc">
+        <strong>In this guide</strong>
+        <ul>
+          <li><a href="#signin">How to sign in and who can</a></li>
+          <li><a href="#menu">The main menu</a></li>
+          <li><a href="#console">Console</a></li>
+          <li><a href="#spaces">Spaces</a></li>
+          <li><a href="#renewal">Lease Renewal</a></li>
+          <li><a href="#maintenance">Maintenance</a></li>
+          <li><a href="#approval">Approval Queue</a></li>
+          <li><a href="#comms">Communications</a></li>
+          <li><a href="#connections">Connections</a></li>
+          <li><a href="#admin">Admin</a></li>
+          <li><a href="#extras">The bell, feedback, sign out</a></li>
+          <li><a href="#safe">Our safety promise</a></li>
+          <li><a href="#brand">A note on branding</a></li>
+        </ul>
+      </div>
+
+      <h2 id="signin">How to sign in and who can</h2>
+      <p>
+        Open the app and you land on the sign-in page. Sign in with your PMI KC Metro
+        Google work account (the <strong>pmikcmetro.com</strong> account). Personal Google
+        accounts are not allowed, and the app never uses one.
+      </p>
+      <ol class="steps">
+        <li>
+          Go to the
+          <a
+            href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/sign-in"
+            target="_blank"
+            rel="noopener"
+            >sign-in page</a
+          >.
+        </li>
+        <li>Choose your PMI work Google account and continue.</li>
+        <li>You arrive at the Console, the app's home screen.</li>
+      </ol>
+      <p>
+        <strong>Who can use it.</strong> Everyone on the team uses the same work-account
+        sign-in. What you can see and do depends on your role:
+      </p>
+      <ul>
+        <li><strong>Editor</strong> prepares work, such as renewal drafts.</li>
+        <li>
+          <strong>Approver</strong> reviews and approves items that need a second set of
+          eyes.
+        </li>
+        <li>
+          <strong>Admin</strong> manages people, connections, and settings, and can do
+          everything above. Today you and Dan are the Admins.
+        </li>
+      </ul>
+      <p>
+        If you are ever away from the keyboard for a while, the app warns you and then
+        signs you out on its own to keep things safe.
+      </p>
+
+      <h2 id="menu">The main menu</h2>
+      <p>
+        Across the top of every page is the menu. From left to right you see the
+        <strong>pmi.</strong> name (which takes you home), then the tabs below, then a
+        bell for notifications, your role, and a sign-out button. You only see the tabs
+        your role and access allow.
+      </p>
+
+      <h3 id="console">Console <span class="pill everyone">Everyone</span></h3>
+      <div class="card">
+        <p class="who">The home screen. Also opens when you click "pmi." or "Console."</p>
+        <p>
+          The Console is your starting point. It shows what needs your attention and has
+          an
+          <strong>Ask</strong> box where you can type a question in plain English (for
+          example, about a policy or a process) and get an answer backed by your approved
+          knowledge sources. Each answer shows how it was produced and how many sources it
+          used, so you can trust it. From here you can also start a task, such as
+          preparing a renewal notice, and the app walks you through the safe steps.
+        </p>
+        <a
+          class="tablink"
+          href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/ask"
+          target="_blank"
+          rel="noopener"
+          >Open the Console</a
+        >
+      </div>
+
+      <h3 id="spaces">Spaces <span class="pill everyone">Everyone</span></h3>
+      <div class="card">
+        <p class="who">A front-door menu of your work areas.</p>
+        <p>
+          Spaces is a simple menu of the different areas the app covers, such as Renewals
+          and Maintenance. Pick a Space to jump into that area. Think of it as choosing
+          which desk you want to sit at.
+        </p>
+        <a
+          class="tablink"
+          href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/spaces"
+          target="_blank"
+          rel="noopener"
+          >Open Spaces</a
+        >
+      </div>
+
+      <h3 id="renewal">
+        Lease Renewal <span class="pill everyone">Renewals access</span>
+      </h3>
+      <div class="card">
+        <p class="who">Prepare and track lease renewals.</p>
+        <p>
+          This is the renewal desk. It reads real lease details, helps you prepare the
+          renewal notice to the owner or the tenants, and tracks where each renewal
+          stands. You can record the rent basis from comparable listings, and the notice
+          shows that basis with its sources. When a rent number is suggested, an Admin has
+          to approve that exact number before it goes into a draft. Nothing is sent from
+          here on its own: the app prepares the draft and a person reviews and sends it.
+        </p>
+        <a
+          class="tablink"
+          href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/lease-renewal"
+          target="_blank"
+          rel="noopener"
+          >Open Lease Renewal</a
+        >
+      </div>
+
+      <h3 id="maintenance">
+        Maintenance <span class="pill everyone">Maintenance access</span>
+      </h3>
+      <div class="card">
+        <p class="who">Track maintenance tickets and owner notices.</p>
+        <p>
+          The maintenance area tracks repair tickets and helps you prepare the notice to
+          the property owner about a maintenance item. As with renewals, the app prepares
+          the draft and a person reviews and sends it. Tenant photos and details are
+          handled carefully and are never mixed into the knowledge base.
+        </p>
+        <a
+          class="tablink"
+          href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/maintenance"
+          target="_blank"
+          rel="noopener"
+          >Open Maintenance</a
+        >
+      </div>
+
+      <h3 id="approval">
+        Approval Queue <span class="pill everyone">Renewals access</span>
+      </h3>
+      <div class="card">
+        <p class="who">One place for items that need a decision.</p>
+        <p>
+          The Approval Queue is a single, urgent-first list of items waiting for a
+          decision, so nothing slips through the cracks. You open an item, see the detail,
+          and approve or resolve it right there. Higher-risk items ask for a short written
+          reason before you approve, which is kept for the record.
+        </p>
+        <a
+          class="tablink"
+          href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/approval-queue"
+          target="_blank"
+          rel="noopener"
+          >Open the Approval Queue</a
+        >
+      </div>
+
+      <h3 id="comms">Communications <span class="pill everyone">Everyone</span></h3>
+      <div class="card">
+        <p class="who">Workflow emails, drafts, and templates.</p>
+        <p>
+          Communications is where workflow email lives: the renewal and maintenance
+          drafts, the message templates, and replies tied to a renewal or a ticket. It
+          only touches messages linked to your work here; it is not a general inbox. Every
+          send is reviewed and confirmed by a person first.
+        </p>
+        <a
+          class="tablink"
+          href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/gmail-hub"
+          target="_blank"
+          rel="noopener"
+          >Open Communications</a
+        >
+      </div>
+
+      <h3 id="connections">
+        Connections <span class="pill everyone">Everyone (Admin sets up)</span>
+      </h3>
+      <div class="card">
+        <p class="who">See which outside tools are connected.</p>
+        <p>
+          Connections shows the outside tools the app can work with, such as RentVine and
+          Google Sheets, and whether each one is connected and healthy. Everyone can see
+          the status. An Admin does the actual setup. This is where a new tool becomes
+          available once you provide its key or access.
+        </p>
+        <a
+          class="tablink"
+          href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/connections"
+          target="_blank"
+          rel="noopener"
+          >Open Connections</a
+        >
+      </div>
+
+      <h3 id="admin">Admin <span class="pill admin">Admin only</span></h3>
+      <div class="card">
+        <p class="who">People, settings, feedback, and behind-the-scenes tools.</p>
+        <p>
+          The Admin area is for managing the app. From here an Admin manages who is on the
+          team and their roles, reviews feedback that people send with the "Report an
+          issue" button, and reaches the setup and review tools. Only Admins see this tab.
+        </p>
+        <a
+          class="tablink"
+          href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/admin"
+          target="_blank"
+          rel="noopener"
+          >Open Admin</a
+        >
+      </div>
+
+      <h2 id="extras">The bell, feedback, and sign out</h2>
+      <ul>
+        <li>
+          <strong>The bell (notifications).</strong> The bell near the top right collects
+          what needs attention, in time order. Click it to open your
+          <a
+            href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/notifications"
+            target="_blank"
+            rel="noopener"
+            >notifications</a
+          >.
+        </li>
+        <li>
+          <strong>Report an issue.</strong> A button is on every page. If something looks
+          wrong or you have an idea, click it and write a short note. It goes straight to
+          the team for review, and your staff destination also gets a short internal
+          heads-up. It never emails a tenant or owner.
+        </li>
+        <li>
+          <strong>Sign out.</strong> The sign-out button is at the top right. The app also
+          signs you out on its own after a period of no activity.
+        </li>
+      </ul>
+
+      <div class="safe" id="safe">
+        <p>
+          <strong>Our safety promise.</strong> No email or message is ever sent to an
+          owner, tenant, or vendor unless a person reviews the exact message and confirms
+          it. The app can prepare a draft, but a human always presses send. Only small
+          internal notices to your own staff can send on their own. The app keeps a safe
+          practice mode so a mistaken click can never send a real message, and a real
+          spending cap stays switched on at all times.
+        </p>
+      </div>
+
+      <div class="note" id="brand">
+        <p>
+          <strong>A note on branding.</strong> This guide and the app use the confirmed
+          PMI name "pmi." and tagline, on the black-and-orange identity from your brand
+          book cover. The official PMI logo files, exact brand color values, and brand
+          fonts are not yet in our files, so the app currently uses clean, accessible
+          default styling and does not guess a logo or a color. When you send the official
+          brand files, we will wire in the real logo, colors, and fonts. This is listed as
+          an open item in the unblock guide.
+        </p>
+      </div>
+
+      <footer>
+        <p>
+          Live app:
+          <a
+            href="https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/"
+            target="_blank"
+            rel="noopener"
+            >pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app</a
+          >. Sign in with your pmikcmetro.com work account.
+        </p>
+        <p>
+          Property Management Inc. This is an internal guide for PMI KC Metro. For the
+          list of things the app still needs from you, see the unblock guide that
+          accompanies this file.
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>

@@ -11,6 +11,53 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## Documentation + handoff cycle — Wave 1 complete, client docs produced (2026-07-23)
+
+Documentation-and-handoff cycle after the full-suite Wave-1 build. No product/app code changed this
+cycle (internal docs + client deliverables only). `main` = `ui-ux-overhaul` at `ceb6bea`, pushed,
+working tree clean.
+
+**Wave 1 is fully shipped and merged** (all six pure-app-plane suites; each carries an authoritative
+`docs/facts.md` F-row, which is the record of truth). Beyond the S29/S32/S33 entry below, three more
+slices landed in the `ui-ux-overhaul` worktree and ff-merged to `main`, each with a green full gate and
+an independent multi-skeptic adversarial falsification pass (no safety violation):
+
+- **S38a** maintenance owner-notice draft made reachable — property-anchored owner resolution,
+  draft-only, `.send` stays gated → `F-MAINT-OWNER-DRAFT-REACHABLE` (commit `2bc11d7`).
+- **S28a** market-comp provider (manual default; RentCast adapter built inert) + comp-screenshot Drive
+  upload, display-only, two gated-OFF Registry entries → `F-MARKET-COMP-PROVIDER` (`Q-RENTCAST-ENDPOINT`)
+  (commit `5c03c06`). Falsification caught and fixed a real persistence gap (screenshot-ref round-trip).
+- **S39** internal transactional notifications + Admin Feedback notification center, internal-only auto
+  per `D-AUTOMATION-LINE`: S39.1 the Feedback lane on the S17 attention machinery (`e32587a`), S39.2 the
+  gated-OFF internal executor with a code-enforced internal-only recipient lock (`9cca3b1`), S39.3 the
+  auto-emit plus live gate flip that activates the internal-staff feedback notice (`ceb6bea`) →
+  `F-SUPPORT-NOTIFY-CENTER` → `F-INTERNAL-NOTIFY-EXECUTOR` → `F-INTERNAL-NOTIFY` (Supersede Log
+  `SUPPORT-INTAKE-NO-EMAIL`). 2,897 unit tests green.
+
+**Client-facing deliverables produced this cycle** (compiled from the authoritative internal docs;
+secret-free):
+
+- `docs/client-unblock-guide-2026-07-23.md` — every blocked or pending capability written as what it
+  enables, the exact owner step, where it is performed, and what happens once provided (Sheets write
+  scope, RentVine write endpoint, RentCast key, Gmail Pub/Sub + Scheduler, LeadSimple, Dotloop OAuth,
+  Space provisioning, maintenance-send evidence, the infra/provisioning items, and the field
+  confirmations).
+- `docs/pmi-kc-app-guide-2026-07-23.html` — plain-language "what your app does" guide: how to sign in,
+  who can, and what each tab does. Self-contained (inline CSS, no network calls, clickable links). A
+  brand note flags that official PMI logo, color, and font assets are not yet in the repo (the brand
+  pack is source-constrained), so the guide uses accessible product defaults.
+- `docs/customer-demo-walkthrough-2026-07-21.html` — rewritten into copy/paste Say / Do / Process rows,
+  each with an expected result to verify; every gated or deferred item marked as such.
+
+**Deploy state.** `ceb6bea` is merged and pushed but was NOT yet deployed at the start of this cycle;
+production still serves `7663cec` on revision `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7`
+(`F-CURRENT-SERVING-CHECKPOINT-2026-07-22`). The close-out preflight decides deploy vs defer; the
+outcome is recorded at the end of this entry and in the serving-checkpoint fact. Wave-1 activation runs
+behind reviewed gates that are already merged, so a redeploy only advances the served label; production
+stays QA-verified in the meantime.
+
+<!-- CLOSE-OUT DEPLOY RESULT (filled at §5): -->
+
 ## Full-suite build loop — S29 + S32 + S33 shipped, verified, merged (2026-07-23)
 
 Unattended build loop against `docs/roadmap-unblock-2026-07-23.md`. Built in the `ui-ux-overhaul`

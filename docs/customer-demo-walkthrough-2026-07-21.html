@@ -284,6 +284,11 @@
         background: var(--tip-bg);
         border-color: var(--tip-line);
       }
+      .t-proc {
+        color: var(--ink-soft);
+        background: var(--bg);
+        border-color: var(--line);
+      }
       .row .body {
         flex: 1 1 auto;
         min-width: 0;
@@ -733,184 +738,576 @@
         <section class="act" id="whats-new-2026-07-22">
           <div class="act-head">
             <span class="act-num">NEW</span>
-            <h2>Morning test script &mdash; the 2026-07-22 build (verified)</h2>
+            <h2>Morning test script: Say / Do / Process (2026-07-22 build, verified)</h2>
           </div>
           <p class="act-sub">
-            Walk these before the demo to confirm each new feature works. Every item has a
-            click-path, what to say, and an explicit "Verify". Each carries the result of
-            the automated adversarial pass on 2026-07-22 (emulator run, read-only against
-            live data, zero console errors). Everything below is either live and
-            draft-only, or recorded and safely gated. Nothing sends or writes to a system
-            of record on its own.
+            Walk these top to bottom to confirm the app works. Each step is written the
+            same way, so you can copy and paste as you go: <b>Say</b> is the exact wording
+            to read aloud, <b>Do</b> is the exact action to take, <b>Process</b> is the
+            screen and route it exercises, and <b>Expected</b> is the result to check.
+            Each step also carries the result of the automated pass on 2026-07-22
+            (emulator run, read-only against live data, zero console errors). Everything
+            below is either live and draft-only, or recorded and safely gated. Nothing
+            sends or writes to a system of record on its own.
           </p>
-
-          <div>
-            <h3>1. Answer transparency + source freshness</h3>
-            <p><strong>Where:</strong> Console (home), the Ask box.</p>
-            <p>
-              <strong>Say:</strong> "Every answer tells you which model wrote it and how
-              many sources back it, so the team always sees the provenance."
+          <div class="callout tip">
+            <div class="h">How to read each step</div>
+            <p style="margin: 0">
+              <b>Say</b> = the words to say. <b>Do</b> = click or type this (paste boxes
+              have a Copy button). <b>Process</b> = the tab and route it runs.
+              <b>Expected</b> = what you should see. Anything gated or not yet live is
+              marked as such, so nothing here overclaims.
             </p>
-            <p>
-              <strong>Do:</strong> Type "What is the lease renewal workflow?" and click
-              Get answer.
-            </p>
-            <p>
-              <strong>Verify:</strong> Under the answer, "Answered by &lt;model&gt;
-              &middot; N sources"; the Sources list shows each source, with "reviewed
-              &lt;date&gt;" beside any source that has a review date.
-            </p>
-            <p>
-              <em>Verified 2026-07-22:</em> renders "Answered by Gemini 2.5 Flash &middot;
-              1 source"; a source without a review date correctly shows none (never
-              invented). PASS.
+          </div>
+          <div class="callout safety">
+            <div class="h">Live-data guard</div>
+            <p style="margin: 0">
+              This app reads real RentVine and Sheet data. Every step here is safe: drafts
+              stop at the draft, and nothing is sent to an owner, tenant, or vendor. Do
+              not press a real send during a walkthrough.
             </p>
           </div>
 
-          <div>
-            <h3>2. Comp basis on the owner renewal email</h3>
-            <p>
-              <strong>Where:</strong> Lease Renewal &rarr; open a live renewal &rarr;
-              Owner decision.
-            </p>
-            <p>
-              <strong>Say:</strong> "You enter your own comps &mdash; Zillow low/high and
-              the PMI rental-analysis number &mdash; and they appear source-tagged in the
-              owner draft. The app never suggests a rent figure; you decide."
-            </p>
-            <p>
-              <strong>Do:</strong> Enter Zillow low/high + the PMI number + a comps URL,
-              record the decision, then open the owner-email preview. Use the "Look up
-              this address on Zillow" link.
-            </p>
-            <p>
-              <strong>Verify:</strong> The owner draft shows a "Comparable range" from
-              Zillow and a "Suggested market value" from PMI rental analysis (your
-              numbers, source-tagged) &mdash; not "Needs Verification". Leaving comps
-              blank shows "Needs Verification", never a made-up number. The Zillow link
-              opens the property address.
-            </p>
-            <p>
-              <em>Verified 2026-07-22:</em> the capture form, sourcing, Zillow deep link,
-              and the gated "KB Proposed &mdash; Comp basis" write-back proposal are all
-              unit-verified (green). The live browser walk is BLOCKED on the emulator (the
-              demo session could not authenticate the live RentVine read &mdash; the safe
-              outcome, no customer data exposed); walk this one on a real signed-in
-              session.
-            </p>
+          <div class="beat">
+            <h3><span class="bn">1</span> Sign in</h3>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  "You sign in with your PMI work Google account. Personal accounts are
+                  never allowed."
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Open the app, then sign in with your
+                  <span class="ui">pmikcmetro.com</span> account.
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-proc">Process</span>
+              <div class="body">
+                <p>
+                  Route <span class="ui">/sign-in</span> &rarr;
+                  <span class="ui">Console</span> (<span class="ui">/ask</span>).
+                  Exercises the sign-in boundary.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">Expected</span>
+              <div class="body">
+                <p>
+                  You land on the Console. A signed-out visitor is sent back to the
+                  sign-in page.
+                  <em
+                    >Verified 2026-07-22: unauthenticated home redirects to /sign-in.
+                    PASS.</em
+                  >
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <h3>3. Maintenance owner-notice draft (draft-only)</h3>
-            <p><strong>Where:</strong> Maintenance.</p>
-            <p>
-              <strong>Say:</strong> "A maintenance ticket can draft an owner-notice email
-              into Gmail, addressed to the authoritative owner from RentVine. It is a
-              draft: a person reviews and sends. Sending on its own stays off."
-            </p>
-            <p>
-              <strong>Verify:</strong> The Maintenance screen has no Send control anywhere
-              &mdash; only capture/draft. The owner-notice draft action is on; its paired
-              send action stays off.
-            </p>
-            <p>
-              <em>Verified 2026-07-22:</em> no send affordance on /maintenance; the owner
-              email resolves from portfolio.owners[].email (confirmed 25/25 live in the
-              build); send stays production_allowed:false. PASS.
-            </p>
+          <div class="beat">
+            <h3><span class="bn">2</span> The honesty check: it refuses to guess</h3>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  "The most important thing first: the app will not make something up and
+                  put it in front of an owner or tenant."
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  In the <span class="ui">Question</span> box, paste the line below and
+                  click <span class="ui">Get answer</span>.
+                </p>
+              </div>
+            </div>
+            <div class="copy">
+              <div class="lbl">Paste into the Question box</div>
+              <pre>When does the lease renewal process start?</pre>
+              <button>Copy</button>
+            </div>
+            <div class="row">
+              <span class="tag t-proc">Process</span>
+              <div class="body">
+                <p>
+                  <span class="ui">Console</span> Ask &rarr;
+                  <span class="ui">/api/ask</span>. Exercises grounded answering and the
+                  refuse-to-guess boundary.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">Expected</span>
+              <div class="body">
+                <p>
+                  The banner reads
+                  <span class="quote">"No Reliable Source Found"</span> and it names an
+                  escalation owner. It does not invent an answer.
+                  <em>Verified 2026-07-22: renders the refusal, never a guess. PASS.</em>
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <h3>4. Request a new Space (Admin)</h3>
-            <p>
-              <strong>Where:</strong> Admin &rarr; Spaces &rarr; "Request a new Space".
-            </p>
-            <p>
-              <strong>Say:</strong> "When we want a new knowledge Space, the app records
-              the request and prints the exact commands to provision it. It sets nothing
-              up on its own."
-            </p>
-            <p>
-              <strong>Do:</strong> Enter a name (e.g. "Owner Statements") + what it is
-              for, submit.
-            </p>
-            <p>
-              <strong>Verify:</strong> It saves (appears under Prior requests) and prints
-              the Vertex data-store create command plus the .env.local lines to add
-              &mdash; with every existing Space preserved and the new one merged in.
-            </p>
-            <p>
-              <em>Verified 2026-07-22:</em> persists; emits the real Discovery Engine
-              command + merged .env.local lines preserving all 11 existing Spaces;
-              Admin-only (a non-Admin gets 403). PASS.
-            </p>
+          <div class="beat">
+            <h3><span class="bn">3</span> Start a task from the Ask box</h3>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  "You can also start a real task from the Ask box. It hands off to the
+                  same reviewed draft screen, never a shortcut around the checks."
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Ask about a specific lease renewal. When the app offers to prepare the
+                  notice, follow that link.
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-proc">Process</span>
+              <div class="body">
+                <p>
+                  <span class="ui">Console</span> Ask &rarr; the renewal desk's gated
+                  draft composer. No new send path, no new gate.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">Expected</span>
+              <div class="body">
+                <p>
+                  It opens the same draft composer the renewal desk uses, pre-filled with
+                  that lease, and stays draft-only. If the lease is ambiguous, it does not
+                  guess one.
+                  <em>Shipped; the Create step is draft-only by design.</em>
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <h3>5. Re-index sources (Admin, cost-gated)</h3>
-            <p><strong>Where:</strong> Admin &rarr; Re-index Sources.</p>
-            <p>
-              <strong>Say:</strong> "Re-indexing costs money, so the app never runs it. It
-              records the request and prints the command; a person runs it."
-            </p>
-            <p><strong>Do:</strong> Pick a Space, check the confirmation box, request.</p>
-            <p>
-              <strong>Verify:</strong> The button is disabled until you check the box; on
-              submit it prints the import command and ingests nothing.
-            </p>
-            <p>
-              <em>Verified 2026-07-22:</em> button disabled until confirmed; the API
-              refuses without confirmation and only ever returns the command (never
-              ingests); Admin-only. PASS.
-            </p>
+          <div class="beat">
+            <h3><span class="bn">4</span> Answer transparency and source freshness</h3>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  "Every answer tells you which model wrote it and how many sources back
+                  it, so the team always sees where it came from."
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  In the <span class="ui">Question</span> box, paste the line below and
+                  click <span class="ui">Get answer</span>.
+                </p>
+              </div>
+            </div>
+            <div class="copy">
+              <div class="lbl">Paste into the Question box</div>
+              <pre>What is the lease renewal workflow?</pre>
+              <button>Copy</button>
+            </div>
+            <div class="row">
+              <span class="tag t-proc">Process</span>
+              <div class="body">
+                <p>
+                  <span class="ui">Console</span> Ask &rarr;
+                  <span class="ui">/api/ask</span>. Exercises answer transparency and
+                  source freshness.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">Expected</span>
+              <div class="body">
+                <p>
+                  Under the answer:
+                  <span class="quote">"Answered by &lt;model&gt; &middot; N sources"</span
+                  >. The Sources list shows each source, with
+                  <span class="quote">"reviewed &lt;date&gt;"</span> beside any source
+                  that has a review date.
+                  <em
+                    >Verified 2026-07-22: renders "Answered by Gemini 2.5 Flash &middot; 1
+                    source"; a source with no review date shows none, never invented.
+                    PASS.</em
+                  >
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <h3>6. RentVine write-back (approved, gated off)</h3>
-            <p><strong>Where:</strong> Lease Renewal reconciliation.</p>
-            <p>
-              <strong>Say:</strong> "Writing a renewal back to RentVine is built and
-              approved in principle, behind an in-app confirm gate &mdash; but it stays
-              off until RentVine's write endpoint is documented. Today it is
-              suggestion-only."
-            </p>
-            <p>
-              <strong>Verify:</strong> A reconciliation run says "no live read, no write,
-              and no system-of-record update"; write-back proposals are suggestion-only
-              and need approval; there is no execute/write button.
-            </p>
-            <p>
-              <em>Verified 2026-07-22:</em> gated off; the run states no write / no
-              system-of-record update; no execution control. PASS.
-            </p>
+          <div class="beat">
+            <h3>
+              <span class="bn">5</span> Comp basis and the Admin-approved rent suggestion
+            </h3>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  "You record comps from comparable listings, and they appear
+                  source-tagged in the owner draft. The app can suggest a rent number from
+                  those comps, but only an Admin can approve that exact number before it
+                  goes into a draft, and a person still sends."
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Enter the comp numbers and a comps link, record the decision, then open
+                  the owner-email preview. Use the
+                  <span class="ui">"Look up this address on Zillow"</span> link. As an
+                  Admin, review and approve the suggested number if you want it in the
+                  draft.
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-proc">Process</span>
+              <div class="body">
+                <p>
+                  <span class="ui">Lease Renewal</span> (<span class="ui"
+                    >/lease-renewal</span
+                  >) &rarr; open a live renewal &rarr; Owner decision &rarr; owner-email
+                  preview. Exercises comp capture, source tagging, and the Admin-approved
+                  rent suggestion.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">Expected</span>
+              <div class="body">
+                <p>
+                  The owner draft shows a comparable range and a suggested value from your
+                  numbers, source-tagged, not
+                  <span class="quote">"Needs Verification"</span>. Leaving comps blank
+                  shows <span class="quote">"Needs Verification"</span>, never a made-up
+                  number. A suggested rent number only enters the draft after an Admin
+                  approves it, and a non-Admin cannot approve it. The Zillow link opens
+                  the property address.
+                  <em
+                    >Verified 2026-07-22: capture, sourcing, Zillow deep link, and the
+                    gated comp write-back proposal are green. The Admin-approved rent
+                    suggestion shipped 2026-07-23. The live browser walk was blocked on
+                    the emulator (the demo session could not authenticate the live
+                    RentVine read, which is the safe outcome, no customer data exposed);
+                    walk this one on a real signed-in session.</em
+                  >
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <h3>7. Dotloop connection (authorize in the morning)</h3>
-            <p><strong>Where:</strong> Connections &rarr; Dotloop.</p>
-            <p>
-              <strong>Say:</strong> "Dotloop sign-in is scaffolded. You register the app
-              and authorize it when you are ready; every Dotloop action stays off until it
-              is connected and reviewed."
-            </p>
-            <p>
-              <strong>Verify:</strong> The Dotloop card reads "Not connected" with the
-              note to register + authorize in the morning; clicking Connect makes no live
-              call (it reports the credentials are not configured).
-            </p>
-            <p>
-              <em>Verified 2026-07-22:</em> the note renders; connect returns
-              "credentials_not_configured" with no live Dotloop call. PASS.
-            </p>
+          <div class="beat">
+            <h3><span class="bn">6</span> Maintenance owner-notice draft (draft-only)</h3>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  "A maintenance ticket can draft an owner-notice email into Gmail,
+                  addressed to the property owner from RentVine. It is a draft: a person
+                  reviews and sends. Sending on its own stays off."
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Open a maintenance ticket and prepare the owner-notice draft. Do not
+                  send.
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-proc">Process</span>
+              <div class="body">
+                <p>
+                  <span class="ui">Maintenance</span> (<span class="ui">/maintenance</span
+                  >) &rarr; owner-notice draft. Exercises the property-owner resolution
+                  and the draft-only action; the paired send stays gated off.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">Expected</span>
+              <div class="body">
+                <p>
+                  The Maintenance screen has no Send control anywhere, only capture and
+                  draft. The owner-notice draft action is on; its paired send stays off.
+                  <em
+                    >Verified 2026-07-22: no send control on /maintenance; the owner email
+                    resolves from the property owner record (confirmed on all 25 live
+                    tickets in the build); the send stays off. PASS.</em
+                  >
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <h3>8. Safety recap (say this if asked)</h3>
-            <p>
+          <div class="beat">
+            <h3><span class="bn">7</span> Request a new Space (Admin, records only)</h3>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  "When we want a new knowledge Space, the app records the request and
+                  prints the exact commands to set it up. It sets nothing up on its own."
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Enter a name (for example <span class="ui">Owner Statements</span>) and
+                  what it is for, then submit.
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-proc">Process</span>
+              <div class="body">
+                <p>
+                  <span class="ui">Admin</span> &rarr; Spaces &rarr;
+                  <span class="ui">"Request a new Space"</span>. Records the request and
+                  generates setup commands; it provisions nothing.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">Expected</span>
+              <div class="body">
+                <p>
+                  It saves (appears under
+                  <span class="ui">Prior requests</span>) and prints the data-store setup
+                  command plus the config lines to add, with every existing Space
+                  preserved and the new one merged in.
+                  <em
+                    >Verified 2026-07-22: persists; emits the real setup command and
+                    merged config lines preserving all 11 existing Spaces; Admin-only (a
+                    non-Admin is refused). PASS.</em
+                  >
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">8</span> Re-index sources (Admin, cost-gated)</h3>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  "Re-indexing costs money, so the app never runs it. It records the
+                  request and prints the command; a person runs it."
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>Pick a Space, check the confirmation box, then request.</p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-proc">Process</span>
+              <div class="body">
+                <p>
+                  <span class="ui">Admin</span> &rarr; Re-index Sources. Records the
+                  request and returns the command; it never ingests.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">Expected</span>
+              <div class="body">
+                <p>
+                  The button is disabled until you check the box; on submit it prints the
+                  import command and ingests nothing.
+                  <em
+                    >Verified 2026-07-22: button disabled until confirmed; the request is
+                    refused without confirmation and only ever returns the command;
+                    Admin-only. PASS.</em
+                  >
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">9</span> RentVine write-back (approved, gated off)</h3>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  "Writing a renewal back to RentVine is built and approved in principle,
+                  behind an in-app confirm step, but it stays off until RentVine's write
+                  endpoint is documented. Today it is suggestion-only."
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>Say this. There is no write button to click, by design.</p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-proc">Process</span>
+              <div class="body">
+                <p>
+                  <span class="ui">Lease Renewal</span> reconciliation. The write executor
+                  is built but gated off, waiting on the documented RentVine write
+                  endpoint.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">Expected</span>
+              <div class="body">
+                <p>
+                  A reconciliation run says there is no live read, no write, and no
+                  system-of-record update; write-back proposals are suggestion-only and
+                  need approval; there is no execute or write button.
+                  <em
+                    >Verified 2026-07-22: gated off; the run states no write and no
+                    system-of-record update; no execution control. PASS. This is the one
+                    owner step for RentVine write: the documented endpoint.</em
+                  >
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">10</span> Dotloop connection (not connected yet)</h3>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  "Dotloop sign-in is scaffolded. You register the app and authorize it
+                  when you are ready; every Dotloop action stays off until it is connected
+                  and reviewed."
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Open <span class="ui">Connections</span>, find Dotloop, and click
+                  <span class="ui">Connect</span>.
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-proc">Process</span>
+              <div class="body">
+                <p>
+                  <span class="ui">Connections</span> &rarr; Dotloop. The connection is
+                  scaffolded; no live call is made until you register and authorize the
+                  app.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">Expected</span>
+              <div class="body">
+                <p>
+                  The Dotloop card reads
+                  <span class="quote">"Not connected"</span> with the note to register and
+                  authorize; clicking Connect makes no live call (it reports the
+                  credentials are not configured).
+                  <em
+                    >Verified 2026-07-22: the note renders; connect reports not configured
+                    with no live Dotloop call. PASS. The one owner step for Dotloop is
+                    registering the app.</em
+                  >
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="beat">
+            <h3><span class="bn">11</span> Feedback and notifications</h3>
+            <div class="row say">
+              <span class="tag t-say">Say</span>
+              <div class="body">
+                <p>
+                  "Anyone can send feedback with the Report an issue button. It files to
+                  the team and sends one short internal notice to staff. It never emails a
+                  tenant or owner."
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-do">Do</span>
+              <div class="body">
+                <p>
+                  Click <span class="ui">Report an issue</span> on any page, write a short
+                  note, and submit. As an Admin, open the
+                  <span class="ui">Feedback</span> area to see it.
+                </p>
+              </div>
+            </div>
+            <div class="row">
+              <span class="tag t-proc">Process</span>
+              <div class="body">
+                <p>
+                  <span class="ui">Report an issue</span> &rarr; the support queue, plus
+                  one internal-staff notice. The <span class="ui">Admin</span> Feedback
+                  area and the bell (<span class="ui">/notifications</span>) show it.
+                </p>
+              </div>
+            </div>
+            <div class="row see">
+              <span class="tag t-see">Expected</span>
+              <div class="body">
+                <p>
+                  The note is filed and appears in the Admin Feedback area; the bell and
+                  the Feedback lane show the follow-up count. One internal notice goes to
+                  the configured staff address; nothing goes to a tenant or owner.
+                  <em
+                    >Shipped 2026-07-23: internal-staff auto-notice only; every
+                    client-facing send stays human-confirmed.</em
+                  >
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="callout safety">
+            <div class="h">Safety recap (say this if asked)</div>
+            <p style="margin: 0">
               "Nothing here sends or writes to a system of record on its own. Emails are
-              drafts a person sends. RentVine and Dotloop writes are off until they are
-              set up and reviewed. Re-indexing and provisioning print commands a person
-              runs. The app never invents a rent figure."
+              drafts a person sends. Only small internal notices to our own staff send
+              automatically. RentVine and Dotloop writes are off until they are set up and
+              reviewed. Re-indexing and provisioning print commands a person runs. The app
+              never invents a rent figure; a suggested number comes from comps and needs
+              an Admin's approval before it enters a draft."
             </p>
           </div>
         </section>
