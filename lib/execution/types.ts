@@ -14,6 +14,7 @@ export type ExecutionActionKind =
   | "trusted_publication"
   | "assigned_ticket_photo"
   | "renewal_comp_screenshot"
+  | "internal_transactional"
   | "system_of_record_write"
   | "document_write"
   | "identity_write"

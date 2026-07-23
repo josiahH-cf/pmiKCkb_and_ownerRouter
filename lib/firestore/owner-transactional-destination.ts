@@ -43,6 +43,21 @@ export async function readOwnerTransactionalDestination(
   return data ? readRecord(snapshot.id, data) : defaultOwnerTransactionalDestination();
 }
 
+/**
+ * S39.2: a non-actor-gated SYSTEM read of the internal transactional destination, for the auto-emit that
+ * fires for EVERY authenticated reporter (most of whom are not Admin — the actor-gated
+ * `readOwnerTransactionalDestination` would 403 them). It asserts NO capability and NEVER exposes the
+ * value to a caller surface; it only feeds the server-side executor, which re-asserts the internal-domain
+ * allowlist before addressing anything. Absence resolves to the seeded default.
+ */
+export async function readOwnerTransactionalDestinationSystem(
+  db: Firestore = getAdminFirestore(),
+): Promise<OwnerTransactionalDestinationRecord> {
+  const snapshot = await db.collection(COLLECTION).doc(DOC_ID).get();
+  const data = snapshot.data();
+  return data ? readRecord(snapshot.id, data) : defaultOwnerTransactionalDestination();
+}
+
 export async function updateOwnerTransactionalDestination(
   actor: AuthenticatedUser,
   input: UpdateOwnerTransactionalDestinationInput,

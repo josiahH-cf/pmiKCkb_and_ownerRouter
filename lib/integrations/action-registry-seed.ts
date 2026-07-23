@@ -1090,6 +1090,54 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     production_allowed: false,
   },
   {
+    key: "internal.transactional_notice.send",
+    label: "Send internal transactional feedback notice (internal staff only)",
+    target_system: "Gmail",
+    expected_action:
+      "Auto-send ONE metadata-only internal notice to the owner-configured INTERNAL staff destination when a feedback report is filed. Internal-only automation (D-AUTOMATION-LINE); never a client/tenant/owner-of-record/vendor recipient, never the free-text description.",
+    product_lane: "PMI KC KB",
+    readiness: "Ready for Test",
+    evidence_status: "Documented",
+    documented_evidence:
+      "Internal-staff auto-send is authorized by D-AUTOMATION-LINE (F-ROADMAP-BUILD-AUTHORIZED); every client-facing send stays human-confirmed. Recipient resolves ONLY from a non-actor-gated SYSTEM read of the owner transactional destination and MUST pass the internal-domain allowlist (enforced at config-set AND re-asserted at send); a caller-supplied recipient is impossible (no recipient field) and an absent/non-internal destination fails closed. Payload is metadata-only (route, origin, reporter role, ISO time, /admin deep link), never the description (F-SUPP-1 / TIX-8). One attempt per dedup key support_report:{id}:filed with a durable receipt; reuses the already-approved Gmail send scope + the internal transactional sender identity, no new external scope. This is a DEDICATED narrow key — the generic gmail.message.send stays Registry-closed. Gated production_allowed:false in S39.2; the S39.3 flip is a routine reviewed change.",
+    required_permissions: [
+      "Gmail send scope (already approved) via the internal transactional sender identity",
+      "Owner-configured internal transactional destination (internal domain, Admin-set)",
+    ],
+    event_ingestion_mode: "None",
+    preview_schema_note:
+      "Show the resolved internal recipient, the metadata-only subject/body (route, origin, reporter role, filed time, /admin deep link), and the dedup key; never the free-text feedback description.",
+    preview_payload_schema: [
+      {
+        name: "recipient",
+        label: "Internal destination",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "dedup_key",
+        label: "Idempotency key",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "route",
+        label: "Route (metadata only)",
+        type: "string",
+        required: true,
+        source_system: "KB Internal",
+      },
+    ],
+    test_notes:
+      "Test-lane proof (S39.2, gate OFF): recipient-lock (SYSTEM read only; non-internal destination refused), metadata-only payload, idempotent one-attempt keyed support_report:{id}:filed, and honest delivered:true|false. No real send occurs until the S39.3 flip.",
+    rollback_note:
+      "The gate-off kill switch plus the no-double-send idempotency guard plus the durable receipt; there is no client-facing effect to reverse (internal staff notice only), and the feedback queue write is never blocked by a send failure.",
+    connection_health_check_ref: "health.gmail.workspace_api",
+    production_allowed: false,
+  },
+  {
     key: "vendor.account.invite",
     label: "Invite external Vendor account",
     target_system: "KB Internal",

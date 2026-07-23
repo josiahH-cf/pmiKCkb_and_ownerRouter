@@ -35,6 +35,9 @@ export const EXECUTION_ACTION_POLICIES = {
   "gmail.renewal_notice.draft_create": policy("Medium", "workflow_draft", true),
   "gmail.renewal_notice.send": policy("Medium", "workflow_communication", true),
   "gmail.thread.reply": policy("Medium", "workflow_communication", true),
+  // Internal-staff auto-send (D-AUTOMATION-LINE): its OWN kind, not workflow_communication, so it does not
+  // inherit the human-confirm client-communication gates; the Action Registry gate is the control.
+  "internal.transactional_notice.send": policy("Medium", "internal_transactional", true),
   "google_drive.maintenance_photo.store": policy("Medium", "assigned_ticket_photo", true),
   "google_drive.renewal_comp_screenshot.store": policy(
     "Medium",

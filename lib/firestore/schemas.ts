@@ -8,6 +8,10 @@ import {
   SOURCE_STATES,
 } from "@/lib/constants";
 import { NOTIFICATION_FAMILY_KEYS } from "@/lib/notifications/families";
+import {
+  INTERNAL_TRANSACTIONAL_ALLOWED_DOMAIN,
+  isInternalTransactionalDestination,
+} from "@/lib/notifications/internal-destination";
 
 const isoDateSchema = z
   .string()
@@ -421,15 +425,21 @@ export const UpdateApprovalQueueNotificationInputSchema = z.object({
   action: z.enum(["mark_read"]),
 });
 
-// Owner transactional/notice destination (D-1 support). One editable field: a valid email, trimmed,
-// length-capped, and lowercased — mirrors gmail-hub EmailSchema so the stored value is canonical.
+// Owner transactional/notice destination (D-1 support; S39 internal-domain lock). One editable field: a
+// valid email, trimmed, length-capped, and lowercased — mirrors gmail-hub EmailSchema so the stored value
+// is canonical. S39.2: the destination MUST be an INTERNAL staff address (the transactional lane auto-sends
+// to internal staff only, D-AUTOMATION-LINE), so an Admin cannot save an external/tenant address; the
+// executor re-asserts the same rule at send.
 export const UpdateOwnerTransactionalDestinationInputSchema = z.object({
   destination_email: z
     .string()
     .trim()
     .email("Enter a valid email address.")
     .max(254)
-    .transform((value) => value.toLowerCase()),
+    .transform((value) => value.toLowerCase())
+    .refine(isInternalTransactionalDestination, {
+      message: `The transactional destination must be an internal @${INTERNAL_TRANSACTIONAL_ALLOWED_DOMAIN} address.`,
+    }),
 });
 export type UpdateOwnerTransactionalDestinationInput = z.infer<
   typeof UpdateOwnerTransactionalDestinationInputSchema

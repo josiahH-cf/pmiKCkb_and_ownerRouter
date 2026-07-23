@@ -55,23 +55,23 @@ build program); the older owner-gated backlog with findings/context is `docs/wha
   the hub also honors notification mute/snooze so it can intentionally show less than the authoritative panel
   badge — pinned by tests). No send. AC-S39-1/-2/-3/-8 green; 2877 tests; falsification found only that
   intended mute-layer nuance (severity low), resolved + tested.
+- **S39.2** (internal transactional executor, gated OFF) → `F-INTERNAL-NOTIFY-EXECUTOR`. LIVE: the destination
+  config now refuses a non-internal address (schema + route; `isInternalTransactionalDestination`). BUILT/INERT:
+  `sendInternalTransactionalNotice` — gate-refused unless `internal.transactional_notice.send` is
+  production_allowed (OFF in the seed); recipient ONLY from `readOwnerTransactionalDestinationSystem` (no
+  recipient field on the input, so a caller can't supply one); domain re-asserted at send; metadata-only payload;
+  idempotent one-attempt keyed `support_report:{id}:filed` + durable receipt/health store. Dedicated key; generic
+  `gmail.message.send` untouched. AC-S39-4/-5/-6 green; 2891 tests; falsification pending.
 
-**Wave-1 remaining — resume here (S39.2 + S39.3, the send half of the LAST Wave-1 suite; internal-only, zero owner dep):**
+**Wave-1 remaining — resume here (S39.3, the last step of the LAST Wave-1 suite; internal-only, zero owner dep):**
 
-- **S39.2** (internal transactional executor, gated OFF) — add the internal-domain allowlist to
-  `UpdateOwnerTransactionalDestinationInputSchema`; build `lib/notifications/internal-transactional.ts`
-  (recipient resolved ONLY from a non-actor-gated SYSTEM read of the owner destination — never
-  `readOwnerTransactionalDestination(actor)` which 403s non-Admin reporters; re-assert the domain allowlist at
-  send; metadata-only payload; idempotent one-attempt keyed `support_report:{id}:filed`; receipt/health store),
-  plus the gated-OFF `internal.transactional_notice.send` Registry key (`production_allowed:false`, both
-  allowlists untouched). NOT wired to send yet. AC-S39-4/-5/-6.
 - **S39.3** (auto-emit + in-suite flip) — emit the internal notice from `app/api/report-issue/route.ts` AFTER
   the durable queue write (a send failure never blocks the write); flip the gate the routine reviewed way (both
   `EXECUTABLE_ALLOWLIST` copies + pinned tests); DELETE the now-false "display-only"/"nothing here sends" copy
   (`TransactionalDestinationPanel`, `owner-transactional-destination.ts` header, `report-issue/route.ts`) with a
   Supersede Log marker. AC-S39-7. Then promote `F-INTERNAL-NOTIFY` (AC-S39-1..8).
 
-Build order is `docs/roadmap-unblock-2026-07-23.md` §4; S39.2/S39.3 above are the Wave-1 remainder. Wave 2 =
+Build order is `docs/roadmap-unblock-2026-07-23.md` §4; S39.3 above is the Wave-1 remainder. Wave 2 =
 the live-provider seams, one owner step each (S30 RentVine write, S31 Gmail watch, S28b RentCast, S35
 LeadSimple, S34 Dotloop, S36 Space provisioning, S38b maintenance send); Wave 3 = S37 no-code builder. The
 suite specs S28–S39 live under `docs/feature-suites/` (spec-shape sentinel plus README rows); each is

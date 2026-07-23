@@ -165,13 +165,15 @@ describe("Action Registry seed catalog", () => {
     expect(writeback?.production_allowed).toBe(false);
   });
 
-  it("contains the expanded 40-entry catalog", () => {
-    expect(ACTION_REGISTRY_SEED).toHaveLength(40);
+  it("contains the expanded 41-entry catalog", () => {
+    expect(ACTION_REGISTRY_SEED).toHaveLength(41);
     expect(ACTION_REGISTRY_SEED.map((entry) => entry.key)).toEqual(
       expect.arrayContaining([
         // S28a gated-OFF entries (production_allowed:false, absent from the executable allowlist).
         "google_drive.renewal_comp_screenshot.store",
         "rentcast.rental_listings.search",
+        // S39.2 gated-OFF internal transactional send (dedicated key; generic gmail.message.send unchanged).
+        "internal.transactional_notice.send",
         "rentvine.lease.read",
         "rentvine.work_order.read",
         "leadsimple.task.create",
@@ -209,7 +211,8 @@ describe("Action Registry seed catalog", () => {
     const gmailEntries = ACTION_REGISTRY_SEED.filter(
       (entry) => entry.target_system === "Gmail",
     );
-    expect(gmailEntries).toHaveLength(16);
+    // 16 + the S39.2 gated-OFF internal.transactional_notice.send (Gmail transport, production_allowed:false).
+    expect(gmailEntries).toHaveLength(17);
 
     // Authorized for production by the 2026-07-19 owner grant (F-SEND-AUTHORIZED): draft-into-Gmail,
     // human sends. The sample-data guard (not the registry gate) keeps sample runs preview-only.

@@ -79,15 +79,22 @@ describe("admin transactional-destination route", () => {
     expect(updateMock).not.toHaveBeenCalled();
   });
 
-  it("PATCH persists a valid, lowercased destination for an Admin", async () => {
+  it("PATCH persists a valid, lowercased internal destination for an Admin", async () => {
     setRole("Admin");
-    const response = await PATCH(patch({ destination_email: "Owner@Example.COM" }));
+    const response = await PATCH(patch({ destination_email: "Owner@PMIKCMetro.COM" }));
     expect(response.status).toBe(200);
     const payload = await response.json();
-    expect(payload.destination.destination_email).toBe("owner@example.com");
+    expect(payload.destination.destination_email).toBe("owner@pmikcmetro.com");
     expect(updateMock).toHaveBeenCalledWith(expect.anything(), {
-      destination_email: "owner@example.com",
+      destination_email: "owner@pmikcmetro.com",
     });
+  });
+
+  it("PATCH REFUSES a non-internal destination (internal-domain lock, S39.2)", async () => {
+    setRole("Admin");
+    const response = await PATCH(patch({ destination_email: "tenant@gmail.com" }));
+    expect(response.status).toBe(400);
+    expect(updateMock).not.toHaveBeenCalled();
   });
 
   it("PATCH returns 403 for a non-Admin and never writes", async () => {

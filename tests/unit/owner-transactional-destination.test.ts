@@ -49,14 +49,32 @@ describe("owner transactional destination store", () => {
     const db = fakeDb();
     const saved = await updateOwnerTransactionalDestination(
       user("Admin", "admin-7"),
-      { destination_email: "Owner@Example.COM" },
+      { destination_email: "Owner@PMIKCMetro.COM" },
       db,
     );
-    expect(saved.destination_email).toBe("owner@example.com");
+    expect(saved.destination_email).toBe("owner@pmikcmetro.com");
     expect(saved.updated_by_uid).toBe("admin-7");
 
     const readBack = await readOwnerTransactionalDestination(user("Admin"), db);
-    expect(readBack.destination_email).toBe("owner@example.com");
+    expect(readBack.destination_email).toBe("owner@pmikcmetro.com");
+  });
+
+  it("REFUSES a non-internal (external) destination at the store boundary (AC-S39-4a)", async () => {
+    // The internal-domain lock means an Admin cannot save a tenant/external address as the destination.
+    for (const external of [
+      "tenant@gmail.com",
+      "owner@example.com",
+      "x@evil.pmikcmetro.com",
+      "y@pmikcmetro.com.evil.com",
+    ]) {
+      await expect(
+        updateOwnerTransactionalDestination(
+          user("Admin"),
+          { destination_email: external },
+          fakeDb(),
+        ),
+      ).rejects.toBeInstanceOf(Error);
+    }
   });
 
   it("converts a stored Firestore timestamp to an ISO string on read", async () => {
