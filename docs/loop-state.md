@@ -45,19 +45,13 @@ runtime_action_gates_preflipped: false
 
 ## Locked target
 
-- Separate managed Demo and Production environments, same product behavior.
-- Demo owns realistic invented Demo data/effects; optional Live read-only is explicit, non-mixing,
-  and non-mutating. Production is Live-only and has no Demo/Test product tools.
-- Blue/green is Production candidate revision promotion/rollback, not environment separation.
-- Four daily destinations plus primary non-card Spaces; split attention ownership.
-- One Renewal desk/unit/four-stage flow with scoped Editor desk/draft access.
-- Exact field/evidence/return links; verified exact provider URL or honestly labeled allowlisted
-  generic front door.
-- One-card Approvals; focused Maintenance; tokenized resident intake/RentVine seam.
-- Workflow-only Communications; provider Connections; task Admin; no replacement Test Lab.
-- Remove shipped simulations/no-op Sample/Test tools; retain tests, Demo parity, security, rollback,
-  and real provider seams.
-- Two-stage compatibility retirement; S37 executes only after the canonical baseline under S50.
+The full end-state contract is `docs/fresh-context-ui-ux-recalibration-prompt-2026-07-28.md`.
+In short: independent Demo and Production running the same product; Production Live-only with no
+Demo/Test tools; Demo owns invented data plus an optional explicit, non-mixing, non-mutating Live
+read-only context; blue/green is Production revision promotion, not the data boundary; four daily
+destinations plus primary non-card Spaces; one Renewal desk and per-unit four-stage flow; one-card
+Approvals; focused Maintenance; tokenized resident intake; workflow-only Communications; no
+replacement Test Lab; two-stage evidence-backed retirement; S37 only after the S50 baseline.
 
 ## Dependency order
 
