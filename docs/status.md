@@ -11,6 +11,59 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## S40 implementation, slices 1-4 + defect repair (2026-07-28)
+
+First application-code cycle of the S40-S50 program. Phase 0 of the unattended launcher completed:
+managed ADC refreshed by the owner, budget guard green (posture demo, cap $10), baseline gates
+recorded, and the blocker ledger opened at
+`docs/temp/ui-ux-recalibration-execution-ledger-2026-07-28.md` (gitignored working file). No cloud
+resource, record migration, deploy, send, or external write was performed.
+
+Shipped toward AC-S40-1 and AC-S40-2:
+
+- `lib/environment/descriptor.ts`: the typed, server-owned environment descriptor.
+  `environmentKind` x `dataContext` with exactly three valid combinations, fail-closed on missing/
+  unknown/partial/unsupported, and no request, cookie, query, header, storage, or record-name input.
+  A bounded stage-one bridge derives it from `NODE_ENV` while both variables are unset and marks the
+  source `legacy-node-env`, which the Production cutover preflight will refuse.
+- `readServerConfig` mints the descriptor; `askDemoMode`, `localDemoAuth`, `modelProvider`,
+  `speechProvider`, and `imageStore` key off it instead of raw `NODE_ENV`.
+- Fail-closed record classification: the blanket missing-means-Live default is split into strict
+  `requireRecordDataMode` and ONE named, greppable stage-one compatibility read
+  `resolveStoredDataMode` (66 call sites renamed). Missing stays Live on that single read path
+  deliberately, because flipping it would reclassify stored live customer records rather than
+  protect them; S49 deletes it after the migration proves it is empty.
+- `lib/environment/manifest.ts`: cross-environment resource-collision preflight over nine isolated
+  fields. Catches both a shared value and a cross-environment alias (a distinct-looking identifier
+  that still resolves inside the other environment's project), reports every conflict at once, and
+  emits no executable command on a collision. This is the OPPOSITE check from the cutover report's
+  intra-environment `requireMatchingProjectIds`; both are needed.
+
+Eleven defects found and fixed (full register in the execution ledger):
+
+| Defect                                                                                              | Note                                                         |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Rollback report rejected every revision our own deploy wrapper creates, emitting no restore command | Safety-critical; only Cloud Run's auto revision form matched |
+| `/admin` returned 500 for the whole route whenever Firestore was unreachable                        | One unguarded read outside the guarding try block            |
+| Vendor OAuth accepted any redirect URI when `NODE_ENV != production`                                | A deployed Demo runs a production build                      |
+| `mintIntakeToken` defaulted an absent lane to Live inside an HMAC-signed artifact                   | Verification later trusts the signed claim                   |
+| An absent `data_mode` Vendor claim was admitted to the Live lane                                    | Against the required Vendor tuple                            |
+| `vendorPrincipalDataMode` fell back to Live                                                         | Same class                                                   |
+| `externalActionDataMode` routed an unclassified action to the Live provider path                    | Closed the last of five inline lane fail-opens               |
+| `/api/admin/v1/fake-acceptance` compared four `as const` literals against themselves                | A harness that did nothing still returned a clean 200        |
+| Two e2e assertions pointed at a marker string deleted during copy positivization                    | One could only fail; its counterpart was a silent no-op      |
+| `ConsoleView` asserted a production boundary that does not exist                                    | Production returns a Test mode unconditionally               |
+| A notification-menu test raced the effect it asserted                                               | Verified stable across 10 consecutive runs                   |
+
+Two further candidates were assessed and dismissed with reasons: the Gmail retention worker is
+fenced by an explicit emulator acknowledgement plus a loopback host, not `NODE_ENV`; and the
+maintenance demo forks are Demo-owned data sources, which S40 permits, rather than the product-shape
+forks it forbids.
+
+Gates at `7c98bf2`: `format:check`, `lint` (0 errors), `typecheck`, `bash scripts/verify.sh`
+(397 files / 2993 tests), `test:e2e:core` (32 passed / 18 skipped), and `build` all pass.
+`test:e2e:core` was RED at the `37be85a` baseline with four failures and is now green.
+
 ## UI/UX recalibration decision + executable-spec cycle (2026-07-28)
 
 Documentation/spec cycle only; no product runtime, cloud resource, data migration, action gate,
