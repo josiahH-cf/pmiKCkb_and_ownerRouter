@@ -103,17 +103,22 @@ left half-applied.
    cap $10); baseline gates green at `37be85a` (`format:check`, `typecheck`,
    `verify:context-freshness`, `verify:spec-traceability` 292 IDs, `verify:falsification`);
    blocker ledger at `docs/temp/ui-ux-recalibration-execution-ledger-2026-07-28.md`.
-2. S40 slices 1–3 are shipped on `main` (`74d725e`, `2b53e82`, `cc6ce50`), all toward AC-S40-1:
-   the server-owned environment descriptor, the environment fences re-keyed off it, and fail-closed
-   record classification. Full `bash scripts/verify.sh` is green at 2972 tests, and
-   `test:e2e:core` is green (it was RED at the `37be85a` baseline; repaired in scope).
-3. Next S40 slices, in order: manifest cross-environment collision preflight (AC-S40-2);
-   provider-construction sentinel + Demo effect boundary (AC-S40-3/4); un-merge Demo and Live lists
-   and counts (AC-S40-4); Production route/control exclusion (AC-S40-3); persistent shell
-   environment banner + `Test`/`Sample` copy retirement (AC-S40-7); migration inventory/dry-run
-   (AC-S40-5); blue/green candidate promotion and rollback (AC-S40-6); then the closing fact +
-   Supersede Log entry for `F-PRODUCTION-DUAL-DATA-LANES` (AC-S40-8). Do not provision cloud
-   resources or delete/migrate Production records until the exact owner-run packet is green.
+2. S40 slices 1–4 are shipped on `main`: `74d725e` server-owned environment descriptor +
+   environment fences re-keyed off it (AC-S40-1); `2b53e82` Admin-page degradation repair, which
+   cleared four `test:e2e:core` failures that were RED at the `37be85a` baseline; `cc6ce50`
+   fail-closed record classification (AC-S40-1); `a92b633` cross-environment resource-collision
+   preflight (AC-S40-2). Full `bash scripts/verify.sh` green at 397 files / 2988 tests;
+   `test:e2e:core` green.
+3. Next S40 slices, in order: provider-construction sentinel + Demo effect boundary
+   (AC-S40-3/4); un-merge Demo and Live lists and counts (AC-S40-4); Production route/control
+   exclusion (AC-S40-3); persistent shell environment banner + `Test`/`Sample` copy retirement
+   (AC-S40-7); migration inventory/dry-run (AC-S40-5); blue/green candidate promotion and
+   rollback (AC-S40-6); then the closing `F-*` fact + Supersede Log entry for
+   `F-PRODUCTION-DUAL-DATA-LANES` (AC-S40-8; `grep AC-S40 docs/facts.md` is currently empty and
+   the spec-traceability gate needs that row). Do not provision cloud resources or delete/migrate
+   Production records until the exact owner-run packet is green.
+4. Deliberate residuals with reasons are listed at the end of
+   `docs/temp/ui-ux-recalibration-execution-ledger-2026-07-28.md`.
 
 ## Locked safety
 
