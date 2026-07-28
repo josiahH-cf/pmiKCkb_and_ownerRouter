@@ -8,12 +8,16 @@ Read, in order:
 2. `docs/facts.md`
 3. `docs/loop-state.md`
 4. `docs/plan.md`
-5. `docs/roadmap-unblock-2026-07-23.md` (the authorized S28–S39 build program), then the relevant product doc or feature-suite spec
+5. `docs/ui-ux-recalibration-implementation-program-2026-07-28.md`
+6. `docs/meta-prompts/ui-ux-recalibration-unattended-loop.md`
+7. `docs/fresh-context-ui-ux-recalibration-prompt-2026-07-28.md`, then the current S40–S50 suite
+8. `docs/roadmap-unblock-2026-07-23.md` only when an S28–S39 provider activation is the current slice
 
-The active outcome is the full-suite build program: build every roadmap suite (S28–S39) to its
-external seam per the Build-to-Seam Gate, shipping the app-plane and stopping only at each suite's one
-named owner dependency. The prior working-app V1 (S20–S27) is done. Do not reopen R01–R09 or a closed
-finding, but the roadmap suites S28–S39 are authorized new scope to build.
+The active outcome is the decision-complete S40–S50 UI/UX/environment program. Its flags are open and
+S40 is first. Build each bounded suite to its observable end state, preserve S20–S39 action/security
+contracts, and stop only at the suite’s exact external dependency. Do not reopen D-01–D-14 or rebuild
+the audit. The prior S20–S39 implementation remains evidence/provider work; interleave a provider
+activation only when its named dependency is available and the S40–S50 slice stays clean.
 
 ## Session Start
 
@@ -41,33 +45,37 @@ Never substitute a personal account.
 ## Build Order
 
 1. Reproduce the gap or define the observable behavior.
-2. Choose the data lane:
-   - Live for authoritative records and configured providers.
-   - Test for reserved invented aliases and no-client adapters.
+2. Choose the server-owned environment/context:
+   - Production + Live for authoritative records and configured providers.
+   - Demo + Demo data for invented aliases and no-client/Demo adapters.
+   - Demo + Live-read-only only when explicitly configured; it can never mutate or mix with Demo.
 3. Write the failing boundary/behavior test.
 4. Implement the smallest complete vertical slice, including UI, route, persistence,
    authorization, audit/receipt, and failure state.
-5. Exercise the Test workflow in production-shaped code. It may write real app state and
-   reach Done, but its receipt must say no provider was contacted and cannot prove Live.
+5. Exercise the same product workflow in Demo-owned code/data. It may write Demo app state and
+   reach Done, but its receipt must say no Live provider was contacted and cannot prove Live.
 6. For a Live external action, verify the exact contract, account mapping, credential,
    target/effect preview, role decision, one-attempt/idempotency behavior, readback or
    reconciliation, monitoring, and rollback before enabling that action.
 7. Update specs, facts, status, plan, and loop state in the same slice.
 8. Run focused checks, then the full verifier.
 
-## Live/Test Rules
+## Demo/Production Rules
 
-- Legacy records without a lane resolve to Live.
-- Test aliases are server-owned, visibly labeled, and rejected from Live records.
-- A browser flag, cookie, query parameter, or environment fallback cannot switch a Live
-  record to Test or choose a Test adapter.
-- The production Test execution workspace is memory-only for typed external adapters and
-  persistent in Firestore for Maintenance/Vendor application records. It imports no Live
-  provider client.
-- Test evidence closes application-workflow checks only. Live activation requires a Live
-  receipt from the exact configured action.
-- Missing provider contracts or credentials become a specific activation checklist item;
-  continue building and validating the Test path.
+- S40 migration makes classification mandatory. The current legacy missing-lane→Live behavior is a
+  deployed compatibility fact, not the target; new/migrated unknown classification fails closed.
+- Production accepts Live only and exposes no Demo/Test data selector, seed, simulator, no-op Sample
+  control, or product lab.
+- Demo aliases and effects are server-owned, visibly labeled, stored in Demo resources, and rejected
+  from Production. Demo adapters import/construct no Production provider client.
+- Demo Live-read-only is a mutually exclusive context, persistent in the shell, and refused from
+  every app/provider mutation/confirmation/receipt path.
+- A browser flag, cookie, query parameter, or local-storage value cannot choose environment,
+  data context, provider adapter, role, or execution authority.
+- Demo evidence closes product-workflow checks only. Live activation requires a lane-correct Live
+  receipt/readback from the exact configured action.
+- Missing provider contract/credential becomes one activation checklist item; continue building the
+  app-plane, Demo parity, and Live adapter/full contract to its documented seam.
 
 ## External Writes and Sends
 
@@ -85,22 +93,22 @@ Human-initiated exact confirmation remains mandatory for sends. No scheduled, bu
 background, or model-triggered send is permitted. A technical blocker cannot be approved
 away, and an ambiguous outcome must reconcile before any correction.
 
-## Maintenance and Vendor V1 Defaults
+## Maintenance, Vendor, and Resident Defaults
 
-- Canonical Test unit: `unit:test-maple-204` / `TEST — 204 Maple Court Unit 2`.
-- Canonical Test Vendor: `vendor:test-summit-plumbing` /
-  `service@summit-plumbing.example.invalid`.
-- Maintenance Test tickets may progress through assignment, status, notes, simulated actions,
-  close, and reopen with bodyless non-Live receipts.
-- The Test Vendor uses Firebase Email/Password and TOTP, sees only matching Test assignments,
-  and uses the app-only Test mailbox. Test principals are rejected before OAuth/Gmail client
-  construction.
-- Staff inspect Test Vendor handoff through the read-gated Maintenance projection. It may show only
+- The currently named Test unit/Vendor IDs remain compatibility fixtures until S40 migrates them to
+  the independently provisioned Demo environment. Do not create new Production Test fixtures.
+- Demo Maintenance tickets use the focused S46 workspace and may progress through assignment,
+  status, notes, Demo actions, close, and reopen with value-minimized non-Live receipts.
+- The Demo Vendor uses Firebase Email/Password and TOTP, sees only matching Demo assignments, and
+  uses the Demo-owned app mailbox. It is rejected before OAuth/Gmail client construction.
+- Staff inspect Vendor handoff through the read-gated Maintenance projection. It may show only
   current Waiting/Complete state, bounded bodyless label history, draft-present, reply count, update
   time, and next internal action; never expose draft/reply bodies, message/thread ids, credentials,
   UIDs, provider payloads, or Live evidence.
 - Live Vendor mailbox activation separately requires a routable verified email, TOTP,
   same-address OAuth, vault references, and assigned-ticket authorization.
+- Resident intake is a single-purpose short-lived token/session, not a staff/Vendor identity. It
+  exposes one approved question/photo/acknowledgement flow and one idempotent submit only.
 
 ## Retention Default
 
@@ -137,19 +145,25 @@ npm run build
 bash scripts/verify.sh
 ```
 
-Before deployment, also run identity, ADC, budget, production preflight, cutover report, and
-dependency inventory. Capture the currently serving revision before changing traffic.
-`npm run deploy:demo -- --budget-confirmed` creates a collision-resistant named revision, then
+Before deployment, also run identity, ADC, budget, exact environment manifest, production preflight,
+cutover report, and dependency inventory. Capture the currently serving revision before changing
+traffic. Until S40 replaces the ambiguous wrapper, `npm run deploy:demo -- --budget-confirmed`
+targets the current legacy-named Production service: it creates a collision-resistant named revision, then
 explicitly routes 100% traffic to that exact revision. This prevents a named revision selected during
 a rollback rehearsal from remaining pinned and avoids a concurrent-deploy race through floating
 `LATEST`; the traffic step does not alter invoker/IAM configuration. The deploy uses Cloud Run's supported
 `--no-invoker-iam-check` service setting for the public sign-in shell, avoiding an org-blocked
 `allUsers` IAM binding while leaving application authentication and authorization unchanged.
 
-After deployment, use authenticated browser acceptance at desktop and phone widths across
-Console, Ask, Spaces, Approvals, Workflow Communications, Lease Renewals, Maintenance,
-Admin, Notifications, and Vendor sign-in/assigned-ticket work. Exercise at least one complete
-production Test workflow and verify zero Live-provider calls.
+After S40, deploy a candidate at zero traffic, validate the exact Production descriptor, promote
+that exact revision deliberately, and preserve the prior revision for rollback. Demo uses a
+different validated resource manifest and owner-run deploy.
+
+After deployment, use authenticated browser acceptance at desktop and 390×844 across Console/Ask,
+Spaces, Approvals, Communications, Renewals, Maintenance, Connections, Admin, Notifications, Vendor,
+and resident intake as applicable. Exercise at least one complete Demo workflow in Demo and verify
+zero Live-provider calls; verify Production contains Live only and its enabled action paths retain
+exact confirmation/receipts.
 
 ## Documentation and Stop Conditions
 
@@ -157,7 +171,7 @@ production Test workflow and verify zero Live-provider calls.
 - Delete superseded active guidance and add a unique Supersede Log marker.
 - Keep `docs/loop-state.md` under 140 lines and focused on the next exact action.
 - Update `docs/plan.md` whenever phase status or acceptance changes.
-- Report a genuine blocker only after exhausting repository knowledge and safe Test defaults.
+- Report a genuine blocker only after exhausting repository knowledge and safe Demo/app-plane work.
   State the exact missing value, why it affects a specific Live action, the recommended
   owner/process, the command or UI location, and the evidence that will close it.
 - Stop only when the requested outcome is complete or a genuinely external, specific blocker

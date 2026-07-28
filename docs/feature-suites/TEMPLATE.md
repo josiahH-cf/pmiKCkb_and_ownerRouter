@@ -25,15 +25,18 @@ Split the work into three explicit lists so the loop builds everything up to the
 step (see the Roadmap Build Authorization in `AGENTS.md`):
 
 - **Buildable now (app-plane).** Slices that add no system-of-record write, no autonomous
-  send, no new external scope, and stay `production_allowed:false`. The loop builds these
-  unattended.
+  send, and no new external scope. The loop builds, verifies, and ships these unattended.
+  Pure app-plane behavior has no Action Registry gate; do not describe it as
+  `production_allowed:false`.
 - **Build to the seam (live provider).** The live provider implementation plus the full
   preview/confirm/receipt/rollback contract, replacing any fake/synthetic provider. The loop
   builds ALL of this — it does NOT stop merely because the action is external; it stops only at
   the one named owner dependency below.
 - **Owner dependency (the one flip).** The single documented endpoint, credential/scope grant,
-  vendor confirmation, or billing approval that activates the built provider. Name it exactly;
-  the loop hands back only here, and flipping the gate afterward is a one-line reviewed change.
+  vendor confirmation, billing approval, or owner-run cloud/data operation that activates the built
+  provider/environment. Name it exactly. If the dependency is already documented, the owning slice
+  performs the routine reviewed gate/allowlist/test change; if it is absent, the loop hands back only
+  that activation rather than deferring the feature.
 
 **Open questions & assumptions.** Each item labeled `_Assumption:_` / `_Open:_` /
 `_Answered YYYY-MM-DD:_` / `_Client-owned:_`. Record any undecided point as a `Q-`/`A-` row in
@@ -62,7 +65,9 @@ system-of-record write additionally human-confirmed (internal-staff notification
 `D-AUTOMATION-LINE`); deploys and credential/scope grants stay owner-run. This suite MAY build a live provider and a system-of-record write to the seam and prepare
 its gate flip — it does NOT set `production_allowed:true` until its named owner dependency is
 documented, at which point the flip updates both `EXECUTABLE_ALLOWLIST` copies plus the pinned schema
-tests. Add any suite-specific hard stop.
+tests. Under the S40 target, Production accepts Live data only; invented product data/effects live in
+the independently provisioned Demo environment, and optional Demo Live-read-only never mutates or
+mixes. Add any suite-specific hard stop.
 
 **Ordered prompt sequence.** Numbered steps, each tagged `_Discovery:_` / `_Understanding:_` /
 `_Build:_` / `_Gate:_` / `_Owner:_` / `_Context update:_` / `_Verify:_`. The final step always

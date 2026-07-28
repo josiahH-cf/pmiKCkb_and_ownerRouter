@@ -5,6 +5,10 @@
 > New 2026-07-14; working-app contract revised 2026-07-15. Implements R03 and the assigned-ticket
 > Vendor workflow. Maintenance intake-through-close and Vendor authentication are application V1;
 > each real provider action activates independently.
+>
+> **Environment/UI continuation 2026-07-28.** S26’s lifecycle/action/security contracts remain.
+> S40 moves invented proof to Demo, S46 removes simulator/readiness clutter from the operator
+> workspace, and S47 adds resident tokenized intake/RentVine seam. Production becomes Live-only.
 
 **Implementation status (2026-07-15): Deployed working app/Test journey accepted.** Production code persists a
 canonical invented Maintenance ticket in Firestore, labels it Test, supports normal assignment,

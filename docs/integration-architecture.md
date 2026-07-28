@@ -14,6 +14,11 @@ no system-of-record write to Rentvine, LeadSimple, Dotloop, QuickBooks, Boom, op
 banks/ledgers, or client Drive without an approved action spec, preview, confirmation, audit,
 correction/rollback, and tests. The Action Registry is a catalog, not an executor.
 
+S40’s target separates Demo and Production resources/effects. Demo product adapters may exercise the
+same contracts with invented data but cannot construct a Live provider. Production accepts Live
+only. An optional Demo Live-read-only source has no app/provider mutation authority and never mixes
+with Demo. This environment boundary does not replace per-action Registry authorization.
+
 ## Tool-role map
 
 | Tool          | Architectural role                      | Authoritative for                                         | Not authoritative for                                |
@@ -47,10 +52,11 @@ not fetch unrelated content, invoke AI, create a task, change workflow state, or
 
 ## Build order and process chains
 
-1. Maintenance Work Order Intake is a working in-app write workflow with a complete persistent Test
-   path. Activate each Live Rentvine/LeadSimple/QuickBooks action independently as its exact contract
-   and mapping become configured.
-2. Renewal read/gather/reconcile/review is Live-capable and the complete action graph is Test-ready.
+1. Maintenance Work Order Intake is a working in-app write workflow with a verified persistent
+   non-Live path; S40 moves it from Production Test UI/state to Demo. Activate each Live
+   Rentvine/LeadSimple/QuickBooks action independently as its exact contract/mapping becomes ready.
+2. Renewal read/gather/reconcile/review is Live-capable and the complete action graph has verified
+   non-Live evidence; S43 exposes it through one desk/unit shape in Production and Demo.
    Rentvine renewal mutation remains unavailable until its actual supported contract is known.
 3. Workflow Communications supplies evidence and reviewed communication steps inside those products;
    it is not a standalone inbox lane and creates no external-system authority.
@@ -110,51 +116,63 @@ in their suite matrices):
 The four approved Gmail scopes are unchanged. `gmail.compose` is send-capable, so the no-send and
 workflow-only boundaries come from route/action/role/template/exact-confirmation code and tests.
 
-### Working V1 contract
+### Product and provider contract
 
 R01–R09 settle product scope. S20 gives internal Editors enabled Low/Medium execution, routes
 consequential High work to Admin, permits Admin self-approval, and preserves technical Blocked gates.
 S25 requires app-executed Lease Gmail, Sheet, Rentvine, Dotloop, portal-chat, SMS, and conditional Boom.
 S26 requires Vendor account/mailbox, Drive photo, Rentvine create/assign/update/close, owner/vendor mail,
 LeadSimple, and QuickBooks draft-bill execution. S22 adds an assigned-ticket-only external Vendor using
-verified-email TOTP and per-vendor Gmail/Workspace OAuth, never DWD. The Test Vendor uses the same real
-Firebase password/TOTP boundary with an app-only mailbox and no OAuth/provider construction. Its
+verified-email TOTP and per-vendor Gmail/Workspace OAuth, never DWD. The canonical invented Vendor
+uses the same real Firebase password/TOTP boundary with an app-only mailbox and no OAuth/provider
+construction; S40 moves it to Demo. Its
 repeatable reset/re-enable path is an app identity operation, not a provider action: an exact preview
 binds current UID/status/`inviteVersion`, the UID rotates, old sessions/confirmations fail, and its
-stable Test records remain. A partial reset keeps the replacement identity disabled and resumable; it
+stable Demo records remain. A partial reset keeps the replacement identity disabled and resumable; it
 never falls through to Live.
 
-The production app is ready when these workflows work in Live/Test lanes. A Live provider action is
-enabled only with documented evidence, exact permission/identity/mapping, target/effect preview,
-human confirmation, idempotency, audit, reconciliation/rollback, tests, and monitoring. An
+The product is ready when these workflows work in their environment-correct paths. A Live provider
+action is enabled only with documented evidence, exact permission/identity/mapping, target/effect
+preview, human confirmation, idempotency, audit, reconciliation/rollback, tests, and monitoring. An
 undocumented action remains unavailable without relabeling the application.
 
-The production Test workspace runs all 11 S25 and 19 S26 action adapters plus the complete S22
-Vendor identity/mail journey against invented aliases and typed Test provider state. Those paths
+The verified current Production Test workspace runs all 11 S25 and 19 S26 action adapters plus the
+complete S22 Vendor identity/mail journey against invented aliases. Under S40 the equivalent
+workspace runs in Demo, not Production. Those paths
 use exact Registry preview schemas, immutable S20 risk/authority, same-workflow dependency receipts,
-one-attempt execution, readback, and reconciliation. Test execution is memory-only for typed adapters,
-accepts only branded no-client executors, writes `dataMode:test`/non-Live receipts, and rejects Live
-records. Live orchestration rejects Test records/adapters, Registry overrides, and schema/risk lowering.
+one-attempt execution, readback, and reconciliation. Demo execution accepts only no-client/Demo
+executors, writes Demo/non-Live receipts in Demo resources, and rejects Live records/effects.
+Production orchestration rejects Demo records/adapters, Registry overrides, and schema/risk lowering.
 This proves application behavior, not an account-specific provider contract or Live action.
 
 Promote one action only after its row in `docs/v1-client-unblock-checklist-2026-07-14.md` has the named
 official/account evidence, authoritative mapping, credential-owner/location label, separately permitted
 bounded proof, bodyless receipt/readback, monitor, correction path, code review, and exact authority.
-Test receipts can satisfy application-workflow acceptance and can never satisfy Live-provider proof.
+Demo receipts can satisfy product-workflow acceptance and can never satisfy Live-provider proof.
 
-## Data-lane boundary
+## Environment and data-context boundary
 
-- Missing legacy mode resolves to Live.
-- Reserved Test unit/Vendor/email aliases cannot be assigned to Live records.
-- Browser state cannot select a provider lane.
-- Console renders a bounded Live provider projection and a separate Test projection at once.
-- External action identity, idempotency key, context hash, record, receipt, and audit bind the lane.
-- Persistent Maintenance/Vendor Test state lives in Firestore through authenticated server routes;
-  typed external Test adapters contain no provider client.
-- Test Vendor authentication reset preserves the stable Vendor id, assignments, ticket/mailbox state,
+- Missing legacy mode currently resolves to Live only as a migration compatibility behavior;
+  S40 makes new/migrated classification mandatory and fail-closed.
+- Reserved Demo unit/Vendor/email aliases cannot be assigned to Production Live records.
+- Browser state cannot select an environment, provider adapter, or execution context.
+- Demo defaults to Demo-owned projection; optional Live-read-only is explicit/mutually exclusive and
+  refuses every mutation. Production renders Live only after S40.
+- External action identity, idempotency key, context hash, record, receipt, and audit bind the
+  environment and data context.
+- Persistent Maintenance/Vendor Demo state lives only in Demo-owned Firestore through authenticated
+  server routes; typed Demo adapters contain no Live provider client.
+- Demo Vendor authentication reset preserves the stable Vendor id, assignments, ticket/mailbox state,
   receipts, and bodyless audit while rotating the Firebase UID and incrementing `inviteVersion`.
   Response-only setup links use `no-store`; stale UID sessions/confirmations and drifted previews are
   rejected before mailbox or provider construction.
+
+## Provider destination boundary
+
+S44 gives every supported provider a reviewed outbound destination independently of action
+activation. Prefer a verified exact record/source URL; otherwise use the provider’s allowlisted
+HTTPS front door labeled `Exact record link unavailable`. A generic destination is navigation only,
+never evidence, provider readiness, or permission, and no record path may be guessed.
 
 ## Gmail-to-workflow source and write model
 

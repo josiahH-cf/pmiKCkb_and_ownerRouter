@@ -2,7 +2,7 @@
 
 > The filename is retained for compatibility. The product is not a general Gmail inbox.
 
-## Working V1 Boundary
+## Product boundary
 
 Gmail is a workflow communication adapter and evidence source for authorized renewal and
 maintenance entities. Gmail owns messages, threads, and native drafts. PMI KC owns bodyless
@@ -46,9 +46,12 @@ approval notification. In-app attention is the default notification lane.
 - Admin manages governance and High decisions but gains no cross-mailbox content authority.
 - A Live Vendor uses a separate verified-email/TOTP principal and the same-address OAuth mailbox,
   limited to assigned-ticket threads.
-- The canonical Test Vendor uses Firebase password/TOTP but an app-only Firestore mailbox. The Test
-  principal is rejected before OAuth/Gmail client construction. Draft, label, and exact-confirmed
-  simulated reply receipts say `externalEffect:false` and `liveEvidenceEligible:false`.
+- Under S40, the canonical `.invalid` Demo Vendor uses password/TOTP and a Demo-owned app mailbox in
+  the Demo environment. It is rejected before OAuth/Gmail client construction; its exact workflow
+  actions produce Demo/non-Live receipts. The current implementation calls this the Test Vendor
+  until migration, but Production will expose no Test/Demo mailbox or simulated communication.
+- S48 removes the browser-only simulated email chain, hard-coded actors, anticipatory Demo drafts,
+  and lab evaluators. Demo retains the real workflow-linked product interaction, not a developer lab.
 
 ## Lease and Maintenance Context
 
@@ -81,7 +84,7 @@ maintenance-owner, or Live Vendor communication activates per action only after 
 recipient/mailbox values, exact provider identity/scopes, confirmation, one-attempt receipt,
 monitoring, and rollback are verified.
 
-Test communications can close application workflow evidence but cannot claim a Live Gmail action.
+Demo workflow communications can prove product behavior but cannot claim a Live Gmail action.
 
 ## Hard Boundaries
 
@@ -97,9 +100,11 @@ Test communications can close application workflow evidence but cannot claim a L
 - Wrong role/Space/mailbox/workflow/recipient/source/confirmation fails before Gmail construction or
   provider claim.
 - One exact-confirmed reply produces at most one transport attempt and a bodyless receipt.
-- Test Vendor mailbox runs fully without OAuth/Gmail and cannot produce Live evidence.
+- Demo Vendor mailbox runs fully in Demo without OAuth/Gmail and cannot produce Live evidence;
+  Production cannot construct or render it.
 - Legal hold and bounded cleanup preserve bodyless policy.
-- Signed-in desktop/phone surfaces make workflow context and Test/Live state obvious.
+- Signed-in desktop/phone surfaces make workflow context and Demo/Production context obvious; the
+  normal Communications page contains no simulation/lab UI.
 
 Durable supporting contracts: `docs/feature-suites/gmail-live-per-user.md` governs the staff
 per-user transport boundary. `docs/legacy/owner-router-artifact-source.md` is historical source

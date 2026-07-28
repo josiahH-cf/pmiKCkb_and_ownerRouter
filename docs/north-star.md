@@ -1,78 +1,96 @@
-# PMI KC Working-App North Star
+# PMI KC Product North Star
 
 ## Outcome
 
-PMI KC V1 is the stable production application people can use now. It is not a demo shell,
-a read-only preview, or a promise that every optional vendor integration is already active.
+PMI KC is a stable full-suite product people use for source-backed knowledge, renewals,
+Maintenance, decisions, and workflow-linked communications. It is not a demo shell, a read-only
+preview, a developer lab, or a promise that every optional vendor integration is already active.
 
-| Product lane            | What V1 does                                                                                                                                                                                 |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PMI KC KB               | Source-backed answers, Spaces/processes, approvals, roles, attention, administration, trusted publication, and explicit execution controls.                                                  |
-| Lease Renewal Agent     | Reconciles renewal sources, supports review and decisions, and exercises the complete action graph through production Test records; configured Live actions activate independently.          |
-| Workflow Communications | Works only from authorized renewal or maintenance context for linked-thread reads, governed labels, drafts, and exact-confirmed replies. It is not a general inbox.                          |
-| Maintenance + Vendor    | Creates and manages Live in-app tickets, runs a complete invented Test ticket to Done, and includes Firebase password/TOTP Vendor access, assigned-ticket authorization, and a Test mailbox. |
+| Product lane            | End-state experience                                                                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| PMI KC KB               | Source-backed Ask; primary Spaces knowledge directory; trusted content; role-aware shell; concise attention; task-based administration; explicit execution controls.                       |
+| Lease Renewal Agent     | One desk and one per-unit workspace for Data check → Owner decision → Tenant offer → Build documents, with exact source comparison, evidence, drafts, receipts, and provider destinations. |
+| Workflow Communications | Authorized renewal/Maintenance threads, governed labels/drafts, and exact-confirmed replies; never a general inbox, browser simulation, or generic compose surface.                        |
+| Maintenance + Vendor    | Focused ticket work, tokenized no-second-login resident intake, scoped Vendor password/TOTP access, workflow communication, exact external actions, and safe close/reopen.                 |
 
-The Console is the front door. Each Space carries its process. Operators should see what
-needs attention, understand the effect of a button, and complete work without learning the
-underlying provider architecture.
+Console is the front door for Ask and a bounded Work now summary. Approvals owns decisions,
+Notifications owns event history/unread state, Connections owns provider setup, workflow desks own
+work status, and Spaces is the primary knowledge destination. Operators should complete work
+without learning Registry keys or provider architecture.
 
-## Live and Test
+## Demo and Production
 
-Production deliberately contains two server-owned data lanes:
+The S40 target is two independently provisioned environments running one product contract:
 
-- **Live** records use authoritative app/provider data. Any external write shows the exact
-  action, target, effect, actor requirement, and confirmation before one idempotent attempt.
-- **Test** records use reserved invented aliases, are always visibly labeled, write real
-  app/Firestore workflow state, and may progress to Done. Their adapters contain no Live
-  client, make zero external calls, and cannot produce Live-provider evidence.
-- A missing Live provider connection affects only that action's activation state. It does
-  not make the rest of the application unfinished.
+- **Demo** uses realistic invented Demo data and Demo-owned stores/adapters/receipts. It can complete
+  the same product workflows with zero Live-provider effects. If separately configured, it may show
+  an explicitly selected, persistently labeled **Live read-only** context; that context never mixes
+  with Demo records/counts and cannot mutate, draft, send, execute, or write a receipt.
+- **Production** contains Live data only. Missing/unknown classification fails closed. Production
+  exposes no Demo/Test seed, mode selector, simulator, Sample control, or lab.
+- Both environments share routes, components, roles, validation, preview, decision, and receipt
+  shapes; they do not share databases/namespaces, storage, queues, secrets, OAuth audiences,
+  runtime identities, external-effect credentials, or receipts.
+- Blue/green is the Production candidate-revision promotion and rollback procedure, not the
+  Demo/Production boundary.
 
-Provider activation is reported per action as unavailable, Test-ready, Live-configured,
-Live-proven, enabled, or suspended. Test workflow success proves the app; only a lane-correct
-receipt proves a Live provider.
+`F-PRODUCTION-DUAL-DATA-LANES` remains an honest fact about the currently deployed application until
+S40’s backed-up migration and owner-run cutover complete. It is no longer the product target.
+Automated tests, fixtures, emulators, Demo adapters, security, and provider seams remain even though
+shipped Test/developer tools are removed.
 
 ## Product and Execution Rules
 
-- Rentvine is the operating system of record; LeadSimple orchestrates work; Dotloop holds
-  document packages; QuickBooks is accounting; Boom is auxiliary; Sheets is an
-  exception/control surface. The app owns workflow state and references provider records.
-- No guessed endpoint, credential, source value, or customer fact may be used for a Live
-  action. An unknown provider contract leaves that one action unavailable while its Test
-  workflow remains usable.
-- Low/Medium enabled work follows role and exact-confirmation policy. Consequential High
-  work requires the exact Admin decision. Technical blockers cannot be approved away.
-- Sends are always human-initiated and exact-confirmed. No background, scheduled, bulk,
-  or model-triggered send is a V1 capability.
-- Every external execution has one claim, idempotency, a bodyless receipt, safe error state,
-  reconciliation before correction, and a documented kill switch.
+- RentVine is the operating system of record; LeadSimple orchestrates; Dotloop holds document
+  packages; QuickBooks is accounting; Boom is auxiliary; Sheets is an exception/control surface.
+  The app owns workflow state and verified provider backlinks.
+- Every actionable item opens the exact field/evidence/next step and returns to its owning list.
+  Use a verified record URL when documented; otherwise use an allowlisted provider front door
+  explicitly labeled `Exact record link unavailable`. Generic navigation is not evidence.
+- A missing provider contract blocks that Live action only. Build the app-plane, live provider, and
+  full preview/confirmation/receipt/rollback contract to the documented seam; never guess an
+  endpoint or preserve a fake provider as the finish line.
+- Low/Medium enabled work follows role and exact-confirmation policy. Consequential High work
+  requires the exact Admin decision. Technical blockers cannot be approved away.
+- Client-facing sends and system-of-record writes are human-initiated and exact-confirmed. No
+  scheduled, bulk, model-triggered, or autonomous client-facing send is a product capability.
+- Every external execution has one claim, idempotency, a value-minimized receipt, safe error state,
+  readback/reconciliation, monitoring, kill switch, and correction/rollback.
+- Shipped developer/Test tools are removed in two stages. Static import reachability alone never
+  proves a provider/security/rollback module is safe to delete.
 
 ## Safety Boundaries
 
-- No secrets, tokens, customer records, Gmail bodies, bank data, SSNs, or full leases in git,
-  logs, URLs, manifests, or bodyless audits.
-- Missing or weak sources produce visible uncertainty, not generic property-management
-  answers.
-- Live/Test identities, records, assignments, adapters, and receipts cannot cross lanes.
-- Personal Google identities never enter staff, connector, build, runtime, Firebase CLI, or
-  cloud paths.
-- Test aliases use `.invalid` email addresses and reserved IDs; they cannot be mistaken for
-  a customer or contacted externally.
+- No secrets, tokens, customer records, Gmail bodies, bank data, SSNs, full leases, resident bearer
+  tokens, or customer photos in git, URLs, manifests, release evidence, or value-minimized audit.
+- Missing or weak sources produce visible uncertainty, not generic property-management answers.
+- Demo and Production identities, records, assignments, adapters, stores, contexts, and receipts do
+  not cross. Demo Live-read-only cannot create an app or provider effect.
+- Personal Google identities never enter staff, connector, build, runtime, Firebase CLI, or cloud
+  paths.
+- Invented aliases use `.invalid` addresses/reserved IDs in Demo and cannot be contacted externally.
+- Page/layout configuration cannot grant authority, change shell/roles/environment/provider gates,
+  hide required controls, or invoke an executor.
 
 ## Operational Defaults
 
-- Bodyless retention records, legal hold, bounded on-demand cleanup, and visible cleanup
-  health are the V1 default. TTL, extra composite indexes, and Scheduler automation are
-  optional optimizations when volume justifies them.
-- Application readiness is established by green verification, a pinned production deploy,
-  signed-in browser coverage, rollback readiness, and complete Live/Test workflow behavior.
-  Stakeholder signoffs remain visible metadata, not a switch that changes application truth.
-- Preserve original specs in `docs/specs/`; put current execution truth in `docs/facts.md`,
-  `docs/loop-state.md`, `docs/plan.md`, and the active feature-suite specifications.
+- Value-minimized retention records, legal hold, bounded cleanup, and visible health are the
+  baseline. TTL, extra indexes, and Scheduler automation are added when the exact volume/operation
+  warrants them.
+- Readiness requires green deterministic verification, authenticated desktop/390×844 whole-task
+  coverage, exact links, environment isolation, a pinned candidate revision, Production smoke,
+  captured prior revision, and rollback readiness.
+- Demo workflow evidence proves product behavior only; a lane-correct Live receipt/readback proves
+  a provider. Provider activation remains per action and never changes the application’s product
+  name.
+- Preserve original specs in `docs/specs/`; current authority lives in `docs/facts.md`,
+  `docs/loop-state.md`, `docs/ui-ux-recalibration-implementation-program-2026-07-28.md`, and active
+  feature-suite specs.
 
 ## Success
 
-V1 succeeds when staff and the canonical Test Vendor can sign in, understand every primary
-tab, create and finish work, see source and data-lane state, safely exercise provider-shaped
-actions, and recover from failures without hidden external effects. Live integrations can then
-be activated one action at a time without redesigning the app.
+The program succeeds when staff can understand every destination, complete renewal/approval/
+Maintenance/communication work end to end, inspect exact source/provider destinations, and recover
+from failures without hidden effects; residents can complete scoped Maintenance intake; Demo safely
+rehearses the exact product; Production contains only Live work; and provider activations can ship
+one action at a time without redesigning the application.

@@ -5,6 +5,11 @@
 > New 2026-07-14; working-app contract revised 2026-07-15. Implements R02. Every row is implemented
 > as an application/Test action in V1; each real provider action activates independently after its
 > documented contract and configuration are healthy.
+>
+> **Environment/UI continuation 2026-07-28.** S25’s action contracts remain authoritative. S40
+> moves their invented proof into Demo and makes Production Live-only; S43 composes them into one
+> desk/per-unit four-stage workspace. Do not preserve the Production Test surface or parallel page
+> shapes merely because this spec documents their proven behavior.
 
 **Implementation status (2026-07-18): Working app/Test journey expanded; deployment verification
 pending.** The normal Renewals experience creates a canonical invented Firestore Test run, persists

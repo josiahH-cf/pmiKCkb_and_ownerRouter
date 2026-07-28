@@ -1,21 +1,26 @@
 # PMI KC Working-App V1 Plan
 
-Last updated: 2026-07-18
+Last updated: 2026-07-28
 
 ## Release Contract
 
-V1 is the stable production application with complete, visible Live and isolated Test
-workflows. Test records use reserved aliases, make real app/Firestore writes, may reach Done,
-and cannot contact an external provider or count as Live evidence. Provider activation is
-reported independently per action. Live writes are explicit, target-labeled, human-confirmed,
-idempotent, receipted, reconcilable, monitored, and reversible.
+The deployed application is a stable full-suite product. S40–S50 now define its next release
+contract: Production becomes Live-only; an independently provisioned Demo environment runs the same
+product behavior with realistic invented data and zero Live effects, plus an optional explicit Live
+read-only context that never mixes with Demo. Provider activation remains independent per action.
+Live writes are explicit, target-labeled, human-confirmed, idempotent, receipted, reconcilable,
+monitored, and reversible.
+
+P0–P8 below preserve the verified working-app/deployment history, including the currently deployed
+Production Live+Test implementation. P9 is the active target and does not become `done` until S40’s
+backed-up migration/cutover and S41–S50 acceptance are verified.
 
 The following are not application release gates:
 
 - activation of every optional provider action;
 - Firestore TTL, extra composite indexes, or Scheduler automation;
 - named stakeholder signoff metadata;
-- replacing safe invented Test data with customer data.
+- replacing safe invented Demo data with customer data.
 
 They remain tracked operational/provider work where useful.
 
@@ -31,7 +36,8 @@ Acceptance:
 
 - `AGENTS.md`, `docs/facts.md`, `docs/loop-state.md`, and current specs agree.
 - Superseded Pre-V1/every-provider/mandatory-TTL language is deleted from active guidance.
-- Live/Test and per-action provider activation vocabulary is stable.
+- The historical Live/Test implementation vocabulary and per-action provider activation record are
+  stable; P9 owns the new Demo/Production product vocabulary.
 
 ### P1 - Application Foundation
 
@@ -80,10 +86,10 @@ Acceptance:
 - High approval binds the exact preview; technical blockers cannot be waived.
 - Published content cannot alter roles, prompts, Registry state, or execution authority.
 
-### P5 - Production Live/Test Data Model
+### P5 - Historical Production Live/Test Data Model
 
 Status: done — record lane, Console dual projection, action identity, receipts, aliases, and
-Test-adapter isolation are implemented.
+Test-adapter isolation are implemented as the deployed baseline that S40 will migrate.
 
 Acceptance:
 
@@ -92,6 +98,7 @@ Acceptance:
 - Test identities/records/adapters/receipts cannot cross into Live.
 - The Admin full Test workspace completes Vendor, 11 Lease, and 19 Maintenance typed actions
   with zero Live-provider calls.
+- This phase proves current state; it is not the post-S40 target.
 
 ### P6 - Maintenance Working Workflow
 
@@ -216,18 +223,62 @@ Current serving release, 2026-07-18:
   named-revision rollback pin cannot silently leave the new revision unserved. Its public sign-in
   shell uses `--no-invoker-iam-check` without adding an `allUsers` IAM binding.
 
+### P9 - UI/UX Recalibration and Environment Separation (S40–S50)
+
+Status: not started — owner-authorized and decision-complete; specs/loop flag are open, with S40 the
+next implementation suite. No S40–S50 application code, environment provisioning, data migration, or
+deploy is claimed by the 2026-07-28 documentation cycle.
+
+Program:
+
+- Authority/order: `docs/ui-ux-recalibration-implementation-program-2026-07-28.md`.
+- Canonical unattended fresh context:
+  `docs/meta-prompts/ui-ux-recalibration-unattended-loop.md`.
+- Locked end-state contract: `docs/fresh-context-ui-ux-recalibration-prompt-2026-07-28.md`.
+- Flags: `spec_writing_allowed:true`, `loop_execution_allowed:true`,
+  `runtime_action_gates_preflipped:false`.
+- Order: S40 → S41 → S42 → S44 → S43 → S45 → S46 → S47 → S48 → S49 → S50.
+
+Acceptance:
+
+- S40 provisions/validates independent Demo and Production resource boundaries; Production accepts
+  Live only, Demo owns invented data/effects, optional Demo Live-read-only is explicit/non-mixing/
+  non-mutating, and Production delivery uses exact candidate promotion plus captured rollback.
+- S41–S42 deliver four daily destinations plus primary Spaces, compact role-aware mobile/desktop
+  shell, plain vocabulary, one owner per attention type, and a grouped non-card Spaces flow.
+- S44 supplies exact field/evidence/return links and truthful provider destinations: verified exact
+  record URL or reviewed generic front door labeled non-exact, never guessed/evidence-mislabeled.
+- S43 supplies one Renewal desk/unit/four-stage flow, scoped Editor Live-desk/draft access, exact
+  redirects, and a versioned Chasity template slot whose missing artifact blocks only dependent
+  output.
+- S45 supplies one-card phone/desktop decisions with secondary filters/selection and unchanged
+  reason/version/risk authority.
+- S46–S47 supply a focused Maintenance workspace and secure no-second-login resident intake; the
+  RentVine interactive endpoint blocks only S47 channel activation.
+- S48 supplies workflow-only Communications, provider Connections, task Admin, and no replacement
+  Test Lab. Shipped simulations/no-op Sample tools leave; automated tests, Demo product parity,
+  security/TOTP, rollback, and real provider seams remain.
+- S49 uses hide/move/redirect/instrument before bounded deletion and proves consumers, roles,
+  routes, scripts, tests, provider/security ownership, deployed usage, and rollback. Static
+  reachability alone never deletes.
+- S50 implements S37 only against the canonical baseline with inert typed components/safe regions;
+  page config cannot change shell/routes/environment/roles/gates/required controls or execute.
+- Authenticated Admin/Editor/Vendor/resident desktop and 390×844 whole-task coverage, exact-link/
+  focus/overlay checks, negative environment/role/effect tests, deterministic full gate, serving
+  revision, smoke, prior revision, and rollback evidence are recorded.
+
 ## Per-Action Provider Activation
 
 Use these states without changing the application label:
 
-| State           | Meaning                                                                         |
-| --------------- | ------------------------------------------------------------------------------- |
-| unavailable     | No usable provider contract/client is configured; Test workflow may still work. |
-| test_ready      | Complete isolated Test adapter and workflow evidence exist.                     |
-| live_configured | Exact Live contract, identity, mapping, and credential are configured.          |
-| live_proven     | One authorized Live action/readback has durable evidence.                       |
-| enabled         | Registry permits normal Live use with monitoring and rollback.                  |
-| suspended       | Kill switch is active; prior evidence is retained.                              |
+| State           | Meaning                                                                                                    |
+| --------------- | ---------------------------------------------------------------------------------------------------------- |
+| unavailable     | No usable Live provider contract/client is configured; Demo product workflow may still work.               |
+| test_ready      | Internal compatibility enum for complete isolated non-Live/Demo adapter evidence; operator copy says Demo. |
+| live_configured | Exact Live contract, identity, mapping, and credential are configured.                                     |
+| live_proven     | One authorized Live action/readback has durable evidence.                                                  |
+| enabled         | Registry permits normal Live use with monitoring and rollback.                                             |
+| suspended       | Kill switch is active; prior evidence is retained.                                                         |
 
 Activation checklist for a Live write/send:
 
@@ -240,7 +291,10 @@ Activation checklist for a Live write/send:
 
 ## Safe Operational Defaults
 
-- Keep test data alongside Live records with persistent labels and reserved IDs.
+- Build/migrate toward separate Demo and Production resources. Until S40 cutover, treat deployed
+  Live+Test as current state, never as permission to add another Production Test surface.
+- Keep Demo data/effects in Demo-owned resources; Production accepts Live only. Unknown mode fails
+  closed and optional Demo Live-read-only never mutates or mixes.
 - Use bounded on-demand communications cleanup until measured volume justifies automation.
 - Do not create optional indexes without a query that requires them.
 - Preserve in-app notifications as the default; no event-driven approval email.
@@ -260,4 +314,5 @@ These do not prevent code/documentation/deployment completion:
 - Optional operations: TTL, Scheduler, or additional indexes if later volume warrants them.
 
 Each item must be reported with the exact action affected, recommended setup process, verification
-evidence, and the Test workflow that remains available meanwhile.
+evidence, and the Demo product workflow that remains available meanwhile. Do not label an entire
+feature pending when only one external activation is missing.

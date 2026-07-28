@@ -5,6 +5,10 @@
 > New 2026-07-14; working-app contract revised 2026-07-15. Implements R09 and turns S20–S26 into a
 > falsifiable production application contract without conflating app readiness with every provider's
 > activation.
+>
+> **Continuation 2026-07-28.** S27 remains verified release history. S40–S50 define a new target and
+> release program; they do not invalidate prior evidence, but Production Live+Test is no longer the
+> target. Do not claim the recalibration built until its own ACs and owner-run cutover pass.
 
 **Implementation status (2026-07-15): The working application serves from
 `38ebcf530e3fe193547806bace91246ccea20c0b / pmi-kc-kb-demo-rmrm9mp6v-04c897acee28` at 100% traffic.

@@ -7,6 +7,11 @@
 > the same signals ALSO flow into (ADD, do not MOVE). Keep ONE shared source (`gatherNeedsDecisionInbox`)
 > so counts never diverge — this extends the S13 B5 single-gather interlock, it does not replace it. The
 > disposable mapping packet is `docs/temp/unified-console-and-attention-plan.md` (local-only).
+>
+> **UI supersession 2026-07-28.** D-03/S42 (`attention-and-spaces-flow.md`) replaces the rendered
+> superset/ADD posture: share canonical gathering/counts/links, but Approvals alone renders full
+> decisions, Notifications renders event history/unread, Console renders bounded Work now, and
+> Connections renders setup. S17 remains implementation history.
 
 **Goal.** Make the app read as ONE workflow tool, not a pile of overlapping alerts, and let Dan verify
 his team without re-checking every value. Today "needs your decision" is triplicated (the Console deck

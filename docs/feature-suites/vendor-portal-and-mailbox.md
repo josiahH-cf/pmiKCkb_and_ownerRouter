@@ -5,6 +5,10 @@
 > New 2026-07-14; working-app contract revised 2026-07-15. Implements R03 account/mailbox lifecycle
 > and R04. Vendor is a separate external identity lane and never weakens the `pmikcmetro.com`
 > boundary for staff, cloud, DWD, or Admin.
+>
+> **Environment continuation 2026-07-28.** Preserve the password/TOTP/assignment/reset security
+> contract. S40 moves the canonical `.invalid` invented Vendor/mailbox to Demo; Production exposes
+> only real Live Vendors and no Test/Demo product tool.
 
 **Implementation status — Deployed working-app/Test lane 2026-07-15; human secret-bearing acceptance
 pending.** The code includes separate

@@ -1,33 +1,39 @@
 # AI Execution Workflow
 
-This is the human/AI collaboration contract for delivering and operating the working V1.
+This is the human/AI collaboration contract for delivering and operating the full product. The
+active UI/environment program is S40–S50.
 
 ## 1. Establish Truth
 
-- Read `docs/facts.md` and `docs/loop-state.md` first.
+- Read `docs/facts.md`, `docs/loop-state.md`, and
+  `docs/ui-ux-recalibration-implementation-program-2026-07-28.md` first.
 - Verify repository, environment, and cloud state before declaring a blocker.
-- Resolve ambiguity from code/docs/transcripts and use the recommended safe default.
+- Treat D-01–D-14 as settled. Resolve implementation placement from current code; meet the exact
+  observable end state without demanding the example filename/layout.
 - Ask the developer before escalating an answerable implementation question to the client.
 
-## 2. Separate Application Readiness from Provider Activation
+## 2. Separate Environment, Product Readiness, and Provider Activation
 
 The app is V1 when the pinned production revision, authentication, primary tabs, complete
 workflows, safety boundaries, monitoring, and rollback work. Provider activation is a separate
 per-action inventory.
 
-- Production Test evidence may close app-workflow acceptance when it uses reserved aliases,
-  zero external calls, explicit Test labels, and non-Live receipts.
+- Demo evidence may close product-workflow acceptance when it uses Demo-owned invented aliases,
+  zero Live-provider construction/calls, explicit Demo environment/data labels, and non-Live
+  receipts. The current Production Test journey remains historical evidence until S40 migration.
 - Only Live-lane evidence may claim a provider is Live-proven or enabled.
 - A missing provider contract/credential blocks that action's Live activation, not development
   or acceptance of the stable application.
 - Stakeholder signoff is tracked and useful but does not override observed application state.
+- Production becomes Live-only. Optional Demo Live-read-only is explicit, never mixes with Demo, and
+  can close no mutation/provider evidence.
 
 ## 3. Build a Complete Slice
 
 For each slice, define:
 
 - user and desired outcome;
-- Live or Test lane;
+- environment and mutually exclusive data context (Production+Live, Demo+Demo, or Demo+Live-read-only);
 - exact role/scope;
 - source of every value;
 - app write and any external effect;
@@ -36,9 +42,15 @@ For each slice, define:
 - unit, Firestore, E2E, and browser evidence;
 - documentation/fact updates.
 
-Use invented aliases and Test providers whenever Live setup is unavailable. Test records may
-write real Firestore/application state and reach Done. They must be structurally unable to
-construct a Live provider client.
+Use invented aliases and Demo adapters in the independently provisioned Demo environment when Live
+setup is unavailable. Demo records may write Demo Firestore/application state and reach Done. They
+must be structurally unable to construct a Production/Live provider client. Build the Live provider
+and full action contract to its documented seam rather than stopping at the Demo adapter.
+
+For S40–S50 also define the owning surface, exact item/evidence/return link, first task action at
+desktop/390×844, plain operator copy, role/environment negative states, stage-one compatibility,
+and deletion proof. Shipped simulations/no-op Sample/Test tools leave; automated tests, Demo parity,
+security, rollback, and real provider seams stay.
 
 ## 4. Live Action Promotion
 
@@ -54,7 +66,9 @@ Activate one action at a time after verifying:
 8. monitoring and kill switch;
 9. correction/rollback rehearsal.
 
-Never infer a provider endpoint or use a Test receipt as Live proof.
+Never infer a provider endpoint or use a Demo receipt as Live proof. When every item above is
+documented, open the owning action’s `production_allowed`/allowlists/pinned tests in the same
+reviewed slice; do not leave finished actions gated by habit.
 
 ## 5. Retention and Operations
 
@@ -62,9 +76,11 @@ Bodyless persistence, explicit legal hold, bounded on-demand cleanup, and health
 the working V1 default. TTL, additional indexes, and Scheduler automation are improvements to
 consider when volume/operational evidence justifies them.
 
-Before cloud work, run ADC, identity, budget, and production preflights. Capture the prior
-serving revision. After deployment, verify signed-in roles, Live/Test labels, complete Test
-journeys, provider activation labels, observability, and traffic rollback.
+Before cloud work, run ADC, identity, budget, and exact environment/production preflights. Capture
+the prior serving revision. Under S40, deploy the Production candidate at zero traffic, smoke the
+exact descriptor, promote deliberately, and preserve rollback. Verify signed-in roles,
+Demo/Production isolation, complete Demo journeys in Demo, Production Live-only behavior, provider
+activation labels, observability, and traffic rollback.
 
 ## 6. Evidence and Documentation
 
@@ -74,6 +90,8 @@ journeys, provider activation labels, observability, and traffic rollback.
 - Keep `docs/loop-state.md` as the current resume pointer.
 - Update `docs/plan.md` in the same slice as any phase change.
 - Keep secrets, customer values, Gmail bodies, and setup links out of evidence.
+- For two-stage retirement, record the candidate/consumer/role/route/script/test/provider/security/
+  deployed-boundary/rollback proof; static reachability alone is not evidence for deletion.
 
 ## 7. Blocker Format
 
@@ -85,7 +103,7 @@ A genuine blocker names:
 - the safest recommended default;
 - a command or UI process to resolve it;
 - the evidence that closes it;
-- work that can continue using Test data meanwhile.
+- work that can continue in the app-plane/Demo meanwhile.
 
 Do not write “coordinate with client” when a concrete recommendation can be made.
 

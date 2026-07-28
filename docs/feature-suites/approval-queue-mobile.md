@@ -12,6 +12,10 @@
 > resolution behavior. R01 now permits Admin self-approval at every risk, gives internal Editors
 > direct enabled Low/Medium execution, and keeps consequential High work Admin-approved. S20—not an
 > edit to these historical acceptance checks—governs that target behavior change.
+>
+> **UI supersession 2026-07-28.** S45 (`approval-queue-consolidation.md`) makes the one-card decider
+> canonical on desktop and mobile and supersedes S14’s dense-desktop/parallel-view coexistence.
+> Preserve the reason/action/audit primitives; do not preserve duplicate rendered views.
 
 **Goal.** Today deciding one renewal flag is form-heavy: the run page leads with a 6-metric plumbing
 manifest (`components/lease-renewal/LeaseRenewalRunClient.tsx:80-118`), the resolve control is a

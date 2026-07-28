@@ -1,12 +1,11 @@
 # Client checklist
 
-Updated: 2026-07-15.
+Updated: 2026-07-28.
 
 This is the client-facing list of inputs that improve content or activate a specific Live provider.
-It is **not** a list of conditions that must all be answered before the production application can be
-V1. The stable app includes side-by-side Live and isolated Test workflows; Test Lease, Maintenance,
-and Vendor journeys write app-owned state to Firestore, reach Done/Closed, and contact no external
-providers.
+It is **not** a list of conditions that must all be answered before the application can progress.
+The current deployed app has verified Live+Test evidence; S40’s authorized target moves realistic
+invented workflows into an independent Demo environment and makes Production Live-only.
 
 Use `docs/v1-client-unblock-checklist-2026-07-14.md` for the exact process and recommended default,
 and `docs/environment-handoff.md` for non-secret project/owner/location records. Do not place
@@ -15,7 +14,7 @@ tokens in this repository.
 
 ## Completed without another client decision
 
-- Deploy and verify the production Live/Test application.
+- Deploy and verify the historical production Live/Test application (current baseline only).
 - Firebase Email/Password, TOTP, and the authorized production domain were verified/enabled on
   2026-07-15; run the deployed Vendor acceptance after release.
 - Seed and complete the canonical Test Maintenance workflow:
@@ -33,15 +32,19 @@ tokens in this repository.
 
 ## Current client inputs
 
-| Input                                                                                                                                           | Why it helps                                                  | Current safe default                                                                         | Does absence block app V1? |
-| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------- |
-| Add approved SOPs/templates/examples to the [shared source drop zone](https://drive.google.com/drive/folders/1arXww32LaPcIbFx_oONshbR62imiC8kq) | Improves KB coverage and workflow wording                     | Keep existing approved sources; unsupported questions show `No Reliable Source Found`        | No                         |
-| Finish the tool-access sheet for QuickBooks and exact in-scope Sheets                                                                           | Enables account-specific Live integration planning            | Leave only the dependent provider actions unavailable                                        | No                         |
-| Name authoritative tenant/owner/Vendor recipient fields                                                                                         | Activates new Live renewal/maintenance communications         | Use non-routable Test aliases in Test mode; no browser-entered address becomes authoritative | No                         |
-| Provide a real Vendor mailbox when Live Vendor mail is wanted                                                                                   | Enables that Vendor's same-address OAuth connection           | Use Test Vendor password/TOTP and app-only mailbox                                           | No                         |
-| Provide account API contracts/mappings for a selected provider action                                                                           | Allows that exact Live read/write to be configured and proven | Keep that action unavailable; complete the workflow in Test mode                             | No                         |
-| Add approved source root/scanner policy when immediate publication is wanted                                                                    | Enables new production source publication                     | Existing approved KB remains usable; new publication fails closed                            | No                         |
-| Confirm later staff roster/Space scopes                                                                                                         | Expands delegation beyond initial operators                   | Manage roles later from Admin                                                                | No                         |
+| Input                                                                                                                                       | Why it helps                                       | Current safe default                                                                     | Absence blocks                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------ |
+| Exact independent Demo project/service/database/storage/queue/OAuth/runtime identity values                                                 | Activates S40 environment separation               | Build a validated parameterized manifest; never infer from the Production service name   | Demo provisioning/cutover only |
+| Chasity’s exact updated renewal-template artifact through the approved publication channel                                                  | Activates S43 template-dependent output            | Build the versioned slot; show `Renewal template not supplied`; invent no copy           | Template-dependent output only |
+| RentVine resident portal/text interactive invitation, reply/webhook semantics, and account mapping                                          | Activates S47’s preferred resident channel         | Complete tokenized web intake/staff review and adapter seam; guess no endpoint           | RentVine resident channel only |
+| Verified exact provider record URL contracts where available                                                                                | Enhances S44 exact backlinks                       | Use reviewed generic provider front doors labeled `Exact record link unavailable`        | Exact-link enhancement only    |
+| Approved SOPs/templates/examples in the [shared source drop zone](https://drive.google.com/drive/folders/1arXww32LaPcIbFx_oONshbR62imiC8kq) | Improves KB/workflow wording                       | Keep approved sources; unsupported questions say `No Reliable Source Found`              | No                             |
+| Finished tool-access sheet for QuickBooks and exact in-scope Sheets                                                                         | Enables account-specific Live integration planning | Leave only dependent provider actions unavailable                                        | Selected action only           |
+| Authoritative tenant/owner/Vendor recipient fields                                                                                          | Activates Live communications                      | Use non-routable Demo aliases in Demo; browser-entered addresses are never authoritative | Selected action only           |
+| Real Vendor mailbox when Live Vendor mail is wanted                                                                                         | Enables that Vendor’s same-address OAuth           | Use Demo Vendor password/TOTP and Demo-owned mailbox after S40                           | That Vendor mailbox only       |
+| Account API contract/mapping for a selected provider action                                                                                 | Allows that exact Live action to be proven         | Keep that action unavailable; complete the product workflow in Demo                      | Selected action only           |
+| Approved source root/scanner policy when immediate publication is wanted                                                                    | Enables a new production source                    | Existing approved KB remains usable; new publication fails closed                        | New source only                |
+| Later staff roster/Space scopes                                                                                                             | Expands delegation                                 | Manage roles later from Admin                                                            | No                             |
 
 R01–R09, the signed-lease location, lease-end source, renewal discovery walkthrough, risk-based
 authority, human-confirmed sends, Vendor identity model, and product tab direction are already decided.
@@ -64,17 +67,17 @@ Do not ask the client to decide them again.
 Ask only for the provider the client wants to turn on next. Each request should name one exact action,
 not ask for broad or unnecessary access.
 
-| Provider            | Ask for                                                                                                 | Never ask for or infer                                     |
-| ------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| RentVine            | Account endpoint/permission, exact property/unit/lease/Vendor/status mapping, conflict/version behavior | Guessed write endpoint or unconditional overwrite          |
-| Google Sheets       | Sheet/tab, stable row key/column, DWD subject/permission, atomic conflict strategy                      | Customer rows in git or read-then-unconditional-write      |
-| Gmail               | Authoritative linked recipient/thread fields, sender mailbox, exact approved artifact/label             | General inbox browsing, free-form compose, autonomous send |
-| Vendor Google OAuth | Web client/redirect, exact four scopes, vault label, same routable Vendor mailbox                       | DWD, shared PMI mailbox, Admin consent on Vendor's behalf  |
-| Dotloop             | Official/account API, profile/template/participant/document mapping, OAuth plan                         | UI/RPA endpoint inference                                  |
-| LeadSimple          | Account endpoint/plan, process/stage/assignee mapping, conditional update contract                      | Guessed stages or unconditional stage overwrite            |
-| QuickBooks          | OAuth/company/Vendor/account mapping and draft-only permission                                          | Post, approve, pay, bank, or ledger authority              |
-| Boom/SMS            | Existing account/plan, mapping/consent/applicability and correction contract                            | Purchasing/selecting a provider by inference               |
-| Drive               | Approved in-boundary photo folder, runtime permission, file/scanner policy                              | Replace/delete behavior or source-folder overreach         |
+| Provider            | Ask for                                                                                                                                                                           | Never ask for or infer                                     |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| RentVine            | Account endpoint/permission, exact property/unit/lease/Vendor/status mapping, conflict/version behavior; resident portal/text invitation plus interactive reply/webhook semantics | Guessed write/resident endpoint or unconditional overwrite |
+| Google Sheets       | Sheet/tab, stable row key/column, DWD subject/permission, atomic conflict strategy                                                                                                | Customer rows in git or read-then-unconditional-write      |
+| Gmail               | Authoritative linked recipient/thread fields, sender mailbox, exact approved artifact/label                                                                                       | General inbox browsing, free-form compose, autonomous send |
+| Vendor Google OAuth | Web client/redirect, exact four scopes, vault label, same routable Vendor mailbox                                                                                                 | DWD, shared PMI mailbox, Admin consent on Vendor's behalf  |
+| Dotloop             | Official/account API, profile/template/participant/document mapping, OAuth plan                                                                                                   | UI/RPA endpoint inference                                  |
+| LeadSimple          | Account endpoint/plan, process/stage/assignee mapping, conditional update contract                                                                                                | Guessed stages or unconditional stage overwrite            |
+| QuickBooks          | OAuth/company/Vendor/account mapping and draft-only permission                                                                                                                    | Post, approve, pay, bank, or ledger authority              |
+| Boom/SMS            | Existing account/plan, mapping/consent/applicability and correction contract                                                                                                      | Purchasing/selecting a provider by inference               |
+| Drive               | Approved in-boundary photo folder, runtime permission, file/scanner policy                                                                                                        | Replace/delete behavior or source-folder overreach         |
 
 The first Live proof is one bounded, explicit, human-confirmed action with an idempotency key,
 bodyless receipt, provider readback, and documented correction. A failed or ambiguous result is
@@ -82,17 +85,18 @@ reconciled before any second attempt.
 
 ## Vendor activation
 
-The Test Vendor is part of V1 and needs only project-level Email/Password and TOTP. Admin provisioning
-returns the password-setup link only in its confirmed response. If that response is closed before use,
-Admin can exact-preview one replacement for the same reconciled `pending_setup` Test identity; neither
-link is stored, cached, emailed, or externally delivered. The Test user then enrolls TOTP, and
-assigned-ticket/app-only mailbox behavior is proved without invitation delivery or OAuth.
+The canonical invented Vendor is verified current behavior and moves to Demo under S40. It needs only
+Demo-project Email/Password and TOTP. Admin returns the password-setup link only in its confirmed
+response. If that response is closed before use, Admin can exact-preview one replacement for the
+same reconciled `pending_setup` Demo identity; neither link is stored, cached, emailed, or externally
+delivered. The Demo user then enrolls TOTP, and assigned-ticket/app-mailbox behavior is proved
+without invitation delivery or OAuth.
 
-No client decision or provider approval is needed to reset this canonical Test identity. From
+No client decision or provider approval is needed to reset this canonical Demo identity. From
 `pending_setup`, `active`, or `disabled`, an Admin supplies a reason and exact-confirms the current
 UID/status/invite-version preview. The app rotates the Firebase UID, invalidates the old password,
 TOTP factors, sessions, action links, and UID-bound confirmations, while preserving the stable Vendor
-id, Test tickets, assignments, mailbox history, and receipts. It returns one response-only setup link
+id, Demo tickets, assignments, mailbox history, and receipts. It returns one response-only setup link
 and leaves the Vendor `pending_setup` until a fresh password/TOTP journey succeeds. Any partial failure
 stays disabled; the reset makes no Live, delivery, OAuth, vault, provider, or Registry change.
 
@@ -105,8 +109,8 @@ A **Live** Vendor additionally requires:
 - Secret Manager-backed token vault; and
 - one same-address connect/read/exact-confirm/revoke proof.
 
-These items activate that Vendor's Live mailbox. They do not hold the Test Vendor or the application
-V1 state open.
+These items activate that Vendor's Live mailbox. They do not hold the Demo Vendor or the application
+open.
 
 ## Source and training follow-ups
 
@@ -125,12 +129,18 @@ Missing material remains visibly missing; the application must not invent proper
 - [ ] If managed Google auth is stale, owner completes `npm run auth:session` interactively.
 - [x] Email/Password is enabled with password required; TOTP is enabled with adjacent interval `1`.
 - [x] The production host is present in Firebase authorized domains; Google sign-in remains enabled.
+- [ ] For S40 activation, owner supplies/approves exact independent Demo resource identifiers and
+      runs the green provisioning/migration/deploy packet.
+- [ ] For S43 template activation, Chasity supplies the exact updated artifact through the approved
+      publication channel.
+- [ ] For S47 RentVine-channel activation, vendor/owner confirms the exact interactive endpoint,
+      webhook/reply semantics, and account mapping.
 - [ ] If a selected Live action lacks credentials/contract/mapping, leave only that action unavailable
       and request the exact missing input.
 - [ ] If a real Vendor Live mailbox is selected, obtain that Vendor's consent and vault configuration.
 
-These are conditional operations, not current application blockers. Everything else continues with
-the recommended Test or unavailable-provider default. No named
+These are conditional operations, not broad application blockers. Everything else continues with
+the recommended Demo/app-plane or unavailable-provider default. No named
 acceptance signature, TTL/index/scheduler activation, or all-provider activation requirement blocks
 the working production V1 application.
 

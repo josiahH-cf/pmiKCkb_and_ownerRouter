@@ -1,106 +1,126 @@
 # Loop State
 
 Read `docs/facts.md` first. This is the short resume pointer; history belongs in `docs/status.md`.
-The prioritized "what to build next" list is `docs/roadmap-unblock-2026-07-23.md` (the full-suite build
-program); the owner-unblock asks are compiled in `docs/client-unblock-guide-2026-07-23.md`.
 
-## Snapshot
+Last updated: 2026-07-28.
 
-- Last updated: 2026-07-23.
-- **Wave 1 of the full-suite build program is COMPLETE and merged.** All six pure-app-plane suites
-  shipped in the `ui-ux-overhaul` worktree and ff-merged to `main` (Wave 1 completed at `ceb6bea`;
-  `main` is now `2bfe7d4` after the docs cycle), each with a green full gate and an independent
-  multi-skeptic adversarial falsification pass. Each has an authoritative
-  `docs/facts.md` F-row (the record of truth); `docs/status.md` carries the narrative history.
-- **A documentation + handoff cycle then ran (2026-07-23, docs only, no app code).** It produced three
-  client deliverables — `docs/client-unblock-guide-2026-07-23.md` (every owner-unblock ask),
-  `docs/pmi-kc-app-guide-2026-07-23.html` (full plain-language capabilities guide, folded in from the
-  walkthrough), and `docs/pmi-kc-roadmap-2026-07-23.html` (what is live / next / open, client-facing) —
-  and rewrote `docs/customer-demo-walkthrough-2026-07-21.html` into Say / Do / Process test rows.
-- **Deployed 2026-07-23.** Production serves `2bfe7d4` (main — completed Wave 1 plus the
-  documentation-and-handoff docs) on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e` at 100%
-  (`F-CURRENT-SERVING-CHECKPOINT-2026-07-23`); rollback `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7`
-  (`7663cec`). Config verified: `vertex spaces:11`, `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED:true`,
-  `ASK_DEMO_MODE:false`, `NODE_ENV:production`; auth boundary green. Run deploys from the PRIMARY tree:
-  its `.env.local` carries the writeback flag; the worktree `.env.local` does not (an initial
-  worktree-run deploy shipped the flag off and was corrected by redeploying from the primary tree).
-- **The four owner Q&A decisions (2026-07-23)** remain in force (`F-ROADMAP-BUILD-AUTHORIZED`, roadmap
-  §3): D-RENT-SUGGEST, D-RENTVINE-ENDPOINT, D-BUILDER-FULL, D-AUTOMATION-LINE.
+```yaml
+last_updated: 2026-07-28
+active_program: UIUX-RECALIBRATION-2026-07-28
+program_suites: S40-S50
+spec_writing_allowed: true
+loop_execution_allowed: true
+spec_package_status: READY_FOR_EXECUTION
+implementation_status: NOT_STARTED
+next_suite: S40
+next_spec: docs/feature-suites/environment-deployment-separation.md
+runtime_action_gates_preflipped: false
+```
 
-## Wave 1 — shipped (one-line pointers; the F-row is authoritative)
+## Authority
 
-- **S29** comp-informed rent suggestion, Admin-approval-gated → `F-RENT-SUGGEST-ADMIN-GATED` (supersedes
-  `F-NEGOTIATION-EXCLUDED`). `73f6b41`.
-- **S32** KB corrections learning loop + source freshness + read-only model-config →
-  `F-KB-CORRECTIONS-LEARNING` (`Q-KBCORR-1/2`). `538cc87`.
-- **S33** Ask box → live-action front door (reuses the desk's gated composer) → `F-ASK-ACTION` (resolves
-  `Q-ASK-ACTION-SCOPE`). `db601ae`.
-- **S38a** maintenance owner-notice draft made reachable (property-anchored resolve; draft-only) →
-  `F-MAINT-OWNER-DRAFT-REACHABLE`. `2bc11d7`.
-- **S28a** market-comp provider (manual default; RentCast inert) + comp-screenshot upload, display-only →
-  `F-MARKET-COMP-PROVIDER` (`Q-RENTCAST-ENDPOINT`). `5c03c06`.
-- **S39** internal transactional notifications + Admin Feedback center, internal-only auto
-  (`D-AUTOMATION-LINE`) → `F-SUPPORT-NOTIFY-CENTER` (`e32587a`) → `F-INTERNAL-NOTIFY-EXECUTOR`
-  (`9cca3b1`) → `F-INTERNAL-NOTIFY` (`ceb6bea`; Supersede Log `SUPPORT-INTAKE-NO-EMAIL`).
+- Owner accepted all 42 UI/UX audit findings and all nine workstreams, settled D-01–D-14, asked for
+  hyper-specific fresh-context specs, and explicitly directed the loop flag to open.
+- Controlling program:
+  `docs/ui-ux-recalibration-implementation-program-2026-07-28.md`.
+- Canonical unattended fresh-context entry:
+  `docs/meta-prompts/ui-ux-recalibration-unattended-loop.md`.
+- Locked product/end-state contract:
+  `docs/fresh-context-ui-ux-recalibration-prompt-2026-07-28.md`.
+- Fact: `F-UIUX-RECALIBRATION-AUTHORIZED`.
+- S28–S39 remain authorized provider/capability seams. S40–S50 now control environment, IA,
+  workflow consolidation, tool retirement, and S37 sequencing.
 
-## Next work — Wave 2 (seam built; each waits on one named owner step)
+## Current truth
 
-Resume at **Wave 2** — the live-provider seams. The executor plus full S25/S26 contract are already built
-and wired to fake providers; each needs the live provider built to the seam plus one owner dependency to
-flip: S30 RentVine write (endpoint), S31 Gmail watch (Pub/Sub topic + Scheduler JOB), S28b RentCast (API
-key), S35 LeadSimple (key + vendor confirm), S34 Dotloop (OAuth app), S36 Space provisioning (billing +
-create identity), S38b maintenance send (owner-mapping evidence — CONFIRMED, flip is a reviewed change
-after S38a). **Wave 3** = S37 no-code builder (pure app-plane, no owner dep). Build order and the full
-owner-dependency list: `docs/roadmap-unblock-2026-07-23.md` §4/§5; the client-facing asks are in
-`docs/client-unblock-guide-2026-07-23.md`. Per suite: build the live provider to the seam, then flip its
-gate (both `EXECUTABLE_ALLOWLIST` copies + pinned tests) once the named dependency is documented.
+- Repository baseline at spec authoring: `main` / `b048043`; the S40–S50 documentation changes are
+  uncommitted until the owner chooses the normal commit flow.
+- No S40–S50 application code, cloud resource, record migration, action gate, deploy, send, or
+  external write was performed by the 2026-07-28 spec cycle.
+- Current Production still has verified Live+Test behavior
+  (`F-PRODUCTION-DUAL-DATA-LANES`). That remains current-state evidence until S40’s backed-up,
+  owner-run migration/cutover; it is no longer the target.
+- Current serving checkpoint remains the last verified row
+  `F-CURRENT-SERVING-CHECKPOINT-2026-07-23`; do not infer deployment from later git history.
 
-## Safe Stop Boundary
+## Locked target
 
-- `main` and `ui-ux-overhaul` are aligned at `2bfe7d4`, pushed, working tree clean; no slice is
-  half-applied and no mutation is mid-flight. Production serves `2bfe7d4` on `rmrxpsn5q`; the rollback
-  target is the QA-verified `7663cec` / `rmrwmk2kn`.
-- The seven canonical app-only Approval Test fixtures are at `Ready for Approval`; both managed internal
-  staff identities are `Admin` with All-spaces access. No reusable authenticated restricted-role or
-  Vendor session is retained; a clean signed-out public context is ready.
-- All Test/identity baselines are restored. Resume from committed state; never replay a terminal mutation.
+- Separate managed Demo and Production environments, same product behavior.
+- Demo owns realistic invented Demo data/effects; optional Live read-only is explicit, non-mixing,
+  and non-mutating. Production is Live-only and has no Demo/Test product tools.
+- Blue/green is Production candidate revision promotion/rollback, not environment separation.
+- Four daily destinations plus primary non-card Spaces; split attention ownership.
+- One Renewal desk/unit/four-stage flow with scoped Editor desk/draft access.
+- Exact field/evidence/return links; verified exact provider URL or honestly labeled allowlisted
+  generic front door.
+- One-card Approvals; focused Maintenance; tokenized resident intake/RentVine seam.
+- Workflow-only Communications; provider Connections; task Admin; no replacement Test Lab.
+- Remove shipped simulations/no-op Sample/Test tools; retain tests, Demo parity, security, rollback,
+  and real provider seams.
+- Two-stage compatibility retirement; S37 executes only after the canonical baseline under S50.
 
-## Goal
+## Dependency order
 
-Execute the full-suite build program (`docs/roadmap-unblock-2026-07-23.md`) build-to-seam: build each
-roadmap suite's app-plane plus live provider plus full contract, ship the pure-app-plane suites, and stop
-only at each suite's one named owner dependency (roadmap §5). Do not defer a whole feature at the seam.
-Preserve the safety NEVERs (roadmap §7).
+1. S40 environment/deployment separation.
+2. S41 shell/navigation/vocabulary.
+3. S42 attention ownership + Spaces flow.
+4. S44 evidence/provider backlinks.
+5. S43 canonical Renewal workspace.
+6. S45 Approval one-card consolidation.
+7. S46 Maintenance operator workspace.
+8. S47 resident Maintenance intake.
+9. S48 Communications/Connections/Admin/tool retirement.
+10. S49 compatibility/code/QA retirement.
+11. S50 S37 builder recalibration.
 
-## Next Exact Actions
+S43 and S45 may run independently only after S40/S41/S44. S50 waits for its prerequisite canonical
+owner ledger. Interleave S28–S39 only when a named provider dependency lands and no S40–S50 slice is
+left half-applied.
 
-1. Wave 1 + the handoff docs are deployed (`2bfe7d4` on `rmrxpsn5q`, 2026-07-23). Future deploys run
-   from the PRIMARY tree after `npm run auth:session`:
-   `npm run deploy -- --budget-confirmed --allow-multiple-spaces` (verify `vertex spaces:11` +
-   `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED:true`, capture the rollback revision, HTTP-smoke the auth
-   boundary).
-2. Interleave Wave 2 as owner dependencies (roadmap §5) land. Build each live provider to the seam now;
-   flip its gate (both `EXECUTABLE_ALLOWLIST` copies + pinned tests) once the dependency is documented.
-3. Or start **Wave 3 / S37** (the no-code builder) — pure app-plane, no owner dependency — under the same
-   worktree → gate → falsify → ff-merge → F-row discipline.
+## Named external evidence
 
-## Locked Safety
+- S40 activation: exact independent Demo project/service/database/storage/queue/OAuth/runtime
+  identity values plus owner-run provision/migration/deploy.
+- S43 template-dependent output only: Chasity’s exact updated renewal artifact.
+- S47 RentVine channel only: documented resident portal/text interactive endpoint/vendor semantics
+  and secure account mapping.
+- Exact provider record URLs enhance S44; reviewed generic provider front doors ship without them.
+- S49 generates its own usage/consumer proof; ambiguous candidates keep redirects.
 
-- No autonomous, scheduled, bulk, or model-triggered CLIENT-facing send. Every client-facing send is
-  human-initiated and exact-confirmed. Internal-staff notifications and read-only Gmail-watch renewal may
-  auto-run (`D-AUTOMATION-LINE`).
-- No guessed provider endpoint/value or customer data in git/evidence.
-- Every Live external effect stays target-labeled, one-attempt, idempotent, receipted, reconcilable,
-  monitored, and reversible; every client-facing send OR system-of-record write is additionally
-  human-confirmed (internal-staff notifications and read-only ops may auto-run per `D-AUTOMATION-LINE`).
-- Test receipts never claim Live activation. Staff/cloud identities remain `pmikcmetro.com` or
-  `pmi-kc-kb-prod`; no personal account may enter an auth path.
-- The approximately $10 total cost ceiling remains binding.
+## Gate meaning
+
+- Program/spec/loop flags are OPEN.
+- Pure app-plane features have no Action Registry gate and ship when verified.
+- `runtime_action_gates_preflipped:false` is intentional. A provider action flips in its owning
+  implementation slice only when endpoint/mapping/identity/full contract are documented; update the
+  seed, both executable allowlists, and pinned tests together.
+- Never leave a finished documented action preview-only by habit; never flip an undocumented action.
+
+## Next exact actions
+
+1. Documentation-only validation is green: format, diff check, router boundary, falsification,
+   copy voice, context freshness, feature-suite shape (149 tests), and spec traceability (292 IDs).
+2. In a fresh context, launch
+   `docs/meta-prompts/ui-ux-recalibration-unattended-loop.md`: complete its auth/budget/worktree/
+   blocker-ledger Phase 0, then execute S40’s discovery/test-first app-plane slice and continue
+   through safe dependency-ready suites. Do not provision cloud resources or delete/migrate
+   Production records until the exact owner-run packet is green.
+
+## Locked safety
+
+- No autonomous/scheduled/bulk/model-triggered client-facing send. Every client-facing send or
+  system-of-record write is human-initiated and exact-confirmed.
+- No guessed endpoint/record URL/customer value; generic provider navigation is never evidence.
+- No Demo/Production resource, record, credential, effect, or receipt crossing; unknown mode fails
+  closed.
+- No personal auth, secret/PII/customer content/token/photo in git or release evidence.
+- Every Live effect is one-attempt, idempotent, receipted/read back, monitored, and reversible.
+- No big-bang deletion; static reachability alone never removes provider/security/rollback code.
+- Approximately $10 total cost cap remains binding.
 
 ## Resume
 
-Read `AGENTS.md`, `docs/facts.md`, this file, `docs/roadmap-unblock-2026-07-23.md`, then the target suite
-spec under `docs/feature-suites/`. Wave 1 and the prior cycles are done and verified; the open work is
-Wave 2 (owner-gated seams) and Wave 3 (S37). Do not re-verify closed findings unless new evidence
-contradicts them; do not reopen a genuinely SETTLED decision. The roadmap suites (S28–S39) are AUTHORIZED
-scope, not settled-closed.
+Use `docs/meta-prompts/ui-ux-recalibration-unattended-loop.md`; it incorporates
+`docs/fresh-context-ui-ux-recalibration-prompt-2026-07-28.md` as the end-state contract. Begin at S40
+unless a later verified fact and this file record a completed suite. Do not reopen D-01–D-14 or
+mistake current Production Live+Test behavior for the target.

@@ -5,10 +5,9 @@ The foundation every client-facing string inherits. Pair this with `docs/feature
 
 ## North Star
 
-One operations cockpit where PMI KC's team runs every recurring process — renewals, move-in/out,
-maintenance, inbox — from validated sources. The app proposes; a human approves; nothing touches a
-system of record without per-action approval. Front-facing simplicity backed by deterministic
-workflows, with models used where they measurably help.
+One operations product where PMI KC's team runs recurring work from validated sources. The app
+proposes; the permitted human decides and exact-confirms effects; nothing touches a system of record
+without its action contract. Front-facing simplicity is backed by deterministic workflows.
 
 ## Audience
 
@@ -18,8 +17,13 @@ workflows, with models used where they measurably help.
   "production_allowed," "Phase-2a").
 - **Secondary — the owner/admin.** Manages connections, governance, and approvals. Tolerates a little
   more detail, but still wants plain language and a real kill switch over alerts.
-- **Tertiary (NOT app users) — tenants / owners / vendors.** They never log in; they only _receive_
-  app-drafted emails. Copy they see must read like a top-tier property manager wrote it.
+- **External Vendor.** A separately authenticated assigned-ticket user. Copy must make scope, next
+  action, and communication boundaries obvious without exposing internal tools.
+- **Resident intake user.** Uses one short-lived Maintenance link without another login. Copy is
+  mobile-first, calm, task-specific, and never implies diagnosis, legal admission, or automatic
+  charge.
+- **Recipients — tenants / owners / vendors.** External draft/send copy must read like a top-tier
+  property manager wrote it and retain the human-review boundary.
 
 ## Voice rules
 
@@ -55,10 +59,18 @@ These three durable rules were added after the pre-customer copy pass and are en
 | Bailey Placeholder                                  | Open Placeholder _(renamed; `Q-BAILEY` resolved)_ |
 | KB-owned process space                              | Process space                                     |
 | Read-only source space                              | Source space                                      |
-| simulation-only / production_allowed                | Test run / not live                               |
-| simulation / start a simulation                     | test run / start a test run                       |
+| Sample / persistent Test / simulation-only          | Demo data (only in the Demo environment)          |
+| production_allowed / Registry eligible              | Available / Review connection                     |
+| raw reconciliation                                  | Compare sources                                   |
+| bodyless receipt                                    | Activity record                                   |
+| Final-V1 external execution                         | Provider action                                   |
+| Test environment (operator copy)                    | Demo environment                                  |
+| live/test mode selector in Production               | (remove; Production is Live-only)                 |
 | the exception and control plane                     | (say what it reads/writes/checks)                 |
 | PMI handles the setup for you                       | the app stores the credentials and checks it      |
 | Rentvine (read-authoritative)                       | RentVine _(display seam; internal id unchanged)_  |
 
 The "Bailey Placeholder" source state is renamed to "Open Placeholder" (`Q-BAILEY` resolved; see `docs/facts.md` `F-OPEN-PLACEHOLDER`).
+
+Technical values remain available in Connections/Admin Advanced diagnostics; this lexicon governs
+daily operator, Vendor, and resident surfaces. `Test` is reserved for engineering verification.

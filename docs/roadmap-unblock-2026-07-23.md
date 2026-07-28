@@ -9,6 +9,13 @@
 >
 > This doc is the authoritative **scope + program**. The runner reads it after `docs/facts.md` and
 > `docs/loop-state.md`. The per-feature specs it indexes (S28–S39) are the executable detail.
+>
+> **2026-07-28 continuation.** S28–S39 remain authorized provider/capability scope, but the active
+> product/environment/IA sequence is now S40–S50 in
+> `docs/ui-ux-recalibration-implementation-program-2026-07-28.md`. S40 moves non-Live product
+> rehearsal from Production Test surfaces into an independent Demo environment. S50 controls S37
+> sequencing and schema. Do not use this older program to reintroduce Production Test UI or start
+> S37 against the old IA.
 
 ## 1. Why builds kept stopping (root cause)
 
@@ -104,7 +111,8 @@ dependency; it never stops a whole feature at the seam.
 **Wave 3 — large, multi-slice:**
 
 - **S37** Full no-code page/layout builder (schema-driven page model → renderer → editor → section
-  library). Its own program; sequence after Wave 1 lands.
+  library). Its own program; sequence after the S40–S49 canonical baseline and execute as amended by
+  S50.
 
 ## 5. Irreducible owner-dependency list (the ONLY blockers)
 
@@ -144,7 +152,8 @@ action):
 Replaces the defer-first posture. The runner MUST, for every roadmap suite:
 
 1. Build the app-plane + the live provider implementation + the full S25/S26 preview/confirm/
-   receipt/rollback contract + the Test-lane proof.
+   receipt/rollback contract + the isolated non-Live proof (currently Test in deployed code; Demo
+   after S40).
 2. Stop **only** at the single irreducible owner dependency from §5, named exactly, and record it as a
    one-line owner step — never as "feature deferred."
 3. Never wire a permanent fake and halt. A fake provider is a scaffold to be replaced, not a stopping
@@ -179,3 +188,7 @@ dependency (flip is one reviewed change), the pinned gate/schema tests are green
 carries its `F-*` row citing the `AC-` ids, and `docs/loop-state.md` points at the next suite. The
 program is done when every row in §2 is BUILD-shipped or SEAM-to-owner-step, and §5 is the complete
 remaining list.
+
+S28–S39 completion does not complete the later UI/UX program. S40–S50 has its own acceptance and
+completion ledger; provider activations from this program may interleave only when their named
+dependencies are ready and the active S40–S50 slice remains clean.

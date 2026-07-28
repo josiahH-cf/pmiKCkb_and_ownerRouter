@@ -1,11 +1,14 @@
 # What's Next — Open Decisions, Directions, and Recommendations
 
-**Purpose.** This is the single doc to read when you come back and ask _"what's next?"_. The app is
-built and the v1 readiness remediation is complete on every testable code front (see
-`docs/loop-state.md` and `docs/status.md`). Everything left is either a decision only you can make, a
-build that should not start without your go-ahead, or an infrastructure step in your GCP/Workspace
-console. Each item below is written as **Finding → Context → Recommendation → What I need from you**,
-so you can decide it as a confirm-with-default rather than an open essay question.
+**2026-07-28 supersession.** The UI/UX decisions in this document are no longer open. The owner
+settled D-01–D-14 and authorized S40–S50; current execution truth is
+`docs/ui-ux-recalibration-implementation-program-2026-07-28.md` plus `docs/loop-state.md`. Keep this
+file for provider/client asks and historical rationale; it cannot reopen the environment or UI
+program.
+
+**Purpose.** This is a supporting inventory for remaining client/provider/infrastructure asks. Each
+item uses **Finding → Context → Recommendation → What I need from you** so irreducible asks are
+concrete rather than open essays.
 
 **How to drive it.** Read the "Status at a glance" table, then start at the top of §1. For each item,
 I will propose the default and ask only the irreducible question. Answer, and I execute (or hand you
@@ -22,19 +25,19 @@ contract; sample/test data never becomes a real draft or send; staff/cloud ident
 
 ## Status at a glance
 
-| #   | Item                                                          | Type              | Blocked on                              | Default recommendation                                       |
-| --- | ------------------------------------------------------------- | ----------------- | --------------------------------------- | ------------------------------------------------------------ |
-| 1.1 | Redeploy `main` to production (DONE 2026-07-21)               | Deploy            | Your authorization + fresh gcloud login | Done — prod serves it at rev rmruogj57                       |
-| 1.2 | Q-CUTOVER-POSTURE: keep Test lane vs strip to production-only | Decision          | Your ruling                             | Keep the Test lane; scope teardown as its own reviewed cycle |
-| 1.3 | F-LEASE-6: is the primary tenant always `tenants[0]`?         | Decision (Dan)    | One answer                              | Keep the all-tenants-Cc behavior we shipped                  |
-| 1.4 | F-LEASE-3: confirm live RentVine field names                  | Decision (Dan)    | One answer                              | Confirm before any live renewal click-through                |
-| 2.1 | F-AUTH-1: onboarding — no access until Admin assigns scope    | Owner-gated build | Go-ahead + a deploy migration           | Build it, with the never-lock-out-admins invariant           |
-| 2.2 | Product/UX polish backlog                                     | Owner-gated build | Pick which to build                     | Build the low-risk ones next; artwork items need your files  |
-| 3.1 | env-LR-01: Firestore backups / PITR (**HIGH**)                | Infra             | Your console                            | Enable before any real client data lands                     |
-| 3.2 | env-LR-02: budget kill-switch provisioning                    | Infra             | Your console                            | Provision the real kill switch, not just alerts              |
-| 3.3 | maint-LR-02: `MAINTENANCE_INTAKE_IP_HASH_SALT` secret         | Infra             | Your console                            | Set the secret before enabling public intake                 |
-| 3.4 | auth-LR-05: confirm prod `NODE_ENV` / demo-auth off           | Infra check       | 5-minute verification                   | Verify at next deploy                                        |
-| 4.x | Accepted residuals / owner-ruled accepts                      | Known limitation  | Nothing (unless you reprioritize)       | Leave as-is; documented                                      |
+| #   | Item                                                       | Type              | Blocked on                              | Default recommendation                                 |
+| --- | ---------------------------------------------------------- | ----------------- | --------------------------------------- | ------------------------------------------------------ |
+| 1.1 | Redeploy `main` to production (DONE 2026-07-21)            | Deploy            | Your authorization + fresh gcloud login | Done — prod serves it at rev rmruogj57                 |
+| 1.2 | Demo/Production environment posture                        | Resolved program  | S40 implementation + owner provisioning | Demo owns safe rehearsal; Production becomes Live-only |
+| 1.3 | F-LEASE-6: is the primary tenant always `tenants[0]`?      | Decision (Dan)    | One answer                              | Keep the all-tenants-Cc behavior we shipped            |
+| 1.4 | F-LEASE-3: confirm live RentVine field names               | Decision (Dan)    | One answer                              | Confirm before any live renewal click-through          |
+| 2.1 | F-AUTH-1: onboarding — no access until Admin assigns scope | Owner-gated build | Go-ahead + a deploy migration           | Build it, with the never-lock-out-admins invariant     |
+| 2.2 | Product/UX recalibration                                   | Authorized build  | S40–S50 dependency order                | Execute the decision-complete program                  |
+| 3.1 | env-LR-01: Firestore backups / PITR (**HIGH**)             | Infra             | Your console                            | Enable before any real client data lands               |
+| 3.2 | env-LR-02: budget kill-switch provisioning                 | Infra             | Your console                            | Provision the real kill switch, not just alerts        |
+| 3.3 | maint-LR-02: `MAINTENANCE_INTAKE_IP_HASH_SALT` secret      | Infra             | Your console                            | Set the secret before enabling public intake           |
+| 3.4 | auth-LR-05: confirm prod `NODE_ENV` / demo-auth off        | Infra check       | 5-minute verification                   | Verify at next deploy                                  |
+| 4.x | Accepted residuals / owner-ruled accepts                   | Known limitation  | Nothing (unless you reprioritize)       | Leave as-is; documented                                |
 
 ---
 
@@ -52,28 +55,17 @@ contract; sample/test data never becomes a real draft or send; staff/cloud ident
 - **Next deploy.** Only needed when the next owner-approved change lands: same command, after a fresh
   `preflight:adc` check.
 
-### 1.2 Q-CUTOVER-POSTURE — keep the Test lane, or strip to a production-only app
+### 1.2 Demo/Production posture — RESOLVED 2026-07-28
 
-- **Finding.** There is standing tension between two of your directions. The 2026-07-18 ruling leaned
-  toward tearing down the Live/Test-lane split and moving to universal self-registration; the 2026-07-19
-  UI/UX spec §B said "remove test/simulation/demo mode, make everything sendable, make it prod." But the
-  app today deliberately **keeps** the isolated Test lane, the simulation-only run surfaces, and the
-  admin demo chain as safety features, and the implementing agent did **not** rip them out unilaterally.
-- **Context.** This is a genuine fork, not an oversight. The Test lane, "this is a test run" labeling,
-  and the "nothing here can send" honesty strings are code-only governance defaults (not external
-  dependencies) — removable — but they encode a repeatedly-ratified safety posture. Stripping them is a
-  large, safety-adjacent refactor that also drags in the stale "V1 application" banner, the four
-  "nothing here can send" strings, and the hardcoded "Dan" labels (see §2.2). Doing it wrong risks
-  turning a safe draft-only app into one where a mistaken click sends.
-- **Recommendation.** Keep the Test lane. Treat "production-only cutover + universal self-register" as
-  its **own** reviewed build cycle with the hard boundaries preserved (still human-confirmed exact
-  sends, still no autonomous send), rather than a flag flip. If you want to move that direction, we
-  scope it as a dedicated slice set and I adversarially verify each one.
-- **What I need from you.** One of: (a) keep the Test lane as-is (default); (b) start the production-only
-  cutover as a scoped cycle now; or (c) a narrower subset (e.g. just drop the stale "V1 application"
-  banner and relabel "Dan" — the low-risk cosmetic half — while keeping the Test lane). Follow-ups I'll
-  ask if you pick (b): does "everything sendable" still mean every send is human-confirmed? Who may
-  self-register, and into what default role/scope?
+- **Decision.** S40 separates environments: Demo runs the exact product with invented Demo data and
+  optional explicit Live read-only/zero-effect context; Production becomes Live-only.
+- **Safety.** No mixed projection, shared effect credential/store/receipt, unknown-mode→Live,
+  autonomous client send, or guessed provider contract. Blue/green is Production revision promotion/
+  rollback.
+- **Tool disposition.** Retire shipped simulations/no-op Sample/Test tools without deleting
+  automated tests, Demo parity, Vendor TOTP/security, rollback, or real provider seams.
+- **What I need from you.** Only the exact independent Demo resource identifiers and the owner-run
+  provisioning/migration/deploy after S40’s collision/dry-run/backup packet is green.
 
 ### 1.3 F-LEASE-6 — is the primary tenant always `tenants[0]`? (for Dan)
 
@@ -120,54 +112,45 @@ contract; sample/test data never becomes a real draft or send; staff/cloud ident
   (a "waiting for access" screen vs a redirect)? Should a new Admin-invited user be provisioned at
   invite time so there's never a lockout window?
 
-### 2.2 Product / UX polish backlog (the honest coverage list)
+### 2.2 Product / UX recalibration — AUTHORIZED as S40–S50
 
-These are real, buildable UI/UX improvements the finalization pass deliberately deferred (they were
-never claimed as done). None is a safety issue; each is a quality-of-experience upgrade. Verify current
-state before building each — some may have partially landed.
+The bullets below are historical inputs now absorbed into the decision-complete program. Execute the
+suite that owns each item instead of choosing ad hoc from this list.
 
-- **Drop the stale "V1 application" release banner** (low risk, cosmetic). Tied to Q-CUTOVER-POSTURE §1.2.
-- **Relabel the hardcoded "Dan"** to a role/state label instead of a person's name (low risk). Tied to §1.2.
+- **Drop the stale "V1 application" release banner** under S41/S49.
+- **Relabel hardcoded personal names** to role/state labels under S41/D-14.
 - **A guided "Next" control** on the renewal desk so it's obvious what to do after each action (medium).
   This directly answers your "is it obvious what to do next?" test — worth prioritizing.
 - **Hide the V1 external-execution / readiness internals** off the standard renewal landing into Admin,
   so an operator sees the operator flow, not the plumbing (medium).
-- **Desk convenience links**: Zillow + "what's next" + open-the-sheet + report-a-bug links on the desk
-  (low/medium).
-- **A Connections connect-and-save walkthrough.** Today `/connections` is read-only status + an Admin
-  "verify" for RentVine/Sheets. A real connect-and-save flow (enter credentials → store in Secret
-  Manager → verify) is the "is it easy to set up the APIs?" answer (medium; touches secret handling —
-  I'll design it so the app never shows secret values and you approve each provider).
-- **Wire the built-but-dead self-registration / TOTP / verification-code / live-vendor-invite** paths
-  (medium/large; overlaps §1.2 and the 2026-07-18 universal-self-register direction). Do not wire
-  without deciding §1.2 first.
+- **Desk/source/provider links** use S44’s exact-field and reviewed-provider-destination contract;
+  never add a guessed convenience URL.
+- **Connections connect-and-save walkthrough** belongs to S48/provider activation. Current
+  Connections already has API-key/OAuth starts; preserve secret redaction and exact owner-run setup.
+- **Dormant self-registration/TOTP/verification-code primitives:** S48/S49 explicitly do not invent a
+  self-registration product. Preserve current Vendor TOTP/security ownership and delete only after
+  proof or a later explicit onboarding suite.
 - **PMI logo / favicon + red-dot notification badge.** Blocked on **you supplying the vector artwork**
   (SVG/PNG). Send the files and I wire them; per your standing note the ticket icon stays a plain
   "Report an issue" button, not the logo.
 - **The renewal §H tenant / Dotloop UI cleanup** (medium).
-- **Report-issue email delivery.** Today "Report an issue" files to a Firestore support queue reviewed
-  in `/admin` (no email), which is safe and honest. Email delivery would need a separate owner-approved
-  transactional send path (a new send lane — held behind the same no-autonomous-send scrutiny).
+- **Report-issue internal delivery** shipped under S39 as an internal-only metadata notification;
+  it does not authorize client-facing or generic send.
 
 **Smaller friction points the by-hand review map surfaced (mostly quick, honesty/clarity fixes).** The
 full list is Appendix A of `docs/manual-qa-walkthrough-2026-07-21.md`; the ones worth deciding here:
 
-- **Connection Center copy over-promises.** "Set up <name>" is explanatory text only (no credential
-  form/OAuth/wizard exists), yet the copy says "the app stores your credentials securely." Recommend a
-  quick honesty fix now (say what actually happens today) even before the full connect-and-save
-  walkthrough is built.
-- **Sample renewal "Prepare tenant/owner email" buttons never create a draft** (preview-only) but look
-  actionable next to an empty-state that tells you to go to the live desk. Recommend either removing
-  them from the sample workspace or routing them to the live notices desk.
-- **The live renewal drafting link is Admin-gated on the desk though the page allows Editors** — an
-  Editor has to know the URL. Recommend showing the link to any `edit`-capable user.
+- **Connections copy/flow** is owned by S48 and must reflect actual credential/OAuth/status behavior.
+- **No-op Sample renewal preparation controls** retire under S43/S48, with S49 deletion proof.
+- **Editor renewal desk/draft access** is settled and implemented under S43; provider send/write
+  authority remains separate.
 - **New staff onboarding has no in-app affordance** (no invite button; new users invisible until first
   sign-in). Recommend a small "how to add a teammate" hint on `/admin/users`, and reconsider as part of
   F-AUTH-1 (§2.1).
 
-- **What I need from you.** Point at any subset ("build the guided Next control, drop the V1 banner, and
-  do the Connection Center honesty fix") and I'll run each as a verified slice. Send artwork files for
-  the favicon item.
+- **What I need from you.** No reprioritization for these items; the loop executes S40–S50 in the
+  recorded dependency order. Artwork remains an independent asset dependency if/when that visual
+  item is reached.
 
 ---
 

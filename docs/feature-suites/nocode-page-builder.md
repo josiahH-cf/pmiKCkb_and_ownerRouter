@@ -3,6 +3,12 @@
 # S37 - Full no-code page/layout builder
 
 > New 2026-07-23 (operator note). Implements owner decision D-BUILDER-FULL (roadmap-unblock-2026-07-23 feature #11, §3, §4 Wave 3) under `F-ROADMAP-BUILD-AUTHORIZED`. Multi-slice suite; pure app-plane, with no live provider and no owner flip.
+>
+> **Sequencing amendment 2026-07-28.** D-11 requires the S40–S49 canonical IA baseline before this
+> build begins. `docs/feature-suites/nocode-builder-recalibration.md` (S50) is the controlling
+> execution amendment: reuse S37's publication/security design, but do not encode retired routes,
+> card catalogs, duplicate attention views, Test tools, or mutable core workflow/authority layout.
+> Where S37 and S50 conflict, S50 controls.
 
 **Goal.** Today, changing the app's pages or adding a new one means an engineer hand-edits React/Next.js; only content (SOPs, templates, tools, placeholders, rules, roles, and process definitions) is editable inside the app. After S37 an Admin can build and rearrange app pages with no code: create a new page, add, reorder, and remove sections drawn from a fixed library of pre-built display components, preview the result, and publish it live through the same Draft-to-Active validation and immutable-version lifecycle that S21 already runs for process definitions. A published page is inert presentation: it displays existing app data and links to existing in-app surfaces, and it can never grant execution, enable an external action, change the Action Registry, connector policy, environment config, or system prompt, or widen a role or scope. The end-state is that the app's own pages and layout become an Admin-editable, versioned, reversible, audited artifact, with zero engineer involvement for a layout change and zero new external authority created.
 

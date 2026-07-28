@@ -6,19 +6,24 @@ This is the active production runner for large unattended feature cycles. Use it
 user says "let's plan the next feature run cycle" or asks for an agentic planning,
 build, verification, and handoff loop.
 
-The runner is documentation and process guidance only. Per the Go-Live and Roadmap Build
-Authorizations in `AGENTS.md` (`F-SEND-AUTHORIZED`, `F-ROADMAP-BUILD-AUTHORIZED`), the DEFAULT is to
-**build every authorized roadmap suite to its external seam** — the app-plane, the live provider, and
-the full action contract — and ship it, opening each `production_allowed` gate as a routine reviewed
-code change. The runner autonomously performs all local/app-plane build and verification. It stops for
-the owner ONLY at a genuine external step: a cost-bearing cloud/billing action, a deploy, a
-credential/scope/OAuth grant, a vendor confirmation, or the one documented endpoint that flips a built
-provider live. It never treats a whole feature as deferred because its last inch is owner-gated, and it
-never performs an autonomous client-facing send or an unreviewed system-of-record write.
+The runner is documentation and process guidance only. Per the Go-Live, Roadmap Build, and UI/UX
+Recalibration Authorizations in `AGENTS.md` (`F-SEND-AUTHORIZED`,
+`F-ROADMAP-BUILD-AUTHORIZED`, `F-UIUX-RECALIBRATION-AUTHORIZED`), the DEFAULT is to build every
+authorized suite to its observable end state/external seam and ship it, opening an action-level
+`production_allowed` gate as a routine reviewed code change only when its exact dependency and full
+contract are documented. The active sequence is S40–S50. The runner performs all local/app-plane
+build and verification and stops for the owner only at a genuine external operation: cost-bearing
+cloud/billing, deploy/traffic/data deletion, credential/scope/OAuth grant, vendor confirmation, or
+the documented endpoint that flips a built provider live. It never treats a whole feature as
+deferred because its last inch is owner-gated, and it never performs an autonomous client-facing
+send or an unreviewed system-of-record write.
 
 ## Entry Points
 
 - `AGENTS.md` is the primary router for Codex and other agents.
+- `docs/meta-prompts/ui-ux-recalibration-unattended-loop.md` is the canonical fresh-context launcher
+  for S40–S50. It performs managed-auth, budget, worktree, blocker-ledger, and baseline Phase 0 work
+  before entering this runner’s continuation loop.
 - `CLAUDE.md` is a compatibility pointer for Claude-style runners. Keep it as a short
   pointer to `AGENTS.md`, not a duplicate rule file.
 - `docs/agent-runner/` holds the prompt pack that created this scaffold. Treat it as
@@ -42,8 +47,10 @@ every-session reading is Tier 0 + Tier 1; everything else is reached on demand t
 
 3. `AGENTS.md` — the router.
 4. `docs/north-star.md` — direction and decision rules.
-5. `docs/products/README.md` and the one active product-lane doc.
-6. `docs/plan.md` — phase status and acceptance gates.
+5. `docs/ui-ux-recalibration-implementation-program-2026-07-28.md` — current S40–S50 decisions,
+   environment contract, order, and flags.
+6. `docs/products/README.md` and the one active product-lane doc.
+7. `docs/plan.md` — phase status and acceptance gates.
 
 **Tier 2 — on demand via the Route Table (read only what the task needs):**
 
@@ -67,8 +74,9 @@ doc explicitly preserves a safety rule.
 
 ## Product Lane Selection
 
-- PMI KC KB is the shared working V1 runtime under R01–R09 and S20–S27. Application readiness is
-  established by the stable production Live/Test workflows; provider activation is tracked per action.
+- PMI KC KB is the shared runtime. The currently deployed Production Live/Test workflows remain
+  verified evidence, but S40’s target is an independent Demo environment and Live-only Production;
+  provider activation stays per action.
 - Lease Renewal Agent already has a deterministic read/reconcile/review runtime and app-plane
   decision surfaces. It remains the first backend automation target, while every external write
   waits for its own approved scope, permission, and acceptance gate.
@@ -101,13 +109,14 @@ questions before implementation.
 
 ## Build-to-Seam Gate
 
-Before selecting the next slice, confirm it advances an authorized roadmap suite
-(`docs/roadmap-unblock-2026-07-23.md`, S28–S39) or fixes a real regression in shipped behavior. The
-runner BUILDS — it does not defer product surface. For each suite, in order:
+Before selecting the next slice, confirm it advances the authorized active program
+(`docs/ui-ux-recalibration-implementation-program-2026-07-28.md`, S40–S50), a dependency-ready
+S28–S39 provider activation, or a real regression in shipped behavior. The runner BUILDS — it does
+not defer product surface. For each suite, in order:
 
 - build the app-plane (UI, routes, state, validation) unattended;
 - build the live provider implementation, replacing any fake/synthetic provider, plus the full
-  preview/confirm/receipt/rollback action contract and its Test-lane proof; and
+  preview/confirm/receipt/rollback action contract and its Demo-environment proof; and
 - build the gate-flip machinery (seed readiness/evidence, both `EXECUTABLE_ALLOWLIST` copies, pinned
   tests), left staged until the one named owner dependency is documented.
 
@@ -115,8 +124,13 @@ It hands back ONLY at that single named owner dependency (roadmap §5) — a doc
 credential/scope grant, a vendor confirmation, or a billing approval — recorded as a one-line owner
 step, never as "feature deferred." Do not stop a 90%-buildable feature at 0% because its last inch is
 external. Do not invent scope beyond the roadmap suites; do not lower a schema/risk gate, override the
-Registry, or use a synthetic escape to fake a Live receipt (a production Test receipt closes
-app-workflow evidence, never Live-provider evidence).
+Registry, or use a synthetic escape to fake a Live receipt (a Demo receipt closes product-workflow
+evidence, never Live-provider evidence).
+
+For S40–S50, “build” additionally means meet the suite’s observable desktop/390×844 task, exact-link,
+role/scope/environment, compatibility, and deletion-proof ACs. Named files/components are examples;
+the end state is fixed. Do not reopen D-01–D-14, create a Test Lab, mix Demo/Live-read-only, default
+unknown mode to Live, guess provider URLs/endpoints, or start S37 before S50 prerequisites.
 
 ## Cycle Packet
 
@@ -157,10 +171,11 @@ Read the trigger literally to avoid re-prompting:
   implementation loop and into the multi-slice continuation loop without asking again
   between internal phases or between safe slices.
 
-For the active working-V1 goal, `/loop` or any run/continue/implement trigger follows
-`docs/loop-state.md` and the dependency order in the V1 program. Do not regenerate Round 3 questions
-or infer a Live provider contract. Complete isolated Test workflows and app/Firestore writes, then
-activate only the exact Live actions currently authorized by the owner and Registry contract.
+For the active goal, `/loop` or any run/continue/implement trigger follows `docs/loop-state.md` and
+the S40–S50 dependency order. The loop flags are already open. Do not regenerate the UI audit,
+re-ask D-01–D-14, or infer a Live provider contract. Complete Demo product workflows in Demo, build
+Live providers to their documented seam, and activate only exact actions satisfying the owner/
+Registry contract.
 
 After an implementation packet is locked, do not ask the user to review every internal
 phase. Only stop for an approval gate, a stop-and-reset condition, or a genuine blocker.
@@ -170,14 +185,14 @@ phase. Only stop for an approval gate, a stop-and-reset condition, or a genuine 
 An agent may choose conservative local implementation details when active docs define
 the direction and the choice:
 
-- stays within an authorized roadmap suite (does not invent scope beyond the S28–S39 program),
+- stays within an authorized S40–S50 suite or dependency-ready S28–S39 provider activation,
 - does not expose private data,
 - does not create cloud/API/billing usage,
 - does not touch client resources,
 - does not create or change keys,
 - does not perform a LIVE external send or system-of-record write — building the provider, the full
   action contract, and a staged, unflipped gate is in-bounds; activating it live is not, and
-- can be verified locally or against the Test lane.
+- can be verified locally or in the isolated Demo environment.
 
 The agent builds to the seam within those limits and stops for explicit owner approval only to
 activate a built provider live (the one named external dependency).
@@ -191,16 +206,21 @@ remote.
 
 ## Approval Gates
 
-These gates apply to EXECUTING or activating an action live, not to building it. The runner freely
-builds the provider, the full action contract, and a staged, unflipped gate to the seam; it requires
-explicit owner approval to actually perform or flip live each exact action or tightly related group
-that would:
+These gates apply to owner-run cloud/data operations and to executing an action live, not to
+building it. The standing Go-Live grant makes a reviewed code gate flip routine when the exact
+dependency/full contract is already documented; do not seek a new product decision or leave the
+finished action false by habit. The owner still runs deploy/traffic/credential/scope/destructive
+migration operations, and the product still requires exact human confirmation for each
+client-facing send/system-of-record write. The runner freely builds the provider, full contract,
+and staged flip to the seam; it hands back the exact owner operation that would:
 
 - enable or increase cloud/API cost,
 - change billing or quotas,
 - create, rotate, upload, or use API keys or service account keys,
 - modify GCP, Firebase, Google Workspace, Gmail, Drive, domains, labels, filters, roles,
   source folders, or client-owned resources,
+- provision/cross-wire Demo or Production resources, migrate/delete Production records, or promote
+  Production traffic,
 - deploy or run production smoke tests,
 - import live sources or index client data,
 - read, modify, label, draft, or send live Gmail,
@@ -211,7 +231,7 @@ that would:
   with `Documented` evidence, including any capability that is undocumented or only
   vendor-confirmation-required (for example the Rentvine lease-renewal writeback).
 
-Approval requests must state the exact action, affected environment, product lane,
+Owner-operation requests must state the exact action, affected environment, product lane,
 expected cost or usage exposure when known, data touched, secrets/keys/roles/domains or
 external systems involved, verification path, rollback or correction path, and what
 remains blocked without approval. The Action Registry (`docs/integration-architecture.md`)
@@ -234,9 +254,10 @@ The cloud budget is approximately **$10 total** and no spend happens without app
 free-tier-first defaults, the inventory of every cost-bearing path and its gate, and the
 `npm run check:budget-guard` preflight. Read it before any cost-bearing step.
 
-- Default to the cheapest safe option: local emulation, then demo mode (`ASK_DEMO_MODE=true`,
-  no live calls), then the sanctioned cheap-live path (Flash + single `lease-renewals`
-  Space + scale-to-zero Cloud Run), then anything billed.
+- Default to the cheapest safe option: local emulation, then the independently provisioned Demo
+  environment/no-Live-effect path, then an authorized bounded cheap-live path, then anything billed.
+  Until S40 provisions Demo, local `ASK_DEMO_MODE=true` remains a local-only compatibility tool and
+  is never a Production environment substitute.
 - Run `npm run check:budget-guard` before any live, deploy, import, or notification command.
   In Remote Away Mode it allows explicitly bounded multi-Space migration setup, but still
   refuses Pro and notification-send overrides.
@@ -255,7 +276,7 @@ free-tier-first defaults, the inventory of every cost-bearing path and its gate,
 - `.env.example` records variable names only.
 - Local development uses `.env.local`, active-shell values, or approved local credential
   helpers.
-- Production and staging secrets live in client-approved Secret Manager, workload
+- Demo and Production secrets live in separate client-approved Secret Manager/workload
   identity, impersonation, or equivalent managed secret storage.
 - Avoid downloadable service account keys. If a key is unavoidable, record the owner,
   purpose, rotation path, storage location, and revocation plan without committing the
@@ -266,6 +287,10 @@ free-tier-first defaults, the inventory of every cost-bearing path and its gate,
 - Handoff docs should explain where non-secret identifiers live, who owns each
   environment, what manual setup remains, and how a future team can rotate or revoke
   access.
+- S40 requires Demo/Production manifests to resolve different data stores/namespaces, storage,
+  queues, secret boundaries, OAuth redirects/audiences, runtime identities, and effect credentials.
+  An optional Demo Live-read-only identity has no mutation scope and never shares Production effect
+  credentials.
 - Use `docs/environment-handoff.md` as the central non-secret registry for environment
   IDs, key owners, manual setup state, and verification evidence.
 
@@ -353,6 +378,11 @@ Run this phase for every slice:
    - edge cases and unhandled states,
    - invalid JSON or Markdown,
    - stale command descriptions, stale prompt-chain hints, and missing linked docs,
+   - Demo/Production resource or record crossing, unknown-mode fallback to Live, Demo provider
+     construction, mixed Demo/Live-read-only projection, and misleading generic provider links,
+   - mobile header/overlay/first-action/focus failures and duplicate attention owners,
+   - two-stage deletion without consumer/role/route/script/provider/security/deployed-boundary/
+     rollback proof,
    - oversized-file risk and suspiciously large or unrelated diffs.
 4. Run `npm run verify:falsification` for the deterministic preflight (secret scan,
    oversized-file check, JSON validity, internal doc-link existence). Treat its failures
@@ -395,10 +425,10 @@ decide whether to continue:
 4. Update `docs/loop-state.md` at every slice boundary so a fresh session can resume.
 5. Continue until a Stop And Reset condition fires.
 
-Select the next slice from the authorized roadmap program (`docs/roadmap-unblock-2026-07-23.md`,
-S28–S39), status, or backlog. Do not invent scope beyond those suites to manufacture a next slice. If
-every suite is shipped or built to its named owner dependency, stop and record the remaining
-owner-dependency list (roadmap §5).
+Select the next slice from the authorized S40–S50 program and its dependency order. A dependency-
+ready S28–S39 provider activation may interleave without leaving the active slice half-applied. Do
+not invent scope beyond those suites to manufacture a next slice. If every suite is shipped or
+built to its named external seam, stop and record the exact remaining owner operations.
 
 ## Stop And Reset Conditions
 
@@ -423,8 +453,9 @@ next action in `docs/loop-state.md`.
 - Context reset needed: the working context is large or drifting, lane focus is slipping,
   or accumulated state risks errors. Write `docs/loop-state.md`, recommend a fresh context
   window, and stop.
-- Program complete: every authorized roadmap suite is either shipped live or built to its named
-  owner dependency. Record the remaining owner-dependency list (roadmap §5) and stop.
+- Program complete: every authorized S40–S50 suite is shipped or built to its named external seam,
+  S49 has explicit retained/deleted dispositions, and S50 is verified; record remaining S28–S39/S47/
+  S43 owner dependencies and stop.
 
 A clean stop with a current `docs/loop-state.md` is a successful outcome, not a failure.
 

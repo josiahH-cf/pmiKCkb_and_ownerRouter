@@ -1,5 +1,12 @@
 # Demo Lane Retirement
 
+> **2026-07-28 clarification.** This document retires the unsafe legacy
+> `cherrybridge.ai`/`pmikckb-test` environment only. S40 now authorizes a **new**, independently
+> provisioned PMI KC managed Demo environment under
+> `docs/feature-suites/environment-deployment-separation.md`. Do not reuse or restore any identifier,
+> identity, credential, or resource from this retired lane, and do not infer the new Demo resource
+> names from current Production’s historically named `pmi-kc-kb-demo` service.
+
 Status: **Complete (2026-06-20)** — repo side done; GCP project `pmikckb-test` deleted
 (soft-delete, recoverable ~30 days) via a one-time ephemeral `cherrybridge.ai` auth this session.
 Decision: owner directed "retire this completely now that we're in a live environment"

@@ -11,6 +11,44 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, this status log wins and `docs/loop-state.md` is corrected.
 
+## UI/UX recalibration decision + executable-spec cycle (2026-07-28)
+
+Documentation/spec cycle only; no product runtime, cloud resource, data migration, action gate,
+deploy, send, or external write changed.
+
+- Imported the owner’s review of `docs/temp/ui-ux-recalibration-audit-2026-07-28.md`: all 42
+  findings and all nine workstreams accepted; D-01–D-14 settled. The changed answers were normalized
+  into safe executable contracts: independent Demo/Production environments; optional explicit
+  non-mixing/non-mutating Live read-only in Demo; truthful allowlisted generic provider front doors;
+  and removal of shipped Test/developer tools without deleting tests, Demo parity, security,
+  rollback, or real provider seams.
+- Created the controlling program
+  `docs/ui-ux-recalibration-implementation-program-2026-07-28.md`, locked end-state prompt
+  `docs/fresh-context-ui-ux-recalibration-prompt-2026-07-28.md`, and canonical unattended launcher
+  `docs/meta-prompts/ui-ux-recalibration-unattended-loop.md`. The launcher makes managed auth,
+  budget safety, worktree/baseline discovery, and a consolidated blocker ledger mandatory before
+  application-code edits, then continues automatically between safe dependency-ready slices.
+- Opened the requested flags: `spec_writing_allowed:true` and `loop_execution_allowed:true`.
+  `runtime_action_gates_preflipped:false` remains intentional; provider gates open only in their
+  documented owning implementation slice.
+- Authored and registered eleven overhaul specs, S40–S50: environment separation; shell/navigation/
+  vocabulary; attention/Spaces; canonical Renewal; exact evidence/provider backlinks; one-card
+  Approvals; Maintenance workspace; resident tokenized intake/RentVine seam; Communications/
+  Connections/Admin/tool retirement; compatibility/code/QA; and the S37 page-builder amendment.
+- Updated the Tier-0 fact/loop spine, router, north star, plan, implementation/runner/engineering
+  guidance, environment/integration handoff, product lanes, relevant predecessor-suite banners,
+  feature-suite template/index, roadmap continuation, voice, manual-QA status, and what-next routing.
+  Current Production Live+Test remains an honest deployed fact until S40 migration; the target is
+  Live-only Production plus independently provisioned Demo.
+- Documentation gates green: Prettier, `git diff --check`, router boundary, falsification preflight,
+  context freshness, copy voice, feature-suite shape (149 tests), and spec traceability (292 unique
+  acceptance IDs across 37 overhaul specs). Context freshness reports only pre-existing review-date
+  warnings for `F-RENTVINE-AUTH` and `F-SHEET-DWD`.
+
+Resume in a fresh context at S40. Exact external evidence is isolated: Demo resource identifiers/
+owner-run provision+migration+deploy (S40), Chasity template content only (S43), and RentVine
+resident interactive endpoint/mapping only (S47).
+
 ## Documentation + handoff cycle — Wave 1 complete, client docs produced (2026-07-23)
 
 Documentation-and-handoff cycle after the full-suite Wave-1 build. No product/app code changed this

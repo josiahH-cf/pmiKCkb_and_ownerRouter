@@ -1,5 +1,12 @@
 # PMI KC KB — Manual QA Walkthrough (deep, per-process verification)
 
+> **Historical/current-deployment walkthrough.** This document describes the pre-S40 deployed
+> Live+Test UI. The owner-authorized S40–S50 program changes the environment, navigation, ownership,
+> renewal, approval, Maintenance, Admin/Connections, and page-builder end state. During
+> implementation, each suite adds its authenticated desktop/390×844 task coverage; S49 rewrites this
+> walkthrough only after behavior ships. Do not use this file to override
+> `docs/ui-ux-recalibration-implementation-program-2026-07-28.md`.
+
 **Who this is for:** you, clicking through the real app and confirming that **every process on every
 page does exactly what it should.** This is the explicit, stepwise version: for each process you get
 where to go, the numbered steps to perform, and an itemized list of what should happen (with the exact

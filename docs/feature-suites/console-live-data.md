@@ -4,6 +4,11 @@
 
 > New 2026-07-14; working-app contract revised 2026-07-15. Implements R08 and the Round 2
 > full-authorized-detail direction.
+>
+> **Target supersession 2026-07-28.** S23 remains accurate deployed evidence, but S40
+> (`environment-deployment-separation.md`) replaces its target: invented workflow data moves to an
+> independent Demo environment and Production becomes Live-only. Do not extend the Production
+> dual-lane UI; preserve S23 isolation tests as migration/security evidence.
 
 **Status — Deployed and browser-accepted 2026-07-15.** The Console server loads distinct
 Live and Test projections in production, renders persistent mode badges, uses the bounded Rentvine Live

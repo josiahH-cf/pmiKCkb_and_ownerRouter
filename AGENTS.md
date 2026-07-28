@@ -66,6 +66,39 @@ The safety NEVERs in `docs/roadmap-unblock-2026-07-23.md` §7 (no autonomous cli
 generic blast send, personal account never in an auth path, no PII/guessed-endpoint in git, ~$10 cap,
 every live effect reversible) are preserved and are the ONLY permanent exclusions.
 
+## UI/UX Recalibration Authorization (standing grant, 2026-07-28)
+
+The owner accepted all 42 findings and all nine workstreams in the UI/UX audit, settled D-01–D-14,
+directed that implementation-grade specs be written for a fresh-context loop, and explicitly opened
+both `spec_writing_allowed` and `loop_execution_allowed`. The controlling program is
+`docs/ui-ux-recalibration-implementation-program-2026-07-28.md`; its executable suites are S40–S50
+and its canonical unattended fresh-context launcher is
+`docs/meta-prompts/ui-ux-recalibration-unattended-loop.md`, which incorporates
+`docs/fresh-context-ui-ux-recalibration-prompt-2026-07-28.md` as the locked end-state contract.
+Recorded as `F-UIUX-RECALIBRATION-AUTHORIZED`.
+
+**Environment target.** S40 separates Demo and Production comprehensively. Demo runs the exact same
+product behavior with realistic invented Demo data and may expose an explicitly selected,
+unmistakably labeled Live **read-only** context; Demo and Live-read-only projections never mix and
+Demo cannot create a Live effect. Production contains Live data only and exposes no Demo/Test
+records, seeders, simulators, or product tools. Environment/data context is server-owned and
+fail-closed. Blue/green is the Production revision-promotion/rollback procedure, not a synonym for
+Demo/Production. The currently deployed Production Live+Test behavior remains a truthful historical/
+current-state fact until S40's backed-up migration and owner-run cutover complete; it is no longer
+the target posture.
+
+**Tool-retirement target.** Delete shipped browser simulations, hard-coded actors, no-op Sample
+controls, duplicate readiness matrices, and lab handoffs. Do not create a replacement Test Lab.
+Preserve automated tests, deterministic fixtures, emulators/fake test transports, Demo-environment
+product adapters, current security/TOTP/rollback controls, and real provider seams awaiting one
+documented setup dependency. Removal is two-stage and evidence-backed; static import reachability
+alone is never deletion proof.
+
+**Gate interpretation.** Opening the program loop does not preflip action-level
+`production_allowed`. App-plane suites ship without an Action Registry gate. A provider action gate
+opens in its owning implementation slice when its endpoint/mapping/identity and full action contract
+are documented; an undocumented provider action remains closed and blocks only that activation.
+
 ## Per-Runner Pointers
 
 This repository is **runner-neutral**: `AGENTS.md` (this file) plus `docs/` hold every
@@ -91,8 +124,9 @@ differences when they matter, and never let a runner's local defaults silently w
 Govern and build the PMI KC three-product workstream:
 
 - PMI KC KB: source-backed knowledge and handoff web app.
-- Lease Renewal Agent: working renewal workflow product lane; the production Test journey is
-  complete and each Live provider action activates independently.
+- Lease Renewal Agent: working renewal workflow product lane; the prior Production Test journey is
+  verified implementation evidence, and S40/S43 move equivalent rehearsal into Demo while each Live
+  provider action continues to activate independently.
 - Workflow Communications: Gmail-backed communication adapter and evidence source for
   renewal and maintenance workflows; compatibility routes retain the old Gmail Hub name.
 
@@ -111,6 +145,9 @@ route new work through the three-product docs.
 | Live Gmail per user (S19)               | `docs/feature-suites/gmail-live-per-user.md`                                                                           |
 | V1 gap implementation program           | `docs/v1-gap-implementation-program-2026-07-14.md`, then S20–S27                                                       |
 | Full-suite build program (S28–S39)      | `docs/roadmap-unblock-2026-07-23.md` (scope, waves, owner deps; read after facts + loop-state)                         |
+| UI/UX implementation program (S40–S50)  | `docs/ui-ux-recalibration-implementation-program-2026-07-28.md` (controlling target + order)                           |
+| Unattended fresh-context UI/UX loop     | `docs/meta-prompts/ui-ux-recalibration-unattended-loop.md` (canonical launcher; auth/blockers first)                   |
+| UI/UX execution end-state contract      | `docs/fresh-context-ui-ux-recalibration-prompt-2026-07-28.md`                                                          |
 | Market comp provider + screenshot (S28) | `docs/feature-suites/market-comp-data.md`                                                                              |
 | Comp-informed rent suggestion (S29)     | `docs/feature-suites/rent-suggestion-admin-gated.md`                                                                   |
 | RentVine write activation (S30)         | `docs/feature-suites/rentvine-write-activation.md`                                                                     |
@@ -123,6 +160,17 @@ route new work through the three-product docs.
 | No-code page/layout builder (S37)       | `docs/feature-suites/nocode-page-builder.md`                                                                           |
 | Maintenance notice activation (S38)     | `docs/feature-suites/maintenance-notice-activation.md`                                                                 |
 | Internal notifications + center (S39)   | `docs/feature-suites/internal-notifications.md`                                                                        |
+| Demo/Production separation (S40)        | `docs/feature-suites/environment-deployment-separation.md`                                                             |
+| Shell/navigation/vocabulary (S41)       | `docs/feature-suites/shell-navigation-vocabulary.md`                                                                   |
+| Attention + Spaces flow (S42)           | `docs/feature-suites/attention-and-spaces-flow.md`                                                                     |
+| Canonical Renewal workspace (S43)       | `docs/feature-suites/lease-renewal-canonical-workspace.md`                                                             |
+| Evidence/provider backlinks (S44)       | `docs/feature-suites/evidence-provider-backlinks.md`                                                                   |
+| Approval one-card flow (S45)            | `docs/feature-suites/approval-queue-consolidation.md`                                                                  |
+| Maintenance operator workspace (S46)    | `docs/feature-suites/maintenance-operator-workspace.md`                                                                |
+| Resident Maintenance intake (S47)       | `docs/feature-suites/resident-maintenance-intake.md`                                                                   |
+| Admin/Connections/tool retirement (S48) | `docs/feature-suites/admin-connections-tool-retirement.md`                                                             |
+| Compatibility/code/QA retirement (S49)  | `docs/feature-suites/compatibility-code-qa-retirement.md`                                                              |
+| S37 builder recalibration (S50)         | `docs/feature-suites/nocode-builder-recalibration.md`                                                                  |
 | V1 execution authority (S20)            | `docs/feature-suites/execution-authority.md`                                                                           |
 | Immediate trusted publication (S21)     | `docs/feature-suites/trusted-publication.md`                                                                           |
 | External Vendor + Gmail OAuth (S22)     | `docs/feature-suites/vendor-portal-and-mailbox.md`                                                                     |
@@ -189,8 +237,10 @@ route new work through the three-product docs.
   owner-approved live-per-user Gmail direction. The working V1 contract is executable as
   S20–S27 (execution authority, trusted publication, Vendor portal/OAuth, Console data, communications
   policy, Lease actions, Maintenance actions, and release acceptance) through
-  `docs/v1-gap-implementation-program-2026-07-14.md`. All overhaul specs are sentinel-gated by
-  `feature-suite-spec-shape.test.mjs` + `verify:spec-traceability`.
+  `docs/v1-gap-implementation-program-2026-07-14.md`. S40–S50 execute the 2026-07-28 environment,
+  IA, workflow, retirement, and page-builder recalibration through
+  `docs/ui-ux-recalibration-implementation-program-2026-07-28.md`. All overhaul specs are
+  sentinel-gated by `feature-suite-spec-shape.test.mjs` + `verify:spec-traceability`.
 - `docs/meta-prompts/`: governance-first scaffold, golden next-step set, and the re-scaffold/cleanup
   meta-prompt.
 - `docs/voice-and-audience.md`: audience profile and client-facing copy voice rules.
@@ -241,8 +291,13 @@ route new work through the three-product docs.
 - Live demo smoke: `npm run smoke:demo-live`
 - Live Ask smoke: `npm run smoke:ask-live`
 - Queue notifications dry-run: `npm run queue:notifications -- --dry-run --date=YYYY-MM-DD`
-- Demo deploy: `npm run deploy:demo`
-- Deployed endpoint: https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app (Cloud Run `pmi-kc-kb-demo` on `pmi-kc-kb-prod`). Verify app/UI changes against this endpoint via `npm run smoke:ask-live -- --base-url=<endpoint>`; a local dev server is a preview only, not the deployed reality.
+- Current legacy-named deploy wrapper: `npm run deploy:demo` (despite its name, it currently targets
+  the serving Production service; S40 must replace this ambiguity with explicit environment
+  descriptors before provisioning the new Demo environment).
+- Current deployed endpoint: https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app (Cloud Run
+  `pmi-kc-kb-demo` on `pmi-kc-kb-prod`). Verify current app/UI changes against this endpoint via
+  `npm run smoke:ask-live -- --base-url=<endpoint>`; do not infer the new Demo resource name from
+  this legacy service name.
 - Build: `npm run build`
 - Full verification: `bash scripts/verify.sh`
 
@@ -253,10 +308,10 @@ route new work through the three-product docs.
 - Enforce anti-hallucination in code before model calls.
 - Keep runtime changes scoped to the relevant product lane.
 - External-tool roles and per-action activation live in the Action Registry and
-  `docs/integration-architecture.md`. Production ships Live by default; the Test lane is an optional
-  safe-testing mode (isolated records that exercise a workflow without contacting a provider) and
-  never blocks or delays a Live action. A feature is Live when its reviewed gate is flipped — it is
-  never held preview-only merely because a Test lane exists.
+  `docs/integration-architecture.md`. Under the S40 target, Production contains Live data only and
+  the isolated safe rehearsal runs in Demo with the same product contract and zero Live-provider
+  effects. The current Production Test lane is migration input/evidence, not the target. A feature is
+  Live when its reviewed gate is flipped; a Demo workflow never blocks or delays that Live action.
 - Add tests with any behavior change.
 - Build every roadmap suite (S28–S39, indexed by `docs/roadmap-unblock-2026-07-23.md`) to its
   external seam per the Roadmap Build Authorization above — the app-plane, the live provider, and the
@@ -266,6 +321,11 @@ route new work through the three-product docs.
   authorized workflow-linked communications. Preserve the safety NEVERs: no autonomous client-facing
   send, generic non-workflow compose/send stays Registry-closed, and unrelated mailbox browsing is
   not a product capability.
+- Execute S40–S50 in the dependency order from the 2026-07-28 program. Meet the hyper-specific
+  observable end state while treating named files/components in a suite as examples after discovery.
+  Do not reopen D-01–D-14. Do not start S37/S50 against the pre-recalibration IA. At each bounded
+  slice, test, falsify, update facts/loop state, and perform two-stage retirement rather than a
+  big-bang deletion.
 
 ## Working Order
 
@@ -321,8 +381,8 @@ answer ourselves.
   Sheets, banks, or client Drive must use its exact S25/S26 action contract, documented provider
   semantics, least-privilege identity, authoritative mapping, target/effect preview, human
   confirmation, one-attempt/idempotency guard, receipt/readback, monitoring, and rollback. An
-  unavailable contract blocks that Live action only. The isolated Test lane may complete the same
-  app workflow with reserved aliases and a non-Live receipt.
+  unavailable contract blocks that Live action only. The isolated Demo environment may complete the
+  same product workflow with invented aliases and a Demo/non-Live receipt; Production cannot.
 - Missing sources produce visible uncertainty, not generic property-management answers.
 
 ## Identity Rules
@@ -331,12 +391,13 @@ answer ourselves.
   use a `pmikcmetro.com` or `pmi-kc-kb-prod` identity. The personal
   `josiah.abernathy@gmail.com` account must never appear in any auth path. V1 has a separately scoped
   external Vendor principal: Admin invite, password setup, verified-email TOTP before ticket detail,
-  and assigned-ticket-only authorization. The canonical `.invalid` Test Vendor additionally has a
+  and assigned-ticket-only authorization. The canonical `.invalid` Vendor currently called Test in
+  code becomes a Demo-environment fixture under S40 and additionally has a
   repeatable Admin-confirmed authentication reset/re-enable lifecycle: its exact preview binds the
   current Firebase UID, status, and invite version; execution rotates the UID, revokes stale sessions
   and confirmations, clears TOTP, increments the invite version, preserves isolated Test workflow
   data, and returns one response-only, `no-store` setup link. Any partial failure remains disabled and
-  fail-closed. This Test lifecycle performs no external delivery, OAuth/provider construction, or
+  fail-closed. This Demo lifecycle performs no external delivery, OAuth/provider construction, or
   Live effect. A Live Vendor uses the Vendor's own same-address Gmail/Google Workspace mailbox through
   per-vendor server-side OAuth; its OAuth client/vault is an optional per-Vendor Live activation. It
   never uses DWD or gains PMI KC cloud, admin, connector, internal Space, or cross-mailbox authority.
@@ -353,11 +414,14 @@ answer ourselves.
   (runtime/build). The S22 external Vendor Firebase/OAuth principal is the only scoped exception
   and cannot be reused for any of those six systems. `gcloud auth` does NOT change the runner's
   file/Drive connector, and vice-versa.
-- No `cherrybridge.ai` / `pmikckb-test` (legacy demo) in any production path. No downloadable
+- No `cherrybridge.ai` / `pmikckb-test` (legacy demo) in any production path. The new S40 Demo
+  environment is a separately provisioned PMI KC managed environment and must not reuse that retired
+  identity/path or infer its resource names. No downloadable
   key files — ADC (local human) and attached service account (runtime) only. The legacy demo
   cloud lane is being retired (repo pointers neutralized 2026-06-20; GCP teardown is owner-side) —
-  see `docs/demo-lane-retirement.md`. Local-dev demo mode is kept but fenced from prod by the
-  `NODE_ENV` guard.
+  see `docs/demo-lane-retirement.md`. Until S40 lands, local-dev demo mode remains fenced from prod
+  by the `NODE_ENV` guard; S40 replaces that weak single-variable distinction with the typed,
+  multi-resource environment manifest.
 - "Blocked on access" is raised as an explicit blocker, never worked around with a personal
   account or a demo-mode fallback.
 - In-app role management (console overhaul 2026-07-08, `F-ADMIN-USERS`): `/admin/users` lets an Admin change a

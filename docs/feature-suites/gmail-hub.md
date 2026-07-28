@@ -4,9 +4,10 @@
 
 > Historical shipped scope. S19 (`docs/feature-suites/gmail-live-per-user.md`) supersedes D3 as the
 > live transport direction on 2026-07-13, and the 2026-07-14 S19 re-scope supersedes the general
-> mailbox-workspace/product-surface direction. Keep S15's pasted-text tools and browser-only chain as
-> an Admin-only synthetic fallback. Its sample “Approved” rules/templates are demonstration data, not
-> production-approved workflow artifacts and cannot authorize a live Gmail action.
+> mailbox-workspace/product-surface direction. D-08/S48 (2026-07-28,
+> `admin-connections-tool-retirement.md`) now retires S15's pasted-text tools and browser-only chain;
+> do not preserve them in an Admin Test Lab. Convert any end-state evaluator value into automated
+> tests or an approved-rule preview. Historical sample rules/templates never authorize Gmail.
 >
 > New 2026-07-10 (operator note). Owner decision **D3 (2026-07-10)**: build the Gmail workflow HUB
 > app-plane **TO-THE-GATE** now, and do NOT request any Gmail READ scope this cycle. Every
