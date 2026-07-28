@@ -134,6 +134,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("approval queue flows", ()
 
     expect(response.status).toBe(200);
     expect(html).toContain("Approval Queue");
-    expect(html).not.toContain("Approval Queue is unavailable");
+    // Must match the exact shipped degradation copy asserted by degraded.e2e.test.mjs, or this
+    // negative assertion silently passes against a string product code no longer emits.
+    expect(html).not.toContain("The Approval Queue isn't available right now");
   });
 });

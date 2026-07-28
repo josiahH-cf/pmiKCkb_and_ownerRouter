@@ -17,7 +17,10 @@ describe.skipIf(process.env.FIRESTORE_EMULATOR_HOST)(
       const { response, html } = await client.getHtml("/approval-queue");
 
       expect(response.status).toBe(200);
-      expect(html).toContain("Approval Queue is unavailable");
+      // Exact shipped degradation copy. The earlier "Approval Queue is unavailable" wording was
+      // replaced when operator copy was positivized, and this assertion was left pointing at a
+      // string that no longer exists in product code, so it could only ever fail.
+      expect(html).toContain("The Approval Queue isn't available right now");
     });
 
     it("renders the process-definitions unavailable marker instead of crashing", async () => {

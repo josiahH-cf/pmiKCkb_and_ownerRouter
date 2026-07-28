@@ -42,6 +42,7 @@ import { listSupportReports } from "@/lib/firestore/support-reports";
 import { gatherSupportAttention } from "@/lib/attention/support-lane";
 import type {
   ApprovalQueueNotificationHealth,
+  AskCorrectionRecord,
   SupportReportRecord,
 } from "@/lib/firestore/types";
 import { listPublicationPolicies } from "@/lib/publication/policy";
@@ -55,7 +56,10 @@ export default async function AdminPage() {
   const user = await requirePageCapability("manageAdmin");
   const config = readServerConfig();
   // S32: Proposed answer corrections awaiting Admin review (harden-the-app loop). Nothing self-modifies.
-  const proposedCorrections = await listAskCorrections(user, { status: "Proposed" });
+  // Guarded like every other read below: an unreachable Firestore degrades this one panel instead of
+  // failing the whole Admin page, which previously returned 500 for the entire route.
+  let proposedCorrections: AskCorrectionRecord[] = [];
+  let proposedCorrectionsNote: string | undefined;
   let observability: AdminObservability | undefined;
   let observabilityNote: string | undefined;
   let queueEmailSettings = readDefaultApprovalQueueEmailSettings();
@@ -76,6 +80,12 @@ export default async function AdminPage() {
   let activityNote: string | undefined;
   let reindexRequests: ReindexRequest[] = [];
 
+  try {
+    proposedCorrections = await listAskCorrections(user, { status: "Proposed" });
+  } catch {
+    proposedCorrectionsNote =
+      "Proposed answer corrections are unavailable right now. Try again in a minute; new corrections may not be saving either.";
+  }
   try {
     observability = await readAdminObservability({ config });
   } catch {
@@ -273,7 +283,10 @@ export default async function AdminPage() {
             Configuration, migration readiness, and connected-service consoles.
           </p>
           <V1ProductionTestWorkspacePanel />
-          <KbCorrectionsPanel proposed={proposedCorrections} />
+          <KbCorrectionsPanel
+            proposed={proposedCorrections}
+            unavailableNote={proposedCorrectionsNote}
+          />
           <ModelConfigPanel
             answerModel={config.geminiAnswerModel}
             classifyModel={config.geminiClassifyModel}

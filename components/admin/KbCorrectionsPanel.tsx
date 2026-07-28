@@ -19,7 +19,8 @@ const KIND_LABELS: Record<AskCorrectionRecord["kind"], string> = {
 
 export function KbCorrectionsPanel({
   proposed,
-}: Readonly<{ proposed: AskCorrectionRecord[] }>) {
+  unavailableNote,
+}: Readonly<{ proposed: AskCorrectionRecord[]; unavailableNote?: string }>) {
   const router = useRouter();
   const [pendingId, setPendingId] = useState("");
   const [error, setError] = useState("");
@@ -53,6 +54,7 @@ export function KbCorrectionsPanel({
         Filing a correction proposes a change only. Approving files a Draft KB entry that
         still needs its own approval before it affects answers. Nothing self-modifies.
       </p>
+      {unavailableNote ? <p className="muted">{unavailableNote}</p> : null}
       {proposed.length === 0 ? (
         <p className="muted">No corrections are waiting for review.</p>
       ) : (
