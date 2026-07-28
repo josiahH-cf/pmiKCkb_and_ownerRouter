@@ -34,6 +34,8 @@ const draftValues = {
 
 const draftInput = {
   workflowId: "renewal-live-1",
+  // S40 AC-S40-1: an external action must declare its lane; there is no implicit Live default.
+  dataMode: "live" as const,
   actionId: "draft-1",
   actionKey: "gmail.renewal_notice.draft_create",
   values: draftValues,

@@ -86,6 +86,35 @@ function reviewedProjectBindings(env) {
   ].filter(([, project]) => project !== undefined);
 }
 
+/**
+ * Accept a captured prior revision only if it is a revision name this service can actually have.
+ *
+ * TWO grammars are legitimate and both must be accepted:
+ *
+ *   1. `<service>-00041-abc`  Cloud Run's auto-generated form (5 digits + a short suffix).
+ *   2. `<service>-r<base36>-<12 hex>`  the collision-resistant form this repository's deploy
+ *      wrapper generates (see buildRevisionSuffix in scripts/deploy-demo-cloud-run.mjs).
+ *
+ * Accepting only form 1 was a real defect: every revision created by our own deploy wrapper was
+ * rejected, so the rollback step silently emitted NO restore command exactly when it was needed.
+ * Recorded serving revisions such as `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e` are form 2.
+ *
+ * Anything else is still refused, so an unvalidated or injected value can never become an
+ * executable traffic command.
+ */
+export function validatePriorRevision(service, priorRevision) {
+  if (typeof service !== "string" || typeof priorRevision !== "string") return undefined;
+  const trimmed = priorRevision.trim();
+  const escapedService = service.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const cloudRunGenerated = new RegExp(`^${escapedService}-\\d{5}-[a-z0-9]{3,}$`);
+  const deployWrapperGenerated = new RegExp(
+    `^${escapedService}-r[0-9a-z]+-[0-9a-f]{12}$`,
+  );
+  return cloudRunGenerated.test(trimmed) || deployWrapperGenerated.test(trimmed)
+    ? trimmed
+    : undefined;
+}
+
 function withoutProjectCommands(plan) {
   return {
     ...plan,
@@ -249,12 +278,7 @@ export function buildRollbackPlan({
   const uris =
     uploadedUris.length > 0 ? uploadedUris : ["gs://<client-source-bucket>/<path>.txt"];
   const spaces = seededSpaceIds.length > 0 ? seededSpaceIds : ["<space-id>"];
-  const escapedService = service.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const capturedPriorRevision =
-    typeof priorRevision === "string" &&
-    new RegExp(`^${escapedService}-\\d{5}-[a-z0-9]{3,}$`).test(priorRevision.trim())
-      ? priorRevision.trim()
-      : undefined;
+  const capturedPriorRevision = validatePriorRevision(service, priorRevision);
 
   return [
     {
@@ -267,7 +291,7 @@ export function buildRollbackPlan({
         : [],
       note: capturedPriorRevision
         ? `Restore 100% of traffic to the captured prior revision ${capturedPriorRevision}; preserve the service and revision history.`
-        : `Capture the currently serving ${service} revision before deployment. No traffic-restore command is generated without an exact revision in the form ${service}-00001-abc.`,
+        : `Capture the currently serving ${service} revision before deployment. No traffic-restore command is generated without an exact revision in the form ${service}-00001-abc or ${service}-r<timestamp>-<12 hex>.`,
     },
     {
       step: 2,

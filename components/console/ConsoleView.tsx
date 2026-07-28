@@ -193,8 +193,13 @@ export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
 
   // Anticipated work — a read-only, request-computed projection of coming-up / due process work, each
   // one click from starting the existing human-run process. Renewals-scoped like the approvals gather;
-  // pure + non-fatal. The sample module is dynamically imported only in server-selected test mode;
-  // ordinary production never constructs it and renders live-provider failure state instead.
+  // pure + non-fatal. The sample module is dynamically imported only when a Test workspace is present.
+  //
+  // NOTE: this comment previously claimed "ordinary production never constructs it". That was false.
+  // resolveConsoleDataModes returns a Test mode UNCONDITIONALLY in production, so hasTestWorkspace is
+  // always true there and the sample module IS constructed. Removing that co-resident Test lane is
+  // the Production route/control exclusion slice; the claim is corrected here rather than left
+  // asserting a boundary that does not exist.
   let anticipatedGroups: AnticipatedWorkGroup[] = [];
   if (canSeeRenewals && hasTestWorkspace) {
     try {

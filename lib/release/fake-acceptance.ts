@@ -61,31 +61,41 @@ async function runLane(
 
 export async function runIntegratedFakeV1Acceptance() {
   const harness = createSyntheticExecutorHarness();
+  const vendorBoundary = await runSyntheticVendorJourney();
+  const lease = await runLane(
+    "lease",
+    "lease-synthetic-001",
+    LEASE_EXECUTION_ACTIONS,
+    LEASE_EXECUTION_DEFINITION_MAP,
+    harness.leaseExecutors,
+    harness.providerCallCount,
+  );
+  const maintenance = await runLane(
+    "maintenance",
+    "ticket-synthetic-001",
+    MAINTENANCE_EXECUTION_ORDER,
+    MAINTENANCE_EXECUTION_DEFINITION_MAP,
+    harness.maintenanceExecutors,
+    harness.providerCallCount,
+  );
+
   return {
     mode: "production-test-workspace" as const,
     dataMode: "test" as const,
     liveEvidenceEligible: false,
     liveProviderCallCount: 0,
-    vendorBoundary: {
-      ...(await runSyntheticVendorJourney()),
-      typedProviderBoundary: true,
-    },
-    lease: await runLane(
-      "lease",
-      "lease-synthetic-001",
-      LEASE_EXECUTION_ACTIONS,
-      LEASE_EXECUTION_DEFINITION_MAP,
-      harness.leaseExecutors,
-      harness.providerCallCount,
-    ),
-    maintenance: await runLane(
-      "maintenance",
-      "ticket-synthetic-001",
-      MAINTENANCE_EXECUTION_ORDER,
-      MAINTENANCE_EXECUTION_DEFINITION_MAP,
-      harness.maintenanceExecutors,
-      harness.providerCallCount,
-    ),
+    /**
+     * How many synthetic executor operations actually ran.
+     *
+     * The four fields above are `as const` structural invariants of this harness, so a caller that
+     * re-checks them is comparing literals with themselves. That made the route's five-way
+     * "safety boundary" guard pass unconditionally, including for a harness that silently executed
+     * nothing at all. This is a real measurement, so a no-op run is detectable.
+     */
+    syntheticProviderCallCount: harness.providerCallCount(),
+    vendorBoundary: { ...vendorBoundary, typedProviderBoundary: true },
+    lease,
+    maintenance,
     providerOperations: harness.providerOperations(),
   };
 }

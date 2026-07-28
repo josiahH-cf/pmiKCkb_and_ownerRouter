@@ -69,6 +69,40 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
+describe("external action lane classification (S40 AC-S40-1)", () => {
+  // An unclassified action previously resolved to "live", so an input built without a lane was
+  // routed to the Live provider path and given a Live-shaped idempotency key.
+  it("refuses to derive an idempotency key for an unclassified action", () => {
+    const unclassified = {
+      workflowId: "renewal-1",
+      actionId: "action-1",
+      actionKey: "rentvine.renewal.update",
+    };
+    expect(() => externalActionIdempotencyKey(unclassified)).toThrow(
+      /data_mode must be exactly live or test/,
+    );
+    for (const dataMode of ["", "demo", "LIVE", null, 1]) {
+      expect(() =>
+        externalActionIdempotencyKey({
+          ...unclassified,
+          dataMode: dataMode as "live" | "test",
+        }),
+      ).toThrow(/data_mode must be exactly live or test/);
+    }
+  });
+
+  it("derives a different key per lane so a Demo run can never collide with a Live one", () => {
+    const base = {
+      workflowId: "renewal-1",
+      actionId: "action-1",
+      actionKey: "rentvine.renewal.update",
+    };
+    const live = externalActionIdempotencyKey({ ...base, dataMode: "live" });
+    const test = externalActionIdempotencyKey({ ...base, dataMode: "test" });
+    expect(live).not.toBe(test);
+  });
+});
+
 describe("external execution fail-closed boundary", () => {
   it("binds production Test receipts to no-client adapters and rejects cross-lane execution", async () => {
     const definition = LEASE_EXECUTION_DEFINITION_MAP.get(

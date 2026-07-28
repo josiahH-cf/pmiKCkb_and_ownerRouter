@@ -4,6 +4,8 @@ import { RentvineRenewalExecutor } from "@/lib/lease-renewal/execution/providers
 
 const base = {
   workflowId: "renewal-1",
+  // S40 AC-S40-1: an external action must declare its lane; there is no implicit Live default.
+  dataMode: "live" as const,
   actionId: "rentvine-1",
   actionKey: "rentvine.lease.renewal_writeback",
   values: {

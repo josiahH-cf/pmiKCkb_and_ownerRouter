@@ -5,6 +5,8 @@ import { RenewalSheetExecutor } from "@/lib/lease-renewal/execution/providers";
 function input() {
   return {
     workflowId: "renewal-1",
+    // S40 AC-S40-1: an external action must declare its lane; there is no implicit Live default.
+    dataMode: "live" as const,
     actionId: "sheet-1",
     actionKey: "google_sheets.renewal_checklist.writeback",
     values: {

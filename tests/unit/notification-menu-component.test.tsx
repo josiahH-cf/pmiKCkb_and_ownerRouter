@@ -101,7 +101,10 @@ describe("NotificationMenu", () => {
     expect(
       screen.getByRole("button", { name: /Notifications, 20 unread/ }),
     ).toBeInTheDocument();
-    expect(document.title).toBe("(20) PMI KC");
+    // The badge and the tab title are written by different commits, so waiting for the badge does
+    // not guarantee the title effect has run. Reading it directly races that effect and fails
+    // intermittently under full-suite load.
+    await waitFor(() => expect(document.title).toBe("(20) PMI KC"));
   });
 
   it("prefixes the tab title with the unread count (NOTIF-4)", async () => {
@@ -118,7 +121,7 @@ describe("NotificationMenu", () => {
 
     render(<NotificationMenu navigate={() => undefined} />);
     await screen.findByText("2");
-    expect(document.title).toBe("(2) PMI KC");
+    await waitFor(() => expect(document.title).toBe("(2) PMI KC"));
   });
 
   it("never stacks the unread-count prefix on the tab title (NOTIF-4)", async () => {
@@ -132,7 +135,7 @@ describe("NotificationMenu", () => {
 
     render(<NotificationMenu navigate={() => undefined} />);
     await screen.findByText("1");
-    expect(document.title).toBe("(1) PMI KC");
+    await waitFor(() => expect(document.title).toBe("(1) PMI KC"));
   });
 
   // AC-S17-1 + B6: the popover links to the /notifications hub and offers Mark all read when unread.

@@ -6,6 +6,8 @@ import { MaintenanceOwnerEmailExecutor } from "@/lib/maintenance/execution/provi
 
 const base = {
   workflowId: "ticket-synthetic",
+  // S40 AC-S40-1: an external action must declare its lane; there is no implicit Live default.
+  dataMode: "live" as const,
   actionId: "owner-email-1",
   actionKey: "gmail.maintenance_owner_notice.send",
   values: {

@@ -1,9 +1,17 @@
 import { createHash } from "node:crypto";
 
+import { requireExplicitDataMode } from "@/lib/data-mode";
 import type { ExternalActionInput } from "@/lib/external-execution/types";
 
+/**
+ * The execution lane for an external action.
+ *
+ * S40 (AC-S40-1): an unclassified action previously resolved to "live", so an input constructed
+ * without a lane was routed to the Live provider path. The lane must be explicit before anything
+ * decides whether a real provider client may be built.
+ */
 export function externalActionDataMode(action: Pick<ExternalActionInput, "dataMode">) {
-  return action.dataMode === "test" ? "test" : "live";
+  return requireExplicitDataMode(action.dataMode);
 }
 
 /** Canonical identity shared by the S20 ledger and every provider idempotency key. */

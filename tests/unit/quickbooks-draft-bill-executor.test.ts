@@ -9,6 +9,8 @@ import {
 
 const base = {
   workflowId: "ticket-synthetic",
+  // S40 AC-S40-1: an external action must declare its lane; there is no implicit Live default.
+  dataMode: "live" as const,
   actionId: "bill-1",
   actionKey: "quickbooks.bill.create_draft",
   values: {

@@ -16,6 +16,11 @@ describe("typed integrated V1 synthetic acceptance", () => {
     expect(result.dataMode).toBe("test");
     expect(result.liveEvidenceEligible).toBe(false);
     expect(result.liveProviderCallCount).toBe(0);
+    // The four fields above are `as const` literals, so they prove nothing on their own: a harness
+    // that silently executed nothing would still report exactly this shape and the route's safety
+    // guard would return a clean 200. This measured count is what distinguishes a real run.
+    expect(result.syntheticProviderCallCount).toBeGreaterThan(0);
+    expect(result.providerOperations.length).toBeGreaterThan(0);
     expect(result.vendorBoundary).toEqual({
       assignedTicketOnly: true,
       disabled: true,
