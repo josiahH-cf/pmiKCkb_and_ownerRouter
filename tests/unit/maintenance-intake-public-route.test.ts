@@ -28,7 +28,14 @@ const NOW = Date.now();
 
 function token(propertyKey = "prop-abc", overrides: Partial<MintIntakeTokenInput> = {}) {
   return mintIntakeToken(
-    { secret: SECRET, propertyKey, jti: `jti-${Math.random()}`, epoch: 0, ...overrides },
+    {
+      secret: SECRET,
+      propertyKey,
+      jti: `jti-${Math.random()}`,
+      epoch: 0,
+      dataMode: "live",
+      ...overrides,
+    },
     NOW,
   );
 }

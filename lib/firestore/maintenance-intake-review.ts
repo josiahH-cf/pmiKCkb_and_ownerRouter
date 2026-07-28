@@ -21,6 +21,7 @@ import { z } from "zod";
 
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { resolveStoredDataMode } from "@/lib/data-mode";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
@@ -78,7 +79,8 @@ function readIntake(id: string, data: unknown): UnverifiedIntakeRecord {
   return {
     ...(record as UnverifiedIntakeRecord),
     id,
-    data_mode: record.data_mode === "test" ? "test" : "live",
+    // Stage-one compatibility read of a stored record (S40). See resolveStoredDataMode.
+    data_mode: resolveStoredDataMode(record),
   };
 }
 

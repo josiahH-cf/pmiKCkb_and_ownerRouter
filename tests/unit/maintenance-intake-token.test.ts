@@ -12,7 +12,14 @@ const NOW = Date.parse("2026-07-09T00:00:00.000Z");
 
 function mint(overrides: Partial<Parameters<typeof mintIntakeToken>[0]> = {}) {
   return mintIntakeToken(
-    { secret: SECRET, propertyKey: "prop-123", jti: "jti-abc", epoch: 0, ...overrides },
+    {
+      secret: SECRET,
+      propertyKey: "prop-123",
+      jti: "jti-abc",
+      epoch: 0,
+      dataMode: "live",
+      ...overrides,
+    },
     NOW,
   );
 }
@@ -112,10 +119,50 @@ describe("intake token mint + verify", () => {
 
   it("refuses to mint without a secret or propertyKey", () => {
     expect(() =>
-      mintIntakeToken({ secret: "", propertyKey: "p", jti: "j", epoch: 0 }),
+      mintIntakeToken({
+        secret: "",
+        propertyKey: "p",
+        jti: "j",
+        epoch: 0,
+        dataMode: "live",
+      }),
     ).toThrow();
     expect(() =>
-      mintIntakeToken({ secret: SECRET, propertyKey: "", jti: "j", epoch: 0 }),
+      mintIntakeToken({
+        secret: SECRET,
+        propertyKey: "",
+        jti: "j",
+        epoch: 0,
+        dataMode: "live",
+      }),
     ).toThrow();
+  });
+
+  // S40 AC-S40-1: minting bakes the lane into a signed artifact that verification later trusts, so
+  // an unclassified mint would carry an unclassified lane past the fail-closed guard.
+  it("refuses to mint without an explicit data mode", () => {
+    for (const dataMode of [undefined, "", "demo", "TEST", null]) {
+      expect(() =>
+        mintIntakeToken(
+          {
+            secret: SECRET,
+            propertyKey: "prop-123",
+            jti: "jti-abc",
+            epoch: 0,
+            dataMode: dataMode as "live" | "test",
+          },
+          NOW,
+        ),
+      ).toThrow(/data_mode must be exactly live or test/);
+    }
+  });
+
+  it("signs the exact lane it was given and never widens it", () => {
+    for (const dataMode of ["live", "test"] as const) {
+      const result = verifyIntakeToken(SECRET, mint({ dataMode }), NOW);
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error("unreachable");
+      expect(result.payload.dataMode).toBe(dataMode);
+    }
   });
 });

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
 
 import { getSessionCookieName } from "@/lib/auth/session";
+import { parseExplicitDataMode } from "@/lib/data-mode";
 import {
   createFirebaseSessionCookie,
   verifyFirebaseIdToken,
@@ -51,9 +52,11 @@ export function validateVendorClaims(
   const email = requiredString(claims.email, "email").toLowerCase();
   const vendorId = requiredString(claims.vendor_id, "vendor id");
   const authTime = claims.auth_time;
-  const dataMode = claims.data_mode === "test" ? "test" : "live";
-
-  if (claims.data_mode !== undefined && claims.data_mode !== dataMode) {
+  // S40 (AC-S40-1): the Vendor tuple requires an explicit lane. An absent claim previously
+  // resolved to Live, so a principal carrying no classification was admitted to the Live lane.
+  // Unknown and missing both fail closed now.
+  const dataMode = parseExplicitDataMode(claims.data_mode);
+  if (!dataMode) {
     throw new VendorBoundaryError("Vendor data mode is invalid.", 403);
   }
 

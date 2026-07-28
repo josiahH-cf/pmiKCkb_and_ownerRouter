@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 
-import { executionEvidenceMarker, resolveDataMode } from "@/lib/data-mode";
+import { executionEvidenceMarker, resolveStoredDataMode } from "@/lib/data-mode";
 
 import {
   requireAssignedTicket,
@@ -234,7 +234,7 @@ export class VendorTestMailboxService {
     });
     if (existing) {
       if (
-        resolveDataMode(existing) !== "test" ||
+        resolveStoredDataMode(existing) !== "test" ||
         existing.liveEvidenceEligible !== false ||
         existing.vendorId !== this.principal.vendorId ||
         existing.ticketId !== ticketId

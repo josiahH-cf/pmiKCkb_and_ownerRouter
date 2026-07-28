@@ -1,5 +1,9 @@
 import { GMAIL_APPROVED_WORKFLOW_SCOPES } from "@/lib/gmail-runtime/scopes";
-import { resolveDataMode, type DataMode } from "@/lib/data-mode";
+import {
+  requireExplicitDataMode,
+  resolveStoredDataMode,
+  type DataMode,
+} from "@/lib/data-mode";
 
 export const VENDOR_OAUTH_SCOPES = GMAIL_APPROVED_WORKFLOW_SCOPES;
 
@@ -57,12 +61,17 @@ export interface VendorMailboxConnection {
   updatedAt: string;
 }
 
+/**
+ * S40 (AC-S40-1): an authenticated Vendor principal always carries an explicit lane, because
+ * validateVendorClaims refuses a missing or unknown `data_mode` claim. A principal without one is a
+ * malformed fixture, not a Live Vendor, so it is refused instead of resolved to Live.
+ */
 export function vendorPrincipalDataMode(principal: VendorPrincipal): DataMode {
-  return principal.dataMode ?? "live";
+  return requireExplicitDataMode(principal.dataMode);
 }
 
 export function vendorRecordDataMode(record: VendorRecord): DataMode {
-  return resolveDataMode(record);
+  return resolveStoredDataMode(record);
 }
 
 export function assertLiveVendorPrincipal(

@@ -3,7 +3,7 @@ import { FieldValue, type Firestore, type Transaction } from "firebase-admin/fir
 import { v7 as uuidv7 } from "uuid";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import { resolveDataMode, type DataMode } from "@/lib/data-mode";
+import { resolveStoredDataMode, type DataMode } from "@/lib/data-mode";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type {
@@ -127,7 +127,7 @@ export async function publishTrustedContent(
         stripUndefined({
           id: metadata.resourceId,
           activeVersionId: versionId,
-          data_mode: resolveDataMode(metadata),
+          data_mode: resolveStoredDataMode(metadata),
           test_fixture_key: metadata.test_fixture_key,
           lastVersionNumber: versionNumber,
           policyId: policy.id,
@@ -142,7 +142,7 @@ export async function publishTrustedContent(
         stripUndefined({
           actorUid: actor.uid,
           createdAt: FieldValue.serverTimestamp(),
-          data_mode: resolveDataMode(metadata),
+          data_mode: resolveStoredDataMode(metadata),
           eventType: "published",
           policyId: policy.id,
           resourceId: metadata.resourceId,
@@ -257,7 +257,7 @@ export async function rollbackTrustedPublication(
     transaction.set(db.collection(PUBLICATION_COLLECTIONS.audit).doc(uuidv7()), {
       actorUid: actor.uid,
       createdAt: FieldValue.serverTimestamp(),
-      data_mode: resolveDataMode(resource),
+      data_mode: resolveStoredDataMode(resource),
       eventType: "rolled_back",
       policyId: resource.policyId,
       reason,
@@ -294,14 +294,17 @@ export async function listActiveTrustedPublications(
           "Publication resource was not found.",
         ),
       )
-      .filter((resource) => resolveDataMode(resource) === (options.dataMode ?? "live"))
+      .filter(
+        (resource) => resolveStoredDataMode(resource) === (options.dataMode ?? "live"),
+      )
       .map(async (resource) => {
         return getPublicationVersion(resource.activeVersionId, db);
       }),
   );
   return versions.filter(
     (version) =>
-      version.validated && resolveDataMode(version) === (options.dataMode ?? "live"),
+      version.validated &&
+      resolveStoredDataMode(version) === (options.dataMode ?? "live"),
   );
 }
 
@@ -334,7 +337,7 @@ async function writeFailureAudit(
       actorUid: actor.uid,
       code,
       createdAt: FieldValue.serverTimestamp(),
-      data_mode: resolveDataMode(policy),
+      data_mode: resolveStoredDataMode(policy),
       eventType: "rejected",
       policyId: policy.id,
       resourceId: metadata.resourceId,
@@ -355,7 +358,7 @@ function versionRecord(input: {
   const { metadata } = input;
   return stripUndefined({
     id: input.versionId,
-    data_mode: resolveDataMode(metadata),
+    data_mode: resolveStoredDataMode(metadata),
     test_fixture_key: metadata.test_fixture_key,
     citationLabel: metadata.citationLabel,
     connectorId: metadata.connectorId,
@@ -440,7 +443,7 @@ function assertResourceIdentity(
     resource.policyId !== policyId ||
     resource.resourceType !== metadata.resourceType ||
     resource.spaceId !== metadata.spaceId ||
-    resolveDataMode(resource) !== resolveDataMode(metadata) ||
+    resolveStoredDataMode(resource) !== resolveStoredDataMode(metadata) ||
     resource.test_fixture_key !== metadata.test_fixture_key
   ) {
     throw new EditableLayerError(
@@ -490,8 +493,8 @@ function assertRollbackAllowedByCurrentPolicy(
     !can(actor.role, "edit") ||
     !canAccessSpaceId(actor, target.spaceId) ||
     !policy.enabled ||
-    resolveDataMode(policy) !== resolveDataMode(resource) ||
-    resolveDataMode(resource) !== resolveDataMode(target) ||
+    resolveStoredDataMode(policy) !== resolveStoredDataMode(resource) ||
+    resolveStoredDataMode(resource) !== resolveStoredDataMode(target) ||
     policy.test_fixture_key !== resource.test_fixture_key ||
     resource.test_fixture_key !== target.test_fixture_key ||
     policy.id !== resource.policyId ||
@@ -522,7 +525,7 @@ function assertPublicationModesMatch(
   version: PublicationVersionRecord,
 ) {
   if (
-    resolveDataMode(resource) !== resolveDataMode(version) ||
+    resolveStoredDataMode(resource) !== resolveStoredDataMode(version) ||
     resource.test_fixture_key !== version.test_fixture_key
   ) {
     throw new EditableLayerError(

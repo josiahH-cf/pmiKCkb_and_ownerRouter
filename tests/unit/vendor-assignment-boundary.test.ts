@@ -16,6 +16,7 @@ const principal = {
   email: "a@example.com",
   emailVerified: true as const,
   totpVerified: true as const,
+  dataMode: "live" as const,
   sessionIssuedAt: 1,
 };
 

@@ -2,7 +2,7 @@ import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 
 import { getAdminFirestore } from "@/lib/firestore/admin";
-import { resolveDataMode, type DataMode } from "@/lib/data-mode";
+import { resolveStoredDataMode, type DataMode } from "@/lib/data-mode";
 import type { MaintenanceTicketRecord } from "@/lib/maintenance/ticket-model";
 import type { VendorAssignmentAuthority } from "@/lib/vendor/assignment";
 import type {
@@ -112,7 +112,7 @@ function ticketProjection(ticket: MaintenanceTicketRecord): VendorTicketProjecti
     summary: ticket.summary,
     unitLabel: ticket.unit?.label ?? null,
     updatedAt: ticket.updated_at,
-    dataMode: resolveDataMode(ticket),
+    dataMode: resolveStoredDataMode(ticket),
   };
 }
 
@@ -816,7 +816,7 @@ export class FirestoreVendorStore
           (assignment) =>
             assignment.active &&
             assignment.vendor_id === authority.vendorId &&
-            resolveDataMode(assignment) === authority.dataMode,
+            resolveStoredDataMode(assignment) === authority.dataMode,
         );
       const ticketSnapshots = await Promise.all(
         matchingAssignments.map((assignment) =>
@@ -829,7 +829,7 @@ export class FirestoreVendorStore
         .map((snapshot) => {
           if (!snapshot.exists) return null;
           const ticket = snapshot.data() as MaintenanceTicketRecord;
-          return resolveDataMode(ticket) === authority.dataMode
+          return resolveStoredDataMode(ticket) === authority.dataMode
             ? ticketProjection(ticket)
             : null;
         })
@@ -869,9 +869,9 @@ export class FirestoreVendorStore
         !assignment.active ||
         assignment.vendor_id !== authority.vendorId ||
         assignment.ticket_id !== authority.ticketId ||
-        resolveDataMode(assignment) !== authority.dataMode ||
+        resolveStoredDataMode(assignment) !== authority.dataMode ||
         ticket.id !== authority.ticketId ||
-        resolveDataMode(ticket) !== authority.dataMode
+        resolveStoredDataMode(ticket) !== authority.dataMode
       ) {
         return null;
       }
@@ -918,14 +918,14 @@ export class FirestoreVendorStore
         assignment.active &&
         assignment.vendor_id === input.vendorId &&
         assignment.ticket_id === input.ticketId &&
-        resolveDataMode(assignment) === input.dataMode &&
+        resolveStoredDataMode(assignment) === input.dataMode &&
         ticket.id === input.ticketId &&
-        resolveDataMode(ticket) === input.dataMode &&
+        resolveStoredDataMode(ticket) === input.dataMode &&
         thread.active &&
         thread.vendor_id === input.vendorId &&
         thread.ticket_id === input.ticketId &&
         thread.thread_id === input.threadId &&
-        resolveDataMode(thread) === input.dataMode
+        resolveStoredDataMode(thread) === input.dataMode
       );
     });
   }
@@ -981,22 +981,22 @@ export class FirestoreVendorStore
         !assignment.active ||
         assignment.vendor_id !== input.vendorId ||
         assignment.ticket_id !== input.ticketId ||
-        resolveDataMode(assignment) !== vendorMode ||
+        resolveStoredDataMode(assignment) !== vendorMode ||
         ticket.id !== input.ticketId ||
-        resolveDataMode(ticket) !== vendorMode ||
+        resolveStoredDataMode(ticket) !== vendorMode ||
         !thread.active ||
         thread.vendor_id !== input.vendorId ||
         thread.ticket_id !== input.ticketId ||
         thread.thread_id !== input.threadId ||
-        resolveDataMode(thread) !== vendorMode
+        resolveStoredDataMode(thread) !== vendorMode
       ) {
         return null;
       }
       return {
         vendor: vendorMode,
-        assignment: resolveDataMode(assignment),
-        ticket: resolveDataMode(ticket),
-        thread: resolveDataMode(thread),
+        assignment: resolveStoredDataMode(assignment),
+        ticket: resolveStoredDataMode(ticket),
+        thread: resolveStoredDataMode(thread),
       };
     });
   }
@@ -1141,10 +1141,10 @@ export class FirestoreVendorStore
       if (
         !assignment.active ||
         assignment.ticket_id !== ticketId ||
-        resolveDataMode(assignment) !== "test" ||
+        resolveStoredDataMode(assignment) !== "test" ||
         ticket.id !== ticketId ||
         ticket.vendor_id !== assignment.vendor_id ||
-        resolveDataMode(ticket) !== "test"
+        resolveStoredDataMode(ticket) !== "test"
       ) {
         return null;
       }
@@ -1192,7 +1192,7 @@ export class FirestoreVendorStore
         thread.vendor_id !== vendorId ||
         thread.ticket_id !== ticketId ||
         thread.thread_id !== mailbox.threadId ||
-        resolveDataMode(thread) !== "test"
+        resolveStoredDataMode(thread) !== "test"
       ) {
         return null;
       }
@@ -1242,9 +1242,9 @@ export class FirestoreVendorStore
         !assignment.active ||
         assignment.vendor_id !== input.vendorId ||
         assignment.ticket_id !== input.ticketId ||
-        resolveDataMode(assignment) !== "test" ||
+        resolveStoredDataMode(assignment) !== "test" ||
         ticket.id !== input.ticketId ||
-        resolveDataMode(ticket) !== "test" ||
+        resolveStoredDataMode(ticket) !== "test" ||
         mailbox.id !== `${input.vendorId}:${input.ticketId}` ||
         mailbox.vendorId !== input.vendorId ||
         mailbox.ticketId !== input.ticketId ||
@@ -1267,7 +1267,7 @@ export class FirestoreVendorStore
         thread.vendor_id === input.vendorId &&
         thread.ticket_id === input.ticketId &&
         thread.thread_id === mailbox.threadId &&
-        resolveDataMode(thread) === "test"
+        resolveStoredDataMode(thread) === "test"
         ? normalizeVendorTestMailboxRecord(mailbox)
         : null;
     });
@@ -1330,9 +1330,9 @@ export class FirestoreVendorStore
         assignment.active === true &&
         assignment.vendor_id === record.vendorId &&
         assignment.ticket_id === record.ticketId &&
-        resolveDataMode(assignment) === "test" &&
+        resolveStoredDataMode(assignment) === "test" &&
         ticket.id === record.ticketId &&
-        resolveDataMode(ticket) === "test" &&
+        resolveStoredDataMode(ticket) === "test" &&
         record.id === `${record.vendorId}:${record.ticketId}` &&
         record.data_mode === "test" &&
         record.liveEvidenceEligible === false;
@@ -1345,7 +1345,7 @@ export class FirestoreVendorStore
           thread.vendor_id !== record.vendorId ||
           thread.ticket_id !== record.ticketId ||
           thread.thread_id !== record.threadId ||
-          resolveDataMode(thread) !== "test" ||
+          resolveStoredDataMode(thread) !== "test" ||
           current.id !== record.id ||
           current.vendorId !== record.vendorId ||
           current.ticketId !== record.ticketId ||
@@ -1364,7 +1364,7 @@ export class FirestoreVendorStore
             thread.vendor_id !== record.vendorId ||
             thread.ticket_id !== record.ticketId ||
             thread.thread_id !== record.threadId ||
-            resolveDataMode(thread) !== "test")
+            resolveStoredDataMode(thread) !== "test")
         ) {
           return null;
         }
@@ -1441,14 +1441,14 @@ export class FirestoreVendorStore
         !assignment.active ||
         assignment.vendor_id !== record.vendorId ||
         assignment.ticket_id !== record.ticketId ||
-        resolveDataMode(assignment) !== "test" ||
+        resolveStoredDataMode(assignment) !== "test" ||
         ticket.id !== record.ticketId ||
-        resolveDataMode(ticket) !== "test" ||
+        resolveStoredDataMode(ticket) !== "test" ||
         !thread.active ||
         thread.vendor_id !== record.vendorId ||
         thread.ticket_id !== record.ticketId ||
         thread.thread_id !== record.threadId ||
-        resolveDataMode(thread) !== "test" ||
+        resolveStoredDataMode(thread) !== "test" ||
         mailbox.id !== `${record.vendorId}:${record.ticketId}` ||
         mailbox.vendorId !== record.vendorId ||
         mailbox.ticketId !== record.ticketId ||
@@ -1533,14 +1533,14 @@ export class FirestoreVendorStore
         !assignment.active ||
         assignment.vendor_id !== input.vendorId ||
         assignment.ticket_id !== input.ticketId ||
-        resolveDataMode(assignment) !== "test" ||
+        resolveStoredDataMode(assignment) !== "test" ||
         ticket.id !== input.ticketId ||
-        resolveDataMode(ticket) !== "test" ||
+        resolveStoredDataMode(ticket) !== "test" ||
         !thread.active ||
         thread.vendor_id !== input.vendorId ||
         thread.ticket_id !== input.ticketId ||
         thread.thread_id !== input.threadId ||
-        resolveDataMode(thread) !== "test" ||
+        resolveStoredDataMode(thread) !== "test" ||
         confirmation.id !== input.confirmationId ||
         confirmation.data_mode !== "test" ||
         confirmation.liveEvidenceEligible !== false ||

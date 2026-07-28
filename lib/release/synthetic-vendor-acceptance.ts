@@ -95,6 +95,14 @@ export async function runSyntheticVendorJourney() {
       email_verified: true,
       vendor: true,
       vendor_id: vendorId,
+      // S40 AC-S40-1: the Vendor tuple requires an explicit lane; this principal previously
+      // carried none and was silently admitted to Live. It is classified Live deliberately,
+      // because this harness rehearses the LIVE Vendor OAuth code path against an injected fake
+      // provider and asserts liveProviderCalls === 0 — a Demo-lane principal is refused before
+      // OAuth construction by design, which would delete the only automated proof of that path.
+      // Whether the shipped /api/admin/v1/fake-acceptance surface should exist at all is a
+      // separate question owned by the Production route-exclusion slice.
+      data_mode: "live",
       auth_time: nowSeconds,
       firebase: { sign_in_second_factor: "totp" },
     },

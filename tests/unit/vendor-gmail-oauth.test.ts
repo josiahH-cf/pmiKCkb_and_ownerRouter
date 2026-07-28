@@ -13,6 +13,7 @@ const principal = {
   email: "trade@example.com",
   emailVerified: true as const,
   totpVerified: true as const,
+  dataMode: "live" as const,
   sessionIssuedAt: 1,
 };
 const redirectUri = "https://app.example.com/api/vendor/oauth/callback";

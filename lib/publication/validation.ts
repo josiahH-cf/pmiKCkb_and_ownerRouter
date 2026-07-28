@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import { resolveDataMode } from "@/lib/data-mode";
+import { resolveStoredDataMode } from "@/lib/data-mode";
 import { canAccessSpaceId } from "@/lib/space-scope-resources";
 import {
   assertAuthorityFieldsAreInert,
@@ -96,11 +96,11 @@ function assertMetadata(
   }
   if (!policy.enabled) fail("policy_disabled", 409);
   if (
-    resolveDataMode(policy) !== resolveDataMode(metadata) ||
-    (resolveDataMode(metadata) === "test" &&
+    resolveStoredDataMode(policy) !== resolveStoredDataMode(metadata) ||
+    (resolveStoredDataMode(metadata) === "test" &&
       (!metadata.test_fixture_key?.startsWith("audit:") ||
         metadata.test_fixture_key !== policy.test_fixture_key)) ||
-    (resolveDataMode(metadata) === "live" &&
+    (resolveStoredDataMode(metadata) === "live" &&
       Boolean(metadata.test_fixture_key || policy.test_fixture_key))
   ) {
     fail("data_mode_mismatch", 409);

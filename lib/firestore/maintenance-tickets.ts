@@ -17,7 +17,7 @@ import { z } from "zod";
 
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import { resolveDataMode } from "@/lib/data-mode";
+import { resolveStoredDataMode } from "@/lib/data-mode";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
@@ -348,7 +348,7 @@ export async function transitionMaintenanceTicket(
         break;
       }
       case "vendor-assign": {
-        const mode = resolveDataMode(ticket);
+        const mode = resolveStoredDataMode(ticket);
         if (
           mode === "test" &&
           op.vendorId !== null &&
@@ -582,7 +582,7 @@ function readMaintenanceTicket(
   data: Record<string, unknown>,
 ): MaintenanceTicketRecord {
   const record = readRecord<MaintenanceTicketRecord>(id, data);
-  return { ...record, data_mode: resolveDataMode(record) };
+  return { ...record, data_mode: resolveStoredDataMode(record) };
 }
 
 export async function listMaintenanceTicketActivity(

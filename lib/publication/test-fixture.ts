@@ -4,7 +4,7 @@ import { v7 as uuidv7 } from "uuid";
 
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import { resolveDataMode } from "@/lib/data-mode";
+import { resolveStoredDataMode } from "@/lib/data-mode";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { startWorkflowTestRun } from "@/lib/firestore/workflows";
@@ -485,7 +485,7 @@ async function ensureTestPublicationPolicy(
     const raw = snapshot.data();
     if (
       raw &&
-      (resolveDataMode(raw) !== "test" ||
+      (resolveStoredDataMode(raw) !== "test" ||
         raw.test_fixture_key !== TEST_PUBLICATION_FIXTURE_KEY)
     ) {
       throw new EditableLayerError(
@@ -568,13 +568,13 @@ async function readFixtureStatus(db: Firestore): Promise<TestPublicationFixtureS
     )
     .filter(
       (version) =>
-        resolveDataMode(version) === "test" &&
+        resolveStoredDataMode(version) === "test" &&
         version.test_fixture_key === TEST_PUBLICATION_FIXTURE_KEY,
     )
     .sort((left, right) => right.versionNumber - left.versionNumber);
   const active =
     resource &&
-    resolveDataMode(resource) === "test" &&
+    resolveStoredDataMode(resource) === "test" &&
     resource.test_fixture_key === TEST_PUBLICATION_FIXTURE_KEY
       ? (versions.find((version) => version.id === resource.activeVersionId) ?? null)
       : null;
@@ -603,7 +603,7 @@ async function readFixtureStatus(db: Firestore): Promise<TestPublicationFixtureS
   const continuationRaw = continuationSnapshot?.data();
   const capture =
     captureRaw &&
-    resolveDataMode(captureRaw) === "test" &&
+    resolveStoredDataMode(captureRaw) === "test" &&
     captureRaw.test_fixture_key === TEST_PUBLICATION_FIXTURE_KEY
       ? (normalizeFirestoreValue({
           id: captureTaskId,
@@ -612,7 +612,7 @@ async function readFixtureStatus(db: Firestore): Promise<TestPublicationFixtureS
       : null;
   const continuation =
     continuationRaw &&
-    resolveDataMode(continuationRaw) === "test" &&
+    resolveStoredDataMode(continuationRaw) === "test" &&
     continuationRaw.test_fixture_key === TEST_PUBLICATION_FIXTURE_KEY
       ? (normalizeFirestoreValue({
           id: continuationId,
@@ -808,7 +808,7 @@ function assertConfirmation(actual: string, expected: string) {
 
 function assertExactTestFixtureRecord(raw: Record<string, unknown>, label: string) {
   if (
-    resolveDataMode(raw) !== "test" ||
+    resolveStoredDataMode(raw) !== "test" ||
     raw.test_fixture_key !== TEST_PUBLICATION_FIXTURE_KEY
   ) {
     throw new EditableLayerError(

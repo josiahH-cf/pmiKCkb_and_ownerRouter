@@ -18,6 +18,8 @@
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 
+import { requireExplicitDataMode } from "@/lib/data-mode";
+
 /** Version + domain separator. Bump this to hard-invalidate every previously minted token. */
 export const INTAKE_TOKEN_VERSION = "maint-intake-v1";
 
@@ -52,7 +54,12 @@ export interface MintIntakeTokenInput {
   epoch: number;
   ttlMs?: number;
   singleUse?: boolean;
-  dataMode?: "live" | "test";
+  /**
+   * Required (S40, AC-S40-1). Minting bakes the lane into a signed artifact that later verification
+   * trusts, so an unclassified mint would carry an unclassified lane straight past the fail-closed
+   * guard. There is deliberately no default.
+   */
+  dataMode: "live" | "test";
 }
 
 export type VerifyIntakeTokenResult =
@@ -118,7 +125,7 @@ export function mintIntakeToken(
     exp: now + ttlMs,
     epoch: Math.max(0, Math.trunc(input.epoch)),
     singleUse: input.singleUse ?? true,
-    dataMode: input.dataMode ?? "live",
+    dataMode: requireExplicitDataMode(input.dataMode),
   };
 
   const payloadB64 = base64UrlEncode(JSON.stringify(payload));
@@ -202,6 +209,10 @@ export function verifyIntakeToken(
 
   // Backward compatibility for already-minted v1 tokens. The absent claim can only narrow to the
   // pre-existing Live behavior; a Test lane always requires an explicitly signed claim.
+  //
+  // S40: minting now refuses an unclassified lane, and every token's lifetime is clamped to
+  // INTAKE_TOKEN_MAX_TTL_MS, so this compatibility branch becomes unreachable one maximum TTL after
+  // deploy. It is self-expiring rather than a permanent fail-open.
   payload.dataMode ??= "live";
 
   return { ok: true, payload };

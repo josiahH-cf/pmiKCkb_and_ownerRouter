@@ -9,9 +9,37 @@ const valid = {
   email_verified: true,
   vendor: true,
   vendor_id: "vendor-1",
+  // S40 AC-S40-1: the Vendor tuple requires an explicit lane; a claim set without one is refused.
+  data_mode: "live" as const,
   auth_time: now - 60,
   firebase: { sign_in_second_factor: "totp" },
 };
+
+describe("Vendor data-mode claim (S40 AC-S40-1)", () => {
+  it("refuses a Vendor principal that carries no explicit lane", () => {
+    const withoutLane = { ...valid };
+    delete (withoutLane as { data_mode?: unknown }).data_mode;
+    expect(() => validateVendorClaims(withoutLane, now)).toThrow(
+      /Vendor data mode is invalid/,
+    );
+  });
+
+  it("refuses an unknown lane instead of narrowing it to Live", () => {
+    for (const data_mode of ["", "demo", "LIVE", "production", 1, true, null]) {
+      expect(() =>
+        validateVendorClaims({ ...valid, data_mode } as typeof valid, now),
+      ).toThrow(/Vendor data mode is invalid/);
+    }
+  });
+
+  it("carries the exact signed lane through to the principal", () => {
+    for (const data_mode of ["live", "test"] as const) {
+      expect(validateVendorClaims({ ...valid, data_mode }, now)).toMatchObject({
+        dataMode: data_mode,
+      });
+    }
+  });
+});
 
 describe("Vendor verified-email TOTP session", () => {
   it("accepts only the separate recent Vendor MFA claim", () => {

@@ -3,7 +3,7 @@ import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import { resolveDataMode } from "@/lib/data-mode";
+import { resolveStoredDataMode } from "@/lib/data-mode";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type {
@@ -200,7 +200,7 @@ export async function resolvePublicationPolicyForSpace(
   if (policyId) {
     const policy = await getPublicationPolicy(policyId, db);
     if (
-      resolveDataMode(policy) !== "live" ||
+      resolveStoredDataMode(policy) !== "live" ||
       !policy.enabled ||
       !policy.allowedSpaces.includes(spaceId)
     ) {
@@ -217,7 +217,7 @@ export async function resolvePublicationPolicyForSpace(
     .map((doc) => readPolicy(doc.id, doc.data()))
     .filter(
       (policy) =>
-        resolveDataMode(policy) === "live" &&
+        resolveStoredDataMode(policy) === "live" &&
         policy.enabled &&
         policy.allowedSpaces.includes(spaceId),
     );
