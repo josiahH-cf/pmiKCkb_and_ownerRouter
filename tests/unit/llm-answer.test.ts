@@ -134,6 +134,11 @@ describe("Gemini answer contract", () => {
 
 function config(overrides: Partial<ServerConfig> = {}): ServerConfig {
   const base: ServerConfig = {
+    environment: {
+      environmentKind: "demo",
+      dataContext: "demo",
+      source: "explicit",
+    },
     allowedHostedDomain: "pmikcmetro.com",
     appBaseUrl: undefined,
     askDemoMode: false,

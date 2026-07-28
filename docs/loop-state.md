@@ -10,8 +10,8 @@ active_program: UIUX-RECALIBRATION-2026-07-28
 program_suites: S40-S50
 spec_writing_allowed: true
 loop_execution_allowed: true
-spec_package_status: READY_FOR_EXECUTION
-implementation_status: NOT_STARTED
+spec_package_status: EXECUTING
+implementation_status: IN_PROGRESS
 next_suite: S40
 next_spec: docs/feature-suites/environment-deployment-separation.md
 runtime_action_gates_preflipped: false
@@ -33,8 +33,8 @@ runtime_action_gates_preflipped: false
 
 ## Current truth
 
-- Repository baseline at spec authoring: `main` / `b048043`; the S40–S50 documentation changes are
-  uncommitted until the owner chooses the normal commit flow.
+- Repository baseline for execution: `main` / `37be85a` — the S40–S50 spec package is committed and
+  pushed; both worktrees are clean and match `origin`.
 - No S40–S50 application code, cloud resource, record migration, action gate, deploy, send, or
   external write was performed by the 2026-07-28 spec cycle.
 - Current Production still has verified Live+Test behavior
@@ -98,13 +98,14 @@ left half-applied.
 
 ## Next exact actions
 
-1. Documentation-only validation is green: format, diff check, router boundary, falsification,
-   copy voice, context freshness, feature-suite shape (149 tests), and spec traceability (292 IDs).
-2. In a fresh context, launch
-   `docs/meta-prompts/ui-ux-recalibration-unattended-loop.md`: complete its auth/budget/worktree/
-   blocker-ledger Phase 0, then execute S40’s discovery/test-first app-plane slice and continue
-   through safe dependency-ready suites. Do not provision cloud resources or delete/migrate
-   Production records until the exact owner-run packet is green.
+1. Phase 0 of `docs/meta-prompts/ui-ux-recalibration-unattended-loop.md` is COMPLETE (2026-07-28):
+   managed ADC fresh after the owner ran `npm run auth:session`; budget guard green (posture demo,
+   cap $10); baseline gates green at `37be85a` (`format:check`, `typecheck`,
+   `verify:context-freshness`, `verify:spec-traceability` 292 IDs, `verify:falsification`);
+   blocker ledger at `docs/temp/ui-ux-recalibration-execution-ledger-2026-07-28.md`.
+2. Execute S40 `docs/feature-suites/environment-deployment-separation.md` as test-first app-plane
+   slices against AC-S40-1…8, then continue through safe dependency-ready suites. Do not provision
+   cloud resources or delete/migrate Production records until the exact owner-run packet is green.
 
 ## Locked safety
 

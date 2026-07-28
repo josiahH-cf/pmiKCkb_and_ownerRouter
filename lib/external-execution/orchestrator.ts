@@ -1,3 +1,4 @@
+import { isProductionRuntime } from "@/lib/environment/descriptor";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
   externalActionDataMode,
@@ -392,7 +393,7 @@ export class ExternalActionOrchestrator {
 
   private assertProductionDirectActor(input: ExternalActionInput) {
     if (
-      process.env.NODE_ENV === "production" &&
+      isProductionRuntime() &&
       !this.isolatedTestWorkspace &&
       input.authority?.actor.role !== "Vendor"
     ) {
@@ -411,11 +412,7 @@ export class ExternalActionOrchestrator {
         "blocked",
       );
     }
-    if (
-      !this.isolatedTestWorkspace &&
-      process.env.NODE_ENV === "production" &&
-      dataMode === "test"
-    ) {
+    if (!this.isolatedTestWorkspace && isProductionRuntime() && dataMode === "test") {
       throw new ExternalExecutionError(
         "Test records must use the isolated Test workspace, never the Live provider path.",
         "blocked",
@@ -427,7 +424,11 @@ export class ExternalActionOrchestrator {
     // Unit/integration harnesses deliberately use lightweight adapters. Production
     // still has two hard barriers: normal orchestration rejects Test records and the
     // isolated Test factory accepts only branded, memory-only adapters.
-    if (!this.isolatedTestWorkspace && process.env.NODE_ENV !== "production") {
+    //
+    // S40: keyed on the server-owned descriptor rather than a raw NODE_ENV read. A deployed
+    // Demo environment reaches this path through the isolated workspace, so it keeps the
+    // lane check; the skip below covers only a non-isolated non-Production harness.
+    if (!this.isolatedTestWorkspace && !isProductionRuntime()) {
       return null;
     }
     const dataMode = externalActionDataMode(input);

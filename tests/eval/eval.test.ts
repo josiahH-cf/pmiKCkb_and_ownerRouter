@@ -65,6 +65,11 @@ const evalUser: AuthenticatedUser = {
 };
 
 const liveConfig: ServerConfig = {
+  environment: {
+    environmentKind: "demo",
+    dataContext: "demo",
+    source: "explicit",
+  },
   allowedHostedDomain: "pmikcmetro.com",
   appBaseUrl: undefined,
   askDemoMode: false,

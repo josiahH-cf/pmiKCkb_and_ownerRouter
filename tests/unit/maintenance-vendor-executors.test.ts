@@ -464,6 +464,72 @@ describe("Maintenance Vendor mailbox executor", () => {
     ).toContain("exactly match");
   });
 
+  // S40 AC-S40-1/AC-S40-2: the OAuth callback fence keys off the server-owned environment
+  // descriptor. NODE_ENV alone cannot describe the environment once Demo and Production are
+  // separately provisioned, and an unreadable environment must not relax the fence.
+  it("requires the exact callback whenever the descriptor says Production, regardless of NODE_ENV", () => {
+    const provider = mailboxProvider();
+    const connect = {
+      ...common,
+      actionId: "connect-descriptor",
+      actionKey: "vendor.gmail.connect",
+      values: {
+        vendor_ref: "vendor-synthetic",
+        mailbox_email: "vendor-synthetic@example.invalid",
+        oauth_scopes: VENDOR_OAUTH_SCOPES.join(" "),
+        redirect_uri: "https://app.example.invalid/api/vendor/oauth/callback",
+      },
+    } satisfies ExternalActionInput;
+
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("ENVIRONMENT_KIND", "production");
+    vi.stubEnv("DATA_CONTEXT", "live");
+    expect(new VendorMailboxExecutor(provider).validate(connect)).toContain(
+      "exactly match",
+    );
+  });
+
+  it("keeps the callback fence closed when the environment is unreadable", () => {
+    const provider = mailboxProvider();
+    const connect = {
+      ...common,
+      actionId: "connect-unreadable",
+      actionKey: "vendor.gmail.connect",
+      values: {
+        vendor_ref: "vendor-synthetic",
+        mailbox_email: "vendor-synthetic@example.invalid",
+        oauth_scopes: VENDOR_OAUTH_SCOPES.join(" "),
+        redirect_uri: "https://app.example.invalid/api/vendor/oauth/callback",
+      },
+    } satisfies ExternalActionInput;
+
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("ENVIRONMENT_KIND", "staging");
+    vi.stubEnv("DATA_CONTEXT", "live");
+    expect(new VendorMailboxExecutor(provider).validate(connect)).toContain(
+      "exactly match",
+    );
+  });
+
+  it("still allows a loopback callback in the Demo environment harness", () => {
+    const provider = mailboxProvider();
+    const connect = {
+      ...common,
+      actionId: "connect-demo-loopback",
+      actionKey: "vendor.gmail.connect",
+      values: {
+        vendor_ref: "vendor-synthetic",
+        mailbox_email: "vendor-synthetic@example.invalid",
+        oauth_scopes: VENDOR_OAUTH_SCOPES.join(" "),
+        redirect_uri: "http://localhost:3000/api/vendor/oauth/callback",
+      },
+    } satisfies ExternalActionInput;
+
+    vi.stubEnv("ENVIRONMENT_KIND", "demo");
+    vi.stubEnv("DATA_CONTEXT", "demo");
+    expect(new VendorMailboxExecutor(provider).validate(connect)).toBeNull();
+  });
+
   it("blocks a non-canonical Vendor reply template before provider", async () => {
     const provider = mailboxProvider();
     const input = {

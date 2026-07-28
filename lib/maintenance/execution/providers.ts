@@ -11,6 +11,7 @@ import {
   LeaseGmailExecutor,
   type WorkflowMessageProvider,
 } from "@/lib/lease-renewal/execution/providers";
+import { isProductionRuntime } from "@/lib/environment/descriptor";
 import { VENDOR_OAUTH_SCOPES, type VendorOAuthScope } from "@/lib/vendor/model";
 
 function value(input: ExternalActionInput, key: string) {
@@ -1481,18 +1482,22 @@ function isAllowedRedirectUri(raw: unknown, expectedRedirectUri?: string) {
     const url = new URL(raw);
     if (url.username || url.password || url.search || url.hash) return false;
     const loopback = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+    // S40: the environment authority is the server-owned descriptor, not a raw NODE_ENV read.
+    // isProductionRuntime treats an unreadable environment as Production, so this fence stays
+    // closed in the ambiguous case instead of accepting an arbitrary callback.
+    const isProduction = isProductionRuntime();
     const secure =
       url.protocol === "https:" ||
-      (process.env.NODE_ENV !== "production" && url.protocol === "http:" && loopback);
+      (!isProduction && url.protocol === "http:" && loopback);
     if (!secure) return false;
 
     if (expectedRedirectUri) {
       const expected = new URL(expectedRedirectUri);
       return url.href === expected.href;
     }
-    // Invented/local callback aliases are useful in the fake harness, but production must
+    // Invented/local callback aliases are useful in the Demo harness, but Production must
     // receive the exact callback from server configuration.
-    return process.env.NODE_ENV !== "production";
+    return !isProduction;
   } catch {
     return false;
   }
