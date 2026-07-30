@@ -11,6 +11,25 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S51 close-only runtime kernel COMPLETE locally (2026-07-30)
+
+Ordered step 3 of S51 is complete without touching a D12-protected path. The new dependency-free
+kernel expresses runtime authority as a strict close-only conjunction: a seed decision must already
+be true and only the exact normalized clear state can preserve it. Exact-action, global, unreadable,
+malformed, embellished, accessor-backed, and otherwise unknown states all close the action; no
+runtime value can open a false seed.
+
+The unprotected wrapper resolves the existing committed-seed gate before any suspension read, skips
+the reader for closed/unknown keys, performs a fresh fail-closed read for every seed-open attempt,
+preserves `ActionNotExecutableError` for a seed refusal, and uses the distinct
+`action_runtime_suspended` 409 refusal for an operational stop. Focused verification is green at five
+files / 77 tests, plus typecheck, scoped lint/format, and protected-path checks. This is the pure
+kernel only: the Firestore store, strict route schema, Admin-confirmed/audited surface, call-site
+migration, provider-construction sentinel, and protected rules declaration remain S51 ordered step 4.
+The exact clean-install verifier is green at 432 unit files / 3,628 tests, 20 Firestore files / 81
+tests, all governance/redaction gates, and the 96-page production build; lint has zero errors and 15
+existing warnings.
+
 ## S52 print-only budget planner prerequisite COMPLETE locally (2026-07-30)
 
 The budget provisioning planner now fails closed before it can print a command. It has no historical

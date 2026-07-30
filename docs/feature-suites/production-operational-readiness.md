@@ -446,9 +446,11 @@ sets no provider `production_allowed:true`.
    must alert, and the exact separation line between product-record retention and
    `COMMUNICATIONS_RETENTION_TARGETS`. Prove which claims in the 2026-07-14 monitoring plan are still
    true and which the fresh rehearsal supersedes.
-3. _Build:_ land the pure combinator, the new unprotected gate wrapper, and
+3. _Build — COMPLETE locally 2026-07-30:_ land the pure combinator, the new unprotected gate wrapper, and
    `ActionRuntimeSuspendedError` plus their four-combination sentinel FIRST, with no store and no
-   route, so the close-only property is proven before anything can write it.
+   route, so the close-only property is proven before anything can write it. The implementation is
+   deliberately limited to these modules and their unit sentinel; runtime containment remains
+   incomplete until ordered step 4 wires the store and every execution path.
 4. _Build:_ add the suspension store, strict enum/opaque-reference schema, `manageAdmin` route with
    exact-key confirmation, append-only value-free audit, the Admin panel, and the `firestore.rules`
    entries; wire the

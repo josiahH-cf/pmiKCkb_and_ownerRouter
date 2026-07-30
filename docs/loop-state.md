@@ -18,8 +18,8 @@ implementation_status: IN_PROGRESS
 next_suite: S51
 next_spec: docs/feature-suites/production-operational-readiness.md
 session_auth_status: BLOCKED_INTERACTIVE_ADC_CLI_GREEN
-active_slice: S51-CLOSE-ONLY-APPPLANE
-last_completed_slice: S53.5-VENDOR-LIFECYCLE + S52-I/J + S52-PLANNER-REFUSAL
+active_slice: S51-SUSPENSION-STORE-ROUTE-AUDIT
+last_completed_slice: S53.5-VENDOR-LIFECYCLE + S52-I/J + S52-PLANNER-REFUSAL + S51-CLOSE-ONLY-KERNEL
 runtime_action_gates_preflipped: false
 ```
 
@@ -50,10 +50,10 @@ runtime_action_gates_preflipped: false
   committed-seed gate truth plus complete Firestore drift, action-keyed sender/DWD readiness,
   paired intake secrets, fail-closed Space flag, and strict runtime scalar validation. D33's direct
   notice-send non-targets are reconciled as Disabled without changing `production_allowed`.
-- S53.5 is complete locally: Admin-reachable Vendor preview/confirm/reconcile, prepared/S20/provider
-  fences, exact invite/setup/recovery, atomic assignment, and access-first disable are green while
-  all keys remain closed. S52-I/J and the fail-closed print-only budget planner are locally green.
-- Exact clean-install gate: 431/3,584 unit, 20/81 Firestore, 96-page build, and core E2E
+- S53.5 Vendor lifecycle and S52-I/J plus the fail-closed print-only budget planner are locally
+  green; every provider key remains closed.
+- S51 ordered step 3 is locally green: the close-only kernel/wrapper fails closed on unreadable or malformed state; store, route, Admin UI, and execution-path wiring remain.
+- Exact clean-install gate: 432/3,628 unit, 20/81 Firestore, 96-page build, and core E2E
   32 passed / 18 designed skips; runtime audit is zero.
 - Production serves `2bfe7d4` on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e`, missing the
   accumulated repairs. D07 deploy waits for S52 headroom and the sanitized-environment/emulator
@@ -78,8 +78,8 @@ runtime_action_gates_preflipped: false
    receipt/reconcile/setup/disable and concurrency fences are green; no protected flip.
 7. **S52 prerequisites — PARKED** — planner refusal plus I/J are green; source/handler/check are
    protected, and baseline/values/project disposition/operator destination remain external.
-8. **S51 app-plane — ACTIVE** — close-only combinator first, then store/route/rehearsal/incident/logging/
-   alert definitions. Isolate protected `firestore.rules`; do not apply cloud resources.
+8. **S51 app-plane — ACTIVE** — close-only kernel complete; next build store/route/audit/Admin UI and
+   execution-path wiring, then rehearsal/incident/logging/alerts. Isolate protected rules and cloud.
 9. **S52/S51 activation** — after the complete-calendar-month baseline, supply the two
    owner-selected values, second-project disposition, and operator destination; apply owner-run
    billing/IAM/monitoring changes and verify live lockstep/delivery. Do not synthesize or infer a
@@ -136,4 +136,4 @@ runtime_action_gates_preflipped: false
 
 ## Resume
 
-Build S51's close-only app-plane seam; isolate protected rules/cloud changes. Re-run auth before live/cloud work; thresholds remain unset and no cost-bearing action is eligible.
+Build S51's suspension store/route/audit/Admin seam and execution-path wiring; isolate protected rules/cloud changes. Re-run auth before live/cloud work; thresholds remain unset and no cost-bearing action is eligible.
