@@ -63,6 +63,7 @@ const liveConfig: ServerConfig = {
   speechProvider: "stub",
   maintenanceImageFolderId: "",
   renewalCompImageFolderId: "",
+  renewalCompSharedDriveId: "",
   marketCompProvider: "manual",
   rentcastApiKey: undefined,
   maintenanceIntakeTokenSecret: undefined,

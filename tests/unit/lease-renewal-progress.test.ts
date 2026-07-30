@@ -11,6 +11,16 @@ import {
   recordOwnerDecision,
   recordTenantOfferDraft,
 } from "@/lib/firestore/lease-renewal-progress";
+import { COMP_SCREENSHOT_EXECUTION_COLLECTIONS } from "@/lib/firestore/lease-renewal-comp-screenshot-executions";
+import { compScreenshotHeadDocId } from "@/lib/lease-renewal/comp-screenshot-attachment";
+import {
+  buildCompScreenshotPreview,
+  buildCompScreenshotReceipt,
+  compScreenshotExecutionFromPreview,
+  compScreenshotProviderPayload,
+  compScreenshotRecordIdentity,
+  type CompScreenshotExecutionRecord,
+} from "@/lib/lease-renewal/comp-screenshot-contract";
 import {
   RENEWAL_STAGE,
   effectiveStageIndex,
@@ -18,6 +28,7 @@ import {
   planMarkComplete,
   planRecordOwnerDecision,
   planRecordTenantOfferDraft,
+  type RenewalOwnerDecisionWriteInput,
   type RenewalProgress,
 } from "@/lib/lease-renewal/renewal-progress";
 
@@ -286,6 +297,77 @@ const editor: AuthenticatedUser = {
 
 const LEASE_ID = "5001";
 
+function seedDeliveredCompScreenshot(
+  db: ProgressTestFirestore,
+  leaseId: string,
+): CompScreenshotExecutionRecord {
+  const identity = compScreenshotRecordIdentity(leaseId);
+  const preview = buildCompScreenshotPreview({
+    actorUid: editor.uid,
+    ...identity,
+    folderId: "approved_folder_fixture",
+    providerIdentityHash: "a".repeat(64),
+    contentSha256: "b".repeat(64),
+    contentMd5: "c".repeat(32),
+    sourceFilenameHash: "d".repeat(64),
+    mimeType: "image/png",
+    sizeBytes: 128,
+    descriptor: {
+      environmentKind: "production",
+      dataContext: "live",
+      source: "explicit",
+    },
+    nowMs: Date.parse("2026-07-30T03:00:00.000Z"),
+    nonce: "progress_attachment_fixture",
+  });
+  const claimed = compScreenshotExecutionFromPreview(
+    preview,
+    Date.parse("2026-07-30T03:00:01.000Z"),
+  );
+  const candidate: CompScreenshotExecutionRecord = {
+    ...claimed,
+    state: "upload_started",
+    reservedFileId: "drive_file_attachment_fixture",
+    folderMetadataHash: "f".repeat(64),
+    folderVersion: "1",
+    dispatchGeneration: 1,
+    dispatchLeaseExpiresAtMs: Date.parse("2026-07-30T03:02:01.000Z"),
+  };
+  const payload = compScreenshotProviderPayload(candidate);
+  const receipt = buildCompScreenshotReceipt(
+    candidate,
+    {
+      fileId: candidate.reservedFileId!,
+      providerPayloadHash: payload.providerPayloadHash,
+      providerMetadataHash: "e".repeat(64),
+      md5Checksum: candidate.contentMd5,
+      sha256Checksum: candidate.contentSha256,
+      version: "1",
+      headRevisionId: "head_attachment_fixture",
+      createdTime: "2026-07-30T03:00:02.000Z",
+      canUntrash: true,
+    },
+    false,
+  );
+  const delivered: CompScreenshotExecutionRecord = {
+    ...candidate,
+    state: "delivered",
+    receipt,
+  };
+  db.store.set(
+    `${COMP_SCREENSHOT_EXECUTION_COLLECTIONS.heads}/${compScreenshotHeadDocId(identity.compRecordHash)}`,
+    {
+      executionId: delivered.id,
+      compRecordHash: identity.compRecordHash,
+    },
+  );
+  db.store.set(
+    `${COMP_SCREENSHOT_EXECUTION_COLLECTIONS.executions}/${delivered.id}`,
+    structuredClone(delivered) as unknown as TestRecord,
+  );
+  return delivered;
+}
+
 describe("lease-renewal-progress store", () => {
   it("records an owner decision, advancing to the Tenant step with an activity twin", async () => {
     const db = new ProgressTestFirestore();
@@ -325,7 +407,7 @@ describe("lease-renewal-progress store", () => {
     });
   });
 
-  it("persists and reads back the operator comp basis (market) in both directions", async () => {
+  it("persists operator comp fields but ignores a caller-nominated screenshot reference", async () => {
     const db = new ProgressTestFirestore();
     await recordOwnerDecision(
       editor,
@@ -338,12 +420,13 @@ describe("lease-renewal-progress store", () => {
           zillowHigh: 1600,
           pmiNumber: 1550,
           compsUrl: "https://www.zillow.com/homes/x_rb/",
-          // S28a: the stored Drive screenshot ref + display-only provider attribution must round-trip.
+          // The persistence boundary derives screenshots from its own receipt ledger; this forged
+          // caller value must never become authority.
           compScreenshotRef: "drive:abc123",
           compSource: "RentCast",
           compRetrievedAt: "2026-07-23T00:00:00.000Z",
         },
-      },
+      } as unknown as RenewalOwnerDecisionWriteInput,
       db as unknown as Firestore,
     );
     const record = db.store.get(
@@ -357,12 +440,15 @@ describe("lease-renewal-progress store", () => {
           zillow_high: 1600,
           pmi_number: 1550,
           comps_url: "https://www.zillow.com/homes/x_rb/",
-          comp_screenshot_ref: "drive:abc123",
           comp_source: "RentCast",
           comp_retrieved_at: "2026-07-23T00:00:00.000Z",
         },
       },
     });
+    expect(
+      (record?.owner_decision as { market?: Record<string, unknown> } | undefined)
+        ?.market,
+    ).not.toHaveProperty("comp_screenshot_ref");
     // Read back camelCase.
     const progress = await getRenewalProgress(
       editor,
@@ -374,10 +460,114 @@ describe("lease-renewal-progress store", () => {
       zillowHigh: 1600,
       pmiNumber: 1550,
       compsUrl: "https://www.zillow.com/homes/x_rb/",
-      compScreenshotRef: "drive:abc123",
       compSource: "RentCast",
       compRetrievedAt: "2026-07-23T00:00:00.000Z",
     });
+  });
+
+  it("derives and persists only the coherent current screenshot receipt in the decision transaction", async () => {
+    const db = new ProgressTestFirestore();
+    const delivered = seedDeliveredCompScreenshot(db, LEASE_ID);
+
+    const progress = await recordOwnerDecision(
+      editor,
+      LEASE_ID,
+      {
+        decision: "increase",
+        offeredRent: 1300,
+        market: { pmiNumber: 1550 },
+      },
+      db as unknown as Firestore,
+    );
+
+    expect(progress.ownerDecision?.market).toMatchObject({
+      pmiNumber: 1550,
+      compScreenshotRef: delivered.receipt?.ref,
+    });
+    const record = db.store.get(
+      `${LEASE_RENEWAL_PROGRESS_COLLECTIONS.progress}/${progressDocId(LEASE_ID)}`,
+    );
+    expect(record).toMatchObject({
+      owner_decision: {
+        market: {
+          comp_screenshot_ref: delivered.receipt?.ref,
+          comp_screenshot_execution_id: delivered.id,
+          comp_screenshot_receipt_id: delivered.receipt?.receiptId,
+          comp_screenshot_result_hash: delivered.receipt?.resultHash,
+        },
+      },
+    });
+  });
+
+  it("does not attach a tampered receipt or an execution with an active rollback", async () => {
+    for (const variant of ["tampered", "running", "ambiguous"] as const) {
+      const db = new ProgressTestFirestore();
+      const delivered = seedDeliveredCompScreenshot(db, LEASE_ID);
+      const path = `${COMP_SCREENSHOT_EXECUTION_COLLECTIONS.executions}/${delivered.id}`;
+      const changed =
+        variant === "tampered"
+          ? {
+              ...delivered,
+              receipt: {
+                ...delivered.receipt!,
+                ref: "drive:forged_attachment_fixture",
+              },
+            }
+          : {
+              ...delivered,
+              rollback: {
+                id: `comp_trash_${"f".repeat(48)}`,
+                bindingHash: "a".repeat(64),
+                previewHash: "b".repeat(64),
+                actorUid: editor.uid,
+                state: variant,
+                attemptCount: 1 as const,
+                createdAt: "2026-07-30T03:01:00.000Z",
+                updatedAt: "2026-07-30T03:01:00.000Z",
+              },
+            };
+      db.store.set(path, structuredClone(changed) as unknown as TestRecord);
+
+      const progress = await recordOwnerDecision(
+        editor,
+        LEASE_ID,
+        { decision: "increase", offeredRent: 1300 },
+        db as unknown as Firestore,
+      );
+      expect(progress.ownerDecision?.market?.compScreenshotRef, variant).toBeUndefined();
+    }
+  });
+
+  it("allows the same receipted attachment to return after a deterministic rollback failure", async () => {
+    const db = new ProgressTestFirestore();
+    const delivered = seedDeliveredCompScreenshot(db, LEASE_ID);
+    const path = `${COMP_SCREENSHOT_EXECUTION_COLLECTIONS.executions}/${delivered.id}`;
+    db.store.set(
+      path,
+      structuredClone({
+        ...delivered,
+        rollback: {
+          id: `comp_trash_${"f".repeat(48)}`,
+          bindingHash: "a".repeat(64),
+          previewHash: "b".repeat(64),
+          actorUid: editor.uid,
+          state: "failed",
+          attemptCount: 1,
+          createdAt: "2026-07-30T03:01:00.000Z",
+          updatedAt: "2026-07-30T03:01:00.000Z",
+        },
+      }) as unknown as TestRecord,
+    );
+
+    const progress = await recordOwnerDecision(
+      editor,
+      LEASE_ID,
+      { decision: "increase", offeredRent: 1300 },
+      db as unknown as Firestore,
+    );
+    expect(progress.ownerDecision?.market?.compScreenshotRef).toBe(
+      delivered.receipt?.ref,
+    );
   });
 
   it("reads a lease's progress back and returns null for an untouched lease", async () => {

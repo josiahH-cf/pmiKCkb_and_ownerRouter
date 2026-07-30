@@ -11,6 +11,70 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S53.3 COMPLETE locally — comp screenshot action contract and rollback (2026-07-30)
+
+AC-S53-13 is built and verified locally without opening the Drive action. The first POST is now
+preview-only: it validates the selected image, binds exact bytes/name/type/size, actor, opaque
+renewal/comp identity, folder boundary, provider identity, and Production+Live descriptor, persists
+only hashes/opaque ids, and constructs no Drive provider. Exact Admin confirmation wins one global
+record-head execution, reserves one generated Drive id durably, dispatches at most once, and returns
+the same bodyless receipt only after exact folder/file/checksum/app-property/revision/capability
+readback. Reload reselects the identical bytes-bound attempt. Status and reconcile never re-upload.
+
+The folder contract accepts only a DWD-subject-owned My Drive folder or the one explicitly configured
+Shared Drive id. An optional renewal-specific folder survives the deploy wrapper; when empty, D31
+reuses the dedicated maintenance photo folder. No legacy Space source-folder map is accepted as a
+write target. Raw image bytes, base64, source filenames, lease ids, folder ids, and provider bodies
+never enter the durable preview/execution/audit/receipt stream.
+
+Rollback has its own immutable preview and exact confirmation. It trashes only the receipted file id,
+verifies explicit trash, atomically detaches only the matching progress attachment, preserves a newer
+attachment, and stores a bodyless rollback receipt. Dispatch leases and generations fence stale
+callbacks. Failed/no-effect lineages may restart only after verified failure; ambiguous effects
+recover by exact readback without a second PATCH. Cross-Admin observed-effect recovery preserves the
+original confirmer and separately binds the recovery Admin. Exact rollback id, logical binding,
+preview, and generation checks close same-generation ABA and timing-dependent duplicate races.
+
+The refresh UI now reflects durable truth even before an owner decision is saved. It adopts a
+receipted concurrent result, resumes in-progress/ambiguous attempts only after the operator reselects
+the exact file, shows the exact rollback target, and makes new upload, upload recovery, delivered
+rollback, and rollback recovery mutually exclusive. A lost rollback response clears the delivered
+projection and enters recovery because the winning claim already detached progress.
+
+Falsification covered wrong actor/lease/environment/provider/folder/shared-drive/file/checksum,
+changed bytes/name, preview expiry, competing record heads, generated-id races, claim-before-upload
+recovery, exact-404 retry, provider ambiguity, folder drift, stale success/failure callbacks,
+same-lineage generation advance, failed-lineage generation reset, wrong-lease atomic no-op, newer
+progress attachment preservation, cross-Admin explicit-trash recovery, and lost UI responses.
+Independent rollback and security/privacy reviews found no remaining P0–P2 blocker and no D12 path
+change.
+
+Verification evidence is green:
+
+- 14 focused files / 211 tests and the final route-scope regression set (3 files / 27 tests);
+- full unit suite: 407 files / 3,218 tests;
+- Firestore emulator suite: 19 files / 78 tests, including direct-client denial and stale-callback
+  execution/progress/audit no-op proof;
+- core E2E: 8 files / 32 tests passed (3 files / 18 environment-specific tests skipped as designed);
+- final widened verifier: 235.9 seconds, including clean install, format, lint (0 errors, 16 existing
+  warnings), typecheck, unit + Firestore, router/falsification/context/spec/copy/redaction gates, and
+  production build.
+
+The first full-gate attempt exposed that the new injectable renewal-progress handler no longer
+matched the static renewals-space sentinel even though its injected guard still received
+`("edit", "renewals")`. The dependency retained its canonical `requireCapabilityInSpace` name, the
+route-auth test turned green, and only the subsequent complete rerun is counted as passing evidence.
+
+`google_drive.renewal_comp_screenshot.store` remains `readiness:"Needs Connection"`,
+`evidence_status:"Undocumented"`, `production_allowed:false`, absent from both executable allowlists,
+and hidden while closed. No Drive call, live-data read, cloud mutation, deploy, or protected-path
+activation ran. ADC remains red; the managed Windows CLI identity and suppressed CLI-token check
+remain green. Exact owner action before any live/cloud work: `npm run auth:session`.
+
+Next safe slice: S53.4 sender/config integrity — make provisioned-but-unforwarded values visibly
+inactive, add explicit environment and Space-provisioning truth checks, and leave every unknown
+mailbox, secret, credential, and IAM grant unset.
+
 ## S53.2 COMPLETE locally — Sheet action contract at the D32 provider seam (2026-07-29)
 
 The local AC-S53-12 application, store, and UI contract is built and adversarially verified without

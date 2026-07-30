@@ -4,12 +4,14 @@
 // the SA's client id must be authorized for the Drive scope in Admin console → Security → API controls →
 // Domain-wide delegation. Folders/files it creates are owned by the subject user, inside the boundary.
 //
-// The token mint is live-only (signJwt + token exchange) and not unit-tested, exactly like the Sheets
-// mint; the folder/upload methods take an injectable token + fetch so they ARE unit-tested offline.
+// The signJwt + token-exchange portion is live-only; identity guards and folder/upload methods are
+// unit-tested offline, with token/fetch injection where transport would otherwise occur.
 
 import { GoogleAuth } from "google-auth-library";
 
 const CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
+const PRODUCTION_SERVICE_ACCOUNT_DOMAIN = "pmi-kc-kb-prod.iam.gserviceaccount.com";
+const INTERNAL_SUBJECT_DOMAIN = "pmikcmetro.com";
 // Least privilege: the app only ever touches files/folders it creates on the user's behalf.
 export const DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 export const DRIVE_FOLDER_MIME = "application/vnd.google-apps.folder";
@@ -19,6 +21,46 @@ export class DriveSetupError extends Error {
     super(message);
     this.name = "DriveSetupError";
   }
+}
+
+export interface DriveDwdIdentity {
+  serviceAccount: string;
+  subject: string;
+}
+
+/**
+ * Normalize and enforce the production Drive identity boundary before any ADC lookup, JWT signing, or
+ * token exchange. The service account must belong to the production GCP project and the delegated
+ * subject must be an internal Workspace user; subdomains, personal accounts, and extra-@ spoofs fail.
+ */
+export function requireDriveDwdIdentity(options: {
+  serviceAccount?: string;
+  subject?: string;
+}): DriveDwdIdentity {
+  const serviceAccount = options.serviceAccount?.trim().toLowerCase() ?? "";
+  const subject = options.subject?.trim().toLowerCase() ?? "";
+
+  if (!serviceAccount || !subject) {
+    throw new DriveSetupError(
+      "Drive DWD needs SHEETS_IMPERSONATE_SA (a pmi-kc-kb-prod service account) + SHEETS_DWD_SUBJECT (a pmikcmetro.com user).",
+    );
+  }
+  if (
+    !new RegExp(
+      `^[^@\\s]+@${PRODUCTION_SERVICE_ACCOUNT_DOMAIN.replaceAll(".", "\\.")}$`,
+    ).test(serviceAccount)
+  ) {
+    throw new DriveSetupError("Drive DWD requires a pmi-kc-kb-prod service identity.");
+  }
+  if (
+    !new RegExp(`^[^@\\s]+@${INTERNAL_SUBJECT_DOMAIN.replaceAll(".", "\\.")}$`).test(
+      subject,
+    )
+  ) {
+    throw new DriveSetupError("Drive DWD requires a pmikcmetro.com delegated subject.");
+  }
+
+  return { serviceAccount, subject };
 }
 
 /**
@@ -53,29 +95,26 @@ export interface DriveLocation {
 export async function mintDriveDwdToken(
   options: { serviceAccount?: string; subject?: string; scope?: string } = {},
 ): Promise<string> {
-  const saEmail = options.serviceAccount ?? process.env.SHEETS_IMPERSONATE_SA?.trim();
-  const subject = options.subject ?? process.env.SHEETS_DWD_SUBJECT?.trim();
+  const identity = requireDriveDwdIdentity({
+    serviceAccount: options.serviceAccount ?? process.env.SHEETS_IMPERSONATE_SA,
+    subject: options.subject ?? process.env.SHEETS_DWD_SUBJECT,
+  });
   const scope = options.scope ?? DRIVE_FILE_SCOPE;
-  if (!saEmail || !subject) {
-    throw new DriveSetupError(
-      "Drive DWD needs SHEETS_IMPERSONATE_SA (service account) + SHEETS_DWD_SUBJECT (a pmikcmetro.com user).",
-    );
-  }
 
   const sourceClient = await new GoogleAuth({
     scopes: [CLOUD_PLATFORM_SCOPE],
   }).getClient();
   const now = Math.floor(Date.now() / 1000);
   const payload = JSON.stringify({
-    iss: saEmail,
-    sub: subject,
+    iss: identity.serviceAccount,
+    sub: identity.subject,
     scope,
     aud: "https://oauth2.googleapis.com/token",
     iat: now,
     exp: now + 3600,
   });
   const signResponse = await sourceClient.request<{ signedJwt: string }>({
-    url: `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${encodeURIComponent(saEmail)}:signJwt`,
+    url: `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${encodeURIComponent(identity.serviceAccount)}:signJwt`,
     method: "POST",
     data: { payload },
   });

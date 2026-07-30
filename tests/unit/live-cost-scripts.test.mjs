@@ -146,6 +146,8 @@ describe("cheap live setup scripts", () => {
         NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
         NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmikckb-test.firebaseapp.com",
         NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmikckb-test",
+        RENEWAL_COMP_DRIVE_FOLDER_ID: "renewal-comp-folder",
+        RENEWAL_COMP_SHARED_DRIVE_ID: "renewal-comp-shared-drive",
         SPACE_DRIVE_FOLDER_IDS: oneSpaceMap,
         SPACE_VERTEX_DATA_STORE_IDS: oneSpaceMap,
       },
@@ -167,6 +169,12 @@ describe("cheap live setup scripts", () => {
     expect(command.args.join(" ")).toContain("VERTEX_SEARCH_LOCATION=us");
     expect(command.args.join(" ")).toContain("LOCAL_DEMO_AUTH=false");
     expect(command.args.join(" ")).toContain("NODE_ENV=production");
+    expect(command.args.join(" ")).toContain(
+      "RENEWAL_COMP_DRIVE_FOLDER_ID=renewal-comp-folder",
+    );
+    expect(command.args.join(" ")).toContain(
+      "RENEWAL_COMP_SHARED_DRIVE_ID=renewal-comp-shared-drive",
+    );
     // With no RentVine base URL configured, the deploy does not wire the Secret Manager secrets, so
     // the demo-only deploy path is unchanged (the live-connection secrets are opt-in via RentVine config).
     expect(command.args.some((arg) => arg.startsWith("--set-secrets"))).toBe(false);

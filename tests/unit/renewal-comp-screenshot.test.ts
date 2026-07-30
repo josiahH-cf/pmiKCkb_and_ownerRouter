@@ -28,7 +28,11 @@ describe("renewal comp-screenshot + rentcast gates (committed seed, gated OFF)",
     const view = getRenewalCompScreenshotActionView();
     expect(view.executable).toBe(false);
     expect(view.message).toBe(RENEWAL_COMP_SCREENSHOT_CLOSED_MESSAGE);
+    expect(view.message).toBe(
+      "Screenshot storage is not available yet. Continue without a screenshot.",
+    );
     expect(view.actionKey).toBe("google_drive.renewal_comp_screenshot.store");
+    expect(view.targetLabel).toBe("PMI KC in-boundary Drive image folder");
   });
 
   it("the closed response carries the action_not_production_allowed error type", () => {

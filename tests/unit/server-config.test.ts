@@ -98,6 +98,40 @@ describe("server config", () => {
     expect(readServerConfig({}).maintenanceImageFolderId).toBe("");
   });
 
+  it("resolves the renewal screenshot folder from its override, then the dedicated maintenance folder only", () => {
+    expect(
+      readServerConfig({
+        MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: "maintenance-folder",
+        RENEWAL_COMP_DRIVE_FOLDER_ID: "renewal-override",
+      }).renewalCompImageFolderId,
+    ).toBe("renewal-override");
+
+    expect(
+      readServerConfig({
+        MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: "maintenance-folder",
+      }).renewalCompImageFolderId,
+    ).toBe("maintenance-folder");
+
+    expect(
+      readServerConfig({
+        SPACE_DRIVE_FOLDER_IDS: '{"maintenance-work-order-intake":"legacy-folder"}',
+      }).renewalCompImageFolderId,
+    ).toBe("");
+    expect(readServerConfig({}).renewalCompImageFolderId).toBe("");
+  });
+
+  it("uses only an explicit renewal screenshot Shared Drive boundary", () => {
+    expect(
+      readServerConfig({
+        RENEWAL_COMP_SHARED_DRIVE_ID: " shared-drive-id ",
+      }).renewalCompSharedDriveId,
+    ).toBe("shared-drive-id");
+    expect(readServerConfig({}).renewalCompSharedDriveId).toBe("");
+    expect(
+      readServerConfig({ RENEWAL_COMP_SHARED_DRIVE_ID: "   " }).renewalCompSharedDriveId,
+    ).toBe("");
+  });
+
   it("fails the public intake closed by default (no secret) and defaults the daily + signage caps", () => {
     const config = readServerConfig({});
     expect(config.maintenanceIntakeTokenSecret).toBeUndefined();

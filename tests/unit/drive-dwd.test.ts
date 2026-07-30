@@ -4,6 +4,8 @@ import {
   DriveSetupError,
   GoogleDriveClient,
   escapeDriveQueryValue,
+  mintDriveDwdToken,
+  requireDriveDwdIdentity,
 } from "@/lib/google-drive/drive-dwd";
 
 // Keyless DWD Drive client (in-boundary, acts AS the pmikcmetro.com subject). The live token mint is
@@ -125,5 +127,47 @@ describe("mintDriveDwdToken (via the client default) setup guard", () => {
       if (savedSa !== undefined) process.env.SHEETS_IMPERSONATE_SA = savedSa;
       if (savedSubject !== undefined) process.env.SHEETS_DWD_SUBJECT = savedSubject;
     }
+  });
+});
+
+describe("Drive DWD production identity boundary", () => {
+  it("normalizes a production service account and internal subject", () => {
+    expect(
+      requireDriveDwdIdentity({
+        serviceAccount: " Lease-Renewal-Reader@PMI-KC-KB-PROD.IAM.GSERVICEACCOUNT.COM ",
+        subject: " Operator@PMIKCMETRO.COM ",
+      }),
+    ).toEqual({
+      serviceAccount: "lease-renewal-reader@pmi-kc-kb-prod.iam.gserviceaccount.com",
+      subject: "operator@pmikcmetro.com",
+    });
+  });
+
+  it.each([
+    {
+      label: "an external service account",
+      serviceAccount: "drive-writer@outside-project.iam.gserviceaccount.com",
+      subject: "operator@pmikcmetro.com",
+      message: "pmi-kc-kb-prod service identity",
+    },
+    {
+      label: "a personal subject",
+      serviceAccount: "lease-renewal-reader@pmi-kc-kb-prod.iam.gserviceaccount.com",
+      subject: "operator@gmail.com",
+      message: "pmikcmetro.com delegated subject",
+    },
+    {
+      label: "a subject-domain suffix spoof",
+      serviceAccount: "lease-renewal-reader@pmi-kc-kb-prod.iam.gserviceaccount.com",
+      subject: "operator@pmikcmetro.com.attacker.invalid",
+      message: "pmikcmetro.com delegated subject",
+    },
+  ])("rejects $label before ADC or transport", async (identity) => {
+    await expect(
+      mintDriveDwdToken({
+        serviceAccount: identity.serviceAccount,
+        subject: identity.subject,
+      }),
+    ).rejects.toThrow(identity.message);
   });
 });

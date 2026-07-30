@@ -33,7 +33,6 @@ const OwnerDecisionActionSchema = z
         zillowHigh: chargeMoney.optional(),
         pmiNumber: chargeMoney.optional(),
         compsUrl: z.string().trim().url().optional(),
-        compScreenshotRef: z.string().trim().min(1).max(500).optional(),
         compSource: z.string().trim().min(1).max(100).optional(),
         compRetrievedAt: z.string().trim().min(1).max(40).optional(),
       })
@@ -60,24 +59,47 @@ const RenewalProgressBodySchema = z.discriminatedUnion("action", [
  * persists the operator's own forward state in the KB's Firestore; RentVine + the Sheet stay read-only.
  */
 export async function POST(request: Request) {
-  try {
-    const user = await requireCapabilityInSpace("edit", "renewals");
-    const body = await parseJsonBody(request, RenewalProgressBodySchema);
+  return createRenewalProgressPostHandler()(request);
+}
 
-    if (body.action === "owner_decision") {
-      const progress = await recordOwnerDecision(user, body.leaseId, {
-        decision: body.decision,
-        offeredRent: body.offeredRent,
-        ...(body.charges ? { charges: body.charges } : {}),
-        ...(body.infoFormUrl ? { infoFormUrl: body.infoFormUrl } : {}),
-        ...(body.market ? { market: body.market } : {}),
-      });
+export interface RenewalProgressRouteDeps {
+  requireCapabilityInSpace: typeof requireCapabilityInSpace;
+  recordDecision: typeof recordOwnerDecision;
+  markComplete: typeof markRenewalComplete;
+}
+
+const DEFAULT_ROUTE_DEPS: RenewalProgressRouteDeps = {
+  requireCapabilityInSpace,
+  recordDecision: recordOwnerDecision,
+  markComplete: markRenewalComplete,
+};
+
+export function createRenewalProgressPostHandler(
+  overrides: Partial<RenewalProgressRouteDeps> = {},
+) {
+  const deps = { ...DEFAULT_ROUTE_DEPS, ...overrides };
+  return async function handleRenewalProgressPost(request: Request) {
+    try {
+      const user = await deps.requireCapabilityInSpace("edit", "renewals");
+      const body = await parseJsonBody(request, RenewalProgressBodySchema);
+
+      if (body.action === "owner_decision") {
+        // The Firestore transaction derives any screenshot attachment from the exact current receipt.
+        // This route never accepts or resolves a caller-supplied Drive reference.
+        const progress = await deps.recordDecision(user, body.leaseId, {
+          decision: body.decision,
+          offeredRent: body.offeredRent,
+          ...(body.charges ? { charges: body.charges } : {}),
+          ...(body.infoFormUrl ? { infoFormUrl: body.infoFormUrl } : {}),
+          ...(body.market ? { market: body.market } : {}),
+        });
+        return NextResponse.json({ progress });
+      }
+
+      const progress = await deps.markComplete(user, body.leaseId);
       return NextResponse.json({ progress });
+    } catch (error) {
+      return apiErrorResponse(error);
     }
-
-    const progress = await markRenewalComplete(user, body.leaseId);
-    return NextResponse.json({ progress });
-  } catch (error) {
-    return apiErrorResponse(error);
-  }
+  };
 }

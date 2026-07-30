@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button, Field } from "@/components/ui";
@@ -39,6 +39,29 @@ interface CompLookup {
   confidence: "Likely" | "Needs Verification";
 }
 
+interface ScreenshotReceipt {
+  executionId: string;
+  ref: string;
+}
+
+interface ScreenshotPreview {
+  executionId: string;
+  previewHash: string;
+  expiresAt?: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
+interface ScreenshotRollbackPreview {
+  rollbackId: string;
+  previewHash: string;
+  expiresAt: string;
+  providerDriftedSinceReceipt: boolean;
+  targetRef: string;
+  targetLabel: string;
+}
+
 const OWNER_DECISIONS: { value: OwnerDecision; label: string }[] = [
   { value: "increase", label: "Increase rent" },
   { value: "keep_same", label: "Keep the same rent" },
@@ -65,6 +88,21 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+function screenshotMimeType(file: File): string {
+  if (file.type) return file.type;
+  const extension = file.name.toLowerCase().split(".").pop();
+  if (extension === "jpg" || extension === "jpeg") return "image/jpeg";
+  if (extension === "png") return "image/png";
+  if (extension === "webp") return "image/webp";
+  if (extension === "heic" || extension === "heif") return "image/heic";
+  return "application/octet-stream";
+}
+
+function formatFileSize(sizeBytes: number): string {
+  if (sizeBytes < 1_024) return `${sizeBytes} bytes`;
+  return `${(sizeBytes / 1_024).toFixed(1)} KiB`;
+}
+
 /**
  * Record (or update) the owner's rent decision for a live lease. Recording advances the lease to the
  * Tenant-offer step and builds the tenant offer from these numbers. The decision + charges are the
@@ -74,11 +112,14 @@ export function OwnerDecisionForm({
   leaseId,
   current,
   address,
+  compScreenshotExecutable = false,
 }: Readonly<{
   leaseId: string;
   current: RecordedDecision | null;
   /** The in-boundary property address, used only for the reference-only comp lookup (never PII/rent). */
   address?: string;
+  /** Server-owned committed Action Registry projection. Direct client renders fail closed. */
+  compScreenshotExecutable?: boolean;
 }>) {
   const router = useRouter();
   const [decision, setDecision] = useState<OwnerDecision>(
@@ -108,6 +149,15 @@ export function OwnerDecisionForm({
   );
   const [screenshotStatus, setScreenshotStatus] = useState("");
   const [screenshotPending, setScreenshotPending] = useState(false);
+  const [selectedScreenshot, setSelectedScreenshot] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<ScreenshotPreview | null>(
+    null,
+  );
+  const [screenshotExecutionId, setScreenshotExecutionId] = useState("");
+  const screenshotHydratedLease = useRef<string | null>(null);
+  const [rollbackRecoveryPending, setRollbackRecoveryPending] = useState(false);
+  const [rollbackPreview, setRollbackPreview] =
+    useState<ScreenshotRollbackPreview | null>(null);
   const [compLookup, setCompLookup] = useState<CompLookup | null>(null);
   const [lookupPending, setLookupPending] = useState(false);
   const [pending, setPending] = useState(false);
@@ -155,10 +205,199 @@ export function OwnerDecisionForm({
     }
   }
 
-  // Upload a comps screenshot to the in-boundary Drive folder (behind its own gate). Stores only the
-  // returned ref; the binary never comes back. A closed gate or failure leaves a clear note and no ref.
-  async function onScreenshotSelected(file: File | undefined) {
+  useEffect(() => {
+    if (screenshotExecutionId || screenshotHydratedLease.current === leaseId) {
+      return;
+    }
+    screenshotHydratedLease.current = leaseId;
+    const controller = new AbortController();
+    void fetch(
+      `/api/lease-renewal/comp-screenshot?operation=status&leaseId=${encodeURIComponent(leaseId)}`,
+      { signal: controller.signal },
+    )
+      .then(async (response) => {
+        const payload = (await response.json().catch(() => ({}))) as {
+          status?: string;
+          executionId?: string;
+          receipt?: ScreenshotReceipt;
+          reason?: string;
+        };
+        if (
+          response.ok &&
+          payload.status === "delivered" &&
+          payload.executionId &&
+          payload.receipt?.ref
+        ) {
+          setCompScreenshotRef(payload.receipt.ref);
+          setScreenshotExecutionId(payload.executionId);
+          setRollbackRecoveryPending(false);
+        } else if (response.ok && payload.status === "rolled_back") {
+          setCompScreenshotRef("");
+          setScreenshotExecutionId("");
+          setRollbackRecoveryPending(false);
+          setRollbackPreview(null);
+          setScreenshotStatus("Screenshot removal was already verified.");
+        } else if (
+          response.ok &&
+          payload.executionId &&
+          (payload.status === "rollback_running" ||
+            payload.status === "rollback_ambiguous")
+        ) {
+          setCompScreenshotRef("");
+          setScreenshotExecutionId(payload.executionId);
+          setRollbackRecoveryPending(true);
+          setScreenshotStatus(
+            payload.reason ??
+              "Screenshot removal needs recovery before this attachment can be treated as delivered.",
+          );
+        } else if (
+          response.ok &&
+          payload.executionId &&
+          ["claimed", "id_reserved", "upload_started", "ambiguous"].includes(
+            payload.status ?? "",
+          )
+        ) {
+          setScreenshotExecutionId(payload.executionId);
+          setScreenshotStatus(
+            payload.reason ??
+              "An exact screenshot attempt needs recovery. Check it before reselecting the same file.",
+          );
+        } else if (
+          response.ok &&
+          (payload.status === "absent" || payload.status === "failed")
+        ) {
+          setScreenshotStatus(
+            payload.reason ??
+              "The prior screenshot attempt created no verified Drive file. You may prepare it again.",
+          );
+        }
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [leaseId, screenshotExecutionId]);
+
+  function selectScreenshot(file: File | undefined) {
+    setSelectedScreenshot(file ?? null);
+    setScreenshotPreview(null);
+    setScreenshotStatus(
+      file ? "Selected locally. Review the exact file before any Drive upload." : "",
+    );
+  }
+
+  async function prepareScreenshot() {
+    const file = selectedScreenshot;
     if (!file) return;
+    setScreenshotPending(true);
+    setScreenshotStatus("");
+    try {
+      const base64 = await fileToBase64(file);
+      const resuming = screenshotExecutionId !== "" && compScreenshotRef === "";
+      const response = await fetch("/api/lease-renewal/comp-screenshot", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(
+          resuming
+            ? {
+                operation: "resume",
+                leaseId,
+                executionId: screenshotExecutionId,
+                filename: file.name,
+                mimeType: screenshotMimeType(file),
+                base64,
+              }
+            : {
+                operation: "store",
+                confirm: false,
+                leaseId,
+                filename: file.name,
+                mimeType: screenshotMimeType(file),
+                base64,
+              },
+        ),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        status?: string;
+        preview?: {
+          executionId?: string;
+          previewHash?: string;
+          expiresAt?: string;
+        };
+        file?: {
+          filename?: string;
+          mimeType?: string;
+          sizeBytes?: number;
+        };
+        executionId?: string;
+        receipt?: ScreenshotReceipt;
+        reason?: string;
+        error?: string;
+      };
+      if (
+        response.ok &&
+        (payload.status === "preview" || payload.status === "resume") &&
+        payload.preview?.executionId &&
+        payload.preview.previewHash &&
+        (payload.status === "resume" || payload.preview.expiresAt) &&
+        payload.file?.filename &&
+        payload.file.mimeType &&
+        typeof payload.file.sizeBytes === "number"
+      ) {
+        setScreenshotPreview({
+          executionId: payload.preview.executionId,
+          previewHash: payload.preview.previewHash,
+          expiresAt: payload.preview.expiresAt,
+          filename: payload.file.filename,
+          mimeType: payload.file.mimeType,
+          sizeBytes: payload.file.sizeBytes,
+        });
+        setScreenshotStatus(
+          payload.status === "resume"
+            ? "Exact prior attempt recovered. Confirm to retry only its reserved Drive file id."
+            : "Preview ready. Confirm to create exactly one receipted Drive file.",
+        );
+      } else if (
+        response.ok &&
+        payload.status === "existing" &&
+        payload.executionId &&
+        payload.receipt?.ref
+      ) {
+        setCompScreenshotRef(payload.receipt.ref);
+        setScreenshotExecutionId(payload.executionId);
+        setSelectedScreenshot(null);
+        setScreenshotPreview(null);
+        setRollbackRecoveryPending(false);
+        setScreenshotStatus(
+          payload.reason ??
+            "This renewal already has a verified screenshot. Remove it before storing a replacement.",
+        );
+      } else if (
+        response.ok &&
+        payload.executionId &&
+        (payload.status === "in_progress" || payload.status === "ambiguous")
+      ) {
+        setScreenshotExecutionId(payload.executionId);
+        setScreenshotPreview(null);
+        setRollbackRecoveryPending(false);
+        setScreenshotStatus(
+          payload.reason ??
+            "An exact screenshot attempt already owns this slot. Review the reselected file to recover it.",
+        );
+      } else {
+        setScreenshotStatus(
+          payload.error ?? "Could not prepare the screenshot. Continue without one.",
+        );
+      }
+    } catch {
+      setScreenshotStatus("Could not reach the screenshot service.");
+    } finally {
+      setScreenshotPending(false);
+    }
+  }
+
+  async function confirmScreenshot() {
+    const file = selectedScreenshot;
+    const preview = screenshotPreview;
+    if (!file || !preview) return;
     setScreenshotPending(true);
     setScreenshotStatus("");
     try {
@@ -167,25 +406,199 @@ export function OwnerDecisionForm({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          operation: "store",
+          confirm: true,
+          leaseId,
           filename: file.name,
-          mimeType: file.type || "application/octet-stream",
+          mimeType: screenshotMimeType(file),
           base64,
+          executionId: preview.executionId,
+          previewHash: preview.previewHash,
         }),
       });
       const payload = (await response.json().catch(() => ({}))) as {
-        ref?: string;
+        status?: string;
+        executionId?: string;
+        receipt?: ScreenshotReceipt;
         error?: string;
+        reason?: string;
       };
-      if (response.ok && payload.ref) {
-        setCompScreenshotRef(payload.ref);
-        setScreenshotStatus("Screenshot stored.");
+      if (
+        response.ok &&
+        payload.status === "delivered" &&
+        payload.executionId &&
+        payload.receipt?.ref
+      ) {
+        setCompScreenshotRef(payload.receipt.ref);
+        setScreenshotExecutionId(payload.executionId);
+        setRollbackRecoveryPending(false);
+        setScreenshotPreview(null);
+        setSelectedScreenshot(null);
+        setScreenshotStatus("Screenshot stored with a verified Drive receipt.");
       } else {
+        if (payload.executionId) setScreenshotExecutionId(payload.executionId);
         setScreenshotStatus(
-          payload.error ?? "Could not store the screenshot. Continue without one.",
+          payload.error ??
+            payload.reason ??
+            "Drive delivery is not yet verified. Check the exact attempt.",
         );
       }
     } catch {
-      setScreenshotStatus("Could not reach the screenshot service.");
+      setScreenshotStatus(
+        "The response was lost. Check the exact attempt before trying anything new.",
+      );
+      setScreenshotExecutionId(preview.executionId);
+    } finally {
+      setScreenshotPending(false);
+    }
+  }
+
+  async function reconcileScreenshot() {
+    if (!screenshotExecutionId) return;
+    setScreenshotPending(true);
+    setScreenshotStatus("");
+    try {
+      const response = await fetch(
+        `/api/lease-renewal/comp-screenshot?operation=reconcile&executionId=${encodeURIComponent(screenshotExecutionId)}`,
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        status?: string;
+        receipt?: ScreenshotReceipt;
+        error?: string;
+        reason?: string;
+      };
+      if (response.ok && payload.status === "delivered" && payload.receipt?.ref) {
+        setCompScreenshotRef(payload.receipt.ref);
+        setRollbackRecoveryPending(false);
+        setScreenshotPreview(null);
+        setSelectedScreenshot(null);
+        setScreenshotStatus("Drive receipt recovered.");
+      } else {
+        setScreenshotStatus(
+          payload.error ??
+            payload.reason ??
+            "Drive still cannot verify this exact attempt.",
+        );
+      }
+    } catch {
+      setScreenshotStatus("Could not check the Drive receipt.");
+    } finally {
+      setScreenshotPending(false);
+    }
+  }
+
+  async function prepareScreenshotRollback() {
+    if (!screenshotExecutionId) return;
+    setScreenshotPending(true);
+    setScreenshotStatus("");
+    try {
+      const response = await fetch("/api/lease-renewal/comp-screenshot/rollback", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          operation: "trash",
+          confirm: false,
+          leaseId,
+          executionId: screenshotExecutionId,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        status?: string;
+        preview?: {
+          rollbackId?: string;
+          previewHash?: string;
+          expiresAt?: string;
+          providerDriftedSinceReceipt?: boolean;
+        };
+        target?: {
+          ref?: string;
+          targetLabel?: string;
+        };
+        error?: string;
+      };
+      if (
+        response.ok &&
+        payload.status === "preview" &&
+        payload.preview?.rollbackId &&
+        payload.preview.previewHash &&
+        payload.preview.expiresAt &&
+        payload.target?.ref &&
+        payload.target.targetLabel
+      ) {
+        setRollbackPreview({
+          rollbackId: payload.preview.rollbackId,
+          previewHash: payload.preview.previewHash,
+          expiresAt: payload.preview.expiresAt,
+          providerDriftedSinceReceipt:
+            payload.preview.providerDriftedSinceReceipt ?? false,
+          targetRef: payload.target.ref,
+          targetLabel: payload.target.targetLabel,
+        });
+        setScreenshotStatus(
+          payload.preview.providerDriftedSinceReceipt
+            ? "Drive metadata changed since storage. Review and confirm the exact receipted file."
+            : "Removal preview ready. Confirm to move only this receipted file to Drive trash.",
+        );
+      } else {
+        setScreenshotStatus(payload.error ?? "Could not prepare screenshot removal.");
+      }
+    } catch {
+      setScreenshotStatus("Could not reach the screenshot removal service.");
+    } finally {
+      setScreenshotPending(false);
+    }
+  }
+
+  async function confirmScreenshotRollback() {
+    if (!screenshotExecutionId || !rollbackPreview) return;
+    setScreenshotPending(true);
+    setScreenshotStatus("");
+    try {
+      const response = await fetch("/api/lease-renewal/comp-screenshot/rollback", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          operation: "trash",
+          confirm: true,
+          leaseId,
+          executionId: screenshotExecutionId,
+          rollbackId: rollbackPreview.rollbackId,
+          previewHash: rollbackPreview.previewHash,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        status?: string;
+        error?: string;
+        reason?: string;
+      };
+      if (response.ok && payload.status === "rolled_back") {
+        setCompScreenshotRef("");
+        setScreenshotExecutionId("");
+        setRollbackRecoveryPending(false);
+        setRollbackPreview(null);
+        setScreenshotStatus(
+          "Screenshot moved to Drive trash and the trashed state was verified.",
+        );
+      } else {
+        if (response.ok && payload.status === "ambiguous") {
+          setCompScreenshotRef("");
+          setRollbackRecoveryPending(true);
+          setRollbackPreview(null);
+        } else if (response.ok && payload.status === "failed") {
+          setRollbackRecoveryPending(false);
+          setRollbackPreview(null);
+        }
+        setScreenshotStatus(
+          payload.error ?? payload.reason ?? "Drive has not yet verified the removal.",
+        );
+      }
+    } catch {
+      setCompScreenshotRef("");
+      setRollbackRecoveryPending(true);
+      setRollbackPreview(null);
+      setScreenshotStatus(
+        "The removal response was lost. Reuse this exact confirmation to recover it.",
+      );
     } finally {
       setScreenshotPending(false);
     }
@@ -214,9 +627,8 @@ export function OwnerDecisionForm({
     if (zillowLow.trim() !== "") market.zillowLow = Number(zillowLow);
     if (zillowHigh.trim() !== "") market.zillowHigh = Number(zillowHigh);
     if (pmiNumber.trim() !== "") market.pmiNumber = Number(pmiNumber);
-    // S28a: the stored screenshot Drive ref + display-only comp attribution (never a rent figure).
-    if (compScreenshotRef.trim() !== "")
-      market.compScreenshotRef = compScreenshotRef.trim();
+    // The server attaches a screenshot only from its durable successful receipt. Never trust or send
+    // a client-supplied Drive reference as renewal progress.
     if (compLookup?.source) market.compSource = compLookup.source;
     if (compLookup?.retrievedAt) market.compRetrievedAt = compLookup.retrievedAt;
     if (Object.keys(market).length > 0) body.market = market;
@@ -336,23 +748,116 @@ export function OwnerDecisionForm({
           />
         </Field>
       </div>
-      <Field
-        htmlFor={id.screenshot}
-        hint="Stored in the in-boundary Drive folder and attached to the owner draft."
-        label="Comps screenshot (optional)"
-      >
-        <input
-          accept="image/*"
-          disabled={screenshotPending}
-          id={id.screenshot}
-          onChange={(event) =>
-            void onScreenshotSelected(event.target.files?.[0] ?? undefined)
-          }
-          type="file"
-        />
-      </Field>
+      {compScreenshotExecutable &&
+      !compScreenshotRef &&
+      !rollbackRecoveryPending &&
+      !rollbackPreview ? (
+        <div className="ui-stack">
+          <Field
+            htmlFor={id.screenshot}
+            hint="JPEG, PNG, WebP, or HEIC up to 5 MiB. Selection stays local until you review it."
+            label="Comps screenshot (optional)"
+          >
+            <input
+              accept="image/jpeg,image/png,image/webp,image/heic,.heic,.heif"
+              disabled={screenshotPending}
+              id={id.screenshot}
+              onChange={(event) => selectScreenshot(event.target.files?.[0] ?? undefined)}
+              type="file"
+            />
+          </Field>
+          {selectedScreenshot && !screenshotPreview ? (
+            <div className="ui-row">
+              <Button
+                disabled={screenshotPending}
+                onClick={() => void prepareScreenshot()}
+                type="button"
+                variant="secondary"
+              >
+                {screenshotPending ? "Reviewing…" : "Review screenshot"}
+              </Button>
+            </div>
+          ) : null}
+          {screenshotPreview ? (
+            <div className="ui-stack">
+              <p className="muted">
+                Confirm {screenshotPreview.filename} · {screenshotPreview.mimeType} ·{" "}
+                {formatFileSize(screenshotPreview.sizeBytes)} · in-boundary Drive folder.
+              </p>
+              <div className="ui-row">
+                <Button
+                  disabled={screenshotPending}
+                  onClick={() => void confirmScreenshot()}
+                  type="button"
+                >
+                  {screenshotPending ? "Storing…" : "Confirm and store screenshot"}
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       {compScreenshotRef ? (
         <p className="muted">Screenshot stored (ref {compScreenshotRef}).</p>
+      ) : null}
+      {screenshotExecutionId &&
+      !compScreenshotRef &&
+      !rollbackRecoveryPending &&
+      !selectedScreenshot &&
+      !screenshotPreview ? (
+        <div className="ui-row">
+          <Button
+            disabled={screenshotPending}
+            onClick={() => void reconcileScreenshot()}
+            type="button"
+            variant="secondary"
+          >
+            {screenshotPending ? "Checking…" : "Check exact screenshot attempt"}
+          </Button>
+        </div>
+      ) : null}
+      {(compScreenshotRef || rollbackRecoveryPending) &&
+      screenshotExecutionId &&
+      !rollbackPreview ? (
+        <div className="ui-row">
+          <Button
+            disabled={screenshotPending}
+            onClick={() => void prepareScreenshotRollback()}
+            type="button"
+            variant="secondary"
+          >
+            {screenshotPending
+              ? "Reviewing…"
+              : rollbackRecoveryPending
+                ? "Recover screenshot removal"
+                : "Review screenshot removal"}
+          </Button>
+        </div>
+      ) : null}
+      {rollbackPreview ? (
+        <div className="ui-stack">
+          <p className="muted">
+            Confirm removal of {rollbackPreview.targetRef} from{" "}
+            {rollbackPreview.targetLabel}. Only this exact receipted file will move to
+            Drive trash.
+          </p>
+          {rollbackPreview.providerDriftedSinceReceipt ? (
+            <p className="muted">
+              Drive metadata changed after storage. This confirmation binds the current
+              exact file version.
+            </p>
+          ) : null}
+          <div className="ui-row">
+            <Button
+              disabled={screenshotPending}
+              onClick={() => void confirmScreenshotRollback()}
+              type="button"
+              variant="secondary"
+            >
+              {screenshotPending ? "Moving to trash…" : "Confirm move to Drive trash"}
+            </Button>
+          </div>
+        </div>
       ) : null}
       {screenshotStatus ? <p className="muted">{screenshotStatus}</p> : null}
       <div className="ui-row">

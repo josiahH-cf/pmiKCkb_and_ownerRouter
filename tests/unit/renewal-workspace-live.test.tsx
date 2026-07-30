@@ -35,6 +35,7 @@ describe("RenewalWorkspace live mode", () => {
     expect(
       screen.queryByRole("button", { name: "Prepare tenant email" }),
     ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Comps screenshot/i)).not.toBeInTheDocument();
   });
 
   it("keeps the sample email buttons and chip in sample mode", () => {

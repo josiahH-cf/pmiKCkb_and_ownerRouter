@@ -344,6 +344,12 @@ function readRuntimeEnv(env, project, region, searchLocation) {
       "MAINTENANCE_PHOTO_DRIVE_FOLDER_ID",
       "",
     ),
+    // Optional D31 override. Empty is intentional: the runtime then reuses the dedicated maintenance
+    // photo folder, while an explicit value survives this wrapper's replacing --set-env-vars map.
+    RENEWAL_COMP_DRIVE_FOLDER_ID: withDefault("RENEWAL_COMP_DRIVE_FOLDER_ID", ""),
+    // Optional AC-S53-13 boundary. Empty means subject-owned My Drive only; a configured value is the
+    // one exact Shared Drive id the runtime may accept.
+    RENEWAL_COMP_SHARED_DRIVE_ID: withDefault("RENEWAL_COMP_SHARED_DRIVE_ID", ""),
     // Dev↔prod parity (S12): forward the live-connection identifiers so the deployed service reaches
     // RentVine (read) + the renewal sheet (keyless domain-wide delegation) exactly as local does.
     // These are NON-SECRET identifiers; the RentVine key/secret are delivered separately via Secret

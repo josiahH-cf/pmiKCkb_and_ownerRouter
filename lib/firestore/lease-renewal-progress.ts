@@ -8,44 +8,85 @@
 // read-only; recording a decision here never composes, sends, or writes back. The transition rules live
 // in the pure lib/lease-renewal/renewal-progress.ts planners; this layer only reads/writes Firestore.
 
-import { FieldValue, type Firestore } from "firebase-admin/firestore";
+import { FieldValue, type Firestore, type Transaction } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
+import { COMP_SCREENSHOT_EXECUTION_COLLECTIONS } from "@/lib/firestore/lease-renewal-comp-screenshot-executions";
+import {
+  LEASE_RENEWAL_PROGRESS_COLLECTIONS,
+  progressDocId,
+} from "@/lib/firestore/lease-renewal-progress-schema";
 import type {
   LeaseRenewalProgressActivityRecord,
   LeaseRenewalProgressRecord,
 } from "@/lib/firestore/types";
 import {
+  attachableCompScreenshot,
+  compScreenshotHeadDocId,
+  type CompScreenshotAttachment,
+} from "@/lib/lease-renewal/comp-screenshot-attachment";
+import {
+  compScreenshotRecordIdentity,
+  type CompScreenshotExecutionRecord,
+} from "@/lib/lease-renewal/comp-screenshot-contract";
+import {
   planMarkComplete,
   planRecordOwnerDecision,
   planRecordTenantOfferDraft,
   type RenewalOwnerDecision,
+  type RenewalOwnerDecisionWriteInput,
   type RenewalProgress,
   type RenewalProgressPlan,
 } from "@/lib/lease-renewal/renewal-progress";
 
-export const LEASE_RENEWAL_PROGRESS_COLLECTIONS = {
-  progress: "lease_renewal_progress",
-  progressActivity: "lease_renewal_progress_activity",
-} as const;
+export {
+  LEASE_RENEWAL_PROGRESS_COLLECTIONS,
+  progressDocId,
+} from "@/lib/firestore/lease-renewal-progress-schema";
 
 type ProgressActivityAction = LeaseRenewalProgressActivityRecord["action"];
+
+interface TransitionResolution {
+  plan: RenewalProgressPlan;
+  attachment?: CompScreenshotAttachment;
+}
 
 /** Record (or replace) the owner's rent decision for a lease, advancing it to the Tenant-offer step. */
 export async function recordOwnerDecision(
   actor: AuthenticatedUser,
   leaseId: string,
-  decision: RenewalOwnerDecision,
+  decision: RenewalOwnerDecisionWriteInput,
   db: Firestore = getAdminFirestore(),
 ): Promise<RenewalProgress> {
   return applyTransition(
     actor,
     leaseId,
-    (current) => planRecordOwnerDecision(current, decision),
+    async (current, transaction) => {
+      const attachment = await resolveCurrentCompScreenshotAttachment(
+        transaction,
+        db,
+        leaseId,
+      );
+      const safeDecision = withoutCallerScreenshotRef(decision);
+      const market =
+        safeDecision.market || attachment
+          ? {
+              ...(safeDecision.market ?? {}),
+              ...(attachment ? { compScreenshotRef: attachment.ref } : {}),
+            }
+          : undefined;
+      return {
+        plan: planRecordOwnerDecision(current, {
+          ...safeDecision,
+          ...(market ? { market } : {}),
+        }),
+        ...(attachment ? { attachment } : {}),
+      };
+    },
     "owner_decision",
     db,
   );
@@ -61,7 +102,10 @@ export async function recordTenantOfferDraft(
   return applyTransition(
     actor,
     leaseId,
-    (current) => planRecordTenantOfferDraft(current, draftId),
+    (current, _transaction, currentAttachment) => ({
+      plan: planRecordTenantOfferDraft(current, draftId),
+      ...(currentAttachment ? { attachment: currentAttachment } : {}),
+    }),
     "tenant_offer_drafted",
     db,
   );
@@ -76,7 +120,10 @@ export async function markRenewalComplete(
   return applyTransition(
     actor,
     leaseId,
-    (current) => planMarkComplete(current),
+    (current, _transaction, currentAttachment) => ({
+      plan: planMarkComplete(current),
+      ...(currentAttachment ? { attachment: currentAttachment } : {}),
+    }),
     "mark_complete",
     db,
   );
@@ -120,7 +167,11 @@ export async function listAllRenewalProgress(
 async function applyTransition(
   actor: AuthenticatedUser,
   leaseId: string,
-  plan: (current: RenewalProgress | null) => RenewalProgressPlan,
+  resolve: (
+    current: RenewalProgress | null,
+    transaction: Transaction,
+    currentAttachment: CompScreenshotAttachment | null,
+  ) => TransitionResolution | Promise<TransitionResolution>,
   action: ProgressActivityAction,
   db: Firestore,
 ): Promise<RenewalProgress> {
@@ -134,14 +185,20 @@ async function applyTransition(
   await db.runTransaction(async (transaction) => {
     const ref = progressRef(db, docId);
     const snapshot = await transaction.get(ref);
-    const current = snapshot.exists
-      ? toRenewalProgress(readRecord(snapshot.id, snapshot.data()!))
+    const currentRecord = snapshot.exists
+      ? readRecord(snapshot.id, snapshot.data()!)
+      : null;
+    const current = currentRecord ? toRenewalProgress(currentRecord) : null;
+    const currentAttachment = currentRecord
+      ? progressScreenshotAttachment(currentRecord)
       : null;
     const createdAt = snapshot.exists
       ? (snapshot.get("created_at") ?? FieldValue.serverTimestamp())
       : FieldValue.serverTimestamp();
 
-    const next = plan(current);
+    const resolved = await resolve(current, transaction, currentAttachment);
+    const next = resolved.plan;
+    const attachment = resolved.attachment;
 
     // Full set (no merge) so a re-recorded decision never leaves a stale draft id or charges behind.
     transaction.set(
@@ -162,7 +219,10 @@ async function applyTransition(
                     zillow_high: next.ownerDecision.market.zillowHigh,
                     pmi_number: next.ownerDecision.market.pmiNumber,
                     comps_url: next.ownerDecision.market.compsUrl,
-                    comp_screenshot_ref: next.ownerDecision.market.compScreenshotRef,
+                    comp_screenshot_ref: attachment?.ref,
+                    comp_screenshot_execution_id: attachment?.executionId,
+                    comp_screenshot_receipt_id: attachment?.receiptId,
+                    comp_screenshot_result_hash: attachment?.resultHash,
                     comp_source: next.ownerDecision.market.compSource,
                     comp_retrieved_at: next.ownerDecision.market.compRetrievedAt,
                   })
@@ -198,11 +258,6 @@ async function applyTransition(
   return saved;
 }
 
-/** Deterministic, Firestore-safe doc id derived from the RentVine lease id. */
-export function progressDocId(leaseId: string): string {
-  return leaseId.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
-}
-
 function progressRef(db: Firestore, docId: string) {
   return db.collection(LEASE_RENEWAL_PROGRESS_COLLECTIONS.progress).doc(docId);
 }
@@ -211,9 +266,79 @@ function activityRef(db: Firestore, docId: string) {
   return db.collection(LEASE_RENEWAL_PROGRESS_COLLECTIONS.progressActivity).doc(docId);
 }
 
+async function resolveCurrentCompScreenshotAttachment(
+  transaction: Transaction,
+  db: Firestore,
+  leaseId: string,
+): Promise<CompScreenshotAttachment | null> {
+  const { compRecordHash } = compScreenshotRecordIdentity(leaseId);
+  const headRef = db
+    .collection(COMP_SCREENSHOT_EXECUTION_COLLECTIONS.heads)
+    .doc(compScreenshotHeadDocId(compRecordHash));
+  const headSnapshot = await transaction.get(headRef);
+  if (!headSnapshot.exists) return null;
+  const head = headSnapshot.data();
+  if (head?.compRecordHash !== compRecordHash || typeof head.executionId !== "string") {
+    return null;
+  }
+  const executionSnapshot = await transaction.get(
+    db.collection(COMP_SCREENSHOT_EXECUTION_COLLECTIONS.executions).doc(head.executionId),
+  );
+  if (!executionSnapshot.exists) return null;
+  return attachableCompScreenshot(
+    executionSnapshot.data() as CompScreenshotExecutionRecord,
+    compRecordHash,
+  );
+}
+
+function withoutCallerScreenshotRef(
+  decision: RenewalOwnerDecisionWriteInput | RenewalOwnerDecision,
+): RenewalOwnerDecision {
+  if (!decision.market) return decision;
+  const market = {
+    ...(decision.market as NonNullable<RenewalOwnerDecision["market"]>),
+  };
+  delete market.compScreenshotRef;
+  return {
+    ...decision,
+    market,
+  };
+}
+
+function progressScreenshotAttachment(
+  record: LeaseRenewalProgressRecord,
+): CompScreenshotAttachment | null {
+  const market = record.owner_decision?.market;
+  if (
+    !market?.comp_screenshot_ref ||
+    !market.comp_screenshot_execution_id ||
+    !market.comp_screenshot_receipt_id ||
+    !market.comp_screenshot_result_hash
+  ) {
+    return null;
+  }
+  const { compRecordHash } = compScreenshotRecordIdentity(record.lease_id);
+  if (
+    !/^drive:[A-Za-z0-9_-]{10,200}$/.test(market.comp_screenshot_ref) ||
+    !/^comp_store_[a-f0-9]{48}$/.test(market.comp_screenshot_execution_id) ||
+    market.comp_screenshot_receipt_id !== market.comp_screenshot_execution_id ||
+    !/^[a-f0-9]{64}$/.test(market.comp_screenshot_result_hash)
+  ) {
+    return null;
+  }
+  return {
+    compRecordHash,
+    executionId: market.comp_screenshot_execution_id,
+    receiptId: market.comp_screenshot_receipt_id,
+    resultHash: market.comp_screenshot_result_hash,
+    ref: market.comp_screenshot_ref,
+  };
+}
+
 /** Project the persisted (snake_case) record onto the app-shaped RenewalProgress. */
 function toRenewalProgress(record: LeaseRenewalProgressRecord): RenewalProgress {
   const decision = record.owner_decision;
+  const screenshotAttachment = progressScreenshotAttachment(record);
   return {
     leaseId: record.lease_id,
     stageIndex: record.stage_index,
@@ -238,8 +363,8 @@ function toRenewalProgress(record: LeaseRenewalProgressRecord): RenewalProgress 
                   ...(decision.market.comps_url !== undefined
                     ? { compsUrl: decision.market.comps_url }
                     : {}),
-                  ...(decision.market.comp_screenshot_ref !== undefined
-                    ? { compScreenshotRef: decision.market.comp_screenshot_ref }
+                  ...(screenshotAttachment
+                    ? { compScreenshotRef: screenshotAttachment.ref }
                     : {}),
                   ...(decision.market.comp_source !== undefined
                     ? { compSource: decision.market.comp_source }

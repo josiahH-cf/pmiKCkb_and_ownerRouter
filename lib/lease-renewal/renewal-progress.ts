@@ -60,6 +60,11 @@ export interface RenewalOwnerDecision {
   market?: RenewalMarketBasis;
 }
 
+/** Browser/server write input. Screenshot provenance is derived inside the Firestore transaction. */
+export type RenewalOwnerDecisionWriteInput = Omit<RenewalOwnerDecision, "market"> & {
+  market?: Omit<RenewalMarketBasis, "compScreenshotRef">;
+};
+
 /** One lease's forward progress. `stageIndex` is the furthest step the operator has reached. */
 export interface RenewalProgress {
   leaseId: string;

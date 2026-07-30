@@ -18,7 +18,7 @@ vi.mock("@/lib/firestore/lease-renewal-progress", () => ({
   markRenewalComplete: mocks.markRenewalComplete,
 }));
 
-import { POST } from "@/app/api/lease-renewal/renewal-progress/route";
+import { createRenewalProgressPostHandler } from "@/app/api/lease-renewal/renewal-progress/route";
 
 const user = {
   uid: "u1",
@@ -28,7 +28,11 @@ const user = {
 };
 
 function post(body: unknown) {
-  return POST(
+  return createRenewalProgressPostHandler({
+    requireCapabilityInSpace: mocks.requireCapabilityInSpace,
+    recordDecision: mocks.recordOwnerDecision,
+    markComplete: mocks.markRenewalComplete,
+  })(
     new Request("http://localhost/api/lease-renewal/renewal-progress", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -111,6 +115,50 @@ describe("renewal-progress route", () => {
         },
       }),
     );
+  });
+
+  it("leaves screenshot derivation to the atomic Firestore decision store", async () => {
+    mocks.requireCapabilityInSpace.mockResolvedValue(user);
+    mocks.recordOwnerDecision.mockResolvedValue({
+      leaseId: "5001",
+      stageIndex: 2,
+      ownerDecision: { decision: "increase", offeredRent: 1300 },
+      tenantOfferDraftId: null,
+      complete: false,
+    });
+
+    const res = await post({
+      action: "owner_decision",
+      leaseId: "5001",
+      decision: "increase",
+      offeredRent: 1300,
+      market: { pmiNumber: 1550 },
+    });
+
+    expect(res.status).toBe(200);
+    expect(mocks.recordOwnerDecision).toHaveBeenCalledWith(
+      user,
+      "5001",
+      expect.objectContaining({
+        market: {
+          pmiNumber: 1550,
+        },
+      }),
+    );
+  });
+
+  it("rejects a caller-supplied Drive reference before persistence", async () => {
+    mocks.requireCapabilityInSpace.mockResolvedValue(user);
+    const res = await post({
+      action: "owner_decision",
+      leaseId: "5001",
+      decision: "increase",
+      offeredRent: 1300,
+      market: { compScreenshotRef: "drive:forged-file" },
+    });
+
+    expect(res.status).toBe(400);
+    expect(mocks.recordOwnerDecision).not.toHaveBeenCalled();
   });
 
   it("rejects a malformed comps URL with a 400 and never touches the store", async () => {

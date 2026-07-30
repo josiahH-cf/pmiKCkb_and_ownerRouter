@@ -27,6 +27,8 @@ const completeSourceEnv = () => ({
   NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmi-kc-kb-prod.firebaseapp.com",
   NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmi-kc-kb-prod",
+  RENEWAL_COMP_DRIVE_FOLDER_ID: "renewal-comp-folder",
+  RENEWAL_COMP_SHARED_DRIVE_ID: "renewal-comp-shared-drive",
   RENEWAL_SHEET_ID: "renewal-sheet-id",
   RENTVINE_API_BASE_URL: "https://pmikcmetro.rentvine.com/api/manager",
   RENTVINE_API_KEY: "must-not-copy",
@@ -61,6 +63,8 @@ describe("prepare production env", () => {
       KB_APPROVAL_NOTIFICATIONS_ENABLED: "false",
       LOCAL_DEMO_AUTH: "false",
       MODEL_PROVIDER: "gemini",
+      RENEWAL_COMP_DRIVE_FOLDER_ID: "renewal-comp-folder",
+      RENEWAL_COMP_SHARED_DRIVE_ID: "renewal-comp-shared-drive",
     });
     expect(result.output).not.toHaveProperty("FIRESTORE_EMULATOR_HOST");
     expect(result.output).not.toHaveProperty("LOCAL_MODEL_BASE_URL");
@@ -107,6 +111,30 @@ describe("prepare production env", () => {
 
     expect(result.ok).toBe(false);
     expect(result.errors).toContain("RENEWAL_SHEET_ID must be set in the source env.");
+  });
+
+  it("keeps the renewal screenshot override optional", () => {
+    const sourceEnv = completeSourceEnv();
+    delete sourceEnv.RENEWAL_COMP_DRIVE_FOLDER_ID;
+    const result = buildProductionEnv({
+      appBaseUrl: "https://kb.pmikcmetro.example",
+      sourceEnv,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.output).not.toHaveProperty("RENEWAL_COMP_DRIVE_FOLDER_ID");
+  });
+
+  it("keeps the renewal screenshot Shared Drive boundary optional", () => {
+    const sourceEnv = completeSourceEnv();
+    delete sourceEnv.RENEWAL_COMP_SHARED_DRIVE_ID;
+    const result = buildProductionEnv({
+      appBaseUrl: "https://kb.pmikcmetro.example",
+      sourceEnv,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.output).not.toHaveProperty("RENEWAL_COMP_SHARED_DRIVE_ID");
   });
 
   it("parses quoted env values and serializes deterministically", () => {

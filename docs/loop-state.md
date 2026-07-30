@@ -2,10 +2,10 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history belongs in `docs/status.md`.
 
-Last updated: 2026-07-29.
+Last updated: 2026-07-30.
 
 ```yaml
-last_updated: 2026-07-29
+last_updated: 2026-07-30
 active_program: PRODUCTION-PHASE-2026-07-29
 program_suites: S51-S54 (new) + S40-S50 (in flight)
 spec_writing_allowed: true
@@ -18,8 +18,8 @@ implementation_status: IN_PROGRESS
 next_suite: S53
 next_spec: docs/feature-suites/greenlight-activation-and-gate-integrity.md
 session_auth_status: BLOCKED_INTERACTIVE_ADC_CLI_GREEN
-active_slice: S53.3-COMP-SCREENSHOT-ACTION-CONTRACT
-last_completed_slice: S53.2-SHEET-CONTRACT-SEAM
+active_slice: S53.4-SENDER-CONFIG-INTEGRITY
+last_completed_slice: S53.3-COMP-SCREENSHOT-ACTION-CONTRACT
 runtime_action_gates_preflipped: false
 ```
 
@@ -32,8 +32,7 @@ runtime_action_gates_preflipped: false
 - Standing loop authority is `F-LOOP-AUTONOMY-2026-07-29`, bounded by six protected paths.
 - Activation is per named Action Registry key, never a category (`F-GREENLIGHT-NAMED-KEYS`).
 - The flat cloud cost cap is retired; S52 owns the replacement (`F-COST-CEILING-S52`).
-- S40–S50 remain the controlling UI/environment programme after S51–S54 prerequisites; S28–S39 may
-  interleave only outside a higher-priority active slice, except S36/S37.
+- S40–S50 remain controlling after S51–S54; S28–S39 interleave outside higher-priority slices, except S36/S37.
 
 ## Current truth
 
@@ -50,18 +49,19 @@ runtime_action_gates_preflipped: false
   receipt/audit, exact status, atomic absent-key tombstone recovery (a provider control-state
   mutation, not a Sheet effect), and same-value-ABA-safe correction. Activation stops before provider
   construction because D32 is missing; the key remains `Needs Connection`, `Undocumented`, and closed.
+- S53.3's local AC-S53-13 contract is complete: preview has zero Drive construction; exact confirm
+  uploads at most once; receipt/reconcile are bodyless/reload-safe; exact rollback verifies trash
+  and matching-progress detach. Boundary/generation CAS tests pass; the key remains closed/hidden.
 - Production serves `2bfe7d4` on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e`, missing the
-  accumulated local/main defect repairs including the safety-critical rollback fix.
-  D07 authorizes deploying this gap only after S52 establishes verified headroom and the deploy
-  wrapper has an explicit sanitized-environment/emulator-variable refusal. Never edit `.env.local`
-  as the workaround.
-- Firestore backup posture is live and verified (`F-FIRESTORE-BACKUPS`): PITR on with a 7-day
-  window, delete protection on, daily 7d + weekly 14w schedules. The S40 migration is unblocked.
+  accumulated repairs. D07 deploy waits for S52 headroom and the sanitized-environment/emulator
+  refusal. Never edit `.env.local` as the workaround.
+- Firestore backups are verified (`F-FIRESTORE-BACKUPS`): PITR 7d, delete protection, daily 7d +
+  weekly 14w schedules. The S40 migration is unblocked.
 - The budget kill-switch is armed and verified end to end at the observed legacy monthly amount,
   which is enforcement state rather than approved headroom. S52's replacement values are null.
-- Control-surface defects take priority over activation: the comp-screenshot route can upload on its
-  first POST without the full action contract, and S39's internal notice is recorded live but inert
-  because its sender mailbox is empty. Both provider keys remain closed.
+- The remaining S53 control defect is config truth: S39's internal notice is recorded live but inert
+  because its sender mailbox is empty, and several activation values can be provisioned yet dropped
+  by the deploy wrapper. Build those refusal/forwarding checks without inventing values or deploying.
 
 ## Dependency order
 
@@ -72,9 +72,9 @@ runtime_action_gates_preflipped: false
    until D32 supplies one provider ledger with stable-row mutate, exact status, atomic absent-key
    tombstone, immutable effect evidence, and a current-cell generation invalidated by every edit;
    then require auth and the exact operational target. Fixed-A1 throwaway proof is insufficient.
-4. **S53 comp action contract — ACTIVE** — replace upload-on-first-POST with
-   preview/confirm/idempotency/receipt/reconcile/Drive-trash rollback. Keep the key closed.
-5. **S53 sender/config slice** — build sender/forwarding refusal; leave undiscovered values inert.
+4. **S53 comp action contract — COMPLETE LOCALLY / KEY CLOSED** — verified; activation is parked.
+5. **S53 sender/config slice — ACTIVE** — build sender/forwarding refusal; leave undiscovered values
+   inert. Include explicit environment, Space-provisioning, and secret-forwarding truth checks.
 6. **S52 prerequisites** — build baseline capture, single-source values, lockstep enforcement,
    coverage, and refusals with values unset; park protected guardrail/check changes for review.
 7. **S51 app-plane** — close-only combinator first, then store/route/rehearsal/incident/logging/
@@ -135,5 +135,5 @@ runtime_action_gates_preflipped: false
 
 ## Resume
 
-Build and falsify AC-S53-13, keeping its key closed. Re-run auth before live/cloud work; if stale,
-park it. Green lights are named keys. Do not infer D44/D49/D51 or widen D50.
+Build/falsify S53.4 config integrity; invent no mailbox, credential, or IAM grant. Re-run auth before
+live/cloud work; park stale auth. Named-key grants only; never infer D44/D49/D51 or widen D50.

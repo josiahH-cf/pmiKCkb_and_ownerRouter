@@ -103,10 +103,12 @@ const EnvSchema = z.object({
   // KB-source prefix and a photo folder. Falls back to the legacy
   // SPACE_DRIVE_FOLDER_IDS["maintenance-work-order-intake"] for back-compat.
   MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: OptionalStringSchema,
-  // Renewal comp-screenshot storage (S28a). Reuses the maintenance Drive image-store seam with its OWN
-  // folder id so the comp screenshot lands in a distinct in-boundary folder; absent → the store fails
-  // closed (no folder configured), same as the maintenance photo folder.
+  // Optional renewal comp-screenshot folder override (S28a/D31). When absent, reuse the dedicated
+  // maintenance photo folder. The legacy Space source map is not a valid fallback for this write target.
   RENEWAL_COMP_DRIVE_FOLDER_ID: OptionalStringSchema,
+  // Optional explicit Shared Drive boundary for renewal comp screenshots (AC-S53-13). Empty means the
+  // approved folder must be owned by the DWD subject in My Drive; set means its driveId must match exactly.
+  RENEWAL_COMP_SHARED_DRIVE_ID: OptionalStringSchema,
   // Market-comp provider (S28a). "manual" reproduces today's operator-typed behavior with no network
   // call (the default, works with no owner step); "rentcast" selects the licensed rental-listings-search
   // adapter, which the comps route additionally gates on rentcast.rental_listings.search until flipped.
@@ -211,8 +213,15 @@ export function readServerConfig(env: Environment = process.env) {
       parsed.MAINTENANCE_PHOTO_DRIVE_FOLDER_ID ??
       parsed.SPACE_DRIVE_FOLDER_IDS["maintenance-work-order-intake"] ??
       "",
-    // The renewal comp-screenshot Drive folder (S28a). Absent → "" so the reused Drive store fails closed.
-    renewalCompImageFolderId: parsed.RENEWAL_COMP_DRIVE_FOLDER_ID ?? "",
+    // D31: an explicit renewal override wins; otherwise reuse the dedicated maintenance photo folder.
+    // Do not inherit the legacy Space map here. With neither dedicated value, Drive fails closed.
+    renewalCompImageFolderId:
+      parsed.RENEWAL_COMP_DRIVE_FOLDER_ID ??
+      parsed.MAINTENANCE_PHOTO_DRIVE_FOLDER_ID ??
+      "",
+    // No inferred Shared Drive. The action service treats "" as subject-owned My Drive only and a
+    // configured value as the one exact Shared Drive boundary.
+    renewalCompSharedDriveId: parsed.RENEWAL_COMP_SHARED_DRIVE_ID ?? "",
     // Market-comp provider selection (S28a). Default "manual"; "rentcast" is additionally gate-fenced in
     // the comps route (rentcast.rental_listings.search) so a config flip alone cannot make a live call.
     marketCompProvider: parsed.MARKET_COMP_PROVIDER,

@@ -720,6 +720,9 @@ export interface LeaseRenewalProgressRecord {
       pmi_number?: number;
       comps_url?: string;
       comp_screenshot_ref?: string;
+      comp_screenshot_execution_id?: string;
+      comp_screenshot_receipt_id?: string;
+      comp_screenshot_result_hash?: string;
       comp_source?: string;
       comp_retrieved_at?: string;
     };
