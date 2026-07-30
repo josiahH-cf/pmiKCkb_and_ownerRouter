@@ -11,6 +11,29 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S53.1 Sheet write-back gate + environment fence (2026-07-29)
+
+The live Sheet write-back now refuses through two independent server-side fences before parsing the
+request body, resolving live config, rebuilding a run, loading an approval, or touching a Sheets
+reader/writer:
+
+- the server-owned descriptor must be exactly Production + Live; Demo and Demo Live-read-only return
+  a typed 409 environment refusal; and
+- the exact `google_sheets.renewal_checklist.writeback` committed Action Registry key must be
+  executable. It remains `production_allowed:false`, so Production returns the typed
+  `action_not_production_allowed` 409.
+
+The service repeats the same assertion as its first executable boundary, so a direct service caller
+cannot bypass the route. A fake-open registry exists only as the established injected test seam; no
+seed, allowlist, auth boundary, Rules file, or provider gate changed.
+
+Focused evidence: 6 files / 65 tests passed, including zero rebuild, approval-read, Sheets-read, and
+Sheets-write calls on both refusal paths; typecheck, format, and lint passed (16 existing warnings, 0
+errors). The complete widened verifier then passed in 209.4 seconds. The next S53 slice replaces
+`confirm:boolean` with the immutable preview-hash,
+idempotency/receipt/readback/reconcile/correction contract before this key can be considered for
+activation.
+
 ## S54.1 local gate parity + production-governance reconciliation (2026-07-29)
 
 S54.1 is complete locally. `scripts/verify.sh` and `.github/workflows/ci.yml` now both execute
@@ -26,7 +49,9 @@ Evidence:
 - The full widened local gate then passed in 239 seconds: clean install, format, lint (0 errors),
   typecheck, unit tests, Firestore rules, router boundary, falsification, context freshness, spec
   traceability, copy voice, redaction, and production build.
-- Remote CI has not yet been observed; no remote-CI claim is recorded.
+- After the final governance hardening, the same widened local gate passed again in 235.5 seconds.
+  Remote CI run `30510068990` for checkpoint `d1da44a` then passed every stage, including the new
+  Firestore job, falsification, governance checks, budget guard, and production build.
 
 The session-start ADC preflight failed because usable Application Default Credentials are absent.
 The exact owner action remains `npm run auth:session`, followed by the ADC, managed-account, and

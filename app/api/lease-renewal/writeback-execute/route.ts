@@ -4,6 +4,13 @@ import { z } from "zod";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
 import {
+  EnvironmentContextError,
+  requireEnvironmentDescriptor,
+} from "@/lib/environment/descriptor";
+import { ActionNotExecutableError } from "@/lib/integrations/action-gate";
+import {
+  RENEWAL_SHEET_WRITEBACK_ACTION_KEY,
+  assertSheetWritebackExecutionAllowed,
   buildLiveWritebackDeps,
   prepareOrCommitWriteback,
 } from "@/lib/lease-renewal/sheet-writeback-service";
@@ -26,6 +33,14 @@ const WritebackExecuteBodySchema = z
 export async function POST(request: Request) {
   try {
     const user = await requireCapabilityInSpace("manageAdmin", "renewals");
+    const descriptor = requireEnvironmentDescriptor();
+    const executionContext = { descriptor };
+
+    // Refuse before parsing the body, resolving live config, constructing a Sheets writer, or
+    // rebuilding the live run. The service repeats the same assertion so direct callers cannot
+    // bypass this route-level early fence.
+    assertSheetWritebackExecutionAllowed(executionContext);
+
     const body = await parseJsonBody(request, WritebackExecuteBodySchema);
 
     const deps = buildLiveWritebackDeps();
@@ -38,9 +53,34 @@ export async function POST(request: Request) {
       body,
       new Date().toISOString(),
       deps,
+      executionContext,
     );
     return NextResponse.json(outcome);
   } catch (error) {
+    if (error instanceof ActionNotExecutableError) {
+      return NextResponse.json(
+        {
+          action_key: RENEWAL_SHEET_WRITEBACK_ACTION_KEY,
+          error: error.message,
+          error_type: error.code,
+        },
+        { status: error.status },
+      );
+    }
+
+    if (error instanceof EnvironmentContextError) {
+      return NextResponse.json(
+        {
+          action_key: RENEWAL_SHEET_WRITEBACK_ACTION_KEY,
+          data_context: error.descriptor.dataContext,
+          environment_kind: error.descriptor.environmentKind,
+          error: error.message,
+          error_type: "environment_context_not_allowed",
+        },
+        { status: 409 },
+      );
+    }
+
     return apiErrorResponse(error);
   }
 }

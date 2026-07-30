@@ -18,7 +18,7 @@ implementation_status: IN_PROGRESS
 next_suite: S53
 next_spec: docs/feature-suites/greenlight-activation-and-gate-integrity.md
 session_auth_status: BLOCKED_INTERACTIVE_ADC
-last_completed_slice: S54.1
+last_completed_slice: S53.1
 runtime_action_gates_preflipped: false
 ```
 
@@ -38,7 +38,7 @@ runtime_action_gates_preflipped: false
 
 ## Current truth
 
-- Repository baseline: `main` / `a31d4c9` plus the 2026-07-29 governance and S51–S54 spec cycle.
+- Repository baseline: `main` / `d1da44a` plus the locally green S53.1 refusal-path slice.
 - Session-start `npm run preflight:adc` failed because ADC is absent/stale. Exact owner action:
   `npm run auth:session`, then rerun the ADC, managed-account, and suppressed CLI-token checks.
   The current WSL shell also has no callable `gcloud` or Windows `cmd.exe`, so the managed-account and
@@ -46,8 +46,10 @@ runtime_action_gates_preflipped: false
   live eval are parked; local/app-plane work continues.
 - S54.1 is locally complete: `test:firestore` is in the local/CI gate; 17 files / 59 tests passed,
   permissive-Rule falsification failed as intended, and the exact Rules hash was restored. Full
-  evidence is in `docs/status.md`; remote CI has not yet run.
-- Production serves `2bfe7d4` on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e` — **13 commits
+  evidence is in `docs/status.md`; remote CI run `30510068990` passed.
+- S53.1 is locally green: write-back now refuses before live dependency construction unless both the
+  server descriptor and exact committed action gate allow it. The key remains closed.
+- Production serves `2bfe7d4` on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e` — **14 commits
   behind `main`**, missing eleven defect repairs including the safety-critical rollback fix.
   D07 authorizes deploying this gap only after S52 establishes verified headroom and the deploy
   wrapper has an explicit sanitized-environment/emulator-variable refusal. Never edit `.env.local`
@@ -56,17 +58,16 @@ runtime_action_gates_preflipped: false
   window, delete protection on, daily 7d + weekly 14w schedules. The S40 migration is unblocked.
 - The budget kill-switch is armed and verified end to end at the observed legacy monthly amount,
   which is enforcement state rather than approved headroom. S52's replacement values are null.
-- Control-surface defects take priority over activation: the live Sheet write-back bypasses its
-  Action Registry gate and uses boolean-only confirmation; the comp-screenshot route can upload on
-  its first POST without the full action contract; and S39's internal notice is recorded live but
-  inert because its sender mailbox is empty. Both provider keys remain closed.
+- Control-surface defects take priority over activation: Sheet write-back is now fenced but still
+  uses boolean-only confirmation; the comp-screenshot route can upload on its first POST without the
+  full action contract; and S39's internal notice is recorded live but inert because its sender
+  mailbox is empty. Both provider keys remain closed.
 
 ## Dependency order
 
-1. **S54 slice 1 — COMPLETE LOCALLY** — `test:firestore` is wired into `scripts/verify.sh` and CI,
-   with positive and deliberately permissive-rule falsification evidence. Observe remote CI after push.
-2. **S53 slice 1** — route the live Sheet write-back through its gate and add its
-   environment-descriptor fence (prerequisite of any other activation, per D02).
+1. **S54 slice 1 — COMPLETE** — local falsification/full gate and remote CI are green.
+2. **S53 slice 1 — COMPLETE LOCALLY** — live Sheet write-back is behind its exact gate and
+   Production+Live descriptor fence; the key remains closed.
 3. **S53 action-contract hardening** — replace Sheet boolean-only commit with immutable preview-hash
    confirmation, one-attempt idempotency, receipt/readback/reconcile, and guarded correction; replace
    comp screenshot upload-on-first-POST with preview/confirm/idempotency/receipt/reconcile/Drive-trash
@@ -133,7 +134,6 @@ runtime_action_gates_preflipped: false
 
 ## Resume
 
-Start at S53 slice 1, then follow the dependency order above. Re-run auth immediately before any
-live read/cloud step; if still stale, keep that operation parked. The green light is a named-key list
-owned by S53 — never grant, infer, or expand a category. Do not infer the missing D44/D49/D51 receipt
-or widen reconstructed D50.
+Start at S53 action-contract hardening, then follow the dependency order above. Re-run auth before
+any live read/cloud step; if stale, keep that operation parked. Green lights are named-key lists,
+never categories. Do not infer the missing D44/D49/D51 receipt or widen reconstructed D50.

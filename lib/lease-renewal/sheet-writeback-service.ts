@@ -9,12 +9,18 @@
 // Firestore. PII-safe: a thrown read/write error collapses to a category, never a surfaced message.
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import {
+  assertLiveProviderActionAllowed,
+  type EnvironmentDescriptor,
+} from "@/lib/environment/descriptor";
+import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
 import { getWritebackApproval } from "@/lib/firestore/lease-renewal-writeback-approvals";
 import type { LeaseRenewalWritebackApprovalRecord } from "@/lib/firestore/types";
 import {
   GoogleSheetsApiWriter,
   type SheetsValuesWriter,
 } from "@/lib/google-sheets/write-client";
+import { assertActionExecutable } from "@/lib/integrations/action-gate";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
 import { rebuildLiveRenewalRun } from "@/lib/lease-renewal/live-review";
 import type { RenewalRunResult } from "@/lib/lease-renewal/pipeline";
@@ -27,6 +33,9 @@ import {
 
 // Must match the append-only column header the proposal generator names (writeback-proposal.ts).
 const APPEND_ONLY_COLUMN_PREFIX = "KB Proposed";
+
+export const RENEWAL_SHEET_WRITEBACK_ACTION_KEY =
+  "google_sheets.renewal_checklist.writeback";
 
 export type WritebackExecuteOutcome =
   | { status: "disabled" }
@@ -55,6 +64,24 @@ export interface WritebackExecuteDeps {
   spreadsheetId: string;
 }
 
+export interface WritebackExecutionContext {
+  descriptor: EnvironmentDescriptor;
+  /** Test seam only. Production callers omit this and read the committed seed. */
+  registry?: CreateActionRegistryInput[];
+}
+
+/**
+ * A live Sheet write-back needs both independent grants: Production+Live context and the exact
+ * committed Action Registry key. Check context first so Demo can never gain Live power from a
+ * fabricated registry row.
+ */
+export function assertSheetWritebackExecutionAllowed(
+  context: WritebackExecutionContext,
+): void {
+  assertLiveProviderActionAllowed(context.descriptor);
+  assertActionExecutable(RENEWAL_SHEET_WRITEBACK_ACTION_KEY, context.registry);
+}
+
 /** Build the live deps, or a not_configured status when the live sources aren't connected. */
 export function buildLiveWritebackDeps():
   | WritebackExecuteDeps
@@ -79,7 +106,13 @@ export async function prepareOrCommitWriteback(
   input: WritebackExecuteInput,
   readTimestamp: string,
   deps: WritebackExecuteDeps,
+  executionContext: WritebackExecutionContext,
 ): Promise<WritebackExecuteOutcome> {
+  // This is deliberately the first executable boundary. A direct service caller cannot bypass the
+  // route and reach a live rebuild, approval read, Sheets read, or Sheets write while either gate
+  // is closed.
+  assertSheetWritebackExecutionAllowed(executionContext);
+
   const run = await deps.rebuildRun(readTimestamp);
   if (!run) return { status: "read_error" };
 
