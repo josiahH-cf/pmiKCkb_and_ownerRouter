@@ -3,13 +3,17 @@ import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
-import { resolveAskAction } from "@/lib/ask/action-intent";
+import {
+  MAINTENANCE_OWNER_DRAFT_ACTION_KEY,
+  RENEWAL_DRAFT_ACTION_KEY,
+  resolveAskAction,
+} from "@/lib/ask/action-intent";
 import { matchRenewalTarget } from "@/lib/ask/renewal-target";
-import { isActionExecutable } from "@/lib/integrations/action-gate";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
 import { leaseAddressLabel } from "@/lib/integrations/rentvine/lease-mapper";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import { getLiveLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
+import { isProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
 
 const BodySchema = z
   .object({
@@ -59,10 +63,20 @@ export async function POST(request: Request) {
     }
     // The gate check runs SERVER-SIDE (never a client seed import): resolveAskAction returns a route only
     // for an already-open action key, so a closed gate yields route:null and Ask surfaces no live affordance.
+    const mappedActionKey =
+      processId === "lease-renewal"
+        ? RENEWAL_DRAFT_ACTION_KEY
+        : processId === "maintenance-work-order-intake"
+          ? MAINTENANCE_OWNER_DRAFT_ACTION_KEY
+          : null;
+    const mappedActionExecutable = mappedActionKey
+      ? await isProductionRuntimeActionExecutable(mappedActionKey)
+      : false;
     const route = resolveAskAction({
       detected: processId ? { processId } : null,
       target,
-      isExecutable: isActionExecutable,
+      isExecutable: (actionKey) =>
+        actionKey === mappedActionKey && mappedActionExecutable,
     });
     return NextResponse.json({
       status: "ok",

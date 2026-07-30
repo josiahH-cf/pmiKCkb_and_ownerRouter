@@ -18,8 +18,8 @@ implementation_status: IN_PROGRESS
 next_suite: S51
 next_spec: docs/feature-suites/production-operational-readiness.md
 session_auth_status: BLOCKED_INTERACTIVE_ADC_CLI_GREEN
-active_slice: S51-SUSPENSION-STORE-ROUTE-AUDIT
-last_completed_slice: S53.5-VENDOR-LIFECYCLE + S52-I/J + S52-PLANNER-REFUSAL + S51-CLOSE-ONLY-KERNEL
+active_slice: S51-A2-MONITORING-DEFINITIONS
+last_completed_slice: S53.5 + S52-I/J/PLANNER + S51-CLOSE-ONLY-KERNEL/EFFECT-STOP-APP-PLANE
 runtime_action_gates_preflipped: false
 ```
 
@@ -52,8 +52,9 @@ runtime_action_gates_preflipped: false
   notice-send non-targets are reconciled as Disabled without changing `production_allowed`.
 - S53.5 Vendor lifecycle and S52-I/J plus the fail-closed print-only budget planner are locally
   green; every provider key remains closed.
-- S51 ordered step 3 is locally green: the close-only kernel/wrapper fails closed on unreadable or malformed state; store, route, Admin UI, and execution-path wiring remain.
-- Exact clean-install gate: 432/3,628 unit, 20/81 Firestore, 96-page build, and core E2E
+- S51 steps 3 and unprotected 4 are locally green: kernel, store, strict Admin route/UI, value-free
+  audit, gated-effect wiring, refusal/scope sentinels. Protected Rules are parked; monitoring is next.
+- Exact clean-install gate: 438/3,827 unit, 20/81 Firestore, 96-page build, and core E2E
   32 passed / 18 designed skips; runtime audit is zero.
 - Production serves `2bfe7d4` on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e`, missing the
   accumulated repairs. D07 deploy waits for S52 headroom and the sanitized-environment/emulator
@@ -78,8 +79,7 @@ runtime_action_gates_preflipped: false
    receipt/reconcile/setup/disable and concurrency fences are green; no protected flip.
 7. **S52 prerequisites — PARKED** — planner refusal plus I/J are green; source/handler/check are
    protected, and baseline/values/project disposition/operator destination remain external.
-8. **S51 app-plane — ACTIVE** — close-only kernel complete; next build store/route/audit/Admin UI and
-   execution-path wiring, then rehearsal/incident/logging/alerts. Isolate protected rules and cloud.
+8. **S51 app-plane — ACTIVE** — kernel/unprotected stop seam complete; Rules parked; next A2/monitoring, then rehearsal/incident/retention.
 9. **S52/S51 activation** — after the complete-calendar-month baseline, supply the two
    owner-selected values, second-project disposition, and operator destination; apply owner-run
    billing/IAM/monitoring changes and verify live lockstep/delivery. Do not synthesize or infer a
@@ -104,7 +104,7 @@ runtime_action_gates_preflipped: false
 - Chasity's renewal-template artifact (gates S43 template-dependent output only).
 - Exact Demo project/service/database/storage/queue/OAuth/identity values, then owner-run
   provisioning and migration.
-- S51 operator destination; S52 burn evidence, alert/hard-stop values, and second-project disposition.
+- S51 Rules review/operator destination; S52 burn evidence, values, and project disposition.
 - S53 sender value; the D32 Sheet transaction broker (mutate + status + absent-key tombstone +
   same-value-ABA-safe effect generation/protected range) plus column/id/tab confirmation; intake
   secrets/binding; first Vendor identity; and S36 IAM grant.
@@ -136,4 +136,4 @@ runtime_action_gates_preflipped: false
 
 ## Resume
 
-Build S51's suspension store/route/audit/Admin seam and execution-path wiring; isolate protected rules/cloud changes. Re-run auth before live/cloud work; thresholds remain unset and no cost-bearing action is eligible.
+Build S51 ordered step 5: value-free A2 logging plus print-only monitoring definitions and verifier. Keep the protected Rules packet unapplied. Re-run auth before live/cloud work; thresholds remain unset.

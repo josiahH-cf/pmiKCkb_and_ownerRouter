@@ -11,6 +11,42 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S51 gated live-effect stop app-plane COMPLETE locally; Rules parked (2026-07-30)
+
+Ordered step 4's unprotected work is complete. The presence-only Firestore store reads exact and
+global stop state in one transaction and fails closed on malformed, mismatched, unknown, or unreadable
+state. The managed-Admin route and panel enforce a strict body, ticket-shaped incident reference,
+UUID idempotency, byte-exact confirmation, generation-bound clear/repair, and an append-only
+value-free audit that appears in Admin Activity. No seed, allowlist, action key, provider permission,
+cloud resource, or D12-protected path changed.
+
+Every direct execution-path Action Registry read now crosses the close-only wrapper. The reviewed
+provider-module inventory is paired with exact/global/unreadable zero-factory tests at each gated
+effect entry point. The effect-capable diagnostic scripts are also contained: the renewal draft
+smoke keeps Gmail construction behind its final gate even across token-mint races, and the Sheet
+smoke rechecks immediately before every distinct provider mutation. Gmail confirmed-send gates
+before its durable claim and constructs the provider only after the claim, avoiding both a pre-stop
+effect and a stranded `sending` state. Sheet status/readback and other already-consumed ambiguous
+reconciliation remain read-only; any recovery mutation repeats the runtime gate.
+
+D09 is now stated truthfully as a stop for new Registry-gated live effects, not a provider disconnect
+or universal Product-read shutdown. The always-on Rentvine and renewal-Sheet Product reads plus
+Connection Center diagnostics remain outside the Admin selector while their current paths operate
+outside Registry execution. All 13 live-config callers are pinned as Product read-only or operator
+diagnostic. A pre-existing valid or unreadable record for either excluded read key remains
+generation-bound clearable, but the route refuses a new stop for it. Global `"*"` still closes every
+gate-controlled effect.
+
+The independent adversarial re-audit is behaviorally green after four concrete repairs. The
+consolidated focused matrix passes 16 files / 387 tests; the repository-wide suite passes 438 files /
+3,827 tests; typecheck, lint (zero errors, 15 existing warnings), formatting, diff hygiene, and the
+protected-path audit pass. The final canonical clean-install gate also passes 20 files / 81 Firestore
+tests, every governance/redaction gate, and the production build; core E2E passes 8 files / 32 tests
+with 3 files / 18 environment-specific scenarios skipped as designed. The exact proposed Firestore
+Rules hunk, required emulator tests, apply steps, and rollback are isolated—unapplied—in
+`docs/s51-firestore-rules-owner-review-packet-2026-07-30.md`. S51 ordered step 5 is the next
+dependency-independent slice.
+
 ## S51 close-only runtime kernel COMPLETE locally (2026-07-30)
 
 Ordered step 3 of S51 is complete without touching a D12-protected path. The new dependency-free

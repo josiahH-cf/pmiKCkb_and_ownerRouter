@@ -7,12 +7,16 @@ import {
 import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
 import { isApprovedWorkflowReplyTemplate } from "@/lib/gmail-hub/governed-artifacts";
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
-import { isActionExecutable } from "@/lib/integrations/action-gate";
+import {
+  ActionNotExecutableError,
+  assertProductionRuntimeActionExecutable,
+} from "@/lib/operations/runtime-suspension-gate";
+import { GmailHubGateError } from "@/lib/gmail-hub/service";
 
 export interface GmailHubRuntimeDependencies {
   createClient(subject: string): GmailRuntimeClient;
   store: GmailStateStore;
-  isActionExecutable(action: string): boolean;
+  assertRuntimeActionExecutable(action: string): Promise<void>;
   now?(): number;
   createToken?(): string;
   workflowLinkTtlDays?: number;
@@ -35,7 +39,7 @@ export function getGmailHubDependencies(): GmailHubRuntimeDependencies {
     testDependencies ?? {
       createClient: (subject) => new GmailRuntimeClient({ subject }),
       store: new FirestoreGmailStateStore(),
-      isActionExecutable,
+      assertRuntimeActionExecutable: assertGmailHubRuntimeActionExecutable,
       isApprovedWorkflowTemplate: isApprovedWorkflowReplyTemplate,
     }
   );
@@ -44,12 +48,23 @@ export function getGmailHubDependencies(): GmailHubRuntimeDependencies {
 export function createGmailHubService(actor: AuthenticatedUser) {
   const dependencies = getGmailHubDependencies();
   return new GmailHubService(actor, {
-    client: dependencies.createClient(actor.email),
+    createClient: dependencies.createClient,
     store: dependencies.store,
-    isActionExecutable: dependencies.isActionExecutable,
+    assertRuntimeActionExecutable: dependencies.assertRuntimeActionExecutable,
     now: dependencies.now,
     createToken: dependencies.createToken,
     workflowLinkTtlDays: dependencies.workflowLinkTtlDays,
     isApprovedWorkflowTemplate: dependencies.isApprovedWorkflowTemplate,
   });
+}
+
+async function assertGmailHubRuntimeActionExecutable(action: string) {
+  try {
+    await assertProductionRuntimeActionExecutable(action);
+  } catch (error) {
+    if (error instanceof ActionNotExecutableError) {
+      throw new GmailHubGateError(action);
+    }
+    throw error;
+  }
 }

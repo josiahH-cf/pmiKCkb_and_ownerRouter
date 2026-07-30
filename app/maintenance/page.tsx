@@ -59,6 +59,7 @@ export default async function MaintenancePage({ searchParams }: MaintenancePageP
   } catch {
     assignees = [];
   }
+  const photoAction = await getMaintenancePhotoActionView();
 
   return (
     <AppShell user={user}>
@@ -73,10 +74,7 @@ export default async function MaintenancePage({ searchParams }: MaintenancePageP
           provider gate.
         </p>
         {can(user.role, "edit") ? (
-          <MaintenanceCapture
-            reporterUid={user.uid}
-            photoAction={getMaintenancePhotoActionView()}
-          />
+          <MaintenanceCapture reporterUid={user.uid} photoAction={photoAction} />
         ) : null}
         <UnverifiedIntakeReview
           initialIntake={intake}

@@ -7,8 +7,14 @@ import { getMaintenanceTicket } from "@/lib/firestore/maintenance-tickets";
 import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import { resolveOwnerContactFromPropertyId } from "@/lib/lease-renewal/live-owner-recipient";
+import { MAINTENANCE_OWNER_NOTICE_DRAFT_ACTION_KEY } from "@/lib/maintenance/execution/owner-notice-draft-request";
 import { prepareMaintenanceOwnerNoticeDraft } from "@/lib/maintenance/execution/owner-notice-draft-service";
 import { getUnitIndex } from "@/lib/maintenance/unit-index";
+import {
+  ActionNotExecutableError,
+  ActionRuntimeSuspendedError,
+  assertProductionRuntimeActionExecutable,
+} from "@/lib/operations/runtime-suspension-gate";
 
 const OwnerNoticeDraftBodySchema = z
   .object({
@@ -27,6 +33,9 @@ export async function POST(request: Request) {
   try {
     const user = await requireCapabilityInSpace("edit", "maintenance");
     const body = await parseJsonBody(request, OwnerNoticeDraftBodySchema);
+    await assertProductionRuntimeActionExecutable(
+      MAINTENANCE_OWNER_NOTICE_DRAFT_ACTION_KEY,
+    );
 
     const config = buildLiveRentVineConfig();
     if (!config.ok) {
@@ -80,6 +89,19 @@ export async function POST(request: Request) {
 
     return NextResponse.json(outcome);
   } catch (error) {
+    if (
+      error instanceof ActionNotExecutableError ||
+      error instanceof ActionRuntimeSuspendedError
+    ) {
+      return NextResponse.json(
+        {
+          action_key: MAINTENANCE_OWNER_NOTICE_DRAFT_ACTION_KEY,
+          error: error.message,
+          error_type: error.code,
+        },
+        { status: error.status },
+      );
+    }
     return apiErrorResponse(error);
   }
 }

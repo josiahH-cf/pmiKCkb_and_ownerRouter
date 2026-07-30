@@ -14,6 +14,12 @@ import {
   prepareRenewalNoticeDraft,
   type RenewalNoticeDraftInput,
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-service";
+import { RENEWAL_NOTICE_DRAFT_ACTION_KEY } from "@/lib/lease-renewal/execution/renewal-draft-request";
+import {
+  ActionNotExecutableError,
+  ActionRuntimeSuspendedError,
+  assertProductionRuntimeActionExecutable,
+} from "@/lib/operations/runtime-suspension-gate";
 
 // A rent/market figure: finite and strictly positive (a $0 renewal offer is never valid).
 const positiveMoney = z.number().finite().positive();
@@ -74,6 +80,7 @@ export async function POST(request: Request) {
   try {
     const user = await requireCapabilityInSpace("edit", "renewals");
     const body = await parseJsonBody(request, RenewalNoticeDraftBodySchema);
+    await assertProductionRuntimeActionExecutable(RENEWAL_NOTICE_DRAFT_ACTION_KEY);
 
     const config = buildLiveRentVineConfig();
     if (!config.ok) {
@@ -152,6 +159,19 @@ export async function POST(request: Request) {
 
     return NextResponse.json(outcome);
   } catch (error) {
+    if (
+      error instanceof ActionNotExecutableError ||
+      error instanceof ActionRuntimeSuspendedError
+    ) {
+      return NextResponse.json(
+        {
+          action_key: RENEWAL_NOTICE_DRAFT_ACTION_KEY,
+          error: error.message,
+          error_type: error.code,
+        },
+        { status: error.status },
+      );
+    }
     return apiErrorResponse(error);
   }
 }

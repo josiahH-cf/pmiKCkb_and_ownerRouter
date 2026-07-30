@@ -20,9 +20,14 @@
 //     receipt short-circuits (no second send); a failure records delivered:false (retryable), never
 //     silent success.
 
-import { assertActionExecutable } from "@/lib/integrations/action-gate";
 import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
 import { isInternalTransactionalDestination } from "@/lib/notifications/internal-destination";
+import {
+  ActionNotExecutableError,
+  ActionRuntimeSuspendedError,
+  assertProductionRuntimeActionExecutable,
+  runProductionRuntimeGatedAction,
+} from "@/lib/operations/runtime-suspension-gate";
 
 export const INTERNAL_TRANSACTIONAL_ACTION_KEY = "internal.transactional_notice.send";
 
@@ -116,7 +121,10 @@ export async function sendInternalTransactionalNotice(
 ): Promise<InternalTransactionalReceipt> {
   // 1. Production gate. Default registry is the committed seed (closed), so this refuses in production
   //    until the S39.3 flip; tests inject an open registry to exercise the send path.
-  assertActionExecutable(INTERNAL_TRANSACTIONAL_ACTION_KEY, deps.registry);
+  await assertProductionRuntimeActionExecutable(
+    INTERNAL_TRANSACTIONAL_ACTION_KEY,
+    deps.registry,
+  );
 
   const dedupKey = internalTransactionalDedupKey(input.reportId);
 
@@ -148,9 +156,19 @@ export async function sendInternalTransactionalNotice(
   let delivered = false;
   let error: string | undefined;
   try {
-    await deps.sender.send({ to: resolved, subject, body });
+    await runProductionRuntimeGatedAction(
+      INTERNAL_TRANSACTIONAL_ACTION_KEY,
+      () => deps.sender.send({ to: resolved, subject, body }),
+      deps.registry,
+    );
     delivered = true;
   } catch (sendError) {
+    if (
+      sendError instanceof ActionNotExecutableError ||
+      sendError instanceof ActionRuntimeSuspendedError
+    ) {
+      throw sendError;
+    }
     error =
       sendError instanceof Error ? sendError.message : "internal notice send failed";
   }

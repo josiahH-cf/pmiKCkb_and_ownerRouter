@@ -104,7 +104,7 @@ describe("Lease Renewal fake-provider E2E", () => {
       LEASE_EXECUTION_DEFINITION_MAP,
       store,
       executors,
-      { isExecutable: () => true, allowFakeContracts: true },
+      { isRuntimeExecutable: () => true, allowFakeContracts: true },
     );
 
     for (const [index, key] of LEASE_EXECUTION_ACTIONS.entries()) {
@@ -137,7 +137,7 @@ describe("Lease Renewal fake-provider E2E", () => {
       LEASE_EXECUTION_DEFINITION_MAP,
       store,
       executors,
-      { isExecutable: () => true, allowFakeContracts: true },
+      { isRuntimeExecutable: () => true, allowFakeContracts: true },
     );
     const draft = input(LEASE_EXECUTION_ACTIONS[0], 0);
     const draftPrepared = await orchestrator.prepare(draft);

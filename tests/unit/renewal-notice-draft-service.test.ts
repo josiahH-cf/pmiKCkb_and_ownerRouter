@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
+  readRuntimeActionSuspension: vi.fn(async () => ({ status: "clear" })),
+}));
+
 import { DRAFT_BANNER } from "@/lib/constants";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type { RawLease } from "@/lib/integrations/rentvine/client";

@@ -8,6 +8,7 @@ import { CommunicationsRetentionAdminPanel } from "@/components/admin/Communicat
 import { NoticeRulesAdminPanel } from "@/components/admin/NoticeRulesAdminPanel";
 import { PublicationPolicyAdminPanel } from "@/components/admin/PublicationPolicyAdminPanel";
 import { ReindexPanel } from "@/components/admin/ReindexPanel";
+import { RuntimeSuspensionAdminPanel } from "@/components/admin/RuntimeSuspensionAdminPanel";
 import { SupportReportsPanel } from "@/components/admin/SupportReportsPanel";
 import { TransactionalDestinationPanel } from "@/components/admin/TransactionalDestinationPanel";
 import { V1ProductionTestWorkspacePanel } from "@/components/admin/V1ProductionTestWorkspacePanel";
@@ -39,6 +40,11 @@ import {
   listReindexRequests,
 } from "@/lib/firestore/reindex-requests";
 import { listSupportReports } from "@/lib/firestore/support-reports";
+import {
+  type RuntimeSuspensionAdminSnapshot,
+  listRuntimeActionSuspensions,
+  listRuntimeSuspensionActionOptions,
+} from "@/lib/firestore/runtime-action-suspensions";
 import { gatherSupportAttention } from "@/lib/attention/support-lane";
 import type {
   ApprovalQueueNotificationHealth,
@@ -78,6 +84,13 @@ export default async function AdminPage() {
   let noticeRulesNote: string | undefined;
   let activityEntries: AdminActivityEntry[] = [];
   let activityNote: string | undefined;
+  let runtimeSuspensionActions = listRuntimeSuspensionActionOptions();
+  let runtimeSuspensionSnapshot: RuntimeSuspensionAdminSnapshot = {
+    suspensions: [],
+    unreadableActionKeys: [],
+    hasUnknownRecords: false,
+  };
+  let runtimeSuspensionNote: string | undefined;
   let reindexRequests: ReindexRequest[] = [];
 
   // These panels are independent. Resolve them concurrently so an unavailable Firestore session
@@ -156,7 +169,19 @@ export default async function AdminPage() {
       })
       .catch(() => {
         activityNote =
-          "The access-change history is unavailable right now. Try again in a minute; recent role or scope changes may not be listed here yet.";
+          "Admin activity is unavailable right now. Try again in a minute; recent access or Production action-stop changes may not be listed here yet.";
+      }),
+    listRuntimeActionSuspensions(user)
+      .then((snapshot) => {
+        runtimeSuspensionSnapshot = snapshot;
+        runtimeSuspensionActions = listRuntimeSuspensionActionOptions([
+          ...snapshot.suspensions.map((record) => record.action_key),
+          ...snapshot.unreadableActionKeys,
+        ]);
+      })
+      .catch(() => {
+        runtimeSuspensionNote =
+          "Runtime suspension state is unavailable. The list is not treated as empty, and executable actions fail closed while this state cannot be read.";
       }),
     listReindexRequests(user)
       .then((requests) => {
@@ -212,6 +237,11 @@ export default async function AdminPage() {
           <p className="muted">
             Recent usage, approval-queue depth, and notification health.
           </p>
+          <RuntimeSuspensionAdminPanel
+            initialActions={runtimeSuspensionActions}
+            initialSnapshot={runtimeSuspensionSnapshot}
+            unavailableNote={runtimeSuspensionNote}
+          />
           {hasMetrics ? (
             <>
               {observabilityNote ? (

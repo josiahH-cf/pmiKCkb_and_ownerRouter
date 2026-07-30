@@ -73,8 +73,10 @@ this spec, or is labeled an assumption.
     `reasonCode` is an enum, never free text:
     `wrong_client_output | ambiguous_or_duplicate_effect | provider_outage | security_containment |
 planned_maintenance | incident_resolved`. `incidentRef`, when present, is an opaque
-    operator-owned identifier matching `^[A-Z0-9][A-Z0-9._-]{0,63}$`; it cannot carry an address,
-    message, token, path, or customer value. The Admin must type the exact action key into
+    operator-owned ticket identifier, at most 64 characters, matching
+    `^(?:INC|SEV[0-9]{1,2})(?:[._-][0-9]+)+$` (for example `INC-42` or
+    `SEV1.2026-001`); it cannot carry an address, name, message, token, path, or customer value. The
+    Admin must type the exact action key into
     `confirmation`; a mismatch, an unknown reason code, an invalid incident reference, or an unknown
     key is a 400 that writes nothing. That mirrors the exact-confirmation discipline already
     enforced for live effects (`authority.exactConfirmationHash === previewHash`,
@@ -102,12 +104,24 @@ planned_maintenance | incident_resolved`. `incidentRef`, when present, is an opa
     deletion or completeness proof. A repository-derived sentinel enumerates direct action-gate
     imports/calls in execution roots and fails with every unwired path named, so a newly added call
     cannot silently bypass suspension. The maintenance owner-notice draft and the internal transactional send are the two
-    that matter most for containment, because both reach a real provider. A negative-import and
-    call-count sentinel proves no live path reaches a provider constructor without passing through
-    the combinator, and it fails if a new gate read appears anywhere without the suspension term.
+    that matter most for containment, because both reach a real provider. The reviewed-module
+    provider inventory and call-count sentinel prove that each inventoried **gated live-effect**
+    path refuses before its concrete provider factory, and the direct-gate sentinel fails if a new
+    execution-path gate read appears without the suspension term. The separate live-config caller
+    inventory pins all current Rentvine/renewal-Sheet constructor-wrapper callers as either a
+    Product read-only source or a Connection Center operator diagnostic.
   - **What it explicitly is not.** It never writes the seed, never touches either `EXECUTABLE_ALLOWLIST`
     copy (`scripts/seed-action-registry.ts`, `lib/admin/migration-readiness.ts`), never sets
-    `production_allowed:true`, and clearing a suspension only restores the seed's own value. The
+    `production_allowed:true`, and clearing a suspension only restores the seed's own value. It is an
+    emergency stop for new Registry-gated live-effect attempts, not a provider disconnect or a
+    universal Product-read kill switch. The currently always-on read-only
+    `rentvine.lease.read` and `google_sheets.renewal_checklist.read` Product paths stay outside the
+    Admin selector while their seed rows remain closed and those Product reads operate outside
+    Registry execution; global `"*"` therefore stops every gate-controlled effect, not the Renewal
+    Desk/workspace, Ask target lookup, Maintenance unit index, or Connection Center diagnostics.
+    If either read later becomes an activated gate-controlled action, its owning slice must add
+    exact/global/unreadable zero-provider proofs and update this classification before exposing it
+    as a stop target. The
     read-only reconciliation carve-out already present in `lib/external-execution/authority.ts` (a
     Registry kill switch must not strand a consumed, ambiguous attempt) is preserved: a suspension blocks
     new attempts and never blocks reconciling one already consumed.
@@ -280,7 +294,7 @@ planned_maintenance | incident_resolved`. `incidentRef`, when present, is an opa
 - _Assumption:_ 30 days is the log retention value, matching the Cloud Logging `_Default` bucket default
   so the change is an explicit setting rather than a behavior change. Owner-tunable; recorded as a
   `Q-`/`A-` row at build time.
-- _Assumption:_ the suspension state is read once per live-effect attempt rather than cached, because the
+- _Assumption:_ the suspension state is read once per gated live-effect attempt rather than cached, because the
   pilot's request volume is bounded by the same ten-concurrent ceiling recorded above and a cache would
   add exactly the delay the switch exists to remove. Revisit only if A1 shows read latency.
 - _Client-owned:_ creating the notification channel and alert policies, setting log-bucket retention,
@@ -345,13 +359,15 @@ is the whole retention posture; record both in the `docs/facts.md` Supersede Log
   or customer value. _Verify:_
   `npm run test -- tests/unit/runtime-suspension-route.test.ts`; keep
   `tests/unit/route-auth-boundary.test.ts` green.
-- **AC-S51-3** — Containment needs no deploy and reaches every path. With a suspension active, an
-  execution attempt through each wired call site refuses before any provider client is constructed, in
+- **AC-S51-3** — Containment needs no deploy and reaches every gated effect path. With a suspension active, an
+  execution attempt through each wired gate-controlled call site refuses before its inventoried provider client is constructed, in
   the same process, with the same environment descriptor and the same serving-revision inputs as the
-  attempt that succeeded moments earlier; a call-count/negative-import sentinel shows zero provider
-  constructions on the refusal path; and an already-consumed ambiguous attempt can still be reconciled
-  read-only while suspended. _Verify:_ `npm run test -- tests/unit/runtime-suspension.test.ts`; keep the
-  provider-construction sentinels and `tests/unit/gmail-hub-action-gate.test.ts` green.
+  attempt that succeeded moments earlier; a reviewed-module inventory plus call-count sentinel shows
+  zero provider constructions on the refusal path; the separate live-config sentinel pins every
+  intentionally out-of-scope Product read-only and operator-diagnostic caller; and an already-consumed
+  ambiguous attempt can still be reconciled read-only while suspended. _Verify:_
+  `npm run test -- tests/unit/runtime-suspension.test.ts`; keep the provider-construction sentinels and
+  `tests/unit/gmail-hub-action-gate.test.ts` green.
 - **AC-S51-4** — Four policies and one channel exist as committed, executable-free definitions.
   `npm run monitoring:plan` exits 0, prints commands creating exactly one notification channel and
   exactly four alert policies, names each policy's real signal (Cloud Run 5xx `request_count` on the
@@ -451,14 +467,16 @@ sets no provider `production_allowed:true`.
    route, so the close-only property is proven before anything can write it. The implementation is
    deliberately limited to these modules and their unit sentinel; runtime containment remains
    incomplete until ordered step 4 wires the store and every execution path.
-4. _Build:_ add the suspension store, strict enum/opaque-reference schema, `manageAdmin` route with
+4. _Build — UNPROTECTED APP-PLANE COMPLETE locally 2026-07-30; protected rules parked:_ add the suspension store, strict enum/opaque-reference schema, `manageAdmin` route with
    exact-key confirmation, append-only value-free audit, the Admin panel, and the `firestore.rules`
    entries; wire the
    wrapper into every call site from step 2 and add the no-provider-construction sentinel. Keep the
    `firestore.rules` hunk in a separate protected-path commit for owner review while later app-plane
    work continues. Keep `lib/integrations/action-gate.ts` byte-unchanged and make the dynamic
    call-site sentinel name any direct execution-path gate use that has not migrated through the
-   wrapper.
+   wrapper. The unprotected store/route/Admin/audit/wiring/sentinel work is green; the exact unapplied
+   rules hunk, emulator-test requirement, apply steps, and rollback are isolated in
+   `docs/s51-firestore-rules-owner-review-packet-2026-07-30.md`.
 5. _Build:_ emit the value-free A2 line on the `failed`/`ambiguous` transition and on a `delivered:false`
    receipt; add the four committed alert policy definitions, `scripts/setup-monitoring.mjs`, and the
    read-only existence verifier.

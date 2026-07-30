@@ -15,8 +15,9 @@ import {
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   ActionNotExecutableError,
-  assertActionExecutable,
-} from "@/lib/integrations/action-gate";
+  ActionRuntimeSuspendedError,
+  assertProductionRuntimeActionExecutable,
+} from "@/lib/operations/runtime-suspension-gate";
 import { buildLiveVendorLifecycleServiceDeps } from "@/lib/vendor/live-lifecycle-runtime";
 import {
   assertExplicitProductionLive,
@@ -141,7 +142,9 @@ export const LiveVendorLifecycleBodySchema = z.union([
 ]);
 
 export interface LiveVendorLifecycleRouteDeps {
-  readonly assertExecutable: (actionKey: LiveVendorLifecycleActionKey) => void;
+  readonly assertRuntimeExecutable: (
+    actionKey: LiveVendorLifecycleActionKey,
+  ) => Promise<void>;
   readonly authenticate: () => Promise<AuthenticatedUser>;
   readonly buildServiceDeps: () => LiveVendorLifecycleServiceDeps;
   readonly execute: typeof executeLiveVendorLifecycle;
@@ -151,7 +154,7 @@ export interface LiveVendorLifecycleRouteDeps {
 }
 
 const DEFAULT_DEPS: LiveVendorLifecycleRouteDeps = {
-  assertExecutable: (actionKey) => assertActionExecutable(actionKey),
+  assertRuntimeExecutable: assertProductionRuntimeActionExecutable,
   authenticate: () => requireCapabilityInSpace("manageAdmin", "maintenance"),
   buildServiceDeps: buildLiveVendorLifecycleServiceDeps,
   execute: executeLiveVendorLifecycle,
@@ -192,7 +195,7 @@ export function createLiveVendorLifecyclePostHandler(
       // Reconciliation remains reachable after a gate closes so an ambiguous consumed
       // attempt cannot be stranded. Prepare and execute both fail before runtime assembly.
       if (body.operation !== "reconcile") {
-        deps.assertExecutable(body.actionKey);
+        await deps.assertRuntimeExecutable(body.actionKey);
       }
 
       const serviceDeps = deps.buildServiceDeps();
@@ -228,7 +231,10 @@ function liveVendorLifecycleErrorResponse(error: unknown) {
       { status: error.status },
     );
   }
-  if (error instanceof ActionNotExecutableError) {
+  if (
+    error instanceof ActionNotExecutableError ||
+    error instanceof ActionRuntimeSuspendedError
+  ) {
     return NextResponse.json(
       { code: error.code, error: error.message },
       { status: error.status },

@@ -112,7 +112,7 @@ describe("Maintenance fake-provider E2E", () => {
       MAINTENANCE_EXECUTION_DEFINITION_MAP,
       store,
       executors,
-      { isExecutable: () => true, allowFakeContracts: true },
+      { isRuntimeExecutable: () => true, allowFakeContracts: true },
     );
     for (const [index, key] of MAINTENANCE_EXECUTION_ORDER.entries()) {
       const input = action(key, index);
@@ -136,7 +136,7 @@ describe("Maintenance fake-provider E2E", () => {
       MAINTENANCE_EXECUTION_DEFINITION_MAP,
       store,
       new Map([["rentvine.work_order.create", create]]),
-      { isExecutable: () => true, allowFakeContracts: true },
+      { isRuntimeExecutable: () => true, allowFakeContracts: true },
     );
     const input = action("rentvine.work_order.create", 0);
     const prepared = await orchestrator.prepare(input);

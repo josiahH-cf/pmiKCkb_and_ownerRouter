@@ -51,9 +51,9 @@ export const GMAIL_HUB_ACTIONS = {
 } as const;
 
 export interface GmailHubServiceDependencies {
-  client: GmailRuntimeClient;
+  createClient(subject: string): GmailRuntimeClient;
   store: GmailStateStore;
-  isActionExecutable(action: string): boolean;
+  assertRuntimeActionExecutable(action: string): Promise<void>;
   now?(): number;
   createToken?(): string;
   workflowLinkTtlDays?: number;
@@ -69,27 +69,24 @@ export class GmailHubService {
     private readonly actor: AuthenticatedUser,
     private readonly dependencies: GmailHubServiceDependencies,
   ) {
-    if (dependencies.client.subject !== actor.email.trim().toLowerCase()) {
-      throw new GmailHubError(
-        "Gmail client subject did not match the signed-in user.",
-        403,
-      );
-    }
-    this.mailboxEmail = dependencies.client.subject;
+    this.mailboxEmail = actor.email.trim().toLowerCase();
     this.now = dependencies.now ?? Date.now;
     this.createToken =
       dependencies.createToken ?? (() => randomBytes(32).toString("base64url"));
   }
 
   async connection() {
-    if (!this.canExecute(GMAIL_HUB_ACTIONS.read)) {
+    try {
+      await this.assertRuntimeExecutable(GMAIL_HUB_ACTIONS.read);
+    } catch {
       return {
         status: "gated" as const,
         mailboxEmail: this.mailboxEmail,
         reason: "Waiting on Gmail access",
       };
     }
-    const profile = await this.dependencies.client.getProfile();
+    const client = this.createClient();
+    const profile = await client.getProfile();
     const mailboxState = await this.dependencies.store.getMailboxState(this.mailboxEmail);
     const nowMs = this.now();
     const pushDegraded = Boolean(
@@ -116,7 +113,7 @@ export class GmailHubService {
   }
 
   async listCommunications(): Promise<WorkflowCommunicationLink[]> {
-    this.assertExecutable(GMAIL_HUB_ACTIONS.read);
+    await this.assertRuntimeExecutable(GMAIL_HUB_ACTIONS.read);
     const nowMs = this.now();
     return (
       await this.dependencies.store.listCommunicationLinks(this.mailboxEmail)
@@ -138,14 +135,14 @@ export class GmailHubService {
     threadId: string;
     reason: string;
   }) {
-    this.assertExecutable(GMAIL_HUB_ACTIONS.read);
     this.assertContextAction(input.context, GMAIL_HUB_ACTIONS.read);
     if (!input.reason.trim()) {
       throw new GmailHubError("A reason is required to link a Gmail thread.", 409);
     }
+    const client = await this.createRuntimeClient(GMAIL_HUB_ACTIONS.read);
     // The targeted read proves the opaque id belongs to this signed-in mailbox. Its content is returned
     // transiently by Gmail but is neither logged nor persisted by the link operation.
-    const thread = await this.dependencies.client.getThread(input.threadId);
+    const thread = await client.getThread(input.threadId);
     await this.saveCommunicationLink(input.context, {
       threadId: thread.id,
       status: "linked",
@@ -158,14 +155,14 @@ export class GmailHubService {
     threadId: string,
     context: WorkflowCommunicationContext,
   ): Promise<GmailThreadView> {
-    this.assertExecutable(GMAIL_HUB_ACTIONS.read);
     this.assertContextAction(context, GMAIL_HUB_ACTIONS.read);
     await this.assertLinkedThread(threadId, context);
-    return this.dependencies.client.getThread(threadId);
+    const client = await this.createRuntimeClient(GMAIL_HUB_ACTIONS.read);
+    return client.getThread(threadId);
   }
 
   async createDraft(input: WorkflowPrepareGmailMessageInput) {
-    this.assertExecutable(GMAIL_HUB_ACTIONS.draft);
+    await this.assertRuntimeExecutable(GMAIL_HUB_ACTIONS.draft);
     const parsed = WorkflowPrepareGmailMessageSchema.parse(input);
     this.assertContextAction(parsed.context, GMAIL_HUB_ACTIONS.draft);
     if (parsed.message.kind !== "reply" || !parsed.context.templateRef) {
@@ -185,7 +182,8 @@ export class GmailHubService {
     });
     const payload = await this.buildOutgoingPayload(parsed.message, parsed.context);
     assertAuthenticatedSender(payload, this.mailboxEmail);
-    const result = await this.dependencies.client.createDraft(payload);
+    const client = await this.createRuntimeClient(GMAIL_HUB_ACTIONS.draft);
+    const result = await client.createDraft(payload);
     await this.saveCommunicationLink(parsed.context, {
       draftId: result.draftId,
       messageId: result.messageId,
@@ -208,7 +206,6 @@ export class GmailHubService {
         409,
       );
     }
-    this.assertExecutable(GMAIL_HUB_ACTIONS.reply);
     this.assertContextAction(parsed.context, GMAIL_HUB_ACTIONS.reply);
     this.assertApprovedTemplate(parsed.context);
     const workflowContextKey = workflowActionContextKey(parsed.context);
@@ -235,11 +232,11 @@ export class GmailHubService {
       // be confirmed, keep the block — a not_found may be a still-indexing delivery, so we never
       // auto-conclude "not sent" (that would risk a second copy). The block then clears on its own once
       // delivery is confirmed, or an administrator clears a confirmation that genuinely never sent.
-      // This delivery re-check is a mailbox READ, so it is gated on the read action like reconcileSend.
-      this.assertExecutable(GMAIL_HUB_ACTIONS.read);
-      const delivered = await this.dependencies.client.findMessageByRfcMessageId(
-        unresolvedSend.message_id,
-      );
+      // This is the same narrow read-only reconciliation as reconcileSend: the persisted unresolved
+      // record proves a consumed attempt before the provider is constructed. Runtime suspension must
+      // not strand this exact RFC Message-ID readback.
+      const client = this.createReadOnlyReconciliationClient();
+      const delivered = await client.findMessageByRfcMessageId(unresolvedSend.message_id);
       if (delivered) {
         await this.dependencies.store.markConfirmationSent({
           id: unresolvedSend.id,
@@ -256,6 +253,7 @@ export class GmailHubService {
         "A prior send for this workflow communication has an outcome that could not be confirmed yet. It clears once delivery is confirmed; if it never sent, ask an administrator to clear it.",
       );
     }
+    await this.assertRuntimeExecutable(GMAIL_HUB_ACTIONS.reply);
     const payload = await this.buildOutgoingPayload(parsed.message, parsed.context);
     assertAuthenticatedSender(payload, this.mailboxEmail);
     assertRegistryPreview(GMAIL_HUB_ACTIONS.reply, {
@@ -320,7 +318,7 @@ export class GmailHubService {
     if (!payload.threadId) {
       throw new GmailHubError("Workflow Communications sends linked replies only.", 409);
     }
-    this.assertExecutable(GMAIL_HUB_ACTIONS.reply);
+    await this.assertRuntimeExecutable(GMAIL_HUB_ACTIONS.reply);
     this.assertContextAction(input.context, GMAIL_HUB_ACTIONS.reply);
     const linked = await this.assertLinkedThread(payload.threadId, input.context);
     const id = hashConfirmationToken(input.confirmationToken);
@@ -355,8 +353,12 @@ export class GmailHubService {
       );
     }
 
+    // The runtime gate above is intentionally before the durable claim. Construct the provider only
+    // after that claim succeeds, but do not perform a second async suspension read after claiming:
+    // a refusal at that point would strand the confirmation in `sending` despite zero provider work.
+    const client = this.createClient();
     try {
-      const result = await this.dependencies.client.sendMessage(payload);
+      const result = await client.sendMessage(payload);
       await this.dependencies.store.markConfirmationSent({
         id,
         actorUid: this.actor.uid,
@@ -392,7 +394,6 @@ export class GmailHubService {
   }
 
   async reconcileSend(confirmationToken: string, context: WorkflowCommunicationContext) {
-    this.assertExecutable(GMAIL_HUB_ACTIONS.read);
     this.assertContextAction(context, GMAIL_HUB_ACTIONS.reply);
     const id = hashConfirmationToken(confirmationToken);
     const record = await this.dependencies.store.getConfirmation(id);
@@ -419,9 +420,8 @@ export class GmailHubService {
     if (record.state !== "ambiguous" && record.state !== "sending") {
       throw new GmailHubError("Only an unresolved send can be reconciled.", 409);
     }
-    const result = await this.dependencies.client.findMessageByRfcMessageId(
-      record.message_id,
-    );
+    const client = this.createReadOnlyReconciliationClient();
+    const result = await client.findMessageByRfcMessageId(record.message_id);
     if (!result) {
       return {
         status: "not_found" as const,
@@ -439,7 +439,7 @@ export class GmailHubService {
   }
 
   async watchPreview(topicName: string) {
-    this.assertExecutable(GMAIL_HUB_ACTIONS.read);
+    await this.assertRuntimeExecutable(GMAIL_HUB_ACTIONS.read);
     assertGmailWatchTopic(topicName);
     const mailboxState = await this.dependencies.store.getMailboxState(this.mailboxEmail);
     return {
@@ -461,7 +461,6 @@ export class GmailHubService {
     attemptKey: string;
     observedExpirationMs: number | null;
   }) {
-    this.assertExecutable(GMAIL_HUB_ACTIONS.read);
     assertGmailWatchTopic(input.topicName);
     if (!/^[a-f0-9-]{36}$/i.test(input.attemptKey)) {
       throw new GmailHubError("Gmail watch attempt key is invalid.", 409);
@@ -471,6 +470,7 @@ export class GmailHubService {
     );
     const topicHash = hashWatchBoundary(input.topicName);
     const nowMs = this.now();
+    await this.assertRuntimeExecutable(GMAIL_HUB_ACTIONS.read);
     const claim = await this.dependencies.store.claimWatchAttempt({
       mailboxEmail: this.mailboxEmail,
       actorUid: this.actor.uid,
@@ -499,8 +499,9 @@ export class GmailHubService {
     if (claim.status === "completed") {
       return watchReadback("already_completed", claim.state, attemptKeyHash, topicHash);
     }
+    const client = this.createClient();
     try {
-      const watch = await this.dependencies.client.watchMailbox(input.topicName);
+      const watch = await client.watchMailbox(input.topicName);
       const expirationMs = Number(watch.expiration);
       if (!Number.isSafeInteger(expirationMs) || expirationMs <= nowMs) {
         throw new GmailAmbiguousWatchError(
@@ -552,7 +553,6 @@ export class GmailHubService {
     },
   ) {
     const parsed = ApplyGmailLabelSchema.parse(input);
-    this.assertExecutable(GMAIL_HUB_ACTIONS.label);
     this.assertContextAction(parsed.context, GMAIL_HUB_ACTIONS.label);
     const linked = await this.assertLinkedThread(threadId, parsed.context);
     assertRegistryPreview(GMAIL_HUB_ACTIONS.label, {
@@ -562,10 +562,8 @@ export class GmailHubService {
       rule_ref: parsed.ruleRef,
       reason: parsed.reason,
     });
-    const result = await this.dependencies.client.applyThreadLabel(
-      threadId,
-      parsed.label,
-    );
+    const client = await this.createRuntimeClient(GMAIL_HUB_ACTIONS.label);
+    const result = await client.applyThreadLabel(threadId, parsed.label);
     await this.dependencies.store.appendWorkflowActionAudit({
       actorUid: this.actor.uid,
       mailboxEmail: this.mailboxEmail,
@@ -592,9 +590,9 @@ export class GmailHubService {
       );
     }
 
-    this.assertExecutable(GMAIL_HUB_ACTIONS.read);
     await this.assertLinkedThread(input.threadId, context);
-    const thread = await this.dependencies.client.getThread(input.threadId);
+    const client = await this.createRuntimeClient(GMAIL_HUB_ACTIONS.read);
+    const thread = await client.getThread(input.threadId);
     const parent = thread.messages.at(-1);
     if (!parent?.messageId || !parent.subject) {
       throw new GmailHubError(
@@ -618,14 +616,32 @@ export class GmailHubService {
     });
   }
 
-  private canExecute(action: string) {
-    return this.dependencies.isActionExecutable(action);
+  private async assertRuntimeExecutable(action: string) {
+    await this.dependencies.assertRuntimeActionExecutable(action);
   }
 
-  private assertExecutable(action: string) {
-    if (!this.canExecute(action)) {
-      throw new GmailHubGateError(action);
+  private async createRuntimeClient(action: string): Promise<GmailRuntimeClient> {
+    await this.assertRuntimeExecutable(action);
+    return this.createClient();
+  }
+
+  private createClient(): GmailRuntimeClient {
+    const client = this.dependencies.createClient(this.mailboxEmail);
+    if (client.subject !== this.mailboxEmail) {
+      throw new GmailHubError(
+        "Gmail client subject did not match the signed-in user.",
+        403,
+      );
     }
+    return client;
+  }
+
+  /**
+   * Reconciliation reaches this only after the persisted confirmation proves one consumed unresolved
+   * send. It performs the single read-only RFC Message-ID lookup and cannot start a new effect.
+   */
+  private createReadOnlyReconciliationClient(): GmailRuntimeClient {
+    return this.createClient();
   }
 
   private assertContextAction(context: WorkflowCommunicationContext, expected: string) {

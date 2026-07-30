@@ -271,7 +271,7 @@ function routeHarness(
     status: "not_found" as const,
   }));
   const handler = createLiveVendorLifecyclePostHandler({
-    assertExecutable,
+    assertRuntimeExecutable: assertExecutable,
     authenticate,
     buildServiceDeps,
     execute,

@@ -1,5 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 
+// This suite isolates the provider folder/file boundary with an explicit open registry fixture.
+// Replace the production runtime reader too; suspension refusal and zero Drive construction are
+// covered by the dedicated S51 service and route tests.
+vi.mock("@/lib/operations/runtime-suspension-gate", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/lib/operations/runtime-suspension-gate")>();
+  return {
+    ...actual,
+    assertProductionRuntimeActionExecutable: vi.fn(async () => undefined),
+  };
+});
+
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { EnvironmentDescriptor } from "@/lib/environment/descriptor";
 import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";

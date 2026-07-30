@@ -12,12 +12,19 @@ import {
 import { GmailStateError } from "@/lib/gmail-hub/state-store";
 import { GmailRuntimeError } from "@/lib/gmail-runtime/client";
 import { GmailSubjectError } from "@/lib/gmail-runtime/subject";
+import { ActionRuntimeSuspendedError } from "@/lib/operations/runtime-suspension-gate";
 
 export function gmailHubErrorResponse(error: unknown) {
   if (error instanceof z.ZodError) {
     return NextResponse.json(
       { error: "Invalid Gmail workflow context." },
       { status: 400 },
+    );
+  }
+  if (error instanceof ActionRuntimeSuspendedError) {
+    return NextResponse.json(
+      { code: error.code, error: error.message },
+      { status: error.status },
     );
   }
   if (

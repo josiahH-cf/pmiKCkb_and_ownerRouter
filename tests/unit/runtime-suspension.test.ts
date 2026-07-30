@@ -9,6 +9,7 @@ import {
   ActionRuntimeSuspendedError,
   assertRuntimeActionExecutable,
   isRuntimeActionExecutable,
+  runRuntimeGatedAction,
 } from "@/lib/operations/runtime-suspension-gate";
 import {
   RUNTIME_ACTION_SUSPENDED,
@@ -313,6 +314,39 @@ describe("runtime suspension seed-first wrapper", () => {
     await isRuntimeActionExecutable(ACTION_KEY, readSuspension, openRegistry());
     await isRuntimeActionExecutable(ACTION_KEY, readSuspension, openRegistry());
     expect(readSuspension).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ["exact action suspension", RUNTIME_ACTION_SUSPENDED],
+    ["global suspension", RUNTIME_GLOBAL_SUSPENDED],
+    ["unreadable state", RUNTIME_SUSPENSION_UNREADABLE],
+  ])("never invokes a provider factory for %s", async (_label, state) => {
+    const readSuspension = vi.fn(async () => state);
+    const providerFactory = vi.fn(async () => "unexpected");
+
+    await expect(
+      runRuntimeGatedAction(ACTION_KEY, readSuspension, providerFactory, openRegistry()),
+    ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+    expect(providerFactory).not.toHaveBeenCalled();
+  });
+
+  it("invokes the provider factory only after an awaited clear read", async () => {
+    const order: string[] = [];
+    const result = await runRuntimeGatedAction(
+      ACTION_KEY,
+      async () => {
+        order.push("runtime-read");
+        return RUNTIME_SUSPENSION_CLEAR;
+      },
+      async () => {
+        order.push("provider-factory");
+        return "ok";
+      },
+      openRegistry(),
+    );
+
+    expect(result).toBe("ok");
+    expect(order).toEqual(["runtime-read", "provider-factory"]);
   });
 });
 

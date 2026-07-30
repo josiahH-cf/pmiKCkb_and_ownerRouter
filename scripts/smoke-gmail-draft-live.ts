@@ -1,23 +1,45 @@
-// Live verification that the per-user Gmail domain-wide-delegation grant works: mint a keyless DWD token
-// AS the subject (default josiah@pmikcmetro.com) with the gmail.compose scope, create an UNSENT test
-// draft in that mailbox, then delete it. Proves the Admin-console DWD authorization end-to-end WITHOUT
-// flipping the production gate (this is a standalone smoke, not the gated app path). Never sends.
-//
-// Owner-run (org reauth is interactive-only; the agent shell cannot refresh ADC):
-//   npm run smoke:gmail-draft-live                 # dry: prints what it would do
-//   npm run smoke:gmail-draft-live -- --live       # mint + create + delete one UNSENT test draft
-//   npm run smoke:gmail-draft-live -- --live --subject=josiah@pmikcmetro.com --keep
+// Keyless Gmail DWD diagnostic. Live mode creates one self-addressed UNSENT draft and deletes it.
+// The exact owning Registry key is `gmail.draft.create`; because that key is currently seed-closed,
+// `--live` now refuses before ADC/token/client/network work. This diagnostic may not borrow a different
+// workflow's open key. Dry mode remains a pure print-only check.
 
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { DRAFT_BANNER } from "../lib/constants";
-import { GmailRuntimeClient } from "../lib/gmail-runtime/client";
+import {
+  GmailRuntimeClient,
+  type GmailRuntimeClient as GmailRuntimeClientType,
+} from "../lib/gmail-runtime/client";
 import { mintGmailDwdToken } from "../lib/gmail-runtime/dwd-token";
 import { GMAIL_COMPOSE_SCOPE } from "../lib/gmail-runtime/scopes";
+import { assertProductionRuntimeActionExecutable } from "../lib/operations/runtime-suspension-gate";
+
+export const GMAIL_DIAGNOSTIC_DRAFT_ACTION_KEY = "gmail.draft.create" as const;
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
+
+interface SmokeLogger {
+  log(...values: unknown[]): void;
+  error(...values: unknown[]): void;
+}
+
+export interface GmailDraftSmokeDependencies {
+  assertRuntimeExecutable(actionKey: string): Promise<void>;
+  loadEnvLocal(): Record<string, string>;
+  mintGmailToken(input: {
+    subject: string;
+    scope: string;
+    serviceAccount: string;
+  }): Promise<string>;
+  createGmailClient(input: {
+    subject: string;
+    token: string;
+  }): Pick<GmailRuntimeClientType, "createDraft">;
+  fetch: typeof fetch;
+  logger: SmokeLogger;
+}
 
 function loadEnvLocal(): Record<string, string> {
   try {
@@ -25,10 +47,10 @@ function loadEnvLocal(): Record<string, string> {
     for (const line of readFileSync(join(root, ".env.local"), "utf8").split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#")) continue;
-      const sep = trimmed.indexOf("=");
-      if (sep === -1) continue;
-      out[trimmed.slice(0, sep).trim()] = trimmed
-        .slice(sep + 1)
+      const separator = trimmed.indexOf("=");
+      if (separator === -1) continue;
+      out[trimmed.slice(0, separator).trim()] = trimmed
+        .slice(separator + 1)
         .trim()
         .replace(/^"|"$/g, "");
     }
@@ -38,22 +60,32 @@ function loadEnvLocal(): Record<string, string> {
   }
 }
 
-function readArg(name: string): string | undefined {
+const PRODUCTION_DEPENDENCIES: GmailDraftSmokeDependencies = {
+  assertRuntimeExecutable: assertProductionRuntimeActionExecutable,
+  loadEnvLocal,
+  mintGmailToken: mintGmailDwdToken,
+  createGmailClient: ({ subject, token }) =>
+    new GmailRuntimeClient({ subject, getToken: async () => token }),
+  fetch,
+  logger: console,
+};
+
+function readArg(argv: readonly string[], name: string): string | undefined {
   const prefix = `${name}=`;
-  const arg = process.argv.find((entry) => entry.startsWith(prefix));
-  return arg ? arg.slice(prefix.length) : undefined;
+  const argument = argv.find((entry) => entry.startsWith(prefix));
+  return argument ? argument.slice(prefix.length) : undefined;
 }
 
-function hasArg(name: string): boolean {
-  return process.argv.includes(name);
+function hasArg(argv: readonly string[], name: string): boolean {
+  return argv.includes(name);
 }
 
 function adcRemediation(): string {
   return [
-    "The Gmail draft smoke mints a keyless DWD token (the SA signs a JWT AS the subject), so it needs:",
-    "  1) fresh ADC — re-auth once as josiah@pmikcmetro.com (free, no spend): gcloud auth application-default login",
-    "  2) the SA client id authorized for gmail.compose in Admin console -> Domain-wide delegation,",
-    "  3) Token Creator on that SA for your ADC identity.",
+    "The Gmail draft smoke mints a keyless DWD token, so it needs:",
+    "  1) fresh ADC as the managed operator (run `npm run auth:session`),",
+    "  2) the SA client id authorized for gmail.compose in Domain-wide delegation,",
+    "  3) Token Creator on that SA for the managed ADC identity.",
     "Then re-run: npm run smoke:gmail-draft-live -- --live",
   ].join("\n");
 }
@@ -72,146 +104,154 @@ function base64UrlMime(subject: string): string {
     .replace(/=+$/, "");
 }
 
-function projectFromServiceAccount(sa: string | undefined): string | undefined {
-  // lease-renewal-reader@PROJECT.iam.gserviceaccount.com -> PROJECT
-  return sa?.match(/@([^.]+)\.iam\.gserviceaccount\.com$/)?.[1];
+function projectFromServiceAccount(
+  serviceAccount: string | undefined,
+): string | undefined {
+  return serviceAccount?.match(/@([^.]+)\.iam\.gserviceaccount\.com$/)?.[1];
 }
 
-// On failure AFTER a successful mint, do ONE raw drafts.create with the same token so we can print the
-// actual Gmail error body — the product client (GmailRuntimeError) deliberately hides it, but this is a
-// standalone owner diagnostic, not the product path. Names the most common cause (Gmail API not enabled).
 async function diagnoseGmail(
   subject: string,
   token: string,
+  dependencies: GmailDraftSmokeDependencies,
   serviceAccount?: string,
 ): Promise<void> {
   try {
-    const res = await fetch(
+    const response = await dependencies.fetch(
       `https://gmail.googleapis.com/gmail/v1/users/${encodeURIComponent(subject)}/drafts`,
       {
         method: "POST",
-        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
         body: JSON.stringify({ message: { raw: base64UrlMime(subject) } }),
       },
     );
-    const body = await res.text();
-    console.error(`\nGmail API said (raw): HTTP ${res.status}`);
-    console.error(body.slice(0, 1500));
-    if (res.ok) {
-      // It actually worked this time — clean up the diagnostic draft so nothing is left behind.
+    const body = await response.text();
+    dependencies.logger.error(`\nGmail API said (raw): HTTP ${response.status}`);
+    dependencies.logger.error(body.slice(0, 1500));
+    if (response.ok) {
       try {
         const { id } = JSON.parse(body) as { id?: string };
         if (id) {
-          await fetch(
+          await dependencies.fetch(
             `https://gmail.googleapis.com/gmail/v1/users/${encodeURIComponent(subject)}/drafts/${encodeURIComponent(id)}`,
             { method: "DELETE", headers: { authorization: `Bearer ${token}` } },
           );
         }
       } catch {
-        /* best-effort cleanup */
+        // Best-effort compensation for a draft created by this same diagnostic attempt.
       }
     } else if (
       /accessNotConfigured|SERVICE_DISABLED|has not been used|is disabled/i.test(body)
     ) {
       const project = projectFromServiceAccount(serviceAccount) ?? "<the SA's project>";
-      console.error(
-        `\nLikely fix: the Gmail API is not enabled on the service account's project. Run:\n` +
+      dependencies.logger.error(
+        `\nLikely fix: enable the Gmail API on the service account's project:\n` +
           `  gcloud services enable gmail.googleapis.com --project=${project}\n` +
-          `then wait ~1 minute and re-run this smoke.`,
+          "then wait about one minute and re-run this smoke.",
       );
     }
   } catch (error) {
-    console.error(
+    dependencies.logger.error(
       `Gmail diagnostic call also failed: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }
 
-async function main(): Promise<void> {
-  const env = loadEnvLocal();
-  const read = (name: string): string | undefined =>
-    process.env[name]?.trim() || env[name]?.trim() || undefined;
-
-  const subject =
-    readArg("--subject") ?? read("SHEETS_DWD_SUBJECT") ?? "josiah@pmikcmetro.com";
-  const serviceAccount =
-    readArg("--sa") ?? read("GMAIL_DWD_SA") ?? read("SHEETS_IMPERSONATE_SA");
-  const live = hasArg("--live");
-  const keep = hasArg("--keep");
-
+export async function runGmailDraftSmoke(
+  argv: readonly string[] = process.argv.slice(2),
+  env: NodeJS.ProcessEnv = process.env,
+  dependencies: GmailDraftSmokeDependencies = PRODUCTION_DEPENDENCIES,
+): Promise<void> {
+  const live = hasArg(argv, "--live");
   if (!live) {
-    console.log(
-      "Gmail draft smoke (DRY). Would mint a keyless DWD token AS the subject and create + delete one UNSENT test draft.",
+    dependencies.logger.log(
+      "Gmail draft smoke (DRY). No configuration, ADC, token mint, provider, or network call is made.",
     );
-    console.log(`  subject (impersonated mailbox): ${subject}`);
-    console.log(
-      `  service account: ${serviceAccount ?? "(unset -- set GMAIL_DWD_SA or SHEETS_IMPERSONATE_SA, or pass --sa=)"}`,
-    );
-    console.log(`  scope: ${GMAIL_COMPOSE_SCOPE} (no send scope, no send call)`);
-    console.log(
-      "Pass --live to create the draft (free; never sends; deletes the draft unless --keep).",
+    dependencies.logger.log(
+      `Owning action: ${GMAIL_DIAGNOSTIC_DRAFT_ACTION_KEY}. Pass --live only after that exact key is enabled and runtime-clear.`,
     );
     return;
   }
 
+  // This is intentionally before .env.local: every suspended/unreadable attempt is zero-credential
+  // and zero-provider, and a seed-closed action cannot be opened by a diagnostic.
+  await dependencies.assertRuntimeExecutable(GMAIL_DIAGNOSTIC_DRAFT_ACTION_KEY);
+
+  const localEnv = dependencies.loadEnvLocal();
+  const read = (name: string): string | undefined =>
+    env[name]?.trim() || localEnv[name]?.trim() || undefined;
+  const subject =
+    readArg(argv, "--subject") ?? read("SHEETS_DWD_SUBJECT") ?? "josiah@pmikcmetro.com";
+  const serviceAccount =
+    readArg(argv, "--sa") ?? read("GMAIL_DWD_SA") ?? read("SHEETS_IMPERSONATE_SA");
+  const keep = hasArg(argv, "--keep");
+
   if (!serviceAccount) {
-    console.error(
+    throw new Error(
       "No service account. Set GMAIL_DWD_SA (or SHEETS_IMPERSONATE_SA), or pass --sa=<sa-email>.",
     );
-    process.exitCode = 1;
-    return;
   }
 
   let mintedToken: string | undefined;
   try {
-    // One mint, reused for create + delete.
-    mintedToken = await mintGmailDwdToken({
+    // Repeat immediately before the credential/provider boundary.
+    await dependencies.assertRuntimeExecutable(GMAIL_DIAGNOSTIC_DRAFT_ACTION_KEY);
+    mintedToken = await dependencies.mintGmailToken({
       subject,
       scope: GMAIL_COMPOSE_SCOPE,
       serviceAccount,
     });
     const token = mintedToken;
-    const client = new GmailRuntimeClient({ subject, getToken: async () => token });
+    const client = dependencies.createGmailClient({ subject, token });
     const { draftId } = await client.createDraft({
       to: subject,
       subject: "[smoke] Gmail DWD verification (safe to delete)",
       body: `${DRAFT_BANNER}\n\nThis is a Gmail DWD verification draft. It was created UNSENT and is safe to delete.`,
     });
-    console.log(
+    dependencies.logger.log(
       `Gmail draft smoke (LIVE): created UNSENT draft ${draftId} in ${subject}'s mailbox. Nothing was sent.`,
     );
 
     if (keep) {
-      console.log(
+      dependencies.logger.log(
         "--keep set: leaving the draft in place (delete it from Gmail Drafts when done).",
       );
     } else {
-      const del = await fetch(
+      // Compensating cleanup stays available if an operator closes the gate after creation.
+      const response = await dependencies.fetch(
         `https://gmail.googleapis.com/gmail/v1/users/${encodeURIComponent(subject)}/drafts/${encodeURIComponent(draftId)}`,
         { method: "DELETE", headers: { authorization: `Bearer ${token}` } },
       );
-      console.log(
-        del.ok
-          ? `Cleaned up: deleted the test draft (HTTP ${del.status}).`
-          : `Note: could not delete the test draft (HTTP ${del.status}); delete it manually from Gmail Drafts.`,
+      dependencies.logger.log(
+        response.ok
+          ? `Cleaned up: deleted the test draft (HTTP ${response.status}).`
+          : `Note: could not delete the test draft (HTTP ${response.status}); delete it manually from Gmail Drafts.`,
       );
     }
-    console.log(
-      "PASS: the Gmail DWD grant works for gmail.compose. The production flip will succeed once recorded.",
+    dependencies.logger.log(
+      "PASS: the Gmail DWD grant works for gmail.compose. Nothing was sent.",
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(`Gmail draft smoke FAILED: ${message}`);
+    dependencies.logger.error(
+      `Gmail draft smoke FAILED: ${error instanceof Error ? error.message : String(error)}`,
+    );
     if (mintedToken) {
-      // The DWD token minted, so the gmail.compose scope IS authorized in Admin console; the failure is
-      // downstream at the Gmail API. Surface the raw reason (most often: Gmail API not enabled).
-      await diagnoseGmail(subject, mintedToken, serviceAccount);
+      // This raw drafts.create is a second effect attempt, so re-read suspension immediately first.
+      await dependencies.assertRuntimeExecutable(GMAIL_DIAGNOSTIC_DRAFT_ACTION_KEY);
+      await diagnoseGmail(subject, mintedToken, dependencies, serviceAccount);
     } else {
-      console.error("");
-      console.error(adcRemediation());
+      dependencies.logger.error("");
+      dependencies.logger.error(adcRemediation());
     }
-    process.exitCode = 1;
+    throw error;
   }
 }
 
-void main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  void runGmailDraftSmoke().catch(() => {
+    process.exitCode = 1;
+  });
+}

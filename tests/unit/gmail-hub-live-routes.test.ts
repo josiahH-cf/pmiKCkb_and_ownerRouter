@@ -1,11 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { getMaintenanceTicketMock } = vi.hoisted(() => ({
+const { getMaintenanceTicketMock, runtimeSuspension } = vi.hoisted(() => ({
   getMaintenanceTicketMock: vi.fn(),
+  runtimeSuspension: {
+    current: { status: "clear" } as { status: string },
+  },
 }));
 
 vi.mock("@/lib/firestore/maintenance-tickets", () => ({
   getMaintenanceTicket: getMaintenanceTicketMock,
+}));
+vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
+  readRuntimeActionSuspension: vi.fn(async () => runtimeSuspension.current),
 }));
 
 import { POST as linkCommunication } from "@/app/api/gmail-hub/communications/link/route";
@@ -17,10 +23,16 @@ import {
 } from "@/app/api/gmail-hub/watch/route";
 import { setAuthResolverForTest, type AuthenticatedUser } from "@/lib/auth/session";
 import { setGmailHubDependenciesForTest } from "@/lib/gmail-hub/dependencies";
+import { gmailHubErrorResponse } from "@/lib/gmail-hub/http";
+import { setGmailPushOidcVerifierForTest } from "@/lib/gmail-hub/pubsub";
 import { MemoryGmailStateStore } from "@/lib/gmail-hub/state-store";
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
 import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
 import { SIMULATION_RUN_ID } from "@/lib/lease-renewal/simulation";
+import {
+  ActionRuntimeSuspendedError,
+  assertProductionRuntimeActionExecutable,
+} from "@/lib/operations/runtime-suspension-gate";
 
 const actor: AuthenticatedUser = {
   uid: "user-josiah",
@@ -52,25 +64,29 @@ function maintenanceContext(actionKey: string): WorkflowCommunicationContext {
   };
 }
 
-function installDependencies() {
+function installDependencies(
+  assertRuntimeActionExecutable: (action: string) => Promise<void> = async () =>
+    undefined,
+) {
   let clientsCreated = 0;
-  setGmailHubDependenciesForTest({
-    createClient(subject) {
-      clientsCreated += 1;
-      return new GmailRuntimeClient({
-        subject,
-        transport: {
-          async send() {
-            throw new Error("unexpected Gmail transport");
-          },
+  const createClient = vi.fn((subject: string) => {
+    clientsCreated += 1;
+    return new GmailRuntimeClient({
+      subject,
+      transport: {
+        async send() {
+          throw new Error("unexpected Gmail transport");
         },
-        getToken: async () => "unused",
-      });
-    },
-    store: new MemoryGmailStateStore(),
-    isActionExecutable: () => true,
+      },
+      getToken: async () => "unused",
+    });
   });
-  return { clientsCreated: () => clientsCreated };
+  setGmailHubDependenciesForTest({
+    createClient,
+    store: new MemoryGmailStateStore(),
+    assertRuntimeActionExecutable,
+  });
+  return { createClient, clientsCreated: () => clientsCreated };
 }
 
 function threadsRequest(context: WorkflowCommunicationContext) {
@@ -83,6 +99,8 @@ afterEach(() => {
   setAuthResolverForTest(null);
   setGmailHubDependenciesForTest(null);
   getMaintenanceTicketMock.mockReset();
+  setGmailPushOidcVerifierForTest(null);
+  runtimeSuspension.current = { status: "clear" };
   vi.unstubAllEnvs();
 });
 
@@ -95,7 +113,61 @@ function installPushConfig() {
   );
 }
 
+function authenticatedPushRequest() {
+  const data = Buffer.from(
+    JSON.stringify({ emailAddress: actor.email, historyId: "123456" }),
+  ).toString("base64url");
+  return new Request("https://audit.example.test/gmail-push", {
+    method: "POST",
+    headers: {
+      authorization: "Bearer synthetic-oidc",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      message: { data, messageId: "push-message-1" },
+      subscription: "projects/pmi-kc-kb-prod/subscriptions/gmail-replies-production",
+    }),
+  });
+}
+
 describe("Workflow Communications route boundaries (AC-GW-1, AC-GW-3, AC-GW-5)", () => {
+  // S51_DYNAMIC_REFUSAL:gmail-pubsub-client
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "authenticates the push but constructs no Gmail client when runtime state is %s",
+    async (status) => {
+      installPushConfig();
+      setGmailPushOidcVerifierForTest(async () => ({
+        email: "gmail-push@pmi-kc-kb-prod.iam.gserviceaccount.com",
+        email_verified: true,
+      }));
+      runtimeSuspension.current = { status };
+      const tracker = installDependencies(assertProductionRuntimeActionExecutable);
+
+      const response = await (
+        await import("@/app/api/gmail-hub/pubsub/route")
+      ).POST(authenticatedPushRequest());
+
+      expect(response.status).toBe(409);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "action_runtime_suspended",
+      });
+      expect(tracker.createClient).not.toHaveBeenCalled();
+      expect(tracker.clientsCreated()).toBe(0);
+    },
+  );
+
+  it("maps runtime suspension to its distinct Gmail-route 409 contract", async () => {
+    const response = gmailHubErrorResponse(
+      new ActionRuntimeSuspendedError("gmail.mailbox.read"),
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      code: "action_runtime_suspended",
+      error: 'Action "gmail.mailbox.read" is closed by the runtime suspension gate.',
+    });
+  });
+
   it("returns an exact watch preview and rejects confirmation drift before Gmail", async () => {
     installPushConfig();
     const tracker = installDependencies();
@@ -109,7 +181,7 @@ describe("Workflow Communications route boundaries (AC-GW-1, AC-GW-3, AC-GW-5)",
       currentWatchExpirationMs: null,
       risk: expect.stringContaining("Live Gmail watch mutation"),
     });
-    expect(tracker.clientsCreated()).toBe(1);
+    expect(tracker.clientsCreated()).toBe(0);
 
     const drifted = await renewWatch(
       new Request("https://example.test/api/gmail-hub/watch", {
@@ -125,7 +197,7 @@ describe("Workflow Communications route boundaries (AC-GW-1, AC-GW-3, AC-GW-5)",
       }),
     );
     expect(drifted.status).toBe(409);
-    expect(tracker.clientsCreated()).toBe(1);
+    expect(tracker.clientsCreated()).toBe(0);
   });
 
   it("returns 401 before constructing a Gmail client for a valid workflow reference", async () => {

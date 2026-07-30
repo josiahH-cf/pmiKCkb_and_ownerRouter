@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
+  readRuntimeActionSuspension: vi.fn(async () => ({ status: "clear" })),
+}));
+
 import { DRAFT_BANNER } from "@/lib/constants";
 import { type RenewalDraftGmailClient } from "@/lib/lease-renewal/execution/live-gmail-draft-provider";
 import { buildRenewalNoticeDraftPreview } from "@/lib/lease-renewal/execution/renewal-draft-preview";
@@ -151,7 +155,7 @@ describe("buildRenewalNoticeDraftPreview", () => {
     expect(preview.status).toBe("ready");
     if (preview.status !== "ready") return;
 
-    const receipt = await executeRenewalNoticeDraft(client, preview.action);
+    const receipt = await executeRenewalNoticeDraft(() => client, preview.action);
     expect(createDraft).toHaveBeenCalledTimes(1);
     expect(receipt.providerRef).toBe("draft-from-preview-1");
     expect(receipt.outcome).toBe("succeeded");

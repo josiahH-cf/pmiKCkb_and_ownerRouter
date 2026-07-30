@@ -1,4 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const runtimeSuspension = vi.hoisted(() => ({
+  current: { status: "clear" } as { status: string },
+}));
+vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
+  readRuntimeActionSuspension: vi.fn(async () => runtimeSuspension.current),
+}));
 
 import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 import { buildInternalTransactionalHealth } from "@/lib/firestore/internal-transactional-receipts";
@@ -13,6 +20,11 @@ import {
   type InternalTransactionalInput,
   type InternalTransactionalReceipt,
 } from "@/lib/notifications/internal-transactional";
+import {
+  GmailInternalTransactionalSender,
+  type InternalGmailSendClient,
+} from "@/lib/notifications/internal-transactional-sender";
+import { ActionRuntimeSuspendedError } from "@/lib/operations/runtime-suspension-gate";
 
 const NOW = "2026-07-23T12:00:00.000Z";
 const INPUT: InternalTransactionalInput = {
@@ -97,6 +109,35 @@ describe("buildInternalTransactionalNotice (metadata-only — AC-S39-3)", () => 
 });
 
 describe("sendInternalTransactionalNotice", () => {
+  // S51_DYNAMIC_REFUSAL:internal-transactional-sender-client
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not construct the concrete Gmail sender client when runtime state is %s",
+    async (status) => {
+      runtimeSuspension.current = { status };
+      const createClient = vi.fn(
+        () =>
+          ({
+            subject: "ops@pmikcmetro.com",
+            sendMessage: vi.fn(),
+          }) satisfies InternalGmailSendClient,
+      );
+      const sender = new GmailInternalTransactionalSender(
+        "ops@pmikcmetro.com",
+        createClient,
+      );
+      const { deps, sent } = makeDeps({ sender });
+      try {
+        await expect(sendInternalTransactionalNotice(deps, INPUT)).rejects.toBeInstanceOf(
+          ActionRuntimeSuspendedError,
+        );
+        expect(createClient).not.toHaveBeenCalled();
+        expect(sent).toHaveLength(0);
+      } finally {
+        runtimeSuspension.current = { status: "clear" };
+      }
+    },
+  );
+
   it("refuses when the gate is CLOSED (injected closed registry) — no send (AC-S39-6)", async () => {
     const closedRegistry = ACTION_REGISTRY_SEED.map((entry) =>
       entry.key === INTERNAL_TRANSACTIONAL_ACTION_KEY

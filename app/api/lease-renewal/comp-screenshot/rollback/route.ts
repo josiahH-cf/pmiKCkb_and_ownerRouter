@@ -7,6 +7,7 @@ import {
   requireCapabilityInSpace,
   type AuthenticatedUser,
 } from "@/lib/auth/session";
+import { renewalCompScreenshotClosedResponse } from "@/lib/lease-renewal/comp-screenshot-action";
 import { buildLiveCompScreenshotRuntime } from "@/lib/lease-renewal/comp-screenshot-runtime";
 import {
   assertCompScreenshotExecutionAllowed,
@@ -17,6 +18,11 @@ import {
   type CompScreenshotExecutionContext,
   type CompScreenshotServiceDeps,
 } from "@/lib/lease-renewal/comp-screenshot-service";
+import {
+  ActionNotExecutableError,
+  ActionRuntimeSuspendedError,
+  assertProductionRuntimeActionExecutable,
+} from "@/lib/operations/runtime-suspension-gate";
 
 const RollbackBodySchema = z
   .object({
@@ -51,6 +57,7 @@ const RollbackBodySchema = z
 
 export interface RenewalCompScreenshotRollbackRouteDeps {
   authenticate: () => Promise<AuthenticatedUser>;
+  assertRuntimeExecutable: () => Promise<void>;
   buildRuntime: () => {
     deps: CompScreenshotServiceDeps;
     context: CompScreenshotExecutionContext;
@@ -59,6 +66,8 @@ export interface RenewalCompScreenshotRollbackRouteDeps {
 
 const DEFAULT_DEPS: RenewalCompScreenshotRollbackRouteDeps = {
   authenticate: () => requireCapabilityInSpace("manageAdmin", "renewals"),
+  assertRuntimeExecutable: () =>
+    assertProductionRuntimeActionExecutable("google_drive.renewal_comp_screenshot.store"),
   buildRuntime: buildLiveCompScreenshotRuntime,
 };
 
@@ -75,10 +84,12 @@ export function createRenewalCompScreenshotRollbackHandler(
     }
 
     try {
-      // Rollback remains reachable if the mutating action key later closes. It still requires the exact
-      // Production+Live descriptor, managed provider setup, Admin auth, receipt, and confirmation hash.
+      // Rollback moves a provider object to trash, so it requires a fresh runtime-clear decision
+      // before config/provider construction. Read-only status/reconcile remains the recovery path
+      // available during containment.
+      await routeDeps.assertRuntimeExecutable();
       const runtime = routeDeps.buildRuntime();
-      assertCompScreenshotExecutionAllowed(runtime.context, "recovery");
+      await assertCompScreenshotExecutionAllowed(runtime.context, "recovery");
       assertCompScreenshotRecoverySetup(runtime.deps);
       const body = await parseJsonBody(request, RollbackBodySchema);
       const outcome = body.confirm
@@ -102,6 +113,20 @@ export function createRenewalCompScreenshotRollbackHandler(
           );
       return NextResponse.json(outcome);
     } catch (error) {
+      if (
+        error instanceof ActionNotExecutableError ||
+        error instanceof ActionRuntimeSuspendedError
+      ) {
+        return NextResponse.json(
+          {
+            ...renewalCompScreenshotClosedResponse(),
+            ...(error instanceof ActionRuntimeSuspendedError
+              ? { error: error.message, error_type: error.code }
+              : {}),
+          },
+          { status: error.status },
+        );
+      }
       const contract = compScreenshotErrorResponse(error);
       if (contract) {
         return NextResponse.json(contract.body, { status: contract.status });

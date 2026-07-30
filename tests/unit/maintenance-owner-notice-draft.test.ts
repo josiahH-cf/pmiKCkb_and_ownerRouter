@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
+const runtimeSuspension = vi.hoisted(() => ({
+  current: { status: "clear" } as { status: string },
+}));
+vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
+  readRuntimeActionSuspension: vi.fn(async () => runtimeSuspension.current),
+}));
+
 import { DRAFT_BANNER } from "@/lib/constants";
 import type { RenewalDraftGmailClient } from "@/lib/lease-renewal/execution/live-gmail-draft-provider";
 import {
@@ -15,6 +22,7 @@ import {
   type MaintenanceOwnerNoticeDraftDeps,
 } from "@/lib/maintenance/execution/owner-notice-draft-service";
 import type { MaintenanceTicketRecord } from "@/lib/maintenance/ticket-model";
+import { ActionRuntimeSuspendedError } from "@/lib/operations/runtime-suspension-gate";
 
 // ---------------------------------------------------------------------------------------------------
 // Fixtures
@@ -224,6 +232,32 @@ describe("buildMaintenanceOwnerNoticeDraftAction", () => {
 describe("executeMaintenanceOwnerNoticeDraft (data-safety guard)", () => {
   const gmail = fakeGmailClient();
 
+  // S51_DYNAMIC_REFUSAL:maintenance-draft-request-client
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not construct the Gmail draft client when runtime state is %s",
+    async (status) => {
+      runtimeSuspension.current = { status };
+      const action = buildMaintenanceOwnerNoticeDraftAction({
+        ticketRef: "ticket-1",
+        unitTag: "unit:456",
+        recipient: { to: OWNER.email, sourceRef: OWNER.sourceRef },
+        mailbox: MAILBOX,
+        subject: "Maintenance request",
+        body: "Please review this maintenance request.",
+      });
+      const createClient = vi.fn(() => gmail.client);
+      try {
+        await expect(
+          executeMaintenanceOwnerNoticeDraft(createClient, action),
+        ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+        expect(createClient).not.toHaveBeenCalled();
+        expect(gmail.createDraft).not.toHaveBeenCalled();
+      } finally {
+        runtimeSuspension.current = { status: "clear" };
+      }
+    },
+  );
+
   it("refuses a non-authoritative (sample) recipient source before any draft", async () => {
     const action = buildMaintenanceOwnerNoticeDraftAction({
       ticketRef: "ticket-1",
@@ -234,7 +268,7 @@ describe("executeMaintenanceOwnerNoticeDraft (data-safety guard)", () => {
       body: "b",
     });
     await expect(
-      executeMaintenanceOwnerNoticeDraft(gmail.client, action),
+      executeMaintenanceOwnerNoticeDraft(() => gmail.client, action),
     ).rejects.toThrow();
     expect(gmail.createDraft).not.toHaveBeenCalled();
   });
@@ -249,7 +283,7 @@ describe("executeMaintenanceOwnerNoticeDraft (data-safety guard)", () => {
       body: "b",
     });
     await expect(
-      executeMaintenanceOwnerNoticeDraft(gmail.client, action),
+      executeMaintenanceOwnerNoticeDraft(() => gmail.client, action),
     ).rejects.toThrow();
     expect(gmail.createDraft).not.toHaveBeenCalled();
   });

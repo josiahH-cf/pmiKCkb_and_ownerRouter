@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
+  readRuntimeActionSuspension: vi.fn(async () => ({ status: "clear" })),
+}));
+
 // Wiring test for the read-only S33 live-target lookup: edit/renewals-gated, resolves a single lease from
 // the authoritative live read, returns no_match on ambiguity/absence, and performs NO external effect.
 const mocks = vi.hoisted(() => ({

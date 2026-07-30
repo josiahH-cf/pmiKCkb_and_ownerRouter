@@ -12,6 +12,14 @@ import {
   INTERNAL_TRANSACTIONAL_ALLOWED_DOMAIN,
   isInternalTransactionalDestination,
 } from "@/lib/notifications/internal-destination";
+import {
+  RUNTIME_SUSPENSION_GLOBAL_KEY,
+  RUNTIME_SUSPENSION_INCIDENT_REF_PATTERN,
+  RUNTIME_SUSPENSION_REASON_CODES,
+  RUNTIME_SUSPENSION_UNREADABLE_EXPECTATION,
+  RUNTIME_SUSPENSION_UUID_PATTERN,
+  isOpaqueRuntimeSuspensionIncidentRef,
+} from "@/lib/operations/runtime-suspension-policy";
 
 const isoDateSchema = z
   .string()
@@ -343,6 +351,177 @@ export const CreateActionRegistryInputSchema = z
       path: ["production_allowed"],
     },
   );
+
+// S51 close-only runtime suspension. These schemas intentionally do not trim or normalize action
+// keys, confirmations, opaque incident references, or UUIDs: exact-key confirmation and document-id
+// binding are byte-for-byte contracts. Committed-seed membership is checked in the store (schemas
+// cannot import the seed without creating a cycle).
+export const RuntimeSuspensionActionKeySchema = z
+  .string()
+  .min(1)
+  .max(128)
+  .refine(
+    (value) =>
+      value === RUNTIME_SUSPENSION_GLOBAL_KEY ||
+      /^[a-z0-9]+(?:[._][a-z0-9]+)*$/.test(value),
+    "Expected the reserved global key or a canonical lowercase Action Registry key.",
+  );
+
+export const RuntimeSuspensionIncidentRefSchema = z
+  .string()
+  .regex(
+    RUNTIME_SUSPENSION_INCIDENT_REF_PATTERN,
+    "Expected an opaque uppercase incident reference.",
+  )
+  .refine(isOpaqueRuntimeSuspensionIncidentRef, {
+    message: "Incident references must not contain customer or secret values.",
+  });
+
+export const RuntimeSuspensionOperationIdSchema = z
+  .string()
+  .regex(RUNTIME_SUSPENSION_UUID_PATTERN, "Expected a canonical UUID.");
+
+export const RuntimeSuspensionExpectedIdSchema = z.union([
+  RuntimeSuspensionOperationIdSchema,
+  z.literal(RUNTIME_SUSPENSION_UNREADABLE_EXPECTATION),
+]);
+
+export const ChangeRuntimeSuspensionInputSchema = z
+  .object({
+    action: z.enum(["suspend", "clear"]),
+    actionKey: RuntimeSuspensionActionKeySchema,
+    reasonCode: z.enum(RUNTIME_SUSPENSION_REASON_CODES),
+    incidentRef: RuntimeSuspensionIncidentRefSchema.optional(),
+    confirmation: z.string().min(1).max(128),
+  })
+  .strict()
+  .superRefine((input, context) => {
+    if (input.confirmation !== input.actionKey) {
+      context.addIssue({
+        code: "custom",
+        path: ["confirmation"],
+        message: "Confirmation must exactly match the action key.",
+      });
+    }
+  });
+
+export type ChangeRuntimeSuspensionInput = z.infer<
+  typeof ChangeRuntimeSuspensionInputSchema
+>;
+
+const runtimeSuspensionIsoInstantSchema = z.string().refine((value) => {
+  const parsed = new Date(value);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString() === value;
+}, "Expected a canonical ISO timestamp.");
+
+const runtimeSuspensionActorUidSchema = z
+  .string()
+  .min(1)
+  .max(128)
+  .refine((value) => value === value.trim(), "Actor uid must be canonical.");
+
+const runtimeSuspensionActorEmailSchema = z
+  .string()
+  .email()
+  .max(254)
+  .refine(
+    (value) => value === value.trim() && value === value.toLowerCase(),
+    "Actor email must be canonical.",
+  )
+  .refine(isInternalTransactionalDestination, {
+    message: `Actor email must be an internal @${INTERNAL_TRANSACTIONAL_ALLOWED_DOMAIN} address.`,
+  });
+
+export const RuntimeActionSuspensionRecordSchema = z
+  .object({
+    action_key: RuntimeSuspensionActionKeySchema,
+    state: z.literal("suspended"),
+    suspension_id: RuntimeSuspensionOperationIdSchema,
+    reason_code: z.enum(RUNTIME_SUSPENSION_REASON_CODES),
+    incident_ref: RuntimeSuspensionIncidentRefSchema.optional(),
+    suspended_by_uid: runtimeSuspensionActorUidSchema,
+    suspended_by_email: runtimeSuspensionActorEmailSchema,
+    suspended_at: runtimeSuspensionIsoInstantSchema,
+  })
+  .strict();
+
+export const RuntimeSuspensionChangeRecordSchema = z
+  .object({
+    operation_id: RuntimeSuspensionOperationIdSchema,
+    actor_uid: runtimeSuspensionActorUidSchema,
+    actor_email: runtimeSuspensionActorEmailSchema,
+    action_key: RuntimeSuspensionActionKeySchema,
+    previous_state: z.enum(["clear", "suspended", "unreadable"]),
+    new_state: z.enum(["clear", "suspended"]),
+    reason_code: z.enum(RUNTIME_SUSPENSION_REASON_CODES),
+    incident_ref: RuntimeSuspensionIncidentRefSchema.optional(),
+    expected_suspension_id: RuntimeSuspensionExpectedIdSchema.optional(),
+    previous_suspension_id: RuntimeSuspensionOperationIdSchema.optional(),
+    new_suspension_id: RuntimeSuspensionOperationIdSchema.optional(),
+    created_at: runtimeSuspensionIsoInstantSchema,
+  })
+  .strict()
+  .superRefine((record, context) => {
+    const previousWasSuspended = record.previous_state === "suspended";
+    if (previousWasSuspended !== (record.previous_suspension_id !== undefined)) {
+      context.addIssue({
+        code: "custom",
+        path: ["previous_suspension_id"],
+        message:
+          "A previous suspension id is required exactly when the previous state was suspended.",
+      });
+    }
+
+    const newlySuspended = record.new_state === "suspended";
+    if (newlySuspended !== (record.new_suspension_id !== undefined)) {
+      context.addIssue({
+        code: "custom",
+        path: ["new_suspension_id"],
+        message:
+          "A new suspension id is required exactly when the new state is suspended.",
+      });
+    }
+
+    if (newlySuspended && record.expected_suspension_id !== undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["expected_suspension_id"],
+        message: "A suspend change cannot carry a clear-state precondition.",
+      });
+    }
+
+    if (record.new_state === "clear") {
+      if (
+        record.previous_state === "clear" ||
+        record.expected_suspension_id === undefined
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["expected_suspension_id"],
+          message:
+            "A clear change requires a non-clear previous state and its exact precondition.",
+        });
+      } else if (
+        record.previous_state === "suspended" &&
+        record.expected_suspension_id !== record.previous_suspension_id
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["expected_suspension_id"],
+          message: "A clear change must target the exact previous suspension id.",
+        });
+      } else if (
+        record.previous_state === "unreadable" &&
+        record.expected_suspension_id !== RUNTIME_SUSPENSION_UNREADABLE_EXPECTATION
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["expected_suspension_id"],
+          message: "An unreadable repair must use the explicit unreadable precondition.",
+        });
+      }
+    }
+  });
 
 export type CreateActionRegistryInput = z.input<typeof CreateActionRegistryInputSchema>;
 export type ParsedActionRegistryInput = z.output<typeof CreateActionRegistryInputSchema>;

@@ -17,7 +17,6 @@ import type {
 } from "@/lib/google-drive/renewal-comp-screenshot";
 import { RENEWAL_COMP_SCREENSHOT_FOLDER_MIME } from "@/lib/google-drive/renewal-comp-screenshot";
 import { requireDriveDwdIdentity } from "@/lib/google-drive/drive-dwd";
-import { assertActionExecutable } from "@/lib/integrations/action-gate";
 import {
   COMP_SCREENSHOT_MAX_BYTES,
   buildCompScreenshotPreview,
@@ -49,6 +48,7 @@ import {
   RENEWAL_COMP_SCREENSHOT_ACTION_KEY,
   RENEWAL_COMP_SCREENSHOT_TARGET_LABEL,
 } from "@/lib/lease-renewal/comp-screenshot-action";
+import { assertProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
 import {
   ALLOWED_IMAGE_MIME_TYPES,
   sniffImageMime,
@@ -245,13 +245,16 @@ type FolderVerification =
   | { status: "verified"; evidence: VerifiedFolder }
   | { status: "mismatch"; reason: string };
 
-export function assertCompScreenshotExecutionAllowed(
+export async function assertCompScreenshotExecutionAllowed(
   context: CompScreenshotExecutionContext,
   mode: "mutating" | "recovery" = "mutating",
-): void {
+): Promise<void> {
   assertLiveProviderActionAllowed(context.descriptor);
   if (mode === "mutating") {
-    assertActionExecutable(RENEWAL_COMP_SCREENSHOT_ACTION_KEY, context.registry);
+    await assertProductionRuntimeActionExecutable(
+      RENEWAL_COMP_SCREENSHOT_ACTION_KEY,
+      context.registry,
+    );
   }
 }
 
@@ -389,7 +392,7 @@ export async function previewCompScreenshot(
   deps: CompScreenshotServiceDeps,
   context: CompScreenshotExecutionContext,
 ): Promise<CompScreenshotStoreOutcome> {
-  assertCompScreenshotExecutionAllowed(context, "mutating");
+  await assertCompScreenshotExecutionAllowed(context, "mutating");
   assertCompScreenshotSetup(deps);
   const file = validateCompScreenshotFile(input);
   const records = compScreenshotRecordIdentity(input.leaseId);
@@ -453,7 +456,7 @@ export async function commitCompScreenshot(
   deps: CompScreenshotServiceDeps,
   context: CompScreenshotExecutionContext,
 ): Promise<CompScreenshotStoreOutcome> {
-  assertCompScreenshotExecutionAllowed(context, "mutating");
+  await assertCompScreenshotExecutionAllowed(context, "mutating");
   assertCompScreenshotRecoverySetup(deps);
   const file = validateCompScreenshotFile(input);
   assertStoreExecutionId(input.executionId);
@@ -712,7 +715,7 @@ export async function resumeCompScreenshot(
   deps: CompScreenshotServiceDeps,
   context: CompScreenshotExecutionContext,
 ): Promise<CompScreenshotResumeOutcome> {
-  assertCompScreenshotExecutionAllowed(context, "mutating");
+  await assertCompScreenshotExecutionAllowed(context, "mutating");
   assertCompScreenshotRecoverySetup(deps);
   const file = validateCompScreenshotFile(input);
   assertStoreExecutionId(input.executionId);
@@ -762,7 +765,7 @@ export async function getCompScreenshotStatus(
   deps: CompScreenshotServiceDeps,
   context: CompScreenshotExecutionContext,
 ): Promise<CompScreenshotStatusOutcome> {
-  assertCompScreenshotExecutionAllowed(context, "recovery");
+  await assertCompScreenshotExecutionAllowed(context, "recovery");
   assertCompScreenshotRecoverySetup(deps);
   const record = await deps.store.getExecution(executionId);
   if (record) assertExecutionContext(record, deps, context);
@@ -774,7 +777,7 @@ export async function getCompScreenshotStatusForLease(
   deps: CompScreenshotServiceDeps,
   context: CompScreenshotExecutionContext,
 ): Promise<CompScreenshotStatusOutcome> {
-  assertCompScreenshotExecutionAllowed(context, "recovery");
+  await assertCompScreenshotExecutionAllowed(context, "recovery");
   assertCompScreenshotRecoverySetup(deps);
   const { compRecordHash } = compScreenshotRecordIdentity(leaseId);
   const record = await deps.store.getLatestExecution(compRecordHash);
@@ -787,7 +790,7 @@ export async function reconcileCompScreenshot(
   deps: CompScreenshotServiceDeps,
   context: CompScreenshotExecutionContext,
 ): Promise<CompScreenshotStatusOutcome> {
-  assertCompScreenshotExecutionAllowed(context, "recovery");
+  await assertCompScreenshotExecutionAllowed(context, "recovery");
   assertCompScreenshotRecoverySetup(deps);
   const record = await deps.store.getExecution(executionId);
   if (!record) return { status: "not_found" };
@@ -868,7 +871,7 @@ export async function previewCompScreenshotRollback(
   deps: CompScreenshotServiceDeps,
   context: CompScreenshotExecutionContext,
 ): Promise<CompScreenshotRollbackOutcome> {
-  assertCompScreenshotExecutionAllowed(context, "recovery");
+  await assertCompScreenshotExecutionAllowed(context, "mutating");
   assertCompScreenshotRecoverySetup(deps);
   const record = await requireDeliveredExecution(executionId, deps, context);
   assertCompScreenshotLeaseIdentity(record, leaseId);
@@ -961,7 +964,7 @@ export async function commitCompScreenshotRollback(
   deps: CompScreenshotServiceDeps,
   context: CompScreenshotExecutionContext,
 ): Promise<CompScreenshotRollbackOutcome> {
-  assertCompScreenshotExecutionAllowed(context, "recovery");
+  await assertCompScreenshotExecutionAllowed(context, "mutating");
   assertCompScreenshotRecoverySetup(deps);
   let record = await requireDeliveredOrRollbackExecution(
     input.executionId,

@@ -5,18 +5,18 @@ const { createStoreMock, putMock } = vi.hoisted(() => ({
   putMock: vi.fn(),
 }));
 
-// The photo action is closed by default in the seed registry (returns 409 before body validation), so
-// force it open here to exercise the LR-01 MIME/magic-byte gate that sits after the schema parse.
-vi.mock("@/lib/maintenance/photo-action", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/maintenance/photo-action")>();
+// The photo action is closed by default in the committed seed. This suite owns only the MIME seam,
+// so replace both route/effect runtime checks with an explicit open test gate. Runtime refusal and
+// zero-provider construction are covered separately by maintenance-photo-route and S51 tests.
+vi.mock("@/lib/operations/runtime-suspension-gate", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/lib/operations/runtime-suspension-gate")>();
   return {
     ...actual,
-    getMaintenancePhotoActionView: vi.fn(() => ({
-      actionKey: actual.MAINTENANCE_PHOTO_ACTION_KEY,
-      executable: true,
-      message: "ok",
-      targetLabel: "test",
-    })),
+    assertProductionRuntimeActionExecutable: vi.fn(async () => undefined),
+    runProductionRuntimeGatedAction: vi.fn(
+      async (_actionKey: string, effect: () => Promise<unknown>) => effect(),
+    ),
   };
 });
 

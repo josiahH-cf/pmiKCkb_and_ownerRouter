@@ -29,9 +29,9 @@ import {
   type CreateActionRegistryInput,
 } from "@/lib/firestore/schemas";
 import { EditableLayerError } from "@/lib/firestore/errors";
-import { assertActionExecutable } from "@/lib/integrations/action-gate";
 import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 import { validatePreviewPayload } from "@/lib/integrations/preview-payload";
+import { assertProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
 
 export interface TrustedExecutionContext {
   communication?: WorkflowCommunicationGates;
@@ -196,7 +196,7 @@ export async function executePreparedAction<T>(
     throw new ExecutionBlockedError(["source_validation_failed"]);
   }
   if (current.requires_action_registry) {
-    assertActionExecutable(current.action_key, registry);
+    await assertProductionRuntimeActionExecutable(current.action_key, registry);
   }
 
   await claimActionExecution(input.actor, current.id, previewHash, db, input.contextHash);

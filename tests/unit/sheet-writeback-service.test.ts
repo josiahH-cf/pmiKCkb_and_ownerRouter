@@ -1,5 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const runtimeSuspension = vi.hoisted(() => ({
+  current: { status: "clear" } as { status: string },
+  read: vi.fn(),
+}));
+vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
+  readRuntimeActionSuspension: runtimeSuspension.read.mockImplementation(
+    async () => runtimeSuspension.current,
+  ),
+}));
+
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
   EnvironmentContextError,
@@ -42,6 +52,7 @@ import {
   type WritebackExecuteInput,
   type WritebackExecutionContext,
 } from "@/lib/lease-renewal/sheet-writeback-service";
+import { ActionRuntimeSuspendedError } from "@/lib/operations/runtime-suspension-gate";
 
 const READ_TS = "2026-07-30T00:00:00.000Z";
 const RUN_ID = "live-review";
@@ -491,6 +502,7 @@ function enable() {
 
 afterEach(() => {
   delete process.env[SHEET_WRITEBACK_FLAG];
+  runtimeSuspension.current = { status: "clear" };
 });
 
 async function prepare(h = harness(), actor = admin) {
@@ -507,6 +519,150 @@ async function prepare(h = harness(), actor = admin) {
 }
 
 describe("Sheet write-back immutable action contract", () => {
+  // S51_DYNAMIC_REFUSAL:sheet-preview-writeback-writer
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not construct Sheets for write preview when runtime state is %s",
+    async (status) => {
+      enable();
+      const h = harness();
+      runtimeSuspension.current = { status };
+      try {
+        await expect(
+          prepareOrCommitWriteback(admin, writeInput(), READ_TS, h.deps, context()),
+        ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+        expect(h.createWriter).not.toHaveBeenCalled();
+        expect(h.store.previews.size).toBe(0);
+      } finally {
+        runtimeSuspension.current = { status: "clear" };
+      }
+    },
+  );
+
+  // S51_DYNAMIC_REFUSAL:sheet-commit-writeback-writer
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not reconstruct Sheets for write commit when runtime state is %s",
+    async (status) => {
+      enable();
+      const { h, outcome } = await prepare();
+      h.createWriter.mockClear();
+      runtimeSuspension.current = { status };
+      try {
+        await expect(
+          prepareOrCommitWriteback(
+            admin,
+            writeInput({
+              confirm: true,
+              executionId: outcome.preview.executionId,
+              previewHash: outcome.preview.hash,
+            }),
+            READ_TS,
+            h.deps,
+            context(),
+          ),
+        ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+        expect(h.createWriter).not.toHaveBeenCalled();
+        expect(h.writer.updates).toHaveLength(0);
+      } finally {
+        runtimeSuspension.current = { status: "clear" };
+      }
+    },
+  );
+
+  // S51_DYNAMIC_REFUSAL:sheet-preview-correction-writer
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not reconstruct Sheets for correction preview when runtime state is %s",
+    async (status) => {
+      enable();
+      const { h, outcome } = await prepare();
+      await prepareOrCommitWriteback(
+        admin,
+        writeInput({
+          confirm: true,
+          executionId: outcome.preview.executionId,
+          previewHash: outcome.preview.hash,
+        }),
+        READ_TS,
+        h.deps,
+        context(),
+      );
+      h.createWriter.mockClear();
+      runtimeSuspension.current = { status };
+      try {
+        await expect(
+          prepareOrCommitWriteback(
+            admin,
+            writeInput({
+              operation: "correction",
+              executionId: outcome.preview.executionId,
+            }),
+            READ_TS,
+            h.deps,
+            context(),
+          ),
+        ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+        expect(h.createWriter).not.toHaveBeenCalled();
+        expect(h.writer.clears).toHaveLength(0);
+      } finally {
+        runtimeSuspension.current = { status: "clear" };
+      }
+    },
+  );
+
+  // S51_DYNAMIC_REFUSAL:sheet-commit-correction-writer
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not reconstruct Sheets for correction commit when runtime state is %s",
+    async (status) => {
+      enable();
+      const { h, outcome } = await prepare();
+      await prepareOrCommitWriteback(
+        admin,
+        writeInput({
+          confirm: true,
+          executionId: outcome.preview.executionId,
+          previewHash: outcome.preview.hash,
+        }),
+        READ_TS,
+        h.deps,
+        context(),
+      );
+      const correction = await prepareOrCommitWriteback(
+        admin,
+        writeInput({
+          operation: "correction",
+          executionId: outcome.preview.executionId,
+        }),
+        READ_TS,
+        h.deps,
+        context(),
+      );
+      if (correction.status !== "correction_resolved") {
+        throw new Error("Expected correction preview.");
+      }
+      h.createWriter.mockClear();
+      runtimeSuspension.current = { status };
+      try {
+        await expect(
+          prepareOrCommitWriteback(
+            admin,
+            writeInput({
+              operation: "correction",
+              confirm: true,
+              executionId: correction.preview.executionId,
+              previewHash: correction.preview.hash,
+            }),
+            READ_TS,
+            h.deps,
+            context(),
+          ),
+        ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+        expect(h.createWriter).not.toHaveBeenCalled();
+        expect(h.writer.clears).toHaveLength(0);
+      } finally {
+        runtimeSuspension.current = { status: "clear" };
+      }
+    },
+  );
+
   it("issues an expiring server preview without writing or persisting a cell body", async () => {
     enable();
     const { h, outcome } = await prepare();
@@ -1364,7 +1520,7 @@ describe("Sheet write-back immutable action contract", () => {
       }),
       READ_TS,
       h.deps,
-      { descriptor: productionDescriptor },
+      context(),
     );
 
     expect(recovered).toMatchObject({
@@ -1395,6 +1551,40 @@ describe("Sheet write-back immutable action contract", () => {
     expect(h.writer.updates).toHaveLength(0);
   });
 
+  it("refuses the provider-side absent-key tombstone while runtime suspension is active", async () => {
+    enable();
+    const { h, outcome } = await prepare();
+    const preview = await h.store.getPreview(outcome.preview.hash);
+    if (!preview) throw new Error("Expected a durable preview.");
+    await h.store.claim({
+      previewHash: outcome.preview.hash,
+      executionId: outcome.preview.executionId,
+      actorUid: admin.uid,
+      nowMs: START_MS + 1,
+      authorization: claimAuthorization(preview),
+    });
+    h.advance(SHEET_WRITEBACK_RUNNING_RECONCILE_DELAY_MS + 2);
+    const tombstone = vi.spyOn(h.writer, "tombstoneAnchoredMutationIfAbsent");
+    runtimeSuspension.current = { status: "global_suspended" };
+
+    await expect(
+      prepareOrCommitWriteback(
+        admin,
+        writeInput({
+          operation: "reconcile",
+          executionId: outcome.preview.executionId,
+        }),
+        READ_TS,
+        h.deps,
+        context(),
+      ),
+    ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+
+    expect(tombstone).not.toHaveBeenCalled();
+    expect(h.writer.providerStatuses.has(outcome.preview.executionId)).toBe(false);
+    expect(h.writer.updates).toHaveLength(0);
+  });
+
   it("never retries an ambiguous update and reconciles it by read only", async () => {
     enable();
     const h = harness();
@@ -1419,6 +1609,8 @@ describe("Sheet write-back immutable action contract", () => {
     h.writer.throwAfterUpdate = false;
     delete process.env[SHEET_WRITEBACK_FLAG];
 
+    runtimeSuspension.read.mockClear();
+    runtimeSuspension.current = { status: "global_suspended" };
     const reconciled = await prepareOrCommitWriteback(
       admin,
       writeInput({
@@ -1435,6 +1627,7 @@ describe("Sheet write-back immutable action contract", () => {
       receipt: { reconciled: true },
     });
     expect(h.writer.updates).toHaveLength(1);
+    expect(runtimeSuspension.read).not.toHaveBeenCalled();
   });
 
   it("concurrent reconcilers converge on one immutable provider-effect receipt", async () => {

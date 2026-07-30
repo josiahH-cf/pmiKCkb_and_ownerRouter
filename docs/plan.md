@@ -275,9 +275,11 @@ Status: in progress — the owner directed PMI KC into a live production phase o
 authorized unattended development across the full spec flow. The sanitized D01–D64 reconstruction
 records its provenance and does not invent the unavailable browser-local response export. Governance
 is reconciled; the four suites are specified; S54 slice 1 and S53.1–S53.5 are locally complete;
-S52-I/J and its fail-closed print-only planner prerequisite are locally complete; S51's pure
-close-only runtime kernel is locally complete while its store and execution-path wiring remain; no
-provider capability has been activated yet.
+S52-I/J and its fail-closed print-only planner prerequisite are locally complete; S51's close-only
+kernel plus the unprotected store, Admin route/panel, value-free audit, execution-path wiring, and
+provider/script refusal sentinels are locally complete. The protected Firestore Rules hunk is parked
+for owner review, S51's monitoring/incident/retention work remains, and no provider capability has
+been activated yet.
 
 Program:
 
@@ -288,8 +290,9 @@ Program:
   `provider_interleave_allowed:true`, `runtime_action_gates_preflipped:false`.
 - Order: S53 gate/environment refusal → S53 immutable Sheet and comp-screenshot action contracts →
   S53 sender/config integrity → S53 Admin-reachable Vendor lifecycle seam → S52 read-only
-  baseline/prerequisites → S51 close-only kernel → S51 store/route/audit and execution-path
-  readiness → activate S52/S51 infrastructure when their named dependencies are satisfied → land
+  baseline/prerequisites → S51 close-only kernel → S51 store/route/audit and gated-effect
+  execution-path readiness → S51 monitoring/incident/retention/rehearsal definitions → activate
+  S52/S51 infrastructure when their named dependencies are satisfied → land
   S40's environment-parameterized zero-traffic candidate/smoke/promotion release-safety slice →
   routine deploy/live verification when auth and cost gates are green → resume the remaining S40
   environment/data work and dependency-ready suite flow. Protected-path changes are parked for
@@ -307,7 +310,8 @@ Acceptance:
   cutover guard is keyed so a silent inert activation cannot recur (S53, D29).
 - Three operational alert policies plus the separate kill-switch-outcome policy (four total) and
   one attached human-reaching notification channel exist before live-data cutover; a close-only
-  runtime suspend can stop a live action without a deploy (S51, D13/D09).
+  runtime suspend can stop every Registry-gated live effect without a deploy. It is deliberately
+  not a disconnect for the always-on read-only Product sources (S51, D13/D09).
 - The cost ceiling is set from a measured burn baseline, with the budget amount and
   `KILL_SWITCH_CAP_USD` moved in lockstep and covered per project (S52, D01).
 - Live operation runs as a bounded pilot with a stated abort trigger (D08, `F-PILOT-ROLLOUT`).

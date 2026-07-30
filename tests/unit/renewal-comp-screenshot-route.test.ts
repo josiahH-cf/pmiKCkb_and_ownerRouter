@@ -2,6 +2,10 @@ import { createHash } from "node:crypto";
 
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
+  readRuntimeActionSuspension: vi.fn(async () => ({ status: "clear" })),
+}));
+
 import { createRenewalCompScreenshotRouteHandlers } from "@/app/api/lease-renewal/comp-screenshot/route";
 import { createRenewalCompScreenshotRollbackHandler } from "@/app/api/lease-renewal/comp-screenshot/rollback/route";
 import type { AuthenticatedUser } from "@/lib/auth/session";
@@ -18,6 +22,10 @@ import type {
   CompScreenshotExecutionContext,
   CompScreenshotServiceDeps,
 } from "@/lib/lease-renewal/comp-screenshot-service";
+import {
+  ActionNotExecutableError,
+  ActionRuntimeSuspendedError,
+} from "@/lib/operations/runtime-suspension-gate";
 
 const ACTOR: AuthenticatedUser = {
   uid: "editor-1",
@@ -198,7 +206,9 @@ describe("renewal comp screenshot route contract", () => {
     const json = vi.spyOn(request, "json");
     const handlers = createRenewalCompScreenshotRouteHandlers({
       authenticate: async () => ACTOR,
-      actionExecutable: () => false,
+      assertRuntimeExecutable: async () => {
+        throw new ActionNotExecutableError("google_drive.renewal_comp_screenshot.store");
+      },
       buildRuntime,
     });
 
@@ -216,7 +226,7 @@ describe("renewal comp screenshot route contract", () => {
     const json = vi.spyOn(request, "json");
     const handlers = createRenewalCompScreenshotRouteHandlers({
       authenticate: async () => ACTOR,
-      actionExecutable: () => true,
+      assertRuntimeExecutable: async () => undefined,
       buildRuntime: () => runtime,
     });
     const response = await handlers.POST(request);
@@ -234,7 +244,7 @@ describe("renewal comp screenshot route contract", () => {
     const demoJson = vi.spyOn(demoRequest, "json");
     const demoResponse = await createRenewalCompScreenshotRouteHandlers({
       authenticate: async () => ACTOR,
-      actionExecutable: () => true,
+      assertRuntimeExecutable: async () => undefined,
       buildRuntime: () => demo,
     }).POST(demoRequest);
     expect(demoResponse.status).toBe(409);
@@ -246,7 +256,7 @@ describe("renewal comp screenshot route contract", () => {
     const runtime = makeRuntime();
     const handlers = createRenewalCompScreenshotRouteHandlers({
       authenticate: async () => ACTOR,
-      actionExecutable: () => true,
+      assertRuntimeExecutable: async () => undefined,
       buildRuntime: () => runtime,
     });
     const prepared = (await (await handlers.POST(storeRequest(false))).json()) as {
@@ -306,7 +316,7 @@ describe("renewal comp screenshot route contract", () => {
     const runtime = makeRuntime();
     const handlers = createRenewalCompScreenshotRouteHandlers({
       authenticate: async () => ACTOR,
-      actionExecutable: () => true,
+      assertRuntimeExecutable: async () => undefined,
       buildRuntime: () => runtime,
     });
 
@@ -342,11 +352,11 @@ describe("renewal comp screenshot route contract", () => {
     expect(runtime.provider.getFile).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps status/reconcile and exact rollback reachable after the mutating gate closes", async () => {
+  it("keeps status/reconcile reachable and exact rollback available while its runtime gate is open", async () => {
     const runtime = makeRuntime();
     const openHandlers = createRenewalCompScreenshotRouteHandlers({
       authenticate: async () => ACTOR,
-      actionExecutable: () => true,
+      assertRuntimeExecutable: async () => undefined,
       buildRuntime: () => runtime,
     });
     const prepared = (await (await openHandlers.POST(storeRequest(false))).json()) as {
@@ -361,7 +371,9 @@ describe("renewal comp screenshot route contract", () => {
 
     const closedHandlers = createRenewalCompScreenshotRouteHandlers({
       authenticate: async () => ACTOR,
-      actionExecutable: () => false,
+      assertRuntimeExecutable: async () => {
+        throw new ActionNotExecutableError("google_drive.renewal_comp_screenshot.store");
+      },
       buildRuntime: () => runtime,
     });
     const statusResponse = await closedHandlers.GET(
@@ -374,6 +386,7 @@ describe("renewal comp screenshot route contract", () => {
 
     const rollback = createRenewalCompScreenshotRollbackHandler({
       authenticate: async () => ACTOR,
+      assertRuntimeExecutable: async () => undefined,
       buildRuntime: () => runtime,
     });
     const missingLeaseResponse = await rollback(
@@ -461,5 +474,36 @@ describe("renewal comp screenshot route contract", () => {
       duplicate: true,
     });
     expect(runtime.provider.trashFile).toHaveBeenCalledTimes(1);
+  });
+
+  it("maps a runtime-suspended rollback to 409 before runtime or body work", async () => {
+    const buildRuntime = vi.fn(() => makeRuntime());
+    const rollback = createRenewalCompScreenshotRollbackHandler({
+      authenticate: async () => ACTOR,
+      assertRuntimeExecutable: async () => {
+        throw new ActionRuntimeSuspendedError(
+          "google_drive.renewal_comp_screenshot.store",
+        );
+      },
+      buildRuntime,
+    });
+    const request = new Request(
+      "http://localhost/api/lease-renewal/comp-screenshot/rollback",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{not valid json",
+      },
+    );
+
+    const response = await rollback(request);
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      action_key: "google_drive.renewal_comp_screenshot.store",
+      error_type: "action_runtime_suspended",
+    });
+    expect(buildRuntime).not.toHaveBeenCalled();
+    await expect(request.text()).resolves.toBe("{not valid json");
   });
 });

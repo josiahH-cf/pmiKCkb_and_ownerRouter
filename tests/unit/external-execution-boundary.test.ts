@@ -50,7 +50,7 @@ function orchestrator(
   definition: ExternalActionDefinition,
   store: MemoryExternalExecutionStore,
   executor: ExternalExecutor,
-  isExecutable: (key: string) => boolean = () => true,
+  isRuntimeExecutable: (key: string) => boolean = () => true,
   allowFakeContracts = true,
 ) {
   return new ExternalActionOrchestrator(
@@ -59,7 +59,7 @@ function orchestrator(
     new Map([[definition.key, executor]]),
     {
       allowFakeContracts,
-      isExecutable,
+      isRuntimeExecutable,
       registry: ACTION_REGISTRY_SEED,
     },
   );

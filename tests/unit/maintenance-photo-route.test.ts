@@ -1,8 +1,34 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { createStoreMock, putMock } = vi.hoisted(() => ({
+const { createStoreMock, putMock, runtimeGate } = vi.hoisted(() => ({
   createStoreMock: vi.fn(),
   putMock: vi.fn(),
+  runtimeGate: {
+    seedOpen: false,
+    current: "clear" as "clear" | "action_suspended" | "global_suspended" | "unreadable",
+  },
+}));
+
+vi.mock("@/lib/integrations/action-gate", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/integrations/action-gate")>();
+  return {
+    ...actual,
+    assertActionExecutable: vi.fn((actionKey: string) => {
+      if (!runtimeGate.seedOpen) actual.assertActionExecutable(actionKey);
+    }),
+    isActionExecutable: vi.fn((actionKey: string) =>
+      runtimeGate.seedOpen ? true : actual.isActionExecutable(actionKey),
+    ),
+  };
+});
+
+vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
+  readRuntimeActionSuspension: vi.fn(async () => {
+    if (runtimeGate.current === "unreadable") {
+      throw new Error("synthetic unreadable runtime store");
+    }
+    return { status: runtimeGate.current };
+  }),
 }));
 
 vi.mock("@/lib/maintenance/image-store", async (importOriginal) => {
@@ -21,9 +47,40 @@ afterEach(() => {
   setAuthResolverForTest(null);
   createStoreMock.mockReset();
   putMock.mockReset();
+  runtimeGate.seedOpen = false;
+  runtimeGate.current = "clear";
 });
 
 describe("maintenance photo route", () => {
+  // S51_DYNAMIC_REFUSAL:maintenance-photo-store
+  it.each(["action_suspended", "global_suspended", "unreadable"] as const)(
+    "does not construct the Drive image store when runtime state is %s",
+    async (status) => {
+      setAuthResolverForTest(() => ({
+        email: "editor@pmikcmetro.com",
+        hd: "pmikcmetro.com",
+        role: "Editor",
+        scopes: ["maintenance"],
+        uid: "editor-1",
+      }));
+      runtimeGate.seedOpen = true;
+      runtimeGate.current = status;
+      const json = vi.fn();
+      const request = { headers: new Headers(), json } as unknown as Request;
+
+      const response = await POST(request);
+
+      expect(response.status).toBe(409);
+      await expect(response.json()).resolves.toMatchObject({
+        action_key: MAINTENANCE_PHOTO_ACTION_KEY,
+        error_type: "action_runtime_suspended",
+      });
+      expect(json).not.toHaveBeenCalled();
+      expect(createStoreMock).not.toHaveBeenCalled();
+      expect(putMock).not.toHaveBeenCalled();
+    },
+  );
+
   it("refuses the closed registry action before reading the body or constructing a store", async () => {
     setAuthResolverForTest(() => ({
       email: "editor@pmikcmetro.com",

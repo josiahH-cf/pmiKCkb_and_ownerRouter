@@ -1,4 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const runtimeSuspension = vi.hoisted(() => ({
+  current: { status: "clear" } as { status: string },
+}));
+vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
+  readRuntimeActionSuspension: vi.fn(async () => runtimeSuspension.current),
+}));
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { DRAFT_BANNER } from "@/lib/constants";
@@ -26,6 +33,14 @@ import type {
   GmailSendResult,
   GmailThreadView,
 } from "@/lib/gmail-runtime/types";
+import {
+  ActionRuntimeSuspendedError,
+  assertProductionRuntimeActionExecutable,
+} from "@/lib/operations/runtime-suspension-gate";
+
+afterEach(() => {
+  runtimeSuspension.current = { status: "clear" };
+});
 
 const actor: AuthenticatedUser = {
   uid: "user-josiah",
@@ -202,6 +217,7 @@ function service(
     token?: string;
     gates?: readonly string[];
     approveTemplates?: boolean;
+    assertRuntimeActionExecutable?: (action: string) => Promise<void>;
   } = {},
 ) {
   const client = options.client ?? new FakeGmailClient();
@@ -234,13 +250,19 @@ function service(
       "gmail.label.apply",
     ],
   );
+  const createClient = vi.fn(() => client);
   return {
     client,
+    createClient,
     store,
     hub: new GmailHubService(actor, {
-      client,
+      createClient,
       store,
-      isActionExecutable: (action) => gates.has(action),
+      assertRuntimeActionExecutable:
+        options.assertRuntimeActionExecutable ??
+        (async (action) => {
+          if (!gates.has(action)) throw new GmailHubGateError(action);
+        }),
       now: options.now,
       createToken: () => options.token ?? "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG",
       isApprovedWorkflowTemplate: () => options.approveTemplates ?? true,
@@ -249,12 +271,31 @@ function service(
 }
 
 describe("GmailHubService connection", () => {
+  // S51_DYNAMIC_REFUSAL:gmail-service-connection-client
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "reports gated without constructing Gmail when runtime state is %s",
+    async (status) => {
+      runtimeSuspension.current = { status };
+      const { hub, createClient } = service({
+        assertRuntimeActionExecutable: assertProductionRuntimeActionExecutable,
+      });
+
+      await expect(hub.connection()).resolves.toMatchObject({
+        status: "gated",
+        mailboxEmail: actor.email,
+      });
+      expect(createClient).not.toHaveBeenCalled();
+    },
+  );
+
   it("reports the signed-in mailbox connected through the committed read gate", async () => {
     const client = new FakeGmailClient();
     const hub = new GmailHubService(actor, {
-      client,
+      createClient: () => client,
       store: new MemoryGmailStateStore(),
-      isActionExecutable,
+      assertRuntimeActionExecutable: async (action) => {
+        if (!isActionExecutable(action)) throw new GmailHubGateError(action);
+      },
     });
 
     await expect(hub.connection()).resolves.toMatchObject({
@@ -272,6 +313,28 @@ describe("GmailHubService connection", () => {
 describe("GmailHubService watch confirmation", () => {
   const topicName = "projects/pmi-kc-kb-prod/topics/gmail-replies";
   const attemptKey = "018f5ca1-7b7c-7c3d-8b6f-5f83a36a5f51";
+
+  // S51_DYNAMIC_REFUSAL:gmail-service-watch-client
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not construct Gmail or claim a watch when runtime state is %s",
+    async (status) => {
+      runtimeSuspension.current = { status };
+      const { hub, createClient, store } = service({
+        now: () => 1_000_000,
+        assertRuntimeActionExecutable: assertProductionRuntimeActionExecutable,
+      });
+
+      await expect(
+        hub.watchMailbox({
+          topicName,
+          attemptKey,
+          observedExpirationMs: null,
+        }),
+      ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+      expect(createClient).not.toHaveBeenCalled();
+      expect(store.mailboxStates.size).toBe(0);
+    },
+  );
 
   it("previews the exact effect and makes one provider attempt with bodyless readback", async () => {
     const { hub, client, store } = service({ now: () => 1_000_000 });
@@ -357,9 +420,11 @@ describe("GmailHubService draft gate", () => {
   it("blocks the default-seed draft action before calling the Gmail client", async () => {
     const client = new FakeGmailClient();
     const hub = new GmailHubService(actor, {
-      client,
+      createClient: () => client,
       store: new MemoryGmailStateStore(),
-      isActionExecutable,
+      assertRuntimeActionExecutable: async (action) => {
+        if (!isActionExecutable(action)) throw new GmailHubGateError(action);
+      },
     });
 
     await expect(
@@ -377,6 +442,43 @@ describe("GmailHubService draft gate", () => {
 });
 
 describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
+  // S51_DYNAMIC_REFUSAL:gmail-service-runtime-client
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not construct the generic runtime Gmail client when state is %s",
+    async (status) => {
+      runtimeSuspension.current = { status };
+      const { hub, createClient } = service({
+        assertRuntimeActionExecutable: assertProductionRuntimeActionExecutable,
+      });
+
+      await expect(
+        hub.getThread("thread-1", context("gmail.mailbox.read")),
+      ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+      expect(createClient).not.toHaveBeenCalled();
+    },
+  );
+
+  // S51_DYNAMIC_REFUSAL:gmail-service-confirmed-send-client
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not construct Gmail or claim the confirmation when send state is %s",
+    async (status) => {
+      const { hub, createClient, client, store } = service({
+        assertRuntimeActionExecutable: assertProductionRuntimeActionExecutable,
+      });
+      const prepared = await hub.prepareSendConfirmation(reply("Exact body"));
+      const confirmationId = hashConfirmationToken(prepared.confirmationToken);
+      createClient.mockClear();
+      runtimeSuspension.current = { status };
+
+      await expect(hub.sendConfirmed(prepared)).rejects.toBeInstanceOf(
+        ActionRuntimeSuspendedError,
+      );
+      expect(createClient).not.toHaveBeenCalled();
+      expect(client.sendCalls).toBe(0);
+      expect(store.confirmations.get(confirmationId)?.state).toBe("pending");
+    },
+  );
+
   it("links one targeted thread and stores only a reason hash", async () => {
     const { hub, store } = service();
     await hub.linkExistingThread({
@@ -582,6 +684,40 @@ describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
       second.hub.prepareSendConfirmation(reply("Retry attempt")),
     ).rejects.toBeInstanceOf(GmailAmbiguousSendError);
     // Only the single original send was ever attempted.
+    expect(client.sendCalls).toBe(1);
+  });
+
+  it("reconciles a persisted unresolved send read-only while runtime actions are suspended", async () => {
+    const client = new FakeGmailClient();
+    client.sendError = new GmailRuntimeError("unclear", undefined, true);
+    const store = new MemoryGmailStateStore();
+    const first = service({
+      client,
+      store,
+      token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    });
+    const prepared = await first.hub.prepareSendConfirmation(reply("Ambiguous send"));
+    await expect(first.hub.sendConfirmed(prepared)).rejects.toBeInstanceOf(
+      GmailAmbiguousSendError,
+    );
+
+    const assertRuntimeActionExecutable = vi.fn(async () => {
+      throw new ActionRuntimeSuspendedError("gmail.thread.reply");
+    });
+    const createClient = vi.fn(() => client);
+    const suspended = new GmailHubService(actor, {
+      createClient,
+      store,
+      assertRuntimeActionExecutable,
+      createToken: () => "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      isApprovedWorkflowTemplate: () => true,
+    });
+
+    await expect(
+      suspended.prepareSendConfirmation(reply("Do not duplicate")),
+    ).rejects.toBeInstanceOf(GmailAmbiguousSendError);
+    expect(assertRuntimeActionExecutable).not.toHaveBeenCalled();
+    expect(createClient).toHaveBeenCalledTimes(1);
     expect(client.sendCalls).toBe(1);
   });
 
@@ -906,16 +1042,14 @@ describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
     expect(client.labelsApplied).toEqual([]);
   });
 
-  it("refuses a Gmail client for any mailbox other than the authenticated actor", () => {
+  it("refuses a Gmail client for any mailbox other than the authenticated actor", async () => {
     const client = new FakeGmailClient("dan@pmikcmetro.com");
-    expect(
-      () =>
-        new GmailHubService(actor, {
-          client,
-          store: new MemoryGmailStateStore(),
-          isActionExecutable: () => true,
-        }),
-    ).toThrow("did not match the signed-in user");
+    const hub = new GmailHubService(actor, {
+      createClient: () => client,
+      store: new MemoryGmailStateStore(),
+      assertRuntimeActionExecutable: async () => undefined,
+    });
+    await expect(hub.connection()).rejects.toThrow("did not match the signed-in user");
   });
 });
 

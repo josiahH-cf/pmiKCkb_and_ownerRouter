@@ -1,6 +1,10 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
+  readRuntimeActionSuspension: vi.fn(async () => ({ status: "clear" })),
+}));
+
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
   AmbiguousExecutionError,

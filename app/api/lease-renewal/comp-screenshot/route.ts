@@ -7,11 +7,7 @@ import {
   requireCapabilityInSpace,
   type AuthenticatedUser,
 } from "@/lib/auth/session";
-import { ActionNotExecutableError } from "@/lib/integrations/action-gate";
-import {
-  getRenewalCompScreenshotActionView,
-  renewalCompScreenshotClosedResponse,
-} from "@/lib/lease-renewal/comp-screenshot-action";
+import { renewalCompScreenshotClosedResponse } from "@/lib/lease-renewal/comp-screenshot-action";
 import { COMP_SCREENSHOT_MAX_BYTES } from "@/lib/lease-renewal/comp-screenshot-contract";
 import { buildLiveCompScreenshotRuntime } from "@/lib/lease-renewal/comp-screenshot-runtime";
 import {
@@ -27,6 +23,11 @@ import {
   type CompScreenshotExecutionContext,
   type CompScreenshotServiceDeps,
 } from "@/lib/lease-renewal/comp-screenshot-service";
+import {
+  ActionNotExecutableError,
+  ActionRuntimeSuspendedError,
+  assertProductionRuntimeActionExecutable,
+} from "@/lib/operations/runtime-suspension-gate";
 
 const MAX_BASE64_CHARACTERS = Math.ceil(COMP_SCREENSHOT_MAX_BYTES / 3) * 4;
 const MAX_REQUEST_BYTES = MAX_BASE64_CHARACTERS + 65_536;
@@ -105,7 +106,7 @@ const StatusQuerySchema = z
 
 export interface RenewalCompScreenshotRouteDeps {
   authenticate: () => Promise<AuthenticatedUser>;
-  actionExecutable: () => boolean;
+  assertRuntimeExecutable: () => Promise<void>;
   buildRuntime: () => {
     deps: CompScreenshotServiceDeps;
     context: CompScreenshotExecutionContext;
@@ -114,7 +115,8 @@ export interface RenewalCompScreenshotRouteDeps {
 
 const DEFAULT_DEPS: RenewalCompScreenshotRouteDeps = {
   authenticate: () => requireCapabilityInSpace("edit", "renewals"),
-  actionExecutable: () => getRenewalCompScreenshotActionView().executable,
+  assertRuntimeExecutable: () =>
+    assertProductionRuntimeActionExecutable("google_drive.renewal_comp_screenshot.store"),
   buildRuntime: buildLiveCompScreenshotRuntime,
 };
 
@@ -138,15 +140,10 @@ export function createRenewalCompScreenshotRouteHandlers(
 
       // Preserve the defense-in-depth refusal order: auth, committed named action gate, explicit
       // environment/setup, request body, durable claim, and only then lazy Drive construction.
-      if (!routeDeps.actionExecutable()) {
-        return NextResponse.json(renewalCompScreenshotClosedResponse(), {
-          status: 409,
-        });
-      }
-
       try {
+        await routeDeps.assertRuntimeExecutable();
         const runtime = routeDeps.buildRuntime();
-        assertCompScreenshotExecutionAllowed(runtime.context, "recovery");
+        await assertCompScreenshotExecutionAllowed(runtime.context, "recovery");
         assertCompScreenshotRecoverySetup(runtime.deps);
 
         const declaredLength = Number(request.headers.get("content-length") ?? "0");
@@ -257,10 +254,19 @@ export function createRenewalCompScreenshotRouteHandlers(
 }
 
 function routeErrorResponse(error: unknown) {
-  if (error instanceof ActionNotExecutableError) {
-    return NextResponse.json(renewalCompScreenshotClosedResponse(), {
-      status: error.status,
-    });
+  if (
+    error instanceof ActionNotExecutableError ||
+    error instanceof ActionRuntimeSuspendedError
+  ) {
+    return NextResponse.json(
+      {
+        ...renewalCompScreenshotClosedResponse(),
+        ...(error instanceof ActionRuntimeSuspendedError
+          ? { error: error.message, error_type: error.code }
+          : {}),
+      },
+      { status: error.status },
+    );
   }
   const contract = compScreenshotErrorResponse(error);
   if (contract) {

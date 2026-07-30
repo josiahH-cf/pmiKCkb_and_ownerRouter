@@ -1,4 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const runtimeSuspension = vi.hoisted(() => ({
+  current: { status: "clear" } as { status: string },
+}));
+vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
+  readRuntimeActionSuspension: vi.fn(async () => runtimeSuspension.current),
+}));
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
@@ -13,6 +20,11 @@ import type {
 } from "@/lib/external-execution/types";
 import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
 import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
+import { ActionRuntimeSuspendedError } from "@/lib/operations/runtime-suspension-gate";
+import {
+  FirebaseLiveVendorAuthAdapter,
+  GmailLiveVendorInviteDeliveryAdapter,
+} from "@/lib/vendor/live-lifecycle-adapters";
 import {
   executeLiveVendorLifecycle,
   prepareLiveVendorLifecycle,
@@ -60,8 +72,239 @@ const INVITE_VALUES = {
 } as const;
 
 const EXECUTION_ID = `exec_${"a".repeat(40)}`;
+const VENDOR_UID = `vendor_live_${"b".repeat(32)}`;
+const VENDOR_REF = `vendor-live-${"b".repeat(32)}`;
+
+afterEach(() => {
+  runtimeSuspension.current = { status: "clear" };
+});
 
 describe("Live Vendor lifecycle service", () => {
+  // S51_DYNAMIC_REFUSAL:vendor-runtime-provider
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not construct the Vendor lifecycle provider when runtime state is %s",
+    async (status) => {
+      const harness = makeHarness();
+      const createProvider = vi.fn();
+      const resolveLazyExecutor = vi.fn(
+        async (): Promise<ExternalExecutor> => ({
+          validate: () => null,
+          execute: async () => {
+            createProvider();
+            throw new Error("provider should remain unreachable");
+          },
+          reconcile: async () => null,
+        }),
+      );
+      runtimeSuspension.current = { status };
+
+      await expect(
+        executeLiveVendorLifecycle(
+          ACTOR,
+          {
+            ...INVITE_INTENT,
+            confirmedPreviewHash: hashExecutionPreview(INVITE_VALUES),
+            executionId: EXECUTION_ID,
+            operation: "execute",
+          },
+          { ...harness.deps, resolveLazyExecutor },
+          EXPLICIT_LIVE,
+        ),
+      ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+
+      expect(createProvider).not.toHaveBeenCalled();
+      expect(resolveLazyExecutor).not.toHaveBeenCalled();
+      expect(harness.source.resolve).not.toHaveBeenCalled();
+    },
+  );
+
+  // S51_DYNAMIC_REFUSAL:vendor-ensure-client
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not construct Firebase for Vendor ensure when runtime state is %s",
+    async (status) => {
+      const harness = makeHarness();
+      const createClient = vi.fn();
+      const adapter = new FirebaseLiveVendorAuthAdapter(createClient);
+      const resolveLazyExecutor = vi.fn(
+        async (): Promise<ExternalExecutor> => ({
+          validate: () => null,
+          execute: async () => {
+            await adapter.ensureVendorPrincipal({
+              uid: VENDOR_UID,
+              email: INVITE_INTENT.email,
+              vendorRef: VENDOR_REF,
+              customClaims: {
+                vendor: true,
+                vendor_id: VENDOR_REF,
+                data_mode: "live",
+              },
+            });
+            throw new Error("adapter should remain unreachable");
+          },
+          reconcile: async () => null,
+        }),
+      );
+      runtimeSuspension.current = { status };
+
+      await expect(
+        executeLiveVendorLifecycle(
+          ACTOR,
+          {
+            ...INVITE_INTENT,
+            confirmedPreviewHash: hashExecutionPreview(INVITE_VALUES),
+            executionId: EXECUTION_ID,
+            operation: "execute",
+          },
+          { ...harness.deps, resolveLazyExecutor },
+          EXPLICIT_LIVE,
+        ),
+      ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+
+      expect(createClient).not.toHaveBeenCalled();
+      expect(resolveLazyExecutor).not.toHaveBeenCalled();
+    },
+  );
+
+  // S51_DYNAMIC_REFUSAL:vendor-disable-client
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not construct Firebase for Vendor disable when runtime state is %s",
+    async (status) => {
+      const harness = makeHarness({
+        registry: openRegistry("vendor.account.disable"),
+      });
+      const createClient = vi.fn();
+      const adapter = new FirebaseLiveVendorAuthAdapter(createClient);
+      const resolveLazyExecutor = vi.fn(
+        async (): Promise<ExternalExecutor> => ({
+          validate: () => null,
+          execute: async () => {
+            await adapter.disableUser(VENDOR_UID, INVITE_INTENT.email);
+            throw new Error("adapter should remain unreachable");
+          },
+          reconcile: async () => null,
+        }),
+      );
+      runtimeSuspension.current = { status };
+
+      await expect(
+        executeLiveVendorLifecycle(
+          ACTOR,
+          {
+            actionKey: "vendor.account.disable",
+            reason: "End approved Vendor access",
+            vendorId: VENDOR_REF,
+            confirmedPreviewHash: "c".repeat(64),
+            executionId: EXECUTION_ID,
+            operation: "execute",
+          },
+          { ...harness.deps, resolveLazyExecutor },
+          EXPLICIT_LIVE,
+        ),
+      ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+
+      expect(createClient).not.toHaveBeenCalled();
+      expect(resolveLazyExecutor).not.toHaveBeenCalled();
+    },
+  );
+
+  // S51_DYNAMIC_REFUSAL:vendor-revoke-client
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not construct Firebase for Vendor revocation when runtime state is %s",
+    async (status) => {
+      const harness = makeHarness({
+        registry: openRegistry("vendor.account.disable"),
+      });
+      const createClient = vi.fn();
+      const adapter = new FirebaseLiveVendorAuthAdapter(createClient);
+      const resolveLazyExecutor = vi.fn(
+        async (): Promise<ExternalExecutor> => ({
+          validate: () => null,
+          execute: async () => {
+            await adapter.revokeRefreshTokens(VENDOR_UID, INVITE_INTENT.email);
+            throw new Error("adapter should remain unreachable");
+          },
+          reconcile: async () => null,
+        }),
+      );
+      runtimeSuspension.current = { status };
+
+      await expect(
+        executeLiveVendorLifecycle(
+          ACTOR,
+          {
+            actionKey: "vendor.account.disable",
+            reason: "End approved Vendor access",
+            vendorId: VENDOR_REF,
+            confirmedPreviewHash: "c".repeat(64),
+            executionId: EXECUTION_ID,
+            operation: "execute",
+          },
+          { ...harness.deps, resolveLazyExecutor },
+          EXPLICIT_LIVE,
+        ),
+      ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+
+      expect(createClient).not.toHaveBeenCalled();
+      expect(resolveLazyExecutor).not.toHaveBeenCalled();
+    },
+  );
+
+  // S51_DYNAMIC_REFUSAL:vendor-invite-client
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not construct Gmail for a Vendor invite when runtime state is %s",
+    async (status) => {
+      const harness = makeHarness();
+      const createClient = vi.fn();
+      const adapter = new GmailLiveVendorInviteDeliveryAdapter({
+        createClient,
+        readConfig: () => ({
+          appBaseUrl: "https://app.pmikcmetro.com",
+          kbApprovalSender: "ops@pmikcmetro.com",
+        }),
+      });
+      const resolveLazyExecutor = vi.fn(
+        async (): Promise<ExternalExecutor> => ({
+          validate: () => null,
+          execute: async () => {
+            await adapter.sendInvite({
+              recipientEmail: INVITE_INTENT.email,
+              recipientHash: "d".repeat(64),
+              company: INVITE_INTENT.company,
+              vendorRef: VENDOR_REF,
+              vendorUid: VENDOR_UID,
+              inviteVersion: 0,
+              lifecycleExecutionId: EXECUTION_ID,
+              challengeExpiresAt: "2026-07-30T13:00:00.000Z",
+              ticketRef: INVITE_INTENT.ticketId,
+              artifactRef: "vendor-invite:v1.0",
+              rfcMessageId: `<vendor-invite-${"e".repeat(64)}@pmikcmetro.com>`,
+            });
+            throw new Error("adapter should remain unreachable");
+          },
+          reconcile: async () => null,
+        }),
+      );
+      runtimeSuspension.current = { status };
+
+      await expect(
+        executeLiveVendorLifecycle(
+          ACTOR,
+          {
+            ...INVITE_INTENT,
+            confirmedPreviewHash: hashExecutionPreview(INVITE_VALUES),
+            executionId: EXECUTION_ID,
+            operation: "execute",
+          },
+          { ...harness.deps, resolveLazyExecutor },
+          EXPLICIT_LIVE,
+        ),
+      ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+
+      expect(createClient).not.toHaveBeenCalled();
+      expect(resolveLazyExecutor).not.toHaveBeenCalled();
+    },
+  );
+
   it("prepares the exact server projection and Approval Queue link with no Live client", async () => {
     const harness = makeHarness();
 

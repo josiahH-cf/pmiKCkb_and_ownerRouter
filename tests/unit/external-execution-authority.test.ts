@@ -123,7 +123,7 @@ describe("external execution authority integration", () => {
           { execute, reconcile: vi.fn(async () => null) } satisfies ExternalExecutor,
         ],
       ]),
-      { isExecutable: () => true, allowFakeContracts: true },
+      { isRuntimeExecutable: () => true, allowFakeContracts: true },
     );
     const prepared = await orchestrator.prepare(value);
     value.authority = { ...value.authority!, approval: undefined };
@@ -163,7 +163,7 @@ describe("external execution authority integration", () => {
           { execute, reconcile: vi.fn(async () => null) } satisfies ExternalExecutor,
         ],
       ]),
-      { isExecutable: () => true, allowFakeContracts: true },
+      { isRuntimeExecutable: () => true, allowFakeContracts: true },
     );
     const prepared = await orchestrator.prepare(value);
     const first = orchestrator.execute(value, prepared.previewHash);

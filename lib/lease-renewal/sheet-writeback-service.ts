@@ -4,8 +4,9 @@
 // descriptor. Preview is read-only and server-issued. Commit accepts only that exact unexpired
 // preview, proves the provider has the required stable-row atomic primitive before any live Sheet
 // read or durable claim, writes one empty cell, reads it back, and persists a bodyless receipt. An
-// uncertain result is reconciled by read only; correction has its own exact preview and clears only
-// the value proven by the original receipt.
+// uncertain result is reconciled by read only. The one provider-side absent-key tombstone is a
+// mutation and therefore repeats the runtime gate immediately before that call. Correction has its
+// own exact preview and clears only the value proven by the original receipt.
 
 import { randomUUID } from "node:crypto";
 
@@ -27,7 +28,6 @@ import {
   GoogleSheetsApiWriter,
   type SheetsAnchoredMutationWriter,
 } from "@/lib/google-sheets/write-client";
-import { assertActionExecutable } from "@/lib/integrations/action-gate";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
 import { rebuildLiveRenewalRun } from "@/lib/lease-renewal/live-review";
 import type { RenewalRunResult } from "@/lib/lease-renewal/pipeline";
@@ -56,6 +56,11 @@ import {
   hashSheetCellValue,
   isSheetWritebackEnabled,
 } from "@/lib/lease-renewal/sheet-writeback-policy";
+import {
+  ActionNotExecutableError,
+  ActionRuntimeSuspendedError,
+  assertProductionRuntimeActionExecutable,
+} from "@/lib/operations/runtime-suspension-gate";
 
 export { RENEWAL_SHEET_WRITEBACK_ACTION_KEY };
 
@@ -179,13 +184,16 @@ export interface WritebackExecutionContext {
   registry?: CreateActionRegistryInput[];
 }
 
-export function assertSheetWritebackExecutionAllowed(
+export async function assertSheetWritebackExecutionAllowed(
   context: WritebackExecutionContext,
   mode: "mutating" | "recovery" = "mutating",
-): void {
+): Promise<void> {
   assertLiveProviderActionAllowed(context.descriptor);
   if (mode === "mutating") {
-    assertActionExecutable(RENEWAL_SHEET_WRITEBACK_ACTION_KEY, context.registry);
+    await assertProductionRuntimeActionExecutable(
+      RENEWAL_SHEET_WRITEBACK_ACTION_KEY,
+      context.registry,
+    );
   }
 }
 
@@ -231,7 +239,7 @@ export async function prepareOrCommitWriteback(
   if (actor.role !== "Admin") {
     throw new EditableLayerError("Admin access is required for Sheet actions.", 403);
   }
-  assertSheetWritebackExecutionAllowed(
+  await assertSheetWritebackExecutionAllowed(
     executionContext,
     operation === "reconcile" || operation === "status" ? "recovery" : "mutating",
   );
@@ -828,6 +836,10 @@ async function reconcileWriteback(
     };
     let providerStatus = await writer.getAnchoredMutationStatus(providerIdentity);
     if (providerStatus.status === "unknown") {
+      // Reading an already-consumed provider key remains available during containment. Creating an
+      // absent-key tombstone is a provider control-plane mutation, so it must not inherit that
+      // recovery exception.
+      await assertSheetWritebackExecutionAllowed(context, "mutating");
       providerStatus = await writer.tombstoneAnchoredMutationIfAbsent(providerIdentity);
     }
     if (providerStatus.status === "pending" || providerStatus.status === "unknown") {
@@ -880,7 +892,13 @@ async function reconcileWriteback(
       ...receiptOutcome(record, receipt, false),
       ...(readbackWarning ? { readbackWarning } : {}),
     };
-  } catch {
+  } catch (error) {
+    if (
+      error instanceof ActionNotExecutableError ||
+      error instanceof ActionRuntimeSuspendedError
+    ) {
+      throw error;
+    }
     const latest = await deps.store.getExecution(record.id);
     if (latest?.state === "succeeded" && latest.receipt) {
       return receiptOutcome(latest, latest.receipt, true);

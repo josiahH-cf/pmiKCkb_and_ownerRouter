@@ -24,8 +24,8 @@ describe("renewal comp-screenshot + rentcast gates (committed seed, gated OFF)",
     expect(isActionExecutable(RENTCAST_LISTINGS_ACTION_KEY)).toBe(false);
   });
 
-  it("the comp-screenshot action view reports closed with a continue-without message", () => {
-    const view = getRenewalCompScreenshotActionView();
+  it("the comp-screenshot action view reports closed with a continue-without message", async () => {
+    const view = await getRenewalCompScreenshotActionView();
     expect(view.executable).toBe(false);
     expect(view.message).toBe(RENEWAL_COMP_SCREENSHOT_CLOSED_MESSAGE);
     expect(view.message).toBe(

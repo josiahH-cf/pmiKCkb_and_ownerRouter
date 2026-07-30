@@ -13,15 +13,43 @@
 
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { GoogleSheetsApiWriter } from "../lib/google-sheets/write-client";
+import { RENEWAL_SHEET_WRITEBACK_ACTION_KEY } from "../lib/lease-renewal/sheet-writeback-contract";
 import { commitWritebackAtRow } from "../lib/lease-renewal/sheet-writeback-execution";
 import { SHEET_WRITEBACK_FLAG } from "../lib/lease-renewal/sheet-writeback-policy";
+import {
+  ActionRuntimeSuspendedError,
+  assertProductionRuntimeActionExecutable,
+} from "../lib/operations/runtime-suspension-gate";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const TAB = "Renewals";
 const PROPOSED_COLUMN = "KB Proposed — Comp basis";
+
+type SheetSmokeWriter = Pick<
+  GoogleSheetsApiWriter,
+  | "createSpreadsheet"
+  | "updateValues"
+  | "writeValuesIfEmpty"
+  | "getValues"
+  | "clearValuesIfExactMatch"
+>;
+
+interface SmokeLogger {
+  log(...values: unknown[]): void;
+  error(...values: unknown[]): void;
+}
+
+export interface SheetWriteSmokeDependencies {
+  assertRuntimeExecutable(actionKey: string): Promise<void>;
+  loadEnvLocal(): Record<string, string>;
+  createWriter(impersonateServiceAccount: string, dwdSubject: string): SheetSmokeWriter;
+  setWritebackFlag(value: string): void;
+  now(): Date;
+  logger: SmokeLogger;
+}
 
 function loadEnvLocal(): Record<string, string> {
   try {
@@ -42,14 +70,53 @@ function loadEnvLocal(): Record<string, string> {
   }
 }
 
-function hasArg(name: string): boolean {
-  return process.argv.includes(name);
+const PRODUCTION_DEPENDENCIES: SheetWriteSmokeDependencies = {
+  assertRuntimeExecutable: assertProductionRuntimeActionExecutable,
+  loadEnvLocal,
+  createWriter: (impersonateServiceAccount, dwdSubject) =>
+    new GoogleSheetsApiWriter(impersonateServiceAccount, dwdSubject),
+  setWritebackFlag: (value) => {
+    process.env[SHEET_WRITEBACK_FLAG] = value;
+  },
+  now: () => new Date(),
+  logger: console,
+};
+
+/**
+ * Keep every mutating Sheets primitive behind a fresh runtime check. The throwaway proof performs
+ * several distinct provider mutations, so a stop raised after spreadsheet creation (or after any
+ * later proof step) must win before the next mutation rather than relying on the construction-time
+ * check alone. Reads remain available for verification and recovery.
+ */
+function runtimeGatedMutationWriter(
+  writer: SheetSmokeWriter,
+  assertRuntimeExecutable: SheetWriteSmokeDependencies["assertRuntimeExecutable"],
+): SheetSmokeWriter {
+  const assertClear = (): Promise<void> =>
+    assertRuntimeExecutable(RENEWAL_SHEET_WRITEBACK_ACTION_KEY);
+  return {
+    async createSpreadsheet(title, tabTitle) {
+      await assertClear();
+      return writer.createSpreadsheet(title, tabTitle);
+    },
+    getValues: (spreadsheetId, range) => writer.getValues(spreadsheetId, range),
+    async updateValues(spreadsheetId, range, values) {
+      await assertClear();
+      return writer.updateValues(spreadsheetId, range, values);
+    },
+    async writeValuesIfEmpty(spreadsheetId, range, value) {
+      await assertClear();
+      return writer.writeValuesIfEmpty(spreadsheetId, range, value);
+    },
+    async clearValuesIfExactMatch(spreadsheetId, range, expectedValue) {
+      await assertClear();
+      return writer.clearValuesIfExactMatch(spreadsheetId, range, expectedValue);
+    },
+  };
 }
 
-const checks: { name: string; ok: boolean; detail: string }[] = [];
-function record(name: string, ok: boolean, detail: string): void {
-  checks.push({ name, ok, detail });
-  console.log(`  [${ok ? "PASS" : "FAIL"}] ${name} — ${detail}`);
+function hasArg(argv: readonly string[], name: string): boolean {
+  return argv.includes(name);
 }
 
 /** True when the error looks like a missing-scope / stale-token fail-closed (=> DEFERRED, not FAIL). */
@@ -59,63 +126,80 @@ function isAuthScopeError(message: string): boolean {
   );
 }
 
-async function main(): Promise<void> {
-  const localEnv = loadEnvLocal();
-  const readEnv = (name: string): string | undefined =>
-    process.env[name] ?? localEnv[name];
-  const live = hasArg("--live");
-
-  const impersonateSa = readEnv("SHEETS_IMPERSONATE_SA");
-  const dwdSubject = readEnv("SHEETS_DWD_SUBJECT");
-
+export async function runSheetWriteSmoke(
+  argv: readonly string[] = process.argv.slice(2),
+  env: NodeJS.ProcessEnv = process.env,
+  dependencies: SheetWriteSmokeDependencies = PRODUCTION_DEPENDENCIES,
+): Promise<void> {
+  const live = hasArg(argv, "--live");
   if (!live) {
-    console.log(
-      "Sheet write-back smoke (DRY). With --live it would: create a NEW test spreadsheet " +
-        `("KB Writeback Smoke — <run>"), seed synthetic rows + the "${PROPOSED_COLUMN}" column, then ` +
-        "prove fixed-A1 CAS/correction plus fail-closed stable-row capability refusal. It never touches " +
-        "the operational sheet and cannot activate the action key.",
+    dependencies.logger.log(
+      "Sheet write-back smoke (DRY). No configuration, ADC/token, writer, feature flag, or network call is made. " +
+        `With --live it would target a new synthetic spreadsheet behind ${RENEWAL_SHEET_WRITEBACK_ACTION_KEY}.`,
     );
-    console.log(
-      "Pass --live to run the proof (free; read/WRITE Sheets scope; no GCP budget spend).",
+    dependencies.logger.log(
+      "Pass --live only after that exact action key is enabled and runtime-clear.",
     );
     return;
   }
 
+  // Gate before .env.local and repeat immediately before writer construction. The committed action
+  // is currently seed-closed, so this live primitive diagnostic cannot bypass product governance.
+  await dependencies.assertRuntimeExecutable(RENEWAL_SHEET_WRITEBACK_ACTION_KEY);
+
+  const localEnv = dependencies.loadEnvLocal();
+  const readEnv = (name: string): string | undefined => env[name] ?? localEnv[name];
+
+  const impersonateSa = readEnv("SHEETS_IMPERSONATE_SA");
+  const dwdSubject = readEnv("SHEETS_DWD_SUBJECT");
+
   if (!impersonateSa || !dwdSubject) {
-    console.log(
+    dependencies.logger.log(
       "DEFERRED — SHEETS_IMPERSONATE_SA / SHEETS_DWD_SUBJECT not set; cannot mint the keyless DWD write token.",
     );
     return; // exit 0: expected degradation, not a failure.
   }
 
+  await dependencies.assertRuntimeExecutable(RENEWAL_SHEET_WRITEBACK_ACTION_KEY);
   // The flag gates the executor; enable it for THIS process only (never persisted, never deployed).
-  process.env[SHEET_WRITEBACK_FLAG] = "true";
-  const writer = new GoogleSheetsApiWriter(impersonateSa, dwdSubject);
+  dependencies.setWritebackFlag("true");
+  const writer = runtimeGatedMutationWriter(
+    dependencies.createWriter(impersonateSa, dwdSubject),
+    dependencies.assertRuntimeExecutable,
+  );
 
   // A run tag that is stable within a process without Date-based nondeterminism concerns for the sheet id.
-  const runTag = `${new Date().toISOString().replace(/[:.]/g, "-")}`;
+  const runTag = dependencies.now().toISOString().replace(/[:.]/g, "-");
   const title = `KB Writeback Smoke — ${runTag}`;
+  const checks: { name: string; ok: boolean; detail: string }[] = [];
+  const record = (name: string, ok: boolean, detail: string): void => {
+    checks.push({ name, ok, detail });
+    dependencies.logger.log(`  [${ok ? "PASS" : "FAIL"}] ${name} — ${detail}`);
+  };
 
   let spreadsheetId: string;
   try {
     spreadsheetId = await writer.createSpreadsheet(title, TAB);
   } catch (error) {
+    if (error instanceof ActionRuntimeSuspendedError) throw error;
     const message = error instanceof Error ? error.message : String(error);
     if (isAuthScopeError(message)) {
-      console.log(
+      dependencies.logger.log(
         `DEFERRED — could not create the test sheet (fail-closed): ${message}\n` +
           "This is the expected result if the Sheets WRITE scope is not yet on the lease-renewal-reader " +
           "SA's DWD grant. Grant it, then re-run: npm run smoke:sheet-write -- --live",
       );
       return; // exit 0: deferred per runbook skip rule.
     }
-    console.error(`FAIL — unexpected error creating the test sheet: ${message}`);
-    process.exitCode = 1;
-    return;
+    throw new Error(`FAIL — unexpected error creating the test sheet: ${message}`);
   }
 
-  console.log(`Sheet write-back smoke (LIVE) — created test sheet id: ${spreadsheetId}`);
-  console.log(`Title: "${title}" (owned by the DWD subject; safe to delete).`);
+  dependencies.logger.log(
+    `Sheet write-back smoke (LIVE) — created test sheet id: ${spreadsheetId}`,
+  );
+  dependencies.logger.log(
+    `Title: "${title}" (owned by the DWD subject; safe to delete).`,
+  );
 
   try {
     // Seed: header + 2 synthetic data rows; KB-Proposed cells start EMPTY (append-only target).
@@ -279,7 +363,7 @@ async function main(): Promise<void> {
     // 5. GATE — with the flag OFF the executor is DISABLED (no read, no write). Row 1 was corrected
     // back to empty,
     // so this proves the DISABLED path is taken *instead of* a write.
-    process.env[SHEET_WRITEBACK_FLAG] = "false";
+    dependencies.setWritebackFlag("false");
     const disabled = await commitWritebackAtRow(writer, {
       spreadsheetId,
       tabName: TAB,
@@ -294,40 +378,40 @@ async function main(): Promise<void> {
       disabled.status === "disabled",
       JSON.stringify(disabled),
     );
-    process.env[SHEET_WRITEBACK_FLAG] = "true";
+    dependencies.setWritebackFlag("true");
   } catch (error) {
+    if (error instanceof ActionRuntimeSuspendedError) throw error;
     const message = error instanceof Error ? error.message : String(error);
-    console.error(`FAIL — unexpected error during the proof: ${message}`);
-    process.exitCode = 1;
-    return;
+    throw new Error(`FAIL — unexpected error during the proof: ${message}`);
   }
 
   const failed = checks.filter((c) => !c.ok);
-  console.log("");
+  dependencies.logger.log("");
   if (failed.length === 0) {
-    console.log(
+    dependencies.logger.log(
       `DEFERRED — all ${checks.length} fixed-A1/fail-closed proofs passed on test sheet ${spreadsheetId}.`,
     );
-    console.log(
+    dependencies.logger.log(
       "Activation remains blocked on a provider-side stable-row atomic mutation seam; fixed-A1 Sheets " +
         "CAS is not sufficient. Operational sheet untouched and action key unchanged.",
     );
   } else {
-    console.error(
+    throw new Error(
       `FAIL — ${failed.length}/${checks.length} proofs failed on test sheet ${spreadsheetId}.`,
     );
-    process.exitCode = 1;
   }
 }
 
-void main().catch((error) => {
-  const message = error instanceof Error ? error.message : String(error);
-  if (isAuthScopeError(message)) {
-    console.log(
-      `DEFERRED — fail-closed (likely missing write scope / stale token): ${message}`,
-    );
-    return;
-  }
-  console.error(message);
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  void runSheetWriteSmoke().catch((error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    if (isAuthScopeError(message)) {
+      console.log(
+        `DEFERRED — fail-closed (likely missing write scope / stale token): ${message}`,
+      );
+      return;
+    }
+    console.error(message);
+    process.exitCode = 1;
+  });
+}

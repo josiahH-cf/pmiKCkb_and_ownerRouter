@@ -5,6 +5,7 @@ import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { getRenewalProgress } from "@/lib/firestore/lease-renewal-progress";
 import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
+import { getRenewalCompScreenshotActionView } from "@/lib/lease-renewal/comp-screenshot-action";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
 import {
   loadLiveRenewalLeaseWorkspace,
@@ -50,6 +51,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
   // S29: the exact Admin-approved comp-derived rent number (or null). It flows into the owner-draft preview
   // only when an Approved record still matches the current recompute; it is never the raw computed value.
   const approvedSuggestion = await getApprovedRentSuggestion(user, leaseId);
+  const compScreenshotAction = await getRenewalCompScreenshotActionView();
   const outcome = await loadLiveRenewalLeaseWorkspace(
     leaseId,
     new Date().toISOString(),
@@ -65,7 +67,11 @@ export default async function LiveRenewalLeaseWorkspacePage({
           ← Live renewal desk
         </Link>
         {outcome.status === "ok" ? (
-          <RenewalWorkspace mode="live" workspace={outcome.workspace} />
+          <RenewalWorkspace
+            compScreenshotExecutable={compScreenshotAction.executable}
+            mode="live"
+            workspace={outcome.workspace}
+          />
         ) : outcome.status === "not_found" ? (
           <article className="panel">
             <p className="muted">This live renewal is unavailable.</p>

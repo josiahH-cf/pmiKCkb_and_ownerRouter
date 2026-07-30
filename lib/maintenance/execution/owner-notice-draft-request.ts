@@ -13,13 +13,13 @@ import type {
   ExternalActionInput,
   ExternalActionReceipt,
 } from "@/lib/external-execution/types";
-import { assertActionExecutable } from "@/lib/integrations/action-gate";
 import {
   LiveRenewalGmailDraftProvider,
   type RenewalDraftGmailClient,
 } from "@/lib/lease-renewal/execution/live-gmail-draft-provider";
 import { LeaseGmailExecutor } from "@/lib/lease-renewal/execution/providers";
 import { assertAuthoritativeRenewalRecipient } from "@/lib/lease-renewal/execution/renewal-draft-request";
+import { runProductionRuntimeGatedAction } from "@/lib/operations/runtime-suspension-gate";
 
 export const MAINTENANCE_OWNER_NOTICE_DRAFT_ACTION_KEY =
   "gmail.maintenance_owner_notice.draft_create" as const;
@@ -80,11 +80,14 @@ export function buildMaintenanceOwnerNoticeDraftAction(
  * is a real GmailRuntimeClient in production and a fake in tests, so no test contacts Gmail.
  */
 export async function executeMaintenanceOwnerNoticeDraft(
-  client: RenewalDraftGmailClient,
+  createClient: () => RenewalDraftGmailClient,
   action: ExternalActionInput,
 ): Promise<ExternalActionReceipt> {
   assertAuthoritativeRenewalRecipient(action);
-  assertActionExecutable(action.actionKey);
-  const executor = new LeaseGmailExecutor(new LiveRenewalGmailDraftProvider(client));
-  return executor.execute(action);
+  return runProductionRuntimeGatedAction(action.actionKey, () => {
+    const executor = new LeaseGmailExecutor(
+      new LiveRenewalGmailDraftProvider(createClient()),
+    );
+    return executor.execute(action);
+  });
 }

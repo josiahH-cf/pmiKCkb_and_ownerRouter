@@ -31,12 +31,38 @@ describe("AdminActivityLogPanel (LR-02)", () => {
     expect(screen.getByText(/2026-07-10 09:30/)).toBeInTheDocument();
   });
 
-  it("shows an empty state when there are no changes", () => {
-    render(<AdminActivityLogPanel entries={[]} />);
-    expect(screen.getByText("No access changes recorded yet.")).toBeInTheDocument();
+  it("renders a value-free runtime suspension change without a fake target email", () => {
+    render(
+      <AdminActivityLogPanel
+        entries={[
+          {
+            id: "runtime_suspension:c1",
+            kind: "runtime_suspension",
+            actorEmail: "admin@pmikcmetro.com",
+            actionKey: "gmail.renewal_notice.draft_create",
+            incidentRef: "INC-2048",
+            summary: "Production action stopped",
+            reason: "Provider outage",
+            createdAt: "2026-07-30T12:45:00.000Z",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Production action stopped")).toBeInTheDocument();
+    expect(screen.getByText("gmail.renewal_notice.draft_create")).toBeInTheDocument();
+    expect(screen.getByText("INC-2048")).toBeInTheDocument();
+    expect(screen.getByText(/by admin@pmikcmetro.com/)).toBeInTheDocument();
+    expect(screen.queryByText(/undefined/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Provider outage/)).toBeInTheDocument();
   });
 
-  it("shows an unavailable note when provided", () => {
+  it("shows an empty state when there are no changes", () => {
+    render(<AdminActivityLogPanel entries={[]} />);
+    expect(screen.getByText("No Admin changes recorded yet.")).toBeInTheDocument();
+  });
+
+  it("shows an unavailable note without falsely claiming the history is empty", () => {
     render(
       <AdminActivityLogPanel
         entries={[]}
@@ -44,5 +70,6 @@ describe("AdminActivityLogPanel (LR-02)", () => {
       />,
     );
     expect(screen.getByText("History unavailable right now.")).toBeInTheDocument();
+    expect(screen.queryByText("No Admin changes recorded yet.")).not.toBeInTheDocument();
   });
 });

@@ -23,10 +23,10 @@ import type {
   ExternalExecutor,
 } from "@/lib/external-execution/types";
 import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
-import { assertActionExecutable } from "@/lib/integrations/action-gate";
 import { FINAL_V1_ACTION_PREVIEW_SCHEMAS } from "@/lib/integrations/final-v1-action-contracts";
 import { validatePreviewPayload } from "@/lib/integrations/preview-payload";
 import { MAINTENANCE_EXECUTION_DEFINITION_MAP } from "@/lib/maintenance/execution/matrix";
+import { assertProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
 import type { LiveVendorLifecycleActionKey } from "@/lib/vendor/live-lifecycle-contract";
 
 export { LIVE_VENDOR_LIFECYCLE_ACTION_KEYS } from "@/lib/vendor/live-lifecycle-contract";
@@ -271,7 +271,7 @@ export async function prepareLiveVendorLifecycle(
   context: LiveVendorLifecycleContext,
 ): Promise<LiveVendorLifecyclePrepared> {
   assertExplicitProductionLive(context.descriptor);
-  assertActionExecutable(request.actionKey, deps.registry);
+  await assertProductionRuntimeActionExecutable(request.actionKey, deps.registry);
 
   const intent = lifecycleIntent(request);
   const selection = await deps.source.resolve({
@@ -361,7 +361,7 @@ export async function executeLiveVendorLifecycle(
   context: LiveVendorLifecycleContext,
 ): Promise<LiveVendorLifecycleExecuted> {
   assertExplicitProductionLive(context.descriptor);
-  assertActionExecutable(request.actionKey, deps.registry);
+  await assertProductionRuntimeActionExecutable(request.actionKey, deps.registry);
 
   const intent = lifecycleIntent(request);
   const selection = await deps.source.resolve({

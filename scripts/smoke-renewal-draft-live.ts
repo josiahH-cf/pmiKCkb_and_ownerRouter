@@ -1,28 +1,24 @@
 // End-to-end proof of the LIVE renewal-notice draft path: a real renewal run's data → recipient
 // resolution → the governed executor → a REAL unsent Gmail draft in the operator's Drafts folder.
 //
-//   npm run smoke:renewal-draft-live                 # DRY: full governed chain with a FAKE Gmail
-//                                                    #      client + a synthetic lease. No network.
-//   npm run smoke:renewal-draft-live -- --live       # LIVE: one bounded RentVine read (recipient-
-//                                                    #       resolution COVERAGE, counts only, no PII)
-//                                                    #       + ONE real self-addressed UNSENT draft,
-//                                                    #       created via the production modules, then
-//                                                    #       deleted (pass --keep to leave it).
+//   npm run smoke:renewal-draft-live                 # DRY: governed synthetic chain; no credentials
+//   npm run smoke:renewal-draft-live -- --live       # LIVE: bounded RentVine read + one real,
+//                                                    # self-addressed UNSENT Gmail draft
 //
-// SAFETY: the real draft is ALWAYS self-addressed to the operator's own mailbox (never a resolved
-// tenant/owner), clearly bannered and subject-tagged, and deleted unless --keep. It never sends —
-// LiveRenewalGmailDraftProvider holds no send scope, and executeRenewalNoticeDraft re-asserts the
-// Action Registry production gate (a `.send` action would be refused). The live-read coverage report
-// prints only counts (how many recipients resolve vs. need verification), never an address.
-//
-// Owner-run for --live (org reauth is interactive-only; the agent shell cannot refresh ADC). --dry
-// runs anywhere with no credentials.
+// SAFETY: live mode preflights the renewal-draft runtime action before it loads live configuration,
+// then repeats that check immediately before each provider/token boundary. Dry mode uses an explicit
+// diagnostic-only suspension reader and fake Gmail client; it never falls back to a clear production
+// reader, ADC, credentials, or network.
 
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { DRAFT_BANNER } from "../lib/constants";
+import type {
+  ExternalActionInput,
+  ExternalActionReceipt,
+} from "../lib/external-execution/types";
 import { GmailRuntimeClient } from "../lib/gmail-runtime/client";
 import { mintGmailDwdToken } from "../lib/gmail-runtime/dwd-token";
 import { GMAIL_COMPOSE_SCOPE } from "../lib/gmail-runtime/scopes";
@@ -35,28 +31,82 @@ import {
 } from "../lib/integrations/rentvine/client";
 import { leaseViewsFromExport } from "../lib/integrations/rentvine/lease-mapper";
 import {
+  LeaseGmailExecutor,
+  type WorkflowMessageProvider,
+} from "../lib/lease-renewal/execution/providers";
+import {
   buildRenewalNoticeDraftAction,
   executeRenewalNoticeDraft,
+  RENEWAL_NOTICE_DRAFT_ACTION_KEY,
 } from "../lib/lease-renewal/execution/renewal-draft-request";
-import type { RenewalDraftGmailClient } from "../lib/lease-renewal/execution/live-gmail-draft-provider";
+import {
+  LiveRenewalGmailDraftProvider,
+  type RenewalDraftGmailClient,
+} from "../lib/lease-renewal/execution/live-gmail-draft-provider";
 import {
   resolveRenewalRecipient,
   type RenewalRecipientChannel,
 } from "../lib/lease-renewal/recipient-resolution";
+import {
+  assertProductionRuntimeActionExecutable,
+  runRuntimeGatedAction,
+  type RuntimeSuspensionReader,
+} from "../lib/operations/runtime-suspension-gate";
+import { RUNTIME_SUSPENSION_CLEAR } from "../lib/operations/runtime-suspension";
 
 const EXPECTED_ACCOUNT = "pmikcmetro";
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
+
+interface SmokeLogger {
+  log(...values: unknown[]): void;
+  warn(...values: unknown[]): void;
+  error(...values: unknown[]): void;
+}
+
+export interface RenewalDraftSmokeDependencies {
+  /**
+   * Production supplies the Firestore-bound, seed-preserving assertion. Tests may inject the pure
+   * wrapper with an explicit reader; there is deliberately no default-clear live assertion.
+   */
+  assertRuntimeExecutable(actionKey: string): Promise<void>;
+  /** Used only by the non-live synthetic chain. */
+  diagnosticRuntimeSuspensionReader: RuntimeSuspensionReader;
+  loadEnvLocal(): Record<string, string>;
+  createRentVineClient(config: {
+    baseUrl: string;
+    apiKey: string;
+    apiSecret: string;
+  }): Pick<RentVineClient, "listLeasesExport">;
+  mintGmailToken(input: {
+    subject: string;
+    scope: string;
+    serviceAccount: string;
+  }): Promise<string>;
+  createGmailClient(input: { subject: string; token: string }): RenewalDraftGmailClient;
+  createDiagnosticGmailClient(input: {
+    subject: string;
+    recordDraft(draft: { to: string; subject: string; body: string }): void;
+  }): RenewalDraftGmailClient;
+  createDiagnosticProvider(client: RenewalDraftGmailClient): WorkflowMessageProvider;
+  executeRenewalDraft(
+    createClient: () => RenewalDraftGmailClient,
+    action: ExternalActionInput,
+    options: { allowNonAuthoritativeRecipient: true },
+  ): Promise<ExternalActionReceipt>;
+  fetch: typeof fetch;
+  logger: SmokeLogger;
+}
 
 function loadEnvLocal(): Record<string, string> {
   try {
     const out: Record<string, string> = {};
     for (const line of readFileSync(join(root, ".env.local"), "utf8").split(/\r?\n/)) {
-      const t = line.trim();
-      if (!t || t.startsWith("#")) continue;
-      const i = t.indexOf("=");
-      if (i === -1) continue;
-      out[t.slice(0, i).trim()] = t
-        .slice(i + 1)
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const separator = trimmed.indexOf("=");
+      if (separator === -1) continue;
+      out[trimmed.slice(0, separator).trim()] = trimmed
+        .slice(separator + 1)
         .trim()
         .replace(/^"|"$/g, "");
     }
@@ -66,12 +116,38 @@ function loadEnvLocal(): Record<string, string> {
   }
 }
 
-function readArg(name: string): string | undefined {
-  const arg = process.argv.find((entry) => entry.startsWith(`${name}=`));
-  return arg ? arg.slice(name.length + 1) : undefined;
+const DIAGNOSTIC_CLEAR_READER: RuntimeSuspensionReader = async () =>
+  RUNTIME_SUSPENSION_CLEAR;
+
+const PRODUCTION_DEPENDENCIES: RenewalDraftSmokeDependencies = {
+  assertRuntimeExecutable: assertProductionRuntimeActionExecutable,
+  // Explicitly diagnostic-only. Live mode never reads this dependency.
+  diagnosticRuntimeSuspensionReader: DIAGNOSTIC_CLEAR_READER,
+  loadEnvLocal,
+  createRentVineClient: (config) => new RentVineClient(config, createFetchTransport()),
+  mintGmailToken: mintGmailDwdToken,
+  createGmailClient: ({ subject, token }) =>
+    new GmailRuntimeClient({ subject, getToken: async () => token }),
+  createDiagnosticGmailClient: ({ subject, recordDraft }) => ({
+    subject,
+    createDraft: async (input) => {
+      recordDraft(input);
+      return { draftId: "dry-draft-1" };
+    },
+  }),
+  createDiagnosticProvider: (client) => new LiveRenewalGmailDraftProvider(client),
+  executeRenewalDraft: executeRenewalNoticeDraft,
+  fetch,
+  logger: console,
+};
+
+function readArg(argv: readonly string[], name: string): string | undefined {
+  const argument = argv.find((entry) => entry.startsWith(`${name}=`));
+  return argument ? argument.slice(name.length + 1) : undefined;
 }
-function hasArg(name: string): boolean {
-  return process.argv.includes(name);
+
+function hasArg(argv: readonly string[], name: string): boolean {
+  return argv.includes(name);
 }
 
 /** Report recipient-resolution COVERAGE across the read — counts only, never an address. */
@@ -90,8 +166,25 @@ function coverage(leases: RawLease[]) {
   return result;
 }
 
-async function runDry(): Promise<void> {
-  // Synthetic lease so the whole governed chain runs with zero credentials and zero network.
+async function executeDiagnosticRenewalDraft(
+  action: ExternalActionInput,
+  dependencies: RenewalDraftSmokeDependencies,
+  recordDraft: (draft: { to: string; subject: string; body: string }) => void,
+  readSuspension: RuntimeSuspensionReader,
+): Promise<ExternalActionReceipt> {
+  return runRuntimeGatedAction(action.actionKey, readSuspension, () => {
+    const client = dependencies.createDiagnosticGmailClient({
+      subject: "workflow@pmikcmetro.com",
+      recordDraft,
+    });
+    const executor = new LeaseGmailExecutor(
+      dependencies.createDiagnosticProvider(client),
+    );
+    return executor.execute(action);
+  });
+}
+
+async function runDry(dependencies: RenewalDraftSmokeDependencies): Promise<void> {
   const lease: RawLease = {
     leaseID: "dry-lease-1",
     tenants: [{ name: "Dry Run Tenant", email: "dry-run-tenant@example.invalid" }],
@@ -103,14 +196,6 @@ async function runDry(): Promise<void> {
   }
 
   const created: { to: string; subject: string; body: string }[] = [];
-  const fakeClient: RenewalDraftGmailClient = {
-    subject: mailbox,
-    createDraft: async (input) => {
-      created.push(input);
-      return { draftId: "dry-draft-1" };
-    },
-  };
-
   const action = buildRenewalNoticeDraftAction({
     workflowId: "smoke-renewal-draft-dry",
     actionId: "dry-1",
@@ -128,18 +213,22 @@ async function runDry(): Promise<void> {
     sourceRefs: ["smoke:renewal-draft-dry"],
   });
 
-  // Diagnostic opt-out: the dry run uses a synthetic .invalid recipient by design.
-  const receipt = await executeRenewalNoticeDraft(fakeClient, action, {
-    allowNonAuthoritativeRecipient: true,
-  });
+  const receipt = await executeDiagnosticRenewalDraft(
+    action,
+    dependencies,
+    (draft) => created.push(draft),
+    dependencies.diagnosticRuntimeSuspensionReader,
+  );
 
-  console.log("Renewal draft path (DRY) — full governed chain with a FAKE Gmail client:");
-  console.log(
+  dependencies.logger.log(
+    "Renewal draft path (DRY) — full governed chain with a FAKE Gmail client:",
+  );
+  dependencies.logger.log(
     JSON.stringify(
       {
         recipientResolution: resolution,
         draftBannerApplied: String(action.values.body).startsWith(`${DRAFT_BANNER}\n\n`),
-        productionGatePassed: true,
+        diagnosticGatePassed: true,
         fakeClientCreateDraftCalls: created.length,
         createdDraft: created[0],
         receipt: { providerRef: receipt.providerRef, outcome: receipt.outcome },
@@ -148,76 +237,73 @@ async function runDry(): Promise<void> {
       2,
     ),
   );
-  console.log(
-    "PASS (DRY): live run → recipient resolution → governed executor → draft provider assembles and validates. Pass --live to create + delete one real self-addressed draft.",
+  dependencies.logger.log(
+    "PASS (DRY): synthetic resolution → explicit diagnostic gate → fake draft provider. No ADC, credentials, or network.",
   );
 }
 
-async function runLive(): Promise<void> {
-  const env = loadEnvLocal();
+async function runLive(
+  argv: readonly string[],
+  env: NodeJS.ProcessEnv,
+  dependencies: RenewalDraftSmokeDependencies,
+): Promise<void> {
+  // Preflight the complete effect set before even loading live configuration. An exact action stop,
+  // global stop, or unreadable store therefore yields zero provider, token, or network activity.
+  await dependencies.assertRuntimeExecutable(RENEWAL_NOTICE_DRAFT_ACTION_KEY);
+
+  const localEnv = dependencies.loadEnvLocal();
   const get = (name: string): string | undefined =>
-    process.env[name]?.trim() || env[name]?.trim() || undefined;
+    env[name]?.trim() || localEnv[name]?.trim() || undefined;
 
   const baseUrl = get("RENTVINE_API_BASE_URL");
   const apiKey = get("RENTVINE_API_KEY");
   const apiSecret = get("RENTVINE_API_SECRET");
   const subject =
-    readArg("--subject") ?? get("SHEETS_DWD_SUBJECT") ?? "josiah@pmikcmetro.com";
+    readArg(argv, "--subject") ?? get("SHEETS_DWD_SUBJECT") ?? "josiah@pmikcmetro.com";
   const serviceAccount =
-    readArg("--sa") ?? get("GMAIL_DWD_SA") ?? get("SHEETS_IMPERSONATE_SA");
-  const draftTo = readArg("--to") ?? subject; // ALWAYS defaults to self; never a resolved recipient.
-  const limit = Number(readArg("--limit") ?? "25");
-  const keep = hasArg("--keep");
+    readArg(argv, "--sa") ?? get("GMAIL_DWD_SA") ?? get("SHEETS_IMPERSONATE_SA");
+  const draftTo = readArg(argv, "--to") ?? subject;
+  const limit = Number(readArg(argv, "--limit") ?? "25");
+  const keep = hasArg(argv, "--keep");
 
   if (!baseUrl || !apiKey || !apiSecret) {
-    console.error(
+    throw new Error(
       "Missing RentVine config. Need RENTVINE_API_BASE_URL/KEY/SECRET in .env.local.",
     );
-    process.exitCode = 1;
-    return;
   }
   if (!serviceAccount) {
-    console.error(
+    throw new Error(
       "No service account for Gmail DWD. Set GMAIL_DWD_SA (or SHEETS_IMPERSONATE_SA), or pass --sa=.",
     );
-    process.exitCode = 1;
-    return;
   }
-  try {
-    assertRentVineAccount(baseUrl, EXPECTED_ACCOUNT);
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
-    return;
-  }
+  assertRentVineAccount(baseUrl, EXPECTED_ACCOUNT);
   if (draftTo !== subject) {
-    console.warn(
+    dependencies.logger.warn(
       `WARNING: --to overrides the safe self-addressed default. The draft will be addressed to ${draftTo}. It is still UNSENT; delete it if unintended.`,
     );
   }
 
-  // 1) One live RentVine read; the recipient-resolution scan is bounded to `limit` leases client-side
-  //    and reports coverage counts only (never an address).
-  const rentvineClient = new RentVineClient(
-    { baseUrl, apiKey, apiSecret },
-    createFetchTransport(),
-  );
+  // Repeat immediately before construction so a stop raised during validation still wins.
+  await dependencies.assertRuntimeExecutable(RENEWAL_NOTICE_DRAFT_ACTION_KEY);
+  const rentvineClient = dependencies.createRentVineClient({
+    baseUrl,
+    apiKey,
+    apiSecret,
+  });
   const rows = await rentvineClient.listLeasesExport();
   const leases = leaseViewsFromExport(rows).slice(0, Number.isFinite(limit) ? limit : 25);
-  const resolutionCoverage = coverage(leases);
-  console.log(
+  dependencies.logger.log(
     `RentVine account ${rentVineAccountCode(baseUrl)}: scanned ${leases.length} lease view(s) for recipient resolution.`,
   );
-  console.log("Recipient-resolution coverage (counts only, no PII):");
-  console.log(JSON.stringify(resolutionCoverage, null, 2));
+  dependencies.logger.log("Recipient-resolution coverage (counts only, no PII):");
+  dependencies.logger.log(JSON.stringify(coverage(leases), null, 2));
 
-  // 2) ONE real, self-addressed, UNSENT diagnostic draft via the production modules.
-  const token = await mintGmailDwdToken({
+  await dependencies.assertRuntimeExecutable(RENEWAL_NOTICE_DRAFT_ACTION_KEY);
+  const token = await dependencies.mintGmailToken({
     subject,
     scope: GMAIL_COMPOSE_SCOPE,
     serviceAccount,
   });
-  const client = new GmailRuntimeClient({ subject, getToken: async () => token });
   const action = buildRenewalNoticeDraftAction({
     workflowId: "smoke-renewal-draft-live",
     actionId: "smoke-1",
@@ -234,46 +320,58 @@ async function runLive(): Promise<void> {
     workflowContext: "smoke:renewal-draft-live",
     sourceRefs: ["smoke:renewal-draft-live"],
   });
-
-  // Diagnostic opt-out: this draft is deliberately self-addressed to the operator, not an
-  // authoritatively-sourced client recipient. A real route would omit this and be guarded.
-  const receipt = await executeRenewalNoticeDraft(client, action, {
-    allowNonAuthoritativeRecipient: true,
-  });
+  // Keep construction lazy: the production executor repeats the fresh runtime gate first, so a stop
+  // raised while the token was being minted still yields zero Gmail client/provider construction.
+  const receipt = await dependencies.executeRenewalDraft(
+    () => dependencies.createGmailClient({ subject, token }),
+    action,
+    {
+      allowNonAuthoritativeRecipient: true,
+    },
+  );
   const draftId = receipt.providerRef;
-  console.log(
+  dependencies.logger.log(
     `Created UNSENT diagnostic draft ${draftId} in ${subject}'s mailbox (addressed to ${draftTo}). Nothing was sent.`,
   );
 
   if (keep) {
-    console.log(
+    dependencies.logger.log(
       "--keep set: leaving the draft in place (delete it from Gmail Drafts when done).",
     );
   } else {
-    const del = await fetch(
+    // Compensating cleanup of the draft created by this attempt stays available after a stop.
+    const response = await dependencies.fetch(
       `https://gmail.googleapis.com/gmail/v1/users/${encodeURIComponent(subject)}/drafts/${encodeURIComponent(draftId)}`,
       { method: "DELETE", headers: { authorization: `Bearer ${token}` } },
     );
-    console.log(
-      del.ok
-        ? `Cleaned up: deleted the diagnostic draft (HTTP ${del.status}).`
-        : `Note: could not delete the diagnostic draft (HTTP ${del.status}); delete it manually from Gmail Drafts.`,
+    dependencies.logger.log(
+      response.ok
+        ? `Cleaned up: deleted the diagnostic draft (HTTP ${response.status}).`
+        : `Note: could not delete the diagnostic draft (HTTP ${response.status}); delete it manually from Gmail Drafts.`,
     );
   }
-  console.log(
-    "PASS (LIVE): a real renewal run's data resolves recipients, and the governed executor created a real UNSENT draft. The draft-into-Gmail path works end-to-end.",
+  dependencies.logger.log(
+    "PASS (LIVE): a bounded RentVine read and the governed executor created one real UNSENT draft.",
   );
 }
 
-async function main(): Promise<void> {
-  if (hasArg("--live")) {
-    await runLive();
+export async function runRenewalDraftSmoke(
+  argv: readonly string[] = process.argv.slice(2),
+  env: NodeJS.ProcessEnv = process.env,
+  dependencies: RenewalDraftSmokeDependencies = PRODUCTION_DEPENDENCIES,
+): Promise<void> {
+  if (hasArg(argv, "--live")) {
+    await runLive(argv, env, dependencies);
   } else {
-    await runDry();
+    await runDry(dependencies);
   }
 }
 
-void main().catch((error) => {
-  console.error(error instanceof Error ? (error.stack ?? error.message) : String(error));
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  void runRenewalDraftSmoke().catch((error) => {
+    console.error(
+      error instanceof Error ? (error.stack ?? error.message) : String(error),
+    );
+    process.exitCode = 1;
+  });
+}

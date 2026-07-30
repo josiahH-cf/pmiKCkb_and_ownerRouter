@@ -136,8 +136,10 @@ export async function prepareMaintenanceOwnerNoticeDraft(
     };
   }
 
-  const client = deps.createGmailClient(input.mailbox.email);
-  const receipt = await executeMaintenanceOwnerNoticeDraft(client, action);
+  const receipt = await executeMaintenanceOwnerNoticeDraft(
+    () => deps.createGmailClient(input.mailbox.email),
+    action,
+  );
   return {
     status: "created",
     recipient,

@@ -8,10 +8,16 @@ import {
   createMaintenanceImageStore,
 } from "@/lib/maintenance/image-store";
 import {
-  getMaintenancePhotoActionView,
+  MAINTENANCE_PHOTO_ACTION_KEY,
   maintenancePhotoClosedResponse,
 } from "@/lib/maintenance/photo-action";
 import { sniffImageMime } from "@/lib/maintenance/image-mime";
+import {
+  ActionNotExecutableError,
+  ActionRuntimeSuspendedError,
+  assertProductionRuntimeActionExecutable,
+  runProductionRuntimeGatedAction,
+} from "@/lib/operations/runtime-suspension-gate";
 
 // ~10 MB base64 cap (~7.5 MB image) bounds payload size + storage. Field photos are small.
 const MAX_IMAGE_BASE64 = 10_000_000;
@@ -37,8 +43,10 @@ export async function POST(request: Request) {
 
   // The committed Action Registry is the canonical execution gate. Refuse before inspecting body
   // size, parsing JSON/base64, reading config, constructing the Drive client, or touching bytes.
-  if (!getMaintenancePhotoActionView().executable) {
-    return NextResponse.json(maintenancePhotoClosedResponse(), { status: 409 });
+  try {
+    await assertProductionRuntimeActionExecutable(MAINTENANCE_PHOTO_ACTION_KEY);
+  } catch (error) {
+    return maintenancePhotoGateErrorResponse(error);
   }
 
   // Reject an oversized body via Content-Length BEFORE buffering it into memory (the Zod cap below only
@@ -68,10 +76,21 @@ export async function POST(request: Request) {
 
   try {
     const config = readServerConfig();
-    const store = createMaintenanceImageStore(config);
-    const stored = await store.put({ ...parsed.data, mimeType: detectedMimeType });
+    const stored = await runProductionRuntimeGatedAction(
+      MAINTENANCE_PHOTO_ACTION_KEY,
+      async () => {
+        const store = createMaintenanceImageStore(config);
+        return store.put({ ...parsed.data, mimeType: detectedMimeType });
+      },
+    );
     return NextResponse.json(stored);
   } catch (error) {
+    if (
+      error instanceof ActionNotExecutableError ||
+      error instanceof ActionRuntimeSuspendedError
+    ) {
+      return maintenancePhotoGateErrorResponse(error);
+    }
     if (error instanceof ImageStoreSetupError) {
       return NextResponse.json(
         { error: error.message, error_type: error.name },
@@ -80,4 +99,23 @@ export async function POST(request: Request) {
     }
     throw error;
   }
+}
+
+function maintenancePhotoGateErrorResponse(error: unknown) {
+  if (error instanceof ActionRuntimeSuspendedError) {
+    return NextResponse.json(
+      {
+        ...maintenancePhotoClosedResponse(),
+        error: error.message,
+        error_type: error.code,
+      },
+      { status: error.status },
+    );
+  }
+  if (error instanceof ActionNotExecutableError) {
+    return NextResponse.json(maintenancePhotoClosedResponse(), {
+      status: error.status,
+    });
+  }
+  throw error;
 }

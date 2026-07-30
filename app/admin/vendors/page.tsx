@@ -7,7 +7,7 @@ import {
 import { AppShell } from "@/components/layout/AppShell";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import { requireEnvironmentDescriptor } from "@/lib/environment/descriptor";
-import { isActionExecutable } from "@/lib/integrations/action-gate";
+import { isProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
 import { assertExplicitProductionLive } from "@/lib/vendor/live-lifecycle-service";
 
 export const dynamic = "force-dynamic";
@@ -23,10 +23,15 @@ export default async function LiveVendorLifecyclePage() {
     // The page stays reachable for a truthful explanation, but no Live control is
     // rendered outside an explicitly configured Production+Live deployment.
   }
+  const [inviteExecutable, assignmentExecutable, disableExecutable] = await Promise.all([
+    isProductionRuntimeActionExecutable("vendor.account.invite"),
+    isProductionRuntimeActionExecutable("vendor.assignment.change"),
+    isProductionRuntimeActionExecutable("vendor.account.disable"),
+  ]);
   const availability: LiveVendorLifecycleAvailability = {
-    "vendor.account.invite": isActionExecutable("vendor.account.invite"),
-    "vendor.assignment.change": isActionExecutable("vendor.assignment.change"),
-    "vendor.account.disable": isActionExecutable("vendor.account.disable"),
+    "vendor.account.invite": inviteExecutable,
+    "vendor.assignment.change": assignmentExecutable,
+    "vendor.account.disable": disableExecutable,
   };
 
   return (

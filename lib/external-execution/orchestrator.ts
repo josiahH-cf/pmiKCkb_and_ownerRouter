@@ -7,7 +7,6 @@ import {
   externalActionRecordId,
 } from "@/lib/external-execution/identity";
 import { parseExternalReceipt } from "@/lib/external-execution/receipt";
-import { isActionExecutable } from "@/lib/integrations/action-gate";
 import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 import { validatePreviewPayload } from "@/lib/integrations/preview-payload";
 import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
@@ -20,6 +19,7 @@ import type {
   ExternalExecutor,
 } from "@/lib/external-execution/types";
 import { ExternalExecutionError } from "@/lib/external-execution/types";
+import { isProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
 
 const ISOLATED_TEST_WORKSPACE_TOKEN = Symbol("isolated-production-test-workspace");
 const ISOLATED_TEST_EXECUTOR = Symbol("isolated-test-executor");
@@ -137,7 +137,7 @@ export class ExternalActionOrchestrator {
     private readonly executors: ReadonlyMap<string, ExternalExecutor>,
     private readonly options: {
       now?: () => Date;
-      isExecutable?: (actionKey: string) => boolean;
+      isRuntimeExecutable?: (actionKey: string) => Promise<boolean> | boolean;
       allowFakeContracts?: boolean;
       registry?: readonly CreateActionRegistryInput[];
       isolatedTestWorkspaceToken?: symbol;
@@ -187,9 +187,11 @@ export class ExternalActionOrchestrator {
       input,
       this.options.registry ?? ACTION_REGISTRY_SEED,
     );
-    const executable = this.options.isExecutable ?? isActionExecutable;
+    const isRuntimeExecutable =
+      this.options.isRuntimeExecutable ?? isProductionRuntimeActionExecutable;
+    const executable = await isRuntimeExecutable(input.actionKey);
     const executor = this.executors.get(input.actionKey);
-    const readinessBlocker = !executable(input.actionKey)
+    const readinessBlocker = !executable
       ? `Action ${input.actionKey} remains Registry-closed.`
       : !executor
         ? "Provider adapter is unavailable."
@@ -282,8 +284,9 @@ export class ExternalActionOrchestrator {
     if (previewBlocker) {
       throw new ExternalExecutionError(previewBlocker, "blocked");
     }
-    const executable = this.options.isExecutable ?? isActionExecutable;
-    if (!executable(input.actionKey)) {
+    const isRuntimeExecutable =
+      this.options.isRuntimeExecutable ?? isProductionRuntimeActionExecutable;
+    if (!(await isRuntimeExecutable(input.actionKey))) {
       throw new ExternalExecutionError(
         `Action ${input.actionKey} remains Registry-closed.`,
         "blocked",
@@ -534,7 +537,7 @@ export function createIsolatedTestExternalActionOrchestrator(
 ) {
   return new ExternalActionOrchestrator(definitions, store, executors, {
     allowFakeContracts: true,
-    isExecutable: () => true,
+    isRuntimeExecutable: async () => true,
     registry: ACTION_REGISTRY_SEED,
     isolatedTestWorkspaceToken: ISOLATED_TEST_WORKSPACE_TOKEN,
   });

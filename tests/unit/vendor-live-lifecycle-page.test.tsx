@@ -27,13 +27,13 @@ vi.mock("@/lib/auth/page-guards", () => ({
   requirePageCapability: vi.fn(),
   requirePageSpaceAccess: vi.fn(),
 }));
-vi.mock("@/lib/integrations/action-gate", () => ({
-  isActionExecutable: vi.fn(),
+vi.mock("@/lib/operations/runtime-suspension-gate", () => ({
+  isProductionRuntimeActionExecutable: vi.fn(),
 }));
 
 import LiveVendorLifecyclePage from "@/app/admin/vendors/page";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
-import { isActionExecutable } from "@/lib/integrations/action-gate";
+import { isProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
 
 beforeEach(() => {
   const actor = {
@@ -44,7 +44,7 @@ beforeEach(() => {
   };
   vi.mocked(requirePageCapability).mockResolvedValue(actor);
   vi.mocked(requirePageSpaceAccess).mockResolvedValue(actor);
-  vi.mocked(isActionExecutable).mockReturnValue(false);
+  vi.mocked(isProductionRuntimeActionExecutable).mockResolvedValue(false);
 });
 
 afterEach(() => {
@@ -72,9 +72,15 @@ describe("/admin/vendors environment fence", () => {
     expect(controls).toHaveAttribute("data-invite-available", "false");
     expect(controls).toHaveAttribute("data-assignment-available", "false");
     expect(controls).toHaveAttribute("data-disable-available", "false");
-    expect(isActionExecutable).toHaveBeenCalledWith("vendor.account.invite");
-    expect(isActionExecutable).toHaveBeenCalledWith("vendor.assignment.change");
-    expect(isActionExecutable).toHaveBeenCalledWith("vendor.account.disable");
+    expect(isProductionRuntimeActionExecutable).toHaveBeenCalledWith(
+      "vendor.account.invite",
+    );
+    expect(isProductionRuntimeActionExecutable).toHaveBeenCalledWith(
+      "vendor.assignment.change",
+    );
+    expect(isProductionRuntimeActionExecutable).toHaveBeenCalledWith(
+      "vendor.account.disable",
+    );
     expect(
       screen.queryByRole("heading", { name: "Live controls are unavailable here" }),
     ).toBeNull();
@@ -85,8 +91,8 @@ describe("/admin/vendors environment fence", () => {
   it("passes independently opened action keys to the client controls", async () => {
     vi.stubEnv("ENVIRONMENT_KIND", "production");
     vi.stubEnv("DATA_CONTEXT", "live");
-    vi.mocked(isActionExecutable).mockImplementation(
-      (actionKey) => actionKey === "vendor.assignment.change",
+    vi.mocked(isProductionRuntimeActionExecutable).mockImplementation(
+      async (actionKey) => actionKey === "vendor.assignment.change",
     );
 
     render(await LiveVendorLifecyclePage());

@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
+const runtimeSuspension = vi.hoisted(() => ({
+  current: { status: "clear" } as { status: string },
+}));
+vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
+  readRuntimeActionSuspension: vi.fn(async () => runtimeSuspension.current),
+}));
+
 import { DRAFT_BANNER } from "@/lib/constants";
 import {
   ExternalExecutionError,
@@ -13,6 +20,7 @@ import {
   executeRenewalNoticeDraft,
   RENEWAL_NOTICE_DRAFT_ACTION_KEY,
 } from "@/lib/lease-renewal/execution/renewal-draft-request";
+import { ActionRuntimeSuspendedError } from "@/lib/operations/runtime-suspension-gate";
 
 const MAILBOX = "workflow@pmikcmetro.com";
 
@@ -220,7 +228,7 @@ describe("executeRenewalNoticeDraft", () => {
     const { client, createDraft } = fakeClient();
     const action = buildRenewalNoticeDraftAction(tenantInput);
 
-    const receipt = await executeRenewalNoticeDraft(client, action);
+    const receipt = await executeRenewalNoticeDraft(() => client, action);
 
     expect(createDraft).toHaveBeenCalledWith({
       to: "resident@northend-apts.com",
@@ -241,7 +249,7 @@ describe("executeRenewalNoticeDraft", () => {
       },
     });
 
-    await executeRenewalNoticeDraft(client, action);
+    await executeRenewalNoticeDraft(() => client, action);
 
     expect(createDraft).toHaveBeenCalledWith({
       to: "resident@northend-apts.com",
@@ -262,7 +270,7 @@ describe("executeRenewalNoticeDraft", () => {
       },
     });
 
-    await expect(executeRenewalNoticeDraft(client, action)).rejects.toBeInstanceOf(
+    await expect(executeRenewalNoticeDraft(() => client, action)).rejects.toBeInstanceOf(
       ExternalExecutionError,
     );
     expect(createDraft).not.toHaveBeenCalled();
@@ -279,7 +287,7 @@ describe("executeRenewalNoticeDraft", () => {
       },
     });
 
-    await executeRenewalNoticeDraft(client, action, {
+    await executeRenewalNoticeDraft(() => client, action, {
       allowNonAuthoritativeRecipient: true,
     });
     expect(createDraft).toHaveBeenCalledTimes(1);
@@ -292,9 +300,31 @@ describe("executeRenewalNoticeDraft", () => {
       actionKey: "gmail.renewal_notice.send",
     };
 
-    await expect(executeRenewalNoticeDraft(client, sendAction)).rejects.toBeInstanceOf(
-      ActionNotExecutableError,
-    );
+    await expect(
+      executeRenewalNoticeDraft(() => client, sendAction),
+    ).rejects.toBeInstanceOf(ActionNotExecutableError);
     expect(createDraft).not.toHaveBeenCalled();
   });
+
+  // S51_DYNAMIC_REFUSAL:renewal-draft-request-client
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not construct a Gmail client when runtime state is %s",
+    async (status) => {
+      runtimeSuspension.current = { status };
+      const { client, createDraft } = fakeClient();
+      const createClient = vi.fn(() => client);
+      try {
+        await expect(
+          executeRenewalNoticeDraft(
+            createClient,
+            buildRenewalNoticeDraftAction(tenantInput),
+          ),
+        ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+        expect(createClient).not.toHaveBeenCalled();
+        expect(createDraft).not.toHaveBeenCalled();
+      } finally {
+        runtimeSuspension.current = { status: "clear" };
+      }
+    },
+  );
 });

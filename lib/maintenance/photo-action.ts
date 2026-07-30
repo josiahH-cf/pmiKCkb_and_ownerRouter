@@ -1,6 +1,6 @@
 import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
-import { isActionExecutable } from "@/lib/integrations/action-gate";
 import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
+import { isProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
 
 export const MAINTENANCE_PHOTO_ACTION_KEY = "google_drive.maintenance_photo.store";
 export const MAINTENANCE_PHOTO_TARGET_LABEL =
@@ -21,10 +21,13 @@ export interface MaintenancePhotoClosedResponse {
   error_type: "action_not_production_allowed";
 }
 
-export function getMaintenancePhotoActionView(
+export async function getMaintenancePhotoActionView(
   registry: CreateActionRegistryInput[] = ACTION_REGISTRY_SEED,
-): MaintenancePhotoActionView {
-  const executable = isActionExecutable(MAINTENANCE_PHOTO_ACTION_KEY, registry);
+): Promise<MaintenancePhotoActionView> {
+  const executable = await isProductionRuntimeActionExecutable(
+    MAINTENANCE_PHOTO_ACTION_KEY,
+    registry,
+  );
   return {
     actionKey: MAINTENANCE_PHOTO_ACTION_KEY,
     executable,

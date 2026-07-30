@@ -1,5 +1,8 @@
 import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
+import { readRuntimeActionSuspension } from "@/lib/firestore/runtime-action-suspensions";
+import { EditableLayerError } from "@/lib/firestore/errors";
 import {
+  ActionNotExecutableError,
   assertActionExecutable,
   isActionExecutable,
 } from "@/lib/integrations/action-gate";
@@ -10,12 +13,13 @@ import {
 
 export type RuntimeSuspensionReader = (actionKey: string) => Promise<unknown>;
 
-export class ActionRuntimeSuspendedError extends Error {
+export { ActionNotExecutableError };
+
+export class ActionRuntimeSuspendedError extends EditableLayerError {
   readonly code = "action_runtime_suspended";
-  readonly status = 409;
 
   constructor(key: string) {
-    super(`Action "${key}" is closed by the runtime suspension gate.`);
+    super(`Action "${key}" is closed by the runtime suspension gate.`, 409);
     this.name = "ActionRuntimeSuspendedError";
   }
 }
@@ -58,6 +62,45 @@ export async function assertRuntimeActionExecutable(
   if (!resolveRuntimeExecutable(true, suspension)) {
     throw new ActionRuntimeSuspendedError(actionKey);
   }
+}
+
+/** Production-bound boolean gate. The reader is fixed to the fresh, fail-closed Firestore reader. */
+export function isProductionRuntimeActionExecutable(
+  actionKey: string,
+  registry?: CreateActionRegistryInput[],
+): Promise<boolean> {
+  return isRuntimeActionExecutable(actionKey, readRuntimeActionSuspension, registry);
+}
+
+/** Production-bound assertion gate. The reader is never optional and never defaults to clear. */
+export function assertProductionRuntimeActionExecutable(
+  actionKey: string,
+  registry?: CreateActionRegistryInput[],
+): Promise<void> {
+  return assertRuntimeActionExecutable(actionKey, readRuntimeActionSuspension, registry);
+}
+
+/**
+ * Invoke a provider factory/effect only after the required asynchronous runtime check completes.
+ * Keeping construction inside `effect` makes provider-construction ordering structurally testable.
+ */
+export async function runRuntimeGatedAction<T>(
+  actionKey: string,
+  readSuspension: RuntimeSuspensionReader,
+  effect: () => Promise<T> | T,
+  registry?: CreateActionRegistryInput[],
+): Promise<T> {
+  await assertRuntimeActionExecutable(actionKey, readSuspension, registry);
+  return effect();
+}
+
+/** Production-bound high-order effect gate. */
+export function runProductionRuntimeGatedAction<T>(
+  actionKey: string,
+  effect: () => Promise<T> | T,
+  registry?: CreateActionRegistryInput[],
+): Promise<T> {
+  return runRuntimeGatedAction(actionKey, readRuntimeActionSuspension, effect, registry);
 }
 
 async function readSuspensionFailClosed(

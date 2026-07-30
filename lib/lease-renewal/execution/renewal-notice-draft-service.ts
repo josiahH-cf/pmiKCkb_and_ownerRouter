@@ -162,8 +162,10 @@ async function finalize(
       body: preview.body,
     };
   }
-  const client = deps.createGmailClient(input.mailbox.email);
-  const receipt = await executeRenewalNoticeDraft(client, preview.action);
+  const receipt = await executeRenewalNoticeDraft(
+    () => deps.createGmailClient(input.mailbox.email),
+    preview.action,
+  );
   return {
     status: "created",
     channel: input.channel,

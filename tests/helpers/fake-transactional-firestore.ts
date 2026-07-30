@@ -127,7 +127,11 @@ export class FakeTransactionalFirestore {
       if (write.kind === "update" && !this.store.has(path)) return false;
     }
     for (const [path, write] of transaction.writes) {
-      this.applyWrite(path, write.data);
+      if (write.kind === "delete") {
+        this.applyDelete(path);
+      } else {
+        this.applyWrite(path, write.data);
+      }
     }
     return true;
   }
@@ -142,6 +146,13 @@ export class FakeTransactionalFirestore {
 
   private applyWrite(path: string, data: Record<string, unknown>) {
     this.store.set(path, structuredClone(data));
+    const version = ++this.nextVersion;
+    this.documentVersions.set(path, version);
+    this.collectionVersions.set(collectionPathForDocument(path), version);
+  }
+
+  private applyDelete(path: string) {
+    this.store.delete(path);
     const version = ++this.nextVersion;
     this.documentVersions.set(path, version);
     this.collectionVersions.set(collectionPathForDocument(path), version);
@@ -308,13 +319,27 @@ class FakeTransaction {
     });
   }
 
+  delete(ref: FakeDocument) {
+    const previous = this.writes.get(ref.path);
+    this.working.delete(ref.path);
+    this.writes.set(ref.path, {
+      baseVersion: previous?.baseVersion ?? this.documentVersions.get(ref.path) ?? 0,
+      kind: "delete",
+    });
+  }
+
   private queueWrite(
     path: string,
-    kind: PendingWrite["kind"],
+    kind: PendingDataWrite["kind"],
     data: Record<string, unknown>,
   ) {
     const previous = this.writes.get(path);
-    const effectiveKind = previous?.kind ?? kind;
+    const effectiveKind =
+      previous?.kind === "create"
+        ? "create"
+        : previous?.kind === "delete"
+          ? "set"
+          : (previous?.kind ?? kind);
     const nextData = structuredClone(data);
     this.working.set(path, nextData);
     this.writes.set(path, {
@@ -325,7 +350,14 @@ class FakeTransaction {
   }
 }
 
-interface PendingWrite {
+type PendingWrite = PendingDeleteWrite | PendingDataWrite;
+
+interface PendingDeleteWrite {
+  baseVersion: number;
+  kind: "delete";
+}
+
+interface PendingDataWrite {
   baseVersion: number;
   data: Record<string, unknown>;
   kind: "create" | "set" | "update";

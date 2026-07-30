@@ -7,7 +7,10 @@ import {
   EnvironmentContextError,
   requireEnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
-import { ActionNotExecutableError } from "@/lib/integrations/action-gate";
+import {
+  ActionNotExecutableError,
+  ActionRuntimeSuspendedError,
+} from "@/lib/operations/runtime-suspension-gate";
 import {
   RENEWAL_SHEET_WRITEBACK_ACTION_KEY,
   SheetWritebackContractError,
@@ -45,10 +48,10 @@ export async function POST(request: Request) {
     // Environment refusal stays ahead of body parsing. Registry closure intentionally does not
     // strand effect-free recovery of an already-consumed attempt, so the exact operation is parsed
     // before the mutating gate is selected.
-    assertSheetWritebackExecutionAllowed(executionContext, "recovery");
+    await assertSheetWritebackExecutionAllowed(executionContext, "recovery");
 
     const body = await parseJsonBody(request, WritebackExecuteBodySchema);
-    assertSheetWritebackExecutionAllowed(
+    await assertSheetWritebackExecutionAllowed(
       executionContext,
       body.operation === "reconcile" || body.operation === "status"
         ? "recovery"
@@ -75,7 +78,10 @@ export async function POST(request: Request) {
     );
     return NextResponse.json(outcome);
   } catch (error) {
-    if (error instanceof ActionNotExecutableError) {
+    if (
+      error instanceof ActionNotExecutableError ||
+      error instanceof ActionRuntimeSuspendedError
+    ) {
       return NextResponse.json(
         {
           action_key: RENEWAL_SHEET_WRITEBACK_ACTION_KEY,

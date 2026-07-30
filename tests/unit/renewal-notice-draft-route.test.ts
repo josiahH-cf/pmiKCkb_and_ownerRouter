@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const runtimeSuspension = vi.hoisted(() => ({
+  current: { status: "clear" } as { status: string },
+}));
+vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
+  readRuntimeActionSuspension: vi.fn(async () => runtimeSuspension.current),
+}));
+
 // Wiring test for the LIVE renewal-notice-draft route: the OWNER channel resolves its recipient through
 // the read-only property -> portfolio -> contact join and drafts for real; it blocks honestly when the
 // join cannot resolve; and the TENANT channel is untouched (no property/portfolio/contact reads).
@@ -125,6 +132,7 @@ const tenantBody = (confirm: boolean) => ({
 });
 
 beforeEach(() => {
+  runtimeSuspension.current = { status: "clear" };
   clearLiveLeaseCache();
   mocks.requireCapabilityInSpace.mockResolvedValue({
     email: "josiah@pmikcmetro.com",
@@ -140,6 +148,20 @@ afterEach(() => {
 });
 
 describe("renewal-notice-draft route — owner channel via the live join", () => {
+  it("returns a distinct runtime 409 before RentVine or Gmail construction", async () => {
+    runtimeSuspension.current = { status: "global_suspended" };
+
+    const response = await POST(req(ownerBody(false)));
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      action_key: "gmail.renewal_notice.draft_create",
+      error_type: "action_runtime_suspended",
+    });
+    expect(mocks.buildLiveRentVineConfig).not.toHaveBeenCalled();
+    expect(GmailRuntimeClient).not.toHaveBeenCalled();
+  });
+
   it("previews a real owner draft with the recipient resolved through the join", async () => {
     const { client, getContact } = fakeClient();
     useClient(client);

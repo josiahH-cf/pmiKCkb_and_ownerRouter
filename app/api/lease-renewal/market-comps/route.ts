@@ -4,9 +4,14 @@ import { z } from "zod";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
-import { isActionExecutable } from "@/lib/integrations/action-gate";
 import { createMarketCompProvider } from "@/lib/lease-renewal/market-comp-provider";
 import { RENTCAST_LISTINGS_ACTION_KEY } from "@/lib/lease-renewal/providers/rentcast-market-comp-provider";
+import {
+  ActionNotExecutableError,
+  ActionRuntimeSuspendedError,
+  assertProductionRuntimeActionExecutable,
+  runProductionRuntimeGatedAction,
+} from "@/lib/operations/runtime-suspension-gate";
 
 // A comp-basis number: finite and non-negative (a comp is never negative). The manual pass-through echoes
 // the operator's own entered numbers; the schema deliberately carries no rent decision.
@@ -40,39 +45,48 @@ const MarketCompsRequestSchema = z
 export async function POST(request: Request) {
   try {
     await requireCapabilityInSpace("edit", "renewals");
-    const body = await parseJsonBody(request, MarketCompsRequestSchema);
     const config = readServerConfig();
 
-    // The RentCast live read rides its own Action Registry gate: refuse before any provider is built or
-    // any external call is made until the gate is flipped (the key lands + the reviewed change).
+    if (config.marketCompProvider === "rentcast") {
+      await assertProductionRuntimeActionExecutable(RENTCAST_LISTINGS_ACTION_KEY);
+    }
+
+    const body = await parseJsonBody(request, MarketCompsRequestSchema);
+    const lookup = async () => {
+      const provider = createMarketCompProvider({
+        provider: config.marketCompProvider,
+        ...(body.manualBasis ? { basis: body.manualBasis } : {}),
+        ...(config.rentcastApiKey ? { rentcastApiKey: config.rentcastApiKey } : {}),
+      });
+      return provider.lookup({
+        addressLabel: body.address,
+        ...(body.bedrooms !== undefined ? { bedrooms: body.bedrooms } : {}),
+        ...(body.bathrooms !== undefined ? { bathrooms: body.bathrooms } : {}),
+        ...(body.propertyType ? { propertyType: body.propertyType } : {}),
+      });
+    };
+    const result =
+      config.marketCompProvider === "rentcast"
+        ? await runProductionRuntimeGatedAction(RENTCAST_LISTINGS_ACTION_KEY, lookup)
+        : await lookup();
+    return NextResponse.json(result);
+  } catch (error) {
     if (
-      config.marketCompProvider === "rentcast" &&
-      !isActionExecutable(RENTCAST_LISTINGS_ACTION_KEY)
+      error instanceof ActionNotExecutableError ||
+      error instanceof ActionRuntimeSuspendedError
     ) {
       return NextResponse.json(
         {
           action_key: RENTCAST_LISTINGS_ACTION_KEY,
           error:
-            "Live market-comp lookup is unavailable until the RentCast action has owner-approved permission. Enter your own comp numbers instead.",
-          error_type: "action_not_production_allowed",
+            error instanceof ActionRuntimeSuspendedError
+              ? error.message
+              : "Live market-comp lookup is unavailable until the RentCast action has owner-approved permission. Enter your own comp numbers instead.",
+          error_type: error.code,
         },
-        { status: 409 },
+        { status: error.status },
       );
     }
-
-    const provider = createMarketCompProvider({
-      provider: config.marketCompProvider,
-      ...(body.manualBasis ? { basis: body.manualBasis } : {}),
-      ...(config.rentcastApiKey ? { rentcastApiKey: config.rentcastApiKey } : {}),
-    });
-    const result = await provider.lookup({
-      addressLabel: body.address,
-      ...(body.bedrooms !== undefined ? { bedrooms: body.bedrooms } : {}),
-      ...(body.bathrooms !== undefined ? { bathrooms: body.bathrooms } : {}),
-      ...(body.propertyType ? { propertyType: body.propertyType } : {}),
-    });
-    return NextResponse.json(result);
-  } catch (error) {
     return apiErrorResponse(error);
   }
 }

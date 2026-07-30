@@ -5,8 +5,8 @@
 // configured. The key stays closed until the full action contract is built and its reviewed flip lands.
 
 import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
-import { isActionExecutable } from "@/lib/integrations/action-gate";
 import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
+import { isProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
 
 export const RENEWAL_COMP_SCREENSHOT_ACTION_KEY =
   "google_drive.renewal_comp_screenshot.store";
@@ -28,10 +28,13 @@ export interface RenewalCompScreenshotClosedResponse {
   error_type: "action_not_production_allowed";
 }
 
-export function getRenewalCompScreenshotActionView(
+export async function getRenewalCompScreenshotActionView(
   registry: CreateActionRegistryInput[] = ACTION_REGISTRY_SEED,
-): RenewalCompScreenshotActionView {
-  const executable = isActionExecutable(RENEWAL_COMP_SCREENSHOT_ACTION_KEY, registry);
+): Promise<RenewalCompScreenshotActionView> {
+  const executable = await isProductionRuntimeActionExecutable(
+    RENEWAL_COMP_SCREENSHOT_ACTION_KEY,
+    registry,
+  );
   return {
     actionKey: RENEWAL_COMP_SCREENSHOT_ACTION_KEY,
     executable,

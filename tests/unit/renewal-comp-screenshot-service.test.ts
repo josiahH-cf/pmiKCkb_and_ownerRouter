@@ -1,5 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
+const runtimeSuspension = vi.hoisted(() => ({
+  current: { status: "clear" } as { status: string },
+  read: vi.fn(),
+}));
+vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
+  readRuntimeActionSuspension: runtimeSuspension.read.mockImplementation(
+    async () => runtimeSuspension.current,
+  ),
+}));
+
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { EnvironmentDescriptor } from "@/lib/environment/descriptor";
 import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
@@ -40,6 +50,7 @@ import {
   type CompScreenshotServiceDeps,
   type CompScreenshotStoreOutcome,
 } from "@/lib/lease-renewal/comp-screenshot-service";
+import { ActionRuntimeSuspendedError } from "@/lib/operations/runtime-suspension-gate";
 
 const NOW_MS = Date.parse("2026-07-30T03:00:00.000Z");
 const PROVIDER_CREATED_AT = "2026-07-30T03:01:00.000Z";
@@ -330,6 +341,33 @@ function requireStoredPreview(
 }
 
 describe("comp screenshot preview and exact confirmation binding", () => {
+  // S51_DYNAMIC_REFUSAL:comp-screenshot-main-provider
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not construct Drive for an exact screenshot commit when runtime state is %s",
+    async (status) => {
+      const harness = createHarness();
+      const prepared = await prepare(harness);
+      expect(harness.createProvider).not.toHaveBeenCalled();
+      runtimeSuspension.current = { status };
+      try {
+        await expect(
+          commitCompScreenshot(
+            ACTOR,
+            prepared.commitInput,
+            harness.deps,
+            harness.context,
+          ),
+        ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+        expect(harness.createProvider).not.toHaveBeenCalled();
+        expect(
+          await harness.store.getExecution(prepared.outcome.preview.executionId),
+        ).toBeNull();
+      } finally {
+        runtimeSuspension.current = { status: "clear" };
+      }
+    },
+  );
+
   it("hashes the exact decoded file and creates no Drive provider during preview", async () => {
     const harness = createHarness();
     const prepared = await prepare(harness);
@@ -1072,11 +1110,14 @@ describe("comp screenshot write-ahead, retry, readback, and receipt behavior", (
     harness.provider.createReservedFile.mockClear();
     harness.provider.getFile.mockClear();
     harness.provider.trashFile.mockClear();
+    runtimeSuspension.read.mockClear();
+    runtimeSuspension.current = { status: "global_suspended" };
     const outcome = await reconcileCompScreenshot(
       prepared.outcome.preview.executionId,
       harness.deps,
       harness.context,
     );
+    runtimeSuspension.current = { status: "clear" };
 
     expect(outcome).toMatchObject({
       status: "delivered",
@@ -1087,10 +1128,77 @@ describe("comp screenshot write-ahead, retry, readback, and receipt behavior", (
     expect(harness.provider.reserveFileId).not.toHaveBeenCalled();
     expect(harness.provider.createReservedFile).not.toHaveBeenCalled();
     expect(harness.provider.trashFile).not.toHaveBeenCalled();
+    expect(runtimeSuspension.read).not.toHaveBeenCalled();
   });
 });
 
 describe("comp screenshot exact trash rollback", () => {
+  // S51_DYNAMIC_REFUSAL:comp-screenshot-rollback-preview-provider
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not construct Drive for rollback preview when runtime state is %s",
+    async (status) => {
+      const harness = createHarness();
+      const delivered = await deliver(harness);
+      harness.createProvider.mockClear();
+      runtimeSuspension.current = { status };
+      try {
+        await expect(
+          previewCompScreenshotRollback(
+            ACTOR,
+            FILE_INPUT.leaseId,
+            delivered.outcome.executionId,
+            harness.deps,
+            harness.context,
+          ),
+        ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+        expect(harness.createProvider).not.toHaveBeenCalled();
+        expect(harness.provider.trashFile).not.toHaveBeenCalled();
+      } finally {
+        runtimeSuspension.current = { status: "clear" };
+      }
+    },
+  );
+
+  // S51_DYNAMIC_REFUSAL:comp-screenshot-rollback-commit-provider
+  it.each(["action_suspended", "global_suspended", "unreadable"])(
+    "does not construct Drive for rollback commit when runtime state is %s",
+    async (status) => {
+      const harness = createHarness();
+      const delivered = await deliver(harness);
+      const preview = await previewCompScreenshotRollback(
+        ACTOR,
+        FILE_INPUT.leaseId,
+        delivered.outcome.executionId,
+        harness.deps,
+        harness.context,
+      );
+      if (preview.status !== "preview") {
+        throw new Error("Expected rollback preview.");
+      }
+      harness.createProvider.mockClear();
+      runtimeSuspension.current = { status };
+      try {
+        await expect(
+          commitCompScreenshotRollback(
+            ACTOR,
+            {
+              leaseId: FILE_INPUT.leaseId,
+              executionId: delivered.outcome.executionId,
+              rollbackId: preview.preview.rollbackId,
+              previewHash: preview.preview.previewHash,
+            },
+            harness.deps,
+            harness.context,
+          ),
+        ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
+        expect(harness.createProvider).not.toHaveBeenCalled();
+        expect(harness.provider.trashFile).not.toHaveBeenCalled();
+      } finally {
+        runtimeSuspension.current = { status: "clear" };
+      }
+    },
+  );
+
   it("rejects a different lease before constructing a rollback provider", async () => {
     const harness = createHarness();
     const delivered = await deliver(harness);

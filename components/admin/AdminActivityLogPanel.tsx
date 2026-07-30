@@ -1,22 +1,22 @@
 import type { AdminActivityEntry } from "@/lib/admin/activity-log";
 
-// LR-02 (admin-audit): read-only "who changed whose access, and why" history on the Admin page. The
-// page that renders this is Admin-gated; the records are append-only and server-written. Nothing here
-// writes or sends.
+// LR-02 + S51: read-only Admin history. The page that renders this is Admin-gated; the records are
+// append-only and server-written. Nothing here writes, sends, or changes a runtime suspension.
 export function AdminActivityLogPanel({
   entries,
   unavailableNote,
 }: Readonly<{ entries: AdminActivityEntry[]; unavailableNote?: string }>) {
   return (
-    <article className="panel" aria-label="Access changes">
-      <h2>Access Changes</h2>
+    <article className="panel" aria-label="Admin activity">
+      <h2>Admin Activity</h2>
       <p className="muted">
-        Recent role and space-access changes, newest first: what changed, who it affected,
-        who made it, and the reason they gave. Read-only history; nothing is emailed.
+        Recent access and Production action-stop changes, newest first. This is read-only
+        history; nothing is changed or emailed here.
       </p>
-      {unavailableNote ? <p className="muted">{unavailableNote}</p> : null}
-      {entries.length === 0 ? (
-        <p className="muted">No access changes recorded yet.</p>
+      {unavailableNote ? (
+        <p className="muted">{unavailableNote}</p>
+      ) : entries.length === 0 ? (
+        <p className="muted">No Admin changes recorded yet.</p>
       ) : (
         <div className="workflow-record-list">
           {entries.map((entry) => (
@@ -25,12 +25,24 @@ export function AdminActivityLogPanel({
                 <div>
                   <strong>{entry.summary}</strong>
                   <p className="muted">
-                    {formatChangedAt(entry.createdAt)} · {entry.targetEmail} · by{" "}
-                    {entry.actorEmail}
+                    {formatChangedAt(entry.createdAt)}
+                    {entry.kind === "runtime_suspension"
+                      ? ` · by ${entry.actorEmail}`
+                      : ` · ${entry.targetEmail} · by ${entry.actorEmail}`}
                   </p>
                 </div>
               </div>
+              {entry.kind === "runtime_suspension" ? (
+                <p>
+                  Action key: <code>{entry.actionKey}</code>
+                </p>
+              ) : null}
               <p>Reason: {entry.reason}</p>
+              {entry.kind === "runtime_suspension" && entry.incidentRef ? (
+                <p>
+                  Incident reference: <code>{entry.incidentRef}</code>
+                </p>
+              ) : null}
             </article>
           ))}
         </div>
