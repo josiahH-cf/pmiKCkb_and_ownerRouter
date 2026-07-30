@@ -8,10 +8,12 @@ vi.mock("@/lib/firestore/maintenance-unverified-intake", () => ({
 
 import { POST } from "@/app/api/maintenance/intake/token/route";
 import { setAuthResolverForTest } from "@/lib/auth/session";
+import { readIntakeEpoch } from "@/lib/firestore/maintenance-unverified-intake";
 import { verifyIntakeToken } from "@/lib/maintenance/intake-token";
 import { MAINTENANCE_TEST_PUBLIC_INTAKE } from "@/lib/maintenance/test-workflow";
 
-const SECRET = "mint-secret";
+const SECRET = "mint-secret-32-bytes-minimum-value";
+const IP_HASH_SALT = "mint-ip-salt-32-bytes-minimum-value";
 
 function req(body: unknown) {
   return new Request("http://localhost/api/maintenance/intake/token", {
@@ -32,11 +34,14 @@ function setEditor() {
 
 beforeEach(() => {
   process.env.MAINTENANCE_INTAKE_TOKEN_SECRET = SECRET;
+  process.env.MAINTENANCE_INTAKE_IP_HASH_SALT = IP_HASH_SALT;
+  vi.mocked(readIntakeEpoch).mockClear();
 });
 
 afterEach(() => {
   setAuthResolverForTest(null);
   delete process.env.MAINTENANCE_INTAKE_TOKEN_SECRET;
+  delete process.env.MAINTENANCE_INTAKE_IP_HASH_SALT;
 });
 
 describe("mint intake token route", () => {
@@ -46,11 +51,44 @@ describe("mint intake token route", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns 503 when no signing secret is configured (fail closed)", async () => {
+  it("returns the generic not-configured 503 when the token secret is missing", async () => {
     delete process.env.MAINTENANCE_INTAKE_TOKEN_SECRET;
     setEditor();
     const res = await POST(req({ propertyKey: "prop-1" }));
     expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({
+      error: "Maintenance intake is not configured.",
+    });
+    expect(readIntakeEpoch).not.toHaveBeenCalled();
+  });
+
+  it("returns the same generic not-configured 503 when the IP-hash salt is missing", async () => {
+    delete process.env.MAINTENANCE_INTAKE_IP_HASH_SALT;
+    setEditor();
+    const res = await POST(req({ propertyKey: "prop-1" }));
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({
+      error: "Maintenance intake is not configured.",
+    });
+    expect(readIntakeEpoch).not.toHaveBeenCalled();
+  });
+
+  it("returns the same generic 503 for weak or reused runtime values", async () => {
+    setEditor();
+    for (const [secret, salt] of [
+      ["too-short", IP_HASH_SALT],
+      [SECRET, "too-short"],
+      [SECRET, SECRET],
+    ]) {
+      process.env.MAINTENANCE_INTAKE_TOKEN_SECRET = secret;
+      process.env.MAINTENANCE_INTAKE_IP_HASH_SALT = salt;
+      const res = await POST(req({ propertyKey: "prop-1" }));
+      expect(res.status).toBe(503);
+      expect(await res.json()).toEqual({
+        error: "Maintenance intake is not configured.",
+      });
+      expect(readIntakeEpoch).not.toHaveBeenCalled();
+    }
   });
 
   it("rejects an invalid property key with 400", async () => {
@@ -59,7 +97,7 @@ describe("mint intake token route", () => {
     expect(res.status).toBe(400);
   });
 
-  it("mints a verifiable single-use token for an editor", async () => {
+  it("mints a verifiable single-use token only when both values are configured", async () => {
     setEditor();
     const res = await POST(req({ propertyKey: "prop-1" }));
     expect(res.status).toBe(200);

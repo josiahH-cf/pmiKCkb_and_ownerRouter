@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validateMaintenanceIntakeRuntimeValues } from "@/scripts/runtime-secret-bindings.mjs";
 import { ALLOWED_HD_DEFAULT, KB_APPROVAL_LABEL } from "@/lib/constants";
 import {
   isProductionEnvironment,
@@ -128,6 +129,14 @@ const EnvSchema = z.object({
   // The tighter per-property/day ceiling for reusable (signage) links, which do not burn a nonce, so one
   // posted signage link cannot flood a property's triage queue. Clamped to <= the daily cap at enforcement.
   MAINTENANCE_INTAKE_SIGNAGE_DAILY_CAP: z.coerce.number().int().positive().default(15),
+  // Cost-bearing Space provisioning is inert unless an owner-reviewed runtime value is exactly true/1.
+  // Missing, false/0, and malformed values all fail closed.
+  SPACE_PROVISIONING_ENABLED: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .default("false")
+    .transform((value) => value === "true" || value === "1"),
   SPACE_DRIVE_FOLDER_IDS: JsonMapSchema,
   SPACE_VERTEX_DATA_STORE_IDS: JsonMapSchema,
   VERTEX_AI_LOCATION: z.string().trim().min(1).default("us-central1"),
@@ -172,6 +181,10 @@ export function friendlyModelLabel(modelId: string): string {
 
 export function readServerConfig(env: Environment = process.env) {
   const parsed = EnvSchema.parse(env);
+  const maintenanceIntakeRuntime = validateMaintenanceIntakeRuntimeValues({
+    MAINTENANCE_INTAKE_TOKEN_SECRET: parsed.MAINTENANCE_INTAKE_TOKEN_SECRET,
+    MAINTENANCE_INTAKE_IP_HASH_SALT: parsed.MAINTENANCE_INTAKE_IP_HASH_SALT,
+  });
   // S40: the server-owned descriptor is the single environment authority. It fails closed on a
   // missing/unknown/unsupported combination and never defaults to Production or Live, so every
   // "is this the real environment" fence below keys off it instead of a raw NODE_ENV read.
@@ -230,8 +243,12 @@ export function readServerConfig(env: Environment = process.env) {
     // Public tokenized maintenance intake (A5). Secret undefined ⇒ the public route fails closed (503).
     maintenanceIntakeTokenSecret: parsed.MAINTENANCE_INTAKE_TOKEN_SECRET,
     maintenanceIntakeIpHashSalt: parsed.MAINTENANCE_INTAKE_IP_HASH_SALT,
+    // The public submit and staff mint routes share one readiness condition. A partial, weak, or reused
+    // pair is indistinguishable from no setup and must never mint or verify a token.
+    maintenanceIntakeConfigured: maintenanceIntakeRuntime.configured,
     maintenanceIntakeDailyCap: parsed.MAINTENANCE_INTAKE_DAILY_CAP,
     maintenanceIntakeSignageDailyCap: parsed.MAINTENANCE_INTAKE_SIGNAGE_DAILY_CAP,
+    spaceProvisioningEnabled: parsed.SPACE_PROVISIONING_ENABLED,
     spaceDriveFolderIds: parsed.SPACE_DRIVE_FOLDER_IDS,
     spaceVertexDataStoreIds: parsed.SPACE_VERTEX_DATA_STORE_IDS,
     vertexAiLocation: parsed.VERTEX_AI_LOCATION,

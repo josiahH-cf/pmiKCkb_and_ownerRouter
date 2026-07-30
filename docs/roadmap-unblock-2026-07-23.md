@@ -35,32 +35,34 @@ layer that still read as active governance**. Four compounding mechanisms, now f
    `loop-state.md` framed the whole backlog as "owner AM steps," so the loop concluded there was
    nothing to build.
 
-**The decisive audit finding:** for RentVine, LeadSimple, Dotloop, and maintenance, the executor +
-the full S25/S26 preview/confirm/receipt/rollback contract are **already built and wired to a fake
-provider.** The gap was never "should we ship" — it was a live provider implementation + one external
-credential, both of which the old governance told the loop to stop before.
+**The decisive audit finding at authoring:** for RentVine, LeadSimple, and Dotloop, the executor +
+the full S25/S26 preview/confirm/receipt/rollback contract were **already built and wired to a fake
+provider.** Their gap was never "should we ship" — it was a live provider implementation + one
+external credential, both of which the old governance told the loop to stop before. Maintenance was
+originally grouped with them, but D33 superseded that portion: S38's unsent Gmail draft is built and
+is the final app effect; direct app send is a §7 NEVER.
 
 ## 2. Scope-of-work matrix (evidence-backed)
 
 Verdict legend: **BUILD** = pure app-plane, loop ships it unattended · **SEAM** = build the live
 provider + everything up to one named owner dependency · **NEVER** = justified permanent exclusion.
 
-| #   | Feature (talk-track gap)                   | Current code-state (audited)                                                                                                                          | Verdict                                        | Suite   |
-| --- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------- |
-| 1   | Market comps / rent data / midpoint        | Zillow deep-_link_ only (`market-links.ts:7`); numbers all typed; no data API; no midpoint; `compsScreenshotRef` is a text URL                        | SEAM                                           | S28     |
-| 2   | App suggests/negotiates rent number        | HARD-EXCLUSION today (`F-NEGOTIATION-EXCLUDED`); `draft-safety.ts` fails closed on owner_money                                                        | BUILD (owner opened it — Admin-approval-gated) | S29     |
-| 3   | Attach comp screenshots to notice          | text URL placeholder only (`owner-draft.ts:152`)                                                                                                      | BUILD                                          | S28     |
-| 4   | RentVine write-back                        | Executor + S25 contract built, **fake provider only** (`providers.ts:385`); gate false (`seed:940`)                                                   | SEAM (owner provides endpoint)                 | S30     |
-| 5   | Gmail watch / inbox pickup / follow-up     | Watch route + push handler that links replies & flags attention **built** (`service.ts:749`); not continuously active; no scheduler                   | SEAM (Pub/Sub + Scheduler)                     | S31     |
-| 6   | Corrections improve the AI                 | ask_logs has no correction field; a proven human-approved "corrections→proposed rule" loop exists in Gmail triage (`rules.ts:11`)                     | BUILD                                          | S32     |
-| 7   | Ask box → start live process               | Ask does answer + safe test-run + capture; cannot start live (`AskForm.tsx`)                                                                          | BUILD                                          | S33     |
-| 8   | Dotloop connector + e-signature            | OAuth scaffold + create-loop/upload executor built (fake); **no completion webhook**                                                                  | SEAM (owner OAuth app)                         | S34     |
-| 9   | LeadSimple connector                       | Full executor built (fake) (`providers.ts:624`); evidence `Vendor-Confirmation-Required`                                                              | SEAM (API key + vendor confirm)                | S35     |
-| 10  | Self-service add/configure a Space         | Intake records + emits provisioning plan; does **not** provision (bills) (`space-request-commands.ts:96`)                                             | SEAM (billing + create identity)               | S36     |
-| 11  | Move/add/delete anything (no-code builder) | Content/templates/rules/roles/process-defs editable; **layout/new pages bespoke**                                                                     | BUILD (full builder — owner chose)             | S37     |
-| 12  | Maintenance owner-notice go-live           | Draft gate **already open** + executor built, but **no UI route/button** — preview only (`MaintenanceCapture.tsx:161`); send gate false (`seed:1312`) | BUILD (surface draft) + SEAM (send)            | S38     |
-| 13  | Feedback emails a ticket                   | In-app queue only; scaffolded transactional-destination unused (`TransactionalDestinationPanel`)                                                      | BUILD (internal auto per Q4)                   | S39     |
-| 14  | Budget alerts wording; newer KB models     | 50/90/100 + real kill switch (accurate); model swap is config                                                                                         | BUILD (trivial copy/config)                    | S32/S39 |
+| #   | Feature (talk-track gap)                   | Current code-state (audited)                                                                                                                                                          | Verdict                                              | Suite   |
+| --- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | ------- |
+| 1   | Market comps / rent data / midpoint        | Zillow deep-_link_ only (`market-links.ts:7`); numbers all typed; no data API; no midpoint; `compsScreenshotRef` is a text URL                                                        | SEAM                                                 | S28     |
+| 2   | App suggests/negotiates rent number        | HARD-EXCLUSION today (`F-NEGOTIATION-EXCLUDED`); `draft-safety.ts` fails closed on owner_money                                                                                        | BUILD (owner opened it — Admin-approval-gated)       | S29     |
+| 3   | Attach comp screenshots to notice          | text URL placeholder only (`owner-draft.ts:152`)                                                                                                                                      | BUILD                                                | S28     |
+| 4   | RentVine write-back                        | Executor + S25 contract built, **fake provider only** (`providers.ts:385`); gate false (`seed:940`)                                                                                   | SEAM (owner provides endpoint)                       | S30     |
+| 5   | Gmail watch / inbox pickup / follow-up     | Watch route + push handler that links replies & flags attention **built** (`service.ts:749`); not continuously active; no scheduler                                                   | SEAM (Pub/Sub + Scheduler)                           | S31     |
+| 6   | Corrections improve the AI                 | ask_logs has no correction field; a proven human-approved "corrections→proposed rule" loop exists in Gmail triage (`rules.ts:11`)                                                     | BUILD                                                | S32     |
+| 7   | Ask box → start live process               | Ask does answer + safe test-run + capture; cannot start live (`AskForm.tsx`)                                                                                                          | BUILD                                                | S33     |
+| 8   | Dotloop connector + e-signature            | OAuth scaffold + create-loop/upload executor built (fake); **no completion webhook**                                                                                                  | SEAM (owner OAuth app)                               | S34     |
+| 9   | LeadSimple connector                       | Full executor built (fake) (`providers.ts:624`); evidence `Vendor-Confirmation-Required`                                                                                              | SEAM (API key + vendor confirm)                      | S35     |
+| 10  | Self-service add/configure a Space         | Intake records + emits provisioning plan; does **not** provision (bills) (`space-request-commands.ts:96`)                                                                             | SEAM (billing + create identity)                     | S36     |
+| 11  | Move/add/delete anything (no-code builder) | Content/templates/rules/roles/process-defs editable; **layout/new pages bespoke**                                                                                                     | BUILD (full builder — owner chose)                   | S37     |
+| 12  | Maintenance owner-notice go-live           | Draft route, service, and per-ticket control **shipped** (`F-MAINT-OWNER-DRAFT-REACHABLE`); the output is an unsent Gmail draft that a human sends from Gmail; direct send gate false | BUILD shipped (draft) + NEVER (direct app send, D33) | S38     |
+| 13  | Feedback emails a ticket                   | In-app queue only; scaffolded transactional-destination unused (`TransactionalDestinationPanel`)                                                                                      | BUILD (internal auto per Q4)                         | S39     |
+| 14  | Budget alerts wording; newer KB models     | 50/90/100 + real kill switch (accurate); model swap is config                                                                                                                         | BUILD (trivial copy/config)                          | S32/S39 |
 
 ## 3. The four governance decisions (owner Q&A, 2026-07-23)
 
@@ -109,7 +111,6 @@ dependency; it never stops a whole feature at the seam.
 - **S35** LeadSimple activation (owner: API key + vendor-confirmed contract).
 - **S34** Dotloop e-sign activation + completion webhook (owner: OAuth app).
 - **S36** Space self-service provisioning behind cost-confirm (owner: billing + create identity).
-- **S38b** Maintenance owner-notice send activation (owner: documented S26 owner-mapping evidence).
 
 **Wave 3 — large, multi-slice:**
 
@@ -143,19 +144,21 @@ action):
 7. **Space provisioning** billing + a create identity → S36. _(Billing APPROVED 2026-07-23; owner
    runs one `gcloud projects add-iam-policy-binding` granting `roles/discoveryengine.admin` — or the
    least-privilege `editor` — to `pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com`.)_
-8. **Maintenance send** S26 owner-mapping/exact-confirmation evidence → S38b flip. _(CONFIRMED
-   2026-07-23 — owner ruled `portfolio.owners[].email` authoritative and every send human
-   exact-confirmed; the S38b evidence is satisfied, the flip is a reviewed change after S38a ships.)_
-9. **Budget kill-switch** live arming. _(DONE — verified 2026-07-23: the legacy observed `$10`
+8. **Budget kill-switch** live arming. _(DONE — verified 2026-07-23: the legacy observed `$10`
    monthly budget → `budget-guardrail-topic` → the ACTIVE `budget-guardrail` Cloud Function. D01
    superseded that figure; S52 owns the replacement ceiling.)_
-10. **Per-session** interactive `npm run auth:session` (ADC reauth). Routine application deploy,
-    smoke, exact-revision traffic promotion, and rollback follow D05 after their gates and preflights
-    pass.
+9. **Per-session** interactive `npm run auth:session` (ADC reauth). Routine application deploy,
+   smoke, exact-revision traffic promotion, and rollback follow D05 after their gates and preflights
+   pass.
+
+The original item 8, a future maintenance owner-notice direct-send flip, is retired by D33
+(2026-07-29). The authoritative owner mapping remains part of the draft-create safety contract, but
+it is not activation evidence or an owner dependency for a direct send. The final workflow is an
+unsent Gmail draft followed by a human sending from Gmail.
 
 ## 6. The new operating rule: build to the seam
 
-Replaces the defer-first posture. The runner MUST, for every roadmap suite:
+Replaces the defer-first posture. For every BUILD or SEAM row, the runner MUST:
 
 1. Build the app-plane + the live provider implementation + the full S25/S26 preview/confirm/
    receipt/rollback contract + the isolated non-Live proof (currently Test in deployed code; Demo
@@ -165,7 +168,10 @@ Replaces the defer-first posture. The runner MUST, for every roadmap suite:
 3. Never wire a permanent fake and halt. A fake provider is a scaffold to be replaced, not a stopping
    point.
 
-**Gate-flip recipe** (the last inch, a routine reviewed change): set the seed entry
+Section 7 NEVERs are final exclusions, not unfinished seams, and this rule does not create a provider
+or flip recipe for them.
+
+**Gate-flip recipe** (the last inch for a named SEAM action, never a §7 NEVER): set the seed entry
 `readiness:"Approved for Execution"` + `evidence_status:"Documented"` (the owner dependency IS the
 documentation) + `production_allowed:true`, add the key to **both** `EXECUTABLE_ALLOWLIST` copies
 (`scripts/seed-action-registry.ts` and `lib/admin/migration-readiness.ts`), and update the pinned
@@ -177,6 +183,9 @@ These are **not** deferrals; they are the hard invariants the owner's grant expl
 
 - **No autonomous client-facing send.** Every owner/tenant/vendor send is human-initiated and
   exact-confirmed against a payload hash. (Internal staff notifications may auto-send — D-AUTOMATION-LINE.)
+- **No direct app send for renewal or maintenance notices.** Their Gmail draft is the final app
+  effect; a human reviews and sends it from Gmail. `gmail.renewal_notice.send` and
+  `gmail.maintenance_owner_notice.send` stay Registry-closed (D33).
 - **Generic non-workflow "blast" compose/send** (`gmail.message.send`) stays Registry-closed.
 - **Personal `josiah.abernathy@gmail.com`** never enters any auth path.
 - **No secrets / customer PII / guessed provider endpoints in git or evidence.**

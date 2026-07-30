@@ -6,8 +6,9 @@ import {
   mintIntakeToken,
   verifyIntakeToken,
 } from "@/lib/maintenance/intake-token";
+import { resolveMaintenanceIntakeMintConfig } from "@/scripts/mint-maintenance-intake-token";
 
-const SECRET = "unit-test-secret";
+const SECRET = "unit-test-secret-32-bytes-minimum-value";
 const NOW = Date.parse("2026-07-09T00:00:00.000Z");
 
 function mint(overrides: Partial<Parameters<typeof mintIntakeToken>[0]> = {}) {
@@ -25,6 +26,42 @@ function mint(overrides: Partial<Parameters<typeof mintIntakeToken>[0]> = {}) {
 }
 
 describe("intake token mint + verify", () => {
+  it("keeps the CLI mint path closed until the strong, distinct runtime pair exists", () => {
+    const strongToken = "t".repeat(32);
+    const strongSalt = "s".repeat(32);
+
+    expect(
+      resolveMaintenanceIntakeMintConfig(
+        {
+          MAINTENANCE_INTAKE_TOKEN_SECRET: strongToken,
+          MAINTENANCE_INTAKE_IP_HASH_SALT: strongSalt,
+        },
+        {},
+      ),
+    ).toEqual({ errors: [], ok: true, secret: strongToken });
+
+    for (const processEnv of [
+      {},
+      { MAINTENANCE_INTAKE_TOKEN_SECRET: strongToken },
+      {
+        MAINTENANCE_INTAKE_TOKEN_SECRET: "short",
+        MAINTENANCE_INTAKE_IP_HASH_SALT: strongSalt,
+      },
+      {
+        MAINTENANCE_INTAKE_TOKEN_SECRET: strongToken,
+        MAINTENANCE_INTAKE_IP_HASH_SALT: strongToken,
+      },
+    ]) {
+      const result = resolveMaintenanceIntakeMintConfig(processEnv, {});
+      expect(result.ok, JSON.stringify(processEnv)).toBe(false);
+      expect(result.secret, JSON.stringify(processEnv)).toBeUndefined();
+      expect(result.errors.length, JSON.stringify(processEnv)).toBeGreaterThan(0);
+      expect(JSON.stringify(result), JSON.stringify(processEnv)).not.toContain(
+        strongToken,
+      );
+    }
+  });
+
   it("round-trips a valid token", () => {
     const token = mint();
     const result = verifyIntakeToken(SECRET, token, NOW);
@@ -54,7 +91,9 @@ describe("intake token mint + verify", () => {
 
   it("rejects a token signed with a different secret", () => {
     const token = mint();
-    expect(verifyIntakeToken("other-secret", token, NOW)).toEqual({
+    expect(
+      verifyIntakeToken("different-unit-test-secret-32-byte-value", token, NOW),
+    ).toEqual({
       ok: false,
       reason: "invalid",
     });
@@ -127,6 +166,15 @@ describe("intake token mint + verify", () => {
         dataMode: "live",
       }),
     ).toThrow();
+    expect(() =>
+      mintIntakeToken({
+        secret: "too-short",
+        propertyKey: "p",
+        jti: "j",
+        epoch: 0,
+        dataMode: "live",
+      }),
+    ).toThrow(/at least 32 UTF-8 bytes/);
     expect(() =>
       mintIntakeToken({
         secret: SECRET,

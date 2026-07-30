@@ -24,11 +24,22 @@ preview-only because a gate has not been flipped; flip the gate (with its tests)
 external dependency that blocks it. This is the durable fix for the recurring "features never go
 live, always pending" pattern.
 
+**D33 permanent direct-notice-send exclusion (2026-07-29).** The later production-phase decision
+narrows this standing grant for client notice initiation: Gmail draft creation plus a human sending
+from Gmail is the final renewal and maintenance workflow.
+`gmail.renewal_notice.send`, `gmail.maintenance_owner_notice.send`, and generic
+`gmail.message.send` stay Registry-closed. They are permanent non-targets under current authority,
+not missing provider seams or finished features awaiting a routine flip. Retained typed executors,
+preview schemas, and isolated Test receipts are historical contract evidence only; the committed
+Registry rows themselves are `Disabled`.
+Only a new explicit owner decision that supersedes D33 may change this exclusion.
+
 These invariants PERMIT go-live and must be preserved — they never justify keeping a feature pending:
 
 - Every send is human-initiated and exact-confirmed. No autonomous, scheduled, bulk, or
   model-triggered agent send. The app may send when a person confirms; the agent never sends on its
-  own.
+  own. For renewal and maintenance notice initiation, the app creates an unsent draft and the person
+  sends it from Gmail; this invariant does not authorize a direct app-send path.
 - Secrets, tokens, and customer data live in Secret Manager, never git.
 - A Live system-of-record write uses its S25/S26 preview, confirm, receipt, and rollback contract.
 - Sample/test data never becomes a real draft or send.
@@ -532,10 +543,11 @@ answer ourselves.
   governed labels, review-only source-backed proposals, exact-confirmed replies, and — per the
   2026-07-19 go-live grant — the authorized Gmail notice draft-into-Gmail actions (renewal
   owner/tenant, maintenance owner), each cleared to activate through its reviewed seed gate. Generic
-  non-workflow new-message sending stays off as a deliberate safety choice (no arbitrary blast),
-  activated only via a separate approved human-confirmed design. Every activated send or draft
-  remains exact-message, human-confirmed, action-gated, and audited. Firebase authentication and
-  Gmail DWD authorization are separate systems.
+  non-workflow new-message sending stays permanently off under current authority (no arbitrary
+  blast). D33 also makes renewal and maintenance direct-notice-send keys permanent non-targets; only
+  a new explicit owner decision that supersedes D33 may change either exclusion. Every activated
+  linked-thread reply or draft remains exact-message, human-confirmed, action-gated, and audited.
+  Firebase authentication and Gmail DWD authorization are separate systems.
 - Full strategy, per-surface mechanisms, and migration plan:
   `docs/auth-identity-and-access-strategy.md`.
 

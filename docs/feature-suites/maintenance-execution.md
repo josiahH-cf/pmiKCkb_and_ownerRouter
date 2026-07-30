@@ -9,14 +9,21 @@
 > **Environment/UI continuation 2026-07-28.** S26’s lifecycle/action/security contracts remain.
 > S40 moves invented proof to Demo, S46 removes simulator/readiness clutter from the operator
 > workspace, and S47 adds resident tokenized intake/RentVine seam. Production becomes Live-only.
+>
+> **Direct-notice continuation 2026-07-29 (D33).** Maintenance owner initiation ends at the governed
+> S38 unsent Gmail draft; a human reviews and sends it from Gmail.
+> `gmail.maintenance_owner_notice.send` is a permanent non-target under current authority. Its typed
+> executor and isolated Test receipt remain historical contract evidence only, never an activation
+> seam.
 
 **Implementation status (2026-07-15): Deployed working app/Test journey accepted.** Production code persists a
 canonical invented Maintenance ticket in Firestore, labels it Test, supports normal assignment,
 Vendor assignment, status/activity/note transitions, persists isolated Test action receipts, and can
 close the ticket. The canonical unit is `unit:test-maple-204` / `TEST — 204 Maple Court Unit 2`; the
 Vendor is `vendor:test-summit-plumbing` / `service@summit-plumbing.example.invalid`. The Admin
-integrated Test workspace also traverses all 19 typed S26 executors with one attempt/receipt each and
-zero Live-provider calls. S22 supplies Firebase password/TOTP and the assigned-ticket Test mailbox.
+integrated Test workspace also traverses the legacy 19-key diagnostic graph with one
+attempt/receipt each and zero Live-provider calls, including the now-inactive direct-owner-send
+contract. S22 supplies Firebase password/TOTP and the assigned-ticket Test mailbox.
 Live Drive/Rentvine/Gmail/LeadSimple/QuickBooks actions retain separate activation states. The deployed
 ticket reached Closed with explicit bodyless Test receipts; the Admin workspace passed all 19 typed
 actions and clean desktop/phone loads showed the Test lane without Live Gmail controls. The human
@@ -31,17 +38,17 @@ reconciled, and auditable; unavailable providers remain visible without blocking
 
 **What it is / how it functions.**
 
-| R03 group                        | Canonical action keys                                                                                            | Risk / V1 behavior                                                                                           |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| App account lifecycle            | `vendor.account.invite`, `vendor.account.disable`, `vendor.assignment.change`                                    | Admin exact preview/confirmation; Test Firebase Vendor/app assignment or separately configured Live identity |
-| Mailbox lifecycle                | `vendor.gmail.connect`, `vendor.gmail.revoke`, `vendor.gmail.health`                                             | Test app-only mailbox; Live Vendor self-consent/revoke after TOTP; no DWD                                    |
-| Drive photos                     | `google_drive.maintenance_photo.store`                                                                           | Medium scanned append-only Live upload; isolated Test receipt; overwrite/delete remains High                 |
-| Rentvine create                  | `rentvine.work_order.create`                                                                                     | High Admin-approved Live preview or isolated Test receipt                                                    |
-| Rentvine assignment/update/close | `rentvine.work_order.assign_vendor`, `rentvine.work_order.update_status`                                         | High Admin-approved conditional Live transition or isolated Test receipt                                     |
-| Owner email                      | `gmail.maintenance_owner_notice.send`, `gmail.thread.reply`                                                      | Medium internal exact-confirmed Live communication or non-delivering Test receipt                            |
-| Vendor email                     | `vendor.gmail.thread.read`, `vendor.gmail.draft.create`, `vendor.gmail.thread.reply`, `vendor.gmail.label.apply` | Assigned-ticket Test mailbox or same-address OAuth Live mailbox; exact confirmation on reply                 |
-| LeadSimple                       | `leadsimple.process.update_stage`, `leadsimple.task.create`                                                      | High documented Live contract or isolated Test receipt                                                       |
-| QuickBooks                       | `quickbooks.bill.create_draft`                                                                                   | High Admin-approved Live draft only or isolated Test receipt; never post/pay                                 |
+| R03 group                        | Canonical action keys                                                                                                       | Risk / V1 behavior                                                                                                                             |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| App account lifecycle            | `vendor.account.invite`, `vendor.account.disable`, `vendor.assignment.change`                                               | Admin exact preview/confirmation; Test Firebase Vendor/app assignment or separately configured Live identity                                   |
+| Mailbox lifecycle                | `vendor.gmail.connect`, `vendor.gmail.revoke`, `vendor.gmail.health`                                                        | Test app-only mailbox; Live Vendor self-consent/revoke after TOTP; no DWD                                                                      |
+| Drive photos                     | `google_drive.maintenance_photo.store`                                                                                      | Medium scanned append-only Live upload; isolated Test receipt; overwrite/delete remains High                                                   |
+| Rentvine create                  | `rentvine.work_order.create`                                                                                                | High Admin-approved Live preview or isolated Test receipt                                                                                      |
+| Rentvine assignment/update/close | `rentvine.work_order.assign_vendor`, `rentvine.work_order.update_status`                                                    | High Admin-approved conditional Live transition or isolated Test receipt                                                                       |
+| Owner email                      | `gmail.maintenance_owner_notice.draft_create`, `gmail.thread.reply`; historical only: `gmail.maintenance_owner_notice.send` | Initiation ends at an unsent draft plus human Gmail send; linked reply remains separately exact-confirmed; the direct-send key never activates |
+| Vendor email                     | `vendor.gmail.thread.read`, `vendor.gmail.draft.create`, `vendor.gmail.thread.reply`, `vendor.gmail.label.apply`            | Assigned-ticket Test mailbox or same-address OAuth Live mailbox; exact confirmation on reply                                                   |
+| LeadSimple                       | `leadsimple.process.update_stage`, `leadsimple.task.create`                                                                 | High documented Live contract or isolated Test receipt                                                                                         |
+| QuickBooks                       | `quickbooks.bill.create_draft`                                                                                              | High Admin-approved Live draft only or isolated Test receipt; never post/pay                                                                   |
 
 - **Record/executor lane.** Ticket, Vendor assignment, action input, execution record, idempotency
   identity, mailbox, receipt, and audit carry `live|test`; legacy absence resolves to Live. Test routes
@@ -72,14 +79,17 @@ reconciled, and auditable; unavailable providers remain visible without blocking
   expected current state, provider-atomic conditional mutation, exact readback, and idempotency
   reconciliation. Unknown mappings, drift, or missing conditional support block that action. Test
   actions never resolve Rentvine.
-- **Communication.** Live owner recipient comes from the configured property-owner source; Vendor mail
-  stays in an assigned ticket. S24 artifacts and exact confirmation apply. Test owner notices are
-  non-delivering receipts, while the Vendor Test mailbox persists draft/label/exact-reply inside the
-  app. Staff see the Test Vendor handoff only through a read-gated, bodyless projection of the exact
-  Test ticket/vendor/assignment/thread/mailbox join: current Waiting/Complete state, bounded label
-  history, draft-present, reply count, update time, and next internal action. It never exposes message
-  bodies, message/thread identifiers, actor or Vendor UIDs, credentials, provider payloads, or Live
-  evidence. A message cannot choose a Vendor, approve cost, or transition/close a ticket.
+- **Communication.** The Live owner recipient comes from the configured property-owner source. S38
+  creates one addressed, unsent Gmail draft; a human reviews and sends it from Gmail. The inactive
+  `gmail.maintenance_owner_notice.send` contract never constructs a Live provider. Vendor mail stays
+  in an assigned ticket, and S24 artifacts and exact confirmation apply. Historical Test owner-send
+  selections are non-delivering receipts, while the Vendor Test mailbox persists
+  draft/label/exact-reply inside the app. Staff see the Test Vendor handoff only through a read-gated,
+  bodyless projection of the exact Test ticket/vendor/assignment/thread/mailbox join: current
+  Waiting/Complete state, bounded label history, draft-present, reply count, update time, and next
+  internal action. It never exposes message bodies, message/thread identifiers, actor or Vendor UIDs,
+  credentials, provider payloads, or Live evidence. A message cannot choose a Vendor, approve cost,
+  or transition/close a ticket.
 - **LeadSimple/QuickBooks.** Enabled Live actions use documented account contracts only. LeadSimple
   requires expected-stage mutation and exact readback. QuickBooks creates/reconciles one draft Bill
   with exact Vendor, amount/account, work order, property/unit, currency, and `Draft` state. Posting,
@@ -87,13 +97,17 @@ reconciled, and auditable; unavailable providers remain visible without blocking
 - **Activation model.** Application readiness is proven through persistent Maintenance Test state plus
   the all-action Test workspace. Each Live action independently moves through
   `unavailable|test_ready|live_configured|live_proven|enabled|suspended`; only `enabled` constructs its
-  provider. Provider activation never changes a Test receipt into Live evidence.
+  provider. Provider activation never changes a Test receipt into Live evidence. D33 permanently
+  excludes `gmail.maintenance_owner_notice.send` from this progression under current authority.
 
 **Open questions & assumptions.**
 
 - _Answered 2026-07-14:_ all nine R03 groups/all 19 action keys are V1 application features.
 - _Answered 2026-07-15:_ Maintenance and Vendor authentication are part of V1; invented production
   Test tickets may persist, move through workflow, collect receipts, and close without Live providers.
+- _Amended 2026-07-29 (D33):_ the legacy diagnostic may retain all 19 typed selections, but
+  `gmail.maintenance_owner_notice.send` is historical Test evidence only. The product path ends at S38
+  draft creation plus a human Gmail send, and the direct-send key is not an activation candidate.
 - _Default:_ append-only scanned Live ticket-photo upload is Medium; replace/delete/move and folder
   policy changes are High.
 - _Default:_ QuickBooks execution means create a draft Bill only; no posting, payment, or funds action.
@@ -105,14 +119,16 @@ reconciled, and auditable; unavailable providers remain visible without blocking
 Firestore schemas/rules, S20 authority, S22 Vendor identity/Test mailbox, S24 communications,
 data-mode isolation, Action Registry/provider activation, Connector health, Approval Queue, external
 clients, environment handoff, S27 reporting, and Admin Test workspace. Supersede markers:
-`MAINTENANCE-EXTERNAL-EXECUTION-LATER` and `ALL-MAINTENANCE-PROVIDERS-LIVE-BEFORE-V1`.
+`MAINTENANCE-EXTERNAL-EXECUTION-LATER`, `ALL-MAINTENANCE-PROVIDERS-LIVE-BEFORE-V1`, and
+`S38B-DIRECT-SEND-TARGET`.
 
 **Adversarial acceptance checks.**
 
-- **AC-S26-1** — Registry/catalog/workflow expose all 19 keys with exact schema, dependency, risk,
+- **AC-S26-1** — Registry/catalog/workflow retain all 19 historical keys with exact schema, dependency, risk,
   lane, health, receipt, correction, and separate application/activation state. Existing enabled Gmail
-  actions retain their linked-workflow/artifact/confirmation gates; one provider cannot activate
-  another. _Verify:_ `npm test -- maintenance-execution-matrix action-registry-schema
+  actions retain their linked-workflow/artifact/confirmation gates;
+  `gmail.maintenance_owner_notice.send` remains permanently closed under D33 and cannot inherit
+  activation from the draft or reply actions. _Verify:_ `npm test -- maintenance-execution-matrix action-registry-schema
 external-execution-boundary`.
 - **AC-S26-2** — Vendor assignment, matching data mode, password/TOTP, and active state precede every
   Vendor detail/mail/photo action. Admin account/assignment changes bind exact preview/target/source;
@@ -126,10 +142,11 @@ maintenance-execution-authority external-execution-s20-bridge`.
   Admin approval, expected state, exact post-read, and idempotency reconciliation; Test produces
   isolated receipts. Drift/ambiguity causes no overwrite/retry. _Verify:_ `npm test --
 rentvine-work-order-executor`.
-- **AC-S26-5** — Live owner initiation uses authoritative recipient and artifact with exact
-  confirmation/payload readback; Test uses a visibly non-routable target receipt and zero Gmail calls.
-  Duplicate/drift makes at most one attempt. _Verify:_ `npm test -- maintenance-owner-email
-maintenance-test-workflow`.
+- **AC-S26-5** — Live owner initiation resolves the authoritative recipient and S24 artifact, then
+  creates an unsent Gmail draft through S38; a human sends it from Gmail. The legacy direct-send
+  selection uses a visibly non-routable Test receipt and is ineligible for Live activation.
+  Duplicate/drift makes at most one eligible draft or reply attempt. _Verify:_ `npm test --
+maintenance-owner-notice-draft maintenance-owner-email maintenance-test-workflow`.
 - **AC-S26-6** — Test Vendor password/TOTP and assignment unlock only the matching Test ticket and
   app-only mailbox. Draft/label/reply persist with exact confirmation and no Gmail call. Live Vendor
   mail requires same-address OAuth. AI/message cannot choose Vendor, approve cost, or close. _Verify:_
@@ -143,19 +160,23 @@ leadsimple-maintenance-executor`.
   blocks. _Verify:_ `npm test -- quickbooks-draft-bill-executor`.
 - **AC-S26-9** — Canonical Firestore Test ticket supports create → assign Test Vendor → status/notes/
   activity → explicit Test action receipts → close with no provider calls. The Admin integrated Test
-  workspace separately invokes all 19 typed action selections, one attempt/receipt each, and failure
-  stops dependencies without cross-ticket leakage. _Verify:_ `npm test --
+  workspace separately invokes the legacy 19-key diagnostic graph, one attempt/receipt each, and
+  failure stops dependencies without cross-ticket leakage. Its direct-owner-send receipt is historical
+  Test evidence and cannot support activation. _Verify:_ `npm test --
 maintenance-test-workflow maintenance-test-workflow-routes v1-synthetic-execution
 v1-production-test-workspace-route`; `npm run test:e2e:core -- maintenance-execution`.
 - **AC-S26-10** — Full checks pass: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm
 test`, `npm run test:e2e:core`, `npm run test:firestore`, `npm run verify:redaction`, `npm run build`,
   `bash scripts/verify.sh`.
 
-**Forbidden actions / hard gates.** No Test-to-Live fallback, Test provider call, Test receipt cited as
-Live, Vendor internal role/cross-ticket/cross-mode access, DWD, autonomous send, browser/provider-
-selected Vendor, cost approval by message, blind transition, photo overwrite/delete without High
-authority, QuickBooks post/pay, guessed endpoint, ambiguous retry, or raw values/tokens/content in git/
-log/audit. A Live action executes only when its own contract, connection, Registry state, target,
+**Forbidden actions / hard gates.** No direct app send for a maintenance owner notice:
+`gmail.maintenance_owner_notice.send` stays `production_allowed:false`, and only a new explicit owner
+decision that supersedes D33 could change that permanent non-target. No Test-to-Live fallback, Test
+provider call, Test receipt cited as Live, Vendor internal role/cross-ticket/cross-mode access, DWD,
+autonomous send, browser/provider-selected Vendor, cost approval by message, blind transition, photo
+overwrite/delete without High authority, QuickBooks post/pay, guessed endpoint, ambiguous retry, or
+raw values/tokens/content in git/log/audit. A Live action executes only when its own contract,
+connection, Registry state, target,
 authority, exact confirmation, and reconciliation/correction pass. The verified non-null S52
 production cost ceiling applies; if it is unset, cost-bearing/live/cloud work is closed while
 local/app-plane work continues. Routine release follows D05: after the full local gate, auth and
@@ -168,12 +189,14 @@ remain owner-run.
 
 1. _Application acceptance:_ seed the canonical Firestore Test ticket, assign the canonical Test
    Vendor, exercise status/notes/activity/Test receipts, Vendor assigned-ticket mailbox, and close.
-2. _Full action acceptance:_ run the Admin production Test workspace across all 19 action keys with
-   one-attempt, failure, idempotency, receipt, and zero-Live-call assertions.
+2. _Full action acceptance:_ run the Admin production Test workspace across the legacy 19-key
+   diagnostic graph with one-attempt, failure, idempotency, receipt, and zero-Live-call assertions;
+   treat the direct-owner-send receipt as historical contract evidence only.
 3. _Workflow/browser acceptance:_ verify Live/Test labels, filtering, exact action target/effect,
    Vendor access, completion, unavailable provider states, and reconciliation at desktop/phone widths.
-4. _Live activation:_ configure only the provider actions PMI KC uses, one at a time, from official/
-   account contracts and authoritative mappings; perform one bounded reversible proof and attach
+4. _Live activation:_ configure only eligible provider actions PMI KC uses, one at a time, from
+   official/account contracts and authoritative mappings; exclude
+   `gmail.maintenance_owner_notice.send` under D33. Perform one bounded reversible proof and attach
    bodyless monitoring/receipt evidence. Do not wait on unrelated providers.
 5. _Verify/context:_ run mode/security/provider/full checks, then record application coverage separately
    from provider activation in facts/status/plan/loop.

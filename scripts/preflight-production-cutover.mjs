@@ -1,6 +1,11 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { validateExecutableActionRuntimeRequirements } from "./action-runtime-requirements.mjs";
+import {
+  resolveMaintenanceIntakeSecretBindings,
+  validateMaintenanceIntakeRuntimeValues,
+} from "./runtime-secret-bindings.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const DEMO_PROJECT_IDS = new Set(["pmikckb-test", "pmikckb-test-8f927"]);
@@ -41,18 +46,17 @@ export function parseProductionPreflightArgs(argv = process.argv.slice(2)) {
 export function readProductionPreflightEnv({ env = process.env, envFile } = {}) {
   const fileEnv = envFile ? readEnvFile(resolve(root, envFile)) : readEnvFileIfPresent();
 
-  return envFile
-    ? {
-        ...env,
-        ...fileEnv,
-      }
-    : {
-        ...fileEnv,
-        ...env,
-      };
+  // An explicitly reviewed production file is a complete authority boundary. Letting ambient
+  // values fill omitted keys would allow preflight to approve a file that the deploy cannot
+  // reproduce, or silently build against an unreviewed Firebase project. The legacy no-file mode
+  // retains its local-shell overlay for non-production diagnostics only.
+  return envFile ? fileEnv : { ...fileEnv, ...env };
 }
 
-export function validateProductionCutoverConfig(env) {
+export function validateProductionCutoverConfig(
+  env,
+  { maintenanceIntakeSource = "deploy" } = {},
+) {
   const errors = [];
   const warnings = [];
   const gcpProjectId = readString(env.GCP_PROJECT_ID);
@@ -74,6 +78,14 @@ export function validateProductionCutoverConfig(env) {
   requireValue(gcpProjectId, "GCP_PROJECT_ID", errors);
   requireValue(firebaseProjectId, "FIREBASE_PROJECT_ID", errors);
   requireValue(appBaseUrl, "APP_BASE_URL", errors);
+  assertProductionEnvironmentDescriptor(env, errors);
+  assertForwardedServerRuntimeValues(env, errors);
+  errors.push(...validateExecutableActionRuntimeRequirements(env).errors);
+  errors.push(
+    ...(maintenanceIntakeSource === "runtime"
+      ? validateMaintenanceIntakeRuntimeValues(env).errors
+      : resolveMaintenanceIntakeSecretBindings(env).errors),
+  );
 
   for (const [label, value] of [
     ["GCP_PROJECT_ID", gcpProjectId],
@@ -176,17 +188,13 @@ export function validateProductionCutoverConfig(env) {
 
   const notificationsEnabled = readBoolean(env.KB_APPROVAL_NOTIFICATIONS_ENABLED, false);
   if (notificationsEnabled) {
-    const approvalSender = readString(env.KB_APPROVAL_SENDER);
     const approvalRecipients = readString(env.KB_APPROVAL_RECIPIENTS);
-    requireValue(approvalSender, "KB_APPROVAL_SENDER", errors);
     requireValue(approvalRecipients, "KB_APPROVAL_RECIPIENTS", errors);
-    assertNoPlaceholderString("KB_APPROVAL_SENDER", approvalSender, errors);
     assertNoPlaceholderString("KB_APPROVAL_RECIPIENTS", approvalRecipients, errors);
-    assertPmikcmetroEmailList("KB_APPROVAL_SENDER", approvalSender, errors);
     assertPmikcmetroEmailList("KB_APPROVAL_RECIPIENTS", approvalRecipients, errors);
   } else {
     warnings.push(
-      "KB approval email notifications remain disabled. App-plane production deployment is allowed, but notification delivery is not part of this cutover.",
+      "Legacy KB approval email digests remain disabled; the executable internal transactional notice sender is validated separately.",
     );
   }
 
@@ -327,6 +335,44 @@ function assertConfiguredMaps(sourceTargets, dataStores, errors) {
     if (!sourceTargets[spaceId]?.trim()) {
       errors.push(`Missing production source target for Space "${spaceId}".`);
     }
+  }
+}
+
+function assertForwardedServerRuntimeValues(env, errors) {
+  const searchLocation = readString(env.VERTEX_SEARCH_LOCATION) ?? "us";
+  if (!["global", "us", "eu"].includes(searchLocation)) {
+    errors.push("VERTEX_SEARCH_LOCATION must be one of global, us, or eu.");
+  }
+
+  const rawThreshold = readString(env.GROUNDING_CONFIDENCE_THRESHOLD) ?? "0.65";
+  const threshold = Number(rawThreshold);
+  if (!Number.isFinite(threshold) || threshold < 0 || threshold > 1) {
+    errors.push("GROUNDING_CONFIDENCE_THRESHOLD must be a number from 0 through 1.");
+  }
+}
+
+function assertProductionEnvironmentDescriptor(env, errors) {
+  const environmentKind = readString(env.ENVIRONMENT_KIND)?.toLowerCase();
+  const dataContext = readString(env.DATA_CONTEXT)?.toLowerCase();
+
+  if (!environmentKind && !dataContext) {
+    errors.push(
+      'Production cutover refuses environment descriptor source "legacy-node-env"; set ENVIRONMENT_KIND=production and DATA_CONTEXT=live explicitly.',
+    );
+    return;
+  }
+
+  if (!environmentKind || !dataContext) {
+    errors.push(
+      "ENVIRONMENT_KIND and DATA_CONTEXT must both be set explicitly for production cutover.",
+    );
+    return;
+  }
+
+  if (environmentKind !== "production" || dataContext !== "live") {
+    errors.push(
+      `Production cutover requires ENVIRONMENT_KIND=production and DATA_CONTEXT=live; got ENVIRONMENT_KIND=${environmentKind} and DATA_CONTEXT=${dataContext}.`,
+    );
   }
 }
 

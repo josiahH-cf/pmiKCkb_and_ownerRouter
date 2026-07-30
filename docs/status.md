@@ -11,6 +11,64 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S53.4 COMPLETE locally — production runtime configuration integrity (2026-07-30)
+
+AC-S53-4, AC-S53-5, AC-S53-6, and AC-S53-11 are built locally, together with the
+configuration/forwarding half of AC-S53-9. Production deploy planning now forces the explicit
+Production+Live descriptor; production preflight rejects the legacy bridge, a partial pair, and
+every other descriptor. Preflight and deploy now consume the same explicitly named, reviewed
+`.env.production.local`; the production wrapper fails closed when that file is absent and does not
+silently merge stale ambient runtime configuration. `SPACE_PROVISIONING_ENABLED` resolves false by
+default and survives the replacing deploy map, but the S36 Admin provision route, per-Space cost
+confirm, S52 eligibility, and IAM grant remain separate unbuilt/owner-gated work.
+
+The internal transactional action now has one parity-tested deployment/runtime requirement map.
+When its committed key is executable, preparation, preflight, deploy planning, migration readiness,
+and the concrete transport require exactly one syntactically valid managed `KB_APPROVAL_SENDER`;
+deploy/readiness also require `GMAIL_DWD_SA` to be one valid service account in `GCP_PROJECT_ID`.
+The unrelated legacy approval digest may remain false. Admin readiness preserves raw Firestore
+`production_allowed` metadata, derives executable authority from the committed seed that the
+application actually enforces, names missing dependencies as `runtime-inert`, and blocks drift over
+the complete committed/Firestore key union, including missing and extra closed rows.
+
+Public maintenance intake activates in deploy planning only from the complete pair of non-secret,
+different Secret Manager ids. Partial, version-only, plaintext-only, and same-secret deploy-source
+configurations refuse; all declared secret groups travel in one replacing `--set-secrets` map, and a
+plan with no declared group emits `--clear-secrets` so stale bindings cannot survive. In-revision
+health validates the resolved values instead of incorrectly demanding deploy-source ids: both
+values must exist, be distinct, and contain at least 32 UTF-8 bytes. Weak, reused, or incomplete
+runtime values make the web mint, CLI mint, and public submit paths fail before token work or
+persistence; both web routes retain the same generic 503. The token primitive also refuses a weak
+signing key.
+
+Three adversarial passes caught and the slice fixed fourteen false-green/false-red cases before the
+commit gate: deploy-source/runtime-secret confusion; mutable Firestore authority; missing DWD
+identity; weak/equal runtime values; reviewed-preflight/deploy source divergence; partial Registry
+drift coverage; same Secret Manager binding reuse; a CLI-mint pair bypass; malformed sender syntax;
+ambient completion of an explicit reviewed file; deploy planning that omitted the full production
+preflight; a seed-fallback readiness pill that still read Healthy; missing mailbox length limits; and
+invalid forwarded server scalars. The strengthened focused set is green at 12 files / 228 tests.
+Core E2E is green at 8 files / 32 tests, including the visible seed-fallback path.
+
+The first widened verifier passed in 273.7 seconds. Its non-blocking audit exposed new production
+dependency advisories, so the checkpoint also updates Next.js 16.2.6 → 16.2.12 and pins remediated
+PostCSS, Sharp, and brace-expansion versions. After a clean lockfile install, the full unit suite is
+green at 409 files / 3,278 tests, typecheck is green, Next.js 16.2.12 builds all 93 static pages, and
+`npm audit --omit=dev` reports zero runtime findings. The compatible scoped override leaves 22
+non-runtime toolchain findings in the all-dependency report (2 Moderate, 20 High); a broader
+brace-expansion override was falsified because it breaks legacy ESLint minimatch, so no
+force/downgrade was used.
+
+D33 is now consistent across the router, Tier-0 facts, S25/S26/S38/S53, the roadmap, and the Action
+Registry catalog. The two retired direct-notice send rows read `Disabled`, and their
+`production_allowed:false` values are unchanged. No mailbox, secret value, IAM grant, live data,
+cloud resource, deploy, or D12 protected path changed. ADC remains stale; `npm run auth:session` is
+still required before live/cloud work.
+
+Next safe slice: S53.5. First close the crafted Live `vendor-assign` PATCH bypass, then build
+AC-S53-8's Admin-reachable Live Vendor lifecycle to its provider seam while all three protected
+Vendor keys remain closed.
+
 ## S53.3 COMPLETE locally — comp screenshot action contract and rollback (2026-07-30)
 
 AC-S53-13 is built and verified locally without opening the Drive action. The first POST is now

@@ -5,9 +5,13 @@ import {
   serializeProductionEnv,
 } from "../../scripts/prepare-production-env.mjs";
 
+const fixtureSender = "fixture-transactional@pmikcmetro.com";
+
 const completeSourceEnv = () => ({
   ALLOWED_HD: "pmikcmetro.com",
   ASK_DEMO_MODE: "true",
+  DATA_CONTEXT: "demo",
+  ENVIRONMENT_KIND: "demo",
   FIREBASE_PROJECT_ID: "pmi-kc-kb-prod",
   FIRESTORE_DATABASE_ID: "(default)",
   FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080",
@@ -21,6 +25,8 @@ const completeSourceEnv = () => ({
   LOCAL_DEMO_AUTH: "true",
   LOCAL_MODEL_BASE_URL: "http://127.0.0.1:1234",
   LOCAL_MODEL_NAME: "local-test-model",
+  MAINTENANCE_INTAKE_IP_HASH_SALT_SECRET_ID: "fixture-intake-ip-salt",
+  MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_ID: "fixture-intake-token",
   MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: "maintenance-drive-folder",
   MODEL_PROVIDER: "local",
   NEXT_PUBLIC_FIREBASE_API_KEY: "public-firebase-key",
@@ -36,6 +42,7 @@ const completeSourceEnv = () => ({
   SHEETS_DWD_SUBJECT: "josiah@pmikcmetro.com",
   SHEETS_IMPERSONATE_SA: "lease-renewal-reader@pmi-kc-kb-prod.iam.gserviceaccount.com",
   SPACE_DRIVE_FOLDER_IDS: '{"lease-renewals":"gs://prod/lease-renewals/"}',
+  SPACE_PROVISIONING_ENABLED: "true",
   SPACE_VERTEX_DATA_STORE_IDS: '{"lease-renewals":"kb-lease-renewals-txt"}',
   VERTEX_AI_LOCATION: "us-central1",
   VERTEX_SEARCH_LOCATION: "us",
@@ -45,6 +52,7 @@ describe("prepare production env", () => {
   it("copies only production-safe variables and forces production fences", () => {
     const result = buildProductionEnv({
       appBaseUrl: "https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app",
+      approvalSender: fixtureSender,
       notificationsEnabled: false,
       serviceAccount: "pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com",
       sourceEnv: completeSourceEnv(),
@@ -59,23 +67,28 @@ describe("prepare production env", () => {
       CLOUD_RUN_SERVICE_ACCOUNT:
         "pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com",
       IMAGE_STORE: "drive",
+      DATA_CONTEXT: "live",
+      ENVIRONMENT_KIND: "production",
       GMAIL_DWD_SA: "gmail-dwd@pmi-kc-kb-prod.iam.gserviceaccount.com",
       KB_APPROVAL_NOTIFICATIONS_ENABLED: "false",
       LOCAL_DEMO_AUTH: "false",
+      MAINTENANCE_INTAKE_IP_HASH_SALT_SECRET_ID: "fixture-intake-ip-salt",
+      MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_ID: "fixture-intake-token",
       MODEL_PROVIDER: "gemini",
       RENEWAL_COMP_DRIVE_FOLDER_ID: "renewal-comp-folder",
       RENEWAL_COMP_SHARED_DRIVE_ID: "renewal-comp-shared-drive",
+      SPACE_PROVISIONING_ENABLED: "true",
     });
     expect(result.output).not.toHaveProperty("FIRESTORE_EMULATOR_HOST");
     expect(result.output).not.toHaveProperty("LOCAL_MODEL_BASE_URL");
     expect(result.output).not.toHaveProperty("LOCAL_MODEL_NAME");
     expect(result.output).not.toHaveProperty("RENTVINE_API_KEY");
     expect(result.output).not.toHaveProperty("RENTVINE_API_SECRET");
-    expect(result.output).not.toHaveProperty("KB_APPROVAL_SENDER");
+    expect(result.output.KB_APPROVAL_SENDER).toBe(fixtureSender);
     expect(result.output).not.toHaveProperty("KB_APPROVAL_RECIPIENTS");
   });
 
-  it("requires sender and recipients only when notifications are explicitly enabled", () => {
+  it("always requires the transactional sender and requires recipients only for legacy digests", () => {
     const missing = buildProductionEnv({
       appBaseUrl: "https://kb.pmikcmetro.example",
       notificationsEnabled: true,
@@ -83,7 +96,7 @@ describe("prepare production env", () => {
     });
     expect(missing.ok).toBe(false);
     expect(missing.errors).toContain(
-      "--approval-sender is required with --notifications-enabled.",
+      "--approval-sender is required because the executable internal transactional notice action needs KB_APPROVAL_SENDER.",
     );
     expect(missing.errors).toContain(
       "--approval-recipients is required with --notifications-enabled.",
@@ -106,6 +119,7 @@ describe("prepare production env", () => {
     delete sourceEnv.RENEWAL_SHEET_ID;
     const result = buildProductionEnv({
       appBaseUrl: "https://kb.pmikcmetro.example",
+      approvalSender: fixtureSender,
       sourceEnv,
     });
 
@@ -118,6 +132,7 @@ describe("prepare production env", () => {
     delete sourceEnv.RENEWAL_COMP_DRIVE_FOLDER_ID;
     const result = buildProductionEnv({
       appBaseUrl: "https://kb.pmikcmetro.example",
+      approvalSender: fixtureSender,
       sourceEnv,
     });
 
@@ -130,11 +145,64 @@ describe("prepare production env", () => {
     delete sourceEnv.RENEWAL_COMP_SHARED_DRIVE_ID;
     const result = buildProductionEnv({
       appBaseUrl: "https://kb.pmikcmetro.example",
+      approvalSender: fixtureSender,
       sourceEnv,
     });
 
     expect(result.ok).toBe(true);
     expect(result.output).not.toHaveProperty("RENEWAL_COMP_SHARED_DRIVE_ID");
+  });
+
+  it.each([undefined, "", "false", "0", "garbage"])(
+    "keeps Space provisioning closed for source value %s",
+    (value) => {
+      const sourceEnv = completeSourceEnv();
+      if (value === undefined) {
+        delete sourceEnv.SPACE_PROVISIONING_ENABLED;
+      } else {
+        sourceEnv.SPACE_PROVISIONING_ENABLED = value;
+      }
+
+      const result = buildProductionEnv({
+        appBaseUrl: "https://kb.pmikcmetro.example",
+        approvalSender: fixtureSender,
+        sourceEnv,
+      });
+
+      expect(result.output.SPACE_PROVISIONING_ENABLED).toBe("false");
+    },
+  );
+
+  it("refuses plaintext-only or partial maintenance-intake secret configuration", () => {
+    const plaintextSource = completeSourceEnv();
+    delete plaintextSource.MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_ID;
+    delete plaintextSource.MAINTENANCE_INTAKE_IP_HASH_SALT_SECRET_ID;
+    plaintextSource.MAINTENANCE_INTAKE_TOKEN_SECRET = "plaintext-token-sentinel";
+    plaintextSource.MAINTENANCE_INTAKE_IP_HASH_SALT = "plaintext-salt-sentinel";
+
+    const plaintext = buildProductionEnv({
+      appBaseUrl: "https://kb.pmikcmetro.example",
+      approvalSender: fixtureSender,
+      sourceEnv: plaintextSource,
+    });
+    expect(plaintext.ok).toBe(false);
+    expect(plaintext.errors.join(" ")).toContain(
+      "requires both MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_ID",
+    );
+    expect(JSON.stringify(plaintext.output)).not.toContain("plaintext-token-sentinel");
+    expect(JSON.stringify(plaintext.output)).not.toContain("plaintext-salt-sentinel");
+
+    const partialSource = completeSourceEnv();
+    delete partialSource.MAINTENANCE_INTAKE_IP_HASH_SALT_SECRET_ID;
+    const partial = buildProductionEnv({
+      appBaseUrl: "https://kb.pmikcmetro.example",
+      approvalSender: fixtureSender,
+      sourceEnv: partialSource,
+    });
+    expect(partial.ok).toBe(false);
+    expect(partial.output).not.toHaveProperty(
+      "MAINTENANCE_INTAKE_IP_HASH_SALT_SECRET_ID",
+    );
   });
 
   it("parses quoted env values and serializes deterministically", () => {

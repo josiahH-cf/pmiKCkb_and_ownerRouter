@@ -9,6 +9,7 @@
 // an additional guard that this only ever sends as the configured internal identity.
 
 import { GmailRuntimeClient, createRfcMessageId } from "@/lib/gmail-runtime/client";
+import { normalizeGmailSubject } from "@/lib/gmail-runtime/subject";
 import {
   InternalTransactionalError,
   type InternalTransactionalSender,
@@ -38,10 +39,15 @@ export class GmailInternalTransactionalSender implements InternalTransactionalSe
   ) {}
 
   async send(input: { to: string; subject: string; body: string }): Promise<void> {
-    const from = (this.senderAddress ?? "").trim().toLowerCase();
-    if (from === "") {
+    let from: string;
+    try {
+      // Validate before even an injected client is constructed. The concrete Gmail client repeats this
+      // boundary, but the sender contract must not depend on a transport implementation to reject a
+      // blank, external, malformed, or multiple-mailbox identity.
+      from = normalizeGmailSubject(this.senderAddress ?? "");
+    } catch {
       throw new InternalTransactionalError(
-        "No internal transactional sender identity is configured (KB_APPROVAL_SENDER); refusing to send.",
+        "Internal transactional sending requires exactly one managed pmikcmetro.com sender identity (KB_APPROVAL_SENDER); refusing to send.",
       );
     }
     const client = this.createClient(from);

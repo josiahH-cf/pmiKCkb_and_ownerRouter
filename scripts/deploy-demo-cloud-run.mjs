@@ -1,15 +1,17 @@
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   CHEAP_LIVE_MODEL,
   readLiveCostConfig,
   readLocalEnv,
   validateLiveCostConfig,
 } from "./check-live-cost.mjs";
+import { validateProductionCutoverConfig } from "./preflight-production-cutover.mjs";
+import { resolveMaintenanceIntakeSecretBindings } from "./runtime-secret-bindings.mjs";
 
 // Live cheap-live target: the prod project `pmi-kc-kb-prod` running the Cloud Run service
 // historically named `pmi-kc-kb-demo` (https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app). The
@@ -19,8 +21,10 @@ const DEFAULT_PROJECT_ID = "pmi-kc-kb-prod";
 const DEFAULT_REGION = "us-central1";
 const DEFAULT_SERVICE = "pmi-kc-kb-demo";
 const DEFAULT_SEARCH_LOCATION = "us";
+const DEFAULT_PRODUCTION_ENV_FILE = ".env.production.local";
 const CLOUD_RUN_MAX_REVISION_NAME_LENGTH = 63;
 const CLOUD_RUN_NAME_PATTERN = /^[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 export function createDeployRevisionSuffix({
   nowMs = Date.now(),
@@ -69,6 +73,7 @@ export function parseDeployArgs(argv = process.argv.slice(2)) {
     allowMultipleSpaces: argv.includes("--allow-multiple-spaces"),
     budgetConfirmed: argv.includes("--budget-confirmed"),
     dryRun: argv.includes("--dry-run"),
+    envFile: readArg("--env-file") ?? DEFAULT_PRODUCTION_ENV_FILE,
     project: readArg("--project"),
     region: readArg("--region"),
     service: readArg("--service"),
@@ -83,22 +88,27 @@ export function parseDeployArgs(argv = process.argv.slice(2)) {
 export function buildDemoDeployCommand({
   argv = [],
   env = process.env,
-  localEnv = readLocalEnv(),
+  localEnv,
   revisionSuffix = createDeployRevisionSuffix(),
 } = {}) {
   const args = parseDeployArgs(argv);
-  const readEnv = (name) => env[name] ?? localEnv[name];
+  const errors = [];
+  const fileBacked = localEnv === undefined;
+  const reviewedEnv = localEnv ?? readProductionDeployEnv(args.envFile, errors);
+  const readEnv = (name) =>
+    fileBacked ? reviewedEnv[name] : (env[name] ?? reviewedEnv[name]);
   const project = args.project ?? readEnv("GCP_PROJECT_ID") ?? DEFAULT_PROJECT_ID;
   const region = args.region ?? readEnv("VERTEX_AI_LOCATION") ?? DEFAULT_REGION;
   const searchLocation =
     args.searchLocation ?? readEnv("VERTEX_SEARCH_LOCATION") ?? DEFAULT_SEARCH_LOCATION;
   const service = args.service ?? DEFAULT_SERVICE;
-  const errors = [];
   const revisionIdentity = buildRevisionIdentity(service, revisionSuffix, errors);
-  const publicBuildEnv = resolvePublicBuildEnv(localEnv, env, errors);
+  const publicBuildEnv = resolvePublicBuildEnv(reviewedEnv, env, errors, {
+    allowAmbientFallback: !fileBacked,
+  });
   const mergedEnv = {
-    ...localEnv,
-    ...env,
+    ...(fileBacked ? {} : env),
+    ...reviewedEnv,
     ...publicBuildEnv,
     ASK_DEMO_MODE: "false",
     GCP_PROJECT_ID: project,
@@ -114,7 +124,19 @@ export function buildDemoDeployCommand({
   errors.push(...liveCostResult.errors);
   const buildEnv = readRequiredBuildEnv(mergedEnv, errors);
   const runtimeEnv = readRuntimeEnv(mergedEnv, project, region, searchLocation);
-  const runtimeSecrets = readRuntimeSecrets(mergedEnv);
+  const runtimeSecrets = readRuntimeSecrets(mergedEnv, errors);
+  const serviceAccount =
+    args.serviceAccount ?? readEnv("CLOUD_RUN_SERVICE_ACCOUNT") ?? undefined;
+  errors.push(
+    ...validateProductionCutoverConfig(
+      {
+        ...mergedEnv,
+        ...runtimeEnv,
+        CLOUD_RUN_SERVICE_ACCOUNT: serviceAccount,
+      },
+      { maintenanceIntakeSource: "deploy" },
+    ).errors,
+  );
   const commandArgs = [
     "run",
     "deploy",
@@ -134,11 +156,8 @@ export function buildDemoDeployCommand({
     formatGcloudMapFlag("--set-env-vars", runtimeEnv),
     ...(Object.keys(runtimeSecrets).length > 0
       ? [formatGcloudMapFlag("--set-secrets", runtimeSecrets)]
-      : []),
+      : ["--clear-secrets"]),
   ];
-  const serviceAccount =
-    args.serviceAccount ?? readEnv("CLOUD_RUN_SERVICE_ACCOUNT") ?? undefined;
-
   if (serviceAccount) {
     commandArgs.push(`--service-account=${serviceAccount}`);
   }
@@ -150,11 +169,13 @@ export function buildDemoDeployCommand({
     commandArgs.push("--no-invoker-iam-check");
   }
 
+  const uniqueErrors = [...new Set(errors)];
   return {
     args: commandArgs,
     command: resolveGcloudCommand(env),
-    errors,
-    ok: errors.length === 0,
+    envFile: args.envFile,
+    errors: uniqueErrors,
+    ok: uniqueErrors.length === 0,
     ...revisionIdentity,
   };
 }
@@ -162,11 +183,13 @@ export function buildDemoDeployCommand({
 export function buildRevisionTrafficCommand({
   argv = [],
   env = process.env,
-  localEnv = readLocalEnv(),
+  localEnv,
   revision,
 } = {}) {
   const args = parseDeployArgs(argv);
-  const readEnv = (name) => env[name] ?? localEnv[name];
+  const reviewedEnv = localEnv ?? readLocalEnv(resolve(root, args.envFile));
+  const readEnv = (name) =>
+    localEnv === undefined ? reviewedEnv[name] : (env[name] ?? reviewedEnv[name]);
   const project = args.project ?? readEnv("GCP_PROJECT_ID") ?? DEFAULT_PROJECT_ID;
   const region = args.region ?? readEnv("VERTEX_AI_LOCATION") ?? DEFAULT_REGION;
   const service = args.service ?? DEFAULT_SERVICE;
@@ -238,6 +261,18 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   await executeDemoDeployPlan(command, revisionTrafficCommand);
 }
 
+function readProductionDeployEnv(envFile, errors) {
+  const envPath = resolve(root, envFile);
+  if (!existsSync(envPath)) {
+    errors.push(
+      `${envFile}: reviewed production deploy env file not found; run npm run prepare:production-env or pass --env-file=<reviewed-file>.`,
+    );
+    return {};
+  }
+
+  return readLocalEnv(envPath);
+}
+
 export function formatGcloudMapFlag(flagName, values) {
   const delimiter = pickDelimiter(Object.values(values));
   const entries = Object.entries(values).map(
@@ -253,25 +288,29 @@ const PUBLIC_BUILD_KEYS = [
   "NEXT_PUBLIC_FIREBASE_APP_ID",
 ];
 
-// `.env.local` is authoritative for the NEXT_PUBLIC_* Firebase build config: these values are
-// inlined into the client bundle and identify the Firebase project. A stale ambient process.env
-// value must not silently override the project config file, so if both are present and disagree
-// we fail the deploy loudly instead of shipping a mismatched bundle.
-function resolvePublicBuildEnv(localEnv, env, errors) {
+// The reviewed deploy env is authoritative for NEXT_PUBLIC_* Firebase build config: these values are
+// inlined into the client bundle and identify the Firebase project. A stale ambient process.env value
+// must not silently override the reviewed file, so if both are present and disagree we fail loudly.
+function resolvePublicBuildEnv(
+  reviewedEnv,
+  env,
+  errors,
+  { allowAmbientFallback = true } = {},
+) {
   const resolved = {};
 
   for (const key of PUBLIC_BUILD_KEYS) {
-    const local = readString(localEnv[key]);
+    const local = readString(reviewedEnv[key]);
     const ambient = readString(env[key]);
 
     if (local && ambient && local !== ambient) {
       errors.push(
-        `${key} mismatch: .env.local has "${local}" but the process environment has "${ambient}". ` +
+        `${key} mismatch: the reviewed deploy env has "${local}" but the process environment has "${ambient}". ` +
           `Unset or fix the ambient ${key}; it would poison the client build.`,
       );
     }
 
-    const value = local ?? ambient;
+    const value = local ?? (allowAmbientFallback ? ambient : undefined);
 
     if (value) {
       resolved[key] = value;
@@ -308,6 +347,10 @@ function readRuntimeEnv(env, project, region, searchLocation) {
     ASK_DEMO_MODE: "false",
     AUTH_SESSION_COOKIE: withDefault("AUTH_SESSION_COOKIE", "__session"),
     CONSOLE_TEST_DEPLOYMENT_NAME: "",
+    // This wrapper targets the existing Production service. Force the server-owned descriptor
+    // instead of inheriting a Demo-valued .env.local or falling back to the legacy NODE_ENV bridge.
+    DATA_CONTEXT: "live",
+    ENVIRONMENT_KIND: "production",
     FIREBASE_PROJECT_ID: withDefault("FIREBASE_PROJECT_ID", project),
     FIRESTORE_DATABASE_ID: withDefault("FIRESTORE_DATABASE_ID", "(default)"),
     GCP_PROJECT_ID: project,
@@ -350,6 +393,9 @@ function readRuntimeEnv(env, project, region, searchLocation) {
     // Optional AC-S53-13 boundary. Empty means subject-owned My Drive only; a configured value is the
     // one exact Shared Drive id the runtime may accept.
     RENEWAL_COMP_SHARED_DRIVE_ID: withDefault("RENEWAL_COMP_SHARED_DRIVE_ID", ""),
+    // S36 remains owner/IAM/cost-gated. Forward the reviewed runtime value, but default closed so a
+    // missing variable can never turn provisioning on.
+    SPACE_PROVISIONING_ENABLED: withDefault("SPACE_PROVISIONING_ENABLED", "false"),
     // Dev↔prod parity (S12): forward the live-connection identifiers so the deployed service reaches
     // RentVine (read) + the renewal sheet (keyless domain-wide delegation) exactly as local does.
     // These are NON-SECRET identifiers; the RentVine key/secret are delivered separately via Secret
@@ -371,28 +417,28 @@ function readRuntimeEnv(env, project, region, searchLocation) {
   };
 }
 
-// RentVine credentials reach Cloud Run via Secret Manager (--set-secrets), never inlined into the
-// service's plaintext env config (the no-secrets rule). Wired only when RentVine is configured for
-// this deploy — its non-secret base URL is present — so the demo-only deploy path is unchanged. The
-// Secret Manager secret id defaults to the env var name and is overridable per-secret via
-// <NAME>_SECRET_ID; the version via <NAME>_SECRET_VERSION (default "latest"). Before a redeploy the
-// owner must create these secrets and grant the Cloud Run runtime SA
-// roles/secretmanager.secretAccessor (see docs/client-production-cutover.md). To deploy without
-// RentVine, leave RENTVINE_API_BASE_URL unset in the deploy env.
+// Runtime credentials reach Cloud Run via one complete --set-secrets map, never through plaintext
+// --set-env-vars. RentVine uses its base URL as the activation signal and defaults ids to the env names.
+// Maintenance intake uses an explicit paired *_SECRET_ID signal because token-only activation is unsafe.
+// When no group is configured the command emits --clear-secrets so stale bindings cannot survive.
+// Before a redeploy the owner creates the referenced secrets and grants the Cloud Run runtime SA
+// roles/secretmanager.secretAccessor (see docs/client-production-cutover.md).
 const RENTVINE_RUNTIME_SECRETS = ["RENTVINE_API_KEY", "RENTVINE_API_SECRET"];
 
-function readRuntimeSecrets(env) {
+function readRuntimeSecrets(env, errors) {
   const bindings = {};
 
-  if (!readString(env.RENTVINE_API_BASE_URL)) {
-    return bindings;
+  if (readString(env.RENTVINE_API_BASE_URL)) {
+    for (const name of RENTVINE_RUNTIME_SECRETS) {
+      const secretId = readString(env[`${name}_SECRET_ID`]) ?? name;
+      const version = readString(env[`${name}_SECRET_VERSION`]) ?? "latest";
+      bindings[name] = `${secretId}:${version}`;
+    }
   }
 
-  for (const name of RENTVINE_RUNTIME_SECRETS) {
-    const secretId = readString(env[`${name}_SECRET_ID`]) ?? name;
-    const version = readString(env[`${name}_SECRET_VERSION`]) ?? "latest";
-    bindings[name] = `${secretId}:${version}`;
-  }
+  const intake = resolveMaintenanceIntakeSecretBindings(env);
+  errors.push(...intake.errors);
+  Object.assign(bindings, intake.bindings);
 
   return bindings;
 }

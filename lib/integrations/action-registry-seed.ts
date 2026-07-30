@@ -1342,24 +1342,21 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
   },
   {
     key: "gmail.renewal_notice.send",
-    label: "Send exact-confirmed renewal notice",
+    label: "Retired direct renewal-notice send (not exposed)",
     target_system: "Gmail",
     expected_action:
-      "Send one S24-governed renewal notice to the authoritative recipient.",
+      "Historical compatibility key retained for evidence only; the product creates an unsent renewal-notice Gmail draft and a person sends it from Gmail.",
     product_lane: "Lease Renewal Agent",
-    readiness: "Planned",
+    readiness: "Disabled",
     evidence_status: "Documented",
     documented_evidence:
-      "Gmail compose/send transport is proven; S25 must supply authoritative recipient and receipt.",
-    required_permissions: [
-      "gmail.compose",
-      "Exact confirmation",
-      "Authoritative renewal mapping",
-    ],
-    event_ingestion_mode: "Webhook",
+      "D33 retired app-managed direct client sends. The workflow-specific unsent draft is the final app effect, and this compatibility key remains production_allowed:false rather than a future activation target.",
+    required_permissions: [],
+    event_ingestion_mode: "None",
     preview_schema_note:
-      "Show workflow, recipient, artifact/policy/sources, subject, exact body, and RFC Message-ID.",
-    rollback_note: "Reconcile by RFC Message-ID and send a reviewed linked correction.",
+      "Not exposed. Review occurs on the unsent Gmail draft before a person sends from Gmail.",
+    rollback_note:
+      "No app-managed live effect exists for this key; keep it disabled and use the unsent-draft workflow.",
     connection_health_check_ref: "health.gmail.workspace_api",
     production_allowed: false,
   },
@@ -1423,24 +1420,21 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
   },
   {
     key: "gmail.maintenance_owner_notice.send",
-    label: "Send exact-confirmed maintenance owner notice",
+    label: "Retired direct maintenance owner-notice send (not exposed)",
     target_system: "Gmail",
     expected_action:
-      "Send one maintenance-owner:v1.0 notice to the authoritative owner recipient.",
+      "Historical compatibility key retained for evidence only; the product creates an unsent maintenance owner-notice Gmail draft and a person sends it from Gmail.",
     product_lane: "PMI KC KB",
-    readiness: "Planned",
+    readiness: "Disabled",
     evidence_status: "Documented",
     documented_evidence:
-      "Gmail transport is proven; S24 freezes the artifact and S26 supplies authoritative owner mapping.",
-    required_permissions: [
-      "gmail.compose",
-      "Authoritative owner mapping",
-      "Exact confirmation",
-    ],
-    event_ingestion_mode: "Webhook",
+      "D33 retired app-managed direct client sends. The workflow-specific unsent draft is the final app effect, and this compatibility key remains production_allowed:false rather than a future activation target.",
+    required_permissions: [],
+    event_ingestion_mode: "None",
     preview_schema_note:
-      "Show ticket, owner recipient, artifact/policy/sources, exact body, and RFC Message-ID.",
-    rollback_note: "Reconcile by RFC Message-ID and send a reviewed linked correction.",
+      "Not exposed. Review occurs on the unsent Gmail draft before a person sends from Gmail.",
+    rollback_note:
+      "No app-managed live effect exists for this key; keep it disabled and use the unsent-draft workflow.",
     connection_health_check_ref: "health.gmail.workspace_api",
     production_allowed: false,
   },

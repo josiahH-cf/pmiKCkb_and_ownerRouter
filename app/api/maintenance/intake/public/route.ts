@@ -79,11 +79,13 @@ export async function POST(request: Request) {
   const now = Date.now();
   const config = readServerConfig();
 
-  // Fail CLOSED until the owner provisions the signing secret (there is no dev fallback secret).
-  const secret = config.maintenanceIntakeTokenSecret;
-  if (!secret) {
+  // Fail CLOSED until both Secret Manager values are present. The response deliberately does not reveal
+  // which half is missing, and this check precedes token lookup, HMAC, body reads, and every write.
+  if (!config.maintenanceIntakeConfigured) {
     return generic(503, "Maintenance intake is not available.");
   }
+  const secret = config.maintenanceIntakeTokenSecret!;
+  const ipHashSalt = config.maintenanceIntakeIpHashSalt!;
 
   const token = request.headers.get(INTAKE_TOKEN_HEADER);
   if (!token) {
@@ -91,11 +93,8 @@ export async function POST(request: Request) {
   }
 
   // In-instance pre-gate BEFORE any HMAC work. Key on the salted IP hash (rightmost XFF hop, least
-  // forgeable), falling back to a single global bucket when no IP/salt is available.
-  const ipHash = hashClientIp(
-    extractClientIp(request.headers),
-    config.maintenanceIntakeIpHashSalt,
-  );
+  // forgeable), falling back to a single global bucket when no client IP is available.
+  const ipHash = hashClientIp(extractClientIp(request.headers), ipHashSalt);
   const preGate = rateLimiter.check(ipHash ?? "global", now);
   if (!preGate.allowed) {
     return generic(429, "Too many requests. Please try again later.", {

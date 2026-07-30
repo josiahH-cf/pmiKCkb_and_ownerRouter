@@ -18,8 +18,8 @@ implementation_status: IN_PROGRESS
 next_suite: S53
 next_spec: docs/feature-suites/greenlight-activation-and-gate-integrity.md
 session_auth_status: BLOCKED_INTERACTIVE_ADC_CLI_GREEN
-active_slice: S53.4-SENDER-CONFIG-INTEGRITY
-last_completed_slice: S53.3-COMP-SCREENSHOT-ACTION-CONTRACT
+active_slice: S53.5-VENDOR-LIFECYCLE-SEAM
+last_completed_slice: S53.4-SENDER-CONFIG-INTEGRITY
 runtime_action_gates_preflipped: false
 ```
 
@@ -41,27 +41,25 @@ runtime_action_gates_preflipped: false
   The subsequently located Windows CLI reports managed `josiah@pmikcmetro.com`, and the suppressed
   CLI-token check passes. ADC alone remains red, so live reads, deploys, cloud mutations, and the S54
   live eval stay parked; local/app-plane work continues.
-- S54.1 is locally complete: `test:firestore` is in the local/CI gate; 17 files / 59 tests passed,
-  permissive-Rule falsification failed as intended, and the exact Rules hash was restored. Full
-  evidence is in `docs/status.md`; remote CI run `30510068990` passed.
-- S53.2's local AC-S53-12 contract is complete: immutable preview, transactionally
-  current approval/source authorization, predecessor-CAS execution, bodyless provider-effect
-  receipt/audit, exact status, atomic absent-key tombstone recovery (a provider control-state
-  mutation, not a Sheet effect), and same-value-ABA-safe correction. Activation stops before provider
-  construction because D32 is missing; the key remains `Needs Connection`, `Undocumented`, and closed.
-- S53.3's local AC-S53-13 contract is complete: preview has zero Drive construction; exact confirm
-  uploads at most once; receipt/reconcile are bodyless/reload-safe; exact rollback verifies trash
-  and matching-progress detach. Boundary/generation CAS tests pass; the key remains closed/hidden.
+- S54.1's widened Firestore gate/falsification is complete; remote CI run `30510068990` passed.
+- S53.2's AC-S53-12 Sheet contract is locally complete through immutable preview, one-attempt
+  execution, receipt/reconcile/correction, and ABA-safe recovery; D32 is still the provider seam.
+- S53.3's AC-S53-13 Drive contract is locally complete through preview, one upload, bodyless
+  receipt/reconcile, and exact trash rollback; the key remains closed/hidden.
+- S53.4 is complete locally: reviewed preflight/deploy source parity, explicit Production+Live,
+  committed-seed gate truth plus complete Firestore drift, action-keyed sender/DWD readiness,
+  paired intake secrets, fail-closed Space flag, and strict runtime scalar validation. D33's direct
+  notice-send non-targets are reconciled as Disabled without changing `production_allowed`.
+- The clean-install app gate is green on Next.js 16.2.12 (409 files / 3,278 unit tests; 93-page
+  production build); runtime audit is zero. The all-dependency report retains 22 toolchain findings.
 - Production serves `2bfe7d4` on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e`, missing the
   accumulated repairs. D07 deploy waits for S52 headroom and the sanitized-environment/emulator
   refusal. Never edit `.env.local` as the workaround.
-- Firestore backups are verified (`F-FIRESTORE-BACKUPS`): PITR 7d, delete protection, daily 7d +
-  weekly 14w schedules. The S40 migration is unblocked.
+- Firestore backups are verified (`F-FIRESTORE-BACKUPS`); the S40 migration is unblocked.
 - The budget kill-switch is armed and verified end to end at the observed legacy monthly amount,
   which is enforcement state rather than approved headroom. S52's replacement values are null.
-- The remaining S53 control defect is config truth: S39's internal notice is recorded live but inert
-  because its sender mailbox is empty, and several activation values can be provisioned yet dropped
-  by the deploy wrapper. Build those refusal/forwarding checks without inventing values or deploying.
+- S53.5 starts by closing the crafted Live `vendor-assign` PATCH bypass, then builds AC-S53-8's
+  Admin-reachable Vendor lifecycle while invite/assignment/disable keys remain closed.
 
 ## Dependency order
 
@@ -73,27 +71,29 @@ runtime_action_gates_preflipped: false
    tombstone, immutable effect evidence, and a current-cell generation invalidated by every edit;
    then require auth and the exact operational target. Fixed-A1 throwaway proof is insufficient.
 4. **S53 comp action contract — COMPLETE LOCALLY / KEY CLOSED** — verified; activation is parked.
-5. **S53 sender/config slice — ACTIVE** — build sender/forwarding refusal; leave undiscovered values
-   inert. Include explicit environment, Space-provisioning, and secret-forwarding truth checks.
-6. **S52 prerequisites** — build baseline capture, single-source values, lockstep enforcement,
+5. **S53 sender/config slice — COMPLETE LOCALLY** — forwarding/refusal and runtime truth are green;
+   undiscovered values remain inert.
+6. **S53 Vendor lifecycle seam — ACTIVE** — close the generic PATCH bypass; build AC-S53-8's
+   Admin preview/confirm/receipt/reconcile/disable contract without flipping protected keys.
+7. **S52 prerequisites** — build baseline capture, single-source values, lockstep enforcement,
    coverage, and refusals with values unset; park protected guardrail/check changes for review.
-7. **S51 app-plane** — close-only combinator first, then store/route/rehearsal/incident/logging/
+8. **S51 app-plane** — close-only combinator first, then store/route/rehearsal/incident/logging/
    alert definitions. Isolate protected `firestore.rules`; do not apply cloud resources.
-8. **S52/S51 activation** — after the complete-calendar-month baseline, supply the two
+9. **S52/S51 activation** — after the complete-calendar-month baseline, supply the two
    owner-selected values, second-project disposition, and operator destination; apply owner-run
    billing/IAM/monitoring changes and verify live lockstep/delivery. Do not synthesize or infer a
    bootstrap value.
-9. **S40 release-safety prerequisite** — land the environment-parameterized, sanitized,
-   zero-traffic candidate deploy path, current-manifest policy targeting, candidate smoke before
-   exact-revision promotion, and rollback command. The legacy auto-promoting wrapper is not eligible
-   for D07.
-10. **D07 deploy and live operational evidence** — only after steps 8–9, fresh auth, full gate,
+10. **S40 release-safety prerequisite** — land the environment-parameterized, sanitized,
+    zero-traffic candidate deploy path, current-manifest policy targeting, candidate smoke before
+    exact-revision promotion, and rollback command. The legacy auto-promoting wrapper is not eligible
+    for D07.
+11. **D07 deploy and live operational evidence** — only after steps 9–10, fresh auth, full gate,
     prior-target capture, rollback, and bounded candidate smoke.
-11. **S40 remaining environment/data slices** — provider-construction sentinel, un-merge Demo/Live
+12. **S40 remaining environment/data slices** — provider-construction sentinel, un-merge Demo/Live
     lists, Production route exclusion, shell banner, and migration dry-run.
-12. **S53 remaining activations** — as each owner value lands, each with its paired
+13. **S53 remaining activations** — as each owner value lands, each with its paired
     deploy-wrapper change.
-13. Then S41 → S42 → S44 → S43/S45 → S46 → S47 → S48 → S49 → S50; interleave S28–S39 seams.
+14. Then S41 → S42 → S44 → S43/S45 → S46 → S47 → S48 → S49 → S50; interleave S28–S39 seams.
 
 ## Named external evidence
 
@@ -135,5 +135,5 @@ runtime_action_gates_preflipped: false
 
 ## Resume
 
-Build/falsify S53.4 config integrity; invent no mailbox, credential, or IAM grant. Re-run auth before
-live/cloud work; park stale auth. Named-key grants only; never infer D44/D49/D51 or widen D50.
+Build/falsify S53.5's reachable Vendor lifecycle; close the generic Live assignment bypass first.
+Re-run auth before live/cloud work; keep all three Vendor keys closed and invent no identity.

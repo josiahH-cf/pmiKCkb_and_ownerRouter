@@ -236,18 +236,29 @@ describe("Action Registry seed catalog", () => {
         .filter((entry) => entry.production_allowed)
         .map((entry) => entry.key),
     ).toEqual(["gmail.mailbox.read", "gmail.thread.reply", "gmail.label.apply"]);
-    // Slice 6 (2026-07-22): maintenance owner-notice DRAFT flipped live (owner email confirmed at
-    // portfolio.owners[].email, 25/25). Draft-only; the paired .send stays gated below.
+    // Slice 6 (2026-07-22): maintenance owner-notice DRAFT flipped live. D33 later retired both
+    // direct notice-send keys; the paired .send stays permanently disabled below.
     const maintenanceDraft = gmailEntries.find(
       (entry) => entry.key === "gmail.maintenance_owner_notice.draft_create",
     );
     expect(maintenanceDraft?.readiness).toBe("Approved for Execution");
     expect(maintenanceDraft?.evidence_status).toBe("Documented");
     expect(maintenanceDraft?.production_allowed).toBe(true);
-    expect(
-      gmailEntries.find((entry) => entry.key === "gmail.maintenance_owner_notice.send")
-        ?.production_allowed,
-    ).toBe(false);
+    const retiredDirectSendKeys = [
+      "gmail.renewal_notice.send",
+      "gmail.maintenance_owner_notice.send",
+    ];
+    for (const key of retiredDirectSendKeys) {
+      const entry = gmailEntries.find((candidate) => candidate.key === key);
+      expect(entry?.readiness, key).toBe("Disabled");
+      expect(entry?.expected_action, key).toMatch(/historical compatibility key/i);
+      expect(entry?.documented_evidence, key).toMatch(
+        /rather than a future activation target/i,
+      );
+      expect(entry?.event_ingestion_mode, key).toBe("None");
+      expect(entry?.required_permissions, key).toEqual([]);
+      expect(entry?.production_allowed, key).toBe(false);
+    }
   });
 
   it("keeps LeadSimple task creation behind vendor confirmation", () => {

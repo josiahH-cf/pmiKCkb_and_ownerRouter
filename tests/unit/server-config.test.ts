@@ -31,6 +31,7 @@ describe("server config", () => {
     expect(readServerConfig({}).vertexSearchLocation).toBe("us");
     expect(readServerConfig({}).kbApprovalNotificationsEnabled).toBe(false);
     expect(readServerConfig({}).kbApprovalRecipients).toEqual([]);
+    expect(readServerConfig({}).spaceProvisioningEnabled).toBe(false);
   });
 
   it("defaults to the Gemini model provider", () => {
@@ -79,6 +80,20 @@ describe("server config", () => {
 
     expect(config.spaceDriveFolderIds["lease-renewals"]).toBe("folder-1");
     expect(config.spaceVertexDataStoreIds["lease-renewals"]).toBe("data-store-1");
+  });
+
+  it("enables Space provisioning only for an exact true or 1 value", () => {
+    for (const value of ["false", "0", "", "garbage", "yes"]) {
+      expect(
+        readServerConfig({ SPACE_PROVISIONING_ENABLED: value }).spaceProvisioningEnabled,
+      ).toBe(false);
+    }
+
+    for (const value of ["true", "1", " TRUE ", " 1 "]) {
+      expect(
+        readServerConfig({ SPACE_PROVISIONING_ENABLED: value }).spaceProvisioningEnabled,
+      ).toBe(true);
+    }
   });
 
   it("resolves the maintenance photo folder, preferring the dedicated var over the legacy map key", () => {
@@ -136,22 +151,67 @@ describe("server config", () => {
     const config = readServerConfig({});
     expect(config.maintenanceIntakeTokenSecret).toBeUndefined();
     expect(config.maintenanceIntakeIpHashSalt).toBeUndefined();
+    expect(config.maintenanceIntakeConfigured).toBe(false);
     // F-MAINT-3: default 50/property/day, with a tighter default for reusable signage links.
     expect(config.maintenanceIntakeDailyCap).toBe(50);
     expect(config.maintenanceIntakeSignageDailyCap).toBe(15);
   });
 
   it("reads the intake secret, salt, and daily + signage caps when provided", () => {
+    const tokenSecret = "server-config-token-secret-32-byte-value";
+    const ipHashSalt = "server-config-ip-hash-salt-32-byte-value";
     const config = readServerConfig({
-      MAINTENANCE_INTAKE_TOKEN_SECRET: "s3cret",
-      MAINTENANCE_INTAKE_IP_HASH_SALT: "salty",
+      MAINTENANCE_INTAKE_TOKEN_SECRET: tokenSecret,
+      MAINTENANCE_INTAKE_IP_HASH_SALT: ipHashSalt,
       MAINTENANCE_INTAKE_DAILY_CAP: "250",
       MAINTENANCE_INTAKE_SIGNAGE_DAILY_CAP: "40",
     });
-    expect(config.maintenanceIntakeTokenSecret).toBe("s3cret");
-    expect(config.maintenanceIntakeIpHashSalt).toBe("salty");
+    expect(config.maintenanceIntakeTokenSecret).toBe(tokenSecret);
+    expect(config.maintenanceIntakeIpHashSalt).toBe(ipHashSalt);
+    expect(config.maintenanceIntakeConfigured).toBe(true);
     expect(config.maintenanceIntakeDailyCap).toBe(250);
     expect(config.maintenanceIntakeSignageDailyCap).toBe(40);
+  });
+
+  it("treats either incomplete maintenance-intake secret pair as not configured", () => {
+    expect(
+      readServerConfig({
+        MAINTENANCE_INTAKE_TOKEN_SECRET: "s3cret",
+      }).maintenanceIntakeConfigured,
+    ).toBe(false);
+    expect(
+      readServerConfig({
+        MAINTENANCE_INTAKE_IP_HASH_SALT: "salty",
+      }).maintenanceIntakeConfigured,
+    ).toBe(false);
+    expect(
+      readServerConfig({
+        MAINTENANCE_INTAKE_TOKEN_SECRET: "   ",
+        MAINTENANCE_INTAKE_IP_HASH_SALT: "salty",
+      }).maintenanceIntakeConfigured,
+    ).toBe(false);
+  });
+
+  it("treats weak or reused maintenance-intake runtime values as not configured", () => {
+    const strong = "server-config-strong-secret-32-byte-value";
+    expect(
+      readServerConfig({
+        MAINTENANCE_INTAKE_TOKEN_SECRET: "too-short",
+        MAINTENANCE_INTAKE_IP_HASH_SALT: strong,
+      }).maintenanceIntakeConfigured,
+    ).toBe(false);
+    expect(
+      readServerConfig({
+        MAINTENANCE_INTAKE_TOKEN_SECRET: strong,
+        MAINTENANCE_INTAKE_IP_HASH_SALT: "too-short",
+      }).maintenanceIntakeConfigured,
+    ).toBe(false);
+    expect(
+      readServerConfig({
+        MAINTENANCE_INTAKE_TOKEN_SECRET: strong,
+        MAINTENANCE_INTAKE_IP_HASH_SALT: strong,
+      }).maintenanceIntakeConfigured,
+    ).toBe(false);
   });
 
   it("rejects invalid JSON maps", () => {

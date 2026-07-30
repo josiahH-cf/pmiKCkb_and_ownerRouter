@@ -33,6 +33,9 @@ describe("admin migration console", () => {
     expect(html).toContain("Source Corpus Readiness");
     expect(html).toContain("Budget &amp; Away Mode");
     expect(html).toContain("Action Registry Readiness");
+    expect(html).toContain("Mapped runtime activation");
+    expect(html).toContain("Committed execution authority");
+    expect(html).toContain("Runtime-inert mapped actions");
     expect(html).toContain("Notification Posture");
     // Copy varies with registry state (all-gated vs an allow-listed executable); assert the stable token.
     expect(html).toContain("production_allowed");

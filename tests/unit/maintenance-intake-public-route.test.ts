@@ -23,7 +23,8 @@ import {
 } from "@/lib/maintenance/intake-token";
 import { MAINTENANCE_TEST_PUBLIC_INTAKE } from "@/lib/maintenance/test-workflow";
 
-const SECRET = "route-secret";
+const SECRET = "route-secret-32-bytes-minimum-value";
+const IP_HASH_SALT = "route-ip-salt-32-bytes-minimum-value";
 const NOW = Date.now();
 
 function token(propertyKey = "prop-abc", overrides: Partial<MintIntakeTokenInput> = {}) {
@@ -62,7 +63,7 @@ const validBody = JSON.stringify({ summary: "Leaky faucet", contact: "t@example.
 beforeEach(() => {
   process.env.MAINTENANCE_INTAKE_TOKEN_SECRET = SECRET;
   process.env.MAINTENANCE_INTAKE_DAILY_CAP = "500";
-  process.env.MAINTENANCE_INTAKE_IP_HASH_SALT = "test-salt"; // so each unique XFF gets its own bucket
+  process.env.MAINTENANCE_INTAKE_IP_HASH_SALT = IP_HASH_SALT; // so each unique XFF gets its own bucket
   vi.mocked(createUnverifiedIntakeFromPublic).mockClear();
   vi.mocked(createUnverifiedIntakeFromPublic).mockResolvedValue({ id: "intake_1" });
 });
@@ -74,11 +75,41 @@ afterEach(() => {
 });
 
 describe("public maintenance intake route", () => {
-  it("fails CLOSED with 503 when no signing secret is configured", async () => {
+  it("fails closed with the exact generic 503 when the token secret is missing", async () => {
     delete process.env.MAINTENANCE_INTAKE_TOKEN_SECRET;
     const res = await POST(req(validBody, { "x-intake-token": token() }));
     expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({
+      error: "Maintenance intake is not available.",
+    });
     expect(createUnverifiedIntakeFromPublic).not.toHaveBeenCalled();
+  });
+
+  it("fails closed with the same generic 503 when the IP-hash salt is missing", async () => {
+    delete process.env.MAINTENANCE_INTAKE_IP_HASH_SALT;
+    const res = await POST(req(validBody, { "x-intake-token": token() }));
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({
+      error: "Maintenance intake is not available.",
+    });
+    expect(createUnverifiedIntakeFromPublic).not.toHaveBeenCalled();
+  });
+
+  it("fails closed generically for weak or reused runtime values", async () => {
+    for (const [secret, salt] of [
+      ["too-short", IP_HASH_SALT],
+      [SECRET, "too-short"],
+      [SECRET, SECRET],
+    ]) {
+      process.env.MAINTENANCE_INTAKE_TOKEN_SECRET = secret;
+      process.env.MAINTENANCE_INTAKE_IP_HASH_SALT = salt;
+      const res = await POST(req(validBody, { "x-intake-token": token() }));
+      expect(res.status).toBe(503);
+      expect(await res.json()).toEqual({
+        error: "Maintenance intake is not available.",
+      });
+      expect(createUnverifiedIntakeFromPublic).not.toHaveBeenCalled();
+    }
   });
 
   it("returns 401 (generic) with no token", async () => {
@@ -108,7 +139,7 @@ describe("public maintenance intake route", () => {
     expect(createUnverifiedIntakeFromPublic).not.toHaveBeenCalled();
   });
 
-  it("accepts a valid submission with 202 + a reference that is neither the doc id nor the jti", async () => {
+  it("accepts a valid submission with both values configured and returns only a fresh reference", async () => {
     const t = token("prop-xyz");
     const res = await POST(req(validBody, { "x-intake-token": t }));
     expect(res.status).toBe(202);

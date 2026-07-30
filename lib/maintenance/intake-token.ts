@@ -17,6 +17,7 @@
 //     mint secret can't be used to forge effectively-eternal tokens (mint also clamps).
 
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { MAINTENANCE_INTAKE_MIN_SECRET_BYTES } from "@/scripts/runtime-secret-bindings.mjs";
 
 import { requireExplicitDataMode } from "@/lib/data-mode";
 
@@ -101,8 +102,13 @@ export function mintIntakeToken(
   now: number = Date.now(),
 ): string {
   const secret = input.secret?.trim();
-  if (!secret) {
-    throw new Error("Cannot mint an intake token without a signing secret.");
+  if (
+    !secret ||
+    Buffer.byteLength(secret, "utf8") < MAINTENANCE_INTAKE_MIN_SECRET_BYTES
+  ) {
+    throw new Error(
+      `Cannot mint an intake token without a signing secret of at least ${MAINTENANCE_INTAKE_MIN_SECRET_BYTES} UTF-8 bytes.`,
+    );
   }
   const propertyKey = input.propertyKey?.trim();
   if (!propertyKey || propertyKey.length > MAX_PROPERTY_KEY_LENGTH) {
@@ -143,7 +149,11 @@ export function verifyIntakeToken(
   now: number = Date.now(),
 ): VerifyIntakeTokenResult {
   const trimmedSecret = secret?.trim();
-  if (!trimmedSecret || !token) {
+  if (
+    !trimmedSecret ||
+    Buffer.byteLength(trimmedSecret, "utf8") < MAINTENANCE_INTAKE_MIN_SECRET_BYTES ||
+    !token
+  ) {
     return { ok: false, reason: "invalid" };
   }
 

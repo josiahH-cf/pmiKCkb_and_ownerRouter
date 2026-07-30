@@ -94,11 +94,12 @@ href, label }`) and carries no recipient, rent, or tenant name. Pure, determinis
   - Slice 4 - maintenance parallel route (to the S38a draft surface when present, else the maintenance
     Test run) plus the High-risk-refused-server-side invariant test.
 - **Build to the seam (live provider).** None. S33 introduces no provider and no new action key. It
-  routes only into actions that already exist at their own seams; the closed send and writeback
-  siblings (`gmail.renewal_notice.send`, `gmail.maintenance_owner_notice.send`,
-  `rentvine.lease.renewal_writeback`, the RentVine and Gmail-watch work) belong to S30, S38b, and S31
-  and stay deliberately out of Ask's reach. Because Ask only ever routes to an `isActionExecutable`
-  key, there is nothing here to build to a seam.
+  routes only into actions that already exist at their own seams. D33 makes the closed
+  `gmail.renewal_notice.send` and `gmail.maintenance_owner_notice.send` keys permanent
+  non-targets: draft-into-Gmail plus a human Gmail send is the final client-facing flow. The
+  `rentvine.lease.renewal_writeback` and Gmail-watch work remain owned by S30 and S31 and stay
+  deliberately out of Ask's reach. Because Ask only ever routes to an `isActionExecutable` key,
+  there is nothing here to build to a seam.
 - **Owner dependency (the one flip).** None specific to this suite. S33 flips no gate and needs no
   endpoint, credential, or scope: it reuses the already-authorized live RentVine read and the
   already-open draft-create gate. Interactive `npm run auth:session` remains owner-run. Routine
@@ -125,10 +126,11 @@ href, label }`) and carries no recipient, rent, or tenant name. Pure, determinis
   cost-bearing/live/cloud work is closed while local/app-plane work continues. Routine deployment
   follows D05; interactive auth, credentials/scopes, IAM, billing/quota, provider inputs, and
   destructive operations remain owner-run.
-- _Open:_ whether the owner later wants Ask to reach the maintenance owner-notice draft even before
-  S38a formally lands its route and button. Default until answered: route maintenance to the existing
-  process Test run, and light up the draft surface automatically once S38a is present. Routed to
-  `docs/client-checklist.md` as a confirm-with-default (default: Test run until S38a lands).
+- _Known implementation gap:_ S38 has landed its governed maintenance owner-notice draft route and
+  control, but Ask still passes `maintenanceDraftAvailable:false` and therefore falls back to the
+  existing process Test run. No owner decision is pending. A dependency-independent follow-up must
+  route an authoritative maintenance target to the existing S38 preview surface without introducing
+  an executor, send, or gate flip.
 - _Note on facts.md:_ the `Q-ASK-ACTION-SCOPE` open row and the final `F-ASK-ACTION` promotion are
   recorded in `docs/facts.md` at BUILD time (this authoring pass creates only the spec file per its
   charter); the assumptions above are decision-complete so a builder needs no further owner input.
@@ -148,8 +150,9 @@ interacts with, and does NOT supersede: `F-SEND-AUTHORIZED` (human-initiated exa
 preserved), `F-ROADMAP-BUILD-AUTHORIZED` (this is its Wave-1 row 7), `D-AUTOMATION-LINE` (no
 client-facing auto-send introduced), S25 / S26 (the execution contracts it routes into, unchanged),
 S29 (a comp-suggested rent still enters a draft only behind its own Admin approval; Ask does not
-shortcut it), S30 / S38b / S31 (the closed send and write seams it stays clear of). Additive; no
-Supersede Log entry. New tests `tests/unit/ask-action-intent.test.ts`,
+shortcut it), S30 / S31 (the write and watch seams it stays clear of), and D33 (the closed direct
+client-send keys are final, not future S38 work). Additive; no suite-specific Supersede Log entry.
+New tests `tests/unit/ask-action-intent.test.ts`,
 `tests/unit/ask-renewal-target.test.ts`, `tests/unit/ask-live-target-route.test.ts`, and extensions to
 `tests/unit/ask-form.test.tsx`.
 
@@ -208,7 +211,8 @@ launch only actions where `isActionExecutable` is already true, and it re-uses t
 surface and route rather than defining an executor of its own. Every routed action keeps its
 preview / confirm / receipt (the unsent draft the operator sends by hand). No autonomous send and no
 system-of-record write are introduced: the renewal and maintenance SEND keys and
-`rentvine.lease.renewal_writeback` stay `production_allowed:false` and out of reach (S30 / S38b / S31).
+`rentvine.lease.renewal_writeback` stay `production_allowed:false` and out of reach. D33 makes the two
+client-send keys final non-targets; S30 owns the separately gated write-back seam.
 High-risk actions are refused server-side; Ask cannot approve them away. The existing "safe Test run"
 stays a Test run. No new Google scope, no Cloud Scheduler or cron or timer that starts a run, no
 personal account in any auth path, no secrets or customer PII or guessed endpoint in git or evidence,

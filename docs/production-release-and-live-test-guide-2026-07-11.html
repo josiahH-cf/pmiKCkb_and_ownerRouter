@@ -257,16 +257,21 @@
       </p>
       <div class="meta">
         <span class="pill">Prepared July 11, 2026</span>
+        <span class="pill">Historical release record</span>
         <span class="pill">Target: pmi-kc-kb-prod</span>
         <span class="pill">Service: pmi-kc-kb-demo</span>
         <span class="pill">Human-controlled sends and writes</span>
       </div>
 
       <div class="callout warning">
-        <strong>Release boundary:</strong> deployment, live smoke tests, Gmail mailbox
-        access, and external writes are owner-gated. This release does not authorize
-        autonomous sending or a RentVine, Sheet, QuickBooks, bank, or other
-        system-of-record write.
+        <strong>Superseded for current execution (July 29, 2026):</strong> this page is a
+        preserved July 11 release record. Do not execute its deployment, Firestore, or
+        live-test commands as current instructions. Current authority and order live in
+        <code>AGENTS.md</code>, <code>docs/loop-state.md</code>, and S40/S51/S52/S53.
+        Routine reviewed application deploy/smoke/promotion is bounded by D05; protected
+        paths, provisioning, IAM/billing/Auth/scope, secrets, and destructive migration
+        remain separately gated. Client-facing sends and system-of-record writes remain
+        human-initiated, exact-confirmed, receipted, and reversible.
       </div>
 
       <h2>1. What was developed</h2>
@@ -355,12 +360,15 @@
           <tr>
             <td>Production readiness</td>
             <td>
-              Governance and handoff docs now match the verified production project, $10
-              hard kill switch, canonical Cloud Run host, and exact one-key Action
-              Registry allowlist.
+              This dated checkpoint matched the verified production project and canonical
+              host. Current S52 replaces the retired flat cost figure, and S53 activates
+              only exact named Action Registry keys with their runtime dependencies.
             </td>
             <td>Admin migration view and repository runbooks</td>
-            <td>The hard budget cap and per-step live approval remain binding.</td>
+            <td>
+              No cost-bearing step proceeds until S52 has non-null verified alert and
+              hard-stop values; each Live action keeps its own contract and gate.
+            </td>
           </tr>
         </tbody>
       </table>
@@ -390,15 +398,20 @@ npm install
 npm run auth:session
 npm run preflight:adc
 npm run check:budget-guard
-npm run prepare:production-env -- --app-base-url=https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com
+npm run prepare:production-env -- --app-base-url=https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com --approval-sender="$KB_APPROVAL_SENDER"
 npm run preflight:production -- --env-file=.env.production.local
-npm run deploy -- --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo --region=us-central1 --search-location=us --budget-confirmed --allow-multiple-spaces --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com --dry-run</code></pre>
+npm run deploy -- --env-file=.env.production.local --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo --region=us-central1 --search-location=us --budget-confirmed --allow-multiple-spaces --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com --dry-run</code></pre>
 
       <div class="callout">
-        The helper keeps approval email notifications disabled by default. The preflight
-        should pass with a warning that notification delivery is excluded. Do not enable
-        notifications or use an allow-notifications flag unless sender, recipients, and
-        delivery have separate explicit approval.
+        The helper keeps the legacy approval digest disabled, but the already-executable
+        internal transactional notice still requires exactly one managed
+        <code>KB_APPROVAL_SENDER</code>. Preparation, preflight, deploy planning, and the
+        runtime sender refuse a blank, placeholder, multiple, or external mailbox.
+        Production also requires explicit <code>ENVIRONMENT_KIND=production</code> and
+        <code>DATA_CONTEXT=live</code>. Maintenance intake activates only through the
+        complete pair of non-secret <code>*_SECRET_ID</code> references; partial or
+        plaintext-only configuration is refused, and the two runtime values must be
+        distinct generated values of at least 32 UTF-8 bytes.
       </div>
 
       <div class="callout">
@@ -417,7 +430,7 @@ npm run deploy -- --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo --region=us-
 
       <pre><code>npm exec firebase -- deploy --only firestore:rules,firestore:indexes --project pmi-kc-kb-prod
 
-npm run deploy -- --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo --region=us-central1 --search-location=us --budget-confirmed --allow-multiple-spaces --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com</code></pre>
+npm run deploy -- --env-file=.env.production.local --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo --region=us-central1 --search-location=us --budget-confirmed --allow-multiple-spaces --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com</code></pre>
 
       <p>
         Canonical production URL:
@@ -634,12 +647,17 @@ npm run smoke:transcribe-live -- --base-url=$baseUrl --browser-session</code></p
       <h2>6. Release-wide safety checks</h2>
 
       <ul class="checklist">
-        <li>No control sends an email automatically.</li>
-        <li>No renewal approval changes RentVine or the operating Sheet.</li>
-        <li>Gmail Hub never claims to read the mailbox.</li>
         <li>
-          The only executable registry key is the compose-only unsent renewal-draft
-          action.
+          No client-facing control sends automatically; the separately gated internal
+          staff feedback notice may send one metadata-only message.
+        </li>
+        <li>No renewal approval changes RentVine or the operating Sheet.</li>
+        <li>
+          Workflow-linked Gmail reads stay scoped to authorized users and artifacts.
+        </li>
+        <li>
+          Only exact named <code>production_allowed</code> keys execute, and runtime-inert
+          keys are shown separately from governance-open keys.
         </li>
         <li>A maintenance-only user cannot access renewals or Approval Queue.</li>
         <li>

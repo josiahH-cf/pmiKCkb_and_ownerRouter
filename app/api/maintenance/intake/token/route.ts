@@ -35,13 +35,13 @@ export async function POST(request: Request) {
     await requireCapabilityInSpace("edit", "maintenance");
 
     const config = readServerConfig();
-    const secret = config.maintenanceIntakeTokenSecret;
-    if (!secret) {
+    if (!config.maintenanceIntakeConfigured) {
       return NextResponse.json(
-        { error: "Maintenance intake is not configured (no signing secret)." },
+        { error: "Maintenance intake is not configured." },
         { status: 503 },
       );
     }
+    const secret = config.maintenanceIntakeTokenSecret!;
 
     const input = await parseJsonBody(request, MintBodySchema);
     const propertyKey = normalizeIntakePropertyKey(input.propertyKey);

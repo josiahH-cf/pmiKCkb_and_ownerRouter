@@ -6,6 +6,7 @@ import {
   classifyOwnerActions,
   type MigrationReadinessDeps,
 } from "@/lib/admin/migration-readiness";
+import { buildActionRegistryRecord } from "@/lib/firestore/action-registry";
 import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 
 const admin: AuthenticatedUser = {
@@ -16,6 +17,34 @@ const admin: AuthenticatedUser = {
 };
 
 const config = readServerConfig({ ASK_DEMO_MODE: "true" });
+const validActionRuntime = {
+  GCP_PROJECT_ID: "pmi-kc-kb-prod",
+  GMAIL_DWD_SA: "gmail-dwd@pmi-kc-kb-prod.iam.gserviceaccount.com",
+  KB_APPROVAL_SENDER: "ops@pmikcmetro.com",
+  NODE_ENV: "test" as const,
+};
+
+function committedRegistryRecords(
+  overrides: Record<
+    string,
+    Partial<{
+      readiness: string;
+      evidence_status: string;
+      production_allowed: boolean;
+    }>
+  > = {},
+) {
+  return ACTION_REGISTRY_SEED.map((entry) => {
+    const record = buildActionRegistryRecord(entry);
+    return {
+      key: record.key,
+      readiness: record.readiness,
+      evidence_status: record.evidence_status,
+      production_allowed: record.production_allowed,
+      ...overrides[entry.key],
+    };
+  });
+}
 
 function passingDeps(): Partial<MigrationReadinessDeps> {
   return {
@@ -61,20 +90,7 @@ function passingDeps(): Partial<MigrationReadinessDeps> {
       awayModeActive: true,
     }),
     readAwayModeStatus: () => "ACTIVE",
-    listActionRegistry: async () => [
-      {
-        key: "rentvine.work_order.create",
-        readiness: "Needs Connection",
-        evidence_status: "Documented",
-        production_allowed: false,
-      },
-      {
-        key: "rentvine.lease.renewal_writeback",
-        readiness: "Planned",
-        evidence_status: "Undocumented",
-        production_allowed: false,
-      },
-    ],
+    listActionRegistry: async () => committedRegistryRecords(),
     readApprovalQueueNotificationHealth: async () => ({
       status: "Healthy",
       disabled_event_types: ["closed"],
@@ -85,10 +101,14 @@ function passingDeps(): Partial<MigrationReadinessDeps> {
   };
 }
 
+function senderMappedRegistryRecords() {
+  return committedRegistryRecords();
+}
+
 describe("buildMigrationReadinessReport", () => {
   it("composes all sections with an ok rollup when every check passes", async () => {
     const report = await buildMigrationReadinessReport(
-      { actor: admin, config },
+      { actor: admin, config, env: validActionRuntime },
       passingDeps(),
     );
 
@@ -101,7 +121,16 @@ describe("buildMigrationReadinessReport", () => {
       posture: "demo",
       cap_usd: 10,
     });
-    expect(report.action_registry).toMatchObject({ source: "firestore", total: 2 });
+    expect(report.action_registry).toMatchObject({
+      source: "firestore",
+      total: ACTION_REGISTRY_SEED.length,
+    });
+    expect(report.action_registry.committed_executable_keys).toContain(
+      "internal.transactional_notice.send",
+    );
+    expect(report.action_registry.runtime_active_keys).toContain(
+      "internal.transactional_notice.send",
+    );
     expect(report.notifications).toMatchObject({ available: true, status: "Healthy" });
     expect(report.rollup).toEqual({ ok: true, blockers: [], warnings: [] });
     expect(report.owner_actions).toEqual([]);
@@ -109,7 +138,7 @@ describe("buildMigrationReadinessReport", () => {
 
   it("prefixes section blockers and reports a non-ok rollup", async () => {
     const report = await buildMigrationReadinessReport(
-      { actor: admin, config },
+      { actor: admin, config, env: validActionRuntime },
       {
         ...passingDeps(),
         buildGcpSetupPlan: () => ({
@@ -141,7 +170,7 @@ describe("buildMigrationReadinessReport", () => {
 
   it("degrades a throwing section gracefully while others still compute", async () => {
     const report = await buildMigrationReadinessReport(
-      { actor: admin, config },
+      { actor: admin, config, env: validActionRuntime },
       {
         ...passingDeps(),
         buildGcpSetupPlan: () => {
@@ -159,7 +188,7 @@ describe("buildMigrationReadinessReport", () => {
 
   it("falls back to the seed catalog when the registry read fails", async () => {
     const report = await buildMigrationReadinessReport(
-      { actor: admin, config },
+      { actor: admin, config, env: validActionRuntime },
       {
         ...passingDeps(),
         listActionRegistry: async () => {
@@ -189,46 +218,197 @@ describe("buildMigrationReadinessReport", () => {
 
   it("counts records by readiness and evidence", async () => {
     const report = await buildMigrationReadinessReport(
-      { actor: admin, config },
+      { actor: admin, config, env: validActionRuntime },
       passingDeps(),
     );
 
-    expect(report.action_registry.by_readiness).toEqual({
-      "Needs Connection": 1,
-      Planned: 1,
-    });
-    expect(report.action_registry.by_evidence).toEqual({
-      Documented: 1,
-      Undocumented: 1,
-    });
+    expect(
+      Object.values(report.action_registry.by_readiness).reduce(
+        (total, count) => total + count,
+        0,
+      ),
+    ).toBe(ACTION_REGISTRY_SEED.length);
+    expect(
+      Object.values(report.action_registry.by_evidence).reduce(
+        (total, count) => total + count,
+        0,
+      ),
+    ).toBe(ACTION_REGISTRY_SEED.length);
+  });
+
+  it("keeps an open action runtime-inert and names its missing sender dependency", async () => {
+    const report = await buildMigrationReadinessReport(
+      {
+        actor: admin,
+        config,
+        env: {
+          ...validActionRuntime,
+          NODE_ENV: "test",
+          KB_APPROVAL_SENDER: "",
+        },
+      },
+      {
+        ...passingDeps(),
+        listActionRegistry: async () => senderMappedRegistryRecords(),
+      },
+    );
+
+    expect(report.action_registry.production_allowed_keys).toEqual(
+      ACTION_REGISTRY_SEED.filter((entry) => entry.production_allowed).map(
+        (entry) => entry.key,
+      ),
+    );
+    expect(report.action_registry.runtime_active_keys).toEqual([]);
+    expect(report.action_registry.runtime_inert).toEqual([
+      {
+        key: "internal.transactional_notice.send",
+        missing_runtime_variables: ["KB_APPROVAL_SENDER"],
+      },
+    ]);
+    expect(report.action_registry.runtime_inert.map((entry) => entry.key)).not.toContain(
+      "vendor.account.invite",
+    );
+    expect(report.rollup.blockers).toContain(
+      "registry runtime: internal.transactional_notice.send is production_allowed=true but runtime-inert; missing or invalid runtime variables: KB_APPROVAL_SENDER.",
+    );
+  });
+
+  it("reports the open action runtime-active with one valid sender and omits the closed vendor", async () => {
+    const report = await buildMigrationReadinessReport(
+      {
+        actor: admin,
+        config,
+        env: {
+          ...validActionRuntime,
+          NODE_ENV: "test",
+          KB_APPROVAL_SENDER: "ops@pmikcmetro.com",
+        },
+      },
+      {
+        ...passingDeps(),
+        listActionRegistry: async () => senderMappedRegistryRecords(),
+      },
+    );
+
+    expect(report.action_registry.production_allowed_keys).toEqual(
+      ACTION_REGISTRY_SEED.filter((entry) => entry.production_allowed).map(
+        (entry) => entry.key,
+      ),
+    );
+    expect(report.action_registry.runtime_active_keys).toEqual([
+      "internal.transactional_notice.send",
+    ]);
+    expect(report.action_registry.runtime_inert).toEqual([]);
+    expect(report.action_registry.runtime_active_keys).not.toContain(
+      "vendor.account.invite",
+    );
+    expect(report.rollup).toEqual({ ok: true, blockers: [], warnings: [] });
   });
 
   it("raises a governance blocker when any record is production_allowed", async () => {
     const report = await buildMigrationReadinessReport(
-      { actor: admin, config },
+      { actor: admin, config, env: validActionRuntime },
       {
         ...passingDeps(),
-        listActionRegistry: async () => [
-          {
-            key: "rentvine.work_order.create",
-            readiness: "Approved for Execution",
-            evidence_status: "Documented",
-            production_allowed: true,
-          },
-        ],
+        listActionRegistry: async () =>
+          committedRegistryRecords({
+            "rentvine.work_order.create": {
+              readiness: "Approved for Execution",
+              evidence_status: "Documented",
+              production_allowed: true,
+            },
+          }),
       },
     );
 
-    expect(report.action_registry.production_allowed_keys).toEqual([
+    expect(report.action_registry.production_allowed_keys).toContain(
+      "rentvine.work_order.create",
+    );
+    expect(report.action_registry.unexpected_production_allowed_keys).toEqual([
       "rentvine.work_order.create",
     ]);
     expect(report.rollup.ok).toBe(false);
     expect(report.rollup.blockers.join(" ")).toMatch(/governance violation/);
   });
 
+  it("uses committed execution authority for runtime truth and flags Firestore gate drift", async () => {
+    const report = await buildMigrationReadinessReport(
+      { actor: admin, config, env: validActionRuntime },
+      {
+        ...passingDeps(),
+        listActionRegistry: async () =>
+          committedRegistryRecords({
+            "internal.transactional_notice.send": {
+              production_allowed: false,
+            },
+          }),
+      },
+    );
+
+    expect(report.action_registry.production_allowed_keys).not.toContain(
+      "internal.transactional_notice.send",
+    );
+    expect(report.action_registry.committed_executable_keys).toContain(
+      "internal.transactional_notice.send",
+    );
+    expect(report.action_registry.runtime_active_keys).toContain(
+      "internal.transactional_notice.send",
+    );
+    expect(report.action_registry.gate_drift).toEqual([
+      {
+        key: "internal.transactional_notice.send",
+        committed_production_allowed: true,
+        registry_production_allowed: false,
+      },
+    ]);
+    expect(report.rollup.blockers).toContain(
+      "registry drift: internal.transactional_notice.send is production_allowed=false in Firestore but committed execution authority is true.",
+    );
+  });
+
+  it("blocks a missing seed row and an extra Firestore row even when both are closed", async () => {
+    const records = committedRegistryRecords().filter(
+      (record) => record.key !== "vendor.account.invite",
+    );
+    records.push({
+      key: "stale.closed.action",
+      readiness: "Disabled",
+      evidence_status: "Undocumented",
+      production_allowed: false,
+    });
+
+    const report = await buildMigrationReadinessReport(
+      { actor: admin, config, env: validActionRuntime },
+      {
+        ...passingDeps(),
+        listActionRegistry: async () => records,
+      },
+    );
+
+    expect(report.action_registry.gate_drift).toEqual([
+      {
+        key: "stale.closed.action",
+        committed_production_allowed: null,
+        registry_production_allowed: false,
+      },
+      {
+        key: "vendor.account.invite",
+        committed_production_allowed: false,
+        registry_production_allowed: null,
+      },
+    ]);
+    expect(report.rollup.ok).toBe(false);
+    expect(report.rollup.blockers).toContain(
+      "registry drift: stale.closed.action is production_allowed=false in Firestore but committed execution authority is missing.",
+    );
+    expect(report.rollup.blockers).toContain(
+      "registry drift: vendor.account.invite is production_allowed=missing in Firestore but committed execution authority is false.",
+    );
+  });
+
   it("maps notification health states to blockers and warnings", async () => {
     const actionRequired = await buildMigrationReadinessReport(
-      { actor: admin, config },
+      { actor: admin, config, env: validActionRuntime },
       {
         ...passingDeps(),
         readApprovalQueueNotificationHealth: async () => ({
@@ -242,7 +422,7 @@ describe("buildMigrationReadinessReport", () => {
     );
 
     const needsAttention = await buildMigrationReadinessReport(
-      { actor: admin, config },
+      { actor: admin, config, env: validActionRuntime },
       {
         ...passingDeps(),
         readApprovalQueueNotificationHealth: async () => ({
@@ -258,7 +438,12 @@ describe("buildMigrationReadinessReport", () => {
 
   it("marks the corpus section unavailable when the manifest template is missing", async () => {
     const report = await buildMigrationReadinessReport(
-      { actor: admin, config, rootDir: "/nonexistent-root" },
+      {
+        actor: admin,
+        config,
+        env: validActionRuntime,
+        rootDir: "/nonexistent-root",
+      },
       passingDeps(),
     );
 

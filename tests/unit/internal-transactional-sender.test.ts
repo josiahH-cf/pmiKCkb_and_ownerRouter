@@ -7,7 +7,7 @@ import {
 } from "@/lib/notifications/internal-transactional-sender";
 
 describe("GmailInternalTransactionalSender (S39.3 live transport, AC-S39-7)", () => {
-  it("sends AS the configured internal identity (from === subject), one recipient, no cc/bcc", async () => {
+  it("canonicalizes and sends AS the configured internal identity exactly once", async () => {
     const sent: unknown[] = [];
     const fakeClient: InternalGmailSendClient = {
       subject: "ops@pmikcmetro.com",
@@ -29,6 +29,7 @@ describe("GmailInternalTransactionalSender (S39.3 live transport, AC-S39-7)", ()
     });
 
     // The client is constructed with the lowercased internal identity as its DWD subject.
+    expect(createClient).toHaveBeenCalledTimes(1);
     expect(createClient).toHaveBeenCalledWith("ops@pmikcmetro.com");
     expect(sent).toHaveLength(1);
     const message = sent[0] as {
@@ -45,12 +46,23 @@ describe("GmailInternalTransactionalSender (S39.3 live transport, AC-S39-7)", ()
     expect(message.messageId).toMatch(/^<.+@.+>$/); // a real RFC Message-ID
   });
 
-  it("refuses (never sends as an unexpected mailbox) when the sender identity is absent", async () => {
-    const createClient = vi.fn();
-    const sender = new GmailInternalTransactionalSender(undefined, createClient);
-    await expect(
-      sender.send({ to: "owner@pmikcmetro.com", subject: "s", body: "b" }),
-    ).rejects.toBeInstanceOf(InternalTransactionalError);
-    expect(createClient).not.toHaveBeenCalled();
+  it("refuses a blank, external, or multiple sender before constructing even an injected client", async () => {
+    for (const senderAddress of [
+      undefined,
+      "",
+      "operator@example.com",
+      "one@pmikcmetro.com,two@pmikcmetro.com",
+      "one;two@pmikcmetro.com",
+      ".operator@pmikcmetro.com",
+      "operator..alerts@pmikcmetro.com",
+      `${"a".repeat(65)}@pmikcmetro.com`,
+    ]) {
+      const createClient = vi.fn();
+      const sender = new GmailInternalTransactionalSender(senderAddress, createClient);
+      await expect(
+        sender.send({ to: "owner@pmikcmetro.com", subject: "s", body: "b" }),
+      ).rejects.toBeInstanceOf(InternalTransactionalError);
+      expect(createClient, String(senderAddress)).not.toHaveBeenCalled();
+    }
   });
 });

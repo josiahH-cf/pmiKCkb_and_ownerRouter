@@ -3,6 +3,9 @@
 
 export function validateProductionCutoverConfig(
   env: Record<string, string | undefined>,
+  options?: {
+    maintenanceIntakeSource?: "deploy" | "runtime";
+  },
 ): {
   ok: boolean;
   errors: string[];

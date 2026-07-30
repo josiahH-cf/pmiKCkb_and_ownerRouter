@@ -44,6 +44,8 @@ const multiSpaceMap = JSON.stringify({
   "owner-onboarding": "owner-onboarding-value",
 });
 const gmailCutoverEnv = (project, appBaseUrl) => ({
+  DATA_CONTEXT: "live",
+  ENVIRONMENT_KIND: "production",
   GMAIL_DWD_SA: `gmail-dwd@${project}.iam.gserviceaccount.com`,
   GMAIL_PUBSUB_AUDIENCE: `${appBaseUrl}/api/gmail-hub/pubsub`,
   GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT: `gmail-pubsub-push@${project}.iam.gserviceaccount.com`,
@@ -51,6 +53,39 @@ const gmailCutoverEnv = (project, appBaseUrl) => ({
 });
 const revisionSuffix = "rm123456789-abcdef123456";
 const revision = `pmi-kc-kb-demo-${revisionSuffix}`;
+const fixtureSender = "fixture-transactional@pmikcmetro.com";
+const deployProject = "pmi-kc-kb-prod";
+const deployBaseUrl = "https://pmi-kc-kb.example";
+const fixtureDwdServiceAccount = `gmail-dwd@${deployProject}.iam.gserviceaccount.com`;
+const deployEnv = (overrides = {}) => ({
+  ALLOWED_HD: "pmikcmetro.com",
+  APP_BASE_URL: deployBaseUrl,
+  ASK_DEMO_MODE: "false",
+  DATA_CONTEXT: "live",
+  ENVIRONMENT_KIND: "production",
+  FIREBASE_PROJECT_ID: deployProject,
+  FIRESTORE_DATABASE_ID: "(default)",
+  GCP_PROJECT_ID: deployProject,
+  GEMINI_MODEL_ANSWER: CHEAP_LIVE_MODEL,
+  GMAIL_DWD_SA: fixtureDwdServiceAccount,
+  GMAIL_PUBSUB_AUDIENCE: `${deployBaseUrl}/api/gmail-hub/pubsub`,
+  GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT: `gmail-pubsub-push@${deployProject}.iam.gserviceaccount.com`,
+  GMAIL_PUBSUB_TOPIC: `projects/${deployProject}/topics/gmail-workflow-events`,
+  KB_APPROVAL_SENDER: fixtureSender,
+  LOCAL_DEMO_AUTH: "false",
+  MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: "fixture-maintenance-photo-folder",
+  NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
+  NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: `${deployProject}.firebaseapp.com`,
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: deployProject,
+  RENEWAL_SHEET_ID: "fixture-renewal-sheet",
+  RENTVINE_API_BASE_URL: "https://pmikcmetro.rentvine.com/api/manager",
+  SHEETS_DWD_SUBJECT: "fixture-sheets@pmikcmetro.com",
+  SHEETS_IMPERSONATE_SA: `fixture-sheets@${deployProject}.iam.gserviceaccount.com`,
+  SPACE_DRIVE_FOLDER_IDS: oneSpaceMap,
+  SPACE_VERTEX_DATA_STORE_IDS: oneSpaceMap,
+  ...overrides,
+});
 
 describe("cheap live setup scripts", () => {
   it("accepts the one-Space Flash live config", () => {
@@ -138,19 +173,12 @@ describe("cheap live setup scripts", () => {
   it("builds a scale-to-zero Cloud Run deploy command after preflight", () => {
     const command = buildDemoDeployCommand({
       argv: ["--budget-confirmed", "--dry-run"],
-      env: {
-        ASK_DEMO_MODE: "false",
-        GCP_PROJECT_ID: "pmikckb-test",
-        GEMINI_MODEL_ANSWER: CHEAP_LIVE_MODEL,
-        NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
-        NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
-        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmikckb-test.firebaseapp.com",
-        NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmikckb-test",
+      env: deployEnv({
+        DATA_CONTEXT: "demo",
+        ENVIRONMENT_KIND: "demo",
         RENEWAL_COMP_DRIVE_FOLDER_ID: "renewal-comp-folder",
         RENEWAL_COMP_SHARED_DRIVE_ID: "renewal-comp-shared-drive",
-        SPACE_DRIVE_FOLDER_IDS: oneSpaceMap,
-        SPACE_VERTEX_DATA_STORE_IDS: oneSpaceMap,
-      },
+      }),
       localEnv: {},
       revisionSuffix,
     });
@@ -169,15 +197,202 @@ describe("cheap live setup scripts", () => {
     expect(command.args.join(" ")).toContain("VERTEX_SEARCH_LOCATION=us");
     expect(command.args.join(" ")).toContain("LOCAL_DEMO_AUTH=false");
     expect(command.args.join(" ")).toContain("NODE_ENV=production");
+    expect(command.args.join(" ")).toContain("ENVIRONMENT_KIND=production");
+    expect(command.args.join(" ")).toContain("DATA_CONTEXT=live");
+    expect(command.args.join(" ")).toContain("SPACE_PROVISIONING_ENABLED=false");
+    expect(command.args.join(" ")).toContain(`KB_APPROVAL_SENDER=${fixtureSender}`);
     expect(command.args.join(" ")).toContain(
       "RENEWAL_COMP_DRIVE_FOLDER_ID=renewal-comp-folder",
     );
     expect(command.args.join(" ")).toContain(
       "RENEWAL_COMP_SHARED_DRIVE_ID=renewal-comp-shared-drive",
     );
-    // With no RentVine base URL configured, the deploy does not wire the Secret Manager secrets, so
-    // the demo-only deploy path is unchanged (the live-connection secrets are opt-in via RentVine config).
-    expect(command.args.some((arg) => arg.startsWith("--set-secrets"))).toBe(false);
+    // Full production parity requires RentVine, so its exact credential pair is always retained.
+    const secretsFlag = command.args.find((arg) => arg.startsWith("--set-secrets"));
+    expect(secretsFlag).toContain("RENTVINE_API_KEY=RENTVINE_API_KEY:latest");
+    expect(secretsFlag).toContain("RENTVINE_API_SECRET=RENTVINE_API_SECRET:latest");
+    expect(secretsFlag).not.toContain("MAINTENANCE_INTAKE_TOKEN_SECRET=");
+  });
+
+  it("rejects a blank transactional sender even when legacy approval digests are disabled", () => {
+    const command = buildDemoDeployCommand({
+      argv: ["--budget-confirmed", "--dry-run"],
+      env: deployEnv({
+        KB_APPROVAL_NOTIFICATIONS_ENABLED: "false",
+        KB_APPROVAL_SENDER: "",
+      }),
+      localEnv: {},
+    });
+
+    expect(command.ok).toBe(false);
+    expect(command.errors).toEqual([expect.stringContaining("KB_APPROVAL_SENDER")]);
+    expect(command.errors[0]).toContain("internal.transactional_notice.send");
+  });
+
+  it("binds the complete maintenance-intake Secret Manager pair without plaintext leakage", () => {
+    const token = "plaintext-token-sentinel";
+    const salt = "plaintext-salt-sentinel";
+    const command = buildDemoDeployCommand({
+      argv: ["--budget-confirmed", "--dry-run"],
+      env: deployEnv({
+        MAINTENANCE_INTAKE_TOKEN_SECRET: token,
+        MAINTENANCE_INTAKE_IP_HASH_SALT: salt,
+        MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_ID: "fixture-intake-token",
+        MAINTENANCE_INTAKE_IP_HASH_SALT_SECRET_ID: "fixture-intake-ip-salt",
+        MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_VERSION: "7",
+      }),
+      localEnv: {},
+    });
+
+    expect(command.ok).toBe(true);
+    const secretsFlag = command.args.find((arg) => arg.startsWith("--set-secrets"));
+    expect(secretsFlag).toContain(
+      "MAINTENANCE_INTAKE_TOKEN_SECRET=fixture-intake-token:7",
+    );
+    expect(secretsFlag).toContain(
+      "MAINTENANCE_INTAKE_IP_HASH_SALT=fixture-intake-ip-salt:latest",
+    );
+    expect(command.args).not.toContain("--clear-secrets");
+    expect(JSON.stringify(command)).not.toContain(token);
+    expect(JSON.stringify(command)).not.toContain(salt);
+  });
+
+  it("refuses one Secret Manager secret id reused for both intake values", () => {
+    const command = buildDemoDeployCommand({
+      argv: ["--budget-confirmed", "--dry-run"],
+      env: deployEnv({
+        MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_ID: "fixture-shared-secret",
+        MAINTENANCE_INTAKE_IP_HASH_SALT_SECRET_ID: "fixture-shared-secret",
+      }),
+      localEnv: {},
+    });
+
+    expect(command.ok).toBe(false);
+    expect(command.errors).toEqual([
+      expect.stringContaining("distinct Secret Manager secret ids"),
+    ]);
+    const secretsFlag = command.args.find((arg) => arg.startsWith("--set-secrets"));
+    expect(secretsFlag).not.toContain("MAINTENANCE_INTAKE_TOKEN_SECRET=");
+    expect(secretsFlag).not.toContain("MAINTENANCE_INTAKE_IP_HASH_SALT=");
+  });
+
+  it("fails closed when the named reviewed production env file is absent", () => {
+    const command = buildDemoDeployCommand({
+      argv: [
+        "--budget-confirmed",
+        "--dry-run",
+        "--env-file=tests/fixtures/cutover/absent-production.env",
+      ],
+      env: deployEnv(),
+    });
+
+    expect(command.ok).toBe(false);
+    expect(command.errors).toContainEqual(
+      expect.stringContaining("reviewed production deploy env file not found"),
+    );
+    expect(command.envFile).toBe("tests/fixtures/cutover/absent-production.env");
+  });
+
+  it("forwards every current S53 Table A/B runtime requirement through the replacing maps", () => {
+    const command = buildDemoDeployCommand({
+      argv: ["--budget-confirmed", "--dry-run"],
+      env: deployEnv({
+        DATA_CONTEXT: "demo",
+        ENVIRONMENT_KIND: "demo",
+        KB_APPROVAL_SENDER: fixtureSender,
+        LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: "false",
+        MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_ID: "fixture-intake-token",
+        MAINTENANCE_INTAKE_IP_HASH_SALT_SECRET_ID: "fixture-intake-ip-salt",
+        MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: "fixture-maintenance-folder",
+        RENEWAL_COMP_DRIVE_FOLDER_ID: "fixture-renewal-folder",
+        RENEWAL_COMP_SHARED_DRIVE_ID: "fixture-shared-drive",
+        RENEWAL_SHEET_ID: "fixture-renewal-sheet",
+        SHEETS_DWD_SUBJECT: "fixture-sheets@pmikcmetro.com",
+        SHEETS_IMPERSONATE_SA: `fixture-sheets@${deployProject}.iam.gserviceaccount.com`,
+        SPACE_PROVISIONING_ENABLED: "true",
+      }),
+      localEnv: {},
+    });
+
+    expect(command.ok).toBe(true);
+    const runtimeFlag = command.args.find((arg) => arg.startsWith("--set-env-vars"));
+    const secretsFlag = command.args.find((arg) => arg.startsWith("--set-secrets"));
+
+    for (const name of [
+      "DATA_CONTEXT",
+      "ENVIRONMENT_KIND",
+      "GMAIL_DWD_SA",
+      "KB_APPROVAL_SENDER",
+      "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED",
+      "MAINTENANCE_PHOTO_DRIVE_FOLDER_ID",
+      "RENEWAL_COMP_DRIVE_FOLDER_ID",
+      "RENEWAL_COMP_SHARED_DRIVE_ID",
+      "RENEWAL_SHEET_ID",
+      "SHEETS_DWD_SUBJECT",
+      "SHEETS_IMPERSONATE_SA",
+      "SPACE_PROVISIONING_ENABLED",
+    ]) {
+      expect(runtimeFlag, name).toContain(`${name}=`);
+    }
+    expect(runtimeFlag).toContain("DATA_CONTEXT=live");
+    expect(runtimeFlag).toContain("ENVIRONMENT_KIND=production");
+    expect(runtimeFlag).toContain("SPACE_PROVISIONING_ENABLED=true");
+
+    for (const name of [
+      "MAINTENANCE_INTAKE_TOKEN_SECRET",
+      "MAINTENANCE_INTAKE_IP_HASH_SALT",
+    ]) {
+      expect(secretsFlag, name).toContain(`${name}=`);
+    }
+  });
+
+  it.each([
+    {
+      MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_ID: "fixture-intake-token",
+    },
+    {
+      MAINTENANCE_INTAKE_IP_HASH_SALT_SECRET_ID: "fixture-intake-ip-salt",
+    },
+    {
+      MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_VERSION: "7",
+    },
+    {
+      MAINTENANCE_INTAKE_TOKEN_SECRET: "plaintext-token-sentinel",
+      MAINTENANCE_INTAKE_IP_HASH_SALT: "plaintext-salt-sentinel",
+    },
+  ])("refuses incomplete maintenance-intake secret forwarding %#", (overrides) => {
+    const command = buildDemoDeployCommand({
+      argv: ["--budget-confirmed", "--dry-run"],
+      env: deployEnv(overrides),
+      localEnv: {},
+    });
+    const serialized = JSON.stringify(command);
+
+    expect(command.ok).toBe(false);
+    expect(command.errors.join(" ")).toContain(
+      "requires both MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_ID",
+    );
+    expect(serialized).not.toContain("plaintext-token-sentinel");
+    expect(serialized).not.toContain("plaintext-salt-sentinel");
+  });
+
+  it("rejects a missing or cross-project Gmail DWD identity for the executable internal action", () => {
+    for (const serviceAccount of [
+      "",
+      "gmail-dwd@another-project.iam.gserviceaccount.com",
+    ]) {
+      const command = buildDemoDeployCommand({
+        argv: ["--budget-confirmed", "--dry-run"],
+        env: deployEnv({ GMAIL_DWD_SA: serviceAccount }),
+        localEnv: {},
+      });
+
+      expect(command.ok, serviceAccount).toBe(false);
+      expect(
+        command.errors.some((error) => error.includes("GMAIL_DWD_SA")),
+        serviceAccount,
+      ).toBe(true);
+    }
   });
 
   it("allows an explicit gcloud binary override for deploy commands", () => {
@@ -188,10 +403,12 @@ describe("cheap live setup scripts", () => {
         GCLOUD_BIN: "custom-gcloud",
         GCP_PROJECT_ID: "pmikckb-test",
         GEMINI_MODEL_ANSWER: CHEAP_LIVE_MODEL,
+        GMAIL_DWD_SA: fixtureDwdServiceAccount,
         NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
         NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
         NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmikckb-test.firebaseapp.com",
         NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmikckb-test",
+        KB_APPROVAL_SENDER: fixtureSender,
         SPACE_DRIVE_FOLDER_IDS: oneSpaceMap,
         SPACE_VERTEX_DATA_STORE_IDS: oneSpaceMap,
       },
@@ -204,17 +421,7 @@ describe("cheap live setup scripts", () => {
   it("can preserve an existing invoker configuration when explicitly requested", () => {
     const command = buildDemoDeployCommand({
       argv: ["--budget-confirmed", "--dry-run", "--skip-allow-unauthenticated"],
-      env: {
-        ASK_DEMO_MODE: "false",
-        GCP_PROJECT_ID: "pmikckb-test",
-        GEMINI_MODEL_ANSWER: CHEAP_LIVE_MODEL,
-        NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
-        NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
-        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmikckb-test.firebaseapp.com",
-        NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmikckb-test",
-        SPACE_DRIVE_FOLDER_IDS: oneSpaceMap,
-        SPACE_VERTEX_DATA_STORE_IDS: oneSpaceMap,
-      },
+      env: deployEnv(),
       localEnv: {},
     });
 
@@ -331,6 +538,7 @@ describe("cheap live setup scripts", () => {
         ASK_DEMO_MODE: "false",
         GCP_PROJECT_ID: "pmikckb-test",
         GEMINI_MODEL_ANSWER: CHEAP_LIVE_MODEL,
+        GMAIL_DWD_SA: fixtureDwdServiceAccount,
         NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
         NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
         NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmikckb-test.firebaseapp.com",
@@ -353,17 +561,10 @@ describe("cheap live setup scripts", () => {
   it("allows explicit multi-Space Cloud Run deploy commands", () => {
     const command = buildDemoDeployCommand({
       argv: ["--budget-confirmed", "--dry-run", "--allow-multiple-spaces"],
-      env: {
-        ASK_DEMO_MODE: "false",
-        GCP_PROJECT_ID: "pmikckb-test",
-        GEMINI_MODEL_ANSWER: CHEAP_LIVE_MODEL,
-        NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
-        NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
-        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmikckb-test.firebaseapp.com",
-        NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmikckb-test",
+      env: deployEnv({
         SPACE_DRIVE_FOLDER_IDS: multiSpaceMap,
         SPACE_VERTEX_DATA_STORE_IDS: multiSpaceMap,
-      },
+      }),
       localEnv: {},
     });
 
@@ -409,13 +610,14 @@ describe("cheap live setup scripts", () => {
     );
   });
 
-  it("fails the deploy when an ambient NEXT_PUBLIC_FIREBASE value differs from .env.local", () => {
+  it("fails when ambient NEXT_PUBLIC Firebase config differs from the reviewed env", () => {
     const command = buildDemoDeployCommand({
       argv: ["--budget-confirmed", "--dry-run"],
       env: {
         ASK_DEMO_MODE: "false",
         GCP_PROJECT_ID: "pmi-kc-kb-prod",
         GEMINI_MODEL_ANSWER: CHEAP_LIVE_MODEL,
+        GMAIL_DWD_SA: "gmail-dwd@pmi-kc-kb-prod.iam.gserviceaccount.com",
         NEXT_PUBLIC_FIREBASE_PROJECT_ID: "stale-host-project",
         SPACE_DRIVE_FOLDER_IDS: oneSpaceMap,
         SPACE_VERTEX_DATA_STORE_IDS: oneSpaceMap,
@@ -425,6 +627,7 @@ describe("cheap live setup scripts", () => {
         NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
         NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmi-kc-kb-prod.firebaseapp.com",
         NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmi-kc-kb-prod",
+        KB_APPROVAL_SENDER: fixtureSender,
       },
     });
 
@@ -436,16 +639,10 @@ describe("cheap live setup scripts", () => {
     ).toBe(true);
   });
 
-  it("uses .env.local for NEXT_PUBLIC build config over ambient defaults", () => {
+  it("uses the reviewed env for NEXT_PUBLIC build config over ambient defaults", () => {
     const command = buildDemoDeployCommand({
       argv: ["--budget-confirmed", "--dry-run"],
-      env: {
-        ASK_DEMO_MODE: "false",
-        GCP_PROJECT_ID: "pmi-kc-kb-prod",
-        GEMINI_MODEL_ANSWER: CHEAP_LIVE_MODEL,
-        SPACE_DRIVE_FOLDER_IDS: oneSpaceMap,
-        SPACE_VERTEX_DATA_STORE_IDS: oneSpaceMap,
-      },
+      env: deployEnv(),
       localEnv: {
         NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
         NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
@@ -834,6 +1031,7 @@ describe("cheap live setup scripts", () => {
       NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmi-kc-kb-prod.firebaseapp.com",
       NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmi-kc-kb-prod",
       KB_APPROVAL_NOTIFICATIONS_ENABLED: "false",
+      KB_APPROVAL_SENDER: fixtureSender,
       MAINTENANCE_PHOTO_DRIVE_FOLDER_ID: "drive-folder-maintenance-photos",
       RENTVINE_API_BASE_URL: "https://pmikcmetro.rentvine.com/api/manager",
       RENEWAL_SHEET_ID: "prod-renewal-sheet-id",
@@ -855,7 +1053,7 @@ describe("cheap live setup scripts", () => {
     expect(result.ok).toBe(true);
     expect(result.errors).toEqual([]);
     expect(result.warnings).toContain(
-      "KB approval email notifications remain disabled. App-plane production deployment is allowed, but notification delivery is not part of this cutover.",
+      "Legacy KB approval email digests remain disabled; the executable internal transactional notice sender is validated separately.",
     );
   });
 
@@ -976,9 +1174,13 @@ describe("cheap live setup scripts", () => {
     });
 
     expect(result.ok).toBe(false);
-    expect(result.errors).toContain(
-      "KB_APPROVAL_SENDER must use only pmikcmetro.com email addresses.",
-    );
+    expect(
+      result.errors.some((error) =>
+        error.includes(
+          "KB_APPROVAL_SENDER must be exactly one managed pmikcmetro.com mailbox",
+        ),
+      ),
+    ).toBe(true);
     expect(result.errors).toContain(
       "KB_APPROVAL_RECIPIENTS must use only pmikcmetro.com email addresses.",
     );

@@ -124,7 +124,8 @@
         border: 1px solid;
         white-space: nowrap;
       }
-      .pill.live {
+      .pill.live,
+      .pill.built {
         color: var(--live);
         background: var(--live-bg);
         border-color: var(--live-line);
@@ -395,15 +396,16 @@
 
       <div class="card">
         <div class="top">
-          <h3>Maintenance owner-notice send</h3>
-          <span class="pill prog">Switching on</span>
+          <h3>Maintenance owner-notice draft</h3>
+          <span class="pill built">Built</span>
         </div>
         <p>
-          The owner-notice draft is already built and reviewed. Turning the send on, still
-          confirmed by a person each time, is the last step.
+          The app creates an addressed, unsent Gmail draft. A person reviews and sends it
+          from Gmail; that is the final workflow, not an interim switch-on step.
         </p>
         <p class="need">
-          <b>Status:</b> a small reviewed change on our side; no owner action needed.
+          <b>Status:</b> built. Direct app send stays off under D33; no owner action
+          needed.
         </p>
       </div>
 

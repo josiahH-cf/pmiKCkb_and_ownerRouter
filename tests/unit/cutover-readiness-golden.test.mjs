@@ -1,3 +1,7 @@
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildCutoverReport } from "../../scripts/build-cutover-report.mjs";
 import { buildDemoDeployCommand } from "../../scripts/deploy-demo-cloud-run.mjs";
@@ -49,15 +53,61 @@ describe("golden production fixtures pass every cutover gate", () => {
     expect(result.errors).toEqual([]);
   });
 
+  it("does not let ambient values complete an explicit reviewed env file", () => {
+    const fixtureDir = mkdtempSync(join(tmpdir(), "pmi-kc-cutover-env-"));
+    const fixturePath = join(fixtureDir, "reviewed-production.env");
+    const withoutAppId = readFileSync(GOLDEN_ENV, "utf8")
+      .split(/\r?\n/)
+      .filter((line) => !line.startsWith("NEXT_PUBLIC_FIREBASE_APP_ID="))
+      .join("\n");
+    writeFileSync(fixturePath, withoutAppId, "utf8");
+
+    try {
+      const reviewed = readProductionPreflightEnv({
+        env: {
+          NEXT_PUBLIC_FIREBASE_APP_ID: "ambient-unreviewed-app-id",
+        },
+        envFile: fixturePath,
+      });
+      const result = validateProductionCutoverConfig(reviewed);
+      const deploy = buildDemoDeployCommand({
+        argv: [
+          "--allow-multiple-spaces",
+          `--env-file=${fixturePath}`,
+          "--project=sample-kb-fixture-prod",
+        ],
+        env: {
+          NEXT_PUBLIC_FIREBASE_APP_ID: "ambient-unreviewed-app-id",
+        },
+      });
+
+      expect(reviewed.NEXT_PUBLIC_FIREBASE_APP_ID).toBeUndefined();
+      expect(result.ok).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.stringContaining("NEXT_PUBLIC_FIREBASE_APP_ID must be set"),
+      );
+      expect(deploy.ok).toBe(false);
+      expect(deploy.errors).toContain(
+        "NEXT_PUBLIC_FIREBASE_APP_ID must be set for the Cloud Run build.",
+      );
+    } finally {
+      rmSync(fixtureDir, { force: true, recursive: true });
+    }
+  });
+
   it("deploy command preview is clean", () => {
     const deploy = buildDemoDeployCommand({
-      argv: ["--allow-multiple-spaces", "--project=sample-kb-fixture-prod"],
-      env: goldenEnv(),
-      localEnv: {},
+      argv: [
+        "--allow-multiple-spaces",
+        `--env-file=${GOLDEN_ENV}`,
+        "--project=sample-kb-fixture-prod",
+      ],
+      env: {},
     });
 
     expect(deploy.ok).toBe(true);
     expect(deploy.errors).toEqual([]);
+    expect(deploy.envFile).toBe(GOLDEN_ENV);
     const command = [deploy.command, ...deploy.args].join(" ");
     expect(command).toContain("run deploy");
     // Dev↔prod parity: the non-secret live-connection identifiers are forwarded as env vars, and the
@@ -67,10 +117,19 @@ describe("golden production fixtures pass every cutover gate", () => {
     expect(command).toContain(
       "GMAIL_PUBSUB_TOPIC=projects/sample-kb-fixture-prod/topics/gmail-workflow-events",
     );
+    expect(command).toContain("ENVIRONMENT_KIND=production");
+    expect(command).toContain("DATA_CONTEXT=live");
+    expect(command).toContain("SPACE_PROVISIONING_ENABLED=false");
     const secretsFlag = deploy.args.find((arg) => arg.startsWith("--set-secrets"));
     expect(secretsFlag).toBeDefined();
     expect(secretsFlag).toContain("RENTVINE_API_KEY=RENTVINE_API_KEY:latest");
     expect(secretsFlag).toContain("RENTVINE_API_SECRET=RENTVINE_API_SECRET:latest");
+    expect(secretsFlag).toContain(
+      "MAINTENANCE_INTAKE_TOKEN_SECRET=fixture-intake-token-secret:latest",
+    );
+    expect(secretsFlag).toContain(
+      "MAINTENANCE_INTAKE_IP_HASH_SALT=fixture-intake-ip-hash-salt:latest",
+    );
   });
 
   it("GCP infra plan is ready with notification delivery disabled", () => {
@@ -390,6 +449,98 @@ describe("production env preflight rejects broken configs", () => {
     ).toBe(true);
   });
 
+  it("refuses the legacy NODE_ENV descriptor bridge", () => {
+    const result = withEnv({
+      DATA_CONTEXT: "",
+      ENVIRONMENT_KIND: "",
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(" ")).toContain("legacy-node-env");
+  });
+
+  it.each([
+    [{ ENVIRONMENT_KIND: "production", DATA_CONTEXT: "" }, "must both be set"],
+    [{ ENVIRONMENT_KIND: "", DATA_CONTEXT: "live" }, "must both be set"],
+    [
+      { ENVIRONMENT_KIND: "demo", DATA_CONTEXT: "demo" },
+      "requires ENVIRONMENT_KIND=production and DATA_CONTEXT=live",
+    ],
+    [
+      { ENVIRONMENT_KIND: "demo", DATA_CONTEXT: "live_readonly" },
+      "requires ENVIRONMENT_KIND=production and DATA_CONTEXT=live",
+    ],
+    [
+      { ENVIRONMENT_KIND: "production", DATA_CONTEXT: "demo" },
+      "requires ENVIRONMENT_KIND=production and DATA_CONTEXT=live",
+    ],
+  ])("rejects a non-production descriptor %#", (overrides, expected) => {
+    expect(hasError(withEnv(overrides), expected)).toBe(true);
+  });
+
+  it("normalizes and accepts the explicit Production+Live descriptor", () => {
+    const result = withEnv({
+      DATA_CONTEXT: " LIVE ",
+      ENVIRONMENT_KIND: " Production ",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
+  it.each([
+    [
+      "VERTEX_SEARCH_LOCATION",
+      "moon",
+      "VERTEX_SEARCH_LOCATION must be one of global, us, or eu.",
+    ],
+    [
+      "GROUNDING_CONFIDENCE_THRESHOLD",
+      "not-a-number",
+      "GROUNDING_CONFIDENCE_THRESHOLD must be a number from 0 through 1.",
+    ],
+    [
+      "GROUNDING_CONFIDENCE_THRESHOLD",
+      "1.01",
+      "GROUNDING_CONFIDENCE_THRESHOLD must be a number from 0 through 1.",
+    ],
+  ])(
+    "rejects invalid forwarded runtime value %s=%s in preflight and deploy",
+    (name, value, expectedError) => {
+      const env = { ...goldenEnv(), [name]: value };
+      const preflight = validateProductionCutoverConfig(env);
+      const deploy = buildDemoDeployCommand({
+        argv: ["--allow-multiple-spaces", "--project=sample-kb-fixture-prod"],
+        env,
+        localEnv: {},
+      });
+
+      expect(preflight.ok).toBe(false);
+      expect(preflight.errors).toContain(expectedError);
+      expect(deploy.ok).toBe(false);
+      expect(deploy.errors).toContain(expectedError);
+    },
+  );
+
+  it("exits non-zero and names legacy-node-env when the CLI descriptor is absent", () => {
+    const result = spawnSync(
+      process.execPath,
+      [
+        "scripts/preflight-production-cutover.mjs",
+        "--env-file=tests/fixtures/empty-env.fixture",
+        "--json",
+      ],
+      {
+        cwd: process.cwd(),
+        encoding: "utf8",
+        env: {},
+      },
+    );
+
+    expect(result.status).toBe(1);
+    expect(`${result.stdout}\n${result.stderr}`).toContain("legacy-node-env");
+  });
+
   it("rejects a non-https APP_BASE_URL", () => {
     expect(
       hasError(
@@ -439,17 +590,76 @@ describe("production env preflight rejects broken configs", () => {
     ).toBe(true);
   });
 
-  it("allows an app-plane deploy with notifications disabled and warns clearly", () => {
-    const result = withEnv({
+  it("requires the transactional sender even when legacy approval digests are disabled", () => {
+    const missing = withEnv({
       KB_APPROVAL_NOTIFICATIONS_ENABLED: "false",
       KB_APPROVAL_RECIPIENTS: "",
       KB_APPROVAL_SENDER: "",
     });
+    expect(missing.ok).toBe(false);
+    expect(missing.errors).toEqual([expect.stringContaining("KB_APPROVAL_SENDER")]);
+
+    const result = withEnv({
+      KB_APPROVAL_NOTIFICATIONS_ENABLED: "false",
+      KB_APPROVAL_RECIPIENTS: "",
+      KB_APPROVAL_SENDER: "fixture-transactional@pmikcmetro.com",
+    });
     expect(result.ok).toBe(true);
     expect(result.errors).toEqual([]);
     expect(result.warnings).toContain(
-      "KB approval email notifications remain disabled. App-plane production deployment is allowed, but notification delivery is not part of this cutover.",
+      "Legacy KB approval email digests remain disabled; the executable internal transactional notice sender is validated separately.",
     );
+  });
+
+  it("validates the real Cloud Run intake runtime shape without demanding deploy-source ids", () => {
+    const runtimeEnv = goldenEnv();
+    delete runtimeEnv.MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_ID;
+    delete runtimeEnv.MAINTENANCE_INTAKE_IP_HASH_SALT_SECRET_ID;
+    runtimeEnv.MAINTENANCE_INTAKE_TOKEN_SECRET =
+      "runtime-token-secret-32-bytes-minimum-value";
+    runtimeEnv.MAINTENANCE_INTAKE_IP_HASH_SALT =
+      "runtime-ip-hash-salt-32-bytes-minimum-value";
+
+    const runtimeResult = validateProductionCutoverConfig(runtimeEnv, {
+      maintenanceIntakeSource: "runtime",
+    });
+    expect(runtimeResult.ok).toBe(true);
+    expect(runtimeResult.errors).toEqual([]);
+
+    const deploySourceResult = validateProductionCutoverConfig(runtimeEnv);
+    expect(deploySourceResult.ok).toBe(false);
+    expect(deploySourceResult.errors.join(" ")).toContain(
+      "requires both MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_ID",
+    );
+  });
+
+  it("refuses partial, weak, or reused maintenance intake values in runtime mode", () => {
+    const strong = "runtime-secret-32-bytes-minimum-value";
+    for (const values of [
+      {
+        MAINTENANCE_INTAKE_TOKEN_SECRET: strong,
+        MAINTENANCE_INTAKE_IP_HASH_SALT: "",
+      },
+      {
+        MAINTENANCE_INTAKE_TOKEN_SECRET: "short",
+        MAINTENANCE_INTAKE_IP_HASH_SALT: strong,
+      },
+      {
+        MAINTENANCE_INTAKE_TOKEN_SECRET: strong,
+        MAINTENANCE_INTAKE_IP_HASH_SALT: strong,
+      },
+    ]) {
+      const runtimeEnv = { ...goldenEnv(), ...values };
+      delete runtimeEnv.MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_ID;
+      delete runtimeEnv.MAINTENANCE_INTAKE_IP_HASH_SALT_SECRET_ID;
+      const result = validateProductionCutoverConfig(runtimeEnv, {
+        maintenanceIntakeSource: "runtime",
+      });
+      expect(result.ok, JSON.stringify(values)).toBe(false);
+      expect(result.errors.join(" "), JSON.stringify(values)).toContain(
+        "MAINTENANCE_INTAKE_",
+      );
+    }
   });
 
   it("rejects a non-pmikcmetro approval recipient", () => {

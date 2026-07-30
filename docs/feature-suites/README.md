@@ -107,7 +107,7 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 | S35 LeadSimple connector activation         | `docs/feature-suites/leadsimple-activation.md`                    | Spec — Wave 2 seam (owner: API key + vendor)          |
 | S36 Space self-service provisioning         | `docs/feature-suites/space-self-provisioning.md`                  | Spec — Wave 2 seam (owner: billing + SA)              |
 | S37 Full no-code page/layout builder        | `docs/feature-suites/nocode-page-builder.md`                      | Spec — sequenced after IA; executed as amended by S50 |
-| S38 Maintenance notice activation           | `docs/feature-suites/maintenance-notice-activation.md`            | Spec — S38a app-plane; S38b seam to flip              |
+| S38 Maintenance owner-notice draft          | `docs/feature-suites/maintenance-notice-activation.md`            | Built — Gmail draft + human Gmail send is final (D33) |
 | S39 Internal notifications + center         | `docs/feature-suites/internal-notifications.md`                   | Spec — Wave 1 app-plane (D-AUTOMATION-LINE)           |
 | S40 Demo/Production separation              | `docs/feature-suites/environment-deployment-separation.md`        | Spec — authorized; first S40–S50 suite                |
 | S41 Shell, navigation, vocabulary           | `docs/feature-suites/shell-navigation-vocabulary.md`              | Spec — authorized after S40                           |

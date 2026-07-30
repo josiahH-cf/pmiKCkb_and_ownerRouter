@@ -172,9 +172,11 @@ function config(overrides: Partial<ServerConfig> = {}): ServerConfig {
     rentcastApiKey: undefined,
     maintenanceIntakeTokenSecret: undefined,
     maintenanceIntakeIpHashSalt: undefined,
+    maintenanceIntakeConfigured: false,
     maintenanceIntakeDailyCap: 500,
     maintenanceIntakeSignageDailyCap: 15,
     imageStore: "stub",
+    spaceProvisioningEnabled: false,
     spaceDriveFolderIds: {
       "lease-renewals": "folder-1",
     },

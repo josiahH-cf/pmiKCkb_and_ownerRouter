@@ -20,7 +20,11 @@ export default async function AdminMigrationPage() {
   // Governance is healthy when there is no UNEXPECTED executable entry; allow-listed executables (each
   // backed by a committed grant artifact) are fine.
   const registryGovernanceOk = registry.unexpected_production_allowed_keys.length === 0;
-  const allowListedExecutable = registry.production_allowed_keys.filter(
+  const registryRuntimeOk =
+    registry.source === "firestore" &&
+    registry.runtime_inert.length === 0 &&
+    registry.gate_drift.length === 0;
+  const returnedAllowListedExecutable = registry.production_allowed_keys.filter(
     (key) => !registry.unexpected_production_allowed_keys.includes(key),
   );
 
@@ -163,23 +167,89 @@ export default async function AdminMigrationPage() {
             Action Registry Readiness{" "}
             <span
               className="queue-pill"
-              data-value={registryGovernanceOk ? "Healthy" : "Action Required"}
+              data-value={
+                registryGovernanceOk && registryRuntimeOk ? "Healthy" : "Action Required"
+              }
             >
               {!registryGovernanceOk
                 ? "Governance violation"
-                : allowListedExecutable.length === 0
-                  ? "Non-executable"
-                  : "Gate-controlled"}
+                : registry.source !== "firestore"
+                  ? "Unverified"
+                  : registry.gate_drift.length > 0
+                    ? "Gate drift"
+                    : registry.runtime_inert.length > 0
+                      ? "Runtime inert"
+                      : registry.committed_executable_keys.length === 0
+                        ? "Non-executable"
+                        : "Gate-controlled"}
             </span>
           </h2>
           {registry.note ? <p className="muted">{registry.note}</p> : null}
           <p>
             {!registryGovernanceOk
               ? `${registry.unexpected_production_allowed_keys.length} entries are production_allowed=true without a committed grant. Investigate before any cutover step.`
-              : allowListedExecutable.length === 0
-                ? `All ${registry.total} entries are production_allowed=false; no external write path exists.`
-                : `${allowListedExecutable.length} allow-listed executable (${allowListedExecutable.join(", ")}, unsent draft only); the other ${registry.total - allowListedExecutable.length} are production_allowed=false.`}
+              : returnedAllowListedExecutable.length === 0
+                ? `None of the ${registry.total} returned metadata entries is production_allowed=true. Committed execution authority is shown separately below.`
+                : `${returnedAllowListedExecutable.length} returned allow-listed keys are production_allowed=true (${returnedAllowListedExecutable.join(", ")}); the other ${registry.total - returnedAllowListedExecutable.length} are production_allowed=false.`}
           </p>
+          <h3>Mapped runtime activation</h3>
+          <p>
+            {registry.runtime_active_keys.length === 0
+              ? "No mapped production action is runtime-active in this environment."
+              : `Runtime-active mapped actions (${registry.runtime_active_keys.length}): ${registry.runtime_active_keys.join(", ")}.`}
+          </p>
+          <h3>Committed execution authority</h3>
+          <p>
+            {registry.committed_executable_keys.length === 0
+              ? "No action is executable in the committed application seed."
+              : `Committed executable actions (${registry.committed_executable_keys.length}): ${registry.committed_executable_keys.join(", ")}.`}
+          </p>
+          {registry.source === "seed-catalog" ? (
+            <p className="muted">
+              Firestore comparison is unavailable. The committed seed is shown as a
+              fallback, so production gate parity is not verified.
+            </p>
+          ) : registry.gate_drift.length === 0 ? (
+            <p className="muted">
+              Firestore production gate metadata has the same complete key set and values
+              as the committed seed.
+            </p>
+          ) : (
+            <ul className="compact-list">
+              {registry.gate_drift.map((entry) => (
+                <li key={entry.key}>
+                  {entry.key}: Firestore says{" "}
+                  <code>
+                    {entry.registry_production_allowed === null
+                      ? "missing"
+                      : String(entry.registry_production_allowed)}
+                  </code>
+                  ; committed execution authority says{" "}
+                  <code>
+                    {entry.committed_production_allowed === null
+                      ? "missing"
+                      : String(entry.committed_production_allowed)}
+                  </code>
+                  .
+                </li>
+              ))}
+            </ul>
+          )}
+          <h3>Runtime-inert mapped actions</h3>
+          {registry.runtime_inert.length === 0 ? (
+            <p className="muted">
+              No production-allowed mapped action is missing a runtime dependency.
+            </p>
+          ) : (
+            <ul className="compact-list">
+              {registry.runtime_inert.map((entry) => (
+                <li key={entry.key}>
+                  {entry.key}: inert; missing or invalid{" "}
+                  <code>{entry.missing_runtime_variables.join(", ")}</code>
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="grid two">
             <div>
               <h3>By readiness</h3>

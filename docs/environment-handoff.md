@@ -176,9 +176,20 @@ Prepare/verify the ignored production environment:
 ```bash
 npm run prepare:production-env -- \
   --app-base-url=https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app \
-  --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com
+  --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com \
+  --approval-sender="$KB_APPROVAL_SENDER"
 npm run preflight:production -- --env-file=.env.production.local
 ```
+
+The helper forces `ENVIRONMENT_KIND=production` plus `DATA_CONTEXT=live`, requires exactly one
+managed `KB_APPROVAL_SENDER` even while the unrelated legacy digest flag is false, and carries
+`SPACE_PROVISIONING_ENABLED` as an explicit fail-closed boolean. It copies only the non-secret
+maintenance-intake Secret Manager ids/versions: both
+`MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_ID` and
+`MAINTENANCE_INTAKE_IP_HASH_SALT_SECRET_ID` activate together, while a partial pair, plaintext-only
+configuration, or reuse of one Secret Manager id is refused. The two referenced values must live
+under different ids and be distinct, generated high-entropy values of at least 32 UTF-8 bytes. Do not
+put either secret value in the generated file.
 
 The former legacy wrapper auto-promotes immediately and therefore is not a current executable
 production runbook. Before any next deploy, S40 must land the environment-parameterized,

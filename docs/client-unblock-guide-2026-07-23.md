@@ -30,26 +30,26 @@ a personal one. A real spending cap stays switched on the whole time.
 
 ## Status at a glance
 
-| #   | Item                                      | Type            | Status    | What we need from you                              |
-| --- | ----------------------------------------- | --------------- | --------- | -------------------------------------------------- |
-| 1.1 | RentCast rent comparables                 | Integration key | Open      | Sign up (free tier), give us the key               |
-| 1.2 | RentVine write-back                       | Integration     | Open      | The documented write endpoint from RentVine        |
-| 1.3 | LeadSimple connector                      | Integration     | Open      | An API key and a confirmed endpoint list           |
-| 1.4 | Dotloop e-signature                       | Integration     | Open      | Register a Dotloop app, give us the app details    |
-| 1.5 | Gmail inbox reply watch                   | Integration     | Confirmed | Nothing more; one build step remains               |
-| 1.6 | Google Sheets write-back                  | Access grant    | Done      | Nothing; scope granted and proven                  |
-| 1.7 | Maintenance owner-notice send             | Confirmation    | Confirmed | Nothing; a reviewed build step remains             |
-| 2.1 | Firestore backups (data safety)           | Cloud setup     | Open      | Turn on backups before real data lands (important) |
-| 2.2 | Maintenance intake safety value           | Cloud setup     | Open      | Add one secret value before public intake          |
-| 2.3 | New-Space provisioning permission         | Cloud setup     | Open      | Run one permission command (billing already ok)    |
-| 2.4 | Spending kill switch                      | Cloud setup     | Done      | Nothing; verified live                             |
-| 2.5 | Production sign-in check                  | Cloud check     | Done      | Nothing; confirmed at last deploy                  |
-| 3.1 | Keep or remove the practice mode          | Decision        | Open      | One choice                                         |
-| 3.2 | Which tenant is the main contact          | Confirmation    | Open      | One answer (Dan)                                   |
-| 3.3 | RentVine field names                      | Confirmation    | Open      | Confirm the field names (Dan)                      |
-| 3.4 | New-staff access rule                     | Build go-ahead  | Open      | Approve the build and its one-time migration       |
-| 4.1 | PMI logo, colors, and fonts               | Brand files     | Open      | Send the official brand files                      |
-| 5.1 | Sign-in refresh and deploy (each release) | Routine step    | Ongoing   | Two short commands when we ship                    |
+| #   | Item                                      | Type            | Status    | What we need from you                               |
+| --- | ----------------------------------------- | --------------- | --------- | --------------------------------------------------- |
+| 1.1 | RentCast rent comparables                 | Integration key | Open      | Sign up (free tier), give us the key                |
+| 1.2 | RentVine write-back                       | Integration     | Open      | The documented write endpoint from RentVine         |
+| 1.3 | LeadSimple connector                      | Integration     | Open      | An API key and a confirmed endpoint list            |
+| 1.4 | Dotloop e-signature                       | Integration     | Open      | Register a Dotloop app, give us the app details     |
+| 1.5 | Gmail inbox reply watch                   | Integration     | Confirmed | Nothing more; one build step remains                |
+| 1.6 | Google Sheets write-back                  | Access grant    | Done      | Nothing; scope granted and proven                   |
+| 1.7 | Maintenance owner-notice draft            | Product flow    | Done      | Nothing; human Gmail send is the final step         |
+| 2.1 | Firestore backups (data safety)           | Cloud setup     | Open      | Turn on backups before real data lands (important)  |
+| 2.2 | Maintenance intake safety pair            | Cloud setup     | Open      | Add two separate secret values before public intake |
+| 2.3 | New-Space provisioning permission         | Cloud setup     | Open      | Run one permission command (billing already ok)     |
+| 2.4 | Spending kill switch                      | Cloud setup     | Done      | Nothing; verified live                              |
+| 2.5 | Production sign-in check                  | Cloud check     | Done      | Nothing; confirmed at last deploy                   |
+| 3.1 | Keep or remove the practice mode          | Decision        | Open      | One choice                                          |
+| 3.2 | Which tenant is the main contact          | Confirmation    | Open      | One answer (Dan)                                    |
+| 3.3 | RentVine field names                      | Confirmation    | Open      | Confirm the field names (Dan)                       |
+| 3.4 | New-staff access rule                     | Build go-ahead  | Open      | Approve the build and its one-time migration        |
+| 4.1 | PMI logo, colors, and fonts               | Brand files     | Open      | Send the official brand files                       |
+| 5.1 | Sign-in refresh and deploy (each release) | Routine step    | Ongoing   | Two short commands when we ship                     |
 
 ---
 
@@ -127,16 +127,18 @@ a personal one. A real spending cap stays switched on the whole time.
 - **Where you do it.** Already complete.
 - **Status.** Done (2026-07-23).
 
-### 1.7 Maintenance owner-notice send
+### 1.7 Maintenance owner-notice draft
 
-- **What it unlocks.** Sending the maintenance owner notice (today the app prepares the draft; this is
-  about turning on the send). Every send is still reviewed and confirmed by a person.
-- **What we need from you.** Nothing new. You confirmed on 2026-07-23 that the property owner email on
-  the portfolio record is the right recipient and that every send is human-confirmed.
+- **What it unlocks.** The app creates an unsent maintenance owner-notice draft with the
+  authoritative owner recipient. A person reviews it and sends it from Gmail. That is the final
+  workflow; the app does not turn on a separate direct-send action.
+- **What we need from you.** Nothing. You confirmed on 2026-07-23 that the property owner email on the
+  portfolio record is the right recipient, and D33 confirmed on 2026-07-29 that draft-into-Gmail plus
+  a human Gmail send is the end state.
 - **Where you do it.** Already confirmed.
-- **What happens next.** Turning the send on is a small reviewed change on our side, after the draft
-  screen ships.
-- **Status.** Confirmed (2026-07-23).
+- **What happens next.** No direct-send build step or gate flip remains. The maintenance, renewal, and
+  generic client-send keys stay closed.
+- **Status.** Done (D33, 2026-07-29).
 
 ---
 
@@ -157,12 +159,13 @@ They are the difference between "works in testing" and "safe with real customer 
 - **What happens once you provide it.** Real client data becomes safe to enter, with a restore path.
 - **Status.** Open. Highest priority before real data.
 
-### 2.2 Maintenance intake safety value
+### 2.2 Maintenance intake safety pair
 
 - **What it unlocks.** Safely opening the public maintenance request form. The form limits repeat and
-  abusive submissions using a private hashed value.
-- **What we need from you.** Add one secret value (a randomly generated string we describe, you
-  generate) to Secret Manager before the public form is enabled. We never see or store the value.
+  abusive submissions using a private signing value and a separate IP-hash salt.
+- **What we need from you.** Add two independently generated values under two different Secret Manager
+  ids before the public form is enabled. Each must contain at least 32 UTF-8 bytes; they must not be
+  equal. We never print or store either value in git.
 - **Where you do it.** Google Secret Manager.
 - **What happens once you provide it.** The public intake form can be turned on safely.
 - **Status.** Open. Needed before public intake.
@@ -291,25 +294,25 @@ default" or correct it.
 Plain-language names above map to the internal build items, for the developer's cross-reference. Full
 detail lives in the internal docs.
 
-| Plain name (above)                | Internal reference                                     |
-| --------------------------------- | ------------------------------------------------------ |
-| 1.1 RentCast rent comparables     | S28b / `Q-RENTCAST-ENDPOINT`, `F-MARKET-COMP-PROVIDER` |
-| 1.2 RentVine write-back           | S30 / `D-RENTVINE-ENDPOINT`                            |
-| 1.3 LeadSimple connector          | S35                                                    |
-| 1.4 Dotloop e-signature           | S34                                                    |
-| 1.5 Gmail inbox reply watch       | S31 / `Q-GMAIL-WATCH-OWNER`                            |
-| 1.6 Google Sheets write-back      | Sheets WRITE scope on the reader delegation grant      |
-| 1.7 Maintenance owner-notice send | S38b / `F-MAINT-OWNER-DRAFT-REACHABLE`                 |
-| 2.1 Firestore backups             | env-LR-01                                              |
-| 2.2 Maintenance intake value      | maint-LR-02 (`MAINTENANCE_INTAKE_IP_HASH_SALT`)        |
-| 2.3 New-Space provisioning        | S36                                                    |
-| 2.4 Spending kill switch          | env-LR-02 / `F-BUDGET-1`                               |
-| 2.5 Production sign-in check      | auth-LR-05 / `F-PROD-CLOUD-MODEL`                      |
-| 3.1 Keep or remove practice mode  | `Q-CUTOVER-POSTURE`                                    |
-| 3.2 Main tenant contact           | `F-LEASE-6`                                            |
-| 3.3 RentVine field names          | `F-LEASE-3`                                            |
-| 3.4 New-staff access rule         | `F-AUTH-1`                                             |
-| 4.1 Brand files                   | brand pack (`docs/brand_pack/`)                        |
+| Plain name (above)                 | Internal reference                                     |
+| ---------------------------------- | ------------------------------------------------------ |
+| 1.1 RentCast rent comparables      | S28b / `Q-RENTCAST-ENDPOINT`, `F-MARKET-COMP-PROVIDER` |
+| 1.2 RentVine write-back            | S30 / `D-RENTVINE-ENDPOINT`                            |
+| 1.3 LeadSimple connector           | S35                                                    |
+| 1.4 Dotloop e-signature            | S34                                                    |
+| 1.5 Gmail inbox reply watch        | S31 / `Q-GMAIL-WATCH-OWNER`                            |
+| 1.6 Google Sheets write-back       | Sheets WRITE scope on the reader delegation grant      |
+| 1.7 Maintenance owner-notice draft | S38 / `F-MAINT-OWNER-DRAFT-REACHABLE`                  |
+| 2.1 Firestore backups              | env-LR-01                                              |
+| 2.2 Maintenance intake safety pair | S53 / `F-S53-RUNTIME-CONFIG-INTEGRITY`                 |
+| 2.3 New-Space provisioning         | S36                                                    |
+| 2.4 Spending kill switch           | env-LR-02 / `F-BUDGET-1`                               |
+| 2.5 Production sign-in check       | auth-LR-05 / `F-PROD-CLOUD-MODEL`                      |
+| 3.1 Keep or remove practice mode   | `Q-CUTOVER-POSTURE`                                    |
+| 3.2 Main tenant contact            | `F-LEASE-6`                                            |
+| 3.3 RentVine field names           | `F-LEASE-3`                                            |
+| 3.4 New-staff access rule          | `F-AUTH-1`                                             |
+| 4.1 Brand files                    | brand pack (`docs/brand_pack/`)                        |
 
 - Full build program and owner-dependency list: `docs/roadmap-unblock-2026-07-23.md`.
 - Fact ledger and open questions: `docs/facts.md`.

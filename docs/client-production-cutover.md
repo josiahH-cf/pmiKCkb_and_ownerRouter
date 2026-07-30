@@ -108,7 +108,8 @@ Prepare the ignored production file only if it needs to be created/refreshed:
 ```bash
 npm run prepare:production-env -- \
   --app-base-url=https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app \
-  --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com
+  --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com \
+  --approval-sender="$KB_APPROVAL_SENDER"
 ```
 
 The file must keep these fences:
@@ -116,6 +117,8 @@ The file must keep these fences:
 ```dotenv
 ALLOWED_HD=pmikcmetro.com
 ASK_DEMO_MODE=false
+DATA_CONTEXT=live
+ENVIRONMENT_KIND=production
 LOCAL_DEMO_AUTH=false
 GCP_PROJECT_ID=pmi-kc-kb-prod
 FIREBASE_PROJECT_ID=pmi-kc-kb-prod
@@ -123,19 +126,43 @@ FIRESTORE_DATABASE_ID=(default)
 VERTEX_AI_LOCATION=us-central1
 VERTEX_SEARCH_LOCATION=us
 APP_BASE_URL=https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app
+KB_APPROVAL_SENDER=managed-sender@pmikcmetro.com
 KB_APPROVAL_NOTIFICATIONS_ENABLED=false
+SPACE_PROVISIONING_ENABLED=false
 ```
 
-Keep real secret values out of this file when the deploy can bind Secret Manager directly. Run:
+`KB_APPROVAL_NOTIFICATIONS_ENABLED=false` disables only the legacy approval digest. It does not make
+the already-executable internal transactional notice independent of `KB_APPROVAL_SENDER`; preparation,
+preflight, deploy planning, and the runtime sender all refuse a blank, placeholder, multiple, or
+non-`pmikcmetro.com` sender.
+
+Keep real secret values out of this file when the deploy can bind Secret Manager directly. Public
+maintenance intake activates only when both non-secret references are present:
+
+```dotenv
+MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_ID=<secret-id>
+MAINTENANCE_INTAKE_IP_HASH_SALT_SECRET_ID=<secret-id>
+```
+
+The optional matching `*_SECRET_VERSION` values default to `latest`. With neither id configured,
+intake remains inert; a partial pair, version-only reference, plaintext-only deploy configuration, or
+one Secret Manager id reused for both variables is refused. Generate two distinct high-entropy values
+of at least 32 UTF-8 bytes under two different secret ids. The deploy emits one complete
+`--set-secrets` map and clears stale bindings when no declared secret group is active.
+
+Run:
 
 ```bash
 npm run preflight:production -- --env-file=.env.production.local
+npm run deploy -- --env-file=.env.production.local --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo --region=us-central1 --search-location=us --budget-confirmed --allow-multiple-spaces --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com --dry-run
 ```
 
 The preflight must reject legacy/demo project values, local URLs, emulator/demo flags, malformed
 cross-project identities, and an incorrect Gmail push audience. A provider intentionally not active
 may be absent only when the application represents its dependent actions as unavailable; it must not
-silently fall back to fixtures as Live.
+silently fall back to fixtures as Live. The deploy wrapper defaults to the same ignored
+`.env.production.local`, and `--env-file` is shown explicitly so the reviewed preflight source and
+the replacing Cloud Run maps cannot diverge.
 
 ## 5. Enable the Vendor authentication prerequisites
 

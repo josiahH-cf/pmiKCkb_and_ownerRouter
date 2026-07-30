@@ -22,6 +22,7 @@ import {
   buildSourceCorpusReadiness,
   validateSourceManifest,
 } from "@/scripts/source-corpus-readiness.mjs";
+import { projectActionRuntimeRequirements } from "@/scripts/action-runtime-requirements.mjs";
 
 /**
  * Read-only aggregation behind the Admin migration console (/admin/migration). It mirrors
@@ -91,7 +92,18 @@ export interface MigrationReadinessReport {
     by_readiness: Record<string, number>;
     by_evidence: Record<string, number>;
     gated: Array<{ key: string; reason: string }>;
+    committed_executable_keys: string[];
     production_allowed_keys: string[];
+    gate_drift: Array<{
+      key: string;
+      committed_production_allowed: boolean | null;
+      registry_production_allowed: boolean | null;
+    }>;
+    runtime_active_keys: string[];
+    runtime_inert: Array<{
+      key: string;
+      missing_runtime_variables: string[];
+    }>;
     // production_allowed keys NOT on the executable allow-list — a surprise flip; empty is healthy.
     unexpected_production_allowed_keys: string[];
   };
@@ -179,7 +191,7 @@ export async function buildMigrationReadinessReport(
   },
   deps: Partial<MigrationReadinessDeps> = {},
 ): Promise<MigrationReadinessReport> {
-  const { actor, config } = options;
+  const { actor } = options;
   const env = options.env ?? process.env;
   const rootDir = options.rootDir ?? process.cwd();
   const resolved = { ...defaultDeps, ...deps };
@@ -229,6 +241,7 @@ export async function buildMigrationReadinessReport(
   try {
     const result = resolved.validateProductionCutoverConfig(
       env as Record<string, string | undefined>,
+      { maintenanceIntakeSource: "runtime" },
     );
     productionEnv = {
       available: true,
@@ -320,12 +333,15 @@ export async function buildMigrationReadinessReport(
   let actionRegistry: MigrationReadinessReport["action_registry"];
   try {
     const records = await resolved.listActionRegistry(actor);
-    actionRegistry = summarizeRegistry(records, "firestore");
+    actionRegistry = summarizeRegistry(records, "firestore", env);
   } catch {
     const records = ACTION_REGISTRY_SEED.map((entry) => buildActionRegistryRecord(entry));
-    actionRegistry = summarizeRegistry(records, "seed-catalog");
+    actionRegistry = summarizeRegistry(records, "seed-catalog", env);
     actionRegistry.note =
       "Showing the static seed catalog because Firestore is not available in this session.";
+    blockers.push(
+      "registry: Firestore gate metadata is unavailable; committed seed fallback cannot verify production gate parity.",
+    );
   }
 
   // Executable keys on the allow-list are backed by committed grant artifacts (Section 3) — not
@@ -336,6 +352,26 @@ export async function buildMigrationReadinessReport(
       `registry: ${unexpected.length} entr${
         unexpected.length === 1 ? "y is" : "ies are"
       } production_allowed=true (${unexpected.join(", ")}) — governance violation, investigate before any cutover step.`,
+    );
+  }
+
+  for (const drift of actionRegistry.gate_drift) {
+    const returned =
+      drift.registry_production_allowed === null
+        ? "missing"
+        : String(drift.registry_production_allowed);
+    const committed =
+      drift.committed_production_allowed === null
+        ? "missing"
+        : String(drift.committed_production_allowed);
+    blockers.push(
+      `registry drift: ${drift.key} is production_allowed=${returned} in Firestore but committed execution authority is ${committed}.`,
+    );
+  }
+
+  for (const inert of actionRegistry.runtime_inert) {
+    blockers.push(
+      `registry runtime: ${inert.key} is production_allowed=true but runtime-inert; missing or invalid runtime variables: ${inert.missing_runtime_variables.join(", ")}.`,
     );
   }
 
@@ -395,6 +431,7 @@ export async function buildMigrationReadinessReport(
 function summarizeRegistry(
   records: RegistrySummaryRecord[],
   source: "firestore" | "seed-catalog",
+  runtimeValues: Record<string, string | undefined>,
 ): MigrationReadinessReport["action_registry"] {
   const byReadiness: Record<string, number> = {};
   const byEvidence: Record<string, number> = {};
@@ -424,6 +461,40 @@ function summarizeRegistry(
     }
   }
 
+  const runtime = projectActionRuntimeRequirements(
+    runtimeValues,
+    Object.fromEntries(
+      ACTION_REGISTRY_SEED.map((entry) => [entry.key, entry.production_allowed]),
+    ),
+  );
+  const committedByKey = new Map(
+    ACTION_REGISTRY_SEED.map((entry) => [entry.key, entry.production_allowed]),
+  );
+  const returnedByKey = new Map(
+    records.map((record) => [record.key, record.production_allowed]),
+  );
+  const gateDrift =
+    source === "firestore"
+      ? [...new Set([...committedByKey.keys(), ...returnedByKey.keys()])]
+          .sort()
+          .flatMap((key) => {
+            const committed = committedByKey.get(key);
+            const returned = returnedByKey.get(key);
+            return committed !== returned
+              ? [
+                  {
+                    key,
+                    committed_production_allowed: committed ?? null,
+                    registry_production_allowed: returned ?? null,
+                  },
+                ]
+              : [];
+          })
+      : [];
+  const committedExecutableKeys = ACTION_REGISTRY_SEED.filter(
+    (entry) => entry.production_allowed,
+  ).map((entry) => entry.key);
+
   return {
     available: true,
     source,
@@ -431,7 +502,11 @@ function summarizeRegistry(
     by_readiness: byReadiness,
     by_evidence: byEvidence,
     gated,
+    committed_executable_keys: committedExecutableKeys,
     production_allowed_keys: productionAllowedKeys,
+    gate_drift: gateDrift,
+    runtime_active_keys: runtime.runtime_active_keys,
+    runtime_inert: runtime.runtime_inert,
     unexpected_production_allowed_keys: productionAllowedKeys.filter(
       (key) => !EXECUTABLE_ALLOWLIST.has(key),
     ),

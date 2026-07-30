@@ -1,6 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { validateExecutableActionRuntimeRequirements } from "./action-runtime-requirements.mjs";
+import { resolveMaintenanceIntakeSecretBindings } from "./runtime-secret-bindings.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -18,6 +20,10 @@ const COPY_KEYS = [
   "GMAIL_PUBSUB_TOPIC",
   "GROUNDING_CONFIDENCE_THRESHOLD",
   "KB_APPROVAL_LABEL",
+  "MAINTENANCE_INTAKE_IP_HASH_SALT_SECRET_ID",
+  "MAINTENANCE_INTAKE_IP_HASH_SALT_SECRET_VERSION",
+  "MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_ID",
+  "MAINTENANCE_INTAKE_TOKEN_SECRET_SECRET_VERSION",
   "MAINTENANCE_PHOTO_DRIVE_FOLDER_ID",
   "NEXT_PUBLIC_APP_NAME",
   "NEXT_PUBLIC_FIREBASE_API_KEY",
@@ -58,6 +64,8 @@ const FORBIDDEN_OUTPUT_KEYS = new Set([
   "GOOGLE_APPLICATION_CREDENTIALS",
   "LOCAL_MODEL_BASE_URL",
   "LOCAL_MODEL_NAME",
+  "MAINTENANCE_INTAKE_IP_HASH_SALT",
+  "MAINTENANCE_INTAKE_TOKEN_SECRET",
   "RENTVINE_API_KEY",
   "RENTVINE_API_SECRET",
 ]);
@@ -111,6 +119,7 @@ export function buildProductionEnv({
       output[key] = value;
     }
   }
+  errors.push(...resolveMaintenanceIntakeSecretBindings(sourceEnv).errors);
 
   for (const key of REQUIRED_KEYS) {
     if (!readString(output[key])) {
@@ -121,24 +130,32 @@ export function buildProductionEnv({
   output.APP_BASE_URL = appBaseUrl ?? "";
   output.ASK_DEMO_MODE = "false";
   output.CONSOLE_TEST_DEPLOYMENT_NAME = "";
+  output.DATA_CONTEXT = "live";
+  output.ENVIRONMENT_KIND = "production";
   output.IMAGE_STORE = "drive";
   output.KB_APPROVAL_NOTIFICATIONS_ENABLED = notificationsEnabled ? "true" : "false";
   output.LOCAL_DEMO_AUTH = "false";
   output.MODEL_PROVIDER = "gemini";
+  output.SPACE_PROVISIONING_ENABLED = readBoolean(sourceEnv.SPACE_PROVISIONING_ENABLED)
+    ? "true"
+    : "false";
 
   if (serviceAccount) {
     output.CLOUD_RUN_SERVICE_ACCOUNT = serviceAccount;
   }
 
+  if (!approvalSender) {
+    errors.push(
+      "--approval-sender is required because the executable internal transactional notice action needs KB_APPROVAL_SENDER.",
+    );
+  } else {
+    output.KB_APPROVAL_SENDER = approvalSender;
+    errors.push(...validateExecutableActionRuntimeRequirements(output).errors);
+  }
+
   if (notificationsEnabled) {
-    if (!approvalSender) {
-      errors.push("--approval-sender is required with --notifications-enabled.");
-    }
     if (!approvalRecipients) {
       errors.push("--approval-recipients is required with --notifications-enabled.");
-    }
-    if (approvalSender) {
-      output.KB_APPROVAL_SENDER = approvalSender;
     }
     if (approvalRecipients) {
       output.KB_APPROVAL_RECIPIENTS = approvalRecipients;
@@ -231,6 +248,11 @@ export function main(argv = process.argv.slice(2)) {
 
 function readString(value) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function readBoolean(value) {
+  const normalized = readString(value)?.toLowerCase();
+  return normalized === "true" || normalized === "1";
 }
 
 function unquote(value) {

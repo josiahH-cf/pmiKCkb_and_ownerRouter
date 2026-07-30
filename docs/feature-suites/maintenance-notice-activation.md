@@ -1,10 +1,17 @@
 <!-- spec-shape: overhaul-v1 -->
 
-# S38 - Maintenance owner-notice: surface the draft + activate send
+# S38 - Maintenance owner-notice: governed Gmail draft
 
-> Status (2026-07-23, operator note): authored from `docs/roadmap-unblock-2026-07-23.md` feature #12 (S38a Wave-1, S38b Wave-2, owner-dep #8). S38a is pure app-plane and buildable now; S38b builds the send path to the one named owner flip.
+> Status (amended 2026-07-29 by owner decision D33): BUILT. The route, service, authoritative
+> recipient resolution, and per-ticket control create an unsent Gmail draft. That draft plus a human
+> sending from Gmail is the final client-facing workflow. The former direct-send seam and owner flip
+> are retired; `gmail.maintenance_owner_notice.send` stays closed.
 
-**Goal.** Today the maintenance owner-notice exists only as a read-only preview computed in the capture form: `buildOwnerNoticeDraft` renders a subject and body on screen, but nothing turns it into a real Gmail draft, because there is no route and no button that invokes the executor. The registry gate for `gmail.maintenance_owner_notice.draft_create` is already open and `MaintenanceOwnerEmailExecutor` is already built, so the only thing missing is the app-plane wiring. S38a closes that gap: an operator opens a persisted maintenance ticket, resolves the property owner from the authoritative RentVine mapping, previews the notice, and creates a real UNSENT Gmail draft that a human reviews and sends by hand, mirroring the already-wired renewal-notice flow. S38b builds everything for the exact-confirmed send (preview, payload-hash confirmation, receipt, reconcile, rollback) up to a single documented owner step, so activating live send is later a one-line reviewed gate flip and never an autonomous send.
+**Goal.** An operator opens a persisted maintenance ticket, resolves the property owner from the
+authoritative RentVine mapping, previews the notice, and creates a real UNSENT Gmail draft that a
+human reviews and sends from Gmail, mirroring the renewal-notice flow. The app does not expose or
+build toward a direct owner-notice send. D33 records draft-into-Gmail plus a human Gmail send as the
+end state, not an interim seam.
 
 **What it is / how it functions.**
 
@@ -12,27 +19,48 @@
 - **Ticket surface - components/maintenance/MaintenanceQueue.tsx.** The composer is surfaced on the persisted ticket (edit-gated, exactly like the existing per-ticket assignee picker), because the draft binds `ticket_ref === workflowId` and therefore needs a real created ticket, not the pre-persist capture buffer. The existing read-only `buildOwnerNoticeDraft` preview at `components/maintenance/MaintenanceCapture.tsx:161` stays as a pre-persist informational preview; it is not the reachable draft action.
 - **Draft-create route - app/api/maintenance/owner-notice-draft/route.ts (new).** POST mirroring `app/api/lease-renewal/renewal-notice-draft/route.ts`: `requireCapabilityInSpace("edit", "maintenance")`, a strict zod body `{ ticketRef, confirm }`, build the live RentVine config, load the persisted ticket, resolve the owner recipient, compose via `buildOwnerNoticeDraft`, and either return the preview (`confirm:false`) or create a real unsent Gmail draft (`confirm:true`). Returns the same `{status:"blocked"|"preview"|"created"}` shape as the renewal route.
 - **Route-facing service - lib/maintenance/execution/owner-notice-draft-service.ts (new).** Mirrors `lib/lease-renewal/execution/renewal-notice-draft-service.ts`: dependencies `loadTicket`, `resolveOwner`, and `createGmailClient` are injected so the logic is unit-tested without RentVine or Gmail. It re-asserts the `gmail.maintenance_owner_notice.draft_create` production gate and the authoritative-recipient guard before any draft is created, and it never sends.
-- **Owner recipient resolution - lib/lease-renewal/live-owner-recipient.ts (extend) + lib/maintenance/owner-notice-draft.ts (reuse).** The property-owner email resolves from the live RentVine export at `portfolio.owners[].email`, the same authoritative path proven for renewals (`F-MAINT-OWNER-DRAFT-LIVE`, 25/25 leases). The renewal resolver keys by lease; maintenance keys by the ticket's `unit.unitId` through the unit -> property -> portfolio -> owners[].email join. When the join cannot resolve authoritatively it returns null and the draft blocks with a visible `Needs Verification: owner name/contact` marker (the marker `buildOwnerNoticeDraft` already emits), never a guessed address.
+- **Owner recipient resolution - lib/lease-renewal/live-owner-recipient.ts (extend) + lib/maintenance/owner-notice-draft.ts (reuse).** The unit index recovers the ticket unit's live RentVine `propertyId` from `/leases/export`. `resolveOwnerContactFromPropertyId` then runs the implemented read-only tail: `getProperty(propertyId) -> getPortfolio(portfolioId) -> greatest positive percentOwned contact -> getContact(contactId).email`. There is no `getUnit` hop and no direct `portfolio.owners[].email` read in this route. A missing hop, invalid email, or tie for greatest ownership returns null, so the draft blocks with a visible `Needs Verification: owner name/contact` marker (the marker `buildOwnerNoticeDraft` already emits), never a guessed address. `F-MAINT-OWNER-DRAFT-LIVE` remains historical mapping evidence; `F-MAINT-OWNER-DRAFT-REACHABLE` records the implemented resolver.
 - **Draft transport - lib/gmail-runtime/client.ts + lib/lease-renewal/execution/live-gmail-draft-provider.ts.** Reuses the proven Gmail DWD draft grant already used by the renewal draft. The output is an unsent draft id; code never calls send in the S38a path.
 
-- **Buildable now (app-plane).** The composer, the ticket-surface button, the draft-create route, the route-facing service, and the owner-recipient resolver extension. All draft-into-Gmail only, no send, no new external scope, and they ride the already-open `gmail.maintenance_owner_notice.draft_create` gate (seed `production_allowed:true`, in both `EXECUTABLE_ALLOWLIST` copies). Sample or test tickets, and any ticket whose owner does not resolve authoritatively, yield a preview or a blocked result only, never a real draft. The loop builds all of this unattended.
-- **Build to the seam (live provider).** The exact-confirmed send path for `gmail.maintenance_owner_notice.send`. The executor `MaintenanceOwnerEmailExecutor` (`lib/maintenance/execution/providers.ts:493`) is already built and already validates the send action (workflow_context binding, `template_ref === "maintenance-owner:v1.0"`, authoritative from/recipients, server-derived RFC Message-ID, `ticket_ref === workflowId`, `recipient_source_ref`, `mailbox_source_ref`). This slice builds the send preview + confirm route and the confirm-against-payload-hash machinery, a Test-lane proof of the full preview/confirm/receipt/reconcile/rollback contract, and the gate-flip machinery, all with `gmail.maintenance_owner_notice.send` still `production_allowed:false`. The loop builds every part of this and stops only at the owner step below.
-- **Owner dependency (the one flip).** The single documented S26 owner-mapping and exact-confirmation evidence that authorizes live maintenance send (roadmap section 5, owner-dep #8). When the owner supplies it, the flip is a one-line reviewed change: set the seed entry `readiness:"Approved for Execution"` (evidence is already "Documented") and `production_allowed:true`, add `gmail.maintenance_owner_notice.send` to BOTH `EXECUTABLE_ALLOWLIST` copies (`lib/admin/migration-readiness.ts` and `scripts/seed-action-registry.ts`), and update the pinned tests (`tests/unit/action-registry-schema.test.ts`, `tests/unit/seed-action-registry-allowlist.test.ts`). No code path sends before that flip.
+- **Built app-plane end state.** The composer, ticket-surface button, draft-create route,
+  route-facing service, and owner-recipient resolver are shipped. All behavior is draft-into-Gmail
+  only, with no new external scope, behind the open
+  `gmail.maintenance_owner_notice.draft_create` gate. Sample or Test tickets, and any ticket whose
+  owner does not resolve authoritatively, yield a preview or a blocked result only, never a real
+  draft.
+- **No direct-send seam.** `gmail.maintenance_owner_notice.send` is explicitly not granted by D33
+  and stays `production_allowed:false`, absent from both executable allowlists, and unreachable from
+  a production route or control. The existing `MaintenanceOwnerEmailExecutor` is inactive
+  historical contract evidence, not an S38 activation target.
+- **Owner dependency.** None for a direct maintenance send. The former owner-mapping evidence remains
+  useful to resolve the draft recipient safely; it does not authorize a gate flip. A future change
+  would require a new explicit owner decision that supersedes D33.
 
 **Open questions & assumptions.**
 
-- _Assumption:_ the maintenance ticket's `unit.unitId` resolves through the same unit -> property -> portfolio -> `owners[].email` join proven for leases in `F-MAINT-OWNER-DRAFT-LIVE`. A unit that maps to no portfolio owner blocks the draft with `Needs Verification: owner name/contact` rather than guessing. If the live export exposes a different unit-to-portfolio key than the lease export, the resolver adapts the key only; the authoritative source stays `portfolio.owners[].email`.
+- _Verified by the shipped S38 path:_ the maintenance ticket's `unit.unitId` resolves through the
+  cached `/leases/export` unit index to a live `propertyId`; the resolver then calls
+  `getProperty -> getPortfolio -> greatest positive percentOwned contact -> getContact.email`. A
+  missing property/portfolio/contact/email, non-positive ownership set, or top-ownership tie blocks
+  the draft with `Needs Verification: owner name/contact` rather than guessing.
 - _Assumption:_ the draft-create action surfaces on the persisted ticket (MaintenanceQueue), not the pre-persist capture buffer, because the executor binds `ticket_ref === workflowId`. The pre-persist `buildOwnerNoticeDraft` preview in MaintenanceCapture is informational only and is left in place.
-- _Assumption:_ S38a reuses the existing Gmail DWD draft grant (no new scope). Only S38b introduces send, and send stays gated until the owner flip.
-- _Open:_ the exact documented owner-mapping and exact-confirmation artifact for live send is the named owner dependency (roadmap owner-dep #8); it is already tracked there, so no new `Q-` row is required. If the builder wants a facts.md handle, add a `Q-MAINT-SEND-MAPPING` row citing owner-dep #8 when registering this spec (not done here, to keep this change to the spec file only).
+- _Assumption:_ the built draft path reuses the existing Gmail DWD draft grant and needs no new
+  scope.
+- _Answered 2026-07-29 (D33):_ draft-into-Gmail with a human sending from Gmail is the final
+  maintenance owner-notice workflow. There is no open direct-send artifact or flip.
 
 **Cross-product impacts.**
 
 - Mirrors and reuses the renewal wiring: `app/api/lease-renewal/renewal-notice-draft/route.ts`, `lib/lease-renewal/execution/renewal-notice-draft-service.ts`, `components/lease-renewal/RenewalNoticeDraftComposer.tsx`, `lib/lease-renewal/execution/live-gmail-draft-provider.ts`, and `lib/gmail-runtime/client.ts`.
 - Touches maintenance code paths: `components/maintenance/MaintenanceCapture.tsx`, `components/maintenance/MaintenanceQueue.tsx`, `app/maintenance/page.tsx`, `lib/maintenance/owner-notice-draft.ts`, `lib/maintenance/execution/providers.ts`.
-- Registry and governance: `lib/integrations/action-registry-seed.ts` (the `gmail.maintenance_owner_notice.draft_create` and `...send` entries), `lib/admin/migration-readiness.ts`, `scripts/seed-action-registry.ts`.
+- Registry and governance: `lib/integrations/action-registry-seed.ts` (the open
+  `gmail.maintenance_owner_notice.draft_create` entry and deliberately closed `...send` entry),
+  `lib/admin/migration-readiness.ts`, `scripts/seed-action-registry.ts`.
 - Recipient resolution: `lib/lease-renewal/live-owner-recipient.ts`, `lib/lease-renewal/recipient-resolution.ts`.
-- Facts: builds directly on `F-MAINT-OWNER-DRAFT-LIVE` (the draft gate and owner-mapping already live) and honors `F-SEND-AUTHORIZED` plus the roadmap section 7 NEVERs. It supersedes no active fact; the S38a completion and the S38b seam each earn a new `F-*` row (see the ordered sequence). It does not reopen S26 (`docs/feature-suites/maintenance-execution.md`); it consumes S26's executor and contract.
+- Facts: builds directly on `F-MAINT-OWNER-DRAFT-LIVE` and is completed by
+  `F-MAINT-OWNER-DRAFT-REACHABLE`. D33 supersedes the former S38 direct-send-seam target. This suite
+  does not reopen S26 (`docs/feature-suites/maintenance-execution.md`) or make its inactive send
+  executor reachable.
 
 **Adversarial acceptance checks.**
 
@@ -40,18 +68,26 @@
 - **AC-S38-2** - A ticket with no authoritative owner email (or a sample/test ticket) returns `{status:"blocked", reasons:[...]}` naming the missing owner fact, and never returns `preview` or `created` with an invented recipient. _Verify:_ `npm test -- tests/unit/maintenance-owner-notice-draft.test.ts`.
 - **AC-S38-3** - POST with `confirm:true` on a resolving ticket creates an UNSENT Gmail draft (a `draftId` is returned) through the injected Gmail client, the service re-asserts the `gmail.maintenance_owner_notice.draft_create` gate, and the send path is never invoked. _Verify:_ `npm test -- tests/unit/maintenance-owner-notice-draft.test.ts` (assert the injected client's send is never called).
 - **AC-S38-4** - The per-ticket "Owner notice: draft" control renders on the MaintenanceQueue ticket for an edit-capable user and is absent for a read-only user; Preview then Create post to `/api/maintenance/owner-notice-draft`. _Verify:_ `npm test -- tests/unit/maintenance-owner-notice-composer.test.tsx`.
-- **AC-S38-5** - The built `MaintenanceOwnerEmailExecutor` rejects a `gmail.maintenance_owner_notice.send` input that is missing `recipient_source_ref`, `mailbox_source_ref`, or the `ticket_ref === workflowId` binding, or that carries a non-authoritative from/recipients, with a blocking validation refusal (never a send). _Verify:_ `npm test -- tests/unit/maintenance-owner-email.test.ts`.
-- **AC-S38-6** - Until the owner flip, `gmail.maintenance_owner_notice.send` stays `production_allowed:false` and is absent from both `EXECUTABLE_ALLOWLIST` copies; the seed refuses any surprise flip and the migration-readiness rollup lists no unexpected production-allowed key. _Verify:_ `npm test -- tests/unit/action-registry-schema.test.ts tests/unit/seed-action-registry-allowlist.test.ts tests/unit/migration-readiness.test.ts`.
-- **AC-S38-7** - The send confirm path, exercised in the Test lane with an injected provider, exact-confirms the payload against its hash (a mismatched confirmation is refused, not sent) and yields a receipt carrying a stable RFC Message-ID that reconciles, proving the preview/confirm/receipt/reconcile/rollback contract with zero live provider contact. _Verify:_ `npm test -- tests/unit/maintenance-owner-email.test.ts`; `npm run typecheck`; `npm run lint`.
+- **AC-S38-5** - `gmail.maintenance_owner_notice.send`,
+  `gmail.renewal_notice.send`, and generic `gmail.message.send` remain
+  `production_allowed:false`; the maintenance send key is absent from both executable allowlists,
+  and no S38 gate-flip step exists. _Verify:_
+  `npm test -- tests/unit/action-registry-schema.test.ts tests/unit/seed-action-registry-allowlist.test.ts tests/unit/migration-readiness.test.ts`.
+- **AC-S38-6** - The reachable route and service invoke the createDraft-only provider and never the
+  inactive `MaintenanceOwnerEmailExecutor`; confirming the S38 control returns an unsent draft
+  receipt, never a sent-message receipt. _Verify:_
+  `npm test -- tests/unit/maintenance-owner-notice-draft.test.ts`.
 - **AC-S38-8** - This spec keeps the spec-shape and traceability gates green (every required section present, one `AC-` id, a README row, unique S38-numbered ids). _Verify:_ `npm test -- tests/unit/feature-suite-spec-shape.test.mjs`; `npm run verify:spec-traceability`.
 
-**Forbidden actions / hard gates.** Draft-only until the send flip: the S38a route and composer create
-unsent Gmail drafts and never call send. No autonomous CLIENT-facing send; every owner-facing send
-stays human-initiated and exact-confirmed against a payload hash (internal-staff notifications may
-auto-send per `D-AUTOMATION-LINE`, but an owner is not staff, so owner notices never auto-send). The
-owner recipient always resolves from the authoritative RentVine mapping
-(`portfolio.owners[].email`), never guessed; an unresolved owner blocks with a visible
-`Needs Verification` marker. Generic non-workflow `gmail.message.send` stays Registry-closed. The
+**Forbidden actions / hard gates.** Draft-into-Gmail is the final S38 app effect: the route and
+composer create unsent Gmail drafts and never call send. A human reviews and sends from Gmail.
+`gmail.maintenance_owner_notice.send`, `gmail.renewal_notice.send`, and generic
+`gmail.message.send` stay Registry-closed; S38 adds no direct-send route, control, provider wiring,
+or prepared gate flip. Internal-staff notifications may auto-send per `D-AUTOMATION-LINE`, but an
+owner is not staff. The owner recipient always resolves from the authoritative property-anchored
+RentVine mapping
+(`getProperty -> getPortfolio -> greatest positive percentOwned contact -> getContact.email`), never
+guessed; an unresolved or tied owner blocks with a visible `Needs Verification` marker. The
 personal `josiah.abernathy@gmail.com` account never enters any auth path. No secrets, customer PII, or
 guessed provider endpoints in git or evidence. The verified non-null S52 production cost ceiling
 applies; if it is unset, cost-bearing/live/cloud work is closed while local/app-plane work continues.
@@ -60,27 +96,29 @@ and reversible. Routine release follows D05: after the full local gate, auth and
 prior-revision capture, and a captured rollback command are green, the runner may deploy; it must
 smoke the new revision successfully before promoting traffic. Interactive authentication,
 credentials/scopes, IAM, billing/quota, provider inputs, and destructive operations remain owner-run.
-This suite MAY build the live send provider and
-its confirm/receipt path to the seam and prepare the gate flip, but it does NOT set
-`gmail.maintenance_owner_notice.send` to `production_allowed:true` until the named owner dependency
-is documented; at that point the flip updates both `EXECUTABLE_ALLOWLIST` copies plus the two pinned
-schema tests. Suite-specific hard stop: the draft body must be composed by `buildOwnerNoticeDraft`
+Suite-specific hard stop: the draft body must be composed by `buildOwnerNoticeDraft`
 from ticket facts; no free-typed owner body bypasses the source-tagged, `Needs Verification`-marking
 composer.
 
 **Ordered prompt sequence.**
 
 1. _Discovery:_ re-read the renewal wiring (`app/api/lease-renewal/renewal-notice-draft/route.ts`, `lib/lease-renewal/execution/renewal-notice-draft-service.ts`, `components/lease-renewal/RenewalNoticeDraftComposer.tsx`) and the maintenance pieces (`lib/maintenance/owner-notice-draft.ts`, `lib/maintenance/execution/providers.ts:493`, `components/maintenance/MaintenanceQueue.tsx`).
-2. _Understanding:_ confirm the executor binding contract (`ticket_ref === workflowId`, `template_ref === "maintenance-owner:v1.0"`, `recipient_source_ref`, `mailbox_source_ref`) and the `portfolio.owners[].email` resolution proven in `F-MAINT-OWNER-DRAFT-LIVE`.
-3. _Build:_ add the owner-recipient resolver keyed by the ticket's `unit.unitId` (extend `lib/lease-renewal/live-owner-recipient.ts`), returning null when it cannot resolve authoritatively.
+2. _Understanding:_ confirm the executor binding contract (`ticket_ref === workflowId`, `template_ref === "maintenance-owner:v1.0"`, `recipient_source_ref`, `mailbox_source_ref`) and the implemented property-anchored resolution in `F-MAINT-OWNER-DRAFT-REACHABLE`.
+3. _Build:_ recover the live `propertyId` for the ticket's `unit.unitId` from the `/leases/export`
+   unit index, then use `resolveOwnerContactFromPropertyId`; return null on any missing hop, invalid
+   email, non-positive ownership set, or greatest-ownership tie.
 4. _Build:_ add `lib/maintenance/execution/owner-notice-draft-service.ts` (inject `loadTicket`, `resolveOwner`, `createGmailClient`; preview then confirm; re-assert the draft-create gate; never send).
 5. _Build:_ add `app/api/maintenance/owner-notice-draft/route.ts` (edit-in-maintenance capability, strict zod body, live RentVine config, blocked/preview/created outcomes).
 6. _Build:_ add `components/maintenance/MaintenanceOwnerNoticeDraftComposer.tsx` and surface it per-ticket in `MaintenanceQueue` (edit-gated); leave the MaintenanceCapture preview informational.
-7. _Verify:_ prove AC-S38-1..4 and AC-S38-8 (route + service + composer tests, spec-shape, traceability); keep `action-registry-schema.test.ts` green.
-8. _Build:_ (S38b seam) add the send preview + confirm route and the confirm-against-payload-hash machinery over the existing `MaintenanceOwnerEmailExecutor`, plus a Test-lane proof of the confirm/receipt/reconcile/rollback contract; keep `gmail.maintenance_owner_notice.send` `production_allowed:false`.
-9. _Gate:_ leave the send seed entry gated and prepare (do not apply) the flip diff: readiness to "Approved for Execution", `production_allowed:true`, add the key to both `EXECUTABLE_ALLOWLIST` copies, update the two pinned tests.
-10. _Verify:_ prove AC-S38-5..7 (`maintenance-owner-email.test.ts`, `migration-readiness.test.ts`, `seed-action-registry-allowlist.test.ts`); `npm run typecheck`; `npm run lint`.
-11. _Owner:_ hand back only at owner-dep #8, the documented S26 owner-mapping and exact-confirmation evidence for live send. Everything up to it is built.
-12. _Context update:_ on S38a landing, add an `F-MAINT-OWNER-DRAFT-REACHABLE` row to `docs/facts.md` citing AC-S38-1..4; on the S38b seam landing add `F-MAINT-OWNER-SEND-SEAM` citing AC-S38-5..7 and naming owner-dep #8 as the one flip. Point `docs/loop-state.md` at the next suite.
+7. _Verify:_ prove AC-S38-1..6 and AC-S38-8 (route + service + composer tests, closed-send
+   assertions, spec shape, and traceability).
+8. _Gate:_ keep the maintenance, renewal, and generic client-send keys closed. Do not prepare or
+   request a direct-send flip under S38.
+9. _Context update:_ maintain `F-MAINT-OWNER-DRAFT-REACHABLE` as the completed product fact and
+   record D33's retirement of the former direct-send target in the Supersede Log.
 
-**Deletion/merge recommendation.** KEEP. This is a standing S38 product contract for the maintenance owner-notice draft-and-send activation and is referenced by the README table and the AGENTS.md Route Table. The disposable working packet `docs/temp/maintenance-notice-activation-plan.md` is DELETE-on-merge once S38a ships and the facts row lands; this spec is the durable record. Do not MERGE into `docs/feature-suites/maintenance-execution.md` (S26): that suite owns the execution contract and executor; S38 owns the app-plane reachability and the send activation, and keeping them separate preserves the clean draft-now / send-at-the-owner-flip split.
+**Deletion/merge recommendation.** KEEP. This is the standing S38 product contract for the
+maintenance owner-notice draft workflow and is referenced by the README table and the AGENTS.md Route
+Table. Do not MERGE into `docs/feature-suites/maintenance-execution.md` (S26): S38 owns the
+app-plane draft reachability, while S26's inactive send executor is not an activation target under
+D33.
