@@ -275,7 +275,8 @@ Status: in progress — the owner directed PMI KC into a live production phase o
 authorized unattended development across the full spec flow. The sanitized D01–D64 reconstruction
 records its provenance and does not invent the unavailable browser-local response export. Governance
 is reconciled; the four suites are specified; S54 slice 1 and S53.1–S53.5 are locally complete;
-S52-I/J are locally complete; no provider capability has been activated yet.
+S52-I/J and its fail-closed print-only planner prerequisite are locally complete; no provider
+capability has been activated yet.
 
 Program:
 

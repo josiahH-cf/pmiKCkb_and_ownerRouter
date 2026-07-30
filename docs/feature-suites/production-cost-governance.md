@@ -118,6 +118,15 @@ in the code before this spec was written.
     `KILL_SWITCH_PROJECT_ID` into the function. The generator must refuse to render unless the pair
     is supplied together and matches a `COST_CEILING_PROJECTS` row, exiting non-zero with zero
     `gcloud` lines emitted.
+    **UNPROTECTED PREREQUISITE COMPLETE locally (2026-07-30):** the print-only planner now has no
+    numeric fallback, dollar CLI/environment authority, ambient project/location authority, or
+    billing-account override. Both renderers require one frozen, source-validated configuration;
+    project id/number, Production-row/export coherence, posture, uniqueness, ordered thresholds,
+    shell-safe identifiers, exact alert/ceiling encoding, and the below-alert manual trigger are
+    pinned by fixture and real-subprocess refusal tests. The actual CLI intentionally emits zero
+    stdout and exits non-zero because no D12-protected source is imported yet. This closes the local
+    refusal/planner seam for S52-A/D/E; it does not claim AC-S52-1/2/3/6/7 or activation complete.
+    AC-S52-9 must validate baseline id/rationale before the protected source may be wired.
   - **S52-F — live/repo drift becomes visible.** `scripts/reality-check.mjs:22` currently lists
     "Billing spend vs the $10 cap, and whether the budget kill switch is still wired" under
     `NOT_COVERED`. Move it into a covered dimension: per project, read the budget amount, its

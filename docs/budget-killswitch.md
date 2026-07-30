@@ -73,9 +73,20 @@ selects non-null alert and hard-stop values, generate the exact lockstep command
 npm run killswitch:plan
 ```
 
-Run them while authenticated as `josiah@pmikcmetro.com`. The runbook also prints a **safe no-op
-wiring test** (publish a $0.01 notification → the function logs "no action") that confirms the
-trigger wiring against prod without disabling anything.
+While those values remain unset—and until the protected source is reviewed and wired into the
+planner—this command intentionally exits non-zero and prints no `gcloud` commands. It also refuses a
+project/project-number half-pair, a row that is absent, unlinked, or pending verification, and any
+CLI or environment attempt to override the dollar values. Ambient GCP project and location
+variables are not target authority, and the billing-account target remains pinned to the one
+documented PMI billing account rather than accepting a CLI override. The protected S52 ceiling
+source is the only authority for a rendered plan.
+
+After that source is reviewed and complete, run the rendered commands while authenticated as
+`josiah@pmikcmetro.com`. The runbook also prints a **safe no-op wiring test** whose amount is derived
+below the selected alert threshold; it confirms the trigger wiring without disabling anything.
+That manual publish proves only topic→function delivery. The preceding
+`gcloud pubsub topics get-iam-policy` readback separately proves the real
+`billing-budget-alert@system.gserviceaccount.com` budgets-publisher binding.
 
 > **Never trip the real disable on the production project** — it takes the live KB app down. To
 > verify an actual disable end-to-end, deploy and trip a throwaway project.

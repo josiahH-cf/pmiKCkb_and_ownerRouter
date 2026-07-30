@@ -11,6 +11,32 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S52 print-only budget planner prerequisite COMPLETE locally (2026-07-30)
+
+The budget provisioning planner now fails closed before it can print a command. It has no historical
+numeric fallback, CLI/environment dollar authority, ambient project/location target, or arbitrary
+billing-account override. One validated frozen configuration binds the selected project id and
+number, the pinned PMI billing account, the Production row and named exports, armed posture, unique
+row identities, ordered alert/ceiling values, safe shell identifiers, exact function/budget
+thresholds, and a manual test amount below both enforcement values. Text and JSON use the same
+validated object; forged objects cannot call either renderer. The budget-publisher IAM readback is
+explicitly separate from the manual topic-to-function publish.
+
+The real CLI is deliberately unusable for activation today: no D12-protected ceiling module is
+imported, so no args, a half project pair, JSON mode, or a poisoned dollar environment all exit 1
+with zero stdout and no `gcloud` text. The independent final review found no P0/P1; its one deferred
+P2 is AC-S52-9's baseline-id/rationale validation, which must land with the protected source before
+wiring. Focused verification is green at 3 files / 72 tests, including real child-process refusal
+and side-effect-free import. The exact clean-install verifier is also green: format; lint with zero
+errors and 15 existing warnings; typecheck; 431 unit files / 3,584 tests; 20 Firestore files / 81
+tests; every governance/redaction gate; and the 96-page production build.
+
+No budget, function, billing link, cloud client, credential, threshold, `production_allowed` value,
+or D12-protected path changed. S52's remaining implementation is blocked on its protected source/
+handler/check work, the first complete-calendar-month baseline, the two owner-selected values,
+second-project disposition, and operator destination. The next dependency-independent suite is
+S51's close-only app-plane readiness seam.
+
 ## S53.5 COMPLETE locally + S52-I/J cost-control documentation seams (2026-07-30)
 
 AC-S53-8 is complete locally without opening a Vendor action. The crafted generic Live
