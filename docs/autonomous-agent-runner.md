@@ -6,30 +6,68 @@ This is the active production runner for large unattended feature cycles. Use it
 user says "let's plan the next feature run cycle" or asks for an agentic planning,
 build, verification, and handoff loop.
 
-The runner is documentation and process guidance only. Per the Go-Live, Roadmap Build, and UI/UX
-Recalibration Authorizations in `AGENTS.md` (`F-SEND-AUTHORIZED`,
-`F-ROADMAP-BUILD-AUTHORIZED`, `F-UIUX-RECALIBRATION-AUTHORIZED`), the DEFAULT is to build every
-authorized suite to its observable end state/external seam and ship it, opening an action-level
-`production_allowed` gate as a routine reviewed code change only when its exact dependency and full
-contract are documented. The active sequence is S40–S50. The runner performs all local/app-plane
-build and verification and stops for the owner only at a genuine external operation: cost-bearing
-cloud/billing, deploy/traffic/data deletion, credential/scope/OAuth grant, vendor confirmation, or
-the documented endpoint that flips a built provider live. It never treats a whole feature as
-deferred because its last inch is owner-gated, and it never performs an autonomous client-facing
-send or an unreviewed system-of-record write.
+The runner is documentation and process guidance only. Per the Go-Live, Roadmap Build, UI/UX
+Recalibration, and Production Phase Authorizations in `AGENTS.md` (`F-SEND-AUTHORIZED`,
+`F-ROADMAP-BUILD-AUTHORIZED`, `F-UIUX-RECALIBRATION-AUTHORIZED`,
+`F-PRODUCTION-PHASE-AUTHORIZED`), the DEFAULT is to build every authorized suite to its observable
+end state or external seam. The active sequence begins with the production-control prerequisites in
+S54, S53, S52, and S51, then resumes S40–S50 and dependency-ready S28–S39 work in the order recorded
+in `docs/loop-state.md`.
+
+Keep implementation and activation claims separate. A locally verified provider is
+**built to the seam**; a commit present on `main` is **pushed**; an exact serving revision with its
+smoke and rollback evidence is **deployed/shipped**; and a capability is **active/live** only after
+its exact gate, configuration, traffic, and acceptance evidence have been read back. Never turn
+“built” into “shipped” or “active” in a fact row without the corresponding evidence.
+
+The runner performs all safe local/app-plane work and, under D05, may deploy, smoke, and promote
+traffic after the full gate, authentication, cost, rollback, and preflight conditions pass. The
+owner still performs interactive authentication, IAM/billing/quota/scope or credential grants, and
+destructive data operations. A named external dependency parks only that activation; it never
+defers the rest of the feature or the independent queue. The runner never performs an autonomous
+client-facing send or an unconfirmed system-of-record write.
 
 ## Entry Points
 
 - `AGENTS.md` is the primary router for Codex and other agents.
+- `docs/meta-prompts/production-phase-unattended-loop.md` is the canonical fresh-context launcher
+  for the production-control sequence and the continuation into all remaining authorized suites.
 - `docs/meta-prompts/ui-ux-recalibration-unattended-loop.md` is the canonical fresh-context launcher
-  for S40–S50. It performs managed-auth, budget, worktree, blocker-ledger, and baseline Phase 0 work
-  before entering this runner’s continuation loop.
+  for the S40–S50 program contract. The production-phase launcher now controls the active order.
 - `CLAUDE.md` is a compatibility pointer for Claude-style runners. Keep it as a short
   pointer to `AGENTS.md`, not a duplicate rule file.
 - `docs/agent-runner/` holds the prompt pack that created this scaffold. Treat it as
   scaffold source material, not the active runbook.
 - `docs/temp/` is the disposable workspace for generated cycle packets, draft
   communications, and scratch planning artifacts.
+
+## Session Authentication Preflight
+
+Authentication is the first executable preflight in every new session, before any live Google,
+Firebase, Firestore, Sheets, Vertex, or Cloud Run read. After confirming that a shell is available,
+run these checks without printing a token:
+
+```bash
+npm run preflight:adc
+gcloud auth list --filter=status:ACTIVE --format='value(account)'
+gcloud auth print-access-token >/dev/null
+```
+
+The active CLI account must be a managed `pmikcmetro.com` identity or the documented project service
+identity. `preflight:adc` checks ADC separately; a green CLI token does not make stale ADC green, and
+a green ADC token does not excuse a personal active CLI account.
+
+If any check fails or the identity is not managed, do not improvise a login, use a personal account,
+or work around the organization reauthentication wall. Record the failed check and hand the owner
+this exact interactive command:
+
+```bash
+npm run auth:session
+```
+
+Continue every independent local/app-plane, test, documentation, and build-to-seam slice. Park only
+live reads, cloud mutations, deployment, traffic, and cost-bearing commands until the owner refreshes
+the session and all three checks pass.
 
 ## Context Intake
 
@@ -47,10 +85,12 @@ every-session reading is Tier 0 + Tier 1; everything else is reached on demand t
 
 3. `AGENTS.md` — the router.
 4. `docs/north-star.md` — direction and decision rules.
-5. `docs/ui-ux-recalibration-implementation-program-2026-07-28.md` — current S40–S50 decisions,
+5. `docs/meta-prompts/production-phase-unattended-loop.md` — the current cross-suite order and
+   production-control prerequisites.
+6. `docs/ui-ux-recalibration-implementation-program-2026-07-28.md` — S40–S50 decisions,
    environment contract, order, and flags.
-6. `docs/products/README.md` and the one active product-lane doc.
-7. `docs/plan.md` — phase status and acceptance gates.
+7. `docs/products/README.md` and the one active product-lane doc.
+8. `docs/plan.md` — phase status and acceptance gates.
 
 **Tier 2 — on demand via the Route Table (read only what the task needs):**
 
@@ -64,9 +104,17 @@ every-session reading is Tier 0 + Tier 1; everything else is reached on demand t
 - `docs/legacy/owner-router-artifact-source.md` only when Gmail Inbox 0 artifact migration, naming,
   prompt, label, template, or demo-safe scenario work is in scope.
 
-`docs/facts.md` and `docs/loop-state.md` are the Tier-0 spine. If `docs/loop-state.md` conflicts with
-the latest `docs/status.md` entry, trust `docs/status.md` and correct `docs/loop-state.md`. Run
-`npm run verify:context-freshness` to confirm the spine is current before acting on it.
+`docs/facts.md` and `docs/loop-state.md` are the Tier-0 spine. For the next-slice pointer,
+`docs/loop-state.md` wins over the append-only history in `docs/status.md`; investigate and correct
+either file when its evidence is stale. Run `npm run verify:context-freshness` to confirm the spine
+is current before acting on it.
+
+Authorization and implementation use different truth sources. `AGENTS.md`, `docs/facts.md`, and the
+active suite specs govern permission, safety, and the intended end state. The code and observed
+runtime govern what is actually implemented or active. Code may prove that a documented capability
+is missing or inert; it can never widen authority. If code is more permissive than governance, fail
+closed and record a control defect. If governance says “live” but the gate, configuration, or
+runtime evidence is absent, report the capability as not active and repair the stale claim.
 
 Check the git worktree before edits and preserve user changes. Use `docs/specs/`,
 `docs/legacy/`, and old demo docs only as historical source material unless an active
@@ -109,10 +157,11 @@ questions before implementation.
 
 ## Build-to-Seam Gate
 
-Before selecting the next slice, confirm it advances the authorized active program
-(`docs/ui-ux-recalibration-implementation-program-2026-07-28.md`, S40–S50), a dependency-ready
-S28–S39 provider activation, or a real regression in shipped behavior. The runner BUILDS — it does
-not defer product surface. For each suite, in order:
+Before selecting the next slice, confirm it advances the production-control sequence in
+`docs/meta-prompts/production-phase-unattended-loop.md`, the authorized S40–S50 program in
+`docs/ui-ux-recalibration-implementation-program-2026-07-28.md`, a dependency-ready S28–S39
+provider seam, or a real regression in shipped behavior. The runner BUILDS — it does not defer
+product surface. For each suite, in order:
 
 - build the app-plane (UI, routes, state, validation) unattended;
 - build the live provider implementation, replacing any fake/synthetic provider, plus the full
@@ -172,64 +221,78 @@ Read the trigger literally to avoid re-prompting:
   between internal phases or between safe slices.
 
 For the active goal, `/loop` or any run/continue/implement trigger follows `docs/loop-state.md` and
-the S40–S50 dependency order. The loop flags are already open. Do not regenerate the UI audit,
-re-ask D-01–D-14, or infer a Live provider contract. Complete Demo product workflows in Demo, build
-Live providers to their documented seam, and activate only exact actions satisfying the owner/
-Registry contract.
+the Active Production Order below. The loop flags are already open. Do not regenerate the production
+audit or UI audit, re-ask the settled D01–D64 or D-01–D-14 decisions, or infer a Live provider
+contract. Complete Demo product workflows in Demo, build Live providers to their documented seam,
+and activate only exact actions satisfying the owner/Registry contract.
 
 After an implementation packet is locked, do not ask the user to review every internal
 phase. Only stop for an approval gate, a stop-and-reset condition, or a genuine blocker.
 
 ## Autonomous Choices
 
-An agent may choose conservative local implementation details when active docs define
-the direction and the choice:
+An agent may choose conservative implementation details when active docs define the direction and
+the choice:
 
-- stays within an authorized S40–S50 suite or dependency-ready S28–S39 provider activation,
+- stays within an authorized S51–S54, S40–S50, or dependency-ready S28–S39 slice,
 - does not expose private data,
-- does not create cloud/API/billing usage,
-- does not touch client resources,
-- does not create or change keys,
+- obeys the S52 cost gate before any cost-bearing command,
+- does not create or change credentials, scopes, IAM, billing, or quotas,
 - does not perform a LIVE external send or system-of-record write — building the provider, the full
-  action contract, and a staged, unflipped gate is in-bounds; activating it live is not, and
-- can be verified locally or in the isolated Demo environment.
+  action contract, and a staged, unflipped gate is in-bounds; every real write still uses its
+  exact-confirm contract, and
+- can be verified locally, in the isolated Demo environment, or through an authorized D05
+  deploy/read-only smoke after all preconditions pass.
 
-The agent builds to the seam within those limits and stops for explicit owner approval only to
-activate a built provider live (the one named external dependency).
+The agent builds to the seam within those limits. Interactive authentication, a missing documented
+provider endpoint, a credential/scope/IAM/billing input, or an exact human confirmation can park one
+activation, but independent slices continue.
 
-When Remote Away Mode is active in `docs/away-mode.md`, this local-only limit is widened:
-the agent may also run idempotent, reversible migration/setup work through APIs when it is
-budget-guarded, documented, and does not hit a Hard Stop in that file. This includes
-preflights, API enablement, Firebase/GCP setup, app-owned metadata seeding, scale-to-zero
-deploy preparation, and small cheap-live smokes. Do not stop merely because the owner is
-remote.
+S31 has one narrow additional grant: the runner may create or update the single Cloud Scheduler job
+that renews the read-only Gmail watch after S52 supplies a non-null ceiling and the auth and cost
+preflights pass. That job may renew the watch and raise internal attention only. It may not create a
+draft, send a message, or trigger any client-facing effect, and the grant does not authorize any
+other scheduler, cron job, or scheduled workflow by analogy.
 
-## Approval Gates
+If `docs/away-mode.md` explicitly marks Remote Away Mode active, its bounded remote-work rules apply
+in addition to D05. They never bypass the S52 non-null ceiling, managed-auth checks, protected-path
+review, or the owner-only IAM/billing/scope/credential/destructive boundaries. Do not infer an
+active overlay from owner absence alone.
 
-These gates apply to owner-run cloud/data operations and to executing an action live, not to
-building it. The standing Go-Live grant makes a reviewed code gate flip routine when the exact
-dependency/full contract is already documented; do not seek a new product decision or leave the
-finished action false by habit. The owner still runs deploy/traffic/credential/scope/destructive
-migration operations, and the product still requires exact human confirmation for each
-client-facing send/system-of-record write. The runner freely builds the provider, full contract,
-and staged flip to the seam; it hands back the exact owner operation that would:
+## Approval And Execution Gates
 
-- enable or increase cloud/API cost,
-- change billing or quotas,
-- create, rotate, upload, or use API keys or service account keys,
-- modify GCP, Firebase, Google Workspace, Gmail, Drive, domains, labels, filters, roles,
-  source folders, or client-owned resources,
-- provision/cross-wire Demo or Production resources, migrate/delete Production records, or promote
-  Production traffic,
-- deploy or run production smoke tests,
-- import live sources or index client data,
-- read, modify, label, draft, or send live Gmail,
-- send email or external communications,
+These gates distinguish a D05 runner operation from an owner-only authority change. A routine
+revision deploy to an already provisioned application service, bounded read-only production smoke,
+and revision traffic promotion are runner operations when all of the following are true:
+
+- the full local gate is green, including Firestore rules after S54.1;
+- ADC, the managed active CLI account, and the suppressed-output CLI token check are green;
+- S52 records a reviewed, non-null production ceiling and the cost preflight is green;
+- the target manifest and environment/data classification are explicit and fail closed;
+- the previous serving revision is captured, rollback is executable, and the smoke cannot send,
+  draft, or write a client/system-of-record effect; and
+- no protected-path review or named provider dependency for that operation remains open.
+
+The owner still performs interactive reauthentication; creates or grants credentials, OAuth
+scopes, IAM, billing, or quota changes; supplies vendor endpoints or artifacts; and authorizes or
+executes service/project creation, Pub/Sub endpoint/audience changes, Firebase authorized-domain or
+OAuth redirect mutations, and destructive Production migrations/deletions. A human in the product still initiates and
+exact-confirms every client-facing send and Live system-of-record write.
+
+The standing Go-Live grant makes a reviewed code gate flip routine only when the exact dependency
+and full contract are documented. It never lets the runner:
+
+- invent or widen a category of action keys;
+- create, rotate, upload, expose, or substitute API keys or service-account credentials;
+- grant roles/scopes, link billing, raise quotas, or use a personal account;
+- import, rewrite, or delete live client records outside a documented reversible migration;
+- read, modify, label, draft, or send live Gmail outside the exact action contract;
+- send email or external communications autonomously;
 - write to RentVine, LeadSimple, DotLoop, QuickBooks, Boom, operating Sheets, banks,
-  ledgers, client Drive folders, or any system of record,
-- execute any external action whose Action Registry entry is not `Approved for Execution`
-  with `Documented` evidence, including any capability that is undocumented or only
-  vendor-confirmation-required (for example the Rentvine lease-renewal writeback).
+  ledgers, client Drive folders, or any system of record without its named executable gate and
+  exact human confirmation; or
+- execute an external action whose Action Registry entry is not `Approved for Execution`,
+  `Documented`, and `production_allowed`.
 
 Owner-operation requests must state the exact action, affected environment, product lane,
 expected cost or usage exposure when known, data touched, secrets/keys/roles/domains or
@@ -247,10 +310,34 @@ Stops in `docs/away-mode.md`. It does not waive billing/cap increases, Pro model
 autonomous sends, destructive changes, raw data/secrets exposure, or unapproved
 system-of-record writes.
 
+## Protected-Path Parking
+
+D12's exact six protected paths are `firestore.rules`; `lib/integrations/action-gate.ts`;
+`lib/auth/**`; a `production_allowed` change in `lib/integrations/action-registry-seed.ts`;
+`scripts/check-budget-guard.mjs`; and `infra/budget-guardrail/**`. A protected-path change is a
+review boundary, not a reason to stop unrelated work. Prepare it with tests and an explanation, then
+park it in an isolated review diff or branch that is not an ancestor of a commit pushed under the
+standing grant. Continue independent slices from a clean, pushable line. Never let a later push
+carry the protected change indirectly.
+
+An additive `docs/facts.md` evidence update may travel with a green slice when it records only
+commands actually run, results observed, resolved `AC-*` ids, commits, revisions, or receipts.
+Authority-bearing edits to `AGENTS.md` or `docs/facts.md` require explicit owner direction even
+though those documents are not D12 code paths. Never silently change authority, safety, identity,
+the cost ceiling, protected-path policy, live-data permission, or action-key activation.
+
 ## Cost Ceiling And Budget Policy
 
-The cloud budget is approximately **$10 total** and no spend happens without approval.
-`docs/budget-and-cost-policy.md` is the single source of truth: it holds the cap, the
+The production cost ceiling is owned by **S52** (`docs/feature-suites/production-cost-governance.md`),
+which supersedes the retired flat cloud cap. Two things changed and both matter operationally: the
+ceiling is per calendar month, not a lifetime total, and the hard stop is the smaller of the GCP
+budget amount and the guardrail's own `KILL_SWITCH_CAP_USD`, so the two move together or the change
+produces false headroom. Until S52 sets its value, treat the retired figure as void rather than
+current and do not assume headroom. An unset ceiling is a closed gate: do not deploy, promote
+traffic, create cloud alerting or Scheduler resources, run a billed provider smoke, or run the S54
+live eval until the reviewed ceiling is non-null and both enforcement points are ready to move
+together.
+`docs/budget-and-cost-policy.md` remains the operational source of truth: it holds the cap, the
 free-tier-first defaults, the inventory of every cost-bearing path and its gate, and the
 `npm run check:budget-guard` preflight. Read it before any cost-bearing step.
 
@@ -261,8 +348,11 @@ free-tier-first defaults, the inventory of every cost-bearing path and its gate,
 - Run `npm run check:budget-guard` before any live, deploy, import, or notification command.
   In Remote Away Mode it allows explicitly bounded multi-Space migration setup, but still
   refuses Pro and notification-send overrides.
-- The $10 total cap supersedes higher per-service figures in older preserved specs. Treat
-  it as a hard ceiling: if a step would approach it, stop and raise an approval request.
+- The S52 ceiling supersedes both the retired flat cap and the higher per-service figures in older
+  preserved specs. Treat it as a hard ceiling: if a step would approach it, stop and raise an
+  approval request. Note that `npm run check:budget-guard` enforces posture and configuration, not
+  a dollar amount — it is not the ceiling's enforcement point and cannot make an unset ceiling
+  usable.
 - While billing is unprovisioned, actions that require billing remain blocked; API setup
   and dry-runs that do not require billing may still proceed.
 - When the temporary overlay in `docs/away-mode.md` is active, continue with non-blocked
@@ -276,6 +366,12 @@ free-tier-first defaults, the inventory of every cost-bearing path and its gate,
 - `.env.example` records variable names only.
 - Local development uses `.env.local`, active-shell values, or approved local credential
   helpers.
+- Never mutate, delete entries from, or rewrite a user's `.env.local` to make a deploy pass. Build
+  the deployment input from an explicit, sanitized target-environment map. The deploy preflight
+  must refuse local-only/emulator credentials or variables — including
+  `FIRESTORE_EMULATOR_HOST`, `GOOGLE_APPLICATION_CREDENTIALS`, and local-model overrides — whether
+  they came from `.env.local` or the ambient process. If that named refusal is not implemented or
+  does not pass, the deploy remains parked; do not “clean” the source file as a workaround.
 - Demo and Production secrets live in separate client-approved Secret Manager/workload
   identity, impersonation, or equivalent managed secret storage.
 - Avoid downloadable service account keys. If a key is unavoidable, record the owner,
@@ -320,6 +416,39 @@ Only record a blocker when work cannot safely continue. A blocker must include p
 lane, missing item, why it blocks the cycle, exact user or client ask, work that can
 continue, and verification after unblock.
 
+## Active Production Order
+
+Use `docs/loop-state.md` for the first unfinished slice, while preserving these dependencies:
+
+1. **S54.1 first:** wire `test:firestore` into the full local gate and CI and prove that a
+   permissive Rules seed makes the widened gate fail.
+2. **S53 app-plane controls:** route the live Sheet write-back through its exact gate and
+   environment descriptor; then build the approval-sender and deploy-forwarding checks to the
+   seam. Do not set a live value, flip a protected registry seed, or deploy yet.
+3. **S52 prerequisites:** build the single-source ceiling, paired-enforcement, inventory,
+   baseline, and refusal machinery with the numeric values unset until supported evidence and
+   owner-owned billing inputs exist. Park protected guardrail changes for review.
+4. **S51 close-only first:** implement and falsify the pure close-only runtime-suspension
+   combinator before adding its store or route. Continue the incident, rollback, retention,
+   alert-policy, and notification-channel definitions locally, but do not apply cloud resources.
+5. **S52 activation:** only a reviewed non-null ceiling and the paired budget/guardrail
+   enforcement make cost-bearing operations eligible. Owner-run billing/IAM changes remain
+   owner-run.
+6. **S40 release-safety prerequisite:** before any D05 deploy, land the
+   environment-parameterized zero-traffic candidate path, sanitized-env refusal, current-manifest
+   monitoring targeting, candidate smoke before promotion, and rollback command. The legacy
+   auto-promoting wrapper is not D05-eligible.
+7. **Live operational work:** after steps 5–6 and fresh auth, complete S51 cloud alerting, bounded
+   D05 deployment/rollback rehearsal, and the remaining S54 work. The one bounded S54 live eval
+   occurs here, never while the S52 ceiling is null.
+8. Resume the remaining S40–S50 and dependency-ready S28–S39 work in the order recorded by the
+   production launcher and `docs/loop-state.md`. S31's Scheduler grant remains the narrow
+   separately authorized cloud-resource exception described above.
+
+If a protected review, owner input, auth refresh, or cost gate parks one item, continue the next
+independent local item in this order. “Do not skip ahead” means do not violate a dependency; it does
+not require the whole loop to idle behind an external action.
+
 ## Unattended Implementation Loop
 
 After the cycle packet is decision-complete, run one slice end to end:
@@ -341,19 +470,29 @@ into the next safe slice instead of stopping for routine review. The user verifi
 behavior at an end-of-run review point that occurs when a stop-and-reset condition fires,
 not after each internal phase.
 
-## Commit Queue
+## Commit, Push, And Deploy Authority
 
-Prepare a commit queue; do not assume commit, push, deploy, or merge authority unless the
-user explicitly asks for it. The queue should list:
+Standing grant, 2026-07-29 — see the Production Phase Authorization in `AGENTS.md` (D04, D05).
+The runner commits and pushes to `main` whenever the full local gate is green, and deploys and
+promotes traffic when the gate, preflights, prior-revision capture, and smoke all pass. It does
+not pause at a slice boundary to request permission for either.
 
-- Suggested commit title.
-- Files or concerns included.
-- Validation run and result.
-- Manual end-of-run verification still needed.
-- Any excluded changes or unrelated work left untouched.
+Bounded by:
 
-If the user asks to ship, first confirm the branch, remotes, status, relevant diff,
-validation, and absence of unrelated changes.
+- Never force-push, rewrite history, create a tag or release, or delete a branch.
+- A change touching a protected path (Production Phase Authorization, D12) is prepared and
+  parked as described above instead of pushed under the standing grant. The narrow additive
+  `docs/facts.md` evidence exception still applies.
+- The gate that licenses the push is the full one — including `test:firestore` once S54 wires it
+  in. A partial green is not a green.
+- Before a deploy: re-run all three auth checks; require the reviewed non-null S52 ceiling and
+  budget preflight; confirm branch, remotes, status, the relevant diff, and the absence of
+  unrelated work; capture the prior serving revision as the rollback target; and use only the
+  sanitized explicit target-environment map after the local-only-variable refusal passes. Do not
+  edit `.env.local`.
+- After a deploy: record the commit range, the serving revision, the prior revision, and the
+  bounded read-only smoke result in `docs/facts.md` and `docs/status.md`. Deployment alone does not
+  make an action active.
 
 ## Verification And Falsification
 
@@ -394,8 +533,12 @@ Run this phase for every slice:
    - TypeScript/runtime changes: add `npm run lint`, `npm run typecheck`, and `npm test`.
    - Firestore or persistence changes: add `npm run test:firestore` when Java is
      available.
-   - Production or live setup preparation: dry-run first; when Remote Away Mode is active,
-     proceed with bounded, reversible, budget-guarded setup and stop only for a Hard Stop.
+   - Production or live setup preparation: dry-run first. A live mutation additionally requires
+     fresh auth, a reviewed non-null S52 ceiling when it can incur cost, the relevant D05
+     preflights, and a rollback.
+   - S54 live eval: run it once only after the S52 ceiling is non-null, `preflight:adc` and the
+     managed CLI checks are green, and `check:budget-guard` passes. A local eval-runner test is not
+     live evidence.
    - End-of-cycle handoff: run `bash scripts/verify.sh` when relevant and practical.
 6. Repair clear in-scope issues immediately when the correct fix is supported by current
    context, then re-run the affected checks.
@@ -425,10 +568,11 @@ decide whether to continue:
 4. Update `docs/loop-state.md` at every slice boundary so a fresh session can resume.
 5. Continue until a Stop And Reset condition fires.
 
-Select the next slice from the authorized S40–S50 program and its dependency order. A dependency-
-ready S28–S39 provider activation may interleave without leaving the active slice half-applied. Do
-not invent scope beyond those suites to manufacture a next slice. If every suite is shipped or
-built to its named external seam, stop and record the exact remaining owner operations.
+Select the next slice from the Active Production Order above and the finer-grained pointer in
+`docs/loop-state.md`. A dependency-ready S28–S39 provider slice may interleave only where the
+production launcher permits and without leaving an active slice half-applied. Do not invent scope
+to manufacture a next slice. If every suite is deployed/active or built to its named external seam,
+stop and record the exact remaining owner operations without overstating the latter as shipped.
 
 ## Stop And Reset Conditions
 
@@ -436,11 +580,12 @@ Keep going while slices stay safe, decision-complete, and readiness-improving. S
 hand back when any condition below fires. State which condition fired and the recommended
 next action in `docs/loop-state.md`.
 
-- Owner dependency reached: the next step is the one named external activation — unbounded cloud/API
-  cost, a billing change, key/credential/scope/OAuth creation or grant, a deploy, a vendor
-  confirmation, the documented endpoint that flips a built provider live, or an autonomous
-  client-facing send (never allowed). Building the provider, contract, and a staged, unflipped gate is
-  NOT a stop; only the live activation is. Stop and hand the owner the exact one-line step.
+- Owner dependency reached with no independent work left: the next step is interactive auth, an
+  IAM/billing/quota/credential/scope grant, a destructive data operation, a vendor-supplied
+  documented endpoint, or exact human confirmation for a client-facing effect. A routine D05
+  deploy/smoke/traffic promotion is not owner-only once all preconditions pass. Building the
+  provider, contract, and staged unflipped gate is not a stop; park the one activation, continue
+  independent slices, and hand back the exact owner step only when the independent queue is empty.
 - Requested release complete: verification, docs, commit/push/deploy, production acceptance, and
   rollback evidence are complete; remaining provider activations are specifically inventoried.
 - Quality degrading: the same root issue survives two repair cycles, checks that were
@@ -450,12 +595,14 @@ next action in `docs/loop-state.md`.
 - Uncertainty too high: the next slice cannot be made decision-complete without inventing
   scope, a product decision, a source, a credential, or an approval. Stop and record the
   exact missing decision as a blocker.
+- Protected review pending with no independent work left: the protected patch is isolated,
+  verified, and surfaced; no pushable slice remains that can proceed without stacking on it.
 - Context reset needed: the working context is large or drifting, lane focus is slipping,
   or accumulated state risks errors. Write `docs/loop-state.md`, recommend a fresh context
   window, and stop.
-- Program complete: every authorized S40–S50 suite is shipped or built to its named external seam,
-  S49 has explicit retained/deleted dispositions, and S50 is verified; record remaining S28–S39/S47/
-  S43 owner dependencies and stop.
+- Program complete: S51–S54 and every authorized S40–S50 suite are either active with runtime
+  evidence or built to a named external seam, S49 has explicit retained/deleted dispositions, and
+  S50 is verified; record remaining S28–S39/S47/S43 owner dependencies and stop.
 
 A clean stop with a current `docs/loop-state.md` is a successful outcome, not a failure.
 
@@ -471,8 +618,10 @@ Update it:
 - whenever a blocker, approval gate, or stop-and-reset condition changes.
 
 Record only non-secret state. Keep `docs/status.md` as the append-only history and
-`docs/loop-state.md` as the always-current pointer. If they disagree, `docs/status.md`
-wins and `docs/loop-state.md` is corrected.
+`docs/loop-state.md` as the always-current pointer. Use the explicit built/pushed/deployed/active
+vocabulary from Purpose. If the two docs disagree about the next slice, the current loop-state
+pointer wins while the stale history claim is corrected; neither can override code/runtime
+evidence or governance authority.
 
 ## Stale Context Retirement
 

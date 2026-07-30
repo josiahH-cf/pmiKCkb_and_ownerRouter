@@ -82,7 +82,7 @@ referenceDateIso, batch, ruleSet })` that mirrors `lib/lease-renewal/cohort.ts` 
   - Wiring the LIVE anticipation feed (the real lease feed + the Dan-meeting-derived signals for
     maintenance / compliance / new-user) beyond the in-boundary sample — needs the approved data
     source and owner sign-off.
-  - Deploy (owner-run).
+  - Routine deploy, smoke, and traffic promotion until D05's full gate is green.
 
 **Open questions & assumptions.**
 
@@ -107,8 +107,11 @@ referenceDateIso, batch, ruleSet })` that mirrors `lib/lease-renewal/cohort.ts` 
   is only as confirmed as they are.
 - _Assumption:_ hard gates unchanged this cycle — no autonomous send, no SoR write execution
   (`F-WRITE-GATE`), no Cloud Scheduler, no new Google scope, and no new Action Registry flip (the
-  existing compose-only `gmail.renewal_notice.draft_create` allowlist is unchanged), ~$10 cap,
-  deploy owner-run.
+  existing compose-only `gmail.renewal_notice.draft_create` allowlist is unchanged). The verified
+  non-null S52 production cost ceiling applies; if it is unset, cost-bearing/live/cloud work is
+  closed while local/app-plane work continues. Routine deployment follows D05; interactive auth,
+  credentials/scopes, IAM, billing/quota, provider inputs, and destructive operations remain
+  owner-run.
 
 **Cross-product impacts.** New `lib/anticipation/projection.ts` +
 `components/console/ConsoleAnticipatedWork.tsx`; consumes (unchanged)
@@ -176,8 +179,13 @@ human starts. No Cloud Scheduler, no cron, no `setInterval`, no timer that auto-
 bank / client Drive) triggered from an anticipated item (`F-WRITE-GATE`). No new Google scope. The
 Console lane stays value-free — no address, rent, tenant name, or lease-end date on the list. The
 live meeting/lease feed stays gated; V1 projects over the in-boundary SAMPLE batch only. Every Action
-Registry entry `production_allowed:false` (this suite adds none). No client data on GitHub. ~$10
-budget cap. Deploy stays owner-run. A violation of any of these is itself a falsification.
+Registry entry `production_allowed:false` (this suite adds none). No client data on GitHub. The
+verified non-null S52 production cost ceiling applies; if it is unset, cost-bearing/live/cloud work
+is closed while local/app-plane work continues. Routine release follows D05: after the full local
+gate, auth and budget preflights, prior-revision capture, and a captured rollback command are green,
+the runner may deploy; it must smoke the new revision successfully before promoting traffic.
+Interactive authentication, credentials/scopes, IAM, billing/quota, provider inputs, and destructive
+operations remain owner-run. A violation of any of these is itself a falsification.
 
 **Ordered prompt sequence.**
 
@@ -204,7 +212,7 @@ verify:copy-voice`; reconcile counts with `npm run notices:reminders -- --date=2
    beyond the in-boundary sample, any SoR write or send. Hand back to the owner.
 6. _Owner:_ present the confirm-with-default (initiation = app-plane draft/queue creation only; no
    scheduler); collect the client-owned "what defines anticipated maintenance / compliance / new-user
-   work" signals from the Dan meetings; deploy stays owner-run.
+   work" signals from the Dan meetings. Routine deployment follows D05 after its full gate is green.
 7. _Context update:_ promote the shipped lane to a `docs/facts.md` `F-ANTICIPATION-LANE` row citing
    AC-S18-1 … AC-S18-9, and update `docs/loop-state.md` at the slice boundary (keep headroom under its
    140-line cap).

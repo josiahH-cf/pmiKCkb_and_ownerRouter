@@ -1,5 +1,30 @@
 # What's Next — Open Decisions, Directions, and Recommendations
 
+**2026-07-29 supersession — this file is now history, not a to-do list.** The owner directed the
+production phase after the 64-item production-unblock audit (round 1). The source questionnaire's
+browser-local selections were not exported; the sanitized decision record therefore labels each
+entry's provenance and leaves receipt-needed choices closed rather than inventing an answer. Current
+execution truth is the
+**Production Phase Authorization** in `AGENTS.md`, `F-PRODUCTION-PHASE-AUTHORIZED` in
+`docs/facts.md`, `docs/loop-state.md`, and suites S51–S54. Outstanding client/vendor asks moved to
+`docs/client-asks-2026-07-29.md`. Specifically resolved since this file was written:
+
+- §3.1 Firestore backups/PITR — **DONE** 2026-07-29 and live-verified (`F-FIRESTORE-BACKUPS`):
+  PITR on with a 7-day window, delete protection on, daily 7d + weekly 14w schedules.
+- §3.2 budget kill-switch — **was already armed** since 2026-06-23; the ask to confirm it was
+  stale. The chain is verified end to end. What changed instead is the ceiling and its failure
+  behavior (D01, `F-COST-CEILING-S52`).
+- §3.3 `MAINTENANCE_INTAKE_IP_HASH_SALT` — **re-scoped**: it is not a pure console step. The
+  deploy wrapper forwards a closed allowlist, so the secret cannot reach the service without a
+  paired code change. Owned by S53 together with `MAINTENANCE_INTAKE_TOKEN_SECRET`.
+- §1.3 / §1.4 (`F-LEASE-6`, `F-LEASE-3`) — answered as D57 and D58; D58 changed the order, so we
+  re-derive the field map from a fresh live export BEFORE asking Dan to confirm.
+- §2.1 `F-AUTH-1` — authorized as D59, with the never-lock-out-provisioned-users invariant.
+- §4 accepted residuals — the bulk high-risk accept is **reversed** by D60 in favour of the S45
+  tightening; the concurrent-pending residual is **reopened** by D62 as a pre-production slice.
+
+Keep this file for historical rationale only. It cannot reopen a settled decision.
+
 **2026-07-28 supersession.** The UI/UX decisions in this document are no longer open. The owner
 settled D-01–D-14 and authorized S40–S50; current execution truth is
 `docs/ui-ux-recalibration-implementation-program-2026-07-28.md` plus `docs/loop-state.md`. Keep this
@@ -52,8 +77,9 @@ contract; sample/test data never becomes a real draft or send; staff/cloud ident
 - **Verification.** Auth boundary HTTP-smoked green: unauth `/`→307, `/sign-in`→200, `/admin`→307,
   `/api/ask`→405. The retained rollback target is the prior revision
   `pmi-kc-kb-demo-rmrsg73yg-2bb353f9e7dc` (served `ead5da5`).
-- **Next deploy.** Only needed when the next owner-approved change lands: same command, after a fresh
-  `preflight:adc` check.
+- **Next deploy.** Only needed when the next reviewed change lands. A routine application revision
+  follows D05 after the full gate, a fresh `preflight:adc`, the non-null S52 ceiling, prior-revision
+  capture, rollback preparation, and candidate smoke are green.
 
 ### 1.2 Demo/Production posture — RESOLVED 2026-07-28
 

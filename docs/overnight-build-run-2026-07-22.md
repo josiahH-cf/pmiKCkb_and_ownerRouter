@@ -1,5 +1,12 @@
 # Overnight Build Run — 2026-07-22 (decision-complete runbook)
 
+> **Historical/superseded execution packet (2026-07-29).** This file remains evidence of the
+> authority and posture for the 2026-07-22 cycle. It is no longer the current unattended launcher:
+> commit/push/deploy authority, auth parking, cost eligibility, and release order now come from
+> `AGENTS.md`, `docs/loop-state.md`, and
+> `docs/meta-prompts/production-phase-unattended-loop.md`. Do not execute the stale owner-deploy,
+> no-main-commit, flat-cap, or auto-promoting-wrapper instructions below.
+
 > This is the authoritative, decision-complete runbook for one unattended multi-slice build cycle.
 > Every choice below was ruled by the owner in the Round-1 decision packet
 > (`docs/audit-2026-07-22.html`), recorded here as authority. The loop follows this file top to

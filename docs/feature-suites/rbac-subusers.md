@@ -117,7 +117,8 @@ today's reach with zero migration.
     third-party vendor cannot be a scoped sub-user under the current policy; outside reporters keep using
     the anonymous HMAC public intake (`F-MAINT-INTAKE-PUBLIC`). Do not widen identity outside S22's
     narrow external-Vendor exception.
-  - Deploy stays owner-run.
+  - Routine deploy, smoke, and traffic promotion remain gated until D05's full safety envelope is
+    green.
 
 **Open questions & assumptions.**
 
@@ -145,7 +146,10 @@ today's reach with zero migration.
   reporter/tenant ingress; it is not the vendor-worker portal.
 - _Assumption:_ hard gates unchanged this cycle — no autonomous send, no SoR write, no new Google
   scope, no Cloud Scheduler, no client data on GitHub, no Action Registry flip, existing executable
-  allowlist preserved, ~$10 cap; deploy owner-run.
+  allowlist preserved. The verified non-null S52 production cost ceiling applies; if it is unset,
+  cost-bearing/live/cloud work is closed while local/app-plane work continues. Routine deployment
+  follows D05; interactive auth, credentials/scopes, live claims, IAM, billing/quota, provider
+  inputs, and destructive operations remain owner-run.
 
 **Cross-product impacts.** `lib/constants.ts` (new `SPACE_SCOPES`/`SPACE_SCOPE_HOME`);
 `lib/auth/session.ts` (claim + validation + `hasSpaceAccess`/`requireSpaceAccess`/
@@ -220,8 +224,13 @@ at the promote step. NAMED sentinels to keep green throughout: `tests/unit/route
 **Forbidden actions / hard gates.** App-plane only; preserve the existing Action Registry executable
 allowlist exactly and flip no entry (this suite adds NO registry entry — it is an app-plane auth op, like
 F-ADMIN-USERS); no autonomous send; no system-of-record write (RentVine / Sheet / QuickBooks / bank /
-client Drive); no new Google scope; no Cloud Scheduler; no client data on GitHub; ~$10 budget cap;
-deploy stays owner-run. Suite-specific hard stops, each a falsification if violated: (1) the
+client Drive); no new Google scope; no Cloud Scheduler; no client data on GitHub. The verified
+non-null S52 production cost ceiling applies; if it is unset, cost-bearing/live/cloud work is closed
+while local/app-plane work continues. Routine release follows D05: after the full local gate, auth
+and budget preflights, prior-revision capture, and a captured rollback command are green, the runner
+may deploy; it must smoke the new revision successfully before promoting traffic. Interactive
+authentication, credentials/scopes, live claims, IAM, billing/quota, provider inputs, and destructive
+operations remain owner-run. Suite-specific hard stops, each a falsification if violated: (1) the
 `hd === pmikcmetro.com` boundary must NOT be widened under this suite — the vendor-worker portal needs
 its own approved identity design and outside reporters keep the anonymous HMAC intake. (2) scopes may only
 NARROW reach; a scope check must never grant a capability the `role` lattice denies. (3) the missing
@@ -256,7 +265,8 @@ assigns a LIVE scope claim — real sub-user minting is owner-run behind `manage
    backward-compat path); confirm every named sentinel stays green.
 9. _Gate / Owner:_ STOP. Hand back for owner-run live managed-domain claim assignment (mint one real
    maintenance sub-user account + set `{ role:"Editor", scopes:["maintenance"] }`) and the separate
-   S22 external-Vendor provider/auth implementation and live gates; deploy owner-run.
+   S22 external-Vendor provider/auth implementation and live gates. Once those dependencies and the
+   full D05 gate are green, routine deploy, smoke, and traffic promotion are runner-executable.
 10. _Context update:_ promote the shipped app-plane work to a `docs/facts.md` `F-RBAC-SUBUSERS` row
     citing AC-S16-1..9, and update `docs/loop-state.md` (Next Safe Slice + Stop-Condition State) at the
     slice boundary; run `npm run verify:context-freshness` and `npm run verify:spec-traceability`.

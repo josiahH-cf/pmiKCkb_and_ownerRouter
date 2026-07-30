@@ -30,7 +30,11 @@
 - _Open:_ whether Dotloop's documented webhook delivery exposes a per-subscription signing secret. If it does, it is consumed as a presence-only env NAME (e.g. `DOTLOOP_WEBHOOK_SECRET`) for defense in depth; if not, the authenticated re-fetch stands alone. Recorded as a `Q-DOTLOOP-WEBHOOK-AUTH` row in `docs/facts.md` at authoring time; either way no secret VALUE enters git.
 - _Assumption:_ `dotloop.loop.create_from_template` and `dotloop.document.upload` are governed at the S25 High-risk exact-preview Admin-approval tier - an approval bound to the payload hash plus the displayed target/participants/source context (`F-LEASE-V1-EXECUTION-BOUNDARY`). Loop creation builds a legal document set with named participants, so it is not lowered below exact Admin approval by this suite.
 - _Client-owned / Owner:_ which Dotloop template id is the canonical renewal template, and the participant-role mapping (owner, tenant) for auto-fill. Routed to `docs/client-checklist.md` as confirm-with-default (default: the template the operator selects on the desk; no fabricated template id).
-- _Assumption:_ hard gates unchanged this cycle - no autonomous send, the completion webhook writes app state only, the Test lane provider stays fake and non-routable, ~$10 cap, deploy + OAuth registration owner-run.
+- _Assumption:_ hard gates unchanged this cycle - no autonomous send, the completion webhook writes
+  app state only, and the Test lane provider stays fake and non-routable. The verified non-null S52
+  production cost ceiling applies; if it is unset, cost-bearing/live/cloud work is closed while
+  local/app-plane work continues. OAuth registration and interactive authorization remain owner-run;
+  routine deployment follows D05 after its full gate is green.
 
 **Cross-product impacts.** Extends the already-built Dotloop surfaces: `lib/connections/dotloop-oauth.ts` (live exchanger behind `resolveDotloopTokenExchanger`), `lib/connections/connector-catalog.ts` (dotloop card), `lib/lease-renewal/execution/providers.ts` (`DotloopProvider` / `DotloopRenewalExecutor`), `lib/lease-renewal/dotloop-followup-draft.ts` (the app-plane follow-up draft that references the two keys), `lib/integrations/action-registry-seed.ts` (the two seed entries + the staged flip), `lib/integrations/health-checks.ts` (`health.dotloop.oauth_app`). Adds `app/api/webhooks/dotloop/route.ts`, `lib/connections/dotloop-webhook.ts` (pure reducer), and `lib/connections/dotloop-live-provider.ts` (live provider). Updates the renewal-progress transition target `lib/lease-renewal/renewal-progress.ts` + `lib/firestore/lease-renewal-progress.ts` and reconciles via `lib/firestore/external-action-executions.ts`. The Test lane `lib/release/synthetic-execution.ts` keeps its fake provider unchanged. New tests `tests/unit/dotloop-webhook.test.ts`, `tests/unit/dotloop-webhook-route.test.ts`, `tests/unit/dotloop-live-provider.test.ts`. Governed by `F-ROADMAP-BUILD-AUTHORIZED`; honors `F-SEND-AUTHORIZED` (no autonomous send), the S25 contract `F-LEASE-V1-EXECUTION-BOUNDARY`, and `F-LEASE-WORKING-V1` (Test stays non-routable); builds on `F-SPACE-DESK-1`. Sibling Wave-2 seams: S30 (RentVine write), S31 (Gmail watch), S35 (LeadSimple). Additive - supersedes no active guidance; no Supersede Log entry.
 
@@ -44,7 +48,28 @@
 - **AC-S34-6** - The live `DotloopProvider` is one-attempt and reconcilable: a duplicate `dotloop.loop.create_from_template` execute with the same `externalActionIdempotencyKey` does not create a second loop (the claim returns `duplicate` via `FirestoreExternalExecutionStore`), and a replayed completion webhook does not double-advance the renewal-progress stage. _Verify:_ `npm test -- tests/unit/dotloop-live-provider.test.ts tests/unit/dotloop-webhook.test.ts`; keep `tests/unit/external-execution-boundary.test.ts` green.
 - **AC-S34-7** - The gate-flip is staged, not applied: until the owner authorizes, `isActionExecutable("dotloop.loop.create_from_template")` is false and the desk's Dotloop follow-up renders "authorize in the morning" rather than an execute control; applying the documented one-line flip (both actions -> `Approved for Execution` + `Documented` + `production_allowed:true`, both allow-lists, pinned tests) is the ONLY change that turns them executable. _Verify:_ `npm test -- tests/unit/action-registry-schema.test.ts`; `npm run verify:spec-traceability`; keep `tests/unit/feature-suite-spec-shape.test.mjs` green.
 
-**Forbidden actions / hard gates.** No live Dotloop call until the connector is connected - `NotConnectedDotloopTokenExchanger` stays the default until the live exchanger is wired AND the three OAuth NAMES are present. Both Dotloop actions stay `production_allowed:false` until the owner has authorized AND the flip is reviewed; a flip flips BOTH `EXECUTABLE_ALLOWLIST` copies plus the pinned schema/allow-list tests in the same reviewed change. `dotloop.loop.create_from_template` and `dotloop.document.upload` execute only under the S25 High-risk exact-preview Admin-approval path (approval bound to the payload hash + displayed target/participants/source). The completion webhook updates the app-owned renewal workflow state ONLY - it never sends, never drafts, never writes an external system of record - and it never trusts the inbound payload as authoritative (authenticated re-fetch is the source of truth). No client secret on a URL, in a log, or in git; tokens live only as opaque vault refs; no guessed Dotloop endpoint or credential is committed. The isolated Test-lane Dotloop provider stays fake and never contacts Dotloop (`provider_contacted:false`). Standard NEVERs hold (roadmap §7): no autonomous client-facing send, generic non-workflow `gmail.message.send` stays Registry-closed, `josiah.abernathy@gmail.com` never in an auth path, ~$10 budget cap, every live effect one-attempt / idempotent / receipted / reversible, deploy and the OAuth registration owner-run. A violation of any of these is itself a falsification.
+**Forbidden actions / hard gates.** No live Dotloop call until the connector is connected -
+`NotConnectedDotloopTokenExchanger` stays the default until the live exchanger is wired AND the three
+OAuth NAMES are present. Both Dotloop actions stay `production_allowed:false` until the owner has
+authorized AND the flip is reviewed; a flip flips BOTH `EXECUTABLE_ALLOWLIST` copies plus the pinned
+schema/allow-list tests in the same reviewed change. `dotloop.loop.create_from_template` and
+`dotloop.document.upload` execute only under the S25 High-risk exact-preview Admin-approval path
+(approval bound to the payload hash + displayed target/participants/source). The completion webhook
+updates the app-owned renewal workflow state ONLY - it never sends, never drafts, never writes an
+external system of record - and it never trusts the inbound payload as authoritative (authenticated
+re-fetch is the source of truth). No client secret on a URL, in a log, or in git; tokens live only as
+opaque vault refs; no guessed Dotloop endpoint or credential is committed. The isolated Test-lane
+Dotloop provider stays fake and never contacts Dotloop (`provider_contacted:false`). Standard NEVERs
+hold (roadmap §7): no autonomous client-facing send, generic non-workflow
+`gmail.message.send` stays Registry-closed, `josiah.abernathy@gmail.com` never enters an auth path,
+and every live effect is one-attempt / idempotent / receipted / reversible. The verified non-null S52
+production cost ceiling applies; an unset ceiling closes cost-bearing/live/cloud work while
+local/app-plane work continues. Routine release follows D05: after the full local gate, auth and
+budget preflights, prior-revision capture, and a captured rollback command are green, the runner may
+deploy; it must smoke the new revision successfully before promoting traffic. OAuth registration,
+interactive authorization,
+credentials/scopes, IAM, billing/quota, provider inputs, and destructive operations remain owner-run.
+A violation of any of these is itself a falsification.
 
 **Ordered prompt sequence.**
 
@@ -53,7 +78,10 @@
 3. _Build:_ Slice 1+2+3 (app-plane) - the gated webhook route, the pure `mapDotloopCompletion` reducer, and the honest connect/health copy; add `tests/unit/dotloop-webhook-route.test.ts` + `tests/unit/dotloop-webhook.test.ts` (AC-S34-1/3/4). Lint/typecheck/test + a falsification pass; nothing becomes executable.
 4. _Build:_ seam - the live `DotloopTokenExchanger` behind `resolveDotloopTokenExchanger`, the live `DotloopProvider` (`lib/connections/dotloop-live-provider.ts`) against documented Dotloop API v2, and the live webhook re-fetch; `tests/unit/dotloop-live-provider.test.ts` (AC-S34-5/6). Keep both seed entries `production_allowed:false`.
 5. _Gate:_ STOP before setting `production_allowed:true`. Do NOT register the OAuth app, do not add either key to an allow-list. Hand back to the owner with the exact three env NAMES and the flip recipe.
-6. _Owner:_ register the Dotloop OAuth app, set `DOTLOOP_OAUTH_CLIENT_ID` / `DOTLOOP_OAUTH_CLIENT_SECRET` / `DOTLOOP_OAUTH_REDIRECT_URI` (Secret Manager), complete authorization; deploy stays owner-run.
+6. _Owner:_ register the Dotloop OAuth app, set `DOTLOOP_OAUTH_CLIENT_ID` /
+   `DOTLOOP_OAUTH_CLIENT_SECRET` / `DOTLOOP_OAUTH_REDIRECT_URI` (Secret Manager), and complete
+   authorization. Once those inputs and the full D05 gate are green, the runner may perform the
+   routine deploy, smoke, and traffic promotion.
 7. _Gate:_ the reviewed one-line flip - both actions to `Approved for Execution` + `Documented` + `production_allowed:true`, add both keys to `scripts/seed-action-registry.ts` and `lib/admin/migration-readiness.ts` allow-lists, update `tests/unit/action-registry-schema.test.ts` + `tests/unit/seed-action-registry-allowlist.test.ts` + `tests/unit/dotloop-renewal-executor.test.ts` (AC-S34-2/7).
 8. _Verify:_ `npm test` (new + named sentinels), `npm run typecheck`, `npm run lint`, `npm run verify:copy-voice`, `npm run verify:spec-traceability`, `npm run seed:action-registry -- --dry-run`, then `bash scripts/verify.sh`. Browser-drive the desk: pre-flip shows "authorize in the morning"; post-flip a connected loop create + document upload runs under exact Admin approval and a signed-loop webhook advances the run to complete with no send.
 9. _Context update:_ promote the shipped work to a `docs/facts.md` `F-DOTLOOP-ESIGN` row citing AC-S34-1 .. AC-S34-7 (and resolve `Q-DOTLOOP-WEBHOOK-AUTH`), and update `docs/loop-state.md` at the slice boundary.

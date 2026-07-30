@@ -797,11 +797,17 @@ Each lists the question, v1 default, and what changes if different. These supers
 
 ### 18.4 Cost guardrails
 
-- Vertex AI Search free tier covers the v1 corpus size easily.
-- Gemini API: budget alert at $200/month, hard cap at $750/month.
-- Cloud Run: scale-to-zero; expected monthly cost < $10.
-- Firestore: free tier covers v1 traffic.
-- **Total expected monthly run cost: under $250 at v1 scale.**
+> **Superseded operationally on 2026-07-29 by S52 and
+> `docs/budget-and-cost-policy.md`.** The estimates below are preserved as early architecture
+> assumptions only. They provide no spending authority and must not seed an alert, cap, deploy, or
+> provider call. S52's alert and hard-stop values are currently null until eligible measured
+> baseline evidence and explicit owner-selected values exist.
+
+- Historical assumption: Vertex AI Search free tier covers the v1 corpus size.
+- Historical assumption: Gemini alert at $200/month and hard cap at $750/month.
+- Historical assumption: Cloud Run scale-to-zero with expected monthly cost below $10.
+- Historical assumption: Firestore free tier covers v1 traffic.
+- Historical aggregate estimate: under $250/month at v1 scale.
 
 ### 18.5 Backups
 

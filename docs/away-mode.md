@@ -17,16 +17,18 @@ AWAY_MODE_STATUS: INACTIVE
 - Deactivated: 2026-06-15; owner returned to active desk-side coordination.
 - Owner posture: available/asynchronous; use normal approval gates for live/cloud/client
   actions.
-- Durable budget cap: **$10 total** unless the owner explicitly changes it in writing.
-  The guard constant is in `scripts/check-budget-guard.mjs`.
+- Production cost boundary: the **non-null verified ceiling defined by S52**. The retired flat
+  figure is observed legacy enforcement, not headroom.
 
 ## Current Effect
 
 This overlay grants no standing approval while inactive. Normal development may continue,
 especially client-unblock docs, verification, migration readiness, and regression fixes.
 Live Gmail access, external communications, client Drive writes beyond approved source
-folder setup, cost-bearing cloud steps, deploys, imports, and system-of-record writes still
-need the normal explicit approval path.
+folder setup, cost-bearing cloud steps, imports, and system-of-record writes still follow
+their normal gates. Interactive auth, IAM/billing changes, credential/scope grants, and
+destructive operations remain owner-run; routine application deploy, smoke, exact-revision
+traffic promotion, and rollback follow D05 after their gates and preflights pass.
 
 ## Intent
 
@@ -64,14 +66,15 @@ to be physically present:
 - use the sanctioned cheap-live path when needed: Flash model, budget guard passing,
   scale-to-zero Cloud Run, notifications off, and source/import scope recorded; and
 - use `--allow-multiple-spaces` for bounded migration/setup when multiple Spaces are
-  necessary, sources are approved, and expected spend remains below the $10 cap.
+  necessary, sources are approved, and expected spend remains below the non-null verified
+  S52 ceiling.
 
 ## Hard Stops
 
 Stop and queue a remote-owner decision before any of these:
 
-- billing-account changes, quota increases, cap increases, or any action expected to put
-  total spend near or above $10;
+- billing-account changes, quota increases, ceiling increases, or any action expected to
+  approach or exceed the non-null verified S52 ceiling;
 - Pro model usage (`--allow-pro`) or any unmetered/unknown-cost model/API path;
 - live Gmail/approval notification sends (`--allow-notifications`), external email, or
   client communication;
@@ -101,8 +104,8 @@ or notification work. The guard:
 - refuses `--allow-notifications` in Away Mode.
 
 If a command does not have a deterministic cost guard, prefer dry-run or planning output
-first. If the model cannot explain why the action stays below the cap, it must stop before
-running it.
+first. If the model cannot explain why the action stays below the non-null verified S52
+ceiling, it must stop before running it.
 
 ## Remote Owner Protocol
 

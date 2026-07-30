@@ -106,7 +106,9 @@ reason_code:"accepted_suggestion" }` to the EXISTING `POST /api/lease-renewal/re
   - Relaxing the self-approval bar (`lib/approval/queue.ts:107-109`) or the Admin-for-High resolve gate
     (`lib/firestore/lease-renewal-resolutions.ts:186-194`) — both are owner invariants, unchanged here.
   - Flipping any Action Registry entry to `production_allowed:true`.
-  - Deploy (owner-run) and any smoke against the deployed endpoint.
+  - Routine deployment until D05's full local gate, auth and budget preflights, verified non-null S52
+    production cost ceiling, prior-revision capture, and captured rollback command are all green;
+    traffic promotion remains closed until the new revision also passes smoke.
 
 **Open questions & assumptions.**
 
@@ -222,8 +224,12 @@ QuickBooks / bank / client Drive) — a resolve QUEUES an append-only proposal a
 authorization; neither executes, and this suite adds NO new write path (it reuses `/resolve` +
 `/writeback-approvals` unchanged in contract). No new Google scope. No Cloud Scheduler. No client data
 on GitHub (a `reason_code` is a category, never a client value; the new progress records store no
-value/field/address). ~$10 budget cap. Deploy stays owner-run. Suite-specific hard stops, a violation of
-which is itself a falsification: (a) the self-approval bar (`lib/approval/queue.ts:107-109`) and the
+value/field/address). The verified non-null S52 production cost ceiling applies; if it is unset,
+cost-bearing/live/cloud work is closed while local/app-plane work continues. Routine deploy, smoke,
+and traffic promotion follow D05 only after its full gate is green. Interactive authentication,
+credentials/scopes, IAM, billing/quota, provider inputs, and destructive operations remain
+owner-run. Suite-specific hard stops, a violation of which is itself a falsification: (a) the
+self-approval bar (`lib/approval/queue.ts:107-109`) and the
 Admin-for-High resolve gate (`lib/firestore/lease-renewal-resolutions.ts:186-194`) are NOT relaxed;
 (b) D1's code-only reason path is confined to Low/Med accept-suggested — free text stays required for
 High/Blocked and every manual override; (c) inline approve appears ONLY on `queue_item` inbox rows,
@@ -257,9 +263,12 @@ boolean.
 7. _Verify:_ each slice runs `npm run typecheck`, `npm run lint`, `npm test`, `npm run verify:copy-voice`
    - a falsification pass; extend — never weaken — the named sentinels; end-of-suite `bash
 scripts/verify.sh`.
-8. _Owner:_ hand back for the gated tier — no write-back execution, no self-approval/Admin-gate
-   relaxation, no registry flip, deploy owner-run; owner-approved redeploy + a phone walkthrough of the
-   decider with Dan's Admin session against the deployed endpoint.
+8. _Gate:_ no write-back execution, self-approval/Admin-gate relaxation, or registry flip. A routine
+   D05 release may redeploy after the full gate, auth and budget preflights, verified non-null S52
+   ceiling, prior-revision capture, and rollback command are green; it must smoke the new revision
+   successfully before promoting traffic. The phone walkthrough still requires Dan's Admin session.
+   Interactive auth and any credential, scope, IAM, billing/quota, provider-input, or destructive
+   step remain owner-run.
 9. _Context update:_ promote the shipped slices to a `docs/facts.md` `F-*` row (e.g.
    `F-RENEWAL-DECIDER-MOBILE`) citing AC-S14-1..AC-S14-9, with `supersedes` pointed at the retired
    desktop-list approval framing; add the Supersede Log row + unique marker for the `docs/plan.md` /

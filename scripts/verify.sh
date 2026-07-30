@@ -37,6 +37,7 @@ fi
 "$NPM_CMD" run lint
 "$NPM_CMD" run typecheck
 "$NPM_CMD" test
+"$NPM_CMD" run test:firestore
 "$NPM_CMD" run verify:router-boundary
 "$NPM_CMD" run verify:falsification
 "$NPM_CMD" run verify:context-freshness

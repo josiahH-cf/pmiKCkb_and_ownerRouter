@@ -49,7 +49,27 @@
 - **AC-S29-7** - No autonomous send, no model processing. A repo scan of the suggestion compute module, the approval control plane, and the route finds no send call and no model or LLM import (deterministic compute only), and the suggestion / approval path calls no route that sends or writes a system of record. _Verify:_ `rg -n "sendEmail|messages\\.send|model-provider|llm/answer|generateContent" lib/lease-renewal/rent-suggestion lib/lease-renewal/rent-suggestion-approval.ts lib/firestore/lease-renewal-rent-suggestion-approvals.ts app/api/lease-renewal/rent-suggestion` returns nothing; `npm run typecheck`, `npm run lint`.
 - **AC-S29-8** - Suite gates green (post-registration). New copy passes the voice gate; the spec passes the shape and traceability gates once registered in the README; the suite is green under lint and typecheck. _Verify:_ `npm run verify:copy-voice`, `npm test -- tests/unit/feature-suite-spec-shape.test.mjs`, `npm run verify:spec-traceability`, `npm run typecheck`, `npm run lint`.
 
-**Forbidden actions / hard gates.** The suggested number NEVER auto-enters a draft and NEVER sends; it enters a draft ONLY after an explicit, per-number Admin approval of that exact figure, and a human sends every renewal email (no autonomous client-facing send; roadmap §7). Absent comp data renders `Needs Verification`, never a fabricated value. The suggested number ALWAYS shows its comp sources (no code path renders the number without its sources). `owner_money` stays a HARD exclusion for everything except this Admin-approved rent-number path: payout / funds / monies / proceeds / payment content stays refused, the carve-out is a server-set token branch (never a regex loosening, never client-trusted), and `draft-safety.ts` stays deterministic, fail-closed, and model-free. No autonomous model processing anywhere in the suggestion or approval path (deterministic compute only; no LLM call). Per-number approval is Admin-only (`manageAdmin`); an Editor cannot approve a number. No system-of-record write; `production_allowed` stays `false` (draft-only), so this suite sets `production_allowed:true` on nothing and touches neither `EXECUTABLE_ALLOWLIST` copy nor the pinned schema tests. Generic non-workflow `gmail.message.send` stays Registry-closed; no new Google scope; the personal `josiah.abernathy@gmail.com` account never enters any auth path; no secrets, PII, or guessed endpoint in git or evidence; ~$10 budget cap; deploys stay owner-run. A violation of any of these is itself a falsification.
+**Forbidden actions / hard gates.** The suggested number NEVER auto-enters a draft and NEVER sends;
+it enters a draft ONLY after an explicit, per-number Admin approval of that exact figure, and a human
+sends every renewal email (no autonomous client-facing send; roadmap §7). Absent comp data renders
+`Needs Verification`, never a fabricated value. The suggested number ALWAYS shows its comp sources
+(no code path renders the number without its sources). `owner_money` stays a HARD exclusion for
+everything except this Admin-approved rent-number path: payout / funds / monies / proceeds / payment
+content stays refused, the carve-out is a server-set token branch (never a regex loosening, never
+client-trusted), and `draft-safety.ts` stays deterministic, fail-closed, and model-free. No autonomous
+model processing anywhere in the suggestion or approval path (deterministic compute only; no LLM
+call). Per-number approval is Admin-only (`manageAdmin`); an Editor cannot approve a number. No
+system-of-record write; `production_allowed` stays `false` (draft-only), so this suite sets
+`production_allowed:true` on nothing and touches neither `EXECUTABLE_ALLOWLIST` copy nor the pinned
+schema tests. Generic non-workflow `gmail.message.send` stays Registry-closed; no new Google scope;
+the personal `josiah.abernathy@gmail.com` account never enters any auth path; no secrets, PII, or
+guessed endpoint enter git or evidence. The verified non-null S52 production cost ceiling applies;
+if it is unset, cost-bearing/live/cloud work is closed while local/app-plane work continues. Routine
+release follows D05: after the full local gate, auth and budget preflights, prior-revision capture,
+and a captured rollback command are green, the runner may deploy; it must smoke the new revision
+successfully before promoting traffic. Interactive authentication, credentials/scopes, IAM,
+billing/quota, provider inputs, and destructive operations remain owner-run. A violation of any of
+these is itself a falsification.
 
 **Ordered prompt sequence.**
 

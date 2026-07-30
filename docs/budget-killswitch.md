@@ -1,13 +1,16 @@
 # Budget Kill Switch
 
-The hard-cap layer for the $10 cloud budget. A GCP budget **alert only notifies** — it does not stop
-spend. This adds the standard programmatic kill switch so spend actually stops at the cap.
+This file records the currently deployed legacy enforcement chain and its recovery procedure. A GCP
+budget **alert only notifies** — it does not stop spend; the function below performs the billing
+disable. The observed `$10` values are live-state history, not current spending authority or
+headroom. S52 replaces the ceiling with a measured, reviewed monthly hard stop plus a lower
+alert-only threshold, moving the budget amount and `KILL_SWITCH_CAP_USD` together.
 
 See `docs/budget-and-cost-policy.md` for the full policy and the layered model.
 
-## Status — FULLY ARMED (2026-06-23, `pmi-kc-kb-prod`)
+## Status — LEGACY ENFORCEMENT ARMED (2026-06-23, `pmi-kc-kb-prod`)
 
-The hard $10 cap is live end-to-end:
+The legacy observed `$10` monthly stop is live end-to-end:
 
 - Project-scoped $10 budget
   (`billingAccounts/01A5A3-65CA5A-614D45/budgets/033af8c0-8f21-48af-b89b-0632896e5018`, 50/90/100%
@@ -37,8 +40,9 @@ The hard $10 cap is live end-to-end:
    512Mi/1cpu, Gemini Flash, single Space (`scripts/deploy-demo-cloud-run.mjs`). Idle ≈ $0.
 2. **Preflight discipline** — `npm run check:budget-guard` refuses cost-bearing commands unless the
    posture is the cheap path; deploy refuses without `--budget-confirmed`. Watches _config_, not $.
-3. **GCP budget alert** — emails billing admins at 50/90/100% of $10. Visible in
-   Console → Billing → Budgets & alerts / Reports. **Notify-only.**
+3. **GCP budget alert** — the legacy budget notifies billing admins at its configured thresholds.
+   Visible in Console → Billing → Budgets & alerts / Reports. **Notify-only.** S52 replaces this
+   with the reviewed alert-only threshold and S51's operator-reaching channel.
 4. **Kill switch (this)** — budget → Pub/Sub → Cloud Function that disables the project's billing at
    the cap. The only layer that hard-stops spend.
 
@@ -58,11 +62,12 @@ Cloud Billing budget (billing account 01A5A3-65CA5A-614D45, scoped to pmi-kc-kb-
 - The disable path is **proven by `tests/unit/budget-killswitch.test.mjs`** (decode → decide →
   mocked disable against the exact Cloud Billing notification payload) — no live call.
 
-## Provisioning (owner-side, gated)
+## Replacement provisioning (owner-side, gated)
 
 Creating the budget, deploying the function, and granting the SA billing IAM (Project Billing
 Manager — project-scoped, least privilege) are billing-console + cost-bearing Hard-Stop actions.
-Generate the exact commands:
+Do not use the legacy value as a default. After S52 records the full-month baseline and the owner
+selects non-null alert and hard-stop values, generate the exact lockstep commands:
 
 ```
 npm run killswitch:plan

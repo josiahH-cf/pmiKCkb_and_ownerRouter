@@ -58,8 +58,9 @@ Demo.
 - Avoid downloadable service-account keys. Record owner, location label, rotation, and revocation—not
   key material.
 - Every setup row needs a repeatable command or manual verification before it is marked complete.
-- Use `docs/v1-client-unblock-checklist-2026-07-14.md` for a selected provider's exact activation
-  inputs. Do not turn that inventory into an all-provider application gate.
+- Use the selected provider's active feature-suite spec for its exact activation inputs. The dated
+  `docs/v1-client-unblock-checklist-2026-07-14.md` is historical pre-S40 evidence, not a current
+  cloud/deploy runbook. Do not turn either inventory into an all-provider application gate.
 
 ### Local emulator boundary
 
@@ -78,7 +79,7 @@ construct no Live client, while Production rejects fixture aliases.
 | --------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Local development                 | Build, unit/E2E/emulator verification                           | `localhost:3000`, loopback emulator                                                                                                                                                                                                                                                               | `.env.local` / active shell                      | Implementer                       | Local-only; emulator guard required                                                                                                                                                     |
 | Legacy demo                       | Historical evidence only                                        | Legacy project values                                                                                                                                                                                                                                                                             | Legacy ignored config                            | Josiah                            | Retired; no `cherrybridge.ai`/`pmikckb-test` reuse                                                                                                                                      |
-| Demo (S40 target)                 | Exact product rehearsal with Demo data; optional Live read-only | **Not provisioned; do not invent.** S40 manifest must record exact independent project/service/database/storage/queue/OAuth/runtime identity                                                                                                                                                      | Separate client Secret Manager/attached identity | Josiah technical; PMI KC business | NOT STARTED; one owner provisioning/deploy dependency after green dry-run                                                                                                               |
+| Demo (S40 target)                 | Exact product rehearsal with Demo data; optional Live read-only | **Not provisioned; do not invent.** S40 manifest must record exact independent project/service/database/storage/queue/OAuth/runtime identity                                                                                                                                                      | Separate client Secret Manager/attached identity | Josiah technical; PMI KC business | NOT STARTED; owner provisions the named resources after a green plan, then D05 covers routine revision deploy/smoke/promotion                                                           |
 | Provider sandbox                  | Optional provider-owned sandbox when contract requires it       | Not provisioned                                                                                                                                                                                                                                                                                   | Provider/client managed vault                    | Per provider                      | Independent from Demo; only when provider requires                                                                                                                                      |
 | Production (current → S40 target) | Current serving app; target Live-only                           | Project `pmi-kc-kb-prod` (#558870356522); Cloud Run `pmi-kc-kb-demo`, `us-central1`; canonical URL `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`; bucket `pmi-kc-kb-prod-sources-558870356522`; search store `kb-lease-renewals-txt`; Firebase app `1:558870356522:web:c1b2473b886a6edd889953` | Secret Manager / attached identities             | Josiah technical; PMI KC business | Current commit `2bfe7d4`, revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e` at 100%; rollback `7663cec` / `pmi-kc-kb-demo-rmrwmk2kn-ae2beeaf9de7`. Current Live+Test migrates under S40. |
 
@@ -158,7 +159,7 @@ generic provider front door; it is navigation only and never Live evidence/readi
 
 ## Manual Setup And Web-App Testing
 
-Run session and budget checks before live Google/cloud work:
+Run session, cost, and environment checks before live Google/cloud work:
 
 ```bash
 npm run preflight:adc
@@ -166,7 +167,9 @@ npm run check:budget-guard
 ```
 
 If ADC is stale, the owner runs `npm run auth:session` interactively. Never substitute a personal
-account.
+account. A green posture check is not spending approval: S52's alert and hard-stop values must also
+be non-null, owner-selected from eligible baseline evidence, and verified in lockstep. While they
+remain null, use only local/read-only/print-only paths.
 
 Prepare/verify the ignored production environment:
 
@@ -177,31 +180,29 @@ npm run prepare:production-env -- \
 npm run preflight:production -- --env-file=.env.production.local
 ```
 
-Deploy rules and application after capturing the prior revision:
+The former legacy wrapper auto-promotes immediately and therefore is not a current executable
+production runbook. Before any next deploy, S40 must land the environment-parameterized,
+zero-traffic candidate path with candidate smoke before exact-revision promotion. Use its guaranteed
+non-executing plan path while S52 is null:
 
 ```bash
-gcloud run services describe pmi-kc-kb-demo --region=us-central1 \
-  --project=pmi-kc-kb-prod --format="value(status.traffic[0].revisionName)"
-npm exec firebase -- deploy --only firestore:rules --project pmi-kc-kb-prod
-npm run deploy -- --project=pmi-kc-kb-prod --service=pmi-kc-kb-demo \
-  --region=us-central1 --search-location=us --budget-confirmed \
-  --allow-multiple-spaces \
-  --service-account=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com
+npm run deploy -- --plan-only --environment=production
 ```
 
-After revision creation succeeds, the wrapper routes 100% traffic to the exact collision-resistant
-revision created by that invocation, so a prior named-revision rollback pin cannot strand the
-candidate and a concurrent deploy cannot redirect this invocation through floating `LATEST`. It uses
-`--no-invoker-iam-check` for the public sign-in shell; it does not add an `allUsers` binding or relax
-application auth.
+That command is a specified S40 target until implemented; it must emit no `gcloud` call and must
+refuse unsafe local/emulator variables by name. A real D05 release becomes eligible only after the
+full local gate, fresh auth, non-null/verified S52 values, current Production manifest, four correctly
+targeted S51 policies, prior-revision capture, rollback preparation, and candidate smoke all pass.
+It deploys only to an already-provisioned service.
 
-Deploy `firestore:indexes` separately only when an actual production query requires one of the
-declared composite indexes. Unused index creation is not a V1 step.
+`firestore.rules` is D12-protected: a changed ruleset is isolated and surfaced for owner review, not
+pushed or deployed under the unattended grant. Deploy `firestore:indexes` separately only when an
+actual production query requires one of the declared composite indexes; index creation is a cloud
+resource mutation, not part of D05.
 
-The commands above describe the current legacy-named Production wrapper. S40 must generate separate
-validated Demo/Production manifests and parameterized commands before provisioning Demo. For
-Production, create the candidate at zero traffic, verify the exact descriptor and authenticated
-whole-task smoke, then promote deliberately and retain the prior revision.
+S40 generates separate validated Demo/Production manifests and parameterized commands before
+provisioning Demo. For Production, create the candidate at zero traffic, verify the exact descriptor
+and authenticated whole-task smoke, then promote deliberately and retain the prior revision.
 
 After S40 deploy, verify internal sign-in and wrong-domain denial; persistent environment/context
 labels; Production Live-only; Demo renewal/Maintenance/Approval/Vendor completion with zero Live

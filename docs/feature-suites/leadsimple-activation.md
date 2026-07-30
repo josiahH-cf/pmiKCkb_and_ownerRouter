@@ -18,7 +18,12 @@
 - _Open / Client-owned:_ the exact LeadSimple REST endpoint contract (base URL, the stage-update path and its compare-and-set semantics, the task-create path, the read-back and reconcile-by-idempotency-key shapes). This is the vendor confirmation that upgrades the evidence; it is deliberately NOT guessed. Routed to `docs/client-checklist.md` as a confirm-with-default (default: build to the fail-closed seam, ship nothing live, until the vendor confirms). Track as a `Q-LEADSIMPLE-CONTRACT` row in `docs/facts.md` "## Open Questions" at authoring time.
 - _Open / Client-owned:_ whether the team's LeadSimple plan is the `LeadSimple Operations plan` the entries name as `required_plan` and whether the API key can be minted with the `LeadSimple admin-enabled REST API key` permission. Confirm-with-default: assume yes (the entries already assert it as the documented requirement); the owner confirms when minting the key.
 - _Assumption:_ LeadSimple stage changes and task creation are internal-workflow updates, not client-facing sends, so `D-AUTOMATION-LINE` permits them to be executed once activated, but every run still passes through the human preview/confirm gate. This suite does NOT introduce any autonomous client-facing send. No relaxation of the send invariants.
-- _Assumption:_ hard gates unchanged this cycle. No new Google scope, no personal account in any auth path, `~$10` budget cap, deploy and credential/scope grants stay owner-run, and both `leadsimple.*` keys stay `production_allowed:false` until the named dependency lands.
+- _Assumption:_ hard gates unchanged this cycle. No new Google scope, no personal account in any auth
+  path, and both `leadsimple.*` keys stay `production_allowed:false` until the named dependency lands.
+  The verified non-null S52 production cost ceiling applies; if it is unset,
+  cost-bearing/live/cloud work is closed while local/app-plane work continues. Routine deployment
+  follows D05; credentials/scopes, vendor inputs, interactive auth, IAM, billing/quota, and
+  destructive operations remain owner-run.
 
 **Cross-product impacts.** New `lib/maintenance/execution/live-leadsimple-provider.ts` (the live `LeadSimpleProvider`) and new `lib/maintenance/execution/live-executors.ts` (the live executor map). Consumes, unchanged: `LeadSimpleMaintenanceExecutor` + the `LeadSimpleProvider` / `LeadSimpleProcessState` / `LeadSimpleTaskState` types (`lib/maintenance/execution/providers.ts:590-738`), the two seed entries (`lib/integrations/action-registry-seed.ts:196-257`), the connector catalog entry (`lib/connections/connector-catalog.ts:76`), the schema governance refinement (`lib/firestore/schemas.ts:311`), the runtime gate (`lib/integrations/action-gate.ts`), and the orchestrator (`lib/external-execution/orchestrator.ts:136`) with its Test-vs-live lane guard. Mirrors the live-provider pattern of `lib/lease-renewal/execution/live-gmail-draft-provider.ts`. New tests `tests/unit/leadsimple-live-provider.test.ts` and `tests/unit/leadsimple-live-executors.test.ts`; keeps the existing sentinels `tests/unit/leadsimple-maintenance-executor.test.ts`, `tests/unit/action-registry-schema.test.ts`, `tests/unit/seed-action-registry-allowlist.test.ts`, and `tests/unit/maintenance-execution-matrix.test.ts` green. Interacts with, does NOT supersede: `F-ROADMAP-BUILD-AUTHORIZED` (the build-to-seam authority it executes under), the S26 Maintenance external-execution contract (`docs/feature-suites/maintenance-execution.md`, whose executor family this joins), and sibling Wave-2 seams S30 (RentVine) / S34 (Dotloop) that follow the same fake-to-live provider replacement. Additive; no Supersede Log entry.
 
@@ -31,7 +36,28 @@
 - **AC-S35-5** - Fail-closed with no guessed endpoint: with `LEADSIMPLE_API_KEY` unset OR no vendor-confirmed base URL and paths configured, building the live executor map yields a provider that refuses (a connection/blocked error) and issues ZERO network calls, and `health.leadsimple.rest_api` reports not-connected. A repo scan finds no hard-coded LeadSimple host or endpoint path literal in `lib/maintenance/execution/`. _Verify:_ `npm test -- tests/unit/leadsimple-live-executors.test.ts`; `rg -n "leadsimple\.(com|io)|api\.leadsimple|/v[0-9]+/(processes|tasks)" lib/maintenance/execution` returns nothing.
 - **AC-S35-6** - The gate flip is a pure, reviewed config change and stays un-flipped until the owner dependency lands: a documented flip test proves that WHEN both keys have `evidence_status:"Documented"` + `readiness:"Approved for Execution"` + membership in BOTH `EXECUTABLE_ALLOWLIST` copies, the schema accepts `production_allowed:true` and `seed-action-registry-allowlist.test.ts` reports no `unexpected_production_allowed_keys`; absent that, both keys stay OFF and the live map still refuses them at the orchestrator. _Verify:_ `npm test -- tests/unit/seed-action-registry-allowlist.test.ts tests/unit/action-registry-schema.test.ts`; keep `tests/unit/maintenance-execution-matrix.test.ts` green.
 
-**Forbidden actions / hard gates.** Doubly gated by construction: no flip is possible while `evidence_status` is `Vendor-Confirmation-Required`, because the schema (`lib/firestore/schemas.ts:311`) refuses `production_allowed:true` without `Documented` evidence, and the evidence cannot honestly become `Documented` until the vendor confirms the endpoint contract. No guessed LeadSimple endpoint, host, or path ever enters source, git, or evidence; the live provider fail-closes without a vendor-confirmed contract. Every live effect stays one-attempt, idempotent (idempotency-key keyed), read-back verified, reconcilable, and reversible (stage rollback = set the recorded prior stage; task rollback = delete or close the created task), exactly as the executor already enforces. Human confirmation stays mandatory: each run passes the S26 preview/confirm/receipt path; this suite adds no autonomous client-facing send and no generic `gmail.message.send` (that stays Registry-closed). No personal `josiah.abernathy@gmail.com` in any auth path. No secrets or customer PII in git; `LEADSIMPLE_API_KEY` loads from env / Secret Manager. `~$10` total cost ceiling under the real kill switch. This suite MAY build the live provider and the live executor map and prepare the flip; it does NOT set `production_allowed:true` until the named owner dependency is documented, at which point the flip updates both `EXECUTABLE_ALLOWLIST` copies plus the pinned schema tests. A violation of any of these is itself a falsification.
+**Forbidden actions / hard gates.** Doubly gated by construction: no flip is possible while
+`evidence_status` is `Vendor-Confirmation-Required`, because the schema
+(`lib/firestore/schemas.ts:311`) refuses `production_allowed:true` without `Documented` evidence, and
+the evidence cannot honestly become `Documented` until the vendor confirms the endpoint contract. No
+guessed LeadSimple endpoint, host, or path ever enters source, git, or evidence; the live provider
+fail-closes without a vendor-confirmed contract. Every live effect stays one-attempt, idempotent
+(idempotency-key keyed), read-back verified, reconcilable, and reversible (stage rollback = set the
+recorded prior stage; task rollback = delete or close the created task), exactly as the executor
+already enforces. Human confirmation stays mandatory: each run passes the S26 preview/confirm/receipt
+path; this suite adds no autonomous client-facing send and no generic `gmail.message.send` (that stays
+Registry-closed). No personal `josiah.abernathy@gmail.com` in any auth path. No secrets or customer
+PII in git; `LEADSIMPLE_API_KEY` loads from env / Secret Manager. The verified non-null S52
+production cost ceiling applies; if it is unset, cost-bearing/live/cloud work is closed while
+local/app-plane work continues. Routine release follows D05: after the full local gate, auth and
+budget preflights, prior-revision capture, and a captured rollback command are green, the runner may
+deploy; it must smoke the new revision successfully before promoting traffic. Interactive
+authentication, credentials/scopes, IAM,
+billing/quota, vendor/provider inputs, and destructive operations remain owner-run. This suite MAY
+build the live provider and the live executor map and prepare the flip; it does NOT set
+`production_allowed:true` until the named owner dependency is documented, at which point the flip
+updates both `EXECUTABLE_ALLOWLIST` copies plus the pinned schema tests. A violation of any of these
+is itself a falsification.
 
 **Ordered prompt sequence.**
 
@@ -41,7 +67,14 @@
 4. _Build:_ new `lib/maintenance/execution/live-executors.ts` (the live map constructing `new LeadSimpleMaintenanceExecutor(new LiveLeadSimpleProvider(client))` under both keys, NOT Test-branded, handed to `ExternalExecutionOrchestrator`); add `tests/unit/leadsimple-live-executors.test.ts` (AC-S35-5 fail-closed + no-guessed-endpoint, AC-S35-6 flip-when-documented). Prove the orchestrator still refuses both keys while `production_allowed:false`.
 5. _Verify:_ `npm test` (new tests + the named sentinels `leadsimple-maintenance-executor.test.ts`, `action-registry-schema.test.ts`, `seed-action-registry-allowlist.test.ts`, `maintenance-execution-matrix.test.ts`), `npm run typecheck`, `npm run lint`, `npm run verify:copy-voice`, `npm run verify:spec-traceability`, then `bash scripts/verify.sh`.
 6. _Gate:_ STOP before any real LeadSimple network call, any endpoint literal, and any `production_allowed` flip. Both keys stay OFF.
-7. _Owner:_ obtain the LeadSimple admin-enabled REST API key (into `LEADSIMPLE_API_KEY` via Secret Manager) AND the vendor-confirmed endpoint contract (roadmap §5 item #5). This upgrades `evidence_status` `Vendor-Confirmation-Required` -> `Documented`. Then apply the one-line flip (roadmap §6): set both entries `readiness:"Approved for Execution"` + `evidence_status:"Documented"` + `production_allowed:true`, add both keys to the two `EXECUTABLE_ALLOWLIST` copies, record the confirmed paths in provider config, update the pinned tests; deploy stays owner-run.
+7. _Owner:_ obtain the LeadSimple admin-enabled REST API key (into `LEADSIMPLE_API_KEY` via Secret
+   Manager) AND the vendor-confirmed endpoint contract (roadmap §5 item #5). This upgrades
+   `evidence_status` `Vendor-Confirmation-Required` -> `Documented`. Then apply the one-line flip
+   (roadmap §6): set both entries `readiness:"Approved for Execution"` +
+   `evidence_status:"Documented"` + `production_allowed:true`, add both keys to the two
+   `EXECUTABLE_ALLOWLIST` copies, record the confirmed paths in provider config, and update the pinned
+   tests. The subsequent routine deploy, smoke, and traffic promotion follow D05 after its full gate
+   is green.
 8. _Context update:_ promote the shipped seam to a `docs/facts.md` `F-LEADSIMPLE-ACTIVATION` row citing AC-S35-1 through AC-S35-6 (built-to-seam; flip owner-gated on the named dependency), resolve `Q-LEADSIMPLE-CONTRACT`, and update `docs/loop-state.md` at the slice boundary (keep it under its line cap).
 
 **Deletion/merge recommendation.** KEEP this suite as the tracked spec for the LeadSimple seam; the `docs/temp/leadsimple-activation-plan.md` packet stays disposable local evidence to delete once shipped. It EXTENDS the S26 Maintenance external-execution family (the `LeadSimpleMaintenanceExecutor` already lives in that lane) rather than replacing it, and it does NOT supersede any active fact. If the Wave-2 provider-activation seams (S30 RentVine, S34 Dotloop, S35 LeadSimple) are later consolidated into one "live provider activation" program, this MAY MERGE in as the LeadSimple section; until then keep it standalone.

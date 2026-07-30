@@ -156,7 +156,13 @@ Live, Vendor internal role/cross-ticket/cross-mode access, DWD, autonomous send,
 selected Vendor, cost approval by message, blind transition, photo overwrite/delete without High
 authority, QuickBooks post/pay, guessed endpoint, ambiguous retry, or raw values/tokens/content in git/
 log/audit. A Live action executes only when its own contract, connection, Registry state, target,
-authority, exact confirmation, and reconciliation/correction pass. ~$10 cap.
+authority, exact confirmation, and reconciliation/correction pass. The verified non-null S52
+production cost ceiling applies; if it is unset, cost-bearing/live/cloud work is closed while
+local/app-plane work continues. Routine release follows D05: after the full local gate, auth and
+budget preflights, prior-revision capture, and a captured rollback command are green, the runner may
+deploy; it must smoke the new revision successfully before promoting traffic. Interactive
+authentication, credentials/scopes, IAM, billing/quota, provider inputs, and destructive operations
+remain owner-run.
 
 **Ordered prompt sequence.**
 

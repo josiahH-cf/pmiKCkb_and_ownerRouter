@@ -45,8 +45,10 @@ components in a spec are examples after discovery; acceptance criteria and end s
 ## Phase 0 — Authenticate and burn down blockers before coding
 
 Phase 0 is mandatory at the start of this fresh context. Do not make an application-code edit until
-it is complete. Announce that Phase 0 has started, then continue without waiting for approval unless
-one of the explicit owner-only stops below is actually reached.
+the preflight result, parked operations, context intake, and local baseline are recorded. Stale auth
+does not prevent Phase 0 from completing for local work. Announce that Phase 0 has started, then
+continue without waiting for approval unless one of the explicit owner-only stops below is actually
+reached.
 
 ### 0A. Enter the repository and load the governing router
 
@@ -56,7 +58,7 @@ other action. Its current rules override stale historical guidance.
 ### 0B. Run the auth and cost guards immediately
 
 Run these read-only commands before a live Google read, gcloud call, provider read, cloud
-inventory, deploy preparation, or implementation work that could later depend on those results:
+inventory, deploy preparation, or other live/cloud work:
 
 ```powershell
 npm run preflight:adc
@@ -69,8 +71,10 @@ If `npm run preflight:adc` reports stale or missing managed authentication:
 
 1. do not use a personal Google account, alternate credential, copied token, service-account key,
    or non-interactive workaround;
-2. do not start implementation while the blocker is unresolved;
-3. tell the owner to run exactly this command interactively from Windows PowerShell in the
+2. park live reads, cloud mutations, deploy, traffic, smoke, and cost-bearing commands while
+   continuing every independent local/app-plane, test, documentation, and build-to-seam slice;
+3. tell the owner, without blocking that local work, to run exactly this command interactively from
+   Windows PowerShell in the
    repository:
 
    ```powershell
@@ -83,14 +87,15 @@ If `npm run preflight:adc` reports stale or missing managed authentication:
    /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Set-Location 'C:\Users\josia\Documents\github-windows\pmiKCkb_and_ownerRouter'; npm run auth:session"
    ```
 
-5. after the owner confirms completion, rerun both preflights and continue automatically.
+5. after the owner confirms completion, rerun both preflights before resuming any parked operation.
 
-An auth pause is not a request for product decisions. Ask for only the exact interactive command,
-then resume the same Phase 0.
+An auth blocker is not a request for product decisions and does not pause safe local work. Ask for
+only the exact interactive command, record the parked operations, and continue the same Phase 0.
 
 If the budget guard fails, stop cost-bearing/cloud work, record the exact failed condition without
 revealing secrets, and continue only with safe local discovery or work that cannot incur usage.
-The approximately $10 cap is binding.
+The non-null verified production cost ceiling defined by S52 is binding; the retired flat figure is
+not headroom.
 
 ### 0C. Load the execution spine
 
@@ -155,7 +160,7 @@ Inventory at least:
 - repository root, branch, HEAD, dependency installation, and dirty-worktree ownership;
 - required Admin, Editor, Vendor, resident-token, desktop, and 390×844 test contexts;
 - S40’s exact independent Demo project, service, database, storage, queue, OAuth, runtime identity,
-  and owner-run provision/migration/deploy inputs;
+  owner-run provisioning/IAM/billing/destructive-migration inputs, and D05 routine-deploy inputs;
 - S43’s exact Chasity renewal template artifact;
 - S47’s documented RentVine resident portal/text interactive endpoint, semantics, and secure account
   mapping;
@@ -181,10 +186,10 @@ each item state:
 - rollback/correction path;
 - exact suite effect blocked without it.
 
-Pause immediately only for stale managed auth or when an owner-only step is required before **all**
-remaining safe work. Otherwise deliver the packet as an early update and keep building the
-app-plane. A missing final activation value blocks only that activation, not its entire suite and
-not later dependency-ready local work.
+Pause the whole loop only when an owner-only step is required before **all** remaining safe work.
+Stale managed auth parks only the operation that needs it. Otherwise deliver the packet as an early
+update and keep building the app-plane. A missing final activation value blocks only that
+activation, not its entire suite and not later dependency-ready local work.
 
 ### 0E. Establish the baseline
 
@@ -419,13 +424,15 @@ For each provider action:
 Never preflip an undocumented action. Never leave a finished documented action preview-only by
 habit. Pure app-plane work ships without an Action Registry entry.
 
-## Owner-run cloud, migration, deploy, and external effects
+## Cloud, migration, deploy, and external-effect boundaries
 
-The default posture is ship-to-production, but owner-operation boundaries still apply. The agent
+The default posture is ship-to-production, but owner-operation boundaries still apply. The runner
 prepares exact commands, manifests, dry runs, reports, and rollback evidence. The owner performs
-interactive auth, credential/scope grants, cost-bearing provisioning, Production migration/deletion,
-traffic promotion, deploy, signed-in owner acceptance, and any Live external send/write required by
-`AGENTS.md`.
+interactive auth, credential/scope grants, IAM/billing changes, destructive Production
+migration/deletion, signed-in owner acceptance, and any Live external send/write required by
+`AGENTS.md`. Routine application deploy, smoke, exact-revision traffic promotion, and rollback follow
+D05 after the full gate, fresh auth, a non-null verified S52 ceiling, prior-revision capture, and
+rollback proof pass.
 
 Immediately before any authorized cloud/live/deploy step, rerun:
 
@@ -442,8 +449,9 @@ environment from the legacy `pmi-kc-kb-demo` service name or use the ambiguous l
 as proof of Demo separation.
 
 If the owner does not complete an owner-run operation during this context, keep all locally safe work
-moving and consolidate the remaining operations into one final ordered packet. Never fake completion
-or use sample data for a real draft/send/write.
+moving and consolidate the remaining operations into one final ordered packet. A parked owner
+operation does not turn a D05 routine deploy into an owner-only step. Never fake completion or use
+sample data for a real draft/send/write.
 
 ## Stop conditions
 
@@ -452,11 +460,12 @@ Stop the loop only when one of these is true:
 1. S40–S50 are complete to their observable end state/external seams, all available activations are
    correctly gated, verification/docs are current, and any owner-only final operations are in one
    exact packet;
-2. managed auth is stale and the owner must run `npm run auth:session` before Phase 0 can complete;
+2. managed auth is stale and every remaining safe slice requires a live/cloud operation that cannot
+   proceed until the owner runs `npm run auth:session`;
 3. an exact owner-only or vendor dependency is the sole remaining prerequisite for **all** in-scope
    safe work;
-4. the approximately $10 cost ceiling or budget guard forbids the next step and no local safe slice
-   remains;
+4. S52 has no non-null verified production cost ceiling, or the budget guard forbids the next step,
+   and no local safe slice remains;
 5. a specific security, identity, source-truth, or destructive-data contradiction remains after
    repository/code evidence and safe alternatives are exhausted; or
 6. an overlapping user change makes the intended merge unsafe and cannot be resolved from evidence.
@@ -485,7 +494,8 @@ Before yielding:
 - report each suite as `COMPLETE`, `BUILT_TO_SEAM`, or `BLOCKED_BY_EXACT_DEPENDENCY`;
 - list acceptance criteria and verification actually passed;
 - list action gates changed and those intentionally still closed;
-- distinguish local build, owner-run cloud/deploy, and verified serving state;
+- distinguish local build, owner-run auth/IAM/billing/scope/credential/destructive operations, D05
+  routine deploy/traffic, and verified serving state;
 - provide one ordered owner-operation packet for anything irreducible;
 - name the exact rollback point and next resume command/file.
 

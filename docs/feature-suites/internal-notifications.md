@@ -24,7 +24,16 @@
   - **Preview / one-attempt / receipt / rollback.** The executor computes a target-labeled preview (recipient + payload hash), sends one attempt per dedup key (`support_report:{id}:filed`), reads back and records a receipt with `delivered:true|false`, and surfaces failures honestly through a health projection mirroring `ApprovalQueueNotificationHealth`. Reversibility is the gate-off kill switch plus the no-double-send idempotency guard plus the receipt; a filed report is emitted from `app/api/report-issue/route.ts` AFTER the queue write, so a send failure never blocks the durable queue write.
   - **Test lane first.** Prove recipient-lock, metadata-only, idempotency, and honest delivery in the isolated Test lane with the gate OFF before any flip.
 
-- **Owner dependency (the one flip).** NONE external. Unlike the Wave-2 seam suites (S30/S31/S34/S35/S36), S39 has no documented-endpoint, credential, scope grant, vendor confirmation, or billing approval to wait on: internal-staff auto-send is already authorized by D-AUTOMATION-LINE, the destination is an app-plane owner-configured Admin field, and delivery uses the already-approved Gmail send scope. The gate flip to `production_allowed:true` (the roadmap §6 recipe: seed `readiness`/`evidence_status`/`production_allowed` + both `EXECUTABLE_ALLOWLIST` copies + the pinned `action-registry-schema.test.ts` and `seed-action-registry-allowlist.test.ts`) is a routine reviewed change authorized WITHIN this suite once AC-S39-1..8 are green; it is explicitly not held "pending". The only owner-run step is the standing operational deploy (`npm run deploy`), which is not a governance blocker.
+- **Owner dependency (the one flip).** NONE external. Unlike the Wave-2 seam suites
+  (S30/S31/S34/S35/S36), S39 has no documented-endpoint, credential, scope grant, vendor
+  confirmation, or billing approval to wait on: internal-staff auto-send is already authorized by
+  D-AUTOMATION-LINE, the destination is an app-plane owner-configured Admin field, and delivery uses
+  the already-approved Gmail send scope. The gate flip to `production_allowed:true` (the roadmap §6
+  recipe: seed `readiness`/`evidence_status`/`production_allowed` + both `EXECUTABLE_ALLOWLIST` copies
+  - the pinned `action-registry-schema.test.ts` and `seed-action-registry-allowlist.test.ts`) is a
+    routine reviewed change authorized WITHIN this suite once AC-S39-1..8 are green; it is explicitly
+    not held "pending". Routine deploy, smoke, and traffic promotion then follow D05 after its full
+    gate is green and are not an owner dependency.
 
 **Open questions & assumptions.**
 
@@ -34,7 +43,9 @@
 - _Assumption:_ the transactional email payload is metadata-only (route pathname, origin, reporter role, ISO time, deep link to `/admin`), never the free-text description or element hint, preserving the `F-SUPP-1` / TIX-8 privacy invariant.
 - _Assumption:_ support signals are standing (no `read_at`), Admin-scoped, and do not count toward the bell unread-EVENT badge, consistent with how S17 treats connections/coverage/team_review.
 - _Open:_ whether internal auto-send also fires on "follow-up due" as a daily standing digest, or ONLY on "new feedback filed". Default for V1: send on new-filed only; follow-up-due stays in-app. A daily digest would require Cloud Scheduler, which this suite does not add (mirrors S17 G3). Recorded as a `Q-` row at build time.
-- _Assumption:_ the gate flip is a routine reviewed change inside this suite (not an owner dependency); the only owner-run step is the standing deploy. Decision-complete: a builder can implement all of B1 to B5 and the seam executor with no further owner question.
+- _Assumption:_ the gate flip is a routine reviewed change inside this suite, not an owner dependency;
+  routine deployment follows D05 after its full gate is green. Decision-complete: a builder can
+  implement all of B1 to B5 and the seam executor with no further owner question.
 
 **Cross-product impacts.** New files: `lib/attention/support-lane.ts`, `lib/notifications/internal-transactional.ts`, `lib/firestore/internal-transactional-receipts.ts` (receipt/health store), and their tests (`tests/unit/support-attention.test.ts`, `tests/unit/internal-transactional.test.ts`). Extended: `lib/attention/lanes.ts` (add the `support` lane + meta, compile-enforced), `lib/notifications/families.ts` (add the `support_reports` family; count seven to eight), `lib/notifications/feed.ts` (new `support` input + low-alarm pass-through), `lib/notifications/hub.ts` (gather support when `full && isAdmin`; Admin serve-time family filter, mirroring `team_review`), `app/notifications/page.tsx` (Admin Feedback section), `app/api/report-issue/route.ts` (emit the internal notice after the queue write), `components/admin/SupportReportsPanel.tsx` (counts from the shared gather), `components/admin/TransactionalDestinationPanel.tsx` (copy: now wired, no longer "display-only"), `scripts/seed-action-registry.ts` + `lib/admin/migration-readiness.ts` (new gated `internal.transactional_notice.send` key). Interacts with / extends: S17 `F-UNIFIED-ATTENTION` (extends the family catalog, the lane enum, and the single-gather interlock), `F-SUPP-1` (the support queue gains a notification lane + an internal notice), `F-NOTIF-FRAMEWORK`, `F-SEND-AUTHORIZED` + `D-AUTOMATION-LINE` (this is the authorized internal-only auto-send). Delete-on-supersede: when built, delete EVERY now-false claim that no email is sent from here: the "Today it is display-only" copy in `TransactionalDestinationPanel.tsx`, the "Reported issues route only to the in-app support queue, never here" comment in the `owner-transactional-destination.ts` header, AND the "No email is sent ... unattended send is a hard governance boundary" comment in `app/api/report-issue/route.ts` (the very route this suite edits), and record the change in the `docs/facts.md` Supersede Log with a unique marker. Governance: no `firestore.rules` shape change (the destination doc and `support_reports` stay Admin-scoped; the receipt store is server-written).
 
@@ -51,7 +62,33 @@
 
 Full-suite gate for every slice: `npm test`, `npm run typecheck`, `npm run lint`, `npm run verify:copy-voice`, `npm run verify:context-freshness`, `npm run verify:spec-traceability`, `npm run test:firestore`, then `bash scripts/verify.sh`.
 
-**Forbidden actions / hard gates.** Recipients are INTERNAL STAFF ONLY: the transactional lane addresses ONLY the owner-configured internal destination, never a client, tenant, owner-of-record, or vendor, and the destination is never guessed (absent/blank fails closed). No autonomous CLIENT-facing send: internal-staff notifications may auto-send per D-AUTOMATION-LINE, but every renewal/maintenance owner/tenant/vendor send stays human-initiated and exact-confirmed against its payload hash. The generic non-workflow `gmail.message.send` stays Registry-closed; this suite uses a dedicated `internal.transactional_notice.send` key and adds no generic-send flip. No new external scope, credential, or endpoint (reuse the approved Gmail send scope + existing internal sender). No client PII beyond what staff already see in-app: the email payload is metadata + deep link only, never the free-text description (preserving `F-SUPP-1` / TIX-8). No secrets / customer data / guessed endpoint in git; the `verify:redaction` gate still forbids any `golden-data/` or `docs/client_docs/` file. No Cloud Scheduler this suite (a daily follow-up-due digest is a gated follow-on, mirroring S17 G3). ~$10 budget cap holds; deploy stays owner-run. This suite MAY build the live internal transactional provider and flip its gate as a routine reviewed change once AC-S39-1..8 are green; it does NOT set `production_allowed:true` before the Test-lane proof and the two `EXECUTABLE_ALLOWLIST` copies plus the pinned schema tests are updated together. Suite-specific hard stop: the transactional lane must NEVER resolve a recipient from anything other than the owner-configured internal destination, that destination MUST pass a code-enforced internal-domain allowlist (enforced at config-set AND re-asserted at send), and it is resolved through a non-actor-gated SYSTEM read (never the Admin-gated actor read, which would 403 the non-Admin reporters who file most feedback); a caller-supplied recipient, a non-internal destination, or a client recipient reaching a send is itself a falsification.
+**Forbidden actions / hard gates.** Recipients are INTERNAL STAFF ONLY: the transactional lane
+addresses ONLY the owner-configured internal destination, never a client, tenant, owner-of-record, or
+vendor, and the destination is never guessed (absent/blank fails closed). No autonomous
+CLIENT-facing send: internal-staff notifications may auto-send per D-AUTOMATION-LINE, but every
+renewal/maintenance owner/tenant/vendor send stays human-initiated and exact-confirmed against its
+payload hash. The generic non-workflow `gmail.message.send` stays Registry-closed; this suite uses a
+dedicated `internal.transactional_notice.send` key and adds no generic-send flip. No new external
+scope, credential, or endpoint (reuse the approved Gmail send scope + existing internal sender). No
+client PII beyond what staff already see in-app: the email payload is metadata + deep link only,
+never the free-text description (preserving `F-SUPP-1` / TIX-8). No secrets / customer data / guessed
+endpoint in git; the `verify:redaction` gate still forbids any `golden-data/` or `docs/client_docs/`
+file. No Cloud Scheduler this suite (a daily follow-up-due digest is a gated follow-on, mirroring S17
+G3). The verified non-null S52 production cost ceiling applies; if it is unset,
+cost-bearing/live/cloud work is closed while local/app-plane work continues. Routine release follows
+D05: after the full local gate, auth and budget preflights, prior-revision capture, and a captured
+rollback command are green, the runner may deploy; it must smoke the new revision successfully before
+promoting traffic. Interactive authentication, credentials/scopes, IAM, billing/quota, provider
+inputs, and destructive operations remain owner-run. This suite MAY build the live internal
+transactional provider and flip its gate as
+a routine reviewed change once AC-S39-1..8 are green; it does NOT set `production_allowed:true`
+before the Test-lane proof and the two `EXECUTABLE_ALLOWLIST` copies plus the pinned schema tests are
+updated together. Suite-specific hard stop: the transactional lane must NEVER resolve a recipient
+from anything other than the owner-configured internal destination, that destination MUST pass a
+code-enforced internal-domain allowlist (enforced at config-set AND re-asserted at send), and it is
+resolved through a non-actor-gated SYSTEM read (never the Admin-gated actor read, which would 403 the
+non-Admin reporters who file most feedback); a caller-supplied recipient, a non-internal destination,
+or a client recipient reaching a send is itself a falsification.
 
 **Ordered prompt sequence.**
 
@@ -61,7 +98,8 @@ Full-suite gate for every slice: `npm test`, `npm run typecheck`, `npm run lint`
 4. _Build:_ B5 - surface the same counts on `components/admin/SupportReportsPanel.tsx` from the shared gather; assert byte-identical counts (AC-S39-2).
 5. _Build:_ add the internal-domain allowlist to `UpdateOwnerTransactionalDestinationInputSchema`; build the seam executor `lib/notifications/internal-transactional.ts` (SYSTEM-read recipient resolve + re-asserted domain allowlist, metadata-only payload, idempotent one-attempt, receipt/health store) and wire the emit into `app/api/report-issue/route.ts` after the queue write; prove recipient-lock (including a non-internal destination refused) / metadata-only / idempotency / honest delivery in the Test lane with the gate OFF.
 6. _Gate:_ seed `internal.transactional_notice.send` at `production_allowed:false`; then, once AC-S39-1..8 are green, apply the roadmap §6 flip recipe (seed readiness/evidence_status/production_allowed + both `EXECUTABLE_ALLOWLIST` copies + the pinned `action-registry-schema.test.ts` and `seed-action-registry-allowlist.test.ts`) as a routine reviewed change so internal auto-send ships live. Delete the now-false "display-only" / "nothing here sends" copy and record the Supersede Log marker.
-7. _Owner:_ the only owner-run step is the standing deploy (`npm run deploy`). There is no external credential/endpoint/vendor/billing dependency to hand back.
+7. _Gate:_ there is no external credential/endpoint/vendor/billing dependency to hand back. Routine
+   deployment follows D05 after its full gate is green.
 8. _Verify:_ run the full gate list above; browser-walk an Editor session (no Feedback section, no support signal) and an Admin session (Feedback section shows counts equal to the `/admin` panel); file a Test-lane report and confirm exactly one internal metadata-only delivery to the configured destination and one receipt.
 9. _Context update:_ promote the shipped slices to a `docs/facts.md` `F-*` row (for example `F-INTERNAL-NOTIFY`) citing the `AC-S39-*` ids satisfied (AC-S39-1..8), record the two `Q-`/`A-` rows (follow-up-due threshold; digest-on-follow-up), update `docs/loop-state.md` at each slice boundary, and keep `docs/status.md` honest.
 

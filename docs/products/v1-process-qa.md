@@ -154,8 +154,9 @@ Verification:` pointer for it; the ledger location is a genuine Dan question (ro
 2. **Production `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID`.** _Default:_ set it in the Cloud Run env to the
    already-created in-boundary Shared Drive folder id; deploy forwards it, preflight requires it.
    _Owner: owner._ — **✅ ANSWERED 2026-07-01 (self-resolved): not a question — the folder already exists;
-   this folds into the owner/budget-gated redeploy (set the env var at deploy; the S12 deploy forwards it
-   and the cutover preflight requires it).**
+   this originally folded into an owner/budget-gated redeploy. Current D05 split (2026-07-29): the
+   owner supplies the managed environment value; after S52 and the release gates pass, the runner
+   performs the routine application revision deploy/smoke/promotion on the provisioned service.**
 3. **RentVine work-order create — vendor/spec.** **Product decision answered by R03:** the app executes
    create plus assignment/update/close in final V1. S26 still requires the work-order-write-role key,
    exact payload/enums/transitions, preview, idempotency, read-after-write/correction, tests, registry
@@ -185,8 +186,8 @@ Verification:` pointer for it; the ledger location is a genuine Dan question (ro
   `golden:worksheet` → team review → `golden:apply-labels`) before treating its flags as a current picture.
   No move-in / move-out golden data exists.
 - **ADC freshness** — **mandatory**: run `npm run preflight:adc` before ANY live Sheets/Firestore/Vertex
-  read; if stale, owner reauths (`gcloud auth application-default login`, josiah@pmikcmetro.com, no
-  `--scopes`) before building.
+  read; if stale, the exact owner remediation is `npm run auth:session`. Park the live read/cloud
+  mutation until it passes while independent local/app-plane building continues.
 - **Gitignored client data** (`docs/client_docs/`, `docs/context_and_calls/`) — the live DWD read is the
   source of truth; the local `.xlsx` copies (dated 2026-06-08) are stale artifacts, not the read path.
 - **Doc-freshness drift** — `lease-renewal-build-plan.md` and `lease-renewal-next-phase-plan.md` predate the

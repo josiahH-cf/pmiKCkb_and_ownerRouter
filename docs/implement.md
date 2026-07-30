@@ -34,6 +34,9 @@ If ADC is stale, the owner runs this from Windows PowerShell in the repository:
 npm run auth:session
 ```
 
+Stale auth parks only live reads, cloud mutations, deployment, traffic, smoke, and cost-bearing
+commands. Continue every independent local/app-plane, test, documentation, and build-to-seam slice.
+
 From WSL, call the Windows command explicitly:
 
 ```bash
@@ -145,19 +148,19 @@ npm run build
 bash scripts/verify.sh
 ```
 
-Before deployment, also run identity, ADC, budget, exact environment manifest, production preflight,
-cutover report, and dependency inventory. Capture the currently serving revision before changing
-traffic. Until S40 replaces the ambiguous wrapper, `npm run deploy:demo -- --budget-confirmed`
-targets the current legacy-named Production service: it creates a collision-resistant named revision, then
-explicitly routes 100% traffic to that exact revision. This prevents a named revision selected during
-a rollback rehearsal from remaining pinned and avoids a concurrent-deploy race through floating
-`LATEST`; the traffic step does not alter invoker/IAM configuration. The deploy uses Cloud Run's supported
-`--no-invoker-iam-check` service setting for the public sign-in shell, avoiding an org-blocked
-`allUsers` IAM binding while leaving application authentication and authorization unchanged.
+Before deployment, also run identity, ADC, the non-null S52 cost gate, exact environment manifest,
+production preflight, cutover report, and dependency inventory. Capture the currently serving
+revision before changing traffic. The current legacy wrapper immediately routes 100% traffic after
+revision creation; that behavior is preserved as historical implementation evidence but is not
+D05-eligible because it cannot smoke a zero-traffic candidate before promotion.
 
-After S40, deploy a candidate at zero traffic, validate the exact Production descriptor, promote
-that exact revision deliberately, and preserve the prior revision for rollback. Demo uses a
-different validated resource manifest and owner-run deploy.
+Land S40's release-safety slice first: an environment-parameterized, guaranteed non-executing
+`--plan-only` branch while S52 is null; then named candidate creation at zero traffic, explicit
+Production descriptor validation, authenticated candidate smoke, deliberate exact-revision
+promotion, and a captured rollback command. Demo uses a different validated resource manifest.
+Owner-run provisioning, IAM/billing, credential/scope, and destructive operations supply the
+required resources; routine application deploy, smoke, exact-revision traffic promotion, and
+rollback follow D05 only after those gates and preflights pass.
 
 After deployment, use authenticated browser acceptance at desktop and 390×844 across Console/Ask,
 Spaces, Approvals, Communications, Renewals, Maintenance, Connections, Admin, Notifications, Vendor,

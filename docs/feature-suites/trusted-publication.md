@@ -118,12 +118,18 @@ test`, `npm run verify:redaction`, `npm run verify:router-boundary`, `npm run bu
 -- publication-test-fixture workflow-foundation workflow-components`.
 
 **Forbidden actions / hard gates.** No live source read/import/index, Drive mutation, root creation,
-scanner subscription, or deploy. No local-demo/fake scanner in production or outside a loopback
+scanner subscription, or deploy inside the publication build slice. No local-demo/fake scanner in production or outside a loopback
 Firestore emulator. No raw rejected content in logs/audits/git. No content-driven role, scope, Action
 Registry, external execution, scheduled action, or prompt-authority change. Production must fail closed
 if required validation is unavailable. The exact Test fixture is not a general scanner: it accepts no
 request content, recognizes only its two compiled hashes and exact metadata, stays outside Live
-retrieval, and is ineligible as Live evidence. ~$10 cap applies.
+retrieval, and is ineligible as Live evidence. The verified non-null S52 production cost ceiling
+applies; if it is unset, cost-bearing/live/cloud work is closed while local/app-plane work continues.
+Routine release follows D05: after the full local gate, auth and budget preflights,
+prior-revision capture, and a captured rollback command are green, the runner may deploy; it must
+smoke the new revision successfully before promoting traffic. Interactive authentication,
+credentials/scopes, IAM, billing/quota, provider inputs, and destructive operations remain
+owner-run.
 
 **Ordered prompt sequence.**
 

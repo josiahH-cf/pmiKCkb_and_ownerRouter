@@ -1,6 +1,14 @@
-# V1 application and provider activation checklist
+# Historical V1 application and provider activation checklist
 
 Updated: 2026-07-15. Status: **recommendation-first working-app checklist**.
+
+> **Superseded for current cloud execution (2026-07-29).** This file preserves the exact
+> Live+Test launch procedure and evidence that were valid before S40–S54. Do not execute its
+> Firebase/Auth, Firestore Rules, or auto-promoting deploy commands as a current runbook. Current
+> authority and order live in `AGENTS.md`, `docs/loop-state.md`, S40, S51, and S52: owner-only
+> provisioning/IAM/billing/Auth/scope and protected Rules changes are separate from D05 routine
+> revision delivery; S52 must be non-null; and S40's zero-traffic candidate must smoke before
+> exact-revision promotion.
 
 This checklist separates two questions that were previously mixed together:
 

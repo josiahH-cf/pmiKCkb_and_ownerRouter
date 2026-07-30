@@ -12,8 +12,9 @@ independent; ship either first (Slice B is the smaller one).
 You are building two small, independently-shippable READ-ONLY slices on top of the shipped
 lease-renewal write-back approval control plane (F-WRITEBACK-APPROVAL). Neither executes a
 system-of-record write, adds a vendor action, or invents product scope. Work in the smallest safe
-slices; follow docs/autonomous-agent-runner.md (verification-and-falsification, stop-and-reset); honor
-the $10 cap and the no-SoR-write gate throughout.
+slices; follow docs/autonomous-agent-runner.md (verification-and-falsification, stop-and-reset);
+honor the non-null verified production cost ceiling defined by S52 and the no-SoR-write gate
+throughout.
 
 STEP 0 — Re-anchor (read-only). Read AGENTS.md, then docs/facts.md (esp. F-WRITEBACK-APPROVAL,
 F-WRITEBACK-PROPOSAL, F-RENEWAL-REVIEW-SUBTAB, F-WRITE-GATE), docs/loop-state.md, and the latest

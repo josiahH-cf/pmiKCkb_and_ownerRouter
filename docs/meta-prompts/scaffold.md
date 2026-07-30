@@ -16,8 +16,8 @@ STEP 1 — Governance spine FIRST.
   a. Ensure docs/facts.md has a `## Fact Ledger` table
      (id | claim | status[Verified|Assumption|Open] | evidence | verified-on | supersedes | review-by),
      a `## Supersede Log`, and a `## Open Questions` section. Seed/refresh it from STEP 0 (identity, the
-     $10 budget cap, RentVine auth, sheet tabs, away-mode INACTIVE, the no-SoR-write gate, and the
-     undefined term "ABC" as an open question).
+     non-null verified production cost ceiling defined by S52, RentVine auth, sheet tabs, away-mode
+     INACTIVE, the no-SoR-write gate, and the undefined term "ABC" as an open question).
   b. Ensure scripts/check-context-freshness.mjs + tests/unit/facts-ledger.test.mjs exist, mirroring
      plan-status-sync.test.mjs / the falsification preflight. The gate fails on: schema breaks; a
      Verified row missing evidence or ISO date; evidence/supersede paths that don't exist; loop-state.md

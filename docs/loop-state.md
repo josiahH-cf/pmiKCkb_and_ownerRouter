@@ -2,133 +2,138 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history belongs in `docs/status.md`.
 
-Last updated: 2026-07-28.
+Last updated: 2026-07-29.
 
 ```yaml
-last_updated: 2026-07-28
-active_program: UIUX-RECALIBRATION-2026-07-28
-program_suites: S40-S50
+last_updated: 2026-07-29
+active_program: PRODUCTION-PHASE-2026-07-29
+program_suites: S51-S54 (new) + S40-S50 (in flight)
 spec_writing_allowed: true
 loop_execution_allowed: true
+loop_commit_push_allowed: true
+loop_deploy_allowed: true
+provider_interleave_allowed: true
 spec_package_status: EXECUTING
 implementation_status: IN_PROGRESS
-next_suite: S40
-next_spec: docs/feature-suites/environment-deployment-separation.md
+next_suite: S53
+next_spec: docs/feature-suites/greenlight-activation-and-gate-integrity.md
+session_auth_status: BLOCKED_INTERACTIVE_ADC
+last_completed_slice: S54.1
 runtime_action_gates_preflipped: false
 ```
 
 ## Authority
 
-- Owner accepted all 42 UI/UX audit findings and all nine workstreams, settled D-01–D-14, asked for
-  hyper-specific fresh-context specs, and explicitly directed the loop flag to open.
-- Controlling program:
-  `docs/ui-ux-recalibration-implementation-program-2026-07-28.md`.
-- Canonical unattended fresh-context entry:
-  `docs/meta-prompts/ui-ux-recalibration-unattended-loop.md`.
-- Locked product/end-state contract:
-  `docs/fresh-context-ui-ux-recalibration-prompt-2026-07-28.md`.
-- Fact: `F-UIUX-RECALIBRATION-AUTHORIZED`.
-- S28–S39 remain authorized provider/capability seams. S40–S50 now control environment, IA,
-  workflow consolidation, tool retirement, and S37 sequencing.
+- Owner authorized the production phase and unattended development of all specs on 2026-07-29.
+  The sanitized D01–D64 reconstruction, including the receipt-needed D44/D49/D51 rows and
+  conservative D50 interpretation, is `docs/production-phase-decision-record-2026-07-29.md`.
+- Controlling grant: the **Production Phase Authorization** section of `AGENTS.md`.
+- Live resident/owner/lease data in Production is authorized (`F-LIVE-DATA-AUTHORIZED`).
+- Standing loop authority to commit, push, deploy, promote traffic, and continue through
+  uncertainty (`F-LOOP-AUTONOMY-2026-07-29`), bounded by six protected paths.
+- Activation is per named Action Registry key, never a category (`F-GREENLIGHT-NAMED-KEYS`).
+- The flat cloud cost cap is retired; S52 owns the replacement (`F-COST-CEILING-S52`).
+- S40–S50 remain the controlling UI/environment programme after S51–S54 prerequisites; S28–S39 may
+  interleave only outside a higher-priority active slice, except S36/S37.
 
 ## Current truth
 
-- Repository baseline for execution: `main` / `37be85a` — the S40–S50 spec package is committed and
-  pushed; both worktrees are clean and match `origin`.
-- No S40–S50 application code, cloud resource, record migration, action gate, deploy, send, or
-  external write was performed by the 2026-07-28 spec cycle.
-- Current Production still has verified Live+Test behavior
-  (`F-PRODUCTION-DUAL-DATA-LANES`). That remains current-state evidence until S40’s backed-up,
-  owner-run migration/cutover; it is no longer the target.
-- Current serving checkpoint remains the last verified row
-  `F-CURRENT-SERVING-CHECKPOINT-2026-07-23`; do not infer deployment from later git history.
-
-## Locked target
-
-The full end-state contract is `docs/fresh-context-ui-ux-recalibration-prompt-2026-07-28.md`.
-In short: independent Demo and Production running the same product; Production Live-only with no
-Demo/Test tools; Demo owns invented data plus an optional explicit, non-mixing, non-mutating Live
-read-only context; blue/green is Production revision promotion, not the data boundary; four daily
-destinations plus primary non-card Spaces; one Renewal desk and per-unit four-stage flow; one-card
-Approvals; focused Maintenance; tokenized resident intake; workflow-only Communications; no
-replacement Test Lab; two-stage evidence-backed retirement; S37 only after the S50 baseline.
+- Repository baseline: `main` / `a31d4c9` plus the 2026-07-29 governance and S51–S54 spec cycle.
+- Session-start `npm run preflight:adc` failed because ADC is absent/stale. Exact owner action:
+  `npm run auth:session`, then rerun the ADC, managed-account, and suppressed CLI-token checks.
+  The current WSL shell also has no callable `gcloud` or Windows `cmd.exe`, so the managed-account and
+  suppressed CLI-token checks could not run here. Live reads, deploys, cloud mutations, and the S54
+  live eval are parked; local/app-plane work continues.
+- S54.1 is locally complete: `test:firestore` is in the local/CI gate; 17 files / 59 tests passed,
+  permissive-Rule falsification failed as intended, and the exact Rules hash was restored. Full
+  evidence is in `docs/status.md`; remote CI has not yet run.
+- Production serves `2bfe7d4` on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e` — **13 commits
+  behind `main`**, missing eleven defect repairs including the safety-critical rollback fix.
+  D07 authorizes deploying this gap only after S52 establishes verified headroom and the deploy
+  wrapper has an explicit sanitized-environment/emulator-variable refusal. Never edit `.env.local`
+  as the workaround.
+- Firestore backup posture is live and verified (`F-FIRESTORE-BACKUPS`): PITR on with a 7-day
+  window, delete protection on, daily 7d + weekly 14w schedules. The S40 migration is unblocked.
+- The budget kill-switch is armed and verified end to end at the observed legacy monthly amount,
+  which is enforcement state rather than approved headroom. S52's replacement values are null.
+- Control-surface defects take priority over activation: the live Sheet write-back bypasses its
+  Action Registry gate and uses boolean-only confirmation; the comp-screenshot route can upload on
+  its first POST without the full action contract; and S39's internal notice is recorded live but
+  inert because its sender mailbox is empty. Both provider keys remain closed.
 
 ## Dependency order
 
-1. S40 environment/deployment separation.
-2. S41 shell/navigation/vocabulary.
-3. S42 attention ownership + Spaces flow.
-4. S44 evidence/provider backlinks.
-5. S43 canonical Renewal workspace.
-6. S45 Approval one-card consolidation.
-7. S46 Maintenance operator workspace.
-8. S47 resident Maintenance intake.
-9. S48 Communications/Connections/Admin/tool retirement.
-10. S49 compatibility/code/QA retirement.
-11. S50 S37 builder recalibration.
-
-S43 and S45 may run independently only after S40/S41/S44. S50 waits for its prerequisite canonical
-owner ledger. Interleave S28–S39 only when a named provider dependency lands and no S40–S50 slice is
-left half-applied.
+1. **S54 slice 1 — COMPLETE LOCALLY** — `test:firestore` is wired into `scripts/verify.sh` and CI,
+   with positive and deliberately permissive-rule falsification evidence. Observe remote CI after push.
+2. **S53 slice 1** — route the live Sheet write-back through its gate and add its
+   environment-descriptor fence (prerequisite of any other activation, per D02).
+3. **S53 action-contract hardening** — replace Sheet boolean-only commit with immutable preview-hash
+   confirmation, one-attempt idempotency, receipt/readback/reconcile, and guarded correction; replace
+   comp screenshot upload-on-first-POST with preview/confirm/idempotency/receipt/reconcile/Drive-trash
+   rollback. Keep both keys closed until their independent contracts pass.
+4. **S53 sender/config slice** — build the `KB_APPROVAL_SENDER`/forwarding refusal to the seam; leave the value
+   inert if approved non-secret config does not reveal it. Do not flip protected keys.
+5. **S52 prerequisites** — build baseline capture, single-source values, lockstep enforcement,
+   coverage, and refusals with values unset; park protected guardrail/check changes for review.
+6. **S51 app-plane** — close-only combinator first, then store/route/rehearsal/incident/logging/
+   alert definitions. Isolate protected `firestore.rules`; do not apply cloud resources.
+7. **S52/S51 activation** — after the complete-calendar-month baseline, supply the two
+   owner-selected values, second-project disposition, and operator destination; apply owner-run
+   billing/IAM/monitoring changes and verify live lockstep/delivery. Do not synthesize or infer a
+   bootstrap value.
+8. **S40 release-safety prerequisite** — land the environment-parameterized, sanitized,
+   zero-traffic candidate deploy path, current-manifest policy targeting, candidate smoke before
+   exact-revision promotion, and rollback command. The legacy auto-promoting wrapper is not eligible
+   for D07.
+9. **D07 deploy and live operational evidence** — only after steps 7–8, fresh auth, full gate,
+   prior-target capture, rollback, and bounded candidate smoke.
+10. **S40 remaining environment/data slices** — provider-construction sentinel, un-merge Demo/Live
+    lists, Production route exclusion, shell banner, and migration dry-run.
+11. **S53 remaining activations** — as each owner value lands, each with its paired
+    deploy-wrapper change.
+12. Then S41 → S42 → S44 → S43/S45 → S46 → S47 → S48 → S49 → S50, interleaving S28–S39 seams.
 
 ## Named external evidence
 
-- S40 activation: exact independent Demo project/service/database/storage/queue/OAuth/runtime
-  identity values plus owner-run provision/migration/deploy.
-- S43 template-dependent output only: Chasity’s exact updated renewal artifact.
-- S47 RentVine channel only: documented resident portal/text interactive endpoint/vendor semantics
-  and secure account mapping.
-- Exact provider record URLs enhance S44; reviewed generic provider front doors ship without them.
-- S49 generates its own usage/consumer proof; ambiguous candidates keep redirects.
+- RentVine write endpoint and resident-channel semantics — one combined ask (S30, S47).
+- RentCast free-tier key — owner self-serve; still needs rate limits, radius, min comp count.
+- Dotloop OAuth registration; LeadSimple key plus endpoint contract.
+- Chasity's renewal-template artifact (gates S43 template-dependent output only).
+- Exact Demo project/service/database/storage/queue/OAuth/identity values, then owner-run
+  provisioning and migration.
+- S51 operator destination; S52 burn evidence, alert/hard-stop values, and second-project disposition.
+- S53 sender value, sheet column/id/tab confirmation, intake secrets/binding, first Vendor identity,
+  and S36 IAM grant.
+- Approved resident wording plus fallback contact and RentVine contract evidence for S47.
+- Official brand artwork/usage approval (D44); D49/D51 response receipts if those assumptions should
+  become owner-ratified policy.
+- Full list with ready-to-send drafts: `docs/client-asks-2026-07-29.md`.
 
 ## Gate meaning
 
-- Program/spec/loop flags are OPEN.
+- Program, spec, loop, commit/push, and deploy flags are OPEN.
 - Pure app-plane features have no Action Registry gate and ship when verified.
-- `runtime_action_gates_preflipped:false` is intentional. A provider action flips in its owning
-  implementation slice only when endpoint/mapping/identity/full contract are documented; update the
-  seed, both executable allowlists, and pinned tests together.
-- Never leave a finished documented action preview-only by habit; never flip an undocumented action.
-
-## Next exact actions
-
-1. Phase 0 of `docs/meta-prompts/ui-ux-recalibration-unattended-loop.md` is COMPLETE (2026-07-28):
-   managed ADC fresh after the owner ran `npm run auth:session`; budget guard green (posture demo,
-   cap $10); baseline gates green at `37be85a` (`format:check`, `typecheck`,
-   `verify:context-freshness`, `verify:spec-traceability` 292 IDs, `verify:falsification`);
-   blocker ledger at `docs/temp/ui-ux-recalibration-execution-ledger-2026-07-28.md`.
-2. S40 slices 1–4 are shipped on `main`: `74d725e` server-owned environment descriptor +
-   environment fences re-keyed off it (AC-S40-1); `2b53e82` Admin-page degradation repair, which
-   cleared four `test:e2e:core` failures that were RED at the `37be85a` baseline; `cc6ce50`
-   fail-closed record classification (AC-S40-1); `a92b633` cross-environment resource-collision
-   preflight (AC-S40-2). Full `bash scripts/verify.sh` green at 397 files / 2988 tests;
-   `test:e2e:core` green.
-3. Next S40 slices, in order: provider-construction sentinel + Demo effect boundary
-   (AC-S40-3/4); un-merge Demo and Live lists and counts (AC-S40-4); Production route/control
-   exclusion (AC-S40-3); persistent shell environment banner + `Test`/`Sample` copy retirement
-   (AC-S40-7); migration inventory/dry-run (AC-S40-5); blue/green candidate promotion and
-   rollback (AC-S40-6); then the closing `F-*` fact + Supersede Log entry for
-   `F-PRODUCTION-DUAL-DATA-LANES` (AC-S40-8; `grep AC-S40 docs/facts.md` is currently empty and
-   the spec-traceability gate needs that row). Do not provision cloud resources or delete/migrate
-   Production records until the exact owner-run packet is green.
-4. Deliberate residuals with reasons are listed at the end of
-   `docs/temp/ui-ux-recalibration-execution-ledger-2026-07-28.md`.
+- `runtime_action_gates_preflipped:false` stays intentional. A provider action flips in its
+  owning slice only when endpoint/mapping/identity/contract are documented; the flip updates the
+  seed, both executable allowlists, the pinned tests, AND the deploy wrapper — the wrapper
+  forwards a closed allowlist, so a secret alone never activates anything.
+- Never leave a finished documented action preview-only by habit; never flip an undocumented one.
 
 ## Locked safety
 
-- No autonomous/scheduled/bulk/model-triggered client-facing send. Every client-facing send or
-  system-of-record write is human-initiated and exact-confirmed.
-- No guessed endpoint/record URL/customer value; generic provider navigation is never evidence.
-- No Demo/Production resource, record, credential, effect, or receipt crossing; unknown mode fails
-  closed.
-- No personal auth, secret/PII/customer content/token/photo in git or release evidence.
-- Every Live effect is one-attempt, idempotent, receipted/read back, monitored, and reversible.
+- No autonomous, scheduled, bulk, or model-triggered client-facing send. Every client-facing send
+  and system-of-record write stays human-initiated and exact-confirmed.
+- No guessed endpoint, record URL, or customer value; generic provider navigation is not evidence.
+- No Demo/Production resource, record, credential, effect, or receipt crossing; unknown mode
+  fails closed.
+- No personal auth, secret, PII, customer content, token, or photo in git or release evidence.
+- Every live effect is one-attempt, idempotent, receipted, monitored, and reversible.
 - No big-bang deletion; static reachability alone never removes provider/security/rollback code.
-- Approximately $10 total cost cap remains binding.
+- D12's exact six protected paths are surfaced for owner review, never pushed under the standing grant.
 
 ## Resume
 
-Use `docs/meta-prompts/ui-ux-recalibration-unattended-loop.md`; it incorporates
-`docs/fresh-context-ui-ux-recalibration-prompt-2026-07-28.md` as the end-state contract. Begin at S40
-unless a later verified fact and this file record a completed suite. Do not reopen D-01–D-14 or
-mistake current Production Live+Test behavior for the target.
+Start at S53 slice 1, then follow the dependency order above. Re-run auth immediately before any
+live read/cloud step; if still stale, keep that operation parked. The green light is a named-key list
+owned by S53 — never grant, infer, or expand a category. Do not infer the missing D44/D49/D51 receipt
+or widen reconstructed D50.

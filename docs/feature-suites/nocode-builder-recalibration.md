@@ -56,7 +56,8 @@ transaction sequences, authority, shell hierarchy, and external effects remain c
 - **Build to the seam (live provider).** None. Page definitions are app-plane presentation and never
   call a provider or enter the Action Registry.
 - **Owner dependency (the one flip).** None. The in-app Admin publication decision is ordinary
-  product use; normal owner-run deployment remains release operations.
+  product use; routine application deploy, smoke, exact-revision traffic promotion, and rollback
+  follow D05 after their gates and preflights pass.
 
 **Open questions & assumptions.**
 
@@ -135,8 +136,8 @@ identity, secrets/PII exclusion, source uncertainty, and cost cap.
    provider/executor imports.
 6. _Gate:_ no action gate exists or may be created. Confirm Registry seeds and both executable
    allowlists are unchanged.
-7. _Owner:_ none beyond the normal owner-run deployment. Admin author/publish/rollback is an in-app
-   capability.
+7. _Deploy / Owner:_ no owner-only release operation is required. Routine deployment follows D05;
+   Admin author/publish/rollback is an in-app capability.
 8. _Context update:_ add the verified page-builder fact with S37/S50 AC trace, mark S37 implemented
    as amended, update guide/manual QA/loop state, and close the S40–S50 program only when all suite
    completion conditions are true.

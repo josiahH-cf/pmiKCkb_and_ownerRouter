@@ -165,7 +165,9 @@ acceptance evidence.
   keyboard/focus checks, heading hierarchy, first-action visibility, and fixed-overlay collision
   checks.
 - Each slice adds behavior tests before or with behavior changes, runs focused falsification, then
-  the deterministic full gate. Deployment and cloud provisioning remain owner-run after preflights.
+  the deterministic full gate. Cloud provisioning, IAM/billing, credentials/scopes, and destructive
+  migration remain owner-run; routine application deploy, smoke, exact-revision traffic promotion,
+  and rollback follow D05 after their gates and preflights pass.
 
 ## 7. Carried evidence and exact blockers
 
@@ -203,4 +205,4 @@ Completion of this program means:
 6. active governance, product docs, app guide/manual QA, facts, and loop state describe the shipped
    reality; and
 7. the serving revision, smoke evidence, prior revision, and rollback result are recorded after the
-   owner-run deployment.
+   D05 routine deployment or, for an owner-only operation, after the exact owner command completes.

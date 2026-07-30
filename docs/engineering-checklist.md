@@ -4,7 +4,9 @@
 
 - Check branch/worktree and preserve user changes.
 - Read `AGENTS.md`, `docs/facts.md`, `docs/loop-state.md`, and the relevant spec.
-- Before live Google/GCP work: `npm run preflight:adc` and `npm run check:budget-guard`.
+- Before live Google/GCP work: `npm run preflight:adc`, `npm run check:budget-guard`, and verify
+  S52's alert/hard-stop values are non-null, owner-selected from eligible baseline evidence, and
+  live-confirmed in lockstep. A green posture check alone is not cost headroom.
 - Keep secrets in `.env.local`, Secret Manager, or the active shell only.
 
 ## Behavior
@@ -79,10 +81,16 @@
 
 - Verify `pmi-kc-kb-prod` identities, Firebase project, Cloud Run service, Secret Manager refs,
   Firestore, and canonical URL.
-- Enable Firebase Email/Password and TOTP MFA; authorize the deployed hostname for Firebase Auth.
+- Firebase Email/Password/TOTP/provider/domain mutations are owner-run Auth configuration; the
+  runner prepares and verifies the plan without applying them under D05.
 - Seed/update Action Registry and process definitions only against the canonical project.
-- Deploy Firestore rules when they changed; add indexes only for actual required queries.
-- Capture the current serving revision before deployment.
+- `firestore.rules` is D12-protected: isolate a changed ruleset for owner review and never include it
+  in an unattended push/deploy. Index creation is a separate cloud-resource mutation and occurs only
+  for an actual required query.
+- Capture the current serving revision and rollback command before deployment. Do not deploy through
+  the legacy auto-promoting wrapper; S40 must first provide zero-traffic candidate creation,
+  candidate smoke, and deliberate exact-revision promotion. D05 applies only to an
+  already-provisioned service after every gate and preflight passes.
 
 ## Verification
 

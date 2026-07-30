@@ -59,11 +59,12 @@ state describe the shipped product rather than historical clutter.
 - **Buildable now (app-plane).** Ledger, instrumentation, redirects/retired responses, stage-one
   removals, behavior tests, decomposition, bounded stage-two deletions whose proof exists, and docs.
 - **Build to the seam (deployed proof).** Prepare compatibility counters/log queries and browser
-  walkthrough for the candidate revision. The owner-run deploy supplies the one release-boundary
-  observation; stage-two can then proceed candidate by candidate where proof is affirmative.
+  walkthrough for the candidate revision. A D05 routine deploy supplies the one release-boundary
+  observation after its gates and preflights pass; stage-two can then proceed candidate by candidate
+  where proof is affirmative.
 - **Owner dependency (the one flip).** None as a product dependency. Production deploy/traffic and
-  walkthrough remain normal owner-run release operations. An ambiguous candidate stays
-  compatibility-retained rather than blocking the rest of S49.
+  rollback follow D05; the signed-in owner walkthrough remains an owner-run acceptance operation. An
+  ambiguous candidate stays compatibility-retained rather than blocking the rest of S49.
 
 **Open questions & assumptions.**
 
@@ -142,8 +143,8 @@ no unrelated action gate flip.
    rollback; decompose only the owning mixed component along behavior boundaries.
 4. _Verify:_ run focused and full gates plus authenticated role/environment/browser tasks; produce
    the non-sensitive candidate proof packet.
-5. _Owner:_ include the candidate in the next normal owner-run blue/green deploy and walkthrough;
-   capture the serving/prior revisions and compatibility outcomes.
+5. _Deploy / Owner:_ include the candidate in the next D05 blue/green deploy, then complete the
+   owner-run signed-in walkthrough; capture the serving/prior revisions and compatibility outcomes.
 6. _Build:_ only after affirmative proof, delete the bounded code/assets/tests that solely assert
    retired behavior; preserve replacement/security/compatibility redirects where required.
 7. _Gate:_ confirm all unrelated Registry entries/allowlists are unchanged and no provider seam was

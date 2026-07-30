@@ -101,7 +101,10 @@ dependency; it never stops a whole feature at the seam.
 **Wave 2 — seam: build the live provider, one named owner step to activate:**
 
 - **S30** RentVine renewal-write activation (owner: endpoint — being provided).
-- **S31** Gmail reply-watch continuous activation + operator follow-up (owner: Pub/Sub + Scheduler).
+- **S31** Gmail reply-watch continuous activation + operator follow-up. **No owner dependency** —
+  the Pub/Sub topic, publisher, and push subscription were delivered 2026-07-23
+  (`F-OWNER-DEPS-2026-07-23` item (a)) and owner decision D37 (2026-07-29) authorizes the loop to
+  create the Cloud Scheduler job itself. This is pure loop work.
 - **S28b** RentCast comp-data adapter (owner: API key).
 - **S35** LeadSimple activation (owner: API key + vendor-confirmed contract).
 - **S34** Dotloop e-sign activation + completion webhook (owner: OAuth app).
@@ -143,9 +146,12 @@ action):
 8. **Maintenance send** S26 owner-mapping/exact-confirmation evidence → S38b flip. _(CONFIRMED
    2026-07-23 — owner ruled `portfolio.owners[].email` authoritative and every send human
    exact-confirmed; the S38b evidence is satisfied, the flip is a reviewed change after S38a ships.)_
-9. **Budget kill-switch** live arming. _(DONE — verified 2026-07-23: the `$10 kill switch` budget →
-   `budget-guardrail-topic` → the ACTIVE `budget-guardrail` Cloud Function.)_
-10. **Per-session** `npm run auth:session` (ADC reauth) + owner-run `npm run deploy`.
+9. **Budget kill-switch** live arming. _(DONE — verified 2026-07-23: the legacy observed `$10`
+   monthly budget → `budget-guardrail-topic` → the ACTIVE `budget-guardrail` Cloud Function. D01
+   superseded that figure; S52 owns the replacement ceiling.)_
+10. **Per-session** interactive `npm run auth:session` (ADC reauth). Routine application deploy,
+    smoke, exact-revision traffic promotion, and rollback follow D05 after their gates and preflights
+    pass.
 
 ## 6. The new operating rule: build to the seam
 
@@ -174,7 +180,8 @@ These are **not** deferrals; they are the hard invariants the owner's grant expl
 - **Generic non-workflow "blast" compose/send** (`gmail.message.send`) stays Registry-closed.
 - **Personal `josiah.abernathy@gmail.com`** never enters any auth path.
 - **No secrets / customer PII / guessed provider endpoints in git or evidence.**
-- **~$10 total cost ceiling**, enforced by the real billing kill switch.
+- **The non-null verified production cost ceiling defined by S52**, enforced by the reviewed
+  lockstep budget/guardrail configuration.
 - **Every live external effect** stays target-labeled, one-attempt, idempotent, receipted,
   reconcilable, monitored, and reversible; every client-facing send OR system-of-record write is
   additionally **human-confirmed** (internal-staff notifications and read-only ops may auto-run per

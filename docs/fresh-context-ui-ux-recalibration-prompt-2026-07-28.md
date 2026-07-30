@@ -50,9 +50,10 @@ tests/routes before planning an edit. Existing deployed behavior and historical 
 evidence; the new program controls the target.
 
 If the slice will touch a live Google read or gcloud, run `npm run preflight:adc` first. If stale,
-stop and ask the owner to run exactly `npm run auth:session` in their terminal. Never substitute a
-personal identity. Do not run live/cloud/cost-bearing/destructive work merely because this prompt
-authorizes code execution; follow AGENTS.md owner-run gates.
+park that live/cloud operation, ask the owner to run exactly `npm run auth:session` in their terminal,
+and continue every independent local/app-plane, test, documentation, and build-to-seam slice. Never
+substitute a personal identity. Do not run live/cloud/cost-bearing/destructive work merely because
+this prompt authorizes code execution; follow the owner-operation and D05 boundaries in `AGENTS.md`.
 
 ## The end state you are building
 
@@ -144,7 +145,7 @@ For the current suite:
    external dependency if it truly does not.
 4. Preserve human send/write authority, environment isolation, managed identity, secrets/PII
    exclusion, provider truthfulness, idempotency, receipts/readback, monitoring, rollback, and the
-   approximately $10 cap.
+   non-null verified production cost ceiling defined by S52.
 5. Falsify adversarially: wrong role/scope/environment; missing/unknown mode; stale/duplicate request;
    cross-record link; browser-forged return/context; Demo provider construction; guessed URL/
    endpoint; absent template; mobile overflow/overlay/focus; scanner/provider outage; rollback.
@@ -158,8 +159,10 @@ For the current suite:
    Supersede Log entries for claims the shipped behavior actually replaced, update relevant product/
    guide/manual-QA/environment docs, and rewrite `docs/loop-state.md` to the exact next safe slice.
 9. Commit/push/deploy only under the repository’s normal authority. Cloud provisioning, credential/
-   scope grants, Production record deletion, traffic promotion, and signed-in owner walkthrough are
-   owner-run. Produce exact commands/reports; do not fake completion.
+   scope grants, IAM/billing changes, Production record deletion, and signed-in owner walkthrough are
+   owner-run. Routine application deploy, smoke, exact-revision traffic promotion, and rollback
+   follow D05 after their gates and preflights pass. Produce exact commands/reports; do not fake
+   completion.
 
 ## External evidence that may remain
 
@@ -181,7 +184,7 @@ Stop cleanly only when:
 
 - the current bounded slice is verified, documented, and resumable;
 - a named owner-only operation is the sole remaining step for that effect;
-- the approximately $10 cost ceiling would be exceeded; or
+- S52 has no non-null verified production cost ceiling or that ceiling would be exceeded; or
 - a safety/identity/source contradiction remains after repository/code evidence is exhausted.
 
 Do not stop merely because the work is large, a provider is external, an old doc says Test is

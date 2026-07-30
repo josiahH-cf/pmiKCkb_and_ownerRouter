@@ -228,7 +228,12 @@ shortcut, and no disable mutation may bypass a claimed/prepared reset—recover 
 email/mailbox/reset must never contact a provider or be cited as Live. Live
 OAuth stays unavailable until its exact consent/client/redirect/vault/identity checks are healthy and
 remains an optional per-Vendor activation. The Admin confirmation exception is ticket-linked only,
-never general cross-mailbox authority. ~$10 cap.
+never general cross-mailbox authority. The verified non-null S52 production cost ceiling applies; if
+it is unset, cost-bearing/live/cloud work is closed while local/app-plane work continues. Routine
+release follows D05: after the full local gate, auth and budget preflights, prior-revision capture,
+and a captured rollback command are green, the runner may deploy; it must smoke the new revision
+successfully before promoting traffic. Interactive authentication, credentials/scopes, IAM,
+billing/quota, provider inputs, and destructive operations remain owner-run.
 
 **Ordered prompt sequence.**
 

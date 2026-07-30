@@ -24,13 +24,35 @@
   - **B4 Owner-draft attribution + Needs-Verification preservation.** `ownerDraftMarketFromBasis` prefers the Drive ref and carries the provider `source`; both `Needs Verification` fallbacks stay exactly as today. (AC-S28-3)
 - **Build to the seam (live provider).** The RentCast adapter plus the full read contract (target label, health check, cost preflight, one-attempt, receipt/`retrievedAt`, fail-closed to `Needs Verification`; no rollback because it is a read), replacing the manual-only path as the live option. The loop builds ALL of this and does NOT stop merely because the call is external; it stops only at the one owner key below (roadmap Wave 2, "S28b").
   - **B5 RentCast adapter, inert.** `rentcast-market-comp-provider.ts` behind the interface, key from env/Secret Manager, fail-closed. Unit-proven against the documented rental-listings search response shape, including the median/min-max aggregation and the min-comp-count fail-closed, over a stubbed transport; no live call in tests. (AC-S28-5, AC-S28-6)
-  - **B6 Gate-flip machinery, staged OFF.** Two Action Registry seed entries authored `production_allowed:false`: `google_drive.renewal_comp_screenshot.store` (mirrors `google_drive.maintenance_photo.store`, preview: filename/MIME/target folder, rollback: trash the file) and `rentcast.rental_listings.search` (read; readiness `Planned`, evidence `Undocumented` until the key; preview: queried address plus returned range as reference only). Neither key is added to either `EXECUTABLE_ALLOWLIST` copy yet, so both are non-executable and the pinned schema tests stay green. (AC-S28-5)
-- **Owner dependency (the one flip).** A single credential: a RentCast rental-listings-search API key, read by the built adapter from `RENTCAST_API_KEY` (name-only in `.env.example`; the value lives in Secret Manager) — the exact pickup point, so dropping the key plus the one reviewed flip is all that remains (roadmap §5 owner-dependency #2). It activates the S28b adapter: the routine reviewed change then sets `rentcast.rental_listings.search` to `readiness:"Approved for Execution"` + `evidence_status:"Documented"` + `production_allowed:true`, adds the key to both `EXECUTABLE_ALLOWLIST` copies (`scripts/seed-action-registry.ts` and `lib/admin/migration-readiness.ts`), and updates the pinned tests (`action-registry-schema.test.ts`, `seed-action-registry-allowlist.test.ts`). The comp-screenshot Drive action reuses the already-authorized Drive scope (`F-DRIVE-DWD`, 2026-06-29); its only prod config is the renewal-comp folder id (a deploy env like `MAINTENANCE_PHOTO_DRIVE_FOLDER_ID`), so its live flip is the same routine gated change, not a distinct blocking credential.
+  - **B6 Gate-flip machinery, staged OFF.** Two Action Registry seed entries authored
+    `production_allowed:false`: `google_drive.renewal_comp_screenshot.store` and
+    `rentcast.rental_listings.search`. Neither key is added to either `EXECUTABLE_ALLOWLIST` copy yet,
+    so both are non-executable and the pinned schema tests stay green. The read action's contract is
+    completed with the provider slice. The screenshot route currently uploads on its first POST and
+    therefore does **not** yet satisfy its intended preview/confirm/idempotency/receipt/readback/trash
+    rollback contract; S53 AC-S53-13 owns that hardening and the key stays closed until it passes.
+    (AC-S28-5)
+- **Owner dependency (the one flip).** A single credential: a RentCast rental-listings-search API
+  key, read by the built adapter from `RENTCAST_API_KEY` (name-only in `.env.example`; the value lives
+  in Secret Manager) — the exact pickup point for the **read provider**, so dropping the key plus the
+  one reviewed read-action flip is all that remains (roadmap §5 owner-dependency #2). It activates the
+  S28b adapter: the routine reviewed change then sets `rentcast.rental_listings.search` to
+  `readiness:"Approved for Execution"` + `evidence_status:"Documented"` +
+  `production_allowed:true`, adds the key to both `EXECUTABLE_ALLOWLIST` copies
+  (`scripts/seed-action-registry.ts` and `lib/admin/migration-readiness.ts`), and updates the pinned
+  tests (`action-registry-schema.test.ts`, `seed-action-registry-allowlist.test.ts`). The comp
+  screenshot reuses the authorized Drive identity and folder configuration, but that removes only an
+  external credential dependency; its independent S53 action-contract defect still keeps it closed.
 
 **Open questions & assumptions.**
 
 - _Answered 2026-07-23 (owner):_ the provider is RentCast's rental-listings SEARCH (`/listings/rental/long-term`), and the adapter aggregates the returned comps (MEDIAN = point estimate); RentCast has no usable rent-estimate endpoint, so the app builds the comp logic. If the owner later swaps to a different search/listings API, only the adapter behind `MarketCompProvider` changes; the app-plane, the routes, and the owner-draft/progress wiring are unaffected.
-- _Assumption:_ the comp-screenshot upload reuses the existing maintenance Drive image-store seam (`lib/maintenance/image-store.ts`, keyless DWD, `F-DRIVE-DWD`, `Q-MAINT-STORAGE` resolved) with a renewal-comp folder id, rather than a new upload path. The Drive scope is already authorized (2026-06-29); the only prod config is the folder id (a deploy env), so the screenshot live flip is routine, not a new owner credential.
+- _Assumption:_ the comp-screenshot upload reuses the existing maintenance Drive image-store seam
+  (`lib/maintenance/image-store.ts`, keyless DWD, `F-DRIVE-DWD`, `Q-MAINT-STORAGE` resolved) with a
+  renewal-comp folder id, rather than a new upload path. The Drive scope is already authorized
+  (2026-06-29), so the screenshot has no new owner credential dependency. This does not authorize a
+  flip: S53 AC-S53-13 must first replace upload-on-first-POST with the full immutable
+  preview/exact-confirm/idempotency/receipt/readback/reconcile/trash-rollback contract.
 - _Assumption:_ the provider read is DISPLAY-only for S28. The comp-derived SUGGESTED renewal number that auto-computes and enters a draft after explicit per-number Admin approval is OUT of scope here and owned by S29 (`D-RENT-SUGGEST`, roadmap §3). S28 deliberately PRESERVES the no-app-suggested-number BEHAVIOR (governed by `F-NEGOTIATION-EXCLUDED` until S29 ships, then by S29's `F-RENT-SUGGEST-ADMIN-GATED`) while building the reference display and the data seam that S29 will consume.
 - _Open:_ the exact RentCast tier + rate limits for `/listings/rental/long-term` (free tier is ~50 calls/mo) and the search parameters (radius, minimum comp count) that yield a defensible comp set. The endpoint (rental-listings search) and the MEDIAN aggregation are owner-confirmed (2026-07-23); only the tier/rate-limit detail rides with owner-dependency #2 (roadmap §5). The adapter is built against the documented listings-search response and stays inert until the key lands. The build step records this as a `Q-RENTCAST-ENDPOINT` row in `docs/facts.md`.
 - _Assumption (authoring boundary):_ this pass authors ONLY this spec file. The `Q-`/`A-` rows and the shipped-work `F-*` promotion the template calls for are performed by the BUILD steps below (Context update), not by this authoring pass, and the README plus AGENTS.md registration rows are handed back for the operator to apply.
@@ -48,7 +70,33 @@
 
 _Verify (whole suite):_ `npm run typecheck`, `npm run lint`, `npm test`, `npm run verify:spec-traceability`, `npm run verify:context-freshness`, and `bash scripts/verify.sh`. Named sentinels to keep green throughout: `tests/unit/comp-basis-and-market.test.ts` (D19 no-invented-number invariant), `tests/unit/action-registry-schema.test.ts` and `tests/unit/seed-action-registry-allowlist.test.ts` (gate/allowlist integrity), and `tests/unit/feature-suite-spec-shape.test.mjs` (this spec's shape gate).
 
-**Forbidden actions / hard gates.** The safety NEVERs from roadmap §7 apply and a violation of any is itself a falsification: no autonomous client-facing send (the owner email stays draft-only, `send_allowed:false`; internal-staff notifications may auto-send per `D-AUTOMATION-LINE`, which this suite does not use); generic non-workflow `gmail.message.send` stays Registry-closed; the personal `josiah.abernathy@gmail.com` account never enters any auth path (Drive upload runs as a `pmikcmetro.com` DWD subject); no secrets, customer PII, or guessed provider endpoint in git (the RentCast key lives in Secret Manager, `.env.example` names only; the stored screenshot is a `drive:<id>` ref, never the binary; the query carries only the property address, never tenant PII or a rent figure); the ~$10 budget cap holds and every live RentCast lookup respects the billing kill switch and the `check:live-cost` preflight; every live effect is one-attempt, idempotent, receipted, and reversible where it mutates (the read has nothing to roll back; the Drive upload rolls back by trashing the file); deploys and the credential/scope grant stay owner-run. This suite MAY build the live RentCast adapter and the gated Drive upload to the seam and stage their gate flips, but it does NOT set `production_allowed:true` for either action until the named owner dependency (the RentCast key; the renewal-comp folder id for the screenshot action) is documented, at which point the flip updates both `EXECUTABLE_ALLOWLIST` copies plus the pinned schema tests. Suite-specific hard stops: (a) the provider is DISPLAY-only reference and MUST NOT auto-select, auto-fill, or otherwise move the `offeredRent` number; the comp-derived SUGGESTED number is S29 (Admin-approval-gated), never S28. (b) Absent comp data renders `Needs Verification`, never a fabricated number (`F-NEGOTIATION-EXCLUDED` preserved). (c) No Zillow scraping or HTML fetch (ToS); live numbers come only from the licensed API, and the only Zillow surface remains the existing address-only deep link.
+**Forbidden actions / hard gates.** The safety NEVERs from roadmap §7 apply and a violation of any is
+itself a falsification: no autonomous client-facing send (the owner email stays draft-only,
+`send_allowed:false`; internal-staff notifications may auto-send per `D-AUTOMATION-LINE`, which this
+suite does not use); generic non-workflow `gmail.message.send` stays Registry-closed; the personal
+`josiah.abernathy@gmail.com` account never enters any auth path (Drive upload runs as a
+`pmikcmetro.com` DWD subject); no secrets, customer PII, or guessed provider endpoint in git (the
+RentCast key lives in Secret Manager, `.env.example` names only; the stored screenshot is a
+`drive:<id>` ref, never the binary; the query carries only the property address, never tenant PII or
+a rent figure). The verified non-null S52 production cost ceiling applies and every live RentCast
+lookup respects the billing kill switch and `check:live-cost` preflight; if the ceiling is unset,
+cost-bearing/live/cloud work is closed while local/app-plane work continues. Every live effect is
+one-attempt, idempotent, receipted, and reversible where it mutates (the read has nothing to roll
+back; the Drive upload rolls back by trashing the file). Routine release follows D05: after the full
+local gate, auth and budget preflights, prior-revision capture, and a captured rollback command are
+green, the runner may deploy; it must smoke the new revision successfully before promoting traffic.
+Interactive authentication,
+credentials/scopes, IAM, billing/quota, provider inputs, and destructive operations remain owner-run.
+This suite MAY build the live RentCast adapter and the gated Drive upload to the seam and stage their
+gate flips, but it does NOT set `production_allowed:true` for either action until the named owner
+dependency (the RentCast key; the renewal-comp folder id for the screenshot action) is documented, at
+which point the flip updates both `EXECUTABLE_ALLOWLIST` copies plus the pinned schema tests.
+Suite-specific hard stops: (a) the provider is DISPLAY-only reference and MUST NOT auto-select,
+auto-fill, or otherwise move the `offeredRent` number; the comp-derived SUGGESTED number is S29
+(Admin-approval-gated), never S28. (b) Absent comp data renders `Needs Verification`, never a
+fabricated number (`F-NEGOTIATION-EXCLUDED` preserved). (c) No Zillow scraping or HTML fetch (ToS);
+live numbers come only from the licensed API, and the only Zillow surface remains the existing
+address-only deep link.
 
 **Ordered prompt sequence.**
 
@@ -59,7 +107,12 @@ _Verify (whole suite):_ `npm run typecheck`, `npm run lint`, `npm test`, `npm ru
 5. _Build:_ B4 - `ownerDraftMarketFromBasis` prefers the Drive ref and carries the provider `source`, with both `Needs Verification` fallbacks preserved verbatim (AC-S28-3).
 6. _Build:_ B5 - `rentcast-market-comp-provider.ts` behind the interface, key from env/Secret Manager, fail-closed, unit-proven against a documented response shape and a stubbed transport (AC-S28-5, AC-S28-6).
 7. _Gate:_ B6 - author the two Action Registry seed entries `production_allowed:false`, add neither key to the `EXECUTABLE_ALLOWLIST` copies, and confirm `action-registry-schema.test.ts` + `seed-action-registry-allowlist.test.ts` stay green (AC-S28-5).
-8. _Owner:_ hand back at the one seam - the RentCast API key `RENTCAST_API_KEY` in Secret Manager (owner-dependency #2). Once provided, apply the gate-flip recipe to `rentcast.rental_listings.search` (both allowlists + pinned tests); the comp-screenshot Drive action flips the same routine way once the renewal-comp folder id is set (Drive scope already authorized). Deploy stays owner-run.
+8. _Owner:_ hand back at the one seam - the RentCast API key `RENTCAST_API_KEY` in Secret Manager
+   (owner-dependency #2). Once provided, apply the gate-flip recipe to
+   `rentcast.rental_listings.search` (both allowlists + pinned tests); the comp-screenshot Drive action
+   flips the same routine way once the renewal-comp folder id is set (Drive scope already
+   authorized). The subsequent routine deploy, smoke, and traffic promotion follow D05 after its
+   full gate is green.
 9. _Verify:_ each slice runs `npm run typecheck`, `npm run lint`, `npm test`, and a falsification pass; extend, never weaken, the named sentinels; end-of-suite `bash scripts/verify.sh`.
 10. _Context update:_ promote the shipped app-plane and seam work to a `docs/facts.md` `F-*` row (for example `F-MARKET-COMP-PROVIDER`) citing AC-S28-1..AC-S28-6, record the `Q-RENTCAST-ENDPOINT` open question, note that S28 preserves the no-app-suggested-number behavior (whichever of `F-NEGOTIATION-EXCLUDED` / S29's `F-RENT-SUGGEST-ADMIN-GATED` is active when S28 ships) and feeds S29, and update `docs/loop-state.md` at each slice boundary.
 

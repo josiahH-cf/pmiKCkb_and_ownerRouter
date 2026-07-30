@@ -360,12 +360,13 @@ repo. Before creating any `.txt` source for Agent Search:
 The raw review folder `docs/context_and_calls/` is intentionally ignored by git and
 Prettier. Use it only as local source material for sanitized summaries.
 
-## Under-$10 Live Ask And Demo Deploy
+## Historical Under-$10 Live Ask And Demo Deploy (superseded 2026-07-29)
 
-Use this path before any production deployment. The cheapest default is one real Lease
-Renewals Ask answer and one cheap Cloud Run demo URL. The current four-workflow live
-demo path uses the same guardrails with intentional multi-Space source maps and
-`--allow-multiple-spaces`.
+This section records the earlier `pmikckb-test` setup shape; it is not the current production cost
+or deploy authority. Before any current cost-bearing deployment, S52 must hold a reviewed non-null
+production monthly ceiling and alert threshold, auth and the full local gate must be green, and the
+routine deploy follows D05 with prior-revision capture, smoke, and rollback evidence. An unset S52
+ceiling parks the deployment while local/app-plane work continues.
 
 Cost guardrails:
 
@@ -393,9 +394,11 @@ Current pricing references:
 - Google Cloud budgets:
   <https://docs.cloud.google.com/billing/docs/how-to/budgets>
 
-User-owned console tasks:
+Historical/user-owned console tasks:
 
-1. Create a `$10` project-scoped budget alert for `pmikckb-test`:
+1. Do not create a new `$10` budget from this historical instruction. When S52's measured baseline
+   and owner-selected values exist, create or update the project-scoped budget and matching
+   guardrail value from the S52 lockstep runbook:
    <https://console.cloud.google.com/billing/budgets?project=pmikckb-test>
 2. Confirm required APIs are enabled for the Cloud Storage data-store route:
    - `aiplatform.googleapis.com` — Vertex AI Gemini model calls.
@@ -605,44 +608,22 @@ Provide these values to unblock live setup, without posting secrets into chat:
 
 ## Client Cutover
 
-At purchase/cutover, follow `docs/client-production-cutover.md` as the authoritative
-ordered runbook. The short version is:
+The dated `docs/client-production-cutover.md` is preserved evidence of the pre-S40 Live+Test
+cutover; it is not the current authoritative command sequence. Current cutover is owned by
+`docs/feature-suites/environment-deployment-separation.md`, with S51 operational readiness and S52
+cost governance as prerequisites.
 
-1. Create or select the PMI KC-owned GCP/Firebase project.
-2. Set `ALLOWED_HD=pmikcmetro.com`, `ASK_DEMO_MODE=false`, and
-   `LOCAL_DEMO_AUTH=false`.
-3. Register a new Firebase Web app and OAuth client with the neutral aliases:
+1. The owner supplies and provisions the exact independent Demo and replacement Production
+   project/service/Auth/IAM/billing/scope resources named by S40. Do not infer identifiers.
+2. The runner validates the separate manifests and uses only S40's guaranteed non-executing
+   `--plan-only` path while auth or S52 is not green.
+3. Any `lib/auth/**` or `firestore.rules` change is isolated as D12-protected work for owner review.
+4. A real D05 release requires the full local gate, fresh managed auth, non-null owner-selected S52
+   values verified live in lockstep, four correctly targeted S51 policies, prior-revision capture,
+   and rollback preparation.
+5. Deploy a named candidate at zero traffic, verify its explicit Production descriptor and
+   authenticated smoke, then promote that exact revision deliberately. Retain the prior revision.
 
-```bash
-npm run firebase:setup -- --project=<client-project-id> --web-app-name="PMI KC KB Production Web"
-npm run firebase:setup-auth -- --project=<client-project-id> --authorized-domain=<production-host>
-```
-
-4. Create Firestore, deploy rules/indexes, and re-seed Spaces from the repo.
-5. Use Cloud Storage `.txt` production source prefixes plus Agent Search data stores
-   unless Drive retrieval has been intentionally redesigned.
-6. Copy `docs/source-corpus/client-production-source-manifest.template.json` to an
-   ignored `temp/` manifest, replace placeholders with approved PMI KC source details,
-   and run:
-
-```bash
-npm run corpus:plan -- --manifest=temp/client-production-source-manifest.json --project=<client-project-id> --location=us --dry-run
-```
-
-7. Run production preflight before deploy:
-
-```bash
-npm run preflight:production -- --env-file=.env.production.local
-```
-
-8. Deploy with the neutral Cloud Run alias:
-
-```bash
-npm run deploy -- --project=<client-project-id> --service=pmi-kc-kb --budget-confirmed --allow-multiple-spaces --service-account=<runtime-service-account-email>
-```
-
-9. Assign first Admin roles, run the production smoke checklist in
-   `docs/client-production-cutover.md`, and record results in `docs/status.md`.
-
-Do not copy demo Firestore data, demo OAuth clients, demo service accounts, or demo
-Cloud Storage buckets into client production.
+Do not use the legacy wrapper's immediate 100% promotion as a current cutover path, and never copy
+Demo Firestore data, OAuth clients, service accounts, storage, Auth projects, or knowledge corpora
+into Production.

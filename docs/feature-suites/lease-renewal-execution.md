@@ -158,7 +158,13 @@ test`, `npm run test:e2e:core`, `npm run verify:redaction`, `npm run build`, `ba
 as Live, endpoint guessing/RPA, browser recipient/risk/lane, bulk write/send, autonomous send, retry on
 ambiguity, false cross-channel success, or customer values in git/audit/log. A Live action may execute
 only when its own contract, identity, connection, Registry state, preview, authority, exact
-confirmation, and correction/reconciliation path pass. Unavailable actions remain visible. ~$10 cap.
+confirmation, and correction/reconciliation path pass. Unavailable actions remain visible. The
+verified non-null S52 production cost ceiling applies; if it is unset, cost-bearing/live/cloud work
+is closed while local/app-plane work continues. Routine release follows D05: after the full local
+gate, auth and budget preflights, prior-revision capture, and a captured rollback command are green,
+the runner may deploy; it must smoke the new revision successfully before promoting traffic.
+Interactive authentication, credentials/scopes, IAM, billing/quota, provider inputs, and destructive
+operations remain owner-run.
 
 **Ordered prompt sequence.**
 

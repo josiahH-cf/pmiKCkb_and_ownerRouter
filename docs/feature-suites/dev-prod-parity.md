@@ -21,16 +21,20 @@ ship without those connections, never silently degrade to "not connected."
   so a green cutover guarantees the live connections are configured (mirror the existing
   `assertMaintenancePhotoFolder` pattern).
 - **Redeploy current `main`.** The live service was last deployed 2026-06-19; R1–R4, the full Maintenance
-  suite, and the cutover guard are merged but not deployed. A redeploy (owner/budget-gated) brings prod to
-  current. This is a cost-bearing step — explicit per-step approval + `npm run check:budget-guard` + the $10 cap.
+  suite, and the cutover guard are merged but not deployed. A routine D05 release may deploy after
+  the full local gate, auth and budget preflights, a verified non-null S52 production cost ceiling,
+  prior-revision capture, and a captured rollback command are green; it must smoke the new revision
+  successfully before promoting traffic. If the S52 ceiling is unset, this cost-bearing/live/cloud
+  step is closed while local/app-plane work continues.
 - **Verify parity.** After deploy, `npm run smoke:ask-live -- --base-url=<endpoint>` + confirm the live
   review connects, within the budget rules.
 
 **Open questions & assumptions.**
 
 - _Assumption:_ the live connections SHOULD run in prod (the whole point of the renewal/maintenance lanes).
-- _Open:_ Secret Manager wiring for the RentVine secrets in Cloud Run (vs `--set-env-vars`); the redeploy
-  is an explicit owner-approved, budget-guarded step (not autonomous).
+- _Open:_ Secret Manager wiring for the RentVine secrets in Cloud Run (vs `--set-env-vars`). Secret
+  provisioning remains owner-run; once configured, routine deploy, smoke, and traffic promotion
+  follow D05's bounded grant.
 - _Note:_ all of this preserves `production_allowed:false` — parity is about READS + the gated photo write,
   not enabling any system-of-record write.
 
@@ -43,7 +47,10 @@ product behavior — it's deploy/cutover config + a redeploy.
 1. _Build:_ forward `RENTVINE_*` (via Secret Manager) + `RENEWAL_SHEET_ID` + `SHEETS_*` in `readRuntimeEnv`.
 2. _Build:_ add the matching requires/asserts to the cutover preflight + golden fixture + tests.
 3. _Docs:_ update the cutover runbook + env-handoff + `.env.example`; record the parity contract.
-4. _Gated:_ owner-approved, budget-guarded redeploy of current `main`; then live smoke + parity verify.
+4. _Gated:_ after the full D05 gate is green, redeploy current `main`, capture the prior revision,
+   run live smoke and parity verification, and retain the rollback command. Interactive auth,
+   credentials/scopes, IAM, billing/quota, provider inputs, and destructive operations remain
+   owner-run.
 5. _Context update:_ record the parity facts in `docs/facts.md`; update `docs/loop-state.md`.
 
 **Deletion/merge recommendation.** KEEP. Pure readiness/parity hardening + a gated redeploy. No new

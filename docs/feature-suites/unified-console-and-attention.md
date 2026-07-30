@@ -108,8 +108,11 @@ are the real ones read for this spec.
     delivery is an autonomous-send decision and stays gated.
   - **G3 — scheduled digest runs.** A cron/Cloud Scheduler job that computes the B5 digest on a cadence
     (vs. computing it on read) is gated — no Cloud Scheduler this suite.
-  - **G4 — deploy.** Shipping any of the above to the `pmi-kc-kb-demo` Cloud Run service stays owner-run
-    (`npm run deploy -- --budget-confirmed`).
+  - **G4 — deploy.** Shipping any of the above to Cloud Run follows D05: after the full local gate,
+    auth and budget preflights, a verified non-null S52 production cost ceiling, prior-revision
+    capture, and a captured rollback command are green, the runner may deploy
+    (`npm run deploy -- --budget-confirmed`); it must smoke the new revision successfully before
+    promoting traffic.
 
 **Open questions & assumptions.**
 
@@ -130,8 +133,9 @@ are the real ones read for this spec.
   client-owned. Default: stay in-app until the client says otherwise.
 - _Assumption:_ hard gates unchanged this cycle — no autonomous send, no SoR write, no Cloud Scheduler,
   no new Google scope, no client data on GitHub, and no new Action Registry flip (the existing
-  compose-only `gmail.renewal_notice.draft_create` allowlist is unchanged), ~$10 cap. This suite
-  adds no Action Registry entry.
+  compose-only `gmail.renewal_notice.draft_create` allowlist is unchanged). The verified non-null S52
+  production cost ceiling applies; if it is unset, cost-bearing/live/cloud work is closed while
+  local/app-plane work continues. This suite adds no Action Registry entry.
 
 **Cross-product impacts.** New: `app/notifications/page.tsx`, `lib/attention/lanes.ts`,
 `lib/attention/review-lane.ts`, `app/api/notifications/mark-all-read/route.ts`. Extended:
@@ -213,9 +217,14 @@ write (RentVine / Sheet / QuickBooks / bank / client Drive). The Gmail communica
 bodyless app attention only and do not authorize thread fetch, classification, send, or workflow mutation. No Cloud
 Scheduler / cron — the B5 digest is computed on read, not on a schedule (G3). No client data on GitHub —
 the review lane is value-free by construction (counts + lane only; a sentinel pins the key set) and the
-`verify:redaction` gate still forbids any `golden-data/` / `docs/client_docs/` file. ~$10 budget cap
-holds; deploy stays owner-run (G4). Suite-specific hard stop: the review lane must NEVER emit one
-notification per team edit — a per-edit ping (not a rolled-up digest) is itself a falsification of B5.
+`verify:redaction` gate still forbids any `golden-data/` / `docs/client_docs/` file. The verified
+non-null S52 production cost ceiling applies; if it is unset, cost-bearing/live/cloud work is closed
+while local/app-plane work continues. Routine release follows D05: after the full local gate, auth
+and budget preflights, prior-revision capture, and a captured rollback command are green, the runner
+may deploy; it must smoke the new revision successfully before promoting traffic. Interactive
+authentication, credentials/scopes, IAM, billing/quota, provider inputs, and destructive operations
+remain owner-run. Suite-specific hard stop: the review lane must NEVER emit one notification per team
+edit — a per-edit ping (not a rolled-up digest) is itself a falsification of B5.
 
 **2026-07-13 audit hardening (QA-003).** `gatherDecisionAttention` is now the single Console/full-hub
 boundary over `gatherNeedsDecisionInbox`: it returns the original inbox for the Console's existing authorized
@@ -259,8 +268,10 @@ fenced STT seam is unchanged.
 6. _Build:_ B7 lane-stamp the Console deck so it speaks the shared contract. Do NOT implement a deck
    scope filter — that is S16's (AC-S16-4). Stamp lanes over whatever rows the (S16-scoped or, if S16
    has not landed, unscoped) deck yields; do not re-model auth.
-7. _Owner/product:_ hand back the follow-ons — G1 (reply-event classification rules), G2 (any delivery),
-   G3 (scheduled digest), G4 (future deploy). None are performed autonomously.
+7. _Owner/product:_ hand back G1 (reply-event classification rules), G2 (any delivery), and G3
+   (scheduled digest). G4 routine deploy, smoke, and traffic promotion follow D05 only after its full
+   gate is green. Interactive auth, credentials/scopes, IAM, billing/quota, provider inputs, and
+   destructive operations remain owner-run.
 8. _Verify:_ run the full gate list above; browser-walk the hub + deck + desk with an Editor session and
    an Admin session (the review digest appears only for Admin); confirm the three surfaces agree on the
    decision count.

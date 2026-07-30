@@ -9,7 +9,102 @@
 
 This log is the append-only history. For the always-current resume pointer (active lane,
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
-two disagree, this status log wins and `docs/loop-state.md` is corrected.
+two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
+
+## S54.1 local gate parity + production-governance reconciliation (2026-07-29)
+
+S54.1 is complete locally. `scripts/verify.sh` and `.github/workflows/ci.yml` now both execute
+`npm run test:firestore`; CI also installs Java 21 and caches the Firebase emulator download.
+
+Evidence:
+
+- Windows Node/Java Firestore run: 17 files / 59 tests passed.
+- Falsification: a temporary global permissive Rules clause made the widened gate fail as intended
+  (15 files / 42 tests failed), including the named editable-read authentication case.
+- The clause was removed with `firestore.rules` restored byte-for-byte to
+  `057273a52b04d8731da36dfb66c814dece18f56bfcae15cbd34aeab94d120628`.
+- The full widened local gate then passed in 239 seconds: clean install, format, lint (0 errors),
+  typecheck, unit tests, Firestore rules, router boundary, falsification, context freshness, spec
+  traceability, copy voice, redaction, and production build.
+- Remote CI has not yet been observed; no remote-CI claim is recorded.
+
+The session-start ADC preflight failed because usable Application Default Credentials are absent.
+The exact owner action remains `npm run auth:session`, followed by the ADC, managed-account, and
+suppressed CLI-token checks. The current WSL shell has no callable `gcloud` or Windows `cmd.exe`, so
+the latter two checks could not run here. No live read, cloud mutation, deploy, or live eval was
+attempted.
+
+The production governance package was reconciled before merge: dates now match the 2026-07-29 CDT
+event; the tracked decision record names the browser-local receipt limitation and leaves D44/D49/D51
+receipt-needed; D12 uses its exact six protected paths; D05 deploy authority is separated from
+owner-run auth/IAM/billing/scopes/destructive work; the legacy cost value is observed enforcement,
+not headroom; S48 owns the refreshed-token/no-lockout D59 interlock; S47 requires RentVine
+provider-contract evidence rather than assigning legal responsibility; D62 is owned by S19; and
+S40 uses create/redirect/retain/retire service replacement semantics while reserving service/project
+creation plus Pub/Sub/Firebase/OAuth dependency mutation to the owner and limiting D05 to a routine
+revision deploy on resources that already exist. S53 now keeps Sheet write-back and comp screenshot
+closed until their immutable preview/confirmation, idempotency, receipt/readback, reconciliation, and
+rollback contracts are implemented.
+
+Next safe slice: S53.1, routing live Sheet write-back through its closed Action Registry gate and
+environment descriptor. S52's null ceiling and stale ADC park all cost-bearing/live work while local
+app-plane slices continue.
+
+## Production phase authorized — governance rewrite + S51–S54 specs (2026-07-29)
+
+Documentation, governance, and spec cycle. No application code, cloud resource, data migration,
+action gate, deploy, send, or external write changed.
+
+**Owner input.** A 64-decision production-unblock audit packet was built from a seven-domain
+adversarially-verified sweep (311 raw findings → 117 verified live → 64 deduplicated decisions, 23
+phase-blocking), and the owner directed PMI KC into the live production phase. The questionnaire's
+selections existed only in browser-local state and no export is tracked, so the repository records a
+sanitized provenance-labeled reconstruction rather than claiming an unverifiable accepted/changed
+count. Recorded as `F-PRODUCTION-PHASE-AUTHORIZED`.
+
+**Two infrastructure items closed during the audit, both verified live against `pmi-kc-kb-prod`:**
+
+- Firestore backups + PITR provisioned (`F-FIRESTORE-BACKUPS`): `POINT_IN_TIME_RECOVERY_ENABLED`
+  with a 7-day window, `DELETE_PROTECTION_ENABLED`, daily 7d + weekly 14w schedules. This was the
+  ledger's highest-priority pre-real-data gap and it also removed the sequencing conflict blocking
+  S40's backed-up migration.
+- The budget kill-switch was found **already armed** since 2026-06-23 — budget → `budget-guardrail-topic`
+  → ACTIVE `budget-guardrail` function. The `docs/whats-next.md` ask to confirm it was stale.
+
+**Governance rewritten.** New **Production Phase Authorization** section in `AGENTS.md`: live
+resident data authorized (D03); the green light is a list of named Action Registry keys and never a
+category (D02); standing loop authority to commit/push (D04), deploy/promote (D05), queue-a-question
+and continue (D06), and interleave S28–S39 (D10), bounded by six protected paths (D12); bounded
+pilot rollout (D08). `docs/autonomous-agent-runner.md`'s "Commit Queue" section became "Commit, Push,
+And Deploy Authority" (router-boundary gate updated to match). The Definition of Done now says an
+undecided point is not by itself a stop condition.
+
+**Cost ceiling superseded** (`F-COST-CEILING-S52`, supersedes `F-BUDGET-1`). Three verified
+corrections drove it: the guardrail applies the **smaller** of the budget and its own
+`KILL_SWITCH_CAP_USD`, so raising the budget alone produced false headroom; the cap was **per
+calendar month**, not the lifetime total it was described as; and `check-budget-guard.mjs` enforces
+posture, never a dollar amount. The kill-switch chain itself is correct and stays armed — what
+changes is its level and its failure behavior.
+
+**Four new suites specified.** S51 operational readiness (monitoring, incident, retention,
+close-only runtime suspend, capacity, rollback rehearsal); S52 cost governance; S53 green-light
+activation and gate integrity; S54 verification/CI parity. Five existing specs amended for changed
+decisions: S40 (dedicated Demo project, `pmi-kc-app` rename, monitoring + rollback exit criteria),
+S31 (stale owner dependency deleted — the Pub/Sub infrastructure was finished 2026-07-23), S45
+(bulk excludes High/Blocked, reversing the 2026-07-20 accept), S47 (RentVine resident channel, not a
+standalone SMS build), S41 and S48 (Safari/iPhone dictation, `<main>` landmark, teammate invite).
+
+**Four open questions closed:** `Q-ABC-1` retired, `Q-KBCORR-2` and `Q-SUPP-FOLLOWUP` resolved,
+`Q-RENTCAST-ENDPOINT` partially resolved. Client/vendor asks moved to
+`docs/client-asks-2026-07-29.md`.
+
+**Two control-surface defects are recorded and take priority over new features:** the live Sheet
+write-back executes without consulting its Action Registry gate, and S39's internal notice is
+recorded live but inert because its sender mailbox is empty. A systemic constraint was also
+recorded — the deploy wrapper forwards a **closed allowlist**, so no credential reaches production
+without a paired code change; creating a secret is necessary but never sufficient.
+
+Next: S54 slice 1 wires `test:firestore` into the gate that licenses the standing push grant.
 
 ## S40 implementation, slices 1-4 + defect repair (2026-07-28)
 

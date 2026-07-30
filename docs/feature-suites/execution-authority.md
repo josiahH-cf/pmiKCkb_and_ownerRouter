@@ -46,7 +46,10 @@ and audit all derive from one server-side decision so no surface can silently wi
 - **Buildable now (app-plane).** Pure classifier/authority modules, proposal state, audit schema,
   server-derived UI availability, fake executor tests, and migration of existing queue decisions.
 - **Gated (owner / vendor).** Every real external action, registry promotion, live role claim change,
-  deploy, and production proof remains separately gated by its suite and action key.
+  and production proof remains separately gated by its suite and action key. Routine deploy, smoke,
+  and traffic promotion are runner-executable only under D05's full gate; interactive auth,
+  credentials/scopes, IAM, billing/quota, provider inputs, and destructive operations remain
+  owner-run.
 
 **Open questions & assumptions.**
 
@@ -99,7 +102,13 @@ test`, `npm run verify:router-boundary`, `npm run verify:spec-traceability`, and
 **Forbidden actions / hard gates.** No live execution or registry flip in the authority slice. No
 autonomous/bulk/scheduled send. No client data in audit. Admin self-approval never bypasses technical
 Blocked conditions, documented-evidence rules, exact confirmation, source validation, scope, or the
-action gate. No new role claim is minted live. Deploy remains owner-run; ~$10 cap applies.
+action gate. No new role claim is minted live. The verified non-null S52 production cost ceiling
+applies; if it is unset, cost-bearing/live/cloud work is closed while local/app-plane work continues.
+Routine release follows D05: after the full local gate, auth and budget preflights,
+prior-revision capture, and a captured rollback command are green, the runner may deploy; it must
+smoke the new revision successfully before promoting traffic. Interactive authentication,
+credentials/scopes, IAM, billing/quota, provider inputs, and destructive operations remain
+owner-run.
 
 **Ordered prompt sequence.**
 
@@ -114,7 +123,10 @@ action gate. No new role claim is minted live. Deploy remains owner-run; ~$10 ca
    internal Editor Low/Medium behavior without granting Vendor/internal-space crossover.
 6. _Verify:_ run focused adversarial tests, then the full list; falsify direct API, stale preview,
    double-click, Admin self-approval, and technical Blocked override.
-7. _Gate:_ stop before any Action Registry promotion, live role change, send, write, or deploy.
+7. _Gate:_ keep every unimplemented Action Registry promotion, live role change, send, and write
+   closed. A routine application revision deploy is not an owner-decision gate: it follows D05 only
+   after the full local gate, auth and cost preflights, prior-revision capture, rollback preparation,
+   and candidate smoke are green.
 8. _Context update:_ add `F-V1-EXECUTION-AUTHORITY-BUILT` citing AC-S20-1..8; update plan/status/loop
    and the supersede log at the slice boundary.
 

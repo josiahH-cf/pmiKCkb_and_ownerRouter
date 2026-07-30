@@ -129,7 +129,9 @@ detail (file:line evidence, risks) is in the packet. Slice ids match the packet 
 - _Assumption:_ hard gates unchanged this cycle — no autonomous send, no Sheet/SoR write
   execution (`F-WRITE-GATE`), no Cloud Scheduler, no Gmail runtime, no client data on GitHub,
   and no new Action Registry flip. The later owner-approved compose-only
-  `gmail.renewal_notice.draft_create` allowlist does not authorize any send or SoR write. ~$10 cap.
+  `gmail.renewal_notice.draft_create` allowlist does not authorize any send or SoR write. The
+  verified non-null S52 production cost ceiling applies; if it is unset,
+  cost-bearing/live/cloud work is closed while local/app-plane work continues.
 
 **Cross-product impacts.** `lib/connections/*`, `components/connections/*`, `components/console/*`,
 `components/ask/*`, `components/approval/*`, `components/lease-renewal/*`, `app/globals.css`
@@ -148,9 +150,12 @@ golden labeling/distillation scripts.
    pass; extend — never weaken — the value-free sentinel tests; golden harness green after A5).
 3. _Build:_ Wave 2 E1 → E2 → E3 → E4, then the owner-run live seed (E5).
 4. _Build:_ Wave 3 F (rule engine first), G, H in packet order.
-5. _Verify end-of-cycle:_ `bash scripts/verify.sh`; owner-approved redeploy; `smoke:ask-live` +
-   new `smoke:transcribe-live` against the deployed endpoint; browser walkthrough of the unified
-   queue + desks with Dan's Admin session.
+5. _Verify end-of-cycle:_ `bash scripts/verify.sh`; after the full D05 gate, auth and budget
+   preflights, verified non-null S52 ceiling, prior-revision capture, and rollback command are green,
+   run the routine redeploy, then `smoke:ask-live` and new `smoke:transcribe-live` against the new
+   revision before promoting traffic; browser-walk the unified queue + desks with Dan's Admin
+   session. Interactive auth, credentials/scopes, IAM, billing/quota, provider inputs, and
+   destructive operations remain owner-run.
 6. _Context update:_ promote shipped slices to `docs/facts.md` rows. At B1, apply the full
    delete-on-supersede for the OQ-UI-1 tab layout: the supersede-log row, AND amend the OQ-UI-1
    answer in `docs/products/v1-process-qa.md`, AND update the tab-layout wording inside the

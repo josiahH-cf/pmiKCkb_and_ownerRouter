@@ -1,6 +1,6 @@
 # PMI KC Working-App V1 Plan
 
-Last updated: 2026-07-28
+Last updated: 2026-07-29
 
 ## Release Contract
 
@@ -225,9 +225,11 @@ Current serving release, 2026-07-18:
 
 ### P9 - UI/UX Recalibration and Environment Separation (S40–S50)
 
-Status: not started — owner-authorized and decision-complete; specs/loop flag are open, with S40 the
-next implementation suite. No S40–S50 application code, environment provisioning, data migration, or
-deploy is claimed by the 2026-07-28 documentation cycle.
+Status: in progress — S40 slices 1–4 are shipped (server-owned environment descriptor, Admin-page
+degradation repair, fail-closed record classification, cross-environment collision preflight); six
+S40 slices and S41–S50 remain. Environment provisioning, data migration, and the Demo deploy are
+still unperformed. D11 settled the topology: a dedicated Demo GCP project, with the owner supplying
+the exact identifiers.
 
 Program:
 
@@ -266,6 +268,46 @@ Acceptance:
 - Authenticated Admin/Editor/Vendor/resident desktop and 390×844 whole-task coverage, exact-link/
   focus/overlay checks, negative environment/role/effect tests, deterministic full gate, serving
   revision, smoke, prior revision, and rollback evidence are recorded.
+
+### P10 - Live Production Phase (S51–S54)
+
+Status: in progress — the owner directed PMI KC into a live production phase on 2026-07-29 and
+authorized unattended development across the full spec flow. The sanitized D01–D64 reconstruction
+records its provenance and does not invent the unavailable browser-local response export. Governance
+is reconciled; the four suites are specified; S54 slice 1 is locally complete; no provider capability
+has been activated yet.
+
+Program:
+
+- Authority: the Production Phase Authorization in `AGENTS.md`; `F-PRODUCTION-PHASE-AUTHORIZED`.
+- Suites: S51 operational readiness, S52 cost governance, S53 green-light activation and gate
+  integrity, S54 verification/CI parity.
+- Flags: `loop_commit_push_allowed:true`, `loop_deploy_allowed:true`,
+  `provider_interleave_allowed:true`, `runtime_action_gates_preflipped:false`.
+- Order: S53 gate/environment refusal → S53 immutable Sheet and comp-screenshot action contracts →
+  S53 sender/config integrity → S52 read-only baseline/prerequisites → S51 app-plane
+  readiness → activate S52/S51 infrastructure when their named dependencies are satisfied → land
+  S40's environment-parameterized zero-traffic candidate/smoke/promotion release-safety slice →
+  routine deploy/live verification when auth and cost gates are green → resume the remaining S40
+  environment/data work and dependency-ready suite flow. Protected-path changes are parked for
+  owner review while independent work continues.
+
+Acceptance:
+
+- The gate that licenses an unattended push is the full one, with `test:firestore` wired into
+  `scripts/verify.sh` and CI (S54, D23). Local falsification and the widened full gate are recorded;
+  remote CI remains unobserved until the checkpoint is pushed.
+- The live Sheet write-back consults its Action Registry gate and carries an
+  environment-descriptor fence; no path writes to a client system of record outside its gate
+  (S53, D32/D02).
+- No capability reports as active while its value is unforwarded by the deploy wrapper; the
+  cutover guard is keyed so a silent inert activation cannot recur (S53, D29).
+- Three operational alert policies plus the separate kill-switch-outcome policy (four total) and
+  one attached human-reaching notification channel exist before live-data cutover; a close-only
+  runtime suspend can stop a live action without a deploy (S51, D13/D09).
+- The cost ceiling is set from a measured burn baseline, with the budget amount and
+  `KILL_SWITCH_CAP_USD` moved in lockstep and covered per project (S52, D01).
+- Live operation runs as a bounded pilot with a stated abort trigger (D08, `F-PILOT-ROLLOUT`).
 
 ## Per-Action Provider Activation
 

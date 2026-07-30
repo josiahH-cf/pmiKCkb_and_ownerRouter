@@ -8,7 +8,7 @@ durable detail in `docs/`.
 > ⚪ **Temporary Operating Overlay — Remote Away Mode (INACTIVE as of 2026-06-15).**
 > Normal owner-present governance is back in effect. Keep doing readiness, docs,
 > verification, and client-unblock work, but do not treat the old remote queue as
-> standing approval for live/cloud/client actions. The durable ~$10 budget ceiling,
+> standing approval for live/cloud/client actions. The production cost ceiling owned by S52,
 > security rules, human-send authority, and system-of-record write gates still apply.
 > Details live in `docs/away-mode.md` and `docs/budget-and-cost-policy.md`.
 
@@ -34,9 +34,10 @@ These invariants PERMIT go-live and must be preserved — they never justify kee
 - Sample/test data never becomes a real draft or send.
 - Staff, agent, connector, cloud, build, and runtime identities stay `pmikcmetro.com`/service.
 
-Recorded as `F-SEND-AUTHORIZED` in `docs/facts.md` (supersedes `F-WRITE-GATE`). Operational steps that
-only the owner can run (a Cloud Run deploy, a Google Workspace OAuth scope grant) are named as such,
-never as governance blockers.
+Recorded as `F-SEND-AUTHORIZED` in `docs/facts.md` (supersedes `F-WRITE-GATE`). Interactive
+authentication, Google Workspace OAuth scope grants, IAM/billing changes, and destructive migrations
+remain owner-run. Routine Cloud Run deploy, smoke, and traffic promotion follow the bounded D05 grant
+below; neither class of operation is a governance reason to leave unrelated app-plane work pending.
 
 ## Roadmap Build Authorization (standing grant, 2026-07-23)
 
@@ -63,8 +64,9 @@ in scope (S37); automated notifications to internal staff are allowed while ever
 stays human-confirmed (`D-AUTOMATION-LINE`).
 
 The safety NEVERs in `docs/roadmap-unblock-2026-07-23.md` §7 (no autonomous client-facing send, no
-generic blast send, personal account never in an auth path, no PII/guessed-endpoint in git, ~$10 cap,
-every live effect reversible) are preserved and are the ONLY permanent exclusions.
+generic blast send, personal account never in an auth path, no PII/guessed-endpoint in git, the
+S52 production cost ceiling, every live effect reversible) are preserved and are the ONLY
+permanent exclusions.
 
 ## UI/UX Recalibration Authorization (standing grant, 2026-07-28)
 
@@ -83,8 +85,10 @@ unmistakably labeled Live **read-only** context; Demo and Live-read-only project
 Demo cannot create a Live effect. Production contains Live data only and exposes no Demo/Test
 records, seeders, simulators, or product tools. Environment/data context is server-owned and
 fail-closed. Blue/green is the Production revision-promotion/rollback procedure, not a synonym for
-Demo/Production. The currently deployed Production Live+Test behavior remains a truthful historical/
-current-state fact until S40's backed-up migration and owner-run cutover complete; it is no longer
+Demo/Production. The currently deployed Production Live+Test behavior remains a truthful
+historical/current-state fact until S40's backed-up migration and cutover complete. Provisioning,
+IAM/billing, credential/scope, and destructive migration steps remain owner-run; routine deploy,
+smoke, exact-revision traffic promotion, and rollback follow D05. The current behavior is no longer
 the target posture.
 
 **Tool-retirement target.** Delete shipped browser simulations, hard-coded actors, no-op Sample
@@ -98,6 +102,87 @@ alone is never deletion proof.
 `production_allowed`. App-plane suites ship without an Action Registry gate. A provider action gate
 opens in its owning implementation slice when its endpoint/mapping/identity and full action contract
 are documented; an undocumented provider action remains closed and blocks only that activation.
+
+## Production Phase Authorization (standing grant, 2026-07-29)
+
+The owner completed the 64-item production-unblock audit (round 1) and directed PMI KC into a
+**live production phase**. The questionnaire's browser-local selections were not exported, so the
+repository's per-decision record is a sanitized provenance-labeled reconstruction and unresolved
+receipt choices stay safely closed. This section is the controlling grant; the decision record is
+`docs/production-phase-decision-record-2026-07-29.md`, the durable fact is
+`F-PRODUCTION-PHASE-AUTHORIZED` in `docs/facts.md`, and the executable work is S51–S54.
+
+**Live data.** PMI KC has authorized processing of live resident, owner, and lease data in
+Production (D03, owner-attested from a transcribed call, 2026-07-29). Live data is no longer a
+pending permission. The handling rules under Security Rules below continue to bind unchanged.
+
+**The green light is a list of named action keys, never a category (D02).** There is no category,
+readiness-tier, or "everything that is ready" grant, because `lib/integrations/action-gate.ts`
+resolves a per-key seed lookup and has no category concept — a category-shaped grant would be
+expanded into specific keys by the runner rather than by the owner, which is exactly the reviewed
+decision the gate exists to force. Activation is per key with a one-line justification and is
+owned by S53. Routing the live Sheet write-back back through its gate is a prerequisite of the
+first flip.
+
+**Loop autonomy (D04, D05, D06, D10, D12).** The runner has standing authority to:
+
+- commit and push to `main` whenever the full local gate is green — no force-push, history
+  rewrite, tag/release creation, or branch deletion;
+- deploy a routine application revision to an already provisioned service, smoke it, and promote
+  revision traffic when the gate, preflights, prior-revision capture, and rollback proof all pass;
+- continue through uncertainty: queue the question in one owner packet, apply a documented safe
+  default, and keep building instead of stopping;
+- interleave any S28–S39 provider seam whenever no S40–S54 slice is mid-flight, except S36/S37.
+
+These are standing grants, not per-session permissions. They are bounded by the protected paths
+below and by the safety invariants, which no grant overrides.
+
+D05 does not create a service/project or mutate Pub/Sub endpoints/audiences, Firebase authorized
+domains, OAuth redirects, IAM, billing, quotas, scopes, credentials, or destructive data. Those
+remain owner operations unless another exact named grant says otherwise (the S31 Scheduler job is
+the only additional cloud-resource grant in this phase).
+
+**Protected paths (D12).** A change to any of these is prepared and surfaced for owner review rather
+than pushed under the standing grant: `firestore.rules`; `lib/integrations/action-gate.ts`;
+`lib/auth/**`; any `production_allowed` change in
+`lib/integrations/action-registry-seed.ts`; `scripts/check-budget-guard.mjs`; and
+`infra/budget-guardrail/**`. This is the six-item list selected in the audit; do not silently expand
+or contract it. A protected change is isolated, verified, and parked while dependency-independent
+slices continue.
+
+Authority-bearing changes to this router or `docs/facts.md` still require explicit owner direction,
+even though they are not D12 code paths. Append-only verified implementation facts, Q/A resolutions,
+and Supersede Log markers may commit and push with their green slice when they do not widen an action
+key, identity, safety NEVER, cost gate, protected-path list, or live-effect authority. The 2026-07-29
+production-phase governance reconciliation is explicitly owner-authorized for commit and merge; that
+authorization does not generalize to future authority changes or to any protected code path.
+
+**Narrow S31 cloud grant (D37).** In addition to routine D05 application deploys, the runner may
+create or update only the S31 Gmail-watch Cloud Scheduler job after S52 has a non-null verified
+ceiling, auth and budget preflights pass, the exact managed OIDC service account and audience are
+documented, the print-only plan is reviewed, and a rollback/delete command is captured. This is not
+authority to create arbitrary cloud resources. Monitoring channels/policies, IAM, billing, secrets,
+credentials, and scope grants remain owner-run.
+
+**Cost ceiling (D01).** The former flat cloud-cost cap is superseded. It was wired to a kill
+switch whose only behavior is to disable billing on the production project — a self-inflicted
+outage with no operator notification — and it was a per-calendar-month limit widely misdescribed
+as a lifetime total. S52 owns the replacement: a hard stop set above realistic monthly burn, kept
+armed, plus a mid-level alert-only threshold that reaches the operator directly. Both enforcement
+points (the budget amount and the guardrail's own `KILL_SWITCH_CAP_USD`) move together, because
+the function applies the smaller of the two. Until S52 sets its value, no cost-bearing step may
+assume the retired figure.
+
+**Rollout (D08).** Live operation begins as a bounded pilot — a named property set or the next
+renewal cohort, two to four weeks, with a stated abort trigger — not a simultaneous
+everything-on cutover.
+
+**Unchanged by this grant.** Every safety invariant in the Go-Live Authorization above and in
+roadmap §7 survives intact: no autonomous, scheduled, bulk, or model-triggered client-facing
+send; secrets in Secret Manager, never git; a Live system-of-record write keeps its
+preview/confirm/receipt/rollback contract; sample data never becomes a real draft or send;
+managed `pmikcmetro.com`/service identities only; no guessed provider endpoint; every live effect
+reversible. A green light activates a documented capability — it never relaxes one of these.
 
 ## Per-Runner Pointers
 
@@ -171,6 +256,13 @@ route new work through the three-product docs.
 | Admin/Connections/tool retirement (S48) | `docs/feature-suites/admin-connections-tool-retirement.md`                                                             |
 | Compatibility/code/QA retirement (S49)  | `docs/feature-suites/compatibility-code-qa-retirement.md`                                                              |
 | S37 builder recalibration (S50)         | `docs/feature-suites/nocode-builder-recalibration.md`                                                                  |
+| **Unattended production-phase loop**    | `docs/meta-prompts/production-phase-unattended-loop.md` (canonical fresh-context launcher, runner-neutral)             |
+| Production operational readiness (S51)  | `docs/feature-suites/production-operational-readiness.md`                                                              |
+| Production cost governance (S52)        | `docs/feature-suites/production-cost-governance.md`                                                                    |
+| Green-light activation + gates (S53)    | `docs/feature-suites/greenlight-activation-and-gate-integrity.md`                                                      |
+| Verification and CI parity (S54)        | `docs/feature-suites/verification-and-ci-parity.md`                                                                    |
+| Production decision record              | `docs/production-phase-decision-record-2026-07-29.md`                                                                  |
+| Client/vendor asks for this phase       | `docs/client-asks-2026-07-29.md`                                                                                       |
 | V1 execution authority (S20)            | `docs/feature-suites/execution-authority.md`                                                                           |
 | Immediate trusted publication (S21)     | `docs/feature-suites/trusted-publication.md`                                                                           |
 | External Vendor + Gmail OAuth (S22)     | `docs/feature-suites/vendor-portal-and-mailbox.md`                                                                     |
@@ -277,7 +369,10 @@ route new work through the three-product docs.
 - Demo operator: `npm run demo:operator`
 - Live cost preflight: `npm run check:live-cost`
 - Session auth preflight (OWNER, interactive): `npm run auth:session` — run at the START of each new session, before the agent touches a live read. Refreshes the gcloud CLI login + ADC only when stale, then confirms the RentVine env. The AGENT cannot do this (org reauth is interactive-only); the agent only CHECKS with `preflight:adc` and asks the owner to run `auth:session` if it fails.
-- ADC freshness preflight: `npm run preflight:adc` — the read-only check the agent runs FIRST (new session / planning) before any live Google read (Sheets/Firestore/Vertex); if it reports a stale token, the owner reauths via `npm run auth:session` (or scope-free `gcloud auth application-default login`) before building. See loop-state Resume Here.
+- ADC freshness preflight: `npm run preflight:adc` — the read-only check the agent runs FIRST (new
+  session / planning) before any live Google read (Sheets/Firestore/Vertex); if it reports a stale
+  token, the exact owner remediation is `npm run auth:session`. Park live reads and cloud mutations
+  until it passes, while independent local/app-plane building continues. See loop-state Resume Here.
 - Golden-data capture (read-only, in-boundary): `npm run golden:capture -- --live` — writes a gitignored draft (counts-only stdout)
 - Maintenance Drive folder (in-boundary, keyless DWD as a pmikcmetro.com user): `npm run maintenance:ensure-folder -- --live [--shared-drive <id>]` — find-or-creates the photo folder (in a team Shared Drive when `--shared-drive` is given, else the subject's My Drive) + prints the id for SPACE_DRIVE_FOLDER_IDS. The Drive scope is authorized + the Drive API enabled (2026-06-29). Uploads use supportsAllDrives, so Shared Drives work.
 - Golden-data labeling: `npm run golden:worksheet` (build a reviewer worksheet from a draft) → team reviews → `npm run golden:apply-labels -- --worksheet <path>` (write the `labelsVerified:true` set the harness gates on). In-boundary only; never invent labels.
@@ -344,14 +439,16 @@ answer ourselves.
   login or ADC — it silently stalls a live read mid-run. So, PROACTIVELY: at the start of any session
   whose work will touch a live Google read (Sheets/Firestore/Vertex) or gcloud, the agent runs the
   read-only `npm run preflight:adc` itself FIRST; and before any cost-bearing gcloud. If it is stale
-  (or before continuing into work that needs it), the agent STOPS and hands the owner the exact
+  while the owner is present, the agent stops before the live/cloud step and hands the owner the exact
   command to run in their own terminal — spelled in full, with the `npm run` prefix (the bare
   `auth:session` / `run auth:session` fails in PowerShell):
 
       npm run auth:session
 
-  The owner runs it (interactive; it refreshes CLI login + ADC only when stale). The agent never
-  works around a stale token with a personal account. See `F-SESSION-AUTH` +
+  The owner runs it (interactive; it refreshes CLI login + ADC only when stale). During an unattended
+  run, stale auth parks live reads and cloud mutations while independent local/app-plane slices continue
+  with every live gate closed; it does not authorize a personal-account workaround or a fabricated live
+  result. See `F-SESSION-AUTH` +
   [[gcloud-reauth-blocks-agent-shell]].
 
 - **Self-answer before you ask.** Before routing any question to the client, exhaust what the
@@ -471,7 +568,10 @@ answer ourselves.
 - `docs/plan.md` phase `Status:` lines reflect current reality when the slice moved a phase
   forward or hit a blocker.
 - Blockers are concrete client asks or research questions.
-- No product requirement is invented beyond confirmed sources and approved direction.
+- No product requirement is invented beyond confirmed sources and approved direction. Where a
+  point is genuinely undecided, the runner records it in the single owner packet, applies a
+  documented safe default, and continues; an undecided point is not by itself a stop condition
+  (D06, Production Phase Authorization).
 
 ## Do Not
 

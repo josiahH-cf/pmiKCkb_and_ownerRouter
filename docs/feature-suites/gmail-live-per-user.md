@@ -5,6 +5,8 @@
 > Re-scoped 2026-07-14. The proven per-user DWD transport and exact-confirmation controls remain;
 > the former general mailbox-workspace direction is superseded by a workflow-communication adapter.
 > `/gmail-hub` remains as a compatibility URL and is titled “Workflow Communications.”
+> Amended 2026-07-29 for D62: the residual prepare-versus-send-completion race is a bounded
+> pre-production hardening slice owned here. New check: AC-S19-13.
 
 **Status: Deployed Working V1 — 2026-07-15.** Workflow-linked reads, approved labels, and
 exact-confirmed replies use the authenticated user's own PMI KC mailbox through the proven DWD
@@ -46,6 +48,16 @@ truth from email without human review.
   exact reply payload is bound to a short-lived one-time confirmation hash and one transaction claim. Payload drift, expiry,
   cross-user reuse, double-clicks, and concurrency make at most one send attempt. Ambiguous outcomes
   are never retried and require RFC Message-ID reconciliation.
+- **Prepare-time supersede at send completion (D62).** The current store supersedes older pending
+  confirmations after a new prepare and refuses a claim when a sibling is `sending`/`ambiguous`.
+  One interleaving remains: a second prepare can pass the unresolved check and persist `pending`
+  immediately before the first send commits `sent`; the first completion then leaves that newer
+  pending confirmation claimable, indistinguishable from a deliberate follow-up. Close it in the
+  same transaction that marks a confirmation `sent`: every other still-`pending` sibling for the
+  same communication identity that already existed at completion becomes `superseded` with a
+  bodyless audit row. A follow-up prepared after the sent commit remains allowed. Apply the same
+  state transition in Firestore and memory stores; never use timestamps alone without the
+  transactional state recheck.
 - **Targeted receive — `processGmailPushNotification`.** Authenticated Pub/Sub is a mailbox-change
   signal only. Incremental message IDs are matched against existing linked thread IDs; unrelated
   additions cause no thread fetch, model call, task, or notification. History expiry/overflow advances
@@ -99,6 +111,9 @@ truth from email without human review.
 - _Answered 2026-07-14:_ S22 uses Admin invite, one-time password setup, verified-email TOTP,
   assigned-ticket-only frontend, and the same Vendor Gmail/Workspace address through per-vendor OAuth,
   never DWD. Vendor/Admin exactly confirms every AI-assisted send.
+- _Answered 2026-07-29 (D62):_ the concurrent-pending leftover is not an accepted residual. S19
+  supersedes any already-existing pending sibling atomically when the prior send records `sent`;
+  later intentional follow-ups remain available.
 
 **Cross-product impacts.** This suite governs `app/api/gmail-hub/`, `components/gmail-hub/`,
 `lib/gmail-hub/`, `lib/gmail-runtime/`, notification feed/mark-read paths, `lib/auth/roles.ts`,
@@ -153,6 +168,12 @@ QuickBooks, Boom, Drive, or another system of record. Supersede marker:
 - **AC-S19-12** — Value-free Gmail attention is self-mailbox, space-scoped, deduplicated, and
   mark-readable without exposing Gmail/message identifiers or content. _Verify:_ `npm test`; keep
   `gmail-workflow-notifications.test.ts` and notification feed/menu tests green.
+- **AC-S19-13** — In both memory and Firestore stores, force this ordering: confirmation A is
+  claimed, confirmation B is persisted `pending`, then A commits `sent`. A's sent transaction marks
+  B `superseded` and writes one bodyless supersede audit, so attempting B produces zero Gmail send
+  calls. A confirmation C prepared only after A's sent commit stays pending and may be exact-confirmed
+  as an intentional follow-up. A concurrent state change away from `pending` is never overwritten.
+  _Verify:_ `npm test -- tests/unit/gmail-hub-service.test.ts`; `npm run test:firestore`.
 
 Full verification: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`,
 `npm run test:e2e:core`, `npm run verify:router-boundary`, `npm run verify:falsification`,
@@ -164,8 +185,10 @@ access; no browser-supplied recipient for workflow initiation; no autonomous, sc
 event-triggered, model-triggered, bulk, or retry-on-ambiguity send; no attachment fetch; no
 delete/trash/settings/filter/delegate/forwarding; no historical scan/back-label; no automatic model
 processing or workflow status change; no raw Gmail/customer content in git/logs/notifications/state;
-no system-of-record or client Drive write; no outbound vendor communication; no new scope; no Cloud
-Scheduler; no deploy/live proof in an unattended loop; the ~$10 cap remains binding.
+no system-of-record or client Drive write; no outbound vendor communication; no new scope. The S31
+Scheduler is governed separately. Routine application deploy/smoke/promotion follows D05; auth,
+scope, IAM/billing, and destructive operations remain owner-run. No cost-bearing live proof runs
+until S52 records a non-null verified ceiling.
 
 **Ordered prompt sequence.**
 
@@ -183,11 +206,13 @@ Scheduler; no deploy/live proof in an unattended loop; the ~$10 cap remains bind
    unpersisted until a separately approved human-confirm workflow fact model exists.
 7. _Build:_ Integrate maintenance ticket context and simulation-only renewal containment; add no
    owner/vendor initiation without verified recipient sources.
-8. _Verify:_ Run focused tests, then the complete verification list; scan stored/logged records for
+8. _Build:_ D62 — atomically supersede already-existing pending siblings when a prior send commits
+   `sent`, in both Firestore and memory stores, with a bodyless audit and AC-S19-13 race tests.
+9. _Verify:_ Run focused tests, then the complete verification list; scan stored/logged records for
    prohibited content.
-9. _Gate:_ Stop before production linkage until retention and first approved templates/sources are
-   owner-confirmed. Stop before any vendor or system-of-record action.
-10. _Context update:_ Update product docs, Action Registry, facts/status/plan/loop state and record
+10. _Gate:_ Stop before production linkage until retention and first approved templates/sources are
+    owner-confirmed. Stop before any vendor or system-of-record action.
+11. _Context update:_ Update product docs, Action Registry, facts/status/plan/loop state and record
     superseded general-inbox direction once verification is green.
 
 **Deletion/merge recommendation.** KEEP S19 as the active workflow-linked Gmail specification. KEEP

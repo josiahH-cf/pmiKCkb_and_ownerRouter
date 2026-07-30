@@ -398,7 +398,10 @@ prior revisions — `gcloud run services update-traffic --to-revisions=PRIOR=100
 (d) Firebase auth changes are env/config and revert by redeploying the prior revision (failure
 mode "users can't sign in" is safe). (e) `firebase login`/`firebase use` to restore; rules/indexes
 roll back via the prior committed files. (f) revert build-SA IAM; prior images remain. **Hard cost
-stop:** the $10 budget alert is a warning, not a cap — treat unexpected spend as a halt signal.
+stop:** D01 retired the old flat figure. S52's alert and hard-stop values are currently null, so no
+cost-bearing operation has approved headroom. Once owner-selected values are established, the alert
+is warning-only and the higher lockstep budget/guardrail value is the hard stop; unexpected spend
+still halts broader work.
 
 ## Immediate next actions for Josiah
 

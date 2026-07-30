@@ -59,10 +59,14 @@ NAMED sentinel/invariant tests the slice must keep green. Example:
 **Forbidden actions / hard gates.** Restate the safety NEVERs a violation of which is itself a
 falsification (roadmap §7): no autonomous CLIENT-facing send (internal-staff notifications may
 auto-send per `D-AUTOMATION-LINE`); generic non-workflow `gmail.message.send` stays Registry-closed;
-no personal account in any auth path; no secrets/PII/guessed-endpoint in git; ~$10 budget cap; every
+no personal account in any auth path; no secrets/PII/guessed-endpoint in git; the non-null verified
+production cost ceiling defined by S52; every
 live effect one-attempt/idempotent/receipted/reversible, with every client-facing send OR
 system-of-record write additionally human-confirmed (internal-staff notifications may auto-run per
-`D-AUTOMATION-LINE`); deploys and credential/scope grants stay owner-run. This suite MAY build a live provider and a system-of-record write to the seam and prepare
+`D-AUTOMATION-LINE`); interactive auth, IAM/billing changes, credential/scope grants, and destructive
+operations stay owner-run, while routine application deploy, smoke, exact-revision traffic
+promotion, and rollback follow D05 after their gates and preflights pass. This suite MAY build a live
+provider and a system-of-record write to the seam and prepare
 its gate flip — it does NOT set `production_allowed:true` until its named owner dependency is
 documented, at which point the flip updates both `EXECUTABLE_ALLOWLIST` copies plus the pinned schema
 tests. Under the S40 target, Production accepts Live data only; invented product data/effects live in

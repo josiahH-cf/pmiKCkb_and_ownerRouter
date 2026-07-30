@@ -45,7 +45,28 @@
 - **AC-S38-7** - The send confirm path, exercised in the Test lane with an injected provider, exact-confirms the payload against its hash (a mismatched confirmation is refused, not sent) and yields a receipt carrying a stable RFC Message-ID that reconciles, proving the preview/confirm/receipt/reconcile/rollback contract with zero live provider contact. _Verify:_ `npm test -- tests/unit/maintenance-owner-email.test.ts`; `npm run typecheck`; `npm run lint`.
 - **AC-S38-8** - This spec keeps the spec-shape and traceability gates green (every required section present, one `AC-` id, a README row, unique S38-numbered ids). _Verify:_ `npm test -- tests/unit/feature-suite-spec-shape.test.mjs`; `npm run verify:spec-traceability`.
 
-**Forbidden actions / hard gates.** Draft-only until the send flip: the S38a route and composer create unsent Gmail drafts and never call send. No autonomous CLIENT-facing send; every owner-facing send stays human-initiated and exact-confirmed against a payload hash (internal-staff notifications may auto-send per `D-AUTOMATION-LINE`, but an owner is not staff, so owner notices never auto-send). The owner recipient always resolves from the authoritative RentVine mapping (`portfolio.owners[].email`), never guessed; an unresolved owner blocks with a visible `Needs Verification` marker. Generic non-workflow `gmail.message.send` stays Registry-closed. The personal `josiah.abernathy@gmail.com` account never enters any auth path. No secrets, customer PII, or guessed provider endpoints in git or evidence. The roughly $10 total cost ceiling holds, enforced by the real billing kill switch. Every live effect stays target-labeled, one-attempt, idempotent, receipted, reconcilable, monitored, and reversible. Deploys and credential/scope grants stay owner-run. This suite MAY build the live send provider and its confirm/receipt path to the seam and prepare the gate flip, but it does NOT set `gmail.maintenance_owner_notice.send` to `production_allowed:true` until the named owner dependency is documented; at that point the flip updates both `EXECUTABLE_ALLOWLIST` copies plus the two pinned schema tests. Suite-specific hard stop: the draft body must be composed by `buildOwnerNoticeDraft` from ticket facts; no free-typed owner body bypasses the source-tagged, `Needs Verification`-marking composer.
+**Forbidden actions / hard gates.** Draft-only until the send flip: the S38a route and composer create
+unsent Gmail drafts and never call send. No autonomous CLIENT-facing send; every owner-facing send
+stays human-initiated and exact-confirmed against a payload hash (internal-staff notifications may
+auto-send per `D-AUTOMATION-LINE`, but an owner is not staff, so owner notices never auto-send). The
+owner recipient always resolves from the authoritative RentVine mapping
+(`portfolio.owners[].email`), never guessed; an unresolved owner blocks with a visible
+`Needs Verification` marker. Generic non-workflow `gmail.message.send` stays Registry-closed. The
+personal `josiah.abernathy@gmail.com` account never enters any auth path. No secrets, customer PII, or
+guessed provider endpoints in git or evidence. The verified non-null S52 production cost ceiling
+applies; if it is unset, cost-bearing/live/cloud work is closed while local/app-plane work continues.
+Every live effect stays target-labeled, one-attempt, idempotent, receipted, reconcilable, monitored,
+and reversible. Routine release follows D05: after the full local gate, auth and budget preflights,
+prior-revision capture, and a captured rollback command are green, the runner may deploy; it must
+smoke the new revision successfully before promoting traffic. Interactive authentication,
+credentials/scopes, IAM, billing/quota, provider inputs, and destructive operations remain owner-run.
+This suite MAY build the live send provider and
+its confirm/receipt path to the seam and prepare the gate flip, but it does NOT set
+`gmail.maintenance_owner_notice.send` to `production_allowed:true` until the named owner dependency
+is documented; at that point the flip updates both `EXECUTABLE_ALLOWLIST` copies plus the two pinned
+schema tests. Suite-specific hard stop: the draft body must be composed by `buildOwnerNoticeDraft`
+from ticket facts; no free-typed owner body bypasses the source-tagged, `Needs Verification`-marking
+composer.
 
 **Ordered prompt sequence.**
 

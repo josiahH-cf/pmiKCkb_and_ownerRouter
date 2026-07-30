@@ -154,10 +154,13 @@ assertIncludes("docs/autonomous-agent-runner.md", [
   "docs/environment-handoff.md",
   "docs/legacy/owner-router-artifact-source.md",
   "End-State First Planning",
-  "Approval Gates",
+  "Approval And Execution Gates",
   "Secrets And Environments",
   "Unattended Implementation Loop",
-  "Commit Queue",
+  // Renamed from "Commit Queue" on 2026-07-29: owner decisions D04/D05 replaced the
+  // prepare-a-queue-and-ask rule with a standing commit/push/deploy grant. The section must
+  // still exist and still document how the runner ships — only its identity changed.
+  "Commit, Push, And Deploy Authority",
   "Stale Context Retirement",
   "Final Handoff",
 ]);

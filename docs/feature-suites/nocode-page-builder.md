@@ -25,7 +25,11 @@
 
 - **Buildable now (app-plane).** Everything in this suite. The schema, the section library, the renderer and dynamic route, the editable-layer persistence with `change_log` plus scope and `read_only`, the Admin editor, the reuse of the publish, validation, immutable-version, and rollback machinery, the authority-firewall extension, the `manageAdmin` gating, and the optional curated nav. It adds no system-of-record write, no autonomous send, and no new external scope; a page definition performs no external effect and stays outside the Action Registry entirely, so `production_allowed` is not even a concept for it. The loop builds all of it unattended across the three phases below and stays `production_allowed:false` because it registers no action.
 - **Build to the seam (live provider).** None. This suite has no external provider, no third-party API, no credential, and no live effect to build toward. A page definition is inert app-plane configuration; there is nothing to stub with a fake provider and nothing to replace with a live one.
-- **Owner dependency (the one flip).** None. There is no external endpoint, credential, scope grant, vendor confirmation, or billing approval to activate. The suite ships entirely on the app plane. The only human gate is the ordinary in-app Admin (`manageAdmin`) who authors and publishes pages, which is a product capability rather than an owner console step. The routine `npm run deploy` that ships every merged change is the owner's normal step, not a feature-specific dependency.
+- **Owner dependency (the one flip).** None. There is no external endpoint, credential, scope grant,
+  vendor confirmation, or billing approval to activate. The suite ships entirely on the app plane.
+  The only human gate is the ordinary in-app Admin (`manageAdmin`) who authors and publishes pages,
+  which is a product capability rather than an owner console step. Routine deploy, smoke, and traffic
+  promotion follow D05 after its full gate is green and are not a feature-specific dependency.
 
 **Open questions & assumptions.**
 
@@ -62,7 +66,32 @@ Phase 3 - authority firewall and scope/nav containment:
 - **AC-S37-6** - A published page respects its `required_capability` and Space scope: a user without the capability or Space access is redirected or denied exactly as the existing page guards do, and a curated nav entry for the page is capability and scope filtered and can only target an in-app `/pages/<slug>` route with no external href. _Verify:_ `npm test -- page-renderer route-auth-boundary`.
 - **AC-S37-7** - Full checks pass. _Verify:_ `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run verify:spec-traceability`, `npm run build`; keep `feature-suite-spec-shape.test.mjs` green.
 
-**Forbidden actions / hard gates.** Admin-only: every authoring, reorder, delete, and publish route requires `manageAdmin`; an Editor or Approver cannot author pages. A page or section can NEVER grant execution, enable or register an external action, change the Action Registry, connector policy, environment config, or system prompt, or widen a role or scope; this mirrors the S21 authority firewall (`assertAuthorityFieldsAreInert` over `FORBIDDEN_AUTHORITY_FIELDS`), and a page carries no `processActionKeys` and touches no executor. The renderer never invokes the action gate or executor and issues no external effect; layout never bypasses the action gate because a page cannot reference an action to gate. Published pages are validated exactly like process definitions (type `application/json`, size cap, MIME detection, malware, sensitivity, and page-graph validity), failing closed on any unavailable required scanner. The section library is a fixed code-owned allowlist; an author cannot introduce a new component type, raw HTML, script, iframe, or external link or embed, and rich text renders inert. Slugs cannot shadow the sign-in, `/admin/*`, or vendor routes; pages live under `/pages/`. Standard safety NEVERs are preserved (roadmap §7): no autonomous client-facing send (internal-staff notifications may auto-send per `D-AUTOMATION-LINE`, but this suite sends nothing); generic non-workflow `gmail.message.send` stays Registry-closed; the personal `josiah.abernathy@gmail.com` account never enters an auth path; no secrets, PII, or guessed endpoint in git; ~$10 budget cap; and deploys stay owner-run. Suite-specific hard stop: because this suite creates no external action, it never sets `production_allowed:true`, never touches either `EXECUTABLE_ALLOWLIST` copy, and never edits the action-registry schema tests; if a slice would need any of those, it has left the page-builder boundary and must stop.
+**Forbidden actions / hard gates.** Admin-only: every authoring, reorder, delete, and publish route
+requires `manageAdmin`; an Editor or Approver cannot author pages. A page or section can NEVER grant
+execution, enable or register an external action, change the Action Registry, connector policy,
+environment config, or system prompt, or widen a role or scope; this mirrors the S21 authority
+firewall (`assertAuthorityFieldsAreInert` over `FORBIDDEN_AUTHORITY_FIELDS`), and a page carries no
+`processActionKeys` and touches no executor. The renderer never invokes the action gate or executor
+and issues no external effect; layout never bypasses the action gate because a page cannot reference
+an action to gate. Published pages are validated exactly like process definitions
+(type `application/json`, size cap, MIME detection, malware, sensitivity, and page-graph validity),
+failing closed on any unavailable required scanner. The section library is a fixed code-owned
+allowlist; an author cannot introduce a new component type, raw HTML, script, iframe, or external
+link or embed, and rich text renders inert. Slugs cannot shadow the sign-in, `/admin/*`, or vendor
+routes; pages live under `/pages/`. Standard safety NEVERs are preserved (roadmap §7): no autonomous
+client-facing send (internal-staff notifications may auto-send per `D-AUTOMATION-LINE`, but this
+suite sends nothing); generic non-workflow `gmail.message.send` stays Registry-closed; the personal
+`josiah.abernathy@gmail.com` account never enters an auth path; and no secrets, PII, or guessed
+endpoint enter git. The verified non-null S52 production cost ceiling applies; if it is unset,
+cost-bearing/live/cloud work is closed while local/app-plane work continues. Routine release follows
+D05: after the full local gate, auth and budget preflights, prior-revision capture, and a captured
+rollback command are green, the runner may deploy; it must smoke the new revision successfully before
+promoting traffic. Interactive authentication, credentials/scopes, IAM, billing/quota, provider
+inputs, and destructive operations remain owner-run. Suite-specific hard stop: because this suite
+creates no external action, it never
+sets `production_allowed:true`, never touches either `EXECUTABLE_ALLOWLIST` copy, and never edits the
+action-registry schema tests; if a slice would need any of those, it has left the page-builder
+boundary and must stop.
 
 **Ordered prompt sequence.**
 
@@ -72,7 +101,9 @@ Phase 3 - authority firewall and scope/nav containment:
 4. _Build (Phase 3):_ wire `assertAuthorityFieldsAreInert` over the page snapshot, add the optional Admin-curated nav entries (capability and scope filtered, in-app href only), and confirm zero Action Registry or executor coupling. Satisfies AC-S37-5 and AC-S37-6.
 5. _Verify:_ run the focused, emulator, and full checks; adversarially falsify with an unknown `component_type`, duplicate section ids, an oversize or lying JSON body, an authority-field injection, a non-Admin author, a cross-scope publish, a slug that shadows a security route, an external-href nav entry, and a scanner outage. Satisfies AC-S37-7.
 6. _Gate:_ none to flip. Confirm the suite added no Action Registry entry and set no `production_allowed:true`, so the seed allowlists and action-registry schema tests are unchanged.
-7. _Owner:_ none. There is no external dependency; publishing pages is an in-app Admin capability. The routine `npm run deploy` that ships all merged code remains the owner's normal step, not a feature blocker.
+7. _Gate:_ there is no external dependency; publishing pages is an in-app Admin capability. The
+   routine deploy, smoke, and traffic promotion follow D05 after its full gate is green, so they are
+   not feature blockers.
 8. _Context update:_ add `F-NOCODE-BUILDER-BUILT` to `docs/facts.md` citing AC-S37-1..7 (record each phase as it lands), add the `Q-PAGEBUILDER-EDITOR` open row if the Editor-authoring question is raised, register this file in the README table and the `AGENTS.md` Route Table, and update `docs/loop-state.md` to the next Wave-3 slice.
 
 **Deletion/merge recommendation.** KEEP as the canonical no-code page/layout builder spec, and treat it as a MULTI-SLICE suite of three phases (model plus renderer, editor plus publish, authority plus containment), each phase a shippable slice with its own AC cluster and its own `F-NOCODE-BUILDER-BUILT` update. The disposable per-phase plan lives in `docs/temp/nocode-page-builder-plan.md` and is deleted when the phase lands; this spec persists. No MERGE and no supersede: it reuses S21 without replacing it and introduces net-new capability, so nothing is retired.

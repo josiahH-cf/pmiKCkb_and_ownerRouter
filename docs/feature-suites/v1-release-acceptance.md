@@ -187,7 +187,13 @@ provider activation inherited from another action. No Live read/write/send occur
 identity, contract, Registry/health, target/effect, authority, exact human confirmation, one-attempt
 claim, receipt, and correction/reconciliation are green. Deployment requires authenticated production
 identity, budget preflight, captured rollback revision, and verification; it does not itself authorize
-an unavailable provider. ~$10 cap and kill switches remain.
+an unavailable provider. The verified non-null S52 production cost ceiling and its kill switches
+apply; if the ceiling is unset, cost-bearing/live/cloud work is closed while local/app-plane work
+continues. Routine release follows D05: after the full local gate, auth and budget preflights,
+prior-revision capture, and a captured rollback command are green, the runner may deploy; it must
+smoke the new revision successfully before promoting traffic. Interactive authentication,
+credentials/scopes, IAM, billing/quota, provider inputs, and destructive operations remain
+owner-run.
 
 **Ordered prompt sequence.**
 

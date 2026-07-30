@@ -13,7 +13,9 @@
 commands. Today `Admin -> Request a new Space` records the request and prints the exact owner console
 steps (a Discovery Engine data-store create, a Drive folder, the `SPACE_*` `.env.local` lines, an
 `import:agent-search`, and the deploy), but it provisions nothing, because creating a Vertex AI Search
-(Discovery Engine) data store is a cost-bearing call that counts against the roughly ten dollar cap. The
+(Discovery Engine) data store is a cost-bearing call governed by the verified non-null S52 production
+cost ceiling. If that ceiling is unset, this cost-bearing/live/cloud call is closed while local/app-plane
+work continues. The
 end state: the Admin fills the same form, checks an explicit "this is cost-bearing" confirmation for THIS
 Space, clicks provision, and the app creates the real Drive folder and the real data store, then persists
 the new Space so it is immediately queryable through Ask without a redeploy. The existing eleven
@@ -75,9 +77,10 @@ provisioned)` returns the effective `{ vertexDataStoreIds, driveFolderIds }` as
   executor, persist the receipt, and return it alongside the still-emitted durable `.env.local` lines.
 - **Cost-confirm UI (new) -- `components/admin/SpaceProvisionPanel.tsx` on
   `app/admin/spaces/request/page.tsx`.** The intake panel gains a per-Space cost-confirm checkbox ("I
-  understand provisioning this Space runs a cost-bearing Vertex data-store create counted against the
-  budget cap") and a "Provision this Space now" button enabled only when the box is checked and the flag
-  is on; it renders the plan and, on success, the persisted receipt (real data-store name and folder id).
+  understand provisioning this Space runs a cost-bearing Vertex data-store create governed by the
+  verified S52 production cost ceiling") and a "Provision this Space now" button enabled only when the
+  box is checked and the flag is on; it renders the plan and, on success, the persisted receipt (real
+  data-store name and folder id).
   When the flag is off it shows only today's behavior: the recorded request and the printed owner
   commands.
 
@@ -106,13 +109,15 @@ provisioned)` returns the effective `{ vertexDataStoreIds, driveFolderIds }` as
   identity and billing, and the runtime flag stays false. Everything up to that flip is code the loop
   writes and proves against fakes plus the fail-closed live path.
 - **Owner dependency (the one flip).** Two owner actions, then one config flip: (1) a billing approval to
-  permit cost-bearing Discovery Engine data-store creation under the roughly ten dollar cap, and (2) a
+  permit cost-bearing Discovery Engine data-store creation under the verified non-null S52 production
+  cost ceiling, and (2) a
   service identity permitted to create data stores, granted by giving the app runtime service account (the
   ADC identity `vertex-search.ts` already uses) or a dedicated provisioning service account the
   `roles/discoveryengine.admin` role (`discoveryengine.dataStores.create`). Once both are in place the
-  owner sets `SPACE_PROVISIONING_ENABLED=true` in `.env.local` and redeploys (owner-run). Until then the
-  provision route fails closed and only the intake plus command-emit render. This flip is a reviewed
-  one-line env change plus an IAM grant, never a code change to force the gate on.
+  owner sets `SPACE_PROVISIONING_ENABLED=true` in the approved runtime environment source. Until then
+  the provision route fails closed and only the intake plus command-emit render. This flip is a reviewed
+  one-line environment change plus an IAM grant, never a code change to force the gate on. The subsequent
+  routine deploy, smoke, and traffic promotion follow D05 after its full gate is green.
 
 **Open questions & assumptions.**
 
@@ -121,7 +126,8 @@ provisioned)` returns the effective `{ vertexDataStoreIds, driveFolderIds }` as
   `.env.local` (the confirmed 2026-07-22 deploy gotcha, where a Space set only via a one-off env update
   was reverted on the next deploy). The still-emitted `.env.local` lines are the durable redeploy record;
   the Firestore record is what makes the Space live immediately. The alternative (env-only, forced
-  redeploy) is rejected because a newly created Space would be dead until an owner deploy.
+  redeploy) is rejected because a newly created Space would be dead until a later application
+  revision deploy.
 - _Assumption:_ the Discovery Engine data-store CREATE is the single cost-bearing owner-gated step. The
   Drive folder create rides the existing keyless DWD identity (`mintDriveDwdToken` with the Sheets/Drive
   service account and subject, `drive.file` scope), so it needs no new owner grant; only the data-store
@@ -200,9 +206,14 @@ the promote step. NAMED existing sentinels to keep green throughout: `tests/unit
 **Forbidden actions / hard gates.** Restate the safety NEVERs whose violation is itself a falsification: no
 autonomous client-facing send (this suite sends nothing); generic non-workflow `gmail.message.send` stays
 Registry-closed; the personal `josiah.abernathy@gmail.com` never enters any auth path; no secrets, client
-PII, or guessed provider endpoints in git or evidence; the roughly ten dollar cap holds, enforced by the
-real billing kill switch; every live effect is one-attempt, idempotent, receipted, and reversible; deploys
-and the credential/scope grant stay owner-run. Suite-specific hard stops, each a falsification if violated:
+PII, or guessed provider endpoints in git or evidence. The verified non-null S52 production cost ceiling
+applies and its kill switch remains armed; if the ceiling is unset, cost-bearing/live/cloud work is
+closed while local/app-plane work continues. Every live effect is one-attempt, idempotent, receipted,
+and reversible. Routine release follows D05: after the full local gate, auth and budget preflights,
+prior-revision capture, and a captured rollback command are green, the runner may deploy; it must
+smoke the new revision successfully before promoting traffic. Interactive authentication,
+credentials/scopes, IAM, billing/quota, provider inputs, and destructive operations remain owner-run.
+Suite-specific hard stops, each a falsification if violated:
 (1) NEVER create a data store without both the per-Space cost-confirm (`confirm:true`) and
 `SPACE_PROVISIONING_ENABLED` true; (2) NEVER clobber an env `SPACE_*` entry, the env-wins merge is an
 enforced invariant with a named sentinel; (3) fail closed when the flag is off or the create identity
@@ -241,7 +252,9 @@ seam and prepares the flip; it does not enable provisioning until the named owne
    green.
 9. _Gate / Owner:_ STOP at the one flip. Hand back for the owner billing approval plus the
    `roles/discoveryengine.admin` grant to the provisioning identity, then the owner-run
-   `SPACE_PROVISIONING_ENABLED=true` plus redeploy. The loop never bills, grants IAM, or deploys.
+   `SPACE_PROVISIONING_ENABLED=true` runtime-environment change. The loop never bills or grants IAM;
+   once these inputs and the full D05 gate are green, it may perform the routine deploy, smoke, and
+   traffic promotion.
 10. _Context update:_ promote the shipped app-plane and to-the-seam work to a `docs/facts.md`
     `F-SPACE-PROVISIONING` row citing AC-S36-1..6, record `Q-SPACE-1` in Open Questions, register this
     file in `docs/feature-suites/README.md`, `AGENTS.md` Route Table, and the Project Map, and update

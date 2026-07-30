@@ -13,8 +13,9 @@ You are building S13 Wave 2 (space-teeth, S11): a reusable per-Space desk genera
 Renewal Desk shape, wired to two V1 desks (Move-In, Move-Out + Deposit Disposition), plus two Draft
 process definitions that wrap already-built draft composers (Tenant Renewal Notice, Owner Renewal
 Outreach). Work in the smallest safe slices; follow docs/autonomous-agent-runner.md
-(verification-and-falsification, stop-and-reset); honor the $10 cap and the no-SoR-write gate
-throughout. E1-E4 are unattended-authorized; E5 (the live seed) is owner-run — do not attempt it.
+(verification-and-falsification, stop-and-reset); honor the non-null verified production cost ceiling
+defined by S52 and the no-SoR-write gate throughout. E1-E4 are unattended-authorized; E5 (the live
+seed) is owner-run — do not attempt it.
 
 STEP 0 — Re-anchor (read-only). Read AGENTS.md, then docs/facts.md (esp. F-PRECUST-CYCLE,
 F-PRECUST-WAVE1), docs/loop-state.md, the latest docs/status.md entry, docs/feature-suites/

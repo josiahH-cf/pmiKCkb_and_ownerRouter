@@ -43,7 +43,9 @@ separate demo-chain fixture is explicitly labeled synthetic and browser-only.
   (`lib/gmail-inbox-zero/drafts.ts:35`) runs FIRST, so an unapproved template or a hard-excluded
   category (`Owner money` / `Legal/notices` / `Tenant disputes`, `constants.ts:32`) refuses with
   `refusedBeforeModel:true` and the model is never invoked. The response carries the banner-bearing
-  `draft` + `usedModel`. One model call per thread (on-demand, under the $10 cap); NO Gmail call.
+  `draft` + `usedModel`. One model call per thread, on demand and subject to the verified non-null S52
+  production cost ceiling; when that ceiling is unset, the model call stays closed while the
+  deterministic local/app-plane work continues. NO Gmail call.
 - **Template + triage workspace — `components/gmail-hub/TemplateWorkspace.tsx` (replaces the static
   `app/admin/gmail-inbox-zero/page.tsx:18`).** Renders `LabelRule`/`ReplyTemplate` sets and runs
   `evaluateInboxTriage` (`lib/gmail-inbox-zero/rules.ts:89`) + `buildReplyDraft` over PASTED/sanitized
@@ -99,11 +101,13 @@ separate demo-chain fixture is explicitly labeled synthetic and browser-only.
     `npm run verify:router-boundary` (`lib/gmail-runtime/scopes.ts:6`) and stay forbidden this cycle.
   - Live send-and-receive + reply notifications; autonomous send (PERMANENT ceiling: a human presses
     Send — `GmailRuntimeClient` has `createDraft` only, no send method, `client.ts:48`).
-  - Live PROD use of `gmail.renewal_notice.draft_create`: owner-run deploy of the flipped seed +
-    `GMAIL_DWD_SA` wired (`npm run deploy -- --budget-confirmed`; `npm run smoke:gmail-draft-live`).
+  - Live PROD use of `gmail.renewal_notice.draft_create`: `GMAIL_DWD_SA` must be wired owner-side;
+    then routine deploy, smoke, and traffic promotion follow D05 after its full gate is green
+    (`npm run deploy -- --budget-confirmed`; `npm run smoke:gmail-draft-live`).
   - The two Planned Inbox-0 registry actions (`gmail.label.apply` seed:557, `gmail.draft.create`
     seed:603) — no runtime, stay `Planned`/`production_allowed:false`.
-  - Deploy itself stays owner-run.
+  - Interactive authentication, the DWD grant, credentials/scopes, IAM, billing/quota, provider
+    inputs, and destructive operations stay owner-run.
 
 **Open questions & assumptions.**
 
@@ -125,7 +129,9 @@ separate demo-chain fixture is explicitly labeled synthetic and browser-only.
   only, never live Gmail content (the `rules.ts` domain model is already fixture-only).
 - _Assumption:_ hard gates unchanged. The ONE pre-approved executable entry
   (`gmail.renewal_notice.draft_create`, compose-only, F-GMAIL-RENEWAL-DRAFT-LIVE) is REUSED, never
-  re-approved, and its live prod use stays owner-gated behind deploy + `GMAIL_DWD_SA`.
+  re-approved. The managed `GMAIL_DWD_SA` configuration remains an owner-supplied identity input;
+  after it verifies, routine application revision deploy, smoke, and exact-revision promotion follow
+  D05 rather than becoming an owner-only release step.
 
 **Cross-product impacts.** New: `app/gmail-hub/page.tsx`, `app/api/gmail-hub/anticipatory-draft/route.ts`,
 `app/api/gmail-hub/thread-summary/route.ts`, `app/api/lease-renewal/tenant-notice-draft/route.ts`,
@@ -200,8 +206,13 @@ autonomous send — the ceiling is an UNSENT draft a human presses Send on (`Gma
 only; no send method, no `gmail.send` scope). No system-of-record write (RentVine / Sheet / QuickBooks /
 bank / client Drive). No new Google scope — the `gmail.readonly`/`gmail.modify` literals stay
 code-forbidden by `verify:router-boundary`. No Cloud Scheduler. No client mailbox content on GitHub
-(the composer/workspace operate on sanitized/pasted `TriageMessageFacts` only). ~$10 budget cap
-(single-thread on-demand model calls). Deploy and the DWD grant stay owner-run.
+(the composer/workspace operate on sanitized/pasted `TriageMessageFacts` only). The verified non-null
+S52 production cost ceiling applies to single-thread on-demand model calls; if it is unset,
+cost-bearing/live/cloud work is closed while local/app-plane work continues. Routine release follows
+D05: after the full local gate, auth and budget preflights, prior-revision capture, and a captured
+rollback command are green, the runner may deploy; it must smoke the new revision successfully before
+promoting traffic. Interactive authentication, the DWD grant, credentials/scopes, IAM,
+billing/quota, provider inputs, and destructive operations remain owner-run.
 
 **2026-07-13 audit hardening (QA-004).** Draft categories are stable ids, never presentation-label
 comparisons. `draft-safety.ts` normalizes approved aliases and deterministically scans the untrusted category,
@@ -240,10 +251,13 @@ review-before-send / Waiting on Gmail access guidance.
    Owner Email space links into `/gmail-hub` and drops any live-reading implication.
 8. _Verify:_ Run the full Verify command list above; keep every named sentinel green; adversarial
    4-lens falsification per `docs/autonomous-agent-runner.md`.
-9. _Gate:_ STOP before any live-mailbox read, any new DWD read-scope grant, and any prod deploy of the
-   flipped renewal-draft seed — hand back to the owner.
-10. _Owner:_ (out of loop) the Gmail read access model + read-scope DWD grant; the
-    `npm run deploy -- --budget-confirmed` + `smoke:gmail-draft-live` for live renewal-draft use.
+9. _Gate:_ STOP before any live-mailbox read or new DWD read-scope grant. Keep those capabilities
+   closed until their exact managed-identity scope and provider inputs exist. Do not treat a routine
+   application revision deploy as the missing permission.
+10. _Owner:_ (out of loop) supplies the Gmail read-access model, any new read-scope DWD grant, and
+    managed identity configuration. After those inputs and every D05 precondition verify, the runner
+    performs `npm run deploy -- --budget-confirmed`, candidate smoke
+    (`npm run smoke:gmail-draft-live`), and exact-revision traffic promotion.
 11. _Context update:_ Promote the shipped app-plane surface to a `docs/facts.md` `F-GMAIL-HUB` row citing
     AC-S15-1..AC-S15-7, note that it builds the surface for F-GMAIL-DRAFT-COMPOSER and updates (not
     weakens) the F-ADMIN-IA `app/admin/gmail-inbox-zero/page.tsx` reference, and update

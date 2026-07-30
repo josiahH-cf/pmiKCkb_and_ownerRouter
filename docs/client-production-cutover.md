@@ -1,8 +1,17 @@
-# Client production cutover runbook
+# Historical client production cutover runbook
 
 Updated: 2026-07-15. Target: `pmi-kc-kb-prod`, Cloud Run service `pmi-kc-kb-demo` in
 `us-central1`, canonical host
 `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app`.
+
+> **Superseded for current execution (2026-07-29).** This is the preserved pre-S40 Live+Test
+> cutover record. Do not execute the API-enable, Firebase/Auth, Firestore Rules, or auto-promoting
+> deploy commands below as current instructions. Current cutover order is governed by `AGENTS.md`,
+> `docs/loop-state.md`, S40, S51, and S52: owner-only provisioning/IAM/billing/Auth/scope and
+> protected Rules changes are isolated; S52's values and live lockstep must be verified; then S40's
+> environment-parameterized path creates a zero-traffic candidate, smokes it, and promotes that
+> exact revision under D05. The commands below remain evidence of what produced the dated serving
+> checkpoint only.
 
 This runbook deploys the stable V1 application with both Live and isolated Test records. It does not
 wait for every possible provider integration. A provider without credentials/contracts/mappings is

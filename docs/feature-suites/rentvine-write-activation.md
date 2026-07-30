@@ -20,7 +20,22 @@
   - **Live executor map - new factory (sibling of the synthetic one).** A production live executor map that constructs `new RentvineRenewalExecutor(liveRenewalProvider)` for `rentvine.lease.renewal_writeback` and is consumed by the S20 execution ledger path, NOT branded as an isolated Test executor. Today only `createIsolatedTestExternalActionOrchestrator` exists and only the synthetic path builds a `leaseExecutors` map. When the write config is `not_configured`, the map offers no renewal-write executor, so preparation blocks with "Provider adapter is unavailable."
   - **Health and preflight.** Reuse `health.rentvine.api_key` (`lib/integrations/rentvine/health-probe.ts`) and add a write-preflight that reports the endpoint as documented-and-configured before the live provider is offered; an undocumented endpoint reports not-ready rather than attempting a call.
   - **Test-lane proof - new `tests/unit/rentvine-mutation-provider.test.ts`.** Drive the real provider class (not the in-memory fake) through a RentVine-shaped fixture transport: prove compare-and-set applies once, an idempotent replay returns the same `providerRef` with no second write, a drifted `current_rent` throws before any write, an ambiguous result stays reconcilable, and `reconcile` matches only when the readback equals the approved values. This never contacts live RentVine.
-- **Owner dependency (the one flip).** The single owner step is the documented RentVine renewal-write endpoint plus its semantics (verb, path, request and response shape, whether it supports conditional update and an idempotency key): `D-RENTVINE-ENDPOINT`, roadmap section 5 owner-dependency #1 (owner providing). It is the documentation the gate has been waiting on. Once provided, the flip is one reviewed change: set the documented endpoint value in env or Secret Manager (owner-run); in `lib/integrations/action-registry-seed.ts:940` set `evidence_status:"Documented"`, `readiness:"Approved for Execution"`, `production_allowed:true`; in `lib/lease-renewal/execution/matrix.ts` move the entry's `requiredContract` from `"undocumented"` to `"documented"` and route with a `contractRef` starting `documented:` (so `validateExternalReadiness` stops blocking); add `rentvine.lease.renewal_writeback` to BOTH `EXECUTABLE_ALLOWLIST` copies (`scripts/seed-action-registry.ts:31` and `lib/admin/migration-readiness.ts:156`); and update the pinned tests (`tests/unit/action-registry-schema.test.ts`, `tests/unit/seed-action-registry-allowlist.test.ts`, and the executor proof `tests/unit/rentvine-renewal-executor.test.ts`). Deploy stays owner-run.
+- **Owner dependency (the one flip).** The single owner step is the documented RentVine renewal-write
+  endpoint plus its semantics (verb, path, request and response shape, whether it supports
+  conditional update and an idempotency key): `D-RENTVINE-ENDPOINT`, roadmap section 5
+  owner-dependency #1 (owner providing). It is the documentation the gate has been waiting on. Once
+  provided, the flip is one reviewed change: set the documented endpoint value in env or Secret
+  Manager (owner-run); in `lib/integrations/action-registry-seed.ts:940` set
+  `evidence_status:"Documented"`, `readiness:"Approved for Execution"`,
+  `production_allowed:true`; in `lib/lease-renewal/execution/matrix.ts` move the entry's
+  `requiredContract` from `"undocumented"` to `"documented"` and route with a `contractRef` starting
+  `documented:` (so `validateExternalReadiness` stops blocking); add
+  `rentvine.lease.renewal_writeback` to BOTH `EXECUTABLE_ALLOWLIST` copies
+  (`scripts/seed-action-registry.ts:31` and `lib/admin/migration-readiness.ts:156`); and update the
+  pinned tests (`tests/unit/action-registry-schema.test.ts`,
+  `tests/unit/seed-action-registry-allowlist.test.ts`, and the executor proof
+  `tests/unit/rentvine-renewal-executor.test.ts`). The subsequent routine deploy, smoke, and traffic
+  promotion follow D05 after its full gate is green.
 
 **Open questions & assumptions.**
 
@@ -42,7 +57,24 @@
 - **AC-S30-5** - The read client stays read-only: `RentVineClient` (`lib/integrations/rentvine/client.ts`) exposes no write method and its transport still issues only `method:"GET"`; the write capability lives only in the new write surface, and its credential never appears in any thrown message or log. _Verify:_ `rg -n "method:\s*\"(POST|PUT|PATCH|DELETE)\"" lib/integrations/rentvine/client.ts` returns nothing; keep `tests/unit/rentvine-client.test.ts` green; `npm run typecheck`.
 - **AC-S30-6** - The staged flip is exactly one reviewed change: when the documented endpoint is applied (seed `evidence_status:"Documented"` + `readiness:"Approved for Execution"` + `production_allowed:true`, matrix `requiredContract:"documented"`, key added to both allowlists, `contractRef` starting `documented:`), `isActionExecutable` becomes true, the seed dry-run still resolves, and a Test-lane execute produces a receipt; reverting any single one of those edits makes a pinned test fail. _Verify:_ `npm test -- tests/unit/action-registry-schema.test.ts tests/unit/seed-action-registry-allowlist.test.ts tests/unit/rentvine-renewal-executor.test.ts`; `npm run verify:spec-traceability`.
 
-**Forbidden actions / hard gates.** No live RentVine write happens in this suite. No guessed endpoint: RentVine is GET-only until the owner provides the documented write endpoint, and the write path/verb is only ever injected config, never a literal. Every write is human-confirmed through the approval queue (`external_write:true`); there is no autonomous, scheduled, bulk, or model-triggered write (`D-AUTOMATION-LINE`, roadmap section 7). Every live effect stays target-labeled, one-attempt, idempotent, readback-verified, reconcilable, and reversible via the documented correction contract. The read client stays read-only. The credential is reused as-is, never rotated, never in git or evidence, loaded only from env or Secret Manager; the account guard stays `pmikcmetro`; the personal account never enters any auth path. This suite MAY build the live provider and the system-of-record write to the seam and prepare its gate flip, but it does NOT set `production_allowed:true` or add the key to either allowlist until `D-RENTVINE-ENDPOINT` is documented; the flip then updates both `EXECUTABLE_ALLOWLIST` copies plus the pinned schema tests in one reviewed change. Deploys and the endpoint/credential set stay owner-run. The ~$10 budget cap holds. A violation of any of these is itself a falsification.
+**Forbidden actions / hard gates.** No live RentVine write happens in this suite. No guessed endpoint:
+RentVine is GET-only until the owner provides the documented write endpoint, and the write path/verb
+is only ever injected config, never a literal. Every write is human-confirmed through the approval
+queue (`external_write:true`); there is no autonomous, scheduled, bulk, or model-triggered write
+(`D-AUTOMATION-LINE`, roadmap section 7). Every live effect stays target-labeled, one-attempt,
+idempotent, readback-verified, reconcilable, and reversible via the documented correction contract.
+The read client stays read-only. The credential is reused as-is, never rotated, never in git or
+evidence, loaded only from env or Secret Manager; the account guard stays `pmikcmetro`; the personal
+account never enters any auth path. This suite MAY build the live provider and the system-of-record
+write to the seam and prepare its gate flip, but it does NOT set `production_allowed:true` or add the
+key to either allowlist until `D-RENTVINE-ENDPOINT` is documented; the flip then updates both
+`EXECUTABLE_ALLOWLIST` copies plus the pinned schema tests in one reviewed change. The verified
+non-null S52 production cost ceiling applies; if it is unset, cost-bearing/live/cloud work is closed
+while local/app-plane work continues. Routine release follows D05: after the full local gate, auth
+and budget preflights, prior-revision capture, and a captured rollback command are green, the runner
+may deploy; it must smoke the new revision successfully before promoting traffic. Interactive
+authentication, the endpoint/credential set, credentials/scopes, IAM, billing/quota, provider inputs,
+and destructive operations remain owner-run. A violation of any of these is itself a falsification.
 
 **Ordered prompt sequence.**
 
@@ -52,7 +84,11 @@
 4. _Build:_ the production live executor-map factory that constructs `new RentvineRenewalExecutor(liveRenewalProvider)` for the key, consumed by the S20 execution ledger path and offering no executor when the config is `not_configured`; add the write-preflight over `health.rentvine.api_key`. Prove one-attempt, idempotent replay, ambiguous-then-reconcile, and approval-queue routing in the Test lane (AC-S30-4). Keep the read client read-only (AC-S30-5).
 5. _Gate:_ keep `production_allowed:false`, the key off both allowlists, and `requiredContract:"undocumented"`; confirm `isActionExecutable` is false and the seed dry-run resolves (AC-S30-2). Stage the flip diff without applying it.
 6. _Verify:_ `npm test` (the new provider test plus the named sentinels: `rentvine-renewal-executor`, `execution-approval-queue`, `execution-risk-policy`, `action-gate`, `action-registry-schema`, `seed-action-registry-allowlist`, `rentvine-client`), `npm run typecheck`, `npm run lint`, `npm run verify:copy-voice`, `npm run verify:spec-traceability`, then `bash scripts/verify.sh`.
-7. _Owner:_ hand back with exactly one ask: the documented RentVine renewal-write endpoint and semantics (`D-RENTVINE-ENDPOINT`). Owner or Dan also verifies the RentVine field names before the first live write. The owner sets the endpoint value and runs the deploy.
+7. _Owner:_ hand back with exactly one ask: the documented RentVine renewal-write endpoint and
+   semantics (`D-RENTVINE-ENDPOINT`). Owner or Dan also verifies the RentVine field names before the
+   first live write and supplies the endpoint value through the approved secret/configuration path.
+   Once that input, the protected activation review, and every D05 precondition are green, the runner
+   performs the routine application revision deploy, smoke, and exact-revision promotion.
 8. _Gate:_ on the documented endpoint, apply the one-line flip (seed evidence Documented + readiness Approved for Execution + `production_allowed:true`, matrix `requiredContract:"documented"`, key added to both `EXECUTABLE_ALLOWLIST` copies, `contractRef` `documented:`) and update the pinned tests (AC-S30-6).
 9. _Context update:_ promote the shipped-to-seam work (and, after the flip, the live activation) to a `docs/facts.md` `F-RENTVINE-WRITE-LIVE` row citing AC-S30-1 through AC-S30-6, add the README and AGENTS Route Table rows for this file, and advance `docs/loop-state.md` to the next Wave-2 suite.
 

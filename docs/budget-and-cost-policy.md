@@ -1,109 +1,143 @@
-# Budget And Cost Policy
+# Budget and cost policy
 
-Single source of truth for the cloud cost ceiling and the free-tier-first defaults that
-keep unattended work safe. This is durable governance: it applies whether or not the
-temporary away-mode overlay (`docs/away-mode.md`) is active.
+This is the runner-neutral source of truth for cloud-cost eligibility and least-cost defaults. It
+applies whether or not the temporary away-mode overlay is active.
 
-## The Cap
+## Current production cost gate
 
-- **The cloud budget is approximately $10 total.** This is the figure communicated to the
-  client (Dan/PMI KC) and recorded in `docs/client-checklist.md` and
-  `docs/environment-handoff.md`: keep spend at $10 and do not spend without approval.
-- The $10 total cap is binding and **supersedes any higher per-service figure** mentioned
-  in older preserved specs (for example a `$200/month` Gemini line in `docs/spec.md`).
-  Those are legacy aspirational numbers, not approval to spend.
-- No unmanaged spend. When active, Remote Away Mode grants standing approval for bounded
-  setup and migration work that stays under this cap, passes `npm run check:budget-guard`,
-  and has a dry-run or replayable plan. Anything unbounded, hard to estimate, or near the
-  cap still requires explicit user approval first.
-- Billing is **provisioned** (since 2026-06-19): billing account `01A5A3-65CA5A-614D45`,
-  PM-created account-level budget id `82962d7e-b340-4253-8348-38caff16e88a`. A GCP budget alert is
-  **notify-only — it does not stop spend.** The hard stop is the kill switch
-  (`docs/budget-killswitch.md`, `infra/budget-guardrail/`): budget → Pub/Sub → Cloud Function that
-  disables the project's billing at the cap. The _project-scoped_ $10 budget on `pmi-kc-kb-prod`
-  and the armed kill switch are **in place** — kill switch FULLY ARMED 2026-06-23
-  (`docs/budget-killswitch.md`), both re-verified live 2026-07-03: project budgets
-  `033af8c0-8f21-48af-b89b-0632896e5018` + `15ddc8d6-e96e-4696-9d3c-c09e23997206` (50/90/100%) and the
-  ACTIVE 2nd-gen function `budget-guardrail` on `budget-guardrail-topic`. **Coverage gap:** the other
-  project on this billing account, `adept-primacy-499822-d7` (number `910739668168`), has **no** budget
-  or kill switch — it is outside the PMI cap. Generate its runbook by passing that project's
-  `--project` and `--project-number` to `npm run killswitch:plan`. Every cost-bearing step still needs
-  explicit per-step approval.
+Owner decision D01 (2026-07-29) retired the flat pre-production cap. S52
+(`docs/feature-suites/production-cost-governance.md`) owns its replacement:
 
-The constant `BUDGET_CAP_USD = 10` lives in `scripts/check-budget-guard.mjs`. Keep this
-doc and that constant in sync. The optional `AUTONOMOUS_BUDGET_CAP_USD` env var can lower
-the cap for a session but must never silently raise it.
+- a hard monthly stop set above measured realistic burn;
+- a lower alert-only threshold that reaches the operator before the stop;
+- the GCP budget amount and the guardrail's `KILL_SWITCH_CAP_USD` moved together; and
+- coverage/disposition recorded for every project on the billing account, including the dedicated
+  Demo project once S40 supplies its identifiers.
 
-## Free-Tier / Least-Cost Defaults
+The replacement values are currently **unset**. No cost-bearing cloud action has approved headroom
+until S52 records a non-null alert value and hard-stop value, the owner approves them from supported
+burn evidence, both enforcement points are ready to move in lockstep, and live readback verifies the
+result.
 
-Unattended work defaults to the cheapest safe option. Prefer, in order: local emulation →
-demo mode (no live calls) → the sanctioned cheap-live path → anything billed.
+The first complete calendar-month Production baseline is not available before 2026-08-01: billing
+began partway through June and July is still in progress on the decision date. The runner must not
+invent a bootstrap multiplier, floor, default, projection, or dollar amount. For the brand-new S40
+Demo project only, once a verified full-calendar Production baseline exists, the owner may select
+explicit initial Demo alert/ceiling values with a recorded rationale. That one-time bootstrap expires
+after Demo's first complete calendar month and is replaced by Demo's own measured baseline. Until the
+applicable owner-selected values exist, local/read-only S51/S52 work continues and billed operations
+stay parked.
 
-| Lever                               | Safe default                          | Why it is cheap                                        |
-| ----------------------------------- | ------------------------------------- | ------------------------------------------------------ |
-| `ASK_DEMO_MODE`                     | `true`                                | Short-circuits Vertex/Gemini; no per-query billing.    |
-| `GEMINI_MODEL_ANSWER`               | `gemini-2.5-flash`                    | Flash is the cheap model; Pro needs explicit approval. |
-| Active Spaces (`SPACE_*_IDS`)       | single `lease-renewals` (or none)     | Limits Vertex AI Search / indexing surface.            |
-| Cloud Run scaling                   | `--min-instances=0 --max-instances=1` | Scale-to-zero; no idle compute charges.                |
-| `KB_APPROVAL_NOTIFICATIONS_ENABLED` | `false`                               | No Gmail send path active.                             |
-| Firestore in tests                  | local emulator                        | No live database reads/writes.                         |
-| Service-account keys                | avoid; use ADC / workload identity    | No long-lived downloadable credentials.                |
+## What the current live state does and does not authorize
 
-## Cost-Bearing Path Inventory
+The kill-switch chain is armed and was reverified on 2026-07-29. The currently observed Production
+budget/guardrail configuration still carries the historical `$10` monthly value. That is an
+important description of live enforcement state, but it is **not approved spending headroom** and
+must never be used to license a deploy, live eval, provider call, Scheduler job, or other billed
+operation.
 
-Every path that can incur billing, and the gate that already protects it. In Remote Away
-Mode, bounded/reversible setup and migration may run unattended when the gate passes and
-the expected spend stays below the cap.
+Three mechanical facts control the replacement:
 
-| Path                               | Trigger                                     | Existing gate                                                                           |
-| ---------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Cloud Run deploy                   | `npm run deploy:demo` / `deploy`            | Refuses without `--budget-confirmed`; scale-to-zero; preflight via check-live-cost.     |
-| Live Gemini answer/classify        | `ASK_DEMO_MODE=false` Ask path              | `npm run check:live-cost` enforces Flash + single Space; demo mode is default.          |
-| Live Ask / demo smoke              | `npm run smoke:ask-live`, `smoke:demo-live` | Run only against the cheap-live config; bounded smokes are allowed in Remote Away Mode. |
-| Vertex AI Search data store create | `npm run import:agent-search`               | `--dry-run` available; create only approved corpora.                                    |
-| Agent Search document import       | `npm run import:agent-search`               | `--dry-run`; indexes client data, may bill.                                             |
-| Agent Search data store delete     | `npm run delete:agent-search-data-store`    | Refuses active stores; requires `--confirm-delete=<id>`.                                |
-| Cloud Storage source upload        | corpus plan / `gcloud storage cp`           | `npm run corpus:plan -- --dry-run` first.                                               |
-| Gmail approval notifications       | `npm run queue:notifications -- --write`    | Default `--dry-run`; `KB_APPROVAL_NOTIFICATIONS_ENABLED=false` by default.              |
-| Production cutover                 | `npm run preflight:production`              | Rejects demo-shaped config; deploy still needs explicit budget approval.                |
+1. The budgets use `calendarPeriod: MONTH`; the old word “total” was inaccurate.
+2. `infra/budget-guardrail/handler.mjs` applies the smaller of the GCP budget amount and
+   `KILL_SWITCH_CAP_USD`. Raising only one produces false headroom.
+3. `scripts/check-budget-guard.mjs` checks posture and configuration. It does not read spend or
+   enforce a dollar ceiling, so a green `npm run check:budget-guard` cannot make an unset S52 ceiling
+   usable.
 
-## The Budget Guard Preflight
+The hard-stop path disables project billing and can take the resident/staff application offline. It
+must remain armed, sit above realistic burn, emit `KILL_SWITCH_FIRED` only after successful
+disable/readback, emit `KILL_SWITCH_ALREADY_DISABLED` for a no-update repeat, and emit
+`KILL_SWITCH_DISABLE_FAILED` for a failed read/update/readback. It is preceded by the alert-only
+`COST_ALERT_THRESHOLD_CROSSED` signal reaching the operator. S51 owns the notification
+channel/policies; S52 owns the values and paired enforcement.
 
-`npm run check:budget-guard` is a fast, read-only, network-free check of the current cost
-posture. Run it:
+## Per-project coverage
 
-- before any live (`ASK_DEMO_MODE=false`), deploy, import, or notification command;
-- as a daily self-check during any unattended/away-mode run;
-- in CI (it runs on every PR and push; the clean CI environment is demo-by-default).
+Cost controls are project-scoped.
 
-It passes for the safe demo posture and for the sanctioned cheap-live path
-(Flash + single `lease-renewals` Space + notifications off). It fails when live mode is
-paired with the Pro model, extra Spaces, or enabled Gmail notifications unless the
-matching `--allow-pro` / `--allow-multiple-spaces` / `--allow-notifications` flag is
-passed after explicit approval or standing Remote Away Mode rules. While away-mode is
-active (`docs/away-mode.md`), the guard:
+- The Production project has the observed legacy budget/guardrail chain.
+- `adept-primacy-499822-d7` has no verified equivalent chain; the owner must choose whether to arm it
+  or unlink it from the billing account. Until a live read resolves it, its declared posture is
+  `pending_verification`, which is always ineligible.
+- The dedicated Demo project does not yet have owner-supplied identifiers. S40 emits its print-only
+  budget/topic/guardrail provisioning plan after those values arrive; S52 supplies the reviewed
+  owner-selected initial thresholds under the expiring new-Demo rule above.
 
-- allows `--allow-multiple-spaces` for bounded migration/setup and prints a warning;
-- refuses `--allow-pro`; and
-- refuses `--allow-notifications`.
+No suite infers a project id, number, billing relationship, or ceiling from another project. Billing,
+budget, IAM, and guardrail-enforcement mutations remain owner-run/protected-review operations.
 
-## Approval And Escalation
+## Least-cost defaults
 
-- Treat the cap as a hard ceiling, not a target. If a needed step would approach or exceed
-  $10, stop and raise an approval request instead of proceeding.
-- An approval request must name the exact action, environment, expected cost or usage,
-  data touched, and the rollback path (see `docs/autonomous-agent-runner.md`).
-- While Remote Away Mode is active, do not stop for synchronous review unless the action
-  hits a Hard Stop in `docs/away-mode.md`. Queue exact decisions in `docs/loop-state.md`
-  and continue with other non-blocked work.
-- If billing is later provisioned, create a project-scoped $10 budget alert before any
-  deploy (see `docs/google-setup.md`), and record the billing account/owner in
-  `docs/environment-handoff.md` (non-secret identifiers only).
+Prefer, in order: local emulation → the separately provisioned Demo environment with zero Live
+effects → an explicitly authorized bounded cheap-live path → any broader billed path.
+
+| Lever                               | Safe default                                | Reason                                                             |
+| ----------------------------------- | ------------------------------------------- | ------------------------------------------------------------------ |
+| Local compatibility `ASK_DEMO_MODE` | `true`                                      | Avoids Vertex/Gemini calls before S40 Demo exists.                 |
+| Answer model                        | `gemini-2.5-flash`                          | The approved bounded eval model; Pro requires a separate decision. |
+| Active knowledge stores             | One named store or none                     | Bounds indexing/query exposure.                                    |
+| Cloud Run scaling                   | `--min-instances=0 --max-instances=1`       | Scale-to-zero and pilot capacity bound.                            |
+| Client-facing notifications         | Disabled unless exact workflow gate applies | Prevents autonomous/bulk send.                                     |
+| Firestore tests                     | Local emulator                              | No live database mutation.                                         |
+| Service-account keys                | Avoid                                       | Use ADC/workload identity; no downloaded long-lived credential.    |
+
+These defaults reduce expected cost; they do not replace the S52 eligibility gate.
+
+## Cost-bearing path inventory
+
+Every row below remains ineligible while the S52 ceiling is null.
+
+| Path                           | Trigger                                 | Additional eligibility after S52                                                                                                                   |
+| ------------------------------ | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cloud Run deploy/promotion     | `npm run deploy` / legacy `deploy:demo` | Full local gate; fresh managed ADC/CLI auth; budget/live-cost/environment preflights; sanitized env; prior revision; rollback; bounded smoke; D05. |
+| Live Gemini answer/classify    | `ASK_DEMO_MODE=false`                   | Flash model, bounded cases/queries, one approved store, no sensitive output, fresh live-cost check.                                                |
+| S54 bounded live eval          | `npm run eval:live`                     | Exactly one run, at most 50 cases, no retries, fresh auth and live-verified ceiling, sanitized summary only.                                       |
+| Vertex AI Search create/import | import/provision commands               | Print/dry-run first, approved corpus, exact project/store, estimated usage, rollback/delete path.                                                  |
+| Cloud Storage source upload    | corpus plan / `gcloud storage cp`       | Approved low-sensitivity source and target, dry-run manifest, no customer data in git.                                                             |
+| S31 Gmail-watch Scheduler      | named S31 job                           | Narrow D37 grant, exact managed OIDC identity/audience, print-only plan reviewed, rollback/delete captured.                                        |
+| S51 monitoring resources       | monitoring plan                         | Owner-supplied operator destination; owner-run channel/policy/log-retention/IAM changes; live verifier.                                            |
+| Provider smoke/read            | provider-specific command               | Documented contract, named action/config gate, bounded read, no guessed endpoint, readback evidence.                                               |
+| Client-facing send / SoR write | product confirmation path               | Human exact confirmation plus S25/S26 preview/receipt/reconcile/rollback and named executable action key; never an unattended agent action.        |
+
+## Required preflights
+
+Before any live read, run `npm run preflight:adc`. The active CLI account must also be a managed
+`pmikcmetro.com` identity or documented service identity, and
+`gcloud auth print-access-token >/dev/null` must succeed without printing the token. If auth is
+stale, the owner runs `npm run auth:session` interactively. Independent local work may continue; no
+personal-account workaround is allowed.
+
+Before any cost-bearing operation, additionally run:
+
+```bash
+npm run check:budget-guard
+npm run check:live-cost
+```
+
+Both are necessary and neither proves numeric headroom. The operation also requires S52's non-null
+live-verified ceiling and its path-specific conditions above.
+
+## Authority and escalation
+
+- The runner may perform a routine application deploy, bounded read-only smoke, rollback rehearsal,
+  and traffic promotion under D05 only after every eligibility condition passes.
+- The owner performs interactive auth and supplies/changes credentials, scopes, IAM, billing,
+  budgets, threshold values, operator destinations, destructive migrations/deletions, and other
+  external decisions.
+- D12 protects `scripts/check-budget-guard.mjs` and `infra/budget-guardrail/**`; prepare and verify
+  those changes for owner review. A protected cost patch parks only that activation while independent
+  work continues.
+- Remote Away Mode, if explicitly activated later, never creates numeric headroom or waives S52,
+  auth, protected-path, send/write, or destructive-operation boundaries.
+- If an operation's cost cannot be bounded or the live enforcement state cannot be verified, leave
+  it inert and add one exact item to the consolidated owner packet. Do not substitute the observed
+  legacy amount.
 
 ## Related
 
-- `docs/budget-killswitch.md` — the hard-cap kill switch (budget → Pub/Sub → disable billing).
-- `docs/away-mode.md` — reversible remote-autonomy overlay that points here.
-- `docs/autonomous-agent-runner.md` — Approval Gates, Cost Ceiling, and the loop rules.
-- `docs/environment-handoff.md` — billing gate and key/secret ownership.
-- `docs/google-setup.md` — the under-$10 live Ask and demo deploy setup notes.
+- `docs/feature-suites/production-cost-governance.md` — executable S52 contract.
+- `docs/budget-killswitch.md` — observed hard-stop chain and operational history.
+- `docs/autonomous-agent-runner.md` — slice, auth, protected-path, and D05 rules.
+- `docs/away-mode.md` — currently inactive overlay.
+- `docs/environment-handoff.md` — non-secret project/identity ownership registry.

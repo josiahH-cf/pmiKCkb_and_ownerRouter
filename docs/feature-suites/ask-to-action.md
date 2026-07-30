@@ -101,9 +101,11 @@ href, label }`) and carries no recipient, rent, or tenant name. Pure, determinis
   key, there is nothing here to build to a seam.
 - **Owner dependency (the one flip).** None specific to this suite. S33 flips no gate and needs no
   endpoint, credential, or scope: it reuses the already-authorized live RentVine read and the
-  already-open draft-create gate. The only owner steps are the standing per-session ones that gate any
-  live work (`npm run auth:session` for ADC freshness, and the owner-run `npm run deploy`); they are
-  not S33 dependencies and unblock nothing S33-specific.
+  already-open draft-create gate. Interactive `npm run auth:session` remains owner-run. Routine
+  release follows D05: after the full local gate, auth and budget preflights, a verified non-null S52
+  production cost ceiling, prior-revision capture, and a captured rollback command are green, the
+  runner may deploy; it must smoke the new revision successfully before promoting traffic. Neither is
+  an S33-specific dependency.
 
 **Open questions & assumptions.**
 
@@ -119,7 +121,10 @@ href, label }`) and carries no recipient, rent, or tenant name. Pure, determinis
   live route. Confirm-with-default: strict match, never a best-guess lease.
 - _Assumption:_ hard gates unchanged this cycle. No Action Registry entry is added or flipped (both
   `EXECUTABLE_ALLOWLIST` copies and the pinned schema tests are untouched), no new Google scope, no
-  Cloud Scheduler, the ~$10 cap holds, and deploy stays owner-run.
+  Cloud Scheduler. The verified non-null S52 production cost ceiling applies; if it is unset,
+  cost-bearing/live/cloud work is closed while local/app-plane work continues. Routine deployment
+  follows D05; interactive auth, credentials/scopes, IAM, billing/quota, provider inputs, and
+  destructive operations remain owner-run.
 - _Open:_ whether the owner later wants Ask to reach the maintenance owner-notice draft even before
   S38a formally lands its route and button. Default until answered: route maintenance to the existing
   process Test run, and light up the draft surface automatically once S38a is present. Routed to
@@ -207,8 +212,12 @@ system-of-record write are introduced: the renewal and maintenance SEND keys and
 High-risk actions are refused server-side; Ask cannot approve them away. The existing "safe Test run"
 stays a Test run. No new Google scope, no Cloud Scheduler or cron or timer that starts a run, no
 personal account in any auth path, no secrets or customer PII or guessed endpoint in git or evidence,
-~$10 budget cap, deploy owner-run. This suite MAY NOT set any `production_allowed:true`; it adds no
-registry entry at all. A violation of any of these is itself a falsification.
+the verified non-null S52 production cost ceiling applies, and an unset ceiling closes
+cost-bearing/live/cloud work while local/app-plane work continues. Routine deploy, smoke, and traffic
+promotion follow D05 only after its full gate is green; interactive auth, credentials/scopes, IAM,
+billing/quota, provider inputs, and destructive operations remain owner-run. This suite MAY NOT set
+any `production_allowed:true`; it adds no registry entry at all. A violation of any of these is itself
+a falsification.
 
 **Ordered prompt sequence.**
 
@@ -242,7 +251,8 @@ registry entry at all. A violation of any of these is itself a falsification.
    non-permitted role sees no live affordance.
 7. _Gate:_ STOP before any send key, any writeback, any new registry entry or gate flip, any Cloud
    Scheduler, and any live route to a non-executable key. There is no owner dependency to hand back for
-   this suite; only the standing per-session `npm run auth:session` and owner-run `npm run deploy`.
+   this suite. Interactive `npm run auth:session` remains owner-run; routine deployment follows D05
+   after the full gate is green.
 8. _Context update:_ promote the shipped suite to a `docs/facts.md` `F-ASK-ACTION` row citing
    AC-S33-1 through AC-S33-8, resolve `Q-ASK-ACTION-SCOPE`, and update `docs/loop-state.md` at the
    slice boundary (keep it under its line cap).

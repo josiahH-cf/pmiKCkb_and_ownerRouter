@@ -121,7 +121,12 @@ test`, `npm run test:e2e:core`, `npm run verify:spec-traceability`, `npm run bui
 no browser-authoritative recipient; no invented fact/commitment/channel receipt; no legal-hold bypass;
 no unreviewed Live action or provider call; and no raw content in retention/audit records or git. The
 cleanup CLI has no live flag and cannot target a non-loopback emulator. Existing no-model exclusions
-remain. ~$10 cap.
+remain. The verified non-null S52 production cost ceiling applies; if it is unset,
+cost-bearing/live/cloud work is closed while local/app-plane work continues. Routine release follows
+D05: after the full local gate, auth and budget preflights, prior-revision capture, and a captured
+rollback command are green, the runner may deploy; it must smoke the new revision successfully before
+promoting traffic. Interactive authentication, credentials/scopes, IAM, billing/quota, provider
+inputs, and destructive operations remain owner-run.
 
 **Ordered prompt sequence.**
 

@@ -1,16 +1,23 @@
 # Client checklist
 
-Updated: 2026-07-28.
+Updated: 2026-07-29.
+
+> **Active asks for the production phase live in `docs/client-asks-2026-07-29.md`.** That file
+> carries the ready-to-send drafts and marks which items are owner self-serve versus an external
+> ask, following the production-phase audit and owner direction on 2026-07-29
+> (`F-PRODUCTION-PHASE-AUTHORIZED`). Use this file for the durable per-provider background; use
+> the asks file for what to send now.
 
 This is the client-facing list of inputs that improve content or activate a specific Live provider.
 It is **not** a list of conditions that must all be answered before the application can progress.
 The current deployed app has verified Live+Test evidence; S40’s authorized target moves realistic
 invented workflows into an independent Demo environment and makes Production Live-only.
 
-Use `docs/v1-client-unblock-checklist-2026-07-14.md` for the exact process and recommended default,
-and `docs/environment-handoff.md` for non-secret project/owner/location records. Do not place
-credentials, customer records, Gmail bodies, setup links, passwords, TOTP secrets, OAuth codes, or
-tokens in this repository.
+Use `docs/environment-handoff.md` for current non-secret project/owner/location records and the
+owning S40–S54 spec for current execution gates. The dated
+`docs/v1-client-unblock-checklist-2026-07-14.md` preserves pre-S40 implementation history and is not
+a current cloud/deploy runbook. Do not place credentials, customer records, Gmail bodies, setup
+links, passwords, TOTP secrets, OAuth codes, or tokens in this repository.
 
 ## Completed without another client decision
 
@@ -130,7 +137,9 @@ Missing material remains visibly missing; the application must not invent proper
 - [x] Email/Password is enabled with password required; TOTP is enabled with adjacent interval `1`.
 - [x] The production host is present in Firebase authorized domains; Google sign-in remains enabled.
 - [ ] For S40 activation, owner supplies/approves exact independent Demo resource identifiers and
-      runs the green provisioning/migration/deploy packet.
+      runs the green project/service/Auth/IAM/billing and destructive-migration packet. After those
+      resources exist, the runner performs the routine revision deploy, candidate smoke,
+      exact-revision promotion, and rollback under D05.
 - [ ] For S43 template activation, Chasity supplies the exact updated artifact through the approved
       publication channel.
 - [ ] For S47 RentVine-channel activation, vendor/owner confirms the exact interactive endpoint,

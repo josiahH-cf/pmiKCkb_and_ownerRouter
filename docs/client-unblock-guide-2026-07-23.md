@@ -2,6 +2,12 @@
 
 **For: PMI KC Metro (owner). Date: 2026-07-23.**
 
+> **Historical handoff packet (superseded for release execution 2026-07-29).** Provider asks and
+> client context remain useful, but the “Every release” owner-deploy instructions below no longer
+> control. Interactive auth and provisioning/IAM/billing/scope/destructive operations remain
+> owner-run; after the D05 preconditions and S40 release-safety slice pass, the runner performs
+> routine revision deploy, candidate smoke, exact-revision promotion, and rollback.
+
 This is the single list of things only you can provide to switch on the remaining features. The app is
 already built for every item below. Each one is a short, specific step: a key, an endpoint, a setting, a
 file, or a decision. Once you provide it, we finish the last connection and the feature goes live.

@@ -104,7 +104,13 @@ test`, `npm run test:e2e:core`, `npm run verify:router-boundary`, `npm run build
 fixture presented as Live, Test external call, inline full body, attachment fetch, cross-Space/
 cross-mailbox/cross-mode data, or customer values in logs/notifications/audit/git. This suite is a read
 projection and grants no external write. Live reads require the corresponding configured provider;
-unconfigured sources remain visibly unavailable. ~$10 cap.
+unconfigured sources remain visibly unavailable. The verified non-null S52 production cost ceiling
+applies; if it is unset, cost-bearing/live/cloud work is closed while local/app-plane work continues.
+Routine release follows D05: after the full local gate, auth and budget preflights,
+prior-revision capture, and a captured rollback command are green, the runner may deploy; it must
+smoke the new revision successfully before promoting traffic. Interactive authentication,
+credentials/scopes, IAM, billing/quota, provider inputs, and destructive operations remain
+owner-run.
 
 **Ordered prompt sequence.**
 

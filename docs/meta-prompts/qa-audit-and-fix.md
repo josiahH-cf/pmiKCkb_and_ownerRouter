@@ -123,12 +123,15 @@ Deliver a summary:
 3. **Blocked items:** each with the exact prerequisite the human/owner must supply (e.g. "connect
    RentVine", "run against a live env", "enroll an authenticator for the Test Vendor").
 4. **Untouched invariants:** confirm both, or list the residue you could not clean.
-5. **Redeploy recommendation:** whether a redeploy is warranted so the human can verify the fixes against
-   the deployed app (deploy itself stays an owner step).
+5. **Redeploy recommendation:** whether a routine application revision deploy is warranted so the
+   human can verify the fixes against the deployed app. Under D05 the runner may deploy, smoke, and
+   promote an exact revision on an already-provisioned service after the full gate, auth and non-null
+   S52 cost preflights, prior-revision capture, and rollback preparation pass.
 
 ## Stop conditions
 
-- **Stop and ask the human before:** entering any credential or 2FA yourself; any step whose only
-  end-state is a real external send/write you cannot do in the Test lane; or deploying.
+- **Stop and ask the human before:** entering any credential or 2FA yourself, or any step whose only
+  end-state is a real external send/write you cannot do in the Test lane. Park deployment only when a
+  D05 precondition is genuinely missing; deployment itself is not an owner-only permission.
 - When every process is classified and every app-fixable FINDING is fixed-and-reverified, stop and deliver
   the report.
