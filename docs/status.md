@@ -11,6 +11,42 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S51 A2 and monitoring definitions COMPLETE locally; cloud activation parked (2026-07-30)
+
+Ordered step 5's explicit unprotected seam is built to the cloud boundary. The structured
+`LIVE_EFFECT_REQUIRES_ATTENTION` logger projects exactly marker, action key, opaque execution id,
+failed/ambiguous state, and Live data mode. The legacy external-execution store, production S20
+bridge, and internal transactional receipt store emit only after a durable terminal commit; exact
+and concurrent replays emit once, Test external executions emit nothing, and a failed logger cannot
+alter the committed result. Fixtures carrying an address, message body, tenant name, unit label,
+token, receipt dedup key, and report id prove those values do not enter the event.
+
+The committed monitoring bundle defines one project-scoped, label-free DELTA/INT64 A2 counter and
+four exact policies: Production Cloud Run 5xx, A2 Live failed/ambiguous, only the S52 alert marker,
+and only kill-switch fired/disable-failed. The print-only planner creates no client or subprocess and
+prints one managed email channel, one metric, four channel-attached policies, exact readbacks, and
+rollback commands. It states that the operator must complete Google's email verification. The
+existence verifier requires explicit `--live`, makes bounded paginated GET-only reads, and fails
+closed on the Logging API's metric-id/resource-name distinction, unverified/duplicate channels,
+invalid/extra policies, bucket scope, ratios/forecasts/missing-data drift, value or label extractors,
+extra managed resources, nested documentation/label drift, and incomplete reads.
+
+The independent adversarial audit found and drove repairs for the metric schema, unverified-channel,
+policy-validity, condition-exactness, and managed-near-duplicate false-green cases, then returned GO.
+Focused verification passes 8 files / 98 tests, the complete Firestore matrix passes 21 files / 92
+tests, and typecheck plus targeted lint/format/diff hygiene are green. The exact clean-install
+canonical gate also passes 441 unit files / 3,872 tests, 21 Firestore files / 92 tests, every
+governance/redaction gate, and the 96-page production build; lint has zero errors and the same 15
+existing warnings. No monitoring resource was created and the live verifier was not run: ADC still
+requires owner-run `npm run auth:session`, S52's values remain null, and the internal operator
+address is not committed.
+
+This checkpoint does not claim portfolio-wide A2 reachability. Current direct Gmail reply and watch
+paths have durable bad terminals but no A2 emitter; direct draft and label mutations have no
+replay-safe terminal ledger. They remain a named hardening residual before full S51 completion.
+Ordered step 6 (rollback rehearsal, incident/capacity/retention/log-hygiene artifacts) is the next
+spec slice; the protected Firestore Rules packet remains unapplied.
+
 ## S51 gated live-effect stop app-plane COMPLETE locally; Rules parked (2026-07-30)
 
 Ordered step 4's unprotected work is complete. The presence-only Firestore store reads exact and

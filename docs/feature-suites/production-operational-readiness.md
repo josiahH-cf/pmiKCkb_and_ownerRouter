@@ -477,9 +477,13 @@ sets no provider `production_allowed:true`.
    wrapper. The unprotected store/route/Admin/audit/wiring/sentinel work is green; the exact unapplied
    rules hunk, emulator-test requirement, apply steps, and rollback are isolated in
    `docs/s51-firestore-rules-owner-review-packet-2026-07-30.md`.
-5. _Build:_ emit the value-free A2 line on the `failed`/`ambiguous` transition and on a `delivered:false`
+5. _Build — UNPROTECTED A2/MONITORING SEAM COMPLETE locally 2026-07-30; cloud activation parked:_
+   emit the value-free A2 line on the `failed`/`ambiguous` transition and on a `delivered:false`
    receipt; add the four committed alert policy definitions, `scripts/setup-monitoring.mjs`, and the
-   read-only existence verifier.
+   read-only existence verifier. Explicit AC-S51-5 coverage is the legacy external-execution store,
+   the production S20 bridge, and internal transactional receipts. This does not claim portfolio-wide
+   A2 reachability: the direct Gmail reply/watch/draft/label paths remain a named hardening residual
+   before full S51 completion.
 6. _Build:_ add `scripts/rehearse-rollback.mjs` with its dry-run report and wrong-target refusals; add the
    production incident runbook (severities, windows, Dan rule, Sev-1-first-action) and the capacity
    record; add the retention declaration and its separation gate; add the log-hygiene runbook section and

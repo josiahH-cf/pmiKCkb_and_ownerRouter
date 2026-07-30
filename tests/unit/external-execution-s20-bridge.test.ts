@@ -16,7 +16,10 @@ import {
   type ExternalActionPreparationInput,
   type TrustedExternalExecutionContext,
 } from "@/lib/external-execution/s20-bridge";
-import type { ExternalActionDefinition } from "@/lib/external-execution/types";
+import {
+  ExternalExecutionError,
+  type ExternalActionDefinition,
+} from "@/lib/external-execution/types";
 import {
   claimActionExecution,
   getActionExecution,
@@ -641,6 +644,106 @@ describe("S25/S26 external execution to S20 preparation bridge", () => {
     ).resolves.toMatchObject({ execution: { state: "Succeeded" } });
     expect(execute).toHaveBeenCalledTimes(1);
   });
+
+  it.each([
+    {
+      error: new ExternalExecutionError(
+        "Synthetic provider refusal with resident@example.invalid.",
+        "provider",
+      ),
+      expectedState: "Failed",
+      attentionState: "failed",
+      suffix: "live-definitive-attention",
+    },
+    {
+      error: new Error(
+        "Synthetic timeout after message body for Tenant Name at Unit 123.",
+      ),
+      expectedState: "Needs reconciliation",
+      attentionState: "ambiguous",
+      suffix: "live-ambiguous-attention",
+    },
+  ] as const)(
+    "emits one post-commit value-free A2 event for a reachable $expectedState S20 transition",
+    async ({ attentionState, error, expectedState, suffix }) => {
+      const action = {
+        ...externalAction(
+          "gmail.renewal_notice.draft_create",
+          {
+            ...draftValues,
+            body: "Message body for Tenant Name at Unit 123.",
+            to: "resident@example.invalid",
+          },
+          suffix,
+        ),
+        actionId: `fixture-action-${suffix}`,
+        connectionRef: "connection:gmail-workspace-api",
+        contractRef: "documented:gmail-api-users-drafts-create",
+        dataMode: "live" as const,
+        mappingRef: "mapping:pmikc-internal-mailbox",
+        sourceRefs: ["source:verified-fixture"],
+        workflowId: `fixture-workflow-${suffix}`,
+      };
+      const trustedContext = trustedExternalContext(action, sendContext);
+      const observedCommittedStates: string[] = [];
+      const emitAttention = vi.fn(async (event) => {
+        observedCommittedStates.push(
+          (await getActionExecution(editor, event.execution_id, db)).state,
+        );
+        expect(JSON.stringify(event)).not.toMatch(
+          /resident@example\.invalid|Message body|Tenant Name|Unit 123/,
+        );
+      });
+      const options = {
+        allowSyntheticAliases: true,
+        db,
+        emitAttention,
+        registry: openRegistryAction(action.actionKey),
+      } as const;
+      const execution = await prepareExternalActionWithS20(
+        editor,
+        {
+          action,
+          definition: leaseDefinition(action.actionKey),
+          trustedContext,
+          validate: () => null,
+        },
+        options,
+      );
+      const request = {
+        action,
+        confirmedPreviewHash: execution.preview_hash,
+        definition: leaseDefinition(action.actionKey),
+        executionId: execution.id,
+        executor: {
+          execute: vi.fn(async () => {
+            throw error;
+          }),
+          reconcile: vi.fn(async () => null),
+        },
+        trustedContext,
+      };
+
+      await expect(
+        executeExternalActionWithS20(editor, request, options),
+      ).resolves.toMatchObject({ execution: { state: expectedState } });
+
+      expect(observedCommittedStates).toEqual([expectedState]);
+      expect(emitAttention).toHaveBeenCalledTimes(1);
+      expect(emitAttention).toHaveBeenCalledWith({
+        marker: "LIVE_EFFECT_REQUIRES_ATTENTION",
+        action_key: action.actionKey,
+        execution_id: execution.id,
+        state: attentionState,
+        data_mode: "live",
+      });
+
+      await expect(
+        executeExternalActionWithS20(editor, request, options),
+      ).rejects.toThrow();
+      expect(emitAttention).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it("snapshots values before awaits and rejects target drift with zero provider calls", async () => {
     const action = externalAction(

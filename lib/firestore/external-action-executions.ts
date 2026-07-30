@@ -7,6 +7,12 @@ import type {
   ExternalExecutionStore,
 } from "@/lib/external-execution/types";
 import { getAdminFirestore } from "@/lib/firestore/admin";
+import {
+  createLiveEffectAttentionEvent,
+  emitLiveEffectAttentionSafely,
+  emitLiveEffectRequiresAttention,
+  type LiveEffectAttentionEmitter,
+} from "@/lib/operations/live-effect-attention-log";
 
 export const EXTERNAL_EXECUTION_COLLECTIONS = {
   records: "external_action_executions",
@@ -15,7 +21,10 @@ export const EXTERNAL_EXECUTION_COLLECTIONS = {
 
 export class FirestoreExternalExecutionStore implements ExternalExecutionStore {
   readonly persistence = "firestore" as const;
-  constructor(private readonly db: Firestore = getAdminFirestore()) {}
+  constructor(
+    private readonly db: Firestore = getAdminFirestore(),
+    private readonly emitAttention: LiveEffectAttentionEmitter = emitLiveEffectRequiresAttention,
+  ) {}
 
   async get(id: string) {
     const snapshot = await this.db
@@ -106,7 +115,7 @@ export class FirestoreExternalExecutionStore implements ExternalExecutionStore {
 
   async fail(id: string, ambiguous: boolean) {
     const ref = this.db.collection(EXTERNAL_EXECUTION_COLLECTIONS.records).doc(id);
-    await this.db.runTransaction(async (transaction) => {
+    const attention = await this.db.runTransaction(async (transaction) => {
       const snapshot = await transaction.get(ref);
       if (!snapshot.exists) throw new Error("Execution missing.");
       const record = snapshot.data() as ExternalExecutionRecord;
@@ -115,9 +124,10 @@ export class FirestoreExternalExecutionStore implements ExternalExecutionStore {
           `Execution failure cannot transition from ${record.state}/${record.attemptCount}.`,
         );
       }
+      const failureState = ambiguous ? "ambiguous" : "failed";
       const next: ExternalExecutionRecord = {
         ...record,
-        state: ambiguous ? "ambiguous" : "failed",
+        state: failureState,
         updatedAt: new Date().toISOString(),
       };
       transaction.set(ref, next);
@@ -125,7 +135,16 @@ export class FirestoreExternalExecutionStore implements ExternalExecutionStore {
         this.db.collection(EXTERNAL_EXECUTION_COLLECTIONS.audit).doc(uuidv7()),
         audit(next, next.state),
       );
+      return createLiveEffectAttentionEvent({
+        actionKey: next.actionKey,
+        executionId: next.id,
+        state: failureState,
+        dataMode: next.dataMode,
+      });
     });
+    if (attention) {
+      await emitLiveEffectAttentionSafely(this.emitAttention, attention);
+    }
   }
 }
 

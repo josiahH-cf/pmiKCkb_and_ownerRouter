@@ -1,0 +1,41 @@
+{
+  "displayName": "PMI KC A2 - Live effect requires attention",
+  "combiner": "OR",
+  "enabled": true,
+  "userLabels": {
+    "managed_by": "pmi_kc",
+    "suite": "s51",
+    "policy_key": "a2",
+    "severity": "sev1"
+  },
+  "documentation": {
+    "content": "A Production live effect failed or became ambiguous. Suspend the affected action before considering any retry.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Any unresolved Production live effect",
+      "conditionThreshold": {
+        "filter": "resource.type = \"cloud_run_revision\" AND metric.type = \"logging.googleapis.com/user/pmi_kc_unresolved_live_effect_count\" AND resource.label.\"project_id\" = \"__PROJECT_ID__\" AND resource.label.\"location\" = \"__REGION__\" AND resource.label.\"service_name\" = \"__SERVICE_NAME__\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "0s",
+        "aggregations": [
+          {
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "groupByFields": [
+              "resource.label.\"project_id\"",
+              "resource.label.\"location\"",
+              "resource.label.\"service_name\""
+            ]
+          }
+        ],
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ]
+}

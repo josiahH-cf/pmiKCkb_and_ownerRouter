@@ -37,6 +37,12 @@ import {
   parseExternalReceipt,
 } from "@/lib/external-execution/receipt";
 import { validateExternalReadiness } from "@/lib/external-execution/orchestrator";
+import {
+  createLiveEffectAttentionEvent,
+  emitLiveEffectAttentionSafely,
+  emitLiveEffectRequiresAttention,
+  type LiveEffectAttentionEmitter,
+} from "@/lib/operations/live-effect-attention-log";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   getActionExecution,
@@ -113,6 +119,8 @@ export interface ExternalS20BridgeOptions {
   /** Test-only escape hatch for invented provider/source aliases. */
   readonly allowSyntheticAliases?: boolean;
   readonly db?: Firestore;
+  /** Test-only observation seam; Production always uses the structured logger. */
+  readonly emitAttention?: LiveEffectAttentionEmitter;
   /** Server-owned test seam; production callers omit this and use the committed Registry. */
   readonly registry?: CreateActionRegistryInput[];
 }
@@ -233,7 +241,7 @@ export async function executeExternalActionWithS20(
     false,
   );
 
-  return executePreparedAction({
+  const outcome = await executePreparedAction({
     actor,
     ...(db ? { db } : {}),
     executionId: request.executionId,
@@ -273,6 +281,27 @@ export async function executeExternalActionWithS20(
     resultCode: externalReceiptResultCode,
     trustedContext,
   });
+  const attentionState =
+    outcome.execution.state === "Failed"
+      ? "failed"
+      : outcome.execution.state === "Needs reconciliation"
+        ? "ambiguous"
+        : null;
+  if (attentionState) {
+    const attention = createLiveEffectAttentionEvent({
+      actionKey: outcome.execution.action_key,
+      executionId: outcome.execution.id,
+      state: attentionState,
+      dataMode: externalActionDataMode(action),
+    });
+    if (attention) {
+      await emitLiveEffectAttentionSafely(
+        options.emitAttention ?? emitLiveEffectRequiresAttention,
+        attention,
+      );
+    }
+  }
+  return outcome;
 }
 
 /**
@@ -392,10 +421,12 @@ export async function reconcileExternalActionWithS20(
 function assertTestOnlyOptions(options: ExternalS20BridgeOptions) {
   if (
     process.env.NODE_ENV !== "test" &&
-    (options.allowSyntheticAliases === true || options.registry !== undefined)
+    (options.allowSyntheticAliases === true ||
+      options.emitAttention !== undefined ||
+      options.registry !== undefined)
   ) {
     throw new Error(
-      "External-action Registry overrides and synthetic aliases are test-only.",
+      "External-action Registry, logger overrides, and synthetic aliases are test-only.",
     );
   }
 }

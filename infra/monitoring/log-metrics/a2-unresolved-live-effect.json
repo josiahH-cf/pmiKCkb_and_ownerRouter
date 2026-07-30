@@ -1,0 +1,10 @@
+{
+  "description": "Counts value-free Production live-effect records that require operator attention.",
+  "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.project_id=\"__PROJECT_ID__\" AND resource.labels.location=\"__REGION__\" AND resource.labels.service_name=\"__SERVICE_NAME__\" AND jsonPayload.marker=\"LIVE_EFFECT_REQUIRES_ATTENTION\" AND jsonPayload.data_mode=\"live\" AND (jsonPayload.state=\"failed\" OR jsonPayload.state=\"ambiguous\")",
+  "disabled": false,
+  "metricDescriptor": {
+    "metricKind": "DELTA",
+    "valueType": "INT64",
+    "unit": "1"
+  }
+}

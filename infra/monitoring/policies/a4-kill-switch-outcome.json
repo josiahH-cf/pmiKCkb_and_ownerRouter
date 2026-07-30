@@ -1,0 +1,29 @@
+{
+  "displayName": "PMI KC A4 - Billing containment fired or failed",
+  "combiner": "OR",
+  "enabled": true,
+  "userLabels": {
+    "managed_by": "pmi_kc",
+    "suite": "s51",
+    "policy_key": "a4",
+    "severity": "sev1"
+  },
+  "documentation": {
+    "content": "The protected S52 billing containment either disabled billing or failed to confirm containment. Treat this as Sev-1 and inspect the verified outcome.",
+    "mimeType": "text/markdown"
+  },
+  "alertStrategy": {
+    "notificationRateLimit": {
+      "period": "300s"
+    },
+    "autoClose": "1800s"
+  },
+  "conditions": [
+    {
+      "displayName": "Billing disabled or containment failed",
+      "conditionMatchedLog": {
+        "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.project_id=\"__PROJECT_ID__\" AND resource.labels.location=\"__REGION__\" AND resource.labels.service_name=\"budget-guardrail\" AND (jsonPayload.marker=\"KILL_SWITCH_FIRED\" OR jsonPayload.marker=\"KILL_SWITCH_DISABLE_FAILED\")"
+      }
+    }
+  ]
+}

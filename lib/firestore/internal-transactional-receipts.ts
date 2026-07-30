@@ -6,6 +6,8 @@
 // The receipt records only the INTERNAL destination + metadata about the send — never the free-text
 // feedback description (which lives only in the Admin-gated support queue, F-SUPP-1 / TIX-8).
 
+import { createHash } from "node:crypto";
+
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
 
 import { can } from "@/lib/auth/roles";
@@ -13,6 +15,12 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type { InternalTransactionalReceipt } from "@/lib/notifications/internal-transactional";
+import {
+  createLiveEffectAttentionEvent,
+  emitLiveEffectAttentionSafely,
+  emitLiveEffectRequiresAttention,
+  type LiveEffectAttentionEmitter,
+} from "@/lib/operations/live-effect-attention-log";
 
 const COLLECTION = "internal_transactional_receipts";
 const HEALTH_SCAN_LIMIT = 500;
@@ -32,15 +40,39 @@ export async function getInternalTransactionalReceipt(
   return readReceipt(snapshot.data()!);
 }
 
-/** Persist a receipt at its deterministic dedup-key doc id (idempotent set; a retry overwrites in place). */
+/**
+ * Persist a receipt at its deterministic dedup-key doc id. An exact replay is a no-op, including for
+ * the A2 emitter; a distinct failed retry is a new failed attempt and emits once after its commit.
+ */
 export async function recordInternalTransactionalReceipt(
   receipt: InternalTransactionalReceipt,
   db: Firestore = getAdminFirestore(),
+  emitAttention: LiveEffectAttentionEmitter = emitLiveEffectRequiresAttention,
 ): Promise<void> {
-  await db
-    .collection(COLLECTION)
-    .doc(receiptDocId(receipt.dedup_key))
-    .set(stripUndefined({ ...receipt, updated_at: FieldValue.serverTimestamp() }));
+  const ref = db.collection(COLLECTION).doc(receiptDocId(receipt.dedup_key));
+  const attention = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    if (
+      snapshot.exists &&
+      sameInternalTransactionalReceipt(readReceipt(snapshot.data()!), receipt)
+    ) {
+      return null;
+    }
+    transaction.set(
+      ref,
+      stripUndefined({ ...receipt, updated_at: FieldValue.serverTimestamp() }),
+    );
+    if (receipt.delivered) return null;
+    return createLiveEffectAttentionEvent({
+      actionKey: receipt.action_key,
+      executionId: internalReceiptExecutionId(receipt.dedup_key),
+      state: "failed",
+      dataMode: "live",
+    });
+  });
+  if (attention) {
+    await emitLiveEffectAttentionSafely(emitAttention, attention);
+  }
 }
 
 export type InternalTransactionalHealthStatus = "healthy" | "attention";
@@ -108,6 +140,25 @@ function readReceipt(data: Record<string, unknown>): InternalTransactionalReceip
     attempted_at: String(data.attempted_at ?? ""),
     ...(typeof data.error === "string" ? { error: data.error } : {}),
   };
+}
+
+function sameInternalTransactionalReceipt(
+  left: InternalTransactionalReceipt,
+  right: InternalTransactionalReceipt,
+): boolean {
+  return (
+    left.dedup_key === right.dedup_key &&
+    left.action_key === right.action_key &&
+    left.report_id === right.report_id &&
+    left.recipient === right.recipient &&
+    left.delivered === right.delivered &&
+    left.attempted_at === right.attempted_at &&
+    left.error === right.error
+  );
+}
+
+function internalReceiptExecutionId(dedupKey: string): string {
+  return `internal_${createHash("sha256").update(dedupKey).digest("hex").slice(0, 48)}`;
 }
 
 function stripUndefined<T extends Record<string, unknown>>(input: T): Partial<T> {

@@ -277,9 +277,10 @@ records its provenance and does not invent the unavailable browser-local respons
 is reconciled; the four suites are specified; S54 slice 1 and S53.1–S53.5 are locally complete;
 S52-I/J and its fail-closed print-only planner prerequisite are locally complete; S51's close-only
 kernel plus the unprotected store, Admin route/panel, value-free audit, execution-path wiring, and
-provider/script refusal sentinels are locally complete. The protected Firestore Rules hunk is parked
-for owner review, S51's monitoring/incident/retention work remains, and no provider capability has
-been activated yet.
+provider/script refusal sentinels are locally complete. S51's explicit A2 logger plus print-only
+four-policy/one-channel monitoring bundle and GET-only verifier are also locally complete. The
+protected Firestore Rules hunk and cloud application remain parked; incident, retention, rehearsal,
+log-hygiene, and direct-Gmail A2 reachability work remain. No provider capability has been activated.
 
 Program:
 
@@ -291,7 +292,8 @@ Program:
 - Order: S53 gate/environment refusal → S53 immutable Sheet and comp-screenshot action contracts →
   S53 sender/config integrity → S53 Admin-reachable Vendor lifecycle seam → S52 read-only
   baseline/prerequisites → S51 close-only kernel → S51 store/route/audit and gated-effect
-  execution-path readiness → S51 monitoring/incident/retention/rehearsal definitions → activate
+  execution-path readiness → S51 A2/monitoring definitions → S51
+  incident/retention/rehearsal/log-hygiene definitions plus direct-Gmail A2 reachability → activate
   S52/S51 infrastructure when their named dependencies are satisfied → land
   S40's environment-parameterized zero-traffic candidate/smoke/promotion release-safety slice →
   routine deploy/live verification when auth and cost gates are green → resume the remaining S40

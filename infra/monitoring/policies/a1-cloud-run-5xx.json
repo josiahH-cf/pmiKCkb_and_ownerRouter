@@ -1,0 +1,41 @@
+{
+  "displayName": "PMI KC A1 - Production Cloud Run 5xx",
+  "combiner": "OR",
+  "enabled": true,
+  "userLabels": {
+    "managed_by": "pmi_kc",
+    "suite": "s51",
+    "policy_key": "a1",
+    "severity": "sev2"
+  },
+  "documentation": {
+    "content": "Production returned at least one 5xx during the five-minute pilot window. Check service health and contain any live effect before retrying.",
+    "mimeType": "text/markdown"
+  },
+  "conditions": [
+    {
+      "displayName": "Any Production 5xx in five minutes",
+      "conditionThreshold": {
+        "filter": "resource.type = \"cloud_run_revision\" AND metric.type = \"run.googleapis.com/request_count\" AND resource.label.\"project_id\" = \"__PROJECT_ID__\" AND resource.label.\"location\" = \"__REGION__\" AND resource.label.\"service_name\" = \"__SERVICE_NAME__\" AND metric.label.\"response_code_class\" = \"5xx\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "0s",
+        "aggregations": [
+          {
+            "alignmentPeriod": "300s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "groupByFields": [
+              "resource.label.\"project_id\"",
+              "resource.label.\"location\"",
+              "resource.label.\"service_name\""
+            ]
+          }
+        ],
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ]
+}

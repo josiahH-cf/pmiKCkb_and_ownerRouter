@@ -1,0 +1,29 @@
+{
+  "displayName": "PMI KC A3 - Cost warning threshold crossed",
+  "combiner": "OR",
+  "enabled": true,
+  "userLabels": {
+    "managed_by": "pmi_kc",
+    "suite": "s51",
+    "policy_key": "a3",
+    "severity": "sev2"
+  },
+  "documentation": {
+    "content": "The protected S52 alert-only threshold was crossed. Billing remains enabled; inspect current monthly burn before further cost-bearing work.",
+    "mimeType": "text/markdown"
+  },
+  "alertStrategy": {
+    "notificationRateLimit": {
+      "period": "900s"
+    },
+    "autoClose": "1800s"
+  },
+  "conditions": [
+    {
+      "displayName": "Only the S52 cost warning marker",
+      "conditionMatchedLog": {
+        "filter": "resource.type=\"cloud_run_revision\" AND resource.labels.project_id=\"__PROJECT_ID__\" AND resource.labels.location=\"__REGION__\" AND resource.labels.service_name=\"budget-guardrail\" AND jsonPayload.marker=\"COST_ALERT_THRESHOLD_CROSSED\""
+      }
+    }
+  ]
+}

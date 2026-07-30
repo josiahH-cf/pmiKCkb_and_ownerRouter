@@ -40,6 +40,8 @@
     "check:live-cost": "node scripts/check-live-cost.mjs",
     "check:budget-guard": "node scripts/check-budget-guard.mjs",
     "killswitch:plan": "node scripts/setup-budget-killswitch.mjs",
+    "monitoring:plan": "node scripts/setup-monitoring.mjs",
+    "monitoring:verify": "node scripts/verify-monitoring.mjs",
     "corpus:plan": "node scripts/source-corpus-manifest.mjs",
     "cutover:report": "node scripts/build-cutover-report.mjs",
     "cutover:dry-run": "node scripts/cutover-dry-run.mjs",

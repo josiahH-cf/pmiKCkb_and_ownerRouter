@@ -4,7 +4,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
 import type {
@@ -38,6 +38,109 @@ afterAll(async () => {
 });
 
 describe("external execution Firestore store CAS", () => {
+  it.each([
+    ["failed", false],
+    ["ambiguous", true],
+  ] as const)(
+    "emits one value-free alert after the LIVE %s transition commits",
+    async (expectedState, ambiguous) => {
+      const record = {
+        ...executionRecord(`attention-${expectedState}`, "running"),
+        workflowId: "resident@example.invalid",
+        actionId: "Message body for Tenant Name at Unit 123",
+      };
+      await seed(record);
+      const observedCommittedStates: string[] = [];
+      const emitAttention = vi.fn(async (event) => {
+        const committed = await db
+          .collection(EXTERNAL_EXECUTION_COLLECTIONS.records)
+          .doc(record.id)
+          .get();
+        observedCommittedStates.push(String(committed.data()?.state));
+        expect(JSON.stringify(event)).not.toMatch(
+          /resident@example\.invalid|Message body|Tenant Name|Unit 123/,
+        );
+      });
+      const store = new FirestoreExternalExecutionStore(db, emitAttention);
+
+      await expect(store.fail(record.id, ambiguous)).resolves.toBeUndefined();
+
+      expect(observedCommittedStates).toEqual([expectedState]);
+      expect(emitAttention).toHaveBeenCalledTimes(1);
+      expect(emitAttention).toHaveBeenCalledWith({
+        marker: "LIVE_EFFECT_REQUIRES_ATTENTION",
+        action_key: record.actionKey,
+        execution_id: record.id,
+        state: expectedState,
+        data_mode: "live",
+      });
+      await expect(store.fail(record.id, ambiguous)).rejects.toThrow(
+        /cannot transition/i,
+      );
+      expect(emitAttention).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("emits once for concurrent replays of the same failed transition", async () => {
+    const emitAttention = vi.fn();
+    const store = new FirestoreExternalExecutionStore(db, emitAttention);
+    const record = executionRecord("concurrent-failure", "running");
+    await seed(record);
+
+    const outcomes = await Promise.allSettled([
+      store.fail(record.id, false),
+      store.fail(record.id, false),
+    ]);
+
+    expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
+    expect(outcomes.filter((outcome) => outcome.status === "rejected")).toHaveLength(1);
+    expect(emitAttention).toHaveBeenCalledTimes(1);
+    await expect(store.get(record.id)).resolves.toMatchObject({ state: "failed" });
+  });
+
+  it("never emits for a Test-lane failed transition", async () => {
+    const emitAttention = vi.fn();
+    const store = new FirestoreExternalExecutionStore(db, emitAttention);
+    const record = {
+      ...executionRecord("test-failure", "running"),
+      dataMode: "test" as const,
+    };
+    await seed(record);
+
+    await expect(store.fail(record.id, false)).resolves.toBeUndefined();
+
+    expect(emitAttention).not.toHaveBeenCalled();
+    await expect(store.get(record.id)).resolves.toMatchObject({
+      dataMode: "test",
+      state: "failed",
+    });
+  });
+
+  it("keeps a committed failed state when the injected alert sink rejects", async () => {
+    const emitAttention = vi.fn(async () => {
+      throw new Error("fixture alert sink unavailable");
+    });
+    const store = new FirestoreExternalExecutionStore(db, emitAttention);
+    const record = executionRecord("sink-failure", "running");
+    await seed(record);
+
+    await expect(store.fail(record.id, false)).resolves.toBeUndefined();
+
+    expect(emitAttention).toHaveBeenCalledTimes(1);
+    await expect(store.get(record.id)).resolves.toMatchObject({ state: "failed" });
+  });
+
+  it("does not emit when the failure transaction cannot commit", async () => {
+    const emitAttention = vi.fn();
+    const store = new FirestoreExternalExecutionStore(db, emitAttention);
+
+    await expect(store.fail("missing-execution", false)).rejects.toThrow(
+      /execution missing/i,
+    );
+
+    expect(emitAttention).not.toHaveBeenCalled();
+  });
+
   it("accepts one concurrent terminal receipt and makes only its exact retry idempotent", async () => {
     const store = new FirestoreExternalExecutionStore(db);
     const record = executionRecord("concurrent-receipts", "running");
@@ -90,7 +193,8 @@ describe("external execution Firestore store CAS", () => {
   });
 
   it("uses the running state as a compare-and-set guard for competing finish and fail", async () => {
-    const store = new FirestoreExternalExecutionStore(db);
+    const emitAttention = vi.fn();
+    const store = new FirestoreExternalExecutionStore(db, emitAttention);
     const record = executionRecord("finish-fail-race", "running");
     await seed(record);
 
@@ -100,7 +204,9 @@ describe("external execution Firestore store CAS", () => {
     ]);
     expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
     expect(outcomes.filter((outcome) => outcome.status === "rejected")).toHaveLength(1);
-    expect((await store.get(record.id))?.state).toMatch(/^(succeeded|failed)$/);
+    const finalState = (await store.get(record.id))?.state;
+    expect(finalState).toMatch(/^(succeeded|failed)$/);
+    expect(emitAttention).toHaveBeenCalledTimes(finalState === "failed" ? 1 : 0);
   });
 });
 
