@@ -146,7 +146,10 @@ describe("run-page bulk write-back decisions", () => {
   });
 
   it("requires a selection and a shared reason before submitting", async () => {
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: "no_execution" }),
+    });
     vi.stubGlobal("fetch", fetchMock);
     renderClient(twoQueued);
 
@@ -165,7 +168,11 @@ describe("run-page bulk write-back decisions", () => {
       ),
     ).toBeInTheDocument();
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(
+      fetchMock.mock.calls.filter(
+        ([url]) => url === "/api/lease-renewal/writeback-approvals/bulk",
+      ),
+    ).toHaveLength(0);
   });
 
   it("submits the selection with ONE shared reason and reports per-item results", async () => {
@@ -199,8 +206,11 @@ describe("run-page bulk write-back decisions", () => {
       screen.getByText(/Cannot approve a write-back proposal that is "Approved"\./),
     ).toBeInTheDocument();
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, request] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const bulkCalls = fetchMock.mock.calls.filter(
+      ([url]) => url === "/api/lease-renewal/writeback-approvals/bulk",
+    );
+    expect(bulkCalls).toHaveLength(1);
+    const [url, request] = bulkCalls[0] as [string, RequestInit];
     expect(url).toBe("/api/lease-renewal/writeback-approvals/bulk");
     expect(JSON.parse(String(request.body))).toEqual({
       run_id: "run-1",

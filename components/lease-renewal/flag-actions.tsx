@@ -8,7 +8,7 @@
 // This is a client module. It imports server-shaped view types with `import type` ONLY and never
 // value-imports a firebase-admin module (gotcha 4); nothing here executes a system-of-record write.
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type {
@@ -528,8 +528,17 @@ export function WritebackApprovalControl({
         <p className="muted">An Admin approves the queued write-back proposal.</p>
       )}
 
-      {writebackEnabled && isAdmin && approval.state === "Approved" ? (
-        <SheetWritebackButton runId={runId} sourceTriggerKey={sourceTriggerKey} />
+      {isAdmin ? (
+        <SheetWritebackButton
+          approvalUpdatedAt={approval.updatedAt}
+          key={`${approval.updatedAt ?? "unknown"}:${approval.state}:${String(approval.stale)}:${String(writebackEnabled)}`}
+          mutationEnabled={writebackEnabled}
+          newWriteEnabled={
+            writebackEnabled && approval.state === "Approved" && !approval.stale
+          }
+          runId={runId}
+          sourceTriggerKey={sourceTriggerKey}
+        />
       ) : null}
 
       <WritebackApprovalTimeline activity={approval.activity} />
@@ -544,97 +553,510 @@ interface ResolvedWritebackTargetView {
   rowValues: string[];
 }
 
-// The live confirm-target write control (Phase C enablement). Two steps: "Write approved value to Sheet"
-// resolves the exact target (value → KB-Proposed column → the matched row's current cells) so the Admin
-// can verify it is the right lease; "Confirm write to Sheet" performs the guarded, append-only, single-
-// cell write. It reaches the sheet only through the flag-gated /writeback-execute route; any block is
-// surfaced verbatim. Shown only when the admin feature flag is on and the proposal is Approved.
+interface WritebackPreviewView {
+  executionId: string;
+  hash: string;
+  expiresAt: string;
+}
+
+interface WritebackReceiptView {
+  receiptId: string;
+  operation: "write" | "correction";
+  outcome: "written" | "corrected";
+  reconciled: boolean;
+  approvalVersion: string;
+  createdAt: string;
+}
+
+interface CorrectionWritebackTargetView {
+  a1: string;
+  currentValue: string;
+  originalReceiptId: string;
+}
+
+// The live Sheet action is a server-bound two-step contract. The first call returns the exact target,
+// expiring preview hash, and deterministic execution identity. The second call sends those identifiers
+// back byte-for-byte; a boolean alone can never write. A durable receipt enables effect-free provider
+// recovery (which may terminalize an unused idempotency key) and a separately previewed,
+// generation-conditioned correction.
 function SheetWritebackButton({
+  approvalUpdatedAt,
+  mutationEnabled,
+  newWriteEnabled,
   runId,
   sourceTriggerKey,
 }: {
+  approvalUpdatedAt?: string;
+  /** Provider mutations are available; correction does not depend on the current approval state. */
+  mutationEnabled: boolean;
+  /** A fresh append preview/commit additionally requires the current proposal to be Approved. */
+  newWriteEnabled: boolean;
   runId: string;
   sourceTriggerKey: string;
 }) {
-  const router = useRouter();
-  const [pending, setPending] = useState<null | "prepare" | "commit">(null);
+  const { refresh } = useRouter();
+  const [pending, setPending] = useState<
+    | null
+    | "status"
+    | "prepare"
+    | "commit"
+    | "reconcile"
+    | "correction-prepare"
+    | "correction-commit"
+  >(null);
   const [target, setTarget] = useState<ResolvedWritebackTargetView | null>(null);
+  const [preview, setPreview] = useState<WritebackPreviewView | null>(null);
+  const [writePreviewApprovalVersion, setWritePreviewApprovalVersion] = useState<
+    string | null
+  >(null);
+  const [correctionPreview, setCorrectionPreview] = useState<{
+    target: CorrectionWritebackTargetView;
+    preview: WritebackPreviewView;
+  } | null>(null);
+  const [receipt, setReceipt] = useState<WritebackReceiptView | null>(null);
+  const [unresolvedExecutionId, setUnresolvedExecutionId] = useState<string | null>(null);
+  const [inProgressExecutionId, setInProgressExecutionId] = useState<string | null>(null);
+  const [statusLoaded, setStatusLoaded] = useState(false);
+  const [statusUnavailable, setStatusUnavailable] = useState(false);
+  const [terminalAbsent, setTerminalAbsent] = useState(false);
+  const [terminalAbsentApprovalVersion, setTerminalAbsentApprovalVersion] = useState<
+    string | null
+  >(null);
+  const [retryCorrectionExecutionId, setRetryCorrectionExecutionId] = useState<
+    string | null
+  >(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [wroteA1, setWroteA1] = useState<string | null>(null);
+  const [completedA1, setCompletedA1] = useState<string | null>(null);
 
-  function surface(outcome: {
-    status?: string;
-    target?: ResolvedWritebackTargetView;
-    a1?: string;
-    reason?: string;
-  }) {
-    switch (outcome.status) {
-      case "resolved":
-        setTarget(outcome.target ?? null);
-        return;
-      case "written":
-        setTarget(null);
-        setWroteA1(outcome.a1 ?? "");
-        router.refresh();
-        return;
-      case "disabled":
-        setMessage("The Sheet write-back is turned off.");
-        return;
-      case "not_configured":
-        setMessage("Live sources aren’t connected.");
-        return;
-      case "not_approved":
-        setMessage(outcome.reason ?? "There is no approved write-back to execute.");
-        return;
-      case "flag_not_found":
-        setMessage("This flag is no longer in the live run; reload the review.");
-        return;
-      case "read_error":
-        setMessage("The live read or write did not complete. Try again.");
-        return;
-      case "blocked":
-        setMessage(`Blocked: ${outcome.reason ?? "the write could not be verified"}.`);
-        return;
-      default:
-        setMessage("Unexpected response from the write-back endpoint.");
-    }
-  }
-
-  async function call(confirm: boolean) {
-    setPending(confirm ? "commit" : "prepare");
-    setMessage(null);
-    try {
-      const response = await fetch("/api/lease-renewal/writeback-execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ runId, sourceTriggerKey, confirm }),
-      });
-      const body = (await response.json().catch(() => ({}))) as {
-        status?: string;
-        target?: ResolvedWritebackTargetView;
-        a1?: string;
-        reason?: string;
-        error?: string;
-      };
-      if (!response.ok) {
-        setMessage(body.error ?? "Could not reach the write-back endpoint.");
-        return;
+  const surface = useCallback(
+    (outcome: {
+      status?: string;
+      target?: ResolvedWritebackTargetView | CorrectionWritebackTargetView;
+      preview?: WritebackPreviewView;
+      a1?: string;
+      reason?: string;
+      executionId?: string;
+      receipt?: WritebackReceiptView;
+      duplicate?: boolean;
+      operation?: "write" | "correction";
+      originalExecutionId?: string;
+      approvalVersion?: string;
+    }) => {
+      setStatusLoaded(true);
+      setStatusUnavailable(false);
+      switch (outcome.status) {
+        case "no_execution":
+          setInProgressExecutionId(null);
+          setTerminalAbsent(false);
+          setTerminalAbsentApprovalVersion(null);
+          setRetryCorrectionExecutionId(null);
+          return;
+        case "resolved":
+          setTarget(
+            outcome.target && "proposedValue" in outcome.target ? outcome.target : null,
+          );
+          setPreview(outcome.preview ?? null);
+          setWritePreviewApprovalVersion(approvalUpdatedAt?.trim() || null);
+          setInProgressExecutionId(null);
+          setTerminalAbsent(false);
+          setTerminalAbsentApprovalVersion(null);
+          setRetryCorrectionExecutionId(null);
+          return;
+        case "written":
+          setTarget(null);
+          setPreview(null);
+          setWritePreviewApprovalVersion(null);
+          setReceipt(outcome.receipt ?? null);
+          setCompletedA1(outcome.a1 ?? "");
+          setUnresolvedExecutionId(null);
+          setInProgressExecutionId(null);
+          setTerminalAbsent(false);
+          setTerminalAbsentApprovalVersion(null);
+          setRetryCorrectionExecutionId(null);
+          if (!outcome.duplicate) refresh();
+          return;
+        case "correction_resolved":
+          setCorrectionPreview(
+            outcome.target && "originalReceiptId" in outcome.target && outcome.preview
+              ? {
+                  target: outcome.target,
+                  preview: outcome.preview,
+                }
+              : null,
+          );
+          setInProgressExecutionId(null);
+          setTerminalAbsent(false);
+          setTerminalAbsentApprovalVersion(null);
+          setRetryCorrectionExecutionId(null);
+          return;
+        case "corrected":
+          setTarget(null);
+          setPreview(null);
+          setWritePreviewApprovalVersion(null);
+          setCorrectionPreview(null);
+          setReceipt(outcome.receipt ?? null);
+          setCompletedA1(outcome.a1 ?? "");
+          setUnresolvedExecutionId(null);
+          setInProgressExecutionId(null);
+          setTerminalAbsent(false);
+          setTerminalAbsentApprovalVersion(null);
+          setRetryCorrectionExecutionId(null);
+          if (!outcome.duplicate) refresh();
+          return;
+        case "needs_reconciliation":
+          setTarget(null);
+          setPreview(null);
+          setWritePreviewApprovalVersion(null);
+          setCorrectionPreview(null);
+          setReceipt(null);
+          setCompletedA1(null);
+          setInProgressExecutionId(null);
+          setTerminalAbsent(false);
+          setTerminalAbsentApprovalVersion(null);
+          setRetryCorrectionExecutionId(null);
+          setUnresolvedExecutionId(outcome.executionId ?? null);
+          setMessage(
+            outcome.reason ??
+              "The one provider attempt is unresolved. Reconcile it; do not retry.",
+          );
+          return;
+        case "in_progress":
+          setTarget(null);
+          setPreview(null);
+          setWritePreviewApprovalVersion(null);
+          setCorrectionPreview(null);
+          setReceipt(null);
+          setCompletedA1(null);
+          setUnresolvedExecutionId(null);
+          setTerminalAbsent(false);
+          setTerminalAbsentApprovalVersion(null);
+          setRetryCorrectionExecutionId(null);
+          setInProgressExecutionId(outcome.executionId ?? null);
+          setMessage(
+            outcome.reason ??
+              "The provider attempt is still settling. Check status again later.",
+          );
+          return;
+        case "absent":
+          setTarget(null);
+          setPreview(null);
+          setWritePreviewApprovalVersion(null);
+          setCorrectionPreview(null);
+          setReceipt(null);
+          setCompletedA1(null);
+          setUnresolvedExecutionId(null);
+          setInProgressExecutionId(null);
+          setTerminalAbsent(true);
+          setTerminalAbsentApprovalVersion(
+            typeof outcome.approvalVersion === "string" &&
+              outcome.approvalVersion.trim().length > 0
+              ? outcome.approvalVersion
+              : null,
+          );
+          setRetryCorrectionExecutionId(
+            outcome.operation === "correction"
+              ? (outcome.originalExecutionId ?? null)
+              : null,
+          );
+          setMessage(
+            outcome.reason ??
+              "The provider read confirmed that the consumed attempt did not land.",
+          );
+          return;
+        case "disabled":
+          setMessage("The Sheet write-back is turned off.");
+          return;
+        case "not_configured":
+          setMessage("Live sources aren’t connected.");
+          return;
+        case "not_approved":
+          setMessage(outcome.reason ?? "There is no approved write-back to execute.");
+          return;
+        case "flag_not_found":
+          setMessage("This flag is no longer in the live run; reload the review.");
+          return;
+        case "read_error":
+          setMessage(
+            "The live read did not complete. If an attempt was already claimed, reconcile it instead of retrying.",
+          );
+          return;
+        case "blocked":
+          setMessage(`Blocked: ${outcome.reason ?? "the write could not be verified"}.`);
+          return;
+        default:
+          setMessage("Unexpected response from the write-back endpoint.");
       }
-      surface(body);
-    } catch {
-      setMessage("Could not reach the write-back endpoint.");
-    } finally {
-      setPending(null);
-    }
-  }
+    },
+    [approvalUpdatedAt, refresh],
+  );
 
-  if (wroteA1 !== null) {
-    return <p className="muted">✓ Wrote the approved value to the Sheet ({wroteA1}).</p>;
-  }
+  const freshApprovalAfterCorrection =
+    receipt?.operation === "correction" &&
+    newWriteEnabled &&
+    typeof approvalUpdatedAt === "string" &&
+    approvalUpdatedAt.trim().length > 0 &&
+    typeof receipt.approvalVersion === "string" &&
+    receipt.approvalVersion.trim().length > 0 &&
+    approvalUpdatedAt !== receipt.approvalVersion;
+  const freshApprovalAfterAbsentWrite =
+    terminalAbsent &&
+    retryCorrectionExecutionId === null &&
+    mutationEnabled &&
+    newWriteEnabled &&
+    typeof approvalUpdatedAt === "string" &&
+    approvalUpdatedAt.trim().length > 0 &&
+    typeof terminalAbsentApprovalVersion === "string" &&
+    terminalAbsentApprovalVersion.trim().length > 0 &&
+    approvalUpdatedAt !== terminalAbsentApprovalVersion;
+
+  const recoverUnknownCommit = useCallback(
+    async (executionId: string, knownRejectedOperation?: "write" | "correction") => {
+      setStatusLoaded(true);
+      setStatusUnavailable(false);
+      setInProgressExecutionId(executionId);
+      setMessage(
+        "The commit response was lost. Exact durable status is being checked before any retry.",
+      );
+      try {
+        const response = await fetch("/api/lease-renewal/writeback-execute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            runId,
+            sourceTriggerKey,
+            operation: "status",
+            confirm: false,
+            executionId,
+          }),
+        });
+        if (!response.ok) return;
+        const body = (await response.json().catch(() => ({}))) as Parameters<
+          typeof surface
+        >[0];
+        if (body.status === "no_execution") {
+          setInProgressExecutionId(null);
+          if (knownRejectedOperation === "write") {
+            setTarget(null);
+            setPreview(null);
+            setWritePreviewApprovalVersion(null);
+            setMessage(
+              "The write preview is no longer valid. Prepare a new exact Sheet preview.",
+            );
+          } else if (knownRejectedOperation === "correction") {
+            setCorrectionPreview(null);
+            setMessage(
+              "The correction preview is no longer valid. Prepare a new exact correction preview.",
+            );
+          } else {
+            setMessage(
+              "No durable attempt was claimed. The same exact confirmation may be submitted again.",
+            );
+          }
+          return;
+        }
+        surface(body);
+      } catch {
+        // Keep exact-ID polling surfaced above. A failed status read never re-enables commit.
+      }
+    },
+    [runId, sourceTriggerKey, surface],
+  );
+
+  const call = useCallback(
+    async (
+      state: NonNullable<typeof pending>,
+      payload: {
+        operation: "write" | "reconcile" | "correction" | "status";
+        confirm: boolean;
+        executionId?: string;
+        previewHash?: string;
+      },
+    ) => {
+      setPending(state);
+      setMessage(null);
+      try {
+        const response = await fetch("/api/lease-renewal/writeback-execute", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ runId, sourceTriggerKey, ...payload }),
+        });
+        const body = (await response.json().catch(() => ({}))) as {
+          status?: string;
+          target?: ResolvedWritebackTargetView | CorrectionWritebackTargetView;
+          preview?: WritebackPreviewView;
+          a1?: string;
+          reason?: string;
+          executionId?: string;
+          receipt?: WritebackReceiptView;
+          duplicate?: boolean;
+          operation?: "write" | "correction";
+          originalExecutionId?: string;
+          error?: string;
+          error_type?: string;
+        };
+        if (!response.ok) {
+          if (body.error_type === "attempt_ambiguous" && payload.executionId) {
+            surface({
+              status: "needs_reconciliation",
+              executionId: payload.executionId,
+              reason: body.error,
+            });
+            return;
+          }
+          if (body.error_type === "attempt_in_progress" && payload.executionId) {
+            surface({
+              status: "in_progress",
+              executionId: payload.executionId,
+              reason: body.error,
+            });
+            return;
+          }
+          if (
+            (state === "commit" || state === "correction-commit") &&
+            payload.executionId &&
+            ["preview_stale", "correction_unavailable", "attempt_consumed"].includes(
+              body.error_type ?? "",
+            )
+          ) {
+            await recoverUnknownCommit(
+              payload.executionId,
+              state === "commit" ? "write" : "correction",
+            );
+            return;
+          }
+          if (state === "status") {
+            setStatusLoaded(true);
+            setStatusUnavailable(true);
+          }
+          setMessage(body.error ?? "Could not reach the write-back endpoint.");
+          return;
+        }
+        surface(body);
+      } catch {
+        if (
+          (state === "commit" || state === "correction-commit") &&
+          payload.executionId
+        ) {
+          await recoverUnknownCommit(payload.executionId);
+          return;
+        }
+        if (state === "status") {
+          setStatusLoaded(true);
+          setStatusUnavailable(true);
+        }
+        setMessage("Could not reach the write-back endpoint.");
+      } finally {
+        setPending(null);
+      }
+    },
+    [recoverUnknownCommit, runId, sourceTriggerKey, surface],
+  );
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void call("status", { operation: "status", confirm: false });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [call]);
 
   return (
     <div className="lr-writeback-execute">
-      {target ? (
+      {!statusLoaded ? (
+        <p className="muted">Checking durable Sheet action status…</p>
+      ) : statusUnavailable ? (
+        <p className="muted">
+          Sheet action status could not be verified. Reload before attempting a write.
+        </p>
+      ) : inProgressExecutionId ? (
+        <div className="lr-approve-form">
+          <p className="muted">
+            The provider attempt is still settling. No retry or reconciliation is allowed
+            inside the no-race window.
+          </p>
+          <button
+            className="secondary-button"
+            disabled={pending !== null}
+            onClick={() =>
+              call("status", {
+                operation: "status",
+                confirm: false,
+                executionId: inProgressExecutionId,
+              })
+            }
+            type="button"
+          >
+            {pending === "status" ? "Checking…" : "Check action status"}
+          </button>
+        </div>
+      ) : unresolvedExecutionId ? (
+        <div className="lr-approve-form">
+          <p className="muted">
+            The one provider attempt is unresolved. Reconcile it before any other Sheet
+            action.
+          </p>
+          <button
+            className="secondary-button"
+            disabled={pending !== null}
+            onClick={() =>
+              call("reconcile", {
+                operation: "reconcile",
+                confirm: false,
+                executionId: unresolvedExecutionId,
+              })
+            }
+            type="button"
+          >
+            {pending === "reconcile" ? "Reconciling…" : "Reconcile one attempt"}
+          </button>
+        </div>
+      ) : correctionPreview && mutationEnabled ? (
+        <div className="lr-approve-form">
+          <p>
+            Clear exactly <strong>{correctionPreview.target.currentValue}</strong> from{" "}
+            <strong>{correctionPreview.target.a1}</strong> by receipt{" "}
+            <code>{shortIdentity(correctionPreview.target.originalReceiptId)}</code>.
+          </p>
+          <p className="muted">
+            Exact correction preview{" "}
+            <code>{shortIdentity(correctionPreview.preview.hash)}</code> expires{" "}
+            {correctionPreview.preview.expiresAt}. Any intervening cell change blocks the
+            clear.
+          </p>
+          <div className="lr-approve-actions">
+            <button
+              disabled={pending !== null}
+              onClick={() =>
+                call("correction-commit", {
+                  operation: "correction",
+                  confirm: true,
+                  executionId: correctionPreview.preview.executionId,
+                  previewHash: correctionPreview.preview.hash,
+                })
+              }
+              type="button"
+            >
+              {pending === "correction-commit"
+                ? "Correcting…"
+                : "Confirm exact Sheet correction"}
+            </button>
+            <button
+              className="secondary-button"
+              disabled={pending !== null}
+              onClick={() => setCorrectionPreview(null)}
+              type="button"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : correctionPreview ? (
+        <p className="muted">
+          Exact correction is unavailable while Sheet mutations are off.
+        </p>
+      ) : target &&
+        preview &&
+        newWriteEnabled &&
+        writePreviewApprovalVersion === approvalUpdatedAt ? (
         <div className="lr-approve-form">
           <p>
             Append <strong>{target.proposedValue}</strong> to{" "}
@@ -644,8 +1066,24 @@ function SheetWritebackButton({
           <p className="muted">
             Row: {target.rowValues.filter((cell) => cell.trim() !== "").join(" · ")}
           </p>
+          <p className="muted">
+            Exact preview <code>{shortIdentity(preview.hash)}</code> expires{" "}
+            {preview.expiresAt}. Any approval, target, value, actor, or environment change
+            invalidates it.
+          </p>
           <div className="lr-approve-actions">
-            <button disabled={pending !== null} onClick={() => call(true)} type="button">
+            <button
+              disabled={pending !== null}
+              onClick={() =>
+                call("commit", {
+                  operation: "write",
+                  confirm: true,
+                  executionId: preview.executionId,
+                  previewHash: preview.hash,
+                })
+              }
+              type="button"
+            >
               {pending === "commit" ? "Writing…" : "Confirm write to Sheet"}
             </button>
             <button
@@ -653,6 +1091,8 @@ function SheetWritebackButton({
               disabled={pending !== null}
               onClick={() => {
                 setTarget(null);
+                setPreview(null);
+                setWritePreviewApprovalVersion(null);
                 setMessage(null);
               }}
               type="button"
@@ -661,14 +1101,123 @@ function SheetWritebackButton({
             </button>
           </div>
         </div>
+      ) : terminalAbsent && retryCorrectionExecutionId ? (
+        <div className="lr-approve-form">
+          <p className="muted">
+            The prior correction attempt was confirmed absent. A new exact correction
+            requires a fresh preview and receives a new one-attempt identity.
+          </p>
+          {mutationEnabled ? (
+            <button
+              className="secondary-button"
+              disabled={pending !== null}
+              onClick={() =>
+                call("correction-prepare", {
+                  operation: "correction",
+                  confirm: false,
+                  executionId: retryCorrectionExecutionId,
+                })
+              }
+              type="button"
+            >
+              {pending === "correction-prepare"
+                ? "Checking exact cell…"
+                : "Preview exact correction again"}
+            </button>
+          ) : (
+            <p className="muted">Exact correction is unavailable while writes are off.</p>
+          )}
+        </div>
+      ) : freshApprovalAfterAbsentWrite ? (
+        <div className="lr-approve-form">
+          <p className="muted">
+            The prior write attempt was confirmed absent. This newer Approved proposal can
+            start a fresh one-attempt lineage.
+          </p>
+          <button
+            disabled={pending !== null}
+            onClick={() => call("prepare", { operation: "write", confirm: false })}
+            type="button"
+          >
+            {pending === "prepare" ? "Resolving…" : "Write approved value to Sheet"}
+          </button>
+        </div>
+      ) : terminalAbsent ? (
+        <p className="muted">
+          This one attempt is consumed. Revoke and re-approve the proposal before
+          preparing another write.
+        </p>
+      ) : receipt?.operation === "write" ? (
+        <div className="lr-approve-form">
+          <p className="muted">
+            ✓ Wrote the approved value to the Sheet ({completedA1}). Receipt{" "}
+            <code>{shortIdentity(receipt.receiptId)}</code>
+            {receipt.reconciled ? " (reconciled)" : ""}.
+          </p>
+          {mutationEnabled ? (
+            <button
+              className="secondary-button"
+              disabled={pending !== null}
+              onClick={() =>
+                call("correction-prepare", {
+                  operation: "correction",
+                  confirm: false,
+                  executionId: receipt.receiptId,
+                })
+              }
+              type="button"
+            >
+              {pending === "correction-prepare"
+                ? "Checking exact cell…"
+                : "Preview exact correction"}
+            </button>
+          ) : (
+            <p className="muted">Exact correction is unavailable while writes are off.</p>
+          )}
+        </div>
+      ) : receipt?.operation === "correction" ? (
+        <div className="lr-approve-form">
+          <p className="muted">
+            ✓ Cleared the exact receipted Sheet value ({completedA1}). Correction receipt{" "}
+            <code>{shortIdentity(receipt.receiptId)}</code>
+            {receipt.reconciled ? " (reconciled)" : ""}.
+          </p>
+          {freshApprovalAfterCorrection ? (
+            <button
+              disabled={pending !== null}
+              onClick={() => call("prepare", { operation: "write", confirm: false })}
+              type="button"
+            >
+              {pending === "prepare" ? "Resolving…" : "Write approved value to Sheet"}
+            </button>
+          ) : null}
+        </div>
+      ) : !mutationEnabled ? (
+        <p className="muted">
+          New Sheet writes are turned off. Durable receipts and reconciliation remain
+          available.
+        </p>
+      ) : !newWriteEnabled ? (
+        <p className="muted">
+          A current Approved proposal is required for a new Sheet preview. Durable status,
+          reconciliation, and correction remain available.
+        </p>
       ) : (
-        <button disabled={pending !== null} onClick={() => call(false)} type="button">
+        <button
+          disabled={pending !== null}
+          onClick={() => call("prepare", { operation: "write", confirm: false })}
+          type="button"
+        >
           {pending === "prepare" ? "Resolving…" : "Write approved value to Sheet"}
         </button>
       )}
       {message ? <p className="lr-error">{message}</p> : null}
     </div>
   );
+}
+
+function shortIdentity(value: string): string {
+  return value.length > 16 ? `${value.slice(0, 12)}…` : value;
 }
 
 // Read-only append-only audit trail of the approve / return / revoke decisions on this queued

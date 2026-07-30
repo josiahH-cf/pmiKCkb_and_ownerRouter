@@ -11,17 +11,76 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S53.2 COMPLETE locally — Sheet action contract at the D32 provider seam (2026-07-29)
+
+The local AC-S53-12 application, store, and UI contract is built and adversarially verified without
+opening the action key. The Admin flow uses a server-issued, expiring preview bound to actor, run,
+trigger, approval version, environment, spreadsheet/tab/A1, proposed-value hash, and a bodyless
+row/header anchor. Commit requires the exact preview and wins one durable predecessor-checked
+attempt. Firestore stores the preview, logical head, execution, audit, and bodyless receipt
+server-side; direct clients remain denied by the existing catch-all Rules boundary.
+
+The still-missing D32 live provider must expose three inseparable operations over one global
+idempotency/payload ledger: an atomic stable-row mutation, exact status, and atomic
+tombstone-if-absent. Mutation resolves the one canonical header and unique logical row, requires the
+confirmed A1/current value, binds the key to the payload, and returns immutable effect
+id/A1/time/result evidence. Reconciliation never infers absence from a blank cell or missing lookup:
+an unknown key is terminal only after the provider atomically tombstones it so no delayed call can
+apply. This recovery mutates provider control state, so it is not read-only, but it creates no Sheet
+or customer-data effect. Pending/unknown attempts remain ambiguous and block every successor.
+
+The winning Firestore claim transaction re-reads the exact Approved decision and queued resolution,
+including run/property/field/value/source/version, so revoke and same-value/different-source races
+cannot win. Duplicates converge on one provider-effect receipt. Correction has its own exact preview
+and must condition on a provider-owned current cell generation that every intervening edit invalidates,
+including same-value clear/retype ABA. Durable status/reconcile/correction stays visible after approval
+return; a new write appears only for a different exact approval version.
+
+Adversarial review proved that Google Sheets' fixed-A1/value primitives cannot bind the product's
+logical lease-row identity, recover a claim-before-provider crash, or prove current effect provenance
+across identical-row, structural-movement, and same-value ABA races. The live
+`GoogleSheetsApiWriter` therefore deliberately omits all three required provider operations.
+Preview and commit independently fail closed before a Sheet read, preview persistence, or mutation;
+the raw fixed-A1 primitives remain reachable only from a synthetic throwaway-sheet smoke and are
+not activation evidence. A static runtime-boundary sentinel prevents app code from importing the
+legacy direct-mutation helpers or calling raw fixed-range methods.
+
+Final evidence is green: 402 unit-test files / 3,106 tests; 18 Firestore files / 67 tests, including
+direct-client denial of all four new server-only collections; 8 core-E2E files / 32 tests; and the
+full widened verifier in 199.9 seconds, including clean install, format, lint (0 errors, 16 existing
+warnings), typecheck, router/falsification/context/spec/copy/redaction gates, and production build.
+The independent adversarial reread found no remaining P0–P2 safety, race, recovery, bypass, or
+governance-truth defect. No D12 protected code path changed.
+
+The key remains `production_allowed:false`, `readiness:"Needs Connection"`, and
+`evidence_status:"Undocumented"`. The exact activation dependency is the D32 transaction broker
+described in `docs/client-asks-2026-07-29.md`: mutate + status + atomic absent-key tombstone over one
+global ledger, immutable effect evidence, and a provider-owned cell generation/protected range that
+makes same-value ABA impossible or detectable. Fresh owner-run `npm run auth:session` and
+authenticated confirmation of the operational spreadsheet/tab/column follow that provider proof.
+A throwaway fixed-A1 CAS smoke does not satisfy it.
+No operational Sheet write or cloud action ran in this slice. Next safe slice: AC-S53-13, replacing
+comp-screenshot upload-on-first-POST with its exact preview/receipt/reconcile/Drive-trash rollback
+contract while that key also remains closed.
+
+Auth was rechecked without exposing a token: the Windows CLI active identity is the managed
+`josiah@pmikcmetro.com` account and suppressed `gcloud auth print-access-token` succeeds. ADC remains
+absent/stale from the required session-start preflight, so live/cloud work remains parked until the
+owner runs `npm run auth:session`.
+
 ## S53.1 Sheet write-back gate + environment fence (2026-07-29)
 
-The live Sheet write-back now refuses through two independent server-side fences before parsing the
-request body, resolving live config, rebuilding a run, loading an approval, or touching a Sheets
-reader/writer:
+The live Sheet write-back now refuses through two independent server-side fences without resolving
+live config, rebuilding a run, loading an approval, or touching a Sheets reader/writer:
 
 - the server-owned descriptor must be exactly Production + Live; Demo and Demo Live-read-only return
   a typed 409 environment refusal; and
-- the exact `google_sheets.renewal_checklist.writeback` committed Action Registry key must be
-  executable. It remains `production_allowed:false`, so Production returns the typed
-  `action_not_production_allowed` 409.
+- after parsing only the operation, mutating preview/commit/correction requires the exact
+  `google_sheets.renewal_checklist.writeback` committed Action Registry key. It remains
+  `production_allowed:false`, so those Production requests return the typed
+  `action_not_production_allowed` 409. Status is read-only; reconcile intentionally remains reachable
+  for a prior consumed attempt while the key is closed and may terminalize an absent provider key,
+  but it cannot create a Sheet/customer effect.
 
 The service repeats the same assertion as its first executable boundary, so a direct service caller
 cannot bypass the route. A fake-open registry exists only as the established injected test seam; no

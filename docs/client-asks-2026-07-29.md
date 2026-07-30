@@ -48,18 +48,18 @@ the end of this document.
 
 The activation-only owner inputs below are equally real even when they are not vendor messages:
 
-| Owner input / decision | Exact value still required                                                                                                                                                                                   | Scope                       |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- |
-| S40 / D11              | Dedicated Demo project id + number, region, Firestore database, storage, Pub/Sub, runtime identity, Firebase Auth project/domain, KB corpus ids, OAuth origin/audience, and rollback-safe migration approval | Environment cutover         |
-| S51 / D13              | Internal managed operator notification destination                                                                                                                                                           | Monitoring activation       |
-| S52 / D01              | Measured baseline, alert threshold, hard-stop ceiling, and disposition of `adept-primacy-499822-d7`                                                                                                          | Any cost-bearing cloud step |
-| S53 / D29              | Exact managed `KB_APPROVAL_SENDER`, if it cannot be recovered from approved non-secret config                                                                                                                | Internal notices            |
-| S53 / D30              | Maintenance intake token secret and IP-hash salt in Secret Manager plus runtime access binding                                                                                                               | Resident intake activation  |
-| S53 / D32              | `KB Proposed — Comp basis` column plus fresh authenticated spreadsheet id/tab confirmation                                                                                                                   | Sheet write-back activation |
-| S53 / D34              | One Vendor company/contact supplied through a secure out-of-repo channel                                                                                                                                     | Vendor lifecycle pilot      |
-| S53 / D36              | `roles/discoveryengine.admin` grant to the exact runtime service account                                                                                                                                     | S36 provisioning            |
-| S47 / D16              | Approved resident notice/troubleshooting/charge wording and a non-secret fallback contact route                                                                                                              | Resident intake             |
-| D44                    | Official approved SVG and PNG artwork, provenance, and usage approval                                                                                                                                        | Brand surfaces              |
+| Owner input / decision | Exact value still required                                                                                                                                                                                                                                | Scope                       |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| S40 / D11              | Dedicated Demo project id + number, region, Firestore database, storage, Pub/Sub, runtime identity, Firebase Auth project/domain, KB corpus ids, OAuth origin/audience, and rollback-safe migration approval                                              | Environment cutover         |
+| S51 / D13              | Internal managed operator notification destination                                                                                                                                                                                                        | Monitoring activation       |
+| S52 / D01              | Measured baseline, alert threshold, hard-stop ceiling, and disposition of `adept-primacy-499822-d7`                                                                                                                                                       | Any cost-bearing cloud step |
+| S53 / D29              | Exact managed `KB_APPROVAL_SENDER`, if it cannot be recovered from approved non-secret config                                                                                                                                                             | Internal notices            |
+| S53 / D30              | Maintenance intake token secret and IP-hash salt in Secret Manager plus runtime access binding                                                                                                                                                            | Resident intake activation  |
+| S53 / D32              | Approve/provision the managed Sheet transaction broker below: exact-A1 stable-row mutate + status + atomic absent-key tombstone + same-value-ABA-safe effect generation/protected ranges; then create `KB Proposed — Comp basis` and confirm sheet id/tab | Sheet write-back activation |
+| S53 / D34              | One Vendor company/contact supplied through a secure out-of-repo channel                                                                                                                                                                                  | Vendor lifecycle pilot      |
+| S53 / D36              | `roles/discoveryengine.admin` grant to the exact runtime service account                                                                                                                                                                                  | S36 provisioning            |
+| S47 / D16              | Approved resident notice/troubleshooting/charge wording and a non-secret fallback contact route                                                                                                                                                           | Resident intake             |
+| D44                    | Official approved SVG and PNG artwork, provenance, and usage approval                                                                                                                                                                                     | Brand surfaces              |
 
 Before any command below that reads live Google state or mutates cloud configuration, run
 `npm run preflight:adc`. If it fails, the owner runs `npm run auth:session` interactively and reruns
@@ -67,6 +67,59 @@ the preflight. A stale token never authorizes a personal-account workaround.
 
 D38, D39 go out as **one** message. D45, D52, D53, D54, D55, D21 and the D57 confirmation can go to
 Dan as **one** batch. D58 is deliberately held until after our own re-derivation — see item 8.
+
+---
+
+## D32 — approve and provision the managed Sheet transaction broker
+
+**Type.** Owner self-serve plus internal implementation. **Who.** PMI KC Google Workspace/project
+owner, with the implementation runner. **Blocking.** Only
+`google_sheets.renewal_checklist.writeback`; the rest of S53 continues.
+
+Google Sheets REST `values.update`/`batchUpdate` does not itself provide the transaction semantics the
+live action needs. The safe proposed default is a managed `pmikcmetro.com` Apps Script API executable
+bound to the approved renewal workbook, with a protected target column and a protected hidden
+idempotency/effect ledger. The provider identity is the only ordinary editor of both ranges. One
+document lock plus one atomic Sheets batch writes the target cell and ledger effect together; all
+app corrections go through the same provider. If Workspace cannot enforce that boundary, keep the
+key closed and use another provider only if it proves the identical contract.
+
+The provider interface must expose all three operations over one globally scoped key/payload ledger:
+
+1. `mutateAnchoredCellIfMatch` — atomically bind key + payload hash, require the one canonical target
+   header, unique bodyless row anchor, exact human-confirmed A1, current value, and optional prior
+   effect generation; apply once; return immutable effect id, exact A1, applied time, and result hash.
+2. `getAnchoredMutationStatus` — return `applied`, `pending`, terminal `not_applied`, or `unknown` for
+   that exact key + payload. A missing lookup, blank cell, timeout, or 404 is never `not_applied`.
+3. `tombstoneAnchoredMutationIfAbsent` — under the same lock, return the existing state or bind an
+   absent key to terminal `not_applied` before returning. Every delayed mutation after that tombstone
+   must refuse forever.
+
+Correction additionally requires a provider-owned current-cell generation. Every intervening edit by
+any collaborator or API must invalidate it, even if somebody clears and retypes the identical value.
+The protected range is therefore part of the contract, not optional setup. Same key with a different
+payload refuses; wrong-cell applied evidence is a provider incident, never a successful receipt.
+
+**Exact owner handback.**
+
+```text
+Approve the D32 managed Sheet transaction broker for the renewal workbook. Create/own the
+Apps Script project under a managed pmikcmetro.com identity, protect the KB Proposed target
+column and hidden provider ledger so only the provider identity normally edits them, enable
+the required Sheets advanced service/API, and deploy the script as a managed API executable.
+Return only the non-secret script/deployment identifier and managed execution identity through
+the environment handoff; place any credential in Secret Manager, never in chat or git.
+
+The runner will not open google_sheets.renewal_checklist.writeback until mutate, exact status,
+atomic absent-key tombstone, immutable effect evidence, same-value-ABA invalidation, authenticated
+readback, and rollback have all passed against a synthetic workbook.
+```
+
+**The moment it lands.** Build the provider adapter against the documented deployment id, add its
+closed deploy-wrapper configuration, and run a bounded synthetic-workbook proof. Then fresh owner-run
+`npm run auth:session` confirms the exact operational spreadsheet id, tab, and
+`KB Proposed — Comp basis` column. The protected `production_allowed` flip is a later reviewed change;
+provisioning alone never opens the action.
 
 ---
 
@@ -758,18 +811,21 @@ references only — never a raw token in a response, a log, or git.
 2. **Before any cost-bearing cloud command:** supply S52's measured baseline/alert/ceiling values,
    the second-project disposition, and S51's operator destination. The current observed enforcement
    amount is not approved headroom.
-3. **One message out:** RentVine, D38 + D39 combined (item 1). Longest expected reply time of
+3. **For the active S53 Sheet slice:** approve and provision D32's managed transaction broker and
+   protected target/ledger ranges. The runner then builds the adapter and proves it on a synthetic
+   workbook before the separate operational column/id/tab confirmation; none of these steps flips the key.
+4. **One message out:** RentVine, D38 + D39 combined (item 1). Longest expected reply time of
    anything on this page, so it should leave first among the external asks.
-4. **One message out:** LeadSimple (item 2). Also phase-blocking, also a vendor round trip.
-5. **Supply S40 identifiers/provisioning:** establish the final `pmi-kc-app` origin before registering
+5. **One message out:** LeadSimple (item 2). Also phase-blocking, also a vendor round trip.
+6. **Supply S40 identifiers/provisioning:** establish the final `pmi-kc-app` origin before registering
    the Dotloop callback URI.
-6. **Owner self-serve after the cost gate:** place the RentCast key (item 10), begin Dotloop
+7. **Owner self-serve after the cost gate:** place the RentCast key (item 10), begin Dotloop
    registration, and add the final redirect only after S40 verifies it (item 11).
-7. **This week:** Chasity's template (item 3) and official brand artwork (D44).
-8. **This week, one batch to Dan:** tool access (item 4), the recipient-rule confirmation (item 5), the
+8. **This week:** Chasity's template (item 3) and official brand artwork (D44).
+9. **This week, one batch to Dan:** tool access (item 4), the recipient-rule confirmation (item 5), the
    three low-priority questions (item 7), the knowledge-base review (item 8), and the credential
    suggestion (item 9). Five short items in one conversation rather than five interruptions.
-9. **After our re-derivation:** the RentVine field-map confirmation (item 6). Not before.
+10. **After our re-derivation:** the RentVine field-map confirmation (item 6). Not before.
 
 ---
 
@@ -803,6 +859,7 @@ These hold regardless of which asks land, and no reply from any vendor or any pe
 
 | This document           | Full internal detail                                                            |
 | ----------------------- | ------------------------------------------------------------------------------- |
+| D32 Sheet broker        | `docs/feature-suites/greenlight-activation-and-gate-integrity.md` (S53)         |
 | D38 RentVine write      | `docs/feature-suites/rentvine-write-activation.md` (S30)                        |
 | D39 Resident channel    | `docs/feature-suites/resident-maintenance-intake.md` (S47)                      |
 | D40 RentCast            | `docs/feature-suites/market-comp-data.md` (S28)                                 |

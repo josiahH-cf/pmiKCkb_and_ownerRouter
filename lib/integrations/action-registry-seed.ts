@@ -478,15 +478,16 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     label: "Write a reconciled value back to the renewal-checklist sheet",
     target_system: "Google Sheets",
     expected_action:
-      "Write a single agreed, reconciled value back to its originating sheet cell via the re-anchored cell map with read-after-write verification.",
+      "Append one Admin-approved reconciled value to one empty KB Proposed cell through a provider-owned stable-row transaction, immutable effect receipt, exact status/tombstone reconciliation, and effect-generation-guarded correction.",
     product_lane: "Lease Renewal Agent",
-    readiness: "Planned",
-    evidence_status: "Documented",
+    readiness: "Needs Connection",
+    evidence_status: "Undocumented",
     documented_evidence:
-      "Google Sheets API documents single-cell value writes (spreadsheets.values.update) and read-after-write reads; the §4.1-4.3 write-back model re-anchors the row, compare-and-sets, reads after write, and stays single-cell. Documented (there is no vendor to confirm Sheets writes); execution stays gated behind the §4.0 admin feature flag and an approved per-action spec.",
+      "The local immutable preview/claim/receipt/reconcile/correction contract is built and tested, but Google Sheets REST exposes only fixed-range/value primitives. It does not supply the required atomic logical-row transaction, globally key-bound payload/status ledger, absent-key tombstone, or cell generation that every out-of-band edit invalidates. The live writer intentionally omits those methods and execution remains closed until a documented provider seam supplies all of them.",
     required_permissions: [
       "Google Sheets API write access to the approved renewal-checklist sheet",
       "Admin-enabled write-back feature flag (off by default) + per-console-user suggest/approve permission (§4.0)",
+      "Documented stable-row transaction provider with global idempotency, exact status, atomic absent-key tombstone, immutable effect evidence, and same-value-ABA-safe cell generation",
     ],
     event_ingestion_mode: "Manual",
     preview_schema_note:
@@ -548,9 +549,9 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
       },
     ],
     test_notes:
-      "Phase-2 only and off by default; until an Admin enables the feature flag and assigns per-console-user permissions, write-back exists only in mocked/in-memory-sheet tests (lib/lease-renewal/writeback.ts).",
+      "The app-plane contract is unit/Firestore proven to the provider seam. Preview and commit independently refuse before any live Sheet read when any required provider primitive is absent. The committed key and feature flag remain off; fixed-A1 smoke primitives are synthetic evidence only.",
     rollback_note:
-      "Correction-style rollback: re-write the stored expected_prior_value through the same verified path. Sheets has no universal revert; the original is preserved in the append-only Activity log.",
+      "Separately preview and exact-confirm a correction that clears only the receipted provider effect. The provider must condition atomically on the current cell generation so every intervening edit, including same-value ABA, blocks the clear.",
     connection_health_check_ref: "health.google_sheets.api",
     production_allowed: false,
   },

@@ -10,8 +10,11 @@ import {
 import { ActionNotExecutableError } from "@/lib/integrations/action-gate";
 import {
   RENEWAL_SHEET_WRITEBACK_ACTION_KEY,
+  SheetWritebackContractError,
   assertSheetWritebackExecutionAllowed,
+  assertSheetWritebackRequestIdentifiers,
   buildLiveWritebackDeps,
+  buildLiveWritebackRecoveryDeps,
   prepareOrCommitWriteback,
 } from "@/lib/lease-renewal/sheet-writeback-service";
 
@@ -19,16 +22,19 @@ const WritebackExecuteBodySchema = z
   .object({
     runId: z.string().trim().min(1).max(120),
     sourceTriggerKey: z.string().trim().min(1).max(300),
-    // false → resolve the target for confirmation; true → perform the guarded append.
+    operation: z.enum(["write", "reconcile", "correction", "status"]).default("write"),
+    // false → issue an immutable preview; true → commit only the paired server preview.
     confirm: z.boolean().default(false),
+    executionId: z.string().trim().min(1).max(120).optional(),
+    previewHash: z.string().trim().min(1).max(120).optional(),
   })
   .strict();
 
 /**
- * Resolve or commit the LIVE append-only Sheet write-back for one approved flag (Admin-gated). The row
- * and column come from the live rebuild; the write is flag-gated (default OFF), append-only, and
- * compare-and-set. This is the ONLY route that can write to the operational renewal sheet, and it does
- * so only for an Approved proposal, one confirmed cell at a time.
+ * Preview, commit, reconcile, or correct one LIVE append-only Sheet write-back (Admin-gated). Commit
+ * requires the exact unexpired server preview and a winning durable one-attempt claim. Recovery
+ * creates no Sheet effect, but may terminalize an unclaimed provider idempotency key; correction has
+ * a separate preview and clears only the exact receipted effect generation.
  */
 export async function POST(request: Request) {
   try {
@@ -36,14 +42,26 @@ export async function POST(request: Request) {
     const descriptor = requireEnvironmentDescriptor();
     const executionContext = { descriptor };
 
-    // Refuse before parsing the body, resolving live config, constructing a Sheets writer, or
-    // rebuilding the live run. The service repeats the same assertion so direct callers cannot
-    // bypass this route-level early fence.
-    assertSheetWritebackExecutionAllowed(executionContext);
+    // Environment refusal stays ahead of body parsing. Registry closure intentionally does not
+    // strand effect-free recovery of an already-consumed attempt, so the exact operation is parsed
+    // before the mutating gate is selected.
+    assertSheetWritebackExecutionAllowed(executionContext, "recovery");
 
     const body = await parseJsonBody(request, WritebackExecuteBodySchema);
+    assertSheetWritebackExecutionAllowed(
+      executionContext,
+      body.operation === "reconcile" || body.operation === "status"
+        ? "recovery"
+        : "mutating",
+    );
+    // Confirmation shape is checked before live config/store construction, so `confirm:true` can
+    // never degrade into a misleading not-configured response when its exact preview is missing.
+    assertSheetWritebackRequestIdentifiers(body);
 
-    const deps = buildLiveWritebackDeps();
+    const deps =
+      body.operation === "reconcile" || body.operation === "status"
+        ? buildLiveWritebackRecoveryDeps()
+        : buildLiveWritebackDeps();
     if ("status" in deps) {
       return NextResponse.json({ status: "not_configured" });
     }
@@ -58,6 +76,17 @@ export async function POST(request: Request) {
     return NextResponse.json(outcome);
   } catch (error) {
     if (error instanceof ActionNotExecutableError) {
+      return NextResponse.json(
+        {
+          action_key: RENEWAL_SHEET_WRITEBACK_ACTION_KEY,
+          error: error.message,
+          error_type: error.code,
+        },
+        { status: error.status },
+      );
+    }
+
+    if (error instanceof SheetWritebackContractError) {
       return NextResponse.json(
         {
           action_key: RENEWAL_SHEET_WRITEBACK_ACTION_KEY,

@@ -1,12 +1,9 @@
-// Slice 2 (overnight run 2026-07-22): LIVE proof that the append-only Sheet write-back executes.
+// LIVE throwaway proof for the fixed-A1 Google Sheets primitives beneath the write-back action.
 //
-// Proves commitWritebackAtRow end-to-end against a BRAND-NEW, clearly-named THROWAWAY spreadsheet
-// created by the DWD subject — NEVER the team's operational renewal sheet. The test sheet is seeded
-// with SYNTHETIC rows only (no client PII). It asserts:
-//   1. write     — an empty "KB Proposed — <field>" cell is filled; read-after-write matches.
-//   2. CAS       — a second write to the now-filled cell is BLOCKED (append-only never overwrites).
-//   3. block     — missing column / empty value / out-of-range row each BLOCK (uncertainty never writes).
-//   4. gate      — with the feature flag OFF the executor is DISABLED (no read, no write).
+// Runs only against a BRAND-NEW spreadsheet containing SYNTHETIC rows. It proves exact-cell append,
+// drift refusal, and exact-value clear, while also proving that the product action remains blocked:
+// GoogleSheetsApiWriter deliberately lacks the provider-side stable-row transaction required to bind
+// logical row + human-confirmed A1 + value atomically. These primitive checks cannot activate the key.
 //
 // Fail-closed: if the DWD grant lacks the Sheets WRITE scope (or the token is stale), creation/write
 // throws and the smoke records DEFERRED (exit 0) rather than failing — matching the runbook skip rule.
@@ -19,10 +16,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { GoogleSheetsApiWriter } from "../lib/google-sheets/write-client";
-import {
-  SHEET_WRITEBACK_FLAG,
-  commitWritebackAtRow,
-} from "../lib/lease-renewal/sheet-writeback-execution";
+import { commitWritebackAtRow } from "../lib/lease-renewal/sheet-writeback-execution";
+import { SHEET_WRITEBACK_FLAG } from "../lib/lease-renewal/sheet-writeback-policy";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const TAB = "Renewals";
@@ -77,7 +72,8 @@ async function main(): Promise<void> {
     console.log(
       "Sheet write-back smoke (DRY). With --live it would: create a NEW test spreadsheet " +
         `("KB Writeback Smoke — <run>"), seed synthetic rows + the "${PROPOSED_COLUMN}" column, then ` +
-        "prove write + CAS + block-on-uncertainty + gate-off. It never touches the operational sheet.",
+        "prove fixed-A1 CAS/correction plus fail-closed stable-row capability refusal. It never touches " +
+        "the operational sheet and cannot activate the action key.",
     );
     console.log(
       "Pass --live to run the proof (free; read/WRITE Sheets scope; no GCP budget spend).",
@@ -132,18 +128,16 @@ async function main(): Promise<void> {
 
     const proposedValue = "Zillow 1450-1600; PMI 1550 (synthetic test)";
 
-    // 1. WRITE into the empty KB-Proposed cell of data row 1 (0-based grid index 1 => sheet row 2 => D2).
-    const written = await commitWritebackAtRow(writer, {
+    // 1. Prove only the fixed-A1 primitive against the synthetic throwaway row.
+    const written = await writer.writeValuesIfEmpty(
       spreadsheetId,
-      tabName: TAB,
-      proposedColumnHeader: PROPOSED_COLUMN,
-      rowIndex: 1,
+      `${TAB}!D2`,
       proposedValue,
-    });
+    );
     record(
-      "write into empty KB-Proposed cell",
-      written.status === "written" && written.a1 === `${TAB}!D2`,
-      JSON.stringify(written),
+      "fixed-A1 primitive writes one empty synthetic cell",
+      written,
+      `changed=${String(written)}`,
     );
 
     // read-after-write (independent confirm).
@@ -154,10 +148,12 @@ async function main(): Promise<void> {
       `cell="${readBack[0]?.[0] ?? ""}"`,
     );
 
-    // 2. CAS — a second write to the now-filled cell must BLOCK (never overwrite team data).
+    // 2a. Pre-read guard — a second write to the now-filled cell must BLOCK.
     const second = await commitWritebackAtRow(writer, {
       spreadsheetId,
       tabName: TAB,
+      propertyKey: "synthetic-property",
+      fieldKey: "synthetic_comp_basis",
       proposedColumnHeader: PROPOSED_COLUMN,
       rowIndex: 1,
       proposedValue: "SHOULD NOT WRITE",
@@ -168,10 +164,76 @@ async function main(): Promise<void> {
       JSON.stringify(second),
     );
 
-    // 3a. BLOCK — missing KB-Proposed column.
+    // 2b. The real product action additionally requires stable-row atomicity, which the generic
+    // Sheets REST writer cannot honestly claim. An empty eligible cell therefore remains untouched.
+    const stableRowBlocked = await commitWritebackAtRow(writer, {
+      spreadsheetId,
+      tabName: TAB,
+      propertyKey: "synthetic-property",
+      fieldKey: "synthetic_comp_basis",
+      proposedColumnHeader: PROPOSED_COLUMN,
+      rowIndex: 2,
+      proposedValue: "SHOULD NOT WRITE",
+    });
+    record(
+      "product action blocks without stable-row atomicity",
+      stableRowBlocked.status === "blocked" &&
+        stableRowBlocked.reason.includes("stable-row atomic"),
+      JSON.stringify(stableRowBlocked),
+    );
+    const stableRowReadback = await writer.getValues(spreadsheetId, `${TAB}!D3`);
+    record(
+      "stable-row refusal leaves the candidate cell empty",
+      (stableRowReadback[0]?.[0] ?? "") === "",
+      "no product-action effect",
+    );
+
+    // 2c. Provider CAS — bypass the product action intentionally to prove the Sheets-side
+    // exact-cell primitive itself returns zero changes after collaborator drift.
+    await writer.updateValues(spreadsheetId, `${TAB}!D3`, [["INTERVENING SYNTHETIC"]]);
+    const driftedAppend = await writer.writeValuesIfEmpty(
+      spreadsheetId,
+      `${TAB}!D3`,
+      "SHOULD NOT WRITE",
+    );
+    const driftedReadback = await writer.getValues(spreadsheetId, `${TAB}!D3`);
+    record(
+      "provider CAS refuses collaborator drift",
+      !driftedAppend && driftedReadback[0]?.[0] === "INTERVENING SYNTHETIC",
+      `changed=${String(driftedAppend)}`,
+    );
+
+    // 2d/3. Conditional correction — wrong expected value changes nothing; exact expected value
+    // clears the one synthetic cell and reads back empty.
+    const wrongClear = await writer.clearValuesIfExactMatch(
+      spreadsheetId,
+      `${TAB}!D2`,
+      "WRONG SYNTHETIC VALUE",
+    );
+    const afterWrongClear = await writer.getValues(spreadsheetId, `${TAB}!D2`);
+    record(
+      "provider correction refuses an intervening value",
+      !wrongClear && afterWrongClear[0]?.[0] === proposedValue,
+      `changed=${String(wrongClear)}`,
+    );
+    const exactClear = await writer.clearValuesIfExactMatch(
+      spreadsheetId,
+      `${TAB}!D2`,
+      proposedValue,
+    );
+    const afterExactClear = await writer.getValues(spreadsheetId, `${TAB}!D2`);
+    record(
+      "provider correction clears only the exact value",
+      exactClear && (afterExactClear[0]?.[0] ?? "") === "",
+      `changed=${String(exactClear)}`,
+    );
+
+    // 4a. BLOCK — missing KB-Proposed column.
     const missingCol = await commitWritebackAtRow(writer, {
       spreadsheetId,
       tabName: TAB,
+      propertyKey: "synthetic-property",
+      fieldKey: "synthetic_comp_basis",
       proposedColumnHeader: "KB Proposed — Nonexistent",
       rowIndex: 2,
       proposedValue,
@@ -182,10 +244,12 @@ async function main(): Promise<void> {
       JSON.stringify(missingCol),
     );
 
-    // 3b. BLOCK — empty proposed value (a value is never invented upstream).
+    // 4b. BLOCK — empty proposed value (a value is never invented upstream).
     const emptyValue = await commitWritebackAtRow(writer, {
       spreadsheetId,
       tabName: TAB,
+      propertyKey: "synthetic-property",
+      fieldKey: "synthetic_comp_basis",
       proposedColumnHeader: PROPOSED_COLUMN,
       rowIndex: 2,
       proposedValue: "   ",
@@ -196,10 +260,12 @@ async function main(): Promise<void> {
       JSON.stringify(emptyValue),
     );
 
-    // 3c. BLOCK — target row outside the sheet.
+    // 4c. BLOCK — target row outside the sheet.
     const outOfRange = await commitWritebackAtRow(writer, {
       spreadsheetId,
       tabName: TAB,
+      propertyKey: "synthetic-property",
+      fieldKey: "synthetic_comp_basis",
       proposedColumnHeader: PROPOSED_COLUMN,
       rowIndex: 99,
       proposedValue,
@@ -210,14 +276,17 @@ async function main(): Promise<void> {
       JSON.stringify(outOfRange),
     );
 
-    // 4. GATE — with the flag OFF the executor is DISABLED (no read, no write). Row 2 is still empty,
+    // 5. GATE — with the flag OFF the executor is DISABLED (no read, no write). Row 1 was corrected
+    // back to empty,
     // so this proves the DISABLED path is taken *instead of* a write.
     process.env[SHEET_WRITEBACK_FLAG] = "false";
     const disabled = await commitWritebackAtRow(writer, {
       spreadsheetId,
       tabName: TAB,
+      propertyKey: "synthetic-property",
+      fieldKey: "synthetic_comp_basis",
       proposedColumnHeader: PROPOSED_COLUMN,
-      rowIndex: 2,
+      rowIndex: 1,
       proposedValue,
     });
     record(
@@ -237,11 +306,11 @@ async function main(): Promise<void> {
   console.log("");
   if (failed.length === 0) {
     console.log(
-      `PASS — all ${checks.length} write-back proofs passed on test sheet ${spreadsheetId}.`,
+      `DEFERRED — all ${checks.length} fixed-A1/fail-closed proofs passed on test sheet ${spreadsheetId}.`,
     );
     console.log(
-      "The append-only write-back executes live: it writes an empty KB-Proposed cell, blocks every " +
-        "overwrite/uncertainty, and is fully gated by the flag. Operational sheet untouched.",
+      "Activation remains blocked on a provider-side stable-row atomic mutation seam; fixed-A1 Sheets " +
+        "CAS is not sufficient. Operational sheet untouched and action key unchanged.",
     );
   } else {
     console.error(

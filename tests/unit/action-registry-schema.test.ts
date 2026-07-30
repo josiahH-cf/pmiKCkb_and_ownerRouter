@@ -327,17 +327,16 @@ describe("Lease-renewal checklist registry entries", () => {
     expect(reconcile.expected_action).toMatch(/flags only/i);
   });
 
-  it("models writeback as Documented + Planned (not vendor-confirmation-required)", () => {
+  it("keeps writeback connection-blocked until the documented provider seam exists", () => {
     const writeback = entry("google_sheets.renewal_checklist.writeback");
 
-    // Review fix #12: mis-coding this Vendor-Confirmation-Required would permanently block
-    // the Documented-requiring production gate; Sheets writes have no vendor to confirm.
-    expect(writeback.evidence_status).toBe("Documented");
-    expect(writeback.readiness).toBe("Planned");
+    expect(writeback.evidence_status).toBe("Undocumented");
+    expect(writeback.readiness).toBe("Needs Connection");
     expect(writeback.production_allowed).toBe(false);
     expect(writeback.required_permissions.join(" ")).toMatch(
-      /feature flag \(off by default\)/i,
+      /atomic absent-key tombstone/i,
     );
+    expect(writeback.documented_evidence).toMatch(/same-value-ABA-safe|generation/i);
   });
 
   it("gives writeback a cell-addressed preview schema that validatePreviewPayload accepts", () => {
