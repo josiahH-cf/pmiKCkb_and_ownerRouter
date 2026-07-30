@@ -29,7 +29,15 @@ export interface VendorOAuthStore extends Pick<
 > {
   saveState(state: VendorOAuthState): Promise<void>;
   claimState(stateHash: string, nowMs: number): Promise<VendorOAuthState | null>;
-  saveConnection(connection: VendorMailboxConnection): Promise<void>;
+  saveConnection(
+    connection: VendorMailboxConnection,
+    authority: {
+      vendorId: string;
+      uid: string;
+      email: string;
+      dataMode: "live";
+    },
+  ): Promise<void>;
 }
 
 export interface VendorTokenVault {
@@ -178,12 +186,17 @@ export async function completeVendorOAuth(
     status: "connected",
     scopes: [...VENDOR_OAUTH_SCOPES],
     tokenSecretRef,
+    dataMode: "live",
     connectedAt,
     updatedAt: connectedAt,
   };
   try {
-    await assertActiveVendor(input.principal, dependencies.store);
-    await dependencies.store.saveConnection(connection);
+    await dependencies.store.saveConnection(connection, {
+      vendorId: input.principal.vendorId,
+      uid: input.principal.uid,
+      email: input.principal.email,
+      dataMode: "live",
+    });
   } catch (error) {
     await dependencies.vault.destroySecret(tokenSecretRef).catch(() => undefined);
     throw error;

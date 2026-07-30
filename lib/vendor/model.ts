@@ -57,6 +57,7 @@ export interface VendorMailboxConnection {
   status: "connected" | "revocation_pending" | "revoked";
   scopes: readonly VendorOAuthScope[];
   tokenSecretRef: string;
+  dataMode?: DataMode;
   connectedAt: string;
   updatedAt: string;
 }

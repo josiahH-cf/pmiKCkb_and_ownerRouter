@@ -11,6 +11,71 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S53.5 COMPLETE locally + S52-I/J cost-control documentation seams (2026-07-30)
+
+AC-S53-8 is complete locally without opening a Vendor action. The crafted generic Live
+`vendor-assign` PATCH bypass is closed. The Admin-only Production+Live lifecycle surface now
+previews, exact-confirms, reports, and reconciles one invite, assignment change, or disable through
+the existing S20 authority boundary. Invite additionally exposes the one-time same-origin setup
+bridge; the setup challenge moves from the URL fragment to a body-only request and never enters a
+receipt, log, cache, or persisted lifecycle record.
+
+Every provider start is bound to an immutable prepared-attempt snapshot: exact S20 execution and
+claimant, canonical command values, reason/preview/payload hashes, action variant, deterministic
+provider references, and predecessor lineage. The provider-start marker and the no-provider
+`not_applicable` fence race in one transaction. The optimistic Firestore test harness now runs
+callbacks against overlapping snapshots and retries conflicting commits, so Promise concurrency can
+no longer pass by serializing whole callbacks.
+
+Invite separates durable claims for the Firebase-principal and Gmail-delivery effects. A deterministic
+UID, exact RFC Message-ID plus recipient readback, generation-bound recovery/reissue, and one
+hash-token-owned recovery readback prevent duplicate effects. Setup completion may race the
+historical delivery receipt without reverting an active Vendor. A positive Gmail delivery that loses
+to the disable cutoff closes as bodyless terminal `delivery_invalidated` evidence — never as
+`pending_setup`, no-effect, or a definitive provider refusal. Assignment changes one exact Live
+ticket/Vendor join atomically.
+
+Disable commits the Firestore access cutoff first, clears only the exact bounded active assignment
+set, queues mailbox revocation, and then grants one raw-token-proven worker the Firebase
+disable/revoke sequence. The raw token never persists. A deterministic disabled Firebase tombstone
+converges create-versus-disable races; exact readback can close a crash after Auth without repeating
+the mutation. Fractional-second cutoffs wait across Firebase's representable revocation second and
+then require exact disable plus revocation readback. The 164-assignment boundary remains exactly 500
+Firestore writes; 165 refuses with zero partial effect.
+
+Persisted terminal success is not trusted by discriminant alone. One strict parser rejects extra
+fields and recomputes receipt/execution links, deterministic provider references, canonical
+timestamps, immutable source bindings, and per-state bodyless result hashes before both Firestore
+readers, runtime reconciliation, provider hydration, or S20 result generation.
+
+The focused lifecycle set is green at 19 files / 271 tests, and the full Firestore emulator gate is
+green at 20 files / 81 tests. TypeScript, touched-file formatting/lint, and `git diff --check` are
+green; the final strict-receipt review's 7 files / 165 tests are also green. Independent
+authority/concurrency/receipt review found no remaining P0/P1/P2. All three Vendor keys remain
+`production_allowed:false`; no provider, mailbox, real Vendor identity, live-data, cloud, deploy, or
+D12-protected action ran. Activation still needs the first named real Vendor company/contact plus the
+routine protected per-key review. ADC remains stale, so live/cloud work stays parked.
+
+S52-I and S52-J are also complete locally without creating headroom. The ten-row provider registry
+now has a nonblank quota/terms column with official public Gmail/Sheets/Drive/RentCast material where
+available and account-specific uncertainty marked `Needs Verification`. RentCast owner-facing
+storage/display/caching remains unavailable until its exact plan and applicable third-party terms are
+confirmed. The cost policy now pins the existing authenticated-UID Ask (15, 0.5/s) and classify
+(10, 0.2/s) token buckets as an independent in-memory, per-instance third layer; they do not observe
+spend or replace S52's still-unset global thresholds.
+
+The exact clean-install verifier is green after the final receipt hardening: format; lint with zero
+errors and 15 existing warnings; typecheck; 430 unit files / 3,541 tests; 20 Firestore files / 81
+tests on an isolated emulator port; router-boundary, falsification, context, spec, copy, and
+redaction gates; and the 96-page Next.js 16.2.12 production build. The separate core E2E run is
+green at 8 files / 32 tests, with 3 files / 18 environment-specific scenarios skipped as designed.
+The reviewed 78-path worktree has no D12 path or `production_allowed` change, no secret/customer-data
+finding, no merge state, and no P0/P1/P2 review finding.
+
+Next safe slice: continue S52's unprotected local/read-only prerequisites and park its D12 guardrail
+patch for owner review. No cost-bearing action is eligible before the complete-calendar-month
+baseline and owner-selected non-null alert/hard-stop values.
+
 ## S53.4 COMPLETE locally — production runtime configuration integrity (2026-07-30)
 
 AC-S53-4, AC-S53-5, AC-S53-6, and AC-S53-11 are built locally, together with the

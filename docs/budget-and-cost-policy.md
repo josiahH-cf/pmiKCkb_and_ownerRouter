@@ -52,6 +52,23 @@ disable/readback, emit `KILL_SWITCH_ALREADY_DISABLED` for a no-update repeat, an
 `COST_ALERT_THRESHOLD_CROSSED` signal reaching the operator. S51 owns the notification
 channel/policies; S52 owns the values and paired enforcement.
 
+## Three-layer cost-control model
+
+These controls are independent. Passing one layer never satisfies another, and none creates spending
+headroom while S52's alert and hard-stop values remain unset.
+
+| Layer | Control                            | Current contract                                                                                                                                                                           | Boundary                                                                                                                                                       |
+| ----- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Configuration posture              | `npm run check:budget-guard` refuses known cost-unsafe configuration.                                                                                                                      | It does not read spend and is not a dollar-enforcement point.                                                                                                  |
+| 2     | Global billing alert and hard stop | The lower alert-only threshold warns the operator; the higher hard ceiling bounds aggregate monthly project spend through the budget/guardrail chain. Both S52 values are currently unset. | It bounds total project spend, not one user's call rate.                                                                                                       |
+| 3     | Per-user paid-model throttles      | `/api/ask`: capacity `15`, refill `0.5 token/s`; `/api/processes/classify`: capacity `10`, refill `0.2 token/s`. Both token buckets are keyed by the authenticated user UID.               | They are best-effort, in-memory, per-instance burst controls. They do not coordinate across Cloud Run instances, observe spend, or replace the global ceiling. |
+
+The third layer therefore limits how quickly one authenticated caller can reach the two paid-model
+routes: Ask allows a burst of 15 and then sustains about one call every two seconds; classification
+allows a burst of 10 and then sustains about one call every five seconds. These existing throttles
+reduce repeatability risk, but they do not make a billed model call eligible while the global S52
+cost gate is unresolved.
+
 ## Per-project coverage
 
 Cost controls are project-scoped.

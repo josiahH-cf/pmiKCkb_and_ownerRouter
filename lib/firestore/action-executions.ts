@@ -13,6 +13,11 @@ import type {
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
+import {
+  externalReceiptResultCode,
+  parseExternalReceipt,
+} from "@/lib/external-execution/receipt";
+import type { ExternalActionReceipt } from "@/lib/external-execution/types";
 
 const COLLECTIONS = {
   activity: "action_execution_activity",
@@ -45,6 +50,13 @@ export interface CompleteActionExecutionInput {
 export interface ResolveActionReconciliationInput {
   definitiveErrorCode?: string;
   resultCode?: string;
+}
+
+export interface ExpectedActionExecutionBinding {
+  actionKey: string;
+  actorUid: string;
+  contextHash?: string;
+  previewHash: string;
 }
 
 export async function prepareActionExecutionRecord(
@@ -352,6 +364,7 @@ export async function claimActionExecution(
 
     transaction.update(ref, {
       attempt_count: 1,
+      claim_actor_uid: actor.uid,
       state: "Executing",
       updated_at: FieldValue.serverTimestamp(),
     });
@@ -410,12 +423,214 @@ export async function failActionExecution(
   return getActionExecution(actor, executionId, db);
 }
 
-/** Resolve one already-consumed ambiguous attempt without creating a second provider mutation. */
+/**
+ * Resolve one already-consumed attempt without creating a second provider mutation.
+ *
+ * A process crash can leave the durable state at `Executing` after the one atomic claim. Provider
+ * readback may close that state directly; no path here resets `attempt_count` or calls the provider
+ * mutation again.
+ */
 export async function resolveActionReconciliation(
   actor: AuthenticatedUser,
   executionId: string,
   input: ResolveActionReconciliationInput,
   db: Firestore = getAdminFirestore(),
+) {
+  await db.runTransaction((transaction) =>
+    resolveActionReconciliationInTransaction(transaction, db, actor, executionId, input),
+  );
+
+  return getActionExecution(actor, executionId, db);
+}
+
+/**
+ * Verify that an immutable companion snapshot is being created before the S20 attempt is claimed.
+ *
+ * This is intentionally transaction-scoped so a feature ledger can persist its snapshot while
+ * contending on the same S20 record that the one-attempt claim updates.
+ */
+export async function assertUnclaimedActionExecutionInTransaction(
+  transaction: Transaction,
+  db: Firestore,
+  actor: AuthenticatedUser,
+  executionId: string,
+  expected: ExpectedActionExecutionBinding,
+) {
+  const ref = executionRef(db, executionId);
+  const snapshot = await transaction.get(ref);
+  const current = readRequiredExecution(snapshot.id, snapshot.data());
+  assertCanExecute(actor, current);
+  assertExpectedBinding(current, expected);
+  if (
+    current.attempt_count !== 0 ||
+    (current.state !== "Ready" &&
+      current.state !== "Awaiting Admin" &&
+      current.state !== "Approved")
+  ) {
+    throw new EditableLayerError(
+      "The immutable provider-attempt snapshot must be persisted before the S20 attempt is claimed.",
+      409,
+    );
+  }
+}
+
+/**
+ * Prove that a provider-ledger start is downstream of the one atomic S20 claim.
+ *
+ * The feature transaction reads this record together with its prepared snapshot before creating
+ * any provider execution/index document. A delayed or out-of-band provider call therefore cannot
+ * turn an unclaimed preparation into a Live effect.
+ */
+export async function assertClaimedActionExecutionInTransaction(
+  transaction: Transaction,
+  db: Firestore,
+  executionId: string,
+  expected: ExpectedActionExecutionBinding,
+  claimActorUid: string,
+) {
+  const ref = executionRef(db, executionId);
+  const snapshot = await transaction.get(ref);
+  const current = readRequiredExecution(snapshot.id, snapshot.data());
+  assertExpectedBinding(current, expected);
+  if (
+    current.attempt_count !== 1 ||
+    current.state !== "Executing" ||
+    current.claim_actor_uid !== claimActorUid
+  ) {
+    throw new EditableLayerError(
+      "The provider ledger may start only from the exact claimed S20 execution and claimant.",
+      409,
+    );
+  }
+}
+
+/**
+ * Transaction-scoped variant used when a feature ledger must fence its own provider-start marker
+ * and close the already-consumed S20 attempt atomically.
+ */
+export async function resolveActionReconciliationInTransaction(
+  transaction: Transaction,
+  db: Firestore,
+  actor: AuthenticatedUser,
+  executionId: string,
+  input: ResolveActionReconciliationInput,
+  expected?: ExpectedActionExecutionBinding,
+) {
+  return resolveActionReconciliationTransition(
+    transaction,
+    db,
+    actor,
+    executionId,
+    input,
+    expected,
+    false,
+  );
+}
+
+/**
+ * Specialized atomic close for an S20 attempt proven never to have started its provider ledger.
+ * Unlike generic reconciliation, this may close `Executing`, but only with a strictly parsed,
+ * bodyless, reconciled not-applicable receipt whose attempt is explicitly fenced.
+ */
+export async function resolveClaimedNotApplicableFenceInTransaction(
+  transaction: Transaction,
+  db: Firestore,
+  actor: AuthenticatedUser,
+  executionId: string,
+  receiptInput: Readonly<ExternalActionReceipt>,
+  expected: ExpectedActionExecutionBinding,
+) {
+  let receipt: Readonly<ExternalActionReceipt>;
+  try {
+    receipt = parseExternalReceipt(
+      receiptInput,
+      expected.actionKey,
+      true,
+      receiptInput.dataMode,
+    );
+  } catch {
+    throw new EditableLayerError(
+      "A claimed S20 fence requires a valid bodyless provider receipt.",
+      409,
+    );
+  }
+  if (receipt.outcome !== "not_applicable" || receipt.attemptFenced !== true) {
+    throw new EditableLayerError(
+      "A claimed S20 fence requires an explicit not-applicable fenced outcome.",
+      409,
+    );
+  }
+  return resolveActionReconciliationTransition(
+    transaction,
+    db,
+    actor,
+    executionId,
+    { resultCode: externalReceiptResultCode(receipt) },
+    expected,
+    true,
+    true,
+  );
+}
+
+/**
+ * Closes a crash-stranded `Executing` record from strict provider readback. The bridge supplies the
+ * exact S20 binding after its read-only executor reconciliation; arbitrary generic result codes
+ * never enter this path.
+ */
+export async function resolveClaimedExternalReceipt(
+  actor: AuthenticatedUser,
+  executionId: string,
+  receiptInput: Readonly<ExternalActionReceipt>,
+  expected: ExpectedActionExecutionBinding,
+  db: Firestore = getAdminFirestore(),
+) {
+  let receipt: Readonly<ExternalActionReceipt>;
+  try {
+    receipt = parseExternalReceipt(
+      receiptInput,
+      expected.actionKey,
+      true,
+      receiptInput.dataMode,
+    );
+  } catch {
+    throw new EditableLayerError(
+      "Claimed execution readback requires a valid bodyless provider receipt.",
+      409,
+    );
+  }
+  if (
+    (receipt.outcome === "not_applicable" && receipt.attemptFenced !== true) ||
+    (receipt.outcome !== "not_applicable" && receipt.attemptFenced !== undefined)
+  ) {
+    throw new EditableLayerError(
+      "Claimed execution readback has an invalid provider-effect outcome.",
+      409,
+    );
+  }
+  await db.runTransaction((transaction) =>
+    resolveActionReconciliationTransition(
+      transaction,
+      db,
+      actor,
+      executionId,
+      { resultCode: externalReceiptResultCode(receipt) },
+      expected,
+      true,
+      true,
+    ),
+  );
+  return getActionExecution(actor, executionId, db);
+}
+
+async function resolveActionReconciliationTransition(
+  transaction: Transaction,
+  db: Firestore,
+  actor: AuthenticatedUser,
+  executionId: string,
+  input: ResolveActionReconciliationInput,
+  expected: ExpectedActionExecutionBinding | undefined,
+  allowClaimedFence: boolean,
+  requireClaimActor = false,
 ) {
   const hasResult = input.resultCode !== undefined;
   const hasFailure = input.definitiveErrorCode !== undefined;
@@ -431,43 +646,53 @@ export async function resolveActionReconciliation(
   );
   const targetState = hasResult ? ("Succeeded" as const) : ("Failed" as const);
 
-  await db.runTransaction(async (transaction) => {
-    const ref = executionRef(db, executionId);
-    const snapshot = await transaction.get(ref);
-    const current = readRequiredExecution(snapshot.id, snapshot.data());
-    assertCanExecute(actor, current);
+  const ref = executionRef(db, executionId);
+  const snapshot = await transaction.get(ref);
+  const current = readRequiredExecution(snapshot.id, snapshot.data());
+  assertCanExecute(actor, current);
+  if (expected) assertExpectedBinding(current, expected);
+  if (
+    requireClaimActor &&
+    (typeof current.claim_actor_uid !== "string" || !current.claim_actor_uid.trim())
+  ) {
+    throw new EditableLayerError(
+      "The claimed execution has no immutable provider claimant.",
+      409,
+    );
+  }
 
-    if (
-      current.attempt_count === 1 &&
-      current.state === targetState &&
-      (hasResult ? current.result_code === code : current.last_error_code === code)
-    ) {
-      return;
-    }
-    if (current.state !== "Needs reconciliation" || current.attempt_count !== 1) {
-      throw new EditableLayerError(
-        "Only a one-attempt ambiguous execution can be reconciled.",
-        409,
-      );
-    }
+  if (
+    current.attempt_count === 1 &&
+    current.state === targetState &&
+    (hasResult ? current.result_code === code : current.last_error_code === code)
+  ) {
+    return;
+  }
+  if (
+    (current.state !== "Needs reconciliation" &&
+      !(allowClaimedFence && current.state === "Executing")) ||
+    current.attempt_count !== 1
+  ) {
+    throw new EditableLayerError(
+      "Only a claimed or ambiguous one-attempt execution can be reconciled.",
+      409,
+    );
+  }
 
-    transaction.update(ref, {
-      last_error_code: hasResult ? FieldValue.delete() : code,
-      result_code: hasResult ? code : FieldValue.delete(),
-      state: targetState,
-      updated_at: FieldValue.serverTimestamp(),
-    });
-    appendActivity(transaction, db, {
-      action: hasResult ? "succeeded" : "failed",
-      actionKey: current.action_key,
-      actorUid: actor.uid,
-      executionId,
-      fromState: current.state,
-      toState: targetState,
-    });
+  transaction.update(ref, {
+    last_error_code: hasResult ? FieldValue.delete() : code,
+    result_code: hasResult ? code : FieldValue.delete(),
+    state: targetState,
+    updated_at: FieldValue.serverTimestamp(),
   });
-
-  return getActionExecution(actor, executionId, db);
+  appendActivity(transaction, db, {
+    action: hasResult ? "succeeded" : "failed",
+    actionKey: current.action_key,
+    actorUid: actor.uid,
+    executionId,
+    fromState: current.state,
+    toState: targetState,
+  });
 }
 
 function classificationFromRecord(
@@ -681,6 +906,23 @@ function assertCanView(actor: AuthenticatedUser, record: ActionExecutionRecord) 
 function assertCanExecute(actor: AuthenticatedUser, record: ActionExecutionRecord) {
   if (actor.role !== "Admin" && record.actor_uid !== actor.uid) {
     throw new EditableLayerError("This user cannot execute this action instance.", 403);
+  }
+}
+
+function assertExpectedBinding(
+  record: ActionExecutionRecord,
+  expected: ExpectedActionExecutionBinding,
+) {
+  if (
+    record.action_key !== expected.actionKey ||
+    record.actor_uid !== expected.actorUid ||
+    record.preview_hash !== expected.previewHash ||
+    record.context_hash !== expected.contextHash
+  ) {
+    throw new EditableLayerError(
+      "The immutable provider-attempt snapshot does not match its S20 execution.",
+      409,
+    );
   }
 }
 

@@ -32,12 +32,16 @@ import {
   externalActionContextHash,
   externalActionIdempotencyKey,
 } from "@/lib/external-execution/identity";
-import { parseExternalReceipt } from "@/lib/external-execution/receipt";
+import {
+  externalReceiptResultCode,
+  parseExternalReceipt,
+} from "@/lib/external-execution/receipt";
 import { validateExternalReadiness } from "@/lib/external-execution/orchestrator";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   getActionExecution,
   resolveActionReconciliation,
+  resolveClaimedExternalReceipt,
 } from "@/lib/firestore/action-executions";
 import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
 import { LEASE_EXECUTION_DEFINITIONS } from "@/lib/lease-renewal/execution/matrix";
@@ -271,7 +275,13 @@ export async function executeExternalActionWithS20(
   });
 }
 
-/** Read-only provider reconciliation for an already consumed ambiguous S20 attempt. */
+/**
+ * Read-only provider reconciliation for an already consumed S20 attempt.
+ *
+ * `Executing` is included because the process can disappear after the atomic claim but before its
+ * catch block records `Needs reconciliation`. Reconciliation never invokes `execute`, so allowing
+ * that monotonic one-attempt state cannot create a second provider mutation.
+ */
 export async function reconcileExternalActionWithS20(
   actor: AuthenticatedUser,
   request: ReconcileExternalActionWithS20Input,
@@ -297,11 +307,21 @@ export async function reconcileExternalActionWithS20(
 
   assertS20RecordMatchesAction(current, action);
   if (current.state === "Succeeded" && current.attempt_count === 1) {
-    return { status: "succeeded" as const, duplicate: true, execution: current };
+    return {
+      status: "succeeded" as const,
+      duplicate: true,
+      execution: current,
+      ...(externalReceiptOutcome(current.result_code)
+        ? { outcome: externalReceiptOutcome(current.result_code) }
+        : {}),
+    };
   }
-  if (current.state !== "Needs reconciliation" || current.attempt_count !== 1) {
+  if (
+    (current.state !== "Needs reconciliation" && current.state !== "Executing") ||
+    current.attempt_count !== 1
+  ) {
     throw new EditableLayerError(
-      "Only a one-attempt ambiguous S20 execution can be reconciled.",
+      "Only a claimed or ambiguous one-attempt S20 execution can be reconciled.",
       409,
     );
   }
@@ -331,12 +351,36 @@ export async function reconcileExternalActionWithS20(
     true,
     externalActionDataMode(action),
   );
-  const execution = await resolveActionReconciliation(
-    actor,
-    request.executionId,
-    { resultCode: externalReceiptResultCode(receipt) },
-    options.db,
-  );
+  if (
+    current.state === "Executing" &&
+    receipt.outcome === "not_applicable" &&
+    receipt.attemptFenced !== true
+  ) {
+    throw new EditableLayerError(
+      "A claimed execution may close as not applicable only after the provider atomically fences the in-flight attempt.",
+      409,
+    );
+  }
+  const execution =
+    current.state === "Executing"
+      ? await resolveClaimedExternalReceipt(
+          actor,
+          request.executionId,
+          receipt,
+          {
+            actionKey: current.action_key,
+            actorUid: current.actor_uid,
+            contextHash: current.context_hash,
+            previewHash: current.preview_hash,
+          },
+          options.db,
+        )
+      : await resolveActionReconciliation(
+          actor,
+          request.executionId,
+          { resultCode: externalReceiptResultCode(receipt) },
+          options.db,
+        );
   return {
     status: "succeeded" as const,
     duplicate: false,
@@ -556,17 +600,18 @@ function assertExternalProviderInput(
   if (blocker) throw new EditableLayerError(blocker, 409);
 }
 
-function externalReceiptResultCode(receipt: {
-  actionKey: string;
-  outcome?: "succeeded" | "not_applicable";
-  providerRef: string;
-  resultHash: string;
-}) {
-  return `external_receipt:${createHash("sha256")
-    .update(
-      `${receipt.actionKey}\u0000${receipt.providerRef}\u0000${receipt.resultHash}\u0000${receipt.outcome ?? "succeeded"}`,
-    )
-    .digest("hex")}`;
+function externalReceiptOutcome(
+  resultCode: string | undefined,
+): "succeeded" | "not_applicable" | undefined {
+  if (!resultCode) return undefined;
+  const versioned = /^external_receipt:(succeeded|not_applicable):[a-f0-9]{64}$/.exec(
+    resultCode,
+  );
+  if (versioned) {
+    return versioned[1] as "succeeded" | "not_applicable";
+  }
+  // Receipts recorded before outcome-qualified result codes always represented a normal success.
+  return /^external_receipt:[a-f0-9]{64}$/.test(resultCode) ? "succeeded" : undefined;
 }
 
 function externalContextHash(action: ExternalActionPreparationInput) {

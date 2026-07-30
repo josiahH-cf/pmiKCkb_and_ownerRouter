@@ -1,5 +1,8 @@
+import { createHash } from "node:crypto";
+
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { externalActionIdempotencyKey } from "@/lib/external-execution/identity";
 import type { ExternalActionInput } from "@/lib/external-execution/types";
 import {
   VENDOR_ASSIGNED_TICKET_LABEL_RULE_REF,
@@ -9,6 +12,7 @@ import {
   type VendorLifecycleProvider,
   type VendorMailboxExecutionProvider,
 } from "@/lib/maintenance/execution/providers";
+import { LIVE_VENDOR_DISABLE_INITIAL_SOURCE } from "@/lib/vendor/live-lifecycle-contract";
 import { VENDOR_OAUTH_SCOPES } from "@/lib/vendor/model";
 
 const common = {
@@ -16,7 +20,105 @@ const common = {
   // S40 AC-S40-1: an external action must declare its lane; there is no implicit Live default.
   dataMode: "live" as const,
   sourceRefs: ["source:synthetic"],
+  authority: {
+    actor: { role: "Admin" as const, uid: "admin-synthetic" },
+    roleScopeAuthorized: true,
+    technical: {
+      connectionReady: true,
+      documentedEvidence: true,
+      endpointDocumented: true,
+      permissionGranted: true,
+      productionAllowed: true,
+      requiredValuesPresent: true,
+      roleScopeAuthorized: true,
+      sourceValidated: true,
+    },
+  },
 };
+
+const vendorCompany = "Synthetic Vendor Company";
+const vendorEmail = "vendor-synthetic@example.invalid";
+const vendorRef = "vendor-synthetic";
+const vendorUid = "vendor-uid-synthetic";
+const vendorUpdatedAt = "2026-07-30T01:00:00.000Z";
+const ticketUpdatedAt = "2026-07-30T02:00:00.000Z";
+
+function inviteValues(
+  overrides: Record<string, unknown> = {},
+): ExternalActionInput["values"] {
+  return {
+    artifact_ref: "vendor-invite:v1.0",
+    invite_mode: "initial",
+    invite_version: "0",
+    reason: "Synthetic onboarding acceptance",
+    ticket_ref: "ticket-synthetic",
+    ticket_updated_at: ticketUpdatedAt,
+    vendor_company: vendorCompany,
+    vendor_email: vendorEmail,
+    vendor_ref: "vendor:new",
+    vendor_status: "none",
+    vendor_uid: "identity:new",
+    vendor_updated_at: "generation:new",
+    ...overrides,
+  };
+}
+
+function initialDisableValues(
+  overrides: Record<string, unknown> = {},
+): ExternalActionInput["values"] {
+  return {
+    access_disabled_at: LIVE_VENDOR_DISABLE_INITIAL_SOURCE.accessDisabledAt,
+    active_assignment_refs: "ticket-synthetic",
+    completion_generation: String(
+      LIVE_VENDOR_DISABLE_INITIAL_SOURCE.completionGeneration,
+    ),
+    completion_lease_expires_at:
+      LIVE_VENDOR_DISABLE_INITIAL_SOURCE.completionLeaseExpiresAt,
+    completion_owner_execution_ref:
+      LIVE_VENDOR_DISABLE_INITIAL_SOURCE.completionOwnerExecutionId,
+    completion_owner_s20_execution_ref:
+      LIVE_VENDOR_DISABLE_INITIAL_SOURCE.completionOwnerS20ExecutionId,
+    disable_mode: "initial",
+    mailbox_state: "none",
+    mailbox_token_ref_hash: "none",
+    reason: "Synthetic lifecycle closeout",
+    root_execution_ref: LIVE_VENDOR_DISABLE_INITIAL_SOURCE.rootExecutionId,
+    root_s20_execution_ref: LIVE_VENDOR_DISABLE_INITIAL_SOURCE.rootS20ExecutionId,
+    vendor_company: vendorCompany,
+    vendor_email: vendorEmail,
+    vendor_ref: vendorRef,
+    vendor_status: "active",
+    vendor_uid: vendorUid,
+    vendor_updated_at: vendorUpdatedAt,
+    ...overrides,
+  };
+}
+
+function recoveryDisableValues(
+  overrides: Record<string, unknown> = {},
+): ExternalActionInput["values"] {
+  return {
+    access_disabled_at: "2026-07-30T03:00:00.000Z",
+    active_assignment_refs: "[]",
+    completion_generation: "2",
+    completion_lease_expires_at: "2026-07-30T03:02:00.000Z",
+    completion_owner_execution_ref: "c".repeat(64),
+    completion_owner_s20_execution_ref: `exec_${"d".repeat(40)}`,
+    disable_mode: "firebase_completion_recovery",
+    mailbox_state: "revocation_pending",
+    mailbox_token_ref_hash: "e".repeat(64),
+    reason: "Complete the reviewed Firebase access cutoff",
+    root_execution_ref: "a".repeat(64),
+    root_s20_execution_ref: `exec_${"b".repeat(40)}`,
+    vendor_company: vendorCompany,
+    vendor_email: vendorEmail,
+    vendor_ref: vendorRef,
+    vendor_status: "disabled",
+    vendor_uid: vendorUid,
+    vendor_updated_at: vendorUpdatedAt,
+    ...overrides,
+  };
+}
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -24,25 +126,53 @@ afterEach(() => {
 
 function lifecycleProvider(): VendorLifecycleProvider {
   return {
-    invite: vi.fn().mockResolvedValue({
+    invite: vi.fn(async ({ company, email, ticketRef }) => ({
       providerRef: "vendor-synthetic",
-      state: "pending_setup",
-      vendorEmail: "vendor-synthetic@example.invalid",
-      ticketRef: "ticket-synthetic",
-    }),
-    disable: vi.fn().mockResolvedValue({
-      providerRef: "vendor-synthetic",
-      state: "disabled",
-      vendorRef: "vendor-synthetic",
-      vendorUid: "vendor-uid-synthetic",
-    }),
-    changeAssignment: vi.fn(async ({ vendorRef, ticketRef, operation }) => ({
-      providerRef: "assignment-synthetic",
-      state: operation === "assign" ? ("assigned" as const) : ("removed" as const),
-      vendorRef,
+      state: "pending_setup" as const,
+      vendorCompany: company,
+      vendorEmail: email,
       ticketRef,
-      operation,
     })),
+    disable: vi.fn(
+      async ({
+        vendorRef: inputVendorRef,
+        vendorUid: inputVendorUid,
+        company,
+        email,
+        activeAssignmentRefs,
+        mailboxState,
+      }) => ({
+        providerRef: inputVendorRef,
+        state: "disabled" as const,
+        vendorRef: inputVendorRef,
+        vendorUid: inputVendorUid,
+        vendorCompany: company,
+        vendorEmail: email,
+        clearedAssignmentRefs: activeAssignmentRefs,
+        mailboxState,
+      }),
+    ),
+    changeAssignment: vi.fn(
+      async ({
+        vendorRef: inputVendorRef,
+        company,
+        email,
+        ticketRef,
+        currentVendorRef,
+        targetVendorRef,
+        operation,
+      }) => ({
+        providerRef: "assignment-synthetic",
+        state: operation === "assign" ? ("assigned" as const) : ("removed" as const),
+        vendorRef: inputVendorRef,
+        vendorCompany: company,
+        vendorEmail: email,
+        ticketRef,
+        currentVendorRef,
+        targetVendorRef,
+        operation,
+      }),
+    ),
     reconcile: vi.fn(),
   };
 }
@@ -116,20 +246,22 @@ describe("Maintenance Vendor lifecycle executors", () => {
       ...common,
       actionId: "invite-1",
       actionKey: "vendor.account.invite",
-      values: {
-        vendor_email: "vendor-synthetic@example.invalid",
-        ticket_ref: "ticket-synthetic",
-        artifact_ref: "vendor-invite:v1.0",
-        reason: "Synthetic onboarding acceptance",
-      },
+      values: inviteValues(),
     } satisfies ExternalActionInput;
     const assignment = {
       ...common,
       actionId: "assignment-1",
       actionKey: "vendor.assignment.change",
       values: {
-        vendor_ref: "vendor-synthetic",
+        vendor_ref: vendorRef,
+        vendor_uid: vendorUid,
+        vendor_company: vendorCompany,
+        vendor_email: vendorEmail,
+        vendor_updated_at: vendorUpdatedAt,
         ticket_ref: "ticket-synthetic",
+        ticket_updated_at: ticketUpdatedAt,
+        current_vendor_ref: "vendor:none",
+        target_vendor_ref: vendorRef,
         assignment_operation: "assign",
         reason: "Synthetic ticket assignment",
       },
@@ -138,11 +270,7 @@ describe("Maintenance Vendor lifecycle executors", () => {
       ...common,
       actionId: "disable-1",
       actionKey: "vendor.account.disable",
-      values: {
-        vendor_ref: "vendor-synthetic",
-        vendor_uid: "vendor-uid-synthetic",
-        reason: "Synthetic lifecycle closeout",
-      },
+      values: initialDisableValues(),
     } satisfies ExternalActionInput;
 
     await expect(executor.execute(invite)).resolves.toMatchObject({
@@ -155,8 +283,132 @@ describe("Maintenance Vendor lifecycle executors", () => {
       providerRef: "vendor-synthetic",
     });
     expect(provider.invite).toHaveBeenCalledTimes(1);
+    expect(provider.invite).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inviteMode: "initial",
+        inviteVersion: 0,
+        vendorRef: "vendor:new",
+        vendorStatus: "none",
+        vendorUid: "identity:new",
+        vendorUpdatedAt: "generation:new",
+      }),
+    );
     expect(provider.changeAssignment).toHaveBeenCalledTimes(1);
     expect(provider.disable).toHaveBeenCalledTimes(1);
+    expect(provider.disable).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accessDisabledAt: LIVE_VENDOR_DISABLE_INITIAL_SOURCE.accessDisabledAt,
+        completionGeneration: LIVE_VENDOR_DISABLE_INITIAL_SOURCE.completionGeneration,
+        completionLeaseExpiresAt:
+          LIVE_VENDOR_DISABLE_INITIAL_SOURCE.completionLeaseExpiresAt,
+        completionOwnerExecutionId:
+          LIVE_VENDOR_DISABLE_INITIAL_SOURCE.completionOwnerExecutionId,
+        completionOwnerS20ExecutionId:
+          LIVE_VENDOR_DISABLE_INITIAL_SOURCE.completionOwnerS20ExecutionId,
+        disableMode: "initial",
+        mailboxTokenRefHash: "none",
+        rootExecutionId: LIVE_VENDOR_DISABLE_INITIAL_SOURCE.rootExecutionId,
+        rootS20ExecutionId: LIVE_VENDOR_DISABLE_INITIAL_SOURCE.rootS20ExecutionId,
+      }),
+    );
+  });
+
+  it.each(["delivery_recovery", "setup_link_reissue"] as const)(
+    "validates and executes the exact %s invite generation",
+    async (inviteMode) => {
+      const provider = lifecycleProvider();
+      const executor = new VendorLifecycleExecutor(provider);
+      const input = {
+        ...common,
+        actionId: `invite-${inviteMode}`,
+        actionKey: "vendor.account.invite",
+        values: inviteValues({
+          invite_mode: inviteMode,
+          invite_version: "3",
+          reason: `Reviewed ${inviteMode} action`,
+          vendor_ref: vendorRef,
+          vendor_status: "pending_setup",
+          vendor_uid: vendorUid,
+          vendor_updated_at: vendorUpdatedAt,
+        }),
+      } satisfies ExternalActionInput;
+
+      expect(executor.validate(input)).toBeNull();
+      await expect(executor.execute(input)).resolves.toMatchObject({
+        providerRef: "vendor-synthetic",
+      });
+      expect(provider.invite).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inviteMode,
+          inviteVersion: 3,
+          vendorRef,
+          vendorStatus: "pending_setup",
+          vendorUid,
+          vendorUpdatedAt,
+        }),
+      );
+    },
+  );
+
+  it("validates and executes an exact Firebase disable-completion recovery generation", async () => {
+    const provider = lifecycleProvider();
+    const executor = new VendorLifecycleExecutor(provider);
+    const input = {
+      ...common,
+      actionId: "disable-completion-recovery",
+      actionKey: "vendor.account.disable",
+      values: recoveryDisableValues(),
+    } satisfies ExternalActionInput;
+
+    expect(executor.validate(input)).toBeNull();
+    await expect(executor.execute(input)).resolves.toMatchObject({
+      providerRef: vendorRef,
+    });
+    expect(provider.disable).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accessDisabledAt: "2026-07-30T03:00:00.000Z",
+        completionGeneration: 2,
+        completionLeaseExpiresAt: "2026-07-30T03:02:00.000Z",
+        completionOwnerExecutionId: "c".repeat(64),
+        completionOwnerS20ExecutionId: `exec_${"d".repeat(40)}`,
+        disableMode: "firebase_completion_recovery",
+        mailboxTokenRefHash: "e".repeat(64),
+        rootExecutionId: "a".repeat(64),
+        rootS20ExecutionId: `exec_${"b".repeat(40)}`,
+      }),
+    );
+  });
+
+  it("rejects mixed initial and recovery generations before the provider", async () => {
+    const provider = lifecycleProvider();
+    const executor = new VendorLifecycleExecutor(provider);
+    const badInvite = {
+      ...common,
+      actionId: "invite-mixed-generation",
+      actionKey: "vendor.account.invite",
+      values: inviteValues({ vendor_ref: vendorRef }),
+    } satisfies ExternalActionInput;
+    const badDisable = {
+      ...common,
+      actionId: "disable-mixed-generation",
+      actionKey: "vendor.account.disable",
+      values: initialDisableValues({ root_execution_ref: "a".repeat(64) }),
+    } satisfies ExternalActionInput;
+
+    expect(executor.validate(badInvite)).toBe(
+      "Vendor invite generation does not match its mode.",
+    );
+    expect(executor.validate(badDisable)).toBe(
+      "Initial Vendor disable generation is invalid.",
+    );
+    await expect(executor.execute(badInvite)).rejects.toMatchObject({
+      code: "blocked",
+    });
+    await expect(executor.execute(badDisable)).rejects.toMatchObject({
+      code: "blocked",
+    });
+    expect(provider.invite).not.toHaveBeenCalled();
+    expect(provider.disable).not.toHaveBeenCalled();
   });
 
   it("blocks invalid lifecycle input before provider", async () => {
@@ -166,16 +418,36 @@ describe("Maintenance Vendor lifecycle executors", () => {
       ...common,
       actionId: "invite-1",
       actionKey: "vendor.account.invite",
-      values: {
-        vendor_email: "not-an-email",
-        ticket_ref: "ticket-synthetic",
-        artifact_ref: "vendor-invite:v1.0",
+      values: inviteValues({
         reason: "Synthetic invite",
-      },
+        vendor_email: "not-an-email",
+      }),
     } satisfies ExternalActionInput;
     expect(executor.validate(input)).toContain("valid Vendor email");
     await expect(executor.execute(input)).rejects.toBeDefined();
     expect(provider.invite).not.toHaveBeenCalled();
+  });
+
+  it("requires server-verified actor authority before every lifecycle provider call", async () => {
+    const provider = lifecycleProvider();
+    const executor = new VendorLifecycleExecutor(provider);
+    const input = {
+      ...common,
+      authority: undefined,
+      actionId: "invite-without-authority",
+      actionKey: "vendor.account.invite",
+      values: inviteValues({
+        reason: "Synthetic invite without trusted authority",
+      }),
+    } satisfies ExternalActionInput;
+
+    expect(executor.validate(input)).toContain("Server-verified");
+    await expect(executor.execute(input)).rejects.toMatchObject({ code: "blocked" });
+    await expect(executor.reconcile(input)).rejects.toMatchObject({
+      code: "blocked",
+    });
+    expect(provider.invite).not.toHaveBeenCalled();
+    expect(provider.reconcile).not.toHaveBeenCalled();
   });
 
   it("binds lifecycle actions to the current ticket and exact provider readback", async () => {
@@ -185,12 +457,10 @@ describe("Maintenance Vendor lifecycle executors", () => {
       ...common,
       actionId: "invite-cross-ticket",
       actionKey: "vendor.account.invite",
-      values: {
-        vendor_email: "vendor-synthetic@example.invalid",
-        ticket_ref: "ticket-other",
-        artifact_ref: "vendor-invite:v1.0",
+      values: inviteValues({
         reason: "Synthetic cross-ticket invite",
-      },
+        ticket_ref: "ticket-other",
+      }),
     } satisfies ExternalActionInput;
     await expect(executor.execute(crossTicket)).rejects.toMatchObject({
       code: "blocked",
@@ -200,6 +470,7 @@ describe("Maintenance Vendor lifecycle executors", () => {
     provider.invite = vi.fn().mockResolvedValue({
       providerRef: "vendor-other",
       state: "pending_setup",
+      vendorCompany,
       vendorEmail: "vendor-other@example.invalid",
       ticketRef: "ticket-synthetic",
     });
@@ -219,20 +490,22 @@ describe("Maintenance Vendor lifecycle executors", () => {
       ...common,
       actionId: "shared-action-id",
       actionKey: "vendor.account.invite",
-      values: {
-        vendor_email: "vendor-synthetic@example.invalid",
-        ticket_ref: "ticket-synthetic",
-        artifact_ref: "vendor-invite:v1.0",
-        reason: "Synthetic onboarding acceptance",
-      },
+      values: inviteValues(),
     } satisfies ExternalActionInput;
     const assignment = {
       ...common,
       actionId: "shared-action-id",
       actionKey: "vendor.assignment.change",
       values: {
-        vendor_ref: "vendor-synthetic",
+        vendor_ref: vendorRef,
+        vendor_uid: vendorUid,
+        vendor_company: vendorCompany,
+        vendor_email: vendorEmail,
+        vendor_updated_at: vendorUpdatedAt,
         ticket_ref: "ticket-synthetic",
+        ticket_updated_at: ticketUpdatedAt,
+        current_vendor_ref: "vendor:none",
+        target_vendor_ref: vendorRef,
         assignment_operation: "assign",
         reason: "Synthetic ticket assignment",
       },
@@ -254,19 +527,15 @@ describe("Maintenance Vendor lifecycle executors", () => {
     provider.reconcile = vi.fn().mockResolvedValue({
       providerRef: "vendor-synthetic",
       state: "pending_setup",
-      vendorEmail: "vendor-synthetic@example.invalid",
+      vendorCompany,
+      vendorEmail,
       ticketRef: "ticket-synthetic",
     });
     const input = {
       ...common,
       actionId: "invite-reconcile",
       actionKey: "vendor.account.invite",
-      values: {
-        vendor_email: "vendor-synthetic@example.invalid",
-        ticket_ref: "ticket-synthetic",
-        artifact_ref: "vendor-invite:v1.0",
-        reason: "Synthetic reconciliation",
-      },
+      values: inviteValues({ reason: "Synthetic reconciliation" }),
     } satisfies ExternalActionInput;
 
     await expect(
@@ -275,6 +544,90 @@ describe("Maintenance Vendor lifecycle executors", () => {
       providerRef: "vendor-synthetic",
       reconciled: true,
     });
+  });
+
+  it("closes an exact corrective invite reconciliation as bodyless not-applicable", async () => {
+    const supersededExecutionId = "b".repeat(64);
+    const supersededS20ExecutionId = `exec_${"c".repeat(40)}`;
+    const supersessionHash = createHash("sha256")
+      .update(`${supersededExecutionId}\0${supersededS20ExecutionId}`)
+      .digest("hex");
+    const input = {
+      ...common,
+      actionId: "invite-corrective-reconcile",
+      actionKey: "vendor.account.invite",
+      sourceRefs: [
+        "source:synthetic",
+        `superseded-vendor-execution:${supersededExecutionId}`,
+        `superseded-s20-execution:${supersededS20ExecutionId}`,
+        `vendor-invite-supersession:${supersessionHash}`,
+      ],
+      values: inviteValues({
+        invite_mode: "delivery_recovery",
+        invite_version: "1",
+        reason: "Synthetic corrective reconciliation",
+        vendor_ref: vendorRef,
+        vendor_status: "pending_setup",
+        vendor_uid: vendorUid,
+        vendor_updated_at: vendorUpdatedAt,
+      }),
+    } satisfies ExternalActionInput;
+    const key = externalActionIdempotencyKey(input);
+    const correctiveExecutionId = createHash("sha256")
+      .update(`vendor.account.invite\0${key}`)
+      .digest("hex");
+    const correctiveS20ExecutionId = `exec_${createHash("sha256")
+      .update(`external-action:v1\0vendor.account.invite\0${key}`)
+      .digest("hex")
+      .slice(0, 40)}`;
+    const provider = lifecycleProvider();
+    const result = (
+      reasonCode:
+        | "prior_invite_already_delivered"
+        | "prior_invite_absent_recovery_activated",
+    ) => ({
+      providerRef: `vendor-invite-not-applicable:${correctiveExecutionId}`,
+      state: "not_applicable" as const,
+      outcome: "not_applicable" as const,
+      attemptFenced: true as const,
+      reasonCode,
+      correctiveExecutionId,
+      correctiveS20ExecutionId,
+      idempotencyKeyHash: createHash("sha256").update(key).digest("hex"),
+      supersededExecutionId,
+      supersededS20ExecutionId,
+      supersessionHash,
+    });
+    provider.reconcile = vi
+      .fn()
+      .mockResolvedValue(result("prior_invite_already_delivered"));
+    const executor = new VendorLifecycleExecutor(provider);
+
+    const delivered = await executor.reconcile(input);
+    expect(delivered).toMatchObject({
+      actionKey: "vendor.account.invite",
+      providerRef: `vendor-invite-not-applicable:${correctiveExecutionId}`,
+      reconciled: true,
+      outcome: "not_applicable",
+    });
+    expect(JSON.stringify(delivered)).not.toContain(vendorEmail);
+    expect(JSON.stringify(delivered)).not.toContain(input.values.reason);
+
+    provider.reconcile = vi
+      .fn()
+      .mockResolvedValue(result("prior_invite_absent_recovery_activated"));
+    const absent = await executor.reconcile(input);
+    expect(absent).toMatchObject({
+      reconciled: true,
+      outcome: "not_applicable",
+    });
+    expect(absent?.resultHash).not.toBe(delivered?.resultHash);
+
+    provider.reconcile = vi.fn().mockResolvedValue({
+      ...result("prior_invite_already_delivered"),
+      correctiveS20ExecutionId: `exec_${"d".repeat(40)}`,
+    });
+    await expect(executor.reconcile(input)).resolves.toBeNull();
   });
 });
 

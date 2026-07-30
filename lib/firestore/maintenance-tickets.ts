@@ -349,6 +349,12 @@ export async function transitionMaintenanceTicket(
       }
       case "vendor-assign": {
         const mode = resolveStoredDataMode(ticket);
+        if (mode === "live") {
+          throw new EditableLayerError(
+            "Live Vendor assignment requires the confirmed Admin Vendor lifecycle action.",
+            409,
+          );
+        }
         if (
           mode === "test" &&
           op.vendorId !== null &&
@@ -356,12 +362,6 @@ export async function transitionMaintenanceTicket(
         ) {
           throw new EditableLayerError(
             "Test tickets may only use the reserved invented Test Vendor.",
-            400,
-          );
-        }
-        if (mode === "live" && op.vendorId === MAINTENANCE_TEST_VENDOR.id) {
-          throw new EditableLayerError(
-            "The reserved Test Vendor cannot be assigned to Live data.",
             400,
           );
         }

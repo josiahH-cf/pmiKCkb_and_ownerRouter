@@ -68,6 +68,15 @@ function fakeDb() {
   return { db: db as unknown as Firestore, store };
 }
 
+function snapshotStore(store: Map<string, Map<string, Record<string, unknown>>>): string {
+  return JSON.stringify(
+    [...store.entries()].map(([collection, records]) => [
+      collection,
+      [...records.entries()],
+    ]),
+  );
+}
+
 // A recording variant of fakeDb: it tags every runTransaction with a unique id and logs each
 // transaction.set as { txId, collection, id }, so a test can prove two writes are enqueued on the
 // SAME transaction handle.
@@ -348,7 +357,87 @@ describe("maintenance tickets", () => {
     ).toBe("live");
   });
 
-  it("creates a reserved Test ticket and atomically mirrors its Test Vendor assignment", async () => {
+  it.each([
+    ["explicit Live", true, "vendor-live-target"],
+    ["explicit Live", true, MAINTENANCE_TEST_VENDOR.id],
+    ["explicit Live", true, null],
+    ["legacy Live", false, "vendor-live-target"],
+    ["legacy Live", false, MAINTENANCE_TEST_VENDOR.id],
+    ["legacy Live", false, null],
+  ] as const)(
+    "refuses %s (explicit mode %s) generic Vendor assignment target %s without mutating ticket, assignment, or activity",
+    async (_label, explicitDataMode, vendorId) => {
+      const { db, store } = fakeDb();
+      const ticketId = explicitDataMode ? "live-explicit" : "live-legacy";
+      const existingVendorId = "vendor-live-existing";
+      const ticket = {
+        id: ticketId,
+        ...(explicitDataMode ? { data_mode: "live" as const } : {}),
+        status: "Open",
+        priority: "Normal",
+        priority_provenance: "operator-set",
+        summary: "Live maintenance ticket",
+        description: "Live customer data",
+        unit: { unitId: "unit-live", label: "Live unit" },
+        photo_refs: [],
+        reporter: { kind: "staff", uid: editor.uid },
+        labels: [],
+        space_id: "maintenance",
+        vendor_id: existingVendorId,
+        created_at: "2026-07-30T00:00:00.000Z",
+        updated_at: "2026-07-30T00:00:00.000Z",
+      };
+      store.set(MAINTENANCE_TICKET_COLLECTIONS.tickets, new Map([[ticketId, ticket]]));
+      store.set(
+        MAINTENANCE_TICKET_COLLECTIONS.vendorAssignments,
+        new Map([
+          [
+            ticketId,
+            {
+              ticket_id: ticketId,
+              vendor_id: existingVendorId,
+              active: true,
+              ...(explicitDataMode ? { data_mode: "live" } : {}),
+              updated_at: "2026-07-30T00:00:00.000Z",
+            },
+          ],
+        ]),
+      );
+      store.set(
+        MAINTENANCE_TICKET_COLLECTIONS.activity,
+        new Map([
+          [
+            "activity-existing",
+            {
+              id: "activity-existing",
+              ticket_id: ticketId,
+              actor_uid: editor.uid,
+              action: "create",
+              created_at: "2026-07-30T00:00:00.000Z",
+            },
+          ],
+        ]),
+      );
+      const before = snapshotStore(store);
+
+      await expect(
+        transitionMaintenanceTicket(
+          editor,
+          ticketId,
+          { op: "vendor-assign", vendorId },
+          db,
+        ),
+      ).rejects.toMatchObject({
+        status: 409,
+        message:
+          "Live Vendor assignment requires the confirmed Admin Vendor lifecycle action.",
+      });
+
+      expect(snapshotStore(store)).toBe(before);
+    },
+  );
+
+  it("creates a reserved Test ticket and atomically mirrors Test Vendor assignment and unassignment", async () => {
     const { db, store } = fakeDb();
     const ticket = await createCanonicalMaintenanceTestTicket(editor, {}, db);
 
@@ -371,6 +460,22 @@ describe("maintenance tickets", () => {
       ticket_id: ticket.id,
       vendor_id: MAINTENANCE_TEST_VENDOR.id,
       active: true,
+      data_mode: "test",
+    });
+
+    const unassigned = await transitionMaintenanceTicket(
+      editor,
+      ticket.id,
+      { op: "vendor-assign", vendorId: null },
+      db,
+    );
+    expect(unassigned.vendor_id).toBeUndefined();
+    expect(
+      store.get(MAINTENANCE_TICKET_COLLECTIONS.vendorAssignments)?.get(ticket.id),
+    ).toMatchObject({
+      ticket_id: ticket.id,
+      vendor_id: MAINTENANCE_TEST_VENDOR.id,
+      active: false,
       data_mode: "test",
     });
   });

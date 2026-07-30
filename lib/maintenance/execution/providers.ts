@@ -13,6 +13,7 @@ import {
 } from "@/lib/lease-renewal/execution/providers";
 import { isProductionRuntime } from "@/lib/environment/descriptor";
 import { VENDOR_OAUTH_SCOPES, type VendorOAuthScope } from "@/lib/vendor/model";
+import { LIVE_VENDOR_DISABLE_INITIAL_SOURCE } from "@/lib/vendor/live-lifecycle-contract";
 
 function value(input: ExternalActionInput, key: string) {
   const current = input.values[key];
@@ -73,11 +74,19 @@ function isIsoDate(value: unknown): value is string {
   );
 }
 
+function isIsoInstant(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) && new Date(timestamp).toISOString() === value;
+}
+
 function receipt(
   input: ExternalActionInput,
   providerRef: string,
   observed: unknown,
   reconciled = false,
+  outcome?: ExternalActionReceipt["outcome"],
+  attemptFenced?: true,
 ): ExternalActionReceipt {
   const normalizedProviderRef = providerRef.trim();
   if (!normalizedProviderRef) {
@@ -91,6 +100,8 @@ function receipt(
     providerRef: normalizedProviderRef,
     resultHash: payloadHash(observed),
     reconciled,
+    ...(outcome ? { outcome } : {}),
+    ...(attemptFenced === true ? { attemptFenced: true } : {}),
     createdAt: new Date().toISOString(),
   };
 }
@@ -886,7 +897,20 @@ export type VendorLifecycleActionKey =
 export interface VendorInviteResult {
   providerRef: string;
   state: "pending_setup";
+  vendorCompany: string;
   vendorEmail: string;
+  ticketRef: string;
+}
+
+export interface VendorInviteInvalidatedResult {
+  providerRef: string;
+  state: "delivery_invalidated";
+  reasonCode: "disabled_during_invite_delivery";
+  executionId: string;
+  s20ExecutionId: string;
+  idempotencyKeyHash: string;
+  deliveryRefHash: string;
+  vendorRef: string;
   ticketRef: string;
 }
 
@@ -895,38 +919,95 @@ export interface VendorDisableResult {
   state: "disabled";
   vendorRef: string;
   vendorUid: string;
+  vendorCompany: string;
+  vendorEmail: string;
+  clearedAssignmentRefs: string;
+  mailboxState: string;
 }
 
 export interface VendorAssignmentResult {
   providerRef: string;
   state: "assigned" | "removed";
   vendorRef: string;
+  vendorCompany: string;
+  vendorEmail: string;
   ticketRef: string;
+  currentVendorRef: string;
+  targetVendorRef: string;
   operation: "assign" | "remove";
+}
+
+export interface VendorInviteNotApplicableResult {
+  providerRef: string;
+  state: "not_applicable";
+  outcome: "not_applicable";
+  attemptFenced: true;
+  reasonCode: "prior_invite_already_delivered" | "prior_invite_absent_recovery_activated";
+  correctiveExecutionId: string;
+  correctiveS20ExecutionId: string;
+  idempotencyKeyHash: string;
+  supersededExecutionId: string;
+  supersededS20ExecutionId: string;
+  supersessionHash: string;
 }
 
 export type VendorLifecycleResult =
   | VendorInviteResult
+  | VendorInviteInvalidatedResult
+  | VendorInviteNotApplicableResult
   | VendorDisableResult
   | VendorAssignmentResult;
 
 export interface VendorLifecycleProvider {
   invite(input: {
+    actorUid: string;
+    company: string;
     email: string;
     ticketRef: string;
+    ticketUpdatedAt: string;
     artifactRef: "vendor-invite:v1.0";
+    inviteMode: "initial" | "delivery_recovery" | "setup_link_reissue";
+    inviteVersion: number;
+    vendorRef: string;
+    vendorUid: string;
+    vendorStatus: "none" | "pending_setup";
+    vendorUpdatedAt: string;
     reason: string;
     idempotencyKey: string;
   }): Promise<VendorInviteResult>;
   disable(input: {
+    actorUid: string;
+    disableMode: "initial" | "firebase_completion_recovery";
     vendorRef: string;
     vendorUid: string;
+    company: string;
+    email: string;
+    currentStatus: string;
+    vendorUpdatedAt: string;
+    activeAssignmentRefs: string;
+    mailboxState: string;
+    mailboxTokenRefHash: string;
+    rootExecutionId: string;
+    rootS20ExecutionId: string;
+    accessDisabledAt: string;
+    completionGeneration: number;
+    completionOwnerExecutionId: string;
+    completionOwnerS20ExecutionId: string;
+    completionLeaseExpiresAt: string;
     reason: string;
     idempotencyKey: string;
   }): Promise<VendorDisableResult>;
   changeAssignment(input: {
+    actorUid: string;
     vendorRef: string;
+    vendorUid: string;
+    company: string;
+    email: string;
+    vendorUpdatedAt: string;
     ticketRef: string;
+    ticketUpdatedAt: string;
+    currentVendorRef: string;
+    targetVendorRef: string;
     operation: "assign" | "remove";
     reason: string;
     idempotencyKey: string;
@@ -941,6 +1022,9 @@ export class VendorLifecycleExecutor implements ExternalExecutor {
   constructor(private readonly provider: VendorLifecycleProvider) {}
 
   validate(input: ExternalActionInput) {
+    if (!executionActorUid(input)) {
+      return "Server-verified Vendor lifecycle actor context is required.";
+    }
     const reason = stringBlocker(input, "reason");
     if (reason) return reason;
     if (String(input.values.reason).trim().length < 3) {
@@ -952,30 +1036,144 @@ export class VendorLifecycleExecutor implements ExternalExecutor {
           return "A valid Vendor email is required.";
         {
           const blocker = firstBlocker(
+            stringBlocker(input, "vendor_company"),
             stringBlocker(input, "ticket_ref"),
+            stringBlocker(input, "ticket_updated_at"),
+            stringBlocker(input, "invite_mode"),
+            stringBlocker(input, "invite_version"),
+            stringBlocker(input, "vendor_ref"),
+            stringBlocker(input, "vendor_uid"),
+            stringBlocker(input, "vendor_status"),
+            stringBlocker(input, "vendor_updated_at"),
             input.values.artifact_ref === "vendor-invite:v1.0"
               ? null
               : "vendor-invite:v1.0 is required.",
           );
           if (blocker) return blocker;
+          const inviteMode = input.values.invite_mode;
+          const inviteVersion = Number(input.values.invite_version);
+          if (
+            inviteMode !== "initial" &&
+            inviteMode !== "delivery_recovery" &&
+            inviteMode !== "setup_link_reissue"
+          ) {
+            return "Vendor invite mode is invalid.";
+          }
+          if (!Number.isSafeInteger(inviteVersion) || inviteVersion < 0) {
+            return "Vendor invite version is invalid.";
+          }
+          if (
+            (inviteMode === "initial" &&
+              (inviteVersion !== 0 ||
+                input.values.vendor_ref !== "vendor:new" ||
+                input.values.vendor_uid !== "identity:new" ||
+                input.values.vendor_status !== "none" ||
+                input.values.vendor_updated_at !== "generation:new")) ||
+            (inviteMode !== "initial" &&
+              (inviteVersion < 1 ||
+                input.values.vendor_ref === "vendor:new" ||
+                input.values.vendor_uid === "identity:new" ||
+                input.values.vendor_status !== "pending_setup" ||
+                input.values.vendor_updated_at === "generation:new"))
+          ) {
+            return "Vendor invite generation does not match its mode.";
+          }
           return input.values.ticket_ref === input.workflowId
             ? null
             : "Vendor invite must bind to the current ticket.";
         }
-      case "vendor.account.disable":
-        return firstBlocker(
+      case "vendor.account.disable": {
+        const blocker = firstBlocker(
+          stringBlocker(input, "disable_mode"),
           stringBlocker(input, "vendor_ref"),
           stringBlocker(input, "vendor_uid"),
+          stringBlocker(input, "vendor_company"),
+          stringBlocker(input, "vendor_email"),
+          stringBlocker(input, "vendor_status"),
+          stringBlocker(input, "vendor_updated_at"),
+          stringBlocker(input, "active_assignment_refs"),
+          stringBlocker(input, "mailbox_state"),
+          stringBlocker(input, "mailbox_token_ref_hash"),
+          stringBlocker(input, "root_execution_ref"),
+          stringBlocker(input, "root_s20_execution_ref"),
+          stringBlocker(input, "access_disabled_at"),
+          stringBlocker(input, "completion_generation"),
+          stringBlocker(input, "completion_owner_execution_ref"),
+          stringBlocker(input, "completion_owner_s20_execution_ref"),
+          stringBlocker(input, "completion_lease_expires_at"),
         );
+        if (blocker) return blocker;
+        if (!isEmail(input.values.vendor_email)) {
+          return "A valid Vendor email is required.";
+        }
+        const mode = String(input.values.disable_mode);
+        const completionGeneration = Number(input.values.completion_generation);
+        if (mode !== "initial" && mode !== "firebase_completion_recovery") {
+          return "Vendor disable mode is invalid.";
+        }
+        if (!Number.isSafeInteger(completionGeneration) || completionGeneration < 0) {
+          return "Vendor disable completion generation is invalid.";
+        }
+        const initial = LIVE_VENDOR_DISABLE_INITIAL_SOURCE;
+        if (mode === "initial") {
+          return ["pending_setup", "active"].includes(
+            String(input.values.vendor_status),
+          ) &&
+            input.values.root_execution_ref === initial.rootExecutionId &&
+            input.values.root_s20_execution_ref === initial.rootS20ExecutionId &&
+            input.values.access_disabled_at === initial.accessDisabledAt &&
+            completionGeneration === initial.completionGeneration &&
+            input.values.completion_owner_execution_ref ===
+              initial.completionOwnerExecutionId &&
+            input.values.completion_owner_s20_execution_ref ===
+              initial.completionOwnerS20ExecutionId &&
+            input.values.completion_lease_expires_at === initial.completionLeaseExpiresAt
+            ? null
+            : "Initial Vendor disable generation is invalid.";
+        }
+        return input.values.vendor_status === "disabled" &&
+          /^[a-f0-9]{64}$/.test(String(input.values.root_execution_ref)) &&
+          /^exec_[a-f0-9]{40}$/.test(String(input.values.root_s20_execution_ref)) &&
+          /^[a-f0-9]{64}$/.test(String(input.values.completion_owner_execution_ref)) &&
+          /^exec_[a-f0-9]{40}$/.test(
+            String(input.values.completion_owner_s20_execution_ref),
+          ) &&
+          isIsoInstant(input.values.access_disabled_at) &&
+          isIsoInstant(input.values.completion_lease_expires_at) &&
+          Date.parse(String(input.values.access_disabled_at)) <=
+            Date.parse(String(input.values.completion_lease_expires_at))
+          ? null
+          : "Vendor disable recovery generation is invalid.";
+      }
       case "vendor.assignment.change": {
         const blocker = firstBlocker(
           stringBlocker(input, "vendor_ref"),
+          stringBlocker(input, "vendor_uid"),
+          stringBlocker(input, "vendor_company"),
+          stringBlocker(input, "vendor_email"),
+          stringBlocker(input, "vendor_updated_at"),
           stringBlocker(input, "ticket_ref"),
+          stringBlocker(input, "ticket_updated_at"),
+          stringBlocker(input, "current_vendor_ref"),
+          stringBlocker(input, "target_vendor_ref"),
           stringBlocker(input, "assignment_operation"),
         );
         if (blocker) return blocker;
+        if (!isEmail(input.values.vendor_email))
+          return "A valid Vendor email is required.";
         if (!["assign", "remove"].includes(String(input.values.assignment_operation))) {
           return "Vendor assignment operation must be assign or remove.";
+        }
+        const operation = String(input.values.assignment_operation);
+        const vendorRef = String(input.values.vendor_ref);
+        if (
+          (operation === "assign" &&
+            String(input.values.target_vendor_ref) !== vendorRef) ||
+          (operation === "remove" &&
+            (String(input.values.current_vendor_ref) !== vendorRef ||
+              String(input.values.target_vendor_ref) !== "vendor:none"))
+        ) {
+          return "Vendor assignment preview does not match the requested transition.";
         }
         return input.values.ticket_ref === input.workflowId
           ? null
@@ -993,25 +1191,66 @@ export class VendorLifecycleExecutor implements ExternalExecutor {
     switch (input.actionKey) {
       case "vendor.account.invite":
         result = await this.provider.invite({
+          actorUid: requireExecutionActorUid(input),
+          company: value(input, "vendor_company"),
           email: value(input, "vendor_email").toLowerCase(),
           ticketRef: value(input, "ticket_ref"),
+          ticketUpdatedAt: value(input, "ticket_updated_at"),
           artifactRef: "vendor-invite:v1.0",
+          inviteMode: value(input, "invite_mode") as
+            | "initial"
+            | "delivery_recovery"
+            | "setup_link_reissue",
+          inviteVersion: Number(value(input, "invite_version")),
+          vendorRef: value(input, "vendor_ref"),
+          vendorUid: value(input, "vendor_uid"),
+          vendorStatus: value(input, "vendor_status") as "none" | "pending_setup",
+          vendorUpdatedAt: value(input, "vendor_updated_at"),
           reason,
           idempotencyKey: idempotencyKey(input),
         });
         break;
       case "vendor.account.disable":
         result = await this.provider.disable({
+          actorUid: requireExecutionActorUid(input),
+          disableMode: value(input, "disable_mode") as
+            | "initial"
+            | "firebase_completion_recovery",
           vendorRef: value(input, "vendor_ref"),
           vendorUid: value(input, "vendor_uid"),
+          company: value(input, "vendor_company"),
+          email: value(input, "vendor_email").toLowerCase(),
+          currentStatus: value(input, "vendor_status"),
+          vendorUpdatedAt: value(input, "vendor_updated_at"),
+          activeAssignmentRefs: value(input, "active_assignment_refs"),
+          mailboxState: value(input, "mailbox_state"),
+          mailboxTokenRefHash: value(input, "mailbox_token_ref_hash"),
+          rootExecutionId: value(input, "root_execution_ref"),
+          rootS20ExecutionId: value(input, "root_s20_execution_ref"),
+          accessDisabledAt: value(input, "access_disabled_at"),
+          completionGeneration: Number(value(input, "completion_generation")),
+          completionOwnerExecutionId: value(input, "completion_owner_execution_ref"),
+          completionOwnerS20ExecutionId: value(
+            input,
+            "completion_owner_s20_execution_ref",
+          ),
+          completionLeaseExpiresAt: value(input, "completion_lease_expires_at"),
           reason,
           idempotencyKey: idempotencyKey(input),
         });
         break;
       case "vendor.assignment.change":
         result = await this.provider.changeAssignment({
+          actorUid: requireExecutionActorUid(input),
           vendorRef: value(input, "vendor_ref"),
+          vendorUid: value(input, "vendor_uid"),
+          company: value(input, "vendor_company"),
+          email: value(input, "vendor_email").toLowerCase(),
+          vendorUpdatedAt: value(input, "vendor_updated_at"),
           ticketRef: value(input, "ticket_ref"),
+          ticketUpdatedAt: value(input, "ticket_updated_at"),
+          currentVendorRef: value(input, "current_vendor_ref"),
+          targetVendorRef: value(input, "target_vendor_ref"),
           operation: value(input, "assignment_operation") as "assign" | "remove",
           reason,
           idempotencyKey: idempotencyKey(input),
@@ -1038,10 +1277,44 @@ export class VendorLifecycleExecutor implements ExternalExecutor {
       input.actionKey as VendorLifecycleActionKey,
       idempotencyKey(input),
     );
-    return result && vendorLifecycleMatches(input, result)
+    if (!result) return null;
+    if (result.state === "not_applicable") {
+      return vendorInviteNotApplicableMatches(input, result)
+        ? receipt(
+            input,
+            result.providerRef,
+            result,
+            true,
+            "not_applicable",
+            result.attemptFenced,
+          )
+        : null;
+    }
+    if (result.state === "delivery_invalidated") {
+      return vendorInviteInvalidatedMatches(input, result)
+        ? receipt(input, result.providerRef, result, true)
+        : null;
+    }
+    return vendorLifecycleMatches(input, result)
       ? receipt(input, result.providerRef, result, true)
       : null;
   }
+}
+
+function executionActorUid(input: ExternalActionInput) {
+  const uid = input.authority?.actor.uid;
+  return typeof uid === "string" && uid.trim() ? uid.trim() : null;
+}
+
+function requireExecutionActorUid(input: ExternalActionInput) {
+  const uid = executionActorUid(input);
+  if (!uid) {
+    throw new ExternalExecutionError(
+      "Server-verified Vendor lifecycle actor context is required.",
+      "blocked",
+    );
+  }
+  return uid;
 }
 
 function vendorLifecycleMatches(
@@ -1052,6 +1325,7 @@ function vendorLifecycleMatches(
     return (
       result.state === "pending_setup" &&
       "vendorEmail" in result &&
+      result.vendorCompany === input.values.vendor_company &&
       result.vendorEmail.toLowerCase() ===
         String(input.values.vendor_email).toLowerCase() &&
       result.ticketRef === input.values.ticket_ref
@@ -1062,7 +1336,12 @@ function vendorLifecycleMatches(
       result.state === "disabled" &&
       "vendorUid" in result &&
       result.vendorRef === input.values.vendor_ref &&
-      result.vendorUid === input.values.vendor_uid
+      result.vendorUid === input.values.vendor_uid &&
+      result.vendorCompany === input.values.vendor_company &&
+      result.vendorEmail.toLowerCase() ===
+        String(input.values.vendor_email).toLowerCase() &&
+      result.clearedAssignmentRefs === input.values.active_assignment_refs &&
+      result.mailboxState === input.values.mailbox_state
     );
   }
   const operation = input.values.assignment_operation;
@@ -1070,9 +1349,80 @@ function vendorLifecycleMatches(
     "operation" in result &&
     result.state === (operation === "assign" ? "assigned" : "removed") &&
     result.vendorRef === input.values.vendor_ref &&
+    result.vendorCompany === input.values.vendor_company &&
+    result.vendorEmail.toLowerCase() ===
+      String(input.values.vendor_email).toLowerCase() &&
     result.ticketRef === input.values.ticket_ref &&
+    result.currentVendorRef === input.values.current_vendor_ref &&
+    result.targetVendorRef === input.values.target_vendor_ref &&
     result.operation === operation
   );
+}
+
+function vendorInviteInvalidatedMatches(
+  input: ExternalActionInput,
+  result: VendorInviteInvalidatedResult,
+) {
+  if (input.actionKey !== "vendor.account.invite") return false;
+  const key = idempotencyKey(input);
+  const executionId = sha256(`${input.actionKey}\0${key}`);
+  const s20ExecutionId = `exec_${sha256(
+    `external-action:v1\0${input.actionKey}\0${key}`,
+  ).slice(0, 40)}`;
+  return (
+    result.state === "delivery_invalidated" &&
+    result.reasonCode === "disabled_during_invite_delivery" &&
+    result.providerRef === `vendor-invite-delivery-invalidated:${executionId}` &&
+    result.executionId === executionId &&
+    result.s20ExecutionId === s20ExecutionId &&
+    result.idempotencyKeyHash === sha256(key) &&
+    /^[a-f0-9]{64}$/.test(result.deliveryRefHash) &&
+    result.vendorRef === input.values.vendor_ref &&
+    result.ticketRef === input.values.ticket_ref
+  );
+}
+
+function vendorInviteNotApplicableMatches(
+  input: ExternalActionInput,
+  result: VendorInviteNotApplicableResult,
+) {
+  if (input.actionKey !== "vendor.account.invite") return false;
+  const key = idempotencyKey(input);
+  const correctiveExecutionId = sha256(`${input.actionKey}\0${key}`);
+  const correctiveS20ExecutionId = `exec_${sha256(
+    `external-action:v1\0${input.actionKey}\0${key}`,
+  ).slice(0, 40)}`;
+  return (
+    result.state === "not_applicable" &&
+    result.outcome === "not_applicable" &&
+    result.attemptFenced === true &&
+    (result.reasonCode === "prior_invite_already_delivered" ||
+      result.reasonCode === "prior_invite_absent_recovery_activated") &&
+    result.providerRef === `vendor-invite-not-applicable:${correctiveExecutionId}` &&
+    result.correctiveExecutionId === correctiveExecutionId &&
+    result.correctiveS20ExecutionId === correctiveS20ExecutionId &&
+    result.idempotencyKeyHash === sha256(key) &&
+    /^[a-f0-9]{64}$/.test(result.supersededExecutionId) &&
+    /^exec_[a-f0-9]{40}$/.test(result.supersededS20ExecutionId) &&
+    result.supersessionHash ===
+      sha256(`${result.supersededExecutionId}\0${result.supersededS20ExecutionId}`) &&
+    hasExactSourceRef(
+      input,
+      "superseded-vendor-execution:",
+      result.supersededExecutionId,
+    ) &&
+    hasExactSourceRef(
+      input,
+      "superseded-s20-execution:",
+      result.supersededS20ExecutionId,
+    ) &&
+    hasExactSourceRef(input, "vendor-invite-supersession:", result.supersessionHash)
+  );
+}
+
+function hasExactSourceRef(input: ExternalActionInput, prefix: string, value: string) {
+  const matches = input.sourceRefs.filter((sourceRef) => sourceRef.startsWith(prefix));
+  return matches.length === 1 && matches[0] === `${prefix}${value}`;
 }
 
 export type VendorMailboxActionKey =

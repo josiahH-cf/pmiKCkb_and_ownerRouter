@@ -147,11 +147,20 @@ Safe default`) and fill each row as its credential lands. Unfilled cells carry t
     the actual ceiling, or whether intended live volume fits inside it. RentCast is called out
     by name: confirm the plan permits storing comp data and displaying it to a property owner
     before S28b activates.
+    **COMPLETE locally (2026-07-30):** the provider registry now has the required nonblank column
+    for every row, cites official Gmail/Sheets/Drive and RentCast material where public limits or
+    terms are known, and keeps account-specific quotas, plans, intended-volume fit, and third-party
+    terms explicitly `Needs Verification`. The RentCast owner-facing storage/display/caching
+    dependency is routed to `docs/client-checklist.md`; S28b remains unavailable.
   - **S52-J — per-user throttles stated as the third layer.** `lib/api/model-call-throttle.ts`
     already bounds the two paid model routes per user (Ask: capacity 15, refill 0.5/s; classify:
     capacity 10, refill 0.2/s), and its header already states the division of labour correctly: the
     global kill switch bounds total spend, not one user's call rate. Record it in the cost-control
     model rather than rebuilding it.
+    **COMPLETE locally (2026-07-30):** `docs/budget-and-cost-policy.md` records the exact two
+    authenticated-UID token buckets as an independent third layer, including their in-memory,
+    per-instance boundary. Frozen exported policy constants and pinned tests prevent value/keying
+    drift without misrepresenting these throttles as global spend enforcement.
 
 - **Build to the seam (live provider).** The "provider" here is the Cloud Billing budget plus the
   deployed `budget-guardrail` function on each project. The loop builds the full parameterized
@@ -368,10 +377,20 @@ Safe default`) and fill each row as its credential lands. Unfilled cells carry t
 - **AC-S52-12** — Provider quota and terms are recorded, not assumed (D22). The **Provider
   activation registry** table in `docs/environment-handoff.md` carries a `Documented quota / terms`
   column; every row has a cell, and an unfilled cell renders the standard `Needs Verification`
-  marker rather than a blank; the RentCast entry records the plan's storage/display permission for
-  comp data shown to a property owner, and S28b activation is blocked while that cell is unfilled.
+  marker rather than a blank. The RentCast entry distinguishes the public API terms from the exact
+  PMI plan and any applicable third-party-data terms; it records those account-specific
+  storage/display/caching rights as `Needs Verification`, and S28b activation remains blocked until
+  they are confirmed.
   _Verify:_ `npm test -- tests/unit/environment-handoff-provider-table.test.mjs`;
   `npm run verify:context-freshness`.
+- **AC-S52-13** — The cost-control model records all three independent layers without implying that
+  one satisfies another: configuration posture (not a spend read or enforcement point), the global
+  billing alert/hard ceiling (aggregate project spend), and per-user paid-model throttles. The third
+  layer names the two implemented token buckets exactly — Ask capacity 15/refill 0.5 token/s and
+  classify capacity 10/refill 0.2 token/s — plus their authenticated-UID key, in-memory,
+  per-instance limitation. A test compares the documented values with the runtime options and
+  behavior so either side drifting alone fails. _Verify:_
+  `npm test -- tests/unit/model-call-throttle-policy.test.ts`.
 
 Full-suite gate for every slice: `npm run format:check`, `npm run lint`, `npm run typecheck`,
 `npm test`, `npm run verify:spec-traceability`, `npm run verify:context-freshness`,
@@ -448,11 +467,14 @@ defect this suite exists to remove.
 8. _Build:_ add the `Documented quota / terms` column to the Provider activation registry in
    `docs/environment-handoff.md`, fill what is already known, mark the rest `Needs Verification`, and
    route the RentCast display/caching question to `docs/client-checklist.md` (AC-S52-12).
-9. _Gate:_ run the full gate list. Adversarially falsify each check: raise one enforcement point
-   alone, leave a value unset, feed a cost exactly at the alert value and exactly at the cap, feed a
-   non-numeric `costAmount`, invoke the runbook with a half-supplied project pair, add the retired
-   literal to a non-allowlisted file, and confirm each produces the stated refusal or marker.
-10. _Owner:_ once the full-month baseline, both owner-selected values, second-project disposition, and
+9. _Build:_ record the existing authenticated-user paid-model token buckets as the third,
+   independent cost-control layer. Pin the policy's exact values and the runtime behavior without
+   presenting a per-instance throttle as global spend enforcement (AC-S52-13).
+10. _Gate:_ run the full gate list. Adversarially falsify each check: raise one enforcement point
+    alone, leave a value unset, feed a cost exactly at the alert value and exactly at the cap, feed a
+    non-numeric `costAmount`, invoke the runbook with a half-supplied project pair, add the retired
+    literal to a non-allowlisted file, and confirm each produces the stated refusal or marker.
+11. _Owner:_ once the full-month baseline, both owner-selected values, second-project disposition, and
     S51 operator channel are known, hand back one exact, redacted reprovision packet per project —
     current versus target
     budget amount and threshold rules, current versus target `KILL_SWITCH_CAP_USD`, the redeploy
@@ -460,11 +482,11 @@ defect this suite exists to remove.
     verification (`gcloud pubsub topics get-iam-policy` showing the
     `billing-budget-alert@system.gserviceaccount.com` publisher binding), the safe no-op wiring test,
     and the relink recovery command. The owner runs it.
-11. _Verify:_ after the owner run, re-run `npm run reality:check` and confirm every project reports
+12. _Verify:_ after the owner run, re-run `npm run reality:check` and confirm every project reports
     `in-sync` with `calendarPeriod: MONTH`, both enforcement points equal to the row's `ceilingUsd`,
     and the topic attached. Confirm with S51 that a `COST_ALERT_THRESHOLD_CROSSED` line reaches the
     notification channel.
-12. _Context update:_ promote the shipped work to a `docs/facts.md` `F-*` row (for example
+13. _Context update:_ promote the shipped work to a `docs/facts.md` `F-*` row (for example
     `F-COST-CEILING-ARMED`) citing the `AC-S52-*` ids satisfied, extend the Supersede Log entry under
     the existing `BUDGET-FLAT-TOTAL-CAP` marker with the corpus-sweep completion, update
     `docs/environment-handoff.md` and `docs/status.md`, and advance `docs/loop-state.md` past S52.

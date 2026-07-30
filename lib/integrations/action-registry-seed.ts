@@ -1185,10 +1185,10 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     expected_action:
       "Assign or remove exactly one external Vendor from one maintenance ticket.",
     product_lane: "PMI KC KB",
-    readiness: "Planned",
+    readiness: "Needs Permission",
     evidence_status: "Documented",
     documented_evidence:
-      "S22/S26 define the server-owned uid-to-vendor-to-ticket assignment join.",
+      "S53 implements the server-owned Live uid-to-vendor-to-ticket assignment join; the named production key remains closed pending its reviewed activation.",
     required_permissions: ["PMI KC Admin"],
     event_ingestion_mode: "None",
     preview_schema_note:

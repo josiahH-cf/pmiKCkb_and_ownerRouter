@@ -1,6 +1,6 @@
 # Client checklist
 
-Updated: 2026-07-29.
+Updated: 2026-07-30.
 
 > **Active asks for the production phase live in `docs/client-asks-2026-07-29.md`.** That file
 > carries the ready-to-send drafts and marks which items are owner self-serve versus an external
@@ -74,17 +74,25 @@ Do not ask the client to decide them again.
 Ask only for the provider the client wants to turn on next. Each request should name one exact action,
 not ask for broad or unnecessary access.
 
-| Provider            | Ask for                                                                                                                                                                           | Never ask for or infer                                     |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| RentVine            | Account endpoint/permission, exact property/unit/lease/Vendor/status mapping, conflict/version behavior; resident portal/text invitation plus interactive reply/webhook semantics | Guessed write/resident endpoint or unconditional overwrite |
-| Google Sheets       | Sheet/tab, stable row key/column, DWD subject/permission, atomic conflict strategy                                                                                                | Customer rows in git or read-then-unconditional-write      |
-| Gmail               | Authoritative linked recipient/thread fields, sender mailbox, exact approved artifact/label                                                                                       | General inbox browsing, free-form compose, autonomous send |
-| Vendor Google OAuth | Web client/redirect, exact four scopes, vault label, same routable Vendor mailbox                                                                                                 | DWD, shared PMI mailbox, Admin consent on Vendor's behalf  |
-| Dotloop             | Official/account API, profile/template/participant/document mapping, OAuth plan                                                                                                   | UI/RPA endpoint inference                                  |
-| LeadSimple          | Account endpoint/plan, process/stage/assignee mapping, conditional update contract                                                                                                | Guessed stages or unconditional stage overwrite            |
-| QuickBooks          | OAuth/company/Vendor/account mapping and draft-only permission                                                                                                                    | Post, approve, pay, bank, or ledger authority              |
-| Boom/SMS            | Existing account/plan, mapping/consent/applicability and correction contract                                                                                                      | Purchasing/selecting a provider by inference               |
-| Drive               | Approved in-boundary photo folder, runtime permission, file/scanner policy                                                                                                        | Replace/delete behavior or source-folder overreach         |
+| Provider            | Ask for                                                                                                                                                                                                  | Never ask for or infer                                                                |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| RentVine            | Account endpoint/permission, exact property/unit/lease/Vendor/status mapping, conflict/version behavior; resident portal/text invitation plus interactive reply/webhook semantics                        | Guessed write/resident endpoint or unconditional overwrite                            |
+| RentCast            | Exact active API plan, monthly request allowance/overage, and confirmation that applicable plan and third-party-data terms permit storing/caching comp responses and displaying them to a property owner | Account-specific permission from public terms, or S28b activation before confirmation |
+| Google Sheets       | Sheet/tab, stable row key/column, DWD subject/permission, atomic conflict strategy                                                                                                                       | Customer rows in git or read-then-unconditional-write                                 |
+| Gmail               | Authoritative linked recipient/thread fields, sender mailbox, exact approved artifact/label                                                                                                              | General inbox browsing, free-form compose, autonomous send                            |
+| Vendor Google OAuth | Web client/redirect, exact four scopes, vault label, same routable Vendor mailbox                                                                                                                        | DWD, shared PMI mailbox, Admin consent on Vendor's behalf                             |
+| Dotloop             | Official/account API, profile/template/participant/document mapping, OAuth plan                                                                                                                          | UI/RPA endpoint inference                                                             |
+| LeadSimple          | Account endpoint/plan, process/stage/assignee mapping, conditional update contract                                                                                                                       | Guessed stages or unconditional stage overwrite                                       |
+| QuickBooks          | OAuth/company/Vendor/account mapping and draft-only permission                                                                                                                                           | Post, approve, pay, bank, or ledger authority                                         |
+| Boom/SMS            | Existing account/plan, mapping/consent/applicability and correction contract                                                                                                                             | Purchasing/selecting a provider by inference                                          |
+| Drive               | Approved in-boundary photo folder, runtime permission, file/scanner policy                                                                                                                               | Replace/delete behavior or source-folder overreach                                    |
+
+RentCast confirm-with-default: the public [API terms](https://www.rentcast.io/terms-api) generally
+permit storage, display, and distribution, while the
+[billing guidance](https://developers.rentcast.io/reference/billing-and-pricing) makes the request
+allowance and overage plan-specific. The exact PMI subscription and any applicable third-party-data
+conditions for owner-facing storage/display/caching remain Needs Verification. Until confirmed,
+S28b remains unavailable; manual comp entry and dependency-independent app-plane work continue.
 
 The first Live proof is one bounded, explicit, human-confirmed action with an idempotency key,
 bodyless receipt, provider readback, and documented correction. A failed or ambiguous result is

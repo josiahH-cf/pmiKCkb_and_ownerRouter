@@ -36,6 +36,7 @@ import {
   type RentvineWorkOrderState,
 } from "@/lib/maintenance/execution/providers";
 import { buildWorkOrderDraft } from "@/lib/maintenance/work-order-draft";
+import { LIVE_VENDOR_DISABLE_INITIAL_SOURCE } from "@/lib/vendor/live-lifecycle-contract";
 import { VENDOR_OAUTH_SCOPES, type VendorOAuthScope } from "@/lib/vendor/model";
 
 export const SYNTHETIC_V1_ALIASES = Object.freeze({
@@ -324,21 +325,56 @@ function syntheticValues(
       };
     case "vendor.account.invite":
       return {
+        vendor_company: "Synthetic Vendor Company",
         vendor_email: a.vendorEmail,
         ticket_ref: a.maintenanceWorkflow,
+        ticket_updated_at: "2026-07-30T02:00:00.000Z",
         artifact_ref: "vendor-invite:v1.0",
+        invite_mode: "initial",
+        invite_version: "0",
+        vendor_ref: "vendor:new",
+        vendor_uid: "identity:new",
+        vendor_status: "none",
+        vendor_updated_at: "generation:new",
         reason: "Synthetic Vendor onboarding acceptance.",
       };
     case "vendor.account.disable":
       return {
+        disable_mode: "initial",
         vendor_ref: a.vendorRef,
         vendor_uid: a.vendorUid,
+        vendor_company: "Synthetic Vendor Company",
+        vendor_email: a.vendorEmail,
+        vendor_status: "active",
+        vendor_updated_at: "2026-07-30T01:00:00.000Z",
+        active_assignment_refs: JSON.stringify([a.maintenanceWorkflow]),
+        mailbox_state: "none",
+        mailbox_token_ref_hash: "none",
+        root_execution_ref: LIVE_VENDOR_DISABLE_INITIAL_SOURCE.rootExecutionId,
+        root_s20_execution_ref: LIVE_VENDOR_DISABLE_INITIAL_SOURCE.rootS20ExecutionId,
+        access_disabled_at: LIVE_VENDOR_DISABLE_INITIAL_SOURCE.accessDisabledAt,
+        completion_generation: String(
+          LIVE_VENDOR_DISABLE_INITIAL_SOURCE.completionGeneration,
+        ),
+        completion_owner_execution_ref:
+          LIVE_VENDOR_DISABLE_INITIAL_SOURCE.completionOwnerExecutionId,
+        completion_owner_s20_execution_ref:
+          LIVE_VENDOR_DISABLE_INITIAL_SOURCE.completionOwnerS20ExecutionId,
+        completion_lease_expires_at:
+          LIVE_VENDOR_DISABLE_INITIAL_SOURCE.completionLeaseExpiresAt,
         reason: "Synthetic Vendor offboarding acceptance.",
       };
     case "vendor.assignment.change":
       return {
         vendor_ref: a.vendorRef,
+        vendor_uid: a.vendorUid,
+        vendor_company: "Synthetic Vendor Company",
+        vendor_email: a.vendorEmail,
+        vendor_updated_at: "2026-07-30T01:00:00.000Z",
         ticket_ref: a.maintenanceWorkflow,
+        ticket_updated_at: "2026-07-30T02:00:00.000Z",
+        current_vendor_ref: "vendor:none",
+        target_vendor_ref: a.vendorRef,
         assignment_operation: "assign",
         reason: "Synthetic assigned-ticket acceptance.",
       };
@@ -697,27 +733,43 @@ export function createSyntheticExecutorHarness() {
   };
 
   const lifecycleProvider = {
-    invite: async (input: { email: string; ticketRef: string }) => {
+    invite: async (input: { company: string; email: string; ticketRef: string }) => {
       called("vendor.account_invite");
       return {
         providerRef: SYNTHETIC_V1_ALIASES.vendorRef,
         state: "pending_setup" as const,
+        vendorCompany: input.company,
         vendorEmail: input.email,
         ticketRef: input.ticketRef,
       };
     },
-    disable: async (input: { vendorRef: string; vendorUid: string }) => {
+    disable: async (input: {
+      vendorRef: string;
+      vendorUid: string;
+      company: string;
+      email: string;
+      activeAssignmentRefs: string;
+      mailboxState: string;
+    }) => {
       called("vendor.account_disable");
       return {
         providerRef: SYNTHETIC_V1_ALIASES.vendorRef,
         state: "disabled" as const,
         vendorRef: input.vendorRef,
         vendorUid: input.vendorUid,
+        vendorCompany: input.company,
+        vendorEmail: input.email,
+        clearedAssignmentRefs: input.activeAssignmentRefs,
+        mailboxState: input.mailboxState,
       };
     },
     changeAssignment: async (input: {
       vendorRef: string;
+      company: string;
+      email: string;
       ticketRef: string;
+      currentVendorRef: string;
+      targetVendorRef: string;
       operation: "assign" | "remove";
     }) => {
       called("vendor.assignment_change");
@@ -726,7 +778,11 @@ export function createSyntheticExecutorHarness() {
         state:
           input.operation === "assign" ? ("assigned" as const) : ("removed" as const),
         vendorRef: input.vendorRef,
+        vendorCompany: input.company,
+        vendorEmail: input.email,
         ticketRef: input.ticketRef,
+        currentVendorRef: input.currentVendorRef,
+        targetVendorRef: input.targetVendorRef,
         operation: input.operation,
       };
     },

@@ -12,16 +12,20 @@ import { IntakeRateLimiter } from "@/lib/maintenance/intake-rate-limit";
 
 // Ask is the interactive console Q&A: a generous burst for real typing, tight sustained rate against a
 // scripted flood (~1 call / 2s sustained after the burst is spent).
-export const askModelRateLimiter = new IntakeRateLimiter({
+export const ASK_MODEL_RATE_LIMIT_OPTIONS = Object.freeze({
   capacity: 15,
   refillPerSecond: 0.5,
   maxKeys: 10_000,
 });
+export const askModelRateLimiter = new IntakeRateLimiter(ASK_MODEL_RATE_LIMIT_OPTIONS);
 
 // Classification is a model fallback the client reaches only when the free deterministic matcher misses,
 // so it warrants a tighter budget (~1 call / 5s sustained).
-export const classifyModelRateLimiter = new IntakeRateLimiter({
+export const CLASSIFY_MODEL_RATE_LIMIT_OPTIONS = Object.freeze({
   capacity: 10,
   refillPerSecond: 0.2,
   maxKeys: 10_000,
 });
+export const classifyModelRateLimiter = new IntakeRateLimiter(
+  CLASSIFY_MODEL_RATE_LIMIT_OPTIONS,
+);

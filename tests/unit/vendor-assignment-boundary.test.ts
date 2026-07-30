@@ -114,6 +114,108 @@ describe("Vendor assigned-ticket boundary", () => {
     ).resolves.toBe(false);
   });
 
+  it("denies activation and every portal authority read while setup effects own the Vendor", async () => {
+    const fake = new FakeFirestore();
+    const vendorPath = `${VENDOR_COLLECTIONS.vendors}/vendor-a`;
+    const setupEffectFence = {
+      lifecycleExecutionId: "a".repeat(64),
+      lifecycleAction: "vendor.identity.setup",
+      challengeHash: "b".repeat(64),
+      inviteVersion: 1,
+      uid: "uid-a",
+      startedAt: "2026-07-14T00:30:00.000Z",
+    };
+    fake.seed(vendorPath, {
+      id: "vendor-a",
+      uid: "uid-a",
+      email: "a@example.com",
+      status: "pending_setup",
+      inviteVersion: 1,
+      createdAt: "2026-07-14T00:00:00.000Z",
+      updatedAt: "2026-07-14T00:00:00.000Z",
+      setupEffectFence,
+    });
+    fake.seed(`${VENDOR_COLLECTIONS.assignments}/ticket-a`, {
+      ticket_id: "ticket-a",
+      vendor_id: "vendor-a",
+      active: true,
+      data_mode: "live",
+    });
+    fake.seed("maintenance_tickets/ticket-a", {
+      id: "ticket-a",
+      data_mode: "live",
+      status: "Waiting on Vendor",
+      priority: "Normal",
+      summary: "Live repair",
+      updated_at: "2026-07-14T00:00:00.000Z",
+    });
+    fake.seed(`${VENDOR_COLLECTIONS.threadLinks}/vendor-a:ticket-a:thread-a`, {
+      ticket_id: "ticket-a",
+      vendor_id: "vendor-a",
+      thread_id: "thread-a",
+      active: true,
+      data_mode: "live",
+    });
+    const store = new FirestoreVendorStore(fake as unknown as Firestore);
+
+    await expect(
+      store.activateVendor(
+        "vendor-a",
+        "uid-a",
+        "a@example.com",
+        "2026-07-14T01:00:00.000Z",
+      ),
+    ).resolves.toBe(false);
+    expect(fake.store.get(vendorPath)).toMatchObject({
+      status: "pending_setup",
+      updatedAt: "2026-07-14T00:00:00.000Z",
+      setupEffectFence,
+    });
+
+    fake.seed(vendorPath, {
+      ...(fake.store.get(vendorPath) ?? {}),
+      status: "active",
+    });
+    const authority = {
+      vendorId: "vendor-a",
+      uid: "uid-a",
+      email: "a@example.com",
+      dataMode: "live" as const,
+    };
+    await expect(
+      store.isVendorActive(
+        authority.vendorId,
+        authority.uid,
+        authority.email,
+        authority.dataMode,
+      ),
+    ).resolves.toBe(false);
+    await expect(store.listAssignedTickets(authority)).resolves.toEqual([]);
+    await expect(
+      store.getAssignedTicket({ ...authority, ticketId: "ticket-a" }),
+    ).resolves.toBeNull();
+    await expect(
+      store.isThreadLinked({
+        ...authority,
+        ticketId: "ticket-a",
+        threadId: "thread-a",
+      }),
+    ).resolves.toBe(false);
+    for (const actorIsAdmin of [false, true]) {
+      await expect(
+        store.getGmailLaneContext({
+          vendorId: authority.vendorId,
+          ticketId: "ticket-a",
+          threadId: "thread-a",
+          actorUid: authority.uid,
+          actorEmail: authority.email,
+          actorDataMode: authority.dataMode,
+          actorIsAdmin,
+        }),
+      ).resolves.toBeNull();
+    }
+  });
+
   it("binds a Test Vendor assignment to Test assignment and ticket records", async () => {
     const fake = new FakeFirestore();
     fake.seed(`${VENDOR_COLLECTIONS.vendors}/vendor:test-summit-plumbing`, {

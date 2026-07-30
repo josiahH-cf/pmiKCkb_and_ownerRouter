@@ -80,67 +80,92 @@ export default async function AdminPage() {
   let activityNote: string | undefined;
   let reindexRequests: ReindexRequest[] = [];
 
-  try {
-    proposedCorrections = await listAskCorrections(user, { status: "Proposed" });
-  } catch {
-    proposedCorrectionsNote =
-      "Proposed answer corrections are unavailable right now. Try again in a minute; new corrections may not be saving either.";
-  }
-  try {
-    observability = await readAdminObservability({ config });
-  } catch {
-    observabilityNote = adminObservabilityUnavailableMessage(config);
-    observability = config.askDemoMode
-      ? readDemoAdminObservability({ config })
-      : undefined;
-  }
-  try {
-    publicationPolicies = await listPublicationPolicies(user);
-  } catch {
-    publicationPolicyNote =
-      "Publication policies are unavailable. No source can publish until Firestore and a required scanner are configured.";
-  }
-  try {
-    [queueEmailSettings, queueHealth] = await Promise.all([
+  // These panels are independent. Resolve them concurrently so an unavailable Firestore session
+  // costs one bounded dependency wait instead of serially multiplying that wait across Admin.
+  await Promise.all([
+    listAskCorrections(user, { status: "Proposed" })
+      .then((records) => {
+        proposedCorrections = records;
+      })
+      .catch(() => {
+        proposedCorrectionsNote =
+          "Proposed answer corrections are unavailable right now. Try again in a minute; new corrections may not be saving either.";
+      }),
+    readAdminObservability({ config })
+      .then((result) => {
+        observability = result;
+      })
+      .catch(() => {
+        observabilityNote = adminObservabilityUnavailableMessage(config);
+        observability = config.askDemoMode
+          ? readDemoAdminObservability({ config })
+          : undefined;
+      }),
+    listPublicationPolicies(user)
+      .then((records) => {
+        publicationPolicies = records;
+      })
+      .catch(() => {
+        publicationPolicyNote =
+          "Publication policies are unavailable. No source can publish until Firestore and a required scanner are configured.";
+      }),
+    Promise.all([
       listApprovalQueueEmailSettings(user),
       readApprovalQueueNotificationHealth({ actor: user }),
-    ]);
-  } catch {
-    queueAdminNote = config.askDemoMode
-      ? "Using default queue email settings because Firestore notification health is not available in this session."
-      : "Notification health isn't available right now. Try again in a minute before relying on notification status.";
-  }
-  try {
-    transactionalDestination = await readOwnerTransactionalDestination(user);
-  } catch {
-    transactionalDestinationNote =
-      "Showing the seeded default; the saved destination is unavailable until Firestore is reachable in this session.";
-  }
-  try {
-    supportReports = await listSupportReports(user);
-  } catch {
-    supportReportsNote =
-      "Feedback is unavailable right now. Try again in a minute; if this list is not loading, new feedback may not be saving either.";
-  }
-  // Never throws (gatherSupportAttention degrades to empty), so this is safe outside a try.
-  supportAttention = await gatherSupportAttention(user);
-  try {
-    noticeRules = await readNoticeRuleConfigRecord(user);
-  } catch {
-    noticeRulesNote =
-      "Renewal notice rules are unavailable right now. Try again in a minute before changing them.";
-  }
-  try {
-    activityEntries = await readAdminActivityLog();
-  } catch {
-    activityNote =
-      "The access-change history is unavailable right now. Try again in a minute; recent role or scope changes may not be listed here yet.";
-  }
-  try {
-    reindexRequests = await listReindexRequests(user);
-  } catch {
-    // The re-index control still stages new requests; the recent list is just empty this session.
-  }
+    ])
+      .then(([settings, health]) => {
+        queueEmailSettings = settings;
+        queueHealth = health;
+      })
+      .catch(() => {
+        queueAdminNote = config.askDemoMode
+          ? "Using default queue email settings because Firestore notification health is not available in this session."
+          : "Notification health isn't available right now. Try again in a minute before relying on notification status.";
+      }),
+    readOwnerTransactionalDestination(user)
+      .then((destination) => {
+        transactionalDestination = destination;
+      })
+      .catch(() => {
+        transactionalDestinationNote =
+          "Showing the seeded default; the saved destination is unavailable until Firestore is reachable in this session.";
+      }),
+    listSupportReports(user)
+      .then((reports) => {
+        supportReports = reports;
+      })
+      .catch(() => {
+        supportReportsNote =
+          "Feedback is unavailable right now. Try again in a minute; if this list is not loading, new feedback may not be saving either.";
+      }),
+    // This reader degrades to empty and never throws.
+    gatherSupportAttention(user).then((attention) => {
+      supportAttention = attention;
+    }),
+    readNoticeRuleConfigRecord(user)
+      .then((record) => {
+        noticeRules = record;
+      })
+      .catch(() => {
+        noticeRulesNote =
+          "Renewal notice rules are unavailable right now. Try again in a minute before changing them.";
+      }),
+    readAdminActivityLog()
+      .then((entries) => {
+        activityEntries = entries;
+      })
+      .catch(() => {
+        activityNote =
+          "The access-change history is unavailable right now. Try again in a minute; recent role or scope changes may not be listed here yet.";
+      }),
+    listReindexRequests(user)
+      .then((requests) => {
+        reindexRequests = requests;
+      })
+      .catch(() => {
+        // The re-index control still stages new requests; the recent list is just empty this session.
+      }),
+  ]);
   const hasMetrics = Boolean(observability);
 
   return (
@@ -161,6 +186,11 @@ export default async function AdminPage() {
               </p>
               <p>
                 <Link href="/admin/users">Manage users and roles</Link>
+              </p>
+              <p>
+                <Link href="/admin/vendors">
+                  Manage Live Vendor accounts and assignments
+                </Link>
               </p>
               <p className="muted">
                 The terminal command <code>npm run firebase:set-role</code> stays as a

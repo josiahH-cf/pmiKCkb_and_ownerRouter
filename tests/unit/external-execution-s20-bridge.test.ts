@@ -13,7 +13,10 @@ import {
   type TrustedExternalExecutionContext,
 } from "@/lib/external-execution/s20-bridge";
 import type { ExternalActionDefinition } from "@/lib/external-execution/types";
-import { getActionExecution } from "@/lib/firestore/action-executions";
+import {
+  claimActionExecution,
+  getActionExecution,
+} from "@/lib/firestore/action-executions";
 import {
   listApprovalQueue,
   transitionApprovalQueueItem,
@@ -826,6 +829,289 @@ describe("S25/S26 external execution to S20 preparation bridge", () => {
       reconcileExternalActionWithS20(editor, reconcileRequest, options),
     ).resolves.toMatchObject({ status: "succeeded", duplicate: true });
     expect(reconcile).toHaveBeenCalledTimes(2);
+  });
+
+  it("closes a consumed ambiguous action with a reconciled not-applicable receipt", async () => {
+    const action = externalAction(
+      "gmail.renewal_notice.draft_create",
+      draftValues,
+      "not-applicable-reconcile",
+    );
+    const trustedContext = trustedExternalContext(action, sendContext);
+    const options = {
+      allowSyntheticAliases: true,
+      db,
+      registry: openRegistryAction(action.actionKey),
+    } as const;
+    const execution = await prepareExternalActionWithS20(
+      editor,
+      {
+        action,
+        definition: leaseDefinition(action.actionKey),
+        trustedContext,
+        validate: () => null,
+      },
+      options,
+    );
+    const execute = vi.fn(async () => ({
+      ...validReceipt(action.actionKey, "ambiguous"),
+      resultHash: "not-a-hash",
+    }));
+    await expect(
+      executeExternalActionWithS20(
+        editor,
+        {
+          action,
+          definition: leaseDefinition(action.actionKey),
+          executionId: execution.id,
+          confirmedPreviewHash: execution.preview_hash,
+          executor: { execute, reconcile: vi.fn(async () => null) },
+          trustedContext,
+        },
+        options,
+      ),
+    ).resolves.toMatchObject({
+      execution: { attempt_count: 1, state: "Needs reconciliation" },
+    });
+
+    const reconcile = vi.fn(async () => ({
+      ...validReceipt(action.actionKey, "corrective-no-new-effect", true),
+      outcome: "not_applicable" as const,
+      providerBody: "must-not-escape",
+    }));
+    const resolved = await reconcileExternalActionWithS20(
+      editor,
+      {
+        action,
+        definition: leaseDefinition(action.actionKey),
+        executionId: execution.id,
+        executor: { execute, reconcile },
+        trustedContext,
+      },
+      options,
+    );
+    expect(resolved).toMatchObject({
+      duplicate: false,
+      execution: {
+        attempt_count: 1,
+        state: "Succeeded",
+      },
+      receipt: {
+        actionKey: action.actionKey,
+        outcome: "not_applicable",
+        providerRef: "corrective-no-new-effect",
+        reconciled: true,
+      },
+      status: "succeeded",
+    });
+    expect(JSON.stringify(resolved)).not.toContain("providerBody");
+    await expect(
+      reconcileExternalActionWithS20(
+        editor,
+        {
+          action,
+          definition: leaseDefinition(action.actionKey),
+          executionId: execution.id,
+          executor: { execute, reconcile },
+          trustedContext,
+        },
+        options,
+      ),
+    ).resolves.toMatchObject({ duplicate: true, status: "succeeded" });
+    expect(reconcile).toHaveBeenCalledTimes(1);
+  });
+
+  it("reconciles a process-crashed S20 claim left in Executing without a second mutation", async () => {
+    const action = externalAction(
+      "gmail.label.apply",
+      labelValues,
+      "crashed-after-claim",
+    );
+    const trustedContext = trustedExternalContext(action, labelContext);
+    const options = {
+      allowSyntheticAliases: true,
+      db,
+      registry: openRegistryAction(action.actionKey),
+    } as const;
+    const execution = await prepareExternalActionWithS20(
+      editor,
+      {
+        action,
+        definition: leaseDefinition(action.actionKey),
+        trustedContext,
+        validate: () => null,
+      },
+      options,
+    );
+    await claimActionExecution(
+      editor,
+      execution.id,
+      execution.preview_hash,
+      db,
+      execution.context_hash,
+    );
+    await expect(getActionExecution(editor, execution.id, db)).resolves.toMatchObject({
+      attempt_count: 1,
+      state: "Executing",
+    });
+
+    const execute = vi.fn();
+    const reconcile = vi.fn(async () =>
+      validReceipt(action.actionKey, "crash-readback", true),
+    );
+    await expect(
+      reconcileExternalActionWithS20(
+        editor,
+        {
+          action,
+          definition: leaseDefinition(action.actionKey),
+          executionId: execution.id,
+          executor: { execute, reconcile },
+          trustedContext,
+        },
+        options,
+      ),
+    ).resolves.toMatchObject({
+      duplicate: false,
+      execution: { attempt_count: 1, state: "Succeeded" },
+      status: "succeeded",
+    });
+    expect(execute).not.toHaveBeenCalled();
+    expect(reconcile).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses an unfenced not-applicable readback for Executing and leaves the claim consumed", async () => {
+    const action = externalAction(
+      "gmail.label.apply",
+      labelValues,
+      "crashed-unfenced-no-effect",
+    );
+    const trustedContext = trustedExternalContext(action, labelContext);
+    const options = {
+      allowSyntheticAliases: true,
+      db,
+      registry: openRegistryAction(action.actionKey),
+    } as const;
+    const execution = await prepareExternalActionWithS20(
+      editor,
+      {
+        action,
+        definition: leaseDefinition(action.actionKey),
+        trustedContext,
+        validate: () => null,
+      },
+      options,
+    );
+    await claimActionExecution(
+      editor,
+      execution.id,
+      execution.preview_hash,
+      db,
+      execution.context_hash,
+    );
+
+    const execute = vi.fn();
+    const reconcile = vi.fn(async () => ({
+      ...validReceipt(action.actionKey, "unfenced-no-effect", true),
+      outcome: "not_applicable" as const,
+    }));
+    await expect(
+      reconcileExternalActionWithS20(
+        editor,
+        {
+          action,
+          definition: leaseDefinition(action.actionKey),
+          executionId: execution.id,
+          executor: { execute, reconcile },
+          trustedContext,
+        },
+        options,
+      ),
+    ).rejects.toThrow(/atomically fences the in-flight attempt/i);
+    await expect(getActionExecution(editor, execution.id, db)).resolves.toMatchObject({
+      attempt_count: 1,
+      state: "Executing",
+    });
+    expect(execute).not.toHaveBeenCalled();
+    expect(reconcile).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes a fenced Executing no-effect readback and recovers its outcome after the first response is lost", async () => {
+    const action = externalAction(
+      "gmail.label.apply",
+      labelValues,
+      "crashed-fenced-no-effect",
+    );
+    const trustedContext = trustedExternalContext(action, labelContext);
+    const options = {
+      allowSyntheticAliases: true,
+      db,
+      registry: openRegistryAction(action.actionKey),
+    } as const;
+    const execution = await prepareExternalActionWithS20(
+      editor,
+      {
+        action,
+        definition: leaseDefinition(action.actionKey),
+        trustedContext,
+        validate: () => null,
+      },
+      options,
+    );
+    await claimActionExecution(
+      editor,
+      execution.id,
+      execution.preview_hash,
+      db,
+      execution.context_hash,
+    );
+
+    const execute = vi.fn();
+    const reconcile = vi.fn(async () => ({
+      ...validReceipt(action.actionKey, "fenced-no-effect", true),
+      outcome: "not_applicable" as const,
+      attemptFenced: true as const,
+    }));
+    // Model a caller losing the first response after the durable S20 resolution commits.
+    await reconcileExternalActionWithS20(
+      editor,
+      {
+        action,
+        definition: leaseDefinition(action.actionKey),
+        executionId: execution.id,
+        executor: { execute, reconcile },
+        trustedContext,
+      },
+      options,
+    );
+    await expect(getActionExecution(editor, execution.id, db)).resolves.toMatchObject({
+      attempt_count: 1,
+      result_code: expect.stringMatching(
+        /^external_receipt:not_applicable:[a-f0-9]{64}$/,
+      ),
+      state: "Succeeded",
+    });
+
+    await expect(
+      reconcileExternalActionWithS20(
+        editor,
+        {
+          action,
+          definition: leaseDefinition(action.actionKey),
+          executionId: execution.id,
+          executor: { execute, reconcile },
+          trustedContext,
+        },
+        options,
+      ),
+    ).resolves.toMatchObject({
+      duplicate: true,
+      execution: { attempt_count: 1, state: "Succeeded" },
+      outcome: "not_applicable",
+      status: "succeeded",
+    });
+    expect(execute).not.toHaveBeenCalled();
+    expect(reconcile).toHaveBeenCalledTimes(1);
   });
 });
 

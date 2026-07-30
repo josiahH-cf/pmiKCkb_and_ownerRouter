@@ -261,4 +261,29 @@ describe("GmailRuntimeClient.createDraft", () => {
       expect(String(error)).not.toContain("SECRET-BEARER-TOKEN");
     }
   });
+
+  it("refuses duplicate exact RFC Message-ID matches instead of selecting the first", async () => {
+    const { calls, transport } = fakeTransport({
+      status: 200,
+      body: {
+        messages: [
+          { id: "sent-1", threadId: "thread-1" },
+          { id: "sent-2", threadId: "thread-2" },
+        ],
+      },
+    });
+    const client = new GmailRuntimeClient({
+      subject: "josiah@pmikcmetro.com",
+      transport,
+      getToken: async () => "token",
+    });
+
+    await expect(
+      client.findMessageByRfcMessageId("<exact-once@pmikcmetro.com>"),
+    ).rejects.toMatchObject({ status: 409, ambiguous: true });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.url).toContain("q=rfc822msgid%3A%3Cexact-once%40pmikcmetro.com%3E");
+    expect(calls[0]?.url).toContain("maxResults=2");
+    expect(calls[0]?.url).toContain("includeSpamTrash=true");
+  });
 });

@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type { ExternalActionReceipt } from "@/lib/external-execution/types";
 import type { DataMode } from "@/lib/data-mode";
 import { executionEvidenceMarker } from "@/lib/data-mode";
@@ -26,7 +28,8 @@ export function parseExternalReceipt(
     receipt.reconciled !== reconciliation ||
     (receipt.outcome !== undefined &&
       receipt.outcome !== "succeeded" &&
-      receipt.outcome !== "not_applicable")
+      receipt.outcome !== "not_applicable") ||
+    (receipt.attemptFenced !== undefined && receipt.attemptFenced !== true)
   ) {
     throw new Error("Provider receipt failed strict runtime validation.");
   }
@@ -38,5 +41,21 @@ export function parseExternalReceipt(
     reconciled: receipt.reconciled,
     createdAt: new Date(receipt.createdAt).toISOString(),
     ...(receipt.outcome ? { outcome: receipt.outcome } : {}),
+    ...(receipt.attemptFenced === true ? { attemptFenced: true as const } : {}),
   } as ExternalActionReceipt);
+}
+
+/** Stable bodyless result code shared by ordinary and atomically fenced reconciliation paths. */
+export function externalReceiptResultCode(
+  receipt: Pick<
+    ExternalActionReceipt,
+    "actionKey" | "outcome" | "providerRef" | "resultHash"
+  >,
+) {
+  const outcome = receipt.outcome ?? "succeeded";
+  return `external_receipt:${outcome}:${createHash("sha256")
+    .update(
+      `${receipt.actionKey}\u0000${receipt.providerRef}\u0000${receipt.resultHash}\u0000${outcome}`,
+    )
+    .digest("hex")}`;
 }

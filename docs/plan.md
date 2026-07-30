@@ -274,8 +274,8 @@ Acceptance:
 Status: in progress — the owner directed PMI KC into a live production phase on 2026-07-29 and
 authorized unattended development across the full spec flow. The sanitized D01–D64 reconstruction
 records its provenance and does not invent the unavailable browser-local response export. Governance
-is reconciled; the four suites are specified; S54 slice 1 is locally complete; no provider capability
-has been activated yet.
+is reconciled; the four suites are specified; S54 slice 1 and S53.1–S53.5 are locally complete;
+S52-I/J are locally complete; no provider capability has been activated yet.
 
 Program:
 
@@ -285,7 +285,8 @@ Program:
 - Flags: `loop_commit_push_allowed:true`, `loop_deploy_allowed:true`,
   `provider_interleave_allowed:true`, `runtime_action_gates_preflipped:false`.
 - Order: S53 gate/environment refusal → S53 immutable Sheet and comp-screenshot action contracts →
-  S53 sender/config integrity → S52 read-only baseline/prerequisites → S51 app-plane
+  S53 sender/config integrity → S53 Admin-reachable Vendor lifecycle seam → S52 read-only
+  baseline/prerequisites → S51 app-plane
   readiness → activate S52/S51 infrastructure when their named dependencies are satisfied → land
   S40's environment-parameterized zero-traffic candidate/smoke/promotion release-safety slice →
   routine deploy/live verification when auth and cost gates are green → resume the remaining S40
@@ -296,7 +297,7 @@ Acceptance:
 
 - The gate that licenses an unattended push is the full one, with `test:firestore` wired into
   `scripts/verify.sh` and CI (S54, D23). Local falsification and the widened full gate are recorded;
-  remote CI remains unobserved until the checkpoint is pushed.
+  GitHub Actions run `30510068990` passed the pushed S54.1 checkpoint, including the Firestore job.
 - The live Sheet write-back consults its Action Registry gate and carries an
   environment-descriptor fence; no path writes to a client system of record outside its gate
   (S53, D32/D02).

@@ -207,10 +207,23 @@ export class GmailRuntimeClient {
   async findMessageByRfcMessageId(rfcMessageId: string): Promise<GmailSendResult | null> {
     const messageId = safeRfcMessageId(rfcMessageId);
     const data = await this.request(GMAIL_READONLY_SCOPE, "GET", "/messages", {
-      query: { q: `rfc822msgid:${messageId}`, maxResults: "2" },
+      query: {
+        q: `rfc822msgid:${messageId}`,
+        maxResults: "2",
+        includeSpamTrash: "true",
+      },
     });
     if (!isRecord(data) || !Array.isArray(data.messages) || data.messages.length === 0) {
       return null;
+    }
+    if (data.messages.length !== 1) {
+      // An RFC Message-ID is the delivery idempotency key. More than one effect is never safe to
+      // select by list order; force explicit reconciliation instead.
+      throw new GmailRuntimeError(
+        "Gmail returned more than one message for the exact RFC Message-ID.",
+        409,
+        true,
+      );
     }
     const first = data.messages[0];
     if (!isRecord(first)) return null;

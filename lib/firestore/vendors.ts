@@ -19,7 +19,7 @@ import type {
   VendorRecord,
   VendorTicketProjection,
 } from "@/lib/vendor/model";
-import { vendorRecordDataMode } from "@/lib/vendor/model";
+import { VendorBoundaryError, vendorRecordDataMode } from "@/lib/vendor/model";
 import type { VendorOAuthState, VendorOAuthStore } from "@/lib/vendor/oauth";
 import {
   VENDOR_TEST_MAILBOX_MAX_MESSAGES,
@@ -63,6 +63,7 @@ interface ThreadLinkRecord extends AssignmentRecord {
 }
 
 interface VendorAuthenticationResetRecord extends VendorRecord {
+  setupEffectFence?: unknown;
   authenticationReset?: {
     previewHash: string;
     inviteVersion: number;
@@ -90,6 +91,10 @@ function authenticationResetIsInProgress(record: VendorAuthenticationResetRecord
   );
 }
 
+function setupEffectIsInProgress(record: VendorAuthenticationResetRecord) {
+  return record.setupEffectFence !== undefined;
+}
+
 function vendorAuthorityMatches(
   record: VendorAuthenticationResetRecord,
   authority: VendorAssignmentAuthority,
@@ -100,7 +105,8 @@ function vendorAuthorityMatches(
     record.email.trim().toLowerCase() === authority.email.trim().toLowerCase() &&
     record.status === "active" &&
     vendorRecordDataMode(record) === authority.dataMode &&
-    !authenticationResetIsInProgress(record)
+    !authenticationResetIsInProgress(record) &&
+    !setupEffectIsInProgress(record)
   );
 }
 
@@ -744,7 +750,8 @@ export class FirestoreVendorStore
       if (
         record.authenticationReset?.status === "claimed" ||
         record.authenticationReset?.status === "prepared" ||
-        record.setupLinkRegeneration?.status === "claimed"
+        record.setupLinkRegeneration?.status === "claimed" ||
+        setupEffectIsInProgress(record)
       ) {
         return false;
       }
@@ -789,7 +796,8 @@ export class FirestoreVendorStore
       record.email.trim().toLowerCase() === email.trim().toLowerCase() &&
       (dataMode === undefined || vendorRecordDataMode(record) === dataMode) &&
       record.status === "active" &&
-      !authenticationResetIsInProgress(record)
+      !authenticationResetIsInProgress(record) &&
+      !setupEffectIsInProgress(record)
     );
   }
 
@@ -973,6 +981,7 @@ export class FirestoreVendorStore
         vendor.id !== input.vendorId ||
         vendor.status !== "active" ||
         authenticationResetIsInProgress(vendor) ||
+        setupEffectIsInProgress(vendor) ||
         vendorMode !== input.actorDataMode ||
         (!input.actorIsAdmin &&
           (vendor.uid !== input.actorUid ||
@@ -1020,11 +1029,34 @@ export class FirestoreVendorStore
     });
   }
 
-  async saveConnection(connection: VendorMailboxConnection): Promise<void> {
-    await this.db
+  async saveConnection(
+    connection: VendorMailboxConnection,
+    authority: VendorAssignmentAuthority,
+  ): Promise<void> {
+    const vendorRef = this.db
+      .collection(VENDOR_COLLECTIONS.vendors)
+      .doc(authority.vendorId);
+    const connectionRef = this.db
       .collection(VENDOR_COLLECTIONS.connections)
-      .doc(connection.vendorId)
-      .set(connection);
+      .doc(connection.vendorId);
+    await this.db.runTransaction(async (transaction) => {
+      const vendorSnapshot = await transaction.get(vendorRef);
+      const vendor = vendorSnapshot.exists
+        ? (vendorSnapshot.data() as VendorAuthenticationResetRecord)
+        : null;
+      if (
+        !vendor ||
+        !vendorAuthorityMatches(vendor, authority) ||
+        connection.vendorId !== authority.vendorId ||
+        connection.mailboxEmail.trim().toLowerCase() !==
+          authority.email.trim().toLowerCase() ||
+        connection.status !== "connected" ||
+        connection.dataMode !== authority.dataMode
+      ) {
+        throw new VendorBoundaryError("Vendor account is unavailable.", 404);
+      }
+      transaction.set(connectionRef, connection);
+    });
   }
 
   async getConnection(vendorId: string): Promise<VendorMailboxConnection | null> {
@@ -1045,16 +1077,53 @@ export class FirestoreVendorStore
   async claimConfirmation(input: {
     id: string;
     actorUid: string;
+    actorEmail: string;
+    actorDataMode: "live";
+    actorIsAdmin: boolean;
+    vendorId: string;
+    mailboxEmail: string;
+    ticketId: string;
+    threadId: string;
     payloadHash: string;
     nowMs: number;
   }): Promise<"claimed" | "expired" | "mismatch" | "duplicate" | "ambiguous"> {
     const ref = this.db.collection(VENDOR_COLLECTIONS.confirmations).doc(input.id);
+    const vendorRef = this.db.collection(VENDOR_COLLECTIONS.vendors).doc(input.vendorId);
+    const assignmentRef = this.db
+      .collection(VENDOR_COLLECTIONS.assignments)
+      .doc(input.ticketId);
+    const ticketRef = this.db.collection("maintenance_tickets").doc(input.ticketId);
+    const threadRef = this.db
+      .collection(VENDOR_COLLECTIONS.threadLinks)
+      .doc(`${input.vendorId}:${input.ticketId}:${input.threadId}`);
+    const connectionRef = this.db
+      .collection(VENDOR_COLLECTIONS.connections)
+      .doc(input.vendorId);
     return this.db.runTransaction(async (transaction) => {
-      const snapshot = await transaction.get(ref);
+      const [
+        snapshot,
+        vendorSnapshot,
+        assignmentSnapshot,
+        ticketSnapshot,
+        threadSnapshot,
+        connectionSnapshot,
+      ] = await Promise.all([
+        transaction.get(ref),
+        transaction.get(vendorRef),
+        transaction.get(assignmentRef),
+        transaction.get(ticketRef),
+        transaction.get(threadRef),
+        transaction.get(connectionRef),
+      ]);
       if (!snapshot.exists) return "mismatch" as const;
       const record = snapshot.data() as VendorSendConfirmation;
       if (
         record.actorUid !== input.actorUid ||
+        record.vendorId !== input.vendorId ||
+        record.mailboxEmail.trim().toLowerCase() !==
+          input.mailboxEmail.trim().toLowerCase() ||
+        record.ticketId !== input.ticketId ||
+        record.threadId !== input.threadId ||
         record.payloadHash !== input.payloadHash
       ) {
         return "mismatch" as const;
@@ -1063,6 +1132,50 @@ export class FirestoreVendorStore
       if (record.state === "ambiguous") return "ambiguous" as const;
       if (record.state !== "pending") return "mismatch" as const;
       if (record.expiresAtMs <= input.nowMs) return "expired" as const;
+      if (
+        !vendorSnapshot.exists ||
+        !assignmentSnapshot.exists ||
+        !ticketSnapshot.exists ||
+        !threadSnapshot.exists ||
+        !connectionSnapshot.exists
+      ) {
+        return "mismatch" as const;
+      }
+      const vendor = vendorSnapshot.data() as VendorAuthenticationResetRecord;
+      const assignment = assignmentSnapshot.data() as AssignmentRecord;
+      const ticket = ticketSnapshot.data() as MaintenanceTicketRecord;
+      const thread = threadSnapshot.data() as ThreadLinkRecord;
+      const connection = connectionSnapshot.data() as VendorMailboxConnection;
+      const vendorMode = vendorRecordDataMode(vendor);
+      if (
+        vendor.id !== input.vendorId ||
+        vendor.status !== "active" ||
+        authenticationResetIsInProgress(vendor) ||
+        setupEffectIsInProgress(vendor) ||
+        vendorMode !== input.actorDataMode ||
+        (!input.actorIsAdmin &&
+          (vendor.uid !== input.actorUid ||
+            vendor.email.trim().toLowerCase() !==
+              input.actorEmail.trim().toLowerCase())) ||
+        !assignment.active ||
+        assignment.vendor_id !== input.vendorId ||
+        assignment.ticket_id !== input.ticketId ||
+        resolveStoredDataMode(assignment) !== vendorMode ||
+        ticket.id !== input.ticketId ||
+        resolveStoredDataMode(ticket) !== vendorMode ||
+        !thread.active ||
+        thread.vendor_id !== input.vendorId ||
+        thread.ticket_id !== input.ticketId ||
+        thread.thread_id !== input.threadId ||
+        resolveStoredDataMode(thread) !== vendorMode ||
+        connection.vendorId !== input.vendorId ||
+        connection.mailboxEmail.trim().toLowerCase() !==
+          input.mailboxEmail.trim().toLowerCase() ||
+        connection.status !== "connected" ||
+        connection.dataMode !== vendorMode
+      ) {
+        return "mismatch" as const;
+      }
       transaction.update(ref, { state: "sending" });
       return "claimed" as const;
     });
@@ -1239,6 +1352,7 @@ export class FirestoreVendorStore
         vendor.status !== "active" ||
         vendorRecordDataMode(vendor) !== "test" ||
         authenticationResetIsInProgress(vendor) ||
+        setupEffectIsInProgress(vendor) ||
         !assignment.active ||
         assignment.vendor_id !== input.vendorId ||
         assignment.ticket_id !== input.ticketId ||
@@ -1327,6 +1441,7 @@ export class FirestoreVendorStore
         vendorRecordDataMode(vendor) === "test" &&
         vendor.authenticationReset?.status !== "claimed" &&
         vendor.authenticationReset?.status !== "prepared" &&
+        !setupEffectIsInProgress(vendor) &&
         assignment.active === true &&
         assignment.vendor_id === record.vendorId &&
         assignment.ticket_id === record.ticketId &&
@@ -1438,6 +1553,7 @@ export class FirestoreVendorStore
         vendorRecordDataMode(vendor) !== "test" ||
         vendor.authenticationReset?.status === "claimed" ||
         vendor.authenticationReset?.status === "prepared" ||
+        setupEffectIsInProgress(vendor) ||
         !assignment.active ||
         assignment.vendor_id !== record.vendorId ||
         assignment.ticket_id !== record.ticketId ||
@@ -1530,6 +1646,7 @@ export class FirestoreVendorStore
         vendorRecordDataMode(vendor) !== "test" ||
         vendor.authenticationReset?.status === "claimed" ||
         vendor.authenticationReset?.status === "prepared" ||
+        setupEffectIsInProgress(vendor) ||
         !assignment.active ||
         assignment.vendor_id !== input.vendorId ||
         assignment.ticket_id !== input.ticketId ||

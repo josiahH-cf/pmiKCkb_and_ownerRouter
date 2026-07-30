@@ -2,12 +2,13 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Governance invariant (A5): the app has exactly ONE unauthenticated write endpoint, and it is the
-// tokenized public maintenance intake. This test enumerates EVERY app/api/**/route.ts and fails if any
-// route lacks a throwing auth guard unless it is on the small, explicit allow-list — so a future route
-// cannot silently ship without auth, and the public route cannot silently acquire an authed-write or
-// session-escalation import. Checks run on code with comments stripped (the writer/route doc-comments
-// deliberately NAME the forbidden imports to explain their own absence).
+// Governance invariant (A5 + S53): every no-session route is explicitly enumerated. The only public
+// writes are narrow bearer-capability paths: tokenized maintenance intake writes to quarantine, and
+// one-time Vendor setup consumes its exact Production+Live challenge before a Firebase setup effect.
+// This test enumerates EVERY app/api/**/route.ts and fails if any route lacks a throwing auth guard
+// unless it is on the small, explicit allow-list — so a future route cannot silently ship without
+// auth. Checks run on code with comments stripped (the writer/route doc-comments deliberately NAME
+// forbidden imports to explain their own absence).
 
 const REPO_ROOT = process.cwd();
 const API_ROOT = join(REPO_ROOT, "app", "api");
@@ -44,13 +45,17 @@ const SCOPED_ROUTE_SCOPE = {
 } as const;
 
 // The ONLY routes allowed to run without a throwing auth guard — each a conscious decision:
-//   - auth/session, auth/demo ESTABLISH a session (verify an ID token / demo flag themselves).
+//   - auth/session, auth/demo ESTABLISH an internal session (verify an ID token / demo flag).
+//   - vendor/auth/session establishes the separately bounded external Vendor session.
+//   - vendor/setup consumes one exact one-time, body-only, same-origin Production+Live challenge
+//     and can only continue into the bound Vendor identity's Firebase setup.
 //   - maintenance/intake/public is the HMAC-token-gated public ingress (A5); it writes only to the
 //     unverified quarantine collection via the no-actor writer.
 const ALLOW_UNAUTHENTICATED = new Set([
   "auth/session/route.ts",
   "auth/demo/route.ts",
   "vendor/auth/session/route.ts",
+  "vendor/setup/route.ts",
   "maintenance/intake/public/route.ts",
 ]);
 
@@ -119,6 +124,26 @@ describe("API route auth-boundary invariant", () => {
       expect(code).not.toContain(forbidden);
     }
     expect(/rentvine/i.test(code)).toBe(false);
+  });
+
+  it("the public Vendor setup route is exact-challenge bound without a staff session path", () => {
+    const code = stripComments(
+      readFileSync(join(API_ROOT, "vendor/setup/route.ts"), "utf8"),
+    );
+    expect(code).toContain("assertExplicitProductionLive");
+    expect(code).toContain("readExactTokenForm");
+    expect(code).toContain("completeVendorSetup");
+    for (const forbidden of [
+      "requireCapability",
+      "requireUser",
+      "requireRole",
+      "requireVendorSession",
+      "@/lib/auth/session",
+      "next/headers",
+      "createMaintenanceTicket",
+    ]) {
+      expect(code).not.toContain(forbidden);
+    }
   });
 
   it("the no-actor writer cannot reach the edit gate, a session, or a system of record", () => {

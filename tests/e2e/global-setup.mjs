@@ -18,8 +18,9 @@ export default async function setup({ provide }) {
   const { child, logPath, logTail } = startDevServer();
 
   try {
-    await waitForReady(logTail);
+    await waitForReady(child, logTail);
     await warmUp();
+    assertDevServerRunning(child, logTail);
   } catch (error) {
     await stopProcessTree(child);
     throw error;
@@ -53,7 +54,10 @@ function startDevServer() {
     [join(root, "node_modules", "next", "dist", "bin", "next"), "dev", "-p", `${port}`],
     {
       cwd: root,
-      detached: true,
+      // On Windows, a detached Next CLI exits shortly after its parent setup scope returns,
+      // even while its piped stdio remains attached. Keep it as a direct child there; POSIX
+      // still uses a process group so teardown can include descendants.
+      detached: shouldDetachDevServer(),
       env: {
         ...process.env,
         ASK_DEMO_MODE: "true",
@@ -76,13 +80,31 @@ function startDevServer() {
     });
   }
 
+  child.once("error", (error) => {
+    appendHarnessLog(logStream, logTail, `next dev process error: ${error.message}`);
+  });
+  child.once("close", (code, signal) => {
+    appendHarnessLog(
+      logStream,
+      logTail,
+      `next dev exited (code=${code ?? "none"}, signal=${signal ?? "none"})`,
+    );
+    logStream.end();
+  });
+
   return { child, logPath, logTail };
 }
 
-async function waitForReady(logTail) {
+export function shouldDetachDevServer(platform = process.platform) {
+  return platform !== "win32";
+}
+
+async function waitForReady(child, logTail) {
   const deadline = Date.now() + READINESS_TIMEOUT_MS;
 
   while (Date.now() < deadline) {
+    assertDevServerRunning(child, logTail);
+
     try {
       const response = await fetch(`${baseUrl}/sign-in`, { redirect: "manual" });
 
@@ -100,6 +122,28 @@ async function waitForReady(logTail) {
     `next dev did not become ready on ${baseUrl} within ${READINESS_TIMEOUT_MS}ms.\n` +
       `Last server output:\n${logTail.join("")}`,
   );
+}
+
+function assertDevServerRunning(child, logTail) {
+  if (child.exitCode === null && !child.signalCode) {
+    return;
+  }
+
+  throw new Error(
+    `next dev exited before the e2e run could use ${baseUrl} ` +
+      `(code=${child.exitCode ?? "none"}, signal=${child.signalCode ?? "none"}).\n` +
+      `Last server output:\n${logTail.join("")}`,
+  );
+}
+
+function appendHarnessLog(logStream, logTail, message) {
+  const line = `[e2e harness] ${message}\n`;
+  logStream.write(line);
+  logTail.push(line);
+
+  while (logTail.length > 50) {
+    logTail.shift();
+  }
 }
 
 // First-hit route compiles take seconds in next dev; warm the routes the suites

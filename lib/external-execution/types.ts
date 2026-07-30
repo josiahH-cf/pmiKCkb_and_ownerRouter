@@ -70,6 +70,11 @@ export interface ExternalActionReceipt {
   resultHash: string;
   reconciled: boolean;
   outcome?: "succeeded" | "not_applicable";
+  /**
+   * Reconciliation may close an `Executing` no-effect outcome only when the provider atomically
+   * fenced the still-possible worker before returning its receipt.
+   */
+  attemptFenced?: true;
   createdAt: string;
 }
 

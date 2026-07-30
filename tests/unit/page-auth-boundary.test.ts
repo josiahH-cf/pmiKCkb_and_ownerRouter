@@ -43,7 +43,14 @@ const PAGE_GUARD =
 //   - sign-in/page.tsx is the staff sign-in surface (reads any existing session only to bounce a
 //     signed-in user to "/"; it does not gate access to itself).
 //   - vendor/sign-in/page.tsx is the vendor sign-in shell.
-const ALLOW_UNAUTHENTICATED = new Set(["sign-in/page.tsx", "vendor/sign-in/page.tsx"]);
+//   - vendor/setup/page.tsx is the inert public shell for a fragment-delivered, one-time setup
+//     challenge. Its bridge strips the fragment before any request and the POST route performs the
+//     actual Production+Live and challenge checks.
+const ALLOW_UNAUTHENTICATED = new Set([
+  "sign-in/page.tsx",
+  "vendor/sign-in/page.tsx",
+  "vendor/setup/page.tsx",
+]);
 
 describe("App page auth-boundary invariant", () => {
   const pages = walkPages(APP_ROOT);

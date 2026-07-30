@@ -102,6 +102,8 @@ export interface ActionExecutionRecord {
   action_kind: ExecutionActionKind;
   actor_role: Role;
   actor_uid: string;
+  /** Immutable identity that consumed the one provider attempt; absent before claim. */
+  claim_actor_uid?: string;
   approval?: ExecutionApproval;
   attempt_count: number;
   correction_reference?: string;

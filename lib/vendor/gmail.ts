@@ -47,6 +47,13 @@ export interface VendorGmailStateStore {
   claimConfirmation(input: {
     id: string;
     actorUid: string;
+    actorEmail: string;
+    actorDataMode: "live";
+    actorIsAdmin: boolean;
+    vendorId: string;
+    mailboxEmail: string;
+    ticketId: string;
+    threadId: string;
     payloadHash: string;
     nowMs: number;
   }): Promise<"claimed" | "expired" | "mismatch" | "duplicate" | "ambiguous">;
@@ -266,6 +273,13 @@ export class VendorGmailService {
     const claim = await this.dependencies.confirmations.claimConfirmation({
       id,
       actorUid: this.principal.uid,
+      actorEmail: this.principal.email,
+      actorDataMode: "live",
+      actorIsAdmin: "isAdmin" in this.principal,
+      vendorId: this.principal.vendorId,
+      mailboxEmail: this.mailboxEmail,
+      ticketId: input.ticketId,
+      threadId: input.threadId,
       payloadHash: hash,
       nowMs: this.now(),
     });

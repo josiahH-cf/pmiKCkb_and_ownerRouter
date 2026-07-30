@@ -1,11 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
+import type { Firestore } from "firebase-admin/firestore";
 
-import { VENDOR_OAUTH_SCOPES } from "@/lib/vendor/model";
+import { FirestoreVendorStore, VENDOR_COLLECTIONS } from "@/lib/firestore/vendors";
+import { VendorBoundaryError, VENDOR_OAUTH_SCOPES } from "@/lib/vendor/model";
 import {
   beginVendorOAuth,
   completeVendorOAuth,
   type VendorOAuthState,
 } from "@/lib/vendor/oauth";
+import { FakeFirestore } from "@/tests/helpers/fake-firestore";
 
 const principal = {
   uid: "uid-a",
@@ -67,6 +70,20 @@ describe("Vendor Gmail OAuth", () => {
     );
     expect(vault).toHaveBeenCalledWith(
       expect.objectContaining({ refreshToken: "refresh-secret" }),
+    );
+    expect(store.saveConnection).toHaveBeenCalledWith(
+      expect.objectContaining({
+        vendorId: principal.vendorId,
+        mailboxEmail: principal.email,
+        status: "connected",
+        dataMode: "live",
+      }),
+      {
+        vendorId: principal.vendorId,
+        uid: principal.uid,
+        email: principal.email,
+        dataMode: "live",
+      },
     );
   });
 
@@ -188,12 +205,10 @@ describe("Vendor Gmail OAuth", () => {
     });
     const vault = vi.fn().mockResolvedValue("projects/p/secrets/vendor-a");
     const destroySecret = vi.fn().mockResolvedValue(undefined);
-    const saveConnection = vi.fn();
-    const active = vi
+    const saveConnection = vi
       .fn()
-      .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(false);
+      .mockRejectedValue(new VendorBoundaryError("Vendor account is unavailable.", 404));
+    const active = vi.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(true);
 
     await expect(
       completeVendorOAuth(
@@ -220,6 +235,47 @@ describe("Vendor Gmail OAuth", () => {
     expect(exchange).toHaveBeenCalledTimes(1);
     expect(vault).toHaveBeenCalledTimes(1);
     expect(destroySecret).toHaveBeenCalledWith("projects/p/secrets/vendor-a");
-    expect(saveConnection).not.toHaveBeenCalled();
+    expect(saveConnection).toHaveBeenCalledTimes(1);
+  });
+
+  it("atomically refuses a mailbox save after the Vendor access cutoff", async () => {
+    const fake = new FakeFirestore();
+    const vendorPath = `${VENDOR_COLLECTIONS.vendors}/${principal.vendorId}`;
+    const connectionPath = `${VENDOR_COLLECTIONS.connections}/${principal.vendorId}`;
+    fake.seed(vendorPath, {
+      id: principal.vendorId,
+      uid: principal.uid,
+      email: principal.email,
+      status: "disabled",
+      inviteVersion: 1,
+      data_mode: "live",
+      createdAt: "2026-07-30T12:00:00.000Z",
+      updatedAt: "2026-07-30T12:05:00.000Z",
+      disabledAt: "2026-07-30T12:05:00.000Z",
+    });
+    const store = new FirestoreVendorStore(fake as unknown as Firestore);
+
+    await expect(
+      store.saveConnection(
+        {
+          vendorId: principal.vendorId,
+          mailboxEmail: principal.email,
+          provider: "google",
+          status: "connected",
+          scopes: VENDOR_OAUTH_SCOPES,
+          tokenSecretRef: "projects/p/secrets/vendor-a",
+          dataMode: "live",
+          connectedAt: "2026-07-30T12:06:00.000Z",
+          updatedAt: "2026-07-30T12:06:00.000Z",
+        },
+        {
+          vendorId: principal.vendorId,
+          uid: principal.uid,
+          email: principal.email,
+          dataMode: "live",
+        },
+      ),
+    ).rejects.toMatchObject({ status: 404 });
+    expect(fake.store.get(connectionPath)).toBeUndefined();
   });
 });

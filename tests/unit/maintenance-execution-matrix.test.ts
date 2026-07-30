@@ -4,10 +4,17 @@ import { EXECUTION_ACTION_POLICIES } from "@/lib/execution/risk-policy";
 import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 import {
   MAINTENANCE_EXECUTION_ACTIONS,
+  MAINTENANCE_EXECUTION_DEFINITION_MAP,
   MAINTENANCE_EXECUTION_DEFINITIONS,
 } from "@/lib/maintenance/execution/matrix";
 
 describe("Maintenance execution matrix", () => {
+  it("binds Vendor assignment to current source state instead of a same-ticket invite execution", () => {
+    expect(
+      MAINTENANCE_EXECUTION_DEFINITION_MAP.get("vendor.assignment.change")?.dependsOn,
+    ).toEqual([]);
+  });
+
   it("exposes every R03 group with dependency, risk, correction, and registry entry", () => {
     expect(
       new Set(MAINTENANCE_EXECUTION_DEFINITIONS.map((entry) => entry.group)),

@@ -56,9 +56,10 @@ export const MAINTENANCE_EXECUTION_DEFINITIONS: readonly ExternalActionDefinitio
     [],
     "documented",
   ),
-  def(MAINTENANCE_EXECUTION_ACTIONS[2], "App account lifecycle", "High", [
-    MAINTENANCE_EXECUTION_ACTIONS[0],
-  ]),
+  // Assignment binds to the current server-loaded Vendor and ticket generations. Requiring an
+  // invite execution in the same ticket scope would strand every later ticket assigned to an
+  // already-active Vendor and would invite the browser to supply a dependency identifier.
+  def(MAINTENANCE_EXECUTION_ACTIONS[2], "App account lifecycle", "High", []),
   def(MAINTENANCE_EXECUTION_ACTIONS[3], "Mailbox lifecycle", "High", [
     MAINTENANCE_EXECUTION_ACTIONS[0],
   ]),

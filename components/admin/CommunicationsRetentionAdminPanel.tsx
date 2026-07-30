@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { COMMUNICATIONS_RETENTION_TARGETS } from "@/lib/gmail-hub/retention-policy";
+import { COMMUNICATIONS_RETENTION_TARGETS } from "@/lib/gmail-hub/retention-contract";
 
 const collections = Object.keys(COMMUNICATIONS_RETENTION_TARGETS);
 
