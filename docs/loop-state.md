@@ -14,12 +14,12 @@ loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: EXECUTING
-implementation_status: IN_PROGRESS
-next_suite: S51
-next_spec: docs/feature-suites/production-operational-readiness.md
-session_auth_status: BLOCKED_INTERACTIVE_ADC_CLI_GREEN
-active_slice: S51-ROLLBACK-INCIDENT-RETENTION-LOG-HYGIENE
-last_completed_slice: S53.5 + S52-I/J/PLANNER + S51-CLOSE-ONLY-KERNEL/EFFECT-STOP/A2-MONITORING
+implementation_status: PAUSED_AT_VERIFIED_BOUNDARY
+next_suite: S25
+next_spec: docs/feature-suites/lease-renewal-execution.md
+session_auth_status: BLOCKED_INTERACTIVE_ADC_AND_CLI_MANAGED_IDENTITY
+active_slice: STOPPED-AT-S51-DEPENDENCY-SAFE-LOCAL-BOUNDARY
+last_completed_slice: S53.5 + S52-I/J/PLANNER + S51-CLOSE-ONLY/EFFECT-STOP/A2-MONITORING/OPERATIONS
 runtime_action_gates_preflipped: false
 ```
 
@@ -36,11 +36,10 @@ runtime_action_gates_preflipped: false
 
 ## Current truth
 
-- Session-start `npm run preflight:adc` failed because ADC is absent/stale. Exact owner action:
-  `npm run auth:session`, then rerun the ADC, managed-account, and suppressed CLI-token checks.
-  The subsequently located Windows CLI reports managed `josiah@pmikcmetro.com`, and the suppressed
-  CLI-token check passes. ADC alone remains red, so live reads, deploys, cloud mutations, and the S54
-  live eval stay parked; local/app-plane work continues.
+- Session-start checks resolved the active account to managed `josiah@pmikcmetro.com`, but both the
+  Windows CLI token and ADC token are stale (`invalid_rapt` / `invalid_grant`). Exact owner action:
+  `npm run auth:session`, then rerun ADC, managed-account, and suppressed CLI-token checks. Live
+  reads, deploys, cloud mutations, and the S54 live eval stay parked; local/app-plane work continues.
 - S54.1's widened Firestore gate/falsification is complete; remote CI run `30510068990` passed.
 - S53.2's AC-S53-12 Sheet contract is locally complete through immutable preview, one-attempt
   execution, receipt/reconcile/correction, and ABA-safe recovery; D32 is still the provider seam.
@@ -52,10 +51,11 @@ runtime_action_gates_preflipped: false
   notice-send non-targets are reconciled as Disabled without changing `production_allowed`.
 - S53.5 Vendor lifecycle and S52-I/J plus the fail-closed print-only budget planner are locally
   green; every provider key remains closed.
-- S51 steps 3–5 are locally green: close-only effect stop, explicit A2 logging, and the print-only
-  monitoring bundle/verifier. Rules/cloud apply are parked; direct Gmail A2 reachability remains.
-- Exact clean-install gate: 441/3,872 unit, 21/92 Firestore, 96-page build, and core E2E
-  32 passed / 18 designed skips; runtime audit is zero.
+- S51 steps 3–6 are dependency-safe locally complete: effect stop, A2/monitoring, reply/watch A2,
+  rollback/incident/retention/capacity/log hygiene. Rules/cloud/live rehearsal remain parked; the
+  exact label plus renewal/maintenance draft action contracts transfer to their owning slices.
+- Exact closeout gate: clean-install verifier green in 244.5 seconds; full unit, Firestore,
+  governance, redaction, and build green. Core E2E: 8 files / 32 passed / 18 designed skips.
 - Production serves `2bfe7d4` on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e`, missing the
   accumulated repairs. D07 deploy waits for S52 headroom and the sanitized-environment/emulator
   refusal. Never edit `.env.local` as the workaround.
@@ -79,7 +79,7 @@ runtime_action_gates_preflipped: false
    receipt/reconcile/setup/disable and concurrency fences are green; no protected flip.
 7. **S52 prerequisites — PARKED** — planner refusal plus I/J are green; source/handler/check are
    protected, and baseline/values/project disposition/operator destination remain external.
-8. **S51 app-plane — ACTIVE** — stop/A2/monitoring seams complete; next rehearsal/incident/retention/log hygiene; Rules/cloud apply parked; harden direct-Gmail A2 reachability before final verify.
+8. **S51 app-plane — DEPENDENCY-SAFE LOCAL SPEC COMPLETE** — steps 3–7 and reply/watch A2 are green; Rules/cloud/live rehearsal are parked; next local work is S25's label contract, then the renewal/maintenance draft contracts.
 9. **S52/S51 activation** — after the complete-calendar-month baseline, supply the two
    owner-selected values, second-project disposition, and operator destination; apply owner-run
    billing/IAM/monitoring changes and verify live lockstep/delivery. Do not synthesize or infer a
@@ -136,4 +136,4 @@ runtime_action_gates_preflipped: false
 
 ## Resume
 
-Build S51 ordered step 6: rollback rehearsal plus incident, capacity, retention, and log-hygiene artifacts. Keep the protected Rules packet and monitoring activation unapplied. Re-run auth before live/cloud work; thresholds remain unset.
+Stop at the verified S51 dependency-safe local boundary. Next session, begin S25's `gmail.label.apply` contract through the S20 one-attempt authority, then the renewal/maintenance draft pair. Keep Rules/monitoring/cloud/live activation parked until auth, S52, S40, and owner conditions pass.

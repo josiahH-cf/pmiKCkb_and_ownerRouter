@@ -1,4 +1,10 @@
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import {
+  allowsLiveProviderAction,
+  assertLiveProviderActionAllowed,
+  requireEnvironmentDescriptor,
+  type EnvironmentDescriptor,
+} from "@/lib/environment/descriptor";
 import { GmailHubService } from "@/lib/gmail-hub/service";
 import {
   FirestoreGmailStateStore,
@@ -11,16 +17,27 @@ import {
   ActionNotExecutableError,
   assertProductionRuntimeActionExecutable,
 } from "@/lib/operations/runtime-suspension-gate";
-import { GmailHubGateError } from "@/lib/gmail-hub/service";
+import { GmailHubError, GmailHubGateError } from "@/lib/gmail-hub/service";
 
 export interface GmailHubRuntimeDependencies {
   createClient(subject: string): GmailRuntimeClient;
   store: GmailStateStore;
+  assertEffectEnvironment(): void;
   assertRuntimeActionExecutable(action: string): Promise<void>;
   now?(): number;
   createToken?(): string;
   workflowLinkTtlDays?: number;
   isApprovedWorkflowTemplate?(context: WorkflowCommunicationContext): boolean;
+}
+
+export interface GmailHubEffectEnvironment {
+  descriptor: EnvironmentDescriptor;
+  dataMode: "live" | "test";
+}
+
+export interface GmailHubRuntimeFactories {
+  constructClient?(subject: string): GmailRuntimeClient;
+  createStore?(dataMode: "live" | "test"): GmailStateStore;
 }
 
 let testDependencies: GmailHubRuntimeDependencies | null = null;
@@ -35,14 +52,80 @@ export function setGmailHubDependenciesForTest(
 }
 
 export function getGmailHubDependencies(): GmailHubRuntimeDependencies {
-  return (
-    testDependencies ?? {
-      createClient: (subject) => new GmailRuntimeClient({ subject }),
-      store: new FirestoreGmailStateStore(),
-      assertRuntimeActionExecutable: assertGmailHubRuntimeActionExecutable,
-      isApprovedWorkflowTemplate: isApprovedWorkflowReplyTemplate,
-    }
-  );
+  if (testDependencies) return testDependencies;
+
+  return createGmailHubRuntimeDependencies();
+}
+
+export function createGmailHubRuntimeDependencies(
+  env: Record<string, string | undefined> = process.env,
+  factories: GmailHubRuntimeFactories = {},
+): GmailHubRuntimeDependencies {
+  // Resolve the server-owned descriptor once for this dependency graph. The same immutable value
+  // controls the pre-claim effect fence, provider construction, and whether a terminal state may
+  // produce a Live A2 event. Resolution happens before either injected factory can run.
+  const environment = resolveGmailHubEffectEnvironment(env);
+  const assertEffectEnvironment = () =>
+    assertLiveProviderActionAllowed(environment.descriptor);
+  return {
+    createClient: (subject) =>
+      createDescriptorBoundGmailRuntimeClient(
+        subject,
+        environment.descriptor,
+        factories.constructClient,
+      ),
+    store: factories.createStore
+      ? factories.createStore(environment.dataMode)
+      : createDefaultGmailStateStore(environment.descriptor),
+    assertEffectEnvironment,
+    assertRuntimeActionExecutable: assertGmailHubRuntimeActionExecutable,
+    isApprovedWorkflowTemplate: isApprovedWorkflowReplyTemplate,
+  };
+}
+
+export function resolveGmailHubEffectEnvironment(
+  env: Record<string, string | undefined> = process.env,
+): GmailHubEffectEnvironment {
+  let descriptor: EnvironmentDescriptor;
+  try {
+    descriptor = requireEnvironmentDescriptor(env);
+  } catch (error) {
+    throw new GmailHubEnvironmentConfigurationError(
+      error instanceof Error ? error.message : "Environment descriptor is invalid.",
+    );
+  }
+  return {
+    descriptor,
+    dataMode: gmailHubEffectDataMode(descriptor),
+  };
+}
+
+export function gmailHubEffectDataMode(
+  descriptor: EnvironmentDescriptor,
+): "live" | "test" {
+  return allowsLiveProviderAction(descriptor) ? "live" : "test";
+}
+
+export function createDefaultGmailStateStore(
+  descriptor: EnvironmentDescriptor = requireEnvironmentDescriptor(),
+) {
+  return new FirestoreGmailStateStore({
+    dataMode: gmailHubEffectDataMode(descriptor),
+  });
+}
+
+/**
+ * Refuse Demo and Live-read-only contexts before constructing a real Gmail provider client.
+ * The injectable constructor is solely a test seam that proves the ordering.
+ */
+export function createDescriptorBoundGmailRuntimeClient(
+  subject: string,
+  descriptor: EnvironmentDescriptor,
+  construct: (subject: string) => GmailRuntimeClient = (value) =>
+    new GmailRuntimeClient({ subject: value }),
+) {
+  assertLiveProviderActionAllowed(descriptor);
+  return construct(subject);
 }
 
 export function createGmailHubService(actor: AuthenticatedUser) {
@@ -50,6 +133,7 @@ export function createGmailHubService(actor: AuthenticatedUser) {
   return new GmailHubService(actor, {
     createClient: dependencies.createClient,
     store: dependencies.store,
+    assertEffectEnvironment: dependencies.assertEffectEnvironment,
     assertRuntimeActionExecutable: dependencies.assertRuntimeActionExecutable,
     now: dependencies.now,
     createToken: dependencies.createToken,
@@ -66,5 +150,12 @@ async function assertGmailHubRuntimeActionExecutable(action: string) {
       throw new GmailHubGateError(action);
     }
     throw error;
+  }
+}
+
+export class GmailHubEnvironmentConfigurationError extends GmailHubError {
+  constructor(message: string) {
+    super(message, 503);
+    this.name = "GmailHubEnvironmentConfigurationError";
   }
 }

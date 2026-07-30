@@ -1,10 +1,8 @@
 import { can } from "@/lib/auth/roles";
 import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { EditableLayerError } from "@/lib/firestore/errors";
-import {
-  FirestoreGmailStateStore,
-  type GmailStateStore,
-} from "@/lib/gmail-hub/state-store";
+import { type GmailStateStore } from "@/lib/gmail-hub/state-store";
+import { createDefaultGmailStateStore } from "@/lib/gmail-hub/dependencies";
 import { isCommunicationsRecordActive } from "@/lib/gmail-hub/retention-policy";
 import { workflowEntityHref } from "@/lib/gmail-hub/workflow-context";
 import type { UnifiedNotification } from "@/lib/notifications/families";
@@ -12,7 +10,7 @@ import type { UnifiedNotification } from "@/lib/notifications/families";
 export async function listGmailWorkflowNotifications(
   actor: AuthenticatedUser,
   options: { unreadOnly?: boolean; limit?: number } = {},
-  store: GmailStateStore = new FirestoreGmailStateStore(),
+  store: GmailStateStore = createDefaultGmailStateStore(),
 ): Promise<UnifiedNotification[]> {
   assertRead(actor);
   const nowMs = Date.now();
@@ -52,7 +50,7 @@ export async function listGmailWorkflowNotifications(
 export async function markGmailWorkflowNotificationRead(
   actor: AuthenticatedUser,
   communicationId: string,
-  store: GmailStateStore = new FirestoreGmailStateStore(),
+  store: GmailStateStore = createDefaultGmailStateStore(),
 ) {
   assertRead(actor);
   const link = (await store.listCommunicationLinks(actor.email)).find(

@@ -8,6 +8,10 @@ import {
   restoreApprovalTestFixtures,
 } from "@/lib/firestore/approval-test-fixtures";
 import { transitionApprovalQueueItem } from "@/lib/firestore/approval-queue";
+import {
+  PRODUCT_RECORD_RETENTION_CLASS,
+  PRODUCT_RECORD_RETENTION_POLICY,
+} from "@/lib/operations/product-record-retention";
 import { FakeFirestore } from "@/tests/helpers/fake-firestore";
 
 const admin: AuthenticatedUser = {
@@ -43,6 +47,9 @@ describe("Approval Queue Test fixtures", () => {
         assignee_uid: editor.uid,
         required_approver_uid: admin.uid,
         status: "Ready for Approval",
+        product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+        product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
+        legal_hold: false,
       });
     }
     const adminNotifications = collection(fake, "approval_queue_notifications").filter(
@@ -84,6 +91,29 @@ describe("Approval Queue Test fixtures", () => {
     expect([...fake.store.keys()].some((path) => path.includes("live"))).toBe(false);
   });
 
+  it("preserves an exact legal hold while restoring drifted fixture content", async () => {
+    const fake = new FakeFirestore();
+    const db = fake as unknown as Firestore;
+    await restoreApprovalTestFixtures(admin, editor.uid, db, NOW);
+    const itemId = APPROVAL_TEST_FIXTURE_DEFINITIONS[0].id;
+    const current = fake.store.get(`approval_queue_items/${itemId}`);
+    fake.seed(`approval_queue_items/${itemId}`, {
+      ...current,
+      legal_hold: true,
+      status: "Returned",
+    });
+
+    const restored = await restoreApprovalTestFixtures(admin, editor.uid, db, NOW + 1);
+
+    expect(restored.restored_count).toBe(1);
+    expect(fake.store.get(`approval_queue_items/${itemId}`)).toMatchObject({
+      status: "Ready for Approval",
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
+      legal_hold: true,
+    });
+  });
+
   it("reports missing/drifted/ready and requires a distinct Admin/restricted actor pair", async () => {
     const fake = new FakeFirestore();
     const db = fake as unknown as Firestore;
@@ -103,6 +133,24 @@ describe("Approval Queue Test fixtures", () => {
     await expect(
       restoreApprovalTestFixtures(admin, admin.uid, db, NOW),
     ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("reports missing or malformed retention as drift and refuses a partial-state rewrite", async () => {
+    const fake = new FakeFirestore();
+    const db = fake as unknown as Firestore;
+    const itemId = APPROVAL_TEST_FIXTURE_DEFINITIONS[0].id;
+    fake.seed(`approval_queue_items/${itemId}`, {
+      id: itemId,
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      status: "Ready for Approval",
+    });
+
+    await expect(
+      inspectApprovalTestFixtures(admin, editor.uid, db),
+    ).resolves.toMatchObject({ state: "drifted", ready_count: 0 });
+    await expect(restoreApprovalTestFixtures(admin, editor.uid, db, NOW)).rejects.toThrow(
+      "Current product retention state is malformed",
+    );
   });
 });
 

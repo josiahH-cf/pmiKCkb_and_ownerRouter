@@ -6,6 +6,7 @@ import type {
   ACTION_TARGET_SYSTEMS,
 } from "@/lib/constants";
 import type { DecisionReasonCode } from "@/lib/lease-renewal/reason-codes";
+import type { ProductRecordRetentionFields } from "@/lib/operations/product-record-retention";
 import type { Citation } from "@/lib/schemas";
 import type { SourceState } from "@/lib/source-state";
 
@@ -387,7 +388,7 @@ export interface QueueProcessRunRef {
   label: string;
 }
 
-export interface ApprovalQueueItemRecord {
+export interface ApprovalQueueItemRecord extends Partial<ProductRecordRetentionFields> {
   id: string;
   /** Legacy absence is Live; canonical audit fixtures explicitly carry Test. */
   data_mode?: "live" | "test";
@@ -495,7 +496,7 @@ export interface SupportReportElementHint {
   testId?: string;
 }
 
-export interface SupportReportRecord {
+export interface SupportReportRecord extends Partial<ProductRecordRetentionFields> {
   id: string;
   route: string;
   description?: string;
@@ -566,7 +567,7 @@ export interface ProcessDefinitionVersionRecord {
   created_at: string;
 }
 
-export interface WorkflowRunRecord {
+export interface WorkflowRunRecord extends Partial<ProductRecordRetentionFields> {
   id: string;
   definition_id: string;
   definition_version_id?: string;
@@ -659,7 +660,7 @@ export interface LeaseRenewalProposedWriteback {
   production_allowed: false;
 }
 
-export interface LeaseRenewalResolutionRecord {
+export interface LeaseRenewalResolutionRecord extends Partial<ProductRecordRetentionFields> {
   id: string;
   source_trigger_key: string;
   run_id: string;
@@ -705,7 +706,7 @@ export interface LeaseRenewalResolutionActivityRecord {
 // read-only). `owner_decision` holds the operator's own inputs; `stage_index` indexes RENEWAL_STEPS.
 export type LeaseRenewalOwnerDecisionKind = "keep_same" | "increase" | "custom";
 
-export interface LeaseRenewalProgressRecord {
+export interface LeaseRenewalProgressRecord extends Partial<ProductRecordRetentionFields> {
   id: string;
   lease_id: string;
   stage_index: number;

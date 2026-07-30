@@ -22,7 +22,11 @@ import {
   POST as renewWatch,
 } from "@/app/api/gmail-hub/watch/route";
 import { setAuthResolverForTest, type AuthenticatedUser } from "@/lib/auth/session";
-import { setGmailHubDependenciesForTest } from "@/lib/gmail-hub/dependencies";
+import {
+  createGmailHubRuntimeDependencies,
+  GmailHubEnvironmentConfigurationError,
+  setGmailHubDependenciesForTest,
+} from "@/lib/gmail-hub/dependencies";
 import { gmailHubErrorResponse } from "@/lib/gmail-hub/http";
 import { setGmailPushOidcVerifierForTest } from "@/lib/gmail-hub/pubsub";
 import { MemoryGmailStateStore } from "@/lib/gmail-hub/state-store";
@@ -67,6 +71,7 @@ function maintenanceContext(actionKey: string): WorkflowCommunicationContext {
 function installDependencies(
   assertRuntimeActionExecutable: (action: string) => Promise<void> = async () =>
     undefined,
+  assertEffectEnvironment: () => void = () => undefined,
 ) {
   let clientsCreated = 0;
   const createClient = vi.fn((subject: string) => {
@@ -81,18 +86,34 @@ function installDependencies(
       getToken: async () => "unused",
     });
   });
+  const store = new MemoryGmailStateStore();
   setGmailHubDependenciesForTest({
     createClient,
-    store: new MemoryGmailStateStore(),
+    store,
+    assertEffectEnvironment,
     assertRuntimeActionExecutable,
   });
-  return { createClient, clientsCreated: () => clientsCreated };
+  return { createClient, clientsCreated: () => clientsCreated, store };
 }
 
 function threadsRequest(context: WorkflowCommunicationContext) {
   return new Request(
     `https://example.test/api/gmail-hub/threads?context=${encodeURIComponent(JSON.stringify(context))}`,
   );
+}
+
+function watchRequest() {
+  return new Request("https://example.test/api/gmail-hub/watch", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      mailboxEmail: actor.email,
+      topicName: "projects/pmi-kc-kb-prod/topics/gmail-replies",
+      observedWatchExpirationMs: null,
+      attemptKey: "018f5ca1-7b7c-7c3d-8b6f-5f83a36a5f51",
+      confirmed: true,
+    }),
+  });
 }
 
 afterEach(() => {
@@ -197,6 +218,78 @@ describe("Workflow Communications route boundaries (AC-GW-1, AC-GW-3, AC-GW-5)",
       }),
     );
     expect(drifted.status).toBe(409);
+    expect(tracker.clientsCreated()).toBe(0);
+  });
+
+  it.each([
+    ["Demo", "demo", "demo"],
+    ["Live read-only", "demo", "live_readonly"],
+  ] as const)(
+    "refuses a %s watch through runtime composition before state or provider work",
+    async (_name, environmentKind, dataContext) => {
+      installPushConfig();
+      setAuthResolverForTest(async () => actor);
+      const store = new MemoryGmailStateStore();
+      const constructClient = vi.fn(
+        (subject: string) =>
+          new GmailRuntimeClient({
+            subject,
+            transport: {
+              async send() {
+                throw new Error("unexpected Gmail transport");
+              },
+            },
+            getToken: async () => "unused",
+          }),
+      );
+      const dependencies = createGmailHubRuntimeDependencies(
+        {
+          ENVIRONMENT_KIND: environmentKind,
+          DATA_CONTEXT: dataContext,
+        },
+        {
+          constructClient,
+          createStore: () => store,
+        },
+      );
+      setGmailHubDependenciesForTest({
+        ...dependencies,
+        assertRuntimeActionExecutable: async () => undefined,
+      });
+
+      const response = await renewWatch(watchRequest());
+
+      expect(response.status).toBe(409);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "environment_context_not_allowed",
+      });
+      expect(store.mailboxStates.size).toBe(0);
+      expect(store.audit).toEqual([]);
+      expect(constructClient).not.toHaveBeenCalled();
+    },
+  );
+
+  it("returns a typed 503 for an invalid descriptor before state or provider work", async () => {
+    installPushConfig();
+    setAuthResolverForTest(async () => actor);
+    const tracker = installDependencies(
+      async () => undefined,
+      () => {
+        throw new GmailHubEnvironmentConfigurationError(
+          "Environment descriptor is invalid: DATA_CONTEXT is not set.",
+        );
+      },
+    );
+
+    const response = await renewWatch(watchRequest());
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: "Environment descriptor is invalid: DATA_CONTEXT is not set.",
+    });
+    expect(tracker.store.mailboxStates.size).toBe(0);
+    expect(tracker.store.audit).toEqual([]);
+    expect(tracker.createClient).not.toHaveBeenCalled();
     expect(tracker.clientsCreated()).toBe(0);
   });
 

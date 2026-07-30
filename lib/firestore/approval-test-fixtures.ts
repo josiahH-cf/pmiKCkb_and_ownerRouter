@@ -13,6 +13,11 @@ import type {
   QueueItemType,
   QueueRiskLevel,
 } from "@/lib/firestore/types";
+import {
+  PRODUCT_RECORD_RETENTION_CLASS,
+  PRODUCT_RECORD_RETENTION_POLICY,
+  stampProductRecordRetention,
+} from "@/lib/operations/product-record-retention";
 
 const QUEUE_COLLECTION = "approval_queue_items";
 const ACTIVITY_COLLECTION = "approval_queue_activity";
@@ -102,12 +107,14 @@ export async function restoreApprovalTestFixtures(
 
     for (const [index, definition] of APPROVAL_TEST_FIXTURE_DEFINITIONS.entries()) {
       const snapshot = snapshots[index];
+      const current = snapshot.data() as Record<string, unknown> | undefined;
       const baseline = baselineItem(
         definition,
         actor.uid,
         restrictedStaffUid,
         timestamp,
-        readCreatedAt(snapshot.data()),
+        readCreatedAt(current),
+        current,
       );
       if (snapshot.exists && matchesBaseline(snapshot.data()!, baseline)) continue;
 
@@ -167,8 +174,9 @@ function baselineItem(
   restrictedStaffUid: string,
   timestamp: string,
   existingCreatedAt?: string,
+  current?: Readonly<Record<string, unknown>>,
 ): ApprovalQueueItemRecord {
-  return {
+  const baseline = {
     id: definition.id,
     data_mode: "test",
     test_fixture_key: definition.key,
@@ -190,7 +198,8 @@ function baselineItem(
     direct_link: `/approval-queue?item_id=${encodeURIComponent(definition.id)}`,
     created_at: existingCreatedAt ?? timestamp,
     updated_at: timestamp,
-  };
+  } satisfies ApprovalQueueItemRecord;
+  return stampProductRecordRetention("approval_queue_items", baseline, current);
 }
 
 function matchesBaseline(
@@ -213,7 +222,12 @@ function matchesBaseline(
     "affected_system_action",
     "direct_link",
   ] as const;
-  return fields.every((field) => stableJson(raw[field]) === stableJson(expected[field]));
+  return (
+    fields.every((field) => stableJson(raw[field]) === stableJson(expected[field])) &&
+    raw.product_retention_policy === PRODUCT_RECORD_RETENTION_POLICY &&
+    raw.product_retention_class === PRODUCT_RECORD_RETENTION_CLASS &&
+    typeof raw.legal_hold === "boolean"
+  );
 }
 
 function readCreatedAt(raw: Record<string, unknown> | undefined) {

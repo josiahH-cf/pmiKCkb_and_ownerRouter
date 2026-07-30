@@ -15,6 +15,10 @@ import {
   MAINTENANCE_TEST_PUBLIC_INTAKE,
   MAINTENANCE_TEST_UNIT,
 } from "@/lib/maintenance/test-workflow";
+import {
+  PRODUCT_RECORD_RETENTION_CLASS,
+  PRODUCT_RECORD_RETENTION_POLICY,
+} from "@/lib/operations/product-record-retention";
 import { FakeFirestore } from "@/tests/helpers/fake-firestore";
 
 const NOW = Date.parse("2026-07-10T09:00:00.000Z");
@@ -91,9 +95,19 @@ describe("maintenance intake review", () => {
     expect(ticket.priority).toBe("Emergency");
     expect(ticket.priority_provenance).toBe("auto-inferred");
     expect(ticket.source_trigger_key).toBe("maintenance:intake:x");
+    expect(ticket).toMatchObject({
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
+      legal_hold: false,
+    });
 
     // The ticket + its activity + the flipped intake all landed.
     expect(ticketDocs(db)).toHaveLength(1);
+    expect(ticketDocs(db)[0]).toMatchObject({
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
+      legal_hold: false,
+    });
     const intake = db.store.get(`${MAINTENANCE_INTAKE_COLLECTIONS.intake}/x`);
     expect(intake).toMatchObject({
       status: "promoted",

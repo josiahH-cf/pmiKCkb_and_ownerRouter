@@ -65,8 +65,9 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 > named-key gate integrity, and CI parity. The canonical runner is
 > `docs/meta-prompts/production-phase-unattended-loop.md`. A stale/missing live credential or null
 > S52 ceiling parks only live/cloud work; local app-plane and build-to-seam slices continue. S54.1
-> has locally widened the full verifier and CI workflow to include Firestore Rules tests; remote CI
-> remains unobserved until the checkpoint is pushed.
+> widened the full verifier and CI workflow to include Firestore Rules tests and is locally/remotely
+> green. S51 is complete at its dependency-safe local seam; Rules, owner-run cloud activation, and
+> the fresh live rehearsal remain parked.
 
 | Suite                                       | File                                                              | Status                                                |
 | ------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------- |
@@ -120,10 +121,10 @@ decisions are tracked in `docs/facts.md`; the golden next-step order is in
 | S48 Admin/Connections/tool retirement       | `docs/feature-suites/admin-connections-tool-retirement.md`        | Spec — authorized; no Test Lab                        |
 | S49 Compatibility/code/QA retirement        | `docs/feature-suites/compatibility-code-qa-retirement.md`         | Spec — two-stage proof/delete                         |
 | S50 S37 builder recalibration               | `docs/feature-suites/nocode-builder-recalibration.md`             | Spec — controls S37 execution after baseline          |
-| S51 Production operational readiness        | `docs/feature-suites/production-operational-readiness.md`         | Spec — monitoring, incident, retention, suspend       |
+| S51 Production operational readiness        | `docs/feature-suites/production-operational-readiness.md`         | Local seam complete; protected/cloud/live parked      |
 | S52 Production cost governance              | `docs/feature-suites/production-cost-governance.md`               | Spec — replaces the retired flat cloud cap            |
 | S53 Green-light activation + gate integrity | `docs/feature-suites/greenlight-activation-and-gate-integrity.md` | Spec — named-key activation table                     |
-| S54 Verification and CI parity              | `docs/feature-suites/verification-and-ci-parity.md`               | S54.1 locally built; remote CI unobserved             |
+| S54 Verification and CI parity              | `docs/feature-suites/verification-and-ci-parity.md`               | S54.1 locally and remotely green                      |
 
 The prior working-app hardening remains deployed evidence. S40–S50 are a newly authorized target
 program, not a claim that the recalibrated UI or environment split is already built. Current

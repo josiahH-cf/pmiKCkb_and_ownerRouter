@@ -22,6 +22,7 @@ import {
   assertUnclaimedActionExecutionInTransaction,
   resolveClaimedNotApplicableFenceInTransaction,
 } from "@/lib/firestore/action-executions";
+import { stampProductRecordRetention } from "@/lib/operations/product-record-retention";
 import {
   LiveVendorLifecycleConflictError,
   LIVE_VENDOR_DISABLE_COMPLETION_LEASE_MS,
@@ -1999,10 +2000,15 @@ export class FirestoreLiveVendorLifecycleStore implements LiveVendorLifecycleSto
         input.command.operation === "assign"
           ? input.command.targetVendorRef
           : LIVE_VENDOR_NO_ASSIGNMENT_REF;
-      const updatedTicket: StoredTicketRecord = {
+      const ticketRewrite: StoredTicketRecord = {
         ...ticket,
         updated_at: input.nowIso,
       };
+      const updatedTicket: StoredTicketRecord = stampProductRecordRetention(
+        "maintenance_tickets",
+        ticketRewrite,
+        ticket,
+      );
       if (target === LIVE_VENDOR_NO_ASSIGNMENT_REF) {
         delete updatedTicket.vendor_id;
       } else {
@@ -2341,10 +2347,15 @@ export class FirestoreLiveVendorLifecycleStore implements LiveVendorLifecycleSto
             "The Vendor assignment ledger and maintenance tickets disagree.",
           );
         }
-        const ticket = {
-          ...assertLiveTicket(ticketSnapshot, snapshot.id),
-          updated_at: input.nowIso,
-        };
+        const currentTicket = assertLiveTicket(ticketSnapshot, snapshot.id);
+        const ticket = stampProductRecordRetention(
+          "maintenance_tickets",
+          {
+            ...currentTicket,
+            updated_at: input.nowIso,
+          },
+          currentTicket,
+        );
         delete ticket.vendor_id;
         transaction.set(this.ticketRef(snapshot.id), ticket);
         transaction.create(this.maintenanceActivityRef(record.id, snapshot.id), {

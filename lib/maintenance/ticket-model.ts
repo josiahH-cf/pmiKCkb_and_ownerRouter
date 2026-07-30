@@ -4,6 +4,7 @@
 // client bundle. The Firestore writer (lib/firestore/maintenance-tickets.ts) re-exports these.
 
 import type { DataMode } from "@/lib/data-mode";
+import type { ProductRecordRetentionFields } from "@/lib/operations/product-record-retention";
 
 export const MAINTENANCE_TICKET_STATUSES = [
   "Open",
@@ -44,7 +45,7 @@ export interface MaintenanceTicketReporter {
   contact?: string;
 }
 
-export interface MaintenanceTicketRecord {
+export interface MaintenanceTicketRecord extends Partial<ProductRecordRetentionFields> {
   id: string;
   /** Explicit record lane. Legacy records without this field normalize to Live at read time. */
   data_mode: DataMode;

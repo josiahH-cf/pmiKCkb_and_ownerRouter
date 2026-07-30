@@ -1,6 +1,6 @@
 # PMI KC Working-App V1 Plan
 
-Last updated: 2026-07-29
+Last updated: 2026-07-30
 
 ## Release Contract
 
@@ -279,8 +279,13 @@ S52-I/J and its fail-closed print-only planner prerequisite are locally complete
 kernel plus the unprotected store, Admin route/panel, value-free audit, execution-path wiring, and
 provider/script refusal sentinels are locally complete. S51's explicit A2 logger plus print-only
 four-policy/one-channel monitoring bundle and GET-only verifier are also locally complete. The
-protected Firestore Rules hunk and cloud application remain parked; incident, retention, rehearsal,
-log-hygiene, and direct-Gmail A2 reachability work remain. No provider capability has been activated.
+reply/watch A2 seam, rollback rehearsal, incident/fallback contract, six-collection product-record
+retention, six-flag pilot capacity pin, and checked log-hygiene/monitoring owner packet complete
+S51's dependency-safe local specification. The protected Firestore Rules hunk, owner-run cloud
+application, and fresh live rehearsal remain parked. The exact remaining Gmail portfolio work —
+`gmail.label.apply`, `gmail.renewal_notice.draft_create`, and
+`gmail.maintenance_owner_notice.draft_create` — is transferred to those actions' canonical
+one-attempt contract slices. No provider capability has been activated.
 
 Program:
 
@@ -293,8 +298,9 @@ Program:
   S53 sender/config integrity → S53 Admin-reachable Vendor lifecycle seam → S52 read-only
   baseline/prerequisites → S51 close-only kernel → S51 store/route/audit and gated-effect
   execution-path readiness → S51 A2/monitoring definitions → S51
-  incident/retention/rehearsal/log-hygiene definitions plus direct-Gmail A2 reachability → activate
-  S52/S51 infrastructure when their named dependencies are satisfied → land
+  reply/watch A2 plus incident/retention/rehearsal/capacity/log-hygiene local completion →
+  S25's canonical Gmail label action contract, then the renewal/maintenance draft action contracts →
+  activate S52/S51 infrastructure when their named dependencies are satisfied → land
   S40's environment-parameterized zero-traffic candidate/smoke/promotion release-safety slice →
   routine deploy/live verification when auth and cost gates are green → resume the remaining S40
   environment/data work and dependency-ready suite flow. Protected-path changes are parked for

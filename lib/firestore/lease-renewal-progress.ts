@@ -42,6 +42,7 @@ import {
   type RenewalProgress,
   type RenewalProgressPlan,
 } from "@/lib/lease-renewal/renewal-progress";
+import { stampProductRecordRetention } from "@/lib/operations/product-record-retention";
 
 export {
   LEASE_RENEWAL_PROGRESS_COLLECTIONS,
@@ -203,38 +204,42 @@ async function applyTransition(
     // Full set (no merge) so a re-recorded decision never leaves a stale draft id or charges behind.
     transaction.set(
       ref,
-      stripUndefined({
-        id: docId,
-        lease_id: trimmedLeaseId,
-        stage_index: next.stageIndex,
-        owner_decision: next.ownerDecision
-          ? stripUndefined({
-              decision: next.ownerDecision.decision,
-              offered_rent: next.ownerDecision.offeredRent,
-              charges: next.ownerDecision.charges,
-              info_form_url: next.ownerDecision.infoFormUrl,
-              market: next.ownerDecision.market
-                ? stripUndefined({
-                    zillow_low: next.ownerDecision.market.zillowLow,
-                    zillow_high: next.ownerDecision.market.zillowHigh,
-                    pmi_number: next.ownerDecision.market.pmiNumber,
-                    comps_url: next.ownerDecision.market.compsUrl,
-                    comp_screenshot_ref: attachment?.ref,
-                    comp_screenshot_execution_id: attachment?.executionId,
-                    comp_screenshot_receipt_id: attachment?.receiptId,
-                    comp_screenshot_result_hash: attachment?.resultHash,
-                    comp_source: next.ownerDecision.market.compSource,
-                    comp_retrieved_at: next.ownerDecision.market.compRetrievedAt,
-                  })
-                : undefined,
-            })
-          : undefined,
-        tenant_offer_draft_id: next.tenantOfferDraftId ?? undefined,
-        complete: next.complete,
-        updated_by_uid: actor.uid,
-        created_at: createdAt,
-        updated_at: FieldValue.serverTimestamp(),
-      }),
+      stampProductRecordRetention(
+        "lease_renewal_progress",
+        stripUndefined({
+          id: docId,
+          lease_id: trimmedLeaseId,
+          stage_index: next.stageIndex,
+          owner_decision: next.ownerDecision
+            ? stripUndefined({
+                decision: next.ownerDecision.decision,
+                offered_rent: next.ownerDecision.offeredRent,
+                charges: next.ownerDecision.charges,
+                info_form_url: next.ownerDecision.infoFormUrl,
+                market: next.ownerDecision.market
+                  ? stripUndefined({
+                      zillow_low: next.ownerDecision.market.zillowLow,
+                      zillow_high: next.ownerDecision.market.zillowHigh,
+                      pmi_number: next.ownerDecision.market.pmiNumber,
+                      comps_url: next.ownerDecision.market.compsUrl,
+                      comp_screenshot_ref: attachment?.ref,
+                      comp_screenshot_execution_id: attachment?.executionId,
+                      comp_screenshot_receipt_id: attachment?.receiptId,
+                      comp_screenshot_result_hash: attachment?.resultHash,
+                      comp_source: next.ownerDecision.market.compSource,
+                      comp_retrieved_at: next.ownerDecision.market.compRetrievedAt,
+                    })
+                  : undefined,
+              })
+            : undefined,
+          tenant_offer_draft_id: next.tenantOfferDraftId ?? undefined,
+          complete: next.complete,
+          updated_by_uid: actor.uid,
+          created_at: createdAt,
+          updated_at: FieldValue.serverTimestamp(),
+        }),
+        snapshot.data(),
+      ),
     );
 
     const activityId = uuidv7();

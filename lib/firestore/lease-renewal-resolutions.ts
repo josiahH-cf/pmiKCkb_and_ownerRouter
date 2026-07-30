@@ -33,6 +33,7 @@ import {
   DECISION_REASON_CODES,
   DECISION_REASON_CODE_LABELS,
 } from "@/lib/lease-renewal/reason-codes";
+import { stampProductRecordRetention } from "@/lib/operations/product-record-retention";
 
 export const LEASE_RENEWAL_COLLECTIONS = {
   resolutions: "lease_renewal_resolutions",
@@ -262,25 +263,29 @@ export async function resolveLeaseRenewalFlag(
     // Full set (no merge) so a re-resolution never leaves a stale proposed_writeback behind.
     transaction.set(
       ref,
-      stripUndefined({
-        id: docId,
-        source_trigger_key: flag.source_trigger_key,
-        run_id: flag.run_id,
-        property_key: flag.property_key,
-        field_key: flag.field_key,
-        field_label: flag.field_label,
-        severity: flag.severity,
-        status: plan.status,
-        resolution_kind: plan.resolution_kind,
-        chosen_source: plan.chosen_source,
-        corrected_value: plan.corrected_value,
-        reason,
-        reason_code: parsed.reason_code,
-        resolved_by_uid: actor.uid,
-        proposed_writeback: plan.proposed_writeback,
-        created_at: createdAt,
-        updated_at: FieldValue.serverTimestamp(),
-      }),
+      stampProductRecordRetention(
+        "lease_renewal_resolutions",
+        stripUndefined({
+          id: docId,
+          source_trigger_key: flag.source_trigger_key,
+          run_id: flag.run_id,
+          property_key: flag.property_key,
+          field_key: flag.field_key,
+          field_label: flag.field_label,
+          severity: flag.severity,
+          status: plan.status,
+          resolution_kind: plan.resolution_kind,
+          chosen_source: plan.chosen_source,
+          corrected_value: plan.corrected_value,
+          reason,
+          reason_code: parsed.reason_code,
+          resolved_by_uid: actor.uid,
+          proposed_writeback: plan.proposed_writeback,
+          created_at: createdAt,
+          updated_at: FieldValue.serverTimestamp(),
+        }),
+        snapshot.data(),
+      ),
     );
 
     const activityId = uuidv7();

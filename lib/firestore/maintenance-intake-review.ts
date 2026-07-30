@@ -36,6 +36,7 @@ import type {
 } from "@/lib/maintenance/ticket-model";
 import { MAINTENANCE_TEST_UNIT } from "@/lib/maintenance/test-workflow";
 import { inferPriority } from "@/lib/maintenance/work-order-draft";
+import { stampProductRecordRetention } from "@/lib/operations/product-record-retention";
 
 /** Label that marks a promoted intake's ticket as still needing unit/detail verification. */
 export const NEEDS_VERIFICATION_LABEL = "Needs Verification";
@@ -147,34 +148,37 @@ export async function promoteUnverifiedIntake(
       intake.data_mode === "test" ? MAINTENANCE_TEST_UNIT : (parsed.unit ?? null);
 
     const ticketId = uuidv7();
-    const ticket: MaintenanceTicketRecord = {
-      id: ticketId,
-      data_mode: intake.data_mode,
-      status: "Open",
-      priority,
-      priority_provenance: provenance,
-      summary: intake.summary,
-      description: intake.description,
-      unit: confirmedUnit,
-      photo_refs: [],
-      reporter: {
-        kind: "external",
-        ...(intake.contact ? { contact: intake.contact } : {}),
+    const ticket: MaintenanceTicketRecord = stampProductRecordRetention(
+      MAINTENANCE_TICKET_COLLECTIONS.tickets,
+      {
+        id: ticketId,
+        data_mode: intake.data_mode,
+        status: "Open" as const,
+        priority,
+        priority_provenance: provenance,
+        summary: intake.summary,
+        description: intake.description,
+        unit: confirmedUnit,
+        photo_refs: [],
+        reporter: {
+          kind: "external" as const,
+          ...(intake.contact ? { contact: intake.contact } : {}),
+        },
+        labels:
+          intake.data_mode === "test"
+            ? ["TEST DATA"]
+            : confirmedUnit
+              ? []
+              : [NEEDS_VERIFICATION_LABEL],
+        space_id: "maintenance-work-order-intake",
+        source_trigger_key:
+          intake.data_mode === "test"
+            ? `maintenance:test:intake:${intake.id}`
+            : `maintenance:intake:${intake.id}`,
+        created_at: timestamp,
+        updated_at: timestamp,
       },
-      labels:
-        intake.data_mode === "test"
-          ? ["TEST DATA"]
-          : confirmedUnit
-            ? []
-            : [NEEDS_VERIFICATION_LABEL],
-      space_id: "maintenance-work-order-intake",
-      source_trigger_key:
-        intake.data_mode === "test"
-          ? `maintenance:test:intake:${intake.id}`
-          : `maintenance:intake:${intake.id}`,
-      created_at: timestamp,
-      updated_at: timestamp,
-    };
+    );
     const ticketActivity: MaintenanceTicketActivityRecord = {
       id: uuidv7(),
       ticket_id: ticketId,

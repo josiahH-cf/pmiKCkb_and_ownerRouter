@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 import {
   CHEAP_LIVE_MODEL,
@@ -34,7 +36,17 @@ import {
   launchSkeletonDeleteFieldsFor,
 } from "../../scripts/seed-launch-skeletons.mjs";
 import { validateProductionCutoverConfig } from "../../scripts/preflight-production-cutover.mjs";
-import { buildDemoResetRecords, demoRecords } from "../../scripts/demo-firestore.mjs";
+import {
+  buildDemoRecordWriteData,
+  buildDemoResetRecords,
+  DEMO_PRODUCT_RECORD_RETENTION_CLASS,
+  DEMO_PRODUCT_RECORD_RETENTION_POLICY,
+  demoRecords,
+} from "../../scripts/demo-firestore.mjs";
+import {
+  PRODUCT_RECORD_RETENTION_CLASS,
+  PRODUCT_RECORD_RETENTION_POLICY,
+} from "../../lib/operations/product-record-retention";
 
 const oneSpaceMap = JSON.stringify({ "lease-renewals": "configured-id" });
 const multiSpaceMap = JSON.stringify({
@@ -86,6 +98,10 @@ const deployEnv = (overrides = {}) => ({
   SPACE_VERTEX_DATA_STORE_IDS: oneSpaceMap,
   ...overrides,
 });
+const productionCapacityRecord = readFileSync(
+  new URL("../../docs/production-capacity-and-pilot.md", import.meta.url),
+  "utf8",
+);
 
 describe("cheap live setup scripts", () => {
   it("accepts the one-Space Flash live config", () => {
@@ -184,8 +200,20 @@ describe("cheap live setup scripts", () => {
     });
 
     expect(command.ok).toBe(true);
-    expect(command.args).toContain("--min-instances=0");
-    expect(command.args).toContain("--max-instances=1");
+    expect(
+      command.args.filter((argument) =>
+        /^(?:--min-instances|--max-instances|--memory|--cpu|--concurrency|--timeout)=/.test(
+          argument,
+        ),
+      ),
+    ).toEqual([
+      "--min-instances=0",
+      "--max-instances=1",
+      "--memory=512Mi",
+      "--cpu=1",
+      "--concurrency=10",
+      "--timeout=60",
+    ]);
     expect(command.args).toContain("--no-invoker-iam-check");
     expect(command.args).toContain(`--revision-suffix=${revisionSuffix}`);
     expect(command.revision).toBe(revision);
@@ -212,6 +240,28 @@ describe("cheap live setup scripts", () => {
     expect(secretsFlag).toContain("RENTVINE_API_KEY=RENTVINE_API_KEY:latest");
     expect(secretsFlag).toContain("RENTVINE_API_SECRET=RENTVINE_API_SECRET:latest");
     expect(secretsFlag).not.toContain("MAINTENANCE_INTAKE_TOKEN_SECRET=");
+  });
+
+  it("pins the accepted Production capacity and bounded-pilot contract", () => {
+    const normalizedRecord = productionCapacityRecord.replace(/\s+/g, " ");
+    for (const expected of [
+      "--min-instances=0 --max-instances=1 --memory=512Mi --cpu=1 --concurrency=10 --timeout=60",
+      "one instance, one CPU, 512 MiB of memory, and ten concurrent in-flight requests",
+      "one named property set or the next renewal cohort",
+      "two to four weeks",
+      "sustained request queueing or saturation-attributable 5xx on A1 during normal pilot use",
+      "any expansion of scope past the named cohort",
+      "--max-instances=N` multiplies both in-memory, per-instance limiters by N",
+      "re-review the S52 cost ceiling",
+      "lib/maintenance/intake-rate-limit.ts",
+      "lib/api/model-call-throttle.ts",
+    ]) {
+      expect(normalizedRecord).toContain(expected);
+    }
+    expect(normalizedRecord).toContain("move coordination to a shared backing store");
+    expect(normalizedRecord).toContain(
+      "explicitly accept and document the N-times effective limits",
+    );
   });
 
   it("rejects a blank transactional sender even when legacy approval digests are disabled", () => {
@@ -1256,6 +1306,42 @@ describe("cheap live setup scripts", () => {
     expect(
       demoRecords.filter((record) => record.collection === "approval_queue_activity"),
     ).toHaveLength(4);
+  });
+
+  it("keeps Demo Approval Queue writes on the product-retention contract and preserves holds", () => {
+    expect(DEMO_PRODUCT_RECORD_RETENTION_POLICY).toBe(PRODUCT_RECORD_RETENTION_POLICY);
+    expect(DEMO_PRODUCT_RECORD_RETENTION_CLASS).toBe(PRODUCT_RECORD_RETENTION_CLASS);
+    const queueRecords = demoRecords.filter(
+      (record) => record.collection === "approval_queue_items",
+    );
+    expect(queueRecords).toHaveLength(4);
+    expect(
+      queueRecords.every(
+        (record) =>
+          record.data.product_retention_policy === PRODUCT_RECORD_RETENTION_POLICY &&
+          record.data.product_retention_class === PRODUCT_RECORD_RETENTION_CLASS &&
+          record.data.legal_hold === false,
+      ),
+    ).toBe(true);
+
+    const record = queueRecords[0];
+    const held = buildDemoRecordWriteData(record, "2026-07-30T12:00:00.000Z", {
+      ...record.data,
+      created_at: "2026-07-29T12:00:00.000Z",
+      legal_hold: true,
+    });
+    expect(held).toMatchObject({
+      created_at: "2026-07-29T12:00:00.000Z",
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
+      legal_hold: true,
+    });
+
+    expect(() =>
+      buildDemoRecordWriteData(record, "2026-07-30T12:00:00.000Z", {
+        product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      }),
+    ).toThrow("Current product retention state is malformed");
   });
 
   it("keeps queue demo Activity append-style and out of generic change logs", () => {

@@ -31,6 +31,7 @@ import type {
   QueueItemType,
   QueueRiskLevel,
 } from "@/lib/firestore/types";
+import { stampProductRecordRetention } from "@/lib/operations/product-record-retention";
 
 const COLLECTIONS = {
   queueItems: "approval_queue_items",
@@ -202,18 +203,21 @@ export async function createApprovalQueueItem(
     const id = uuidv7();
     const closedDuplicate = existing.find((item) => isTerminal(item.status));
 
-    const newItem = stripUndefined({
-      id,
-      ...stripUndefined({
-        ...rest,
-        risk,
-        status,
-        audience_group: audienceGroup,
-        supersedes_item_id: closedDuplicate?.id,
-        // F-APPR-5: stamp the requester so the detail view can show who to route back to.
-        created_by_uid: actor.uid,
+    const newItem = stampProductRecordRetention(
+      "approval_queue_items",
+      stripUndefined({
+        id,
+        ...stripUndefined({
+          ...rest,
+          risk,
+          status,
+          audience_group: audienceGroup,
+          supersedes_item_id: closedDuplicate?.id,
+          // F-APPR-5: stamp the requester so the detail view can show who to route back to.
+          created_by_uid: actor.uid,
+        }),
       }),
-    }) as Omit<ApprovalQueueItemRecord, "created_at" | "updated_at">;
+    ) as Omit<ApprovalQueueItemRecord, "created_at" | "updated_at">;
 
     transaction.set(itemRef(db, id), {
       ...newItem,

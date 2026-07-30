@@ -394,6 +394,9 @@ describe("lease-renewal-progress store", () => {
       stage_index: RENEWAL_STAGE.tenant,
       owner_decision: { decision: "increase", offered_rent: 1300 },
       complete: false,
+      product_retention_policy: "product-record-retention:v1.0",
+      product_retention_class: "indefinite",
+      legal_hold: false,
       updated_by_uid: "editor-1",
     });
 
@@ -587,6 +590,31 @@ describe("lease-renewal-progress store", () => {
       db as unknown as Firestore,
     );
     expect(progress?.ownerDecision).toEqual({ decision: "keep_same", offeredRent: 1200 });
+  });
+
+  it("preserves a legal hold across a full progress rewrite", async () => {
+    const db = new ProgressTestFirestore();
+    await recordOwnerDecision(
+      editor,
+      LEASE_ID,
+      { decision: "increase", offeredRent: 1300 },
+      db as unknown as Firestore,
+    );
+    const path = `${LEASE_RENEWAL_PROGRESS_COLLECTIONS.progress}/${progressDocId(LEASE_ID)}`;
+    db.store.set(path, { ...db.store.get(path)!, legal_hold: true });
+
+    await recordOwnerDecision(
+      editor,
+      LEASE_ID,
+      { decision: "custom", offeredRent: 1275 },
+      db as unknown as Firestore,
+    );
+
+    expect(db.store.get(path)).toMatchObject({
+      product_retention_policy: "product-record-retention:v1.0",
+      product_retention_class: "indefinite",
+      legal_hold: true,
+    });
   });
 
   it("stamps the tenant-offer draft id and advances to Build; a re-recorded decision clears it", async () => {

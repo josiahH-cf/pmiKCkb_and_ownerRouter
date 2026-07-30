@@ -336,6 +336,9 @@ describe("workflow foundation repository", () => {
     expect(run).toMatchObject({
       due_date: "2026-07-01",
       is_test_run: true,
+      legal_hold: false,
+      product_retention_class: "indefinite",
+      product_retention_policy: "product-record-retention:v1.0",
       production_metrics_included: false,
       simulation_only: true,
       status: "In Progress",

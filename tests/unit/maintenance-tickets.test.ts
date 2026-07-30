@@ -18,6 +18,10 @@ import {
   MAINTENANCE_TEST_CONFIRMATION,
   MAINTENANCE_TEST_VENDOR,
 } from "@/lib/maintenance/test-workflow";
+import {
+  PRODUCT_RECORD_RETENTION_CLASS,
+  PRODUCT_RECORD_RETENTION_POLICY,
+} from "@/lib/operations/product-record-retention";
 
 // Minimal in-memory Firestore matching the Admin-SDK surface the writer uses (doc get/set, collection
 // get). The writer stores plain ISO-string records (no serverTimestamp), so this fake is faithful.
@@ -161,7 +165,19 @@ describe("maintenance tickets", () => {
     expect(ticket.data_mode).toBe("live");
     expect(ticket.priority).toBe("Emergency");
     expect(ticket.reporter).toEqual({ kind: "staff", uid: "editor-1" });
+    expect(ticket).toMatchObject({
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
+      legal_hold: false,
+    });
     expect(store.get(MAINTENANCE_TICKET_COLLECTIONS.tickets)?.size).toBe(1);
+    expect(
+      store.get(MAINTENANCE_TICKET_COLLECTIONS.tickets)?.get(ticket.id),
+    ).toMatchObject({
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
+      legal_hold: false,
+    });
 
     const activity = await listMaintenanceTicketActivity(editor, ticket.id, db);
     expect(activity).toHaveLength(1);
@@ -183,6 +199,30 @@ describe("maintenance tickets", () => {
     expect(persisted?.status).toBe("Waiting on Vendor");
     const activity = await listMaintenanceTicketActivity(editor, ticket.id, db);
     expect(activity.map((a) => a.action)).toEqual(["create", "status"]);
+  });
+
+  it("preserves an existing product-record legal hold during a transition", async () => {
+    const { db, store } = fakeDb();
+    const ticket = await createMaintenanceTicket(editor, baseInput, db);
+    const tickets = store.get(MAINTENANCE_TICKET_COLLECTIONS.tickets)!;
+    tickets.set(ticket.id, {
+      ...tickets.get(ticket.id)!,
+      legal_hold: true,
+    });
+
+    const updated = await transitionMaintenanceTicket(
+      editor,
+      ticket.id,
+      { op: "status", status: "Waiting on Vendor" },
+      db,
+    );
+
+    expect(updated).toMatchObject({
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
+      legal_hold: true,
+    });
+    expect(tickets.get(ticket.id)).toMatchObject({ legal_hold: true });
   });
 
   it("requires a reason to close, and records it", async () => {
@@ -353,8 +393,38 @@ describe("maintenance tickets", () => {
       db,
     );
     expect(
-      store.get(MAINTENANCE_TICKET_COLLECTIONS.tickets)?.get("legacy")?.data_mode,
-    ).toBe("live");
+      store.get(MAINTENANCE_TICKET_COLLECTIONS.tickets)?.get("legacy"),
+    ).toMatchObject({
+      data_mode: "live",
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
+      legal_hold: false,
+    });
+  });
+
+  it("refuses a transition when the persisted product-retention state is partial", async () => {
+    const { db, store } = fakeDb();
+    const ticket = await createMaintenanceTicket(editor, baseInput, db);
+    const tickets = store.get(MAINTENANCE_TICKET_COLLECTIONS.tickets)!;
+    const persisted = tickets.get(ticket.id)!;
+    tickets.set(ticket.id, {
+      ...persisted,
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: undefined,
+      legal_hold: true,
+    });
+    const before = snapshotStore(store);
+
+    await expect(
+      transitionMaintenanceTicket(
+        editor,
+        ticket.id,
+        { op: "note", text: "Must not rewrite malformed retention." },
+        db,
+      ),
+    ).rejects.toThrow("Current product retention state is malformed");
+
+    expect(snapshotStore(store)).toBe(before);
   });
 
   it.each([

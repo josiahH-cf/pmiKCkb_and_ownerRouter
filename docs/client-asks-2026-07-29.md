@@ -51,7 +51,7 @@ The activation-only owner inputs below are equally real even when they are not v
 | Owner input / decision | Exact value still required                                                                                                                                                                                                                                | Scope                       |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
 | S40 / D11              | Dedicated Demo project id + number, region, Firestore database, storage, Pub/Sub, runtime identity, Firebase Auth project/domain, KB corpus ids, OAuth origin/audience, and rollback-safe migration approval                                              | Environment cutover         |
-| S51 / D13              | Internal managed operator notification destination                                                                                                                                                                                                        | Monitoring activation       |
+| S51 / D13              | Internal managed operator notification destination; the redacted `docs/s51-production-operations-owner-packet-2026-07-30.md` is ready but was **NOT RUN**                                                                                                 | Monitoring activation       |
 | S52 / D01              | Measured baseline, alert threshold, hard-stop ceiling, and disposition of `adept-primacy-499822-d7`                                                                                                                                                       | Any cost-bearing cloud step |
 | S53 / D29              | Exact managed `KB_APPROVAL_SENDER`, if it cannot be recovered from approved non-secret config                                                                                                                                                             | Internal notices            |
 | S53 / D30              | Maintenance intake token secret and IP-hash salt in Secret Manager plus runtime access binding                                                                                                                                                            | Resident intake activation  |
@@ -63,7 +63,8 @@ The activation-only owner inputs below are equally real even when they are not v
 
 Before any command below that reads live Google state or mutates cloud configuration, run
 `npm run preflight:adc`. If it fails, the owner runs `npm run auth:session` interactively and reruns
-the preflight. A stale token never authorizes a personal-account workaround.
+the preflight. As of 2026-07-30, both the managed CLI token and ADC token require that refresh. A
+stale token never authorizes a personal-account workaround.
 
 D38, D39 go out as **one** message. D45, D52, D53, D54, D55, D21 and the D57 confirmation can go to
 Dan as **one** batch. D58 is deliberately held until after our own re-derivation — see item 8.

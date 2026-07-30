@@ -9,6 +9,11 @@ vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { DRAFT_BANNER } from "@/lib/constants";
+import {
+  assertLiveProviderActionAllowed,
+  requireEnvironmentDescriptor,
+  type EnvironmentDescriptor,
+} from "@/lib/environment/descriptor";
 import { hashConfirmationToken } from "@/lib/gmail-hub/contracts";
 import { WORKFLOW_REPLY_POLICY_REF } from "@/lib/gmail-hub/governed-artifacts";
 import { communicationsRetentionFields } from "@/lib/gmail-hub/retention-policy";
@@ -48,6 +53,33 @@ const actor: AuthenticatedUser = {
   hd: "pmikcmetro.com",
   role: "Approver",
 };
+
+const demoDescriptor: EnvironmentDescriptor = {
+  environmentKind: "demo",
+  dataContext: "demo",
+  source: "explicit",
+};
+const liveReadonlyDescriptor: EnvironmentDescriptor = {
+  environmentKind: "demo",
+  dataContext: "live_readonly",
+  source: "explicit",
+};
+const EFFECT_ENVIRONMENT_REFUSALS = [
+  {
+    name: "Demo",
+    assert: () => assertLiveProviderActionAllowed(demoDescriptor),
+  },
+  {
+    name: "Live read-only",
+    assert: () => assertLiveProviderActionAllowed(liveReadonlyDescriptor),
+  },
+  {
+    name: "an invalid descriptor",
+    assert: () => {
+      requireEnvironmentDescriptor({ ENVIRONMENT_KIND: "production" });
+    },
+  },
+] as const;
 
 function context(actionKey: string): WorkflowCommunicationContext {
   return {
@@ -217,6 +249,7 @@ function service(
     token?: string;
     gates?: readonly string[];
     approveTemplates?: boolean;
+    assertEffectEnvironment?: () => void;
     assertRuntimeActionExecutable?: (action: string) => Promise<void>;
   } = {},
 ) {
@@ -258,6 +291,7 @@ function service(
     hub: new GmailHubService(actor, {
       createClient,
       store,
+      assertEffectEnvironment: options.assertEffectEnvironment ?? (() => undefined),
       assertRuntimeActionExecutable:
         options.assertRuntimeActionExecutable ??
         (async (action) => {
@@ -293,6 +327,7 @@ describe("GmailHubService connection", () => {
     const hub = new GmailHubService(actor, {
       createClient: () => client,
       store: new MemoryGmailStateStore(),
+      assertEffectEnvironment: () => undefined,
       assertRuntimeActionExecutable: async (action) => {
         if (!isActionExecutable(action)) throw new GmailHubGateError(action);
       },
@@ -333,6 +368,30 @@ describe("GmailHubService watch confirmation", () => {
       ).rejects.toBeInstanceOf(ActionRuntimeSuspendedError);
       expect(createClient).not.toHaveBeenCalled();
       expect(store.mailboxStates.size).toBe(0);
+    },
+  );
+
+  it.each(EFFECT_ENVIRONMENT_REFUSALS)(
+    "refuses $name before a watch claim or provider construction",
+    async ({ assert }) => {
+      const assertEffectEnvironment = vi.fn(assert);
+      const { hub, createClient, store } = service({
+        now: () => 1_000_000,
+        assertEffectEnvironment,
+      });
+
+      await expect(
+        hub.watchMailbox({
+          topicName,
+          attemptKey,
+          observedExpirationMs: null,
+        }),
+      ).rejects.toThrow();
+
+      expect(assertEffectEnvironment).toHaveBeenCalledOnce();
+      expect(createClient).not.toHaveBeenCalled();
+      expect(store.mailboxStates.size).toBe(0);
+      expect(store.audit).toEqual([]);
     },
   );
 
@@ -422,6 +481,7 @@ describe("GmailHubService draft gate", () => {
     const hub = new GmailHubService(actor, {
       createClient: () => client,
       store: new MemoryGmailStateStore(),
+      assertEffectEnvironment: () => undefined,
       assertRuntimeActionExecutable: async (action) => {
         if (!isActionExecutable(action)) throw new GmailHubGateError(action);
       },
@@ -476,6 +536,37 @@ describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
       expect(createClient).not.toHaveBeenCalled();
       expect(client.sendCalls).toBe(0);
       expect(store.confirmations.get(confirmationId)?.state).toBe("pending");
+    },
+  );
+
+  it.each(EFFECT_ENVIRONMENT_REFUSALS)(
+    "refuses $name before a confirmation claim or provider construction",
+    async ({ assert }) => {
+      const store = new MemoryGmailStateStore();
+      const preparedService = service({
+        store,
+        token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      });
+      const prepared = await preparedService.hub.prepareSendConfirmation(
+        reply("Exact body"),
+      );
+      const confirmationId = hashConfirmationToken(prepared.confirmationToken);
+      const auditCountBefore = store.audit.length;
+      const createClient = vi.fn(() => preparedService.client);
+      const assertEffectEnvironment = vi.fn(assert);
+      const refused = new GmailHubService(actor, {
+        createClient,
+        store,
+        assertEffectEnvironment,
+        assertRuntimeActionExecutable: async () => undefined,
+      });
+
+      await expect(refused.sendConfirmed(prepared)).rejects.toThrow();
+
+      expect(assertEffectEnvironment).toHaveBeenCalledOnce();
+      expect(createClient).not.toHaveBeenCalled();
+      expect(store.confirmations.get(confirmationId)?.state).toBe("pending");
+      expect(store.audit).toHaveLength(auditCountBefore);
     },
   );
 
@@ -704,10 +795,14 @@ describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
     const assertRuntimeActionExecutable = vi.fn(async () => {
       throw new ActionRuntimeSuspendedError("gmail.thread.reply");
     });
+    const assertEffectEnvironment = vi.fn(() => {
+      throw new Error("Effect preflight must not block reconciliation.");
+    });
     const createClient = vi.fn(() => client);
     const suspended = new GmailHubService(actor, {
       createClient,
       store,
+      assertEffectEnvironment,
       assertRuntimeActionExecutable,
       createToken: () => "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       isApprovedWorkflowTemplate: () => true,
@@ -717,6 +812,7 @@ describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
       suspended.prepareSendConfirmation(reply("Do not duplicate")),
     ).rejects.toBeInstanceOf(GmailAmbiguousSendError);
     expect(assertRuntimeActionExecutable).not.toHaveBeenCalled();
+    expect(assertEffectEnvironment).not.toHaveBeenCalled();
     expect(createClient).toHaveBeenCalledTimes(1);
     expect(client.sendCalls).toBe(1);
   });
@@ -1047,6 +1143,7 @@ describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
     const hub = new GmailHubService(actor, {
       createClient: () => client,
       store: new MemoryGmailStateStore(),
+      assertEffectEnvironment: () => undefined,
       assertRuntimeActionExecutable: async () => undefined,
     });
     await expect(hub.connection()).rejects.toThrow("did not match the signed-in user");

@@ -2,10 +2,22 @@
 // idempotency, watch cursor advancement, and Pub/Sub replay dedupe. No method accepts a body, raw MIME,
 // attachment, prompt, or bearer token.
 
+import { createHash } from "node:crypto";
+
 import type { Firestore } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 
 import { getAdminFirestore } from "@/lib/firestore/admin";
+import {
+  GMAIL_HUB_ACTIONS,
+  GMAIL_WATCH_GOVERNING_ACTION_KEY,
+} from "@/lib/gmail-hub/action-keys";
+import {
+  bodylessRetentionAuditFields,
+  communicationsRetentionFields,
+  refreshCommunicationsRetention,
+  type CommunicationsRetentionFields,
+} from "@/lib/gmail-hub/retention-policy";
 import {
   linkMatchesContext,
   type WorkflowCommunicationContext,
@@ -13,11 +25,12 @@ import {
 } from "@/lib/gmail-hub/workflow-context";
 import type { GmailSendResult } from "@/lib/gmail-runtime/types";
 import {
-  bodylessRetentionAuditFields,
-  communicationsRetentionFields,
-  refreshCommunicationsRetention,
-  type CommunicationsRetentionFields,
-} from "@/lib/gmail-hub/retention-policy";
+  createLiveEffectAttentionEvent,
+  emitLiveEffectAttentionSafely,
+  emitLiveEffectRequiresAttention,
+  type LiveEffectAttentionEmitter,
+  type LiveEffectAttentionEvent,
+} from "@/lib/operations/live-effect-attention-log";
 
 export const GMAIL_STATE_COLLECTIONS = {
   confirmations: "gmail_send_confirmations",
@@ -28,6 +41,12 @@ export const GMAIL_STATE_COLLECTIONS = {
   workflowLinks: "gmail_workflow_communications",
   workflowAudit: "gmail_workflow_communication_audit",
 } as const;
+
+export interface FirestoreGmailStateStoreOptions {
+  db?: Firestore;
+  dataMode: "live" | "test";
+  emitAttention?: LiveEffectAttentionEmitter;
+}
 
 export type GmailMessageKind = "new" | "reply";
 export type GmailConfirmationState =
@@ -88,6 +107,11 @@ export type ClaimWatchAttemptResult =
       status: "completed" | "in_progress" | "ambiguous" | "stale_preview";
       state: GmailMailboxState;
     };
+
+interface WatchClaimTransactionResult {
+  claim: ClaimWatchAttemptResult;
+  attention: Readonly<LiveEffectAttentionEvent> | null;
+}
 
 const GMAIL_WATCH_ATTEMPT_STALE_MS = 5 * 60 * 1_000;
 
@@ -311,7 +335,15 @@ export interface GmailStateStore {
 }
 
 export class FirestoreGmailStateStore implements GmailStateStore {
-  constructor(private readonly db: Firestore = getAdminFirestore()) {}
+  private readonly db: Firestore;
+  private readonly dataMode: "live" | "test";
+  private readonly emitAttention: LiveEffectAttentionEmitter;
+
+  constructor(options: FirestoreGmailStateStoreOptions) {
+    this.db = options.db ?? getAdminFirestore();
+    this.dataMode = options.dataMode;
+    this.emitAttention = options.emitAttention ?? emitLiveEffectRequiresAttention;
+  }
 
   async createConfirmation(record: GmailConfirmationRecord): Promise<void> {
     const ref = this.db.collection(GMAIL_STATE_COLLECTIONS.confirmations).doc(record.id);
@@ -505,18 +537,29 @@ export class FirestoreGmailStateStore implements GmailStateStore {
     nowMs: number;
   }): Promise<void> {
     const ref = this.db.collection(GMAIL_STATE_COLLECTIONS.confirmations).doc(input.id);
-    await this.db.runTransaction(async (transaction) => {
+    const attention = await this.db.runTransaction(async (transaction) => {
       const snapshot = await transaction.get(ref);
-      if (!snapshot.exists) return;
+      if (!snapshot.exists) return null;
       const record = snapshot.data() as GmailConfirmationRecord;
-      if (record.actor_uid !== input.actorUid || record.state === "sent") return;
+      if (record.actor_uid !== input.actorUid || record.state !== "sending") {
+        return null;
+      }
       const next = { ...record, state: input.state, updated_at_ms: input.nowMs };
       transaction.set(ref, next);
       transaction.create(
         this.db.collection(GMAIL_STATE_COLLECTIONS.sendAudit).doc(uuidv7()),
         sendAudit(next, `send_${input.state}`, input.nowMs),
       );
+      return createLiveEffectAttentionEvent({
+        actionKey: GMAIL_HUB_ACTIONS.reply,
+        executionId: opaqueGmailExecutionId("reply", record.id),
+        state: input.state,
+        dataMode: this.dataMode,
+      });
     });
+    if (attention) {
+      await emitLiveEffectAttentionSafely(this.emitAttention, attention);
+    }
   }
 
   async saveMailboxState(state: GmailMailboxState): Promise<void> {
@@ -559,20 +602,63 @@ export class FirestoreGmailStateStore implements GmailStateStore {
     const ref = this.db
       .collection(GMAIL_STATE_COLLECTIONS.mailboxState)
       .doc(mailboxDocId(input.mailboxEmail));
-    return this.db.runTransaction(async (transaction) => {
-      const snapshot = await transaction.get(ref);
-      const current = snapshot.exists
-        ? (snapshot.data() as GmailMailboxState)
-        : undefined;
-      if (current && current.user_uid !== input.actorUid) {
-        throw new GmailStateError("Gmail watch belongs to another user.", 403);
-      }
-      const currentAttempt = current?.watch_attempt;
-      if (current && currentAttempt?.attempt_key_hash === input.attemptKeyHash) {
-        if (
-          currentAttempt.state === "claimed" &&
-          input.nowMs - currentAttempt.updated_at_ms >= GMAIL_WATCH_ATTEMPT_STALE_MS
-        ) {
+    const outcome: WatchClaimTransactionResult = await this.db.runTransaction(
+      async (transaction) => {
+        const snapshot = await transaction.get(ref);
+        const current = snapshot.exists
+          ? (snapshot.data() as GmailMailboxState)
+          : undefined;
+        if (current && current.user_uid !== input.actorUid) {
+          throw new GmailStateError("Gmail watch belongs to another user.", 403);
+        }
+        const currentAttempt = current?.watch_attempt;
+        if (current && currentAttempt?.attempt_key_hash === input.attemptKeyHash) {
+          if (
+            currentAttempt.state === "claimed" &&
+            input.nowMs - currentAttempt.updated_at_ms >= GMAIL_WATCH_ATTEMPT_STALE_MS
+          ) {
+            const state = {
+              ...current,
+              watch_attempt: {
+                ...currentAttempt,
+                state: "ambiguous" as const,
+                updated_at_ms: input.nowMs,
+              },
+              updated_at_ms: input.nowMs,
+            };
+            transaction.set(ref, state);
+            transaction.create(
+              this.db.collection(GMAIL_STATE_COLLECTIONS.syncAudit).doc(uuidv7()),
+              watchAttemptAudit(state, "watch_attempt_ambiguous", input.nowMs),
+            );
+            return {
+              claim: { status: "ambiguous" as const, state },
+              attention: createLiveEffectAttentionEvent({
+                actionKey: GMAIL_WATCH_GOVERNING_ACTION_KEY,
+                executionId: opaqueGmailExecutionId(
+                  "watch",
+                  currentAttempt.attempt_key_hash,
+                ),
+                state: "ambiguous",
+                dataMode: this.dataMode,
+              }),
+            };
+          }
+          const status =
+            currentAttempt.state === "completed"
+              ? ("completed" as const)
+              : currentAttempt.state === "ambiguous"
+                ? ("ambiguous" as const)
+                : ("in_progress" as const);
+          return { claim: { status, state: current }, attention: null };
+        }
+        if (current && currentAttempt?.state === "claimed") {
+          if (input.nowMs - currentAttempt.updated_at_ms < GMAIL_WATCH_ATTEMPT_STALE_MS) {
+            return {
+              claim: { status: "in_progress" as const, state: current },
+              attention: null,
+            };
+          }
           const state = {
             ...current,
             watch_attempt: {
@@ -587,25 +673,38 @@ export class FirestoreGmailStateStore implements GmailStateStore {
             this.db.collection(GMAIL_STATE_COLLECTIONS.syncAudit).doc(uuidv7()),
             watchAttemptAudit(state, "watch_attempt_ambiguous", input.nowMs),
           );
-          return { status: "ambiguous" as const, state };
+          return {
+            claim: { status: "ambiguous" as const, state },
+            attention: createLiveEffectAttentionEvent({
+              actionKey: GMAIL_WATCH_GOVERNING_ACTION_KEY,
+              executionId: opaqueGmailExecutionId(
+                "watch",
+                currentAttempt.attempt_key_hash,
+              ),
+              state: "ambiguous",
+              dataMode: this.dataMode,
+            }),
+          };
         }
-        const status =
-          currentAttempt.state === "completed"
-            ? ("completed" as const)
-            : currentAttempt.state === "ambiguous"
-              ? ("ambiguous" as const)
-              : ("in_progress" as const);
-        return { status, state: current };
-      }
-      if (current && currentAttempt?.state === "claimed") {
-        if (input.nowMs - currentAttempt.updated_at_ms < GMAIL_WATCH_ATTEMPT_STALE_MS) {
-          return { status: "in_progress" as const, state: current };
+        if ((current?.watch_expiration_ms ?? null) !== input.observedExpirationMs) {
+          return {
+            claim: {
+              status: "stale_preview" as const,
+              state:
+                current ??
+                emptyMailboxState(input.mailboxEmail, input.actorUid, input.nowMs),
+            },
+            attention: null,
+          };
         }
-        const state = {
-          ...current,
+        const state: GmailMailboxState = {
+          ...(current ??
+            emptyMailboxState(input.mailboxEmail, input.actorUid, input.nowMs)),
           watch_attempt: {
-            ...currentAttempt,
-            state: "ambiguous" as const,
+            attempt_key_hash: input.attemptKeyHash,
+            topic_hash: input.topicHash,
+            state: "claimed",
+            claimed_at_ms: input.nowMs,
             updated_at_ms: input.nowMs,
           },
           updated_at_ms: input.nowMs,
@@ -613,36 +712,15 @@ export class FirestoreGmailStateStore implements GmailStateStore {
         transaction.set(ref, state);
         transaction.create(
           this.db.collection(GMAIL_STATE_COLLECTIONS.syncAudit).doc(uuidv7()),
-          watchAttemptAudit(state, "watch_attempt_ambiguous", input.nowMs),
+          watchAttemptAudit(state, "watch_attempt_claimed", input.nowMs),
         );
-        return { status: "ambiguous" as const, state };
-      }
-      if ((current?.watch_expiration_ms ?? null) !== input.observedExpirationMs) {
-        return {
-          status: "stale_preview" as const,
-          state:
-            current ?? emptyMailboxState(input.mailboxEmail, input.actorUid, input.nowMs),
-        };
-      }
-      const state: GmailMailboxState = {
-        ...(current ??
-          emptyMailboxState(input.mailboxEmail, input.actorUid, input.nowMs)),
-        watch_attempt: {
-          attempt_key_hash: input.attemptKeyHash,
-          topic_hash: input.topicHash,
-          state: "claimed",
-          claimed_at_ms: input.nowMs,
-          updated_at_ms: input.nowMs,
-        },
-        updated_at_ms: input.nowMs,
-      };
-      transaction.set(ref, state);
-      transaction.create(
-        this.db.collection(GMAIL_STATE_COLLECTIONS.syncAudit).doc(uuidv7()),
-        watchAttemptAudit(state, "watch_attempt_claimed", input.nowMs),
-      );
-      return { status: "claimed" as const, state };
-    });
+        return { claim: { status: "claimed" as const, state }, attention: null };
+      },
+    );
+    if (outcome.attention) {
+      await emitLiveEffectAttentionSafely(this.emitAttention, outcome.attention);
+    }
+    return outcome.claim;
   }
 
   async completeWatchAttempt(input: {
@@ -705,16 +783,16 @@ export class FirestoreGmailStateStore implements GmailStateStore {
     const ref = this.db
       .collection(GMAIL_STATE_COLLECTIONS.mailboxState)
       .doc(mailboxDocId(input.mailboxEmail));
-    await this.db.runTransaction(async (transaction) => {
+    const attention = await this.db.runTransaction(async (transaction) => {
       const snapshot = await transaction.get(ref);
-      if (!snapshot.exists) return;
+      if (!snapshot.exists) return null;
       const current = snapshot.data() as GmailMailboxState;
       if (
         current.user_uid !== input.actorUid ||
         current.watch_attempt?.attempt_key_hash !== input.attemptKeyHash ||
         current.watch_attempt.state !== "claimed"
       ) {
-        return;
+        return null;
       }
       const state: GmailMailboxState = {
         ...current,
@@ -730,7 +808,19 @@ export class FirestoreGmailStateStore implements GmailStateStore {
         this.db.collection(GMAIL_STATE_COLLECTIONS.syncAudit).doc(uuidv7()),
         watchAttemptAudit(state, "watch_attempt_ambiguous", input.nowMs),
       );
+      return createLiveEffectAttentionEvent({
+        actionKey: GMAIL_WATCH_GOVERNING_ACTION_KEY,
+        executionId: opaqueGmailExecutionId(
+          "watch",
+          current.watch_attempt.attempt_key_hash,
+        ),
+        state: "ambiguous",
+        dataMode: this.dataMode,
+      });
     });
+    if (attention) {
+      await emitLiveEffectAttentionSafely(this.emitAttention, attention);
+    }
   }
 
   async claimPush(input: {
@@ -1102,7 +1192,9 @@ export class MemoryGmailStateStore implements GmailStateStore {
     nowMs: number;
   }) {
     const record = this.confirmations.get(input.id);
-    if (!record || record.actor_uid !== input.actorUid || record.state === "sent") return;
+    if (!record || record.actor_uid !== input.actorUid || record.state !== "sending") {
+      return;
+    }
     record.state = input.state;
     record.updated_at_ms = input.nowMs;
     this.audit.push(sendAudit(record, `send_${input.state}`, input.nowMs));
@@ -1515,6 +1607,13 @@ function stripUndefined<T extends object>(input: T): Partial<T> {
 
 function pushDocId(messageId: string) {
   return Buffer.from(messageId, "utf8").toString("base64url");
+}
+
+function opaqueGmailExecutionId(kind: "reply" | "watch", source: string) {
+  return `gmail_${kind}_${createHash("sha256")
+    .update(source)
+    .digest("hex")
+    .slice(0, 48)}`;
 }
 
 function maxHistoryId(current: string | undefined, incoming: string) {

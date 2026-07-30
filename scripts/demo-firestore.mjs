@@ -5,6 +5,12 @@ import {
 import { verifyDemoFirestoreTarget } from "./demo-firestore-target.mjs";
 
 const DRAFT_BANNER = "Draft \u2014 Review before sending";
+// Node runs this file directly on the supported Node 20 floor, so these duplicated values cannot
+// import the TypeScript module. Unit coverage pins them to product-record-retention.ts.
+export const DEMO_PRODUCT_RECORD_RETENTION_POLICY = "product-record-retention:v1.0";
+export const DEMO_PRODUCT_RECORD_RETENTION_CLASS = "indefinite";
+const DEMO_PRODUCT_RECORD_COLLECTIONS = new Set(["approval_queue_items"]);
+
 const demoWorkflowRecords = [
   {
     placeholder: {
@@ -286,7 +292,12 @@ export const demoRecords = [
       ...(item.data.required_approver_uid ? [] : ["required_approver_uid"]),
     ],
     id: item.id,
-    data: item.data,
+    data: {
+      ...item.data,
+      product_retention_policy: DEMO_PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: DEMO_PRODUCT_RECORD_RETENTION_CLASS,
+      legal_hold: false,
+    },
     writeChangeLog: false,
   })),
   ...demoApprovalQueueActivityRecords.map((entry) => ({
@@ -313,12 +324,11 @@ export async function resetDemoRecords({
     const snapshot = await ref.get();
     counts[snapshot.exists ? "updated" : "created"] += 1;
 
-    const resetData = {
-      id: record.id,
-      ...record.data,
-      created_at: snapshot.exists ? (snapshot.data()?.created_at ?? now) : now,
-      ...(record.includeUpdatedAt === false ? {} : { updated_at: now }),
-    };
+    const resetData = buildDemoRecordWriteData(
+      record,
+      now,
+      snapshot.exists ? snapshot.data() : undefined,
+    );
 
     await ref.set(
       snapshot.exists ? { ...resetData, deleted_at: FieldValue.delete() } : resetData,
@@ -369,6 +379,16 @@ export function buildDemoResetRecords(now, { includeLaunchSkeletons = false } = 
   ];
 }
 
+export function buildDemoRecordWriteData(record, now, current) {
+  return {
+    id: record.id,
+    ...record.data,
+    created_at: current?.created_at ?? now,
+    ...(record.includeUpdatedAt === false ? {} : { updated_at: now }),
+    ...demoProductRecordRetentionFields(record.collection, current),
+  };
+}
+
 export async function getVerifiedDemoFirestore(options = {}) {
   const target = await verifyDemoFirestoreTarget(options.target);
   // These imports and Admin initialization occur only after the loopback target is verified and
@@ -379,6 +399,42 @@ export async function getVerifiedDemoFirestore(options = {}) {
     admin.initializeApp({ projectId: target.projectId });
   }
   return { db: firestore.getFirestore(), FieldValue: firestore.FieldValue, target };
+}
+
+function demoProductRecordRetentionFields(collection, current) {
+  if (!DEMO_PRODUCT_RECORD_COLLECTIONS.has(collection)) return {};
+  if (!current) {
+    return {
+      product_retention_policy: DEMO_PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: DEMO_PRODUCT_RECORD_RETENTION_CLASS,
+      legal_hold: false,
+    };
+  }
+
+  const hasPolicy = Object.hasOwn(current, "product_retention_policy");
+  const hasClass = Object.hasOwn(current, "product_retention_class");
+  const hasLegalHold = Object.hasOwn(current, "legal_hold");
+  if (!hasPolicy && !hasClass && !hasLegalHold) {
+    return {
+      product_retention_policy: DEMO_PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: DEMO_PRODUCT_RECORD_RETENTION_CLASS,
+      legal_hold: false,
+    };
+  }
+  if (
+    current.product_retention_policy !== DEMO_PRODUCT_RECORD_RETENTION_POLICY ||
+    current.product_retention_class !== DEMO_PRODUCT_RECORD_RETENTION_CLASS ||
+    typeof current.legal_hold !== "boolean"
+  ) {
+    throw new Error(
+      "Current product retention state is malformed; refusing a Demo record rewrite.",
+    );
+  }
+  return {
+    product_retention_policy: DEMO_PRODUCT_RECORD_RETENTION_POLICY,
+    product_retention_class: DEMO_PRODUCT_RECORD_RETENTION_CLASS,
+    legal_hold: current.legal_hold,
+  };
 }
 
 function entityTypeFor(collection) {

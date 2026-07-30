@@ -3,6 +3,7 @@ import { v7 as uuidv7 } from "uuid";
 
 import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { DRAFT_BANNER } from "@/lib/constants";
+import { GMAIL_HUB_ACTIONS } from "@/lib/gmail-hub/action-keys";
 import {
   ApplyGmailLabelSchema,
   assertAuthenticatedSender,
@@ -42,17 +43,12 @@ import type {
 import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 import { validatePreviewPayload } from "@/lib/integrations/preview-payload";
 
-export const GMAIL_HUB_ACTIONS = {
-  read: "gmail.mailbox.read",
-  draft: "gmail.draft.create",
-  send: "gmail.message.send",
-  reply: "gmail.thread.reply",
-  label: "gmail.label.apply",
-} as const;
+export { GMAIL_HUB_ACTIONS };
 
 export interface GmailHubServiceDependencies {
   createClient(subject: string): GmailRuntimeClient;
   store: GmailStateStore;
+  assertEffectEnvironment(): void;
   assertRuntimeActionExecutable(action: string): Promise<void>;
   now?(): number;
   createToken?(): string;
@@ -321,6 +317,10 @@ export class GmailHubService {
     await this.assertRuntimeExecutable(GMAIL_HUB_ACTIONS.reply);
     this.assertContextAction(input.context, GMAIL_HUB_ACTIONS.reply);
     const linked = await this.assertLinkedThread(payload.threadId, input.context);
+    // This synchronous assertion is bound to the same immutable server descriptor as the provider
+    // factory. It must run before the confirmation claim so Demo, Live-read-only, or an invalid
+    // composition cannot strand a no-provider attempt in `sending`.
+    this.dependencies.assertEffectEnvironment();
     const id = hashConfirmationToken(input.confirmationToken);
     const nowMs = this.now();
     const claim = await this.dependencies.store.claimConfirmation({
@@ -471,6 +471,9 @@ export class GmailHubService {
     const topicHash = hashWatchBoundary(input.topicName);
     const nowMs = this.now();
     await this.assertRuntimeExecutable(GMAIL_HUB_ACTIONS.read);
+    // Refuse before the one-attempt claim. The provider constructor repeats this check as defense in
+    // depth, but a constructor-only fence would leave a no-provider attempt durably `claimed`.
+    this.dependencies.assertEffectEnvironment();
     const claim = await this.dependencies.store.claimWatchAttempt({
       mailboxEmail: this.mailboxEmail,
       actorUid: this.actor.uid,

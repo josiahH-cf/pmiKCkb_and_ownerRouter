@@ -38,6 +38,7 @@ import {
   MAINTENANCE_TEST_VENDOR,
   type MaintenanceTestActionReceipt,
 } from "@/lib/maintenance/test-workflow";
+import { stampProductRecordRetention } from "@/lib/operations/product-record-retention";
 
 // Re-export the client-safe model so server callers (routes, page) can keep importing types from
 // here; the client queue imports them directly from lib/maintenance/ticket-model to avoid pulling
@@ -186,25 +187,28 @@ export async function createMaintenanceTicket(
   const createdAt = nowIso();
   const id = uuidv7();
 
-  const record: MaintenanceTicketRecord = {
-    id,
-    data_mode: parsed.data_mode,
-    status: "Open",
-    priority: parsed.priority,
-    priority_provenance: parsed.priority_provenance,
-    summary: parsed.summary,
-    description: parsed.description,
-    unit: { unitId: parsed.unit.unitId, label: parsed.unit.label },
-    photo_refs: parsed.photo_refs,
-    reporter: { kind: "staff", uid: actor.uid },
-    labels: parsed.data_mode === "test" ? ["TEST DATA"] : [],
-    space_id: parsed.space_id,
-    ...(parsed.source_trigger_key
-      ? { source_trigger_key: parsed.source_trigger_key }
-      : {}),
-    created_at: createdAt,
-    updated_at: createdAt,
-  };
+  const record: MaintenanceTicketRecord = stampProductRecordRetention(
+    MAINTENANCE_TICKET_COLLECTIONS.tickets,
+    {
+      id,
+      data_mode: parsed.data_mode,
+      status: "Open" as const,
+      priority: parsed.priority,
+      priority_provenance: parsed.priority_provenance,
+      summary: parsed.summary,
+      description: parsed.description,
+      unit: { unitId: parsed.unit.unitId, label: parsed.unit.label },
+      photo_refs: parsed.photo_refs,
+      reporter: { kind: "staff" as const, uid: actor.uid },
+      labels: parsed.data_mode === "test" ? ["TEST DATA"] : [],
+      space_id: parsed.space_id,
+      ...(parsed.source_trigger_key
+        ? { source_trigger_key: parsed.source_trigger_key }
+        : {}),
+      created_at: createdAt,
+      updated_at: createdAt,
+    },
+  );
 
   // The ticket and its append-only Activity row commit together (atomic), so the audit twin can
   // never be left missing after a partial failure.
@@ -272,9 +276,18 @@ export async function transitionMaintenanceTicket(
     if (!snapshot.exists) {
       throw new EditableLayerError("That maintenance ticket does not exist.", 404);
     }
-    const ticket = readMaintenanceTicket(snapshot.id, snapshot.data()!);
+    const persistedTicket = snapshot.data()!;
+    const ticket = readMaintenanceTicket(snapshot.id, persistedTicket);
 
-    let updated: MaintenanceTicketRecord = { ...ticket, updated_at: updatedAt };
+    // Validate and apply the product-record retention contract before any transition-specific
+    // transaction write. This upgrades a fully legacy record, preserves an existing legal hold,
+    // and refuses a partial/malformed retention state before a Vendor assignment or notification
+    // could be queued.
+    let updated: MaintenanceTicketRecord = stampProductRecordRetention(
+      "maintenance_tickets",
+      { ...ticket, updated_at: updatedAt },
+      persistedTicket,
+    );
     let activity: Omit<MaintenanceTicketActivityRecord, "id" | "created_at">;
     // The assignee-facing notification event for this transition, or undefined when the change carries
     // no notification (label/note edits, or an unassign). Emitted at the end inside the SAME atomic

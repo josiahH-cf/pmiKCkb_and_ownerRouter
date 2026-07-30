@@ -293,10 +293,10 @@ export function RuntimeSuspensionAdminPanel({
     <article className="panel" aria-labelledby="runtime-suspension-title">
       <h2 id="runtime-suspension-title">Stop a Production Action</h2>
       <p className="muted">
-        For a Sev-1 incident, stop the affected gated effect here first. Do not wait for a
-        deploy. This control can only close an Action Registry-gated provider attempt; it
-        cannot open a Registry gate, disconnect a provider, or stop the read-only live
-        desks and connection diagnostics.
+        For a Sev-1 incident, stop the affected Production action here first. Do not wait
+        for a deploy. This control can only stop new provider actions listed below. It
+        cannot enable an unavailable action, disconnect a provider, or stop read-only live
+        desks and connection checks.
       </p>
       {listUnavailable ? (
         <div role="alert">

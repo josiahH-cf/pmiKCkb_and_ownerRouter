@@ -39,7 +39,9 @@ const EXPECTED_BOUNDARIES = [
   "app/api/lease-renewal/renewal-notice-draft/route.ts:createGmailClient:new GmailRuntimeClient",
   "app/api/maintenance/owner-notice-draft/route.ts:createGmailClient:new GmailRuntimeClient",
   "app/api/maintenance/photo/route.ts:POST:createMaintenanceImageStore",
-  "lib/gmail-hub/dependencies.ts:createClient:new GmailRuntimeClient",
+  "lib/gmail-hub/dependencies.ts:createDescriptorBoundGmailRuntimeClient:construct",
+  "lib/gmail-hub/dependencies.ts:createDescriptorBoundGmailRuntimeClient:new GmailRuntimeClient",
+  "lib/gmail-hub/dependencies.ts:createGmailHubRuntimeDependencies:factories.createStore",
   "lib/gmail-hub/service.ts:connection:this.createClient",
   "lib/gmail-hub/service.ts:createClient:this.dependencies.createClient",
   "lib/gmail-hub/service.ts:createReadOnlyReconciliationClient:this.createClient",
@@ -145,7 +147,6 @@ const READ_ONLY_WITH_GATED_MUTATION = new Set([
 const LAZY_PROVIDER_FACTORIES = new Set([
   "app/api/lease-renewal/renewal-notice-draft/route.ts:createGmailClient:new GmailRuntimeClient",
   "app/api/maintenance/owner-notice-draft/route.ts:createGmailClient:new GmailRuntimeClient",
-  "lib/gmail-hub/dependencies.ts:createClient:new GmailRuntimeClient",
   "lib/gmail-hub/service.ts:createClient:this.dependencies.createClient",
   "lib/lease-renewal/comp-screenshot-runtime.ts:createProvider:new GoogleDriveRenewalCompScreenshotProvider",
   "lib/lease-renewal/execution/renewal-notice-draft-service.ts:finalize:deps.createGmailClient",
@@ -154,6 +155,15 @@ const LAZY_PROVIDER_FACTORIES = new Set([
   "lib/notifications/internal-transactional-sender.ts:constructor:new GmailRuntimeClient",
   "lib/vendor/live-lifecycle-adapters.ts:constructor:new GmailRuntimeClient",
   "lib/vendor/live-lifecycle-runtime.ts:createLiveVendorLifecycleProvider:new LiveVendorLifecycleProvider",
+]);
+
+// Gmail dependency composition resolves one immutable environment descriptor before either
+// factory can run. The provider constructor repeats the descriptor assertion; createStore only
+// chooses the app state-store data mode and cannot perform a provider effect.
+const DESCRIPTOR_BOUND_DEPENDENCY_FACTORIES = new Set([
+  "lib/gmail-hub/dependencies.ts:createDescriptorBoundGmailRuntimeClient:construct",
+  "lib/gmail-hub/dependencies.ts:createDescriptorBoundGmailRuntimeClient:new GmailRuntimeClient",
+  "lib/gmail-hub/dependencies.ts:createGmailHubRuntimeDependencies:factories.createStore",
 ]);
 
 const PRODUCT_READ_ONLY_PROVIDER_FACTORIES = new Set([
@@ -928,6 +938,7 @@ describe("runtime suspension provider-construction boundary", () => {
       ...READ_ONLY_RECONCILIATION,
       ...READ_ONLY_WITH_GATED_MUTATION,
       ...LAZY_PROVIDER_FACTORIES,
+      ...DESCRIPTOR_BOUND_DEPENDENCY_FACTORIES,
       ...PRODUCT_READ_ONLY_PROVIDER_FACTORIES,
       ...LAZY_SCRIPT_PROVIDER_FACTORIES,
       ...READ_ONLY_DIAGNOSTIC_SCRIPT_BOUNDARIES,
@@ -936,6 +947,11 @@ describe("runtime suspension provider-construction boundary", () => {
     ];
     expect(new Set(classified).size).toBe(classified.length);
     expect(classified.sort()).toEqual(EXPECTED_BOUNDARIES);
+    expect([...DESCRIPTOR_BOUND_DEPENDENCY_FACTORIES].sort()).toEqual([
+      "lib/gmail-hub/dependencies.ts:createDescriptorBoundGmailRuntimeClient:construct",
+      "lib/gmail-hub/dependencies.ts:createDescriptorBoundGmailRuntimeClient:new GmailRuntimeClient",
+      "lib/gmail-hub/dependencies.ts:createGmailHubRuntimeDependencies:factories.createStore",
+    ]);
     expect([...PRODUCT_READ_ONLY_PROVIDER_FACTORIES].sort()).toEqual([
       "lib/lease-renewal/live-config.ts:buildLiveRenewalConfig:new GoogleSheetsApiReader",
       "lib/lease-renewal/live-config.ts:buildLiveRenewalConfig:new RentVineClient",

@@ -42,6 +42,7 @@
     "killswitch:plan": "node scripts/setup-budget-killswitch.mjs",
     "monitoring:plan": "node scripts/setup-monitoring.mjs",
     "monitoring:verify": "node scripts/verify-monitoring.mjs",
+    "rehearse:rollback": "node scripts/rehearse-rollback.mjs",
     "corpus:plan": "node scripts/source-corpus-manifest.mjs",
     "cutover:report": "node scripts/build-cutover-report.mjs",
     "cutover:dry-run": "node scripts/cutover-dry-run.mjs",

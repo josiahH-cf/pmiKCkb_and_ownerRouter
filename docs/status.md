@@ -11,6 +11,35 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S51 dependency-safe local specification COMPLETE; activation parked (2026-07-30)
+
+S51 ordered steps 3 through 6 are complete at the safe local boundary. The close-only runtime stop,
+Admin route/panel/audit, execution-path and zero-provider sentinels, post-commit A2 seams, checked
+monitoring plan, print-only rollback rehearsal, incident contract, product-record retention,
+pilot/capacity pin, and log-hygiene packet are implemented. Direct Gmail reply and watch now use
+their durable terminal transitions for replay-safe, value-free A2 events and share one immutable
+Production+Live descriptor from dependency composition through the pre-claim and provider fences.
+
+The remaining reachable Gmail coverage is exactly `gmail.label.apply`,
+`gmail.renewal_notice.draft_create`, and `gmail.maintenance_owner_notice.draft_create`. Each is
+transferred to its canonical one-attempt action-contract slice; none was started or activated in this
+checkpoint. Generic `gmail.draft.create` is closed and not reachable as a Live residual. The next
+development session should begin with the label action contract, not with temporary catch logging or
+an environment-only patch.
+
+The redacted operations packet at
+`docs/s51-production-operations-owner-packet-2026-07-30.md` was **NOT RUN**. No monitoring resource,
+IAM/log-retention change, live rollback rehearsal, provider call, action-gate value, or D12-protected
+path changed. Both the managed CLI token and ADC require fresh interactive authentication through
+`npm run auth:session`; S52's alert and ceiling values remain null. The Rules packet, cloud
+activation, and fresh live rehearsal therefore remain honestly parked.
+
+The final clean-install verifier passed in 244.5 seconds: format, lint with zero errors and the same
+15 existing warnings, typecheck, the full unit and Firestore suites, every governance/redaction/
+falsification check, and the production build are green. Core browser QA passed 8 files / 32 tests;
+18 emulator-dependent scenarios skipped as designed. The independent governance closeout found no
+remaining implementation or documentation overclaim after the resume pointer moved to S25.
+
 ## S51 A2 and monitoring definitions COMPLETE locally; cloud activation parked (2026-07-30)
 
 Ordered step 5's explicit unprotected seam is built to the cloud boundary. The structured
@@ -41,11 +70,11 @@ existing warnings. No monitoring resource was created and the live verifier was 
 requires owner-run `npm run auth:session`, S52's values remain null, and the internal operator
 address is not committed.
 
-This checkpoint does not claim portfolio-wide A2 reachability. Current direct Gmail reply and watch
-paths have durable bad terminals but no A2 emitter; direct draft and label mutations have no
-replay-safe terminal ledger. They remain a named hardening residual before full S51 completion.
-Ordered step 6 (rollback rehearsal, incident/capacity/retention/log-hygiene artifacts) is the next
-spec slice; the protected Firestore Rules packet remains unapplied.
+This checkpoint originally left reply/watch plus direct draft/label mutation as the named
+portfolio-hardening residual. `F-S51-GMAIL-A2-REPLY-WATCH` supersedes the reply/watch portion, and
+`F-S51-OPERATIONS-LOCAL-SEAM` completes ordered step 6. The exact remaining action-contract work is
+the label action plus the renewal and maintenance draft actions; the protected Firestore Rules
+packet remains unapplied.
 
 ## S51 gated live-effect stop app-plane COMPLETE locally; Rules parked (2026-07-30)
 

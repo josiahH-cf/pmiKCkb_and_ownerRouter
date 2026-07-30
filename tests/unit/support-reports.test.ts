@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { createSupportReport, listSupportReports } from "@/lib/firestore/support-reports";
+import {
+  PRODUCT_RECORD_RETENTION_CLASS,
+  PRODUCT_RECORD_RETENTION_POLICY,
+} from "@/lib/operations/product-record-retention";
 import { FakeFirestore } from "../helpers/fake-firestore";
 
 let fakeDb: FakeFirestore;
@@ -56,9 +60,17 @@ describe("support reports store (F-SUPP-1)", () => {
       origin: "app",
       status: "new",
       element: { tag: "button", testId: "save-btn" },
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
+      legal_hold: false,
     });
     expect(report.id).toBeTruthy();
     expect(report.created_at).toBeTruthy();
+    expect(fakeDb.store.get(`support_reports/${report.id}`)).toMatchObject({
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
+      legal_hold: false,
+    });
   });
 
   it("omits an absent description instead of storing an empty field", async () => {

@@ -21,6 +21,7 @@ import type {
   SupportReportElementHint,
   SupportReportRecord,
 } from "@/lib/firestore/types";
+import { stampProductRecordRetention } from "@/lib/operations/product-record-retention";
 
 const COLLECTION = "support_reports";
 const DEFAULT_LIST_LIMIT = 50;
@@ -50,19 +51,22 @@ export async function createSupportReport(
   db: Firestore = getAdminFirestore(),
 ): Promise<SupportReportRecord> {
   const id = uuidv7();
-  const record = stripUndefined({
-    id,
-    route: input.route,
-    description: input.description,
-    reporter_uid: actor.uid,
-    reporter_role: actor.role,
-    origin: input.origin,
-    status: "new" as const,
-    viewport: input.viewport,
-    user_agent: input.userAgent,
-    element: input.element,
-    error_digest: input.errorDigest,
-  });
+  const record = stampProductRecordRetention(
+    COLLECTION,
+    stripUndefined({
+      id,
+      route: input.route,
+      description: input.description,
+      reporter_uid: actor.uid,
+      reporter_role: actor.role,
+      origin: input.origin,
+      status: "new" as const,
+      viewport: input.viewport,
+      user_agent: input.userAgent,
+      element: input.element,
+      error_digest: input.errorDigest,
+    }),
+  );
 
   await db
     .collection(COLLECTION)

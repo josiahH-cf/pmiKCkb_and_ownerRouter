@@ -16,6 +16,10 @@ import {
   LIVE_VENDOR_LIFECYCLE_COLLECTIONS,
 } from "@/lib/firestore/vendor-lifecycle-executions";
 import {
+  PRODUCT_RECORD_RETENTION_CLASS,
+  PRODUCT_RECORD_RETENTION_POLICY,
+} from "@/lib/operations/product-record-retention";
+import {
   hashLiveVendorAssignmentPayload,
   liveVendorAssignmentActionValues,
   liveVendorAssignmentProviderRef,
@@ -76,6 +80,42 @@ describe("Live Vendor prepared-attempt fence", () => {
         `${LIVE_VENDOR_LIFECYCLE_COLLECTIONS.preparedAttempts}/${fixture.s20ExecutionId}`,
       ),
     ).toMatchObject({ state: "prepared" });
+  });
+
+  it("preserves an exact maintenance-ticket legal hold during assignment", async () => {
+    const fixture = await attemptFixture("held-ticket");
+    const path = `${LIVE_VENDOR_LIFECYCLE_COLLECTIONS.tickets}/ticket-101`;
+    fixture.fake.seed(path, {
+      ...fixture.fake.read(path),
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
+      legal_hold: true,
+    });
+
+    await fixture.store.commitAssignment(fixture.commitInput);
+
+    expect(fixture.fake.read(path)).toMatchObject({
+      vendor_id: "vendor-101",
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
+      legal_hold: true,
+    });
+  });
+
+  it("fails a malformed maintenance-ticket retention rewrite closed", async () => {
+    const fixture = await attemptFixture("malformed-ticket");
+    const path = `${LIVE_VENDOR_LIFECYCLE_COLLECTIONS.tickets}/ticket-101`;
+    fixture.fake.seed(path, {
+      ...fixture.fake.read(path),
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+    });
+
+    await expect(fixture.store.commitAssignment(fixture.commitInput)).rejects.toThrow(
+      "Current product retention state is malformed",
+    );
+    expect(
+      fixture.fake.collectionEntries(LIVE_VENDOR_LIFECYCLE_COLLECTIONS.executions),
+    ).toHaveLength(0);
   });
 
   it("binds provider start to the S20 claimant rather than the preparing Admin", async () => {

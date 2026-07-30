@@ -40,6 +40,7 @@ import type {
   WorkflowRunTimelineEvent,
   WorkflowRunTimelineRecord,
 } from "@/lib/firestore/types";
+import { productRecordRetentionFields } from "@/lib/operations/product-record-retention";
 
 const COLLECTIONS = {
   processDefinitions: "process_definitions",
@@ -321,6 +322,7 @@ export async function startWorkflowTestRun(
     simulation_only: true,
     production_metrics_included: false,
     started_by_uid: actor.uid,
+    ...productRecordRetentionFields("workflow_runs"),
     created_at: FieldValue.serverTimestamp(),
     updated_at: FieldValue.serverTimestamp(),
   };

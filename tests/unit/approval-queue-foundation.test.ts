@@ -88,6 +88,11 @@ describe("createApprovalQueueItem", () => {
     expect(item.risk).toBe("Low");
     expect(item.audience_group).toBe("Dan/Admin decisions");
     expect(item.created_at).toBeTruthy();
+    expect(item).toMatchObject({
+      product_retention_policy: "product-record-retention:v1.0",
+      product_retention_class: "indefinite",
+      legal_hold: false,
+    });
 
     const activity = await listApprovalQueueActivity(admin, item.id, db);
     expect(activity).toHaveLength(1);

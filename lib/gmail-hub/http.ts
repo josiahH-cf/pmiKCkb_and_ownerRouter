@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { apiErrorResponse } from "@/lib/api/editable";
+import { EnvironmentContextError } from "@/lib/environment/descriptor";
 import { GmailBoundaryError } from "@/lib/gmail-hub/contracts";
 import { GmailPushAuthError } from "@/lib/gmail-hub/pubsub";
 import {
@@ -25,6 +26,15 @@ export function gmailHubErrorResponse(error: unknown) {
     return NextResponse.json(
       { code: error.code, error: error.message },
       { status: error.status },
+    );
+  }
+  if (error instanceof EnvironmentContextError) {
+    return NextResponse.json(
+      {
+        code: "environment_context_not_allowed",
+        error: error.message,
+      },
+      { status: 409 },
     );
   }
   if (

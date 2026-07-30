@@ -1,6 +1,13 @@
 # V1 monitoring and rollback plan
 
-Date: 2026-07-15. Status: **working-app operations contract**.
+Date: 2026-07-15. Status: **historical pre-S40 operations evidence**.
+
+The active Production operations contract is S51 in
+`docs/feature-suites/production-operational-readiness.md`. Use
+`docs/production-incident-runbook.md`, `docs/production-capacity-and-pilot.md`,
+`docs/product-record-retention.md`, and the current S51 owner packet for new operational work. The
+rehearsal results below preserve the earlier deployment shape; they are not a fresh S40 blue/green
+rehearsal.
 
 V1 application health and external-provider activation are monitored separately. The production app
 is healthy when its signed-in surfaces, Firestore persistence, Live/Test isolation, explicit previews,
@@ -75,10 +82,14 @@ against the winner. Initial reset and setup-link winners record bodyless claim e
 or regenerated-link completion events appear only after success. Failed pre-completion work retains
 the claim event as operational truth.
 
-## Retention operations
+## Retention operations (historical communications-only)
 
-Native Firestore TTL, extra composite indexes, and a scheduler are optional operations improvements,
-not V1 gates. The safe launch default is:
+This section governs the communications cleanup path only. It does not define product-record or
+Cloud Logging retention. Product-record retention is in `docs/product-record-retention.md`; S51
+owns Cloud Logging retention.
+
+Native Firestore TTL, extra composite indexes, and a scheduler were optional communications
+operations improvements, not V1 gates. The safe launch default was:
 
 - keep legal holds authoritative;
 - run the existing bounded cleanup manually with a limit of `500` when due;

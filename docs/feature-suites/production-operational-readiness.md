@@ -172,7 +172,11 @@ planned_maintenance | incident_resolved`. `incidentRef`, when present, is an opa
     system-of-record write that is wrong; any A2 `ambiguous` execution; the app unusable for staff.
     Acknowledgement window: 30 minutes inside business hours, same business day otherwise. The first
     action is always containment through the D09 runtime suspend, never a deploy — a deploy is the
-    remedy, not the stop.
+    remedy, not the stop. If the Admin panel is unavailable, the operator immediately tells staff to
+    stop initiating the affected action, escalates as Sev-1, and uses only a documented provider
+    disable/revoke or an exact-revision rollback whose D05 preconditions pass. The operator never
+    improvises a Firestore, IAM, credential, or cloud mutation, and containment remains unverified
+    until the effect boundary is checked.
   - **Sev-2 — degraded but contained.** Elevated 5xx with no client-visible effect; a `failed` (not
     ambiguous) live effect that reached no client; a connector down; a stale sync. Acknowledgement
     window: one business day.
@@ -389,8 +393,10 @@ is the whole retention posture; record both in the `docs/facts.md` Supersede Log
   contains both severity labels, both acknowledgement windows (30 minutes in business hours for Sev-1,
   one business day for Sev-2), the standing same-day Dan reporting rule for any wrong client-facing
   output, and the instruction that the Sev-1 first action is the runtime suspend rather than a deploy;
-  the Admin suspend panel renders that same first-action instruction, and a copy scan finds no jargon or
-  em dash in the rendered strings. _Verify:_ `npm run test -- tests/unit/production-incident-runbook.test.mjs`,
+  it also fails closed when the panel is unavailable by stopping staff initiation, escalating, and
+  permitting only a documented provider disable/revoke or a D05-eligible exact-revision rollback.
+  The Admin suspend panel renders the same first-action instruction, and a copy scan finds no jargon
+  or em dash in the rendered strings. _Verify:_ `npm run test -- tests/unit/production-incident-runbook.test.mjs`,
   `npm run verify:copy-voice`.
 - **AC-S51-7** — The two retention regimes cannot leak. No product-record collection appears in
   `COMMUNICATIONS_RETENTION_TARGETS`; no collection listed in that map acquires an indefinite/no-expiry
@@ -401,9 +407,10 @@ is the whole retention posture; record both in the `docs/facts.md` Supersede Log
   `tests/unit/communications-retention.test.ts` and
   `tests/unit/communications-retention-worker.test.ts` green.
 - **AC-S51-8** — The accepted capacity ceiling cannot drift silently. The generated deploy command still
-  contains `--max-instances=1`, `--concurrency=10`, `--min-instances=0`, and `--timeout=60`; a test that
-  asserts those exact flags fails if any is changed or removed, and the runbook states the ten-concurrent
-  ceiling, the pilot bound, the named change signal, and the limiter coupling (raising
+  contains the exact ordered set `--min-instances=0`, `--max-instances=1`, `--memory=512Mi`,
+  `--cpu=1`, `--concurrency=10`, and `--timeout=60`; a test that asserts all six flags fails if any
+  is changed, reordered, or removed, and the runbook states the ten-concurrent ceiling, the pilot
+  bound, the named change signal, and the limiter coupling (raising
   `--max-instances` to N multiplies both per-instance limiters by N). _Verify:_
   `npm run test -- tests/unit/live-cost-scripts.test.mjs`.
 - **AC-S51-9** — The rollback rehearsal is re-runnable and refuses a wrong target. A dry-run prints the
@@ -482,17 +489,40 @@ sets no provider `production_allowed:true`.
    receipt; add the four committed alert policy definitions, `scripts/setup-monitoring.mjs`, and the
    read-only existence verifier. Explicit AC-S51-5 coverage is the legacy external-execution store,
    the production S20 bridge, and internal transactional receipts. This does not claim portfolio-wide
-   A2 reachability: the direct Gmail reply/watch/draft/label paths remain a named hardening residual
-   before full S51 completion.
-6. _Build:_ add `scripts/rehearse-rollback.mjs` with its dry-run report and wrong-target refusals; add the
-   production incident runbook (severities, windows, Dan rule, Sev-1-first-action) and the capacity
-   record; add the retention declaration and its separation gate; add the log-hygiene runbook section and
-   the error-path spot-check.
-7. _Verify:_ run AC-S51-1 through AC-S51-11 and explicitly falsify: a forged suspension field opening a
-   closed gate, a suspended action reaching a provider constructor, a non-Admin suspend, an unconfirmed
-   suspend, an unreadable store defaulting open, a duplicate A2 line, a customer value in a log line or
-   audit record, a product record entering the communications cleanup plan, a silent `max-instances`
-   change, and a rehearsal promoting a revision that does not belong to the service.
+   A2 reachability. The direct Gmail reply and watch paths now emit post-commit, value-free A2 events
+   from their durable terminal transitions; watch correctly names its current D37 governing key
+   `gmail.mailbox.read`, rather than inventing a new action key. The remaining reachable residual is
+   exact: `gmail.label.apply`, `gmail.renewal_notice.draft_create`, and
+   `gmail.maintenance_owner_notice.draft_create` still lack a durable one-attempt terminal transition
+   suitable for safe post-commit emission. The Registry-closed generic `gmail.draft.create` key is not
+   a reachable Live residual. Do not add catch-and-log instrumentation or a temporary environment fence
+   to those three paths; migrate each through its canonical execution contract in its owning slice.
+   That transfer is the named portfolio-hardening dependency and does not reopen S51's completed
+   local operations seam or authorize any of the three actions.
+6. _Build — DEPENDENCY-SAFE LOCAL SEAM COMPLETE 2026-07-30; live/cloud operations parked:_ the
+   print-only rollback rehearsal freezes and revalidates the exact candidate/prior revision pair,
+   executes nothing by default, and refuses a missing, foreign, overlong, or mutated target. The
+   incident runbook and Admin copy pin both severities/windows, the same-day Dan rule, the runtime
+   suspend first action, and the fail-closed panel-unavailable fallback. Six product-record
+   collections now receive the versioned indefinite-retention classification at every full-record
+   writer, preserve legal hold, upgrade valid legacy rows, and refuse malformed partial retention
+   state without weakening the separate communications policy. The pilot/capacity record pins all
+   six deploy flags and both per-instance limiter couplings. The checked monitoring/log-hygiene
+   planner performs all read-only preflights before a mutation, binds each of its eight possible
+   mutations to exact run ownership and rollback markers, validates `_Default` retention, emits
+   shell-valid/value-free output, and is handed back in
+   `docs/s51-production-operations-owner-packet-2026-07-30.md`. That packet was **NOT RUN**: it
+   created no monitoring/IAM/log-retention resource and performed no live rehearsal.
+7. _Verify — COMPLETE LOCALLY 2026-07-30:_ AC-S51-1 through AC-S51-11 and the explicit
+   falsifications are green. The clean-install integrated verifier passed in 244.5 seconds, including
+   format, lint with zero errors/15 existing warnings, typecheck, the full unit and Firestore suites,
+   governance/redaction/falsification checks, and the production build. Core browser QA separately
+   passed 8 files / 32 tests with 18 emulator-dependent scenarios skipped as designed. The exercised
+   falsifications include: a forged suspension field opening a closed gate, a suspended action
+   reaching a provider constructor, a non-Admin or unconfirmed suspend, an unreadable store defaulting
+   open, a duplicate A2 line, a customer value in a log/audit, a product record entering
+   communications cleanup, a silent capacity-flag change, and a rollback rehearsal accepting a
+   foreign or mutable revision target.
 8. _Gate:_ change no action gate. This suite adds a close term only; if a live action needs opening, that
    remains the separate reviewed seed/allowlist/pinned-test change owned by that action's suite.
 9. _Owner:_ hand back one exact, redacted packet naming the internal operator address to use, the four

@@ -26,6 +26,10 @@ import {
   type LiveVendorDisableCompletionClaim,
 } from "@/lib/firestore/vendor-lifecycle-executions";
 import {
+  PRODUCT_RECORD_RETENTION_CLASS,
+  PRODUCT_RECORD_RETENTION_POLICY,
+} from "@/lib/operations/product-record-retention";
+import {
   LIVE_VENDOR_DISABLE_INITIAL_SOURCE,
   canonicalLiveAssignmentRefs,
   hashLiveVendorDisablePayload,
@@ -194,9 +198,16 @@ describe("Live Vendor lifecycle Firestore disable boundary", () => {
       tickets.docs.every(
         (snapshot) =>
           snapshot.data().vendor_id === undefined &&
-          snapshot.data().updated_at === disableTime,
+          snapshot.data().updated_at === disableTime &&
+          snapshot.data().product_retention_policy === PRODUCT_RECORD_RETENTION_POLICY &&
+          snapshot.data().product_retention_class === PRODUCT_RECORD_RETENTION_CLASS,
       ),
     ).toBe(true);
+    expect(
+      tickets.docs.find((snapshot) => snapshot.id.endsWith("000"))?.data(),
+    ).toMatchObject({
+      legal_hold: true,
+    });
     expect(activity.docs).toHaveLength(164);
     expect(
       activity.docs.every(
@@ -414,6 +425,9 @@ async function seedActiveVendor(assignmentCount: number): Promise<string[]> {
       data_mode: "live",
       vendor_id: vendorRef,
       updated_at: sourceGeneration,
+      product_retention_policy: PRODUCT_RECORD_RETENTION_POLICY,
+      product_retention_class: PRODUCT_RECORD_RETENTION_CLASS,
+      legal_hold: ticketRef.endsWith("000"),
     });
     batch.set(
       db.collection(LIVE_VENDOR_LIFECYCLE_COLLECTIONS.assignments).doc(ticketRef),

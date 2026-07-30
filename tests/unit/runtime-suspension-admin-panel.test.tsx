@@ -74,6 +74,20 @@ function stubOperationId() {
 }
 
 describe("RuntimeSuspensionAdminPanel", () => {
+  it("renders the Sev-1 first action in plain language", () => {
+    const { container } = renderPanel();
+
+    expect(
+      screen.getByText(
+        /For a Sev-1 incident, stop the affected Production action here first/,
+      ),
+    ).toHaveTextContent("Do not wait for a deploy.");
+    expect(container.textContent).not.toContain("—");
+    expect(container.textContent).not.toMatch(
+      /\b(?:control plane|source of truth|PMI handles)\b/i,
+    );
+  });
+
   it("exposes an out-of-scope source record for clear only, never for a new stop", async () => {
     const user = userEvent.setup();
     const readActionKey = "rentvine.lease.read";

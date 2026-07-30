@@ -54,6 +54,52 @@ function matchesMarker(filter, marker) {
   return filter.includes(`jsonPayload.marker="${marker}"`);
 }
 
+function successfulPreflight(overrides = {}) {
+  return {
+    LOG_BUCKET_RETENTION_DAYS_BEFORE: { ok: true, value: "30" },
+    LOG_VIEWER_BINDING_BEFORE: { ok: true, value: "" },
+    MONITORING_CHANNELS_BEFORE: { ok: true, value: "" },
+    MONITORING_METRIC_BEFORE: { ok: true, value: "" },
+    MONITORING_POLICIES_BEFORE: { ok: true, value: "" },
+    ...overrides,
+  };
+}
+
+function simulatePreflight(plan, outcomes) {
+  let failed = false;
+  for (const command of allCommands(plan).filter(
+    (entry) => entry.kind === "checked-capture",
+  )) {
+    const outcome = outcomes[command.capture];
+    if (!outcome?.ok) {
+      failed = true;
+      continue;
+    }
+    if (command.captureRule === "must-be-empty" && outcome.value !== "") {
+      failed = true;
+    }
+    if (
+      command.captureRule === "positive-integer" &&
+      !/^[1-9][0-9]*$/.test(outcome.value)
+    ) {
+      failed = true;
+    }
+    if (
+      command.captureRule === "empty-or-exact-log-viewer" &&
+      !["", "roles/logging.viewer"].includes(outcome.value)
+    ) {
+      failed = true;
+    }
+  }
+  const ready = !failed;
+  return {
+    mutationsReached: ready
+      ? allCommands(plan).filter((command) => command.mutationMarker).length
+      : 0,
+    ready,
+  };
+}
+
 describe("S51 print-only monitoring plan", () => {
   it("renders exactly one channel, one A2 metric, and four attached policies", () => {
     const resolved = config();
@@ -92,7 +138,234 @@ describe("S51 print-only monitoring plan", () => {
     expect(output).toContain(MONITORING_MARKERS.killSwitchDisableFailed);
     expect(output).not.toContain(MONITORING_MARKERS.killSwitchAlreadyDisabled);
     const addresses = output.match(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi);
-    expect(addresses).toEqual([OPERATOR_EMAIL]);
+    expect(addresses?.length).toBeGreaterThan(1);
+    expect(new Set(addresses)).toEqual(new Set([OPERATOR_EMAIL]));
+  });
+
+  it("prints reversible 30-day log retention and one exact direct viewer grant", () => {
+    const resolved = config();
+    const plan = buildMonitoringPlan(resolved);
+    const commands = allCommands(plan);
+    const bucketDescribes = commands.filter((command) =>
+      isCommand(command, ["gcloud", "logging", "buckets", "describe", "_Default"]),
+    );
+    const bucketUpdates = commands.filter((command) =>
+      isCommand(command, ["gcloud", "logging", "buckets", "update", "_Default"]),
+    );
+    const iamReads = commands.filter((command) =>
+      isCommand(command, ["gcloud", "projects", "get-iam-policy"]),
+    );
+    const iamAdds = commands.filter((command) =>
+      isCommand(command, ["gcloud", "projects", "add-iam-policy-binding"]),
+    );
+    const iamRemovals = commands.filter((command) =>
+      isCommand(command, ["gcloud", "projects", "remove-iam-policy-binding"]),
+    );
+
+    expect(bucketDescribes).toHaveLength(2);
+    expect(bucketDescribes[0]).toMatchObject({
+      capture: "LOG_BUCKET_RETENTION_DAYS_BEFORE",
+    });
+    expect(bucketUpdates).toHaveLength(2);
+    expect(bucketUpdates[0].args).toContain("--retention-days=30");
+    expect(bucketUpdates[1].args).toContain("$LOG_BUCKET_RETENTION_DAYS_BEFORE");
+    expect(iamReads).toHaveLength(2);
+    expect(iamReads[0]).toMatchObject({ capture: "LOG_VIEWER_BINDING_BEFORE" });
+    for (const read of iamReads) {
+      expect(read.args).toContain(
+        `--filter=bindings.role="roles/logging.viewer" AND bindings.members="user:${OPERATOR_EMAIL}" AND -bindings.condition:*`,
+      );
+    }
+    expect(iamAdds).toHaveLength(1);
+    expect(iamAdds[0].args).toEqual(
+      expect.arrayContaining([
+        `--member=user:${OPERATOR_EMAIL}`,
+        "--role=roles/logging.viewer",
+        "--condition=None",
+      ]),
+    );
+    expect(iamRemovals).toHaveLength(1);
+    expect(iamRemovals[0]).toMatchObject({
+      rollbackMarker: "LOG_VIEWER_BINDING_ADDED_BY_THIS_RUN",
+    });
+    expect(iamRemovals[0].args).toEqual(
+      expect.arrayContaining([
+        `--member=user:${OPERATOR_EMAIL}`,
+        "--role=roles/logging.viewer",
+        "--condition=None",
+      ]),
+    );
+
+    const serializedCommands = JSON.stringify(commands);
+    expect(serializedCommands).not.toContain("roles/logging.privateLogViewer");
+    for (const primitiveRole of ["roles/owner", "roles/editor", "roles/viewer"]) {
+      expect(serializedCommands).not.toContain(`--role=${primitiveRole}`);
+    }
+
+    const output = renderMonitoringPlan(resolved, plan);
+    expect(output).toContain(
+      'if LOG_BUCKET_RETENTION_DAYS_BEFORE="$(gcloud logging buckets describe _Default',
+    );
+    expect(output).toContain("--retention-days=30");
+    expect(output).toContain('--retention-days "$LOG_BUCKET_RETENTION_DAYS_BEFORE"');
+    expect(output).toContain(
+      'if test "${LOG_VIEWER_BINDING_ADDED_BY_THIS_RUN:-0}" = 1; then',
+    );
+    expect(output).not.toContain(
+      'if test -z "$LOG_VIEWER_BINDING_BEFORE"; then gcloud projects remove-iam-policy-binding',
+    );
+  });
+
+  it("checks every existence and before-state read before the first mutator", () => {
+    const plan = buildMonitoringPlan(config());
+    const commands = allCommands(plan);
+    const captureIndexes = commands
+      .map((command, index) => (command.kind === "checked-capture" ? index : -1))
+      .filter((index) => index >= 0);
+    const firstMutation = commands.findIndex((command) => command.mutationMarker);
+
+    expect(
+      commands
+        .filter((command) => command.kind === "checked-capture")
+        .map((command) => [command.capture, command.captureRule]),
+    ).toEqual([
+      ["MONITORING_CHANNELS_BEFORE", "must-be-empty"],
+      ["MONITORING_POLICIES_BEFORE", "must-be-empty"],
+      ["MONITORING_METRIC_BEFORE", "must-be-empty"],
+      ["LOG_BUCKET_RETENTION_DAYS_BEFORE", "positive-integer"],
+      ["LOG_VIEWER_BINDING_BEFORE", "empty-or-exact-log-viewer"],
+    ]);
+    expect(Math.max(...captureIndexes)).toBeLessThan(firstMutation);
+    expect(commands[firstMutation - 1]).toMatchObject({
+      kind: "preflight-finalize",
+    });
+  });
+
+  it("distinguishes a failed IAM capture from a successful absent binding", () => {
+    const plan = buildMonitoringPlan(config());
+
+    expect(
+      simulatePreflight(
+        plan,
+        successfulPreflight({
+          LOG_VIEWER_BINDING_BEFORE: { ok: false, value: "" },
+        }),
+      ),
+    ).toEqual({ mutationsReached: 0, ready: false });
+    expect(simulatePreflight(plan, successfulPreflight())).toEqual({
+      mutationsReached: 8,
+      ready: true,
+    });
+
+    const output = renderMonitoringPlan(config(), plan);
+    expect(output).toContain(
+      'if LOG_VIEWER_BINDING_BEFORE="$(gcloud projects get-iam-policy',
+    );
+    expect(output).toContain("unset LOG_VIEWER_BINDING_BEFORE");
+    expect(output).toContain("log_viewer_before_state_unreadable");
+    expect(output).toContain('if test "${S51_MONITORING_PREFLIGHT_FAILED:-1}" = 0; then');
+    expect(output).toContain('if test "${S51_MONITORING_PREFLIGHT_READY:-0}" = 1');
+  });
+
+  it.each([
+    ["managed channel", "MONITORING_CHANNELS_BEFORE"],
+    ["managed policy", "MONITORING_POLICIES_BEFORE"],
+    ["fixed metric", "MONITORING_METRIC_BEFORE"],
+  ])("refuses fresh setup when a pre-existing %s is observed", (_, capture) => {
+    const plan = buildMonitoringPlan(config());
+    const simulated = simulatePreflight(
+      plan,
+      successfulPreflight({
+        [capture]: { ok: true, value: "projects/fixture/existing" },
+      }),
+    );
+
+    expect(simulated).toEqual({ mutationsReached: 0, ready: false });
+  });
+
+  it("refuses a zero-day retention before any setup mutation", () => {
+    const plan = buildMonitoringPlan(config());
+    const simulated = simulatePreflight(
+      plan,
+      successfulPreflight({
+        LOG_BUCKET_RETENTION_DAYS_BEFORE: { ok: true, value: "0" },
+      }),
+    );
+
+    expect(simulated).toEqual({ mutationsReached: 0, ready: false });
+    expect(renderMonitoringPlan(config(), plan)).toContain('""|0|*[!0-9]*)');
+  });
+
+  it("renders rerun refusal and exact run-owned rollback guards", () => {
+    const plan = buildMonitoringPlan(config());
+    const commands = allCommands(plan);
+    const mutations = commands.filter((command) => command.mutationMarker);
+    const rollbacks = commands.filter((command) => command.rollbackMarker);
+    const output = renderMonitoringPlan(config(), plan);
+
+    expect(
+      simulatePreflight(
+        plan,
+        successfulPreflight({
+          MONITORING_CHANNELS_BEFORE: { ok: true, value: "existing-channel" },
+          MONITORING_METRIC_BEFORE: { ok: true, value: "existing-metric" },
+          MONITORING_POLICIES_BEFORE: { ok: true, value: "existing-policy" },
+        }),
+      ),
+    ).toEqual({ mutationsReached: 0, ready: false });
+    expect(mutations).toHaveLength(8);
+    expect(rollbacks).toHaveLength(8);
+    const mutationMarkers = mutations.map((command) => command.mutationMarker);
+    const rollbackMarkers = rollbacks.map((command) => command.rollbackMarker);
+    expect(new Set(mutationMarkers).size).toBe(mutationMarkers.length);
+    expect(new Set(rollbackMarkers).size).toBe(rollbackMarkers.length);
+    expect(new Set(rollbackMarkers)).toEqual(new Set(mutationMarkers));
+    for (const marker of mutations.map((command) => command.mutationMarker)) {
+      expect(output).toContain(`test "\${${marker}:-0}" = 0; then`);
+    }
+    for (const marker of rollbacks.map((command) => command.rollbackMarker)) {
+      expect(output).toContain(`if test "\${${marker}:-0}" = 1; then`);
+      expect(output).toContain(`${marker}=0`);
+    }
+    expect(output).toContain("managed_channel_already_exists");
+    expect(output).toContain("managed_policy_already_exists");
+    expect(output).toContain("managed_metric_already_exists");
+    expect(output).not.toContain("whenVariableEmpty");
+  });
+
+  it("renders as valid Bash without executing any generated command", () => {
+    const output = renderMonitoringPlan(config());
+    const syntax = spawnSync("bash", ["-n"], {
+      encoding: "utf8",
+      input: output,
+    });
+
+    expect(syntax.status).toBe(0);
+    expect(syntax.stdout).toBe("");
+    expect(syntax.stderr).toBe("");
+  });
+
+  it("does not treat a pre-existing conditional viewer binding as the unconditional grant", () => {
+    const commands = allCommands(buildMonitoringPlan(config()));
+    const iamReads = commands.filter((command) =>
+      isCommand(command, ["gcloud", "projects", "get-iam-policy"]),
+    );
+    const exactUnconditionalFilter =
+      `--filter=bindings.role="roles/logging.viewer" AND ` +
+      `bindings.members="user:${OPERATOR_EMAIL}" AND -bindings.condition:*`;
+
+    expect(iamReads).toHaveLength(2);
+    expect(
+      iamReads.every((command) => command.args.includes(exactUnconditionalFilter)),
+    ).toBe(true);
+    expect(iamReads[0]).toMatchObject({
+      capture: "LOG_VIEWER_BINDING_BEFORE",
+    });
+
+    const output = renderMonitoringPlan(config());
+    expect(output).toContain("AND -bindings.condition:*");
+    expect(output).toContain("--condition=None");
+    expect(output).toContain('if test -z "$LOG_VIEWER_BINDING_BEFORE"; then');
   });
 
   it("keeps A3 and A4 exact and mutually exclusive for the named markers", () => {
@@ -249,6 +522,10 @@ describe("S51 print-only monitoring plan", () => {
     expect(() => buildMonitoringPlan({ ...config() })).toThrow(
       /validated configuration/i,
     );
+    const resolved = config();
+    expect(() =>
+      renderMonitoringPlan(resolved, structuredClone(buildMonitoringPlan(resolved))),
+    ).toThrow(/generated plan/i);
   });
 
   it("refuses before stdout when the operator address is absent", async () => {

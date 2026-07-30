@@ -128,6 +128,9 @@ describe("resolveLeaseRenewalFlag reason audit", () => {
     );
     expect(record).toMatchObject({
       property_key: resolution.property_key,
+      product_retention_policy: "product-record-retention:v1.0",
+      product_retention_class: "indefinite",
+      legal_hold: false,
       reason_code: "accepted_suggestion",
       reason: "Accepted the suggested source",
     });
@@ -144,6 +147,39 @@ describe("resolveLeaseRenewalFlag reason audit", () => {
       reason_code: "accepted_suggestion",
       reason: "Accepted the suggested source",
       actor_uid: "approver-1",
+    });
+  });
+
+  it("preserves a legal hold across a full resolution rewrite", async () => {
+    const db = new ResolutionTestFirestore();
+    const input = {
+      run_id: SIMULATION_RUN_ID,
+      source_trigger_key: MEDIUM_KEY,
+      kind: "pick_source" as const,
+      chosen_source: "rentvine_building",
+      reason_code: "accepted_suggestion" as const,
+    };
+
+    await resolveLeaseRenewalFlag(
+      approver,
+      input,
+      db as unknown as Firestore,
+      getSimulationRun,
+    );
+    const path = `${LEASE_RENEWAL_COLLECTIONS.resolutions}/${resolutionDocId(MEDIUM_KEY)}`;
+    db.store.set(path, { ...db.store.get(path)!, legal_hold: true });
+
+    await resolveLeaseRenewalFlag(
+      approver,
+      input,
+      db as unknown as Firestore,
+      getSimulationRun,
+    );
+
+    expect(db.store.get(path)).toMatchObject({
+      product_retention_policy: "product-record-retention:v1.0",
+      product_retention_class: "indefinite",
+      legal_hold: true,
     });
   });
 
