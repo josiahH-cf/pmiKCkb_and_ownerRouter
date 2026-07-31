@@ -313,7 +313,7 @@ route new work through the three-product docs.
 | Local-dev stop/cutover gate             | `docs/autonomous-agent-runner.md`, `docs/implement.md`                                                                 |
 | Current status and blockers             | `docs/status.md`                                                                                                       |
 | Loop resume state and next slice        | `docs/loop-state.md`                                                                                                   |
-| V1 state + tab walkthrough              | `docs/pmi-kc-v1-working-app-state-2026-07-15.html`; prior decision audits remain historical context                    |
+| Current app functionality walkthrough   | `docs/pmi-kc-current-app-walkthrough.html`; dated V1/demo guides remain historical evidence                            |
 | Client asks                             | `docs/client-checklist.md`                                                                                             |
 | Client unblock and parallel work        | `docs/status.md`, `docs/client-checklist.md`, `docs/implement.md`                                                      |
 | Engineering checklist                   | `docs/engineering-checklist.md`                                                                                        |

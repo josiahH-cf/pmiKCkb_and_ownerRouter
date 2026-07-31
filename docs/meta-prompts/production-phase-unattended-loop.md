@@ -1,4 +1,4 @@
-# Meta-Prompt — Production Phase Unattended Loop (S51–S54, then S40–S50)
+# Meta-Prompt — Production Phase Unattended Loop (Durable Fresh-Context Launcher)
 
 Canonical fresh-context launcher for the live production phase authorized 2026-07-29. Hand this
 whole file to any agent runner as its opening instruction.
@@ -17,11 +17,18 @@ PMI KC is a property-management operations application. It is past the prototype
 deployed, it holds real client data, and its owner has authorized a live production phase. You are
 continuing an established build loop, not starting a project.
 
-Your job is to execute the ordered work in §4 one bounded slice at a time, verifying and falsifying
-each slice before moving on, and updating the durable context so the next fresh-context run can
-continue without you.
+Your job is to consume the current resume fields in `docs/loop-state.md`, execute that bounded slice
+within the dependency topology in §4, verify and falsify it, and update the durable context so the
+next fresh-context run can continue without you.
 
 You are not asked to redesign the product, revisit settled decisions, or invent scope.
+
+**No-replay rule.** `docs/loop-state.md` is the sole mutable handoff. Its `next_suite`, `next_spec`,
+`active_slice`, and `last_completed_slice` fields select the work; §4 supplies constraints and
+dependencies, not permission to replay completed numbered items. Inspect fresh code and evidence
+before trusting any dated checkpoint. As of the 2026-07-30 handoff, the last verified application
+baseline is `373f968` (an ancestor of the documentation handoff); the next slice is S25's
+`gmail.label.apply` contract, followed by the renewal and maintenance draft pair.
 
 ---
 
@@ -78,17 +85,20 @@ did not execute is a fabrication, and in this repository it will be caught.
 
 Read these before editing anything. They are the authority; this file is only a launcher.
 
-1. `AGENTS.md` — the runner-neutral router. Read the **Production Phase Authorization** section in
-   full; it is the controlling grant for this phase.
-2. `docs/facts.md` — the Tier-0 fact ledger. Large and wide. At minimum read
+1. `docs/facts.md` — the Tier-0 fact ledger. Large and wide. At minimum read
    `F-PRODUCTION-PHASE-AUTHORIZED`, `F-LIVE-DATA-AUTHORIZED`, `F-GREENLIGHT-NAMED-KEYS`,
    `F-LOOP-AUTONOMY-2026-07-29`, `F-COST-CEILING-S52`, `F-FIRESTORE-BACKUPS`, `F-PILOT-ROLLOUT`,
    `F-RETENTION-LIVE-RECORDS`, and the Supersede Log.
-3. `docs/loop-state.md` — the short resume pointer. It names the next suite and the dependency
-   order. If it disagrees with this file, **`docs/loop-state.md` wins** — it is updated each slice,
-   provided it does not bypass a prerequisite stated in §4.
+2. `docs/loop-state.md` — the short resume pointer. Consume `next_suite`, `next_spec`,
+   `active_slice`, and `last_completed_slice`. If it disagrees with a dated checkpoint in this
+   file, **`docs/loop-state.md` wins**, provided it does not bypass a prerequisite or safety rule.
+3. `AGENTS.md` — the runner-neutral router. Read the **Production Phase Authorization** section in
+   full; it is the controlling grant for this phase.
 4. The spec for the suite you are about to build, from `docs/feature-suites/`.
-5. `docs/autonomous-agent-runner.md` — how a slice is run, verified, and falsified.
+   For the current Gmail residuals, read S25 and S51; before the draft pair also read S26 and S38.
+5. `docs/autonomous-agent-runner.md` — how a slice is run, verified, falsified, and handed off.
+6. The real implementation modules and tests named by the active spec. Documentation does not
+   substitute for inspecting the current route, service, store, registry, matrix, and provider.
 
 Use two truth layers. `AGENTS.md`, `docs/facts.md`, and the active spec govern authorization,
 safety, and intended behavior. The code and observed runtime govern what is implemented or active.
@@ -165,60 +175,83 @@ preflights pass, the loop may create or update the one Cloud Scheduler job that 
 read-only Gmail watch and raises internal attention. It may not draft or send a client message and
 does not authorize any other scheduler, cron job, or scheduled workflow by analogy.
 
+`runtime_action_gates_preflipped:false` in `docs/loop-state.md` means that there was no phase-wide
+category preflip. It does **not** mean every pre-existing key is closed. At the 2026-07-30
+checkpoint, `gmail.label.apply`, `gmail.renewal_notice.draft_create`, and
+`gmail.maintenance_owner_notice.draft_create` are already `production_allowed:true`; their current
+work is safety-contract hardening, not activation. Do not change those values. The direct-send keys
+and generic send remain permanently disabled under D33.
+
 ---
 
-## 4. Build order
+## 4. Dependency topology and current continuation order
 
-Take one slice at a time. Do not batch or violate a dependency. When an auth, cost, owner-input, or
-protected-review boundary parks one operation, record it and continue the next independent local
-slice below; do not make the whole program idle.
+Take one coherent slice at a time. Do not batch unrelated work or violate a dependency. When auth,
+cost, owner input, or protected review parks one operation, record it and continue the next
+independent local slice; do not make the whole program idle.
 
-1. **S54 slice 1 — wire `test:firestore` into `scripts/verify.sh` and CI.** Do this first: the
-   standing push grant is conditioned on "the full local gate is green," and today that gate omits
-   the Firestore security-rules tests. Falsify the slice by proving a permissive Rules seed makes
-   the widened gate fail, then restore the seed byte-for-byte.
-2. **S53 slice 1 — route the live Sheet write-back through its gate** and add its
-   environment-descriptor fence. `app/api/lease-renewal/writeback-execute/route.ts` currently
-   writes to the client's operational spreadsheet without consulting its Action Registry gate,
-   while the Registry row still reads not-allowed. This is a control-surface defect and it is the
-   stated prerequisite of every other activation.
-3. **S53 action-contract hardening — keep both provider keys closed while building their safety
-   contracts.** Replace Sheet write-back's boolean-only confirmation with an immutable server-issued
-   preview hash, one-attempt idempotency, durable receipt/readback/reconcile, and guarded correction.
-   Replace comp screenshot's upload-on-first-POST path with preview/exact-confirm, idempotent receipt,
-   readback/reconcile, and Drive-trash rollback. A folder choice or a passing gate does not waive
-   these invariants.
-4. **S53 sender/config slice — build the activation checks to the seam.** Re-key the
-   `KB_APPROVAL_SENDER` cutover guard so a provisioned-but-unforwarded value can never report
-   active, and prepare the required deploy-forwarding change. Do not set a live value, flip a
-   protected Action Registry row, or deploy while auth or S52 is closed.
-5. **S52 prerequisites — build the cost controls with the values unset.** Establish the baseline
-   capture and inventory, single-source ceiling, paired-enforcement, coverage, and refusal
-   machinery. Do not invent a number or reuse the retired cap. Park the protected
-   `infra/budget-guardrail/` patch for review and continue.
-6. **S51 app-plane — close-only first.** Land and falsify the pure close-only runtime-suspension
-   combinator before its store or route, then build the incident, rollback, retention, alert-policy,
-   and notification-channel definitions locally. Do not apply cloud policies or channels yet.
-7. **S52 activation — establish the reviewed non-null ceiling.** Use supported burn evidence and
-   the owner-owned billing inputs. Move the GCP budget amount and
-   `KILL_SWITCH_CAP_USD` together — `infra/budget-guardrail/decide.mjs` applies the smaller value,
-   so changing only one creates false headroom. Until both enforcement points are ready, every
-   cost-bearing/live mutation remains parked.
-8. **S40 release-safety prerequisite.** Before any D07 deploy, land the environment-parameterized,
-   sanitized, zero-traffic candidate path, validate every S51 policy target against the current
-   Production manifest, smoke the candidate before exact-revision promotion, and capture rollback.
-   The legacy auto-promoting wrapper is not D05-eligible.
-9. **Live operational work after S52 and the S40 release prerequisite.** With fresh auth, the full
-   gate, budget guard, prior target, and rollback green: apply S51 alerting; use D05 to deploy the
-   outstanding commit gap, smoke, rehearse rollback, and promote the exact revision; complete the
-   remaining S54 parity work; and run S54's single bounded live eval. The live eval is never run
-   while the S52 ceiling is null. Apply each S53 activation only after its exact protected review,
-   named value, gate, and provider contract are complete.
-10. **S40 remaining environment/data slices** — provider-construction sentinel, un-merge Demo and
-    Live lists/counts, Production route and control exclusion, shell environment banner, and
-    migration inventory/dry-run.
-11. **Then** S41 → S42 → S44 → S43/S45 → S46 → S47 → S48 → S49 → S50, interleaving S28–S39 seams as
-    their dependencies arrive.
+### Completed baseline — do not replay
+
+At the 2026-07-30 `373f968` checkpoint, S54.1 and its remote CI evidence; S53.1-S53.5's Sheet,
+Drive, configuration, and Vendor seams; S52 I/J plus the fail-closed print-only planner; and S51's
+dependency-safe close-only, effect-stop, A2/monitoring, incident, rollback, retention, capacity, and
+log-hygiene seam are complete. Gmail reply/watch A2 and the immutable environment preclaim fence are
+also complete. Do not rerun owner packets, apply Rules/monitoring/IAM/log-retention, perform the live
+rollback rehearsal, deploy, rebuild old Production Test journeys, or claim any parked control is
+active. Reopen a completed slice only if current code or a failing gate supplies specific contrary
+evidence.
+
+### Current dependency-ready work
+
+1. **S25 — migrate `gmail.label.apply` through the canonical S20 execution contract.** The current
+   route mutates Gmail and then appends an audit record. Replace that path with immutable,
+   server-built action identity and preview; authoritative linked-thread/mailbox/lane context; an
+   atomic claim in `action_executions` before provider construction or effect; one governed
+   mutation; minimal provider readback; durable bodyless receipt, reconciliation, and restoration
+   of the prior governed label set; explicit failed/ambiguous terminal states; and exactly one
+   value-free A2 event emitted only after a committed terminal transition. Use the S20 collection,
+   never `external_action_executions`. Remove the label action's impossible matrix dependency on
+   permanently disabled `gmail.renewal_notice.send`. If label creation is a second provider
+   mutation, either require the four governed labels to be provisioned or model that sub-effect
+   durably—never hide it in catch-and-log. Demo, Test, Live-read-only, stale context, wrong lane,
+   wrong mailbox, and malformed descriptors construct no Live provider. Preserve the existing open
+   action gate; this slice contains no `production_allowed` change.
+2. **Falsify the label contract before moving on.** Exercise concurrent confirm and replay,
+   crash/ambiguity after provider mutation, stale or forged workflow context, wrong mailbox/lane,
+   missing label, audit-sink failure, suspension, invalid environment, and Demo/Live-read-only
+   refusal. Prove no duplicate effect, no duplicate A2, and no reason/thread/email/customer value in
+   A2. Run focused Gmail/S20/runtime/matrix/schema tests, then every gate required by §5.
+3. **S25/S26/S38 — migrate the renewal and maintenance draft pair.** Replace boolean-only
+   confirmation with S20 prepare returning an execution id plus immutable preview hash. Re-resolve
+   authoritative lease/ticket, recipient, mailbox, and template facts at execution; claim before
+   constructing Gmail; create exactly one unsent draft with a deterministic RFC Message-ID; fetch
+   minimal readback; reconcile by that identifier without blindly retrying ambiguity; and emit A2
+   only from committed failed/ambiguous terminal state. Production+Live is required before claim;
+   Demo/Test/Live-read-only constructs no provider. Add
+   `gmail.maintenance_owner_notice.draft_create` to the canonical maintenance matrix and align its
+   exact preview schema with the implemented workflow/mailbox/source fields. Human review and Send
+   in Gmail remain the end state. Do not activate either direct-send key or generic send.
+4. **Recompute the resume pointer.** After the Gmail residuals are green, update
+   `docs/loop-state.md` from observed state. If auth or S52 remains blocked, continue the next
+   dependency-ready local S40 release-safety slice: an environment-parameterized, sanitized,
+   zero-traffic candidate path; current-manifest policy targeting; candidate smoke before
+   exact-revision promotion; and captured rollback. The legacy auto-promoting wrapper is not
+   D05-eligible.
+5. **S52/S51 activation remains conditional.** Establish the reviewed, non-null alert and hard-stop
+   values from supported burn evidence and owner billing inputs. Move the GCP budget amount and
+   `KILL_SWITCH_CAP_USD` together because the guard applies the smaller value. Until both
+   enforcement points, project disposition, managed operator destination, auth, and protected
+   review are complete, park every cost-bearing/live/cloud step. The armed legacy kill switch is
+   enforcement state, not approved headroom.
+6. **Live operational work requires every prerequisite.** Only with fresh auth, the full gate,
+   non-null S52 controls, the S40 release path, prior target capture, bounded candidate smoke, and
+   rollback green may the loop apply S51 alerting, deploy, rehearse rollback, promote an exact
+   revision, finish remaining S54 parity work, or run S54's single bounded live eval. Each S53
+   activation also requires its exact named value, provider contract, protected review, and paired
+   deploy-wrapper forwarding.
+7. **Continue the controlling UI/UX program** through remaining S40, then S41 → S42 → S44 →
+   S43/S45 → S46 → S47 → S48 → S49 → S50. Interleave S28-S39 seams only as the router and current
+   `docs/loop-state.md` permit.
 
 ### The constraint that breaks activations if you forget it
 
@@ -332,7 +365,10 @@ silently inert, or a document that reads as current after it stopped being true.
 
 ## 9. Open the loop
 
-Start at §1, then §2, then take the first unfinished item in §4 — cross-checking against
-`docs/loop-state.md`, which is authoritative for what is actually next. Do not reopen the 64
-decisions settled on 2026-07-29 or the D-01–D-14 set settled on 2026-07-28 unless you find evidence
-that directly contradicts one, in which case record the contradiction and continue.
+Start at §1, then §2. Record the worktree and local/remote commit state without discarding existing
+changes. Consume `next_suite`, `next_spec`, `active_slice`, and `last_completed_slice` from
+`docs/loop-state.md`, constrain that slice by §4, and begin it. Never use a dated checkpoint in this
+launcher to override newer durable state, and never replay a completed slice without specific
+contradictory evidence. Do not reopen the 64 decisions settled on 2026-07-29 or the D-01–D-14 set
+settled on 2026-07-28 unless you find evidence that directly contradicts one, in which case record
+the contradiction and continue.

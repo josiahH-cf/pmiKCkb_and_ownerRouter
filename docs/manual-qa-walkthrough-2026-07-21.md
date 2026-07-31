@@ -5,7 +5,9 @@
 > renewal, approval, Maintenance, Admin/Connections, and page-builder end state. During
 > implementation, each suite adds its authenticated desktop/390×844 task coverage; S49 rewrites this
 > walkthrough only after behavior ships. Do not use this file to override
-> `docs/ui-ux-recalibration-implementation-program-2026-07-28.md`.
+> `docs/ui-ux-recalibration-implementation-program-2026-07-28.md`. Start with
+> `docs/pmi-kc-current-app-walkthrough.html` for the current serving-versus-source distinction and
+> provider activation boundaries.
 
 **Who this is for:** you, clicking through the real app and confirming that **every process on every
 page does exactly what it should.** This is the explicit, stepwise version: for each process you get

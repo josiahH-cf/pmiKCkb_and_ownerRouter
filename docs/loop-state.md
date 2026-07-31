@@ -17,7 +17,7 @@ spec_package_status: EXECUTING
 implementation_status: PAUSED_AT_VERIFIED_BOUNDARY
 next_suite: S25
 next_spec: docs/feature-suites/lease-renewal-execution.md
-session_auth_status: BLOCKED_INTERACTIVE_ADC_AND_CLI_MANAGED_IDENTITY
+session_auth_status: BLOCKED_INTERACTIVE_ADC_MISSING_AND_CLI_REAUTH
 active_slice: STOPPED-AT-S51-DEPENDENCY-SAFE-LOCAL-BOUNDARY
 last_completed_slice: S53.5 + S52-I/J/PLANNER + S51-CLOSE-ONLY/EFFECT-STOP/A2-MONITORING/OPERATIONS
 runtime_action_gates_preflipped: false
@@ -36,8 +36,8 @@ runtime_action_gates_preflipped: false
 
 ## Current truth
 
-- Session-start checks resolved the active account to managed `josiah@pmikcmetro.com`, but both the
-  Windows CLI token and ADC token are stale (`invalid_rapt` / `invalid_grant`). Exact owner action:
+- Session-start checks resolved the active account to managed `josiah@pmikcmetro.com`, but ADC is
+  not configured and the CLI token cannot refresh non-interactively. Exact owner action:
   `npm run auth:session`, then rerun ADC, managed-account, and suppressed CLI-token checks. Live
   reads, deploys, cloud mutations, and the S54 live eval stay parked; local/app-plane work continues.
 - S54.1's widened Firestore gate/falsification is complete; remote CI run `30510068990` passed.

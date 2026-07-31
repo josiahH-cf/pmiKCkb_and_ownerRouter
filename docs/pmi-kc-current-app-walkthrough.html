@@ -1,0 +1,1327 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      name="description"
+      content="Current functional walkthrough of the PMI KC application, including deployed behavior, source-complete controls, and provider activation boundaries."
+    />
+    <title>PMI KC App | Current Functional Walkthrough | July 30, 2026</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17213a;
+        --muted: #5b667d;
+        --navy: #14284d;
+        --blue: #1769d2;
+        --blue-soft: #eaf3ff;
+        --green: #15734b;
+        --green-soft: #eaf8f1;
+        --amber: #966112;
+        --amber-soft: #fff5dd;
+        --red: #a13b3b;
+        --red-soft: #fff0ef;
+        --purple: #6741a4;
+        --purple-soft: #f3edff;
+        --line: #dce3ed;
+        --paper: #f4f7fb;
+        --card: #ffffff;
+        --shadow: 0 18px 48px rgba(20, 40, 77, 0.09);
+        --radius: 20px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 10% 0%, rgba(23, 105, 210, 0.1), transparent 31rem),
+          radial-gradient(circle at 92% 10%, rgba(21, 115, 75, 0.08), transparent 27rem),
+          var(--paper);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        font-size: 15px;
+        line-height: 1.58;
+      }
+
+      a {
+        color: var(--blue);
+        text-underline-offset: 3px;
+      }
+
+      code {
+        padding: 0.1em 0.38em;
+        border-radius: 6px;
+        background: #edf1f7;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.87em;
+        overflow-wrap: anywhere;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        max-width: 900px;
+        margin-bottom: 17px;
+        font-size: clamp(2.45rem, 7vw, 5.1rem);
+        line-height: 0.98;
+        letter-spacing: -0.052em;
+      }
+
+      h2 {
+        margin-bottom: 10px;
+        font-size: clamp(1.5rem, 3vw, 2.25rem);
+        line-height: 1.14;
+        letter-spacing: -0.032em;
+      }
+
+      h3 {
+        margin-bottom: 7px;
+        font-size: 1.06rem;
+        line-height: 1.3;
+      }
+
+      ul,
+      ol {
+        margin-top: 8px;
+        padding-left: 1.25rem;
+      }
+
+      li + li {
+        margin-top: 5px;
+      }
+
+      .report {
+        width: min(1220px, calc(100% - 34px));
+        margin: 0 auto;
+        padding: 20px 0 54px;
+      }
+
+      .hero {
+        position: relative;
+        margin: 10px 0 16px;
+        padding: clamp(32px, 7vw, 74px);
+        overflow: hidden;
+        border-radius: 30px;
+        color: white;
+        background:
+          linear-gradient(
+            120deg,
+            rgba(20, 40, 77, 0.99),
+            rgba(28, 78, 138, 0.96) 58%,
+            rgba(19, 108, 86, 0.94)
+          ),
+          var(--navy);
+        box-shadow: var(--shadow);
+      }
+
+      .hero::after {
+        position: absolute;
+        top: -175px;
+        right: -145px;
+        width: 500px;
+        height: 500px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 50%;
+        box-shadow:
+          0 0 0 55px rgba(255, 255, 255, 0.035),
+          0 0 0 110px rgba(255, 255, 255, 0.025);
+        content: "";
+      }
+
+      .eyebrow,
+      .hero h1,
+      .hero-copy,
+      .hero-meta {
+        position: relative;
+        z-index: 1;
+      }
+
+      .eyebrow {
+        margin-bottom: 14px;
+        color: #c7e9f2;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .hero-copy {
+        max-width: 920px;
+        margin-bottom: 0;
+        color: #eaf2ff;
+        font-size: clamp(1rem, 2vw, 1.18rem);
+      }
+
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 24px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 7px 11px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 0.83rem;
+      }
+
+      .chip code {
+        background: rgba(255, 255, 255, 0.14);
+        color: white;
+      }
+
+      .quick-nav {
+        position: sticky;
+        z-index: 20;
+        top: 9px;
+        display: flex;
+        gap: 7px;
+        margin-bottom: 16px;
+        padding: 9px;
+        overflow-x: auto;
+        border: 1px solid rgba(220, 227, 237, 0.96);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 8px 28px rgba(16, 38, 75, 0.08);
+        backdrop-filter: blur(10px);
+      }
+
+      .quick-nav a {
+        flex: 0 0 auto;
+        padding: 6px 10px;
+        border-radius: 9px;
+        color: var(--ink);
+        font-size: 0.8rem;
+        font-weight: 750;
+        text-decoration: none;
+      }
+
+      .quick-nav a:hover {
+        background: var(--blue-soft);
+        color: var(--blue);
+      }
+
+      .section {
+        margin-bottom: 16px;
+        padding: clamp(23px, 4vw, 39px);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--card);
+        box-shadow: var(--shadow);
+        scroll-margin-top: 78px;
+      }
+
+      .lede {
+        max-width: 960px;
+        color: var(--muted);
+        font-size: 1.02rem;
+      }
+
+      .grid-2,
+      .grid-3,
+      .grid-4 {
+        display: grid;
+        gap: 13px;
+      }
+
+      .grid-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .grid-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .card {
+        padding: 17px;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        background: #fbfcfe;
+      }
+
+      .card p:last-child,
+      .card ul:last-child {
+        margin-bottom: 0;
+      }
+
+      .state {
+        display: inline-flex;
+        align-items: center;
+        margin-bottom: 9px;
+        padding: 4px 9px;
+        border-radius: 999px;
+        font-size: 0.73rem;
+        font-weight: 820;
+        letter-spacing: 0.035em;
+        text-transform: uppercase;
+      }
+
+      .state.deployed {
+        color: var(--green);
+        background: var(--green-soft);
+      }
+
+      .state.source {
+        color: var(--blue);
+        background: var(--blue-soft);
+      }
+
+      .state.config {
+        color: var(--amber);
+        background: var(--amber-soft);
+      }
+
+      .state.closed {
+        color: var(--red);
+        background: var(--red-soft);
+      }
+
+      .state.target {
+        color: var(--purple);
+        background: var(--purple-soft);
+      }
+
+      .callout {
+        margin-top: 15px;
+        padding: 14px 16px;
+        border: 1px solid;
+        border-radius: 13px;
+      }
+
+      .callout strong {
+        display: block;
+        margin-bottom: 3px;
+      }
+
+      .callout.info {
+        border-color: #bfd9f7;
+        background: var(--blue-soft);
+      }
+
+      .callout.good {
+        border-color: #b9e1cc;
+        background: var(--green-soft);
+      }
+
+      .callout.warn {
+        border-color: #eed9a8;
+        background: var(--amber-soft);
+      }
+
+      .callout.stop {
+        border-color: #edc4c1;
+        background: var(--red-soft);
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 17px;
+      }
+
+      .metric {
+        padding: 16px;
+        border-radius: 15px;
+        background: var(--navy);
+        color: white;
+      }
+
+      .metric strong {
+        display: block;
+        margin-bottom: 3px;
+        font-size: 1.3rem;
+      }
+
+      .metric span {
+        color: #d7e3f7;
+        font-size: 0.82rem;
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin: 14px 0;
+      }
+
+      .flow span {
+        position: relative;
+        padding: 11px 9px;
+        border: 1px solid #c8d9ef;
+        border-radius: 11px;
+        background: var(--blue-soft);
+        text-align: center;
+        font-size: 0.82rem;
+        font-weight: 750;
+      }
+
+      .flow span:not(:last-child)::after {
+        position: absolute;
+        top: 50%;
+        right: -8px;
+        z-index: 2;
+        width: 8px;
+        height: 1px;
+        background: #9ab6d9;
+        content: "";
+      }
+
+      .table-wrap {
+        margin-top: 14px;
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+      }
+
+      th,
+      td {
+        padding: 12px 13px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        background: #f6f8fb;
+        font-size: 0.77rem;
+        letter-spacing: 0.045em;
+        text-transform: uppercase;
+      }
+
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .walk-step {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr);
+        gap: 13px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .walk-step:last-child {
+        border-bottom: 0;
+      }
+
+      .step-number {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border-radius: 12px;
+        background: var(--navy);
+        color: white;
+        font-weight: 850;
+      }
+
+      .walk-step p {
+        margin-bottom: 7px;
+      }
+
+      .walk-step .expect {
+        color: var(--muted);
+        font-size: 0.91rem;
+      }
+
+      .route {
+        display: inline-block;
+        margin-left: 5px;
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      .footer {
+        padding: 22px 6px 5px;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      @media (max-width: 900px) {
+        .grid-3,
+        .grid-4,
+        .metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 650px) {
+        .report {
+          width: min(100% - 20px, 1220px);
+        }
+
+        .hero,
+        .section {
+          border-radius: 18px;
+        }
+
+        .grid-2,
+        .grid-3,
+        .grid-4,
+        .metrics,
+        .flow {
+          grid-template-columns: 1fr;
+        }
+
+        .flow span:not(:last-child)::after {
+          display: none;
+        }
+
+        .walk-step {
+          grid-template-columns: 35px minmax(0, 1fr);
+        }
+
+        th {
+          display: none;
+        }
+
+        tr,
+        td {
+          display: block;
+        }
+
+        tr {
+          padding: 8px 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        td {
+          display: grid;
+          grid-template-columns: 105px minmax(0, 1fr);
+          gap: 8px;
+          padding: 7px 11px;
+          border-bottom: 0;
+        }
+
+        td::before {
+          color: var(--muted);
+          content: attr(data-label);
+          font-size: 0.75rem;
+          font-weight: 760;
+          text-transform: uppercase;
+        }
+      }
+
+      @media print {
+        body {
+          background: white;
+        }
+
+        .report {
+          width: 100%;
+        }
+
+        .quick-nav {
+          display: none;
+        }
+
+        .hero,
+        .section {
+          box-shadow: none;
+        }
+
+        .section,
+        .card,
+        .walk-step {
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="report">
+      <header class="hero" id="top">
+        <p class="eyebrow">PMI KC Operations Application | Functional Walkthrough</p>
+        <h1>What the app does today.</h1>
+        <p class="hero-copy">
+          This is the current narrative walkthrough for staff, owners, reviewers, and a
+          fresh engineering context. It distinguishes deployed product behavior from
+          source-complete work awaiting deployment, and it never calls a provider action
+          live merely because its application workflow exists.
+        </p>
+        <div class="hero-meta">
+          <span class="chip">Evidence snapshot | July 30, 2026</span>
+          <span class="chip">App checkpoint | <code>373f968</code></span>
+          <span class="chip">Production | <code>2bfe7d4</code> currently serving</span>
+          <span class="chip">Current data posture | Production Live + isolated Test</span>
+        </div>
+      </header>
+
+      <nav class="quick-nav" aria-label="Walkthrough sections">
+        <a href="#truth">Read first</a>
+        <a href="#shell">Shell</a>
+        <a href="#walkthrough">Walkthrough</a>
+        <a href="#lease">Lease</a>
+        <a href="#maintenance">Maintenance</a>
+        <a href="#communications">Communications</a>
+        <a href="#admin">Admin</a>
+        <a href="#operations">Operations</a>
+        <a href="#activation">Activation</a>
+        <a href="#next">Next</a>
+        <a href="#evidence">Evidence</a>
+      </nav>
+
+      <section class="section" id="truth">
+        <h2>Read this first: three different kinds of “ready”</h2>
+        <p class="lede">
+          The repository is ahead of the deployed revision. This report therefore labels
+          each capability as deployed, source-complete, configuration-dependent, or
+          closed. Those labels prevent a locally green control from being mistaken for an
+          applied cloud policy or active provider effect.
+        </p>
+        <div class="grid-3">
+          <article class="card">
+            <span class="state deployed">Deployed baseline</span>
+            <h3>What staff can use in Production</h3>
+            <p>
+              Production serves commit <code>2bfe7d4</code> on revision
+              <code>pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e</code>. It contains the working
+              application, Live projections, and isolated Test workflows described below.
+            </p>
+          </article>
+          <article class="card">
+            <span class="state source">Source complete</span>
+            <h3>What is verified on main</h3>
+            <p>
+              Application commit <code>373f968</code> includes S40's first four app-plane
+              slices, S53.1-S53.5, S52's dependency-safe prerequisites, S54.1, and the
+              completed S51 local operational seam. It is pushed and remotely verified,
+              but the accumulated source gap has not been deployed or cloud-activated.
+            </p>
+          </article>
+          <article class="card">
+            <span class="state target">Authorized target</span>
+            <h3>What the next release changes</h3>
+            <p>
+              The remaining S40-S50 work completes Demo/Production separation, simplifies
+              navigation, consolidates workspaces, and retires shipped Test tools. The
+              target is authorized and partially built on <code>main</code>, but it is not
+              yet the current runtime.
+            </p>
+          </article>
+        </div>
+        <div class="callout warn">
+          <strong>Current environment truth</strong>
+          Production still contains Live and explicitly isolated Test behavior. The target
+          is a separate invented-data Demo environment and Live-only Production, but that
+          migration has not happened. Blue/green describes revision traffic, not
+          Demo/Production.
+        </div>
+        <div class="metrics" aria-label="Current checkpoint metrics">
+          <div class="metric">
+            <strong>8 tabs</strong><span>for a fully scoped Admin</span>
+          </div>
+          <div class="metric">
+            <strong>3 staff roles</strong
+            ><span>plus a separate Vendor identity lane</span>
+          </div>
+          <div class="metric">
+            <strong>32 / 18</strong><span>core E2E passes / designed skips</span>
+          </div>
+          <div class="metric">
+            <strong>0</strong><span>cloud changes made by the S51 closeout</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="shell">
+        <h2>Sign-in, shell, roles, and scope</h2>
+        <p class="lede">
+          Staff authenticate through managed PMI KC identities. The server decides role,
+          Space scope, and environment context. The browser cannot promote itself, select
+          Live authority, or turn a Test record into a Live effect.
+        </p>
+        <div class="grid-2">
+          <article class="card">
+            <span class="state deployed">Staff shell</span>
+            <h3>Primary navigation</h3>
+            <p>
+              A fully scoped Admin sees Console, Spaces, Lease Renewal, Maintenance,
+              Approval Queue, Communications, Connections, and Admin. The notification
+              bell, role badge, sign-out control, session timeout, and Report an issue
+              control remain available across the signed-in shell.
+            </p>
+          </article>
+          <article class="card">
+            <span class="state deployed">Authority</span>
+            <h3>Who can do what</h3>
+            <ul>
+              <li><strong>Editor:</strong> performs ordinary scoped work.</li>
+              <li><strong>Approver:</strong> adds app-decision approval authority.</li>
+              <li>
+                <strong>Admin:</strong> manages users, settings, high-risk decisions, and
+                controls.
+              </li>
+              <li>
+                <strong>Vendor:</strong> uses a separate portal and sees assigned tickets
+                only.
+              </li>
+            </ul>
+          </article>
+        </div>
+        <div class="flow" aria-label="Authority flow">
+          <span>Authenticated identity</span>
+          <span>Role + Space scope</span>
+          <span>Server-owned context</span>
+          <span>Allowed page or typed refusal</span>
+        </div>
+        <div class="callout stop">
+          <strong>Identity boundary</strong>
+          A personal account is never a staff, runner, connector, or cloud identity. Staff
+          sessions and runner authentication are separate; the current runner token being
+          stale does not mean the deployed app's staff sign-in is down.
+        </div>
+      </section>
+
+      <section class="section" id="walkthrough">
+        <h2>A practical 20-minute walkthrough</h2>
+        <p class="lede">
+          This route order demonstrates the product from intake through decision,
+          execution boundary, attention, and administration without requiring a Live
+          provider mutation.
+        </p>
+
+        <div class="walk-step">
+          <div class="step-number">1</div>
+          <div>
+            <h3>Start at Console <span class="route">/ and /ask</span></h3>
+            <p>
+              Ask a process question. A supported answer shows approved-source citations
+              and freshness; an unsupported answer says no reliable source was found.
+              Voice input, task capture, deterministic process detection, optional
+              model-assisted classification, and explicit process start are available.
+            </p>
+            <p class="expect">
+              Expect: no invented answer, no automatic action, and an attention deck that
+              links to decisions, connection work, and recent activity.
+            </p>
+          </div>
+        </div>
+
+        <div class="walk-step">
+          <div class="step-number">2</div>
+          <div>
+            <h3>Open Spaces <span class="route">/spaces</span></h3>
+            <p>
+              Read the workspace directory, status pills, source/process context, and
+              role-scoped destinations. Process definitions still exist but are surfaced
+              beside their Space instead of as a primary navigation tab.
+            </p>
+            <p class="expect">
+              Expect: trusted publication/versioning and process deep links. Full
+              self-service provisioning and the no-code page builder remain future suites.
+            </p>
+          </div>
+        </div>
+
+        <div class="walk-step">
+          <div class="step-number">3</div>
+          <div>
+            <h3>Review Lease Renewal <span class="route">/lease-renewal</span></h3>
+            <p>
+              Inspect the lease desk, next-step signal, reconciliation conflicts, decision
+              history, market-comp evidence, and proposal state. The persistent Test
+              journey can move from Created through Done with durable non-Live receipts
+              and zero provider construction.
+            </p>
+            <p class="expect">
+              Expect: Live source failures remain visible; Test never fills a missing Live
+              projection. An unsent renewal draft is the final product-side initiation.
+            </p>
+          </div>
+        </div>
+
+        <div class="walk-step">
+          <div class="step-number">4</div>
+          <div>
+            <h3>Use Approval Queue <span class="route">/approval-queue</span></h3>
+            <p>
+              Work the urgent decision inbox, open detail and history, approve, deny,
+              return, snooze, assign, or use bounded bulk actions. High-risk and linked
+              execution decisions require the correct role, exact context, and reason.
+            </p>
+            <p class="expect">
+              Expect: approving an app decision does not silently execute a provider
+              effect. Consequential work remains separately confirmed and receipted.
+            </p>
+          </div>
+        </div>
+
+        <div class="walk-step">
+          <div class="step-number">5</div>
+          <div>
+            <h3>Work Maintenance <span class="route">/maintenance</span></h3>
+            <p>
+              Capture or dictate an issue, validate the unit and blockers, create a
+              ticket, filter the queue, update status, add notes, assign staff or the
+              canonical Test Vendor, close, and reopen. Unverified intake is promoted or
+              dismissed through an operator review boundary.
+            </p>
+            <p class="expect">
+              Expect: a Live ticket cannot use Test aliases or simulation, and a Test
+              ticket cannot reach a Live provider.
+            </p>
+          </div>
+        </div>
+
+        <div class="walk-step">
+          <div class="step-number">6</div>
+          <div>
+            <h3>Open Communications <span class="route">/gmail-hub</span></h3>
+            <p>
+              Review workflow-linked mailbox state, governed label rules, reply proposals,
+              exact-confirmed replies, templates, and thread summaries. This is a workflow
+              tool, not a general inbox or arbitrary compose surface.
+            </p>
+            <p class="expect">
+              Expect: no autonomous client send, no generic blast, no cross-mailbox Admin
+              access, and no blind retry after an ambiguous provider result.
+            </p>
+          </div>
+        </div>
+
+        <div class="walk-step">
+          <div class="step-number">7</div>
+          <div>
+            <h3>Check Notifications and Connections</h3>
+            <p>
+              Use the bell and notification center to open, clear, and tune internal
+              attention. Connections shows read-only provider health to staff and bounded
+              setup/verification controls to Admins where a real connector supports them.
+            </p>
+            <p class="expect">
+              Expect: an absent credential or endpoint stays unavailable. A connection
+              card cannot turn green from browser input alone.
+            </p>
+          </div>
+        </div>
+
+        <div class="walk-step">
+          <div class="step-number">8</div>
+          <div>
+            <h3>Finish in Admin <span class="route">/admin</span></h3>
+            <p>
+              Review users, roles, Space scopes, last-Admin protection, audit activity,
+              reported issues, communications governance/retention, migration readiness,
+              Vendor lifecycle, source configuration, and runtime controls.
+            </p>
+            <p class="expect">
+              Expect: exact confirmation and reason where authority changes; no secret,
+              setup link, recipient body, or customer value in durable audit output.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="lease">
+        <h2>Lease Renewal: from source facts to an unsent draft</h2>
+        <p class="lede">
+          Lease Renewal is the deepest internal workflow. It combines source-backed reads,
+          reconciliation, human decisions, market evidence, approval, outreach
+          preparation, and action-specific execution contracts.
+        </p>
+        <div class="grid-3">
+          <article class="card">
+            <span class="state deployed">Working workflow</span>
+            <h3>Review and reconcile</h3>
+            <p>
+              Read Rentvine and Sheet projections when configured, classify leases, expose
+              conflicts, resolve flags, and preserve property-linked decision history.
+              Missing data is shown as missing, never replaced by Test values.
+            </p>
+          </article>
+          <article class="card">
+            <span class="state deployed">Evidence and suggestion</span>
+            <h3>Market comps and rent guidance</h3>
+            <p>
+              Operators can capture comp evidence. The app may calculate a suggested rent,
+              but that exact number enters a draft only after per-number Admin approval.
+              The RentCast adapter remains inert without the approved plan/key.
+            </p>
+          </article>
+          <article class="card">
+            <span class="state config">Provider-specific</span>
+            <h3>Draft, write, or document</h3>
+            <p>
+              Renewal initiation creates an addressed, unsent Gmail draft. A human sends
+              from Gmail. Sheet, RentVine, Dotloop, portal, SMS, and Boom actions retain
+              independent gates, contracts, and configuration.
+            </p>
+          </article>
+        </div>
+        <div class="flow" aria-label="Lease flow">
+          <span>Source-backed lease</span>
+          <span>Review + decision</span>
+          <span>Exact preview/approval</span>
+          <span>Draft or gated provider effect</span>
+        </div>
+        <div class="callout info">
+          <strong>Source-complete action hardening</strong>
+          The Sheet write-back and comp-screenshot paths now have immutable preview,
+          one-attempt, receipt, reconcile, and rollback contracts on <code>main</code>.
+          Their provider keys remain closed or blocked at their named external seams.
+        </div>
+      </section>
+
+      <section class="section" id="maintenance">
+        <h2>Maintenance: capture, route, work, and communicate</h2>
+        <p class="lede">
+          The current Maintenance desk is a persistent operator workspace with explicit
+          Live/Test isolation and a separate external Vendor lane.
+        </p>
+        <div class="grid-3">
+          <article class="card">
+            <span class="state deployed">Operator desk</span>
+            <h3>Ticket lifecycle</h3>
+            <p>
+              Validate capture, create a ticket, change status, add notes/activity, assign
+              staff or Vendor, close, and reopen. Legal hold and product-record retention
+              are preserved by the source-complete writers.
+            </p>
+          </article>
+          <article class="card">
+            <span class="state deployed">Draft-only outreach</span>
+            <h3>Owner notice</h3>
+            <p>
+              The ticket resolves its property and authoritative owner contact, prepares
+              an addressed Gmail draft, and stops. There is no in-app client-facing Send
+              control; a person reviews and sends from Gmail.
+            </p>
+          </article>
+          <article class="card">
+            <span class="state target">Next workspace</span>
+            <h3>Resident self-service</h3>
+            <p>
+              Guarded public intake primitives and quarantine review exist, while the
+              complete resident-facing S47 experience, approved copy, and preferred
+              RentVine channel remain a later authorized suite.
+            </p>
+          </article>
+        </div>
+        <div class="callout warn">
+          <strong>Provider boundary</strong>
+          Photo storage, Live work-order creation/assignment/status, LeadSimple, and
+          QuickBooks draft-bill actions do not become active from a working ticket. Each
+          needs its documented provider contract, identity, mapping, receipt, and
+          rollback.
+        </div>
+      </section>
+
+      <section class="section" id="communications">
+        <h2>Communications: workflow mail, not a second inbox</h2>
+        <p class="lede">
+          The Gmail surface is intentionally narrow. It operates on linked workflow
+          threads and governed artifacts, preserving human send authority and bodyless
+          durable evidence.
+        </p>
+        <div class="grid-2">
+          <article class="card">
+            <span class="state deployed">Working today</span>
+            <h3>Mailbox reads, replies, labels, and drafts</h3>
+            <ul>
+              <li>Per-user, same-mailbox workflow reads.</li>
+              <li>Source-backed reply proposals and exact-confirmed linked replies.</li>
+              <li>Governed triage labels with visible rule/reason context.</li>
+              <li>Renewal and maintenance drafts that remain unsent.</li>
+              <li>Pub/Sub watch and internal follow-up attention where configured.</li>
+            </ul>
+          </article>
+          <article class="card">
+            <span class="state source">S51 hardening on main</span>
+            <h3>Bad outcomes reach attention safely</h3>
+            <p>
+              Reply and watch failures/ambiguities now emit one value-free A2 event only
+              after a durable terminal transition. Demo/Test emits no Live alert, replay
+              does not duplicate it, and malformed environment configuration constructs no
+              provider.
+            </p>
+          </article>
+        </div>
+        <div class="callout stop">
+          <strong>Permanent safety line</strong>
+          No autonomous, scheduled, bulk, or model-triggered client-facing send. No
+          generic new-message send, free-form mailbox browser, or cross-mailbox Admin
+          access. Internal transactional notices may auto-send only to the locked managed
+          staff destination.
+        </div>
+        <div class="callout warn">
+          <strong>Next hardening slice</strong>
+          <code>gmail.label.apply</code> is already an enabled workflow action. The next
+          source slice migrates it through the canonical S20/S25 one-attempt terminal
+          contract without changing its gate or causing a second label mutation. The
+          renewal and maintenance draft paths follow.
+        </div>
+      </section>
+
+      <section class="section" id="admin">
+        <h2>Admin, Vendor, Connections, and internal attention</h2>
+        <div class="grid-4">
+          <article class="card">
+            <span class="state deployed">Admin</span>
+            <h3>People and policy</h3>
+            <p>
+              Manage staff roles/scopes, enforce the last-Admin guard, inspect audits,
+              reported issues, retention/legal hold, migration readiness, and governed
+              settings.
+            </p>
+          </article>
+          <article class="card">
+            <span class="state deployed">Vendor portal</span>
+            <h3>Assigned work only</h3>
+            <p>
+              Test Vendor provisioning, password/TOTP, assigned-ticket isolation, app-only
+              mailbox, reply, disable/revoke, and auth reset are working. Live Gmail adds
+              per-Vendor same-address OAuth and vault setup.
+            </p>
+          </article>
+          <article class="card">
+            <span class="state config">Connections</span>
+            <h3>Truthful health</h3>
+            <p>
+              Staff see connector status. Admin verification can use real supported
+              read-only diagnostics, but an undocumented endpoint or absent credential
+              remains visibly unavailable.
+            </p>
+          </article>
+          <article class="card">
+            <span class="state deployed">Attention</span>
+            <h3>Notifications and feedback</h3>
+            <p>
+              The bell, notification center, family preferences, approval/maintenance
+              links, and Admin Feedback center are working. Support reports persist first;
+              the internal notice is best-effort and never replaces the queue record.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="operations">
+        <h2>Production operational controls on main</h2>
+        <p class="lede">
+          S51 is complete at its dependency-safe local boundary. These controls are
+          verified source behavior or exact owner-run plans. They are not all active in
+          Production yet.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Control</th>
+                <th>What it does</th>
+                <th>Current state</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-label="Control">Close-only runtime suspend</td>
+                <td data-label="What it does">
+                  Lets an Admin stop a gate-controlled effect without allowing any closed
+                  seed to open. Unknown or unreadable state fails closed.
+                </td>
+                <td data-label="Current state">
+                  <span class="state source">Source complete</span><br />
+                  Protected Firestore Rules packet remains unapplied.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Control">Live-effect A2 signal</td>
+                <td data-label="What it does">
+                  Emits one value-free alert event after committed failed/ambiguous
+                  terminals across the covered execution paths.
+                </td>
+                <td data-label="Current state">
+                  <span class="state source">Source complete</span><br />
+                  Monitoring resources were not created.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Control">Incident response</td>
+                <td data-label="What it does">
+                  Defines Sev-1/Sev-2 windows, same-day reporting for wrong client output,
+                  runtime stop first, and a bounded panel-unavailable fallback.
+                </td>
+                <td data-label="Current state">
+                  <span class="state source">Runbook complete</span>
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Control">Product retention</td>
+                <td data-label="What it does">
+                  Stamps six product-record collections as indefinite, preserves legal
+                  hold, and remains separate from communications expiry classes.
+                </td>
+                <td data-label="Current state">
+                  <span class="state source">Writers complete</span>
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Control">Pilot capacity</td>
+                <td data-label="What it does">
+                  Pins zero minimum, one maximum instance, 512 MiB, one CPU, concurrency
+                  ten, and 60-second timeout; documents per-instance limiter coupling.
+                </td>
+                <td data-label="Current state">
+                  <span class="state source">Pinned and tested</span>
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Control">Rollback rehearsal</td>
+                <td data-label="What it does">
+                  Prints and validates exact candidate/prior revision traffic commands,
+                  refusing foreign, missing, overlong, or mutated targets.
+                </td>
+                <td data-label="Current state">
+                  <span class="state source">Print-only complete</span><br />
+                  No live rehearsal was run.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Control">Monitoring/log hygiene</td>
+                <td data-label="What it does">
+                  Plans four alert policies, one managed channel, explicit log retention,
+                  restricted viewer roles, exact readbacks, and owned rollback markers.
+                </td>
+                <td data-label="Current state">
+                  <span class="state closed">Owner packet not run</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout warn">
+          <strong>Why activation is parked</strong>
+          ADC is not configured and the managed runner CLI token needs interactive
+          reauthentication through <code>npm run auth:session</code>. S52's alert and
+          hard-stop values remain null. The protected Rules review, managed operator
+          destination, S40 release path, and owner-run cloud steps are still required.
+        </div>
+      </section>
+
+      <section class="section" id="activation">
+        <h2>Provider and environment activation map</h2>
+        <p class="lede">
+          A working screen is not an activation grant. The Registry resolves one exact key
+          at a time, and every effect still needs its own target, identity, contract,
+          receipt, and rollback.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Capability</th>
+                <th>Product behavior</th>
+                <th>Live boundary</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-label="Capability">Ask, Spaces, approvals, app decisions</td>
+                <td data-label="Product behavior">Working app-plane behavior.</td>
+                <td data-label="Live boundary">No external provider effect required.</td>
+              </tr>
+              <tr>
+                <td data-label="Capability">Rentvine/Sheet read projections</td>
+                <td data-label="Product behavior">
+                  Show scoped Live data or a named unavailable/stale state.
+                </td>
+                <td data-label="Live boundary">
+                  Read-only configuration and managed identity.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">Workflow Gmail</td>
+                <td data-label="Product behavior">
+                  Linked read, reply, label, watch, and addressed unsent drafts.
+                </td>
+                <td data-label="Live boundary">
+                  Existing named actions only; no generic send.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">Internal transactional notice</td>
+                <td data-label="Product behavior">
+                  Best-effort metadata-only notice after durable support write.
+                </td>
+                <td data-label="Live boundary">
+                  Locked managed staff destination; client content never sent.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">Sheet/RentVine writes</td>
+                <td data-label="Product behavior">
+                  Preview, approval, receipt, reconciliation, and rollback seams exist.
+                </td>
+                <td data-label="Live boundary">
+                  Closed until exact provider/target evidence and protected key review.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">Dotloop, LeadSimple, QuickBooks, Boom</td>
+                <td data-label="Product behavior">
+                  Typed workflows/Test evidence or documented seams.
+                </td>
+                <td data-label="Live boundary">
+                  Vendor contract, app/key/identity, mapping, proof, and gate per action.
+                </td>
+              </tr>
+              <tr>
+                <td data-label="Capability">Demo/Production split</td>
+                <td data-label="Product behavior">
+                  Fully specified target with fail-closed environment ownership.
+                </td>
+                <td data-label="Live boundary">
+                  S40 migration, owner provisioning, candidate smoke, promotion, rollback.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="next">
+        <h2>The exact stopping point and what comes next</h2>
+        <p class="lede">
+          The repository is intentionally stopped at a coherent boundary. S51 local
+          operations are finished; cloud activation is parked; the next dependency-ready
+          local work belongs to S25.
+        </p>
+        <div class="grid-3">
+          <article class="card">
+            <span class="state source">Completed</span>
+            <h3>Do not rebuild S51</h3>
+            <p>
+              Runtime stop, A2/monitoring definitions, reply/watch hardening, rollback,
+              incident, retention, capacity, log hygiene, docs, and verification are
+              complete at the local seam.
+            </p>
+          </article>
+          <article class="card">
+            <span class="state target">Next local slice</span>
+            <h3>S25 Gmail label contract</h3>
+            <p>
+              Move <code>gmail.label.apply</code> through the canonical S20 one-attempt
+              authority/receipt/reconcile/rollback path. Preserve its current gate and
+              prevent duplicate mutation or duplicate A2 emission.
+            </p>
+          </article>
+          <article class="card">
+            <span class="state config">Then</span>
+            <h3>Draft action pair</h3>
+            <p>
+              Apply the same durable terminal/A2 discipline to
+              <code>gmail.renewal_notice.draft_create</code> and
+              <code>gmail.maintenance_owner_notice.draft_create</code>.
+            </p>
+          </article>
+        </div>
+        <div class="callout info">
+          <strong>Fresh-context launcher</strong>
+          Use
+          <a href="meta-prompts/production-phase-unattended-loop.md"
+            >the production-phase unattended loop meta-prompt</a
+          >. It begins with auth verification, reads the Tier-0 spine, refuses completed
+          work replay, and resumes at this exact S25 slice.
+        </div>
+      </section>
+
+      <section class="section" id="evidence">
+        <h2>Verification and evidence basis</h2>
+        <div class="grid-2">
+          <article class="card">
+            <span class="state source">Local green</span>
+            <h3>Integrated closeout</h3>
+            <p>
+              The clean-install verifier passed in 244.5 seconds: formatting, lint with
+              zero errors and 15 known warnings, typecheck, full unit and Firestore
+              suites, governance, redaction, falsification, budget guard, and production
+              build. Core E2E passed 8 files / 32 tests with 18 designed skips.
+            </p>
+          </article>
+          <article class="card">
+            <span class="state source">Remote green</span>
+            <h3>Exact pushed commit</h3>
+            <p>
+              GitHub Actions run <code>30590429115</code> passed the exact application
+              checkpoint <code>373f968</code>. The worktree was clean and local/remote
+              refs matched at that closeout.
+            </p>
+          </article>
+        </div>
+        <div class="callout good">
+          <strong>No hidden activation</strong>
+          The S51 checkpoint changed no D12-protected path, Action Registry
+          <code>production_allowed</code> value, cloud resource, IAM grant, billing value,
+          log-retention setting, provider permission, or serving traffic.
+        </div>
+      </section>
+
+      <footer class="footer">
+        <p>
+          <strong>Truth sources:</strong>
+          <a href="facts.md">facts ledger</a> |
+          <a href="loop-state.md">current loop state</a> |
+          <a href="plan.md">working-app plan</a> |
+          <a href="status.md">status history</a> |
+          <a href="feature-suites/README.md">suite index</a> |
+          <a href="manual-qa-walkthrough-2026-07-21.md">detailed manual QA</a>.
+        </p>
+        <p>
+          Historical snapshots remain available in
+          <a href="pmi-kc-v1-working-app-state-2026-07-15.html"
+            >the July 15 state report</a
+          >
+          ,
+          <a href="customer-demo-walkthrough-2026-07-21.html"
+            >the July 21 customer demo script</a
+          >, and
+          <a href="pmi-kc-app-guide-2026-07-23.html">the July 23 plain-language guide</a>.
+          They retain their original evidence dates and do not override this current
+          source/deployment distinction.
+        </p>
+        <p>
+          No customer record, Gmail body, credential, token, secret value, or private
+          operator destination appears in this document.
+        </p>
+        <p><a href="#top">Back to top</a></p>
+      </footer>
+    </main>
+  </body>
+</html>
