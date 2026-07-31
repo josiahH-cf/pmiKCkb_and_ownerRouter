@@ -299,7 +299,8 @@ Program:
   baseline/prerequisites → S51 close-only kernel → S51 store/route/audit and gated-effect
   execution-path readiness → S51 A2/monitoring definitions → S51
   reply/watch A2 plus incident/retention/rehearsal/capacity/log-hygiene local completion →
-  S25's canonical Gmail label action contract, then the renewal/maintenance draft action contracts →
+  S25's canonical Gmail label action contract (DONE 2026-07-31), then the renewal/maintenance
+  draft action contracts →
   activate S52/S51 infrastructure when their named dependencies are satisfied → land
   S40's environment-parameterized zero-traffic candidate/smoke/promotion release-safety slice →
   routine deploy/live verification when auth and cost gates are green → resume the remaining S40

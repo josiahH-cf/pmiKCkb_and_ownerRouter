@@ -103,10 +103,13 @@ export interface GmailLabel {
   type: "system" | "user";
 }
 
+/**
+ * Readback of one governed thread-label mutation. It carries only the provider's own echo: the
+ * mutated thread id and the resulting label id set. The requested label id and name stay with the
+ * caller's durable execution snapshot so the provider can never redefine which effect was claimed.
+ */
 export interface GmailLabelMutationResult {
   threadId: string;
-  labelId: string;
-  labelName: string;
   labelIds: string[];
 }
 

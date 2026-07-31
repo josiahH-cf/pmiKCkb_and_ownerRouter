@@ -247,6 +247,11 @@ export class GmailRuntimeClient {
     });
   }
 
+  /**
+   * Provision a user label. This is deliberately NOT reachable from the governed labelling effect:
+   * see `resolveExistingUserLabel`. It remains available for an explicit, separately governed
+   * provisioning step.
+   */
   async createLabel(labelName: string): Promise<GmailLabel> {
     const name = safeLabelName(labelName);
     const data = await this.request(GMAIL_LABELS_SCOPE, "POST", "/labels", {
@@ -261,20 +266,82 @@ export class GmailRuntimeClient {
     return { id, name: requiredString(data.name, "label name"), type: "user" };
   }
 
-  async applyThreadLabel(
+  /**
+   * Read-only lookup of an already-provisioned user label.
+   *
+   * This deliberately does NOT create a missing label. Creation is a second, separate provider
+   * mutation; performing it inside the labelling effect would put two mutations under one
+   * one-attempt claim and hide the created-label sub-effect from the durable receipt. A governed
+   * label that is not provisioned in the mailbox is a definitive refusal the operator resolves in
+   * Gmail, after which the unclaimed execution can be retried.
+   */
+  async resolveExistingUserLabels<Name extends string>(
+    labelNames: readonly Name[],
+  ): Promise<Map<Name, GmailLabel>> {
+    const wanted = new Map(
+      labelNames.map((value) => [safeLabelName(value).toLocaleLowerCase(), value]),
+    );
+    const resolved = new Map<Name, GmailLabel>();
+    for (const label of await this.listLabels()) {
+      const name = wanted.get(label.name.toLocaleLowerCase());
+      if (name === undefined) continue;
+      if (label.type !== "user") {
+        throw new GmailRuntimeError(
+          "Only a user label can be applied through the Gmail hub.",
+          400,
+          false,
+        );
+      }
+      resolved.set(name, label);
+    }
+    return resolved;
+  }
+
+  /**
+   * Minimal metadata read of a thread's label ids. `format=minimal` returns no payload, so this
+   * captures the pre-effect label set and performs reconciliation readback without ever pulling a
+   * message body into the process.
+   */
+  async getThreadLabelIds(threadId: string): Promise<string[]> {
+    const id = opaqueId(threadId, "thread id");
+    const data = await this.request(
+      GMAIL_READONLY_SCOPE,
+      "GET",
+      `/threads/${encodeURIComponent(id)}`,
+      { query: { format: "minimal" } },
+    );
+    if (!isRecord(data) || !Array.isArray(data.messages)) {
+      throw new GmailRuntimeError("Gmail returned an invalid thread label read.");
+    }
+    const labelIds = new Set<string>();
+    for (const message of data.messages.slice(
+      0,
+      GMAIL_RUNTIME_LIMITS.maxThreadMessages,
+    )) {
+      if (!isRecord(message) || !Array.isArray(message.labelIds)) continue;
+      for (const value of message.labelIds.slice(0, 100)) {
+        if (typeof value === "string") labelIds.add(value);
+      }
+    }
+    return [...labelIds];
+  }
+
+  /** Exactly one governed thread mutation. It resolves no label and creates nothing. */
+  async modifyThreadLabels(
     threadId: string,
-    labelName: string,
+    mutation: {
+      addLabelIds: readonly string[];
+      removeLabelIds: readonly string[];
+    },
   ): Promise<GmailLabelMutationResult> {
     const id = opaqueId(threadId, "thread id");
-    const name = safeLabelName(labelName);
-    const labels = await this.listLabels();
-    let label = labels.find(
-      (candidate) => candidate.name.toLocaleLowerCase() === name.toLocaleLowerCase(),
+    const addLabelIds = mutation.addLabelIds.map((value) => opaqueId(value, "label id"));
+    const removeLabelIds = mutation.removeLabelIds.map((value) =>
+      opaqueId(value, "label id"),
     );
-    if (!label) label = await this.createLabel(name);
-    if (label.type !== "user") {
+    if (addLabelIds.length + removeLabelIds.length !== 1) {
       throw new GmailRuntimeError(
-        "Only a user label can be applied through the Gmail hub.",
+        "A governed label mutation changes exactly one label.",
         400,
         false,
       );
@@ -283,15 +350,13 @@ export class GmailRuntimeClient {
       GMAIL_MODIFY_SCOPE,
       "POST",
       `/threads/${encodeURIComponent(id)}/modify`,
-      { body: { addLabelIds: [label.id], removeLabelIds: [] } },
+      { body: { addLabelIds, removeLabelIds } },
     );
     if (!isRecord(data)) {
       throw new GmailRuntimeError("Gmail returned an invalid label mutation.");
     }
     return {
       threadId: requiredString(data.id, "labeled thread id"),
-      labelId: label.id,
-      labelName: label.name,
       labelIds: Array.isArray(data.labelIds)
         ? data.labelIds
             .filter((value): value is string => typeof value === "string")

@@ -2,10 +2,10 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history belongs in `docs/status.md`.
 
-Last updated: 2026-07-30.
+Last updated: 2026-07-31.
 
 ```yaml
-last_updated: 2026-07-30
+last_updated: 2026-07-31
 active_program: PRODUCTION-PHASE-2026-07-29
 program_suites: S51-S54 (new) + S40-S50 (in flight)
 spec_writing_allowed: true
@@ -16,10 +16,10 @@ provider_interleave_allowed: true
 spec_package_status: EXECUTING
 implementation_status: PAUSED_AT_VERIFIED_BOUNDARY
 next_suite: S25
-next_spec: docs/feature-suites/lease-renewal-execution.md
+next_spec: docs/feature-suites/lease-renewal-execution.md + docs/feature-suites/maintenance-execution.md
 session_auth_status: BLOCKED_INTERACTIVE_ADC_MISSING_AND_CLI_REAUTH
-active_slice: STOPPED-AT-S51-DEPENDENCY-SAFE-LOCAL-BOUNDARY
-last_completed_slice: S53.5 + S52-I/J/PLANNER + S51-CLOSE-ONLY/EFFECT-STOP/A2-MONITORING/OPERATIONS
+active_slice: STOPPED-AT-S25-LABEL-CONTRACT-COMPLETE
+last_completed_slice: S25-GMAIL-LABEL-S20-CONTRACT
 runtime_action_gates_preflipped: false
 ```
 
@@ -41,25 +41,19 @@ runtime_action_gates_preflipped: false
   `npm run auth:session`, then rerun ADC, managed-account, and suppressed CLI-token checks. Live
   reads, deploys, cloud mutations, and the S54 live eval stay parked; local/app-plane work continues.
 - S54.1's widened Firestore gate/falsification is complete; remote CI run `30510068990` passed.
-- S53.2's AC-S53-12 Sheet contract is locally complete through immutable preview, one-attempt
-  execution, receipt/reconcile/correction, and ABA-safe recovery; D32 is still the provider seam.
-- S53.3's AC-S53-13 Drive contract is locally complete through preview, one upload, bodyless
-  receipt/reconcile, and exact trash rollback; the key remains closed/hidden.
-- S53.4 is complete locally: reviewed preflight/deploy source parity, explicit Production+Live,
-  committed-seed gate truth plus complete Firestore drift, action-keyed sender/DWD readiness,
-  paired intake secrets, fail-closed Space flag, and strict runtime scalar validation. D33's direct
-  notice-send non-targets are reconciled as Disabled without changing `production_allowed`.
-- S53.5 Vendor lifecycle and S52-I/J plus the fail-closed print-only budget planner are locally
-  green; every provider key remains closed.
-- S51 steps 3–6 are dependency-safe locally complete: effect stop, A2/monitoring, reply/watch A2,
-  rollback/incident/retention/capacity/log hygiene. Rules/cloud/live rehearsal remain parked; the
-  exact label plus renewal/maintenance draft action contracts transfer to their owning slices.
-- Exact closeout gate: clean-install verifier green in 244.5 seconds; full unit, Firestore,
-  governance, redaction, and build green. Core E2E: 8 files / 32 passed / 18 designed skips.
+- S53.2 Sheet, S53.3 Drive, S53.4 sender/config, S53.5 Vendor lifecycle, S52-I/J, and the
+  fail-closed budget planner are COMPLETE LOCALLY; every provider key remains closed and D32 is still
+  the Sheet provider seam. Detail: `docs/status.md` plus the `F-S53-*`/`F-S52-*` rows.
+- S51 steps 3–6 are dependency-safe locally complete (effect stop, A2/monitoring, reply/watch A2,
+  rollback/incident/retention/capacity/log hygiene); Rules/cloud/live rehearsal remain parked.
+- S25's `gmail.label.apply` runs the canonical S20 one-attempt contract
+  (`F-S25-LABEL-S20-CONTRACT`); gate unchanged, no D12 path touched. Remaining A2 residual: the
+  renewal/maintenance draft pair.
+- Exact closeout gate (2026-07-31): clean-install `bash scripts/verify.sh` green; 3974 unit + 109
+  Firestore tests, 0 lint errors; core E2E 8 files / 32 passed / 18 designed skips.
 - Production serves `2bfe7d4` on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e`, missing the
   accumulated repairs. D07 deploy waits for S52 headroom and the sanitized-environment/emulator
-  refusal. Never edit `.env.local` as the workaround.
-- Firestore backups are verified (`F-FIRESTORE-BACKUPS`); the S40 migration is unblocked.
+  refusal. Never edit `.env.local` as the workaround. Backups verified; S40 migration unblocked.
 - The budget kill-switch is armed and verified end to end at the observed legacy monthly amount,
   which is enforcement state rather than approved headroom. S52's replacement values are null.
 
@@ -79,7 +73,9 @@ runtime_action_gates_preflipped: false
    receipt/reconcile/setup/disable and concurrency fences are green; no protected flip.
 7. **S52 prerequisites — PARKED** — planner refusal plus I/J are green; source/handler/check are
    protected, and baseline/values/project disposition/operator destination remain external.
-8. **S51 app-plane — DEPENDENCY-SAFE LOCAL SPEC COMPLETE** — steps 3–7 and reply/watch A2 are green; Rules/cloud/live rehearsal are parked; next local work is S25's label contract, then the renewal/maintenance draft contracts.
+8. **S51 app-plane — DEPENDENCY-SAFE LOCAL SPEC COMPLETE** — steps 3–7 and reply/watch A2 green;
+   Rules/cloud/live rehearsal parked. S25's label contract is COMPLETE LOCALLY; next is the
+   renewal/maintenance draft pair (S25/S26/S38).
 9. **S52/S51 activation** — after the complete-calendar-month baseline, supply the two
    owner-selected values, second-project disposition, and operator destination; apply owner-run
    billing/IAM/monitoring changes and verify live lockstep/delivery. Do not synthesize or infer a
@@ -136,4 +132,8 @@ runtime_action_gates_preflipped: false
 
 ## Resume
 
-Stop at the verified S51 dependency-safe local boundary. Next session, begin S25's `gmail.label.apply` contract through the S20 one-attempt authority, then the renewal/maintenance draft pair. Keep Rules/monitoring/cloud/live activation parked until auth, S52, S40, and owner conditions pass.
+Stop at the verified S25 label-contract boundary. Next session, migrate the renewal/maintenance
+draft pair (S25/S26/S38) through the same S20 one-attempt authority, add
+`gmail.maintenance_owner_notice.draft_create` to the canonical maintenance matrix, and activate
+neither direct-send key nor generic send. Keep Rules/monitoring/cloud/live activation parked until
+auth, S52, S40, and owner conditions pass.

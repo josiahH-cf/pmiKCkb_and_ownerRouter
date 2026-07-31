@@ -145,7 +145,6 @@ class FakeGmailClient extends GmailRuntimeClient {
   sendError: Error | null = null;
   sendDelay: Promise<void> | null = null;
   reconcileResult: GmailSendResult | null = null;
-  labelsApplied: Array<{ threadId: string; labelName: string }> = [];
   watchCalls = 0;
   watchError: Error | null = null;
   watchDelay: Promise<void> | null = null;
@@ -221,16 +220,6 @@ class FakeGmailClient extends GmailRuntimeClient {
 
   override async findMessageByRfcMessageId() {
     return this.reconcileResult;
-  }
-
-  override async applyThreadLabel(threadId: string, labelName: string) {
-    this.labelsApplied.push({ threadId, labelName });
-    return {
-      threadId,
-      labelId: "Label_1",
-      labelName,
-      labelIds: ["INBOX", "Label_1"],
-    };
   }
 
   override async watchMailbox() {
@@ -1050,8 +1039,11 @@ describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
     });
   });
 
-  it("applies a bounded user label through its separately gated action", async () => {
-    const { hub, client, store } = service();
+  // The governed label path moved onto the S20 one-attempt execution contract; its behaviour,
+  // refusals, terminal states, A2, and restoration are covered in gmail-label-execution.test.ts.
+  it("fails closed on the governed label action when its execution ledger is unavailable", async () => {
+    const { hub, createClient } = service();
+
     await expect(
       hub.applyThreadLabel("thread-1", {
         context: context("gmail.label.apply"),
@@ -1059,25 +1051,8 @@ describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
         reason: "Waiting for staff review",
         ruleRef: "manual-human-review:v1",
       }),
-    ).resolves.toEqual({
-      threadId: "thread-1",
-      labelId: "Label_1",
-      labelName: "Waiting on Team",
-      labelIds: ["INBOX", "Label_1"],
-    });
-    expect(client.labelsApplied).toEqual([
-      { threadId: "thread-1", labelName: "Waiting on Team" },
-    ]);
-    expect(store.audit).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          action: "label_applied",
-          label: "Waiting on Team",
-          rule_ref: "manual-human-review:v1",
-        }),
-      ]),
-    );
-    expect(JSON.stringify(store.audit)).not.toContain("Waiting for staff review");
+    ).rejects.toMatchObject({ status: 503 });
+    expect(createClient).not.toHaveBeenCalled();
   });
 
   it("rejects generic compose and unlinked reads before Gmail mutation", async () => {
@@ -1110,7 +1085,7 @@ describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
   });
 
   it("rejects arbitrary labels, rules, and missing reasons before Gmail mutation", async () => {
-    const { hub, client } = service();
+    const { hub, createClient } = service();
     for (const input of [
       {
         context: context("gmail.label.apply"),
@@ -1135,7 +1110,7 @@ describe("GmailHubService exact-message sending (AC-GW-1, AC-GW-5)", () => {
         hub.applyThreadLabel("thread-1", input as never),
       ).rejects.toBeInstanceOf(Error);
     }
-    expect(client.labelsApplied).toEqual([]);
+    expect(createClient).not.toHaveBeenCalled();
   });
 
   it("refuses a Gmail client for any mailbox other than the authenticated actor", async () => {

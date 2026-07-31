@@ -88,6 +88,15 @@ class FakeTransaction {
     this.db.store.set(ref.path, resolveSentinels(data));
   }
 
+  /** Mirrors the real API: creating an existing document is an error, not an overwrite. */
+  create(ref: FakeDocument, data: Record<string, unknown>) {
+    if (this.db.store.has(ref.path)) {
+      throw new Error(`Document already exists: ${ref.path}`);
+    }
+
+    this.db.store.set(ref.path, resolveSentinels(data));
+  }
+
   update(ref: FakeDocument, data: Record<string, unknown>) {
     const current = this.db.store.get(ref.path);
 

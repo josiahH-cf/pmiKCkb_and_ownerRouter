@@ -5,6 +5,10 @@ import {
   requireEnvironmentDescriptor,
   type EnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
+import {
+  FirestoreGmailLabelEffectStore,
+  type GmailLabelEffectStore,
+} from "@/lib/firestore/gmail-label-effects";
 import { GmailHubService } from "@/lib/gmail-hub/service";
 import {
   FirestoreGmailStateStore,
@@ -28,6 +32,8 @@ export interface GmailHubRuntimeDependencies {
   createToken?(): string;
   workflowLinkTtlDays?: number;
   isApprovedWorkflowTemplate?(context: WorkflowCommunicationContext): boolean;
+  labelEffects?: GmailLabelEffectStore;
+  dataMode?: "live" | "test";
 }
 
 export interface GmailHubEffectEnvironment {
@@ -80,6 +86,8 @@ export function createGmailHubRuntimeDependencies(
     assertEffectEnvironment,
     assertRuntimeActionExecutable: assertGmailHubRuntimeActionExecutable,
     isApprovedWorkflowTemplate: isApprovedWorkflowReplyTemplate,
+    labelEffects: new FirestoreGmailLabelEffectStore(),
+    dataMode: environment.dataMode,
   };
 }
 
@@ -139,6 +147,8 @@ export function createGmailHubService(actor: AuthenticatedUser) {
     createToken: dependencies.createToken,
     workflowLinkTtlDays: dependencies.workflowLinkTtlDays,
     isApprovedWorkflowTemplate: dependencies.isApprovedWorkflowTemplate,
+    labelEffects: dependencies.labelEffects,
+    dataMode: dependencies.dataMode,
   });
 }
 

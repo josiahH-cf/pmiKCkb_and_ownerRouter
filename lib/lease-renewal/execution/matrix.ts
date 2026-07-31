@@ -38,11 +38,16 @@ export const LEASE_EXECUTION_DEFINITIONS: readonly ExternalActionDefinition[] = 
     [LEASE_EXECUTION_ACTIONS[1]],
     "Reconcile the RFC Message-ID and send a corrected linked reply only after review.",
   ),
+  // No dependency. The governed label organizes a thread already linked to the workflow; it is not
+  // downstream of any message effect. It previously depended on `gmail.renewal_notice.send`, which
+  // D33 retired as a permanent non-target — that dependency could never acquire a receipt, so the
+  // action was unsatisfiable by construction. The linked-thread requirement is enforced by the
+  // workflow context, not by another action's receipt.
   definition(
     LEASE_EXECUTION_ACTIONS[3],
     "Gmail renewal",
     "Low",
-    [LEASE_EXECUTION_ACTIONS[1]],
+    [],
     "Restore the prior governed label set.",
   ),
   definition(

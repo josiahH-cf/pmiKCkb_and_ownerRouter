@@ -3,7 +3,43 @@ import { v7 as uuidv7 } from "uuid";
 
 import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { DRAFT_BANNER } from "@/lib/constants";
+import { hashExecutionPreview } from "@/lib/execution/preview-hash";
+import {
+  AmbiguousExecutionError,
+  DefinitiveExecutionError,
+  executePreparedAction,
+  prepareActionExecution,
+  type TrustedExecutionContext,
+} from "@/lib/execution/service";
+import { resolveActionReconciliation } from "@/lib/firestore/action-executions";
+import type { GmailLabelEffectStore } from "@/lib/firestore/gmail-label-effects";
 import { GMAIL_HUB_ACTIONS } from "@/lib/gmail-hub/action-keys";
+import {
+  GMAIL_GOVERNED_LABELS,
+  GMAIL_LABEL_ERROR_CODES,
+  GMAIL_LABEL_IDEMPOTENCY_PRINCIPAL,
+  gmailLabelContextHash,
+  gmailLabelExecutionId,
+  gmailLabelIdempotencyKey,
+  gmailLabelMailboxKeyHash,
+  gmailLabelPreview,
+  gmailLabelResultCode,
+  gmailLabelScopeRef,
+  governedLabelMutation,
+  intendedGovernedLabels,
+  observedGovernedLabels,
+  sameLabelSet,
+  type GmailGovernedLabel,
+  type GmailLabelEffectIdentityInput,
+  type GmailLabelEffectKind,
+  type GmailLabelEffectSnapshot,
+} from "@/lib/gmail-hub/label-contract";
+import {
+  createLiveEffectAttentionEvent,
+  emitLiveEffectAttentionSafely,
+  emitLiveEffectRequiresAttention,
+  type LiveEffectAttentionEmitter,
+} from "@/lib/operations/live-effect-attention-log";
 import {
   ApplyGmailLabelSchema,
   assertAuthenticatedSender,
@@ -54,6 +90,29 @@ export interface GmailHubServiceDependencies {
   createToken?(): string;
   workflowLinkTtlDays?: number;
   isApprovedWorkflowTemplate?(context: WorkflowCommunicationContext): boolean;
+  /** Durable companion ledger for the governed label contract. */
+  labelEffects?: GmailLabelEffectStore;
+  /** Server-owned lane for the A2 projection; only a Live effect may raise attention. */
+  dataMode?: "live" | "test";
+  /** S20 seams. Production omits these and uses the committed ledger implementations. */
+  prepareExecution?: typeof prepareActionExecution;
+  executePrepared?: typeof executePreparedAction;
+  resolveExecutionReconciliation?: typeof resolveActionReconciliation;
+  emitLiveEffectAttention?: LiveEffectAttentionEmitter;
+}
+
+/** Bodyless, client-safe projection of one governed label effect. */
+export interface GmailLabelEffectResult {
+  status: "settled" | "reconciled" | "needs_reconciliation";
+  kind: GmailLabelEffectKind;
+  executionId: string;
+  threadId: string;
+  labelName: GmailGovernedLabel;
+  labelId: string;
+  governedLabels: GmailGovernedLabel[];
+  duplicate: boolean;
+  /** False when the settled effect's human-readable audit projection could not be written. */
+  auditRecorded: boolean;
 }
 
 export class GmailHubService {
@@ -546,6 +605,16 @@ export class GmailHubService {
     return watchReadback("completed", readback, attemptKeyHash, topicHash);
   }
 
+  /**
+   * Apply one governed label through the canonical S20 one-attempt execution contract.
+   *
+   * The prior implementation mutated Gmail and then appended an audit row, so a replay, a
+   * concurrent confirm, or a crash could apply the effect twice with no durable evidence and no way
+   * to restore the thread's prior governed labels. Every ordering below is load-bearing: the
+   * environment/gate fences and the label/thread reads happen before the atomic claim so a refusal
+   * cannot strand a claimed attempt, and the provider mutation happens only after the claim so a
+   * duplicate request cannot reach Gmail.
+   */
   async applyThreadLabel(
     threadId: string,
     input: {
@@ -555,31 +624,513 @@ export class GmailHubService {
       ruleRef: string;
     },
   ) {
+    return this.runGovernedLabelEffect("apply", threadId, input);
+  }
+
+  /**
+   * Restore the governed label set the thread held before a settled `apply`.
+   *
+   * This is the correction path named by the action's rollback contract. It is a separate immutable
+   * identity, so it earns its own single attempt, and it removes the applied label only when the
+   * captured pre-effect set did not already contain it.
+   */
+  async restoreThreadLabel(
+    threadId: string,
+    input: {
+      context: WorkflowCommunicationContext;
+      label: string;
+      reason: string;
+      ruleRef: string;
+    },
+  ) {
+    return this.runGovernedLabelEffect("restore", threadId, input);
+  }
+
+  private async runGovernedLabelEffect(
+    kind: GmailLabelEffectKind,
+    threadId: string,
+    input: {
+      context: WorkflowCommunicationContext;
+      label: string;
+      reason: string;
+      ruleRef: string;
+    },
+  ): Promise<GmailLabelEffectResult> {
     const parsed = ApplyGmailLabelSchema.parse(input);
     this.assertContextAction(parsed.context, GMAIL_HUB_ACTIONS.label);
     const linked = await this.assertLinkedThread(threadId, parsed.context);
-    assertRegistryPreview(GMAIL_HUB_ACTIONS.label, {
-      thread_ref: threadId,
-      workflow_context: workflowActionContextKey(parsed.context),
-      suggested_label: parsed.label,
-      rule_ref: parsed.ruleRef,
-      reason: parsed.reason,
-    });
-    const client = await this.createRuntimeClient(GMAIL_HUB_ACTIONS.label);
-    const result = await client.applyThreadLabel(threadId, parsed.label);
-    await this.dependencies.store.appendWorkflowActionAudit({
-      actorUid: this.actor.uid,
+    // The link is the authoritative source binding. A context whose source refs drift from the
+    // linked record is not the reviewed target, so it never reaches provider construction.
+    this.assertLinkedSourceRefs(linked, parsed.context);
+
+    const identity = {
       mailboxEmail: this.mailboxEmail,
-      communicationId: linked.id,
       context: parsed.context,
-      action: "label_applied",
       threadId,
       label: parsed.label,
       ruleRef: parsed.ruleRef,
-      reasonHash: hashOperationalReason(parsed.reason),
-      nowMs: this.now(),
+      kind,
+    } as const;
+    const preview = gmailLabelPreview({
+      context: parsed.context,
+      threadId,
+      label: parsed.label,
+      ruleRef: parsed.ruleRef,
+      reason: parsed.reason,
     });
-    return result;
+    assertRegistryPreview(GMAIL_HUB_ACTIONS.label, preview);
+    const contextHash = gmailLabelContextHash({ ...identity, linkId: linked.id });
+    const executionId = gmailLabelExecutionId(identity);
+
+    // A settled effect for this exact target is duplicate evidence for ANY operator, including one
+    // who cannot read the other operator's S20 record. Returning it here is what keeps a second
+    // confirmation from becoming either a second mutation or an opaque ownership error.
+    const settled = await this.labelEffects().get(executionId);
+    if (settled?.state === "settled" && settled.contextHash === contextHash) {
+      return this.labelResult(settled, true, true);
+    }
+
+    // Fence Demo, Live-read-only, and a malformed descriptor before any provider construction, and
+    // before the ledger records an intent it must not be able to execute.
+    this.dependencies.assertEffectEnvironment();
+    await this.assertRuntimeExecutable(GMAIL_HUB_ACTIONS.label);
+
+    // Read phase. Resolving the governed label is deliberately a lookup, never a creation: label
+    // creation is a second provider mutation and would otherwise hide inside this one claim.
+    const client = this.createClient();
+    const governed = await client.resolveExistingUserLabels(GMAIL_GOVERNED_LABELS);
+    const target = governed.get(parsed.label);
+    if (!target) {
+      throw new GmailHubError(
+        `The governed label "${parsed.label}" is not provisioned in this mailbox. Create it in Gmail, then apply it again.`,
+        409,
+      );
+    }
+    const governedById = new Map(
+      [...governed.entries()].map(([name, label]) => [label.id, name]),
+    );
+    // For `apply` the restoration anchor is the set observed right now. For `restore` it is the set
+    // captured before the ORIGINAL apply — reading it live would see the label the app just added
+    // and conclude the thread always carried it, turning the correction into a no-op.
+    const anchor =
+      kind === "apply"
+        ? observedGovernedLabels(await client.getThreadLabelIds(threadId), governedById)
+        : await this.priorSetFromSettledApply({ ...identity, kind: "apply" });
+
+    const execution = await this.prepareLabelExecution({
+      contextHash,
+      executionId,
+      identity,
+      linked,
+      preview,
+    });
+
+    // The one attempt is already consumed. Reconcile read-only; never mutate a second time.
+    if (execution.attempt_count === 1 && execution.state === "Succeeded") {
+      const snapshot = await this.requireLabelSnapshot(executionId);
+      return this.labelResult(snapshot, true, true);
+    }
+    if (
+      execution.attempt_count === 1 &&
+      (execution.state === "Needs reconciliation" || execution.state === "Executing")
+    ) {
+      return this.reconcileLabelEffect(executionId, threadId, governedById);
+    }
+
+    const snapshot = await this.labelEffects().persistPrepared(this.actor, {
+      schemaVersion: 1,
+      s20ExecutionId: executionId,
+      actionKey: GMAIL_HUB_ACTIONS.label,
+      kind,
+      actorUid: this.actor.uid,
+      mailboxKeyHash: gmailLabelMailboxKeyHash(this.mailboxEmail),
+      linkId: linked.id,
+      threadId,
+      label: parsed.label,
+      labelId: target.id,
+      ruleRef: parsed.ruleRef,
+      reasonHash: hashOperationalReason(parsed.reason),
+      previewHash: hashExecutionPreview(preview),
+      contextHash,
+      priorGovernedLabelIds: [...anchor.ids],
+      priorGovernedLabels: [...anchor.names],
+      dataMode: this.labelDataMode(),
+      createdAt: new Date(this.now()).toISOString(),
+    });
+
+    const intended = intendedGovernedLabels(snapshot);
+    const outcome = await this.executePreparedLabelAction({
+      contextHash,
+      executionId,
+      governedById,
+      intended,
+      preview,
+      snapshot,
+      threadId,
+      trustedContext: this.labelTrustedContext(),
+    });
+
+    if (outcome.execution.state !== "Succeeded" || !outcome.result) {
+      // The durable terminal transition already committed inside executePreparedAction. Emit the
+      // value-free A2 line exactly once, from here, after that commit — never from the executor.
+      await this.emitLabelAttention(
+        executionId,
+        outcome.execution.state === "Failed" ? "failed" : "ambiguous",
+      );
+      throw outcome.execution.state === "Failed"
+        ? new GmailHubError(
+            "Gmail refused the governed label change. The one attempt was consumed; review the thread before preparing a new one.",
+            409,
+          )
+        : new GmailAmbiguousLabelError(
+            "The governed label outcome could not be confirmed. Reconcile this execution before any new attempt.",
+          );
+    }
+
+    const settledSnapshot = await this.labelEffects().markSettled({
+      s20ExecutionId: executionId,
+      snapshotHash: snapshot.snapshotHash,
+      observedGovernedLabelIds: outcome.result.observedGovernedLabelIds,
+    });
+    const auditRecorded = await this.appendLabelAudit(
+      kind,
+      linked,
+      parsed,
+      threadId,
+      settledSnapshot,
+    );
+    return this.labelResult(settledSnapshot, false, auditRecorded);
+  }
+
+  private async prepareLabelExecution(input: {
+    contextHash: string;
+    executionId: string;
+    identity: GmailLabelEffectIdentityInput;
+    linked: WorkflowCommunicationLink;
+    preview: Record<string, string>;
+  }) {
+    const prepare = this.dependencies.prepareExecution ?? prepareActionExecution;
+    const record = await prepare(this.actor, {
+      actionKey: GMAIL_HUB_ACTIONS.label,
+      contextHash: input.contextHash,
+      idempotencyKey: gmailLabelIdempotencyKey(input.identity),
+      idempotencyPrincipal: GMAIL_LABEL_IDEMPOTENCY_PRINCIPAL,
+      preview: input.preview,
+      scopeRef: gmailLabelScopeRef(input.identity.context),
+      trustedContext: this.labelTrustedContext(),
+    });
+    if (record.id !== input.executionId) {
+      throw new GmailHubError(
+        "The governed label execution identity does not match this exact effect.",
+        409,
+      );
+    }
+    return record;
+  }
+
+  private async executePreparedLabelAction(input: {
+    contextHash: string;
+    executionId: string;
+    governedById: ReadonlyMap<string, GmailGovernedLabel>;
+    intended: readonly GmailGovernedLabel[];
+    preview: Record<string, string>;
+    snapshot: GmailLabelEffectSnapshot;
+    threadId: string;
+    trustedContext: TrustedExecutionContext;
+  }) {
+    const execute = this.dependencies.executePrepared ?? executePreparedAction;
+    return execute<{ observedGovernedLabelIds: readonly string[] }>({
+      actor: this.actor,
+      contextHash: input.contextHash,
+      executionId: input.executionId,
+      preview: input.preview,
+      trustedContext: input.trustedContext,
+      resultCode: (result) =>
+        gmailLabelResultCode({
+          kind: input.snapshot.kind,
+          observedGovernedLabelIds: result.observedGovernedLabelIds,
+          snapshotHash: input.snapshot.snapshotHash,
+        }),
+      executor: () => this.runClaimedLabelMutation(input),
+    });
+  }
+
+  /**
+   * The claimed provider section: at most one governed mutation, then a strict readback.
+   *
+   * The runtime gate ran before the claim and is deliberately NOT repeated here. A refusal at this
+   * point would strand the execution at `Executing` despite zero provider work, which is the exact
+   * failure the one-attempt contract exists to prevent.
+   */
+  private async runClaimedLabelMutation(input: {
+    executionId: string;
+    governedById: ReadonlyMap<string, GmailGovernedLabel>;
+    intended: readonly GmailGovernedLabel[];
+    snapshot: GmailLabelEffectSnapshot;
+    threadId: string;
+  }): Promise<{ observedGovernedLabelIds: readonly string[] }> {
+    // Fenced to the exact claimed attempt and claimant, so a delayed or out-of-band call cannot
+    // turn a preparation into a Live effect.
+    await this.labelEffects().markProviderStarted(this.actor, {
+      s20ExecutionId: input.executionId,
+      snapshotHash: input.snapshot.snapshotHash,
+      claimActorUid: this.actor.uid,
+    });
+    const client = this.createClient();
+    const requested = governedLabelMutation(input.snapshot);
+    if (!requested) {
+      // The thread already holds the intended governed set. Confirm by minimal read rather than
+      // spending a provider mutation that would change nothing.
+      const settled = observedGovernedLabels(
+        await client.getThreadLabelIds(input.threadId),
+        input.governedById,
+      );
+      if (!sameLabelSet(settled.names, input.intended)) {
+        throw new AmbiguousExecutionError(
+          GMAIL_LABEL_ERROR_CODES.readbackAmbiguous,
+          "The thread no longer holds the reviewed governed label set.",
+        );
+      }
+      return { observedGovernedLabelIds: settled.ids };
+    }
+    let mutation;
+    try {
+      mutation = await client.modifyThreadLabels(input.threadId, requested);
+    } catch (error) {
+      const definitive = error instanceof GmailRuntimeError && !error.ambiguous;
+      throw definitive
+        ? new DefinitiveExecutionError(
+            GMAIL_LABEL_ERROR_CODES.providerRefused,
+            "Gmail definitively refused the governed label change.",
+          )
+        : new AmbiguousExecutionError(
+            GMAIL_LABEL_ERROR_CODES.outcomeAmbiguous,
+            "The governed label outcome requires reconciliation before any new attempt.",
+          );
+    }
+    if (mutation.threadId !== input.threadId) {
+      throw new AmbiguousExecutionError(
+        GMAIL_LABEL_ERROR_CODES.readbackAmbiguous,
+        "The Gmail readback identified a different thread.",
+      );
+    }
+    const observed = observedGovernedLabels(mutation.labelIds, input.governedById);
+    if (!sameLabelSet(observed.names, input.intended)) {
+      throw new AmbiguousExecutionError(
+        GMAIL_LABEL_ERROR_CODES.readbackAmbiguous,
+        "The Gmail readback did not match the exact reviewed governed label set.",
+      );
+    }
+    return { observedGovernedLabelIds: observed.ids };
+  }
+
+  /**
+   * Read-only reconciliation of an already-consumed attempt. It calls no mutation, so a crash that
+   * stranded the record at `Executing` resolves without any chance of a second governed effect.
+   */
+  private async reconcileLabelEffect(
+    executionId: string,
+    threadId: string,
+    governedById: ReadonlyMap<string, GmailGovernedLabel>,
+  ): Promise<GmailLabelEffectResult> {
+    const snapshot = await this.requireLabelSnapshot(executionId);
+    if (snapshot.state === "prepared") {
+      // The attempt was claimed but the provider start was never fenced, so no mutation can have
+      // been issued under it. This is a definitive dead attempt, not an ambiguous effect.
+      throw new GmailAmbiguousLabelError(
+        "The governed label attempt was consumed before the provider was contacted. Review the thread, then prepare a new attempt.",
+      );
+    }
+    const client = this.createReadOnlyReconciliationClient();
+    const observed = observedGovernedLabels(
+      await client.getThreadLabelIds(threadId),
+      governedById,
+    );
+    if (!sameLabelSet(observed.names, intendedGovernedLabels(snapshot))) {
+      return {
+        status: "needs_reconciliation",
+        kind: snapshot.kind,
+        executionId,
+        threadId,
+        labelName: snapshot.label,
+        labelId: snapshot.labelId,
+        governedLabels: [...observed.names],
+        duplicate: false,
+        auditRecorded: false,
+      };
+    }
+    const settled = await this.labelEffects().markSettled({
+      s20ExecutionId: executionId,
+      snapshotHash: snapshot.snapshotHash,
+      observedGovernedLabelIds: observed.ids,
+    });
+    const resolve =
+      this.dependencies.resolveExecutionReconciliation ?? resolveActionReconciliation;
+    await resolve(
+      this.actor,
+      executionId,
+      {
+        resultCode: gmailLabelResultCode({
+          kind: settled.kind,
+          observedGovernedLabelIds: observed.ids,
+          snapshotHash: settled.snapshotHash,
+        }),
+      },
+      undefined,
+    );
+    return this.labelResult(settled, true, false, "reconciled");
+  }
+
+  private async appendLabelAudit(
+    kind: GmailLabelEffectKind,
+    linked: WorkflowCommunicationLink,
+    parsed: {
+      context: WorkflowCommunicationContext;
+      label: string;
+      reason: string;
+      ruleRef: string;
+    },
+    threadId: string,
+    snapshot: GmailLabelEffectSnapshot,
+  ): Promise<boolean> {
+    try {
+      await this.dependencies.store.appendWorkflowActionAudit({
+        actorUid: this.actor.uid,
+        mailboxEmail: this.mailboxEmail,
+        communicationId: linked.id,
+        context: parsed.context,
+        action: kind === "apply" ? "label_applied" : "label_restored",
+        threadId,
+        label: parsed.label,
+        ruleRef: parsed.ruleRef,
+        reasonHash: snapshot.reasonHash,
+        nowMs: this.now(),
+      });
+      return true;
+    } catch {
+      // The S20 terminal transition and the effect receipt already committed. A failed audit
+      // projection must never roll back a settled Live effect or invite a second attempt; the
+      // caller is told the projection is missing instead of being told the effect failed.
+      return false;
+    }
+  }
+
+  private async emitLabelAttention(
+    executionId: string,
+    state: "failed" | "ambiguous",
+  ): Promise<void> {
+    const attention = createLiveEffectAttentionEvent({
+      actionKey: GMAIL_HUB_ACTIONS.label,
+      executionId,
+      state,
+      dataMode: this.labelDataMode(),
+    });
+    if (!attention) return;
+    await emitLiveEffectAttentionSafely(
+      this.dependencies.emitLiveEffectAttention ?? emitLiveEffectRequiresAttention,
+      attention,
+    );
+  }
+
+  private labelResult(
+    snapshot: GmailLabelEffectSnapshot,
+    duplicate: boolean,
+    auditRecorded: boolean,
+    status: GmailLabelEffectResult["status"] = "settled",
+  ): GmailLabelEffectResult {
+    return {
+      status,
+      kind: snapshot.kind,
+      executionId: snapshot.s20ExecutionId,
+      threadId: snapshot.threadId,
+      labelName: snapshot.label,
+      labelId: snapshot.labelId,
+      governedLabels: [...intendedGovernedLabels(snapshot)],
+      duplicate,
+      auditRecorded,
+    };
+  }
+
+  /**
+   * The restoration target: the governed label set captured before the settled `apply` for this
+   * exact identity. Requiring a settled apply is itself a safety property — the correction path can
+   * only undo something this app actually did, never strip a label it never applied.
+   */
+  private async priorSetFromSettledApply(identity: GmailLabelEffectIdentityInput) {
+    const applied = await this.labelEffects().get(gmailLabelExecutionId(identity));
+    if (!applied || applied.state !== "settled") {
+      throw new GmailHubError(
+        "There is no settled governed label to restore on this thread.",
+        409,
+      );
+    }
+    return {
+      ids: [...applied.priorGovernedLabelIds],
+      names: [...applied.priorGovernedLabels],
+    };
+  }
+
+  private async requireLabelSnapshot(executionId: string) {
+    const snapshot = await this.labelEffects().get(executionId);
+    if (!snapshot) {
+      throw new GmailHubError(
+        "The governed label effect has no durable snapshot; it cannot be reconciled or restored.",
+        409,
+      );
+    }
+    return snapshot;
+  }
+
+  private labelEffects(): GmailLabelEffectStore {
+    const store = this.dependencies.labelEffects;
+    if (!store) {
+      throw new GmailHubError("The governed label effect ledger is unavailable.", 503);
+    }
+    return store;
+  }
+
+  private labelDataMode(): "live" | "test" {
+    return this.dependencies.dataMode ?? "live";
+  }
+
+  /**
+   * Server-established readiness facts. Every value below is asserted earlier in this request, not
+   * assumed: the workflow link was loaded and its source refs compared, the client subject was
+   * matched to the signed-in mailbox, the label came from the governed enum and was resolved in
+   * that mailbox, the runtime gate passed, and the correction path makes the effect reversible.
+   */
+  private labelTrustedContext(): TrustedExecutionContext {
+    return {
+      connectionReady: true,
+      endpointDocumented: true,
+      permissionGranted: true,
+      roleScopeAuthorized: true,
+      sourceValidated: true,
+      communication: {
+        governedLabel: true,
+        humanInitiated: true,
+        mailboxScopeAuthorized: true,
+        reversible: true,
+        workflowLinked: true,
+      },
+    };
+  }
+
+  private assertLinkedSourceRefs(
+    link: WorkflowCommunicationLink,
+    context: WorkflowCommunicationContext,
+  ) {
+    const linked = [...new Set(link.source_refs)].sort();
+    const supplied = [...new Set(context.sourceRefs)].sort();
+    if (
+      linked.length !== supplied.length ||
+      linked.some((value, index) => value !== supplied[index])
+    ) {
+      throw new GmailHubError(
+        "The workflow source references do not match the linked Gmail thread.",
+        403,
+      );
+    }
   }
 
   private async buildOutgoingPayload(
@@ -916,6 +1467,13 @@ export class GmailAmbiguousSendError extends GmailHubError {
   constructor(message: string) {
     super(message, 409);
     this.name = "GmailAmbiguousSendError";
+  }
+}
+
+export class GmailAmbiguousLabelError extends GmailHubError {
+  constructor(message: string) {
+    super(message, 409);
+    this.name = "GmailAmbiguousLabelError";
   }
 }
 

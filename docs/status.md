@@ -11,6 +11,39 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S25 `gmail.label.apply` migrated onto the S20 one-attempt contract (2026-07-31)
+
+The governed label action no longer mutates Gmail and then appends an audit row. It now runs through
+the canonical S20 execution contract: server-derived action identity and exact preview, an atomic
+claim in `action_executions` before any provider construction, at most one `threads.modify`, a strict
+governed-set readback, a durable bodyless receipt, explicit failed/ambiguous terminals, and exactly
+one value-free A2 event emitted after the committed transition. That closes the first of the three
+reachable A2 residuals `F-S51-A2-MONITORING-SEAM` named.
+
+Three defects were found and fixed rather than papered over. First, label creation was a hidden
+second provider mutation inside the same claim; the label is now resolved read-only and an
+unprovisioned governed label is a definitive refusal that consumes no attempt. Second, the action's
+matrix dependency was `gmail.renewal_notice.send`, which D33 retired permanently — the dependency
+could never acquire a receipt, so the action was unsatisfiable by construction; it is removed.
+Third, the correction path computed its "prior" governed set from the live thread AFTER the apply had
+landed, so it concluded the thread had always carried the label and re-added it instead of removing
+it; restoration now derives its target from the settled apply's captured pre-effect set.
+
+A companion `gmail_label_effects` snapshot is written before the claim and its provider start is
+fenced to the exact claimed attempt and claimant, so the pre-effect label set survives a crash and the
+correction path has something to restore. The new collection needs no `firestore.rules` change:
+the file already ends in a deny-all `match /{document=**}`, so no D12-protected path was touched, and
+the action gate is unchanged.
+
+Falsification covered concurrent confirmation, replay, cross-operator duplicate evidence, definitive
+and ambiguous provider failure, readback mismatch, crash-then-reconcile, unconfirmed reconciliation,
+audit-sink failure, forged snapshots, Demo/Live-read-only/invalid descriptors, runtime suspension,
+unlinked thread, wrong lane, drifted source refs, a foreign mailbox, and non-governed labels/rules.
+The real atomic claim is proven against the Firestore emulator, which an in-memory double cannot show.
+
+Gate: `bash scripts/verify.sh` green, plus `npm run test:e2e:core` and `npm run build`. Auth remains
+blocked, so no deploy, cloud mutation, or live verification was attempted.
+
 ## S51 dependency-safe local specification COMPLETE; activation parked (2026-07-30)
 
 S51 ordered steps 3 through 6 are complete at the safe local boundary. The close-only runtime stop,

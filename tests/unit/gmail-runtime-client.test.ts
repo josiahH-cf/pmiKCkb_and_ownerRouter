@@ -170,7 +170,7 @@ describe("GmailRuntimeClient.createDraft", () => {
     );
   });
 
-  it("creates a user label with gmail.labels and applies it with gmail.modify", async () => {
+  it("resolves an existing user label and applies it as one gmail.modify mutation", async () => {
     const scopes: string[] = [];
     const calls: GmailHttpRequest[] = [];
     const client = new GmailRuntimeClient({
@@ -179,15 +179,10 @@ describe("GmailRuntimeClient.createDraft", () => {
         async send(request) {
           calls.push(request);
           if (request.method === "GET" && request.url.endsWith("/labels")) {
-            return { status: 200, json: async () => ({ labels: [] }) };
-          }
-          if (request.method === "POST" && request.url.endsWith("/labels")) {
             return {
               status: 200,
               json: async () => ({
-                id: "Label_1",
-                name: "Waiting on Team",
-                type: "user",
+                labels: [{ id: "Label_1", name: "Waiting on Team", type: "user" }],
               }),
             };
           }
@@ -203,20 +198,96 @@ describe("GmailRuntimeClient.createDraft", () => {
       },
     });
 
-    await expect(client.applyThreadLabel("thread-1", "Waiting on Team")).resolves.toEqual(
-      {
-        threadId: "thread-1",
-        labelId: "Label_1",
-        labelName: "Waiting on Team",
-        labelIds: ["INBOX", "Label_1"],
-      },
-    );
-    expect(scopes).toEqual([GMAIL_LABELS_SCOPE, GMAIL_LABELS_SCOPE, GMAIL_MODIFY_SCOPE]);
+    const resolved = await client.resolveExistingUserLabels(["Waiting on Team"]);
+    expect(resolved.get("Waiting on Team")).toEqual({
+      id: "Label_1",
+      name: "Waiting on Team",
+      type: "user",
+    });
+    await expect(
+      client.modifyThreadLabels("thread-1", {
+        addLabelIds: ["Label_1"],
+        removeLabelIds: [],
+      }),
+    ).resolves.toEqual({ threadId: "thread-1", labelIds: ["INBOX", "Label_1"] });
+    // Exactly two calls: one label lookup, one thread mutation. No label creation in between.
+    expect(scopes).toEqual([GMAIL_LABELS_SCOPE, GMAIL_MODIFY_SCOPE]);
     expect(calls.at(-1)?.url).toContain("/threads/thread-1/modify");
     expect(JSON.parse(calls.at(-1)?.body ?? "{}")).toEqual({
       addLabelIds: ["Label_1"],
       removeLabelIds: [],
     });
+  });
+
+  it("resolves nothing when the governed label is not provisioned and never creates it", async () => {
+    const calls: GmailHttpRequest[] = [];
+    const client = new GmailRuntimeClient({
+      subject: "josiah@pmikcmetro.com",
+      transport: {
+        async send(request) {
+          calls.push(request);
+          return { status: 200, json: async () => ({ labels: [] }) };
+        },
+      },
+      getToken: async () => "token",
+    });
+
+    await expect(client.resolveExistingUserLabels(["Waiting on Team"])).resolves.toEqual(
+      new Map(),
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.method).toBe("GET");
+  });
+
+  it("refuses a mutation that would change more than one label", async () => {
+    const client = new GmailRuntimeClient({
+      subject: "josiah@pmikcmetro.com",
+      transport: {
+        async send() {
+          throw new Error("unexpected transport call");
+        },
+      },
+      getToken: async () => "token",
+    });
+
+    await expect(
+      client.modifyThreadLabels("thread-1", {
+        addLabelIds: ["Label_1"],
+        removeLabelIds: ["Label_2"],
+      }),
+    ).rejects.toThrow(/exactly one label/);
+    await expect(
+      client.modifyThreadLabels("thread-1", { addLabelIds: [], removeLabelIds: [] }),
+    ).rejects.toThrow(/exactly one label/);
+  });
+
+  it("reads thread label ids without pulling any message body", async () => {
+    const calls: GmailHttpRequest[] = [];
+    const client = new GmailRuntimeClient({
+      subject: "josiah@pmikcmetro.com",
+      transport: {
+        async send(request) {
+          calls.push(request);
+          return {
+            status: 200,
+            json: async () => ({
+              id: "thread-1",
+              messages: [
+                { id: "m1", labelIds: ["INBOX", "Label_1"] },
+                { id: "m2", labelIds: ["INBOX"] },
+              ],
+            }),
+          };
+        },
+      },
+      getToken: async () => "token",
+    });
+
+    await expect(client.getThreadLabelIds("thread-1")).resolves.toEqual([
+      "INBOX",
+      "Label_1",
+    ]);
+    expect(calls[0]?.url).toContain("format=minimal");
   });
 
   it("rejects wrong-domain subjects and mismatched From before transport work", async () => {

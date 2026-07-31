@@ -184,13 +184,21 @@ export function WorkflowCommunicationPanel({
     }
   }
 
-  async function applyLabel() {
+  /**
+   * `apply` and its `restore` correction share one governed contract, so they share one caller.
+   * Each is a separate one-attempt execution; repeating either returns the original evidence rather
+   * than changing the thread again.
+   */
+  async function runLabelEffect(kind: "apply" | "restore") {
     if (!selected?.gmail_thread_id || !labelReason.trim()) return;
     setBusy(true);
     setStatus("");
+    const thread = encodeURIComponent(selected.gmail_thread_id);
     try {
       const response = await fetch(
-        `/api/gmail-hub/threads/${encodeURIComponent(selected.gmail_thread_id)}/labels`,
+        kind === "apply"
+          ? `/api/gmail-hub/threads/${thread}/labels`
+          : `/api/gmail-hub/threads/${thread}/labels/restore`,
         {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -203,14 +211,11 @@ export function WorkflowCommunicationPanel({
         },
       );
       const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.error ?? "The approved label was not applied.");
+      if (!response.ok) throw new Error(data.error ?? labelFailureMessage(kind));
       setLabelReason("");
-      setStatus(`Applied ${data.labelName} after explicit human review.`);
+      setStatus(labelStatusMessage(kind, data));
     } catch (error) {
-      setStatus(
-        error instanceof Error ? error.message : "The approved label was not applied.",
-      );
+      setStatus(error instanceof Error ? error.message : labelFailureMessage(kind));
     } finally {
       setBusy(false);
     }
@@ -538,14 +543,24 @@ export function WorkflowCommunicationPanel({
                   value={labelReason}
                 />
               </label>
-              <button
-                className="secondary-button"
-                disabled={busy || !labelReason.trim()}
-                onClick={() => void applyLabel()}
-                type="button"
-              >
-                Apply approved label
-              </button>
+              <div className="ui-row">
+                <button
+                  className="secondary-button"
+                  disabled={busy || !labelReason.trim()}
+                  onClick={() => void runLabelEffect("apply")}
+                  type="button"
+                >
+                  Apply approved label
+                </button>
+                <button
+                  className="secondary-button"
+                  disabled={busy || !labelReason.trim()}
+                  onClick={() => void runLabelEffect("restore")}
+                  type="button"
+                >
+                  Restore labels from before
+                </button>
+              </div>
               <label className="select-field">
                 Declared analysis category
                 <select
@@ -757,6 +772,31 @@ export function WorkflowCommunicationPanel({
       ) : null}
     </details>
   );
+}
+
+/** Operator-facing outcome copy. It names what happened without restating any thread content. */
+function labelStatusMessage(
+  kind: "apply" | "restore",
+  data: { labelName?: string; duplicate?: boolean; status?: string },
+): string {
+  const label = data.labelName ?? "the approved label";
+  if (data.status === "needs_reconciliation") {
+    return `The earlier ${label} change is still unconfirmed. Review the thread in Gmail before trying again.`;
+  }
+  if (data.duplicate) {
+    return kind === "apply"
+      ? `${label} is already applied. This shows the original result.`
+      : `The earlier labels are already restored. This shows the original result.`;
+  }
+  return kind === "apply"
+    ? `Applied ${label} after explicit human review.`
+    : `Restored the labels this thread had before ${label} was applied.`;
+}
+
+function labelFailureMessage(kind: "apply" | "restore"): string {
+  return kind === "apply"
+    ? "The approved label was not applied."
+    : "The earlier labels were not restored.";
 }
 
 function artifactRefForPurpose(

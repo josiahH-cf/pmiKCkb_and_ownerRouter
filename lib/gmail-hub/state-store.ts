@@ -135,7 +135,7 @@ export interface GmailWorkflowActionAuditInput {
   mailboxEmail: string;
   communicationId: string;
   context: WorkflowCommunicationContext;
-  action: "label_applied";
+  action: "label_applied" | "label_restored";
   threadId: string;
   label: string;
   ruleRef: string;
