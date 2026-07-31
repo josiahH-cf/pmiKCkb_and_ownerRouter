@@ -13,8 +13,15 @@
 // Gmail client is injected (`deps.createGmailClient`) so no test contacts Gmail. `executeRenewalNoticeDraft`
 // still re-asserts the production gate + the authoritative-recipient guard before any draft is created.
 
+import type { AuthenticatedUser } from "@/lib/auth/session";
+import {
+  executeGovernedDraft,
+  prepareGovernedDraft,
+  type GovernedDraftSeams,
+} from "@/lib/external-execution/governed-draft-execution";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
+import { LEASE_EXECUTION_DEFINITION_MAP } from "@/lib/lease-renewal/execution/matrix";
 import {
   leaseCurrentRent,
   leaseEndDateIso,
@@ -25,7 +32,7 @@ import {
   buildRenewalNoticeDraftPreview,
   type RenewalDraftPreview,
 } from "@/lib/lease-renewal/execution/renewal-draft-preview";
-import { executeRenewalNoticeDraft } from "@/lib/lease-renewal/execution/renewal-draft-request";
+import { RENEWAL_NOTICE_DRAFT_ACTION_KEY } from "@/lib/lease-renewal/execution/renewal-draft-request";
 import type {
   OwnerDraftInput,
   OwnerDraftMarketInput,
@@ -52,8 +59,15 @@ export interface OwnerRenewalOffer {
 interface CommonInput {
   leaseId: string;
   mailbox: RenewalNoticeMailbox;
-  /** false → return the preview only; true → create the real unsent draft. */
-  confirm: boolean;
+  /**
+   * Absent → return the preview plus its S20 execution id and immutable preview hash.
+   * Present → execute that exact prepared execution.
+   *
+   * This replaced a bare `confirm: boolean`, which could only say "do it" and carried no binding to
+   * WHAT was reviewed: a boolean cannot detect that the lease, recipient, or offer changed between
+   * preview and confirmation, and gives the ledger nothing to make the attempt idempotent against.
+   */
+  confirm?: { executionId: string; previewHash: string };
 }
 
 export type RenewalNoticeDraftInput =
@@ -65,6 +79,10 @@ export interface RenewalNoticeDraftDeps {
   loadLease(leaseId: string): Promise<RawLease | null>;
   /** Build a draft-capable Gmail client for the authenticated sender (subject === mailbox email). */
   createGmailClient(subject: string): RenewalDraftGmailClient;
+  /** The signed-in operator; the S20 ledger owns approval, claim, and actor scope. */
+  actor: AuthenticatedUser;
+  /** Test-only S20/environment seams; production omits them. */
+  seams?: GovernedDraftSeams;
 }
 
 export type RenewalNoticeDraftOutcome =
@@ -75,6 +93,9 @@ export type RenewalNoticeDraftOutcome =
       recipient: { to: string; sourceRef: string };
       subject: string;
       body: string;
+      /** The exact prepared execution the caller must confirm; binds this reviewed preview. */
+      executionId: string;
+      previewHash: string;
     }
   | {
       status: "created";
@@ -82,6 +103,13 @@ export type RenewalNoticeDraftOutcome =
       recipient: { to: string; sourceRef: string };
       subject: string;
       draftId: string;
+      executionId: string;
+    }
+  | {
+      status: "needs_reconciliation";
+      channel: RenewalRecipientChannel;
+      executionId: string;
+      reason: string;
     };
 
 interface LeaseRenewalFacts {
@@ -153,25 +181,54 @@ async function finalize(
   if (preview.status === "blocked") {
     return { status: "blocked", channel: input.channel, reasons: preview.reasons };
   }
+  const request = {
+    action: preview.action as never,
+    definition: LEASE_EXECUTION_DEFINITION_MAP.get(RENEWAL_NOTICE_DRAFT_ACTION_KEY)!,
+    createClient: () => deps.createGmailClient(input.mailbox.email),
+  };
+
   if (!input.confirm) {
+    const prepared = await prepareGovernedDraft(deps.actor, request, deps.seams);
     return {
       status: "preview",
       channel: input.channel,
       recipient: preview.recipient,
       subject: preview.subject,
       body: preview.body,
+      executionId: prepared.id,
+      previewHash: prepared.preview_hash,
     };
   }
-  const receipt = await executeRenewalNoticeDraft(
-    () => deps.createGmailClient(input.mailbox.email),
-    preview.action,
+
+  const outcome = await executeGovernedDraft(
+    deps.actor,
+    {
+      ...request,
+      executionId: input.confirm.executionId,
+      previewHash: input.confirm.previewHash,
+    },
+    deps.seams,
   );
+  if (outcome.execution.state !== "Succeeded" || !outcome.result) {
+    // The terminal transition already committed inside the bridge, which also emitted the single
+    // value-free A2 event. Surface it truthfully instead of implying a draft exists.
+    return {
+      status: "needs_reconciliation",
+      channel: input.channel,
+      executionId: outcome.execution.id,
+      reason:
+        outcome.execution.state === "Failed"
+          ? "Gmail refused the draft. The one attempt was consumed; review the mailbox before preparing another."
+          : "The draft outcome could not be confirmed. Reconcile this execution before preparing another.",
+    };
+  }
   return {
     status: "created",
     channel: input.channel,
     recipient: preview.recipient,
     subject: preview.subject,
-    draftId: receipt.providerRef,
+    draftId: outcome.result.providerRef,
+    executionId: outcome.execution.id,
   };
 }
 

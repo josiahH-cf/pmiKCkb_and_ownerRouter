@@ -219,6 +219,7 @@ function syntheticValues(
   switch (key) {
     case "gmail.renewal_notice.draft_create":
       return {
+        rfc_message_id: "<synthetic-renewal-draft@pmikcmetro.com>",
         workflow_context: `renewal:${a.leaseRef}`,
         template_ref: "tenant-renewal:v1.0",
         from: a.internalMailbox,
@@ -433,6 +434,7 @@ function syntheticValues(
       };
     case "gmail.maintenance_owner_notice.draft_create":
       return {
+        rfc_message_id: "<synthetic-maintenance-draft@pmikcmetro.com>",
         workflow_context: `maintenance:${a.maintenanceWorkflow}:${a.unitRef}`,
         ticket_ref: a.maintenanceWorkflow,
         template_ref: "maintenance-owner:v1.0",

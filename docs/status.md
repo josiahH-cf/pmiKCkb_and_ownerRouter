@@ -11,6 +11,37 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## The renewal and maintenance drafts now run the S20 one-attempt contract (2026-07-31)
+
+Both governed unsent-draft actions moved off `LeaseGmailExecutor.execute` behind a bare
+`confirm: boolean` and onto the canonical S20 bridge. Confirmation now carries the exact prepared
+execution id and the immutable preview hash it was reviewed at, so an offer, recipient, lease, or
+ticket that changed between preview and confirmation is refused instead of drafted. A second
+confirmation of the same execution is refused by the claim rather than producing a second draft.
+
+The hardest part was reconciliation. `LiveRenewalGmailDraftProvider.reconcile` returned null on the
+explicit reasoning that a duplicate unsent draft is harmless and a retry could simply re-draft. Under
+a one-attempt contract that no longer holds: the attempt is consumed either way, and re-drafting
+would leave the operator with two drafts of the same client message and no evidence of which one the
+ledger describes. Each draft is now stamped with a deterministic RFC Message-ID derived from the
+immutable action identity — never from the preview values, which would be circular, since the id is
+itself carried in those values — and reconciliation is a read-only lookup by that identifier that
+creates nothing.
+
+Ordering is load-bearing: the recipient data-safety guard, the Action Registry runtime gate, and the
+Production+Live descriptor fence all run before the claim, so a refusal cannot strand a claimed
+attempt that did no provider work. Both routes also now build their Gmail client through the
+descriptor-bound factory, which they previously bypassed with a direct `new GmailRuntimeClient` — so
+Demo and Live-read-only construct no provider at all.
+
+That closes the last two of the three reachable A2 residuals `F-S51-A2-MONITORING-SEAM` named; all
+three are now done. Human review and Send in Gmail remain the end state — no send path was added, and
+all three send keys remain closed under D33. The pre-ledger execute helpers are retained (the live
+smoke still uses the renewal one for a bounded self-addressed diagnostic) but a source-scan boundary
+test now keeps them out of every route and service, so the no-ledger path cannot quietly reopen.
+
+Gate: `bash scripts/verify.sh` green — 449 unit files / 3998 tests, 23 Firestore files / 109 tests.
+
 ## Draft-pair contract alignment: the prerequisite the S20 migration needed (2026-07-31)
 
 Before the renewal and maintenance drafts can run through the S20 one-attempt contract, three things

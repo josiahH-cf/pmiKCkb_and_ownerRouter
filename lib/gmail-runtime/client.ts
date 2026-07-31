@@ -155,7 +155,13 @@ export class GmailRuntimeClient {
   async createDraft(
     input:
       | GmailOutgoingMessage
-      | { to: string; cc?: string[]; subject: string; body: string },
+      | {
+          to: string;
+          cc?: string[];
+          subject: string;
+          body: string;
+          messageId?: string;
+        },
   ): Promise<CreatedDraft> {
     let outgoing: GmailOutgoingMessage | undefined;
     let raw: string;
@@ -362,6 +368,39 @@ export class GmailRuntimeClient {
             .filter((value): value is string => typeof value === "string")
             .slice(0, 100)
         : [],
+    };
+  }
+
+  /**
+   * Read-only lookup of an unsent draft by its exact RFC Message-ID. Drafts are messages carrying
+   * the DRAFT label, so the documented `rfc822msgid:` operator resolves them. More than one match is
+   * never safe to pick from by list order — that forces explicit reconciliation instead.
+   */
+  async findDraftByRfcMessageId(
+    rfcMessageId: string,
+  ): Promise<{ draftId: string; messageId?: string } | null> {
+    const messageId = safeRfcMessageId(rfcMessageId);
+    const data = await this.request(GMAIL_READONLY_SCOPE, "GET", "/drafts", {
+      query: { q: `rfc822msgid:${messageId}`, maxResults: "2" },
+    });
+    if (!isRecord(data) || !Array.isArray(data.drafts) || data.drafts.length === 0) {
+      return null;
+    }
+    if (data.drafts.length !== 1) {
+      throw new GmailRuntimeError(
+        "Gmail returned more than one draft for the exact RFC Message-ID.",
+        409,
+        true,
+      );
+    }
+    const first = data.drafts[0];
+    if (!isRecord(first)) return null;
+    const draftId = optionalString(first.id);
+    if (!draftId) return null;
+    const message = isRecord(first.message) ? first.message : {};
+    return {
+      draftId,
+      ...(optionalString(message.id) ? { messageId: optionalString(message.id) } : {}),
     };
   }
 

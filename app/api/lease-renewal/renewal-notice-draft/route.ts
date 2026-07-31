@@ -3,7 +3,8 @@ import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
-import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
+import { requireEnvironmentDescriptor } from "@/lib/environment/descriptor";
+import { createDescriptorBoundGmailRuntimeClient } from "@/lib/gmail-hub/dependencies";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import { recordTenantOfferDraft } from "@/lib/firestore/lease-renewal-progress";
@@ -56,7 +57,21 @@ const OwnerOfferSchema = z
 const RenewalNoticeDraftBodySchema = z
   .object({
     leaseId: z.string().trim().min(1).max(120),
-    confirm: z.boolean().default(false),
+    // Confirmation carries the exact prepared execution and the preview hash it was reviewed at.
+    // A bare boolean could not detect that the lease, recipient, or offer changed in between.
+    confirm: z
+      .object({
+        executionId: z
+          .string()
+          .trim()
+          .regex(/^exec_[a-f0-9]{40}$/),
+        previewHash: z
+          .string()
+          .trim()
+          .regex(/^[a-f0-9]{64}$/),
+      })
+      .strict()
+      .optional(),
     offer: z.discriminatedUnion("channel", [TenantOfferSchema, OwnerOfferSchema]),
   })
   .strict();
@@ -102,7 +117,7 @@ export async function POST(request: Request) {
       channel,
       offer,
       leaseId: body.leaseId,
-      confirm: body.confirm,
+      ...(body.confirm ? { confirm: body.confirm } : {}),
       mailbox: { email: user.email, sourceRef: `app:session:${user.uid}` },
     } as RenewalNoticeDraftInput;
 
@@ -141,7 +156,13 @@ export async function POST(request: Request) {
           }
           return view;
         },
-        createGmailClient: (subject) => new GmailRuntimeClient({ subject }),
+        // Descriptor-bound: Demo and Live-read-only refuse here, so no provider is constructed.
+        createGmailClient: (subject) =>
+          createDescriptorBoundGmailRuntimeClient(
+            subject,
+            requireEnvironmentDescriptor(),
+          ),
+        actor: user,
       },
       input,
     );
@@ -149,7 +170,7 @@ export async function POST(request: Request) {
     // Phase A: creating the tenant-offer draft advances this lease's recorded progress to Build docs.
     // Best-effort and non-blocking — progress is a convenience layer, so a stamp failure (e.g. no owner
     // decision recorded yet when composing from the notices desk) never fails an already-created draft.
-    if (channel === "tenant" && body.confirm && outcome.status === "created") {
+    if (channel === "tenant" && outcome.status === "created") {
       try {
         await recordTenantOfferDraft(user, body.leaseId, outcome.draftId);
       } catch {

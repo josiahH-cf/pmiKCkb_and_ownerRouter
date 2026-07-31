@@ -4,7 +4,17 @@ vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
   readRuntimeActionSuspension: vi.fn(async () => ({ status: "clear" })),
 }));
 
+import type { Firestore } from "firebase-admin/firestore";
+
+import type { AuthenticatedUser } from "@/lib/auth/session";
 import { DRAFT_BANNER } from "@/lib/constants";
+import type { GovernedDraftSeams } from "@/lib/external-execution/governed-draft-execution";
+import {
+  executeExternalActionWithS20,
+  prepareExternalActionWithS20,
+  reconcileExternalActionWithS20,
+} from "@/lib/external-execution/s20-bridge";
+import { FakeFirestore } from "@/tests/helpers/fake-firestore";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
 import type { RenewalDraftGmailClient } from "@/lib/lease-renewal/execution/live-gmail-draft-provider";
@@ -34,32 +44,61 @@ const ownerLease: RawLease = {
   },
 };
 
+const actor: AuthenticatedUser = {
+  uid: "u1",
+  email: "workflow@pmikcmetro.com",
+  hd: "pmikcmetro.com",
+  role: "Editor",
+};
+
+/**
+ * Drive the REAL S20 bridge against an in-memory Firestore, so these tests exercise the committed
+ * one-attempt ledger rather than a stand-in for it. Only Gmail and the lease read are faked.
+ */
+function s20Seams(db: FakeFirestore): GovernedDraftSeams {
+  const firestore = db as unknown as Firestore;
+  return {
+    prepare: (user, request) =>
+      prepareExternalActionWithS20(user, request, { db: firestore }),
+    execute: (user, request) =>
+      executeExternalActionWithS20(user, request, { db: firestore }),
+    reconcile: (user, request) =>
+      reconcileExternalActionWithS20(user, request, { db: firestore }),
+    assertEffectEnvironment: () => undefined,
+  };
+}
+
 function deps(lease: RawLease | null) {
   const createDraft = vi.fn(async () => ({ draftId: "draft-svc-1" }));
+  const db = new FakeFirestore();
   const d: RenewalNoticeDraftDeps = {
     loadLease: async () => lease,
     createGmailClient: (subject): RenewalDraftGmailClient => ({ subject, createDraft }),
+    actor,
+    seams: s20Seams(db),
   };
-  return { d, createDraft };
+  return { d, createDraft, db };
 }
 
+type Confirmation = { executionId: string; previewHash: string };
+
 const tenantInput = (
-  confirm: boolean,
+  confirm?: Confirmation,
 ): Extract<RenewalNoticeDraftInput, { channel: "tenant" }> => ({
   channel: "tenant",
   leaseId: "42",
   mailbox: MAILBOX,
-  confirm,
+  ...(confirm ? { confirm } : {}),
   offer: { ownerDecision: "increase", offeredRent: 1550 },
 });
 
 const ownerInput = (
-  confirm: boolean,
+  confirm?: Confirmation,
 ): Extract<RenewalNoticeDraftInput, { channel: "owner" }> => ({
   channel: "owner",
   leaseId: "42",
   mailbox: MAILBOX,
-  confirm,
+  ...(confirm ? { confirm } : {}),
   offer: {
     market: {
       specificNumber: 1550,
@@ -73,7 +112,7 @@ const ownerInput = (
 describe("prepareRenewalNoticeDraft", () => {
   it("previews a tenant draft from live facts + operator offer without touching Gmail", async () => {
     const { d, createDraft } = deps(tenantLease);
-    const outcome = await prepareRenewalNoticeDraft(d, tenantInput(false));
+    const outcome = await prepareRenewalNoticeDraft(d, tenantInput());
 
     expect(outcome.status).toBe("preview");
     if (outcome.status !== "preview") return;
@@ -86,9 +125,20 @@ describe("prepareRenewalNoticeDraft", () => {
     expect(createDraft).not.toHaveBeenCalled();
   });
 
-  it("creates a real unsent tenant draft on confirm", async () => {
+  it("creates a real unsent tenant draft only for a prepared, exactly-confirmed execution", async () => {
     const { d, createDraft } = deps(tenantLease);
-    const outcome = await prepareRenewalNoticeDraft(d, tenantInput(true));
+    const prepared = await prepareRenewalNoticeDraft(d, tenantInput());
+    expect(prepared.status).toBe("preview");
+    if (prepared.status !== "preview") return;
+    expect(createDraft).not.toHaveBeenCalled();
+
+    const outcome = await prepareRenewalNoticeDraft(
+      d,
+      tenantInput({
+        executionId: prepared.executionId,
+        previewHash: prepared.previewHash,
+      }),
+    );
 
     expect(outcome.status).toBe("created");
     if (outcome.status !== "created") return;
@@ -102,7 +152,7 @@ describe("prepareRenewalNoticeDraft", () => {
 
   it("previews an owner draft from the joined property.owner email", async () => {
     const { d } = deps(ownerLease);
-    const outcome = await prepareRenewalNoticeDraft(d, ownerInput(false));
+    const outcome = await prepareRenewalNoticeDraft(d, ownerInput());
 
     expect(outcome.status).toBe("preview");
     if (outcome.status !== "preview") return;
@@ -112,7 +162,7 @@ describe("prepareRenewalNoticeDraft", () => {
 
   it("throws 404 when the lease is not in the live read", async () => {
     const { d, createDraft } = deps(null);
-    await expect(prepareRenewalNoticeDraft(d, tenantInput(true))).rejects.toBeInstanceOf(
+    await expect(prepareRenewalNoticeDraft(d, tenantInput())).rejects.toBeInstanceOf(
       EditableLayerError,
     );
     expect(createDraft).not.toHaveBeenCalled();
@@ -125,7 +175,7 @@ describe("prepareRenewalNoticeDraft", () => {
       currentRent: 1400,
       tenants: [{ name: "Ada Rowan" }],
     });
-    const outcome = await prepareRenewalNoticeDraft(d, tenantInput(true));
+    const outcome = await prepareRenewalNoticeDraft(d, tenantInput());
 
     expect(outcome.status).toBe("blocked");
     if (outcome.status !== "blocked") return;
@@ -139,7 +189,7 @@ describe("prepareRenewalNoticeDraft", () => {
       currentRent: 1400,
       tenants: [{ name: "Ada Rowan", email: "tenant42@northend-apts.com" }],
     });
-    const outcome = await prepareRenewalNoticeDraft(d, tenantInput(true));
+    const outcome = await prepareRenewalNoticeDraft(d, tenantInput());
 
     expect(outcome.status).toBe("blocked");
     if (outcome.status !== "blocked") return;
@@ -156,7 +206,7 @@ describe("prepareRenewalNoticeDraft", () => {
         owner: { email: "owner42@cedar-holdings.com" },
       },
     });
-    const outcome = await prepareRenewalNoticeDraft(d, ownerInput(true));
+    const outcome = await prepareRenewalNoticeDraft(d, ownerInput());
 
     expect(outcome.status).toBe("blocked");
     if (outcome.status !== "blocked") return;
@@ -175,7 +225,7 @@ describe("prepareRenewalNoticeDraft", () => {
         owner: { email: "owner42@cedar-holdings.com" },
       },
     });
-    const outcome = await prepareRenewalNoticeDraft(d, ownerInput(false));
+    const outcome = await prepareRenewalNoticeDraft(d, ownerInput());
 
     expect(outcome.status).toBe("preview");
     if (outcome.status !== "preview") return;
@@ -186,7 +236,7 @@ describe("prepareRenewalNoticeDraft", () => {
   it("blocks a tenant draft with a non-positive offered rent (never composes a $0 offer)", async () => {
     const { d, createDraft } = deps(tenantLease);
     const outcome = await prepareRenewalNoticeDraft(d, {
-      ...tenantInput(true),
+      ...tenantInput(),
       offer: { ownerDecision: "increase", offeredRent: 0 },
     });
 
@@ -207,7 +257,7 @@ describe("prepareRenewalNoticeDraft", () => {
         owner: { email: "owner42@cedar-holdings.com" },
       },
     });
-    const outcome = await prepareRenewalNoticeDraft(d, ownerInput(false));
+    const outcome = await prepareRenewalNoticeDraft(d, ownerInput());
 
     expect(outcome.status).toBe("preview");
     if (outcome.status !== "preview") return;

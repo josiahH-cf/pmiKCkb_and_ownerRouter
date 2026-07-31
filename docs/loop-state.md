@@ -18,8 +18,8 @@ implementation_status: PAUSED_AT_VERIFIED_BOUNDARY
 next_suite: S25
 next_spec: docs/feature-suites/lease-renewal-execution.md + docs/feature-suites/maintenance-execution.md
 session_auth_status: GREEN_ADC_MANAGED_ACCOUNT_AND_CLI_TOKEN
-active_slice: STOPPED-AT-DRAFT-PAIR-CONTRACT-ALIGNED
-last_completed_slice: S26-DRAFT-CONTRACT-ALIGNED
+active_slice: STOPPED-AT-GMAIL-RESIDUALS-COMPLETE
+last_completed_slice: S25-DRAFT-PAIR-S20-CONTRACT
 runtime_action_gates_preflipped: false
 ```
 
@@ -46,10 +46,10 @@ runtime_action_gates_preflipped: false
   the Sheet provider seam. Detail: `docs/status.md` plus the `F-S53-*`/`F-S52-*` rows.
 - S51 steps 3–6 are dependency-safe locally complete (effect stop, A2/monitoring, reply/watch A2,
   rollback/incident/retention/capacity/log hygiene); Rules/cloud/live rehearsal remain parked.
-- S25's `gmail.label.apply` runs the canonical S20 one-attempt contract
-  (`F-S25-LABEL-S20-CONTRACT`), and the draft pair's contract prerequisites are aligned
-  (`F-S26-DRAFT-CONTRACT-ALIGNED`). Gate unchanged, no D12 path touched. Remaining A2 residual:
-  migrating the draft pair itself onto S20.
+- All three reachable Gmail A2 residuals are CLOSED: `gmail.label.apply`
+  (`F-S25-LABEL-S20-CONTRACT`) and both draft actions (`F-S26-DRAFT-CONTRACT-ALIGNED`,
+  `F-S25-DRAFT-PAIR-S20-CONTRACT`) run the canonical S20 one-attempt contract. Gate values
+  unchanged, no D12 path touched, all three send keys still closed under D33.
 - Exact closeout gate (2026-07-31): clean-install `bash scripts/verify.sh` green; 3974 unit + 109
   Firestore tests, 0 lint errors; core E2E 8 files / 32 passed / 18 designed skips.
 - Production serves `2bfe7d4` on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e`, missing the
@@ -74,8 +74,8 @@ runtime_action_gates_preflipped: false
    receipt/reconcile/setup/disable and concurrency fences are green; no protected flip.
 7. **S52 prerequisites — PARKED** — planner refusal plus I/J are green; source/handler/check are
    protected, and baseline/values/project disposition/operator destination remain external.
-8. **S51 app-plane / Gmail residuals** — S51 steps 3–7, the label contract, and the draft-pair
-   contract alignment are COMPLETE LOCALLY; next is migrating the draft pair itself (S25/S26/S38).
+8. **S51 app-plane / Gmail residuals — COMPLETE LOCALLY** — S51 steps 3–7 plus the label and
+   draft-pair S20 contracts are green; Rules/cloud/live rehearsal remain parked.
 9. **S52/S51 activation** — after the complete-calendar-month baseline, supply the two
    owner-selected values, second-project disposition, and operator destination; apply owner-run
    billing/IAM/monitoring changes and verify live lockstep/delivery. Do not synthesize or infer a
@@ -128,12 +128,9 @@ runtime_action_gates_preflipped: false
 
 ## Resume
 
-Stop at the verified draft-pair contract-alignment boundary. Next session, migrate the renewal and
-maintenance drafts themselves onto S20: replace `confirm: boolean` with a prepare returning an
-execution id plus immutable preview hash, re-resolve authoritative facts at execution, claim before
-constructing Gmail, create one unsent draft with a deterministic RFC Message-ID, reconcile by that
-identifier without retrying ambiguity, and emit A2 only from a committed terminal state.
-`LiveRenewalGmailDraftProvider.reconcile` returns null today on the reasoning that a duplicate draft
-is harmless; the one-attempt contract supersedes that. Activate neither direct-send key nor generic
-send. Auth is green; S52's null ceiling and the unbuilt S40 release path still park every
-cost-bearing/live/cloud step.
+Stop at the verified Gmail-residuals boundary: label plus both drafts now run the S20 one-attempt
+contract. Next dependency-ready local work is the S40 release-safety slice — an
+environment-parameterized, sanitized, zero-traffic candidate deploy path, current-manifest policy
+targeting, a candidate smoke before exact-revision promotion, and a captured rollback command. The
+legacy auto-promoting wrapper is not D05-eligible. Auth is green; S52's null ceiling and that unbuilt
+release path are the only two things still parking every cost-bearing/live/cloud step.

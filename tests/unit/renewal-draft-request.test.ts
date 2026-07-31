@@ -8,6 +8,7 @@ vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
 }));
 
 import { DRAFT_BANNER } from "@/lib/constants";
+import { deterministicDraftRfcMessageId } from "@/lib/external-execution/draft-identity";
 import {
   ExternalExecutionError,
   type ExternalActionInput,
@@ -53,6 +54,8 @@ describe("buildRenewalNoticeDraftAction", () => {
     expect(action.actionKey).toBe(RENEWAL_NOTICE_DRAFT_ACTION_KEY);
     expect(action.dataMode).toBe("live");
     expect(action.values).toEqual({
+      // Deterministic from the immutable action identity, so a replay resolves the same draft.
+      rfc_message_id: deterministicDraftRfcMessageId(action, MAILBOX),
       workflow_context: "renewal:lease-42",
       template_ref: "tenant-renewal:v1.0",
       from: MAILBOX,
@@ -234,6 +237,8 @@ describe("executeRenewalNoticeDraft", () => {
       to: "resident@northend-apts.com",
       subject: "Your lease renewal",
       body: `${DRAFT_BANNER}\n\nAn owner-approved renewal offer.`,
+      // Stamped so the one consumed attempt can be reconciled by identifier, never by re-drafting.
+      messageId: deterministicDraftRfcMessageId(action, MAILBOX),
     });
     expect(receipt.providerRef).toBe("draft-assembled-1");
     expect(receipt.outcome).toBe("succeeded");
@@ -256,6 +261,7 @@ describe("executeRenewalNoticeDraft", () => {
       cc: ["cotenant@northend-apts.com"],
       subject: "Your lease renewal",
       body: `${DRAFT_BANNER}\n\nAn owner-approved renewal offer.`,
+      messageId: deterministicDraftRfcMessageId(action, MAILBOX),
     });
   });
 

@@ -78,6 +78,9 @@ describe("Lease Gmail executor", () => {
   it("requires the literal banner in the actual draft body, not only a boolean", async () => {
     const execute = vi.fn(async (input: ProviderExecuteInput) => ({
       providerRef: "draft-synthetic-1",
+      // A governed draft carrying a deterministic RFC Message-ID must echo it back; the executor
+      // binds the readback to that exact identifier so reconciliation has something to resolve by.
+      ...(input.expectedRfcMessageId ? { rfcMessageId: input.expectedRfcMessageId } : {}),
       payload: payloadFrom(input),
     }));
     const executor = new LeaseGmailExecutor({

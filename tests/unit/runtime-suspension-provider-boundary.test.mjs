@@ -36,9 +36,9 @@ const ORCHESTRATION_FACTORY_WRAPPERS = new Set([
 const EXPECTED_BOUNDARIES = [
   "app/api/gmail-hub/pubsub/route.ts:POST:dependencies.createClient",
   "app/api/lease-renewal/market-comps/route.ts:lookup:createMarketCompProvider",
-  "app/api/lease-renewal/renewal-notice-draft/route.ts:createGmailClient:new GmailRuntimeClient",
-  "app/api/maintenance/owner-notice-draft/route.ts:createGmailClient:new GmailRuntimeClient",
   "app/api/maintenance/photo/route.ts:POST:createMaintenanceImageStore",
+  "lib/external-execution/governed-draft-execution.ts:executeGovernedDraft:request.createClient",
+  "lib/external-execution/governed-draft-execution.ts:reconcileGovernedDraft:request.createClient",
   "lib/gmail-hub/dependencies.ts:createDescriptorBoundGmailRuntimeClient:construct",
   "lib/gmail-hub/dependencies.ts:createDescriptorBoundGmailRuntimeClient:new GmailRuntimeClient",
   "lib/gmail-hub/dependencies.ts:createGmailHubRuntimeDependencies:factories.createStore",
@@ -56,7 +56,7 @@ const EXPECTED_BOUNDARIES = [
   "lib/lease-renewal/comp-screenshot-service.ts:previewCompScreenshotRollback:deps.createProvider",
   "lib/lease-renewal/comp-screenshot-service.ts:reconcileCompScreenshot:deps.createProvider",
   "lib/lease-renewal/execution/renewal-draft-request.ts:executeRenewalNoticeDraft:createClient",
-  "lib/lease-renewal/execution/renewal-notice-draft-service.ts:finalize:deps.createGmailClient",
+  "lib/lease-renewal/execution/renewal-notice-draft-service.ts:createClient:deps.createGmailClient",
   "lib/lease-renewal/live-config.ts:buildLiveRenewalConfig:new GoogleSheetsApiReader",
   "lib/lease-renewal/live-config.ts:buildLiveRenewalConfig:new RentVineClient",
   "lib/lease-renewal/live-config.ts:buildLiveRentVineConfig:new RentVineClient",
@@ -67,7 +67,7 @@ const EXPECTED_BOUNDARIES = [
   "lib/lease-renewal/sheet-writeback-service.ts:previewWriteback:deps.createWriter",
   "lib/lease-renewal/sheet-writeback-service.ts:reconcileWriteback:deps.createWriter",
   "lib/maintenance/execution/owner-notice-draft-request.ts:executeMaintenanceOwnerNoticeDraft:createClient",
-  "lib/maintenance/execution/owner-notice-draft-service.ts:prepareMaintenanceOwnerNoticeDraft:deps.createGmailClient",
+  "lib/maintenance/execution/owner-notice-draft-service.ts:createClient:deps.createGmailClient",
   "lib/notifications/internal-transactional-sender.ts:constructor:new GmailRuntimeClient",
   "lib/notifications/internal-transactional-sender.ts:send:this.createClient",
   "lib/vendor/live-lifecycle-adapters.ts:constructor:new GmailRuntimeClient",
@@ -133,6 +133,7 @@ const PRODUCT_READ_ONLY_LIVE_CONFIG_CALLS = new Set(
 );
 
 const READ_ONLY_RECONCILIATION = new Set([
+  "lib/external-execution/governed-draft-execution.ts:reconcileGovernedDraft:request.createClient",
   "lib/gmail-hub/service.ts:createReadOnlyReconciliationClient:this.createClient",
   "lib/lease-renewal/comp-screenshot-service.ts:reconcileCompScreenshot:deps.createProvider",
   "lib/vendor/live-lifecycle-adapters.ts:findInviteByRfcMessageId:this.createClient",
@@ -147,13 +148,11 @@ const READ_ONLY_WITH_GATED_MUTATION = new Set([
 ]);
 
 const LAZY_PROVIDER_FACTORIES = new Set([
-  "app/api/lease-renewal/renewal-notice-draft/route.ts:createGmailClient:new GmailRuntimeClient",
-  "app/api/maintenance/owner-notice-draft/route.ts:createGmailClient:new GmailRuntimeClient",
   "lib/gmail-hub/service.ts:createClient:this.dependencies.createClient",
   "lib/lease-renewal/comp-screenshot-runtime.ts:createProvider:new GoogleDriveRenewalCompScreenshotProvider",
-  "lib/lease-renewal/execution/renewal-notice-draft-service.ts:finalize:deps.createGmailClient",
+  "lib/lease-renewal/execution/renewal-notice-draft-service.ts:createClient:deps.createGmailClient",
   "lib/lease-renewal/sheet-writeback-service.ts:createWriter:new GoogleSheetsApiWriter",
-  "lib/maintenance/execution/owner-notice-draft-service.ts:prepareMaintenanceOwnerNoticeDraft:deps.createGmailClient",
+  "lib/maintenance/execution/owner-notice-draft-service.ts:createClient:deps.createGmailClient",
   "lib/notifications/internal-transactional-sender.ts:constructor:new GmailRuntimeClient",
   "lib/vendor/live-lifecycle-adapters.ts:constructor:new GmailRuntimeClient",
   "lib/vendor/live-lifecycle-runtime.ts:createLiveVendorLifecycleProvider:new LiveVendorLifecycleProvider",
@@ -201,6 +200,7 @@ const GATED_PROVIDER_ADAPTERS = new Set([
   "app/api/gmail-hub/pubsub/route.ts:POST:dependencies.createClient",
   "app/api/lease-renewal/market-comps/route.ts:lookup:createMarketCompProvider",
   "app/api/maintenance/photo/route.ts:POST:createMaintenanceImageStore",
+  "lib/external-execution/governed-draft-execution.ts:executeGovernedDraft:request.createClient",
   "lib/gmail-hub/service.ts:connection:this.createClient",
   "lib/gmail-hub/service.ts:createRuntimeClient:this.createClient",
   "lib/gmail-hub/service.ts:runClaimedLabelMutation:this.createClient",
@@ -264,6 +264,13 @@ const DYNAMIC_REFUSAL_PROOFS = new Map([
     {
       file: "tests/unit/gmail-hub-service.test.ts",
       marker: "S51_DYNAMIC_REFUSAL:gmail-service-runtime-client",
+    },
+  ],
+  [
+    "lib/external-execution/governed-draft-execution.ts:executeGovernedDraft:request.createClient",
+    {
+      file: "tests/unit/governed-draft-execution.test.ts",
+      marker: "S51_DYNAMIC_REFUSAL:governed-draft-execute-client",
     },
   ],
   [
@@ -458,6 +465,7 @@ const DYNAMIC_REFUSAL_FACTORY_ASSERTIONS = new Map([
   ["S51_DYNAMIC_REFUSAL:gmail-service-connection-client", "createClient"],
   ["S51_DYNAMIC_REFUSAL:gmail-service-runtime-client", "createClient"],
   ["S51_DYNAMIC_REFUSAL:gmail-service-confirmed-send-client", "createClient"],
+  ["S51_DYNAMIC_REFUSAL:governed-draft-execute-client", "createClient"],
   ["S51_DYNAMIC_REFUSAL:gmail-label-read-client", "createClient"],
   ["S51_DYNAMIC_REFUSAL:gmail-label-mutation-client", "createClient"],
   ["S51_DYNAMIC_REFUSAL:gmail-service-watch-client", "createClient"],
@@ -505,6 +513,7 @@ const DYNAMIC_REFUSAL_ENTRYPOINTS = new Map([
   ["S51_DYNAMIC_REFUSAL:gmail-service-connection-client", "hub.connection("],
   ["S51_DYNAMIC_REFUSAL:gmail-service-runtime-client", "hub.getThread("],
   ["S51_DYNAMIC_REFUSAL:gmail-service-confirmed-send-client", "hub.sendConfirmed("],
+  ["S51_DYNAMIC_REFUSAL:governed-draft-execute-client", "executeGovernedDraft("],
   ["S51_DYNAMIC_REFUSAL:gmail-label-read-client", "applyThreadLabel("],
   ["S51_DYNAMIC_REFUSAL:gmail-label-mutation-client", "restoreThreadLabel("],
   ["S51_DYNAMIC_REFUSAL:gmail-service-watch-client", "hub.watchMailbox("],

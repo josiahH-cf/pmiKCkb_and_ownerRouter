@@ -40,6 +40,8 @@ export function encodeRawDraft(input: {
   subject: string;
   body: string;
   from?: string;
+  /** Deterministic RFC Message-ID so a governed draft can be reconciled by identifier. */
+  messageId?: string;
 }): string {
   const cc = (input.cc ?? []).filter((value) => value.trim());
   const lines = [
@@ -47,6 +49,9 @@ export function encodeRawDraft(input: {
     `To: ${safeHeader(input.to, "To")}`,
     ...(cc.length
       ? [`Cc: ${cc.map((value) => safeHeader(value, "Cc")).join(", ")}`]
+      : []),
+    ...(input.messageId
+      ? [`Message-ID: ${safeHeader(input.messageId, "Message-ID")}`]
       : []),
     `Subject: ${safeHeader(input.subject, "Subject")}`,
     "MIME-Version: 1.0",

@@ -20,6 +20,7 @@ export const FINAL_V1_ACTION_PREVIEW_SCHEMAS: Readonly<
   Record<string, readonly PreviewPayloadField[]>
 > = Object.freeze({
   "gmail.renewal_notice.draft_create": [
+    f("rfc_message_id", "Draft RFC Message-ID", "reference"),
     f("workflow_context", "Workflow context", "reference"),
     f("template_ref", "Approved artifact", "reference"),
     f("from", "From", "string", "Gmail"),
@@ -212,6 +213,7 @@ export const FINAL_V1_ACTION_PREVIEW_SCHEMAS: Readonly<
   // overlay was previously missing, so the action fell back to a base-seed schema that declared
   // `draft_body` and omitted the workflow/mailbox/source fields the builder actually emits.
   "gmail.maintenance_owner_notice.draft_create": [
+    f("rfc_message_id", "Draft RFC Message-ID", "reference"),
     f("workflow_context", "Workflow context", "reference"),
     f("ticket_ref", "Ticket", "reference"),
     f("template_ref", "Approved artifact", "reference"),

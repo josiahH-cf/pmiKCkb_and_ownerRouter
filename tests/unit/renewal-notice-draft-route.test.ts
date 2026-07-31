@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   requireCapabilityInSpace: vi.fn(),
   buildLiveRentVineConfig: vi.fn(),
   getApprovedRentSuggestion: vi.fn(),
+  firestore: undefined as unknown,
 }));
 
 vi.mock("@/lib/auth/session", async (importActual) => {
@@ -24,6 +25,25 @@ vi.mock("@/lib/auth/session", async (importActual) => {
 vi.mock("@/lib/firestore/lease-renewal-rent-suggestion-approvals", () => ({
   getApprovedRentSuggestion: mocks.getApprovedRentSuggestion,
 }));
+
+// The route now drives the REAL S20 ledger, so give it an in-memory Firestore and an explicit
+// Production+Live descriptor. That makes these wiring tests exercise the committed one-attempt
+// contract end to end instead of stopping at the service boundary.
+vi.mock("@/lib/firestore/admin", () => ({
+  getAdminFirestore: () => mocks.firestore,
+}));
+
+vi.mock("@/lib/environment/descriptor", async (importActual) => {
+  const actual = await importActual<typeof import("@/lib/environment/descriptor")>();
+  return {
+    ...actual,
+    requireEnvironmentDescriptor: () => ({
+      environmentKind: "production",
+      dataContext: "live",
+      source: "explicit",
+    }),
+  };
+});
 
 vi.mock("@/lib/lease-renewal/live-config", async (importActual) => {
   const actual = await importActual<typeof import("@/lib/lease-renewal/live-config")>();
@@ -48,6 +68,7 @@ vi.mock("@/lib/gmail-runtime/client", () => ({
 
 import { POST } from "@/app/api/lease-renewal/renewal-notice-draft/route";
 import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
+import { FakeFirestore } from "@/tests/helpers/fake-firestore";
 import { clearLiveLeaseCache } from "@/lib/lease-renewal/live-lease-cache";
 
 interface ClientOverrides {
@@ -111,9 +132,11 @@ function req(body: unknown) {
   });
 }
 
-const ownerBody = (confirm: boolean) => ({
+type Confirmation = { executionId: string; previewHash: string };
+
+const ownerBody = (confirm?: Confirmation) => ({
   leaseId: "42",
-  confirm,
+  ...(confirm ? { confirm } : {}),
   offer: {
     channel: "owner",
     market: {
@@ -125,14 +148,15 @@ const ownerBody = (confirm: boolean) => ({
   },
 });
 
-const tenantBody = (confirm: boolean) => ({
+const tenantBody = (confirm?: Confirmation) => ({
   leaseId: "42",
-  confirm,
+  ...(confirm ? { confirm } : {}),
   offer: { channel: "tenant", ownerDecision: "increase", offeredRent: 1550 },
 });
 
 beforeEach(() => {
   runtimeSuspension.current = { status: "clear" };
+  mocks.firestore = new FakeFirestore();
   clearLiveLeaseCache();
   mocks.requireCapabilityInSpace.mockResolvedValue({
     email: "josiah@pmikcmetro.com",
@@ -151,7 +175,7 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
   it("returns a distinct runtime 409 before RentVine or Gmail construction", async () => {
     runtimeSuspension.current = { status: "global_suspended" };
 
-    const response = await POST(req(ownerBody(false)));
+    const response = await POST(req(ownerBody()));
 
     expect(response.status).toBe(409);
     await expect(response.json()).resolves.toMatchObject({
@@ -166,7 +190,7 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
     const { client, getContact } = fakeClient();
     useClient(client);
 
-    const response = await POST(req(ownerBody(false)));
+    const response = await POST(req(ownerBody()));
     const payload = await response.json();
 
     expect(response.status).toBe(200);
@@ -178,11 +202,22 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
     expect(createDraftMock).not.toHaveBeenCalled();
   });
 
-  it("creates a real unsent owner draft on confirm", async () => {
+  it("creates a real unsent owner draft only for a prepared, exactly-confirmed execution", async () => {
     const { client } = fakeClient();
     useClient(client);
 
-    const response = await POST(req(ownerBody(true)));
+    const previewed = await (await POST(req(ownerBody()))).json();
+    expect(previewed.status).toBe("preview");
+    expect(createDraftMock).not.toHaveBeenCalled();
+
+    const response = await POST(
+      req(
+        ownerBody({
+          executionId: previewed.executionId,
+          previewHash: previewed.previewHash,
+        }),
+      ),
+    );
     const payload = await response.json();
 
     expect(response.status).toBe(200);
@@ -208,7 +243,7 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
       ],
     });
 
-    const response = await POST(req(ownerBody(false)));
+    const response = await POST(req(ownerBody()));
     const payload = await response.json();
 
     expect(response.status).toBe(200);
@@ -227,7 +262,7 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
     useClient(client);
     mocks.getApprovedRentSuggestion.mockResolvedValue(null);
 
-    const response = await POST(req(ownerBody(false)));
+    const response = await POST(req(ownerBody()));
     const payload = await response.json();
 
     expect(payload.status).toBe("preview");
@@ -239,7 +274,7 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
     const { client } = fakeClient({ contact: { contactID: 3 } }); // contact has no email -> null
     useClient(client);
 
-    const response = await POST(req(ownerBody(true)));
+    const response = await POST(req(ownerBody()));
     const payload = await response.json();
 
     expect(response.status).toBe(200);
@@ -260,7 +295,7 @@ describe("renewal-notice-draft route — owner channel via the live join", () =>
     });
     useClient(client);
 
-    const response = await POST(req(ownerBody(true)));
+    const response = await POST(req(ownerBody()));
     const payload = await response.json();
 
     expect(payload.status).toBe("blocked");
@@ -274,7 +309,7 @@ describe("renewal-notice-draft route — tenant channel is unchanged", () => {
     const { client, getLease, getProperty, getPortfolio, getContact } = fakeClient();
     useClient(client);
 
-    const response = await POST(req(tenantBody(false)));
+    const response = await POST(req(tenantBody()));
     const payload = await response.json();
 
     expect(response.status).toBe(200);
@@ -292,7 +327,17 @@ describe("renewal-notice-draft route — tenant channel is unchanged", () => {
     const { client, getProperty, getPortfolio, getContact } = fakeClient();
     useClient(client);
 
-    const response = await POST(req(tenantBody(true)));
+    const previewed = await (await POST(req(tenantBody()))).json();
+    expect(previewed.status).toBe("preview");
+
+    const response = await POST(
+      req(
+        tenantBody({
+          executionId: previewed.executionId,
+          previewHash: previewed.previewHash,
+        }),
+      ),
+    );
     const payload = await response.json();
 
     expect(payload.status).toBe("created");

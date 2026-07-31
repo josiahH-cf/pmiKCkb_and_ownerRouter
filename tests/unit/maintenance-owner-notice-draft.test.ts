@@ -7,7 +7,17 @@ vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
   readRuntimeActionSuspension: vi.fn(async () => runtimeSuspension.current),
 }));
 
+import type { Firestore } from "firebase-admin/firestore";
+
+import type { AuthenticatedUser } from "@/lib/auth/session";
 import { DRAFT_BANNER } from "@/lib/constants";
+import type { GovernedDraftSeams } from "@/lib/external-execution/governed-draft-execution";
+import {
+  executeExternalActionWithS20,
+  prepareExternalActionWithS20,
+  reconcileExternalActionWithS20,
+} from "@/lib/external-execution/s20-bridge";
+import { FakeFirestore } from "@/tests/helpers/fake-firestore";
 import type { RenewalDraftGmailClient } from "@/lib/lease-renewal/execution/live-gmail-draft-provider";
 import {
   resolveOwnerContactFromPropertyId,
@@ -73,6 +83,27 @@ function fakeGmailClient() {
   return { client, createDraft, send };
 }
 
+const actor: AuthenticatedUser = {
+  uid: "u1",
+  email: MAILBOX.email,
+  hd: "pmikcmetro.com",
+  role: "Editor",
+};
+
+/** Drive the REAL S20 bridge against an in-memory Firestore; only Gmail and the ticket are faked. */
+function s20Seams(db: FakeFirestore): GovernedDraftSeams {
+  const firestore = db as unknown as Firestore;
+  return {
+    prepare: (user, request) =>
+      prepareExternalActionWithS20(user, request, { db: firestore }),
+    execute: (user, request) =>
+      executeExternalActionWithS20(user, request, { db: firestore }),
+    reconcile: (user, request) =>
+      reconcileExternalActionWithS20(user, request, { db: firestore }),
+    assertEffectEnvironment: () => undefined,
+  };
+}
+
 function deps(overrides: Partial<MaintenanceOwnerNoticeDraftDeps> = {}): {
   deps: MaintenanceOwnerNoticeDraftDeps;
   gmail: ReturnType<typeof fakeGmailClient>;
@@ -84,6 +115,8 @@ function deps(overrides: Partial<MaintenanceOwnerNoticeDraftDeps> = {}): {
       loadTicket: vi.fn(async () => liveTicket()),
       resolveOwner: vi.fn(async () => ({ ...OWNER })),
       createGmailClient: vi.fn(() => gmail.client),
+      actor,
+      seams: s20Seams(new FakeFirestore()),
       ...overrides,
     },
   };
@@ -99,7 +132,6 @@ describe("prepareMaintenanceOwnerNoticeDraft", () => {
     const outcome = await prepareMaintenanceOwnerNoticeDraft(d, {
       ticketRef: "ticket-1",
       mailbox: MAILBOX,
-      confirm: false,
     });
 
     expect(outcome.status).toBe("preview");
@@ -120,7 +152,6 @@ describe("prepareMaintenanceOwnerNoticeDraft", () => {
     const outcome = await prepareMaintenanceOwnerNoticeDraft(d, {
       ticketRef: "ticket-1",
       mailbox: MAILBOX,
-      confirm: true,
     });
 
     expect(outcome.status).toBe("blocked");
@@ -137,7 +168,6 @@ describe("prepareMaintenanceOwnerNoticeDraft", () => {
     const outcome = await prepareMaintenanceOwnerNoticeDraft(d, {
       ticketRef: "ticket-1",
       mailbox: MAILBOX,
-      confirm: true,
     });
 
     expect(outcome.status).toBe("blocked");
@@ -151,7 +181,6 @@ describe("prepareMaintenanceOwnerNoticeDraft", () => {
     const outcome = await prepareMaintenanceOwnerNoticeDraft(d, {
       ticketRef: "ticket-1",
       mailbox: MAILBOX,
-      confirm: true,
     });
 
     expect(outcome.status).toBe("blocked");
@@ -160,12 +189,23 @@ describe("prepareMaintenanceOwnerNoticeDraft", () => {
     expect(d.resolveOwner).not.toHaveBeenCalled();
   });
 
-  it("creates a real UNSENT draft on confirm, through createDraft only; never sends (AC-S38-3)", async () => {
+  it("creates a real UNSENT draft only for a prepared, exactly-confirmed execution; never sends (AC-S38-3)", async () => {
     const { deps: d, gmail } = deps();
+    const prepared = await prepareMaintenanceOwnerNoticeDraft(d, {
+      ticketRef: "ticket-1",
+      mailbox: MAILBOX,
+    });
+    expect(prepared.status).toBe("preview");
+    if (prepared.status !== "preview") throw new Error("expected preview");
+    expect(gmail.createDraft).not.toHaveBeenCalled();
+
     const outcome = await prepareMaintenanceOwnerNoticeDraft(d, {
       ticketRef: "ticket-1",
       mailbox: MAILBOX,
-      confirm: true,
+      confirm: {
+        executionId: prepared.executionId,
+        previewHash: prepared.previewHash,
+      },
     });
 
     expect(outcome.status).toBe("created");
@@ -185,7 +225,6 @@ describe("prepareMaintenanceOwnerNoticeDraft", () => {
       prepareMaintenanceOwnerNoticeDraft(d, {
         ticketRef: "missing",
         mailbox: MAILBOX,
-        confirm: false,
       }),
     ).rejects.toMatchObject({ status: 404 });
   });

@@ -36,7 +36,17 @@ export interface RenewalDraftGmailClient {
     cc?: string[];
     subject: string;
     body: string;
-  }): Promise<{ draftId: string }>;
+    /** Deterministic RFC Message-ID stamped so the one attempt can be reconciled by identifier. */
+    messageId?: string;
+  }): Promise<{ draftId: string; messageId?: string }>;
+  /**
+   * Read-only lookup of an already-created draft by its exact RFC Message-ID. Required for
+   * reconciliation: without it, an attempt whose outcome was never recorded could only be resolved
+   * by drafting again.
+   */
+  findDraftByRfcMessageId?(
+    rfcMessageId: string,
+  ): Promise<{ draftId: string; messageId?: string } | null>;
 }
 
 type WorkflowMessageExecuteInput = WorkflowMessagePayload & {
@@ -79,27 +89,51 @@ export class LiveRenewalGmailDraftProvider implements WorkflowMessageProvider {
       .map((address) => address.trim())
       .filter(Boolean);
 
-    const { draftId } = await this.client.createDraft({
+    const created = await this.client.createDraft({
       to: recipient,
       ...(cc.length ? { cc } : {}),
       subject,
       body,
+      ...(input.expectedRfcMessageId ? { messageId: input.expectedRfcMessageId } : {}),
     });
 
     // Echo the exact reviewed payload back as the readback. A createDraft that succeeds with these
     // fields IS faithful to them; the executor re-asserts readback == expected as a guard against a
     // provider that silently alters the message. We strip the non-payload envelope fields.
     const { expectedRfcMessageId, idempotencyKey, ...payload } = input;
-    void expectedRfcMessageId;
     void idempotencyKey;
-    return { providerRef: draftId, payload };
+    return {
+      providerRef: created.draftId,
+      ...(expectedRfcMessageId ? { rfcMessageId: expectedRfcMessageId } : {}),
+      payload,
+    };
   }
 
-  async reconcile(): Promise<WorkflowMessageReadback | null> {
-    // Creating an unsent draft is not a send: there is no ambiguous external delivery to reconcile, and
-    // a duplicate unsent draft is harmless and manually removable. Returning null tells the orchestrator
-    // "no prior receipt found," so a retry simply re-drafts rather than resurrecting a phantom send.
-    return null;
+  /**
+   * Resolve an already-consumed draft attempt by its exact RFC Message-ID.
+   *
+   * This deliberately replaces the previous `return null`, which reasoned that a duplicate unsent
+   * draft is harmless and let a retry simply re-draft. Under the one-attempt contract that is no
+   * longer the rule: the attempt is consumed either way, and silently re-drafting would leave the
+   * operator with two drafts of the same client message and no evidence of which one the ledger
+   * describes. Reading is the only recovery; this method never creates anything.
+   */
+  async reconcile(input: {
+    actionKey: string;
+    idempotencyKey: string;
+    expectedRfcMessageId?: string;
+    expectedPayload?: WorkflowMessagePayload;
+  }): Promise<WorkflowMessageReadback | null> {
+    const rfcMessageId = input.expectedRfcMessageId?.trim();
+    if (!rfcMessageId || !input.expectedPayload || !this.client.findDraftByRfcMessageId) {
+      return null;
+    }
+    const found = await this.client.findDraftByRfcMessageId(rfcMessageId);
+    if (!found) return null;
+    // The unique identifier IS the evidence here. The echoed payload only satisfies the executor's
+    // equality contract; reconciliation deliberately does not pull a client message body back into
+    // the process just to re-compare it.
+    return { providerRef: found.draftId, rfcMessageId, payload: input.expectedPayload };
   }
 
   async verifySmsConsent(): Promise<boolean> {

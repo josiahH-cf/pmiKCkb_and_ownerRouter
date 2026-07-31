@@ -8,6 +8,7 @@
 // not authorized (and never for a `.send` action). Draft-only, per the owner-confirmed end state.
 
 import { DRAFT_BANNER } from "@/lib/constants";
+import { deterministicDraftRfcMessageId } from "@/lib/external-execution/draft-identity";
 import {
   ExternalExecutionError,
   type ExternalActionInput,
@@ -23,6 +24,11 @@ import { runProductionRuntimeGatedAction } from "@/lib/operations/runtime-suspen
 
 export const RENEWAL_NOTICE_DRAFT_ACTION_KEY =
   "gmail.renewal_notice.draft_create" as const;
+
+/** Gmail's documented drafts.create contract; the S20 readiness check requires a `documented:` ref. */
+export const RENEWAL_DRAFT_CONTRACT_REF = "documented:gmail:drafts.create:v1" as const;
+export const RENEWAL_DRAFT_CONNECTION_REF = "gmail-dwd-renewal-draft:production" as const;
+export const RENEWAL_DRAFT_MAPPING_REF = "rentvine-lease-renewal-notice:v1" as const;
 
 export type RenewalNoticeTemplateRef = "owner-renewal:v1.0" | "tenant-renewal:v1.0";
 
@@ -78,12 +84,21 @@ export function buildRenewalNoticeDraftAction(
     ? input.body
     : `${DRAFT_BANNER}\n\n${input.body}`;
   const cc = input.cc?.emails.length ? input.cc : undefined;
-  return {
-    dataMode: "live",
+  const identity = {
+    dataMode: "live" as const,
     workflowId: input.workflowId,
     actionId: input.actionId,
     actionKey: RENEWAL_NOTICE_DRAFT_ACTION_KEY,
+  };
+  return {
+    ...identity,
+    // Server-owned provider references. The S20 bridge compares each against the trusted context and
+    // requires a `documented:` contract, so a browser payload can never redefine what is executed.
+    contractRef: RENEWAL_DRAFT_CONTRACT_REF,
+    connectionRef: RENEWAL_DRAFT_CONNECTION_REF,
+    mappingRef: RENEWAL_DRAFT_MAPPING_REF,
     values: {
+      rfc_message_id: deterministicDraftRfcMessageId(identity, input.mailbox.email),
       workflow_context: input.workflowContext,
       template_ref: input.templateRef,
       from: input.mailbox.email,

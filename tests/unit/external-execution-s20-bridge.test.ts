@@ -109,6 +109,7 @@ const workOrderValues = {
   vendor_trade: "synthetic:vendor-trade:plumbing",
 };
 const draftValues = {
+  rfc_message_id: "<synthetic-renewal-draft-1@pmikcmetro.com>",
   workflow_context: "synthetic:workflow:renewal-draft-1",
   template_ref: "tenant-renewal:v1.0",
   from: "synthetic-leasing@pmikcmetro.com",

@@ -168,11 +168,18 @@ describe("LiveRenewalGmailDraftProvider", () => {
     );
   });
 
-  it("never reconciles a phantom send and never verifies SMS consent", async () => {
+  it("cannot reconcile without a deterministic identifier, and never verifies SMS consent", async () => {
     const { client } = fakeClient();
     const provider = new LiveRenewalGmailDraftProvider(client);
 
-    await expect(provider.reconcile()).resolves.toBeNull();
+    // No RFC Message-ID and no lookup capability means there is nothing to resolve BY. Returning
+    // null is honest here; it must never fall back to creating a second draft.
+    await expect(
+      provider.reconcile({
+        actionKey: "gmail.renewal_notice.draft_create",
+        idempotencyKey: "synthetic-key",
+      }),
+    ).resolves.toBeNull();
     await expect(provider.verifySmsConsent()).rejects.toThrow(/never performs SMS/i);
   });
 

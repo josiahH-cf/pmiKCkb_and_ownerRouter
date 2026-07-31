@@ -90,6 +90,9 @@ export interface WorkflowMessageProvider {
   reconcile(input: {
     actionKey: string;
     idempotencyKey: string;
+    /** Present when the action carries a deterministic identifier the effect can be looked up by. */
+    expectedRfcMessageId?: string;
+    expectedPayload?: WorkflowMessagePayload;
   }): Promise<WorkflowMessageReadback | null>;
   verifySmsConsent(input: {
     consentRef: string;
@@ -177,6 +180,17 @@ export class LeaseGmailExecutor implements ExternalExecutor {
     ) {
       return "An exact RFC Message-ID is required for send readback.";
     }
+    // A governed draft may carry a deterministic RFC Message-ID so its one consumed attempt can be
+    // reconciled by identifier instead of by re-drafting. It stays OPTIONAL: `vendor.gmail.draft.create`
+    // has no such field. When present it must be well-formed, because the whole point is that the
+    // readback and reconciliation bind to it exactly.
+    if (
+      operation === "draft" &&
+      input.values.rfc_message_id !== undefined &&
+      !isRfcMessageId(input.values.rfc_message_id)
+    ) {
+      return "The governed draft RFC Message-ID is malformed.";
+    }
     if (operation === "sms" && stringBlocker(input, "consent_ref", "sender")) {
       return "Trusted SMS consent and sender references are required.";
     }
@@ -196,7 +210,7 @@ export class LeaseGmailExecutor implements ExternalExecutor {
     const expectedPayload = workflowMessagePayload(input, operation);
     const recipient = expectedPayload.recipient;
     const expectedRfcMessageId =
-      operation === "send" || operation === "reply"
+      operation === "send" || operation === "reply" || operation === "draft"
         ? text(input, "rfc_message_id")
         : undefined;
     const consentRef = text(input, "consent_ref");
@@ -243,12 +257,19 @@ export class LeaseGmailExecutor implements ExternalExecutor {
   }
 
   async reconcile(input: ExternalActionInput) {
+    const reconcileOperation = operationFor(input.actionKey);
     const result = await this.provider.reconcile({
       actionKey: input.actionKey,
       idempotencyKey: externalActionIdempotencyKey(input),
+      ...(text(input, "rfc_message_id")
+        ? { expectedRfcMessageId: text(input, "rfc_message_id") }
+        : {}),
+      ...(reconcileOperation
+        ? { expectedPayload: workflowMessagePayload(input, reconcileOperation) }
+        : {}),
     });
     if (!result) return null;
-    const operation = operationFor(input.actionKey);
+    const operation = reconcileOperation;
     if (!operation) {
       throw new ExternalExecutionError(
         "Unsupported governed communication action.",
@@ -257,7 +278,7 @@ export class LeaseGmailExecutor implements ExternalExecutor {
     }
     const expectedPayload = workflowMessagePayload(input, operation);
     const expectedRfcMessageId =
-      operation === "send" || operation === "reply"
+      operation === "send" || operation === "reply" || operation === "draft"
         ? text(input, "rfc_message_id")
         : undefined;
     if (expectedRfcMessageId && result.rfcMessageId !== expectedRfcMessageId) {

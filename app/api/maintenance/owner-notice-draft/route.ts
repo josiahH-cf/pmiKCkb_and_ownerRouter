@@ -4,7 +4,8 @@ import { z } from "zod";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { getMaintenanceTicket } from "@/lib/firestore/maintenance-tickets";
-import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
+import { requireEnvironmentDescriptor } from "@/lib/environment/descriptor";
+import { createDescriptorBoundGmailRuntimeClient } from "@/lib/gmail-hub/dependencies";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import { resolveOwnerContactFromPropertyId } from "@/lib/lease-renewal/live-owner-recipient";
 import { MAINTENANCE_OWNER_NOTICE_DRAFT_ACTION_KEY } from "@/lib/maintenance/execution/owner-notice-draft-request";
@@ -19,7 +20,20 @@ import {
 const OwnerNoticeDraftBodySchema = z
   .object({
     ticketRef: z.string().trim().min(1).max(120),
-    confirm: z.boolean().default(false),
+    // Confirmation carries the exact prepared execution and the preview hash it was reviewed at.
+    confirm: z
+      .object({
+        executionId: z
+          .string()
+          .trim()
+          .regex(/^exec_[a-f0-9]{40}$/),
+        previewHash: z
+          .string()
+          .trim()
+          .regex(/^[a-f0-9]{64}$/),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 
@@ -78,11 +92,17 @@ export async function POST(request: Request) {
             ...(owner.name ? { name: owner.name } : {}),
           };
         },
-        createGmailClient: (subject) => new GmailRuntimeClient({ subject }),
+        // Descriptor-bound: Demo and Live-read-only refuse here, so no provider is constructed.
+        createGmailClient: (subject) =>
+          createDescriptorBoundGmailRuntimeClient(
+            subject,
+            requireEnvironmentDescriptor(),
+          ),
+        actor: user,
       },
       {
         ticketRef: body.ticketRef,
-        confirm: body.confirm,
+        ...(body.confirm ? { confirm: body.confirm } : {}),
         mailbox: { email: user.email, sourceRef: `app:session:${user.uid}` },
       },
     );

@@ -9,6 +9,7 @@
 // operation, and gmail.maintenance_owner_notice.send stays production_allowed:false. Nothing here sends.
 
 import { DRAFT_BANNER } from "@/lib/constants";
+import { deterministicDraftRfcMessageId } from "@/lib/external-execution/draft-identity";
 import type {
   ExternalActionInput,
   ExternalActionReceipt,
@@ -25,6 +26,14 @@ export const MAINTENANCE_OWNER_NOTICE_DRAFT_ACTION_KEY =
   "gmail.maintenance_owner_notice.draft_create" as const;
 
 export const MAINTENANCE_OWNER_TEMPLATE_REF = "maintenance-owner:v1.0" as const;
+
+/** Gmail's documented drafts.create contract; the S20 readiness check requires a `documented:` ref. */
+export const MAINTENANCE_DRAFT_CONTRACT_REF =
+  "documented:gmail:drafts.create:v1" as const;
+export const MAINTENANCE_DRAFT_CONNECTION_REF =
+  "gmail-dwd-maintenance-draft:production" as const;
+export const MAINTENANCE_DRAFT_MAPPING_REF =
+  "maintenance-ticket-owner-notice:v1" as const;
 
 export interface MaintenanceOwnerNoticeDraftActionInput {
   /** The persisted ticket id. Bound as workflowId so ticket_ref === workflowId (S38b send binding). */
@@ -51,12 +60,20 @@ export function buildMaintenanceOwnerNoticeDraftAction(
   const body = input.body.startsWith(`${DRAFT_BANNER}\n\n`)
     ? input.body
     : `${DRAFT_BANNER}\n\n${input.body}`;
-  return {
-    dataMode: "live",
+  const identity = {
+    dataMode: "live" as const,
     workflowId: input.ticketRef,
     actionId: `maintenance-owner-notice-draft:${input.ticketRef}`,
     actionKey: MAINTENANCE_OWNER_NOTICE_DRAFT_ACTION_KEY,
+  };
+  return {
+    ...identity,
+    // Server-owned provider references; the S20 bridge compares each against the trusted context.
+    contractRef: MAINTENANCE_DRAFT_CONTRACT_REF,
+    connectionRef: MAINTENANCE_DRAFT_CONNECTION_REF,
+    mappingRef: MAINTENANCE_DRAFT_MAPPING_REF,
     values: {
+      rfc_message_id: deterministicDraftRfcMessageId(identity, input.mailbox.email),
       workflow_context: `maintenance:${input.ticketRef}:${input.unitTag}`,
       template_ref: MAINTENANCE_OWNER_TEMPLATE_REF,
       from: input.mailbox.email,

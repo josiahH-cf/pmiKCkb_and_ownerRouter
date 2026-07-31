@@ -22,8 +22,15 @@ import type {
 } from "@/lib/maintenance/work-order-draft";
 import {
   buildMaintenanceOwnerNoticeDraftAction,
-  executeMaintenanceOwnerNoticeDraft,
+  MAINTENANCE_OWNER_NOTICE_DRAFT_ACTION_KEY,
 } from "@/lib/maintenance/execution/owner-notice-draft-request";
+import type { AuthenticatedUser } from "@/lib/auth/session";
+import {
+  executeGovernedDraft,
+  prepareGovernedDraft,
+  type GovernedDraftSeams,
+} from "@/lib/external-execution/governed-draft-execution";
+import { MAINTENANCE_EXECUTION_DEFINITION_MAP } from "@/lib/maintenance/execution/matrix";
 
 export interface MaintenanceOwnerNoticeMailbox {
   email: string;
@@ -40,8 +47,12 @@ export interface MaintenanceOwnerRecipient {
 export interface MaintenanceOwnerNoticeDraftInput {
   ticketRef: string;
   mailbox: MaintenanceOwnerNoticeMailbox;
-  /** false → return the preview only; true → create the real unsent draft. */
-  confirm: boolean;
+  /**
+   * Absent → return the preview plus its S20 execution id and immutable preview hash.
+   * Present → execute that exact prepared execution. A bare boolean carried no binding to WHAT was
+   * reviewed and gave the ledger nothing to make the attempt idempotent against.
+   */
+  confirm?: { executionId: string; previewHash: string };
 }
 
 export interface MaintenanceOwnerNoticeDraftDeps {
@@ -53,6 +64,10 @@ export interface MaintenanceOwnerNoticeDraftDeps {
   ): Promise<MaintenanceOwnerRecipient | null>;
   /** Build a draft-capable Gmail client for the authenticated sender (subject === mailbox email). */
   createGmailClient(subject: string): RenewalDraftGmailClient;
+  /** The signed-in operator; the S20 ledger owns approval, claim, and actor scope. */
+  actor: AuthenticatedUser;
+  /** Test-only S20/environment seams; production omits them. */
+  seams?: GovernedDraftSeams;
 }
 
 export type MaintenanceOwnerNoticeDraftOutcome =
@@ -62,13 +77,18 @@ export type MaintenanceOwnerNoticeDraftOutcome =
       recipient: { to: string; sourceRef: string };
       subject: string;
       body: string;
+      /** The exact prepared execution the caller must confirm; binds this reviewed preview. */
+      executionId: string;
+      previewHash: string;
     }
   | {
       status: "created";
       recipient: { to: string; sourceRef: string };
       subject: string;
       draftId: string;
-    };
+      executionId: string;
+    }
+  | { status: "needs_reconciliation"; executionId: string; reason: string };
 
 /**
  * Preview or create a maintenance owner-notice draft for one persisted ticket. Throws EditableLayerError(404)
@@ -127,24 +147,53 @@ export async function prepareMaintenanceOwnerNoticeDraft(
   });
 
   const recipient = { to: owner.email, sourceRef: owner.sourceRef };
+  const request = {
+    action: action as never,
+    definition: MAINTENANCE_EXECUTION_DEFINITION_MAP.get(
+      MAINTENANCE_OWNER_NOTICE_DRAFT_ACTION_KEY,
+    )!,
+    createClient: () => deps.createGmailClient(input.mailbox.email),
+  };
+
   if (!input.confirm) {
+    const prepared = await prepareGovernedDraft(deps.actor, request, deps.seams);
     return {
       status: "preview",
       recipient,
       subject: draft.subject,
       body: String(action.values.body),
+      executionId: prepared.id,
+      previewHash: prepared.preview_hash,
     };
   }
 
-  const receipt = await executeMaintenanceOwnerNoticeDraft(
-    () => deps.createGmailClient(input.mailbox.email),
-    action,
+  const outcome = await executeGovernedDraft(
+    deps.actor,
+    {
+      ...request,
+      executionId: input.confirm.executionId,
+      previewHash: input.confirm.previewHash,
+    },
+    deps.seams,
   );
+  if (outcome.execution.state !== "Succeeded" || !outcome.result) {
+    // The terminal transition already committed inside the bridge, which also emitted the single
+    // value-free A2 event. Surface it truthfully instead of implying a draft exists.
+    return {
+      status: "needs_reconciliation",
+      executionId: outcome.execution.id,
+      reason:
+        outcome.execution.state === "Failed"
+          ? "Gmail refused the draft. The one attempt was consumed; review the mailbox before preparing another."
+          : "The draft outcome could not be confirmed. Reconcile this execution before preparing another.",
+    };
+  }
   return {
     status: "created",
     recipient,
     subject: draft.subject,
-    draftId: receipt.providerRef,
+    draftId: outcome.result.providerRef,
+    executionId: outcome.execution.id,
   };
 }
 
