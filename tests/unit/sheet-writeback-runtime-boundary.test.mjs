@@ -8,12 +8,16 @@ const RUNTIME_ROOTS = ["app", "components", "lib"];
 const EXECUTION_MODULE = "@/lib/lease-renewal/sheet-writeback-execution";
 const ALLOWED_EXECUTION_IMPORTER = "lib/lease-renewal/sheet-writeback-service.ts";
 const RAW_WRITER_IMPLEMENTATION = "lib/google-sheets/write-client.ts";
+let runtimeSourceCache;
 
 function runtimeSources() {
-  return RUNTIME_ROOTS.flatMap((root) => walk(join(ROOT, root))).map((file) => ({
-    file: relative(ROOT, file).replaceAll("\\", "/"),
-    source: readFileSync(file, "utf8"),
-  }));
+  runtimeSourceCache ??= RUNTIME_ROOTS.flatMap((root) => walk(join(ROOT, root))).map(
+    (file) => ({
+      file: relative(ROOT, file).replaceAll("\\", "/"),
+      source: readFileSync(file, "utf8"),
+    }),
+  );
+  return runtimeSourceCache;
 }
 
 function walk(directory) {
@@ -31,7 +35,7 @@ describe("Sheet write-back runtime boundary", () => {
       .map(({ file }) => file);
 
     expect(bypassImports).toEqual([ALLOWED_EXECUTION_IMPORTER]);
-  });
+  }, 20_000);
 
   it("keeps legacy direct mutation helpers out of the immutable action service", () => {
     const service = readFileSync(join(ROOT, ALLOWED_EXECUTION_IMPORTER), "utf8");
@@ -48,5 +52,5 @@ describe("Sheet write-back runtime boundary", () => {
       .map(({ file }) => file);
 
     expect(bypassCalls).toEqual([]);
-  });
+  }, 20_000);
 });

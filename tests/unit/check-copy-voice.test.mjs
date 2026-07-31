@@ -59,5 +59,5 @@ describe("collectViolations (repo scan)", () => {
   it("passes the hard gate: no jargon anywhere and no em dashes in client-facing drafts", () => {
     const { errors } = collectViolations();
     expect(errors).toEqual([]);
-  });
+  }, 20_000);
 });

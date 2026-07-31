@@ -16,7 +16,7 @@ describe("context-freshness gate", () => {
   it("passes on the real docs/facts.md and docs/loop-state.md", () => {
     const { problems } = evaluateContextFreshness(root);
     expect(problems, problems.join("\n")).toEqual([]);
-  });
+  }, 20_000);
 
   it("flags a Verified fact with no evidence or date", () => {
     const bad = [

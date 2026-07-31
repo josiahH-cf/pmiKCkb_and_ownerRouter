@@ -244,22 +244,22 @@ describe("S51 product and communications retention separation", () => {
 });
 
 function discoverDirectProductRecordReferences() {
-  const files = ["app", "lib/firestore", "lib/vendor", "scripts"]
+  const sources = ["app", "lib/firestore", "lib/vendor", "scripts"]
     .flatMap((directory) => runtimeSourceFiles(join(process.cwd(), directory)))
-    .sort();
+    .sort()
+    .map((file) => ({ file, source: readFileSync(file, "utf8") }));
   return Object.fromEntries(
     EXPECTED_PRODUCT_COLLECTIONS.map((collection) => [
       collection,
-      files
-        .filter((file) => {
-          const source = readFileSync(file, "utf8");
+      sources
+        .filter(({ source }) => {
           return (
             source.includes(`"${collection}"`) ||
             source.includes(`'${collection}'`) ||
             source.includes(`\`${collection}\``)
           );
         })
-        .map((file) => relative(process.cwd(), file).replaceAll("\\", "/"))
+        .map(({ file }) => relative(process.cwd(), file).replaceAll("\\", "/"))
         .sort(),
     ]),
   );

@@ -10,6 +10,7 @@ const ROOT = process.cwd();
 // close-only runtime wrapper.
 const RUNTIME_ROOTS = ["app", "components", "lib", "scripts"];
 const PROTECTED_GATE = realpathSync(join(ROOT, "lib/integrations/action-gate.ts"));
+const PROTECTED_GATE_SOURCE_MARKER = "action-gate";
 const ONLY_ALLOWED_IMPORTER = "lib/operations/runtime-suspension-gate.ts";
 
 function runtimeSources() {
@@ -84,6 +85,9 @@ describe("runtime suspension direct-gate call-site boundary", () => {
     const bypasses = [];
     for (const file of runtimeSources()) {
       const source = readFileSync(file, "utf8");
+      // A static import/export/require that resolves to action-gate must contain its basename.
+      // Avoid parsing hundreds of unrelated modules on Windows-mounted workspaces.
+      if (!source.includes(PROTECTED_GATE_SOURCE_MARKER)) continue;
       const sourceFile = ts.createSourceFile(
         file,
         source,

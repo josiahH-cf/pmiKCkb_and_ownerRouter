@@ -929,7 +929,7 @@ describe("runtime suspension provider-construction boundary", () => {
       ),
     ).toBe(true);
     expect(PRODUCT_READ_ONLY_LIVE_CONFIG_CALLS.size).toBeGreaterThan(0);
-  });
+  }, 20_000);
 
   it("requires every discovered reviewed-module provider factory to remain classified", () => {
     const actual = collectBoundaries();
@@ -957,7 +957,7 @@ describe("runtime suspension provider-construction boundary", () => {
       "lib/lease-renewal/live-config.ts:buildLiveRenewalConfig:new RentVineClient",
       "lib/lease-renewal/live-config.ts:buildLiveRentVineConfig:new RentVineClient",
     ]);
-  });
+  }, 20_000);
 
   it("pins one unique dynamic exact/global/unreadable zero-factory proof to every gated adapter", () => {
     expect([...DYNAMIC_REFUSAL_PROOFS.keys()].sort()).toEqual(

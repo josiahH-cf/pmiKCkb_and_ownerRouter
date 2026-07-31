@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -21,13 +21,13 @@ describe("production WebSocket dependency boundary", () => {
       .map((path) => relative(ROOT, path));
 
     expect(offenders).toEqual([]);
-  });
+  }, 20_000);
 });
 
 function sourceFiles(directory) {
-  return readdirSync(directory).flatMap((entry) => {
-    const path = join(directory, entry);
-    if (statSync(path).isDirectory()) return sourceFiles(path);
-    return /\.[cm]?[jt]sx?$/.test(entry) ? [path] : [];
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) return sourceFiles(path);
+    return /\.[cm]?[jt]sx?$/.test(entry.name) ? [path] : [];
   });
 }

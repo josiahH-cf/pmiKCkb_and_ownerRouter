@@ -90,5 +90,5 @@ describe("demo Firestore target guard", () => {
     expect(result.status).not.toBe(0);
     expect(`${result.stdout}${result.stderr}`).toMatch(/only localhost/i);
     expect(`${result.stdout}${result.stderr}`).not.toMatch(/seed complete|seeded/i);
-  });
+  }, 30_000);
 });
