@@ -431,6 +431,23 @@ function syntheticValues(
         financial_checks_passed: true,
         owner_checks_passed: true,
       };
+    case "gmail.maintenance_owner_notice.draft_create":
+      return {
+        workflow_context: `maintenance:${a.maintenanceWorkflow}:${a.unitRef}`,
+        ticket_ref: a.maintenanceWorkflow,
+        template_ref: "maintenance-owner:v1.0",
+        from: a.internalMailbox,
+        to: a.ownerEmail,
+        subject: maintenanceNotice.subject,
+        body: maintenanceNotice.body.startsWith(DRAFT_BANNER)
+          ? maintenanceNotice.body
+          : `${DRAFT_BANNER}
+
+${maintenanceNotice.body}`,
+        recipient_source_ref: "fixture:owner",
+        mailbox_source_ref: "fixture:mailbox",
+        draft_banner_present: true,
+      };
     case "gmail.maintenance_owner_notice.send":
       return {
         workflow_context: `maintenance:${a.maintenanceWorkflow}:${a.unitRef}`,
@@ -918,6 +935,10 @@ export function createSyntheticExecutorHarness() {
     ["rentvine.work_order.create", rentvineWorkOrder],
     ["rentvine.work_order.assign_vendor", rentvineWorkOrder],
     ["rentvine.work_order.update_status", rentvineWorkOrder],
+    // The draft uses the plain governed message executor, exactly as the production path does:
+    // MaintenanceOwnerEmailExecutor is the SEND-shaped validator (it requires `recipients` and
+    // an RFC Message-ID), which an unsent draft neither has nor needs.
+    ["gmail.maintenance_owner_notice.draft_create", leaseMessage],
     ["gmail.maintenance_owner_notice.send", maintenanceMessage],
     ["gmail.thread.reply", maintenanceMessage],
     ["leadsimple.process.update_stage", leadSimple],

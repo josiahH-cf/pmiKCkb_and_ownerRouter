@@ -11,6 +11,35 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## Draft-pair contract alignment: the prerequisite the S20 migration needed (2026-07-31)
+
+Before the renewal and maintenance drafts can run through the S20 one-attempt contract, three things
+had to be true that were not.
+
+`gmail.maintenance_owner_notice.draft_create` was in the Action Registry, the risk policy, and the
+executor, but in neither canonical execution matrix — so the S20 bridge would have rejected it as
+`action_unknown`. It is now appended to the maintenance matrix (appended, not inserted: those
+definitions bind by array index, so a mid-array insert silently rebinds every later one) with no
+dependency. The paired send depends on `rentvine.work_order.create`, which is Needs Connection;
+inheriting that would have made the draft permanently unsatisfiable — the same defect just fixed on
+the label action.
+
+Both draft preview contracts disagreed with the values their builders emit. The maintenance schema
+declared `draft_body` where the code emits `body`, and omitted `workflow_context`, `from`, and
+`mailbox_source_ref`. Preview validation rejects missing-required and unexpected fields alike, so
+that action would have hard-blocked on six errors at its first S20 preview check. The renewal
+contract had no `cc`/`cc_source_refs`, so every F-LEASE-6 co-tenant draft would have blocked as
+undeclared. Both are fixed, and the fix went into `FINAL_V1_ACTION_PREVIEW_SCHEMAS` — the overlay
+that actually wins, and which had no maintenance-draft entry at all despite claiming to cover every
+S25/S26 action. An earlier edit to the base seed alone was inert and was reverted.
+
+None of this was caught before because the draft executors call `LeaseGmailExecutor.execute`
+directly, which never consults the registry preview schema. A new test now asserts each builder's
+exact output validates against its contract.
+
+No gate, `production_allowed` value, or D12-protected path changed; the direct-send keys stay
+disabled. This is alignment only — neither draft runs through S20 yet. That migration is next.
+
 ## S25 `gmail.label.apply` migrated onto the S20 one-attempt contract (2026-07-31)
 
 The governed label action no longer mutates Gmail and then appends an audit row. It now runs through

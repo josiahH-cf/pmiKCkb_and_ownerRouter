@@ -24,6 +24,11 @@ export const FINAL_V1_ACTION_PREVIEW_SCHEMAS: Readonly<
     f("template_ref", "Approved artifact", "reference"),
     f("from", "From", "string", "Gmail"),
     f("to", "Recipient", "string"),
+    // Optional F-LEASE-6 co-tenant Cc. `buildRenewalNoticeDraftAction` emits these only on a
+    // multi-tenant lease; preview validation rejects undeclared fields, so omitting them here would
+    // block exactly the co-tenant drafts the Cc support exists to serve.
+    f("cc", "Authoritative co-tenant Cc", "string", "KB Internal", false),
+    f("cc_source_refs", "Co-tenant Cc sources", "string", "KB Internal", false),
     f("subject", "Subject", "string"),
     f("body", "Exact draft body", "string"),
     f("recipient_source_ref", "Recipient source", "reference"),
@@ -201,6 +206,22 @@ export const FINAL_V1_ACTION_PREVIEW_SCHEMAS: Readonly<
     f("completion_evidence", "Completion evidence present", "boolean"),
     f("financial_checks_passed", "Financial checks passed", "boolean"),
     f("owner_checks_passed", "Owner checks passed", "boolean"),
+  ],
+  // The unsent owner-notice draft. Distinct from the send contract below: the draft addresses `to`
+  // and carries the review banner, and has no RFC Message-ID because nothing has been sent. This
+  // overlay was previously missing, so the action fell back to a base-seed schema that declared
+  // `draft_body` and omitted the workflow/mailbox/source fields the builder actually emits.
+  "gmail.maintenance_owner_notice.draft_create": [
+    f("workflow_context", "Workflow context", "reference"),
+    f("ticket_ref", "Ticket", "reference"),
+    f("template_ref", "Approved artifact", "reference"),
+    f("from", "From", "string", "Gmail"),
+    f("to", "Owner recipient", "string"),
+    f("subject", "Subject", "string"),
+    f("body", "Exact draft body", "string"),
+    f("recipient_source_ref", "Recipient source", "reference"),
+    f("mailbox_source_ref", "Mailbox source", "reference"),
+    f("draft_banner_present", "Review banner present", "boolean"),
   ],
   "gmail.maintenance_owner_notice.send": [
     f("workflow_context", "Workflow context", "reference"),

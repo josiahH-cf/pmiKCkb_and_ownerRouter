@@ -881,6 +881,18 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     preview_schema_note:
       "Before promotion, show ticket reference, verified recipient source, subject, full body with DRAFT_BANNER, and approved template reference.",
     preview_payload_schema: [
+      // Aligned 2026-07-31 with the exact values `buildMaintenanceOwnerNoticeDraftAction` emits.
+      // The schema previously declared `draft_body` while the implementation emits `body`, and
+      // omitted `workflow_context`, `from`, and `mailbox_source_ref` entirely. Preview validation
+      // rejects both missing-required and unexpected fields, so the action would have been blocked
+      // outright the moment it ran through the S20 preview check.
+      {
+        name: "workflow_context",
+        label: "Workflow context",
+        type: "reference",
+        required: true,
+        source_system: "KB Internal",
+      },
       {
         name: "ticket_ref",
         label: "Maintenance ticket",
@@ -894,6 +906,20 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
         type: "reference",
         required: true,
         source_system: "KB Internal",
+      },
+      {
+        name: "mailbox_source_ref",
+        label: "Authenticated mailbox source",
+        type: "reference",
+        required: true,
+        source_system: "KB Internal",
+      },
+      {
+        name: "from",
+        label: "Sender mailbox",
+        type: "string",
+        required: true,
+        source_system: "Gmail",
       },
       {
         name: "to",
@@ -917,7 +943,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
         source_system: "KB Internal",
       },
       {
-        name: "draft_body",
+        name: "body",
         label: "Draft body",
         type: "string",
         required: true,

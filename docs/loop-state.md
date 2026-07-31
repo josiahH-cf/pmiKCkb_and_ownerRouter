@@ -17,9 +17,9 @@ spec_package_status: EXECUTING
 implementation_status: PAUSED_AT_VERIFIED_BOUNDARY
 next_suite: S25
 next_spec: docs/feature-suites/lease-renewal-execution.md + docs/feature-suites/maintenance-execution.md
-session_auth_status: BLOCKED_INTERACTIVE_ADC_MISSING_AND_CLI_REAUTH
-active_slice: STOPPED-AT-S25-LABEL-CONTRACT-COMPLETE
-last_completed_slice: S25-GMAIL-LABEL-S20-CONTRACT
+session_auth_status: GREEN_ADC_MANAGED_ACCOUNT_AND_CLI_TOKEN
+active_slice: STOPPED-AT-DRAFT-PAIR-CONTRACT-ALIGNED
+last_completed_slice: S26-DRAFT-CONTRACT-ALIGNED
 runtime_action_gates_preflipped: false
 ```
 
@@ -36,10 +36,10 @@ runtime_action_gates_preflipped: false
 
 ## Current truth
 
-- Session-start checks resolved the active account to managed `josiah@pmikcmetro.com`, but ADC is
-  not configured and the CLI token cannot refresh non-interactively. Exact owner action:
-  `npm run auth:session`, then rerun ADC, managed-account, and suppressed CLI-token checks. Live
-  reads, deploys, cloud mutations, and the S54 live eval stay parked; local/app-plane work continues.
+- Auth is GREEN 2026-07-31 (owner ran `auth:session`): ADC fresh, managed `josiah@pmikcmetro.com`,
+  CLI token mints; live Google reads available. Deploy is still NOT eligible — S52's ceiling is null
+  (the guard's legacy $10 posture is enforcement state, not headroom) and S40's release path is
+  unbuilt, so cost-bearing/live/cloud steps park on those two, not on auth.
 - S54.1's widened Firestore gate/falsification is complete; remote CI run `30510068990` passed.
 - S53.2 Sheet, S53.3 Drive, S53.4 sender/config, S53.5 Vendor lifecycle, S52-I/J, and the
   fail-closed budget planner are COMPLETE LOCALLY; every provider key remains closed and D32 is still
@@ -47,8 +47,9 @@ runtime_action_gates_preflipped: false
 - S51 steps 3–6 are dependency-safe locally complete (effect stop, A2/monitoring, reply/watch A2,
   rollback/incident/retention/capacity/log hygiene); Rules/cloud/live rehearsal remain parked.
 - S25's `gmail.label.apply` runs the canonical S20 one-attempt contract
-  (`F-S25-LABEL-S20-CONTRACT`); gate unchanged, no D12 path touched. Remaining A2 residual: the
-  renewal/maintenance draft pair.
+  (`F-S25-LABEL-S20-CONTRACT`), and the draft pair's contract prerequisites are aligned
+  (`F-S26-DRAFT-CONTRACT-ALIGNED`). Gate unchanged, no D12 path touched. Remaining A2 residual:
+  migrating the draft pair itself onto S20.
 - Exact closeout gate (2026-07-31): clean-install `bash scripts/verify.sh` green; 3974 unit + 109
   Firestore tests, 0 lint errors; core E2E 8 files / 32 passed / 18 designed skips.
 - Production serves `2bfe7d4` on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e`, missing the
@@ -73,9 +74,8 @@ runtime_action_gates_preflipped: false
    receipt/reconcile/setup/disable and concurrency fences are green; no protected flip.
 7. **S52 prerequisites — PARKED** — planner refusal plus I/J are green; source/handler/check are
    protected, and baseline/values/project disposition/operator destination remain external.
-8. **S51 app-plane — DEPENDENCY-SAFE LOCAL SPEC COMPLETE** — steps 3–7 and reply/watch A2 green;
-   Rules/cloud/live rehearsal parked. S25's label contract is COMPLETE LOCALLY; next is the
-   renewal/maintenance draft pair (S25/S26/S38).
+8. **S51 app-plane / Gmail residuals** — S51 steps 3–7, the label contract, and the draft-pair
+   contract alignment are COMPLETE LOCALLY; next is migrating the draft pair itself (S25/S26/S38).
 9. **S52/S51 activation** — after the complete-calendar-month baseline, supply the two
    owner-selected values, second-project disposition, and operator destination; apply owner-run
    billing/IAM/monitoring changes and verify live lockstep/delivery. Do not synthesize or infer a
@@ -94,19 +94,15 @@ runtime_action_gates_preflipped: false
 
 ## Named external evidence
 
-- RentVine write endpoint and resident-channel semantics — one combined ask (S30, S47).
-- RentCast free-tier key — owner self-serve; still needs rate limits, radius, min comp count.
-- Dotloop OAuth registration; LeadSimple key plus endpoint contract.
-- Chasity's renewal-template artifact (gates S43 template-dependent output only).
-- Exact Demo project/service/database/storage/queue/OAuth/identity values, then owner-run
-  provisioning and migration.
-- S51 Rules review/operator destination; S52 burn evidence, values, and project disposition.
-- S53 sender value; the D32 Sheet transaction broker (mutate + status + absent-key tombstone +
-  same-value-ABA-safe effect generation/protected range) plus column/id/tab confirmation; intake
-  secrets/binding; first Vendor identity; and S36 IAM grant.
-- Approved resident wording plus fallback contact and RentVine contract evidence for S47.
-- Official brand artwork/usage approval (D44); D49/D51 response receipts if those assumptions should
-  become owner-ratified policy.
+- **Blocking the slice order:** S52 burn evidence, the two owner-selected ceiling values, and
+  second-project disposition; S51 Rules review and the managed operator destination.
+- Also open: RentVine write endpoint (S30, S47); RentCast key plus rate limits/radius/min comp count;
+  Dotloop OAuth; LeadSimple key + contract; Chasity's renewal template (S43); exact Demo
+  project/service/database/storage/queue/OAuth/identity values then owner-run provisioning; S53
+  sender value and the D32 Sheet transaction broker (mutate + status + absent-key tombstone +
+  ABA-safe effect generation/protected range) plus column/id/tab confirmation; intake
+  secrets/binding; first Vendor identity; S36 IAM grant; S47 wording/fallback contact; brand
+  artwork approval (D44); D49/D51 receipts.
 - Full list with ready-to-send drafts: `docs/client-asks-2026-07-29.md`.
 
 ## Gate meaning
@@ -132,8 +128,12 @@ runtime_action_gates_preflipped: false
 
 ## Resume
 
-Stop at the verified S25 label-contract boundary. Next session, migrate the renewal/maintenance
-draft pair (S25/S26/S38) through the same S20 one-attempt authority, add
-`gmail.maintenance_owner_notice.draft_create` to the canonical maintenance matrix, and activate
-neither direct-send key nor generic send. Keep Rules/monitoring/cloud/live activation parked until
-auth, S52, S40, and owner conditions pass.
+Stop at the verified draft-pair contract-alignment boundary. Next session, migrate the renewal and
+maintenance drafts themselves onto S20: replace `confirm: boolean` with a prepare returning an
+execution id plus immutable preview hash, re-resolve authoritative facts at execution, claim before
+constructing Gmail, create one unsent draft with a deterministic RFC Message-ID, reconcile by that
+identifier without retrying ambiguity, and emit A2 only from a committed terminal state.
+`LiveRenewalGmailDraftProvider.reconcile` returns null today on the reasoning that a duplicate draft
+is harmless; the one-attempt contract supersedes that. Activate neither direct-send key nor generic
+send. Auth is green; S52's null ceiling and the unbuilt S40 release path still park every
+cost-bearing/live/cloud step.

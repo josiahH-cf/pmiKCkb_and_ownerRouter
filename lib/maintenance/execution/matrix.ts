@@ -20,6 +20,9 @@ export const MAINTENANCE_EXECUTION_ACTIONS = [
   "leadsimple.process.update_stage",
   "leadsimple.task.create",
   "quickbooks.bill.create_draft",
+  // Appended, never inserted: the definitions below bind by array index, so inserting a key
+  // mid-array would silently rebind every later definition to the wrong action.
+  "gmail.maintenance_owner_notice.draft_create",
 ] as const;
 
 export type MaintenanceExecutionActionKey =
@@ -33,6 +36,7 @@ export const MAINTENANCE_EXECUTION_ORDER: readonly MaintenanceExecutionActionKey
   "google_drive.maintenance_photo.store",
   "rentvine.work_order.create",
   "rentvine.work_order.assign_vendor",
+  "gmail.maintenance_owner_notice.draft_create",
   "gmail.maintenance_owner_notice.send",
   "gmail.thread.reply",
   "vendor.gmail.thread.read",
@@ -114,6 +118,20 @@ export const MAINTENANCE_EXECUTION_DEFINITIONS: readonly ExternalActionDefinitio
   def(MAINTENANCE_EXECUTION_ACTIONS[18], "QuickBooks", "High", [
     MAINTENANCE_EXECUTION_ACTIONS[9],
   ]),
+  // No dependency. The owner-notice draft is composed from a persisted app ticket plus an
+  // authoritatively resolved owner recipient, both enforced by the route. Depending on
+  // `rentvine.work_order.create` (as the paired `.send` does) would make the draft unsatisfiable:
+  // that action is "Needs Connection", so it can never produce the receipt this would require.
+  // Risk is Medium to match the server policy for `workflow_draft`; the S20 bridge refuses a
+  // definition whose risk disagrees with `EXECUTION_ACTION_POLICIES`.
+  def(
+    MAINTENANCE_EXECUTION_ACTIONS[19],
+    "Owner email",
+    "Medium",
+    [],
+    "documented",
+    "Delete the unsent draft.",
+  ),
 ];
 
 export const MAINTENANCE_EXECUTION_DEFINITION_MAP = new Map(
@@ -126,6 +144,8 @@ function def(
   risk: ExternalActionDefinition["risk"],
   dependsOn: readonly string[],
   requiredContract: ExternalActionDefinition["requiredContract"] = "documented",
+  /** Override for an action whose correction is not a provider-state reconciliation. */
+  correction = "Reconcile the provider reference and current state, then perform a separately reviewed correction without deleting audit.",
 ): ExternalActionDefinition {
   return {
     key,
@@ -133,7 +153,6 @@ function def(
     risk,
     dependsOn,
     requiredContract,
-    correction:
-      "Reconcile the provider reference and current state, then perform a separately reviewed correction without deleting audit.",
+    correction,
   };
 }
