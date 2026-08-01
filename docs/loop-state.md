@@ -2,10 +2,10 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history belongs in `docs/status.md`.
 
-Last updated: 2026-07-31.
+Last updated: 2026-08-01.
 
 ```yaml
-last_updated: 2026-07-31
+last_updated: 2026-08-01
 active_program: PRODUCTION-PHASE-2026-07-29
 program_suites: S51-S54 (new) + S40-S50 (in flight)
 spec_writing_allowed: true
@@ -18,8 +18,8 @@ implementation_status: PAUSED_AT_VERIFIED_BOUNDARY
 next_suite: S25
 next_spec: docs/feature-suites/lease-renewal-execution.md + docs/feature-suites/maintenance-execution.md
 session_auth_status: GREEN_ADC_MANAGED_ACCOUNT_AND_CLI_TOKEN
-active_slice: STOPPED-AT-S40-RELEASE-SAFETY-PATH
-last_completed_slice: S40-RELEASE-SAFETY-PATH
+active_slice: STOPPED-AT-S40-ENVIRONMENT-DATA-COMPLETE
+last_completed_slice: S40-ENVIRONMENT-DATA-SLICES
 runtime_action_gates_preflipped: false
 ```
 
@@ -85,8 +85,10 @@ runtime_action_gates_preflipped: false
     named local-only refusal. The legacy auto-promoting wrapper stays ineligible for D07.
 11. **D07 deploy and live operational evidence** — only after steps 9–10, fresh auth, full gate,
     prior-target capture, rollback, and bounded candidate smoke.
-12. **S40 remaining environment/data slices** — provider-construction sentinel, un-merge Demo/Live
-    lists, Production route exclusion, shell banner, and migration dry-run.
+12. **S40 remaining environment/data slices — COMPLETE LOCALLY** — the migration dry-run and the
+    environment label shipped (`F-S40-ENVIRONMENT-DATA-SLICES`); the sentinel, Demo/Live separation,
+    and route exclusion were already covered. AC-S40-2/9/13/16/17 stay owner-blocked on the Demo
+    project identifiers.
 13. **S53 remaining activations** — as each owner value lands, each with its paired
     deploy-wrapper change.
 14. Then S41 → S42 → S44 → S43/S45 → S46 → S47 → S48 → S49 → S50; interleave S28–S39 seams.
@@ -127,10 +129,10 @@ runtime_action_gates_preflipped: false
 
 ## Resume
 
-Stop at the verified S40 release-safety boundary. Auth is green and the release path is built, so
-S52's null ceiling is now the ONLY thing parking deploy: it needs the owner's burn evidence, the two
-reviewed values, second-project disposition, and the managed operator destination, with the GCP
-budget amount and `KILL_SWITCH_CAP_USD` moved together because the guard applies the smaller. Next
-dependency-ready local work is S40's remaining environment/data slices (provider-construction
-sentinel, un-merge Demo/Live lists, Production route exclusion, shell banner, migration dry-run),
-then S41 onward.
+Stop at the verified S40 environment/data boundary. Every buildable S40 slice is done. **Production
+deploy is blocked only by S52's null ceiling**: it needs the owner's burn evidence, the two reviewed
+values, second-project disposition, and the managed operator destination, with the GCP budget amount
+and `KILL_SWITCH_CAP_USD` moved together because the guard applies the smaller. **Demo deploy is
+additionally blocked**: D11 made Demo a new GCP project that does not exist yet, so the owner must
+supply its exact identifiers and run provisioning first. Next dependency-ready local work is
+S41 onward.

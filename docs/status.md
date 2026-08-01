@@ -11,6 +11,34 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S40's remaining environment/data slices: two, not five (2026-08-01)
+
+The loop-state list named five. Checking each against the code, three were already covered: the
+provider-construction sentinel exists and has been extended twice this session, and
+`console-environment-boundary.test.ts` already pins separate Live/Test workspaces, production forced
+to live mode, and no fixture provider in production. That accounted for "un-merge Demo/Live lists"
+and "Production route exclusion". Two were genuinely open, and both are now built.
+
+**Migration dry-run (AC-S40-5).** Plans the removal of legacy invented Production records without
+performing it. The report carries counts, collection names, and opaque ids only. The load-bearing
+decision is that an unclassified record REFUSES the plan rather than defaulting:
+`resolveStoredDataMode` maps missing to Live on read paths, which is right there because it protects
+real customer records, but using that same default to decide what to delete would silently migrate
+live data. A partial plan is more dangerous than none, because its counts read as authoritative, so
+any ambiguity refuses the whole thing. The removal set re-derives classification from the source
+records rather than trusting the plan, and throws if a Live record ever appears in it.
+
+**Environment label (AC-S40-7).** Renders nothing at all in ordinary live Production. That is
+deliberate: a permanent "Production" chip is noise that teaches operators to ignore the banner, and
+it then fails to register on the one screen where confusing environments is costly. Silence means
+normal; every other state says what it is. An unresolvable descriptor gets the loudest label rather
+than the quietest, because reading as Production is the single wrong answer. It sits as a sibling of
+the brand and nav, so the topbar's desktop space-between and its narrow-width column stack both place
+it without collision.
+
+Everything else remaining in S40 (AC-S40-2/9/13/16/17) is blocked on the owner supplying the Demo
+project identifiers, not on code. Nothing was deployed or migrated.
+
 ## S40 release safety: a zero-traffic candidate path D07 can actually use (2026-07-31)
 
 The legacy wrapper deploys and promotes in one step, so a bad revision is serving before anything

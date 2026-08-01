@@ -97,6 +97,38 @@
   padding: 0 24px;
 }
 
+/* S40 AC-S40-7: the environment/context label. It is a sibling of the brand and the nav rather
+   than a child of either, so the topbar's space-between at desktop and its column stack at narrow
+   widths both place it without overlapping the nav. Renders only outside ordinary live Production. */
+.environment-badge {
+  align-items: center;
+  background: var(--pmi-orange-bright, #ff8a2b);
+  border-radius: 999px;
+  color: #1a1a1a;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  padding: 4px 12px;
+  white-space: nowrap;
+}
+
+/* An unconfirmed environment is the loudest state: silence means ordinary Production, so an
+   unknown one must not be quieter than a known non-production one. */
+.environment-badge[data-context="unconfirmed"] {
+  background: #ffd166;
+  box-shadow: 0 0 0 2px #b45309;
+}
+
+@media (max-width: 640px) {
+  .environment-badge {
+    font-size: 0.75rem;
+    padding: 3px 10px;
+  }
+}
+
 .brand {
   align-items: baseline;
   display: inline-flex;

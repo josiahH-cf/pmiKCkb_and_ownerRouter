@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { PmiWordmark } from "@/components/brand/PmiWordmark";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { EnvironmentBadge } from "@/components/layout/EnvironmentBadge";
 import { NotificationMenu } from "@/components/layout/NotificationMenu";
 import { PrimaryNav, type PrimaryNavItem } from "@/components/layout/PrimaryNav";
 import { ReportIssueButton } from "@/components/feedback/ReportIssueButton";
 import { SessionTimeout } from "@/components/layout/SessionTimeout";
 import { can } from "@/lib/auth/roles";
+import { resolveEnvironmentDescriptor } from "@/lib/environment/descriptor";
 import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { PMI_WORDMARK, PRODUCT_NAME, type SpaceScope } from "@/lib/constants";
 
@@ -40,6 +42,9 @@ export function AppShell({
         >
           <PmiWordmark variant="inline" />
         </Link>
+        {/* Sits beside the wordmark, before the nav, so it cannot collide with the nav's own
+            wrapping at narrow widths. Renders nothing at all in ordinary live Production. */}
+        <EnvironmentBadge descriptor={resolveEnvironmentDescriptor()} />
         <nav className="nav" aria-label="Primary">
           <PrimaryNav
             items={[
