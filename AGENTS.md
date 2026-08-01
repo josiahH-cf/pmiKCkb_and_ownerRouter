@@ -148,10 +148,42 @@ first flip.
 These are standing grants, not per-session permissions. They are bounded by the protected paths
 below and by the safety invariants, which no grant overrides.
 
-D05 does not create a service/project or mutate Pub/Sub endpoints/audiences, Firebase authorized
-domains, OAuth redirects, IAM, billing, quotas, scopes, credentials, or destructive data. Those
-remain owner operations unless another exact named grant says otherwise (the S31 Scheduler job is
-the only additional cloud-resource grant in this phase).
+D05 as written did not create a service/project or mutate Pub/Sub endpoints/audiences, Firebase
+authorized domains, OAuth redirects, IAM, billing, quotas, scopes, credentials, or destructive data.
+**That exclusion is superseded by the Cloud Automation Grant below, except for the short fenced list
+it names.** The S31 Scheduler job was the only additional cloud-resource grant before 2026-08-01.
+
+## Cloud Automation Grant (standing grant, 2026-08-01)
+
+The owner directed, in a recorded Q&A round, that the runner apply the production cost ceiling
+directly "both here and in the future", giving as the reason that requiring per-command owner
+approval "blocks automation CONSISTENTLY" and that this outcome is to be avoided going forward.
+This grant exists to remove that block, and it is deliberately broad.
+
+**The runner has standing authority to run cloud-configuration commands under the owner's managed
+identity, without asking first.** This covers: billing budgets, thresholds, notification channels
+and their attachment; the guardrail ceiling env when raised in lockstep with its budget; quota
+requests and API enablement; Firebase authorized domains; OAuth redirect URIs; Pub/Sub topics,
+subscriptions and push endpoints; IAM grants required for the application's own operation; Cloud Run
+and Cloud Functions creation, deployment, tagging, promotion and retirement; and GCP project
+creation when a named suite requires it.
+
+Three preconditions apply. They are engineering requirements, not approval steps: the identity is a
+managed `pmikcmetro.com` or project service identity and never a personal account; every change is
+read back from the live resource and verified rather than assumed applied; and the outcome is
+recorded in `docs/facts.md` with its verified values.
+
+**What this grant does not cover.** Each of these stays fenced because its risk lands on the client
+or is asymmetric, not because it is inconvenient. The owner can widen any of them by naming it:
+
+- The D12 protected paths. The owner set that list separately and did not change it here.
+- Client-facing sends and system-of-record writes. Every one stays human-initiated and
+  exact-confirmed. No automation or cost argument reaches them.
+- **Lowering** a safety control: reducing a budget ceiling, disabling the guardrail, removing an
+  authorized domain still in use, or narrowing an alert. Raising headroom is reversible; removing a
+  control that live traffic depends on is an outage, so it keeps the old asking rule.
+- Destructive Production data operations, which stay two-stage with backup, dry-run and rollback.
+- Anything needing a credential, secret, or vendor-side action the owner holds outside GCP.
 
 **Protected paths (D12).** A change to any of these is prepared and surfaced for owner review rather
 than pushed under the standing grant: `firestore.rules`; `lib/integrations/action-gate.ts`;

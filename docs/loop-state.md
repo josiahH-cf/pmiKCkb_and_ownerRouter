@@ -18,8 +18,8 @@ implementation_status: PAUSED_AT_VERIFIED_BOUNDARY
 next_suite: S25
 next_spec: docs/feature-suites/lease-renewal-execution.md + docs/feature-suites/maintenance-execution.md
 session_auth_status: GREEN_ADC_MANAGED_ACCOUNT_AND_CLI_TOKEN
-active_slice: STOPPED-AT-S40-ENVIRONMENT-DATA-COMPLETE
-last_completed_slice: S40-ENVIRONMENT-DATA-SLICES
+active_slice: S55-RENAME-CUTOVER + LOCAL-DEMO-FIXTURES (specced, not yet built)
+last_completed_slice: S52-CEILING-APPLIED-AND-VERIFIED
 runtime_action_gates_preflipped: false
 ```
 
@@ -31,15 +31,16 @@ runtime_action_gates_preflipped: false
 - Live resident/owner/lease data in Production is authorized (`F-LIVE-DATA-AUTHORIZED`).
 - Standing loop authority is `F-LOOP-AUTONOMY-2026-07-29`, bounded by six protected paths.
 - Activation is per named Action Registry key, never a category (`F-GREENLIGHT-NAMED-KEYS`).
-- The flat cloud cost cap is retired; S52 owns the replacement (`F-COST-CEILING-S52`).
+- S52's ceiling is SET and verified: alert $25 / stop $100 (`F-COST-CEILING-S52-APPLIED`).
+- Cloud config commands run WITHOUT asking under `F-CLOUD-AUTOMATION-GRANT`; read back and record.
 - S40–S50 remain controlling after S51–S54; S28–S39 interleave outside higher-priority slices, except S36/S37.
 
 ## Current truth
 
 - Auth is GREEN 2026-07-31 (owner ran `auth:session`): ADC fresh, managed `josiah@pmikcmetro.com`,
-  CLI token mints; live Google reads available. S40's release path is now BUILT
-  (`F-S40-RELEASE-SAFETY-PATH`), so **S52's null ceiling is the only remaining blocker** on
-  cost-bearing/live/cloud steps. The guard's legacy $10 posture is enforcement state, not headroom.
+  CLI token mints; live Google reads available. S40's release path is BUILT
+  (`F-S40-RELEASE-SAFETY-PATH`) and **S52's ceiling is APPLIED**, so cost-bearing/live/cloud steps
+  now have approved headroom. D07 deploy is unblocked; nothing is parked on the ceiling.
 - S54.1's widened Firestore gate/falsification is complete; remote CI run `30510068990` passed.
 - S53.2 Sheet, S53.3 Drive, S53.4 sender/config, S53.5 Vendor lifecycle, S52-I/J, and the
   fail-closed budget planner are COMPLETE LOCALLY; every provider key remains closed and D32 is still
@@ -55,8 +56,8 @@ runtime_action_gates_preflipped: false
 - Production serves `2bfe7d4` on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e`, missing the
   accumulated repairs. D07 deploy waits for S52 headroom and the sanitized-environment/emulator
   refusal. Never edit `.env.local` as the workaround. Backups verified; S40 migration unblocked.
-- The budget kill-switch is armed and verified end to end at the observed legacy monthly amount,
-  which is enforcement state rather than approved headroom. S52's replacement values are null.
+- Kill switch armed at the applied $100 (budget + `KILL_SWITCH_CAP_USD` both read back). Caveat:
+  budgets are `INCLUDE_ALL_CREDITS`, so $0 July may be credit-masked; guardrail Node 20 dies 30 Oct 2026.
 
 ## Dependency order
 
@@ -72,31 +73,29 @@ runtime_action_gates_preflipped: false
    undiscovered values remain inert.
 6. **S53 Vendor lifecycle seam — COMPLETE LOCALLY / KEYS CLOSED** — Admin preview/confirm,
    receipt/reconcile/setup/disable and concurrency fences are green; no protected flip.
-7. **S52 prerequisites — PARKED** — planner refusal plus I/J are green; source/handler/check are
-   protected, and baseline/values/project disposition/operator destination remain external.
+7. **S52 — APPLIED AND VERIFIED** — alert $25 / stop $100 live on both enforcement points; alerts
+   reach josiah@ and dan@pmikcmetro.com; account-wide backstop covers the second project.
 8. **S51 app-plane / Gmail residuals — COMPLETE LOCALLY** — S51 steps 3–7 plus the label and
    draft-pair S20 contracts are green; Rules/cloud/live rehearsal remain parked.
-9. **S52/S51 activation** — after the complete-calendar-month baseline, supply the two
-   owner-selected values, second-project disposition, and operator destination; apply owner-run
-   billing/IAM/monitoring changes and verify live lockstep/delivery. Do not synthesize or infer a
-   bootstrap value.
+9. **S51 activation — REMAINING** — Rules review is the residual; the monitoring/operator
+   destination is now satisfied by the two Cloud Monitoring channels created 2026-08-01.
 10. **S40 release-safety prerequisite — COMPLETE LOCALLY** — `npm run release` provides the
     plan-only / zero-traffic candidate / exact-revision promotion path with captured rollback and
     named local-only refusal. The legacy auto-promoting wrapper stays ineligible for D07.
 11. **D07 deploy and live operational evidence** — only after steps 9–10, fresh auth, full gate,
     prior-target capture, rollback, and bounded candidate smoke.
-12. **S40 remaining environment/data slices — COMPLETE LOCALLY** — the migration dry-run and the
-    environment label shipped (`F-S40-ENVIRONMENT-DATA-SLICES`); the sentinel, Demo/Live separation,
-    and route exclusion were already covered. AC-S40-2/9/13/16/17 stay owner-blocked on the Demo
-    project identifiers.
+12. **S40 environment/data — COMPLETE LOCALLY** — dry-run + environment label shipped
+    (`F-S40-ENVIRONMENT-DATA-SLICES`). Demo-project ACs are now DEFERRED, not blocked
+    (`F-DEMO-DEFERRED-LOCAL-FIRST`): local-only rehearsal plus the tag URL replaces the Demo project.
+    12b. **S55 rename + local-Demo fixtures — SPECCED, NOT BUILT** — the two open build slices.
 13. **S53 remaining activations** — as each owner value lands, each with its paired
     deploy-wrapper change.
 14. Then S41 → S42 → S44 → S43/S45 → S46 → S47 → S48 → S49 → S50; interleave S28–S39 seams.
 
 ## Named external evidence
 
-- **Blocking the slice order:** S52 burn evidence, the two owner-selected ceiling values, and
-  second-project disposition; S51 Rules review and the managed operator destination.
+- **Blocking the slice order:** S51 Rules review only. S52 evidence/values/disposition and the
+  operator destination are all RESOLVED 2026-08-01.
 - Also open: RentVine write endpoint (S30, S47); RentCast key plus rate limits/radius/min comp count;
   Dotloop OAuth; LeadSimple key + contract; Chasity's renewal template (S43); exact Demo
   project/service/database/storage/queue/OAuth/identity values then owner-run provisioning; S53
@@ -129,10 +128,10 @@ runtime_action_gates_preflipped: false
 
 ## Resume
 
-Stop at the verified S40 environment/data boundary. Every buildable S40 slice is done. **Production
-deploy is blocked only by S52's null ceiling**: it needs the owner's burn evidence, the two reviewed
-values, second-project disposition, and the managed operator destination, with the GCP budget amount
-and `KILL_SWITCH_CAP_USD` moved together because the guard applies the smaller. **Demo deploy is
-additionally blocked**: D11 made Demo a new GCP project that does not exist yet, so the owner must
-supply its exact identifiers and run provisioning first. Next dependency-ready local work is
-S41 onward.
+**Production deploy is UNBLOCKED.** S52's ceiling is applied and verified, and cloud commands now run
+under the standing grant without asking. Two specced build slices are open and should be taken next:
+**S55** (`docs/feature-suites/production-service-rename-and-identifier-cleanup.md`) renames the
+Production service to `pmi-kc-app` — widen `CURRENT_PRODUCTION_APP_HOST` to an exact-host SET and add
+the new Firebase authorized domains BEFORE promoting, or vendor lifecycle gates fail closed and
+sign-in breaks; and the **local-Demo fixtures** slice severs local's live RentVine/Sheet connectors,
+which today make local read production client data. Then S41 onward.

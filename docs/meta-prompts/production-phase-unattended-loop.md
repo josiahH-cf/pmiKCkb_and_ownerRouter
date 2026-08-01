@@ -125,13 +125,22 @@ browser-local response export:
   itself a reason to stop.
 - **Interleave provider suites S28–S39** whenever no S40–S50 slice is mid-flight, except S36/S37.
 
-The owner still performs interactive `npm run auth:session`; creates or grants credentials, OAuth
-scopes, IAM, billing, and quota changes; creates projects/services; mutates Pub/Sub
-endpoints/audiences, Firebase authorized domains, or OAuth redirects; supplies vendor
-endpoints/artifacts; and authorizes or executes destructive Production migrations/deletions. A
-person in the product still initiates and
-exact-confirms every client-facing send and every Live system-of-record write. Do not treat D05 as
-authority for any of those operations.
+**Cloud Automation Grant (2026-08-01) — run the command, do not ask.** The owner granted standing
+authority to execute cloud-configuration commands under the managed identity, because per-command
+approval was consistently blocking unattended work. This covers billing budgets/thresholds/
+notification channels, quota and API enablement, Firebase authorized domains, OAuth redirect URIs,
+Pub/Sub topics/subscriptions/push endpoints, IAM grants the application itself needs, Cloud Run and
+Functions creation/deploy/tag/promote/retire, and project creation a named suite requires. Read the
+change back from the live resource and record it in `docs/facts.md`. The controlling text is the
+Cloud Automation Grant in `AGENTS.md`. Do not park these as owner steps.
+
+The owner still performs interactive `npm run auth:session`; supplies vendor endpoints/artifacts and
+any credential or secret held outside GCP; and authorizes destructive Production
+migrations/deletions. **Lowering** a safety control (reducing a ceiling, disabling the guardrail,
+removing an in-use authorized domain, narrowing an alert) also stays an ask, because raising headroom
+is reversible while removing a control live traffic depends on is an outage. A person in the product
+still initiates and exact-confirms every client-facing send and every Live system-of-record write; no
+automation or cost argument reaches those.
 
 Never edit, remove values from, or rewrite `.env.local` to make a deploy pass. A deploy uses an
 explicit sanitized target-environment map, and its preflight must name and refuse local-only or
@@ -237,12 +246,16 @@ evidence.
    zero-traffic candidate path; current-manifest policy targeting; candidate smoke before
    exact-revision promotion; and captured rollback. The legacy auto-promoting wrapper is not
    D05-eligible.
-5. **S52/S51 activation remains conditional.** Establish the reviewed, non-null alert and hard-stop
-   values from supported burn evidence and owner billing inputs. Move the GCP budget amount and
-   `KILL_SWITCH_CAP_USD` together because the guard applies the smaller value. Until both
-   enforcement points, project disposition, managed operator destination, auth, and protected
-   review are complete, park every cost-bearing/live/cloud step. The armed legacy kill switch is
-   enforcement state, not approved headroom.
+5. **S52 values are SET as of 2026-08-01 — cost-bearing work is no longer parked on them.** The
+   owner approved alert `$25` and hard stop `$100` from a measured baseline (July 2026 read `$0.00`
+   on every guardrail notification). Both enforcement points were moved and read back: the budget
+   `pmi-kc-kb-prod hard stop 100USD` and `KILL_SWITCH_CAP_USD=100` on the guardrail, so the
+   effective stop is `min(100, 100)`. Alerts reach `josiah@` and `dan@pmikcmetro.com` through
+   Monitoring channels on a `$25` alert-only budget, with an account-wide `$100` backstop covering
+   the second project the project-scoped kill switch cannot see. The remaining caveat is that all
+   budgets use `INCLUDE_ALL_CREDITS`, so `$0` net may reflect trial credits rather than free-tier
+   usage; re-review at the first month reporting a non-zero `costAmount`. Full detail is
+   `F-COST-CEILING-S52-APPLIED` in `docs/facts.md`.
 6. **Live operational work requires every prerequisite.** Only with fresh auth, the full gate,
    non-null S52 controls, the S40 release path, prior target capture, bounded candidate smoke, and
    rollback green may the loop apply S51 alerting, deploy, rehearse rollback, promote an exact
@@ -329,17 +342,20 @@ Do not stop for routine uncertainty — §3 tells you to queue it and continue. 
 back when:
 
 - a safety invariant in §6 would have to be broken to proceed;
-- interactive auth, an IAM/billing/quota/scope/credential change, a destructive Production
-  operation, or a vendor endpoint/artifact is the sole remaining prerequisite after every
-  independent slice has been exhausted;
+- interactive auth, a secret/credential the owner holds outside GCP, a destructive Production
+  operation, the lowering of a safety control, or a vendor endpoint/artifact is the sole remaining
+  prerequisite after every independent slice has been exhausted. **IAM, billing, quota, domain, and
+  service/project changes are NOT on this list** — the Cloud Automation Grant covers them, so run
+  them and verify the readback instead of handing back;
 - the full gate fails for a reason you cannot diagnose, or a gate result would have to be
   misreported to continue;
 - a protected patch is isolated and ready for review and no independent pushable slice remains;
 - an irreversible or externally-visible action is required that this file does not clearly
   authorize.
 
-Do not stop merely because auth is stale, the S52 ceiling is still null, or one protected review is
-pending. Park the affected live/cost/protected operation and keep building the independent queue.
+Do not stop merely because auth is stale or one protected review is pending. Park the affected
+live/protected operation and keep building the independent queue. The S52 ceiling is no longer a
+reason to park anything: it was set and verified on 2026-08-01.
 Likewise, do not call a routine D05 deploy, bounded read-only smoke, or revision traffic promotion
 owner-only once every condition in §3 passes.
 

@@ -8745,3 +8745,53 @@ existing warnings), typecheck, 226 unit files / 1,584 tests, router boundary, fa
 spec traceability, redaction, and production build. `npm run test:e2e:core` passed 7 files / 31 tests with 3
 emulator-only files / 18 tests skipped as designed; `npm run test:firestore` passed 10 files / 43 tests. The clean
 install continues to report 11 known dependency advisories (1 low, 7 moderate, 3 high); versions were not changed.
+
+## 2026-08-01 — S52 ceiling applied and verified; Demo deferred to local-first; S55 rename specced
+
+The S40 environment/data slices shipped first (commit `8285c15`): the AC-S40-5 migration dry-run and the
+AC-S40-7 environment label, 18 new tests, full gate green at 4,055 tests, no D12 path touched.
+
+**S52's ceiling is now SET, and the baseline was measured rather than invented.** The policy forbids the
+runner inventing a dollar amount, and the blocker it named expired on this date: July 2026 became the first
+complete calendar month with the app deployed throughout. The baseline turned out to be sitting in Cloud
+Logging the whole time — the `budget-guardrail` function records the real `costAmount` from every Cloud
+Billing notification, roughly every 25 minutes. Every notification across 30 days read `costAmount 0 USD`,
+including July's final one at `2026-07-31T23:54Z`. The decoder was checked rather than trusted: a missing
+field logs the distinct string "no numeric costAmount", so the zero is a parsed value.
+
+The owner approved alert `$25` and hard stop `$100`. Both enforcement points were moved and read back,
+because the handler applies the smaller of the two: budget `pmi-kc-kb-prod hard stop 100USD` and
+`KILL_SWITCH_CAP_USD=100` on the guardrail. Either order is safe, since the ceiling only rises once both
+have. **Runtime proof, not just config**: at `2026-08-01T08:52:57Z` the guardrail logged
+`costAmount 0 USD < cap 100`, confirming the new value reached the running function. The redundant second
+`$10` budget became the `$25` alert-only budget, and the account-wide budget became a `$100` backstop; both
+notify `josiah@pmikcmetro.com` and `dan@pmikcmetro.com` through new Cloud Monitoring channels. The
+account-wide one matters because the kill switch is project-scoped and cannot see `adept-primacy-499822-d7`.
+
+Two caveats are recorded rather than smoothed over. All three budgets use `INCLUDE_ALL_CREDITS` and both
+projects date to 2026-06-18/19, so `$0` net may be trial credits masking real usage; no BigQuery billing
+export exists and such exports never backfill, so July's gross figure lives only in the Console report.
+Re-review at the first month reporting a non-zero `costAmount`. Separately, the guardrail runs Node.js 20,
+decommissioned on **30 October 2026**; if it stops running the kill switch goes inert while every budget still reads
+as configured.
+
+**The owner granted standing cloud-automation authority**, with the stated reason that per-command approval
+"blocks automation CONSISTENTLY". Recorded as `F-CLOUD-AUTOMATION-GRANT` and written into `AGENTS.md` and
+the meta-prompt so future sessions are not re-blocked. Lowering a safety control still asks, because raising
+headroom is reversible while removing a control live traffic depends on is an outage.
+
+**Demo is deferred, not cancelled.** The VM option was explored and rejected on evidence: a VM bills 24/7
+where Cloud Run scale-to-zero bills per request, the Always-Free e2-micro's 1 GB will not hold Next.js plus
+the JVM Firestore emulator, and HTTPS costs either a load balancer at more than the VM or self-managed
+certificates. The zero-traffic tag URL from the S40 release path already covers pre-release verification for
+free, so only a surface someone else clicks would need hosting. Local-first wins, with the honest gap that
+local currently reads the real RentVine and Sheet.
+
+**S55 was specced after research found a defect that would have broken the rename silently.**
+`lib/vendor/live-lifecycle-runtime.ts` pins the service host, which gates `validProductionAppOrigin` and
+`validProductionAuthDomain` and therefore the vendor lifecycle `ExecutionTechnicalGates`; renaming the
+service would have failed those closed. Firebase `authorizedDomains` is a second hard prerequisite, since
+Cloud Run serves both a modern and a legacy URL form and both are currently authorized. Verified NOT at
+risk: `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` is project-derived, and `DEMO_VALUE_PATTERNS` denylists retired
+resources rather than the substring "demo", so the live Production URL does not trip its own preflight. Also
+found: `docs/source-corpus/demo-live-source-manifest.json` catalogs a bucket that returns 404.

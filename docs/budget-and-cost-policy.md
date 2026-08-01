@@ -14,36 +14,96 @@ Owner decision D01 (2026-07-29) retired the flat pre-production cap. S52
 - coverage/disposition recorded for every project on the billing account, including the dedicated
   Demo project once S40 supplies its identifiers.
 
-The replacement values are currently **unset**. No cost-bearing cloud action has approved headroom
-until S52 records a non-null alert value and hard-stop value, the owner approves them from supported
-burn evidence, both enforcement points are ready to move in lockstep, and live readback verifies the
-result.
+**The replacement values are SET as of 2026-08-01: alert `$25`, hard stop `$100`.** Cost-bearing
+cloud actions now have approved headroom. Both enforcement points were moved and read back from the
+live resources.
 
-The first complete calendar-month Production baseline is not available before 2026-08-01: billing
-began partway through June and July is still in progress on the decision date. The runner must not
-invent a bootstrap multiplier, floor, default, projection, or dollar amount. For the brand-new S40
-Demo project only, once a verified full-calendar Production baseline exists, the owner may select
-explicit initial Demo alert/ceiling values with a recorded rationale. That one-time bootstrap expires
-after Demo's first complete calendar month and is replaced by Demo's own measured baseline. Until the
-applicable owner-selected values exist, local/read-only S51/S52 work continues and billed operations
-stay parked.
+## The measured baseline
+
+July 2026 was the first complete calendar month with the application deployed throughout, and the
+policy named 2026-08-01 as the earliest date it could be used. **Measured Production spend for July
+was `$0.00`.** The evidence is the `budget-guardrail` function itself: it logs the real `costAmount`
+from every Cloud Billing notification (roughly every 25 minutes), and every notification across 30
+days read `costAmount 0 USD`, including July's final one at `2026-07-31T23:54Z`. The decoder was
+checked rather than trusted; a missing field logs the distinct string "no numeric costAmount", so
+the zero is a genuinely parsed value and not a silent default.
+
+**One caveat rides with that number.** All three budgets use `INCLUDE_ALL_CREDITS`, so `costAmount`
+is net of credits, and both projects were created 2026-06-18/19, meaning a 90-day trial credit would
+still be active. `$0` net therefore cannot distinguish genuine free-tier usage from real usage fully
+offset by credits. This cannot be resolved later from the CLI: no BigQuery billing export exists in
+either project and such exports never backfill, so July's gross figure lives only in the Console
+billing report. **Re-review the ceiling at the first month reporting a non-zero `costAmount`** —
+that is the real baseline moment.
+
+Why `$100` rather than something tighter: the hard stop's only behavior is disabling billing, which
+takes the resident and staff application offline, is not auto-reversible, and notifies nobody. The
+asymmetry is severe, so a stop far above measured burn is the safe error. `$25` alert-only gives a
+4x window to react before that happens, and against a `$0` baseline any crossing of `$25` is an
+anomaly rather than growth. The per-user throttles do not bound this: `/api/ask` refills at
+0.5 token/s, permitting roughly 1,800 calls per hour per user sustained, so the global ceiling is
+the only real protection against a runaway loop rather than a backstop behind one.
+
+## Applied configuration (verified by readback 2026-08-01)
+
+| Control                                     | Value  | Scope                   | Effect                                |
+| ------------------------------------------- | ------ | ----------------------- | ------------------------------------- |
+| `pmi-kc-kb-prod hard stop 100USD`           | `$100` | `projects/558870356522` | Publishes to `budget-guardrail-topic` |
+| `KILL_SWITCH_CAP_USD` on `budget-guardrail` | `100`  | Production project      | Effective stop is `min(100, 100)`     |
+| `pmi-kc-kb-prod alert 25USD (alert only)`   | `$25`  | `projects/558870356522` | Emails both operators at 100%         |
+| `Account-wide backstop 100USD (alert only)` | `$100` | Whole billing account   | Covers the second project             |
+
+Both alert-only budgets carry Cloud Monitoring channels for `josiah@pmikcmetro.com` and
+`dan@pmikcmetro.com`; see "Alert delivery" below for what is proven and what is not. The account-wide
+backstop matters because the kill switch is project-scoped by construction: spend in
+`adept-primacy-499822-d7` is not protected by any kill switch, and the backstop alone sees it.
+
+**Trap when editing a threshold with gcloud — always read the value back.** The API field
+`thresholdRules[].thresholdPercent` is 1.0-based, so `1.0` means 100% and `0.5` means 50%. But
+`gcloud billing budgets update --add-threshold-rule=percent=N` documents `percent` as "an integer
+between 0 and 100" and then passes the number straight through. Writing `percent=100` therefore
+stores `100.0`, which is **10,000%** — an alert on a `$25` budget that would not fire until `$2,500`,
+and would read as configured the whole time. This was actually done and caught by readback on
+2026-08-01; the correct value is `percent=1`. Always compare a new rule against the untouched
+`0.5; 0.9; 1.0` on the hard-stop budget before trusting it.
+
+**Known expiry: the `budget-guardrail` function runs Node.js 20, decommissioned 2026-10-30.** If
+that function stops running, the kill switch is inert while every budget still reads as configured.
+Upgrade it before that date.
+
+The runner must still not invent a dollar amount. Values change only through measured evidence plus
+an owner decision, as this pair did. For the S40 Demo project, if one is ever created, the owner may
+select explicit initial values with a recorded rationale, expiring after Demo's first complete
+calendar month.
+
+## Alert delivery: two routes, one of them proven
+
+Budget email reaches operators two ways, which matters because a cost alert that reaches nobody is
+the failure this whole section exists to prevent.
+
+1. **Default IAM recipients.** `disableDefaultIamRecipients` is NOT set on any budget, so billing
+   account administrators receive the notification. This route needs no verification and covers
+   `josiah@pmikcmetro.com` today.
+2. **The two Cloud Monitoring channels**, which additionally cover `dan@pmikcmetro.com`. Their
+   `verificationStatus` is absent (unspecified) rather than `VERIFIED`, and **delivery has not been
+   proven**, because proving it would require actually crossing `$25`. Treat route 2 as probable but
+   unconfirmed until a real crossing or a deliberate test confirms it.
 
 ## What the current live state does and does not authorize
 
-The kill-switch chain is armed and was reverified on 2026-07-29. The currently observed Production
-budget/guardrail configuration still carries the historical `$10` monthly value. That is an
-important description of live enforcement state, but it is **not approved spending headroom** and
-must never be used to license a deploy, live eval, provider call, Scheduler job, or other billed
-operation.
+The kill-switch chain is armed, was reverified on 2026-07-29, and was raised to `$100` on
+2026-08-01 with runtime proof: the guardrail logged `costAmount 0 USD < cap 100` at
+`2026-08-01T08:52:57Z`, confirming the new ceiling reached the running function rather than only its
+configuration. This IS approved spending headroom, unlike the historical `$10` posture it replaced.
 
-Three mechanical facts control the replacement:
+Three mechanical facts control it:
 
 1. The budgets use `calendarPeriod: MONTH`; the old word “total” was inaccurate.
 2. `infra/budget-guardrail/handler.mjs` applies the smaller of the GCP budget amount and
    `KILL_SWITCH_CAP_USD`. Raising only one produces false headroom.
 3. `scripts/check-budget-guard.mjs` checks posture and configuration. It does not read spend or
-   enforce a dollar ceiling, so a green `npm run check:budget-guard` cannot make an unset S52 ceiling
-   usable.
+   enforce a dollar ceiling, so a green `npm run check:budget-guard` is never itself evidence that a
+   ceiling is set or correct.
 
 The hard-stop path disables project billing and can take the resident/staff application offline. It
 must remain armed, sit above realistic burn, emit `KILL_SWITCH_FIRED` only after successful
@@ -54,14 +114,14 @@ channel/policies; S52 owns the values and paired enforcement.
 
 ## Three-layer cost-control model
 
-These controls are independent. Passing one layer never satisfies another, and none creates spending
-headroom while S52's alert and hard-stop values remain unset.
+These controls are independent. Passing one layer never satisfies another. Layer 2 now carries the
+applied `$25`/`$100` pair; layers 1 and 3 still create no headroom on their own.
 
-| Layer | Control                            | Current contract                                                                                                                                                                           | Boundary                                                                                                                                                       |
-| ----- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | Configuration posture              | `npm run check:budget-guard` refuses known cost-unsafe configuration.                                                                                                                      | It does not read spend and is not a dollar-enforcement point.                                                                                                  |
-| 2     | Global billing alert and hard stop | The lower alert-only threshold warns the operator; the higher hard ceiling bounds aggregate monthly project spend through the budget/guardrail chain. Both S52 values are currently unset. | It bounds total project spend, not one user's call rate.                                                                                                       |
-| 3     | Per-user paid-model throttles      | `/api/ask`: capacity `15`, refill `0.5 token/s`; `/api/processes/classify`: capacity `10`, refill `0.2 token/s`. Both token buckets are keyed by the authenticated user UID.               | They are best-effort, in-memory, per-instance burst controls. They do not coordinate across Cloud Run instances, observe spend, or replace the global ceiling. |
+| Layer | Control                            | Current contract                                                                                                                                                                                         | Boundary                                                                                                                                                       |
+| ----- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Configuration posture              | `npm run check:budget-guard` refuses known cost-unsafe configuration.                                                                                                                                    | It does not read spend and is not a dollar-enforcement point.                                                                                                  |
+| 2     | Global billing alert and hard stop | The lower alert-only threshold warns the operator; the higher hard ceiling bounds aggregate monthly project spend through the budget/guardrail chain. Applied 2026-08-01: alert `$25`, hard stop `$100`. | It bounds total project spend, not one user's call rate.                                                                                                       |
+| 3     | Per-user paid-model throttles      | `/api/ask`: capacity `15`, refill `0.5 token/s`; `/api/processes/classify`: capacity `10`, refill `0.2 token/s`. Both token buckets are keyed by the authenticated user UID.                             | They are best-effort, in-memory, per-instance burst controls. They do not coordinate across Cloud Run instances, observe spend, or replace the global ceiling. |
 
 The third layer therefore limits how quickly one authenticated caller can reach the two paid-model
 routes: Ask allows a burst of 15 and then sustains about one call every two seconds; classification
@@ -103,7 +163,7 @@ These defaults reduce expected cost; they do not replace the S52 eligibility gat
 
 ## Cost-bearing path inventory
 
-Every row below remains ineligible while the S52 ceiling is null.
+The S52 ceiling is set, so eligibility now turns on each row's own named conditions rather than on the ceiling.
 
 | Path                           | Trigger                                 | Additional eligibility after S52                                                                                                                   |
 | ------------------------------ | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |

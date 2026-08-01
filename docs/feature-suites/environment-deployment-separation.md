@@ -11,6 +11,17 @@
 > S40 cutover gate), D19 (a fresh blue/green rollback rehearsal is an S40 exit criterion), and the
 > D07 pre-deploy emulator hazard. Existing `AC-S40-1`–`AC-S40-8` are unchanged; the new checks
 > continue at `AC-S40-9`.
+>
+> Amended 2026-08-01 (owner decision). **D11's dedicated Demo GCP project is DEFERRED, not
+> cancelled** (`F-DEMO-DEFERRED-LOCAL-FIRST`). Pre-release verification is already served for free by
+> this suite's own zero-traffic `--no-traffic` plus `--tag` candidate path, and workflow rehearsal is
+> served by running locally, so the only unmet need would be a surface someone other than the owner
+> clicks. A low-grade VM was explored and rejected: it bills 24/7 where Cloud Run scale-to-zero bills
+> per request, the Always-Free e2-micro cannot hold Next.js plus the JVM Firestore emulator, and its
+> HTTPS costs more than the VM. Every AC in this suite that depends on Demo project identifiers is
+> therefore DEFERRED rather than owner-blocked. The real work is severing local's live RentVine and
+> Sheet connectors, since local today reads production client data. D56's service rename moved to its
+> own suite, S55, after research found it would otherwise fail vendor lifecycle gates closed.
 
 **Goal.** PMI KC operates the same product in two unmistakably separate environments: Demo safely
 rehearses real workflows with realistic invented data, while Production contains Live data only.
