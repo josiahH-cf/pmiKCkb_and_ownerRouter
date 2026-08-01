@@ -77,6 +77,19 @@ deploy/promote are covered by the standing cloud-automation grant recorded 2026-
   addition to `pmi-kc-app-558870356522.us-central1.run.app`, because `kq6wuvpiva` is a per-project,
   per-region hash rather than a per-service one. **This must be read back from the created service
   rather than assumed**, and both forms authorized if both resolve.
+- _BLOCKER, found 2026-08-01 by `--execute`:_ the production deploy preflight refuses with
+  `KB_APPROVAL_SENDER must be set to exactly one managed pmikcmetro.com mailbox because executable
+action internal.transactional_notice.send requires it`. **This is not specific to the rename: it
+  blocks ANY production deploy today.** The value is absent from `.env.local` and empty on the
+  serving revision, so the deployed revision predates the rule or the action became executable after
+  it shipped. It is the already-tracked "S53 sender value" owner dependency. Setting it to clear the
+  refusal is exactly the prohibited act, and guessing a mailbox would make internal notices come from
+  a wrong or non-existent address, so the cutover stops here. The refusal fired BEFORE any cloud
+  mutation: `pmi-kc-app` was never created and nothing needs cleaning up.
+- _Resolved 2026-08-01:_ the `kq6wuvpiva` hash is per-project-per-region, not per-service, confirmed
+  because `budget-guardrail` and `pmi-kc-kb-demo` share it and `status.url` returns the legacy form.
+  The derived host `pmi-kc-app-kq6wuvpiva-uc.a.run.app` is therefore evidence-backed, though it must
+  still be read back from the created service before any traffic moves.
 - _Open:_ whether any client-side bookmark, saved link, or externally configured webhook points at
   the `pmi-kc-kb-demo` host. Stage two retires that host, so anything still pointing at it breaks.
   The old service is kept serving through stage one specifically to make this discoverable.
