@@ -70,10 +70,15 @@ Hi Dan,
 
 Quick update on where things stand with the PMI KC build. 😊
 
-[Optional one-line beta/login invite — include ONLY if $ARGUMENTS supplies a live login link or
-says the app is live for Dan. Phrase: "I'm getting the app set up so you can log in and look around
-at the early beta. You'll sign in with your PMI KC Google account, and here's the link: <url>." If
-no link is provided, omit this line entirely.]
+[Login line. The app IS live and the address is stable, so include this by default unless
+$ARGUMENTS says to omit it. Use the live link below verbatim. Phrase: "You can log in and look
+around any time. Sign in with your PMI KC Google account, and here's the link:
+https://pmi-kc-app-kq6wuvpiva-uc.a.run.app". If $ARGUMENTS supplies a different link, prefer that.]
+
+[Address-change note. Include this ONLY in the first update sent on or after 2026-08-01, then drop
+it permanently. Phrase: "The web address changed this week, so please use the link above and update
+any bookmark you saved. The old one still works for now, but it will be retired." Keep it to one
+line and do not explain the reason.]
 
 ✅ **Done this week**
 
