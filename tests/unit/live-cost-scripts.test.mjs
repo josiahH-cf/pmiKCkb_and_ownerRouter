@@ -64,7 +64,7 @@ const gmailCutoverEnv = (project, appBaseUrl) => ({
   GMAIL_PUBSUB_TOPIC: `projects/${project}/topics/gmail-workflow-events`,
 });
 const revisionSuffix = "rm123456789-abcdef123456";
-const revision = `pmi-kc-kb-demo-${revisionSuffix}`;
+const revision = `pmi-kc-app-${revisionSuffix}`;
 const fixtureSender = "fixture-transactional@pmikcmetro.com";
 const deployProject = "pmi-kc-kb-prod";
 const deployBaseUrl = "https://pmi-kc-kb.example";
@@ -485,7 +485,7 @@ describe("cheap live setup scripts", () => {
       argv: [
         "--project=pmi-kc-kb-prod",
         "--region=us-central1",
-        "--service=pmi-kc-kb-demo",
+        "--service=pmi-kc-app",
         "--skip-allow-unauthenticated",
       ],
       env: { GCLOUD_BIN: "custom-gcloud" },
@@ -499,7 +499,7 @@ describe("cheap live setup scripts", () => {
         "run",
         "services",
         "update-traffic",
-        "pmi-kc-kb-demo",
+        "pmi-kc-app",
         "--project=pmi-kc-kb-prod",
         "--region=us-central1",
         `--to-revisions=${revision}=100`,
@@ -574,7 +574,7 @@ describe("cheap live setup scripts", () => {
     expect(first).toBe(repeated);
     expect(concurrent).not.toBe(first);
     expect(first).toMatch(/^[a-z][a-z0-9-]*[a-z0-9]$/);
-    expect(`pmi-kc-kb-demo-${first}`.length).toBeLessThanOrEqual(63);
+    expect(`pmi-kc-app-${first}`.length).toBeLessThanOrEqual(63);
   });
 
   it("fails preflight when service plus exact revision suffix exceeds Cloud Run's limit", () => {
@@ -1071,7 +1071,7 @@ describe("cheap live setup scripts", () => {
   it("accepts the verified production service's historical demo name", () => {
     const result = validateProductionCutoverConfig({
       ALLOWED_HD: "pmikcmetro.com",
-      APP_BASE_URL: "https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app",
+      APP_BASE_URL: "https://pmi-kc-app-kq6wuvpiva-uc.a.run.app",
       ASK_DEMO_MODE: "false",
       FIREBASE_PROJECT_ID: "pmi-kc-kb-prod",
       GCP_PROJECT_ID: "pmi-kc-kb-prod",
@@ -1088,10 +1088,7 @@ describe("cheap live setup scripts", () => {
       SHEETS_IMPERSONATE_SA:
         "lease-renewal-reader@pmi-kc-kb-prod.iam.gserviceaccount.com",
       SHEETS_DWD_SUBJECT: "josiah@pmikcmetro.com",
-      ...gmailCutoverEnv(
-        "pmi-kc-kb-prod",
-        "https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app",
-      ),
+      ...gmailCutoverEnv("pmi-kc-kb-prod", "https://pmi-kc-app-kq6wuvpiva-uc.a.run.app"),
       SPACE_DRIVE_FOLDER_IDS: JSON.stringify({
         "lease-renewals": "gs://pmi-kc-kb-prod-sources/lease-renewals/",
       }),

@@ -51,7 +51,7 @@ const completeSourceEnv = () => ({
 describe("prepare production env", () => {
   it("copies only production-safe variables and forces production fences", () => {
     const result = buildProductionEnv({
-      appBaseUrl: "https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app",
+      appBaseUrl: "https://pmi-kc-app-kq6wuvpiva-uc.a.run.app",
       approvalSender: fixtureSender,
       notificationsEnabled: false,
       serviceAccount: "pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com",
@@ -61,7 +61,7 @@ describe("prepare production env", () => {
     expect(result.ok).toBe(true);
     expect(result.errors).toEqual([]);
     expect(result.output).toMatchObject({
-      APP_BASE_URL: "https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app",
+      APP_BASE_URL: "https://pmi-kc-app-kq6wuvpiva-uc.a.run.app",
       ASK_DEMO_MODE: "false",
       CONSOLE_TEST_DEPLOYMENT_NAME: "",
       CLOUD_RUN_SERVICE_ACCOUNT:

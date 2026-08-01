@@ -13,7 +13,7 @@ import { verifyDemoFirestoreTarget } from "./demo-firestore-target.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const defaultBaseUrl = "http://localhost:3000";
-const defaultHostedBaseUrl = "https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app";
+const defaultHostedBaseUrl = "https://pmi-kc-app-kq6wuvpiva-uc.a.run.app";
 const operatorDir = join(root, "temp", "demo-operator");
 const pidFile = join(operatorDir, "dev-server.json");
 const devLogFile = join(operatorDir, "dev-server.log");

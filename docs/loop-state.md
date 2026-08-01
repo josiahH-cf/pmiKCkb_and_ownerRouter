@@ -37,10 +37,9 @@ runtime_action_gates_preflipped: false
 
 ## Current truth
 
-- Auth is GREEN 2026-07-31 (owner ran `auth:session`): ADC fresh, managed `josiah@pmikcmetro.com`,
-  CLI token mints; live Google reads available. S40's release path is BUILT
-  (`F-S40-RELEASE-SAFETY-PATH`) and **S52's ceiling is APPLIED**, so cost-bearing/live/cloud steps
-  now have approved headroom. D07 deploy is unblocked; nothing is parked on the ceiling.
+- Auth GREEN 2026-07-31; release path BUILT; **S52 ceiling APPLIED**, so cost/live/cloud steps have
+  headroom. Owner set `KB_APPROVAL_SENDER=josiah@pmikcmetro.com` (2026-08-01), clearing the preflight
+  refusal that blocked EVERY production deploy.
 - S54.1's widened Firestore gate/falsification is complete; remote CI run `30510068990` passed.
 - S53.2 Sheet, S53.3 Drive, S53.4 sender/config, S53.5 Vendor lifecycle, S52-I/J, and the
   fail-closed budget planner are COMPLETE LOCALLY; every provider key remains closed and D32 is still
@@ -94,8 +93,8 @@ runtime_action_gates_preflipped: false
 
 ## Named external evidence
 
-- **Blocking the slice order:** S51 Rules review only. S52 evidence/values/disposition and the
-  operator destination are all RESOLVED 2026-08-01.
+- **Blocking the slice order:** S51 Rules review. S52 and the S53 sender value are both RESOLVED
+  2026-08-01; the sender was the hidden blocker on every production deploy.
 - Also open: RentVine write endpoint (S30, S47); RentCast key plus rate limits/radius/min comp count;
   Dotloop OAuth; LeadSimple key + contract; Chasity's renewal template (S43); exact Demo
   project/service/database/storage/queue/OAuth/identity values then owner-run provisioning; S53
@@ -128,8 +127,11 @@ runtime_action_gates_preflipped: false
 
 ## Resume
 
-**Production deploy is UNBLOCKED.** S52's ceiling is applied and verified, and cloud commands now run
-under the standing grant without asking. Two specced build slices are open and should be taken next:
+**Production deploy is UNBLOCKED as of 2026-08-01.** The S55 cutover run found the preflight refusing
+EVERY production deploy (`internal.transactional_notice.send` executable, no managed sender); owner
+supplied `KB_APPROVAL_SENDER=josiah@pmikcmetro.com`, now in `.env.production.local` and verified in
+the merged deploy map. GOTCHAS: production deploy reads `.env.production.local`, NOT `.env.local`;
+`npm run preflight:production` standalone reads the AMBIENT shell so it false-fails. Two slices open:
 **S55** (`docs/feature-suites/production-service-rename-and-identifier-cleanup.md`) renames the
 Production service to `pmi-kc-app` — widen `CURRENT_PRODUCTION_APP_HOST` to an exact-host SET and add
 the new Firebase authorized domains BEFORE promoting, or vendor lifecycle gates fail closed and

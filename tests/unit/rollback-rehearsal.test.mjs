@@ -12,8 +12,8 @@ import {
   resolveRollbackRehearsalConfig,
 } from "../../scripts/rehearse-rollback.mjs";
 
-const CANDIDATE_REVISION = "pmi-kc-kb-demo-rmrm9mp6v-04c897acee28";
-const PRIOR_REVISION = "pmi-kc-kb-demo-rmrm8t6y7-d250f83ddfee";
+const CANDIDATE_REVISION = "pmi-kc-app-rmrm9mp6v-04c897acee28";
+const PRIOR_REVISION = "pmi-kc-app-rmrm8t6y7-d250f83ddfee";
 const GENERATED_AT = "2026-07-30T12:34:56.000Z";
 const SCRIPT_PATH = fileURLToPath(
   new URL("../../scripts/rehearse-rollback.mjs", import.meta.url),
@@ -143,7 +143,7 @@ describe("S51 print-only rollback rehearsal", () => {
       label: "overlong prior",
       args: [
         `--candidate-revision=${CANDIDATE_REVISION}`,
-        `--prior-revision=pmi-kc-kb-demo-${"a".repeat(64)}`,
+        `--prior-revision=pmi-kc-app-${"a".repeat(64)}`,
         `--generated-at=${GENERATED_AT}`,
       ],
       code: "prior_revision_too_long",
@@ -195,7 +195,7 @@ describe("S51 print-only rollback rehearsal", () => {
         trafficCommand.args[0] = "not-gcloud";
       }).toThrow(TypeError);
       expect(trafficCommand.command).toBe("gcloud");
-      expect(trafficCommand.args).toContain("pmi-kc-kb-demo");
+      expect(trafficCommand.args).toContain("pmi-kc-app");
     }
     expect(trafficCommands[0].args).toContain(`--to-revisions=${CANDIDATE_REVISION}=100`);
     expect(trafficCommands[1].args).toContain(`--to-revisions=${PRIOR_REVISION}=100`);

@@ -22,7 +22,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 export const CUTOVER_RUNBOOK = "docs/client-production-cutover.md";
 export const DEFAULT_CUTOVER_REGION = "us-central1";
-export const DEFAULT_CUTOVER_SERVICE = "pmi-kc-kb-demo";
+export const DEFAULT_CUTOVER_SERVICE = "pmi-kc-app";
 const PROJECT_ID_PATTERN = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
 const SERVICE_ACCOUNT_PATTERN =
   /^[a-z][a-z0-9-]{4,28}[a-z0-9]@([a-z][a-z0-9-]{4,28}[a-z0-9])\.iam\.gserviceaccount\.com$/;
@@ -97,7 +97,7 @@ function reviewedProjectBindings(env) {
  *
  * Accepting only form 1 was a real defect: every revision created by our own deploy wrapper was
  * rejected, so the rollback step silently emitted NO restore command exactly when it was needed.
- * Recorded serving revisions such as `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e` are form 2.
+ * Recorded serving revisions such as `pmi-kc-app-rmrxpsn5q-92c1b759735e` are form 2.
  *
  * Anything else is still refused, so an unvalidated or injected value can never become an
  * executable traffic command.

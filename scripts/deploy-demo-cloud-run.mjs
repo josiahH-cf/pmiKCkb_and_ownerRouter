@@ -14,12 +14,12 @@ import { validateProductionCutoverConfig } from "./preflight-production-cutover.
 import { resolveMaintenanceIntakeSecretBindings } from "./runtime-secret-bindings.mjs";
 
 // Live cheap-live target: the prod project `pmi-kc-kb-prod` running the Cloud Run service
-// historically named `pmi-kc-kb-demo` (https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app). The
+// historically named `pmi-kc-app` (https://pmi-kc-app-kq6wuvpiva-uc.a.run.app). The
 // legacy `pmikckb-test` demo project is retired; an explicit --project / GCP_PROJECT_ID still
 // overrides this default.
 const DEFAULT_PROJECT_ID = "pmi-kc-kb-prod";
 const DEFAULT_REGION = "us-central1";
-const DEFAULT_SERVICE = "pmi-kc-kb-demo";
+const DEFAULT_SERVICE = "pmi-kc-app";
 const DEFAULT_SEARCH_LOCATION = "us";
 const DEFAULT_PRODUCTION_ENV_FILE = ".env.production.local";
 const CLOUD_RUN_MAX_REVISION_NAME_LENGTH = 63;
@@ -231,7 +231,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
 
   if (!args.budgetConfirmed) {
     throw new Error(
-      "Refusing demo deploy until --budget-confirmed is provided after the $10 project budget alert exists.",
+      "Refusing deploy until --budget-confirmed is provided, confirming the project budget alert and hard stop exist.",
     );
   }
 

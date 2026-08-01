@@ -19,7 +19,7 @@ export const MONITORING_MANIFEST = deepFreeze({
   defaults: {
     project: "pmi-kc-kb-prod",
     region: "us-central1",
-    service: "pmi-kc-kb-demo",
+    service: "pmi-kc-app",
     budgetGuardrailService: "budget-guardrail",
   },
   channel: {
@@ -138,7 +138,7 @@ export function validateMonitoringManifest(manifest = MONITORING_MANIFEST) {
       budgetGuardrailService: "budget-guardrail",
       project: "pmi-kc-kb-prod",
       region: "us-central1",
-      service: "pmi-kc-kb-demo",
+      service: "pmi-kc-app",
     }) ||
     !isPlainObject(manifest.channel) ||
     !Array.isArray(manifest.logMetrics) ||

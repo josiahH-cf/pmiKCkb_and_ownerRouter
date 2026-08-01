@@ -10,7 +10,7 @@ import { buildRevisionTrafficCommand } from "./deploy-demo-cloud-run.mjs";
 
 const DEFAULT_PROJECT_ID = "pmi-kc-kb-prod";
 const DEFAULT_REGION = "us-central1";
-const DEFAULT_SERVICE = "pmi-kc-kb-demo";
+const DEFAULT_SERVICE = "pmi-kc-app";
 const MAX_REVISION_NAME_LENGTH = 63;
 const ALLOWED_VALUE_FLAGS = new Set([
   "candidate-revision",

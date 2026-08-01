@@ -156,7 +156,7 @@ describe("cutover report on golden fixtures", () => {
         `--manifest=${GOLDEN_MANIFEST}`,
         "--project=sample-kb-fixture-prod",
         "--location=us",
-        "--prior-revision=pmi-kc-kb-demo-00001-prior",
+        "--prior-revision=pmi-kc-app-00001-prior",
       ],
       env: {},
       awayModeActive: false,
@@ -173,14 +173,14 @@ describe("cutover report on golden fixtures", () => {
     expect(r.rollback_ready).toBe(true);
     expect(r.target).toEqual({
       region: "us-central1",
-      service: "pmi-kc-kb-demo",
+      service: "pmi-kc-app",
     });
-    expect(r.deploy.command_preview).toContain("run deploy pmi-kc-kb-demo");
+    expect(r.deploy.command_preview).toContain("run deploy pmi-kc-app");
     expect(r.deploy.command_preview).toContain("--region=us-central1");
     expect(r.rollback[0].commands[0]).toContain(
-      "--to-revisions=pmi-kc-kb-demo-00001-prior=100",
+      "--to-revisions=pmi-kc-app-00001-prior=100",
     );
-    expect(r.rollback[0].commands[0]).toContain("services update-traffic pmi-kc-kb-demo");
+    expect(r.rollback[0].commands[0]).toContain("services update-traffic pmi-kc-app");
     expect(r.rollback[0].commands[0]).toContain("--region=us-central1");
     expect(r.rollback.slice(1).every((step) => step.commands.length === 0)).toBe(true);
     expect(JSON.stringify(r.rollback)).not.toContain("confirm-delete");
@@ -196,7 +196,7 @@ describe("cutover report on golden fixtures", () => {
       argv: [
         `--env-file=${GOLDEN_ENV}`,
         "--project=sample-kb-fixture-prod",
-        "--prior-revision=pmi-kc-kb-demo-00001-prior",
+        "--prior-revision=pmi-kc-app-00001-prior",
       ],
       env: {},
       awayModeActive: false,
@@ -215,7 +215,7 @@ describe("cutover report on golden fixtures", () => {
         `--manifest=${GOLDEN_MANIFEST}`,
         "--project=other-project",
         "--location=us",
-        "--prior-revision=pmi-kc-kb-demo-00001-prior",
+        "--prior-revision=pmi-kc-app-00001-prior",
       ],
       env: {},
       awayModeActive: false,
@@ -271,7 +271,7 @@ describe("cutover report on golden fixtures", () => {
       argv: [
         `--manifest=${GOLDEN_MANIFEST}`,
         "--location=us",
-        "--prior-revision=pmi-kc-kb-demo-00001-prior",
+        "--prior-revision=pmi-kc-app-00001-prior",
       ],
       env: { ...goldenEnv(), ...override },
       awayModeActive: false,
@@ -331,7 +331,7 @@ describe("cutover report on golden fixtures", () => {
       argv: [
         `--manifest=${GOLDEN_MANIFEST}`,
         "--location=us",
-        "--prior-revision=pmi-kc-kb-demo-00001-prior",
+        "--prior-revision=pmi-kc-app-00001-prior",
       ],
       env: { ...goldenEnv(), ...override },
       awayModeActive: false,
@@ -357,7 +357,7 @@ describe("cutover report on golden fixtures", () => {
       argv: [
         `--manifest=${GOLDEN_MANIFEST}`,
         "--location=us",
-        "--prior-revision=pmi-kc-kb-demo-00001-prior",
+        "--prior-revision=pmi-kc-app-00001-prior",
       ],
       env: { ...goldenEnv(), [name]: "" },
       awayModeActive: false,
@@ -376,7 +376,7 @@ describe("cutover report on golden fixtures", () => {
       argv: [
         `--manifest=${GOLDEN_MANIFEST}`,
         `--location=${unsafeLocation}`,
-        "--prior-revision=pmi-kc-kb-demo-00001-prior",
+        "--prior-revision=pmi-kc-app-00001-prior",
       ],
       env: goldenEnv(),
       awayModeActive: false,
@@ -396,7 +396,7 @@ describe("cutover report on golden fixtures", () => {
         "--env-file=tests/fixtures/empty-env.fixture",
         `--manifest=${GOLDEN_MANIFEST}`,
         "--project=INVALID_PROJECT",
-        "--prior-revision=pmi-kc-kb-demo-00001-prior",
+        "--prior-revision=pmi-kc-app-00001-prior",
       ],
       env: {},
       awayModeActive: false,

@@ -25,7 +25,7 @@ import {
 const TARGET = {
   project: "pmi-kc-kb-prod",
   region: "us-central1",
-  service: "pmi-kc-kb-demo",
+  service: "pmi-kc-app",
 };
 
 function planArgs(overrides = {}) {
