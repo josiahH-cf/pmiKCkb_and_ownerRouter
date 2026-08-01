@@ -18,8 +18,8 @@ implementation_status: PAUSED_AT_VERIFIED_BOUNDARY
 next_suite: S25
 next_spec: docs/feature-suites/lease-renewal-execution.md + docs/feature-suites/maintenance-execution.md
 session_auth_status: GREEN_ADC_MANAGED_ACCOUNT_AND_CLI_TOKEN
-active_slice: STOPPED-AT-GMAIL-RESIDUALS-COMPLETE
-last_completed_slice: S25-DRAFT-PAIR-S20-CONTRACT
+active_slice: STOPPED-AT-S40-RELEASE-SAFETY-PATH
+last_completed_slice: S40-RELEASE-SAFETY-PATH
 runtime_action_gates_preflipped: false
 ```
 
@@ -37,9 +37,9 @@ runtime_action_gates_preflipped: false
 ## Current truth
 
 - Auth is GREEN 2026-07-31 (owner ran `auth:session`): ADC fresh, managed `josiah@pmikcmetro.com`,
-  CLI token mints; live Google reads available. Deploy is still NOT eligible — S52's ceiling is null
-  (the guard's legacy $10 posture is enforcement state, not headroom) and S40's release path is
-  unbuilt, so cost-bearing/live/cloud steps park on those two, not on auth.
+  CLI token mints; live Google reads available. S40's release path is now BUILT
+  (`F-S40-RELEASE-SAFETY-PATH`), so **S52's null ceiling is the only remaining blocker** on
+  cost-bearing/live/cloud steps. The guard's legacy $10 posture is enforcement state, not headroom.
 - S54.1's widened Firestore gate/falsification is complete; remote CI run `30510068990` passed.
 - S53.2 Sheet, S53.3 Drive, S53.4 sender/config, S53.5 Vendor lifecycle, S52-I/J, and the
   fail-closed budget planner are COMPLETE LOCALLY; every provider key remains closed and D32 is still
@@ -80,10 +80,9 @@ runtime_action_gates_preflipped: false
    owner-selected values, second-project disposition, and operator destination; apply owner-run
    billing/IAM/monitoring changes and verify live lockstep/delivery. Do not synthesize or infer a
    bootstrap value.
-10. **S40 release-safety prerequisite** — land the environment-parameterized, sanitized,
-    zero-traffic candidate deploy path, current-manifest policy targeting, candidate smoke before
-    exact-revision promotion, and rollback command. The legacy auto-promoting wrapper is not eligible
-    for D07.
+10. **S40 release-safety prerequisite — COMPLETE LOCALLY** — `npm run release` provides the
+    plan-only / zero-traffic candidate / exact-revision promotion path with captured rollback and
+    named local-only refusal. The legacy auto-promoting wrapper stays ineligible for D07.
 11. **D07 deploy and live operational evidence** — only after steps 9–10, fresh auth, full gate,
     prior-target capture, rollback, and bounded candidate smoke.
 12. **S40 remaining environment/data slices** — provider-construction sentinel, un-merge Demo/Live
@@ -128,9 +127,10 @@ runtime_action_gates_preflipped: false
 
 ## Resume
 
-Stop at the verified Gmail-residuals boundary: label plus both drafts now run the S20 one-attempt
-contract. Next dependency-ready local work is the S40 release-safety slice — an
-environment-parameterized, sanitized, zero-traffic candidate deploy path, current-manifest policy
-targeting, a candidate smoke before exact-revision promotion, and a captured rollback command. The
-legacy auto-promoting wrapper is not D05-eligible. Auth is green; S52's null ceiling and that unbuilt
-release path are the only two things still parking every cost-bearing/live/cloud step.
+Stop at the verified S40 release-safety boundary. Auth is green and the release path is built, so
+S52's null ceiling is now the ONLY thing parking deploy: it needs the owner's burn evidence, the two
+reviewed values, second-project disposition, and the managed operator destination, with the GCP
+budget amount and `KILL_SWITCH_CAP_USD` moved together because the guard applies the smaller. Next
+dependency-ready local work is S40's remaining environment/data slices (provider-construction
+sentinel, un-merge Demo/Live lists, Production route exclusion, shell banner, migration dry-run),
+then S41 onward.

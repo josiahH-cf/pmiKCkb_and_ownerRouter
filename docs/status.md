@@ -11,6 +11,31 @@ This log is the append-only history. For the always-current resume pointer (acti
 next safe slice, blockers, stop-condition state), read `docs/loop-state.md` first. If the
 two disagree, `docs/loop-state.md` wins for the resume position and this historical log is corrected.
 
+## S40 release safety: a zero-traffic candidate path D07 can actually use (2026-07-31)
+
+The legacy wrapper deploys and promotes in one step, so a bad revision is serving before anything
+checks it. `npm run release` splits delivery into three reviewable invocations: plan, deploy a
+zero-traffic candidate, then promote an exact revision.
+
+`--plan-only` is a guarantee, not a convention. Argument errors are decided before any environment
+work, and a test swaps `node:child_process.spawn` for a throwing spy — so if any path reached a
+process the test fails loudly instead of passing quietly. `--execute` captures the serving revision
+as the rollback target before the candidate exists, deploys with `--no-traffic --tag=...`, and then
+stops. Promotion is separate and names the exact revision (`--to-revisions=<name>=100`, never
+`--to-latest`, which would follow whatever happens to be newest — the behaviour that makes the
+legacy path unsafe).
+
+The local-only refusal turned up something real on this machine: `LOCAL_DEMO_AUTH` and
+`ASK_DEMO_MODE` are both exported truthy in the ambient shell, and `ASK_DEMO_MODE` disagrees with
+`.env.local`. But the deploy env map hardcodes both to "false", so neither can reach a revision.
+Refusing on the ambient value would have blocked a genuinely safe deploy and taught operators to
+bypass the check, so those two are fatal only in the resolved map and a dirty shell is surfaced as a
+warning. Emulator hosts, `GOOGLE_APPLICATION_CREDENTIALS`, and local-model variables have no such
+override and stay fatal from either source. `.env.local` is never edited.
+
+Nothing was deployed. D07 execution still waits on S52's null ceiling; this lands the path so that
+when the ceiling arrives, the remaining work is running it.
+
 ## The renewal and maintenance drafts now run the S20 one-attempt contract (2026-07-31)
 
 Both governed unsent-draft actions moved off `LeaseGmailExecutor.execute` behind a bare

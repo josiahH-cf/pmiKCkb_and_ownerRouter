@@ -85,7 +85,8 @@
     "seed:process-definitions": "tsx scripts/seed-process-definitions.ts",
     "seed:notice-rules": "tsx scripts/seed-notice-rules.ts",
     "notices:reminders": "tsx scripts/run-notice-reminders.ts",
-    "intake:mint": "tsx scripts/mint-maintenance-intake-token.ts"
+    "intake:mint": "tsx scripts/mint-maintenance-intake-token.ts",
+    "release": "node scripts/release.mjs"
   },
   "dependencies": {
     "@google-cloud/discoveryengine": "^2.7.0",
