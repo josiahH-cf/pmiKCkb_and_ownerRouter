@@ -1572,3 +1572,94 @@ function fakeProvider() {
     reconcile: vi.fn(async () => null),
   } satisfies VendorLifecycleProvider;
 }
+
+/**
+ * S55 AC-S55-1 / AC-S55-2. The rename hazard is not that something breaks loudly — it is that
+ * `CURRENT_PRODUCTION_APP_HOST` pinned one exact host, so renaming the service would have made
+ * `APP_BASE_URL` stop matching and failed every Vendor lifecycle action CLOSED. Failing closed looks
+ * identical to working until someone tries to invite a vendor.
+ */
+describe("S55 production app host allowlist spans the rename", () => {
+  const OUTGOING_HOSTS = [
+    "pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app",
+    "pmi-kc-kb-demo-558870356522.us-central1.run.app",
+  ];
+  const INCOMING_HOSTS = [
+    "pmi-kc-app-kq6wuvpiva-uc.a.run.app",
+    "pmi-kc-app-558870356522.us-central1.run.app",
+  ];
+
+  function stubProductionEnv(appBaseUrl: string) {
+    vi.stubEnv("ENVIRONMENT_KIND", "production");
+    vi.stubEnv("DATA_CONTEXT", "live");
+    vi.stubEnv("FIREBASE_PROJECT_ID", "pmi-kc-kb-prod");
+    vi.stubEnv("GCP_PROJECT_ID", "pmi-kc-kb-prod");
+    vi.stubEnv("NEXT_PUBLIC_FIREBASE_PROJECT_ID", "pmi-kc-kb-prod");
+    vi.stubEnv("NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN", "pmi-kc-kb-prod.firebaseapp.com");
+    vi.stubEnv("KB_APPROVAL_SENDER", "operations@pmikcmetro.com");
+    vi.stubEnv("GMAIL_DWD_SA", "vendor-invite@pmi-kc-kb-prod.iam.gserviceaccount.com");
+    vi.stubEnv("APP_BASE_URL", appBaseUrl);
+  }
+
+  it("accepts the outgoing and incoming service on both Cloud Run URL forms", () => {
+    // Cloud Run serves one service at both a modern <service>-<project-number>.<region> host and a
+    // legacy <service>-<hash>-uc host, so a rename moves four exact hosts, not one.
+    for (const host of [...OUTGOING_HOSTS, ...INCOMING_HOSTS]) {
+      stubProductionEnv(`https://${host}`);
+
+      expect(
+        resolveLiveVendorLifecycleTechnicalGates("vendor.account.invite"),
+        `expected ${host} to be an authorized production origin`,
+      ).toMatchObject({ connectionReady: true, permissionGranted: true });
+    }
+  });
+
+  it("keeps all three Vendor actions executable on the renamed service", () => {
+    stubProductionEnv("https://pmi-kc-app-558870356522.us-central1.run.app");
+
+    for (const actionKey of [
+      "vendor.account.invite",
+      "vendor.account.disable",
+      "vendor.assignment.change",
+    ] as const) {
+      expect(
+        resolveLiveVendorLifecycleTechnicalGates(actionKey),
+        `expected ${actionKey} to stay executable after the rename`,
+      ).toMatchObject({ connectionReady: true, permissionGranted: true });
+    }
+  });
+
+  it("still refuses an unrelated run.app host, so widening did not become any-run-app", () => {
+    // The whole point of an exact set: every Cloud Run service anywhere resolves under run.app, so a
+    // suffix match would let an unrelated service present itself as this application.
+    for (const host of [
+      "attacker-558870356522.us-central1.run.app",
+      "pmi-kc-app-evil.us-central1.run.app",
+      "pmi-kc-app-558870356522.us-central1.run.app.example.com",
+      "notpmi-kc-app-kq6wuvpiva-uc.a.run.app",
+    ]) {
+      stubProductionEnv(`https://${host}`);
+
+      expect(
+        resolveLiveVendorLifecycleTechnicalGates("vendor.account.invite"),
+        `expected ${host} to be refused`,
+      ).toMatchObject({ connectionReady: false, permissionGranted: false });
+    }
+  });
+
+  it("refuses a non-https or decorated URL even on an allowlisted host", () => {
+    for (const url of [
+      "http://pmi-kc-app-558870356522.us-central1.run.app",
+      "https://pmi-kc-app-558870356522.us-central1.run.app:8443",
+      "https://user:pw@pmi-kc-app-558870356522.us-central1.run.app",
+      "https://pmi-kc-app-558870356522.us-central1.run.app?next=/admin",
+    ]) {
+      stubProductionEnv(url);
+
+      expect(
+        resolveLiveVendorLifecycleTechnicalGates("vendor.account.invite"),
+        `expected ${url} to be refused`,
+      ).toMatchObject({ connectionReady: false, permissionGranted: false });
+    }
+  });
+});

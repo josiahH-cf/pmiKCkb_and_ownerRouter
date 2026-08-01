@@ -76,7 +76,28 @@ const CONNECTION_REFS: Readonly<Record<LiveVendorLifecycleActionKey, string>> = 
 };
 const APPROVAL_QUEUE_COLLECTION = "approval_queue_items";
 const PRODUCTION_PROJECT_ID = "pmi-kc-kb-prod";
-const CURRENT_PRODUCTION_APP_HOST = "pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app";
+
+/**
+ * S55/D56 — the Production service is being renamed `pmi-kc-kb-demo` to `pmi-kc-app`.
+ *
+ * This is an AUTHORIZATION boundary, so it is an exact set and never a suffix, wildcard, or
+ * `.run.app` test: any Cloud Run service in any project resolves under `run.app`, so a suffix match
+ * would let an unrelated service present itself as this application.
+ *
+ * Cloud Run serves one service at BOTH a modern `<service>-<project-number>.<region>.run.app` host
+ * and a legacy `<service>-<hash>-uc.a.run.app` host, so a rename moves four exact hosts rather than
+ * one. Both names are accepted simultaneously through the cutover: the old entries are what keeps
+ * the currently serving revision authorized, and they are removed only at stage two once
+ * `pmi-kc-app` has served real traffic and a rollback has been rehearsed.
+ */
+const PRODUCTION_APP_HOSTS: ReadonlySet<string> = new Set([
+  // Outgoing service. Remove at S55 stage two, not before.
+  "pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app",
+  "pmi-kc-kb-demo-558870356522.us-central1.run.app",
+  // Incoming service.
+  "pmi-kc-app-kq6wuvpiva-uc.a.run.app",
+  "pmi-kc-app-558870356522.us-central1.run.app",
+]);
 
 export interface LiveVendorRuntimeTicket {
   readonly dataMode?: unknown;
@@ -2124,7 +2145,7 @@ function validProductionAppOrigin(value: string | undefined) {
       !url.password &&
       !url.search &&
       !url.hash &&
-      (hostname === CURRENT_PRODUCTION_APP_HOST ||
+      (PRODUCTION_APP_HOSTS.has(hostname) ||
         hostname === "pmikcmetro.com" ||
         hostname.endsWith(".pmikcmetro.com"))
     );
@@ -2138,7 +2159,7 @@ function validProductionAuthDomain(value: string | undefined) {
   return Boolean(
     domain &&
     (domain === `${PRODUCTION_PROJECT_ID}.firebaseapp.com` ||
-      domain === CURRENT_PRODUCTION_APP_HOST ||
+      PRODUCTION_APP_HOSTS.has(domain) ||
       domain === "pmikcmetro.com" ||
       domain.endsWith(".pmikcmetro.com")),
   );
