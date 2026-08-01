@@ -80,8 +80,19 @@ deploy/promote are covered by the standing cloud-automation grant recorded 2026-
 - _Open:_ whether any client-side bookmark, saved link, or externally configured webhook points at
   the `pmi-kc-kb-demo` host. Stage two retires that host, so anything still pointing at it breaks.
   The old service is kept serving through stage one specifically to make this discoverable.
-- _Assumption:_ no Gmail Pub/Sub push endpoint carries the service host. Not yet verified against the
-  live subscription; step 2 of the ordered sequence verifies it before any traffic moves.
+- _FALSIFIED 2026-08-01, was an assumption:_ the Gmail Pub/Sub push subscription DOES carry the
+  service host. `gmail-inbox0-push` has both `pushConfig.pushEndpoint` and
+  `pushConfig.oidcToken.audience` set to `https://pmi-kc-kb-demo-kq6wuvpiva-uc.a.run.app/api/gmail-hub/pubsub`.
+  This is the single hardest constraint in the cutover: a subscription can name exactly ONE endpoint,
+  so inbound Gmail push CANNOT be dual-homed across both services the way HTTP traffic can. It has a
+  genuine flip moment that must be sequenced with promotion, and the OIDC audience must move with it
+  or every inbound push is rejected as an audience mismatch.
+- _FALSIFIED 2026-08-01, found by `--plan-only`:_ the deploy map sets the app's own origin from
+  `.env.local`, so deploying the same code under a new service name produces a revision that
+  misreports its own URL. `APP_BASE_URL` and `GMAIL_PUBSUB_AUDIENCE` both still resolve to the
+  outgoing host. **`.env.local` is owner-owned and is never edited to make a deploy pass**, so these
+  two values are an explicit owner-confirmed configuration change rather than something the cutover
+  silently rewrites.
 
 **Cross-product impacts.** `lib/vendor/live-lifecycle-runtime.ts`;
 `scripts/deploy-demo-cloud-run.mjs`; `scripts/rehearse-rollback.mjs`;
