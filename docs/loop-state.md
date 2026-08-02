@@ -2,10 +2,10 @@
 
 Read `docs/facts.md` first. This is the short resume pointer; history belongs in `docs/status.md`.
 
-Last updated: 2026-08-01.
+Last updated: 2026-08-02.
 
 ```yaml
-last_updated: 2026-08-01
+last_updated: 2026-08-02
 active_program: PRODUCTION-PHASE-2026-07-29
 program_suites: S51-S54 (new) + S40-S50 (in flight)
 spec_writing_allowed: true
@@ -14,12 +14,12 @@ loop_commit_push_allowed: true
 loop_deploy_allowed: true
 provider_interleave_allowed: true
 spec_package_status: EXECUTING
-implementation_status: PAUSED_AT_VERIFIED_BOUNDARY
-next_suite: S25
-next_spec: docs/feature-suites/lease-renewal-execution.md + docs/feature-suites/maintenance-execution.md
+implementation_status: EXECUTING_ORDERED_S56_CHAIN
+next_suite: S56
+next_spec: docs/feature-suites/production-live-only-test-lane-retirement.md
 session_auth_status: GREEN_ADC_MANAGED_ACCOUNT_AND_CLI_TOKEN
-active_slice: S55-RENAME-CUTOVER + LOCAL-DEMO-FIXTURES (specced, not yet built)
-last_completed_slice: S52-CEILING-APPLIED-AND-VERIFIED
+active_slice: S56-LOCAL-DEMO-LIVE-READONLY
+last_completed_slice: S56-TEST-INTAKE-FENCE-DEPLOYED-BOTH-SERVICES
 runtime_action_gates_preflipped: false
 ```
 
@@ -50,11 +50,11 @@ runtime_action_gates_preflipped: false
   (`F-S25-LABEL-S20-CONTRACT`) and both draft actions (`F-S26-DRAFT-CONTRACT-ALIGNED`,
   `F-S25-DRAFT-PAIR-S20-CONTRACT`) run the canonical S20 one-attempt contract. Gate values
   unchanged, no D12 path touched, all three send keys still closed under D33.
-- Exact closeout gate (2026-07-31): clean-install `bash scripts/verify.sh` green; 3974 unit + 109
-  Firestore tests, 0 lint errors; core E2E 8 files / 32 passed / 18 designed skips.
-- Production serves `2bfe7d4` on revision `pmi-kc-kb-demo-rmrxpsn5q-92c1b759735e`, missing the
-  accumulated repairs. D07 deploy waits for S52 headroom and the sanitized-environment/emulator
-  refusal. Never edit `.env.local` as the workaround. Backups verified; S40 migration unblocked.
+- S56 AC-S56-1 is live on both reachable services at `e43cf59`: Production serves revision
+  `pmi-kc-app-rmsbyiiwl-6d646d3629fe`; retained rollback service `pmi-kc-kb-demo` serves
+  `pmi-kc-kb-demo-rmsbyzhi7-666d075ffe32`. Both exact smokes are green; no D12 path changed.
+- Clean full gate exited zero: 4,109 unit + 109 Firestore tests, 0 lint errors, all policy scanners
+  and Production build. Local Demo + Live-read-only is NEXT; no record count or deletion has run.
 - Kill switch armed at the applied $100 (budget + `KILL_SWITCH_CAP_USD` both read back). Caveat:
   budgets are `INCLUDE_ALL_CREDITS`, so $0 July may be credit-masked; guardrail Node 20 dies 30 Oct 2026.
 
@@ -81,23 +81,22 @@ runtime_action_gates_preflipped: false
 10. **S40 release-safety prerequisite — COMPLETE LOCALLY** — `npm run release` provides the
     plan-only / zero-traffic candidate / exact-revision promotion path with captured rollback and
     named local-only refusal. The legacy auto-promoting wrapper stays ineligible for D07.
-11. **D07 deploy and live operational evidence** — only after steps 9–10, fresh auth, full gate,
-    prior-target capture, rollback, and bounded candidate smoke.
-12. **S40 environment/data — COMPLETE LOCALLY** — dry-run + environment label shipped
-    (`F-S40-ENVIRONMENT-DATA-SLICES`). Demo-project ACs are now DEFERRED, not blocked
-    (`F-DEMO-DEFERRED-LOCAL-FIRST`): local-only rehearsal plus the tag URL replaces the Demo project.
-    12b. **S55 rename + local-Demo fixtures — SPECCED, NOT BUILT** — the two open build slices.
+11. **S55 stage one + S56 intake fence — LIVE** — new and rollback services both serve the fenced
+    commit after exact candidate smoke, env readback, promotion and stable-URL smoke.
+12. **S56 local rehearsal — NEXT** — resolve explicit Demo + Live-read-only, show the read-only
+    badge, preserve intended Live reads, and prove zero local effect/provider construction.
+    12b. Then count → named backup + rehearsed restore → delete → zero proof → retire machinery;
+    S55 stage-two rollback rehearsal and old-service deletion remain the LAST programme step.
 13. **S53 remaining activations** — as each owner value lands, each with its paired
     deploy-wrapper change.
 14. Then S41 → S42 → S44 → S43/S45 → S46 → S47 → S48 → S49 → S50; interleave S28–S39 seams.
 
 ## Named external evidence
 
-- **Blocking the slice order:** S51 Rules review. S52 and the S53 sender value are both RESOLVED
-  2026-08-01; the sender was the hidden blocker on every production deploy.
+- **Blocking the ordered S56 chain:** none. S52, managed auth, release path, sender, and both-service
+  intake fencing are verified; destructive work still waits on its own named backup/restore proof.
 - Also open: RentVine write endpoint (S30, S47); RentCast key plus rate limits/radius/min comp count;
-  Dotloop OAuth; LeadSimple key + contract; Chasity's renewal template (S43); exact Demo
-  project/service/database/storage/queue/OAuth/identity values then owner-run provisioning; S53
+  Dotloop OAuth; LeadSimple key + contract; Chasity's renewal template (S43); S53
   sender value and the D32 Sheet transaction broker (mutate + status + absent-key tombstone +
   ABA-safe effect generation/protected range) plus column/id/tab confirmation; intake
   secrets/binding; first Vendor identity; S36 IAM grant; S47 wording/fallback contact; brand
@@ -127,13 +126,12 @@ runtime_action_gates_preflipped: false
 
 ## Resume
 
-**Production deploy is UNBLOCKED as of 2026-08-01.** The S55 cutover run found the preflight refusing
-EVERY production deploy (`internal.transactional_notice.send` executable, no managed sender); owner
-supplied `KB_APPROVAL_SENDER=josiah@pmikcmetro.com`, now in `.env.production.local` and verified in
-the merged deploy map. GOTCHAS: production deploy reads `.env.production.local`, NOT `.env.local`;
-`npm run preflight:production` standalone reads the AMBIENT shell so it false-fails. Two slices open:
-**S55** (`docs/feature-suites/production-service-rename-and-identifier-cleanup.md`) renames the
-Production service to `pmi-kc-app` — widen `CURRENT_PRODUCTION_APP_HOST` to an exact-host SET and add
-the new Firebase authorized domains BEFORE promoting, or vendor lifecycle gates fail closed and
-sign-in breaks; and the **local-Demo fixtures** slice severs local's live RentVine/Sheet connectors,
-which today make local read production client data. Then S41 onward.
+**S56 intake is fenced and deployed on BOTH services.** Continue in the user-locked order; do not
+start another roadmap suite. Build AC-S56-6 next: local must launch with explicit
+`ENVIRONMENT_KIND=demo` + `DATA_CONTEXT=live_readonly`, render "Live data, read only", retain the
+intended bounded Live reads, and construct no effect provider or durable writer. Do not edit either
+env file and do not seed local fixtures. After its green slice, implement the complete marker
+inventory and DELETE contract; the legacy six-collection migration planner is insufficient. Count
+first, then create a named post-fence backup/clone and prove one-record restore before deletion.
+Keep `data_mode`; retire only the Test lane/machinery. Preserve `pmi-kc-kb-demo` through all S56
+work. S55 AC-S55-9 rollback rehearsal and literal old-service deletion are the LAST programme step.

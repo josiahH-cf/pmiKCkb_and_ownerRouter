@@ -8795,3 +8795,38 @@ Cloud Run serves both a modern and a legacy URL form and both are currently auth
 risk: `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` is project-derived, and `DEMO_VALUE_PATTERNS` denylists retired
 resources rather than the substring "demo", so the live Production URL does not trip its own preflight. Also
 found: `docs/source-corpus/demo-live-source-manifest.json` catalogs a bucket that returns 404.
+
+## 2026-08-02 — S56 Test intake fenced on both serving and rollback services
+
+S56 stage 1a is complete before any Production count or deletion. Commit `bafb8ff` introduced one
+fail-closed Test-lane environment boundary and applied it across every discovered explicit Test
+route, central Test persistence seam, public maintenance intake path, Vendor Test session/store
+boundary, and generic Test workflow mutation. Production + Live and local Demo + Live-read-only now
+refuse before provider, session, or write construction. The focused falsification first exposed 14
+unguarded routes, then caught the missed Vendor, workflow, intake-promotion, and ticket-transition
+seams before the restored tests passed. No D12 path or action key changed.
+
+The first zero-traffic deploy exposed a real release defect rather than being promoted: POSIX gcloud
+received Windows-style escaped JSON for both Space maps, and the revision returned HTTP 500. Traffic
+never moved. Commit `e43cf59` makes quote escaping platform-specific and pins raw POSIX versus escaped
+Windows behavior. Two eight-worker full-gate attempts then falsified verifier reliability through one
+scanner timeout and six unrelated fork-start handshake timeouts after every started assertion passed;
+the cap is now four isolated workers without changing any assertion or timeout. A native user-local
+OpenJDK 21 restored Firestore-emulator parity in the WSL runner. The final unpiped full gate recorded
+`GATE_EXIT=0`: formatting, lint with 0 errors / 15 known warnings, TypeScript, 457 unit files / 4,109
+tests, 23 Firestore files / 109 tests, every repository policy scanner, and the Production build.
+
+The corrected `pmi-kc-app-rmsbyiiwl-6d646d3629fe` candidate stayed at zero traffic until both Space
+env values parsed as JSON on the deployed revision and exact-tag smoke returned root 307, sign-in
+200, protected 307. It was then promoted by exact revision and read back as the sole 100% target at
+`https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`; stable smoke matched. The failed candidate's 0% tag was
+removed after readback, leaving the serving tag and revision intact.
+
+The identical fenced build then went to the retained rollback service. Its first Cloud Build failed
+before revision creation because npm registry transport reset during `npm ci`; the captured log named
+`ECONNRESET`, and the serving revision remained untouched. One retry succeeded. Candidate
+`pmi-kc-kb-demo-rmsbyzhi7-666d075ffe32` passed the same deployed-env and exact-tag smoke checks, was
+promoted by exact revision, and was read back at 100%; its stable URL also returned 307 / 200 / 307.
+Both reachable service hosts therefore refuse Test creation before AC-S56-2 counting begins. No
+record count, backup, restore, deletion, local-rehearsal change, fixture retirement, or S55 stage-two
+service deletion has run yet.
