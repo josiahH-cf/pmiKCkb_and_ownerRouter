@@ -1,5 +1,5 @@
 import type { Firestore } from "firebase-admin/firestore";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { Role } from "@/lib/auth/roles";
 import {
@@ -45,6 +45,10 @@ beforeEach(() => {
   db = new FakeFirestore() as unknown as Firestore;
 });
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 describe("classifyQueueRisk", () => {
   const ownership = { hasAssignee: true, hasApprover: true };
 
@@ -81,6 +85,22 @@ describe("defaultAudienceGroup", () => {
 });
 
 describe("createApprovalQueueItem", () => {
+  it("refuses an audit-shaped Test item at the store boundary in Production", async () => {
+    vi.stubEnv("ENVIRONMENT_KIND", "production");
+    vi.stubEnv("DATA_CONTEXT", "live");
+
+    await expect(
+      createApprovalQueueItem(
+        editor,
+        baseInput({
+          data_mode: "test",
+          test_fixture_key: "audit:fixture:v1",
+        }),
+        db,
+      ),
+    ).rejects.toThrow(/Test lane is retired/);
+  });
+
   it("creates a Ready for Approval item with a created Activity entry", async () => {
     const item = await createApprovalQueueItem(editor, baseInput(), db);
 

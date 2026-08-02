@@ -103,4 +103,17 @@ describe("S56 retired Test-lane route fence", () => {
       tickets.indexOf("let updated: MaintenanceTicketRecord"),
     );
   });
+
+  it("fences the generic Approval Queue persistence boundary before any transaction", () => {
+    const approvalQueue = readFileSync(
+      resolve(root, "lib/firestore/approval-queue.ts"),
+      "utf8",
+    );
+    const guard = 'assertTestDataModeWriteAllowed(rest.data_mode ?? "live");';
+
+    expect(approvalQueue).toContain(guard);
+    expect(approvalQueue.indexOf(guard)).toBeLessThan(
+      approvalQueue.indexOf("const resultId = await db.runTransaction"),
+    );
+  });
 });

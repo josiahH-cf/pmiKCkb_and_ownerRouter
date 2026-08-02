@@ -3,6 +3,7 @@ import { v7 as uuidv7 } from "uuid";
 import { canViewApprovalQueueItem, isQueueItemTerminal } from "@/lib/approval/queue";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { assertTestDataModeWriteAllowed } from "@/lib/environment/data-mode-write-boundary";
 import {
   approveActionExecutionInTransaction,
   returnActionExecutionInTransaction,
@@ -138,6 +139,12 @@ export async function createApprovalQueueItem(
   assertCan(actor, "edit");
   const parsed = CreateApprovalQueueItemInputSchema.parse(input);
   const { note, risk_signals, ...rest } = parsed;
+
+  // S56: this store is reached by generic workflow/execution code as well as by the retired
+  // fixture route. Keep the environment fence at the persistence boundary so an audit-shaped
+  // payload cannot mint a Test record in Production through a caller whose route name is not
+  // Test-specific.
+  assertTestDataModeWriteAllowed(rest.data_mode ?? "live");
 
   if (rest.data_mode === "test" && !rest.test_fixture_key?.startsWith("audit:")) {
     throw new EditableLayerError(
