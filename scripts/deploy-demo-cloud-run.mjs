@@ -273,10 +273,15 @@ function readProductionDeployEnv(envFile, errors) {
   return readLocalEnv(envPath);
 }
 
-export function formatGcloudMapFlag(flagName, values) {
+export function formatGcloudMapFlag(
+  flagName,
+  values,
+  { escapeJsonQuotes = process.platform === "win32" } = {},
+) {
   const delimiter = pickDelimiter(Object.values(values));
   const entries = Object.entries(values).map(
-    ([key, value]) => `${key}=${escapeGcloudMapValue(value)}`,
+    ([key, value]) =>
+      `${key}=${escapeJsonQuotes ? escapeGcloudMapValue(value) : String(value)}`,
   );
   return `${flagName}=^${delimiter}^${entries.join(delimiter)}`;
 }

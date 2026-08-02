@@ -10,6 +10,7 @@ import {
   buildRevisionTrafficCommand,
   createDeployRevisionSuffix,
   executeDemoDeployPlan,
+  formatGcloudMapFlag,
 } from "../../scripts/deploy-demo-cloud-run.mjs";
 import {
   buildSourceMetaRecord,
@@ -104,6 +105,21 @@ const productionCapacityRecord = readFileSync(
 );
 
 describe("cheap live setup scripts", () => {
+  it("preserves JSON quotes for POSIX gcloud and escapes them only for Windows", () => {
+    const values = { SPACE_DRIVE_FOLDER_IDS: oneSpaceMap };
+    const posix = formatGcloudMapFlag("--set-env-vars", values, {
+      escapeJsonQuotes: false,
+    });
+    const windows = formatGcloudMapFlag("--set-env-vars", values, {
+      escapeJsonQuotes: true,
+    });
+    const escapedQuote = String.raw`\"`;
+
+    expect(posix).toContain(`SPACE_DRIVE_FOLDER_IDS=${oneSpaceMap}`);
+    expect(posix).not.toContain(escapedQuote);
+    expect(windows).toContain(`${escapedQuote}lease-renewals${escapedQuote}`);
+  });
+
   it("accepts the one-Space Flash live config", () => {
     const result = validateLiveCostConfig({
       askDemoMode: false,

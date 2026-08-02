@@ -12,9 +12,9 @@ export default defineConfig({
     environment: "node",
     globals: true,
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx", "tests/**/*.test.mjs"],
-    // Vitest's CPU-count default can spawn 31 forks on developer hosts and starve
-    // jsdom/user-event tests. Bound the suite without relaxing real test timeouts.
-    maxWorkers: 8,
+    // Vitest's CPU-count default can spawn 31 forks on developer hosts. Four keeps
+    // fork startup reliable on Windows-mounted workspaces without relaxing timeouts.
+    maxWorkers: 4,
   },
   resolve: {
     alias: {
