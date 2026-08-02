@@ -6,6 +6,7 @@ import {
   migrationRemovalSet,
   planMigrationDryRun,
   type MigrationCandidateRecord,
+  type MigrationDryRunPlan,
 } from "@/lib/operations/migration-dry-run";
 
 /**
@@ -47,6 +48,8 @@ describe("migration dry run plan", () => {
     const plan = planMigrationDryRun({ records: CLEAN_SET, backupRef: BACKUP });
 
     expect(plan.status).toBe("ready");
+    expect(plan.version).toBe("migration-dry-run:v2-delete");
+    expect(plan.semantics).toBe("delete");
     expect(plan.executed).toBe(false);
     expect(plan.totalLive).toBe(2);
     expect(plan.totalTest).toBe(2);
@@ -67,7 +70,9 @@ describe("migration dry run plan", () => {
     });
 
     expect(plan.status).toBe("refused");
-    expect(plan.refusals.join(" ")).toMatch(/workflow_runs\/r9 has no explicit data/);
+    expect(plan.refusals.join(" ")).toMatch(
+      /workflow_runs contains a record with no explicit data/,
+    );
     expect(plan.collections).toEqual([]);
     expect(plan.totalLive).toBe(0);
   });
@@ -83,7 +88,7 @@ describe("migration dry run plan", () => {
     for (const [records, pattern] of [
       [
         [record("r1", "workflow_runs", "test"), record("r1", "workflow_runs", "test")],
-        /more than once/,
+        /duplicate record/,
       ],
       [[record("", "workflow_runs", "test")], /has no id/],
       [
@@ -108,6 +113,24 @@ describe("removal set cannot contain a Live record", () => {
     ]);
   });
 
+  it("refuses a runtime-loaded legacy, non-delete, or mismatched-backup plan", () => {
+    const ready = planMigrationDryRun({ records: CLEAN_SET, backupRef: BACKUP });
+    const forged = (overrides: Record<string, unknown>) =>
+      ({ ...ready, ...overrides }) as unknown as MigrationDryRunPlan;
+
+    for (const plan of [
+      forged({ version: "migration-dry-run:v1" }),
+      forged({ semantics: "move" }),
+      forged({ backupRef: undefined }),
+      forged({ rollbackTarget: undefined }),
+      forged({ rollbackTarget: "projects/example/databases/different-backup" }),
+    ]) {
+      expect(() => migrationRemovalSet(plan, CLEAN_SET)).toThrow(
+        /exact v2 DELETE plan with one named backup\/rollback identity/,
+      );
+    }
+  });
+
   it("refuses when a planned id turns out to be classified live", () => {
     const plan = planMigrationDryRun({ records: CLEAN_SET, backupRef: BACKUP });
     // The record was reclassified (or the plan was hand-edited) after planning.
@@ -116,8 +139,28 @@ describe("removal set cannot contain a Live record", () => {
     );
 
     expect(() => migrationRemovalSet(plan, reclassified)).toThrow(
-      /never deletes a Live record/,
+      /never removes a Live record/,
     );
+  });
+
+  it("refuses missing, extra, or newly unclassified records instead of deleting an intersection", () => {
+    const plan = planMigrationDryRun({ records: CLEAN_SET, backupRef: BACKUP });
+
+    expect(() =>
+      migrationRemovalSet(
+        plan,
+        CLEAN_SET.filter((entry) => entry.id !== "r3"),
+      ),
+    ).toThrow(/not exactly the planned set \(1 missing, 0 extra\)/);
+    expect(() =>
+      migrationRemovalSet(plan, [
+        ...CLEAN_SET,
+        record("new", "maintenance_tickets", "test"),
+      ]),
+    ).toThrow(/not exactly the planned set \(0 missing, 1 extra\)/);
+    expect(() =>
+      migrationRemovalSet(plan, [...CLEAN_SET, record("new", "maintenance_tickets")]),
+    ).toThrow(/without an explicit classification/);
   });
 
   it("has no removal set at all for a refused plan", () => {
@@ -137,7 +180,7 @@ describe("report emits no record content", () => {
     const report = formatMigrationDryRun(plan);
 
     expect(report).toContain("nothing was executed");
-    expect(report).toContain("Test records to migrate out: 1");
+    expect(report).toContain("Test records to delete: 1");
     // A migration report circulates in packets; no customer value may ride along.
     for (const forbidden of ["@", "Tenant", "Street", "summary", "body"]) {
       expect(report).not.toContain(forbidden);
@@ -148,5 +191,41 @@ describe("report emits no record content", () => {
     expect(formatMigrationDryRun(planMigrationDryRun({ records: CLEAN_SET }))).toMatch(
       /REFUSED .* Nothing was planned/s,
     );
+  });
+
+  it("never renders a private record id in refusal evidence", () => {
+    const privateId = "private-id-sentinel";
+    const refused = planMigrationDryRun({
+      records: [record(privateId, "workflow_runs")],
+      backupRef: BACKUP,
+    });
+
+    expect(formatMigrationDryRun(refused)).not.toContain(privateId);
+    expect(() =>
+      migrationRemovalSet(
+        planMigrationDryRun({
+          records: [record(privateId, "workflow_runs", "test")],
+          backupRef: BACKUP,
+        }),
+        [
+          record(privateId, "workflow_runs", "test"),
+          record(privateId, "workflow_runs", "test"),
+        ],
+      ),
+    ).toThrow(/workflow_runs contains a duplicate record/);
+    try {
+      migrationRemovalSet(
+        planMigrationDryRun({
+          records: [record(privateId, "workflow_runs", "test")],
+          backupRef: BACKUP,
+        }),
+        [
+          record(privateId, "workflow_runs", "test"),
+          record(privateId, "workflow_runs", "test"),
+        ],
+      );
+    } catch (error) {
+      expect(String(error)).not.toContain(privateId);
+    }
   });
 });

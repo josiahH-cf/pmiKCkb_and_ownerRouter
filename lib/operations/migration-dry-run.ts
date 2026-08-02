@@ -4,10 +4,11 @@ import {
 } from "@/lib/operations/product-record-retention";
 
 /**
- * S40 AC-S40-5 — the legacy-record migration dry-run.
+ * S40 AC-S40-5 / S56 AC-S56-3 — the legacy-record DELETE dry-run.
  *
  * Production accumulated invented `data_mode:test` records before Demo existed as its own project.
- * The cutover has to move them out, and this plans that move WITHOUT performing it.
+ * S56 superseded the move-to-Demo plan: the cutover has to delete them, and this plans that DELETE
+ * without performing it. A v1 move plan is intentionally incompatible with this v2 contract.
  *
  * Three properties make the plan safe to look at and safe to act on:
  *
@@ -22,7 +23,7 @@ import {
  *    partitioning on the parsed classification rather than by filtering a combined list.
  */
 
-export const MIGRATION_DRY_RUN_VERSION = "migration-dry-run:v1" as const;
+export const MIGRATION_DRY_RUN_VERSION = "migration-dry-run:v2-delete" as const;
 
 export type MigrationRecordClassification = "live" | "test" | "unclassified";
 
@@ -49,6 +50,7 @@ export interface MigrationCollectionPlan {
 
 export interface MigrationDryRunPlan {
   readonly version: typeof MIGRATION_DRY_RUN_VERSION;
+  readonly semantics: "delete";
   readonly status: "ready" | "refused";
   readonly backupRef?: string;
   readonly rollbackTarget?: string;
@@ -93,7 +95,9 @@ export function planMigrationDryRun(input: MigrationDryRunInput): MigrationDryRu
   for (const record of input.records) {
     const key = `${record.collection}/${record.id}`;
     if (seen.has(key)) {
-      refusals.push(`${key} appears more than once; the record set is ambiguous.`);
+      refusals.push(
+        `${record.collection} contains a duplicate record; the record set is ambiguous.`,
+      );
       continue;
     }
     seen.add(key);
@@ -114,7 +118,7 @@ export function planMigrationDryRun(input: MigrationDryRunInput): MigrationDryRu
       // Deliberately NOT defaulted to live. A default here would decide, silently, that an
       // unclassified record is safe to leave behind — the opposite of what a cutover needs to know.
       refusals.push(
-        `${key} has no explicit data classification. Classify it before migrating.`,
+        `${record.collection} contains a record with no explicit data classification. Classify it before migrating.`,
       );
       continue;
     }
@@ -143,6 +147,7 @@ export function planMigrationDryRun(input: MigrationDryRunInput): MigrationDryRu
   if (refusals.length > 0) {
     return {
       version: MIGRATION_DRY_RUN_VERSION,
+      semantics: "delete",
       status: "refused",
       collections: [],
       totalLive: 0,
@@ -154,6 +159,7 @@ export function planMigrationDryRun(input: MigrationDryRunInput): MigrationDryRu
 
   return {
     version: MIGRATION_DRY_RUN_VERSION,
+    semantics: "delete",
     status: "ready",
     backupRef: input.backupRef,
     rollbackTarget: input.backupRef,
@@ -166,11 +172,11 @@ export function planMigrationDryRun(input: MigrationDryRunInput): MigrationDryRu
 }
 
 /**
- * The exact set this migration would remove from Production.
+ * The exact set this DELETE would remove from Production.
  *
- * Built by re-deriving classification from the source records rather than by trusting the plan, so a
- * hand-edited or stale plan cannot smuggle a Live id into a removal set. Refuses outright if it ever
- * sees one.
+ * Built by re-deriving classification from the source records rather than by trusting the plan. The
+ * two sets must be equal: using their intersection would silently accept a missing, newly-added, or
+ * reclassified record and turn a stale plan into deletion authority.
  */
 export function migrationRemovalSet(
   plan: MigrationDryRunPlan,
@@ -179,26 +185,66 @@ export function migrationRemovalSet(
   if (plan.status !== "ready") {
     throw new Error("A refused migration plan has no removal set.");
   }
+  if (
+    plan.version !== MIGRATION_DRY_RUN_VERSION ||
+    plan.semantics !== "delete" ||
+    !plan.backupRef?.trim() ||
+    !plan.rollbackTarget?.trim() ||
+    plan.backupRef !== plan.rollbackTarget
+  ) {
+    throw new Error(
+      "Refusing DELETE: the removal set requires an exact v2 DELETE plan with one named backup/rollback identity.",
+    );
+  }
   const planned = new Set(
     plan.collections.flatMap((entry) =>
       entry.testRecordIds.map((id) => `${entry.collection}/${id}`),
     ),
   );
+  const currentTest = new Set<string>();
+  const seen = new Set<string>();
   const removal = [];
   for (const record of records) {
     const key = `${record.collection}/${record.id}`;
-    if (!planned.has(key)) continue;
-    if (classifyMigrationRecord(record) !== "test") {
+    if (seen.has(key)) {
       throw new Error(
-        `Refusing to remove ${key}: it is not classified test. A migration never deletes a Live record.`,
+        `Refusing DELETE: ${record.collection} contains a duplicate record in the current set.`,
+      );
+    }
+    seen.add(key);
+    const classification = classifyMigrationRecord(record);
+    if (classification === "unclassified") {
+      throw new Error(
+        `Refusing DELETE: ${record.collection} contains a record without an explicit classification. Rebuild the plan.`,
+      );
+    }
+    if (classification === "test") currentTest.add(key);
+    if (!planned.has(key)) continue;
+    if (classification !== "test") {
+      throw new Error(
+        `Refusing DELETE: ${record.collection} contains a planned record that is not classified test. A DELETE never removes a Live record.`,
       );
     }
     removal.push({ collection: record.collection, id: record.id });
   }
-  return Object.freeze(removal);
+
+  const missing = [...planned].filter((key) => !currentTest.has(key));
+  const extra = [...currentTest].filter((key) => !planned.has(key));
+  if (missing.length > 0 || extra.length > 0) {
+    throw new Error(
+      `Refusing DELETE: the current Test candidate set is not exactly the planned set (${missing.length} missing, ${extra.length} extra).`,
+    );
+  }
+  return Object.freeze(
+    removal.sort(
+      (left, right) =>
+        left.collection.localeCompare(right.collection) ||
+        left.id.localeCompare(right.id),
+    ),
+  );
 }
 
-/** Bodyless operator summary. Ids are included; record content never is. */
+/** Bodyless operator summary. Record identifiers and content are deliberately omitted. */
 export function formatMigrationDryRun(plan: MigrationDryRunPlan): string {
   if (plan.status === "refused") {
     return [
@@ -207,10 +253,10 @@ export function formatMigrationDryRun(plan: MigrationDryRunPlan): string {
     ].join("\n");
   }
   return [
-    `Migration dry run (${plan.version}) — nothing was executed.`,
+    `Production Test DELETE dry run (${plan.version}) — nothing was executed.`,
     `Rollback target: ${plan.rollbackTarget}`,
     `Live records staying in Production: ${plan.totalLive}`,
-    `Test records to migrate out: ${plan.totalTest}`,
+    `Test records to delete: ${plan.totalTest}`,
     ...plan.collections.map(
       (entry) =>
         `  ${entry.collection}: ${entry.testCount} test / ${entry.liveCount} live`,
