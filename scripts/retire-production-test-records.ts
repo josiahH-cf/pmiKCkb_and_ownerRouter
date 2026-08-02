@@ -704,6 +704,10 @@ export class FirestoreRestClient {
     return `${this.databaseName(database)}/documents`;
   }
 
+  documentApiRoot(database = this.#database): string {
+    return `${FIRESTORE_API}/${this.documentRoot(database)}`;
+  }
+
   async listTopLevelCollectionIds(readTime: string): Promise<readonly string[]> {
     const ids = new Set<string>();
     let pageToken: string | undefined;
@@ -713,7 +717,7 @@ export class FirestoreRestClient {
       const response = await this.requestJson<{
         readonly collectionIds?: readonly string[];
         readonly nextPageToken?: string;
-      }>(`${this.documentRoot()}:listCollectionIds`, {
+      }>(`${this.documentApiRoot()}:listCollectionIds`, {
         method: "POST",
         body: JSON.stringify(body),
       });
@@ -730,7 +734,7 @@ export class FirestoreRestClient {
     database = this.#database,
   ): Promise<readonly FirestoreDocument[]> {
     const responses = await this.requestJson<readonly RunQueryResponse[]>(
-      `${this.documentRoot(database)}:runQuery`,
+      `${this.documentApiRoot(database)}:runQuery`,
       {
         method: "POST",
         body: JSON.stringify({
@@ -756,7 +760,7 @@ export class FirestoreRestClient {
 
   async captureServerReadTime(): Promise<string> {
     const responses = await this.requestJson<readonly RunQueryResponse[]>(
-      `${this.documentRoot()}:runQuery`,
+      `${this.documentApiRoot()}:runQuery`,
       {
         method: "POST",
         body: JSON.stringify({
@@ -813,7 +817,7 @@ export class FirestoreRestClient {
       };
       if (input.readTime) body.readTime = input.readTime;
       const response = await this.requestJson<readonly BatchGetResponse[]>(
-        `${this.documentRoot(database)}:batchGet`,
+        `${this.documentApiRoot(database)}:batchGet`,
         { method: "POST", body: JSON.stringify(body) },
       );
       for (const entry of response) {
@@ -879,7 +883,7 @@ export class FirestoreRestClient {
     const response = await this.requestJson<{
       readonly writeResults?: readonly unknown[];
       readonly commitTime?: string;
-    }>(`${this.documentRoot(database)}:commit`, {
+    }>(`${this.documentApiRoot(database)}:commit`, {
       method: "POST",
       body,
     });
@@ -1062,9 +1066,7 @@ export class FirestoreRestClient {
         },
       });
     } catch {
-      throw new Error(
-        "A Firestore Admin REST request failed before receiving a response.",
-      );
+      throw new Error("A Firestore REST request failed before receiving a response.");
     }
     if (!response.ok) {
       throw new FirestoreRestHttpError(response.status);

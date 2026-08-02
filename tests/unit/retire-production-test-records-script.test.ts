@@ -287,6 +287,9 @@ describe("Firestore REST boundaries", () => {
     await expect(client.captureServerReadTime()).resolves.toBe(
       "2026-08-02T19:40:14.899733Z",
     );
+    expect(calls[0].url).toBe(
+      `https://firestore.googleapis.com/v1/projects/${S56_PROJECT}/databases/${S56_DATABASE}/documents:runQuery`,
+    );
     const payload = JSON.parse(String(calls[0].init.body));
     expect(payload).toMatchObject({
       structuredQuery: {
