@@ -26,19 +26,54 @@ import {
   parseReleaseArgs,
 } from "./release-candidate.mjs";
 
-function run(command, args, { capture = false } = {}) {
+// A release step must FAIL rather than wait. Two properties make that true, and this cutover proved
+// both are needed: on 2026-08-01 a real run sat for 89 minutes with zero output while the same
+// `gcloud` invocation errors in under a second when run directly.
+//
+// 1. stdin is "ignore", never "inherit". An inherited stdin in an unattended or backgrounded run is
+//    a handle that never delivers EOF, so any provider prompt blocks forever instead of erroring.
+//    A deploy path that can silently wait on a human is worse than one that fails: the operator
+//    reads no output as progress, which is exactly what happened.
+// 2. Every step is bounded. A hang that outlives its own timeout is reported as a hang, naming the
+//    command, so the failure is diagnosable instead of looking like a slow build.
+export const RELEASE_STEP_TIMEOUT_MS = 30 * 60 * 1000;
+
+export function run(
+  command,
+  args,
+  { capture = false, timeoutMs = RELEASE_STEP_TIMEOUT_MS, spawnFn = spawn } = {},
+) {
   return new Promise((resolveRun, rejectRun) => {
-    const child = spawn(command, args, {
-      stdio: capture ? ["inherit", "pipe", "inherit"] : "inherit",
+    const child = spawnFn(command, args, {
+      // stdin is ignored deliberately; see (1) above. Never change this to "inherit".
+      stdio: ["ignore", capture ? "pipe" : "inherit", "inherit"],
       shell: process.platform === "win32",
     });
     let out = "";
+    let settled = false;
+    const finish = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      fn(value);
+    };
+    const timer = setTimeout(() => {
+      child.kill("SIGKILL");
+      finish(
+        rejectRun,
+        new Error(
+          `${command} produced no result within ${Math.round(timeoutMs / 60000)} minutes and was killed. ` +
+            `A release step must never wait on input; check for a provider prompt or a stalled build.`,
+        ),
+      );
+    }, timeoutMs);
+    if (timer.unref) timer.unref();
     if (capture) child.stdout.on("data", (chunk) => (out += String(chunk)));
-    child.on("error", rejectRun);
+    child.on("error", (error) => finish(rejectRun, error));
     child.on("close", (code) =>
       code === 0
-        ? resolveRun(out.trim())
-        : rejectRun(new Error(`${command} exited with code ${code}.`)),
+        ? finish(resolveRun, out.trim())
+        : finish(rejectRun, new Error(`${command} exited with code ${code}.`)),
     );
   });
 }
