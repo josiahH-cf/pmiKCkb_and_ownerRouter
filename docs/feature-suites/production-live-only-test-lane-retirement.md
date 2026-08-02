@@ -58,13 +58,17 @@ dry-run's backup and rollback proof.
   field. Retaining it is cheaper and keeps `resolveStoredDataMode`'s fail-safe read behaviour;
   retiring it touches ~85 files. **Recommend retaining the field and deleting only the Test lane**,
   and treating full field removal as a separate later suite.
-- _Open:_ whether any Vendor, workflow, or approval record currently carries `data_mode:"test"` while
-  being genuinely relied on by the team as if it were real. Stage 1b's count answers this before any
-  deletion.
+- _RESOLVED by owner 2026-08-01:_ "The team has not tested anything." No `data_mode:"test"` record is
+  relied on as real, so every one of them is disposable and deletion needs no per-record judgement.
+  Stage 1b's count therefore remains as EVIDENCE for the deletion record, not as a gate that waits on
+  owner review. The loop does not stop to have the count approved.
 - _Assumption:_ no Firestore rule depends on `data_mode`; verified, `firestore.rules` contains zero
   references. Rules therefore need no change, which keeps this suite off the D12 protected path.
-- _Open:_ whether retiring the fixtures route needs a replacement seeding path for local, so
-  rehearsal on local has records to rehearse against.
+- _RESOLVED by owner 2026-08-01:_ local rehearsal needs NO seeded fixture records. Local runs
+  Demo + Live-read-only against the real RentVine and Sheet, which is the owner's intended rehearsal
+  surface, so the records to rehearse against are the real ones read read-only. Do not build a
+  fixture seeder for local; that would recreate the invented-record lane this suite exists to
+  retire.
 
 **Cross-product impacts.** `app/api/approval-queue/test-fixtures/route.ts`;
 `lib/firestore/approval-test-fixtures.ts`; `lib/firestore/approval-queue.ts`;

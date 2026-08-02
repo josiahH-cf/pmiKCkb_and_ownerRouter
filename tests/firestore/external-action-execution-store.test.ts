@@ -7,6 +7,14 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
+
+/**
+ * Bound for tests that race real Firestore transactions. Generous on purpose: the value must exceed
+ * the emulator's contention retry backoff, and exceeding it is a genuine hang rather than a slow
+ * machine. It bounds only how long contention may take to resolve, never what the test asserts.
+ */
+const CONTENTION_TIMEOUT_MS = 30_000;
+
 import type {
   ExternalActionReceipt,
   ExternalExecutionRecord,
@@ -192,22 +200,34 @@ describe("external execution Firestore store CAS", () => {
     });
   });
 
-  it("uses the running state as a compare-and-set guard for competing finish and fail", async () => {
-    const emitAttention = vi.fn();
-    const store = new FirestoreExternalExecutionStore(db, emitAttention);
-    const record = executionRecord("finish-fail-race", "running");
-    await seed(record);
+  // This test deliberately makes two real Firestore transactions contend for one document, and the
+  // emulator resolves that with nondeterministic retry backoff. Vitest's 5s default bounded the
+  // BACKOFF, not the behaviour, so it timed out three times on 2026-08-01 while passing in
+  // isolation. An intermittently red test is worse than a slow one: it teaches everyone to re-run
+  // instead of investigate, which is exactly how a real regression gets waved through. The
+  // assertions below are unchanged; only the bound is widened to cover contention retries.
+  it(
+    "uses the running state as a compare-and-set guard for competing finish and fail",
+    async () => {
+      const emitAttention = vi.fn();
+      const store = new FirestoreExternalExecutionStore(db, emitAttention);
+      const record = executionRecord("finish-fail-race", "running");
+      await seed(record);
 
-    const outcomes = await Promise.allSettled([
-      store.finish(record.id, receipt("provider:race", "e")),
-      store.fail(record.id, false),
-    ]);
-    expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(1);
-    expect(outcomes.filter((outcome) => outcome.status === "rejected")).toHaveLength(1);
-    const finalState = (await store.get(record.id))?.state;
-    expect(finalState).toMatch(/^(succeeded|failed)$/);
-    expect(emitAttention).toHaveBeenCalledTimes(finalState === "failed" ? 1 : 0);
-  });
+      const outcomes = await Promise.allSettled([
+        store.finish(record.id, receipt("provider:race", "e")),
+        store.fail(record.id, false),
+      ]);
+      expect(outcomes.filter((outcome) => outcome.status === "fulfilled")).toHaveLength(
+        1,
+      );
+      expect(outcomes.filter((outcome) => outcome.status === "rejected")).toHaveLength(1);
+      const finalState = (await store.get(record.id))?.state;
+      expect(finalState).toMatch(/^(succeeded|failed)$/);
+      expect(emitAttention).toHaveBeenCalledTimes(finalState === "failed" ? 1 : 0);
+    },
+    CONTENTION_TIMEOUT_MS,
+  );
 });
 
 async function seed(record: ExternalExecutionRecord) {

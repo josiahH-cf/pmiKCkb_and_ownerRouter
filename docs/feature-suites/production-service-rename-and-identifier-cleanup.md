@@ -137,6 +137,10 @@ files and `*.html` walkthroughs are historical records and must NOT be rewritten
 - **AC-S55-7** — `docs/source-corpus/demo-live-source-manifest.json` is marked retired in place with
   its dead bucket named, or removed with its consumer updated. Either way a test or the readiness
   script proves no tracked manifest presents a 404 bucket as a live catalog.
+- **AC-S55-9** — stage two is runnable without further owner input: `npm run rehearse-rollback`
+  executes against `pmi-kc-app`, its result is recorded, and only then is `pmi-kc-kb-demo` deleted.
+  The old service's deletion is the LAST step of the whole programme, after S56 has emptied the Test
+  lane, so a rollback target still exists throughout the riskiest work.
 - **AC-S55-8** — Stage two retires `pmi-kc-kb-demo` only after a recorded rollback rehearsal against
   `pmi-kc-app`, and the retirement is reversible by redeploying the captured prior revision.
 
