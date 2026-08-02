@@ -49,9 +49,34 @@ afterEach(() => {
   putMock.mockReset();
   runtimeGate.seedOpen = false;
   runtimeGate.current = "clear";
+  vi.unstubAllEnvs();
 });
 
 describe("maintenance photo route", () => {
+  it("refuses Live-read-only before the action gate, body, or image store", async () => {
+    vi.stubEnv("ENVIRONMENT_KIND", "demo");
+    vi.stubEnv("DATA_CONTEXT", "live_readonly");
+    setAuthResolverForTest(() => ({
+      email: "editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+      scopes: ["maintenance"],
+      uid: "editor-1",
+    }));
+    runtimeGate.seedOpen = true;
+    const json = vi.fn();
+
+    const response = await POST({
+      headers: new Headers(),
+      json,
+    } as unknown as Request);
+
+    expect(response.status).toBe(409);
+    expect(json).not.toHaveBeenCalled();
+    expect(createStoreMock).not.toHaveBeenCalled();
+    expect(putMock).not.toHaveBeenCalled();
+  });
+
   // S51_DYNAMIC_REFUSAL:maintenance-photo-store
   it.each(["action_suspended", "global_suspended", "unreadable"] as const)(
     "does not construct the Drive image store when runtime state is %s",

@@ -4,6 +4,10 @@ import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
 import {
+  assertMutationAllowed,
+  requireEnvironmentDescriptor,
+} from "@/lib/environment/descriptor";
+import {
   getInternalTransactionalReceipt,
   recordInternalTransactionalReceipt,
 } from "@/lib/firestore/internal-transactional-receipts";
@@ -86,6 +90,7 @@ function sanitizeRoute(route: string): string {
 export async function POST(request: Request) {
   try {
     const user = await requireCapability("read");
+    assertMutationAllowed(requireEnvironmentDescriptor());
 
     if (isRateLimited(user.uid, Date.now())) {
       return NextResponse.json(

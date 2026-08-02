@@ -18,8 +18,8 @@ implementation_status: EXECUTING_ORDERED_S56_CHAIN
 next_suite: S56
 next_spec: docs/feature-suites/production-live-only-test-lane-retirement.md
 session_auth_status: GREEN_ADC_MANAGED_ACCOUNT_AND_CLI_TOKEN
-active_slice: S56-LOCAL-DEMO-LIVE-READONLY
-last_completed_slice: S56-TEST-INTAKE-FENCE-DEPLOYED-BOTH-SERVICES
+active_slice: S56-COUNT-BACKUP-RESTORE-DELETE
+last_completed_slice: S56-LOCAL-DEMO-LIVE-READONLY
 runtime_action_gates_preflipped: false
 ```
 
@@ -53,8 +53,8 @@ runtime_action_gates_preflipped: false
 - S56 AC-S56-1 is live on both reachable services at `e43cf59`: Production serves revision
   `pmi-kc-app-rmsbyiiwl-6d646d3629fe`; retained rollback service `pmi-kc-kb-demo` serves
   `pmi-kc-kb-demo-rmsbyzhi7-666d075ffe32`. Both exact smokes are green; no D12 path changed.
-- Clean full gate exited zero: 4,109 unit + 109 Firestore tests, 0 lint errors, all policy scanners
-  and Production build. Local Demo + Live-read-only is NEXT; no record count or deletion has run.
+- S56 AC-S56-6 is locally complete (`F-S56-LOCAL-LIVE-READONLY`): the explicit descriptor, badge,
+  real bounded reads, request-wide refusal, direct writer fences, and actual local runtime are green.
 - Kill switch armed at the applied $100 (budget + `KILL_SWITCH_CAP_USD` both read back). Caveat:
   budgets are `INCLUDE_ALL_CREDITS`, so $0 July may be credit-masked; guardrail Node 20 dies 30 Oct 2026.
 
@@ -83,9 +83,9 @@ runtime_action_gates_preflipped: false
     named local-only refusal. The legacy auto-promoting wrapper stays ineligible for D07.
 11. **S55 stage one + S56 intake fence — LIVE** — new and rollback services both serve the fenced
     commit after exact candidate smoke, env readback, promotion and stable-URL smoke.
-12. **S56 local rehearsal — NEXT** — resolve explicit Demo + Live-read-only, show the read-only
-    badge, preserve intended Live reads, and prove zero local effect/provider construction.
-    12b. Then count → named backup + rehearsed restore → delete → zero proof → retire machinery;
+12. **S56 local rehearsal — COMPLETE** — explicit Demo + Live-read-only, real bounded reads, badge,
+    proxy/direct fences, AST inventory, and actual-runtime refusal proof are green.
+    12b. **NEXT:** count → named backup + rehearsed restore → delete → zero proof → retire machinery;
     S55 stage-two rollback rehearsal and old-service deletion remain the LAST programme step.
 13. **S53 remaining activations** — as each owner value lands, each with its paired
     deploy-wrapper change.
@@ -126,12 +126,10 @@ runtime_action_gates_preflipped: false
 
 ## Resume
 
-**S56 intake is fenced and deployed on BOTH services.** Continue in the user-locked order; do not
-start another roadmap suite. Build AC-S56-6 next: local must launch with explicit
-`ENVIRONMENT_KIND=demo` + `DATA_CONTEXT=live_readonly`, render "Live data, read only", retain the
-intended bounded Live reads, and construct no effect provider or durable writer. Do not edit either
-env file and do not seed local fixtures. After its green slice, implement the complete marker
-inventory and DELETE contract; the legacy six-collection migration planner is insufficient. Count
-first, then create a named post-fence backup/clone and prove one-record restore before deletion.
+**S56 intake is fenced on BOTH services and local Live-read-only is green.** Continue in the
+user-locked order; do not start another suite. Implement the complete marker inventory and DELETE
+contract; the legacy six-collection migration planner is insufficient. Count first, then create a
+named post-fence backup/clone and prove one-record restore before deletion. Prove exact planned/reread
+set equality and zero afterwards; do not infer Test from names or linked artifacts.
 Keep `data_mode`; retire only the Test lane/machinery. Preserve `pmi-kc-kb-demo` through all S56
 work. S55 AC-S55-9 rollback rehearsal and literal old-service deletion are the LAST programme step.

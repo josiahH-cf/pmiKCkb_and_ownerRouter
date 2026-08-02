@@ -43,18 +43,18 @@ describe("Gmail Hub effect environment boundary", () => {
   });
 
   it.each([
-    ["demo", "demo"],
-    ["demo", "live_readonly"],
+    ["demo", "demo", "test"],
+    ["demo", "live_readonly", "live"],
   ] as const)(
-    "uses Test A2 mode and refuses real client construction in %s+%s",
-    (environmentKind, dataContext) => {
+    "uses %s+%s state mode %s while refusing real client construction",
+    (environmentKind, dataContext, dataMode) => {
       const environment = resolveGmailHubEffectEnvironment({
         ENVIRONMENT_KIND: environmentKind,
         DATA_CONTEXT: dataContext,
       });
       const construct = vi.fn(() => ({}) as GmailRuntimeClient);
 
-      expect(environment.dataMode).toBe("test");
+      expect(environment.dataMode).toBe(dataMode);
       expect(() =>
         createDescriptorBoundGmailRuntimeClient(
           "operator@pmikcmetro.com",
@@ -67,11 +67,11 @@ describe("Gmail Hub effect environment boundary", () => {
   );
 
   it.each([
-    ["demo", "demo"],
-    ["demo", "live_readonly"],
+    ["demo", "demo", "test"],
+    ["demo", "live_readonly", "live"],
   ] as const)(
-    "binds the %s+%s composition guard and provider defense to the same descriptor",
-    (environmentKind, dataContext) => {
+    "binds the %s+%s state mode %s and provider defense to the same descriptor",
+    (environmentKind, dataContext, dataMode) => {
       const store = new MemoryGmailStateStore();
       const constructClient = vi.fn(() => ({}) as GmailRuntimeClient);
       const createStore = vi.fn(() => store);
@@ -83,7 +83,9 @@ describe("Gmail Hub effect environment boundary", () => {
         { constructClient, createStore },
       );
 
-      expect(createStore).toHaveBeenCalledWith("test");
+      expect(createStore).toHaveBeenCalledOnce();
+      expect(createStore).toHaveBeenCalledWith(dataMode);
+      expect(constructClient).not.toHaveBeenCalled();
       expect(() => dependencies.assertEffectEnvironment()).toThrow(
         /requires the Production environment with Live data/i,
       );

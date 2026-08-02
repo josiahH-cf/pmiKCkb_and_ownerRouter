@@ -2,9 +2,9 @@
 // read-only RentVine /leases/export read (loadLiveUnitCandidates) in a ~10-minute in-process TTL cache,
 // mirroring lib/connections/verification.ts, so the type-ahead never fans out a live read per keystroke.
 // The whole outcome (ok or failure) is cached for the TTL. searchUnits is a pure deterministic
-// substring/token filter, NOT the fuzzy join matcher and NOT an LLM. Demo-aware: under config.localDemoAuth
-// (NODE_ENV-fenced) it short-circuits to synthetic DEMO_UNIT_CANDIDATES so the picker is exercisable with a
-// plain `npm run dev`. Read-only; no write, no send, no system-of-record update.
+// substring/token filter, NOT the fuzzy join matcher and NOT an LLM. The server-owned data context selects
+// the provider: Demo data may use synthetic DEMO_UNIT_CANDIDATES, while Live and Live-read-only use the real
+// read provider. Read-only; no write, no send, no system-of-record update.
 
 import { readServerConfig, type ServerConfig } from "@/lib/config/server";
 import {
@@ -20,7 +20,7 @@ export type UnitIndexOutcome =
   | { status: "ok"; candidates: UnitCandidate[] }
   | { status: "not_configured" | "account_mismatch" | "auth_error" | "read_error" };
 
-/** Synthetic candidates served under localDemoAuth so the type-ahead works with a plain `npm run dev`. */
+/** Synthetic candidates served only in the Demo data context. */
 export const DEMO_UNIT_CANDIDATES: readonly UnitCandidate[] = [
   { unitId: "unit:demo-100", label: "100 Birchwood Ln Unit A" },
   { unitId: "unit:demo-220", label: "2200 Elmgrove Ave Unit 4" },
@@ -34,8 +34,8 @@ const DEFAULT_SEARCH_LIMIT = 8;
 interface UnitIndexDeps {
   /** Live loader (default reads process.env RentVine config); injected in tests to avoid module mocking. */
   load: () => Promise<UnitSourceOutcome>;
-  /** Only localDemoAuth is read; injected in tests to avoid module mocking. */
-  config: Pick<ServerConfig, "localDemoAuth">;
+  /** Server-owned provider selection; injected in tests to avoid module mocking. */
+  config: Pick<ServerConfig, "environment">;
   now: number;
 }
 
@@ -48,15 +48,16 @@ export function clearUnitIndexCache(): void {
 
 /**
  * The cached unit index, refreshed at most once per UNIT_INDEX_TTL_MS per process. Caches the WHOLE
- * outcome (ok or failure) so a transient RentVine failure is not retried on every keystroke. Under
- * localDemoAuth it short-circuits to synthetic candidates (free + deterministic, never cached, never a
- * network read). Never throws — a failed read surfaces as a discriminated status.
+ * outcome (ok or failure) so a transient RentVine failure is not retried on every keystroke. In the
+ * Demo data context it short-circuits to synthetic candidates (free + deterministic, never cached,
+ * never a network read). Live-read-only deliberately follows the real read path. Never throws — a
+ * failed read surfaces as a discriminated status.
  */
 export async function getUnitIndex(
   deps: Partial<UnitIndexDeps> = {},
 ): Promise<UnitIndexOutcome> {
   const config = deps.config ?? readServerConfig();
-  if (config.localDemoAuth) {
+  if (config.environment.dataContext === "demo") {
     return { status: "ok", candidates: [...DEMO_UNIT_CANDIDATES] };
   }
 

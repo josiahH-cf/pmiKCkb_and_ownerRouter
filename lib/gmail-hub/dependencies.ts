@@ -1,6 +1,5 @@
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
-  allowsLiveProviderAction,
   assertLiveProviderActionAllowed,
   requireEnvironmentDescriptor,
   type EnvironmentDescriptor,
@@ -111,7 +110,10 @@ export function resolveGmailHubEffectEnvironment(
 export function gmailHubEffectDataMode(
   descriptor: EnvironmentDescriptor,
 ): "live" | "test" {
-  return allowsLiveProviderAction(descriptor) ? "live" : "test";
+  // State selection and effect authority are deliberately separate. Live-read-only must inspect
+  // the real Live state lane, but createDescriptorBoundGmailRuntimeClient and the composition guard
+  // below still refuse every provider effect outside Production+Live.
+  return descriptor.dataContext === "demo" ? "test" : "live";
 }
 
 export function createDefaultGmailStateStore(

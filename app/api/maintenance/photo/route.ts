@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { authErrorResponse, requireCapabilityInSpace } from "@/lib/auth/session";
+import { apiErrorResponse } from "@/lib/api/editable";
 import { readServerConfig } from "@/lib/config/server";
+import {
+  assertMutationAllowed,
+  requireEnvironmentDescriptor,
+} from "@/lib/environment/descriptor";
 import {
   ImageStoreSetupError,
   createMaintenanceImageStore,
@@ -39,6 +44,14 @@ export async function POST(request: Request) {
     await requireCapabilityInSpace("edit", "maintenance");
   } catch (error) {
     return authErrorResponse(error);
+  }
+
+  // Local rehearsal inspects Live data but owns none of it. Refuse before the action gate, body,
+  // configuration, or Drive store is touched so direct route invocation cannot bypass the proxy.
+  try {
+    assertMutationAllowed(requireEnvironmentDescriptor());
+  } catch (error) {
+    return apiErrorResponse(error);
   }
 
   // The committed Action Registry is the canonical execution gate. Refuse before inspecting body

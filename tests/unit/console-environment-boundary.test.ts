@@ -25,46 +25,44 @@ describe("Console environment boundary", () => {
     ).toEqual({ kind: "live" });
   });
 
-  it("allows only a server-named non-production test deployment to use fixtures", () => {
+  it("selects the real read provider for explicit Demo + Live-read-only", () => {
     expect(
       resolveConsoleDataMode({
-        CONSOLE_TEST_DEPLOYMENT_NAME: "test-staging-1",
-        NODE_ENV: "production",
-      }),
-    ).toEqual({ badge: "Test data", deploymentName: "test-staging-1", kind: "test" });
-    expect(
-      resolveConsoleDataMode({
-        CONSOLE_TEST_DEPLOYMENT_NAME: "production",
-        NODE_ENV: "production",
+        DATA_CONTEXT: "live_readonly",
+        ENVIRONMENT_KIND: "demo",
+        NODE_ENV: "development",
       }),
     ).toEqual({ kind: "live" });
+    expect(
+      resolveConsoleDataModes({
+        DATA_CONTEXT: "live_readonly",
+        ENVIRONMENT_KIND: "demo",
+        NODE_ENV: "development",
+      }),
+    ).toEqual([{ kind: "live" }]);
   });
 
-  it("serves separate Live and Test workspaces in ordinary production", () => {
-    expect(resolveConsoleDataModes({ NODE_ENV: "production" })).toEqual([
-      { kind: "live" },
+  it("keeps the fixture provider limited to a Demo + Demo data context", () => {
+    expect(
+      resolveConsoleDataModes({
+        DATA_CONTEXT: "demo",
+        ENVIRONMENT_KIND: "demo",
+        NODE_ENV: "development",
+      }),
+    ).toEqual([
       {
         badge: "Test data",
-        deploymentName: "production-test-workspace",
+        deploymentName: "local",
         kind: "test",
       },
-    ]);
-    expect(resolveConsoleDataModes({ NODE_ENV: "development" })).toEqual([
-      { badge: "Test data", deploymentName: "local", kind: "test" },
     ]);
     expect(
       resolveConsoleDataModes({
-        CONSOLE_TEST_DEPLOYMENT_NAME: "test-staging-1",
+        DATA_CONTEXT: "live",
+        ENVIRONMENT_KIND: "production",
         NODE_ENV: "production",
       }),
-    ).toEqual([
-      { kind: "live" },
-      {
-        badge: "Test data",
-        deploymentName: "production-test-workspace",
-        kind: "test",
-      },
-    ]);
+    ).toEqual([{ kind: "live" }]);
   });
 
   it("never constructs the fixture provider in production and fails visibly", async () => {
@@ -105,5 +103,23 @@ describe("Console environment boundary", () => {
     );
     expect(createLive).not.toHaveBeenCalled();
     expect(createTest).toHaveBeenCalledTimes(1);
+  });
+
+  it("constructs only the real read provider for Demo + Live-read-only", async () => {
+    const liveProvider: ConsoleDataProvider = {
+      load: vi.fn(async () => ({ rows: [], sourceHealth: [] })),
+    };
+    const createLive = vi.fn(() => liveProvider);
+    const createTest = vi.fn();
+    const mode = resolveConsoleDataMode({
+      DATA_CONTEXT: "live_readonly",
+      ENVIRONMENT_KIND: "demo",
+      NODE_ENV: "development",
+    });
+
+    await loadConsoleProjection(actor, mode, { createLive, createTest });
+
+    expect(createLive).toHaveBeenCalledOnce();
+    expect(createTest).not.toHaveBeenCalled();
   });
 });

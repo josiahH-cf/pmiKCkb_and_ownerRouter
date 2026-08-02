@@ -7,7 +7,10 @@ import { PrimaryNav, type PrimaryNavItem } from "@/components/layout/PrimaryNav"
 import { ReportIssueButton } from "@/components/feedback/ReportIssueButton";
 import { SessionTimeout } from "@/components/layout/SessionTimeout";
 import { can } from "@/lib/auth/roles";
-import { resolveEnvironmentDescriptor } from "@/lib/environment/descriptor";
+import {
+  allowsMutation,
+  resolveEnvironmentDescriptor,
+} from "@/lib/environment/descriptor";
 import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { PMI_WORDMARK, PRODUCT_NAME, type SpaceScope } from "@/lib/constants";
 
@@ -31,6 +34,10 @@ export function AppShell({
   children,
   user,
 }: Readonly<{ children: React.ReactNode; user: AuthenticatedUser }>) {
+  const environment = resolveEnvironmentDescriptor();
+  const mutationControlsVisible =
+    environment.ok && allowsMutation(environment.descriptor);
+
   return (
     <div className="page">
       <header className="topbar">
@@ -44,7 +51,7 @@ export function AppShell({
         </Link>
         {/* Sits beside the wordmark, before the nav, so it cannot collide with the nav's own
             wrapping at narrow widths. Renders nothing at all in ordinary live Production. */}
-        <EnvironmentBadge descriptor={resolveEnvironmentDescriptor()} />
+        <EnvironmentBadge descriptor={environment} />
         <nav className="nav" aria-label="Primary">
           <PrimaryNav
             items={[
@@ -65,7 +72,7 @@ export function AppShell({
       </header>
       {children}
       {/* TIX-1/2: persistent global "Report an issue" affordance on every signed-in page. */}
-      <ReportIssueButton />
+      {mutationControlsVisible ? <ReportIssueButton /> : null}
       {/* NOTIF-6: idle session timeout with a 28-min warning + 2-min countdown + auto sign-out. */}
       <SessionTimeout />
     </div>

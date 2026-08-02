@@ -42,9 +42,21 @@ beforeEach(() => {
 
 afterEach(() => {
   setAuthResolverForTest(() => null);
+  vi.unstubAllEnvs();
 });
 
 describe("report-issue route (F-SUPP-1)", () => {
+  it("refuses Live-read-only before the queue write or internal sender", async () => {
+    vi.stubEnv("ENVIRONMENT_KIND", "demo");
+    vi.stubEnv("DATA_CONTEXT", "live_readonly");
+
+    const response = await POST(jsonReq({ context: { route: "/maintenance" } }));
+
+    expect(response.status).toBe(409);
+    expect(createSupportReport).not.toHaveBeenCalled();
+    expect(sendInternalMock).not.toHaveBeenCalled();
+  });
+
   it("persists the report to the support queue and returns delivered:true", async () => {
     vi.mocked(createSupportReport).mockResolvedValue({
       id: "report-1",

@@ -21,7 +21,13 @@ const CANDIDATES: UnitCandidate[] = [
   { unitId: "unit:512", label: "512 Rosewood Ct" },
 ];
 
-const liveConfig = { localDemoAuth: false };
+const liveConfig = {
+  environment: {
+    environmentKind: "production",
+    dataContext: "live",
+    source: "explicit",
+  },
+} as const;
 
 beforeEach(() => {
   clearUnitIndexCache();
@@ -60,17 +66,48 @@ describe("getUnitIndex", () => {
     expect(load).toHaveBeenCalledTimes(1);
   });
 
-  it("short-circuits to synthetic demo candidates under localDemoAuth (never reads live)", async () => {
+  it("short-circuits to synthetic demo candidates only in the Demo data context", async () => {
     const load = vi.fn(async (): Promise<UnitSourceOutcome> => {
-      throw new Error("load must not be called under demo auth");
+      throw new Error("load must not be called in the Demo data context");
     });
     const outcome = await getUnitIndex({
       load,
-      config: { localDemoAuth: true },
+      config: {
+        environment: {
+          environmentKind: "demo",
+          dataContext: "demo",
+          source: "explicit",
+        },
+      },
       now: T0,
     });
     expect(outcome).toEqual({ status: "ok", candidates: [...DEMO_UNIT_CANDIDATES] });
     expect(load).not.toHaveBeenCalled();
+  });
+
+  it("uses the real read provider in Demo + Live-read-only", async () => {
+    const load = vi.fn(
+      async (): Promise<UnitSourceOutcome> => ({
+        status: "ok",
+        candidates: CANDIDATES,
+        skipped: 0,
+      }),
+    );
+
+    const outcome = await getUnitIndex({
+      load,
+      config: {
+        environment: {
+          environmentKind: "demo",
+          dataContext: "live_readonly",
+          source: "explicit",
+        },
+      },
+      now: T0,
+    });
+
+    expect(outcome).toEqual({ status: "ok", candidates: CANDIDATES });
+    expect(load).toHaveBeenCalledOnce();
   });
 });
 

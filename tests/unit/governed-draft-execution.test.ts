@@ -343,15 +343,33 @@ describe("governed draft — refusals before any provider construction", () => {
     },
   ] as const;
 
+  it("refuses Live-read-only before preparation can write the execution ledger", async () => {
+    const prepare = vi.fn(harness().seams.prepare);
+    const h = harness({
+      assertEffectEnvironment: () =>
+        assertLiveProviderActionAllowed({
+          environmentKind: "demo",
+          dataContext: "live_readonly",
+          source: "explicit",
+        }),
+    });
+
+    await expect(
+      prepareGovernedDraft(actor, h.request(), { ...h.seams, prepare }),
+    ).rejects.toThrow(/requires the Production environment with Live data/i);
+    expect(prepare).not.toHaveBeenCalled();
+    expect(h.createClient).not.toHaveBeenCalled();
+  });
+
   it.each(environments)("constructs no Gmail client in $name", async ({ assert }) => {
-    const h = harness({ assertEffectEnvironment: assert });
+    const h = harness();
     const prepared = await prepareGovernedDraft(actor, h.request(), h.seams);
 
     await expect(
       executeGovernedDraft(
         actor,
         { ...h.request(), executionId: prepared.id, previewHash: prepared.preview_hash },
-        h.seams,
+        { ...h.seams, assertEffectEnvironment: assert },
       ),
     ).rejects.toThrow();
     expect(h.createClient).not.toHaveBeenCalled();

@@ -13,9 +13,33 @@ vi.mock("@/components/auth/SignOutButton", () => ({
 
 import { AppShell } from "@/components/layout/AppShell";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllEnvs();
+});
 
 describe("AppShell space-scoped navigation", () => {
+  it("renders the explicit Live-read-only badge and hides the persistent write control", () => {
+    vi.stubEnv("ENVIRONMENT_KIND", "demo");
+    vi.stubEnv("DATA_CONTEXT", "live_readonly");
+
+    render(
+      <AppShell
+        user={{
+          uid: "admin",
+          email: "admin@pmikcmetro.com",
+          hd: "pmikcmetro.com",
+          role: "Admin",
+        }}
+      >
+        <main>Read-only Console</main>
+      </AppShell>,
+    );
+
+    expect(screen.getByText("Live data, read only")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Feedback" })).toBeNull();
+  });
+
   it("hides the renewals-only Approval Queue from a maintenance-only principal", () => {
     render(
       <AppShell

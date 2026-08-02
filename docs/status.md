@@ -8830,3 +8830,35 @@ promoted by exact revision, and was read back at 100%; its stable URL also retur
 Both reachable service hosts therefore refuse Test creation before AC-S56-2 counting begins. No
 record count, backup, restore, deletion, local-rehearsal change, fixture retirement, or S55 stage-two
 service deletion has run yet.
+
+## 2026-08-02 — S56 local rehearsal is explicit Live-read-only
+
+AC-S56-6 is complete without editing `.env.local` or `.env.production.local` and without seeding a
+fixture. `npm run dev` now owns a shell-free launcher that overlays Demo + Live-read-only explicitly,
+turns off the retired Ask Demo adapter, enables local authentication, and pins speech to the local
+stub. Hostile ambient values are overwritten, every CLI argument reaches Next, termination signals
+and exit results are preserved, and the resolved descriptor reports `source:"explicit"`.
+
+Provider selection now follows the descriptor rather than `NODE_ENV` or local authentication:
+Console and maintenance unit lookup use real bounded Live reads, and Gmail selects the Live state
+lane while its Production-only effect client still refuses before construction. The shell renders
+“Live data, read only” and hides its persistent feedback write control.
+
+The effect boundary is default-deny. A broad Next proxy covers API routes and page/server actions;
+only exact authentication-cookie operations and seven reviewed non-persisting read/computation POSTs
+are exceptions. Invalid descriptors refuse before GET as well as mutations. The screenshot reconcile
+operation is explicitly refused even though the legacy route exposes it as GET. Direct defenses
+also suppress Ask logs and draft preparation, convert Vendor page-load activation to an active-state
+read, refuse governed-draft ledger preparation, and block support-report/internal-notice and photo
+writes. A TypeScript-AST sentinel inventories all exported route methods, handler factories,
+mutation-shaped GETs, and server page loads so a new route or suspicious read fails until reviewed.
+
+Falsification exposed and then closed missing staff/Vendor session exceptions, Ask draft creation,
+invalid-descriptor safe-method bypass, GET reconciliation, direct writer gaps, and suspicious-boundary
+inventory drift. The integrated focused set passed 14 files / 106 tests; typecheck, focused lint,
+format, and diff hygiene passed. A real local server smoke returned authentication 200 and Console
+200 with the read-only badge and no practice badge. A nonsense bounded unit search returned a list
+shape with zero matches, while a normal POST mutation and GET reconciliation each returned 409
+`LiveReadOnlyMutationRefused`. No record content was printed or retained, and no durable writer or
+effect provider ran. The next ordered step is the complete marker inventory and Production count;
+no count, backup, restore, record deletion, fixture retirement, or old-service deletion has run.

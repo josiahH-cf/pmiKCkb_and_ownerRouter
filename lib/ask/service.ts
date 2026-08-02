@@ -13,6 +13,7 @@ import {
 } from "@/lib/demo/data";
 import type { AskLogWriter } from "@/lib/firestore/ask-logs";
 import { FirestoreAskLogWriter } from "@/lib/firestore/ask-logs";
+import { isLiveReadOnlyContext } from "@/lib/environment/descriptor";
 import { getProcessDefinition } from "@/lib/firestore/workflows";
 import {
   ensureDraftBanner,
@@ -63,7 +64,12 @@ export async function answerQuestion(
   options: AskServiceOptions = {},
 ): Promise<AskResponse> {
   const config = options.config ?? readServerConfig();
-  const response = await produceAnswer(user, request, { ...options, config });
+  // Local rehearsal may answer from real sources, but it cannot prepare even a transient draft.
+  // Enforce that server-side because the existing Console client always asks for draft_enabled=true.
+  const effectiveRequest = isLiveReadOnlyContext(config.environment)
+    ? { ...request, draft_enabled: false }
+    : request;
+  const response = await produceAnswer(user, effectiveRequest, { ...options, config });
   // Answer transparency (Slice 4): stamp the configured answer-model label + the number of sources
   // shown on EVERY result path (generated, demo, no-source, review-only). Never overrides a value a
   // path already set.
@@ -84,8 +90,9 @@ async function produceAnswer(
   request = scopeAskRequest(user, request);
   const config = options.config ?? readServerConfig();
   const askLogWriter =
-    options.askLogWriter ??
-    (config.askDemoMode ? undefined : new FirestoreAskLogWriter());
+    isLiveReadOnlyContext(config.environment) || config.askDemoMode
+      ? undefined
+      : (options.askLogWriter ?? new FirestoreAskLogWriter());
 
   if (config.askDemoMode) {
     const response = answerDemoQuestion(user, request);

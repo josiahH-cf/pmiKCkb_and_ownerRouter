@@ -200,6 +200,37 @@ function resumeRequest(
 }
 
 describe("renewal comp screenshot route contract", () => {
+  it("refuses Live-read-only reconcile before any ledger or Drive operation", async () => {
+    const runtime = makeRuntime();
+    runtime.context.descriptor = {
+      environmentKind: "demo",
+      dataContext: "live_readonly",
+      source: "explicit",
+    };
+    const getExecution = vi.spyOn(runtime.deps.store, "getExecution");
+    const markAbsent = vi.spyOn(runtime.deps.store, "markAbsentIfNotStarted");
+    const markAmbiguous = vi.spyOn(runtime.deps.store, "markAmbiguous");
+    const finish = vi.spyOn(runtime.deps.store, "finish");
+    const handlers = createRenewalCompScreenshotRouteHandlers({
+      authenticate: async () => ACTOR,
+      assertRuntimeExecutable: async () => undefined,
+      buildRuntime: () => runtime,
+    });
+
+    const response = await handlers.GET(
+      new Request(
+        `http://localhost/api/lease-renewal/comp-screenshot?operation=reconcile&executionId=comp_store_${"a".repeat(48)}`,
+      ),
+    );
+
+    expect(response.status).toBe(409);
+    expect(getExecution).not.toHaveBeenCalled();
+    expect(markAbsent).not.toHaveBeenCalled();
+    expect(markAmbiguous).not.toHaveBeenCalled();
+    expect(finish).not.toHaveBeenCalled();
+    expect(runtime.createProvider).not.toHaveBeenCalled();
+  });
+
   it("refuses a closed action before runtime setup or request-body parsing", async () => {
     const buildRuntime = vi.fn();
     const request = storeRequest(false);

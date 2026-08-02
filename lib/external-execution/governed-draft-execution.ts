@@ -120,6 +120,9 @@ export async function prepareGovernedDraft(
     ...request.action,
     authority: undefined,
   } as never);
+  // Preparation writes the S20 execution ledger. Local Live-read-only must refuse before that write,
+  // not merely before the later Gmail client construction.
+  assertEffectEnvironment(seams);
   await assertProductionRuntimeActionExecutable(request.action.actionKey);
   const prepare = seams.prepare ?? prepareExternalActionWithS20;
   return prepare(actor, {

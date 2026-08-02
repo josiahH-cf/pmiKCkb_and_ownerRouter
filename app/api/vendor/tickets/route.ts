@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { FirestoreVendorStore } from "@/lib/firestore/vendors";
 import { listVendorTickets } from "@/lib/vendor/assignment";
+import { confirmVendorPortalAccess } from "@/lib/vendor/access";
 import {
   assertVendorPrincipalLaneAllowed,
   requireVendorSession,
@@ -13,13 +14,7 @@ export async function GET() {
     const principal = await requireVendorSession();
     assertVendorPrincipalLaneAllowed(principal);
     const store = new FirestoreVendorStore();
-    await store.activateVendor(
-      principal.vendorId,
-      principal.uid,
-      principal.email,
-      new Date().toISOString(),
-      principal.dataMode ?? "live",
-    );
+    await confirmVendorPortalAccess(principal, store);
     return NextResponse.json({ tickets: await listVendorTickets(principal, store) });
   } catch (error) {
     return vendorErrorResponse(error);

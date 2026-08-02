@@ -8,7 +8,7 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/run-local-rehearsal.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

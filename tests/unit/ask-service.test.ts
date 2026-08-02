@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { DRAFT_BANNER } from "@/lib/constants";
 import { answerQuestion } from "@/lib/ask/service";
 import type { AuthenticatedUser } from "@/lib/auth/session";
@@ -85,6 +85,14 @@ const liveConfig: ServerConfig = {
 const demoConfig: ServerConfig = {
   ...liveConfig,
   askDemoMode: true,
+};
+const liveReadOnlyConfig: ServerConfig = {
+  ...liveConfig,
+  environment: {
+    environmentKind: "demo",
+    dataContext: "live_readonly",
+    source: "explicit",
+  },
 };
 
 describe("Ask service", () => {
@@ -259,6 +267,49 @@ describe("Ask service", () => {
         source_state: "Verified Source",
       },
     });
+  });
+
+  it("reads and answers from Live sources without writing an Ask log in Live-read-only", async () => {
+    const askLogWriter = new MemoryAskLogWriter();
+    const search: RetrievalClient = {
+      search: vi.fn(async () => emptyGrounding()),
+    };
+
+    await expect(
+      answerQuestion(user, request, {
+        askLogWriter,
+        config: liveReadOnlyConfig,
+        retrievalClient: search,
+      }),
+    ).resolves.toMatchObject({ source_state: "No Reliable Source Found" });
+
+    expect(search.search).toHaveBeenCalledOnce();
+    expect(askLogWriter.records).toEqual([]);
+  });
+
+  it("forces draft preparation off while answering from Live sources in Live-read-only", async () => {
+    const askLogWriter = new MemoryAskLogWriter();
+
+    const response = await answerQuestion(user, request, {
+      answerGenerator: answerGenerator({
+        citations: [
+          {
+            source_id: "drive-file-1",
+            title: "Lease Renewals Notes",
+            url: "https://drive.google.com/file/d/drive-file-1/view",
+          },
+        ],
+        draft: "A draft that local rehearsal must not prepare.",
+        source_state: "Verified Source",
+      }),
+      askLogWriter,
+      config: liveReadOnlyConfig,
+      retrievalClient: retrievalClient(grounding(["drive-file-1"])),
+    });
+
+    expect(response.answer).toBe("Generated grounded answer.");
+    expect(response.draft).toBe("");
+    expect(askLogWriter.records).toEqual([]);
   });
 
   it("keeps retrieval-stage partial state even when Gemini tries to upgrade it", async () => {
