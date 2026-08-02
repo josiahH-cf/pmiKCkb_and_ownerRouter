@@ -2,7 +2,11 @@ import { chmod, mkdir, readFile, symlink, unlink, writeFile } from "node:fs/prom
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { FirestoreRestFields } from "@/lib/operations/production-test-record-catalog";
+import {
+  classifyProductionTestRecord,
+  findProductionTestRecordDescriptor,
+  type FirestoreRestFields,
+} from "@/lib/operations/production-test-record-catalog";
 
 import {
   buildProductionTestRetirementManifest,
@@ -32,6 +36,7 @@ import {
   hashFirestoreFields,
   parseS56Arguments,
   productionTestProjectionPaths,
+  productionTestInventoryClassificationRefuses,
   readIntakeFenceEvidence,
   rehearseProductionTestRestore,
   resolvePrivateManifestPath,
@@ -278,6 +283,31 @@ describe("managed gcloud token acquisition", () => {
 });
 
 describe("Firestore REST boundaries", () => {
+  it("excludes missing-marker records from DELETE candidates but still refuses bad markers", () => {
+    const descriptor = findProductionTestRecordDescriptor("approval_queue_items")!;
+
+    expect(
+      productionTestInventoryClassificationRefuses(
+        classifyProductionTestRecord(descriptor, {}),
+      ),
+    ).toBe(false);
+    expect(
+      productionTestInventoryClassificationRefuses(
+        classifyProductionTestRecord(descriptor, {
+          data_mode: { stringValue: "TEST" },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      productionTestInventoryClassificationRefuses(
+        classifyProductionTestRecord(descriptor, {
+          data_mode: { stringValue: "test" },
+          dataMode: { stringValue: "live" },
+        }),
+      ),
+    ).toBe(true);
+  });
+
   it("captures a server-owned readTime without reading a document", async () => {
     const calls: Array<{ url: string; init: RequestInit }> = [];
     const client = restClient(async (url, init) => {

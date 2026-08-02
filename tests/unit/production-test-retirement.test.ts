@@ -229,15 +229,15 @@ describe("S56 v2 DELETE manifest", () => {
     ).toThrow(/both the named PITR identity and its verified clone/);
   });
 
-  it("counts held and unknown-retention Test rows before refusing backup readiness", () => {
-    const unknownRetention = snapshot(
+  it("counts held and legacy Test rows before refusing only the legal hold", () => {
+    const legacyWithoutRetention = snapshot(
       "approval_queue_items",
       "unknown",
       laneFields("test"),
     );
     const held = snapshot("maintenance_tickets", "held", productLaneFields("test", true));
     const counted = buildProductionTestRetirementManifest({
-      records: [unknownRetention, held],
+      records: [legacyWithoutRetention, held],
       countedAt: COUNTED_AT,
     });
 
@@ -245,9 +245,8 @@ describe("S56 v2 DELETE manifest", () => {
     expect(formatProductionTestRetirementCounts(counted)).toContain(
       "Total explicit Test records: 2",
     );
-    expect(() => manifest([unknownRetention, held])).toThrow(
-      /Unknown or malformed retention|legal hold/,
-    );
+    expect(legacyWithoutRetention.retentionDisposition).toBe("owner_authorized");
+    expect(() => manifest([legacyWithoutRetention, held])).toThrow(/legal hold/);
   });
 
   it("refuses malformed classification rather than defaulting or partially planning", () => {
@@ -261,11 +260,25 @@ describe("S56 v2 DELETE manifest", () => {
     );
   });
 
-  it("refuses malformed Product retention and every legal hold", () => {
-    const unknownRetention = snapshot("approval_queue_items", "a1", laneFields("test"));
+  it("authorizes fully absent legacy retention but refuses partial metadata and every hold", () => {
+    const legacyWithoutRetention = snapshot(
+      "approval_queue_items",
+      "legacy",
+      laneFields("test"),
+    );
+    const partialRetention = snapshot(
+      "approval_queue_items",
+      "partial",
+      laneFields("test", {
+        product_retention_policy: {
+          stringValue: "product-record-retention:v1.0",
+        },
+      }),
+    );
     const held = snapshot("maintenance_tickets", "m1", productLaneFields("test", true));
 
-    expect(() => manifest([unknownRetention])).toThrow(/Unknown or malformed retention/);
+    expect(() => manifest([legacyWithoutRetention])).not.toThrow();
+    expect(() => manifest([partialRetention])).toThrow(/Unknown or malformed retention/);
     expect(() => manifest([held])).toThrow(/legal hold/);
   });
 

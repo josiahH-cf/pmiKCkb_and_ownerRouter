@@ -1444,6 +1444,20 @@ function hasAnyMarker(fields: FirestoreRestFields): boolean {
   );
 }
 
+/**
+ * Missing authoritative markers are not deletion candidates. Product reads already fail-safe them
+ * to Live, so S56 leaves them untouched while still refusing malformed or contradictory markers.
+ * The DELETE plan itself continues to accept only records classified explicitly as Test.
+ */
+export function productionTestInventoryClassificationRefuses(
+  result: ReturnType<typeof classifyProductionTestRecord>,
+): boolean {
+  return (
+    result.classification === "refused" &&
+    result.refusalCode !== "missing_authoritative_marker"
+  );
+}
+
 function directDocumentIdentity(
   document: FirestoreDocument,
   collection: string,
@@ -1506,6 +1520,7 @@ async function inventoryProduction(
       counts[collection][result.classification] =
         (counts[collection][result.classification] ?? 0) + 1;
       if (result.classification === "refused") {
+        if (!productionTestInventoryClassificationRefuses(result)) continue;
         throw new Error(
           `The ${collection} inventory contains an invalid or contradictory classification; refusing S56.`,
         );

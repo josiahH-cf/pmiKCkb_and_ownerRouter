@@ -721,18 +721,30 @@ function resolveRetention(
   const legalHold = decodeFirestoreBoolean(fields.legal_hold);
   let disposition: ProductionTestRetentionDisposition;
   if (isProductRecordCollection(collection)) {
+    const hasAnyStoredRetentionField = [
+      fields.product_retention_policy,
+      fields.product_retention_class,
+      fields.legal_hold,
+    ].some((value) => value !== undefined);
     const productFields = {
       product_retention_policy: decodeFirestoreString(fields.product_retention_policy),
       product_retention_class: decodeFirestoreString(fields.product_retention_class),
       legal_hold: legalHold,
     };
-    const productDisposition = resolveProductRecordDeletionDisposition(productFields);
-    disposition =
-      productDisposition === "blocked_legal_hold"
-        ? "blocked_legal_hold"
-        : productDisposition === "blocked_unknown_retention"
-          ? "blocked_unknown_retention"
-          : "owner_authorized";
+    if (!hasAnyStoredRetentionField) {
+      // These are legacy Test-only rows created before D15 stamping. S56's exact owner decision
+      // supplies the otherwise-manual deletion review for every Test record. This exception is
+      // deliberately all-or-nothing: partial/malformed metadata still fails closed below.
+      disposition = "owner_authorized";
+    } else {
+      const productDisposition = resolveProductRecordDeletionDisposition(productFields);
+      disposition =
+        productDisposition === "blocked_legal_hold"
+          ? "blocked_legal_hold"
+          : productDisposition === "blocked_unknown_retention"
+            ? "blocked_unknown_retention"
+            : "owner_authorized";
+    }
   } else if (fields.legal_hold !== undefined && legalHold === undefined) {
     disposition = "blocked_unknown_retention";
   } else {
