@@ -69,12 +69,30 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   delete process.env.MAINTENANCE_INTAKE_TOKEN_SECRET;
   delete process.env.MAINTENANCE_INTAKE_DAILY_CAP;
   delete process.env.MAINTENANCE_INTAKE_IP_HASH_SALT;
 });
 
 describe("public maintenance intake route", () => {
+  it("refuses an already-signed Test token in Production before the writer", async () => {
+    vi.stubEnv("ENVIRONMENT_KIND", "production");
+    vi.stubEnv("DATA_CONTEXT", "live");
+    const testToken = token(MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey, {
+      dataMode: "test",
+    });
+
+    const res = await POST(
+      req(JSON.stringify(MAINTENANCE_TEST_PUBLIC_INTAKE), {
+        "x-intake-token": testToken,
+      }),
+    );
+
+    expect(res.status).toBe(409);
+    expect(createUnverifiedIntakeFromPublic).not.toHaveBeenCalled();
+  });
+
   it("fails closed with the exact generic 503 when the token secret is missing", async () => {
     delete process.env.MAINTENANCE_INTAKE_TOKEN_SECRET;
     const res = await POST(req(validBody, { "x-intake-token": token() }));

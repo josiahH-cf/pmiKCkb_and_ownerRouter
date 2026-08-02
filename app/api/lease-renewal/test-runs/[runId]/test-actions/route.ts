@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { assertTestLaneSurfaceAllowed } from "@/lib/environment/test-lane";
 import {
   SimulateLeaseTestActionInputSchema,
   listLeaseTestActionAttempts,
@@ -16,6 +17,7 @@ interface RouteContext {
 export async function GET(_request: Request, context: RouteContext) {
   try {
     const user = await requireCapabilityInSpace("read", "renewals");
+    assertTestLaneSurfaceAllowed();
     const { runId } = await context.params;
     const [receipts, attempts] = await Promise.all([
       listLeaseTestActionReceipts(user, runId),
@@ -31,6 +33,7 @@ export async function GET(_request: Request, context: RouteContext) {
 export async function POST(request: Request, context: RouteContext) {
   try {
     const user = await requireCapabilityInSpace("edit", "renewals");
+    assertTestLaneSurfaceAllowed();
     const { runId } = await context.params;
     const input = await parseJsonBody(request, SimulateLeaseTestActionInputSchema);
     const evidence = await simulateLeaseTestAction(user, runId, input);

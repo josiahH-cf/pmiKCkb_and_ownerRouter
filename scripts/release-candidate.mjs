@@ -233,9 +233,43 @@ export function buildPriorRevisionQueryPlan({ project, region, service } = {}) {
       service,
       `--project=${project}`,
       `--region=${region}`,
-      "--format=value(status.traffic.revisionName)",
+      "--format=json(status.traffic)",
     ],
   };
+}
+
+/**
+ * Select the one revision carrying all serving traffic. Tagged zero-traffic candidates remain in
+ * status.traffic, so reading every revisionName as a flat value can produce a multi-line string
+ * that is not a revision and makes the printed rollback command unsafe.
+ */
+export function parseServingRevision(raw) {
+  let parsed;
+  try {
+    parsed = JSON.parse(String(raw));
+  } catch {
+    throw new Error(
+      "Could not parse the current serving revision from Cloud Run traffic.",
+    );
+  }
+  const traffic = parsed?.status?.traffic;
+  if (!Array.isArray(traffic)) {
+    throw new Error("Cloud Run did not return a serving revision traffic list.");
+  }
+  const servingNames = [
+    ...new Set(
+      traffic
+        .filter((entry) => Number(entry?.percent) === 100)
+        .map((entry) => entry?.revisionName)
+        .filter((value) => typeof value === "string" && value.trim().length > 0),
+    ),
+  ];
+  if (servingNames.length !== 1) {
+    throw new Error(
+      `Expected exactly one 100-percent serving revision; found ${servingNames.length}.`,
+    );
+  }
+  return servingNames[0];
 }
 
 export function formatCommand(command, args) {
@@ -308,7 +342,7 @@ export function buildReleasePlan({
       name: "smoke-candidate",
       description:
         "Run the bounded read-only smoke against the candidate tag URL before any traffic moves.",
-      command: `npm run smoke:demo-live -- --base-url=<candidate tag url for ${candidate.candidateTag}>`,
+      command: `npm run smoke:release-candidate -- --base-url=<candidate tag url for ${candidate.candidateTag}> --expected-tag=${candidate.candidateTag} --expected-service=${target.service}`,
     },
     {
       name: "promote-exact-revision",

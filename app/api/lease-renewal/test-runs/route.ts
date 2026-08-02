@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { assertTestLaneSurfaceAllowed } from "@/lib/environment/test-lane";
 import {
   CreateLeaseTestRunInputSchema,
   createCanonicalLeaseTestRun,
@@ -11,6 +12,7 @@ import {
 export async function GET() {
   try {
     const user = await requireCapabilityInSpace("read", "renewals");
+    assertTestLaneSurfaceAllowed();
     return NextResponse.json({ runs: await listLeaseTestRuns(user) });
   } catch (error) {
     return apiErrorResponse(error);
@@ -21,6 +23,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireCapabilityInSpace("edit", "renewals");
+    assertTestLaneSurfaceAllowed();
     const input = await parseJsonBody(request, CreateLeaseTestRunInputSchema);
     const run = await createCanonicalLeaseTestRun(user, input);
     return NextResponse.json({ run }, { status: 201 });

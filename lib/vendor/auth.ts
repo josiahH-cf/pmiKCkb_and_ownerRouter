@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 
 import { getSessionCookieName } from "@/lib/auth/session";
 import { parseExplicitDataMode } from "@/lib/data-mode";
+import { EnvironmentContextError } from "@/lib/environment/descriptor";
+import { assertTestDataModeWriteAllowed } from "@/lib/environment/test-lane";
 import {
   createFirebaseSessionCookie,
   verifyFirebaseIdToken,
@@ -104,6 +106,7 @@ export async function authenticateVendorIdToken(
 
 export async function createVendorSession(idToken: string) {
   const principal = await authenticateVendorIdToken(idToken);
+  assertVendorPrincipalLaneAllowed(principal);
   const sessionCookie = await createFirebaseSessionCookie(
     idToken,
     VENDOR_SESSION_MAX_AGE_MS,
@@ -121,7 +124,9 @@ export async function getVendorSession(
   const value = (await cookies()).get(getSessionCookieName())?.value;
   if (!value) return null;
 
-  return decodeVendorSessionCookie(value, verifier);
+  const principal = await decodeVendorSessionCookie(value, verifier);
+  if (principal) assertVendorPrincipalLaneAllowed(principal);
+  return principal;
 }
 
 export async function decodeVendorSessionCookie(
@@ -149,7 +154,15 @@ export async function decodeVendorSessionCookie(
 export async function requireVendorSession() {
   const vendor = await getVendorSession();
   if (!vendor) throw new VendorBoundaryError("Vendor authentication is required.", 401);
+  assertVendorPrincipalLaneAllowed(vendor);
   return vendor;
+}
+
+export function assertVendorPrincipalLaneAllowed(
+  principal: Pick<VendorPrincipal, "dataMode">,
+  env: Record<string, string | undefined> = process.env,
+) {
+  assertTestDataModeWriteAllowed(principal.dataMode ?? "live", env);
 }
 
 export function vendorMailboxKey(email: string) {
@@ -159,6 +172,9 @@ export function vendorMailboxKey(email: string) {
 export function vendorErrorResponse(error: unknown) {
   if (error instanceof VendorBoundaryError) {
     return Response.json({ error: error.message }, { status: error.status });
+  }
+  if (error instanceof EnvironmentContextError) {
+    return Response.json({ error: error.message }, { status: 409 });
   }
   throw error;
 }

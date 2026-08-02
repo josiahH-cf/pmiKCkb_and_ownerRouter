@@ -2,11 +2,16 @@ import { NextResponse } from "next/server";
 
 import { FirestoreVendorStore } from "@/lib/firestore/vendors";
 import { listVendorTickets } from "@/lib/vendor/assignment";
-import { requireVendorSession, vendorErrorResponse } from "@/lib/vendor/auth";
+import {
+  assertVendorPrincipalLaneAllowed,
+  requireVendorSession,
+  vendorErrorResponse,
+} from "@/lib/vendor/auth";
 
 export async function GET() {
   try {
     const principal = await requireVendorSession();
+    assertVendorPrincipalLaneAllowed(principal);
     const store = new FirestoreVendorStore();
     await store.activateVendor(
       principal.vendorId,

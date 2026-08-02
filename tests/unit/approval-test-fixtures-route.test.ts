@@ -64,10 +64,55 @@ beforeEach(() => {
 
 afterEach(() => {
   setAuthResolverForTest(null);
+  vi.unstubAllEnvs();
   vi.clearAllMocks();
 });
 
 describe("Approval Queue Test fixture route", () => {
+  it("refuses the fixture surface in Production even for an Admin", async () => {
+    vi.stubEnv("ENVIRONMENT_KIND", "production");
+    vi.stubEnv("DATA_CONTEXT", "live");
+
+    const inspectResponse = await GET();
+    const restoreResponse = await POST(
+      request({
+        action: "restore",
+        confirmation: APPROVAL_TEST_FIXTURE_CONFIRMATION,
+      }),
+    );
+
+    expect(inspectResponse.status).toBe(409);
+    expect(restoreResponse.status).toBe(409);
+    await expect(inspectResponse.json()).resolves.toMatchObject({
+      code: "environment_context_not_allowed",
+    });
+    await expect(restoreResponse.json()).resolves.toMatchObject({
+      code: "environment_context_not_allowed",
+    });
+    expect(listAppUsers).not.toHaveBeenCalled();
+    expect(inspectApprovalTestFixtures).not.toHaveBeenCalled();
+    expect(restoreApprovalTestFixtures).not.toHaveBeenCalled();
+  });
+
+  it("refuses fixture restoration from the local Live-read-only context", async () => {
+    vi.stubEnv("ENVIRONMENT_KIND", "demo");
+    vi.stubEnv("DATA_CONTEXT", "live_readonly");
+
+    const response = await POST(
+      request({
+        action: "restore",
+        confirmation: APPROVAL_TEST_FIXTURE_CONFIRMATION,
+      }),
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "environment_context_not_allowed",
+    });
+    expect(listAppUsers).not.toHaveBeenCalled();
+    expect(restoreApprovalTestFixtures).not.toHaveBeenCalled();
+  });
+
   it("reads and restores with exact confirmation and a real restricted staff UID", async () => {
     expect((await GET()).status).toBe(200);
     expect(inspectApprovalTestFixtures).toHaveBeenCalledWith(

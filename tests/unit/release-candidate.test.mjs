@@ -10,6 +10,7 @@ import {
   ENVIRONMENT_DESCRIPTORS,
   findLocalOnlyDeployConfig,
   LOCAL_ONLY_DEPLOY_VARIABLES,
+  parseServingRevision,
   parseReleaseArgs,
 } from "@/scripts/release-candidate.mjs";
 
@@ -156,9 +157,54 @@ describe("zero-traffic candidate delivery (AC-S40-6)", () => {
     const { args } = buildPriorRevisionQueryPlan(TARGET);
 
     expect(args.slice(0, 3)).toEqual(["run", "services", "describe"]);
-    expect(args).toContain("--format=value(status.traffic.revisionName)");
+    expect(args).toContain("--format=json(status.traffic)");
     // A describe must never carry a mutating flag.
     expect(args.join(" ")).not.toMatch(/--to-revisions|--no-traffic|deploy/);
+  });
+
+  it("selects only the exact 100-percent revision when a zero-traffic tag exists", () => {
+    expect(
+      parseServingRevision(
+        JSON.stringify({
+          status: {
+            traffic: [
+              { percent: 100, revisionName: "svc-safe-prior" },
+              {
+                percent: 0,
+                revisionName: "svc-zero-traffic-candidate",
+                tag: "cand-abc123",
+                url: "https://cand.example.invalid",
+              },
+            ],
+          },
+        }),
+      ),
+    ).toBe("svc-safe-prior");
+  });
+
+  it("refuses malformed, split, or ambiguous serving traffic", () => {
+    for (const value of [
+      "not-json",
+      JSON.stringify({ status: { traffic: [] } }),
+      JSON.stringify({
+        status: {
+          traffic: [
+            { percent: 50, revisionName: "svc-a" },
+            { percent: 50, revisionName: "svc-b" },
+          ],
+        },
+      }),
+      JSON.stringify({
+        status: {
+          traffic: [
+            { percent: 100, revisionName: "svc-a" },
+            { percent: 100, revisionName: "svc-b" },
+          ],
+        },
+      }),
+    ]) {
+      expect(() => parseServingRevision(value)).toThrow(/serving revision/i);
+    }
   });
 
   it("restores exactly the captured prior revision on rollback", () => {
@@ -229,6 +275,11 @@ describe("environment parameterisation (AC-S40-11)", () => {
     expect(names.indexOf("smoke-candidate")).toBeLessThan(
       names.indexOf("promote-exact-revision"),
     );
+    const smoke = plan.steps.find((step) => step.name === "smoke-candidate");
+    expect(smoke.command).toContain("smoke:release-candidate");
+    expect(smoke.command).toContain(`--expected-tag=${plan.candidateTag}`);
+    expect(smoke.command).toContain(`--expected-service=${TARGET.service}`);
+    expect(smoke.command).not.toContain("smoke:demo-live");
   });
 
   it("emits no steps at all when the plan is refused", () => {

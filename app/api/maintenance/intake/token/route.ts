@@ -6,6 +6,7 @@ import { z } from "zod";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
+import { assertTestDataModeWriteAllowed } from "@/lib/environment/test-lane";
 import { readIntakeEpoch } from "@/lib/firestore/maintenance-unverified-intake";
 import { normalizeIntakePropertyKey } from "@/lib/maintenance/intake-sanitize";
 import { INTAKE_TOKEN_MAX_TTL_MS, mintIntakeToken } from "@/lib/maintenance/intake-token";
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
     const secret = config.maintenanceIntakeTokenSecret!;
 
     const input = await parseJsonBody(request, MintBodySchema);
+    assertTestDataModeWriteAllowed(input.dataMode);
     const propertyKey = normalizeIntakePropertyKey(input.propertyKey);
     if (!propertyKey) {
       return NextResponse.json({ error: "Invalid property key." }, { status: 400 });

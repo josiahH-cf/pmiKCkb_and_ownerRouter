@@ -22,6 +22,7 @@ import { z } from "zod";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { resolveStoredDataMode } from "@/lib/data-mode";
+import { assertTestDataModeWriteAllowed } from "@/lib/environment/test-lane";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
@@ -125,6 +126,7 @@ export async function promoteUnverifiedIntake(
     if (intake.status !== "unverified") {
       throw new EditableLayerError("That intake has already been reviewed.", 409);
     }
+    assertTestDataModeWriteAllowed(intake.data_mode);
 
     // Priority: honor an operator override, else infer from the report text (transparent provenance).
     const priority =
@@ -248,6 +250,7 @@ export async function dismissUnverifiedIntake(
     if (intake.status !== "unverified") {
       throw new EditableLayerError("That intake has already been reviewed.", 409);
     }
+    assertTestDataModeWriteAllowed(intake.data_mode);
 
     const dismissed: UnverifiedIntakeRecord = {
       ...intake,

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Firestore } from "firebase-admin/firestore";
 
 import {
@@ -61,6 +61,10 @@ function ticketDocs(db: FakeFirestore): MaintenanceTicketRecord[] {
     )
     .map(([, data]) => data as unknown as MaintenanceTicketRecord);
 }
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe("maintenance intake review", () => {
   it("lists only the requested status bucket, newest first", async () => {
@@ -178,6 +182,21 @@ describe("maintenance intake review", () => {
       db.store.get(`${MAINTENANCE_INTAKE_COLLECTIONS.intake}/test-intake`),
     ).toMatchObject({ data_mode: "test", status: "promoted", ticket_id: ticket.id });
     expect(ticketDocs(db)).toHaveLength(1);
+  });
+
+  it("refuses an existing Test intake in Production before creating a ticket", async () => {
+    vi.stubEnv("ENVIRONMENT_KIND", "production");
+    vi.stubEnv("DATA_CONTEXT", "live");
+    const db = new FakeFirestore();
+    seedIntake(db, "test-intake", { data_mode: "test" });
+
+    await expect(
+      promoteUnverifiedIntake(editor, "test-intake", {}, db as unknown as Firestore, NOW),
+    ).rejects.toThrow(/Test lane is retired/);
+    expect(ticketDocs(db)).toHaveLength(0);
+    expect(
+      db.store.get(`${MAINTENANCE_INTAKE_COLLECTIONS.intake}/test-intake`),
+    ).toMatchObject({ data_mode: "test", status: "unverified" });
   });
 
   it("refuses to bind Test intake to any noncanonical unit", async () => {

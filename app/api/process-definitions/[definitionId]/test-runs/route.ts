@@ -1,5 +1,6 @@
 import { createdJson, apiErrorResponse, parseOptionalJsonBody } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
+import { assertTestLaneSurfaceAllowed } from "@/lib/environment/test-lane";
 import { StartWorkflowTestRunInputSchema } from "@/lib/firestore/schemas";
 import { getProcessDefinition, startWorkflowTestRun } from "@/lib/firestore/workflows";
 import {
@@ -14,6 +15,7 @@ interface RouteContext {
 export async function POST(request: Request, context: RouteContext) {
   try {
     const user = await requireCapability("edit");
+    assertTestLaneSurfaceAllowed();
     const { definitionId } = await context.params;
     if (user.scopes === undefined) {
       assertProcessDefinitionAccess(user, definitionId);

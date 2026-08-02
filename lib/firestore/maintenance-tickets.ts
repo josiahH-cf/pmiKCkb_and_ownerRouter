@@ -18,6 +18,7 @@ import { z } from "zod";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { resolveStoredDataMode } from "@/lib/data-mode";
+import { assertTestDataModeWriteAllowed } from "@/lib/environment/test-lane";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
@@ -184,6 +185,7 @@ export async function createMaintenanceTicket(
 ): Promise<MaintenanceTicketRecord> {
   assertCan(actor, "edit");
   const parsed = CreateMaintenanceTicketInputSchema.parse(input);
+  assertTestDataModeWriteAllowed(parsed.data_mode);
   const createdAt = nowIso();
   const id = uuidv7();
 
@@ -278,6 +280,7 @@ export async function transitionMaintenanceTicket(
     }
     const persistedTicket = snapshot.data()!;
     const ticket = readMaintenanceTicket(snapshot.id, persistedTicket);
+    assertTestDataModeWriteAllowed(ticket.data_mode);
 
     // Validate and apply the product-record retention contract before any transition-specific
     // transaction write. This upgrades a fully legacy record, preserves an existing legal hold,

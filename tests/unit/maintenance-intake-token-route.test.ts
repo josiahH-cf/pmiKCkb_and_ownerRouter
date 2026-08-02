@@ -40,11 +40,28 @@ beforeEach(() => {
 
 afterEach(() => {
   setAuthResolverForTest(null);
+  vi.unstubAllEnvs();
   delete process.env.MAINTENANCE_INTAKE_TOKEN_SECRET;
   delete process.env.MAINTENANCE_INTAKE_IP_HASH_SALT;
 });
 
 describe("mint intake token route", () => {
+  it("refuses a Test token in Production before reading Firestore", async () => {
+    vi.stubEnv("ENVIRONMENT_KIND", "production");
+    vi.stubEnv("DATA_CONTEXT", "live");
+    setEditor();
+
+    const res = await POST(
+      req({
+        propertyKey: MAINTENANCE_TEST_PUBLIC_INTAKE.propertyKey,
+        dataMode: "test",
+      }),
+    );
+
+    expect(res.status).toBe(409);
+    expect(readIntakeEpoch).not.toHaveBeenCalled();
+  });
+
   it("returns 401 when unauthenticated", async () => {
     setAuthResolverForTest(() => null);
     const res = await POST(req({ propertyKey: "prop-1" }));

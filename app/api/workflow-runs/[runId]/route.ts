@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
+import { assertTestLaneSurfaceAllowed } from "@/lib/environment/test-lane";
 import { UpdateWorkflowRunInputSchema } from "@/lib/firestore/schemas";
 import {
   getWorkflowRun,
@@ -16,6 +17,7 @@ interface RouteContext {
 export async function GET(_request: Request, context: RouteContext) {
   try {
     const user = await requireCapability("read");
+    assertTestLaneSurfaceAllowed();
     const { runId } = await context.params;
     const run = await getWorkflowRun(user, runId);
     assertWorkflowRunAccess(user, run);
@@ -30,6 +32,7 @@ export async function GET(_request: Request, context: RouteContext) {
 export async function PATCH(request: Request, context: RouteContext) {
   try {
     const user = await requireCapability("edit");
+    assertTestLaneSurfaceAllowed();
     const { runId } = await context.params;
     const input = await parseJsonBody(request, UpdateWorkflowRunInputSchema);
     const existingRun = await getWorkflowRun(user, runId);

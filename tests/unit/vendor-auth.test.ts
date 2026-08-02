@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { decodeVendorSessionCookie, validateVendorClaims } from "@/lib/vendor/auth";
+import {
+  assertVendorPrincipalLaneAllowed,
+  decodeVendorSessionCookie,
+  validateVendorClaims,
+} from "@/lib/vendor/auth";
 
 const now = 2_000_000;
 const valid = {
@@ -16,6 +20,18 @@ const valid = {
 };
 
 describe("Vendor data-mode claim (S40 AC-S40-1)", () => {
+  it("refuses an existing Test Vendor principal in Production and local Live-read-only", () => {
+    const principal = validateVendorClaims({ ...valid, data_mode: "test" }, now);
+    for (const env of [
+      { ENVIRONMENT_KIND: "production", DATA_CONTEXT: "live" },
+      { ENVIRONMENT_KIND: "demo", DATA_CONTEXT: "live_readonly" },
+    ]) {
+      expect(() => assertVendorPrincipalLaneAllowed(principal, env)).toThrow(
+        /Test lane is retired/,
+      );
+    }
+  });
+
   it("refuses a Vendor principal that carries no explicit lane", () => {
     const withoutLane = { ...valid };
     delete (withoutLane as { data_mode?: unknown }).data_mode;

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { assertTestLaneSurfaceAllowed } from "@/lib/environment/test-lane";
 import {
   CreateMaintenanceTestTicketInputSchema,
   createCanonicalMaintenanceTestTicket,
@@ -12,6 +13,7 @@ import {
 export async function POST(request: Request) {
   try {
     const user = await requireCapabilityInSpace("edit", "maintenance");
+    assertTestLaneSurfaceAllowed();
     const input = await parseJsonBody(request, CreateMaintenanceTestTicketInputSchema);
     const ticket = await createCanonicalMaintenanceTestTicket(user, input);
     return NextResponse.json({ ticket }, { status: 201 });

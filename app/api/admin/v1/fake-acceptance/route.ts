@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { authErrorResponse, requireCapability } from "@/lib/auth/session";
+import { apiErrorResponse } from "@/lib/api/editable";
+import { requireCapability } from "@/lib/auth/session";
+import { assertTestLaneSurfaceAllowed } from "@/lib/environment/test-lane";
 import { runIntegratedFakeV1Acceptance } from "@/lib/release/fake-acceptance";
 
 export async function POST() {
   try {
     await requireCapability("manageAdmin");
+    assertTestLaneSurfaceAllowed();
     const result = await runIntegratedFakeV1Acceptance();
     // `mode`, `dataMode`, `liveEvidenceEligible`, and `liveProviderCallCount` are `as const`
     // structural invariants of the harness, so re-checking them here compared literals with
@@ -28,6 +31,6 @@ export async function POST() {
     }
     return NextResponse.json(result);
   } catch (error) {
-    return authErrorResponse(error);
+    return apiErrorResponse(error);
   }
 }

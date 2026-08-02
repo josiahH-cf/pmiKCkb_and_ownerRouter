@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { apiErrorResponse, createdJson, parseJsonBody } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
+import { assertTestLaneSurfaceAllowed } from "@/lib/environment/test-lane";
 import {
   SetWorkflowRunStepCheckInputSchema,
   listStepChecksForRun,
@@ -20,6 +21,7 @@ const StepCheckBodySchema = SetWorkflowRunStepCheckInputSchema.omit({ run_id: tr
 export async function POST(request: Request, context: RouteContext) {
   try {
     const user = await requireCapability("edit");
+    assertTestLaneSurfaceAllowed();
     const { runId } = await context.params;
     const body = await parseJsonBody(request, StepCheckBodySchema);
     assertWorkflowRunAccess(user, await getWorkflowRun(user, runId));
@@ -33,6 +35,7 @@ export async function POST(request: Request, context: RouteContext) {
 export async function GET(_request: Request, context: RouteContext) {
   try {
     const user = await requireCapability("edit");
+    assertTestLaneSurfaceAllowed();
     const { runId } = await context.params;
     assertWorkflowRunAccess(user, await getWorkflowRun(user, runId));
     const checks = await listStepChecksForRun(user, runId);

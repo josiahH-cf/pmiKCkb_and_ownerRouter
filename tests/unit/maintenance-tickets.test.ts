@@ -1,5 +1,5 @@
 import type { Firestore } from "firebase-admin/firestore";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
@@ -156,7 +156,40 @@ const baseInput = {
   unit: { unitId: "u-1", label: "123 Main St #2", confidence: "Verified" as const },
 };
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 describe("maintenance tickets", () => {
+  it("refuses to create or transition Test tickets in Production", async () => {
+    const { db, store } = fakeDb();
+    vi.stubEnv("ENVIRONMENT_KIND", "production");
+    vi.stubEnv("DATA_CONTEXT", "live");
+
+    await expect(createCanonicalMaintenanceTestTicket(editor, {}, db)).rejects.toThrow(
+      /Test lane is retired/,
+    );
+    expect(store.get(MAINTENANCE_TICKET_COLLECTIONS.tickets)?.size ?? 0).toBe(0);
+
+    vi.stubEnv("ENVIRONMENT_KIND", "demo");
+    vi.stubEnv("DATA_CONTEXT", "demo");
+    const testTicket = await createCanonicalMaintenanceTestTicket(editor, {}, db);
+    vi.stubEnv("ENVIRONMENT_KIND", "production");
+    vi.stubEnv("DATA_CONTEXT", "live");
+
+    await expect(
+      transitionMaintenanceTicket(
+        editor,
+        testTicket.id,
+        { op: "vendor-assign", vendorId: MAINTENANCE_TEST_VENDOR.id },
+        db,
+      ),
+    ).rejects.toThrow(/Test lane is retired/);
+    expect(
+      store.get(MAINTENANCE_TICKET_COLLECTIONS.vendorAssignments)?.get(testTicket.id),
+    ).toBeUndefined();
+  });
+
   it("creates an Open ticket with a create Activity entry", async () => {
     const { db, store } = fakeDb();
     const ticket = await createMaintenanceTicket(editor, baseInput, db);

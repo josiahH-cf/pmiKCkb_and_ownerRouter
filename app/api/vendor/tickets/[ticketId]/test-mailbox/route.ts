@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { FirestoreVendorStore } from "@/lib/firestore/vendors";
+import { assertTestLaneSurfaceAllowed } from "@/lib/environment/test-lane";
 import { requireVendorSession } from "@/lib/vendor/auth";
 import { VendorBoundaryError } from "@/lib/vendor/model";
 import {
@@ -32,6 +33,7 @@ export async function GET(
 ) {
   try {
     const principal = await requireVendorSession();
+    assertTestLaneSurfaceAllowed();
     const { ticketId } = await context.params;
     const store = new FirestoreVendorStore();
     const service = new VendorTestMailboxService(principal, {
@@ -50,6 +52,7 @@ export async function POST(
 ) {
   try {
     const principal = await requireVendorSession();
+    assertTestLaneSurfaceAllowed();
     const { ticketId } = await context.params;
     const body = await parseJsonBody(request, bodySchema);
     const store = new FirestoreVendorStore();

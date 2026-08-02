@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { assertTestLaneSurfaceAllowed } from "@/lib/environment/test-lane";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   continueTestPublicationToPinnedRun,
@@ -50,6 +51,7 @@ interface RouteContext {
 export async function GET(_request: Request, context: RouteContext) {
   try {
     const actor = await requireCapabilityInSpace("manageAdmin", "renewals");
+    assertTestLaneSurfaceAllowed();
     await assertCanonicalSpace(context);
     return NextResponse.json({
       fixture: await inspectTestPublicationFixture(actor),
@@ -62,6 +64,7 @@ export async function GET(_request: Request, context: RouteContext) {
 export async function POST(request: Request, context: RouteContext) {
   try {
     const actor = await requireCapabilityInSpace("manageAdmin", "renewals");
+    assertTestLaneSurfaceAllowed();
     await assertCanonicalSpace(context);
     const input = await parseJsonBody(request, OperationSchema);
     const result =

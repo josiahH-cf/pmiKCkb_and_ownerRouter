@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { assertTestLaneSurfaceAllowed } from "@/lib/environment/test-lane";
 import {
   TransitionLeaseTestRunInputSchema,
   transitionLeaseTestRun,
@@ -15,6 +16,7 @@ interface RouteContext {
 export async function PATCH(request: Request, context: RouteContext) {
   try {
     const user = await requireCapabilityInSpace("edit", "renewals");
+    assertTestLaneSurfaceAllowed();
     const { runId } = await context.params;
     const input = await parseJsonBody(request, TransitionLeaseTestRunInputSchema);
     const run = await transitionLeaseTestRun(user, runId, input);

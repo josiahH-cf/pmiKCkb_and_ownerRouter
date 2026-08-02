@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
+import { assertTestLaneSurfaceAllowed } from "@/lib/environment/test-lane";
 import {
   disableProductionTestVendor,
   listProductionTestVendors,
@@ -68,6 +69,7 @@ const bodySchema = z.discriminatedUnion("operation", [
 export async function GET() {
   try {
     await requireCapability("manageAdmin");
+    assertTestLaneSurfaceAllowed();
     return NextResponse.json({ vendors: await listProductionTestVendors() });
   } catch (error) {
     return errorResponse(error);
@@ -77,6 +79,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const actor = await requireCapability("manageAdmin");
+    assertTestLaneSurfaceAllowed();
     const body = await parseJsonBody(request, bodySchema);
     if (body.operation === "preview_provision") {
       return NextResponse.json({

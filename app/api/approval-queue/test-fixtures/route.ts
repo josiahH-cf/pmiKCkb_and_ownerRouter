@@ -4,6 +4,7 @@ import { z } from "zod";
 import { listAppUsers } from "@/lib/admin/users";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { assertTestLaneSurfaceAllowed } from "@/lib/environment/test-lane";
 import {
   APPROVAL_TEST_FIXTURE_CONFIRMATION,
   inspectApprovalTestFixtures,
@@ -21,6 +22,7 @@ const RestoreSchema = z
 export async function GET() {
   try {
     const actor = await requireCapabilityInSpace("manageAdmin", "renewals");
+    assertTestLaneSurfaceAllowed();
     const restricted = await resolveRestrictedStaff(actor.uid);
     const fixtures = await inspectApprovalTestFixtures(actor, restricted.uid);
     return NextResponse.json({ fixtures, restricted_role: restricted.role });
@@ -32,6 +34,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const actor = await requireCapabilityInSpace("manageAdmin", "renewals");
+    assertTestLaneSurfaceAllowed();
     await parseJsonBody(request, RestoreSchema);
     const restricted = await resolveRestrictedStaff(actor.uid);
     const fixtures = await restoreApprovalTestFixtures(actor, restricted.uid);

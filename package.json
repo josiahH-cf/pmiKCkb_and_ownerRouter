@@ -76,6 +76,7 @@
     "smoke:ask-live": "node scripts/smoke-live-ask.mjs",
     "smoke:transcribe-live": "node scripts/smoke-transcribe-live.mjs",
     "smoke:auth-live": "node scripts/smoke-live-auth.mjs",
+    "smoke:release-candidate": "node scripts/smoke-release-candidate.mjs",
     "smoke:demo-live": "node scripts/smoke-demo-live.mjs",
     "seed:launch-skeletons": "node scripts/seed-launch-skeletons.mjs",
     "seed:source-meta": "node scripts/seed-source-meta.mjs",

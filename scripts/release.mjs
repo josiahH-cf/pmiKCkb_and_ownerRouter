@@ -23,6 +23,7 @@ import {
   buildPriorRevisionQueryPlan,
   buildReleasePlan,
   formatCommand,
+  parseServingRevision,
   parseReleaseArgs,
 } from "./release-candidate.mjs";
 
@@ -155,9 +156,11 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   }
 
   if (args.promote) {
-    const prior = await run(deploy.command, buildPriorRevisionQueryPlan(target).args, {
-      capture: true,
-    });
+    const prior = parseServingRevision(
+      await run(deploy.command, buildPriorRevisionQueryPlan(target).args, {
+        capture: true,
+      }),
+    );
     const promotion = buildRevisionTrafficCommand({
       argv,
       env,
@@ -176,10 +179,10 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
 
   // Capture the rollback target BEFORE the candidate exists, so the recorded revision is the one
   // that was actually serving rather than whatever the deploy left behind.
-  const priorRevision = await run(
-    deploy.command,
-    buildPriorRevisionQueryPlan(target).args,
-    { capture: true },
+  const priorRevision = parseServingRevision(
+    await run(deploy.command, buildPriorRevisionQueryPlan(target).args, {
+      capture: true,
+    }),
   );
   const candidate = buildCandidateDeployPlan({
     baseArgs: deploy.args,

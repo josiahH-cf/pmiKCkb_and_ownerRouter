@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { EnvironmentContextError } from "@/lib/environment/descriptor";
 import { EditableLayerError, editableLayerErrorResponse } from "@/lib/firestore/errors";
 import { PublicationValidationError } from "@/lib/publication/validation";
 
@@ -58,6 +59,13 @@ export function apiErrorResponse(error: unknown) {
     return NextResponse.json(
       { code: error.code, error: error.message },
       { status: error.status },
+    );
+  }
+
+  if (error instanceof EnvironmentContextError) {
+    return NextResponse.json(
+      { code: "environment_context_not_allowed", error: error.message },
+      { status: 409 },
     );
   }
 

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { readServerConfig } from "@/lib/config/server";
+import { assertTestDataModeWriteAllowed } from "@/lib/environment/test-lane";
 import { extractClientIp, hashClientIp } from "@/lib/maintenance/intake-client-ip";
 import { IntakeRateLimiter } from "@/lib/maintenance/intake-rate-limit";
 import { verifyIntakeToken } from "@/lib/maintenance/intake-token";
@@ -105,6 +106,12 @@ export async function POST(request: Request) {
   const verified = verifyIntakeToken(secret, token, now);
   if (!verified.ok) {
     return generic(401, "Invalid or missing intake token.");
+  }
+
+  try {
+    assertTestDataModeWriteAllowed(verified.payload.dataMode);
+  } catch {
+    return generic(409, "This intake link is no longer available.");
   }
 
   const body = await readBoundedText(request, MAX_BODY_BYTES);
