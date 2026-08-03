@@ -400,7 +400,7 @@ describe("Firestore REST boundaries", () => {
     });
   });
 
-  it("requires exact successful clone LRO, source UID, response UID, and GET identity", () => {
+  it("accepts an omitted LRO source UID only with an exact independent source GET", () => {
     const client = restClient(async () => jsonResponse({}));
     const destination = "s56-test-retirement-20260802";
     const destinationName = `projects/${S56_PROJECT}/databases/${destination}`;
@@ -413,7 +413,6 @@ describe("Firestore REST boundaries", () => {
         database: destinationName,
         pitrSnapshot: {
           database: `projects/${S56_PROJECT}/databases/${S56_DATABASE}`,
-          databaseUid: "source-uid",
           snapshotTime: "2026-08-02T19:40:00Z",
         },
       },
@@ -425,18 +424,29 @@ describe("Firestore REST boundaries", () => {
       locationId: "us-central1",
       type: "FIRESTORE_NATIVE",
     };
+    const sourceDatabase = {
+      name: `projects/${S56_PROJECT}/databases/${S56_DATABASE}`,
+      uid: "source-uid",
+      locationId: "us-central1",
+      type: "FIRESTORE_NATIVE",
+    };
     expect(
       assertCloneReadback({
         client,
         completed,
         database,
+        sourceDatabase,
         destinationDatabase: destination,
         snapshotTime: snapshot,
         sourceDatabaseUid: "source-uid",
       }),
     ).toMatchObject({
       cloneDatabaseUid: "clone-uid",
-      lroMetadata: { operationState: "SUCCESSFUL" },
+      lroMetadata: {
+        operationState: "SUCCESSFUL",
+        pitrSnapshot: { databaseUid: null },
+      },
+      sourceDatabaseReadback: { databaseUid: "source-uid" },
     });
     expect(() =>
       assertCloneReadback({
@@ -446,11 +456,45 @@ describe("Firestore REST boundaries", () => {
           metadata: { ...completed.metadata, operationState: "FAILED" },
         },
         database,
+        sourceDatabase,
         destinationDatabase: destination,
         snapshotTime: snapshot,
         sourceDatabaseUid: "source-uid",
       }),
     ).toThrow(/exact source and snapshot/);
+
+    expect(() =>
+      assertCloneReadback({
+        client,
+        completed: {
+          ...completed,
+          metadata: {
+            ...completed.metadata,
+            pitrSnapshot: {
+              ...completed.metadata.pitrSnapshot,
+              databaseUid: "wrong-source-uid",
+            },
+          },
+        },
+        database,
+        sourceDatabase,
+        destinationDatabase: destination,
+        snapshotTime: snapshot,
+        sourceDatabaseUid: "source-uid",
+      }),
+    ).toThrow(/exact source and snapshot/);
+
+    expect(() =>
+      assertCloneReadback({
+        client,
+        completed,
+        database,
+        sourceDatabase: { ...sourceDatabase, uid: "changed-source-uid" },
+        destinationDatabase: destination,
+        snapshotTime: snapshot,
+        sourceDatabaseUid: "source-uid",
+      }),
+    ).toThrow(/independently fetched Production source database identity drifted/);
   });
 
   it("validates every commit result and preserves the exact nanosecond commitTime", async () => {
@@ -614,6 +658,19 @@ describe("Firestore REST boundaries", () => {
         execFile: fenceReadbackTransport(),
       }),
     ).rejects.toThrow(/clone record hash drifted/);
+  });
+
+  it("refuses before delete when the independently fetched source UID drifts", async () => {
+    const fixture = preDeleteFixture();
+    await expect(
+      verifyPreDeleteLiveEvidence({
+        client: preDeleteClient(fixture, fixture.fields, "changed-source-database-uid"),
+        retirement: fixture.retirement,
+        env: testEnv({ GCLOUD_BIN: "/safe/gcloud" }),
+        account: "operator@pmikcmetro.com",
+        execFile: fenceReadbackTransport(),
+      }),
+    ).rejects.toThrow(/Production source database identity drifted/);
   });
 
   it("refuses before delete when either 100% fence revision drifts", async () => {
@@ -1166,11 +1223,18 @@ function preDeleteFixture() {
         destinationDatabase: cloneDatabase,
         pitrSnapshot: {
           database: sourceDatabase,
-          databaseUid: sourceUid,
+          databaseUid: null,
           snapshotTime,
         },
       },
       lroResponse: { database: cloneDatabase, databaseUid: cloneUid },
+      sourceDatabaseReadback: {
+        database: sourceDatabase,
+        databaseUid: sourceUid,
+        locationId: "us-central1",
+        type: "FIRESTORE_NATIVE",
+        deleteTime: null,
+      },
       databaseReadback: {
         database: cloneDatabase,
         databaseUid: cloneUid,
@@ -1184,12 +1248,13 @@ function preDeleteFixture() {
       verifiedAt: "2026-08-02T19:45:00Z",
     },
   }) as BackupVerifiedRetirement;
-  return { retirement, fields, cloneDatabase, cloneUid };
+  return { retirement, fields, cloneDatabase, cloneUid, sourceDatabase, sourceUid };
 }
 
 function preDeleteClient(
   fixture: ReturnType<typeof preDeleteFixture>,
   cloneFields: FirestoreRestFields,
+  sourceUid = fixture.sourceUid,
 ): FirestoreRestClient {
   return restClient(async (url) => {
     if (url.includes(":batchGet")) {
@@ -1203,6 +1268,14 @@ function preDeleteClient(
           },
         },
       ]);
+    }
+    if (url.includes(`/databases/${S56_DATABASE}`)) {
+      return jsonResponse({
+        name: fixture.sourceDatabase,
+        uid: sourceUid,
+        locationId: "us-central1",
+        type: "FIRESTORE_NATIVE",
+      });
     }
     return jsonResponse({
       name: fixture.cloneDatabase,

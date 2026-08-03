@@ -98,13 +98,22 @@ export interface ProductionTestPitrCloneEvidence {
     readonly destinationDatabase: string;
     readonly pitrSnapshot: Readonly<{
       readonly database: string;
-      readonly databaseUid: string;
+      /** Firestore's clone LRO may omit this UID; null records that absence without fabrication. */
+      readonly databaseUid: string | null;
       readonly snapshotTime: string;
     }>;
   }>;
   readonly lroResponse: Readonly<{
     readonly database: string;
     readonly databaseUid: string;
+  }>;
+  /** Independently fetched source database GET, captured after the clone LRO completes. */
+  readonly sourceDatabaseReadback: Readonly<{
+    readonly database: string;
+    readonly databaseUid: string;
+    readonly locationId: "us-central1";
+    readonly type: "FIRESTORE_NATIVE";
+    readonly deleteTime: null;
   }>;
   readonly databaseReadback: Readonly<{
     readonly database: string;
@@ -795,10 +804,15 @@ function assertPitrCloneEvidence(
   clone: ProductionTestPitrCloneEvidence,
   records: readonly Pick<ProductionTestRecordSnapshot, "documentName" | "recordHash">[],
 ): void {
-  if (!clone.lroMetadata?.pitrSnapshot || !clone.lroResponse || !clone.databaseReadback) {
+  if (
+    !clone.lroMetadata?.pitrSnapshot ||
+    !clone.lroResponse ||
+    !clone.sourceDatabaseReadback ||
+    !clone.databaseReadback
+  ) {
     refuse(
       "missing_clone_identity",
-      "Clone evidence is missing its LRO metadata, LRO response, or database readback.",
+      "Clone evidence is missing its LRO metadata, LRO response, source database readback, or clone database readback.",
     );
   }
   const [primaryFence, rollbackFence] = backup.intakeFences ?? [];
@@ -825,15 +839,26 @@ function assertPitrCloneEvidence(
     ["clone operation", clone.operationRef],
     ["LRO destination database", clone.lroMetadata.destinationDatabase],
     ["LRO PITR source database", clone.lroMetadata.pitrSnapshot.database],
-    ["LRO PITR source database uid", clone.lroMetadata.pitrSnapshot.databaseUid],
     ["LRO response database", clone.lroResponse.database],
     ["LRO response database uid", clone.lroResponse.databaseUid],
+    ["source readback database", clone.sourceDatabaseReadback.database],
+    ["source readback database uid", clone.sourceDatabaseReadback.databaseUid],
     ["clone readback database", clone.databaseReadback.database],
     ["clone readback database uid", clone.databaseReadback.databaseUid],
   ] as const) {
     if (typeof value !== "string" || !value.trim()) {
       refuse("invalid_backup_evidence", `Missing ${label}.`);
     }
+  }
+  const lroSourceDatabaseUid = clone.lroMetadata.pitrSnapshot.databaseUid;
+  if (
+    lroSourceDatabaseUid !== null &&
+    (typeof lroSourceDatabaseUid !== "string" || !lroSourceDatabaseUid.trim())
+  ) {
+    refuse(
+      "invalid_backup_evidence",
+      "The LRO PITR source database uid must be a non-empty string or an explicit null when the provider omits it.",
+    );
   }
   assertS56DatabaseName(backup.sourceDatabase, "PITR source database");
   assertS56DatabaseName(clone.sourceDatabase, "Clone source database");
@@ -888,12 +913,18 @@ function assertPitrCloneEvidence(
   if (
     clone.lroMetadata.destinationDatabase !== clone.cloneDatabase ||
     clone.lroMetadata.pitrSnapshot.database !== backup.sourceDatabase ||
-    clone.lroMetadata.pitrSnapshot.databaseUid !== backup.sourceDatabaseUid ||
+    (lroSourceDatabaseUid !== null &&
+      lroSourceDatabaseUid !== backup.sourceDatabaseUid) ||
     !sameRfc3339Instant(
       clone.lroMetadata.pitrSnapshot.snapshotTime,
       backup.snapshotTime,
     ) ||
     clone.lroResponse.database !== clone.cloneDatabase ||
+    clone.sourceDatabaseReadback.database !== backup.sourceDatabase ||
+    clone.sourceDatabaseReadback.databaseUid !== backup.sourceDatabaseUid ||
+    clone.sourceDatabaseReadback.locationId !== "us-central1" ||
+    clone.sourceDatabaseReadback.type !== "FIRESTORE_NATIVE" ||
+    clone.sourceDatabaseReadback.deleteTime !== null ||
     clone.databaseReadback.database !== clone.cloneDatabase ||
     clone.lroResponse.databaseUid !== clone.databaseReadback.databaseUid ||
     clone.lroResponse.databaseUid === backup.sourceDatabaseUid ||
@@ -903,7 +934,7 @@ function assertPitrCloneEvidence(
   ) {
     refuse(
       "clone_identity_mismatch",
-      "The completed clone LRO and destination database readback do not preserve the exact source, snapshot, destination, UID, location, type, and non-deleted identity.",
+      "The completed clone LRO and independent source/destination database readbacks do not preserve the exact source, snapshot, destination, UID, location, type, and non-deleted identity.",
     );
   }
   if (

@@ -83,6 +83,13 @@ const CLONE_BASE = {
     database: BACKUP_CLONE_DATABASE,
     databaseUid: CLONE_DATABASE_UID,
   },
+  sourceDatabaseReadback: {
+    database: SOURCE_DATABASE,
+    databaseUid: SOURCE_DATABASE_UID,
+    locationId: "us-central1",
+    type: "FIRESTORE_NATIVE",
+    deleteTime: null,
+  },
   databaseReadback: {
     database: BACKUP_CLONE_DATABASE,
     databaseUid: CLONE_DATABASE_UID,
@@ -434,7 +441,7 @@ describe("S56 v2 DELETE manifest", () => {
     ).toThrow(/predates at least one serving/);
   });
 
-  it("binds source PITR metadata, LRO snapshot identity, response UID, and GET readback", () => {
+  it("binds source PITR metadata, LRO snapshot identity, response UID, and both GET readbacks", () => {
     const record = snapshot("vendors", "v1", laneFields("test"));
     const clone = {
       ...CLONE_BASE,
@@ -487,6 +494,15 @@ describe("S56 v2 DELETE manifest", () => {
     expect(() =>
       manifest([record], BACKUP, {
         ...clone,
+        sourceDatabaseReadback: {
+          ...clone.sourceDatabaseReadback,
+          databaseUid: "wrong-source-readback-uid",
+        },
+      }),
+    ).toThrow(/exact source, snapshot, destination, UID/);
+    expect(() =>
+      manifest([record], BACKUP, {
+        ...clone,
         databaseReadback: {
           ...clone.databaseReadback,
           databaseUid: "different-destination-uid",
@@ -503,6 +519,42 @@ describe("S56 v2 DELETE manifest", () => {
         clone,
       ),
     ).toThrow(/PITR window/);
+  });
+
+  it("accepts an honestly absent LRO source UID only with the exact independent source GET", () => {
+    const record = snapshot("vendors", "v1", laneFields("test"));
+    const clone = {
+      ...CLONE_BASE,
+      lroMetadata: {
+        ...CLONE_BASE.lroMetadata,
+        pitrSnapshot: {
+          ...CLONE_BASE.lroMetadata.pitrSnapshot,
+          databaseUid: null,
+        },
+      },
+      verifiedRecordCount: 1,
+      verifiedAggregateHash: productionTestRecordAggregateHash([record]),
+    };
+
+    expect(() => manifest([record], BACKUP, clone)).not.toThrow();
+    expect(() =>
+      manifest([record], BACKUP, {
+        ...clone,
+        sourceDatabaseReadback: {
+          ...clone.sourceDatabaseReadback,
+          database: "projects/pmi-kc-kb-prod/databases/other",
+        },
+      }),
+    ).toThrow(/exact source, snapshot, destination, UID/);
+    expect(() =>
+      manifest([record], BACKUP, {
+        ...clone,
+        sourceDatabaseReadback: {
+          ...clone.sourceDatabaseReadback,
+          locationId: "europe-west1" as "us-central1",
+        },
+      }),
+    ).toThrow(/exact source, snapshot, destination, UID/);
   });
 
   it("compares RFC3339 snapshot instants at nanosecond precision", () => {

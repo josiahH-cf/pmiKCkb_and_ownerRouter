@@ -145,11 +145,12 @@ interface CloneVerificationEvidence extends Omit<PendingCloneRequest, "state"> {
     destinationDatabase: string;
     pitrSnapshot: Readonly<{
       database: string;
-      databaseUid: string;
+      databaseUid: string | null;
       snapshotTime: string;
     }>;
   }>;
   readonly lroResponse: Readonly<{ database: string; databaseUid: string }>;
+  readonly sourceDatabaseReadback: SourceDatabaseReadbackEvidence;
   readonly databaseReadback: Readonly<{
     database: string;
     databaseUid: string;
@@ -185,6 +186,14 @@ interface SourceDatabaseEvidence {
   readonly pitrEnablement: "POINT_IN_TIME_RECOVERY_ENABLED";
   readonly deleteProtectionState: "DELETE_PROTECTION_ENABLED";
   readonly readAt: string;
+}
+
+interface SourceDatabaseReadbackEvidence {
+  readonly database: string;
+  readonly databaseUid: string;
+  readonly locationId: "us-central1";
+  readonly type: "FIRESTORE_NATIVE";
+  readonly deleteTime: null;
 }
 
 export interface DeletionEvidence {
@@ -1825,6 +1834,14 @@ export async function verifyPreDeleteLiveEvidence(input: {
 }): Promise<{ readonly cloneRecordCount: number; readonly fenceCount: 2 }> {
   validateProductionTestRetirementManifest(input.retirement);
   const clone = input.retirement.clone;
+  const liveSourceDatabase = exactSourceDatabaseReadback(
+    input.client,
+    await input.client.getDatabase(S56_DATABASE),
+    input.retirement.backup.sourceDatabaseUid,
+  );
+  if (stableJson(liveSourceDatabase) !== stableJson(clone.sourceDatabaseReadback)) {
+    throw new Error("The Production source database identity drifted before deletion.");
+  }
   const cloneDatabaseId = databaseIdFromName(clone.cloneDatabase);
   const expectedDatabase = clone.databaseReadback;
   const liveDatabase = await input.client.getDatabase(cloneDatabaseId);
@@ -2352,16 +2369,47 @@ function objectField(
   return nested as Readonly<Record<string, unknown>>;
 }
 
+function exactSourceDatabaseReadback(
+  client: FirestoreRestClient,
+  readback: Readonly<Record<string, unknown>>,
+  expectedUid: string,
+): SourceDatabaseReadbackEvidence {
+  const expectedDatabase = client.databaseName();
+  if (
+    readback.name !== expectedDatabase ||
+    readback.uid !== expectedUid ||
+    readback.locationId !== S56_LOCATION ||
+    readback.type !== "FIRESTORE_NATIVE" ||
+    (readback.deleteTime ?? null) !== null
+  ) {
+    throw new Error(
+      "The independently fetched Production source database identity drifted.",
+    );
+  }
+  return {
+    database: expectedDatabase,
+    databaseUid: expectedUid,
+    locationId: S56_LOCATION,
+    type: "FIRESTORE_NATIVE",
+    deleteTime: null,
+  };
+}
+
 export function assertCloneReadback(input: {
   readonly client: FirestoreRestClient;
   readonly completed: GoogleLongRunningOperation;
   readonly database: Readonly<Record<string, unknown>>;
+  readonly sourceDatabase: Readonly<Record<string, unknown>>;
   readonly destinationDatabase: string;
   readonly snapshotTime: string;
   readonly sourceDatabaseUid: string;
 }): Pick<
   CloneVerificationEvidence,
-  "cloneDatabaseUid" | "lroMetadata" | "lroResponse" | "databaseReadback"
+  | "cloneDatabaseUid"
+  | "lroMetadata"
+  | "lroResponse"
+  | "sourceDatabaseReadback"
+  | "databaseReadback"
 > {
   const expectedName = input.client.databaseName(input.destinationDatabase);
   const response = objectField(
@@ -2390,11 +2438,24 @@ export function assertCloneReadback(input: {
     "metadata",
   );
   const pitrSnapshot = objectField(metadata, "pitrSnapshot");
+  const rawLroSourceUid = pitrSnapshot.databaseUid;
+  const lroSourceUid =
+    rawLroSourceUid === undefined || rawLroSourceUid === null
+      ? null
+      : typeof rawLroSourceUid === "string" && rawLroSourceUid.trim()
+        ? rawLroSourceUid
+        : undefined;
+  const sourceDatabaseReadback = exactSourceDatabaseReadback(
+    input.client,
+    input.sourceDatabase,
+    input.sourceDatabaseUid,
+  );
   if (
     metadata.operationState !== "SUCCESSFUL" ||
     metadata.database !== expectedName ||
     pitrSnapshot.database !== input.client.databaseName() ||
-    pitrSnapshot.databaseUid !== input.sourceDatabaseUid ||
+    lroSourceUid === undefined ||
+    (lroSourceUid !== null && lroSourceUid !== input.sourceDatabaseUid) ||
     typeof pitrSnapshot.snapshotTime !== "string" ||
     compareFirestoreTimestamps(pitrSnapshot.snapshotTime, input.snapshotTime) !== 0
   ) {
@@ -2409,11 +2470,12 @@ export function assertCloneReadback(input: {
       destinationDatabase: expectedName,
       pitrSnapshot: {
         database: input.client.databaseName(),
-        databaseUid: input.sourceDatabaseUid,
+        databaseUid: lroSourceUid,
         snapshotTime: input.snapshotTime,
       },
     },
     lroResponse: { database: expectedName, databaseUid: responseUid },
+    sourceDatabaseReadback,
     databaseReadback: {
       database: expectedName,
       databaseUid,
@@ -2574,11 +2636,13 @@ export async function runS56Phase(
 
     const operation = await client.getOperation(requested.operation);
     const completed = await waitForOperation(client, operation, { sleep, now });
+    const sourceDatabase = await client.getDatabase(S56_DATABASE);
     const database = await client.getDatabase(args.backupDatabase!);
     const identityReadback = assertCloneReadback({
       client,
       completed,
       database,
+      sourceDatabase,
       destinationDatabase: args.backupDatabase!,
       snapshotTime: manifest.readTime,
       sourceDatabaseUid: requested.sourceDatabase.uid,
@@ -2633,6 +2697,7 @@ export async function runS56Phase(
       lroDone: true,
       lroMetadata: manifest.pendingClone.lroMetadata,
       lroResponse: manifest.pendingClone.lroResponse,
+      sourceDatabaseReadback: manifest.pendingClone.sourceDatabaseReadback,
       databaseReadback: manifest.pendingClone.databaseReadback,
       verification: "manifest-record-hashes",
       verifiedRecordCount: verified.count,
