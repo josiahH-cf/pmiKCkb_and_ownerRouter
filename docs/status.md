@@ -8862,3 +8862,31 @@ shape with zero matches, while a normal POST mutation and GET reconciliation eac
 `LiveReadOnlyMutationRefused`. No record content was printed or retained, and no durable writer or
 effect provider ran. The next ordered step is the complete marker inventory and Production count;
 no count, backup, restore, record deletion, fixture retirement, or old-service deletion has run.
+
+## 2026-08-02 — S56 count and backup verified; restore paused at interactive auth
+
+The complete post-fence, read-only inventory found exactly 90 explicit Test records. Non-zero
+collections were: `approval_queue_items` 7, `lease_renewal_test_action_attempts` 22,
+`lease_renewal_test_action_receipts` 22, `lease_renewal_test_business_events` 1,
+`lease_renewal_test_runs` 5, `maintenance_test_action_receipts` 12, `maintenance_tickets` 2,
+`vendor_test_mailbox_confirmations` 2, `vendor_test_mailboxes` 1,
+`vendor_ticket_assignments` 2, `vendor_ticket_thread_links` 1, `vendors` 1, and
+`workflow_runs` 12. Every other governed collection counted zero.
+
+The exact, resumable retirement tooling landed at commits `5ab3def` and `32f36c1`. Named PITR clone
+`s56-test-retirement-20260802-233824` reached READY, and a full-field verification matched all 90
+planned records. Restore-drill database `s56-restore-drill-20260803-004042` was then created and its
+ownership verified, but the managed CLI refresh expired before any restore write or Production
+delete. Production deletion never began; all 90 explicit Test records remain.
+
+The only blocker is owner-run interactive CLI refresh:
+
+```text
+gcloud auth login josiah@pmikcmetro.com
+```
+
+After refresh, resume the SAME restore drill with `npm run s56:test-records:rehearse-restore`, the
+existing drill name, and the private manifest digest. Do not create another clone or drill. Only
+after the one-record restore is verified may `npm run s56:test-records:delete` run, followed by
+`npm run s56:test-records:verify-zero`. The latest unpiped full gate exited zero: 464 unit files /
+4,221 tests and 23 Firestore files / 109 tests. No D12 path or action gate changed.

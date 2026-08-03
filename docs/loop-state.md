@@ -17,9 +17,9 @@ spec_package_status: EXECUTING
 implementation_status: EXECUTING_ORDERED_S56_CHAIN
 next_suite: S56
 next_spec: docs/feature-suites/production-live-only-test-lane-retirement.md
-session_auth_status: GREEN_ADC_MANAGED_ACCOUNT_AND_CLI_TOKEN
-active_slice: S56-COUNT-BACKUP-RESTORE-DELETE
-last_completed_slice: S56-LOCAL-DEMO-LIVE-READONLY
+session_auth_status: BLOCKED_OWNER_INTERACTIVE_GCLOUD_REFRESH
+active_slice: S56-RESTORE-DRILL-AUTH-BLOCKED
+last_completed_slice: S56-COUNT-AND-BACKUP-VERIFIED
 runtime_action_gates_preflipped: false
 ```
 
@@ -37,9 +37,8 @@ runtime_action_gates_preflipped: false
 
 ## Current truth
 
-- Auth GREEN 2026-07-31; release path BUILT; **S52 ceiling APPLIED**, so cost/live/cloud steps have
-  headroom. Owner set `KB_APPROVAL_SENDER=josiah@pmikcmetro.com` (2026-08-01), clearing the preflight
-  refusal that blocked EVERY production deploy.
+- Release path BUILT and **S52 ceiling APPLIED**, so cost/live/cloud steps have headroom. The managed
+  CLI refresh expired during S56 restore rehearsal; owner must run the interactive command named below.
 - S54.1's widened Firestore gate/falsification is complete; remote CI run `30510068990` passed.
 - S53.2 Sheet, S53.3 Drive, S53.4 sender/config, S53.5 Vendor lifecycle, S52-I/J, and the
   fail-closed budget planner are COMPLETE LOCALLY; every provider key remains closed and D32 is still
@@ -55,6 +54,9 @@ runtime_action_gates_preflipped: false
   `pmi-kc-kb-demo-rmsbyzhi7-666d075ffe32`. Both exact smokes are green; no D12 path changed.
 - S56 AC-S56-6 is locally complete (`F-S56-LOCAL-LIVE-READONLY`): the explicit descriptor, badge,
   real bounded reads, request-wide refusal, direct writer fences, and actual local runtime are green.
+- S56 AC-S56-2 is complete and its backup prerequisite is verified: 90 explicit Test records were
+  counted, and named PITR clone `s56-test-retirement-20260802-233824` is READY with all 90 records
+  full-field verified. The restore drill exists, but authentication expired before restore or delete.
 - Kill switch armed at the applied $100 (budget + `KILL_SWITCH_CAP_USD` both read back). Caveat:
   budgets are `INCLUDE_ALL_CREDITS`, so $0 July may be credit-masked; guardrail Node 20 dies 30 Oct 2026.
 
@@ -85,7 +87,8 @@ runtime_action_gates_preflipped: false
     commit after exact candidate smoke, env readback, promotion and stable-URL smoke.
 12. **S56 local rehearsal — COMPLETE** — explicit Demo + Live-read-only, real bounded reads, badge,
     proxy/direct fences, AST inventory, and actual-runtime refusal proof are green.
-    12b. **NEXT:** count → named backup + rehearsed restore → delete → zero proof → retire machinery;
+    12b. **IN PROGRESS:** count and named backup are verified; refresh managed CLI auth, resume the
+    existing restore drill, then delete → zero proof → retire machinery;
     S55 stage-two rollback rehearsal and old-service deletion remain the LAST programme step.
 13. **S53 remaining activations** — as each owner value lands, each with its paired
     deploy-wrapper change.
@@ -93,8 +96,8 @@ runtime_action_gates_preflipped: false
 
 ## Named external evidence
 
-- **Blocking the ordered S56 chain:** none. S52, managed auth, release path, sender, and both-service
-  intake fencing are verified; destructive work still waits on its own named backup/restore proof.
+- **Blocking the ordered S56 chain:** managed CLI refresh only. Owner runs interactive
+  `gcloud auth login josiah@pmikcmetro.com`; do not create another backup or restore-drill database.
 - Also open: RentVine write endpoint (S30, S47); RentCast key plus rate limits/radius/min comp count;
   Dotloop OAuth; LeadSimple key + contract; Chasity's renewal template (S43); S53
   sender value and the D32 Sheet transaction broker (mutate + status + absent-key tombstone +
@@ -126,10 +129,9 @@ runtime_action_gates_preflipped: false
 
 ## Resume
 
-**S56 intake is fenced on BOTH services and local Live-read-only is green.** Continue in the
-user-locked order; do not start another suite. Implement the complete marker inventory and DELETE
-contract; the legacy six-collection migration planner is insufficient. Count first, then create a
-named post-fence backup/clone and prove one-record restore before deletion. Prove exact planned/reread
-set equality and zero afterwards; do not infer Test from names or linked artifacts.
+**S56 intake is fenced on BOTH services; local Live-read-only, the 90-record count, and the named
+backup are verified.** After the owner refreshes managed CLI auth, rerun the existing
+`s56-restore-drill-20260803-004042` restore command with the private manifest digest; do not create a
+replacement drill. Only after restore proof may deletion begin; then prove all governed counts zero.
 Keep `data_mode`; retire only the Test lane/machinery. Preserve `pmi-kc-kb-demo` through all S56
 work. S55 AC-S55-9 rollback rehearsal and literal old-service deletion are the LAST programme step.
