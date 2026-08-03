@@ -716,6 +716,55 @@ describe("restore-drill crash recovery", () => {
     expect(harness.metrics().restoreCommits).toBe(1);
   });
 
+  it("accepts etag churn after exact identity validation and deletes with the fresh etag", async () => {
+    const harness = restoreDrillCrashHarness();
+    harness.failNext("RESTORE_VERIFIED");
+
+    await expect(harness.run()).rejects.toThrow(/simulated manifest write loss/);
+    expect(harness.durable().restoreDrill?.state).toBe("READY");
+    harness.setReadbackEtag("etag/refreshed");
+
+    const completed = await harness.run();
+    expect(completed.restoreDrill?.state).toBe("CLEANUP_VERIFIED");
+    expect(harness.metrics()).toMatchObject({
+      deleteRequests: 1,
+      deleteEtags: ["etag/refreshed"],
+    });
+    expect(harness.metrics().deleteRequestUrls[0]).toContain("etag=etag%2Frefreshed");
+    expect(harness.metrics().deleteRequestUrls[0]).not.toContain("etag=etag-ready");
+  });
+
+  it("refuses UID drift before issuing the restore-drill delete", async () => {
+    const harness = restoreDrillCrashHarness();
+    harness.failNext("RESTORE_VERIFIED");
+    await expect(harness.run()).rejects.toThrow(/simulated manifest write loss/);
+    harness.setReadbackUid("different-database-uid");
+
+    await expect(harness.run()).rejects.toThrow(/identity drifted during recovery/);
+    expect(harness.metrics().deleteRequests).toBe(0);
+  });
+
+  it("refuses creation-time drift before issuing the restore-drill delete", async () => {
+    const harness = restoreDrillCrashHarness();
+    harness.failNext("RESTORE_VERIFIED");
+    await expect(harness.run()).rejects.toThrow(/simulated manifest write loss/);
+    harness.setReadbackCreateTime("2026-08-02T20:00:02Z");
+
+    await expect(harness.run()).rejects.toThrow(/identity drifted during recovery/);
+    expect(harness.metrics().deleteRequests).toBe(0);
+  });
+
+  it("refuses to resume persisted restore state under a different named drill", async () => {
+    const harness = restoreDrillCrashHarness();
+    harness.failNext("RESTORE_VERIFIED");
+    await expect(harness.run()).rejects.toThrow(/simulated manifest write loss/);
+
+    await expect(harness.run("s56-restore-drill-different-20260802")).rejects.toThrow(
+      /does not match its exact persisted intent/,
+    );
+    expect(harness.metrics().deleteRequests).toBe(0);
+  });
+
   it("recovers an accepted delete from the same owned UID until absence", async () => {
     const harness = restoreDrillCrashHarness();
     harness.failNext("CLEANUP_REQUESTED");
@@ -735,6 +784,17 @@ describe("restore-drill crash recovery", () => {
     harness.failNext("CLEANUP_REQUESTED");
     await expect(harness.run()).rejects.toThrow(/simulated manifest write loss/);
     harness.setReadbackUid("different-database-uid");
+
+    await expect(harness.run()).rejects.toThrow(/did not match the owned UID/);
+    expect(harness.metrics().deleteRequests).toBe(1);
+    expect(harness.durable().restoreDrill?.state).toBe("RESTORE_VERIFIED");
+  });
+
+  it("refuses cleanup recovery when the deleting database creation time drifts", async () => {
+    const harness = restoreDrillCrashHarness();
+    harness.failNext("CLEANUP_REQUESTED");
+    await expect(harness.run()).rejects.toThrow(/simulated manifest write loss/);
+    harness.setReadbackCreateTime("2026-08-02T20:00:02Z");
 
     await expect(harness.run()).rejects.toThrow(/did not match the owned UID/);
     expect(harness.metrics().deleteRequests).toBe(1);
@@ -1024,6 +1084,8 @@ function restoreDrillCrashHarness() {
   };
   let failureState: RestoreDrillState["state"] | undefined;
   let readbackUid = "restore-drill-owned-uid";
+  let readbackCreateTime = "2026-08-02T20:00:01Z";
+  let readbackEtag = "etag-ready";
   let databaseExists = false;
   let deleting = false;
   let documentExists = false;
@@ -1031,17 +1093,19 @@ function restoreDrillCrashHarness() {
   let acceptedCreates = 0;
   let restoreCommits = 0;
   let deleteRequests = 0;
+  const deleteEtags: string[] = [];
+  const deleteRequestUrls: string[] = [];
   let timestampSecond = 0;
   const output: string[] = [];
 
   const databaseReadback = () => ({
     name: databaseResource,
     uid: readbackUid,
-    createTime: "2026-08-02T20:00:01Z",
+    createTime: readbackCreateTime,
     locationId: "us-central1",
     type: "FIRESTORE_NATIVE",
     deleteProtectionState: "DELETE_PROTECTION_DISABLED",
-    etag: deleting ? "etag-deleting" : "etag-ready",
+    etag: deleting ? "etag-deleting" : readbackEtag,
     ...(deleting ? { deleteTime: "2026-08-02T20:00:04Z" } : {}),
   });
 
@@ -1084,13 +1148,16 @@ function restoreDrillCrashHarness() {
       return { commitTime: "2026-08-02T20:00:02Z" };
     },
     getDocument: async (name: string) => ({ name, fields: fixture.fields }),
-    deleteDrillDatabase: async () => {
+    deleteDrillDatabase: async (database: string, etag: string) => {
+      const deleteClient = restClient(async (url) => {
+        deleteRequestUrls.push(url);
+        return jsonResponse({ name: deleteOperation });
+      });
+      const deletion = await deleteClient.deleteDrillDatabase(database, etag);
       deleteRequests += 1;
+      deleteEtags.push(etag);
       deleting = true;
-      return {
-        kind: "accepted" as const,
-        operation: { name: deleteOperation },
-      };
+      return deletion;
     },
     getOperationIfPresent: async (name: string) => {
       if (name !== deleteOperation) throw new Error("unexpected cleanup operation");
@@ -1109,12 +1176,12 @@ function restoreDrillCrashHarness() {
   };
 
   return {
-    run: () =>
+    run: (runDrill = drill) =>
       rehearseProductionTestRestore({
         client,
         retirement: fixture.retirement,
         manifest: durableManifest,
-        drill,
+        drill: runDrill,
         persist,
         sleep: async () => {
           if (deleting) {
@@ -1131,6 +1198,12 @@ function restoreDrillCrashHarness() {
     setReadbackUid: (uid: string) => {
       readbackUid = uid;
     },
+    setReadbackCreateTime: (createTime: string) => {
+      readbackCreateTime = createTime;
+    },
+    setReadbackEtag: (etag: string) => {
+      readbackEtag = etag;
+    },
     durable: () => durableManifest,
     logs: () => output,
     metrics: () => ({
@@ -1138,6 +1211,8 @@ function restoreDrillCrashHarness() {
       acceptedCreates,
       restoreCommits,
       deleteRequests,
+      deleteEtags,
+      deleteRequestUrls,
       databaseExists,
       deleting,
     }),

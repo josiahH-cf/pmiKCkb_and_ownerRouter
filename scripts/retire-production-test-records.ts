@@ -1991,7 +1991,14 @@ function assertSameRestoreDrillIdentity(
   expected: RestoreDrillDatabaseIdentity,
   actual: RestoreDrillDatabaseIdentity,
 ): void {
-  if (stableJson(expected) !== stableJson(actual)) {
+  if (
+    actual.resource !== expected.resource ||
+    actual.uid !== expected.uid ||
+    actual.createTime !== expected.createTime ||
+    actual.locationId !== expected.locationId ||
+    actual.type !== expected.type ||
+    actual.deleteProtectionState !== expected.deleteProtectionState
+  ) {
     throw new Error("The restore-drill database identity drifted during recovery.");
   }
 }
@@ -2274,17 +2281,21 @@ export async function rehearseProductionTestRestore(input: {
     const database = await client.getDatabaseIfPresent(drill);
     const deletionAlreadyInProgress =
       database && restoreDrillIsOwnedAndDeleting(state!.identity, database);
+    let currentIdentity: RestoreDrillDatabaseIdentity | null = null;
     if (database) {
       if (!deletionAlreadyInProgress) {
-        assertSameRestoreDrillIdentity(
-          state!.identity,
-          restoreDrillIdentity(client, drill, database, state!.absenceVerifiedAt),
+        currentIdentity = restoreDrillIdentity(
+          client,
+          drill,
+          database,
+          state!.absenceVerifiedAt,
         );
+        assertSameRestoreDrillIdentity(state!.identity, currentIdentity);
       }
     }
     const deletion =
-      database && !deletionAlreadyInProgress
-        ? await client.deleteDrillDatabase(drill, state!.identity.etag)
+      currentIdentity && !deletionAlreadyInProgress
+        ? await client.deleteDrillDatabase(drill, currentIdentity.etag)
         : { kind: "already_absent_or_deleting" as const };
     if (deletion.kind === "accepted" && !deletion.operation.name) {
       stdout(`Restore-drill cleanup recovery destination: ${client.databaseName(drill)}`);
